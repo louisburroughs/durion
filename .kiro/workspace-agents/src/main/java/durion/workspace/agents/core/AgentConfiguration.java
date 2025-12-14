@@ -22,6 +22,14 @@ public class AgentConfiguration {
         this.maxConcurrentRequests = 10;
         this.enablePerformanceMonitoring = true;
     }
+
+    public AgentConfiguration(String agentId, Map<String, Object> initialProperties) {
+        this.agentId = agentId;
+        this.properties = new HashMap<>(initialProperties);
+        this.responseTimeout = Duration.ofSeconds(5); // Default 5-second target
+        this.maxConcurrentRequests = 10;
+        this.enablePerformanceMonitoring = true;
+    }
     
     // Getters and setters
     public String getAgentId() { return agentId; }

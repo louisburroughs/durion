@@ -3,7 +3,6 @@ package durion.workspace.agents.config;
 import durion.workspace.agents.core.*;
 import durion.workspace.agents.monitoring.PerformanceMonitor;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -144,7 +143,7 @@ public class WorkspaceAgentConfigurationManager {
             // 4. Apply agent-specific configuration
             AgentConfiguration agentConfig = agentConfigurations.get(agentId);
             if (agentConfig != null) {
-                effectiveConfig.putAll(agentConfig.getProperties());
+                effectiveConfig.putAll(agentConfig.getAllProperties());
             }
             
             // 5. Apply environment-specific adaptations
