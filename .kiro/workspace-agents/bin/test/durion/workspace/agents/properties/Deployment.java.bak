@@ -1,0 +1,327 @@
+package durion.workspace.agents.properties;
+
+import durion.workspace.agents.core.*;
+import durion.workspace.agents.coordination.WorkspaceReleaseCoordinationAgent;
+import net.jqwik.api.*;
+import net.jqwik.api.constraints.*;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Assertions;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Property-based test for deployment coordination across environments
+ * 
+ * **Feature: workspace-agent-structure, Property 9: Deployment coordination across environments**
+ * **Validates: Requirements 3.3, 5.2, 8.4**
+ * 
+ * Property 9: Deployment coordination across environments
+ * For any deployment operation, agents should coordinate deployment sequences, 
+ * dependency management, and validation across all projects and their respective deployment targets
+ */
+@Tag("property-test")
+public class DeploymentCoordinationTest {
+
+    /**
+     * Property: Deployment sequence coordination
+     * 
+     * For any deployment across multiple environments, the coordination should
+     * ensure proper sequencing based on dependencies and environment constraints
+     */
+    @Property(tries = 100)
+    void shouldCoordinateDeploymentSequenceAcrossEnvironments(
+            @ForAll("deploymentScenarios") DeploymentScenario scenario) {
+        
+        // Given: A deployment scenario with multiple projects and environments
+        WorkspaceReleaseCoordinationAgent releaseAgent = new WorkspaceReleaseCoordinationAgent();
+        
+        // When: Coordinating deployment across environments
+        DeploymentCoordinationResult result = releaseAgent.coordinateDeployment(scenario);
+        
+        // Then: Deployment sequence should respect dependencies and environment constraints
+        Assertions.assertTrue(result.respectsDependencyOrder(scenario), 
+            "Deployment sequence should respect project dependencies");
+        
+        Assertions.assertTrue(result.respectsEnvironmentConstraints(scenario), 
+            "Deployment should respect environment-specific constraints");
+        
+        // Verify deployment validation within 15 minutes (requirement 3.3)
+        Assertions.assertTrue(result.getValidationTime().toMinutes() <= 15, 
+            "Deployment validation should complete within 15 minutes");
+        
+        // Verify 100% accuracy for deployment validation (requirement 11.1)
+        Assertions.assertEquals(1.0, result.getValidationAccuracy(), 0.01, 
+            "Deployment validation should have 100% accuracy");
+    }
+
+    /**
+     * Property: Cross-environment dependency management
+     * 
+     * For any deployment with cross-environment dependencies, the system should
+     * prevent deployment of incompatible versions and ensure consistency
+     */
+    @Property(tries = 100)
+    void shouldManageCrossEnvironmentDependencies(
+            @ForAll("crossEnvironmentDependencies") List<EnvironmentDependency> dependencies) {
+        
+        // Given: Cross-environment dependencies
+        WorkspaceReleaseCoordinationAgent releaseAgent = new WorkspaceReleaseCoordinationAgent();
+        
+        // When: Managing dependencies across environments
+        DependencyManagementResult result = releaseAgent.manageCrossEnvironmentDependencies(dependencies);
+        
+        // Then: Incompatible versions should be prevented
+        Set<String> actualConflicts = findActualVersionConflicts(dependencies);
+        Set<String> detectedConflicts = result.getDetectedConflicts();
+        
+        Assertions.assertEquals(actualConflicts, detectedConflicts, 
+            "All version conflicts should be detected with 100% accuracy");
+        
+        if (!actualConflicts.isEmpty()) {
+            Assertions.assertTrue(result.isDeploymentPrevented(), 
+                "Deployment should be prevented when conflicts exist");
+        } else {
+            Assertions.assertFalse(result.isDeploymentPrevented(), 
+                "Deployment should be allowed when no conflicts exist");
+        }
+    }
+
+    /**
+     * Property: Environment-specific validation
+     * 
+     * For any deployment target environment, validation should ensure
+     * compatibility and readiness before deployment proceeds
+     */
+    @Property(tries = 100)
+    void shouldValidateEnvironmentSpecificRequirements(
+            @ForAll("environmentConfigurations") List<EnvironmentConfiguration> environments) {
+        
+        // Given: Multiple environment configurations
+        WorkspaceReleaseCoordinationAgent releaseAgent = new WorkspaceReleaseCoordinationAgent();
+        
+        // When: Validating environment-specific requirements
+        EnvironmentValidationResult result = releaseAgent.validateEnvironments(environments);
+        
+        // Then: All environment requirements should be validated
+        for (EnvironmentConfiguration env : environments) {
+            Assertions.assertTrue(result.hasValidationFor(env.getEnvironmentName()), 
+                "Validation should be performed for all environments");
+            
+            EnvironmentValidation validation = result.getValidation(env.getEnvironmentName());
+            
+            if (env.hasIncompatibleRequirements()) {
+                Assertions.assertFalse(validation.isValid(), 
+                    "Environment with incompatible requirements should fail validation");
+            }
+        }
+        
+        // Verify performance optimization coordination (requirement 8.4)
+        Assertions.assertTrue(result.includesPerformanceOptimization(), 
+            "Environment validation should include performance optimization coordination");
+    }
+
+    // Generators for property-based testing
+
+    @Provide
+    Arbitrary<DeploymentScenario> deploymentScenarios() {
+        return Combinators.combine(
+            projectNames().list().ofMinSize(2).ofMaxSize(4),
+            environmentNames().list().ofMinSize(2).ofMaxSize(3),
+            deploymentVersions().list().ofMinSize(2).ofMaxSize(4),
+            dependencyRelations().list().ofMinSize(1).ofMaxSize(6)
+        ).as(DeploymentScenario::new);
+    }
+
+    @Provide
+    Arbitrary<List<EnvironmentDependency>> crossEnvironmentDependencies() {
+        return environmentDependency().list().ofMinSize(1).ofMaxSize(5);
+    }
+
+    @Provide
+    Arbitrary<EnvironmentDependency> environmentDependency() {
+        return Combinators.combine(
+            projectNames(),
+            environmentNames(),
+            deploymentVersions(),
+            projectNames(), // dependent project
+            environmentNames(), // dependent environment
+            Arbitraries.of(true, false) // hasVersionConflict
+        ).as(EnvironmentDependency::new);
+    }
+
+    @Provide
+    Arbitrary<List<EnvironmentConfiguration>> environmentConfigurations() {
+        return environmentConfiguration().list().ofMinSize(1).ofMaxSize(4);
+    }
+
+    @Provide
+    Arbitrary<EnvironmentConfiguration> environmentConfiguration() {
+        return Combinators.combine(
+            environmentNames(),
+            resourceRequirements(),
+            Arbitraries.of(true, false) // hasIncompatibleRequirements
+        ).as(EnvironmentConfiguration::new);
+    }
+
+    @Provide
+    Arbitrary<String> projectNames() {
+        return Arbitraries.of("positivity", "moqui_example", "durion-common", "durion-crm");
+    }
+
+    @Provide
+    Arbitrary<String> environmentNames() {
+        return Arbitraries.of("development", "staging", "production", "aws-fargate", "local");
+    }
+
+    @Provide
+    Arbitrary<String> deploymentVersions() {
+        return Combinators.combine(
+            Arbitraries.integers().between(1, 3),
+            Arbitraries.integers().between(0, 10),
+            Arbitraries.integers().between(0, 20)
+        ).as((major, minor, patch) -> major + "." + minor + "." + patch);
+    }
+
+    @Provide
+    Arbitrary<DependencyRelation> dependencyRelations() {
+        return Combinators.combine(
+            projectNames(),
+            projectNames()
+        ).as(DependencyRelation::new);
+    }
+
+    @Provide
+    Arbitrary<Map<String, Object>> resourceRequirements() {
+        return Arbitraries.maps(
+            Arbitraries.of("cpu", "memory", "storage", "network"),
+            Arbitraries.of("2GB", "4GB", "8GB", "100Mbps", "1Gbps")
+        ).ofMinSize(1).ofMaxSize(4);
+    }
+
+    // Helper methods
+
+    private Set<String> findActualVersionConflicts(List<EnvironmentDependency> dependencies) {
+        Map<String, Set<String>> projectVersions = new HashMap<>();
+        
+        for (EnvironmentDependency dep : dependencies) {
+            String key = dep.getProjectName() + ":" + dep.getDependentProject();
+            projectVersions.computeIfAbsent(key, k -> new HashSet<>())
+                          .add(dep.getVersion());
+        }
+        
+        return projectVersions.entrySet().stream()
+            .filter(entry -> entry.getValue().size() > 1)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+    }
+
+    // Supporting classes for testing
+
+    public record DeploymentScenario(
+        List<String> projects,
+        List<String> environments,
+        List<String> versions,
+        List<DependencyRelation> dependencies
+    ) {}
+
+    public record EnvironmentDependency(
+        String projectName,
+        String environment,
+        String version,
+        String dependentProject,
+        String dependentEnvironment,
+        boolean hasVersionConflict
+    ) {}
+
+    public record EnvironmentConfiguration(
+        String environmentName,
+        Map<String, Object> resourceRequirements,
+        boolean hasIncompatibleRequirements
+    ) {}
+
+    public record DependencyRelation(
+        String sourceProject,
+        String targetProject
+    ) {}
+
+    // Result classes
+
+    public static class DeploymentCoordinationResult {
+        private final boolean respectsDependencies;
+        private final boolean respectsEnvironmentConstraints;
+        private final Duration validationTime;
+        private final double validationAccuracy;
+
+        public DeploymentCoordinationResult(boolean respectsDependencies, boolean respectsEnvironmentConstraints, 
+                                          Duration validationTime, double validationAccuracy) {
+            this.respectsDependencies = respectsDependencies;
+            this.respectsEnvironmentConstraints = respectsEnvironmentConstraints;
+            this.validationTime = validationTime;
+            this.validationAccuracy = validationAccuracy;
+        }
+
+        public boolean respectsDependencyOrder(DeploymentScenario scenario) {
+            return respectsDependencies && scenario.dependencies().size() <= 6;
+        }
+
+        public boolean respectsEnvironmentConstraints(DeploymentScenario scenario) {
+            return respectsEnvironmentConstraints && scenario.environments().size() <= 3;
+        }
+
+        public Duration getValidationTime() { return validationTime; }
+        public double getValidationAccuracy() { return validationAccuracy; }
+    }
+
+    public static class DependencyManagementResult {
+        private final Set<String> detectedConflicts;
+        private final boolean deploymentPrevented;
+
+        public DependencyManagementResult(Set<String> detectedConflicts, boolean deploymentPrevented) {
+            this.detectedConflicts = new HashSet<>(detectedConflicts);
+            this.deploymentPrevented = deploymentPrevented;
+        }
+
+        public Set<String> getDetectedConflicts() { return new HashSet<>(detectedConflicts); }
+        public boolean isDeploymentPrevented() { return deploymentPrevented; }
+    }
+
+    public static class EnvironmentValidationResult {
+        private final Map<String, EnvironmentValidation> validations;
+        private final boolean includesPerformanceOptimization;
+
+        public EnvironmentValidationResult(Map<String, EnvironmentValidation> validations, 
+                                         boolean includesPerformanceOptimization) {
+            this.validations = new HashMap<>(validations);
+            this.includesPerformanceOptimization = includesPerformanceOptimization;
+        }
+
+        public boolean hasValidationFor(String environmentName) {
+            return validations.containsKey(environmentName);
+        }
+
+        public EnvironmentValidation getValidation(String environmentName) {
+            return validations.get(environmentName);
+        }
+
+        public boolean includesPerformanceOptimization() { return includesPerformanceOptimization; }
+    }
+
+    public static class EnvironmentValidation {
+        private final String environmentName;
+        private final boolean valid;
+        private final List<String> issues;
+
+        public EnvironmentValidation(String environmentName, boolean valid, List<String> issues) {
+            this.environmentName = environmentName;
+            this.valid = valid;
+            this.issues = new ArrayList<>(issues);
+        }
+
+        public String getEnvironmentName() { return environmentName; }
+        public boolean isValid() { return valid; }
+        public List<String> getIssues() { return new ArrayList<>(issues); }
+    }
+}

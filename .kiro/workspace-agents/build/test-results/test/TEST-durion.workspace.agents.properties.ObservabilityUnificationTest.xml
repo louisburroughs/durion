@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="durion.workspace.agents.properties.ObservabilityUnificationTest" tests="4" skipped="0" failures="1" errors="0" timestamp="2025-12-13T22:55:32" hostname="LE1ELPF4NQZRJ" time="0.127">
+  <properties/>
+  <testcase name="shouldMaintainDataConsistencyAcrossTechnologies" classname="durion.workspace.agents.properties.ObservabilityUnificationTest" time="0.028"/>
+  <testcase name="shouldProvideCorrelationAcrossTechnologies" classname="durion.workspace.agents.properties.ObservabilityUnificationTest" time="0.062">
+    <failure message="org.opentest4j.AssertionFailedError: Cross-technology correlations should be detected ==&gt; expected: &lt;true&gt; but was: &lt;false&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: Cross-technology correlations should be detected ==&gt; expected: &lt;true&gt; but was: &lt;false&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+	at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+	at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:211)
+	at app//durion.workspace.agents.properties.ObservabilityUnificationTest.shouldProvideCorrelationAcrossTechnologies(ObservabilityUnificationTest.java:125)
+	at jdk.internal.reflect.GeneratedMethodAccessor5.invoke(Unknown Source)
+	at java.base@17.0.17/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base@17.0.17/java.lang.reflect.Method.invoke(Method.java:569)
+	at app//org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:727)
+	at app//org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:198)
+	at app//net.jqwik.engine.execution.CheckedPropertyFactory.lambda$createRawFunction$1(CheckedPropertyFactory.java:84)
+	at app//net.jqwik.engine.execution.CheckedPropertyFactory.lambda$createRawFunction$2(CheckedPropertyFactory.java:91)
+	at app//net.jqwik.engine.properties.CheckedFunction.execute(CheckedFunction.java:17)
+	at app//net.jqwik.api.lifecycle.AroundTryHook.lambda$static$0(AroundTryHook.java:57)
+	at app//net.jqwik.engine.execution.lifecycle.HookSupport.lambda$wrap$2(HookSupport.java:48)
+	at app//net.jqwik.engine.hooks.lifecycle.TryLifecycleMethodsHook.aroundTry(TryLifecycleMethodsHook.java:57)
+	at app//net.jqwik.engine.execution.lifecycle.HookSupport.lambda$wrap$3(HookSupport.java:53)
+	at app//net.jqwik.engine.execution.lifecycle.HookSupport.lambda$wrap$2(HookSupport.java:48)
+	at app//net.jqwik.engine.hooks.lifecycle.BeforeTryMembersHook.aroundTry(BeforeTryMembersHook.java:69)
+	at app//net.jqwik.engine.execution.lifecycle.HookSupport.lambda$wrap$3(HookSupport.java:53)
+	at app//net.jqwik.engine.execution.CheckedPropertyFactory.lambda$createTryExecutor$0(CheckedPropertyFactory.java:60)
+	at app//net.jqwik.engine.execution.lifecycle.AroundTryLifecycle.execute(AroundTryLifecycle.java:23)
+	at app//net.jqwik.engine.properties.GenericProperty.lambda$createFalsifier$1(GenericProperty.java:229)
+	at app//net.jqwik.engine.properties.shrinking.PropertyShrinker.lambda$shrink$0(PropertyShrinker.java:55)
+	at app//net.jqwik.engine.properties.shrinking.PropertyShrinker.lambda$shrinkAsLongAsSampleImproves$6(PropertyShrinker.java:122)
+	at app//net.jqwik.engine.properties.shrinking.AbstractSampleShrinker.lambda$falsify$5(AbstractSampleShrinker.java:91)
+	at java.base@17.0.17/java.util.HashMap.computeIfAbsent(HashMap.java:1220)
+	at app//net.jqwik.engine.properties.shrinking.AbstractSampleShrinker.falsify(AbstractSampleShrinker.java:91)
+	at app//net.jqwik.engine.properties.shrinking.AbstractSampleShrinker.lambda$shrink$2(AbstractSampleShrinker.java:53)
+	at java.base@17.0.17/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base@17.0.17/java.util.stream.ReferencePipeline$2$1.accept(ReferencePipeline.java:179)
+	at java.base@17.0.17/java.util.stream.ReferencePipeline$15$1.accept(ReferencePipeline.java:541)
+	at java.base@17.0.17/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:197)
+	at java.base@17.0.17/java.util.stream.StreamSpliterators$WrappingSpliterator.tryAdvance(StreamSpliterators.java:300)
+	at java.base@17.0.17/java.util.stream.Streams$ConcatSpliterator.tryAdvance(Streams.java:720)
+	at java.base@17.0.17/java.util.stream.Streams$ConcatSpliterator.tryAdvance(Streams.java:723)
+	at java.base@17.0.17/java.util.stream.ReferencePipeline.forEachWithCancel(ReferencePipeline.java:129)
+	at java.base@17.0.17/java.util.stream.AbstractPipeline.copyIntoWithCancel(AbstractPipeline.java:527)
+	at java.base@17.0.17/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:513)
+	at java.base@17.0.17/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:499)
+	at java.base@17.0.17/java.util.stream.FindOps$FindOp.evaluateSequential(FindOps.java:150)
+	at java.base@17.0.17/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.base@17.0.17/java.util.stream.ReferencePipeline.findAny(ReferencePipeline.java:652)
+	at app//net.jqwik.engine.properties.shrinking.AbstractSampleShrinker.shrink(AbstractSampleShrinker.java:63)
+	at app//net.jqwik.engine.properties.shrinking.OneAfterTheOtherParameterShrinker.shrinkSingleParameter(OneAfterTheOtherParameterShrinker.java:43)
+	at app//net.jqwik.engine.properties.shrinking.OneAfterTheOtherParameterShrinker.shrink(OneAfterTheOtherParameterShrinker.java:25)
+	at app//net.jqwik.engine.properties.shrinking.ShrinkingAlgorithm.shrinkOneParameterAfterTheOther(ShrinkingAlgorithm.java:52)
+	at app//net.jqwik.engine.properties.shrinking.ShrinkingAlgorithm.shrink(ShrinkingAlgorithm.java:32)
+	at app//net.jqwik.engine.properties.shrinking.PropertyShrinker.shrinkAsLongAsSampleImproves(PropertyShrinker.java:135)
+	at app//net.jqwik.engine.properties.shrinking.PropertyShrinker.lambda$shrink$3(PropertyShrinker.java:87)
+	at app//net.jqwik.engine.execution.lifecycle.CurrentTestDescriptor.runWithDescriptor(CurrentTestDescriptor.java:17)
+	at app//net.jqwik.engine.properties.shrinking.PropertyShrinker.lambda$withTimeout$4(PropertyShrinker.java:103)
+	at app//net.jqwik.engine.execution.lifecycle.CurrentDomainContext.runWithContext(CurrentDomainContext.java:28)
+	at app//net.jqwik.engine.properties.shrinking.PropertyShrinker.lambda$withTimeout$5(PropertyShrinker.java:101)
+	at java.base@17.0.17/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768)
+	at java.base@17.0.17/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1760)
+	at java.base@17.0.17/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:373)
+	at java.base@17.0.17/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1182)
+	at java.base@17.0.17/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1655)
+	at java.base@17.0.17/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1622)
+	at java.base@17.0.17/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:165)
+</failure>
+  </testcase>
+  <testcase name="shouldProvideUnifiedDashboardsAcrossTechnologies" classname="durion.workspace.agents.properties.ObservabilityUnificationTest" time="0.012"/>
+  <testcase name="shouldProvideUnifiedAlertingForPerformanceDegradation" classname="durion.workspace.agents.properties.ObservabilityUnificationTest" time="0.023"/>
+  <system-out><![CDATA[timestamp = 2025-12-13T17:55:32.445256292, ObservabilityUnificationTest:shouldMaintainDataConsistencyAcrossTechnologies = 
+                              |-----------------------jqwik-----------------------
+tries = 100                   | # of calls to property
+checks = 100                  | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 100        | # of all combined edge cases
+edge-cases#tried = 20         | # of edge cases tried in current run
+seed = -7753718170640873660   | random seed to reproduce generated values
+
+
+timestamp = 2025-12-13T17:55:32.502703877, ObservabilityUnificationTest:shouldProvideCorrelationAcrossTechnologies = 
+  org.opentest4j.AssertionFailedError:
+    Cross-technology correlations should be detected ==> expected: <true> but was: <false>
+
+                              |-----------------------jqwik-----------------------
+tries = 6                     | # of calls to property
+checks = 6                    | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 0          | # of all combined edge cases
+edge-cases#tried = 0          | # of edge cases tried in current run
+seed = 1940138790863736932    | random seed to reproduce generated values
+
+Shrunk Sample (11 steps)
+------------------------
+  arg0: durion.workspace.agents.properties.ObservabilityUnificationTest$CorrelatedMetricSet@4879f0f2
+
+Original Sample
+---------------
+  arg0: durion.workspace.agents.properties.ObservabilityUnificationTest$CorrelatedMetricSet@1080b026
+
+  Original Error
+  --------------
+  org.opentest4j.AssertionFailedError:
+    Cross-technology correlations should be detected ==> expected: <true> but was: <false>
+
+
+timestamp = 2025-12-13T17:55:32.521046092, ObservabilityUnificationTest:shouldProvideUnifiedDashboardsAcrossTechnologies = 
+                              |-----------------------jqwik-----------------------
+tries = 100                   | # of calls to property
+checks = 100                  | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 40         | # of all combined edge cases
+edge-cases#tried = 21         | # of edge cases tried in current run
+seed = -8581510604379772895   | random seed to reproduce generated values
+
+
+timestamp = 2025-12-13T17:55:32.544482950, ObservabilityUnificationTest:shouldProvideUnifiedAlertingForPerformanceDegradation = 
+                              |-----------------------jqwik-----------------------
+tries = 100                   | # of calls to property
+checks = 100                  | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 40         | # of all combined edge cases
+edge-cases#tried = 13         | # of edge cases tried in current run
+seed = 6265993461623471492    | random seed to reproduce generated values
+
+
+]]></system-out>
+  <system-err><![CDATA[Dec 13, 2025 5:55:32 PM net.jqwik.engine.properties.RandomizedShrinkablesGenerator logEdgeCasesOutnumberTriesIfApplicable
+INFO: Edge case generation exceeds number of tries. Stopped after 100 generated cases.
+]]></system-err>
+</testsuite>

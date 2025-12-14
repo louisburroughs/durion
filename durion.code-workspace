@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "../positivity"
+		},
+		{
+			"path": "../moqui_example"
+		}
+		,
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.configuration.updateBuildConfiguration": "automatic"
+	}
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="durion.workspace.agents.coordination.CrossProjectTestingAgentTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2025-12-13T22:55:32" hostname="LE1ELPF4NQZRJ" time="0.014">
+  <properties/>
+  <testcase name="testCapabilityScoring()" classname="durion.workspace.agents.coordination.CrossProjectTestingAgentTest" time="0.014"/>
+  <testcase name="testCoordinationDependencies()" classname="durion.workspace.agents.coordination.CrossProjectTestingAgentTest" time="0.014"/>
+  <testcase name="testAgentInitialization()" classname="durion.workspace.agents.coordination.CrossProjectTestingAgentTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
