@@ -1,0 +1,8 @@
+rootProject.name = 'workspace-agents'
+
+// Enable build cache for faster builds
+buildCache {
+    local {
+        enabled = true
+    }
+}

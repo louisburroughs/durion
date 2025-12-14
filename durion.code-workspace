@@ -4,15 +4,42 @@
 			"path": "../positivity"
 		},
 		{
-			"path": "../moqui_example"
-		}
-		,
+			"path": "../moqui_example",
+			"name": "moqui"
+		},
 		{
 			"path": "."
+		},
+		{
+			"path": "./workspace-agents",
+			"name": "workspace-agents"
 		}
 	],
 	"settings": {
 		"java.compile.nullAnalysis.mode": "automatic",
-		"java.configuration.updateBuildConfiguration": "automatic"
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.import.gradle.enabled": true,
+		"java.import.gradle.wrapper.enabled": true,
+		"java.import.gradle.arguments": "--init-script gradle/init.gradle",
+		"java.configuration.runtimes": [
+			{
+				"name": "JavaSE-11",
+				"path": "/bustools/jdk/adoptopenjdk-11.0.10"
+			},
+			{
+				"name": "JavaSE-17",
+				"path": "/home/n541342/.sdkman/candidates/java/17.0.17-tem",
+				"default": true
+			},
+			{
+				"name": "JavaSE-21",
+				"path": "/home/n541342/.sdkman/candidates/java/21.0.5-tem"
+			}
+		],
+		"[java]": {
+			"editor.defaultFormatter": "redhat.java",
+			"editor.formatOnSave": true
+		},
+		"java.format.settings.url": "positivity/.vscode/java-formatter.xml"
 	}
 }

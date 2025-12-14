@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+dist/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test
+.jqwik-database
+test-results/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
