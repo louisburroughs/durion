@@ -4,28 +4,33 @@ package durion.workspace.agents.deployment;
  * Options for failover operations
  */
 public class FailoverOptions {
-    private final boolean automaticRollback;
-    private final long rollbackTimeoutMinutes;
+    private final String targetEnvironment;
+    private final boolean preserveState;
+    private final int maxFailoverTime;
     private final boolean notifyStakeholders;
 
-    public FailoverOptions() {
-        this.automaticRollback = true;
-        this.rollbackTimeoutMinutes = 30;
-        this.notifyStakeholders = true;
-    }
-
-    public FailoverOptions(boolean automaticRollback, long rollbackTimeoutMinutes, boolean notifyStakeholders) {
-        this.automaticRollback = automaticRollback;
-        this.rollbackTimeoutMinutes = rollbackTimeoutMinutes;
+    public FailoverOptions(String targetEnvironment, boolean preserveState,
+            int maxFailoverTime, boolean notifyStakeholders) {
+        this.targetEnvironment = targetEnvironment;
+        this.preserveState = preserveState;
+        this.maxFailoverTime = maxFailoverTime;
         this.notifyStakeholders = notifyStakeholders;
     }
 
-    public boolean isAutomaticRollback() {
-        return automaticRollback;
+    public FailoverOptions() {
+        this(null, true, 300, true); // 5 minutes max failover time
     }
 
-    public long getRollbackTimeoutMinutes() {
-        return rollbackTimeoutMinutes;
+    public String getTargetEnvironment() {
+        return targetEnvironment;
+    }
+
+    public boolean isPreserveState() {
+        return preserveState;
+    }
+
+    public int getMaxFailoverTime() {
+        return maxFailoverTime;
     }
 
     public boolean isNotifyStakeholders() {

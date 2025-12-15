@@ -1,61 +1,52 @@
 package durion.workspace.agents.deployment;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
- * Options for disaster recovery
+ * Options for disaster recovery operations
  */
 public class DisasterRecoveryOptions {
     private final DisasterType disasterType;
-    private final boolean fullRecovery;
-    private final long timeoutMinutes;
-    private final List<String> affectedAgents;
-    private final String affectedEnvironment;
+    private final Set<String> affectedAgents;
     private final String affectedWorkspace;
+    private final String affectedEnvironment;
+    private final boolean useLatestBackup;
+    private final String specificBackupId;
 
-    public DisasterRecoveryOptions(DisasterType disasterType, boolean fullRecovery, long timeoutMinutes) {
+    public DisasterRecoveryOptions(DisasterType disasterType,
+            Set<String> affectedAgents, String affectedWorkspace,
+            String affectedEnvironment, boolean useLatestBackup,
+            String specificBackupId) {
         this.disasterType = disasterType;
-        this.fullRecovery = fullRecovery;
-        this.timeoutMinutes = timeoutMinutes;
-        this.affectedAgents = new ArrayList<>();
-        this.affectedEnvironment = null;
-        this.affectedWorkspace = null;
-    }
-
-    public DisasterRecoveryOptions(DisasterType disasterType, boolean fullRecovery, long timeoutMinutes,
-                                   List<String> affectedAgents, String affectedEnvironment, String affectedWorkspace) {
-        this.disasterType = disasterType;
-        this.fullRecovery = fullRecovery;
-        this.timeoutMinutes = timeoutMinutes;
-        this.affectedAgents = affectedAgents != null ? new ArrayList<>(affectedAgents) : new ArrayList<>();
-        this.affectedEnvironment = affectedEnvironment;
+        this.affectedAgents = new HashSet<>(affectedAgents);
         this.affectedWorkspace = affectedWorkspace;
+        this.affectedEnvironment = affectedEnvironment;
+        this.useLatestBackup = useLatestBackup;
+        this.specificBackupId = specificBackupId;
     }
 
     public DisasterType getDisasterType() {
         return disasterType;
     }
 
-    public boolean isFullRecovery() {
-        return fullRecovery;
+    public Set<String> getAffectedAgents() {
+        return new HashSet<>(affectedAgents);
     }
 
-    public long getTimeoutMinutes() {
-        return timeoutMinutes;
+    public String getAffectedWorkspace() {
+        return affectedWorkspace;
     }
-    
-    public List<String> getAffectedAgents() {
-        return new ArrayList<>(affectedAgents);
-    }
-    
+
     public String getAffectedEnvironment() {
         return affectedEnvironment;
     }
-    
-    public String getAffectedWorkspace() {
-        return affectedWorkspace;
+
+    public boolean isUseLatestBackup() {
+        return useLatestBackup;
+    }
+
+    public String getSpecificBackupId() {
+        return specificBackupId;
     }
 }
