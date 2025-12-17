@@ -1,8 +1,9 @@
-name: Kiro – Business Requirements Execution
-description: Execute Business Requirements Specifications using Kiro Autonomous Agent
-title: "[BRS] <Short descriptive title>"
-labels:
-- kiro
-- business-requirements
-- autonomous
+---
+name: "Kiro – Business Requirement (Epic)"
+about: "Define an epic-level business requirement using the Kiro format"
+title: "[BRS] "
+labels: ["type:epic", "layer:business"]
 assignees: []
+---
+
+# Business Requirement Specification (Epic)
