@@ -31,3 +31,9 @@ What must be true for this capability to be considered complete?
 - [ ] Story: 
 
 ## Notes for Agents
+
+## Classification (confirm labels)
+- Type:
+- Layer:
+- Domain:
+

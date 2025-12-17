@@ -33,3 +33,8 @@ What starts this behavior?
 - [ ] 
 
 ## Notes for Agents
+
+## Classification (confirm labels)
+- Type:
+- Layer:
+- Domain:

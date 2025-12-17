@@ -42,3 +42,8 @@ List the major capabilities required to satisfy this epic.
 
 ## Notes for Agents
 Guidance for Kiro / Copilot / AI agents.
+
+## Classification (confirm labels)
+- Type:
+- Layer:
+- Domain:
