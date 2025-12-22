@@ -1,0 +1,37 @@
+[
+    {
+    "title": "[CAP] Ingest Accounting Events (Cross-Module)",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Ingest Accounting Events (Cross-Module)\n\n## Description\nReceive accounting events from other modules and manage validation, idempotency, and processing lifecycle.\n\n## Acceptance Criteria\n- [ ] Events can be received (sync/async) and persisted with status tracking\n- [ ] Duplicate events do not create duplicate postings\n- [ ] Invalid events are rejected with actionable errors or routed to suspense per policy\n"
+  },
+  {
+    "title": "[CAP] Maintain Chart of Accounts and Posting Categories",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Maintain Chart of Accounts and Posting Categories\n\n## Description\nDefine CoA, posting categories, and mapping keys used to translate business events into accounting structure.\n\n## Acceptance Criteria\n- [ ] CoA and categories can be created/edited with effective dates\n- [ ] Event mapping keys resolve to specific accounts and dimensions deterministically\n- [ ] Changes are audit-logged and do not mutate historical postings\n"
+  },
+  {
+    "title": "[CAP] Post Journal Entries to the General Ledger",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Post Journal Entries to the General Ledger\n\n## Description\nTranslate mapped events into journal entries and post to the GL with period controls and atomicity.\n\n## Acceptance Criteria\n- [ ] Balanced journal entries are created from mapped events\n- [ ] Posting is blocked or redirected when period is closed (per policy)\n- [ ] Trial balance and ledger views support drilldown to source event\n"
+  },
+  {
+    "title": "[CAP] Accounts Receivable (Invoice → Cash Application)",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Accounts Receivable (Invoice → Cash Application)\n\n## Description\nSupport customer invoicing and cash application driven by events from sales/workorder modules.\n\n## Acceptance Criteria\n- [ ] Invoice events create AR + revenue + tax postings correctly\n- [ ] Payments clear AR and post cash/bank correctly\n- [ ] Credits/refunds are controlled, auditable, and posted correctly\n"
+  },
+  {
+    "title": "[CAP] Accounts Payable (Bill → Payment)",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Accounts Payable (Bill → Payment)\n\n## Description\nSupport vendor bills and payments driven by purchasing/receiving events and manual entry.\n\n## Acceptance Criteria\n- [ ] Bills create AP and expense/inventory postings correctly\n- [ ] Payments clear AP and post cash/bank correctly\n- [ ] Approval controls and audit trail are enforced\n"
+  },
+  {
+    "title": "[CAP] Period Close, Adjustments, and Reporting",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Period Close, Adjustments, and Reporting\n\n## Description\nSupport accounting periods, manual adjustments, and core financial reporting.\n\n## Acceptance Criteria\n- [ ] Closed periods prevent posting\n- [ ] Manual JEs balance and are permission-controlled\n- [ ] Reports are reproducible and traceable to ledger lines\n"
+  },
+  {
+    "title": "[CAP] Reconciliation, Audit, and Controls",
+    "labels": ["type : capability", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: capability\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Capability\n[CAP] Reconciliation, Audit, and Controls\n\n## Description\nProvide reconciliation support, immutable audit trail, and suspense handling for unmapped events.\n\n## Acceptance Criteria\n- [ ] Users can reconcile cash/bank activity\n- [ ] Every posting is explainable and traceable to rules and sources\n- [ ] Unmapped events can be corrected and reprocessed safely (idempotent)\n"
+  }
+]

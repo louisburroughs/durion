@@ -1,0 +1,7 @@
+[
+  {
+    "title": "[BRS] Enable Event-Driven Accounting (AP/AR + General Ledger)",
+    "labels": ["type : epic", "layer : business", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Business Requirement\n\n## Classification (confirm labels)\n- Type: epic\n- Layer: domain\n- Domain: accounting\n\n## Epic\n[EPIC] Enable Event-Driven Accounting (AP/AR + General Ledger)\n\n## Outcome\nAccounting ingests standardized accounting events emitted by other modules (Workorder, Inventory, Purchasing, etc.), translates them into balanced journal entries, posts them to the General Ledger (GL) using the correct category/accounts/dimensions, and supports operational AP/AR workflows with period controls and auditability.\n\n## Non-negotiables\n- Event-driven ingestion with deterministic mapping from event -> posting categories/accounts/dimensions\n- Idempotency and deduplication (replays must not duplicate GL impact)\n- Balanced postings only (sum debits == sum credits)\n- Full traceability from GL lines back to source event and originating business document\n- Policy-driven handling of unmapped events (reject or suspense queue)\n"
+  }
+]

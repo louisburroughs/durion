@@ -1,0 +1,124 @@
+[
+ 
+  {
+    "title": "[STORY] Events: Define Canonical Accounting Event Envelope",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Ingest Accounting Events (Cross-Module)\n\n## Story\nEvents: Define Canonical Accounting Event Envelope\n\n## Acceptance Criteria\n- [ ] Event envelope includes eventId, eventType, sourceModule, sourceEntityRef, occurredAt, businessUnitId, currencyUomId, lines[], tax[], metadata, schemaVersion\n- [ ] Supports multi-line totals (parts/labor/fees/discount/tax)\n- [ ] Schema is versioned and published as a contract\n- [ ] Traceability fields exist (workorderId, invoiceId, poId, receiptId, etc. where applicable)\n"
+  },
+  {
+    "title": "[STORY] Events: Receive Events via Queue and/or Service Endpoint",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Ingest Accounting Events (Cross-Module)\n\n## Story\nEvents: Receive Events via Queue and/or Service Endpoint\n\n## Acceptance Criteria\n- [ ] Provide a synchronous ingestion API endpoint for producing modules\n- [ ] Provide an async ingestion channel (queue/topic) where configured\n- [ ] Received events are persisted immutably before mapping/posting\n- [ ] System returns acknowledgement with eventId and initial status\n"
+  },
+  {
+    "title": "[STORY] Events: Implement Idempotency and Deduplication",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Ingest Accounting Events (Cross-Module)\n\n## Story\nEvents: Implement Idempotency and Deduplication\n\n## Acceptance Criteria\n- [ ] Duplicate submissions of same eventId are detected and do not create duplicate GL impact\n- [ ] Conflicting duplicates (same eventId, different payload) are rejected and flagged\n- [ ] Replays return the prior posting reference when already posted\n- [ ] Retry workflow exists for failed events without duplicating postings\n"
+  },
+  {
+    "title": "[STORY] Events: Validate Event Completeness and Integrity",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Ingest Accounting Events (Cross-Module)\n\n## Story\nEvents: Validate Event Completeness and Integrity\n\n## Acceptance Criteria\n- [ ] Invalid schema or missing required references are rejected with actionable error codes\n- [ ] Unknown eventType is rejected or routed to suspense per policy\n- [ ] Amount and tax consistency checks are enforced per policy\n- [ ] Processing status transitions are recorded (Received→Validated→Mapped→Posted/Rejected/Suspense)\n"
+  },
+
+  {
+    "title": "[STORY] CoA: Create and Maintain Chart of Accounts",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Maintain Chart of Accounts and Posting Categories\n\n## Story\nCoA: Create and Maintain Chart of Accounts\n\n## Acceptance Criteria\n- [ ] Accounts support types: Asset/Liability/Equity/Revenue/Expense\n- [ ] Accounts are effective-dated (activeFrom/activeThru) and audit-logged\n- [ ] Duplicate account codes are blocked\n- [ ] Deactivation rules are enforced per policy (e.g., balances/usage)\n"
+  },
+  {
+    "title": "[STORY] Categories: Define Posting Categories and Mapping Keys",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Maintain Chart of Accounts and Posting Categories\n\n## Story\nCategories: Define Posting Categories and Mapping Keys\n\n## Acceptance Criteria\n- [ ] Posting categories exist for business meaning (Labor Revenue, Sales Tax Payable, COGS Tires, etc.)\n- [ ] Mapping keys used by producers resolve deterministically to categories\n- [ ] Category→Account/Dimensions mappings are effective-dated and audit-logged\n- [ ] Invalid/overlapping mappings are rejected per policy\n"
+  },
+  {
+    "title": "[STORY] Mapping: Configure EventType → Posting Rule Set",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Maintain Chart of Accounts and Posting Categories\n\n## Story\nMapping: Configure EventType → Posting Rule Set\n\n## Acceptance Criteria\n- [ ] Posting rules are versioned and referenced on every journal entry\n- [ ] Rules produce balanced debit/credit outputs for representative test fixtures\n- [ ] Rules support conditional logic (taxable/non-taxable, inventory/non-inventory)\n- [ ] Publishing rules that don’t balance is blocked\n"
+  },
+
+  {
+    "title": "[STORY] GL: Build Balanced Journal Entry from Event",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Post Journal Entries to the General Ledger\n\n## Story\nGL: Build Balanced Journal Entry from Event\n\n## Acceptance Criteria\n- [ ] Mapped events create a draft journal entry with header refs (eventId/source refs/rule version)\n- [ ] JE is balanced per currency (debits=credits)\n- [ ] Each JE line includes category, account, and dimension references\n- [ ] Mapping failures route to suspense or rejection per policy (no partial postings)\n"
+  },
+  {
+    "title": "[STORY] GL: Post Journal Entry with Period Controls and Atomicity",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Post Journal Entries to the General Ledger\n\n## Story\nGL: Post Journal Entry with Period Controls and Atomicity\n\n## Acceptance Criteria\n- [ ] Posting is atomic (all lines committed or none)\n- [ ] Closed periods block posting or redirect per policy (with recorded rationale)\n- [ ] Posting updates ledger/trial-balance aggregates\n- [ ] Source event status transitions to Posted with JE reference\n"
+  },
+  {
+    "title": "[STORY] GL: Support Accrual vs Cash Basis Modes",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Post Journal Entries to the General Ledger\n\n## Story\nGL: Support Accrual vs Cash Basis Modes\n\n## Acceptance Criteria\n- [ ] Business unit can be configured as accrual or cash basis\n- [ ] Accrual: invoices post AR/AP and payments clear AR/AP\n- [ ] Cash basis behavior is policy-defined and consistent across posting/reporting\n- [ ] Basis changes are audited and permission-controlled\n"
+  },
+  {
+    "title": "[STORY] GL: Provide Trial Balance and Drilldown to Source",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Post Journal Entries to the General Ledger\n\n## Story\nGL: Provide Trial Balance and Drilldown to Source\n\n## Acceptance Criteria\n- [ ] Trial balance can be generated by period/account/dimensions\n- [ ] Drilldown exists: balance → ledger lines → journal entry → source event\n- [ ] Exports supported (CSV) for controller workflows\n- [ ] Access controls enforced for sensitive accounts/dimensions\n"
+  },
+
+  {
+    "title": "[STORY] AR: Create Customer Invoice from Invoice-Issued Event",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Accounts Receivable (Invoice → Cash Application)\n\n## Story\nAR: Create Customer Invoice from Invoice-Issued Event\n\n## Acceptance Criteria\n- [ ] InvoiceIssued event creates an AR invoice record with terms/due date\n- [ ] GL postings: Dr AR, Cr Revenue, Cr Tax Payable (per rules)\n- [ ] Traceability links invoice ↔ event ↔ journal entry\n- [ ] Idempotent by invoiceId/eventId\n"
+  },
+  {
+    "title": "[STORY] AR: Apply Payment to Open Invoice(s)",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Accounts Receivable (Invoice → Cash Application)\n\n## Story\nAR: Apply Payment to Open Invoice(s)\n\n## Acceptance Criteria\n- [ ] Payment can be applied to one or more invoices (full/partial)\n- [ ] GL postings: Dr Cash/Bank, Cr AR (per rules)\n- [ ] Unapplied and overpayment scenarios are supported per policy\n- [ ] Idempotent by paymentRef/eventId\n"
+  },
+  {
+    "title": "[STORY] AR: Issue Credit Memo / Refund with Traceability",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Accounts Receivable (Invoice → Cash Application)\n\n## Story\nAR: Issue Credit Memo / Refund with Traceability\n\n## Acceptance Criteria\n- [ ] Credit memo references original invoice and offsets balances\n- [ ] GL postings reverse revenue/tax and reduce AR (or drive refund payment)\n- [ ] Reason code required and actions audited\n- [ ] Period-close policies handled (adjusting entries if needed)\n"
+  },
+
+  {
+    "title": "[STORY] AP: Create Vendor Bill from Purchasing/Receiving Event",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Accounts Payable (Bill → Payment)\n\n## Story\nAP: Create Vendor Bill from Purchasing/Receiving Event\n\n## Acceptance Criteria\n- [ ] VendorInvoiceReceived (or GoodsReceived) event creates an AP bill with PO/receipt refs\n- [ ] GL postings: Dr Expense/Inventory, Cr AP (per rules)\n- [ ] Traceability links bill ↔ event ↔ journal entry\n- [ ] Idempotent by vendorInvoiceRef/eventId\n"
+  },
+  {
+    "title": "[STORY] AP: Approve and Schedule Payments with Controls",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Accounts Payable (Bill → Payment)\n\n## Story\nAP: Approve and Schedule Payments with Controls\n\n## Acceptance Criteria\n- [ ] Bill workflow supports Draft → Approved → Scheduled\n- [ ] Approval thresholds and role permissions enforced\n- [ ] Payment scheduling records date/method and audit trail\n- [ ] Payment execution blocked unless approved\n"
+  },
+  {
+    "title": "[STORY] AP: Execute Payment and Post to GL",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Accounts Payable (Bill → Payment)\n\n## Story\nAP: Execute Payment and Post to GL\n\n## Acceptance Criteria\n- [ ] Payment allocates across one or more bills (full/partial)\n- [ ] GL postings: Dr AP, Cr Cash/Bank (per rules)\n- [ ] Fees/unallocated amounts handled per policy\n- [ ] Idempotent by paymentRef/eventId\n"
+  },
+
+  {
+    "title": "[STORY] Close: Open/Close Accounting Periods with Locks",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Period Close, Adjustments, and Reporting\n\n## Story\nClose: Open/Close Accounting Periods with Locks\n\n## Acceptance Criteria\n- [ ] Periods can be created and closed per business unit\n- [ ] Closed periods block posting unless reopened with permission\n- [ ] Reopen requires reason and is audit-logged\n- [ ] Posting logic enforces period policy deterministically\n"
+  },
+  {
+    "title": "[STORY] Adjustments: Create Manual Journal Entry with Controls",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Period Close, Adjustments, and Reporting\n\n## Story\nAdjustments: Create Manual Journal Entry with Controls\n\n## Acceptance Criteria\n- [ ] Authorized users can create manual JEs with reason code\n- [ ] System blocks unbalanced manual JEs\n- [ ] Posted manual JEs are immutable (corrections via reversal)\n- [ ] Posting respects period controls and audit requirements\n"
+  },
+  {
+    "title": "[STORY] Reporting: Produce Core Financial Statements with Drilldown",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Period Close, Adjustments, and Reporting\n\n## Story\nReporting: Produce Core Financial Statements with Drilldown\n\n## Acceptance Criteria\n- [ ] Produce P&L and Balance Sheet (basic) from posted ledger lines\n- [ ] Drilldown: statement line → accounts → journal lines → source events\n- [ ] Reports are reproducible for the same parameters\n- [ ] Exports supported and access controls enforced\n"
+  },
+
+  {
+    "title": "[STORY] Audit: Maintain Immutable Ledger Audit Trail and Explainability",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Reconciliation, Audit, and Controls\n\n## Story\nAudit: Maintain Immutable Ledger Audit Trail and Explainability\n\n## Acceptance Criteria\n- [ ] Ledger lines and JEs are immutable once posted (corrections via reversal)\n- [ ] Store rule version and mapping version used for each posting\n- [ ] Provide explainability view: event → mapping → rules → JE → ledger lines\n- [ ] Full traceability from any GL line to source event/business document\n"
+  },
+  {
+    "title": "[STORY] Reconciliation: Support Bank/Cash Reconciliation Matching",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Reconciliation, Audit, and Controls\n\n## Story\nReconciliation: Support Bank/Cash Reconciliation Matching\n\n## Acceptance Criteria\n- [ ] Import/enter bank statement lines and match to payments/receipts\n- [ ] Track matched/unmatched items with audit trail\n- [ ] Allow controlled adjustments (fees/interest) via proper entries\n- [ ] Produce reconciliation report\n"
+  },
+  {
+    "title": "[STORY] Controls: Route Unmapped or Failed Events to Suspense Queue and Reprocess",
+    "labels": ["type : story", "layer : functional", "domain : accounting", "kiro"],
+    "body": "/kiro\n# Functional Requirement\n\n## Classification (confirm labels)\n- Type: story\n- Layer: functional\n- Domain: accounting\n\n## Capability\n[CAP] Reconciliation, Audit, and Controls\n\n## Story\nControls: Route Unmapped or Failed Events to Suspense Queue and Reprocess\n\n## Acceptance Criteria\n- [ ] Unmapped/failed events go to Suspense with actionable missing-key details\n- [ ] Admin can correct mapping/rules and reprocess\n- [ ] Reprocess is idempotent (no duplicate postings)\n- [ ] Attempt history and final posting references are retained\n"
+  }
+]
