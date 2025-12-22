@@ -2,7 +2,7 @@
 name: "Kiro – Capability / Feature"
 about: "Define a business capability required by an epic"
 title: "[CAP] "
-labels: ["type:capability"]
+labels: ["type : capability", "kiro", "domain : <domain>"]
 assignees: []
 ---
 

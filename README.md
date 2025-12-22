@@ -52,7 +52,7 @@ The framework is organized into four coordination layers:
 
 ### Prerequisites
 
-- Java 17+
+- Java 21+
 - Gradle 7.0+
 - Git
 

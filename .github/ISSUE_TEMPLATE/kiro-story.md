@@ -2,7 +2,7 @@
 name: "Kiro – Functional Requirement (Story)"
 about: "Define a testable functional requirement"
 title: "[STORY] "
-labels: ["type:story", "layer:functional"]
+labels: ["type : story", "layer : functional", "kiro", "domain : <domain>"]
 assignees: []
 ---
 

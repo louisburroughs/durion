@@ -1,0 +1,352 @@
+[
+    {
+        "title": "[STORY] Estimate: Create Draft Estimate",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor / Front Desk\n\n    ## Trigger\n    A customer requests service or a quote for a vehicle (walk-in, phone, email, or fleet request).\n\n    ## Main Flow\n    1. User selects or creates the Customer record.\n2. User selects or creates the Vehicle record and captures context (VIN/plate, odometer, notes).\n3. User clicks 'Create Estimate' and the system creates a Draft estimate with an identifier.\n4. System sets default shop/location, currency, and tax region based on configuration.\n5. User is taken to the Draft estimate workspace to add line items.\n\n    ## Alternate / Error Flows\n    - Customer or Vehicle missing required fields → prompt user to complete required context.\n- Estimate creation attempted without permissions → block and log access attempt.\n\n    ## Business Rules\n    - Estimate starts in Draft state.\n- Estimate identifier is unique per shop/location.\n- Audit event is recorded on creation.\n\n    ## Data Requirements\n    - Entities: Estimate, Customer, Vehicle, UserPermission, AuditEvent\n    - Fields: estimateId, status, customerId, vehicleId, shopId, currencyUomId, taxRegionId, createdBy, createdDate\n\n    ## Acceptance Criteria\n    - [ ] A Draft estimate is created with required customer and vehicle context.\n- [ ] Estimate status is Draft and visible.\n- [ ] Creation is recorded in audit trail.\n\n    ## Notes for Agents\n    Keep estimate creation decoupled from approval and workorder logic. Establish baseline validations and defaulting rules.\n"
+    },
+    {
+        "title": "[STORY] Estimate: Add Parts to Estimate",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor\n\n    ## Trigger\n    A Draft estimate exists and parts need to be quoted.\n\n    ## Main Flow\n    1. User searches parts catalog by part number, description, or category.\n2. User selects a part and specifies quantity.\n3. System defaults unit price from configured price list and applies discounts/markups as configured.\n4. User optionally overrides price if permitted and provides a reason code if required.\n5. System adds the part line item and recalculates totals.\n\n    ## Alternate / Error Flows\n    - Part not found → allow controlled non-catalog part entry (if enabled) with mandatory description.\n- Quantity invalid (<=0) → block and prompt correction.\n- Price override not permitted → block and show policy message.\n\n    ## Business Rules\n    - Each part line item references a part number (or controlled non-catalog identifier).\n- Totals must be recalculated on line change.\n- Price overrides require permission and may require reason codes.\n\n    ## Data Requirements\n    - Entities: Estimate, EstimateItem, Product, PriceList, DiscountRule, AuditEvent\n    - Fields: itemSeqId, productId, partNumber, quantity, unitPrice, discountAmount, taxCode, isNonCatalog, overrideReason\n\n    ## Acceptance Criteria\n    - [ ] User can add a catalog part line item to a Draft estimate.\n- [ ] Totals update immediately after adding or editing part items.\n- [ ] Audit records who changed quantity/price.\n\n    ## Notes for Agents\n    Model part items so later promotion preserves stable identifiers and tax snapshots.\n"
+    },
+    {
+        "title": "[STORY] Estimate: Add Labor to Estimate",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor\n\n    ## Trigger\n    A Draft estimate exists and labor/services need to be quoted.\n\n    ## Main Flow\n    1. User searches service catalog by service code or description.\n2. User selects a service and specifies hours/units or selects a flat-rate option.\n3. System defaults labor rate based on shop, role/class, and pricing rules.\n4. System adds the labor line item and recalculates totals.\n5. User adds notes/instructions if required for execution.\n\n    ## Alternate / Error Flows\n    - Service not found → allow controlled custom service entry (if enabled) with required description and labor units.\n- Labor units invalid (<=0) → block and prompt correction.\n\n    ## Business Rules\n    - Each labor line item references a service code (or controlled custom code).\n- Labor rate defaulting must be deterministic (policy-driven).\n- Totals must be recalculated on labor line changes.\n\n    ## Data Requirements\n    - Entities: Estimate, EstimateItem, ServiceCatalog, LaborRateRule, AuditEvent\n    - Fields: itemSeqId, serviceCode, laborUnits, laborRate, flatRateFlag, notes, taxCode\n\n    ## Acceptance Criteria\n    - [ ] User can add labor/service line items to a Draft estimate.\n- [ ] Labor pricing defaults correctly per configured rules.\n- [ ] Totals update immediately after adding/editing labor items.\n\n    ## Notes for Agents\n    Keep labor structure compatible with time-based and flat-rate models.\n"
+    },
+    {
+        "title": "[STORY] Estimate: Calculate Taxes and Totals on Estimate",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    Estimate line items are created or modified (parts/labor/fees/discounts).\n\n    ## Main Flow\n    1. System identifies taxable basis per line item using tax codes and jurisdiction.\n2. System calculates line-level and/or header-level taxes per configuration.\n3. System applies discounts, fees (shop supplies, environmental), and rounding rules.\n4. System updates estimate subtotal, tax total, and grand total.\n5. System records calculation snapshot (inputs and outputs) for audit/reproducibility.\n\n    ## Alternate / Error Flows\n    - Missing tax code on an item → apply default tax code or block based on policy.\n- Tax region not configured → block submission for approval and surface configuration error.\n\n    ## Business Rules\n    - Tax rules may vary by item type (parts vs labor vs fees).\n- Support tax-inclusive and tax-exclusive modes.\n- Persist enough calculation context to explain totals later (disputes).\n\n    ## Data Requirements\n    - Entities: Estimate, EstimateItem, TaxRule, FeeRule, CalculationSnapshot\n    - Fields: taxCode, taxRate, taxAmount, subtotal, discountTotal, feeTotal, grandTotal, roundingAdjustment\n\n    ## Acceptance Criteria\n    - [ ] Totals and taxes update correctly for mixed taxable/non-taxable items.\n- [ ] System stores a calculation snapshot that can be reviewed.\n- [ ] Estimate cannot proceed to approval if required tax configuration is missing (per policy).\n\n    ## Notes for Agents\n    Ensure calculation snapshots can be reused during promotion/invoice variance explanations.\n"
+    },
+    {
+        "title": "[STORY] Estimate: Revise Estimate Prior to Approval",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor\n\n    ## Trigger\n    A Draft or PendingApproval estimate requires changes (scope, price, quantities, fees, or notes).\n\n    ## Main Flow\n    1. User opens the estimate and selects 'Revise'.\n2. System creates a new estimate version (or revision record) linked to the prior version.\n3. User edits line items and/or terms.\n4. System recalculates totals and updates revision metadata.\n5. System invalidates any prior approvals and sets state back to Draft (or Revision state) per policy.\n\n    ## Alternate / Error Flows\n    - Estimate is already promoted to workorder → disallow revision or create a change request workflow (policy).\n- User lacks permission to revise after approval submission → block and log.\n\n    ## Business Rules\n    - Revision must preserve history and allow comparing versions.\n- Any revision after approval invalidates approval.\n- Revision increments version and records who/when/why.\n\n    ## Data Requirements\n    - Entities: Estimate, EstimateRevision, ApprovalRecord, AuditEvent\n    - Fields: estimateId, version, status, revisionReason, revisedBy, revisedDate, priorVersionRef\n\n    ## Acceptance Criteria\n    - [ ] System preserves revision history and allows retrieving prior versions.\n- [ ] Any existing approval is invalidated on revision and recorded.\n- [ ] Revised estimate totals are recalculated and stored.\n\n    ## Notes for Agents\n    Revision history is a core audit artifact—do not overwrite approved snapshots.\n"
+    },
+    {
+        "title": "[STORY] Estimate: Present Estimate Summary for Review",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor\n\n    ## Trigger\n    A Draft estimate is ready to be reviewed with the customer before approval submission.\n\n    ## Main Flow\n    1. User requests a customer-facing summary view/printout.\n2. System generates a summary that includes scope, quantities, pricing, taxes, fees, and totals.\n3. System excludes restricted internal fields (cost, margin) based on role/policy.\n4. System includes configured terms, disclaimers, and expiration date.\n5. User shares summary with customer and optionally proceeds to submit for approval.\n\n    ## Alternate / Error Flows\n    - Terms/disclaimers not configured → use defaults or block submission depending on compliance settings.\n\n    ## Business Rules\n    - Customer summary must be consistent with the estimate snapshot.\n- Visibility rules must be enforced for internal-only fields.\n- Expiration must be clearly shown if configured.\n\n    ## Data Requirements\n    - Entities: Estimate, EstimateItem, DocumentTemplate, VisibilityPolicy\n    - Fields: displayPrice, taxTotal, grandTotal, termsText, expirationDate, hiddenCostFields\n\n    ## Acceptance Criteria\n    - [ ] Customer-facing summary is generated and matches estimate totals.\n- [ ] Restricted fields are not displayed to unauthorized roles.\n- [ ] Summary includes terms and expiration where configured.\n\n    ## Notes for Agents\n    This output becomes the basis for consent text during approval—keep it deterministic.\n"
+    },
+    {
+        "title": "[STORY] Approval: Submit Estimate for Customer Approval",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor\n\n    ## Trigger\n    A Draft estimate is complete and ready for customer consent.\n\n    ## Main Flow\n    1. User selects 'Submit for Approval'.\n2. System validates estimate completeness (required fields, items, taxes, totals, terms).\n3. System transitions estimate to PendingApproval and freezes an approval snapshot.\n4. System generates an approval request payload (method, link/token, consent text).\n5. System logs the submission event for audit.\n\n    ## Alternate / Error Flows\n    - Validation fails (missing taxes, missing items) → block and show actionable errors.\n- Estimate already pending approval → prevent duplicate submissions and show status.\n\n    ## Business Rules\n    - Only submit-ready estimates may enter PendingApproval.\n- Submission creates an immutable approval snapshot version.\n- Submission must be auditable (who/when).\n\n    ## Data Requirements\n    - Entities: Estimate, ApprovalRequest, ApprovalSnapshot, AuditEvent\n    - Fields: status, approvalRequestId, snapshotVersion, consentText, submittedBy, submittedDate, approvalMethod\n\n    ## Acceptance Criteria\n    - [ ] System blocks submission when required completeness checks fail.\n- [ ] PendingApproval state is set and visible.\n- [ ] An approval snapshot is created and referenced by the request.\n\n    ## Notes for Agents\n    Approval snapshot must remain immutable; later revisions require resubmission.\n"
+    },
+    {
+        "title": "[STORY] Approval: Capture Digital Customer Approval",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Customer (or Authorized Representative)\n\n    ## Trigger\n    Customer receives a digital approval request (link/SMS/email/portal).\n\n    ## Main Flow\n    1. Customer opens approval request and reviews estimate summary and terms.\n2. Customer provides explicit consent (signature/checkbox/OTP) as configured.\n3. System records timestamp, identity metadata, and consent text snapshot.\n4. System marks approved scope (full or partial if supported by request).\n5. System transitions estimate to Approved (or PartiallyApproved) and records audit event.\n\n    ## Alternate / Error Flows\n    - Token expired/invalid → block and request resubmission.\n- Customer declines → transition to Rejected and capture reason (optional).\n\n    ## Business Rules\n    - Consent must be explicit and attributable.\n- Consent text snapshot must be stored exactly as presented.\n- Approval must reference the estimate version/snapshot.\n\n    ## Data Requirements\n    - Entities: ApprovalRecord, ApprovalRequest, Estimate, ApprovalSnapshot, AuditEvent\n    - Fields: approvalId, method, timestamp, signerName, signerContact, consentTextSnapshot, snapshotVersion, status\n\n    ## Acceptance Criteria\n    - [ ] Digital approval is captured with immutable artifacts.\n- [ ] Estimate transitions to Approved (or PartiallyApproved) appropriately.\n- [ ] Audit trail shows who approved and what they approved.\n\n    ## Notes for Agents\n    Store enough metadata for dispute resolution (channel, device, IP if available).\n"
+    },
+    {
+        "title": "[STORY] Approval: Capture In-Person Customer Approval",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor\n\n    ## Trigger\n    Customer is physically present and approves estimate in person.\n\n    ## Main Flow\n    1. User opens the approval capture screen for the estimate snapshot.\n2. Customer reviews the summary and terms on device or printed document.\n3. Customer signs (signature pad / scanned signature) or advisor records attestation per policy.\n4. System stores approval artifact, timestamp, witness (if required), and snapshot reference.\n5. System transitions estimate to Approved (or PartiallyApproved).\n\n    ## Alternate / Error Flows\n    - Signature capture hardware unavailable → fall back to attestation workflow if allowed.\n- Customer disputes terms at point of signing → cancel and return to revision.\n\n    ## Business Rules\n    - Approval artifact must be retained and tied to snapshot.\n- Witness/attestation fields may be required by policy.\n- Approval is immutable once captured.\n\n    ## Data Requirements\n    - Entities: ApprovalRecord, Estimate, ApprovalSnapshot, DocumentArtifact, AuditEvent\n    - Fields: artifactRef, timestamp, witnessUserId, attestationText, snapshotVersion, status\n\n    ## Acceptance Criteria\n    - [ ] In-person approval can be captured and retrieved later.\n- [ ] Approval ties to the exact snapshot presented.\n- [ ] Estimate transitions correctly and is auditable.\n\n    ## Notes for Agents\n    Keep approval artifacts independent of estimate revisions; do not overwrite.\n"
+    },
+    {
+        "title": "[STORY] Approval: Record Partial Approval",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Customer (or Authorized Representative)\n\n    ## Trigger\n    Customer wants to approve only some line items and defer others.\n\n    ## Main Flow\n    1. Customer is presented with line items and selects which items to approve.\n2. System records approved quantities/prices for selected items.\n3. System records unapproved/deferred items explicitly.\n4. System transitions estimate to PartiallyApproved and persists approved scope snapshot.\n5. System makes approved scope available for promotion while preserving deferred items for later approval.\n\n    ## Alternate / Error Flows\n    - Customer approves zero items → treat as Rejected or NoApproval per policy.\n- Customer tries to partially approve a bundled/required set → enforce bundle rules.\n\n    ## Business Rules\n    - Partial approval must be explicit at line-item level.\n- Promotion must only use approved scope unless later re-approved.\n- Deferred items remain quoteable and approvable later.\n\n    ## Data Requirements\n    - Entities: ApprovalRecord, ApprovedScope, EstimateItem, Estimate, AuditEvent\n    - Fields: approvedFlag, approvedQty, approvedPrice, scopeVersion, status, bundleId\n\n    ## Acceptance Criteria\n    - [ ] Approved scope is persisted and retrievable.\n- [ ] Estimate shows PartiallyApproved state and which items are approved.\n- [ ] Promotion uses only approved scope.\n\n    ## Notes for Agents\n    Partial approval adds complexity—keep scope model simple and enforce it in promotion validations.\n"
+    },
+    {
+        "title": "[STORY] Approval: Handle Approval Expiration",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    An approval request reaches its expiration time without completion.\n\n    ## Main Flow\n    1. System detects the approval request has expired based on configured duration.\n2. System marks approval request as Expired and notifies relevant users (optional).\n3. System prevents promotion based on expired approval.\n4. System allows resubmission for approval, producing a new request and snapshot reference.\n5. System logs expiration event for audit.\n\n    ## Alternate / Error Flows\n    - Customer attempts to approve after expiration → block and request resubmission.\n- Policy disables expiration → no action.\n\n    ## Business Rules\n    - Expiration duration is configurable by shop policy.\n- Expired approvals cannot be used for promotion.\n- Resubmission must reference the current estimate version.\n\n    ## Data Requirements\n    - Entities: ApprovalRequest, Estimate, Notification, AuditEvent\n    - Fields: expiresAt, status, notifiedAt, resubmittedBy, resubmittedDate\n\n    ## Acceptance Criteria\n    - [ ] Expired approvals are marked and cannot be used to promote work.\n- [ ] System provides a resubmission path.\n- [ ] Expiration is auditable.\n\n    ## Notes for Agents\n    Treat expiration as a promotion gate; do not silently accept stale approvals.\n"
+    },
+    {
+        "title": "[STORY] Approval: Invalidate Approval on Estimate Revision",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    An approved (or pending approval) estimate is modified after submission/approval.\n\n    ## Main Flow\n    1. System detects a change that affects scope, pricing, quantities, taxes, or terms.\n2. System invalidates existing approval record(s) and marks them as superseded.\n3. System transitions estimate back to Draft (or Revision) and requires resubmission.\n4. System records invalidation reason and linkage between versions.\n5. System prevents promotion until a new valid approval is captured.\n\n    ## Alternate / Error Flows\n    - Minor change that does not affect customer-visible outcome → policy may allow non-invalidation (rare; configurable).\n\n    ## Business Rules\n    - Any customer-visible change invalidates approval.\n- Invalidation must preserve original approval artifact but mark it not-current.\n- Promotion validation checks for latest valid approval.\n\n    ## Data Requirements\n    - Entities: Estimate, ApprovalRecord, ApprovalSnapshot, AuditEvent\n    - Fields: invalidationReason, supersededByApprovalId, status, changedFields, changedBy, changedDate\n\n    ## Acceptance Criteria\n    - [ ] Approval is invalidated when customer-visible changes occur.\n- [ ] System requires resubmission and blocks promotion until re-approved.\n- [ ] Audit shows why and when approval was invalidated.\n\n    ## Notes for Agents\n    This is the guardrail against scope/price drift—keep it strict.\n"
+    },
+    {
+        "title": "[STORY] Promotion: Validate Promotion Preconditions",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor / Back Office\n\n    ## Trigger\n    User attempts to promote an estimate to a workorder.\n\n    ## Main Flow\n    1. User selects 'Promote to Workorder' on an estimate.\n2. System verifies the estimate has a current valid approval (not expired, not superseded).\n3. System verifies approved scope exists (full or partial) and references the correct snapshot version.\n4. System checks that promotion has not already occurred for this estimate/snapshot (idempotency).\n5. System either allows promotion or returns actionable errors.\n\n    ## Alternate / Error Flows\n    - Approval missing/expired → block and instruct resubmission.\n- Promotion already performed → return existing workorder reference.\n\n    ## Business Rules\n    - Only current valid approvals can be promoted.\n- Promotion must be idempotent.\n- Approved scope governs what becomes executable work.\n\n    ## Data Requirements\n    - Entities: Estimate, ApprovalRecord, ApprovedScope, Workorder, AuditEvent\n    - Fields: estimateId, snapshotVersion, approvalStatus, expiresAt, promotionRef, workorderId\n\n    ## Acceptance Criteria\n    - [ ] System blocks promotion if approval is invalid or expired.\n- [ ] System detects and handles re-tries without duplicates.\n- [ ] System reports specific failed preconditions.\n\n    ## Notes for Agents\n    Make precondition failures actionable—this saves operator time.\n"
+    },
+    {
+        "title": "[STORY] Promotion: Create Workorder from Approved Estimate",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor / Back Office\n\n    ## Trigger\n    Promotion preconditions are satisfied for an approved estimate.\n\n    ## Main Flow\n    1. System creates a Workorder header using customer and vehicle context from the estimate snapshot.\n2. System links workorder to estimate version and approval record.\n3. System sets workorder initial state (e.g., Ready or Scheduled) per configuration.\n4. System applies role-based visibility rules (e.g., hide prices for mechanics).\n5. System records the promotion event for audit.\n\n    ## Alternate / Error Flows\n    - Workorder creation fails due to validation/config error → rollback and report error.\n- Promotion retried after partial failure → idempotent recovery.\n\n    ## Business Rules\n    - Workorder must reference estimate snapshot and approval record.\n- Initial state is policy-driven.\n- Promotion must be auditable.\n\n    ## Data Requirements\n    - Entities: Workorder, Estimate, ApprovalRecord, AuditEvent\n    - Fields: workorderId, status, estimateId, estimateVersion, approvalId, shopId, createdBy, createdDate\n\n    ## Acceptance Criteria\n    - [ ] A workorder is created and linked to the approved estimate snapshot.\n- [ ] Initial workorder state matches configuration.\n- [ ] Audit trail shows who promoted and when.\n\n    ## Notes for Agents\n    Keep promotion atomic: either you have a valid workorder, or you have nothing.\n"
+    },
+    {
+        "title": "[STORY] Promotion: Generate Workorder Items from Approved Scope",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    A workorder header is created from an approved estimate.\n\n    ## Main Flow\n    1. System iterates through approved scope line items.\n2. System creates Workorder Items for parts and labor with stable identifiers.\n3. System copies pricing/tax snapshot fields needed for downstream invoicing and variance explanations.\n4. System marks items as 'Authorized' and sets execution flags (e.g., required vs optional).\n5. System validates totals and quantity integrity.\n\n    ## Alternate / Error Flows\n    - Approved scope contains an item no longer valid in catalog → allow as snapshot item and flag for review.\n- Tax configuration missing → block promotion and require correction.\n\n    ## Business Rules\n    - Only approved items are created on the workorder.\n- Snapshot pricing/tax fields are preserved.\n- Workorder items maintain traceability to estimate items.\n\n    ## Data Requirements\n    - Entities: WorkorderItem, ApprovedScope, EstimateItem, TaxSnapshot\n    - Fields: itemSeqId, originEstimateItemId, authorizedFlag, quantity, unitPrice, taxCode, taxAmount, snapshotVersion\n\n    ## Acceptance Criteria\n    - [ ] Workorder items match approved scope in quantity and pricing.\n- [ ] Workorder items carry traceability back to estimate items.\n- [ ] Promotion fails if required tax basis is missing (policy).\n\n    ## Notes for Agents\n    Design for variance explanations later: preserve the numbers, not just totals.\n"
+    },
+    {
+        "title": "[STORY] Promotion: Enforce Idempotent Promotion",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    Promotion is executed multiple times due to retries or double actions.\n\n    ## Main Flow\n    1. System checks for an existing promotion record for (estimateId, snapshotVersion).\n2. If a workorder exists, system returns the existing workorder reference instead of creating a duplicate.\n3. If promotion was partially completed, system completes missing pieces safely.\n4. System records retry event for diagnostics/audit (optional).\n5. User sees a single canonical workorder link.\n\n    ## Alternate / Error Flows\n    - Promotion record exists but workorder deleted/corrupted → require admin intervention and block.\n\n    ## Business Rules\n    - Promotion must be idempotent under retries.\n- Promotion record is the authoritative link between estimate snapshot and workorder.\n\n    ## Data Requirements\n    - Entities: PromotionRecord, Workorder, Estimate, AuditEvent\n    - Fields: promotionKey, estimateId, snapshotVersion, workorderId, status, retryCount\n\n    ## Acceptance Criteria\n    - [ ] Repeated promotion attempts do not create duplicate workorders.\n- [ ] System returns the same workorder URL/number for the same snapshot.\n- [ ] Partial promotion can be safely completed.\n\n    ## Notes for Agents\n    Idempotency prevents data integrity nightmares—treat it as non-negotiable.\n"
+    },
+    {
+        "title": "[STORY] Promotion: Handle Partial Approval Promotion",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor / Back Office\n\n    ## Trigger\n    An estimate is PartiallyApproved and user promotes approved scope.\n\n    ## Main Flow\n    1. System creates workorder using only approved scope items.\n2. System marks unapproved items as deferred and keeps them on the estimate.\n3. System allows later approval of deferred items to create a change request or supplemental workorder items per policy.\n4. System maintains traceability between deferred items and later approvals.\n5. System shows clear indicators of partial promotion.\n\n    ## Alternate / Error Flows\n    - Later approvals conflict with work already performed → require advisor resolution before adding.\n\n    ## Business Rules\n    - Only approved scope is promotable.\n- Deferred items remain visible but non-executable until approved.\n- Later additions should flow through approval gates.\n\n    ## Data Requirements\n    - Entities: ApprovedScope, Workorder, Estimate, ChangeRequest\n    - Fields: authorizedFlag, deferredFlag, scopeVersion, changeRequestId, status\n\n    ## Acceptance Criteria\n    - [ ] Only approved items appear on the initial workorder.\n- [ ] Deferred items remain on estimate and can be approved later.\n- [ ] System maintains audit trace from deferred items to later changes.\n\n    ## Notes for Agents\n    Partial approval adds “later” work—route that through change/approval, not silent edits.\n"
+    },
+    {
+        "title": "[STORY] Promotion: Record Promotion Audit Trail",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    A promotion event completes successfully.\n\n    ## Main Flow\n    1. System records an audit event including who initiated promotion and when.\n2. System records the estimate snapshot version and approval reference used.\n3. System stores a summary of items promoted (counts, totals) for quick review.\n4. System links audit record to the workorder and estimate.\n5. System exposes audit record in UI for authorized roles.\n\n    ## Alternate / Error Flows\n    - Audit write fails → fail promotion or retry per strictness policy (recommended: fail).\n\n    ## Business Rules\n    - Promotion must be auditable and traceable.\n- Audit must reference the exact snapshot promoted.\n\n    ## Data Requirements\n    - Entities: AuditEvent, Workorder, Estimate, ApprovalRecord\n    - Fields: eventType, actorUserId, timestamp, estimateId, snapshotVersion, approvalId, workorderId, summaryTotals\n\n    ## Acceptance Criteria\n    - [ ] Promotion event is stored and retrievable.\n- [ ] Audit record references estimate snapshot and approval.\n- [ ] Audit record shows summary totals and item counts.\n\n    ## Notes for Agents\n    Audit isn’t optional—this protects you in customer disputes.\n"
+    },
+    {
+        "title": "[STORY] Execution: Assign Technician to Workorder",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Shop Manager / Dispatcher\n\n    ## Trigger\n    A workorder is Ready/Scheduled and needs assignment.\n\n    ## Main Flow\n    1. User selects a workorder and opens assignment controls.\n2. User assigns a primary technician or crew.\n3. System records assignment timestamp and assigns visibility to the technician.\n4. System optionally notifies technician.\n5. System records assignment history on reassignment.\n\n    ## Alternate / Error Flows\n    - Technician unavailable → system prevents assignment or warns based on schedule policy.\n- Unauthorized role tries assignment → block.\n\n    ## Business Rules\n    - Assignment history must be retained.\n- Workorder visibility is role-based.\n\n    ## Data Requirements\n    - Entities: Workorder, TechnicianAssignment, User, Notification\n    - Fields: workorderId, technicianId, assignedBy, assignedAt, unassignedAt, reason\n\n    ## Acceptance Criteria\n    - [ ] Technician can be assigned and sees the workorder.\n- [ ] Assignment changes are tracked with history.\n- [ ] Unauthorized users cannot assign.\n\n    ## Notes for Agents\n    Assignment data feeds execution metrics; keep it clean and auditable.\n"
+    },
+    {
+        "title": "[STORY] Execution: Start Workorder and Track Status",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Technician / Shop Manager\n\n    ## Trigger\n    Technician begins work on an assigned workorder.\n\n    ## Main Flow\n    1. Technician opens assigned workorder.\n2. Technician selects 'Start Work' (or shop auto-starts on first labor entry).\n3. System transitions workorder to InProgress with validation.\n4. Technician updates status codes as needed (waiting parts, waiting approval).\n5. System records status change events.\n\n    ## Alternate / Error Flows\n    - Workorder not in executable state → block start and show reason.\n- Pending approval change request → block progression into billable new work.\n\n    ## Business Rules\n    - State transitions must be explicit and validated.\n- Status history must be retained.\n\n    ## Data Requirements\n    - Entities: Workorder, WorkorderStatusEvent, ChangeRequest\n    - Fields: status, statusReason, changedBy, changedAt, changeRequestId\n\n    ## Acceptance Criteria\n    - [ ] Workorder can be started only when in proper state.\n- [ ] Status changes are recorded and visible.\n- [ ] Approval-gated statuses prevent unauthorized scope expansion.\n\n    ## Notes for Agents\n    Use status events for throughput/cycle-time analytics later.\n"
+    },
+    {
+        "title": "[STORY] Execution: Record Labor Performed",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Technician\n\n    ## Trigger\n    Technician performs labor associated with a workorder service item.\n\n    ## Main Flow\n    1. Technician selects a labor/service line item.\n2. Technician records time (start/stop or hours) or marks a flat-rate completion.\n3. Technician adds notes/results (optional).\n4. System validates permissions and records labor entry.\n5. System updates workorder progress and completion indicators.\n\n    ## Alternate / Error Flows\n    - Labor entry attempted without assignment → block or warn per policy.\n- Negative or unrealistic hours → block and require correction.\n\n    ## Business Rules\n    - Labor entries must be attributable to a technician and time.\n- Support both flat-rate and time-based labor.\n- Entries must be auditable and reversible only with permissions.\n\n    ## Data Requirements\n    - Entities: Workorder, WorkorderItem, LaborEntry, AuditEvent\n    - Fields: workorderId, itemSeqId, technicianId, hours, flatRateFlag, notes, createdAt\n\n    ## Acceptance Criteria\n    - [ ] Technicians can record labor entries on assigned workorders.\n- [ ] Labor entries are auditable and tied to service items.\n- [ ] Progress updates reflect labor completion.\n\n    ## Notes for Agents\n    Even if prices are hidden, labor quantities must remain accurate for invoicing.\n"
+    },
+    {
+        "title": "[STORY] Execution: Issue and Consume Parts",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Technician / Parts Counter\n\n    ## Trigger\n    Parts are picked/issued for installation on a workorder.\n\n    ## Main Flow\n    1. User selects a workorder part item.\n2. User records parts issued (picked) and parts consumed (installed).\n3. System validates quantities and updates on-hand commitments (if integrated).\n4. System records consumption event with timestamp and user.\n5. System updates item completion indicators where applicable.\n\n    ## Alternate / Error Flows\n    - Insufficient inventory → flag and move workorder to waiting parts status.\n- Consumption exceeds authorized quantity → block or require approval per policy.\n\n    ## Business Rules\n    - Parts usage must be recorded as events (issue/consume/return).\n- Consumption should not silently change authorized scope without approval.\n- Traceability must be preserved.\n\n    ## Data Requirements\n    - Entities: WorkorderItem, PartUsageEvent, InventoryReservation\n    - Fields: productId, quantityIssued, quantityConsumed, eventType, eventAt, performedBy, originEstimateItemId\n\n    ## Acceptance Criteria\n    - [ ] Parts issued/consumed can be recorded and audited.\n- [ ] System enforces quantity integrity and policy limits.\n- [ ] Workorder status reflects parts availability issues.\n\n    ## Notes for Agents\n    Keep parts usage consistent with promotion snapshot; changes route through approvals.\n"
+    },
+    {
+        "title": "[STORY] Execution: Handle Part Substitutions and Returns",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Parts Counter / Technician\n\n    ## Trigger\n    A different part is used or unused parts are returned.\n\n    ## Main Flow\n    1. User selects a part item and chooses 'Substitute' or 'Return'.\n2. System records substitution linking original and substituted part references.\n3. System records quantity returned and updates usage totals.\n4. If substitution impacts price/tax, system flags for approval if required.\n5. System records all events for audit and inventory reconciliation.\n\n    ## Alternate / Error Flows\n    - Substitution not allowed by policy → block.\n- Return would create negative consumed quantity → block.\n\n    ## Business Rules\n    - Substitutions must preserve traceability to original authorized scope.\n- Returns must be reconciled against issued/consumed quantities.\n- Price/tax impacts may require customer approval.\n\n    ## Data Requirements\n    - Entities: PartUsageEvent, WorkorderItem, SubstitutionLink, ChangeRequest\n    - Fields: originalProductId, substituteProductId, quantityReturned, eventType, requiresApprovalFlag\n\n    ## Acceptance Criteria\n    - [ ] System records substitutions with traceability.\n- [ ] Returns reconcile correctly without negative totals.\n- [ ] Approval is triggered when substitution changes customer-visible totals (policy).\n\n    ## Notes for Agents\n    Substitution is a classic variance driver—capture it cleanly for invoice explanations.\n"
+    },
+    {
+        "title": "[STORY] Execution: Request Additional Work and Flag for Approval",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Technician / Service Advisor\n\n    ## Trigger\n    Technician identifies additional work required beyond authorized scope.\n\n    ## Main Flow\n    1. Technician creates a change request describing additional parts/labor needed.\n2. System generates a supplemental estimate view for the additional work.\n3. System routes request to advisor for customer approval using the approval capability.\n4. System prevents execution of additional billable items until approved (policy).\n5. Once approved, system adds authorized items to the workorder with traceability.\n\n    ## Alternate / Error Flows\n    - Customer declines additional work → request closed; workorder continues with original scope.\n- Emergency/safety exception → policy may allow proceed with documentation.\n\n    ## Business Rules\n    - Additional work requires explicit customer approval unless exception policy applies.\n- Change requests must be traceable and auditable.\n- Added items must reference approval artifacts.\n\n    ## Data Requirements\n    - Entities: ChangeRequest, Estimate, ApprovalRecord, WorkorderItem\n    - Fields: changeRequestId, description, requestedBy, requestedAt, approvalId, addedItemSeqIds, exceptionReason\n\n    ## Acceptance Criteria\n    - [ ] Change requests can be created and tracked.\n- [ ] Approval gate blocks unauthorized scope expansion.\n- [ ] Approved additional work is added with traceability.\n\n    ## Notes for Agents\n    This is where scope creep becomes revenue leakage—enforce gates.\n"
+    },
+    {
+        "title": "[STORY] Execution: Apply Role-Based Visibility in Execution UI",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    A mechanic/technician views a workorder during execution.\n\n    ## Main Flow\n    1. System identifies viewer role and applicable visibility policy.\n2. System hides restricted pricing/cost fields from mechanic views.\n3. System continues to store full financial data in the underlying records.\n4. Back office views show full pricing/cost data.\n5. System logs access to sensitive fields when shown (optional).\n\n    ## Alternate / Error Flows\n    - Role misconfiguration → default to safer (hide sensitive) behavior and alert admins.\n\n    ## Business Rules\n    - Visibility policies must be consistently enforced across screens and APIs.\n- Hiding fields must not remove financial truth from the data model.\n\n    ## Data Requirements\n    - Entities: VisibilityPolicy, Workorder, WorkorderItem, UserRole\n    - Fields: roleId, canViewPrices, unitPrice, extendedPrice, cost, margin\n\n    ## Acceptance Criteria\n    - [ ] Mechanic views do not display restricted financial fields.\n- [ ] Back office views retain full visibility.\n- [ ] Financial data remains present for invoicing and reporting.\n\n    ## Notes for Agents\n    This is a UI/API policy layer; keep it separate from business calculations.\n"
+    },
+    {
+        "title": "[STORY] Completion: Validate Completion Preconditions",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    User attempts to complete a workorder.\n\n    ## Main Flow\n    1. System checks required workorder items are marked complete per policy.\n2. System verifies parts usage and labor entries are reconciled (no invalid quantities).\n3. System checks there are no unresolved approval-gated change requests.\n4. System generates a completion checklist and prompts for missing items.\n5. System allows completion only when all checks pass.\n\n    ## Alternate / Error Flows\n    - Pending approval exists → block completion and show what is pending.\n- Unreconciled parts usage → block and show reconciliation steps.\n\n    ## Business Rules\n    - Completion checks are configurable but must be enforced consistently.\n- Completion requires resolving approval-gated items.\n\n    ## Data Requirements\n    - Entities: Workorder, WorkorderItem, LaborEntry, PartUsageEvent, ChangeRequest\n    - Fields: status, completionChecklist, pendingApprovals, unreconciledItems\n\n    ## Acceptance Criteria\n    - [ ] System blocks completion when required conditions are not met.\n- [ ] System provides a clear checklist of what to fix.\n- [ ] System allows completion when all conditions pass.\n\n    ## Notes for Agents\n    Completion gate is the last chance to prevent invoice disputes and leakage.\n"
+    },
+    {
+        "title": "[STORY] Completion: Resolve Approval-Gated Change Requests",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor / Back Office\n\n    ## Trigger\n    Workorder contains one or more approval-gated change requests.\n\n    ## Main Flow\n    1. User views outstanding change requests tied to the workorder.\n2. User submits requests for customer approval (if not already submitted).\n3. System records approval/rejection outcomes.\n4. Approved requests add authorized items to the workorder; rejected requests remain excluded.\n5. System clears the completion block when all requests are resolved.\n\n    ## Alternate / Error Flows\n    - Customer unreachable → leave request pending and keep workorder incomplete.\n- Emergency exception policy invoked → record exception and proceed per policy.\n\n    ## Business Rules\n    - All approval-gated requests must be resolved before completion (unless exception).\n- Approvals must be linked to added items.\n\n    ## Data Requirements\n    - Entities: ChangeRequest, ApprovalRecord, WorkorderItem\n    - Fields: changeRequestId, status, approvalId, resolutionAt, resolutionBy, exceptionReason\n\n    ## Acceptance Criteria\n    - [ ] Pending change requests block completion.\n- [ ] Resolved approvals correctly add or exclude items.\n- [ ] Resolution is auditable.\n\n    ## Notes for Agents\n    Make resolution visible; operators should never guess what’s blocking completion.\n"
+    },
+    {
+        "title": "[STORY] Completion: Finalize Billable Scope Snapshot",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    Workorder is ready to be completed and prepared for invoicing.\n\n    ## Main Flow\n    1. System compiles all authorized and completed items into a billable scope snapshot.\n2. System validates quantities, pricing, taxes, and fees basis for invoicing.\n3. System marks items as invoice-ready and stores snapshot version.\n4. System records who initiated snapshot and when.\n5. System exposes snapshot totals for back office review.\n\n    ## Alternate / Error Flows\n    - Items completed but not authorized → block or flag for approval per policy.\n- Tax configuration changes since estimate → store variance and require review.\n\n    ## Business Rules\n    - Invoice derives from billable scope snapshot, not from live mutable items.\n- Snapshot must be versioned and auditable.\n\n    ## Data Requirements\n    - Entities: BillableScopeSnapshot, WorkorderItem, TaxSnapshot\n    - Fields: snapshotVersion, invoiceReadyFlag, taxAmount, feeTotal, grandTotal, varianceReason\n\n    ## Acceptance Criteria\n    - [ ] System creates a billable scope snapshot that matches completed authorized work.\n- [ ] Snapshot is versioned and retrievable.\n- [ ] Items are marked invoice-ready.\n\n    ## Notes for Agents\n    Snapshot is your source of truth for invoicing; do not compute invoices off mutable live items.\n"
+    },
+    {
+        "title": "[STORY] Completion: Complete Workorder and Record Audit",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Service Advisor / Shop Manager\n\n    ## Trigger\n    Completion preconditions are satisfied.\n\n    ## Main Flow\n    1. User selects 'Complete Workorder'.\n2. System transitions workorder to Completed state.\n3. System records completion timestamp and completing user.\n4. System stores completion notes and optional inspection outcomes.\n5. System locks execution edits except via controlled reopen workflow.\n\n    ## Alternate / Error Flows\n    - Completion attempted with failing preconditions → block (covered by validation story).\n\n    ## Business Rules\n    - Completion transition must be explicit and auditable.\n- Completion locks billable scope unless reopened with permissions.\n\n    ## Data Requirements\n    - Entities: Workorder, AuditEvent, InspectionRecord\n    - Fields: status, completedAt, completedBy, completionNotes, inspectionOutcome\n\n    ## Acceptance Criteria\n    - [ ] Workorder transitions to Completed only when preconditions pass.\n- [ ] Completion is auditable (who/when).\n- [ ] Workorder is locked against uncontrolled edits.\n\n    ## Notes for Agents\n    Treat completion as a state transition with strong validations and audit.\n"
+    },
+    {
+        "title": "[STORY] Completion: Reopen Completed Workorder (Controlled)",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Back Office Manager\n\n    ## Trigger\n    A completed workorder needs correction after completion.\n\n    ## Main Flow\n    1. Authorized user selects 'Reopen' and provides a mandatory reason.\n2. System records reopen audit event and transitions workorder to Reopened (or InProgress per policy).\n3. System unlocks specific editable fields per policy.\n4. System marks prior billable scope snapshot as superseded.\n5. System requires re-completion and re-snapshot before invoicing.\n\n    ## Alternate / Error Flows\n    - User lacks permission → block.\n- Invoice already issued → block reopen or require credit/rebill workflow (out of scope).\n\n    ## Business Rules\n    - Reopen is an exception workflow with strict permissions and audit.\n- Reopening invalidates invoice-ready snapshot.\n\n    ## Data Requirements\n    - Entities: Workorder, BillableScopeSnapshot, AuditEvent\n    - Fields: status, reopenReason, reopenedBy, reopenedAt, supersededSnapshotVersion\n\n    ## Acceptance Criteria\n    - [ ] Only authorized users can reopen completed workorders.\n- [ ] Reopen is auditable and requires a reason.\n- [ ] Invoice-ready snapshot is invalidated and must be regenerated.\n\n    ## Notes for Agents\n    Don’t allow silent edits after completion; reopen is the controlled escape hatch.\n"
+    },
+    {
+        "title": "[STORY] Invoicing: Generate Invoice Draft from Completed Workorder",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Back Office / Accounts Receivable Clerk\n\n    ## Trigger\n    A workorder is Completed and invoice-ready.\n\n    ## Main Flow\n    1. User selects 'Create Invoice' on the completed workorder.\n2. System creates a Draft invoice using the billable scope snapshot.\n3. System carries over customer billing details and references (PO number, terms).\n4. System populates invoice line items and initial totals.\n5. System links invoice to workorder, estimate version, and approval trail.\n\n    ## Alternate / Error Flows\n    - Workorder not invoice-ready → block and show missing prerequisites.\n\n    ## Business Rules\n    - Invoices are created from the billable scope snapshot.\n- Traceability links are required.\n\n    ## Data Requirements\n    - Entities: Invoice, InvoiceItem, BillableScopeSnapshot, Workorder, ApprovalRecord\n    - Fields: invoiceId, status, snapshotVersion, workorderId, estimateId, approvalId, termsId, poNumber\n\n    ## Acceptance Criteria\n    - [ ] System creates a Draft invoice with all billable items present.\n- [ ] Invoice references workorder and upstream approval trail.\n- [ ] Invoice totals are populated.\n\n    ## Notes for Agents\n    Keep invoice generation deterministic; the snapshot is the single source of truth.\n"
+    },
+    {
+        "title": "[STORY] Invoicing: Calculate Taxes, Fees, and Totals on Invoice",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    Invoice draft is created or invoice lines are adjusted.\n\n    ## Main Flow\n    1. System applies tax and fee rules to invoice lines based on snapshot/tax config.\n2. System calculates subtotal, taxes, fees, rounding adjustments, and grand total.\n3. System compares invoice totals to estimate snapshot totals and records variance reasons where applicable.\n4. System updates invoice totals and stores calculation snapshot.\n5. System prevents issuing invoice if tax basis is incomplete (policy).\n\n    ## Alternate / Error Flows\n    - Tax configuration changed since estimate → flag variance and require review.\n- Missing tax codes → block issuance and show actionable errors.\n\n    ## Business Rules\n    - Tax calculation must be explainable and auditable.\n- Mixed-tax scenarios must be supported.\n\n    ## Data Requirements\n    - Entities: Invoice, InvoiceItem, TaxRule, CalculationSnapshot, EstimateSnapshot\n    - Fields: taxCode, taxRate, taxAmount, feeTotal, roundingAdjustment, varianceAmount, varianceReason\n\n    ## Acceptance Criteria\n    - [ ] Invoice totals compute correctly for mixed-tax scenarios.\n- [ ] System records variance vs estimate snapshot when applicable.\n- [ ] Invoice cannot be issued when required tax basis is missing.\n\n    ## Notes for Agents\n    Variance explanations reduce disputes—capture them automatically when possible.\n"
+    },
+    {
+        "title": "[STORY] Invoicing: Preserve Traceability Links (Estimate/Approval/Workorder)",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    System\n\n    ## Trigger\n    Invoice draft is generated.\n\n    ## Main Flow\n    1. System stores references from invoice to workorder.\n2. System stores references from invoice to originating estimate version.\n3. System stores references from invoice to approval artifacts/records.\n4. System exposes traceability in UI for authorized roles.\n5. System includes reference identifiers in customer-facing invoice where configured.\n\n    ## Alternate / Error Flows\n    - Origin artifacts missing due to data corruption → block issuance and alert admin.\n\n    ## Business Rules\n    - Invoices must be traceable to the approved scope and executed work.\n\n    ## Data Requirements\n    - Entities: Invoice, Workorder, Estimate, ApprovalRecord, DocumentArtifact\n    - Fields: workorderId, estimateId, estimateVersion, approvalId, artifactRef, traceabilitySummary\n\n    ## Acceptance Criteria\n    - [ ] Invoice contains links to workorder and estimate/approval trail.\n- [ ] Authorized users can retrieve approval artifacts from invoice context.\n- [ ] Issuance is blocked if traceability is incomplete (policy).\n\n    ## Notes for Agents\n    Traceability is your defense in disputes; enforce it.\n"
+    },
+    {
+        "title": "[STORY] Invoicing: Support Authorized Invoice Adjustments",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Back Office Manager\n\n    ## Trigger\n    A Draft invoice requires an adjustment (goodwill discount, correction).\n\n    ## Main Flow\n    1. Authorized user edits invoice line items or applies a discount.\n2. System requires a reason code and free-text justification if configured.\n3. System recalculates taxes and totals.\n4. System records adjustment audit event including before/after values.\n5. System flags invoice as adjusted for reporting.\n\n    ## Alternate / Error Flows\n    - Unauthorized user attempts adjustment → block.\n- Adjustment would cause negative totals → block or require special permission.\n\n    ## Business Rules\n    - Adjustments require permissions and audit trail.\n- Adjustments must not break traceability; they must be explainable.\n\n    ## Data Requirements\n    - Entities: Invoice, InvoiceItem, AuditEvent, ReasonCode\n    - Fields: adjustmentType, reasonCode, justification, beforeTotal, afterTotal, adjustedBy, adjustedAt\n\n    ## Acceptance Criteria\n    - [ ] Only authorized roles can adjust invoices.\n- [ ] Adjustments require reason codes and are auditable.\n- [ ] Totals are recalculated correctly after adjustments.\n\n    ## Notes for Agents\n    Keep adjustments rare and transparent; otherwise you erode trust in the system.\n"
+    },
+    {
+        "title": "[STORY] Invoicing: Finalize and Issue Invoice",
+        "labels": [
+            "type : story",
+            "layer : functional",
+            "domain : workexec",
+            "kiro"
+        ],
+        "body": "/kiro\n    Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.\n\n    # Functional Requirement\n\n    ## Classification (confirm labels)\n    - Type: story\n    - Layer: functional\n    - Domain: workexec\n\n    ## Actor\n    Back Office / Accounts Receivable Clerk\n\n    ## Trigger\n    Draft invoice is reviewed and ready to be issued.\n\n    ## Main Flow\n    1. User reviews invoice totals and traceability links.\n2. User selects 'Issue Invoice'.\n3. System validates invoice completeness (customer details, taxes, totals, traceability).\n4. System transitions invoice to Issued/Posted state per workflow.\n5. System locks invoice lines and records issuance audit event; prepares delivery (email/print) per preference.\n\n    ## Alternate / Error Flows\n    - Validation fails (missing billing info) → block issuance and show actionable errors.\n- Invoice already issued → prevent duplicate issuance.\n\n    ## Business Rules\n    - Issuance is a state transition with validations and locking.\n- Issued invoice should be immutable except via credit/rebill (out of scope).\n\n    ## Data Requirements\n    - Entities: Invoice, Customer, AuditEvent, DeliveryPreference\n    - Fields: status, issuedAt, issuedBy, deliveryMethod, emailAddress, billingAddress\n\n    ## Acceptance Criteria\n    - [ ] Invoice can be issued only when validations pass.\n- [ ] Issued invoice is locked against edits.\n- [ ] Issuance is auditable and invoice is prepared for delivery.\n\n    ## Notes for Agents\n    Issuance ends quote-to-cash; protect integrity and lock the record.\n"
+    }
+]

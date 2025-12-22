@@ -7,7 +7,7 @@ The Workspace-Level Agent Structure System is a comprehensive framework that coo
 - **durion-positivity-backend**: Spring Boot 3.x microservices (Java 21) for business logic, APIs, and data persistence
 - **durion-moqui-frontend**: Moqui Framework 3.x (Java 11) with Vue.js 3 frontend for user interfaces and workflows
 
-The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to positivity agents and frontend-specific tasks to moqui agents. **Critically, the workspace agents are responsible for analyzing complete business requirement design documents and intelligently splitting the implementation between the moqui frontend (UI/screens/user interaction) and the positivity backend (business logic/APIs/data persistence).**
+The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents. **Critically, the workspace agents are responsible for analyzing complete business requirement design documents and intelligently splitting the implementation between the moqui frontend (UI/screens/user interaction) and the durion-positivity-backend (business logic/APIs/data persistence).**
 
 ### Core Responsibilities
 
@@ -16,27 +16,55 @@ The workspace agent structure operates as a strategic coordination layer above p
    - **Positivity Backend Responsibilities**: Business logic, REST APIs, data models, database persistence, service orchestration
    - **Integration Points**: durion-positivity component APIs, authentication flows, data contracts
 
-2. **Cross-Project Coordination**: Ensure seamless integration between moqui frontend and positivity backend through:
+2. **Cross-Project Coordination**: Ensure seamless integration between moqui frontend and durion-positivity-backend through:
    - API contract management and synchronization
    - Authentication and authorization coordination (JWT, Moqui security)
    - Data flow orchestration and consistency validation
    - Deployment and release coordination
 
 3. **Technology Stack Bridging**: Manage the impedance mismatch between:
-   - Java 21 (positivity) ↔ Java 11 (moqui) ↔ Groovy (moqui services)
+   - Java 21 (durion-positivity-backend) ↔ Java 11 (moqui) ↔ Groovy (moqui services)
    - Spring Boot 3.x ↔ Moqui Framework 3.x patterns
-   - PostgreSQL (positivity) ↔ PostgreSQL/MySQL (moqui) database coordination
+   - PostgreSQL (durion-positivity-backend) ↔ PostgreSQL/MySQL (moqui) database coordination
    - Docker deployment (both) with different container configurations
 
 **Key Design Principles:**
 
 - **Requirements-First**: All business requirements are analyzed and split before implementation begins
-- **Separation of Concerns**: Clear boundaries between presentation (moqui) and business logic (positivity)
+- **Separation of Concerns**: Clear boundaries between presentation (moqui) and business logic (durion-positivity-backend)
 - **Performance-First**: All agent responses must be delivered within 5 seconds for 95% of requests
 - **High Availability**: System must maintain 99.9% uptime during business hours
 - **Security-by-Design**: All cross-project communications use JWT tokens with secure integration patterns
 - **Scalability**: System must handle 100 concurrent requests and 50% workspace growth
 - **Disaster Recovery**: RTO of 4 hours and RPO of 1 hour for business continuity
+- **Code Generation Standards**: All code generation and implementation must use Java 21 as the target version for compatibility with the durion-positivity-backend system
+- **Agent Implementation Location**: All agent framework implementation classes are located in `durion/workspace-agents/src/main/java/`, and test classes in `durion/workspace-agents/src/test/java/`
+
+## Requirements Fulfillment Mapping
+
+This design directly fulfills the requirements specified in requirements.md:
+
+### REQ-WS-001: Requirements Decomposition Agent
+**Acceptance Criteria Fulfillment:**
+- WHEN a complete business requirement design document is provided, THE Requirements Decomposition Agent SHALL analyze the document AND correctly identify moqui frontend responsibilities within 30 seconds with 95% accuracy
+- WHEN analyzing business requirements, THE Requirements Decomposition Agent SHALL correctly identify durion-positivity-backend responsibilities within 30 seconds with 98% accuracy  
+- WHEN decomposing requirements, THE Requirements Decomposition Agent SHALL define clear API contracts between durion-positivity-backend and durion-positivity component AND generate OpenAPI specifications with 100% completeness for all identified integration points
+- WHEN requirements involve cross-cutting concerns, THE Requirements Decomposition Agent SHALL identify durion-positivity integration points AND ensure no business logic leaks into frontend with 100% architectural boundary enforcement
+- WHEN generating implementation roadmaps, THE Requirements Decomposition Agent SHALL create coordinated implementation plans with clear handoff points between backend and frontend teams AND provide dependency sequencing with 90% accuracy
+
+### REQ-WS-002: Unified Agent Structure
+**Acceptance Criteria Fulfillment:**
+- WHEN a developer requests architectural guidance for a cross-project feature, THE workspace agent system SHALL provide guidance that references both durion-positivity-backend Spring Boot patterns AND durion-moqui-frontend frontend patterns within 30 seconds
+- WHEN an API contract changes in durion-positivity-backend, THE workspace agent system SHALL automatically validate compatibility with durion-positivity component AND durion-moqui-frontend frontend consumers AND generate migration guidance within 5 minutes if breaking changes are detected
+- WHEN integrating authentication between projects, THE workspace agent system SHALL enforce JWT token format consistency across Spring Boot, durion-positivity component, AND Moqui implementations with 100% accuracy
+- WHEN dependency version conflicts are detected across Java 21 (durion-positivity-backend), Java 11 (moqui), and Groovy (durion-positivity) stacks, THE workspace agent system SHALL prevent deployment AND provide specific remediation steps within 2 minutes
+- WHEN architectural changes affect multiple projects, THE workspace agent system SHALL notify all affected project teams within 1 hour AND coordinate change implementation across durion-positivity-backend, durion-positivity component, AND moqui frontend
+
+### REQ-WS-003: Integrated Development Guidance
+**Acceptance Criteria Fulfillment:**
+- WHEN a developer requests feature implementation guidance based on decomposed requirements, THE workspace agent system SHALL provide coordinated guidance for durion-positivity-backend services, durion-positivity integration, AND durion-moqui-frontend frontend components within 10 seconds
+- All code generation and implementation uses Java 21 as the target version for compatibility with the durion-positivity-backend system
+- Agent framework implementation and test classes are located in durion/workspace-agents/src/main/java/ and durion/workspace-agents/src/test/java/
 
 ## Architecture
 
@@ -123,31 +151,31 @@ The workspace agent architecture is organized into four primary layers plus a cr
 
 ### 0. Requirements Decomposition Layer (NEW)
 
-- **Requirements Decomposition Agent**: Analyzes complete business requirement documents and intelligently splits responsibilities between moqui frontend and positivity backend, defining clear API contracts and integration points
+- **Requirements Decomposition Agent**: Analyzes complete business requirement documents and intelligently splits responsibilities between moqui frontend and durion-positivity-backend, defining clear API contracts and integration points
 
 ### 1. Workspace Coordination Layer
 
-- **Full-Stack Integration Agent**: Coordinates between positivity backend and moqui frontend throughout implementation
+- **Full-Stack Integration Agent**: Coordinates between durion-positivity-backend and moqui frontend throughout implementation
 - **Workspace Architecture Agent**: Maintains architectural consistency across backend and frontend while respecting technology differences
 - **Unified Security Agent**: Ensures consistent security patterns across Spring Boot JWT, Moqui security, and durion-positivity integration
 - **Performance Coordination Agent**: Manages performance optimization across all projects and integration points
 
 ### 2. Technology Bridge Layer
 
-- **API Contract Agent**: Manages API contracts between positivity services and durion-positivity component consumed by moqui frontend
-- **Data Integration Agent**: Coordinates data flow, governance, and synchronization between positivity PostgreSQL and moqui PostgreSQL/MySQL
+- **API Contract Agent**: Manages API contracts between durion-positivity-backend services and durion-positivity component consumed by moqui frontend
+- **Data Integration Agent**: Coordinates data flow, governance, and synchronization between durion-positivity-backend PostgreSQL and moqui PostgreSQL/MySQL
 - **Frontend-Backend Bridge Agent**: Specializes in Moqui-to-Spring Boot integration patterns through durion-positivity component
 
 ### 3. Operational Coordination Layer
 
-- **Multi-Project DevOps Agent**: Coordinates Docker deployment and infrastructure across positivity (Java 21) and moqui (Java 11) stacks
+- **Multi-Project DevOps Agent**: Coordinates Docker deployment and infrastructure across durion-positivity-backend (Java 21) and moqui (Java 11) stacks
 - **Workspace SRE Agent**: Provides unified observability and monitoring across Spring Boot, Moqui, and Vue.js layers
-- **Cross-Project Testing Agent**: Orchestrates testing strategies using Spock (positivity), Spock (moqui Groovy), and Jest (Vue.js)
+- **Cross-Project Testing Agent**: Orchestrates testing strategies using Spock (durion-positivity-backend), Spock (moqui Groovy), and Jest (Vue.js)
 - **Disaster Recovery Agent**: Manages business continuity and disaster recovery coordination across both projects
 
 ### 4. Governance and Compliance Layer
 
-- **Data Governance Agent**: Ensures data compliance and governance across positivity and moqui database boundaries
+- **Data Governance Agent**: Ensures data compliance and governance across durion-positivity-backend and moqui database boundaries
 - **Documentation Coordination Agent**: Maintains synchronized documentation across Spring Boot APIs, Moqui entities/services, and Vue.js components
 - **Workflow Coordination Agent**: Manages project management workflows and cross-project dependencies
 
@@ -189,7 +217,7 @@ WorkspaceAgentHierarchy:
     scalability: "50% workspace growth without degradation"
     
   backend_layer:
-    positivity:
+    durion-positivity-backend:
       stack: "Java 21, Spring Boot 3.x, PostgreSQL"
       agents:
         - spring_boot_developer_agent
@@ -232,7 +260,7 @@ WorkspaceAgentHierarchy:
         
   integration_layer:
     durion_positivity:
-      component: "Moqui component for positivity backend integration"
+      component: "Moqui component for durion-positivity-backend integration"
       language: "Groovy"
       agents:
         - integration_agent
@@ -249,21 +277,28 @@ WorkspaceAgentHierarchy:
 
 #### 0. Requirements Decomposition Agent (NEW - CRITICAL)
 
-**Purpose**: Analyzes complete business requirement design documents and intelligently decomposes them into moqui frontend and positivity backend implementation specifications
+**Purpose**: Analyzes complete business requirement design documents and intelligently decomposes them into moqui frontend and durion-positivity-backend implementation specifications
 
 **Capabilities**:
 
 - **Requirements Analysis**: Parses and understands complete business requirement documents with user stories, acceptance criteria, and domain logic
-- **Frontend Responsibility Identification**: Identifies UI concerns (screens, forms, workflows, user interactions, Vue.js state management)
-- **Backend Responsibility Identification**: Identifies business logic concerns (domain models, APIs, data persistence, service orchestration, validation rules)
-- **Integration Point Definition**: Defines API contracts, authentication flows, and data synchronization points through durion-positivity component
+- **Frontend Responsibility Identification**: Identifies UI concerns (screens, forms, workflows, user interactions, Vue.js state management) with 95% accuracy within 30 seconds
+- **Backend Responsibility Identification**: Identifies business logic concerns (domain models, APIs, data persistence, service orchestration, validation rules) with 98% accuracy within 30 seconds
+- **Integration Point Definition**: Defines API contracts, authentication flows, and data synchronization points through durion-positivity component with 100% completeness
 - **Technology Stack Mapping**: Maps requirements to appropriate technology patterns:
   - Moqui entities, services, screens, and transitions
   - Spring Boot REST APIs, JPA entities, service layers
   - Vue.js 3 Composition API components and Pinia state management
-- **Dependency Analysis**: Identifies cross-project dependencies and sequencing requirements
-- **API Contract Generation**: Generates OpenAPI specifications for positivity backend APIs consumed by durion-positivity component
+- **Dependency Analysis**: Identifies cross-project dependencies and sequencing requirements with 90% accuracy
+- **API Contract Generation**: Generates OpenAPI specifications for durion-positivity-backend APIs consumed by durion-positivity component
 - **Implementation Roadmap**: Creates coordinated implementation plans with clear handoff points
+
+**Performance Requirements**:
+- Analysis completion: within 30 seconds
+- Frontend identification accuracy: 95%
+- Backend identification accuracy: 98%
+- Integration point completeness: 100%
+- Implementation roadmap accuracy: 90%
 
 **Example Decomposition**:
 
@@ -271,7 +306,7 @@ WorkspaceAgentHierarchy:
 BusinessRequirement: "Create customer vehicle service history tracking"
 
 DecomposedRequirements:
-  positivity_backend:
+  durion-positivity-backend:
     domain_models:
       - Customer entity (JPA, PostgreSQL)
       - Vehicle entity with customer relationship
@@ -301,9 +336,9 @@ DecomposedRequirements:
   integration_points:
     durion_positivity_component:
       services:
-        - CustomerService.groovy (wraps positivity customer APIs)
-        - VehicleService.groovy (wraps positivity vehicle APIs)
-        - ServiceHistoryService.groovy (wraps positivity service APIs)
+        - CustomerService.groovy (wraps durion-positivity-backend customer APIs)
+        - VehicleService.groovy (wraps durion-positivity-backend vehicle APIs)
+        - ServiceHistoryService.groovy (wraps durion-positivity-backend service APIs)
       api_contracts:
         - CustomerDTO, VehicleDTO, ServiceHistoryDTO
         - Error handling and validation responses
@@ -323,17 +358,20 @@ DecomposedRequirements:
 
 **Capabilities**:
 
-- Coordinates feature development between positivity backend services and moqui frontend based on requirements decomposition
+- Coordinates feature development between durion-positivity-backend services and moqui frontend based on requirements decomposition
 - Manages backend-frontend dependencies and integration points through durion-positivity component
 - Provides guidance for API versioning and backward compatibility between Spring Boot 3.x and Moqui Framework 3.x
 - Orchestrates release coordination between Java 21 backend and Java 11 frontend deployments
 - Handles integration testing scenarios that span the full stack (Spock + Jest)
 - Ensures proper use of durion-positivity component as integration layer
 
+**Performance Requirements**:
+- Coordinated guidance delivery: within 10 seconds
+
 **Integration Points**:
 
 - Receives decomposed requirements from Requirements Decomposition Agent
-- Coordinates with backend agents (positivity Spring Boot) and frontend agents (moqui Groovy/Vue.js)
+- Coordinates with backend agents (durion-positivity-backend Spring Boot) and frontend agents (moqui Groovy/Vue.js)
 - Works with API Contract Agent for durion-positivity interface definitions
 - Collaborates with Multi-Project DevOps Agent for coordinated Docker deployments
 
@@ -344,19 +382,24 @@ DecomposedRequirements:
 **Capabilities**:
 
 - Defines workspace-wide architectural patterns and principles for both Spring Boot and Moqui frameworks
-- Ensures consistency between Spring Boot 3.x microservices (Java 21, positivity) and Moqui Framework 3.x (Java 11, Groovy, Vue.js 3)
+- Ensures consistency between Spring Boot 3.x microservices (Java 21, durion-positivity-backend) and Moqui Framework 3.x (Java 11, Groovy, Vue.js 3)
 - Validates requirements decomposition against established architectural boundaries
 - Manages technology stack decisions and integration patterns through durion-positivity component
 - Provides guidance for system boundaries and layer interactions (presentation vs business logic)
 - Coordinates architectural evolution across Java 21 backend and Java 11/Groovy/TypeScript frontend
-- Ensures proper separation of concerns between Moqui entities/screens and positivity domain models/APIs
+- Ensures proper separation of concerns between Moqui entities/screens and durion-positivity-backend domain models/APIs
+
+**Performance Requirements**:
+- Cross-project architectural guidance delivery: within 30 seconds
+- Dependency version conflict detection and remediation: within 2 minutes across Java 21, Java 11, and Groovy stacks
+- Affected project team notifications for architectural changes: within 1 hour
 
 **Architectural Patterns Enforced**:
 
 - **Presentation Layer (Moqui)**: Screens, forms, Vue.js components, user workflows, UI validation only
 - **Integration Layer (durion-positivity)**: API wrappers, DTO mapping, authentication, error handling
-- **Business Logic Layer (Positivity)**: Domain models, business rules, data persistence, REST APIs, service orchestration
-- **Data Layer (Positivity)**: JPA entities, repositories, database schemas, data validation
+- **Business Logic Layer (Durion-Positivity-Backend)**: Domain models, business rules, data persistence, REST APIs, service orchestration
+- **Data Layer (Durion-Positivity-Backend)**: JPA entities, repositories, database schemas, data validation
 
 **Integration Points**:
 
@@ -372,46 +415,52 @@ DecomposedRequirements:
 
 **Capabilities**:
 
-- Coordinates authentication strategies between positivity Spring Boot JWT and moqui_example frontend auth
+- Coordinates authentication strategies between durion-positivity-backend Spring Boot JWT and durion-moqui-frontend frontend auth
 - Manages full-stack authorization and role-based access control
 - Provides guidance for secure API integration between backend services and frontend
-- Coordinates secrets management across AWS (positivity) and frontend deployment environments
+- Coordinates secrets management across AWS (durion-positivity-backend) and frontend deployment environments
 - Ensures security compliance across both technology stacks
+
+**Performance Requirements**:
+- JWT token format consistency enforcement: 100% accuracy across Spring Boot, durion-positivity component, and Moqui implementations
 
 **Integration Points**:
 
-- Coordinates with backend security agents (positivity) and frontend security agents (moqui_example)
+- Coordinates with backend security agents (durion-positivity-backend) and frontend security agents (durion-moqui-frontend)
 - Works with API Contract Agent for secure API design
 - Collaborates with Full-Stack DevOps Agent for secure deployment
 
 #### 4. API Contract Agent
 
-**Purpose**: Manages API contracts and integration interfaces between positivity backend and moqui frontend through durion-positivity component
+**Purpose**: Manages API contracts and integration interfaces between durion-positivity-backend and moqui frontend through durion-positivity component
 
 **Capabilities**:
 
-- Defines and maintains OpenAPI 3.0 specifications for positivity REST APIs consumed by durion-positivity component
-- Generates Groovy service interfaces in durion-positivity component from positivity API contracts
-- Manages API versioning strategies ensuring backward compatibility across Spring Boot 3.x (positivity) and Moqui 3.x integration
+- Defines and maintains OpenAPI 3.0 specifications for durion-positivity-backend REST APIs consumed by durion-positivity component
+- Generates Groovy service interfaces in durion-positivity component from durion-positivity-backend API contracts
+- Manages API versioning strategies ensuring backward compatibility across Spring Boot 3.x (durion-positivity-backend) and Moqui 3.x integration
 - Coordinates DTO mappings between:
-  - Spring Boot JPA entities (positivity backend)
+  - Spring Boot JPA entities (durion-positivity-backend)
   - Groovy service DTOs (durion-positivity component)
   - Moqui entities (moqui frontend screens)
-- Ensures contract testing between positivity REST APIs and durion-positivity Groovy wrappers
+- Ensures contract testing between durion-positivity-backend REST APIs and durion-positivity Groovy wrappers
 - Validates that decomposed requirements produce consistent API contracts
+
+**Performance Requirements**:
+- API contract compatibility validation and migration guidance: within 5 minutes for breaking changes
 
 **API Contract Lifecycle**:
 
 1. **Requirements Phase**: Requirements Decomposition Agent identifies API needs
-2. **Design Phase**: API Contract Agent generates OpenAPI specifications for positivity APIs
-3. **Implementation Phase**: Positivity implements REST APIs, durion-positivity implements Groovy wrappers
-4. **Testing Phase**: Contract tests validate positivity APIs match specifications and durion-positivity wrappers consume correctly
+2. **Design Phase**: API Contract Agent generates OpenAPI specifications for durion-positivity-backend APIs
+3. **Implementation Phase**: Durion-Positivity-Backend implements REST APIs, durion-positivity implements Groovy wrappers
+4. **Testing Phase**: Contract tests validate durion-positivity-backend APIs match specifications and durion-positivity wrappers consume correctly
 5. **Evolution Phase**: API versioning ensures backward compatibility for moqui frontend
 
 **Integration Points**:
 
 - Receives API requirements from Requirements Decomposition Agent
-- Works with positivity REST API agents for Spring Boot contract definition
+- Works with durion-positivity-backend REST API agents for Spring Boot contract definition
 - Coordinates with durion-positivity integration agents for Groovy wrapper generation
 - Collaborates with Cross-Project Testing Agent for contract validation using Pact/Spring Cloud Contract
 - Provides API specifications to Documentation Coordination Agent
@@ -422,7 +471,7 @@ DecomposedRequirements:
 
 **Capabilities**:
 
-- Manages data synchronization between positivity DynamoDB, moqui databases, and frontend state
+- Manages data synchronization between durion-positivity-backend DynamoDB, moqui databases, and frontend state
 - Provides guidance for event-driven data integration using SNS/SQS
 - Coordinates data consistency patterns across different technology stacks
 - Manages data transformation and mapping between systems
@@ -441,24 +490,24 @@ DecomposedRequirements:
 **Capabilities**:
 
 - **Integration Architecture**: Provides guidance for three-tier integration:
-  1. Moqui screens/Vue.js → durion-positivity Groovy services → positivity Spring Boot REST APIs
+  1. Moqui screens/Vue.js → durion-positivity Groovy services → durion-positivity-backend Spring Boot REST APIs
 - **State Management**: Coordinates between:
   - Vue.js 3 Pinia state (frontend reactive state)
   - Moqui entity cache (Moqui framework caching)
   - durion-positivity API wrappers (integration layer)
-  - Positivity REST APIs (authoritative data source)
+  - Durion-Positivity-Backend REST APIs (authoritative data source)
 - **Authentication Flows**: Coordinates JWT token management:
-  - Positivity issues JWT tokens (Spring Security)
+  - Durion-Positivity-Backend issues JWT tokens (Spring Security)
   - durion-positivity manages token lifecycle in Groovy services
   - Moqui security validates tokens for screen access
   - Vue.js components use tokens for API calls
 - **Error Handling**: Provides multi-layer error handling patterns:
-  - Positivity API errors (HTTP status codes, error DTOs)
+  - Durion-Positivity-Backend API errors (HTTP status codes, error DTOs)
   - durion-positivity Groovy error wrapping (Moqui service responses)
   - Moqui screen error display (user-friendly messages)
   - Vue.js component error states (reactive error handling)
 - **Caching Strategy**: Coordinates caching across layers:
-  - Positivity API response caching (Spring Cache)
+  - Durion-Positivity-Backend API response caching (Spring Cache)
   - durion-positivity wrapper caching (Moqui entity cache)
   - Vue.js component-level caching (computed properties, Pinia)
 - **Data Synchronization**: Manages data consistency patterns:
@@ -472,12 +521,12 @@ DecomposedRequirements:
 ```groovy
 // durion-positivity Groovy Service Example
 class CustomerService {
-    // Wraps positivity backend API
+    // Wraps durion-positivity-backend API
     Map getCustomer(String customerId) {
         // JWT token from Moqui session
         String token = ec.user.getJwtToken()
         
-        // Call positivity REST API
+        // Call durion-positivity-backend REST API
         def response = restClient.get("/api/v1/customers/${customerId}") {
             header('Authorization', "Bearer ${token}")
         }
@@ -500,7 +549,7 @@ export default defineComponent({
   setup() {
     const customerStore = useCustomerStore()
     
-    // Calls Moqui screen transition → durion-positivity service → positivity API
+    // Calls Moqui screen transition → durion-positivity service → durion-positivity-backend API
     const loadCustomer = async (customerId: string) => {
       await customerStore.fetchCustomer(customerId)
     }
@@ -513,7 +562,7 @@ export default defineComponent({
 **Integration Points**:
 
 - Receives integration requirements from Requirements Decomposition Agent
-- Works with moqui Vue.js agents and positivity REST API agents
+- Works with moqui Vue.js agents and durion-positivity-backend REST API agents
 - Coordinates with Unified Security Agent for JWT auth flows across Java 11 and Java 21 stacks
 - Collaborates with API Contract Agent for durion-positivity interface definitions
 - Provides integration patterns to Testing Agent for end-to-end test scenarios
@@ -526,7 +575,7 @@ export default defineComponent({
 
 - Orchestrates CI/CD pipelines that span multiple projects and technology stacks
 - Coordinates deployment strategies for Spring Boot services, Moqui applications, and frontend apps
-- Manages infrastructure as code across AWS Fargate (positivity) and other deployment targets
+- Manages infrastructure as code across AWS Fargate (durion-positivity-backend) and other deployment targets
 - Provides guidance for blue-green deployments and canary releases across projects
 - Coordinates disaster recovery and backup strategies
 
@@ -560,7 +609,7 @@ export default defineComponent({
 
 **Capabilities**:
 
-- Analyzes performance across positivity microservices, moqui_example frontend, and network boundaries
+- Analyzes performance across durion-positivity-backend microservices, durion-moqui-frontend frontend, and network boundaries
 - Coordinates caching strategies between frontend and backend systems
 - Provides unified performance dashboards and alerting
 - Manages auto-scaling coordination across different deployment environments
@@ -585,7 +634,7 @@ export default defineComponent({
 
 **Capabilities**:
 
-- Enforces consistent data governance policies across positivity and moqui_example
+- Enforces consistent data governance policies across durion-positivity-backend and durion-moqui-frontend
 - Coordinates schema migrations across all affected projects
 - Manages data classification and access control policies
 - Provides complete audit trails for cross-project data access
@@ -688,7 +737,7 @@ export default defineComponent({
 
 **Capabilities**:
 
-- Coordinates end-to-end testing scenarios across positivity, moqui_example, and frontend projects
+- Coordinates end-to-end testing scenarios across durion-positivity-backend, durion-moqui-frontend, and frontend projects
 - Manages contract testing between different projects and API boundaries
 - Provides guidance for integration testing across technology stacks
 - Coordinates performance testing that spans multiple systems
@@ -717,7 +766,7 @@ RequirementsDecomposition:
       - "Service advisor can add new service records"
       
   decomposed_implementation:
-    positivity_backend:
+    durion-positivity-backend:
       domain_models:
         - entity: Customer
           fields: [id, name, phone, email, address]
@@ -790,19 +839,19 @@ RequirementsDecomposition:
             - addServiceRecord(vehicleId, serviceData) → calls POST /api/v1/vehicles/{id}/service-history
             
       dto_mappings:
-        - CustomerResponse (positivity) → Customer entity (moqui)
-        - VehicleResponse (positivity) → Vehicle entity (moqui)
-        - ServiceHistoryResponse (positivity) → ServiceHistory entity (moqui)
+        - CustomerResponse (durion-positivity-backend) → Customer entity (moqui)
+        - VehicleResponse (durion-positivity-backend) → Vehicle entity (moqui)
+        - ServiceHistoryResponse (durion-positivity-backend) → ServiceHistory entity (moqui)
         
       authentication:
-        - JWT token obtained from positivity /auth/login
+        - JWT token obtained from durion-positivity-backend /auth/login
         - Token stored in Moqui session
         - Token included in all durion-positivity API calls
         
   implementation_sequence:
     - phase: 1_backend_foundation
       tasks:
-        - Create JPA entities in positivity
+        - Create JPA entities in durion-positivity-backend
         - Implement Spring Boot services
         - Implement REST APIs with OpenAPI specs
         - Write Spock tests for business logic
@@ -833,7 +882,7 @@ RequirementsDecomposition:
 ```yaml
 CrossProjectIntegrationRegistry:
   projects:
-    - id: positivity
+    - id: durion-positivity-backend
       type: spring_boot_microservices
       stack:
         language: Java 21
@@ -867,7 +916,7 @@ CrossProjectIntegrationRegistry:
       language: Groovy
       purpose: integration_layer
       provides:
-        - api_wrappers_for_positivity_backend
+        - api_wrappers_for_durion-positivity-backend
         - dto_mappings
         - jwt_token_management
         - error_handling
@@ -880,7 +929,7 @@ CrossProjectIntegrationRegistry:
       authentication: moqui_session
       
     - source: durion_positivity_component
-      target: positivity_rest_apis
+      target: durion-positivity-backend_rest_apis
       type: http_rest
       authentication: jwt_bearer_token
       
@@ -896,20 +945,20 @@ CrossProjectIntegrationRegistry:
 APIContractRegistry:
   contracts:
     - id: pos_catalog_api
-      provider: positivity.pos-catalog
-      consumers: [frontend_apps, moqui_example]
+      provider: durion-positivity-backend.pos-catalog
+      consumers: [frontend_apps, durion-moqui-frontend]
       version: v1
       specification: openapi_3_0
       
     - id: pos_order_api
-      provider: positivity.pos-order
+      provider: durion-positivity-backend.pos-order
       consumers: [frontend_apps]
       version: v1
       specification: openapi_3_0
       
     - id: moqui_integration_api
-      provider: moqui_example
-      consumers: [positivity.pos-accounting]
+      provider: durion-moqui-frontend
+      consumers: [durion-positivity-backend.pos-accounting]
       version: v1
       specification: rest_json
 ```
@@ -941,7 +990,7 @@ DataGovernanceRegistry:
   governance_policies:
     - policy_id: cross_project_data_sharing
       enforcement: "100% accuracy"
-      scope: [positivity, moqui_example]
+      scope: [durion-positivity-backend, durion-moqui-frontend]
       validation_frequency: "real_time"
       
     - policy_id: schema_migration_coordination
@@ -969,7 +1018,7 @@ DisasterRecoveryRegistry:
     
   recovery_procedures:
     - procedure: coordinate_service_failover
-      scope: [positivity_aws_fargate, moqui_deployment]
+      scope: [durion-positivity-backend_aws_fargate, moqui_deployment]
       validation_accuracy: "90%"
       
     - procedure: ensure_data_consistency
@@ -993,27 +1042,27 @@ DeploymentCoordinationMatrix:
   environments:
     - name: development
       projects:
-        positivity: local_containers
-        moqui_example: local_gradle
+        durion-positivity-backend: local_containers
+        durion-moqui-frontend: local_gradle
         frontend_apps: local_dev_server
         
     - name: staging
       projects:
-        positivity: aws_fargate_staging
-        moqui_example: staging_server
+        durion-positivity-backend: aws_fargate_staging
+        durion-moqui-frontend: staging_server
         frontend_apps: staging_cdn
         
     - name: production
       projects:
-        positivity: aws_fargate_production
-        moqui_example: production_cluster
+        durion-positivity-backend: aws_fargate_production
+        durion-moqui-frontend: production_cluster
         frontend_apps: production_cdn
         
   coordination_rules:
-    - trigger: positivity_api_change
-      actions: [update_frontend_contracts, notify_moqui_integration]
+    - trigger: durion-positivity-backend_api_change
+      actions: [update_frontend_contracts, notify_durion-moqui-frontend_integration]
     - trigger: moqui_schema_change
-      actions: [update_positivity_integration, validate_data_sync]
+      actions: [update_durion-positivity_integration, validate_data_sync]
 ```
 
 ## Correctness Properties
@@ -1046,11 +1095,11 @@ After reviewing all properties identified in the prework, several areas of redun
 **Validates: Requirements 1.2, 2.3, 6.4**
 
 **Property 2: API contract synchronization**
-*For any* API change in positivity backend, agents should ensure that:
+*For any* API change in durion-positivity-backend, agents should ensure that:
 - OpenAPI specifications are updated
 - durion-positivity Groovy wrappers are regenerated or updated
 - Moqui frontend screens consuming the API are notified and validated
-- Contract tests validate compatibility across the integration chain (positivity → durion-positivity → moqui)
+- Contract tests validate compatibility across the integration chain (durion-positivity-backend → durion-positivity → moqui)
 **Validates: Requirements 2.2, 4.2**
 
 **Property 3: Cross-project integration guidance completeness**
@@ -1113,7 +1162,7 @@ After reviewing all properties identified in the prework, several areas of redun
 
 ### Cross-Project Communication Failures
 
-- **Project Unavailability**: When external projects (moqui_example) are unavailable, agents should gracefully degrade and provide guidance based on cached contracts and known patterns
+- **Project Unavailability**: When external projects (durion-moqui-frontend) are unavailable, agents should gracefully degrade and provide guidance based on cached contracts and known patterns
 - **Version Mismatches**: When projects have incompatible versions, agents should detect conflicts and provide migration guidance
 - **Contract Violations**: When API contracts are violated, agents should provide clear error messages and remediation steps
 
@@ -1180,14 +1229,14 @@ Each property-based test will be tagged with comments explicitly referencing the
 
 **Integration Testing**:
 
-- Test agent coordination between positivity and moqui_example projects
+- Test agent coordination between durion-positivity-backend and durion-moqui-frontend projects
 - Validate API contract synchronization across technology boundaries
 - Test deployment coordination across different environments
 - Verify security pattern consistency across all projects
 
 **Contract Testing**:
 
-- Validate API contracts between positivity services and external consumers
+- Validate API contracts between durion-positivity-backend services and external consumers
 - Test contract evolution and backward compatibility
 - Verify contract enforcement across technology stacks
 - Test contract violation detection and remediation

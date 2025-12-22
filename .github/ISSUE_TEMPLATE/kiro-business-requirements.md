@@ -2,7 +2,7 @@
 name: "Kiro – Business Requirement (Epic)"
 about: "Define an epic-level business outcome and success criteria"
 title: "[BRS] "
-labels: ["type:epic", "layer:business"]
+labels: ["type : epic", "layer : business", "kiro", "domain : <domain>"]
 assignees: []
 ---
 

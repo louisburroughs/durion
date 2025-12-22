@@ -4,6 +4,8 @@
 
 The durion workspace contains the positivity POS backend system (Spring Boot microservices) and the moqui_example frontend application. To effectively coordinate development across the entire durion ecosystem, we need a workspace-level agent structure that provides unified guidance while respecting the distinct patterns and technologies of each project. The agent structure should facilitate seamless integration between the positivity backend services and the moqui_example frontend while maintaining clear boundaries and specialized expertise for each technology stack.
 
+**Code Generation Requirements:** All code generation and implementation must use Java 21 as the target version for compatibility with the positivity backend system.
+
 This document follows EARS (Easy Approach to Requirements Syntax) patterns and INCOSE quality standards to ensure requirements are testable, measurable, and implementable.
 
 ## Glossary
@@ -26,10 +28,10 @@ This document follows EARS (Easy Approach to Requirements Syntax) patterns and I
 
 ### Agent & Test Classes Location
 
-All agent framework implementation and test classes are located in the **`workspace-agents/`** folder:
+All agent framework implementation and test classes are located in the **`durion/workspace-agents/`** folder:
 
-- Agent implementations: `workspace-agents/src/main/java/`
-- Test classes: `workspace-agents/src/test/java/`
+- Agent implementations: `durion/workspace-agents/src/main/java/`
+- Test classes: `durion/workspace-agents/src/test/java/`
 
 ## Requirements
 
@@ -220,6 +222,57 @@ All agent framework implementation and test classes are located in the **`worksp
 4. WHEN disaster recovery testing is performed, THE workspace agent system SHALL validate recovery procedures across all projects AND identify recovery gaps with 90% accuracy
 5. WHEN services are restored after disaster recovery, THE workspace agent system SHALL validate data integrity across all project boundaries AND ensure zero data corruption
 
+### Requirement 12 [REQ-WS-012]
+
+**Priority:** High  
+**Dependencies:** None  
+**Validation Method:** Automated testing + Code review  
+**Acceptance Tests:** [TEST-WS-012-01, TEST-WS-012-02]
+
+**User Story:** As a system administrator, I want agents to determine their location before executing commands, so that I can ensure reliable and context-aware command execution.
+
+#### Acceptance Criteria
+
+1. WHEN an agent needs to execute system commands, THE agent SHALL use the `pwd` command to determine its current working directory before running any other commands
+2. WHEN executing build or deployment commands, THE agent SHALL verify its location using `pwd` AND ensure commands are executed in the correct directory context
+
+### Requirement 13 [REQ-WS-013]
+
+**Priority:** Critical  
+**Dependencies:** REQ-WS-001, REQ-WS-002, REQ-WS-003  
+**Validation Method:** Code review + Automated testing + Contract verification  
+**Acceptance Tests:** [TEST-WS-013-01, TEST-WS-013-02, TEST-WS-013-03, TEST-WS-013-04, TEST-WS-013-05]
+
+**User Story:** As a system architect, I want frozen agent responsibilities with clear contracts, so that I can ensure predictable, safe, and maintainable agent behavior across the workspace.
+
+#### Acceptance Criteria
+
+1. WHEN an agent class is implemented, THE agent SHALL have a single, explicit purpose defined in its contract AND SHALL not perform operations outside its defined scope
+2. WHEN an agent processes inputs, THE agent SHALL have clear, documented inputs and outputs with type specifications AND SHALL validate inputs before processing
+3. WHEN an agent operates, THE agent SHALL have a defined "stop condition" that prevents infinite loops AND SHALL terminate processing when the condition is met
+4. WHEN an agent is designed, THE agent SHALL have contractual specifications defining what it may change, what it may read, AND what it must never do with 100% enforcement
+5. WHEN an agent iterates, THE agent SHALL have a maximum iteration count defined AND SHALL escalate to human intervention when exceeded
+6. WHEN an agent encounters complex conditions, THE agent SHALL have "escalate to human" conditions defined AND SHALL stop processing and request human assistance when triggered
+7. WHEN context becomes too large, THE agent SHALL have a "context too large → summarize & continue" rule AND SHALL automatically summarize context before proceeding
+8. WHEN agent responsibilities are defined, THE responsibilities SHALL be frozen AND SHALL not be modified without formal change control approval
+
+### Requirement 14 [REQ-WS-014]
+
+**Priority:** High  
+**Dependencies:** REQ-WS-001, REQ-WS-013  
+**Validation Method:** Integration testing + GitHub API testing + Template validation  
+**Acceptance Tests:** [TEST-WS-014-01, TEST-WS-014-02, TEST-WS-014-03, TEST-WS-014-04, TEST-WS-014-05]
+
+**User Story:** As a product manager, I want automated story processing and issue generation, so that I can efficiently decompose high-level stories into actionable development tasks across frontend and backend projects.
+
+#### Acceptance Criteria
+
+1. WHEN issues labeled [STORY] are created in the durion repository (https://github.com/louisburroughs/durion.git), THE workspace agent system SHALL automatically detect these issues AND initiate story analysis within 5 minutes
+2. WHEN analyzing a story, THE workspace agent system SHALL use the Requirements Decomposition Agent to break down the story AND identify frontend and backend implementation requirements with 95% accuracy
+3. WHEN story analysis is complete, THE workspace agent system SHALL generate new issues in the durion-moqui-frontend repository (https://github.com/louisburroughs/durion-moqui-frontend.git) using the .github/kiro-story.md template AND set the title to start with [STORY] followed by a descriptive summary AND populate all template sections (Actor, Trigger, Main Flow, Alternate/Error Flows, Business Rules, Data Requirements, Acceptance Criteria, Notes for Agents, Classification) with decomposed frontend-specific details AND set appropriate labels (type: story, layer: functional, kiro, domain: <relevant-domain>) AND ensure issues are complete enough for frontend agents to begin implementation
+4. WHEN story analysis is complete, THE workspace agent system SHALL generate new issues in the durion-positivity-backend repository (https://github.com/louisburroughs/durion-positivity-backend.git) using the .github/kiro-story.md template AND set the title to start with [STORY] followed by a descriptive summary AND populate all template sections (Actor, Trigger, Main Flow, Alternate/Error Flows, Business Rules, Data Requirements, Acceptance Criteria, Notes for Agents, Classification) with decomposed backend-specific details AND set appropriate labels (type: story, layer: functional, kiro, domain: <relevant-domain>) AND ensure issues are complete enough for backend agents to begin implementation
+5. WHEN story details are insufficient for implementation, THE generated issues SHALL include specific clarifying questions AND SHALL request additional information from stakeholders before proceeding with development
+
 ## Non-Functional Requirements
 
 ### Performance Requirements [REQ-WS-NFR-001]
@@ -265,6 +318,9 @@ All agent framework implementation and test classes are located in the **`worksp
 | REQ-WS-009 | Performance Engineer | Medium | Performance Coordination Agent, Workspace SRE Agent | TEST-WS-009-01 to 05 | REQ-WS-004, REQ-WS-005 |
 | REQ-WS-010 | Data Governance Officer | High | Data Governance Agent, Unified Security Agent | TEST-WS-010-01 to 05 | REQ-WS-001, REQ-WS-002 |
 | REQ-WS-011 | Business Continuity Manager | Critical | Disaster Recovery Agent, Multi-Project DevOps Agent | TEST-WS-011-01 to 05 | REQ-WS-003, REQ-WS-006 |
+| REQ-WS-012 | System Administrator | High | Agent Framework Core | TEST-WS-012-01 to 02 | None |
+| REQ-WS-013 | System Architect | Critical | All Agent Classes | TEST-WS-013-01 to 05 | REQ-WS-001, REQ-WS-002, REQ-WS-003 |
+| REQ-WS-014 | Product Manager | High | Requirements Decomposition Agent, GitHub Integration Agent | TEST-WS-014-01 to 05 | REQ-WS-001, REQ-WS-013 |
 
 ## Risk Assessment
 
@@ -273,12 +329,15 @@ All agent framework implementation and test classes are located in the **`worksp
 - **REQ-WS-001 (Requirements Decomposition)**: Foundation requirement that all other requirements depend on - critical for proper separation of concerns between frontend and backend
 - **REQ-WS-007 (Security)**: Critical security requirements with zero-tolerance for vulnerabilities across all three layers
 - **REQ-WS-011 (Disaster Recovery)**: Business-critical recovery capabilities with strict RTO/RPO requirements
+- **REQ-WS-013 (Agent Contracts)**: Critical for ensuring agent reliability, safety, and maintainability across the entire system
 
 ### Medium-Risk Requirements
 
 - **REQ-WS-004 (DevOps)**: Complex deployment coordination across multiple environments
 - **REQ-WS-005 (Testing)**: Comprehensive testing across multiple technology stacks including durion-positivity integration layer
 - **REQ-WS-010 (Data Governance)**: Complex data management across project boundaries
+- **REQ-WS-012 (Agent Location Awareness)**: Critical for reliable command execution across different environments
+- **REQ-WS-014 (Story Processing)**: Automated cross-repository issue generation requires robust GitHub API integration
 
 ### Low-Risk Requirements
 

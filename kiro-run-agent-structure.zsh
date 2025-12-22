@@ -4,11 +4,11 @@ print -u2 "=== SCRIPT START ==="
 set -euo pipefail
 
 # ---- Config ----
-TASK_FILE=".kiro/specs/agent-structure/tasks.md"   # <-- set this to the real filename
+TASK_FILE=".kiro/specs/workspace-agent-structure/tasks.md"   # <-- set this to the real filename
 HANDOFF_FILE=".kiro/HANDOFF.md"
 LOG_DIR=".kiro/run-logs"
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
-LOG_FILE="${LOG_DIR}/agent-structure-${DATE_TAG}.log"
+LOG_FILE="${LOG_DIR}/workspace-agent-structure-${DATE_TAG}.log"
 
 KIRO_CMD="${KIRO_CMD:-kiro-cli}"
 MAX_STEPS="${MAX_STEPS:-1}"
