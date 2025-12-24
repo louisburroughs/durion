@@ -27,6 +27,10 @@ Use this document as the primary operational reference for the workspace agents.
 - **For DR / SRE work**: Use sections 2 (Monitoring and Alerting) and 4 (Disaster Recovery Procedures) when configuring dashboards, alerts, and recovery playbooks.
 - **For regular operations**: Use sections 5–8 for weekly/monthly maintenance, optimisation, and security hardening.
 
+**Repo-local runbooks (service-specific operations):**
+- Backend services: `durion-positivity-backend/docs/OperationsRunbook.md`
+- Moqui/frontend: `durion-moqui-frontend/docs/OperationsRunbook.md`
+
 When in doubt, treat the `.kiro/specs` files and the `workspace-agents` README as the source of truth for architecture and agent capabilities, and use this runbook for the concrete commands and order of operations.
 
 ---
