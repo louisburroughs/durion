@@ -1,0 +1,3 @@
+#Kiro logs
+.kiro/run-logs/*
+.kiro/run-logs

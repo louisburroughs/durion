@@ -22,6 +22,7 @@
 /home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/core/AgentConfiguration.java
 /home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/agents/ApiContractAgent.java
 /home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/interfaces/WorkspaceAgent.java
+/home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java
 /home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/core/RBACConfig.java
 /home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/core/EncryptionConfig.java
 /home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/core/SecurityValidationResult.java

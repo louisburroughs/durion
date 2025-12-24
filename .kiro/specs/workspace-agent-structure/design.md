@@ -271,7 +271,66 @@ WorkspaceAgentHierarchy:
         - error_handling
         - jwt_token_management
         - retry_logic
+
+  orchestration_layer:
+    story_orchestration_system:
+      description: "Coordinates cross-repository story sequencing and minimizes stub creation across siloed agents"
+      agents:
+        - issue_analysis_agent
+      artifacts:
+        - path: "durion/.github/orchestration/story-sequence.md"
+          purpose: "Global story ordering and dependency model across frontend and backend"
+        - path: "durion/.github/orchestration/frontend-coordination.md"
+          purpose: "Frontend-centric view of which stories are ready, blocked, or parallel"
+        - path: "durion/.github/orchestration/backend-coordination.md"
+          purpose: "Backend-centric view prioritized by how many frontend stories each backend story unblocks"
+      responsibilities:
+        - read_open_story_issues_from_durion
+        - classify_stories_as_backend_first_frontend_first_or_parallel
+        - maintain_global_story_sequence_and_dependencies
+        - update_frontend_and_backend_coordination_views
+        - prevent_unnecessary_stub_creation_by_enforcing_story_ordering
 ```
+
+### Story Orchestration Design (REQ-WS-015  REQ-WS-018)
+
+The Story Orchestration System extends the workspace architecture to coordinate how work is selected and executed across the durion-positivity-backend and durion-moqui-frontend projects while keeping all agents siloed. It is responsible for reading open [STORY] issues in the durion workspace, building a global dependency model, and publishing orchestration documents that frontend and backend agents must consume before they choose work.
+
+#### Core Components
+
+- **Issue Analysis Agent** (workspace-agents): Periodically or via webhook, reads all open [STORY] issues in the durion repository, extracts dependencies, and classifies each story as Backend-First, Frontend-First, or Parallel.
+- **Story Orchestration Engine**: Applies deterministic ordering rules (topological sort with stable tie-breaking) to produce a global story sequence and maintain dependency integrity.
+- **Orchestration Artifacts** (stored in `durion/.github/orchestration/`):
+  - `story-sequence.md`: Canonical list of stories, their orchestration IDs, dependency graph, classification, and target sprint or milestone.
+  - `frontend-coordination.md`: Frontend-centric projection that lists ready, blocked, and parallel frontend stories, including explicit stub usage rules where absolutely necessary.
+  - `backend-coordination.md`: Backend-centric projection that orders backend stories by the number of frontend stories they unblock and documents required API or contract details.
+
+These components collectively satisfy REQ-WS-015 through REQ-WS-018 by ensuring that story sequencing, coordination views, and cross-document consistency are generated and maintained automatically.
+
+#### Execution Flow
+
+1. **Issue Ingestion (REQ-WS-015)**  
+  The Issue Analysis Agent reads all open [STORY] issues in the durion repository, normalizes metadata (labels, epic links, dependencies), and builds an in-memory graph of story relationships.
+
+2. **Classification and Sequencing (REQ-WS-015)**  
+  Each story is classified as Backend-First, Frontend-First, or Parallel based on its description, required contracts, and presence of existing APIs. The orchestration engine then computes a global sequence that respects prerequisites and avoids circular dependencies; any cycles are flagged for human escalation.
+
+3. **Artifact Projection (REQ-WS-016, REQ-WS-017)**  
+  From the global sequence, the system derives:
+  - A frontend view (`frontend-coordination.md`) highlighting which frontend stories are ready to start, which are blocked on backend work, and which can proceed in parallel with backend implementation.
+  - A backend view (`backend-coordination.md`) ordering backend stories by their unblock potential for frontend work and documenting required endpoints, payloads, and error semantics.
+
+4. **Siloed Agent Consumption (REQ-WS-016, REQ-WS-017)**  
+  - **Frontend agents** (operating in moqui_example) treat the frontend coordination document as the sole source of truth for story readiness and are prohibited from starting blocked stories unless a stub strategy is explicitly documented.
+  - **Backend agents** (operating in positivity) use the backend coordination document to prioritize Backend-First stories and high-unblock-value backend work, without relying on direct communication with frontend.
+
+5. **Synchronization and Drift Detection (REQ-WS-018)**  
+  The orchestration system enforces consistency across `story-sequence.md`, `frontend-coordination.md`, and `backend-coordination.md` by:
+  - Ensuring that each referenced story exists in the global sequence.
+  - Verifying that classification, dependencies, and status are aligned across views.
+  - Recomputing projections whenever story metadata changes (status, labels, dependencies) and capturing changes in a small change log section in each document.
+
+This design ensures that workspace agents can coordinate story execution across multiple repositories, minimize stub creation, and maintain a single, authoritative orchestration model that frontend and backend agents can follow independently.
 
 ### Agent Specifications
 

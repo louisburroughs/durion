@@ -258,4 +258,65 @@ This implementation plan creates a workspace-level agent framework for the durio
   - **CRITICAL VALIDATION**: Test agent registry functionality and capability tracking
   - _Requirements: All previous requirements (REQ-WS-001 through REQ-WS-013, REQ-WS-NFR-001 through REQ-WS-NFR-004)_
   - _Code Location:_ `durion/workspace-agents/` (entire project validation)
+
+---
+
+## Phase 6: Story Orchestration System
+
+- [x] 6.1 Implement Story Orchestration Agent (Issue Analysis & Sequencing)
+  - Implement a Story Orchestration Agent in the workspace-agents project that:
+    - Reads all open [STORY] issues from the durion repository via GitHub APIs
+    - Normalizes metadata (labels, epics, Notes for Agents) and constructs an in-memory dependency graph
+    - Classifies stories as Backend-First, Frontend-First, or Parallel using rules from workspace requirements and design
+    - Computes a global, dependency-respecting sequence that prioritizes backend stories with the highest frontend unblock value
+  - _Requirements: REQ-WS-015 (all acceptance criteria), REQ-WS-014_
+  - _Tests: TEST-WS-015-01 through TEST-WS-015-05_
+  - _Code Location:_ `durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java`
+
+- [x] 6.2 Generate Global Story Sequence Document (story-sequence.md)
+  - From the Story Orchestration Agent, generate and maintain durion/.github/orchestration/story-sequence.md:
+    - Global ordered table of stories with orchestration IDs, repository/issue links, classification, dependencies, status, and target sprint/milestone
+    - Dependency overview section (graph or tabular) and "Last updated" timestamp with change summary
+    - Guarantees that every story referenced in frontend-coordination.md and backend-coordination.md appears here with consistent IDs and classifications
+  - _Requirements: REQ-WS-015, REQ-WS-018_
+  - _Tests: TEST-WS-015-02, TEST-WS-015-03, TEST-WS-018-01_
+  - _Code Location:_ `durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java`
+
+- [x] 6.3 Generate Frontend Coordination View (frontend-coordination.md)
+  - Implement projection logic that derives a frontend-centric view from the global model and writes durion/.github/orchestration/frontend-coordination.md:
+    - Ready stories: frontend work whose backend prerequisites are complete or not required
+    - Blocked stories: frontend work waiting on specific backend stories, with blocking story IDs and required contracts
+    - Parallel stories: frontend work that can proceed alongside backend work using documented contracts
+    - For each Blocked story, indicate whether stubs are allowed and, if so, specify strict stub behavior and replacement rules
+  - _Requirements: REQ-WS-016 (all acceptance criteria), REQ-WS-018_
+  - _Tests: TEST-WS-016-01 through TEST-WS-016-05, TEST-WS-018-02_
+  - _Code Location:_ `durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java`
+
+- [x] 6.4 Generate Backend Coordination View (backend-coordination.md)
+  - Implement projection logic that derives a backend-centric view from the same global model and writes durion/.github/orchestration/backend-coordination.md:
+    - Ordered list of backend stories prioritized by how many frontend stories they unblock
+    - Mapping of backend stories to dependent frontend stories
+    - For each relationship, required endpoints, DTOs, key business rules, and performance/security constraints
+  - _Requirements: REQ-WS-017 (all acceptance criteria), REQ-WS-018_
+  - _Tests: TEST-WS-017-01 through TEST-WS-017-05, TEST-WS-018-02_
+  - _Code Location:_ `durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java`
+
+- [x] 6.5 Implement Orchestration Synchronization & Validation
+  - Add validation logic that runs after updates to story-sequence.md, frontend-coordination.md, and backend-coordination.md to ensure:
+    - Every story in frontend-coordination.md and backend-coordination.md exists in story-sequence.md
+    - Classifications and dependency relationships are consistent across all three documents
+    - No references remain to closed, deleted, or re-scoped stories
+  - On inconsistency, prefer story-sequence.md as canonical and either update projections or mark items for human review
+  - _Requirements: REQ-WS-018 (all acceptance criteria)_
+  - _Tests: TEST-WS-018-01 through TEST-WS-018-04_
+  - _Code Location:_ `durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java`
+
+- [x] 6.6 Implement Incremental Orchestration Triggers
+  - Integrate the Story Orchestration Agent with periodic and event-based triggers so that orchestration runs when:
+    - New [STORY] issues are created or closed in durion
+    - Dependencies, labels, or Notes for Agents change
+    - Linked backend/frontend [STORY] issues are opened or closed
+  - Ensure re-runs minimize unnecessary churn in story ordering to avoid destabilizing agent plans
+  - _Requirements: REQ-WS-015, REQ-WS-016, REQ-WS-017, REQ-WS-018_
+  - _Code Location:_ `durion/workspace-agents/src/main/java/agents/StoryOrchestrationAgent.java`
   - _Expected Outcome:_ 100% task completion verification, successful Maven build, all tests passing

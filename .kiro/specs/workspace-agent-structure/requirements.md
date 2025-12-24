@@ -25,6 +25,15 @@ This document follows EARS (Easy Approach to Requirements Syntax) patterns and I
 - **Workspace Response Time**: The time from agent guidance request to response delivery (target: <5 seconds)
 - **Integration Conflict**: A condition where changes in one project break functionality in dependent projects
 - **Technology Stack Bridging**: Managing impedance mismatch between Java 21 (positivity) ↔ Java 11 (moqui) ↔ Groovy (moqui services) ↔ Vue.js 3 (frontend)
+ - **Story Orchestration System**: The coordinating system that reads GitHub issues from the durion repository, analyzes dependencies, and sequences frontend and backend stories to minimize stub creation and rework
+ - **Issue Analysis Agent**: An agent that reads open issues in the durion repository and identifies dependencies, blocking relationships, and required creation sequence
+ - **Story Creation Sequencing**: The process of determining which stories must be created first (backend-first, frontend-first, or parallel) to enable efficient, non-blocking development
+ - **Stub Prevention**: The strategy of organizing story implementation order so that frontend and backend teams rarely need to create placeholder APIs, DTOs, or UI components while waiting on other layers
+ - **Cross-Project Story**: An issue that requires coordinated work across positivity backend, durion-positivity integration, and moqui frontend with explicit integration points
+ - **Backend-First Story**: A story where backend APIs, domain models, or services must be implemented before dependent frontend work can start
+ - **Frontend-First Story**: A story where frontend UI/UX structure, screens, or flows must be defined before backend implementation can be finalized
+ - **Parallel Story**: A story where frontend and backend can proceed in parallel once API contracts are defined, without strict sequencing constraints
+ - **Silo-Based Coordination**: The practice of keeping workspace, frontend, and backend agents operationally independent (silos) while coordinating their work through shared orchestration artifacts instead of direct communication
 
 ### Agent & Test Classes Location
 
@@ -263,7 +272,7 @@ All agent framework implementation and test classes are located in the **`durion
 **Validation Method:** Integration testing + GitHub API testing + Template validation  
 **Acceptance Tests:** [TEST-WS-014-01, TEST-WS-014-02, TEST-WS-014-03, TEST-WS-014-04, TEST-WS-014-05]
 
-**User Story:** As a product manager, I want automated story processing and issue generation, so that I can efficiently decompose high-level stories into actionable development tasks across frontend and backend projects.
+**User Story:** As a product manager, I want automated story processing and issue generation, so that I can efficiently decompose high-level stories into actionable development tasks across frontend and backend projects while minimizing rework and stub creation.
 
 #### Acceptance Criteria
 
@@ -272,6 +281,81 @@ All agent framework implementation and test classes are located in the **`durion
 3. WHEN story analysis is complete, THE workspace agent system SHALL generate new issues in the durion-moqui-frontend repository (https://github.com/louisburroughs/durion-moqui-frontend.git) using the .github/kiro-story.md template AND set the title to start with [STORY] followed by a descriptive summary AND populate all template sections (Actor, Trigger, Main Flow, Alternate/Error Flows, Business Rules, Data Requirements, Acceptance Criteria, Notes for Agents, Classification) with decomposed frontend-specific details AND set appropriate labels (type: story, layer: functional, kiro, domain: <relevant-domain>) AND ensure issues are complete enough for frontend agents to begin implementation
 4. WHEN story analysis is complete, THE workspace agent system SHALL generate new issues in the durion-positivity-backend repository (https://github.com/louisburroughs/durion-positivity-backend.git) using the .github/kiro-story.md template AND set the title to start with [STORY] followed by a descriptive summary AND populate all template sections (Actor, Trigger, Main Flow, Alternate/Error Flows, Business Rules, Data Requirements, Acceptance Criteria, Notes for Agents, Classification) with decomposed backend-specific details AND set appropriate labels (type: story, layer: functional, kiro, domain: <relevant-domain>) AND ensure issues are complete enough for backend agents to begin implementation
 5. WHEN story details are insufficient for implementation, THE generated issues SHALL include specific clarifying questions AND SHALL request additional information from stakeholders before proceeding with development
+
+### Requirement 15 [REQ-WS-015]
+
+**Priority:** Critical  
+**Dependencies:** REQ-WS-001, REQ-WS-013, REQ-WS-014  
+**Validation Method:** GitHub API integration testing + Issue dependency validation + Automated sequencing verification  
+**Acceptance Tests:** [TEST-WS-015-01, TEST-WS-015-02, TEST-WS-015-03, TEST-WS-015-04, TEST-WS-015-05]
+
+**User Story:** As a workspace orchestrator, I want to analyze open issues and determine story creation sequence, so that I can prevent unnecessary stub creation and ensure backend stories are completed before dependent frontend stories whenever required.
+
+**Design Reference:** Story Orchestration Design in [durion/.kiro/specs/workspace-agent-structure/design.md](durion/.kiro/specs/workspace-agent-structure/design.md#story-orchestration-design-req-ws-015--req-ws-018).
+
+#### Acceptance Criteria
+
+1. WHEN the Issue Analysis Agent is invoked, THE workspace agent system SHALL read all open issues from the durion repository (https://github.com/louisburroughs/durion.git) AND identify issues labeled [STORY] AND categorize them by domain within 60 seconds with 95% accuracy
+2. WHEN analyzing [STORY] issues, THE workspace agent system SHALL determine for each story whether it is Backend-First, Frontend-First, or Parallel AND record this classification in a structured dependency model (including required APIs, DTOs, screens, and integration points) with 95% accuracy
+3. WHEN story sequencing is calculated, THE workspace agent system SHALL generate or update a Story Orchestration document at .github/orchestration/story-sequence.md in the durion repository AND include: (a) ordered list of backend stories by priority, (b) ordered list of frontend stories grouped by their backend dependencies, (c) explicit classification for each story (Backend-First, Frontend-First, Parallel), (d) dependency graph or table showing which stories block others, (e) guidance on which stories should start in the next sprint to minimize stub creation
+4. WHEN new [STORY] issues are created or existing ones are updated in the durion repository, THE workspace agent system SHALL re-run sequencing within 1 hour AND update the story-sequence.md document AND record a "Last updated" timestamp AND ensure that changes in sequencing are clearly highlighted for downstream agents
+5. WHEN sequencing indicates that a frontend story depends on a not-yet-implemented backend API, THE workspace agent system SHALL mark that frontend story as blocked in story-sequence.md AND SHALL NOT recommend starting that frontend story until the associated backend story is at least in progress OR an explicit stub strategy is documented
+
+### Requirement 16 [REQ-WS-016]
+
+**Priority:** Critical  
+**Dependencies:** REQ-WS-015  
+**Validation Method:** Documentation verification + Agent behavior validation + Silo-based workflow testing  
+**Acceptance Tests:** [TEST-WS-016-01, TEST-WS-016-02, TEST-WS-016-03, TEST-WS-016-04, TEST-WS-016-05]
+
+**User Story:** As a frontend agent, I want a clear coordination view of backend story sequencing, so that I can choose frontend stories that are ready to implement without needing direct communication with backend teams.
+
+**Design Reference:** Story Orchestration Design and orchestration_layer.story_orchestration_system in [durion/.kiro/specs/workspace-agent-structure/design.md](durion/.kiro/specs/workspace-agent-structure/design.md#story-orchestration-design-req-ws-015--req-ws-018).
+
+#### Acceptance Criteria
+
+1. WHEN the Frontend Agent needs planning guidance, THE workspace agent system SHALL provide a Frontend Coordination document at .github/orchestration/frontend-coordination.md in the durion repository AND include: (a) list of frontend stories currently unblocked and recommended to start, (b) list of frontend stories currently blocked by backend work with references to blocking backend stories, (c) list of Parallel Stories where frontend can proceed using agreed API contracts, (d) links to relevant [STORY] issues in the durion-moqui-frontend repository
+2. WHEN a frontend story is blocked by backend work, THE Frontend Coordination document SHALL clearly state: (a) the blocking backend story ID(s), (b) the required backend API(s) or domain changes, (c) whether temporary stubs are allowed, and if so, (d) the required behavior and constraints for those stubs so they can be safely replaced later
+3. WHEN backend story status in the durion-positivity-backend repository changes (e.g., from open → in progress → done), THE workspace agent system SHALL update the Frontend Coordination document within 1 hour to reflect new availability of backend capabilities AND move related frontend stories from "blocked" to "ready" where applicable
+4. WHEN the Frontend Agent selects a story to implement, THE acceptance criteria and Notes for Agents sections in that story SHALL be consistent with the latest Story Orchestration and Frontend Coordination documents AND SHALL explicitly reference any backend contracts or sequencing assumptions
+5. WHEN agents operate in silos, THE Frontend Coordination document SHALL be sufficient for the Frontend Agent to understand dependencies and sequencing WITHOUT requiring direct access to backend implementation details or conversations
+
+### Requirement 17 [REQ-WS-017]
+
+**Priority:** Critical  
+**Dependencies:** REQ-WS-015  
+**Validation Method:** Documentation verification + Agent behavior validation + Silo-based workflow testing  
+**Acceptance Tests:** [TEST-WS-017-01, TEST-WS-017-02, TEST-WS-017-03, TEST-WS-017-04, TEST-WS-017-05]
+
+**User Story:** As a backend agent, I want a clear view of which frontend stories are waiting on backend work, so that I can prioritize backend implementation that unblocks the most frontend value while still working in a silo.
+
+**Design Reference:** Story Orchestration Design and orchestration_layer.story_orchestration_system in [durion/.kiro/specs/workspace-agent-structure/design.md](durion/.kiro/specs/workspace-agent-structure/design.md#story-orchestration-design-req-ws-015--req-ws-018).
+
+#### Acceptance Criteria
+
+1. WHEN the Backend Agent needs planning guidance, THE workspace agent system SHALL provide a Backend Coordination document at .github/orchestration/backend-coordination.md in the durion repository AND include: (a) ordered list of backend stories prioritized by how many frontend stories they unblock, (b) list of backend stories with no current frontend dependencies, (c) mapping from backend stories to dependent frontend stories, (d) links to corresponding [STORY] issues in the durion-positivity-backend repository
+2. WHEN a frontend story is blocked waiting on a backend API or domain change, THE Backend Coordination document SHALL explicitly describe: (a) required endpoint paths and HTTP methods, (b) expected request/response schemas or DTOs, (c) key business rules that must be enforced, (d) any performance or security constraints the backend must respect
+3. WHEN backend stories are reprioritized based on new frontend demand, THE workspace agent system SHALL update the Backend Coordination document within 1 hour AND ensure that the change is reflected in the Story Orchestration and Frontend Coordination documents to keep all three views consistent
+4. WHEN the Backend Agent starts work on a backend story that unblocks multiple frontend stories, THE workspace agent system SHALL highlight those relationships in backend-coordination.md so that the impact of completion is clear to siloed agents
+5. WHEN agents operate in silos, THE Backend Coordination document SHALL be sufficient for the Backend Agent to understand which backend stories are most critical to frontend progress WITHOUT requiring direct access to frontend implementation details or conversations
+
+### Requirement 18 [REQ-WS-018]
+
+**Priority:** High  
+**Dependencies:** REQ-WS-015, REQ-WS-016, REQ-WS-017  
+**Validation Method:** Consistency testing + Automated sync checks + Cross-document validation  
+**Acceptance Tests:** [TEST-WS-018-01, TEST-WS-018-02, TEST-WS-018-03, TEST-WS-018-04]
+
+**User Story:** As a workspace orchestrator, I want all orchestration documents to stay synchronized, so that workspace, frontend, and backend agents always see a consistent view of story dependencies and sequencing.
+
+**Design Reference:** Story Orchestration Design synchronization flow in [durion/.kiro/specs/workspace-agent-structure/design.md](durion/.kiro/specs/workspace-agent-structure/design.md#story-orchestration-design-req-ws-015--req-ws-018).
+
+#### Acceptance Criteria
+
+1. WHEN the Story Orchestration document (story-sequence.md) is updated, THE workspace agent system SHALL automatically reconcile changes into frontend-coordination.md and backend-coordination.md within 15 minutes AND ensure there are no conflicting classifications or sequencing orders across the three documents
+2. WHEN new frontend or backend [STORY] issues are created in their respective repositories, THE workspace agent system SHALL re-evaluate dependencies AND update story-sequence.md, frontend-coordination.md, and backend-coordination.md so that all newly created stories appear in the appropriate lists with correct classifications
+3. WHEN a story is closed or significantly re-scoped in any repository, THE workspace agent system SHALL update all affected orchestration documents within 1 hour AND remove or adjust dependencies so that no document references non-existent or obsolete stories
+4. WHEN validation tests are run for REQ-WS-018, THE system SHALL verify that all stories referenced in frontend-coordination.md and backend-coordination.md are present in story-sequence.md with matching classifications and dependency relationships
 
 ## Non-Functional Requirements
 
@@ -321,6 +405,10 @@ All agent framework implementation and test classes are located in the **`durion
 | REQ-WS-012 | System Administrator | High | Agent Framework Core | TEST-WS-012-01 to 02 | None |
 | REQ-WS-013 | System Architect | Critical | All Agent Classes | TEST-WS-013-01 to 05 | REQ-WS-001, REQ-WS-002, REQ-WS-003 |
 | REQ-WS-014 | Product Manager | High | Requirements Decomposition Agent, GitHub Integration Agent | TEST-WS-014-01 to 05 | REQ-WS-001, REQ-WS-013 |
+| REQ-WS-015 | Workspace Orchestrator | Critical | Story Orchestration System, Issue Analysis Agent, orchestration_layer.story_orchestration_system | TEST-WS-015-01 to 05 | REQ-WS-001, REQ-WS-013, REQ-WS-014 |
+| REQ-WS-016 | Frontend Agent | Critical | Story Orchestration System, Frontend Coordination View, orchestration_layer.story_orchestration_system | TEST-WS-016-01 to 05 | REQ-WS-015 |
+| REQ-WS-017 | Backend Agent | Critical | Story Orchestration System, Backend Coordination View, orchestration_layer.story_orchestration_system | TEST-WS-017-01 to 05 | REQ-WS-015 |
+| REQ-WS-018 | Workspace Orchestrator | High | Story Orchestration System Synchronization, orchestration_layer.story_orchestration_system | TEST-WS-018-01 to 04 | REQ-WS-015, REQ-WS-016, REQ-WS-017 |
 
 ## Risk Assessment
 

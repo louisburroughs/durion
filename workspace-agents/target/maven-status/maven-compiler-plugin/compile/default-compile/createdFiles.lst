@@ -12,10 +12,12 @@ agents/WorkflowCoordinationAgent.class
 interfaces/JwtFormat.class
 core/IntegrationGuidance$Diagnostic.class
 agents/MultiProjectDevOpsAgent.class
+agents/StoryOrchestrationAgent.class
 agents/WorkflowCoordinationAgent$DependencyGraph.class
 agents/WorkflowCoordinationAgent$CoordinatedDevelopmentPlan.class
 agents/WorkspaceArchitectureAgent.class
 agents/FullStackIntegrationAgent.class
+agents/StoryOrchestrationAgent$Story.class
 agents/WorkspaceArchitectureAgent$ArchitecturalConsistencyResult.class
 core/TechnologyStack.class
 agents/WorkflowCoordinationAgent$DependencyHealth.class
@@ -42,6 +44,7 @@ core/IntegrationPoint.class
 agents/WorkflowCoordinationAgent$CriticalPath.class
 agents/UnifiedSecurityAgent$RBACConfig.class
 core/WorkspaceAgent.class
+agents/StoryOrchestrationAgent$StoryClassification.class
 agents/CrossProjectTestingAgent$TestFramework.class
 agents/WorkspaceArchitectureAgent$IntegrationPatternResult.class
 agents/WorkflowCoordinationAgent$SemanticVersion.class
