@@ -1,6 +1,6 @@
 ## Frontend Coordination – Moqui / DETSMS
 
-- Target agents: Frontend agents working in moqui_example and related UI projects
+- Target agents: Frontend agents working in durion-moqui-frontend and related UI projects
 - Inputs: story-sequence.md, durion-moqui-frontend [STORY] issues
 - Last updated: <to be filled by agents>
 

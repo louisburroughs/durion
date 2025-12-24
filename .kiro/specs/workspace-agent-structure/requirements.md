@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The durion workspace contains the positivity POS backend system (Spring Boot microservices) and the moqui_example frontend application. To effectively coordinate development across the entire durion ecosystem, we need a workspace-level agent structure that provides unified guidance while respecting the distinct patterns and technologies of each project. The agent structure should facilitate seamless integration between the positivity backend services and the moqui_example frontend while maintaining clear boundaries and specialized expertise for each technology stack.
+The durion workspace contains the positivity POS backend system (Spring Boot microservices) and the durion-moqui-frontend frontend application. To effectively coordinate development across the entire durion ecosystem, we need a workspace-level agent structure that provides unified guidance while respecting the distinct patterns and technologies of each project. The agent structure should facilitate seamless integration between the positivity backend services and the durion-moqui-frontend frontend while maintaining clear boundaries and specialized expertise for each technology stack.
 
 **Code Generation Requirements:** All code generation and implementation must use Java 21 as the target version for compatibility with the positivity backend system.
 
@@ -13,10 +13,10 @@ This document follows EARS (Easy Approach to Requirements Syntax) patterns and I
 - **Workspace Agent System**: The complete cross-layer agent framework that provides guidance spanning backend and frontend development
 - **Requirements Decomposition Agent**: The critical first-layer agent that analyzes complete business requirement documents and intelligently splits implementation between moqui frontend and positivity backend
 - **Backend Agent**: An agent that specializes in the positivity Spring Boot microservices
-- **Frontend Agent**: An agent that specializes in the moqui_example frontend application
-- **Integration Agent**: An agent that specializes in coordinating between positivity backend and moqui_example frontend
+- **Frontend Agent**: An agent that specializes in the durion-moqui-frontend frontend application
+- **Integration Agent**: An agent that specializes in coordinating between positivity backend and durion-moqui-frontend frontend
 - **Positivity Backend**: The Spring Boot microservices POS system with 23+ services deployed on AWS Fargate
-- **Moqui Frontend**: The moqui_example frontend application that consumes positivity APIs
+- **Moqui Frontend**: The durion-moqui-frontend frontend application that consumes positivity APIs
 - **Durion-Positivity Component**: The Moqui component that provides integration layer between moqui frontend and positivity backend through API wrappers, DTO mappings, and authentication flows
 - **Business Requirements Decomposition**: The process of analyzing complete business requirement design documents and splitting responsibilities between frontend (UI/screens/workflows) and backend (business logic/APIs/data persistence)
 - **Full-Stack Workflow**: Development processes that span backend and frontend (API contracts, integration testing, deployment)
@@ -72,8 +72,8 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN a developer requests architectural guidance for a cross-project feature based on decomposed requirements, THE workspace agent system SHALL provide guidance that references both positivity Spring Boot patterns AND moqui_example frontend patterns within 30 seconds
-2. WHEN an API contract changes in positivity backend, THE workspace agent system SHALL automatically validate compatibility with durion-positivity component AND moqui_example frontend consumers AND generate migration guidance within 5 minutes if breaking changes are detected
+1. WHEN a developer requests architectural guidance for a cross-project feature based on decomposed requirements, THE workspace agent system SHALL provide guidance that references both positivity Spring Boot patterns AND durion-moqui-frontend frontend patterns within 30 seconds
+2. WHEN an API contract changes in positivity backend, THE workspace agent system SHALL automatically validate compatibility with durion-positivity component AND durion-moqui-frontend frontend consumers AND generate migration guidance within 5 minutes if breaking changes are detected
 3. WHEN integrating authentication between projects, THE workspace agent system SHALL enforce JWT token format consistency across Spring Boot, durion-positivity component, AND Moqui implementations with 100% accuracy
 4. WHEN dependency version conflicts are detected across Java 21 (positivity), Java 11 (moqui), and Groovy (durion-positivity) stacks, THE workspace agent system SHALL prevent deployment AND provide specific remediation steps within 2 minutes
 5. WHEN architectural changes affect multiple projects, THE workspace agent system SHALL notify all affected project teams within 1 hour AND coordinate change implementation across positivity backend, durion-positivity component, AND moqui frontend
@@ -89,7 +89,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN a developer requests feature implementation guidance based on decomposed requirements, THE workspace agent system SHALL provide coordinated guidance for positivity backend services, durion-positivity integration, AND moqui_example frontend components within 10 seconds
+1. WHEN a developer requests feature implementation guidance based on decomposed requirements, THE workspace agent system SHALL provide coordinated guidance for positivity backend services, durion-positivity integration, AND durion-moqui-frontend frontend components within 10 seconds
 2. WHEN implementing new APIs from decomposed requirements, THE workspace agent system SHALL automatically synchronize OpenAPI specifications between positivity backend services AND durion-positivity component wrappers with 100% contract compatibility
 3. WHEN implementing authentication flows, THE workspace agent system SHALL validate JWT token structure consistency across Spring Boot security, durion-positivity token management, AND Moqui frontend authentication with zero security vulnerabilities
 4. WHEN managing application state across the three-tier architecture, THE workspace agent system SHALL provide guidance that ensures data consistency between Vue.js Pinia state, durion-positivity API wrappers, AND positivity backend responses with <2% data synchronization errors
@@ -106,7 +106,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN deploying applications across projects, THE workspace agent system SHALL coordinate deployment sequence between positivity AWS Fargate services, durion-positivity component updates, AND moqui_example applications AND complete deployment validation within 15 minutes
+1. WHEN deploying applications across projects, THE workspace agent system SHALL coordinate deployment sequence between positivity AWS Fargate services, durion-positivity component updates, AND durion-moqui-frontend applications AND complete deployment validation within 15 minutes
 2. WHEN managing infrastructure changes, THE workspace agent system SHALL validate networking compatibility between AWS Fargate (positivity), durion-positivity integration layer, AND moqui deployment environments AND ensure zero security misconfigurations
 3. WHEN implementing CI/CD pipelines, THE workspace agent system SHALL detect cross-project dependencies including durion-positivity component versions AND prevent deployment of incompatible versions with 100% accuracy
 4. WHEN monitoring system health, THE workspace agent system SHALL provide unified dashboards that display metrics from Spring Boot microservices, durion-positivity integration layer, AND Moqui applications with <30 second metric aggregation delay
@@ -123,9 +123,9 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN implementing test strategies, THE workspace agent system SHALL generate test plans that cover positivity microservices, durion-positivity integration layer, AND moqui_example frontend with minimum 90% code coverage across all three layers
+1. WHEN implementing test strategies, THE workspace agent system SHALL generate test plans that cover positivity microservices, durion-positivity integration layer, AND durion-moqui-frontend frontend with minimum 90% code coverage across all three layers
 2. WHEN validating API contracts, THE workspace agent system SHALL automatically execute contract tests between positivity backend providers, durion-positivity component wrappers, AND moqui frontend consumers AND detect contract violations with 100% accuracy
-3. WHEN performing end-to-end testing, THE workspace agent system SHALL orchestrate test scenarios that span from moqui_example Vue.js components through durion-positivity integration to positivity backend services AND complete full test cycles within 30 minutes
+3. WHEN performing end-to-end testing, THE workspace agent system SHALL orchestrate test scenarios that span from durion-moqui-frontend Vue.js components through durion-positivity integration to positivity backend services AND complete full test cycles within 30 minutes
 4. WHEN testing security implementations, THE workspace agent system SHALL validate JWT authentication flows across all three layers (Spring Boot → durion-positivity → Moqui) AND detect security vulnerabilities with 95% accuracy
 5. WHEN enforcing quality gates, THE workspace agent system SHALL prevent deployment when quality thresholds are not met across ANY layer (backend, integration, frontend) AND provide specific remediation guidance within 5 minutes
 
@@ -140,7 +140,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN planning cross-project features from decomposed requirements, THE workspace agent system SHALL generate coordinated development plans that include positivity backend tasks, durion-positivity integration tasks, AND moqui_example frontend tasks with accurate effort estimates within 10% variance
+1. WHEN planning cross-project features from decomposed requirements, THE workspace agent system SHALL generate coordinated development plans that include positivity backend tasks, durion-positivity integration tasks, AND durion-moqui-frontend frontend tasks with accurate effort estimates within 10% variance
 2. WHEN managing releases, THE workspace agent system SHALL enforce semantic versioning consistency across all three layers (backend, integration, frontend) AND prevent release of incompatible component versions with 100% accuracy
 3. WHEN tracking project progress, THE workspace agent system SHALL provide real-time visibility into cross-project dependencies including durion-positivity component updates AND identify blockers within 1 hour of occurrence
 4. WHEN analyzing technical debt, THE workspace agent system SHALL identify debt items that affect multiple projects or integration layers AND prioritize them based on cross-project impact with 90% accuracy
@@ -158,7 +158,7 @@ All agent framework implementation and test classes are located in the **`durion
 #### Acceptance Criteria
 
 1. WHEN implementing authentication across all three layers, THE workspace agent system SHALL enforce identical JWT token structure between Spring Boot security, durion-positivity token management, AND Moqui authentication AND detect authentication inconsistencies with 100% accuracy
-2. WHEN securing API endpoints, THE workspace agent system SHALL validate security implementations at ALL integration points between positivity services, durion-positivity component, AND moqui_example frontend AND identify security vulnerabilities with 95% accuracy
+2. WHEN securing API endpoints, THE workspace agent system SHALL validate security implementations at ALL integration points between positivity services, durion-positivity component, AND durion-moqui-frontend frontend AND identify security vulnerabilities with 95% accuracy
 3. WHEN managing secrets across projects, THE workspace agent system SHALL ensure secrets are stored using consistent encryption standards (AES-256) across all layers AND detect insecure secret storage with 100% accuracy
 4. WHEN implementing authorization, THE workspace agent system SHALL validate that role-based access control is consistent across backend services, integration layer, AND frontend applications with zero privilege escalation vulnerabilities
 5. WHEN conducting security audits, THE workspace agent system SHALL scan all project boundaries and integration points AND generate comprehensive security reports within 30 minutes with 90% vulnerability detection accuracy
@@ -174,7 +174,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN creating cross-project documentation, THE workspace agent system SHALL automatically synchronize documentation between positivity backend, durion-positivity component, AND moqui_example frontend projects AND maintain 100% documentation consistency
+1. WHEN creating cross-project documentation, THE workspace agent system SHALL automatically synchronize documentation between positivity backend, durion-positivity component, AND durion-moqui-frontend frontend projects AND maintain 100% documentation consistency
 2. WHEN documenting APIs, THE workspace agent system SHALL generate unified API documentation that includes OpenAPI specifications (positivity), Groovy service documentation (durion-positivity), AND Moqui service documentation with <24 hour update latency
 3. WHEN maintaining architecture documentation, THE workspace agent system SHALL automatically update system-wide architectural diagrams when any layer changes (backend, integration, frontend) AND maintain accuracy within 95%
 4. WHEN documentation is updated in one project, THE workspace agent system SHALL propagate relevant changes to all affected projects and integration layers within 2 hours AND notify documentation maintainers
@@ -191,7 +191,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN analyzing system performance, THE workspace agent system SHALL measure response times across positivity microservices, durion-positivity integration layer, moqui_example frontend, AND network boundaries AND identify performance bottlenecks within 5 minutes with 90% accuracy
+1. WHEN analyzing system performance, THE workspace agent system SHALL measure response times across positivity microservices, durion-positivity integration layer, durion-moqui-frontend frontend, AND network boundaries AND identify performance bottlenecks within 5 minutes with 90% accuracy
 2. WHEN implementing caching strategies, THE workspace agent system SHALL coordinate cache invalidation between Vue.js Pinia state, durion-positivity API wrappers, AND positivity backend services AND maintain cache consistency with <1% stale data occurrence
 3. WHEN monitoring performance metrics, THE workspace agent system SHALL provide unified dashboards showing performance data from all three layers AND alert on performance degradation within 30 seconds
 4. WHEN auto-scaling is triggered, THE workspace agent system SHALL coordinate scaling decisions between AWS Fargate (positivity), durion-positivity component capacity, AND moqui deployment environments AND maintain service availability above 99.9%
@@ -208,7 +208,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN data is shared between positivity backend AND moqui_example frontend, THE workspace agent system SHALL enforce consistent data governance policies AND detect policy violations with 100% accuracy
+1. WHEN data is shared between positivity backend AND durion-moqui-frontend frontend, THE workspace agent system SHALL enforce consistent data governance policies AND detect policy violations with 100% accuracy
 2. WHEN database schemas evolve in any project, THE workspace agent system SHALL coordinate schema migrations across all affected projects AND prevent data inconsistencies
 3. WHEN sensitive data is accessed across project boundaries, THE workspace agent system SHALL enforce data classification policies AND log all access with complete audit trails
 4. WHEN data retention policies are applied, THE workspace agent system SHALL coordinate data lifecycle management across all projects AND ensure compliance with regulatory requirements
@@ -225,7 +225,7 @@ All agent framework implementation and test classes are located in the **`durion
 
 #### Acceptance Criteria
 
-1. WHEN a disaster recovery event is triggered, THE workspace agent system SHALL coordinate recovery procedures across positivity AWS Fargate services AND moqui_example applications AND achieve Recovery Time Objective (RTO) of 4 hours
+1. WHEN a disaster recovery event is triggered, THE workspace agent system SHALL coordinate recovery procedures across positivity AWS Fargate services AND durion-moqui-frontend applications AND achieve Recovery Time Objective (RTO) of 4 hours
 2. WHEN backup procedures are executed, THE workspace agent system SHALL ensure data consistency across all project databases AND achieve Recovery Point Objective (RPO) of 1 hour
 3. WHEN failover is initiated, THE workspace agent system SHALL coordinate service failover between primary AND secondary environments AND maintain service availability above 95% during transition
 4. WHEN disaster recovery testing is performed, THE workspace agent system SHALL validate recovery procedures across all projects AND identify recovery gaps with 90% accuracy

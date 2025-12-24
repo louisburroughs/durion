@@ -321,7 +321,7 @@ These components collectively satisfy REQ-WS-015 through REQ-WS-018 by ensuring 
   - A backend view (`backend-coordination.md`) ordering backend stories by their unblock potential for frontend work and documenting required endpoints, payloads, and error semantics.
 
 4. **Siloed Agent Consumption (REQ-WS-016, REQ-WS-017)**  
-  - **Frontend agents** (operating in moqui_example) treat the frontend coordination document as the sole source of truth for story readiness and are prohibited from starting blocked stories unless a stub strategy is explicitly documented.
+  - **Frontend agents** (operating in durion-moqui-frontend) treat the frontend coordination document as the sole source of truth for story readiness and are prohibited from starting blocked stories unless a stub strategy is explicitly documented.
   - **Backend agents** (operating in positivity) use the backend coordination document to prioritize Backend-First stories and high-unblock-value backend work, without relying on direct communication with frontend.
 
 5. **Synchronization and Drift Detection (REQ-WS-018)**  

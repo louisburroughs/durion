@@ -2,9 +2,14 @@
 
 ## Overview
 
-This runbook provides comprehensive operational procedures for the durion workspace agent system, covering deployment, monitoring, disaster recovery, and incident response across the three-tier architecture: Vue.js 3 → durion-positivity (Groovy) → positivity (Spring Boot).
+This runbook provides operational procedures for the durion workspace agent system and its coordination of the wider durion ecosystem. It is focused on the Java 21–based `workspace-agents` project in the durion repository and its cross-repository integrations with:
 
-**Critical Performance Targets:**
+- durion-positivity-backend (Spring Boot microservices, Java 21)
+- durion-moqui-frontend (Moqui Framework, Java 11/Groovy/Vue.js)
+
+The workspace agents implement the workspace-level agent structure defined in `.kiro/specs/workspace-agent-structure/tasks.md` and surface behaviour via Java agents such as `RequirementsDecompositionAgent`, `FullStackIntegrationAgent`, `WorkspaceArchitectureAgent`, `UnifiedSecurityAgent`, `PerformanceCoordinationAgent` and the Story Orchestration Agent.
+
+**Critical Performance Targets (workspace-agents):**
 - Response Time: <5 seconds (95th percentile)
 - Availability: 99.9% during business hours
 - Concurrent Users: 100 without degradation
@@ -13,97 +18,99 @@ This runbook provides comprehensive operational procedures for the durion worksp
 
 ---
 
+## How to Use This Runbook
+
+Use this document as the primary operational reference for the workspace agents.
+
+- **Before changes**: Follow section 1 (Deployment Procedures) and run the pre-deployment checks for `workspace-agents`, durion-positivity-backend, and durion-moqui-frontend.
+- **During incidents**: Jump to section 3 (Incident Response Procedures) using the symptom-based subsections (service unavailable, performance, security, integration issues).
+- **For DR / SRE work**: Use sections 2 (Monitoring and Alerting) and 4 (Disaster Recovery Procedures) when configuring dashboards, alerts, and recovery playbooks.
+- **For regular operations**: Use sections 5–8 for weekly/monthly maintenance, optimisation, and security hardening.
+
+When in doubt, treat the `.kiro/specs` files and the `workspace-agents` README as the source of truth for architecture and agent capabilities, and use this runbook for the concrete commands and order of operations.
+
+---
+
 ## 1. Deployment Procedures
 
 ### 1.1 Pre-Deployment Checklist
 
-**Environment Validation:**
+**Environment Validation (local / CI):**
 ```bash
 # Verify Java versions
-java -version  # Should be Java 21 for positivity
-/opt/moqui/bin/java -version  # Should be Java 11 for moqui
+java -version              # Java 21 for workspace-agents and durion-positivity-backend
+/opt/moqui/bin/java -version  # Java 11 for moqui runtime
 
-# Verify workspace agent build
-cd workspace-agents
-./gradlew clean build --no-daemon
-./gradlew test --no-daemon
+# Verify workspace-agents Maven build
+cd durion/workspace-agents
+mvn -e -U clean test        # or use the VS Code task "maven: test"
 
-# Verify integration points
-curl -f http://positivity-api:8080/actuator/health
-curl -f http://moqui-server:8080/rest/health
-curl -f http://durion-positivity:8080/health
+# Verify backend build (durion-positivity-backend)
+cd ../durion-positivity-backend
+./mvnw -e -U -DskipTests=false -DfailIfNoTests=false clean test
+
+# Verify moqui-frontend build (durion-moqui-frontend)
+cd ../durion-moqui-frontend
+./gradlew clean test
 ```
 
-**Security Validation:**
+**Security Validation (configuration only – do not expose secrets):**
 ```bash
-# Verify JWT configuration consistency
-grep -r "jwt.secret" positivity/src/main/resources/
-grep -r "jwt.secret" durion-positivity/component/
-grep -r "jwt.secret" moqui/runtime/conf/
+# Verify JWT configuration references (do NOT print actual secret values)
+grep -R "jwt" durion-positivity-backend/src/main/resources/ || true
+grep -R "jwt" durion-moqui-frontend/runtime || true
 
-# Verify AES-256 encryption
-openssl rand -base64 32 > /tmp/test-key
-echo "test-data" | openssl enc -aes-256-cbc -base64 -k $(cat /tmp/test-key)
+# Spot-check encryption configuration where applicable (Spring Boot, Moqui)
+grep -R "AES" durion-positivity-backend/src/main/resources/ || true
 ```
 
 ### 1.2 Deployment Sequence
 
-**Step 1: Deploy Positivity Backend (5 minutes)**
+**Step 1: Build and package workspace-agents**
 ```bash
-# Deploy to AWS Fargate
-aws ecs update-service --cluster positivity-cluster \
-  --service positivity-service \
-  --task-definition positivity:latest \
-  --desired-count 3
-
-# Wait for healthy deployment
-aws ecs wait services-stable --cluster positivity-cluster \
-  --services positivity-service
+cd durion/workspace-agents
+mvn -e -U -DskipTests=false -DfailIfNoTests=false clean package
 ```
 
-**Step 2: Deploy durion-positivity Bridge (3 minutes)**
+**Step 2: Build and deploy durion-positivity-backend**
 ```bash
-# Deploy bridge component
-cd durion-positivity
-./gradlew deployToMoqui
-systemctl restart moqui-server
-
-# Verify bridge health
-curl -f http://durion-positivity:8080/health
+cd ../durion-positivity-backend
+./mvnw -e -U -DskipTests=false -DfailIfNoTests=false clean package
+# Deployment is environment-specific (e.g. Kubernetes, ECS). Apply your manifests or pipeline here.
 ```
 
-**Step 3: Deploy Workspace Agents (2 minutes)**
+**Step 3: Build and deploy durion-moqui-frontend**
 ```bash
-# Deploy workspace agents
-cd workspace-agents
-./gradlew build deployToK8s
+cd ../durion-moqui-frontend
+./gradlew clean build
+# Deploy updated moqui runtime or Docker images as per your environment runbooks.
+```
 
-# Verify agent registry
+**Step 4: Deploy workspace-agents service**
+```bash
+cd ../durion/workspace-agents
+# Apply deployment manifests or Helm chart for the workspace-agents service
+kubectl apply -f k8s/workspace-agents.yaml
+kubectl rollout status deployment/workspace-agents
+
+# Verify agent pods and basic readiness
 kubectl get pods -l app=workspace-agents
 kubectl logs -l app=workspace-agents --tail=50
 ```
 
-**Step 4: Deploy Moqui Frontend (3 minutes)**
+**Step 5: End-to-End Validation (Story orchestration + integration)**
 ```bash
-# Deploy moqui application
-systemctl restart moqui-server
-sleep 30
+cd durion/workspace-agents
 
-# Verify frontend health
-curl -f http://moqui-server:8080/apps/durion/
-```
+# Run Maven tests, including property tests such as PerformanceCoordinationPropertyTest
+mvn -e -U test
 
-**Step 5: End-to-End Validation (2 minutes)**
-```bash
-# Run integration tests
-cd workspace-agents
-java -cp build/libs/workspace-agents.jar \
-  durion.workspace.agents.validation.IntegrationTestRunner
+# (Optional) Run any dedicated integration or property tests via VS Code task "maven: runPropertyTests".
 
-# Verify Requirements Decomposition Agent
-curl -X POST http://workspace-agents:8080/api/requirements/decompose \
-  -H "Content-Type: application/json" \
-  -d '{"requirement": "Add customer loyalty points tracking"}'
+# Validate Story Orchestration outputs in the durion repo
+cd ../durion
+ls .github/orchestration
+# Expected: story-sequence.md, frontend-coordination.md, backend-coordination.md (kept in sync by StoryOrchestrationAgent)
 ```
 
 ### 1.3 Rollback Procedures
@@ -135,25 +142,25 @@ systemctl start moqui-server
 
 **Response Time Monitoring:**
 ```bash
-# Workspace agent response times
+# Workspace agent response times for RequirementsDecompositionAgent
 curl -w "@curl-format.txt" -s -o /dev/null \
   http://workspace-agents:8080/api/requirements/decompose
 
-# Cross-layer integration times
+# Cross-layer integration times via FullStackIntegrationAgent test endpoint (if exposed)
 time curl -X POST http://workspace-agents:8080/api/integration/test \
-  -d '{"layers": ["vue", "durion-positivity", "positivity"]}'
+  -H "Content-Type: application/json" \
+  -d '{"layers": ["vue", "durion-positivity", "positivity"]}' || true
 ```
 
 **Availability Monitoring:**
 ```bash
-# Health check all layers
-./scripts/health-check-all.sh
+# Health check workspace-agents Kubernetes deployment
+kubectl get deployment workspace-agents
+kubectl get pods -l app=workspace-agents
 
-# Expected output: All services UP
-# positivity-api: UP
-# durion-positivity: UP
-# moqui-server: UP
-# workspace-agents: UP
+# (Optional) Project-level health checks, if endpoints are available
+curl -f http://positivity-api:8080/actuator/health || true
+curl -f http://moqui-server:8080/rest/health || true
 ```
 
 ### 2.2 Alert Configurations
@@ -573,13 +580,13 @@ kubectl autoscale deployment workspace-agents \
 
 **Issue: Requirements Decomposition Agent Slow**
 ```bash
-# Check agent performance
-curl -w "@curl-format.txt" \
+# Check RequirementsDecompositionAgent performance
+curl -w "@curl-format.txt" -s -o /dev/null \
   http://workspace-agents:8080/api/requirements/decompose
 
-# Optimize agent configuration
+# Optional: enable or tune decomposition caching via configmap (if supported)
 kubectl patch configmap workspace-agent-config \
-  --patch '{"data":{"decomposition.cache.size":"1000"}}'
+  --patch '{"data":{"decomposition.cache.size":"1000"}}' || true
 ```
 
 **Issue: Cross-Layer Authentication Failures**
@@ -596,12 +603,45 @@ kubectl create secret generic jwt-secret \
 
 **Issue: API Contract Violations**
 ```bash
-# Validate contracts
-java -cp build/libs/workspace-agents.jar \
-  durion.workspace.agents.validation.APIContractValidator
+cd durion/workspace-agents
 
-# Update contracts
-./scripts/update-api-contracts.sh
+# Validate contracts via workspace-agents validation utilities (if present)
+mvn -e -U -Dtest=*Contract* test || true
+
+# If failures relate to cross-repo contracts, consult:
+# - durion/.github/orchestration/story-sequence.md
+# - durion/.github/orchestration/frontend-coordination.md
+# - durion/.github/orchestration/backend-coordination.md
+# and update the underlying API contracts in durion-positivity-backend and durion-moqui-frontend accordingly.
+```
+
+### 6.3 Kiro and Agent-Structure Orchestration
+
+The durion workspace uses Kiro-based scripts to drive structured agent work based on `.kiro/specs` task plans.
+
+**Workspace-level agent structure (durion repo):**
+```bash
+cd durion
+
+# Run one Kiro step for the workspace agent structure plan
+MAX_STEPS=1 ./kiro-run-agent-structure.zsh
+
+# This consumes tasks from .kiro/specs/workspace-agent-structure/tasks.md
+# and updates the associated HANDOFF.md file for human/agent handover.
+```
+
+**Project-level agent structures:**
+```bash
+# Backend agent structure (durion-positivity-backend)
+cd durion-positivity-backend
+MAX_STEPS=1 ./kiro-run-agent-structure.zsh
+
+# Frontend agent structure (durion-moqui-frontend)
+cd ../durion-moqui-frontend
+MAX_STEPS=1 ./kiro-run-agent-structure.zsh
+
+# Each run advances exactly one unchecked task from
+# the corresponding .kiro/specs/agent-structure/tasks.md file.
 ```
 
 ### 6.2 Emergency Contacts

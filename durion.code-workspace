@@ -1,19 +1,21 @@
 {
 	"folders": [
 		{
-			"path": "../positivity"
+			"path": "./workspace-agents",
+			"name": "workspace-agents"
 		},
 		{
-			"path": "../moqui_example",
-			"name": "moqui"
+			"path": "../durion-positivity-backend",
+			"name": "durion-positivity-backend"
+		},
+		{
+			"path": "../durion-moqui-frontend",
+			"name": "durion-moqui-frontend"
 		},
 		{
 			"path": "."
 		},
-		{
-			"path": "./workspace-agents",
-			"name": "workspace-agents"
-		}
+		
 	],
 	"settings": {
 		"java.compile.nullAnalysis.mode": "automatic",
@@ -27,11 +29,6 @@
 				"path": "/bustools/jdk/adoptopenjdk-11.0.10"
 			},
 			{
-				"name": "JavaSE-17",
-				"path": "/home/n541342/.sdkman/candidates/java/17.0.17-tem",
-				"default": true
-			},
-			{
 				"name": "JavaSE-21",
 				"path": "/home/n541342/.sdkman/candidates/java/21.0.5-tem"
 			}
@@ -40,6 +37,6 @@
 			"editor.defaultFormatter": "redhat.java",
 			"editor.formatOnSave": true
 		},
-		"java.format.settings.url": "positivity/.vscode/java-formatter.xml"
+		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml"
 	}
 }

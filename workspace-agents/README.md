@@ -2,7 +2,7 @@
 
 ## Overview
 
-This workspace-level agent framework provides unified coordination across the durion ecosystem, including the positivity POS backend system (Spring Boot microservices) and the moqui_example frontend application.
+This workspace-level agent framework provides unified coordination across the durion ecosystem, including the durion-positivity-backend POS backend system (Spring Boot microservices) and the durion-moqui-frontend frontend application.
 
 ## Implementation Summary
 
@@ -93,7 +93,7 @@ node test/simple-property-test.js
 
 ## Key Features
 
-- **Cross-Project Coordination**: Seamless integration between positivity backend and moqui_example frontend
+- **Cross-Project Coordination**: Seamless integration between durion-positivity-backend backend and durion-moqui-frontend frontend
 - **Performance Monitoring**: Real-time tracking of response times, availability, and concurrent users
 - **Capability-Based Routing**: Intelligent agent selection based on required capabilities
 - **Scalable Architecture**: Designed to handle workspace growth and increased load
@@ -101,8 +101,8 @@ node test/simple-property-test.js
 
 ## Integration Points
 
-- **Positivity Backend**: Spring Boot microservices, AWS Fargate deployment
-- **Moqui_Example Frontend**: Moqui Framework, XML configuration, Groovy services
+- **durion-positivity-backend Backend**: Spring Boot microservices, AWS Fargate deployment
+- **durion-moqui-frontend Frontend**: Moqui Framework, XML configuration, Groovy services
 - **Cross-Layer Communication**: REST APIs, JWT authentication, event-driven patterns
 
 ## Next Steps

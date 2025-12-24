@@ -174,6 +174,6 @@ For questions or support, please refer to the individual project documentation o
 ## Related Projects
 
 - [Positivity](https://github.com/louisburroughs/positivity) - POS backend microservices
-- [Moqui Example](https://github.com/louisburroughs/moqui_example) - Frontend application
-- [Moqui Example Runtime](https://github.com/louisburroughs/moqui_example_runtime) - Runtime environment</content>
+- [Moqui Example](https://github.com/louisburroughs/durion-moqui-frontend) - Frontend application
+- [Moqui Example Runtime](https://github.com/louisburroughs/durion-moqui-frontend_runtime) - Runtime environment</content>
 <parameter name="filePath">/home/n541342/IdeaProjects/durion/README.md
