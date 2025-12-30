@@ -2,7 +2,7 @@
 
 This document provides the global ordered sequence of all [STORY] issues across the durion ecosystem.
 
-**Last Updated:** 2025-12-23 10:21:13
+**Last Updated:** 2025-12-26 17:24:51
 **Change Summary:** Generated global story sequence with 4 stories
 
 ## Global Story Sequence
@@ -23,5 +23,5 @@ This document provides the global ordered sequence of all [STORY] issues across 
 
 ### Classification Summary
 
-- **BACKEND_FIRST**: 2 stories
 - **PARALLEL**: 2 stories
+- **BACKEND_FIRST**: 2 stories

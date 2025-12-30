@@ -1,0 +1,222 @@
+# Frontend Development Coordination
+
+**Generated**: 2025-12-24 12:46:36
+
+## Frontend Implementation Status
+
+**Repository**: louisburroughs/durion-moqui-frontend
+
+**Technology Stack**:
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+## Stories Ready for Frontend Development
+
+- ✅ **Story #273**: [STORY] Security: Audit Trail for Price Overrides, Refunds, and Cancellations
+- ✅ **Story #272**: [STORY] Security: Define POS Roles and Permission Matrix
+- ✅ **Story #271**: [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+- ✅ **Story #270**: [STORY] Customer: Load Customer + Vehicle Context and Billing Rules
+- ✅ **Story #269**: [STORY] Accounting: Reconcile POS Status with Accounting Authoritative Status
+- ✅ **Story #268**: [STORY] Accounting: Update Invoice Payment Status from Payment Outcomes
+- ✅ **Story #267**: [STORY] Payment: Print/Email Receipt and Store Reference
+- ✅ **Story #266**: [STORY] Payment: Void Authorization or Refund Captured Payment
+- ✅ **Story #265**: [STORY] Payment: Initiate Card Authorization and Capture
+- ✅ **Story #264**: [STORY] Appointment: Show Assignment (Location/Bay/Mobile + Mechanic)
+- ✅ **Story #263**: [STORY] Appointment: Reschedule Appointment with Notifications
+- ✅ **Story #262**: [STORY] Appointment: Create Appointment from Estimate or Order
+- ✅ **Story #261**: [STORY] Workexec: Display Invoice and Request Finalization (Controlled)
+- ✅ **Story #260**: [STORY] Workexec: Display Work In Progress Status for Active Workorders
+- ✅ **Story #259**: [STORY] Workexec: Retrieve and Display Estimates for Customer/Vehicle
+- ✅ **Story #258**: [STORY] Catalog: View Product Details with Price and Availability Signals
+- ✅ **Story #257**: [STORY] Catalog: Search Catalog by Keyword/SKU and Filter
+- ✅ **Story #256**: [STORY] Order: Cancel Order with Controlled Void Logic
+- ✅ **Story #255**: [STORY] Order: Apply Price Override with Permission and Reason
+- ✅ **Story #254**: [STORY] Order: Create Sales Order Cart and Add Items
+- ✅ **Story #244**: [STORY] Security: Immutable Audit Trail for Movements and Workorder Links
+- ✅ **Story #243**: [STORY] Security: Define Inventory Roles and Permission Matrix
+- ✅ **Story #242**: [STORY] Allocations: Reallocate Reserved Stock When Schedule Changes
+- ✅ **Story #241**: [STORY] Allocations: Handle Shortages with Backorder or Substitution Suggestion
+- ✅ **Story #240**: [STORY] Counts: Approve and Post Adjustments from Cycle Count
+- ✅ **Story #239**: [STORY] Counts: Execute Cycle Count and Record Variances
+- ✅ **Story #238**: [STORY] Counts: Plan Cycle Counts by Location/Zone
+- ✅ **Story #237**: [STORY] Fulfillment: Return Unused Items to Stock with Reason
+- ✅ **Story #236**: [STORY] Fulfillment: Issue/Consume Picked Items to Workorder
+- ✅ **Story #235**: [STORY] Fulfillment: Mechanic Executes Picking (Scan + Confirm)
+- ✅ **Story #234**: [STORY] Fulfillment: Create Pick List / Pick Tasks for Workorder
+- ✅ **Story #233**: [STORY] Fulfillment: Reserve/Allocate Stock to Workorder Lines
+- ✅ **Story #232**: [STORY] Putaway: Replenish Pick Faces from Backstock (Optional)
+- ✅ **Story #231**: [STORY] Putaway: Execute Put-away Move (Staging → Storage)
+- ✅ **Story #230**: [STORY] Putaway: Generate Put-away Tasks from Staging
+- ✅ **Story #229**: [STORY] Receiving: Direct-to-Workorder Receiving (Cross-dock) from Distributor
+- ✅ **Story #228**: [STORY] Receiving: Receive Items into Staging (Generate Ledger Entries)
+- ✅ **Story #227**: [STORY] Receiving: Create Receiving Session from PO/ASN
+- ✅ **Story #226**: [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage
+- ✅ **Story #225**: [STORY] Ledger: Record Stock Movements in Inventory Ledger
+- ✅ **Story #224**: [STORY] Topology: Define Default Staging and Quarantine Locations for Receiving
+- ✅ **Story #223**: [STORY] Topology: Create Storage Locations (Floor/Shelf/Bin/Cage/Truck) and Hierarchy
+- ✅ **Story #222**: [STORY] Topology: Sync Locations from durion-hr
+- ✅ **Story #212**: [STORY] Security: Immutable Audit Trail for Price/Cost Changes and Rule Evaluations
+- ✅ **Story #211**: [STORY] Security: Define Roles and Permission Matrix for Product/Pricing
+- ✅ **Story #210**: [STORY] Rules: Enforce Location Restrictions and Service Rules for Products
+- ✅ **Story #209**: [STORY] Rules: Store Fitment Hints and Vehicle Applicability Tags (Basic)
+- ✅ **Story #208**: [STORY] Rules: Maintain Substitute Relationships and Equivalency Types
+- ✅ **Story #207**: [STORY] Availability: Normalize Manufacturer Inventory Feeds (Stub via Positivity)
+- ✅ **Story #206**: [STORY] Availability: Normalize Distributor Inventory Feeds (Stub via Positivity)
+- ✅ **Story #205**: [STORY] Availability: Expose On-hand and Available-to-Promise by Location (from Inventory)
+- ✅ **Story #204**: [STORY] Workexec: Handle Substitution Pricing for Part Substitutions
+- ✅ **Story #203**: [STORY] Workexec: Persist Immutable Pricing Snapshot for Estimate/WO Line
+- ✅ **Story #202**: [STORY] Workexec: Price Product for Estimate Line (Location + Customer Tier)
+- ✅ **Story #201**: [STORY] StorePrice: Set Location Store Price Override within Guardrails
+- ✅ **Story #200**: [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope
+- ✅ **Story #199**: [STORY] Pricing: Define Base Company Price Book Rules
+- ✅ **Story #198**: [STORY] Pricing: Maintain MSRP per Product with Effective Dates
+- ✅ **Story #197**: [STORY] Cost: Store Supplier/Vendor Cost Tiers (Optional)
+- ✅ **Story #196**: [STORY] Cost: Maintain Standard/Last/Average Cost with Audit
+- ✅ **Story #195**: [STORY] Master: Set Product Lifecycle State (Active/Discontinued) with Effective Dates
+- ✅ **Story #194**: [STORY] Master: Manage UOM and Pack/Case Conversions
+- ✅ **Story #193**: [STORY] Master: Create Product Record (Part/Tire) with Identifiers and Attributes
+- ✅ **Story #192**: [STORY] Security: Immutable Audit Trail for Price/Cost Changes and Rule Evaluations
+- ✅ **Story #191**: [STORY] Security: Define Roles and Permission Matrix for Product/Pricing
+- ✅ **Story #190**: [STORY] Rules: Enforce Location Restrictions and Service Rules for Products
+- ✅ **Story #189**: [STORY] Rules: Store Fitment Hints and Vehicle Applicability Tags (Basic)
+- ✅ **Story #188**: [STORY] Rules: Maintain Substitute Relationships and Equivalency Types
+- ✅ **Story #187**: [STORY] Availability: Normalize Manufacturer Inventory Feeds (Stub via Positivity)
+- ✅ **Story #186**: [STORY] Availability: Normalize Distributor Inventory Feeds (Stub via Positivity)
+- ✅ **Story #185**: [STORY] Availability: Expose On-hand and Available-to-Promise by Location (from Inventory)
+- ✅ **Story #184**: [STORY] Workexec: Handle Substitution Pricing for Part Substitutions
+- ✅ **Story #183**: [STORY] Workexec: Persist Immutable Pricing Snapshot for Estimate/WO Line
+- ✅ **Story #182**: [STORY] Workexec: Price Product for Estimate Line (Location + Customer Tier)
+- ✅ **Story #181**: [STORY] StorePrice: Set Location Store Price Override within Guardrails
+- ✅ **Story #180**: [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope
+- ✅ **Story #179**: [STORY] Pricing: Define Base Company Price Book Rules
+- ✅ **Story #178**: [STORY] Pricing: Maintain MSRP per Product with Effective Dates
+- ✅ **Story #177**: [STORY] Cost: Store Supplier/Vendor Cost Tiers (Optional)
+- ✅ **Story #176**: [STORY] Cost: Maintain Standard/Last/Average Cost with Audit
+- ✅ **Story #175**: [STORY] Master: Set Product Lifecycle State (Active/Discontinued) with Effective Dates
+- ✅ **Story #174**: [STORY] Master: Manage UOM and Pack/Case Conversions
+- ✅ **Story #173**: [STORY] Master: Create Product Record (Part/Tire) with Identifiers and Attributes
+- ✅ **Story #163**: [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr
+- ✅ **Story #162**: [STORY] CrossDomain: Workexec Displays Operational Context in Workorder View
+- ✅ **Story #161**: [STORY] Reporting: Daily Dispatch Board Dashboard
+- ✅ **Story #160**: [STORY] Security: Audit Trail for Schedule and Assignment Changes
+- ✅ **Story #159**: [STORY] Security: Define Shop Roles and Permission Matrix
+- ✅ **Story #158**: [STORY] Workexec: Update Appointment Status from Workexec Events
+- ✅ **Story #157**: [STORY] Workexec: Propagate Assignment Context to Workorder
+- ✅ **Story #156**: [STORY] Workexec: Create Draft Estimate from Appointment
+- ✅ **Story #155**: [STORY] Timekeeping: Approve Submitted Time for a Day/Workorder
+- ✅ **Story #154**: [STORY] Timekeeping: Capture Mobile Travel Time Separately
+- ✅ **Story #153**: [STORY] Timekeeping: Start/Stop Work Session for Assigned Work
+- ✅ **Story #152**: [STORY] Dispatch: Override Conflict with Manager Permission
+- ✅ **Story #151**: [STORY] Dispatch: Assign Mechanic and Resource (Bay/Mobile) to Appointment
+- ✅ **Story #150**: [STORY] Dispatch: Determine Mechanic Availability for a Time Window
+- ✅ **Story #149**: [STORY] Dispatch: Import Mechanic Roster and Skills from HR
+- ✅ **Story #148**: [STORY] Scheduling: Reschedule or Cancel Appointment with Audit
+- ✅ **Story #147**: [STORY] Scheduling: View Schedule by Location and Resource
+- ✅ **Story #146**: [STORY] Scheduling: Create Appointment with CRM Customer and Vehicle
+- ✅ **Story #145**: [STORY] Locations: Create Mobile Units and Coverage Rules
+- ✅ **Story #144**: [STORY] Locations: Create Bays with Constraints and Capacity
+- ✅ **Story #143**: [STORY] Locations: Create and Maintain Shop Locations
+- ✅ **Story #134**: [STORY] Timekeeping: Export Approved Time for Accounting/Payroll
+- ✅ **Story #133**: [STORY] Integration: Attendance vs Job Time Discrepancy Report
+- ✅ **Story #132**: [STORY] Integration: Submit Job Time to workexec as Labor Performed (Idempotent)
+- ✅ **Story #131**: [STORY] Integration: Start/Stop Timer Against Assigned Workorder Task
+- ✅ **Story #130**: [STORY] Timekeeping: Manager Approves/Rejects Time Entries
+- ✅ **Story #129**: [STORY] Timekeeping: Record Break Start/End
+- ✅ **Story #128**: [STORY] Timekeeping: Mechanic Clock In/Out
+- ✅ **Story #127**: [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates
+- ✅ **Story #126**: [STORY] Location: Create/Update Location (pos-location) Including Timezone
+- ✅ **Story #125**: [STORY] Users: Create/Update Employee Profile (pos-people)
+- ✅ **Story #124**: [STORY] Access: Assign Roles and Scopes (Global vs Location)
+- ✅ **Story #123**: [STORY] Users: Disable User (Offboarding) Without Losing History
+- ✅ **Story #122**: [STORY] Users: Provision User and Link to Person
+- ✅ **Story #115**: [STORY] Integration: Inbound Event Handler for Workorder-Originated Updates
+- ✅ **Story #114**: [STORY] Integration: Emit CRM Reference IDs in Workorder Artifacts
+- ✅ **Story #113**: [STORY] Promotions: Record Promotion Redemption from Invoicing
+- ✅ **Story #112**: [STORY] Promotions: Apply Offer During Estimate Pricing
+- ✅ **Story #111**: [STORY] Promotions: Define Eligibility Rules (Account/Vehicle)
+- ✅ **Story #110**: [STORY] Promotions: Create Promotion Offer (Basic)
+- ✅ **Story #109**: [STORY] Billing: Enforce PO Requirement During Estimate Approval
+- ✅ **Story #108**: [STORY] Billing: Expose CRM Snapshot (Account + Contacts + Vehicles + Rules)
+- ✅ **Story #107**: [STORY] Billing: Define Account Billing Rules
+- ✅ **Story #106**: [STORY] Vehicle: Ingest Vehicle Updates from Workorder Execution
+- ✅ **Story #105**: [STORY] Vehicle: Store Vehicle Care Preferences
+- ✅ **Story #104**: [STORY] Vehicle: Vehicle Lookup by VIN/Unit/Plate
+- ✅ **Story #103**: [STORY] Vehicle: Associate Vehicles to Account and/or Individual
+- ✅ **Story #102**: [STORY] Vehicle: Create Vehicle Record with VIN and Description
+- ✅ **Story #101**: [STORY] Contacts: Capture Multiple Contact Points
+- ✅ **Story #100**: [STORY] Contacts: Store Communication Preferences and Consent Flags
+- ✅ **Story #99**: [STORY] Contacts: Maintain Contact Roles and Primary Flags
+- ✅ **Story #98**: [STORY] Party: Search and Merge Duplicate Parties (Basic)
+- ✅ **Story #97**: [STORY] Party: Associate Individuals to Commercial Account
+- ✅ **Story #96**: [STORY] Party: Create Individual Person Record
+- ✅ **Story #95**: [STORY] Party: Create Commercial Account
+- ✅ **Story #87**: [STORY] Accounting: Handle Refund Issued
+- ✅ **Story #86**: [STORY] Accounting: Apply Payment to Invoice
+- ✅ **Story #85**: [STORY] Accounting: Ingest PaymentReceived Event
+- ✅ **Story #84**: [STORY] Accounting: Ingest InvoiceAdjusted or CreditMemo Event
+- ✅ **Story #83**: [STORY] Accounting: Ingest InvoiceIssued Event
+- ✅ **Story #82**: [STORY] Accounting: Reverse Completion on Workorder Reopen
+- ✅ **Story #81**: [STORY] Accounting: Ingest WorkCompleted Event
+- ✅ **Story #80**: [STORY] Accounting: Ingest InventoryAdjustment Event
+- ✅ **Story #79**: [STORY] Accounting: Ingest InventoryIssued Event
+- ✅ **Story #78**: [STORY] Controls: Route Unmapped or Failed Events to Suspense Queue and Reprocess
+- ✅ **Story #77**: [STORY] Reconciliation: Support Bank/Cash Reconciliation Matching
+- ✅ **Story #76**: [STORY] Audit: Maintain Immutable Ledger Audit Trail and Explainability
+- ✅ **Story #75**: [STORY] Reporting: Produce Core Financial Statements with Drilldown
+- ✅ **Story #74**: [STORY] Adjustments: Create Manual Journal Entry with Controls
+- ✅ **Story #73**: [STORY] Close: Open/Close Accounting Periods with Locks
+- ✅ **Story #72**: [STORY] AP: Execute Payment and Post to GL
+- ✅ **Story #71**: [STORY] AP: Approve and Schedule Payments with Controls
+- ✅ **Story #70**: [STORY] AP: Create Vendor Bill from Purchasing/Receiving Event
+- ✅ **Story #69**: [STORY] AR: Issue Credit Memo / Refund with Traceability
+- ✅ **Story #68**: [STORY] AR: Apply Payment to Open Invoice(s)
+- ✅ **Story #67**: [STORY] AR: Create Customer Invoice from Invoice-Issued Event
+- ✅ **Story #66**: [STORY] GL: Provide Trial Balance and Drilldown to Source
+- ✅ **Story #65**: [STORY] GL: Support Accrual vs Cash Basis Modes
+- ✅ **Story #64**: [STORY] GL: Post Journal Entry with Period Controls and Atomicity
+- ✅ **Story #63**: [STORY] GL: Build Balanced Journal Entry from Event
+- ✅ **Story #62**: [STORY] Mapping: Configure EventType → Posting Rule Set
+- ✅ **Story #61**: [STORY] Categories: Define Posting Categories and Mapping Keys
+- ✅ **Story #60**: [STORY] CoA: Create and Maintain Chart of Accounts
+- ✅ **Story #59**: [STORY] Events: Validate Event Completeness and Integrity
+- ✅ **Story #58**: [STORY] Events: Implement Idempotency and Deduplication
+- ✅ **Story #57**: [STORY] Events: Receive Events via Queue and/or Service Endpoint
+- ✅ **Story #56**: [STORY] Events: Define Canonical Accounting Event Envelope
+- ✅ **Story #47**: [STORY] Invoicing: Finalize and Issue Invoice
+- ✅ **Story #46**: [STORY] Invoicing: Support Authorized Invoice Adjustments
+- ✅ **Story #45**: [STORY] Invoicing: Preserve Traceability Links (Estimate/Approval/Workorder)
+- ✅ **Story #44**: [STORY] Invoicing: Calculate Taxes, Fees, and Totals on Invoice
+- ✅ **Story #43**: [STORY] Invoicing: Generate Invoice Draft from Completed Workorder
+- ✅ **Story #42**: [STORY] Completion: Reopen Completed Workorder (Controlled)
+- ✅ **Story #41**: [STORY] Completion: Complete Workorder and Record Audit
+- ✅ **Story #40**: [STORY] Completion: Finalize Billable Scope Snapshot
+- ✅ **Story #39**: [STORY] Completion: Resolve Approval-Gated Change Requests
+- ✅ **Story #38**: [STORY] Completion: Validate Completion Preconditions
+- ✅ **Story #37**: [STORY] Execution: Apply Role-Based Visibility in Execution UI
+- ✅ **Story #36**: [STORY] Execution: Request Additional Work and Flag for Approval
+- ✅ **Story #35**: [STORY] Execution: Handle Part Substitutions and Returns
+- ✅ **Story #34**: [STORY] Execution: Issue and Consume Parts
+- ✅ **Story #33**: [STORY] Execution: Record Labor Performed
+- ✅ **Story #32**: [STORY] Execution: Start Workorder and Track Status
+- ✅ **Story #31**: [STORY] Execution: Assign Technician to Workorder
+- ✅ **Story #30**: [STORY] Promotion: Record Promotion Audit Trail
+- ✅ **Story #29**: [STORY] Promotion: Handle Partial Approval Promotion
+- ✅ **Story #28**: [STORY] Promotion: Enforce Idempotent Promotion
+- ✅ **Story #27**: [STORY] Promotion: Generate Workorder Items from Approved Scope
+- ✅ **Story #26**: [STORY] Promotion: Create Workorder from Approved Estimate
+- ✅ **Story #25**: [STORY] Promotion: Validate Promotion Preconditions
+- ✅ **Story #24**: [STORY] Approval: Invalidate Approval on Estimate Revision
+- ✅ **Story #23**: [STORY] Approval: Handle Approval Expiration
+- ✅ **Story #22**: [STORY] Approval: Record Partial Approval
+- ✅ **Story #21**: [STORY] Approval: Capture In-Person Customer Approval
+- ✅ **Story #20**: [STORY] Approval: Capture Digital Customer Approval
+- ✅ **Story #19**: [STORY] Approval: Submit Estimate for Customer Approval
+- ✅ **Story #18**: [STORY] Estimate: Present Estimate Summary for Review
+- ✅ **Story #17**: [STORY] Estimate: Revise Estimate Prior to Approval
+- ✅ **Story #16**: [STORY] Estimate: Calculate Taxes and Totals on Estimate
+- ✅ **Story #15**: [STORY] Estimate: Add Labor to Estimate
+- ✅ **Story #14**: [STORY] Estimate: Add Parts to Estimate
+- ✅ **Story #13**: [STORY] Estimate: Create Draft Estimate
+- ✅ **Story #12**: [STORY] Estimate: Create Draft Estimate

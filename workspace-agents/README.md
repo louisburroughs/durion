@@ -105,6 +105,45 @@ node test/simple-property-test.js
 - **durion-moqui-frontend Frontend**: Moqui Framework, XML configuration, Groovy services
 - **Cross-Layer Communication**: REST APIs, JWT authentication, event-driven patterns
 
+## Production Systems
+
+### Missing Issues Audit System
+
+The **Missing Issues Audit System** is a production-ready tool that identifies missing implementation issues in frontend and backend repositories.
+
+#### Quick Start
+```bash
+# Set GitHub token
+export GITHUB_TOKEN=your_token_here
+
+# Run basic audit (report only)
+./start-missing-issues-audit.sh --audit
+
+# Run audit and create missing issues
+./start-missing-issues-audit.sh --audit --create-issues
+
+# For corporate environments with SSL issues
+./start-missing-issues-audit-ssl-bypass.sh --audit
+```
+
+#### Key Features
+- **Comprehensive Auditing**: Compares processed issues against actual implementation issues
+- **Automated Issue Creation**: Creates missing frontend and backend implementation issues
+- **Rate Limiting**: Intelligent GitHub API rate limiting with secondary rate limit handling
+- **Incremental Audits**: Support for date-based and range-based filtering
+- **SSL Bypass**: Corporate environment compatibility
+- **Detailed Reporting**: CSV, JSON, and markdown reports with full audit trails
+
+#### Production Status
+- ✅ **16 Property-Based Tests** passing
+- ✅ **Integration Tests** passing  
+- ✅ **Rate Limiting** implemented and tested
+- ✅ **SSL Bypass** for corporate environments
+- ✅ **Production Scripts** for Linux/Mac/Windows
+- ✅ **Comprehensive Documentation** and troubleshooting guide
+
+See `MISSING-ISSUES-AUDIT-PRODUCTION-GUIDE.md` for complete usage instructions.
+
 ## Next Steps
 
 The framework foundation is complete and ready for:
