@@ -37,6 +37,7 @@
 			"editor.defaultFormatter": "redhat.java",
 			"editor.formatOnSave": true
 		},
-		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml"
+		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
+		"java.debug.settings.onBuildFailureProceed": true
 	}
 }
