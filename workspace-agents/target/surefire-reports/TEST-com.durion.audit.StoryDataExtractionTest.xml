@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.durion.audit.StoryDataExtractionTest" time="0.097" tests="4" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="21"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/test-classes:/home/n541342/IdeaProjects/durion/workspace-agents/target/classes:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar:/home/n541342/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik/1.8.4/jqwik-1.8.4.jar:/home/n541342/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-api/1.8.4/jqwik-api-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-web/1.8.4/jqwik-web-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-time/1.8.4/jqwik-time-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-engine/1.8.4/jqwik-engine-1.8.4.jar:/home/n541342/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/home/n541342/.m2/repository/net/bytebuddy/byte-buddy/1.14.11/byte-buddy-1.14.11.jar:/home/n541342/.m2/repository/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-classic/1.4.7/logback-classic-1.4.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-core/1.4.7/logback-core-1.4.7.jar:/home/n541342/.m2/repository/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar:/home/n541342/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/home/n541342/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/home/n541342/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/home/n541342/.m2/repository/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar:/home/n541342/.m2/repository/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar:/home/n541342/.m2/repository/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="user.timezone" value="America/New_York"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="21"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/home/n541342/.sdkman/candidates/java/21.0.5-tem/lib"/>
+    <property name="sun.java.command" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/surefire/surefirebooter-20260103111610534_3.jar /home/n541342/IdeaProjects/durion/workspace-agents/target/surefire 2026-01-03T11-16-10_460-jvmRun1 surefire-20260103111610534_1tmp surefire_0-20260103111610534_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/test-classes:/home/n541342/IdeaProjects/durion/workspace-agents/target/classes:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar:/home/n541342/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik/1.8.4/jqwik-1.8.4.jar:/home/n541342/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-api/1.8.4/jqwik-api-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-web/1.8.4/jqwik-web-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-time/1.8.4/jqwik-time-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-engine/1.8.4/jqwik-engine-1.8.4.jar:/home/n541342/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/home/n541342/.m2/repository/net/bytebuddy/byte-buddy/1.14.11/byte-buddy-1.14.11.jar:/home/n541342/.m2/repository/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-classic/1.4.7/logback-classic-1.4.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-core/1.4.7/logback-core-1.4.7.jar:/home/n541342/.m2/repository/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar:/home/n541342/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/home/n541342/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/home/n541342/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/home/n541342/.m2/repository/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar:/home/n541342/.m2/repository/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar:/home/n541342/.m2/repository/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/n541342"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2024-10-15"/>
+    <property name="java.home" value="/home/n541342/.sdkman/candidates/java/21.0.5-tem"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/n541342/IdeaProjects/durion/workspace-agents"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/surefire/surefirebooter-20260103111610534_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="21.0.5+11-LTS"/>
+    <property name="user.name" value="n541342"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.6.87.2-microsoft-standard-WSL2"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="skipTests" value="false"/>
+    <property name="java.vendor.version" value="Temurin-21.0.5+11"/>
+    <property name="localRepository" value="/home/n541342/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="21.0.5"/>
+    <property name="user.dir" value="/home/n541342/IdeaProjects/durion/workspace-agents"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="failIfNoTests" value="false"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="21.0.5+11-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="65.0"/>
+  </properties>
+  <testcase name="Property 4: Story data extraction skips entries with missing URLs" classname="com.durion.audit.StoryDataExtractionTest" time="0.022">
+    <system-out><![CDATA[timestamp = 2026-01-03T11:16:26.992394397, StoryDataExtractionTest:Property 4: Story data extraction skips entries with missing URLs = 
+                              |-----------------------jqwik-----------------------
+tries = 30                    | # of calls to property
+checks = 28                   | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 32         | # of all combined edge cases
+edge-cases#tried = 3          | # of edge cases tried in current run
+seed = 1554817005933992029    | random seed to reproduce generated values
+
+
+]]></system-out>
+    <system-err><![CDATA[Warning: Story #133 in /tmp/test-missing-url13316784795640359347.md is missing URL, skipping
+Warning: Story #2 in /tmp/test-missing-url4135478160193693153.md is missing URL, skipping
+Warning: Story #621 in /tmp/test-missing-url15274486022588832397.md is missing URL, skipping
+Warning: Story #36 in /tmp/test-missing-url9454715949473774791.md is missing URL, skipping
+Warning: Story #29 in /tmp/test-missing-url3481730909478730672.md is missing URL, skipping
+Warning: Story #377 in /tmp/test-missing-url3072773094283173060.md is missing URL, skipping
+Warning: Story #67 in /tmp/test-missing-url13587784007257022397.md is missing URL, skipping
+Warning: Story #15 in /tmp/test-missing-url4033518973802078956.md is missing URL, skipping
+Warning: Story #2 in /tmp/test-missing-url7317956596358379345.md is missing URL, skipping
+Warning: Story #30 in /tmp/test-missing-url1324648168992491871.md is missing URL, skipping
+Warning: Story #581 in /tmp/test-missing-url17897255110339935099.md is missing URL, skipping
+Warning: Story #78 in /tmp/test-missing-url988982250682639207.md is missing URL, skipping
+Warning: Story #2 in /tmp/test-missing-url6842216364252175110.md is missing URL, skipping
+Warning: Story #34 in /tmp/test-missing-url1402552074499404245.md is missing URL, skipping
+Warning: Story #6 in /tmp/test-missing-url3669490581976386888.md is missing URL, skipping
+Warning: Story #5 in /tmp/test-missing-url3081083898878833352.md is missing URL, skipping
+Warning: Story #31 in /tmp/test-missing-url17970349144610622267.md is missing URL, skipping
+Warning: Story #13 in /tmp/test-missing-url7827709514800965091.md is missing URL, skipping
+Warning: Story #212 in /tmp/test-missing-url12456174077837820570.md is missing URL, skipping
+Warning: Story #1000 in /tmp/test-missing-url17690090580798146474.md is missing URL, skipping
+Warning: Story #891 in /tmp/test-missing-url15764676258237385229.md is missing URL, skipping
+Warning: Story #857 in /tmp/test-missing-url15757598228558126846.md is missing URL, skipping
+Warning: Story #615 in /tmp/test-missing-url8855758730895160168.md is missing URL, skipping
+Warning: Story #37 in /tmp/test-missing-url1279070044674833679.md is missing URL, skipping
+Warning: Story #1 in /tmp/test-missing-url7184781685371285770.md is missing URL, skipping
+Warning: Story #27 in /tmp/test-missing-url14669931348757083664.md is missing URL, skipping
+Warning: Story #1 in /tmp/test-missing-url2505216708163470484.md is missing URL, skipping
+Warning: Story #228 in /tmp/test-missing-url14473191852088331468.md is missing URL, skipping
+]]></system-err>
+  </testcase>
+  <testcase name="Property 4: Story data extraction handles multiple stories consistently" classname="com.durion.audit.StoryDataExtractionTest" time="0.015">
+    <system-out><![CDATA[timestamp = 2026-01-03T11:16:27.007450547, StoryDataExtractionTest:Property 4: Story data extraction handles multiple stories consistently = 
+                              |-----------------------jqwik-----------------------
+tries = 20                    | # of calls to property
+checks = 20                   | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 0          | # of all combined edge cases
+edge-cases#tried = 0          | # of edge cases tried in current run
+seed = 7630511944925430598    | random seed to reproduce generated values
+
+
+]]></system-out>
+  </testcase>
+  <testcase name="Property 4: Story data extraction handles missing optional fields" classname="com.durion.audit.StoryDataExtractionTest" time="0.021">
+    <system-out><![CDATA[timestamp = 2026-01-03T11:16:27.028434117, StoryDataExtractionTest:Property 4: Story data extraction handles missing optional fields = 
+                              |-----------------------jqwik-----------------------
+tries = 50                    | # of calls to property
+checks = 50                   | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 32         | # of all combined edge cases
+edge-cases#tried = 10         | # of edge cases tried in current run
+seed = -1708379923016342071   | random seed to reproduce generated values
+
+
+]]></system-out>
+  </testcase>
+  <testcase name="Property 4: Story data extraction completeness" classname="com.durion.audit.StoryDataExtractionTest" time="0.039">
+    <system-out><![CDATA[timestamp = 2026-01-03T11:16:27.067365367, StoryDataExtractionTest:Property 4: Story data extraction completeness = 
+                              |-----------------------jqwik-----------------------
+tries = 100                   | # of calls to property
+checks = 100                  | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 128        | # of all combined edge cases
+edge-cases#tried = 13         | # of edge cases tried in current run
+seed = -5654941691749950077   | random seed to reproduce generated values
+
+
+]]></system-out>
+    <system-err><![CDATA[Jan 03, 2026 11:16:27 AM net.jqwik.engine.properties.RandomizedShrinkablesGenerator logEdgeCasesOutnumberTriesIfApplicable
+INFO: Edge case generation exceeds number of tries. Stopped after 128 generated cases.
+]]></system-err>
+  </testcase>
+</testsuite>

@@ -1,0 +1,3347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.durion.audit.IssueCreationFormatPropertyTest" time="0.051" tests="4" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="21"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/test-classes:/home/n541342/IdeaProjects/durion/workspace-agents/target/classes:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar:/home/n541342/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik/1.8.4/jqwik-1.8.4.jar:/home/n541342/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-api/1.8.4/jqwik-api-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-web/1.8.4/jqwik-web-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-time/1.8.4/jqwik-time-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-engine/1.8.4/jqwik-engine-1.8.4.jar:/home/n541342/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/home/n541342/.m2/repository/net/bytebuddy/byte-buddy/1.14.11/byte-buddy-1.14.11.jar:/home/n541342/.m2/repository/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-classic/1.4.7/logback-classic-1.4.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-core/1.4.7/logback-core-1.4.7.jar:/home/n541342/.m2/repository/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar:/home/n541342/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/home/n541342/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/home/n541342/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/home/n541342/.m2/repository/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar:/home/n541342/.m2/repository/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar:/home/n541342/.m2/repository/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
+    <property name="user.timezone" value="America/New_York"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="21"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.boot.library.path" value="/home/n541342/.sdkman/candidates/java/21.0.5-tem/lib"/>
+    <property name="sun.java.command" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/surefire/surefirebooter-20260103111610534_3.jar /home/n541342/IdeaProjects/durion/workspace-agents/target/surefire 2026-01-03T11-16-10_460-jvmRun1 surefire-20260103111610534_1tmp surefire_0-20260103111610534_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/test-classes:/home/n541342/IdeaProjects/durion/workspace-agents/target/classes:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.2/junit-jupiter-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.2/junit-jupiter-api-5.9.2.jar:/home/n541342/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-commons/1.9.2/junit-platform-commons-1.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.2/junit-jupiter-params-5.9.2.jar:/home/n541342/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.2/junit-jupiter-engine-5.9.2.jar:/home/n541342/.m2/repository/org/junit/platform/junit-platform-engine/1.9.2/junit-platform-engine-1.9.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik/1.8.4/jqwik-1.8.4.jar:/home/n541342/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-api/1.8.4/jqwik-api-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-web/1.8.4/jqwik-web-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-time/1.8.4/jqwik-time-1.8.4.jar:/home/n541342/.m2/repository/net/jqwik/jqwik-engine/1.8.4/jqwik-engine-1.8.4.jar:/home/n541342/.m2/repository/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/home/n541342/.m2/repository/net/bytebuddy/byte-buddy/1.14.11/byte-buddy-1.14.11.jar:/home/n541342/.m2/repository/org/slf4j/slf4j-api/2.0.7/slf4j-api-2.0.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-classic/1.4.7/logback-classic-1.4.7.jar:/home/n541342/.m2/repository/ch/qos/logback/logback-core/1.4.7/logback-core-1.4.7.jar:/home/n541342/.m2/repository/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar:/home/n541342/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/home/n541342/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/home/n541342/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/home/n541342/.m2/repository/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar:/home/n541342/.m2/repository/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar:/home/n541342/.m2/repository/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar:/home/n541342/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.2/jackson-datatype-jsr310-2.15.2.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/n541342"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2024-10-15"/>
+    <property name="java.home" value="/home/n541342/.sdkman/candidates/java/21.0.5-tem"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/home/n541342/IdeaProjects/durion/workspace-agents"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/home/n541342/IdeaProjects/durion/workspace-agents/target/surefire/surefirebooter-20260103111610534_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="21.0.5+11-LTS"/>
+    <property name="user.name" value="n541342"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.6.87.2-microsoft-standard-WSL2"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="skipTests" value="false"/>
+    <property name="java.vendor.version" value="Temurin-21.0.5+11"/>
+    <property name="localRepository" value="/home/n541342/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="21.0.5"/>
+    <property name="user.dir" value="/home/n541342/IdeaProjects/durion/workspace-agents"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="failIfNoTests" value="false"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="21.0.5+11-LTS"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="65.0"/>
+  </properties>
+  <testcase name="Property 7: Issue titles follow correct format pattern" classname="com.durion.audit.IssueCreationFormatPropertyTest" time="0.023">
+    <system-out><![CDATA[🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #15
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/309
+
+🔨 ISSUE CREATION
+├─ Story: #15
+├─ Title: [FRONTEND] ᰶ즔夤뱳仟㉢孤䄟ﮯ躘몭ꣁ봸Ȫ랱䋚穩
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #99
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9384
+
+🔨 ISSUE CREATION
+├─ Story: #99
+├─ Title: [BACKEND] ᦰ︅蔉ഁ쭙ᚦ᷉ꊍ㤩ﭚඊ쎊쮼⮥턽紨唢H㸤﭅䇲둳剴镒ꑐ豇첪舡燽霭⋩兯轙㏒蟊禔⎩鎪롓䶫ゲ泈₅㡶ǆ䲃疼ꖼ盾쌹밾詷鲾ಹﵻ﮸桀쐏轓ầ헃퐋렏㯍ᩮ쐃ຈ哽ꚥ㚏땘₺ꊢ䡽挛牭옍솯푳쓮昈䏷覸믟낶웍루伟᫇釢Ƙ勨῝듐缹﬇悓絻쓔猄
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7363
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #598
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7845
+
+🔨 ISSUE CREATION
+├─ Story: #598
+├─ Title: [BACKEND] 쎝Ԍ౭큯ᚬ賛䦌⁫肍畵ﰞ祐
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6926
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #13
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8956
+
+🔨 ISSUE CREATION
+├─ Story: #13
+├─ Title: [FRONTEND] 票ᥰ쩚떭ꦀ䄇婗⑃㭒嗼禊껎涺箻隟
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #553
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9794
+
+🔨 ISSUE CREATION
+├─ Story: #553
+├─ Title: [FRONTEND] 鼖煵渡䵚ﵑ頚⡛ꑕ猬쬡㳡䋡剏㹭븜
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #884
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6417
+
+🔨 ISSUE CREATION
+├─ Story: #884
+├─ Title: [FRONTEND] 쵭ㆿ뫦﫢륉ﮢ崋㚹ᨩ둈繕
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #326
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/313
+
+🔨 ISSUE CREATION
+├─ Story: #326
+├─ Title: [FRONTEND] ퟞ䠪ើ䏳ጫ쌻䂌톧螺誯㷦狢鈨纾
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5302
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #472
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1139
+
+🔨 ISSUE CREATION
+├─ Story: #472
+├─ Title: [BACKEND] 㨎탞હꃷ帠蚿鿫炨⛆Ԃ胕뙞Ꚅ䶆쯕뾐姩
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #27
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7180
+
+🔨 ISSUE CREATION
+├─ Story: #27
+├─ Title: [BACKEND] अ絩놚ġ㳈ᚏ됱管㮟߷ꠊ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #143
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5001
+
+🔨 ISSUE CREATION
+├─ Story: #143
+├─ Title: [BACKEND] 눝꽏᧡琍꬟꛼荏욪臏숞랝ᅄ稔笻븠
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1424
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #183
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9885
+
+🔨 ISSUE CREATION
+├─ Story: #183
+├─ Title: [FRONTEND] 㟅짼Ⲱꂪ앩鎳⡅灈ெ䅛᱔娼륬䩻
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #78
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6399
+
+🔨 ISSUE CREATION
+├─ Story: #78
+├─ Title: [FRONTEND] ⳰룗鐝䜖埤촑礖箓땻ణ⹄潡᰷峙цḰ到馹䡒අ娲娇ﰿᑞŽ᧌袺싂ႉ壨쮲便᮰钹ቍ᦭᱀↡밸䰜殱稵⃉➲宩⛂⾣륫듗攞얋ਹ翙姧ćਁ㼷篊꬟䠊吹蔢夤寙䭁ₒ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9035
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #15
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6240
+
+🔨 ISSUE CREATION
+├─ Story: #15
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #19
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8685
+
+🔨 ISSUE CREATION
+├─ Story: #19
+├─ Title: [BACKEND] ൈɝ됮卫竆첶囑㹭噿吏⫪뽏
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #101
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2501
+
+🔨 ISSUE CREATION
+├─ Story: #101
+├─ Title: [FRONTEND] 豜㣎릉ꚪ쎬垓ᤇꪢ덁撕⿚䫴
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #269
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4535
+
+🔨 ISSUE CREATION
+├─ Story: #269
+├─ Title: [FRONTEND] ა摘醝鵣䛠烚㋷ꇸ馨봨↴撊
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #18
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5067
+
+🔨 ISSUE CREATION
+├─ Story: #18
+├─ Title: [FRONTEND] 깡稁럢㏕꯬릷ﱢ챾픺쮸뻧퓈訷鹖
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #5
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2664
+
+🔨 ISSUE CREATION
+├─ Story: #5
+├─ Title: [FRONTEND] 闛᦬哝ꉃ霼锁恑␵撄㧔淇㽻枵㗄჆癿畤誺⅒᷐
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #105
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3424
+
+🔨 ISSUE CREATION
+├─ Story: #105
+├─ Title: [FRONTEND] 꾟좝⿨쐾㬷⊒ᨴⓤ沨寭뎖﷾ଖ臖坁᳥藯ퟖ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #443
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1754
+
+🔨 ISSUE CREATION
+├─ Story: #443
+├─ Title: [FRONTEND] 㓱㌾埼ษ菽Ꝓ믕쓍⇝⑕컘㶜纠袠궍쌖演칮鴎臣
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #66
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7632
+
+🔨 ISSUE CREATION
+├─ Story: #66
+├─ Title: [BACKEND] 䩂ꡥ樔㼆⤪伬븐璸땎䄇
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #22
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1321
+
+🔨 ISSUE CREATION
+├─ Story: #22
+├─ Title: [FRONTEND] ¤탿ꥱވ缺鷯찢銒࣭섾ꔨ䟒➅팠菤
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8154
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #219
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4967
+
+🔨 ISSUE CREATION
+├─ Story: #219
+├─ Title: [BACKEND] ➲탮翹撾낦삿䙘糣脮⇲⯋厭建횥Š攸㲘숫諧櫷쯭वԏ敲洁莳䊝穗恷뾾門靁ퟣ♫铥피阬탻髕䭪탔䒍ﰲ鉀뢴ā邤鹃碊탧ሢ莽굓콌Ƒ鴇
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #502
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5071
+
+🔨 ISSUE CREATION
+├─ Story: #502
+├─ Title: [BACKEND]           
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #419
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8598
+
+🔨 ISSUE CREATION
+├─ Story: #419
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #49
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/169
+
+🔨 ISSUE CREATION
+├─ Story: #49
+├─ Title: [FRONTEND] 퉞腉钊翽눱뮟攉趤鈲슼劝
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #35
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/998
+
+🔨 ISSUE CREATION
+├─ Story: #35
+├─ Title: [BACKEND] ⊤剬婴咽ש栚瓔ԧ䪭簬
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9855
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #31
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8204
+
+🔨 ISSUE CREATION
+├─ Story: #31
+├─ Title: [FRONTEND] 괒퓞₋ꔆ펍ย筓࢝츑ऀ鞤ꃔ㼻쎬Ჱ胃
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #90
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2961
+
+🔨 ISSUE CREATION
+├─ Story: #90
+├─ Title: [FRONTEND] 糏岍඾⏸躕됏틁Š섽涠๓墲
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #42
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3717
+
+🔨 ISSUE CREATION
+├─ Story: #42
+├─ Title: [BACKEND] 鿮℄郒븨밞叺셁뾒鍿뽨矌
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #205
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5086
+
+🔨 ISSUE CREATION
+├─ Story: #205
+├─ Title: [FRONTEND] Ꝋ齵范塺놰ൌᕦꞨ鏰澎᷒
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #58
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3736
+
+🔨 ISSUE CREATION
+├─ Story: #58
+├─ Title: [BACKEND] 㭪쬖簅㌧콀꜎ླྀ⟭ￜ쒞啗༧疥ᕴ引
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/343
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #914
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/322
+
+🔨 ISSUE CREATION
+├─ Story: #914
+├─ Title: [BACKEND] 䜡︡퉢賒ễ咝ھ轢殼쏭㨯㹱⨷閲턹
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #26
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2115
+
+🔨 ISSUE CREATION
+├─ Story: #26
+├─ Title: [FRONTEND] 㝧䇀낎ￜ晢郐홊Ꝙﵸ젮竨׹撢梱ജ榥樼
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5699
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #1
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6738
+
+🔨 ISSUE CREATION
+├─ Story: #1
+├─ Title: [FRONTEND] 㻽䫨へ蛟蜱幧膱☀瘙ᲄ㱘꼑
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7722
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #129
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7923
+
+🔨 ISSUE CREATION
+├─ Story: #129
+├─ Title: [BACKEND] 囲ꝡǅ탙瞠束椎麿理낙ᨢ䐄䕊뇨雊⨧㪕
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #7
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9966
+
+🔨 ISSUE CREATION
+├─ Story: #7
+├─ Title: [FRONTEND] 氽奋摾硍ẵⰭ趣쫿丗귖㞋찁㬍⨢椽쯖㤈
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5139
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] 딈鄀뱕຋붧뤆뤴ὂ졯拑岎穑඀
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #62
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9852
+
+🔨 ISSUE CREATION
+├─ Story: #62
+├─ Title: [BACKEND] 흸ߠ㒉䭐쩵侃斐幭鯴뱚枥
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #39
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6211
+
+🔨 ISSUE CREATION
+├─ Story: #39
+├─ Title: [BACKEND] 솥ǅ甍팞飜瘂ㆂᗣੰ뢁嫵쌷⫑
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #36
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4768
+
+🔨 ISSUE CREATION
+├─ Story: #36
+├─ Title: [BACKEND] 뽻嚆蠲삅㻥잹拌魍륗䓞蔇饘䫞懻
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #867
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2937
+
+🔨 ISSUE CREATION
+├─ Story: #867
+├─ Title: [FRONTEND] ඼鳱ￛ趥玫ᔪ醺澅羘莱䃧溠瀁粛
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #292
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9228
+
+🔨 ISSUE CREATION
+├─ Story: #292
+├─ Title: [BACKEND] 橘窋㬎隥畵풏찠堆䛙ꪥ䴇잎䴕
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #58
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8642
+
+🔨 ISSUE CREATION
+├─ Story: #58
+├─ Title: [BACKEND] ͳ⻺䥞ᣨ➊獲襸Ŝ薂蘼젋軠裫홬ꀗ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #42
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5777
+
+🔨 ISSUE CREATION
+├─ Story: #42
+├─ Title: [FRONTEND] ሄࣩᐮગ欷襵⛑陀ᙙ젩ꐓܩ⤆捕嬧ꫭ橬
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #17
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8317
+
+🔨 ISSUE CREATION
+├─ Story: #17
+├─ Title: [FRONTEND] 侓췧晄艼祆뀜㹤洽碌숱挨욈ꒊ䳬颥춝멃쪖濓ڢ员憭鉪㛉늫ҝ鿋閩﮹䊺឵䑸ﷆ᳧壌훌ฌ뻕쨬霤㊾䊸筤薛ៅ療曈译慐㥲䡫佩䩊Ⰵ탢䷦ꐾ뉉ᡬ蹄揚撍⛋ੜȫ려ꭊ灚䒄蠱흩蔖䰃ƻ┩柠퍶ⶕ뜣⍅鴨쭷䪙臜슟婀䬪褿葫㸼䷩鎅넦䁳책䃮
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #674
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8575
+
+🔨 ISSUE CREATION
+├─ Story: #674
+├─ Title: [BACKEND] 藐갘ꞹ둂쬽ۺⴌﹶ縫ꘫ嗇诟夘俊繚㈥Ѱ馉
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5187
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1356
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #54
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2416
+
+🔨 ISSUE CREATION
+├─ Story: #54
+├─ Title: [BACKEND] 虪ڮ᭤Ñ㢗帍趭棷難뽤㊟㰨輢숌넍䭗ꆕớ缥
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #314
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/838
+
+🔨 ISSUE CREATION
+├─ Story: #314
+├─ Title: [BACKEND] ᳬ峘怪緼鎑ߠ廡躮黊鉬䞪魺ᛊ긕痡␲
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #27
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5011
+
+🔨 ISSUE CREATION
+├─ Story: #27
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2534
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #11
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4924
+
+🔨 ISSUE CREATION
+├─ Story: #11
+├─ Title: [FRONTEND] i鸀氛≢낧跍椷䖛鷍ᖛ䍯랙䷡瘋专뮬핁㫈
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #109
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8400
+
+🔨 ISSUE CREATION
+├─ Story: #109
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #84
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1857
+
+🔨 ISSUE CREATION
+├─ Story: #84
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #31
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4798
+
+🔨 ISSUE CREATION
+├─ Story: #31
+├─ Title: [FRONTEND] 떍ᮋۧᬔ䥰ო羟青Ϳ萫㓙盝畤㢹
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #10
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3354
+
+🔨 ISSUE CREATION
+├─ Story: #10
+├─ Title: [FRONTEND] 벾⌷컇廮鱵牤쀚䭎⊒喍嚢￐铔㹟
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #28
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4827
+
+🔨 ISSUE CREATION
+├─ Story: #28
+├─ Title: [FRONTEND] к譛⁦㕘用膠⬋ⱽ휾⁌㈾
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #5
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/358
+
+🔨 ISSUE CREATION
+├─ Story: #5
+├─ Title: [BACKEND] ⮔꧃잱鴣Ƶ萗릭ଢ冝屙씢㺇瀬篋냘⨡縴ฉ咝䄽뭚咟钉빈㪆입뤷壆㑼粭萣寭㎈쌜◻韥暈缈ᜲɸ嚌㐳椡
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1251
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #84
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8640
+
+🔨 ISSUE CREATION
+├─ Story: #84
+├─ Title: [BACKEND] ꇂῶせ拀먀兕ꠜ⩰퇧踾骰뛔绸黢
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #10
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4964
+
+🔨 ISSUE CREATION
+├─ Story: #10
+├─ Title: [BACKEND] ᧼鬜덚袜自ꆹ闵ᦟ뚕딻헞๤ۜ㓌좴級
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #69
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2230
+
+🔨 ISSUE CREATION
+├─ Story: #69
+├─ Title: [BACKEND] 촦竳ꌋБ䴅ዝ読慐螇栢렜㭪깻ᥟ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #288
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9220
+
+🔨 ISSUE CREATION
+├─ Story: #288
+├─ Title: [BACKEND] 啪뇍逸덷苊ᘯ帜ኦ✉寐◝樅胮忘䅆憻驫ꤶ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #215
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2291
+
+🔨 ISSUE CREATION
+├─ Story: #215
+├─ Title: [FRONTEND] 鄋騦ﺿ䎤๞ᴎꬮ焚莞᭦봝줋⃐ƫ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #901
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1698
+
+🔨 ISSUE CREATION
+├─ Story: #901
+├─ Title: [BACKEND] 뇥첌ﴺ᧮ꭺ㪘벿铴歒퓶섟ḳ蒦荼
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3800
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4881
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #342
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2767
+
+🔨 ISSUE CREATION
+├─ Story: #342
+├─ Title: [BACKEND] ⦎Ⱈ酝銂℀‥᣻࿲뮑渼瞽윌娴ᄰ韔┟ꬰ狷
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/206
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #265
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8796
+
+🔨 ISSUE CREATION
+├─ Story: #265
+├─ Title: [FRONTEND] 潮굾ಮ儹붬濭쑵櫽ီ쨙ᣇݨ쥷
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #321
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2962
+
+🔨 ISSUE CREATION
+├─ Story: #321
+├─ Title: [FRONTEND] 茸⧳뷺샟怚㏫⋱ꢒ♧嶌哾籤餈䐀粋꬧큃㪧讓❮
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #15
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1301
+
+🔨 ISSUE CREATION
+├─ Story: #15
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #11
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3016
+
+🔨 ISSUE CREATION
+├─ Story: #11
+├─ Title: [FRONTEND] 㨹伽ᐌÊמּࢯ㺌쇹Ǒ볯ᢡ鳏⾸枨㋺㫍묗
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #24
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2859
+
+🔨 ISSUE CREATION
+├─ Story: #24
+├─ Title: [BACKEND] 윁맨쾛]ಂ狍延錝攐ᖭ✎
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #430
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1112
+
+🔨 ISSUE CREATION
+├─ Story: #430
+├─ Title: [FRONTEND] ៨៟텦휢กⓜ⻲㶅埈휣禜렸
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9838
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND]           
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1693
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #327
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8715
+
+🔨 ISSUE CREATION
+├─ Story: #327
+├─ Title: [BACKEND] 绮巶㓂ᬬ䋱ᡚ㷬픞䅶뺘욿ꘒ騙ꖱᒬ⩕
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #985
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/993
+
+🔨 ISSUE CREATION
+├─ Story: #985
+├─ Title: [FRONTEND] 릐钇겴垎匯ꢙꛀ讣⁥滳롞텕턇࠴༩औ᠖ﺸ᯹꠬
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #74
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6300
+
+🔨 ISSUE CREATION
+├─ Story: #74
+├─ Title: [FRONTEND] 丞⨾ⴔꜚ涓ྕ뿼뤊恷찡⿒㫻任鐃⪉핓蠞舙恉⣋
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3481
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND]           
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #144
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3457
+
+🔨 ISSUE CREATION
+├─ Story: #144
+├─ Title: [FRONTEND] 贫瀲ﮠ⪱❼Ꮑ彥㟤老멋䷾
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #235
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/665
+
+🔨 ISSUE CREATION
+├─ Story: #235
+├─ Title: [FRONTEND] ᲅӛ犻밴椀㫎啣♖롨긣⩑幗ǲ暦ⲁ捗ᨖⅴꄥꆾ삑瞗౳砯캛螛敨ꂟꢒ㶫傕ꯠ纀㑌鮤伧嘔ㅪ떼ⳳ젹ᝢ앯鷇頀ꔁ⋒繴꣐୤蹊裲껝憥㤕쑹畑⩨鳈䐨쒴觃⯬浆
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #216
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4870
+
+🔨 ISSUE CREATION
+├─ Story: #216
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #41
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3706
+
+🔨 ISSUE CREATION
+├─ Story: #41
+├─ Title: [BACKEND] ῞ഓ䔱꽐蕌蒅뷫伹둩栜靯婬Ꮊ訆䃕✼篟
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #4
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1877
+
+🔨 ISSUE CREATION
+├─ Story: #4
+├─ Title: [BACKEND] 욽鷼쏖洷ᑑꦺ墛纋櫑갅沭痽ﻈ춬Ꮀ镎璹ꓭྼ໕⬋䦶╦閜膸Ꮂ㹪ݙ㪳擷㒉뼉煩擾枖ﰦ鰺潮粤썺뿗㦮볚ḛ㇛땓嬂䱌꥖铓寗旹ⓥ㗐ࠎജ몥
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #422
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5348
+
+🔨 ISSUE CREATION
+├─ Story: #422
+├─ Title: [BACKEND] ⋭곱죃贄쥨ߐ亰ㅾԦ늷ỡᦪﱹ葀欜⯉✄瀰朸체륅꣢亁䒪贀恕撷揳寝컯㸋怅ᣍ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #13
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1487
+
+🔨 ISSUE CREATION
+├─ Story: #13
+├─ Title: [BACKEND]           
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+timestamp = 2026-01-03T11:16:20.755375417, IssueCreationFormatPropertyTest:Property 7: Issue titles follow correct format pattern = 
+                              |-----------------------jqwik-----------------------
+tries = 100                   | # of calls to property
+checks = 100                  | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 128        | # of all combined edge cases
+edge-cases#tried = 20         | # of edge cases tried in current run
+seed = -8958885743482974115   | random seed to reproduce generated values
+
+
+]]></system-out>
+    <system-err><![CDATA[Jan 03, 2026 11:16:20 AM net.jqwik.engine.properties.RandomizedShrinkablesGenerator logEdgeCasesOutnumberTriesIfApplicable
+INFO: Edge case generation exceeds number of tries. Stopped after 128 generated cases.
+]]></system-err>
+  </testcase>
+  <testcase name="Property 7: Issue creation handles special characters in titles correctly" classname="com.durion.audit.IssueCreationFormatPropertyTest" time="0.007">
+    <system-out><![CDATA[🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #9
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7274
+
+🔨 ISSUE CREATION
+├─ Story: #9
+├─ Title: [FRONTEND] xXSYQ[vlRl: Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #700
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2298
+
+🔨 ISSUE CREATION
+├─ Story: #700
+├─ Title: [BACKEND] eAM^\TORmNjgN]XjL)Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #284
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6109
+
+🔨 ISSUE CREATION
+├─ Story: #284
+├─ Title: [FRONTEND] aBwUwoFpleCpaTTOloKTkYBgoxmPYQ "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #1
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7247
+
+🔨 ISSUE CREATION
+├─ Story: #1
+├─ Title: [BACKEND] LMCI^iThKc - Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #639
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5082
+
+🔨 ISSUE CREATION
+├─ Story: #639
+├─ Title: [BACKEND] fxyUjd]GhzwM\dqIk & Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3848
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] AAAAAAAAAA "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8568
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] AAAAAAAAAA "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4914
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] AAAAAAAAAA "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #46
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3650
+
+🔨 ISSUE CREATION
+├─ Story: #46
+├─ Title: [BACKEND] zjYoZ_QRjE'Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #20
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6625
+
+🔨 ISSUE CREATION
+├─ Story: #20
+├─ Title: [BACKEND] xcB^pDIgRo]F / Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #246
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6175
+
+🔨 ISSUE CREATION
+├─ Story: #246
+├─ Title: [BACKEND] z[fVALbRK\Xfu^UVtcLzypeEdzdIlJXQhi (Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #15
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6227
+
+🔨 ISSUE CREATION
+├─ Story: #15
+├─ Title: [FRONTEND] hgYFj^LYMyk [Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #1000
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8817
+
+🔨 ISSUE CREATION
+├─ Story: #1000
+├─ Title: [FRONTEND] aWCqD`BrwGbeQ_geKS'Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #11
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8695
+
+🔨 ISSUE CREATION
+├─ Story: #11
+├─ Title: [BACKEND] rkonDdigZY`MJfR "Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #11
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5141
+
+🔨 ISSUE CREATION
+├─ Story: #11
+├─ Title: [BACKEND] _VfFd^ZstCbxcc_FwNMDuHJsXT^DOEfEvNNtTxBrFIqh'Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #99
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/196
+
+🔨 ISSUE CREATION
+├─ Story: #99
+├─ Title: [FRONTEND] KKseLeXRTzwBYMkpnPKh]cHd "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #157
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6795
+
+🔨 ISSUE CREATION
+├─ Story: #157
+├─ Title: [BACKEND] K]biuDI^T_qC 'Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #943
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6370
+
+🔨 ISSUE CREATION
+├─ Story: #943
+├─ Title: [FRONTEND] DmPjQzHVlo"Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #532
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/583
+
+🔨 ISSUE CREATION
+├─ Story: #532
+├─ Title: [FRONTEND] SHZTiRlKwpz [Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5097
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] AAAAAAAAAA "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #35
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8425
+
+🔨 ISSUE CREATION
+├─ Story: #35
+├─ Title: [FRONTEND] oLBFVZNIlJmPy[c: Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #1
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6706
+
+🔨 ISSUE CREATION
+├─ Story: #1
+├─ Title: [BACKEND] w`bi^KrPLAXXK^ / Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #210
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5962
+
+🔨 ISSUE CREATION
+├─ Story: #210
+├─ Title: [FRONTEND] RJYKhN_bCVvHHpGiDCyICafnt]nDbQf^YDW`ZeFHgUgeWE^xf^ - Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #40
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9345
+
+🔨 ISSUE CREATION
+├─ Story: #40
+├─ Title: [FRONTEND] ]sJXQYzBMXftocEVm[sc^HhNjhm[gcVv_PLgt[ / Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #2
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4938
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [BACKEND] OR\^iuYJwMI[eT[cKNVI`oRDP[KRkav [Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #151
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3680
+
+🔨 ISSUE CREATION
+├─ Story: #151
+├─ Title: [FRONTEND] MsAl^[KdkYSwTIZ: Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/377
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] zzzzzzzzzz "Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #23
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8949
+
+🔨 ISSUE CREATION
+├─ Story: #23
+├─ Title: [FRONTEND] qHNvegdSXPGbNdbjds (Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #13
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6053
+
+🔨 ISSUE CREATION
+├─ Story: #13
+├─ Title: [BACKEND] QZMSAp_NkBnG\ / Test
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #293
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1975
+
+🔨 ISSUE CREATION
+├─ Story: #293
+├─ Title: [FRONTEND] ^HVxXXABszKi [Test
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+timestamp = 2026-01-03T11:16:20.762447714, IssueCreationFormatPropertyTest:Property 7: Issue creation handles special characters in titles correctly = 
+                              |-----------------------jqwik-----------------------
+tries = 30                    | # of calls to property
+checks = 30                   | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 32         | # of all combined edge cases
+edge-cases#tried = 5          | # of edge cases tried in current run
+seed = 3845070956261926474    | random seed to reproduce generated values
+
+
+]]></system-out>
+  </testcase>
+  <testcase name="Property 7: Issue labels include all required standard labels" classname="com.durion.audit.IssueCreationFormatPropertyTest" time="0.007">
+    <system-out><![CDATA[🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #98
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/792
+
+🔨 ISSUE CREATION
+├─ Story: #98
+├─ Title: [BACKEND] 㕍ꄝ琾愫⬓龸蚋ꍶ뫇졹讹셇ⵅ渧죘㹹﮾꒵ہ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #57
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1744
+
+🔨 ISSUE CREATION
+├─ Story: #57
+├─ Title: [FRONTEND] 뷻礑ጨ卶넅㎓ꅓ噑햡ⵝ㡼럨鑇ᚴᗇᨩ⡙졽
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #8
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3722
+
+🔨 ISSUE CREATION
+├─ Story: #8
+├─ Title: [BACKEND] 럺ំⓅ璽Ṓ龡焔跒⣬ྠ儘坽㕧鉛
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #32
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4828
+
+🔨 ISSUE CREATION
+├─ Story: #32
+├─ Title: [FRONTEND] ϱ背蛪ු捷دཎ핳諸ፃ쁨덢辻ꨁ眰߀啦⚋
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8763
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #765
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1092
+
+🔨 ISSUE CREATION
+├─ Story: #765
+├─ Title: [BACKEND] 帨蚯訑揆荸濫Ẹ戰㉜쿬䆯⮟䈇雂착찿척⯈⻛
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7356
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #690
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4886
+
+🔨 ISSUE CREATION
+├─ Story: #690
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #71
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3731
+
+🔨 ISSUE CREATION
+├─ Story: #71
+├─ Title: [BACKEND] 勌ᑛ刿唖ࠋ켅窬ॳ槳孞ᑻ䓗敦䙦읞僑磃偛㴠
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #9
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4249
+
+🔨 ISSUE CREATION
+├─ Story: #9
+├─ Title: [BACKEND] 蚠摸槏㧖ɶ쫢椢唞ጴ䟡ᕍ帎靺ዏ캌器硟
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #18
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8833
+
+🔨 ISSUE CREATION
+├─ Story: #18
+├─ Title: [BACKEND] ␥갽鮜ﴞ휔탡￸묆ꪱ伮䢀곸
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9507
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #20
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7463
+
+🔨 ISSUE CREATION
+├─ Story: #20
+├─ Title: [BACKEND] ে腗х枍ꆱⓝ表ᷰ㻇੅
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #1
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3098
+
+🔨 ISSUE CREATION
+├─ Story: #1
+├─ Title: [FRONTEND] ⌸旅ᆖ瀡햶ꁢ갩轁⻳퇴諼踫␰㱬䮤
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #30
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8132
+
+🔨 ISSUE CREATION
+├─ Story: #30
+├─ Title: [BACKEND] ჿ뒑양楮늘麭弢됐汾ỵ蹙㹁
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #290
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4468
+
+🔨 ISSUE CREATION
+├─ Story: #290
+├─ Title: [BACKEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #578
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6695
+
+🔨 ISSUE CREATION
+├─ Story: #578
+├─ Title: [FRONTEND] ꛨ垩㾏㓁⽈ᓰ഼ꈗ奀쥙뾚악ㅝ獊ꅇ聭嶮⬕戱渵砃껟ᘆ瞅嶽ｺ샓䎧⣲௼喆轗爪㈓买ﲃ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #917
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7429
+
+🔨 ISSUE CREATION
+├─ Story: #917
+├─ Title: [BACKEND] ា䇥謢痀⠋뙊㿱ꉡ鑻╳阥㒅珩旱᢫
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2886
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #282
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2505
+
+🔨 ISSUE CREATION
+├─ Story: #282
+├─ Title: [BACKEND] ﰔ扝趕㛠้̀ꦫ閠䙴鐓꼟䄆胆舕孈ⅆ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #13
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3567
+
+🔨 ISSUE CREATION
+├─ Story: #13
+├─ Title: [FRONTEND] ꫯ덶㛿⒔墵潕征࿺貑驹Ꮵ훶쪒炙⌋䇫
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #738
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3483
+
+🔨 ISSUE CREATION
+├─ Story: #738
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #241
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/7707
+
+🔨 ISSUE CREATION
+├─ Story: #241
+├─ Title: [BACKEND] 㫋뤼鞷䉨罘푔梨៙菝ᥑ탑垃诌굋拇뙓凂殃婍ᣋ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #75
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5643
+
+🔨 ISSUE CREATION
+├─ Story: #75
+├─ Title: [BACKEND] 〰櫵⠿⒮娨씪嘕塇韨ႂফ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #626
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5900
+
+🔨 ISSUE CREATION
+├─ Story: #626
+├─ Title: [FRONTEND] ਫ਼嗖毡쯓崔ꩪ䉥Ꙟ횆䛄祓粅淝弥
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #31
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2933
+
+🔨 ISSUE CREATION
+├─ Story: #31
+├─ Title: [BACKEND]           
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #82
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1567
+
+🔨 ISSUE CREATION
+├─ Story: #82
+├─ Title: [BACKEND] 喇쉿呪魴锂ꦚ犙㏺볙西⧭☜翦㙃碛豧Ũ㎏Α夤൵猁挶㴬붳腯㶤燇覕燿溈莔뼫▒礣ꯘ乔怣ﮜ袀Ꚑ果掚
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #388
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2765
+
+🔨 ISSUE CREATION
+├─ Story: #388
+├─ Title: [FRONTEND] 瑒ⰼꗅ办똝쀒껸췛餾ೕ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #999
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1902
+
+🔨 ISSUE CREATION
+├─ Story: #999
+├─ Title: [FRONTEND] ٨ꬆ岈탳唣䝡푰墼嗖洽⋁랆ᷘ⊟
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #294
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/15
+
+🔨 ISSUE CREATION
+├─ Story: #294
+├─ Title: [FRONTEND] ꘿⻵楌硡簮ᎄ魀⎔㽍䲵Ⅹ姺骲䨔㋡ᬘ궾䩖눔왩ೋ䟈㉄ា
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #131
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4089
+
+🔨 ISSUE CREATION
+├─ Story: #131
+├─ Title: [FRONTEND] ྪƋ糬皅靬꤁옻쳨凓巰ﵞ藖
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #563
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6346
+
+🔨 ISSUE CREATION
+├─ Story: #563
+├─ Title: [BACKEND] 맫찣艓蓹瀦凼諿ﭞ蓽駈쌛鈤
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #215
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6360
+
+🔨 ISSUE CREATION
+├─ Story: #215
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #9
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6993
+
+🔨 ISSUE CREATION
+├─ Story: #9
+├─ Title: [BACKEND] ꆝ솫὏냹겫ò淟癴ᗫ⧖䆛㳸厱꿎岎툒焸栝ⓓ䤻
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #6
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4039
+
+🔨 ISSUE CREATION
+├─ Story: #6
+├─ Title: [BACKEND] 徭융枴뽑೵儡츛鏍❯궏
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #308
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4827
+
+🔨 ISSUE CREATION
+├─ Story: #308
+├─ Title: [BACKEND] 嶚儓釸痉꺨庖浼㳳࣯픹㫁陞啚֞ꚤ☻咒픆
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #187
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7901
+
+🔨 ISSUE CREATION
+├─ Story: #187
+├─ Title: [FRONTEND] ㍯坷左ᖝ䭠✵럭춭葝灉戗
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #46
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/659
+
+🔨 ISSUE CREATION
+├─ Story: #46
+├─ Title: [FRONTEND] 淔璓◗럝快楔ݬ㯼䊶㨺₃⃧쥊
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #256
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5869
+
+🔨 ISSUE CREATION
+├─ Story: #256
+├─ Title: [BACKEND] 覐⌜ޝＡ腳伲킹ᮋ䈺뎡쉚ᦐ쨯૊
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9537
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #810
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9383
+
+🔨 ISSUE CREATION
+├─ Story: #810
+├─ Title: [BACKEND] 醓迣䄸縯뚿濏묡襑ꮝ䒹꣤ﮎЄ偮襣ᔳ轨彭⌯䑚
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #11
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5060
+
+🔨 ISSUE CREATION
+├─ Story: #11
+├─ Title: [FRONTEND] ⫦幦氍ࣧﮭ进駸刪᰺煥
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2599
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] 顭ᔈ⛦ṋ뵎褚㾋閱哑쐉䣑쒌㴭ᇶ珔㨑ᔵ炪
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7652
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #4
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/5987
+
+🔨 ISSUE CREATION
+├─ Story: #4
+├─ Title: [BACKEND] ूشｋ鋍쭙艇㏚渵䄘斆쬮⒪㪞䡃쥿ၞ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8153
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #39
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5888
+
+🔨 ISSUE CREATION
+├─ Story: #39
+├─ Title: [FRONTEND] 䒗㵹鯃褬ﱧ堆력昅滲䲚ꐋꂺ屫
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #9
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5091
+
+🔨 ISSUE CREATION
+├─ Story: #9
+├─ Title: [FRONTEND] 묦譶卢ứ軹㣢獛컙Ԏ๼Ἱ鍴鸷幧ꔤ땼©吻뢗טּ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #928
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8087
+
+🔨 ISSUE CREATION
+├─ Story: #928
+├─ Title: [BACKEND] 这ㅖຠ箍虮◢搳茶锫ڸ灱ݻᕪ好绒䖪剁ᮔꄌ킜
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #82
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/2572
+
+🔨 ISSUE CREATION
+├─ Story: #82
+├─ Title: [BACKEND] Ᏸ⬟䎆奄ႛꉹ٣冴㆓禿龢赕ﯶ꩘祱틂⑱辎{
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+timestamp = 2026-01-03T11:16:20.769961421, IssueCreationFormatPropertyTest:Property 7: Issue labels include all required standard labels = 
+                              |-----------------------jqwik-----------------------
+tries = 50                    | # of calls to property
+checks = 50                   | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 64         | # of all combined edge cases
+edge-cases#tried = 7          | # of edge cases tried in current run
+seed = -176398498274263068    | random seed to reproduce generated values
+
+
+]]></system-out>
+  </testcase>
+  <testcase name="Property 7: Issue bodies contain all required template elements" classname="com.durion.audit.IssueCreationFormatPropertyTest" time="0.012">
+    <system-out><![CDATA[🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #79
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6595
+
+🔨 ISSUE CREATION
+├─ Story: #79
+├─ Title: [BACKEND] ᓇ꺃౥簏祾簞夐违ꁽ쨲鉁땣䭃拕異
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #40
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5832
+
+🔨 ISSUE CREATION
+├─ Story: #40
+├─ Title: [FRONTEND] ᄋ灳Ŝ姕饺⍥ŧ뫃蒀܁醴Ჶ軁醵惼쵺ᆩ蠻䰙
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #107
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8459
+
+🔨 ISSUE CREATION
+├─ Story: #107
+├─ Title: [BACKEND] 聃雐পɚ䤢絻⭖ᠦ✥⤀ꑣꉁ㜨
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #113
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3218
+
+🔨 ISSUE CREATION
+├─ Story: #113
+├─ Title: [FRONTEND] 趱䐈쏋뚑䟹ﶽᚒ芏ꮣӌ㫳吓艹㳹渀쇧䤾
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #83
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1656
+
+🔨 ISSUE CREATION
+├─ Story: #83
+├─ Title: [BACKEND] 䈓啜ɧ淢䃛圸횧Ϙⓟ㣓᱾⇑鮡蠰ꎊ웾璣菇罪ﺽ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #9
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6572
+
+🔨 ISSUE CREATION
+├─ Story: #9
+├─ Title: [FRONTEND] ⴩࿶꧒㭯濱㓩촡ᔁ츫蹤䘫籁뉕渪摠棹ꋠ៸
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #715
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5910
+
+🔨 ISSUE CREATION
+├─ Story: #715
+├─ Title: [FRONTEND] 쌉蚰Ⅿ銥嬿輪갡兛㭽䥘
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #255
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6853
+
+🔨 ISSUE CREATION
+├─ Story: #255
+├─ Title: [BACKEND] 焓즸﯎纾楜፸⛼頚ŗ퓆Ｆ䡱꺕㯃
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #599
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5603
+
+🔨 ISSUE CREATION
+├─ Story: #599
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #123
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8178
+
+🔨 ISSUE CREATION
+├─ Story: #123
+├─ Title: [BACKEND] 耾퓬䆇敕᧪긆∌떤忹砝䓘쑤憂뎼⷟Ė쀃鳕㱊넞汝ﲲ࿞苞梆ൿ↴먎蕭듍㩦竺귁葔邉嗯뚓⪞荼锂퇦饔▭ᦶ둒픸느㜤罟죸剁匝迓엤厧咜轛킆赈豴烒匿裆栐⺥ᴾ涋남Ȣ㼃嬩飰᥉∠瀵䣘䭀䬋Ɣ༦ጒ㼮ਟ斐ꎆ괰选얯떾㢗㑫버瞃愩쥊쪺
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #84
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9886
+
+🔨 ISSUE CREATION
+├─ Story: #84
+├─ Title: [FRONTEND] 䀈࿉䊽ﭟ㒹꺉᣿고飍ᾛ륻霼徙鏳硕頑၍
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #134
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1402
+
+🔨 ISSUE CREATION
+├─ Story: #134
+├─ Title: [FRONTEND] ᅫ㙢밅눭❧띨棴㨅擐럼鑙䎇ꚃ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #32
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7533
+
+🔨 ISSUE CREATION
+├─ Story: #32
+├─ Title: [FRONTEND] 黊鼞趸⿃ې൥맢ﻍﾟ햎鬌+렛荏覡
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7888
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #891
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3140
+
+🔨 ISSUE CREATION
+├─ Story: #891
+├─ Title: [BACKEND] ꂇ뇇'ꓧ踟䴓鹻ݮ蹴᧪∭䃦
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5151
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #652
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6861
+
+🔨 ISSUE CREATION
+├─ Story: #652
+├─ Title: [FRONTEND] 塵㹼Ⳓ絡涞餧⾭럇穢鐄恎껍疎＠氓鵘嘏럄춯焰ᆋ₏煛짎᾿깵ﮬ㇀ᆎ洨䶱㽇뙠窹ᔕྎ졚筊竆ͪ쾡乑᳨ꛣ㒂땯騯䥣ᰒ䀇ᑃ⣾蔡೰툲窛즁見ᜥ̱琰맊訂ꉨ⃔ﱠ꫉敥롇⽀寐ꥣ䝺⨎깩ꨂ꾊섟빺ᮑꣂ⟪ɞ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #392
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8692
+
+🔨 ISSUE CREATION
+├─ Story: #392
+├─ Title: [BACKEND] 㙁䥇ܗ먥㷹骍桝幀㰯路⨽
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #104
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/2018
+
+🔨 ISSUE CREATION
+├─ Story: #104
+├─ Title: [FRONTEND] 俕咈鮐陾Έ뚳참냵禃ຣ惖⑍덳齤ݩ麮
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #1000
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8551
+
+🔨 ISSUE CREATION
+├─ Story: #1000
+├─ Title: [BACKEND] 曮Ȣ奶餋純撘㨠ꍏ殈ힻ⧝鳻臗椽䂆聓直檔
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #40
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3665
+
+🔨 ISSUE CREATION
+├─ Story: #40
+├─ Title: [BACKEND] 뵶ᆢ폳ᴀ䚕鬘㸝퓨⻼ᝇ鏸㢶ݓﹰ䥝쬶즭ⵤ츘ຢ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4837
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6447
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #773
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3801
+
+🔨 ISSUE CREATION
+├─ Story: #773
+├─ Title: [FRONTEND] 頎䕅飛豻⵻鉟멈ꆖ懬ㄾ䯇䴔崥ㆥ묐핲蛬㮚﫮ꀜﺮ訉뫼䱆褱
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1955
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #907
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4926
+
+🔨 ISSUE CREATION
+├─ Story: #907
+├─ Title: [FRONTEND] ュ痧ẞ집ᅌ嶑䴞販ႋꈶ怿꾀뵈駘幛䩕ꕋ⎴攁튞膿獤馱蜆躕쾼䮃끠㑺䌆熙〒碻⤓⽫˜⨞棪ꨭȨ踪礼蟬눆ᤣ齾Ჳ矤䐁ꠚ鞻拑꾾뙘铽鱧喻댷᨞ퟓ彷䟨缟벣ឦ쉼鲈ṫ㖩찉㇫ꚽ寣䔆왹族䏿ퟳ륐▷띭絛蝊鼪㌖㵇㊓暷ỉﮢ⬨ꕞ礎ჾ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #10
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4188
+
+🔨 ISSUE CREATION
+├─ Story: #10
+├─ Title: [BACKEND] ⧾ೠ앀횓癒흄핪ᐲ௜혙ॎ舧褊㐼嗲
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #154
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/9923
+
+🔨 ISSUE CREATION
+├─ Story: #154
+├─ Title: [FRONTEND] 䈞ﮢ폛⚁죜ꮬව﫭檺ꩂ펲瞊䌵
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #23
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/6678
+
+🔨 ISSUE CREATION
+├─ Story: #23
+├─ Title: [BACKEND] 픓Ʒ瀊ⲙ臑잊戢欨ባ뼒ꗎ替㔺瞔墬侴亙
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6521
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #556
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6421
+
+🔨 ISSUE CREATION
+├─ Story: #556
+├─ Title: [FRONTEND] 茅췁좭➥뗿傷ኯ䱽⑲ꐦ滙부竕物뤦ϲﳭ脙獼싑╒摫㝵慬좼滁Ɽﭜ䝒㰤㋄ꋦဓᰆ汷㮒゘ᯛᑪ犞橻敱怏巶藖촇怜↓篐뭯뼮ꬄ㣰硴绗䓀謽橿㠷仏ፈ왷ꓠ㩵혶䬿雳螉템䎁띊䦫訋衅ﾚ粆잖豎훯婨䪰꤫ﮌ閨뼡뎸䭽ᔦ僊䶖ﾈ橹鯴棠䴾䑬릾䬎끪ꪡ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #11
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/3524
+
+🔨 ISSUE CREATION
+├─ Story: #11
+├─ Title: [BACKEND] 㠣꣒羣麋孉듘죥炨☴㔬吥ǁ氨㣟Ꝗ犈泔凌
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #3
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7777
+
+🔨 ISSUE CREATION
+├─ Story: #3
+├─ Title: [FRONTEND] 꾶髡嶛ᯞꏥ裙턻Ἃꏩ멀
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #10
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8721
+
+🔨 ISSUE CREATION
+├─ Story: #10
+├─ Title: [FRONTEND] 皍箽⪿腂샎汬갏呵璈佣굷㽾肳痁墜鞲
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4240
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7923
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND] &amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;&amp#0;
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/7135
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #30
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/1655
+
+🔨 ISSUE CREATION
+├─ Story: #30
+├─ Title: [FRONTEND] 놗୧醺谰渝俸斕ᥚ찀묎ꄥ䀗䝏繂ᖍ賁桁㊁욛
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #72
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8123
+
+🔨 ISSUE CREATION
+├─ Story: #72
+├─ Title: [BACKEND] 蜵ל쇋㯿쐯ꢭ䒓淹ṙ䏗䛟ｿ䖠㌦殏
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #118
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5862
+
+🔨 ISSUE CREATION
+├─ Story: #118
+├─ Title: [FRONTEND] 蹱撕줍䡝勈爭撗疞뙛蹤
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #64
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/6720
+
+🔨 ISSUE CREATION
+├─ Story: #64
+├─ Title: [FRONTEND] 힘➑鍪݄躐釣姬댺찫퍒䀰ɼ≲太呁࿠翤暠軋ॲ
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #882
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/4326
+
+🔨 ISSUE CREATION
+├─ Story: #882
+├─ Title: [BACKEND] 츧潜კ벱㶅캨∝濍韗呐뗮ཌ曖慏㡃ࣿ㊇
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #703
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4951
+
+🔨 ISSUE CREATION
+├─ Story: #703
+├─ Title: [FRONTEND] 躇ᑢ䠵绝診䒼줈ᖨ廱긤⸀殺
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #999
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/3479
+
+🔨 ISSUE CREATION
+├─ Story: #999
+├─ Title: [FRONTEND] ﯠ꿃ᨉ贊╵釳跑㲊장酷膾䍚歧껄஻鄈䫨䡀柿೶坅륫Ζ秼㏡筇雛⥕੦騻椁絼ᗓ焲㇝䄁嗞䫢行ž룉卑㠚檿赶愽腦鱘ﶫ⪄鳎Ǩ侵ꅩ맃ᝯᎥ焀魶神⁢첺ở韩⹋᩿࿈⟙遇こ巶錉灨㮫䢼Ꚕ⭙
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #1
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/8741
+
+🔨 ISSUE CREATION
+├─ Story: #1
+├─ Title: [FRONTEND] 뼑㲼摙瞯쌓̹蔴⚷貊繁煭⻱㘄꘧җ䱉
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #4
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/4759
+
+🔨 ISSUE CREATION
+├─ Story: #4
+├─ Title: [FRONTEND] 吙蛨䭘캓ꛥ롔蒏샾嬜쀶̖꫟ﳑ麝祖頾
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #130
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/9642
+
+🔨 ISSUE CREATION
+├─ Story: #130
+├─ Title: [BACKEND] 成퐰⹰塁䋿苼ヌ䆾뻸๎碃ᆆ䒟⫤슑甘ꮶ斟ֆ냾숃ᷜﾷ
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating frontend issue for story #2
+Successfully created frontend issue: https://github.com/louisburroughs/durion-moqui-frontend/issues/5742
+
+🔨 ISSUE CREATION
+├─ Story: #2
+├─ Title: [FRONTEND]           
+├─ Repository: louisburroughs/durion-moqui-frontend
+├─ Type: frontend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #192
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/1152
+
+🔨 ISSUE CREATION
+├─ Story: #192
+├─ Title: [BACKEND] 铳ꝯ挪ꁞ쾦㇍㡶甕哆陗෈枕墫䞋ꆾ᪏肂ﵩ됐q
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+🚀 ===== MISSING ISSUES AUDIT SESSION STARTED =====
+📅 Session ID: AUDIT-20260103-111620
+⏰ Start Time: 2026-01-03 11:16:20
+🔍 Audit Engine: Enhanced Missing Issues Detection
+================================================
+Creating backend issue for story #252
+Successfully created backend issue: https://github.com/louisburroughs/durion-positivity-backend/issues/8903
+
+🔨 ISSUE CREATION
+├─ Story: #252
+├─ Title: [BACKEND] 忝㴻⨷룫橡믹㙕鴮䆐㞺
+├─ Repository: louisburroughs/durion-positivity-backend
+├─ Type: backend
+└─ ✅ Issue created successfully
+timestamp = 2026-01-03T11:16:20.783148007, IssueCreationFormatPropertyTest:Property 7: Issue bodies contain all required template elements = 
+                              |-----------------------jqwik-----------------------
+tries = 50                    | # of calls to property
+checks = 50                   | # of not rejected calls
+generation = RANDOMIZED       | parameters are randomly generated
+after-failure = SAMPLE_FIRST  | try previously failed sample, then previous seed
+when-fixed-seed = ALLOW       | fixing the random seed is allowed
+edge-cases#mode = MIXIN       | edge cases are mixed in
+edge-cases#total = 64         | # of all combined edge cases
+edge-cases#tried = 10         | # of edge cases tried in current run
+seed = 1907503665415792226    | random seed to reproduce generated values
+
+
+]]></system-out>
+  </testcase>
+</testsuite>
