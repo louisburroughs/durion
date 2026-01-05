@@ -15,7 +15,6 @@
 		{
 			"path": "."
 		},
-		
 	],
 	"settings": {
 		"java.compile.nullAnalysis.mode": "automatic",
@@ -38,6 +37,21 @@
 			"editor.formatOnSave": true
 		},
 		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
-		"java.debug.settings.onBuildFailureProceed": true
+		"java.debug.settings.onBuildFailureProceed": true,
+		"markdown.validate.enabled": true,
+		// XML validation settings to handle Maven schema SSL issues
+		"xml.validation.enabled": true,
+		"xml.validation.noGrammar": "ignore",
+		"xml.validation.schema.enabled": "always",
+		// Disable strict SSL for XML schema downloads
+		"xml.downloadExternalResources.enabled": true,
+		"http.proxyStrictSSL": false,
+		// File associations for Maven POM files
+		"xml.fileAssociations": [
+			{
+				"pattern": "**/pom.xml",
+				"systemId": "https://maven.apache.org/xsd/maven-4.0.0.xsd"
+			}
+		]
 	}
 }
