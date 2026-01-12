@@ -25,13 +25,15 @@
 		"java.configuration.runtimes": [
 			{
 				"name": "JavaSE-11",
-				"path": "/bustools/jdk/adoptopenjdk-11.0.10"
+				"path": "${workspaceFolder}/.java-current/11.0.29-tem"
 			},
 			{
 				"name": "JavaSE-21",
-				"path": "/home/n541342/.sdkman/candidates/java/21.0.5-tem"
+				"path": "${workspaceFolder}/.java-current/21.0.5-tem",
+				"default": true
 			}
 		],
+		"java.jdt.ls.java.home": "${workspaceFolder}/.java-current/21.0.5-tem",
 		"[java]": {
 			"editor.defaultFormatter": "redhat.java",
 			"editor.formatOnSave": true
@@ -52,6 +54,7 @@
 				"pattern": "**/pom.xml",
 				"systemId": "https://maven.apache.org/xsd/maven-4.0.0.xsd"
 			}
-		]
+		],
+		"chatgpt.commentCodeLensEnabled": false
 	}
 }
