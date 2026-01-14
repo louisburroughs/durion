@@ -18,27 +18,13 @@
 	],
 	"settings": {
 		"java.compile.nullAnalysis.mode": "automatic",
-		"java.configuration.updateBuildConfiguration": "automatic",
-		"java.import.gradle.enabled": true,
-		"java.import.gradle.wrapper.enabled": true,
-		"java.import.gradle.arguments": "--init-script gradle/init.gradle",
-		"java.configuration.runtimes": [
-			{
-				"name": "JavaSE-11",
-				"path": "${workspaceFolder}/.java-current/11.0.29-tem"
-			},
-			{
-				"name": "JavaSE-21",
-				"path": "${workspaceFolder}/.java-current/21.0.5-tem",
-				"default": true
-			}
-		],
-		"java.jdt.ls.java.home": "${workspaceFolder}/.java-current/21.0.5-tem",
+		"java.configuration.updateBuildConfiguration": "automatic",		
+		"java.jdt.ls.java.home": "~/.sdkman/candidates/java/21.0.5-tem",
 		"[java]": {
 			"editor.defaultFormatter": "redhat.java",
 			"editor.formatOnSave": true
 		},
-		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
+		
 		"java.debug.settings.onBuildFailureProceed": true,
 		"markdown.validate.enabled": true,
 		// XML validation settings to handle Maven schema SSL issues
