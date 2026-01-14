@@ -429,3 +429,14 @@ When creating APIs, document:
 - **Collaborate with `test_agent`** to ensure API contract tests are comprehensive
 - **Coordinate with `sre_agent`** to instrument API endpoints with metrics (response times, error rates)
 - **Work with `dba_agent`** to optimize queries used in API endpoints for performance
+
+## Related Agents
+
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Universal Janitor Agent](./janitor.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Software Engineer Agent v1](./software-engineer.agent.md)
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
+- [Database Administrator Agent](./dba.agent.md)
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)

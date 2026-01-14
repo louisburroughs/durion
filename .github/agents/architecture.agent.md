@@ -80,12 +80,12 @@ durion-positivity-backend/
 ├── pos-api-gateway/                # API gateway
 ├── .github/
 │   ├── agents/                     # AI agent definitions
-│   │   ├── architecture-agent.md   # This file
-│   │   ├── api-agent.md
-│   │   ├── dev-deploy-agent.md
-│   │   ├── docs-agent.md
-│   │   ├── lint-agent.md
-│   │   └── test-agent.md
+│   │   ├── architecture.agent.md   # This file
+│   │   ├── api.agent.md
+│   │   ├── dev-deploy.agent.md
+│   │   ├── docs.agent.md
+│   │   ├── lint.agent.md
+│   │   └── test.agent.md
 │   └── docs/architecture/          # Architecture documentation
 ├── pom.xml                         # Root Maven configuration
 └── README.md

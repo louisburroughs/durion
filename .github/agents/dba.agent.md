@@ -209,9 +209,12 @@ Page<Product> productPage = productRepository.findAll(PageRequest.of(0, 100));
 - **Review all schema changes** from `software-engineer.agent.md` before approval.
 
 ## Related Agents
+
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Universal Janitor Agent](./janitor.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Software Engineer Agent v1](./software-engineer.agent.md)
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
-- [Application Architect](./architecture.agent.md)
-- [API Architect](./api-architect.agent.md)
-- [Software Engineer](./software-engineer.agent.md)
-- [Spring Boot Expert](./springboot.agent.md)
-- [DevOps Engineer](./dev-deploy.agent.md)
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
+- [Senior Software Engineer - REST API Agent](./api.agent.md)

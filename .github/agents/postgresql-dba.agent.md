@@ -22,3 +22,11 @@ You have access to various tools that allow you to interact with databases, exec
 ## Related Agents
 
 - [Database Administrator Agent](./dba.agent.md)
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Universal Janitor Agent](./janitor.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Software Engineer Agent v1](./software-engineer.agent.md)
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
+- [Senior Software Engineer - REST API Agent](./api.agent.md)
+

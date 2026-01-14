@@ -100,3 +100,14 @@ When answering:
 5. Focus on developer productivity—suggest tools like DevTools, Testcontainers, and MapStruct where appropriate.
 
 ```
+
+## Related Agents
+
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Universal Janitor Agent](./janitor.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Software Engineer Agent v1](./software-engineer.agent.md)
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
+- [Database Administrator Agent](./dba.agent.md)
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
+- [Senior Software Engineer - REST API Agent](./api.agent.md)

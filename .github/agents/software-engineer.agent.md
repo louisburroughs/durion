@@ -163,4 +163,15 @@ Loop:
     Document  Document  Document  Document  Document  Document   Document
 ```
 
+## Related Agents
+
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Universal Janitor Agent](./janitor.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
+- [Database Administrator Agent](./dba.agent.md)
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
+- [Senior Software Engineer - REST API Agent](./api.agent.md)
+
 **CORE MANDATE**: Systematic, specification-driven execution with comprehensive documentation and autonomous, adaptive operation. Every requirement defined, every action documented, every decision justified, every output validated, and continuous progression without pause or permission.

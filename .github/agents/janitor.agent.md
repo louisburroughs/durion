@@ -89,3 +89,14 @@ Use `microsoft.docs.mcp` for:
 5. Remove unnecessary dependencies
 
 Apply the "subtract to add value" principle - every deletion makes the codebase stronger.
+
+## Related Agents
+
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Software Engineer Agent v1](./software-engineer.agent.md)
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
+- [Database Administrator Agent](./dba.agent.md)
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
+- [Senior Software Engineer - REST API Agent](./api.agent.md)

@@ -117,3 +117,14 @@ When answering:
 5. Provide specific 'application.yml' snippets for configuring Route Predicates (Path, Method, Header) and Filters (RewritePath, AddRequestHeader).
 
 ```
+
+## Related Agents
+
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
+- [Universal Janitor Agent](./janitor.agent.md)
+- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
+- [Software Engineer Agent v1](./software-engineer.agent.md)
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
+- [Database Administrator Agent](./dba.agent.md)
+- [Senior Software Engineer - REST API Agent](./api.agent.md)
