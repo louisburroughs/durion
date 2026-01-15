@@ -1,0 +1,38 @@
+{
+	"folders": [
+		{
+			"path": "../durion-positivity-backend",
+			"name": "durion-positivity-backend"
+		},
+		{
+			"path": "."
+		},
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.configuration.updateBuildConfiguration": "automatic",		
+		"java.jdt.ls.java.home": "~/.sdkman/candidates/java/21.0.5-tem",
+		"[java]": {
+			"editor.defaultFormatter": "redhat.java",
+			"editor.formatOnSave": true
+		},
+		
+		"java.debug.settings.onBuildFailureProceed": true,
+		"markdown.validate.enabled": true,
+		// XML validation settings to handle Maven schema SSL issues
+		"xml.validation.enabled": true,
+		"xml.validation.noGrammar": "ignore",
+		"xml.validation.schema.enabled": "always",
+		// Disable strict SSL for XML schema downloads
+		"xml.downloadExternalResources.enabled": true,
+		"http.proxyStrictSSL": false,
+		// File associations for Maven POM files
+		"xml.fileAssociations": [
+			{
+				"pattern": "**/pom.xml",
+				"systemId": "https://maven.apache.org/xsd/maven-4.0.0.xsd"
+			}
+		],
+		"chatgpt.commentCodeLensEnabled": false
+	}
+}
