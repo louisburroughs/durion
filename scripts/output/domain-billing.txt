@@ -1,0 +1,2722 @@
+════════════════════════════════════════
+ISSUE #149: [BACKEND] [STORY] Invoicing: Generate Invoice Draft from Completed Workorder
+LABELS: type:story,domain:billing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Current)
+### Required
+- type:story
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:billing
+- agent:story-authoring
+
+---
+**Rewrite Variant:** integration-conservative
+**Conflict Resolution:** Resolved - domain:billing confirmed as primary owner
+---
+
+## Story Intent
+As an Accounts Receivable Clerk, I want to generate a draft invoice from a single completed work order, so that I can initiate the customer billing process accurately and efficiently, ensuring all approved, billable work is captured without manual data entry.
+
+## Actors & Stakeholders
+- **Primary Actor:** Accounts Receivable Clerk (a user with permissions to manage invoices).
+- **System Actor:** Billing Service (the service responsible for creating and managing the invoice lifecycle).
+- **Stakeholders:**
+    - **Work Execution Domain:** The authoritative source of the `Completed` work order and the `BillableScopeSnapshot`.
+    - **Finance Department:** Relies on the accuracy and traceability of invoices for financial reporting and accounts receivable management.
+    - **Service Advisor:** Accountable for the accuracy of the work order and the final billable scope that feeds the invoice.
+
+## Preconditions
+- The user is authenticated and authorized to perform invoice creation.
+- A Work Order with a specified `workOrderId` exists and is in a terminal, invoice-ready state (e.g., `Completed`).
+- The referenced Work Order has a finalized and versioned `BillableScopeSnapshot` containing all billable line items (parts, labor, fees).
+- The Work Order is associated with a Customer Account that has valid billing information (billing address, billing contact method).
+
+## Functional Behavior
+- **Trigger:** The user invokes a "Create Invoice" action, providing the unique identifier of a completed Work Order.
+- **Process:**
+    1. The system first verifies that the source Work Order meets all preconditions (Work Execution service returns `invoiceReady=true`).
+    2. The Billing Service synchronously requests and receives the finalized `BillableScopeSnapshot` associated with the given `workOrderId` from the Work Execution service.
+    3. The system creates a new `Invoice` entity in the Billing domain with an initial `status` of `Draft`.
+    4. The system populates the invoice header by copying required data:
+        - Customer billing details from the associated Customer Account.
+        - Reference fields like `poNumber` and `paymentTerms` from the Work Order or Customer Account.
+    5. For each item within the received `BillableScopeSnapshot`, the system creates a corresponding `InvoiceItem` record, mapping all relevant fields (description, quantity, unit price, taxCategoryCode, taxable flag).
+    6. The Billing Service calculates taxes using its own tax rules based on tax-relevant inputs from the snapshot (taxCategoryCode, serviceLocationId, customerAccountId, workOrderCompletedAt).
+    7. The system calculates the invoice's financial totals (subtotal, taxAmount, totalAmount).
+    8. The system establishes and persists immutable traceability links on the new invoice record, including `workOrderId`, `billableScopeSnapshotId`, and `customerAccountId`.
+- **Outcome:** A new, complete draft invoice is successfully created. The system returns the `invoiceId` of the new draft and makes it available for review and further processing (e.g., posting).
+
+## Alternate / Error Flows
+- **Work Order Not Invoice-Ready:** If the source Work Order is not in a valid state for invoicing (Work Execution returns `invoiceReady=false`), the system rejects the request with a `409 Conflict` error and a clear message: "Work Order `{workOrderId}` is not in a state that allows invoicing."
+- **Billable Scope Not Finalized:** If the `BillableScopeSnapshot` is missing or not marked as final, the system rejects the request with a `422 Unprocessable Entity` error and a message: "Cannot generate invoice: billable scope for Work Order `{workOrderId}` is not finalized."
+- **Invoice Already Exists (Idempotency):**
+    - If status is `DRAFT`: Return the existing `invoiceId` (idempotent success).
+    - If status is `POSTED` or `PAID`: Reject with `409 Conflict` (corrections require credit notes, not regeneration).
+    - If status is `VOID`: Regeneration allowed only via separate privileged endpoint with permission and reasonCode.
+- **Missing Customer Data:** If Customer Account is missing required billing data (billing address or billing contact method), reject with `422 Unprocessable Entity` and explicit missing-field list.
+- **Data Fetch Failure:** If the Billing Service fails to retrieve data from the Work Execution service due to a downstream error or timeout, the entire operation is rolled back, and a `503 Service Unavailable` error is returned.
+
+## Business Rules
+- **Rule-B1 (Domain Authority):** Billing domain owns the invoice lifecycle, validation rules, and idempotency enforcement. Work Execution domain owns the BillableScopeSnapshot contract.
+- **Rule-B2 (Invoice-Ready States):** Invoice generation is allowed only when Work Execution reports `invoiceReady=true` (derived from terminal states: `COMPLETED`, `COMPLETED_PENDING_INVOICE`, or `CLOSED` if closed means completed).
+- **Rule-B3 (Tax Authority):** Billing calculates taxes at invoice-generation time using its own tax rules. BillableScopeSnapshot provides tax-relevant inputs (taxCategoryCode, taxable flag, serviceLocationId) but not authoritative tax totals.
+- **Rule-B4 (Idempotency):** One "primary" invoice per `workOrderId`. Existing Draft returns same invoiceId. Posted/Paid invoices block regeneration. Voided invoices allow controlled regeneration via privileged endpoint.
+- **Rule-B5 (Snapshot Immutability):** The `BillableScopeSnapshot` is the immutable, single source of truth for all invoice line items. Changes to the Work Order after snapshot finalization MUST NOT affect any invoice generated from that snapshot.
+- **Rule-B6 (Traceability):** All traceability links (`workOrderId`, `billableScopeSnapshotId`) on the `Invoice` entity are mandatory and immutable.
+- **Rule-B7 (Data Completeness):** Invoice creation is hard-blocked if Customer Account is missing required billing data (billing address, billing contact method).
+
+## Data Requirements
+- **Invoice Entity Schema:**
+    - `invoiceId` (PK, UUID)
+    - `workOrderId` (FK, Indexed, Immutable)
+    - `customerAccountId` (FK, Indexed)
+    - `billableScopeSnapshotId` (FK, UUID/Version, Immutable)
+    - `status` (String/Enum: `Draft`, `Posted`, `Paid`, `Void`)
+    - `replacesInvoiceId` (FK, UUID, nullable - for regenerated invoices)
+    - `issueDate` (Date)
+    - `dueDate` (Date)
+    - `poNumber` (String)
+    - `paymentTermsId` (FK)
+    - `subtotal` (Decimal)
+    - `taxAmount` (Decimal)
+    - `totalAmount` (Decimal)
+    
+- **InvoiceItem Entity Schema:**
+    - `invoiceItemId` (PK, UUID)
+    - `invoiceId` (FK, Indexed)
+    - `sourceSnapshotItemId` (String/UUID, Immutable)
+    - `description` (String)
+    - `quantity` (Decimal)
+    - `unitPrice` (Decimal)
+    - `taxCategoryCode` (String)
+    - `taxable` (Boolean)
+    - `lineTotal` (Decimal)
+    - `lineTaxAmount` (Decimal)
+
+- **BillableScopeSnapshot DTO (Input Contract - Owned by Work Execution):**
+    - Header fields:
+        - `snapshotId` (UUID)
+        - `workOrderId` (UUID)
+        - `serviceLocationId` (UUID)
+        - `customerAccountId` (UUID)
+        - `workOrderCompletedAt` (Timestamp)
+        - `snapshotVersion` (String/SemVer)
+    - Line items array:
+        - `itemId` (UUID)
+        - `itemType` (Enum: `LABOR`, `PART`, `FEE`)
+        - `description` (String)
+        - `quantity` (Decimal)
+        - `unitPrice` (Decimal)
+        - `lineTotal` (Decimal)
+        - `taxCategoryCode` (String)
+        - `taxable` (Boolean)
+        - `jurisdictionHints` (String, optional)
+
+## Acceptance Criteria
+- **AC1: Successful Invoice Draft Creation**
+    - **Given** a Work Order is in the `Completed` state (invoiceReady=true)
+    - **And** it has a finalized `BillableScopeSnapshot` with two billable line items
+    - **And** the Customer Account has valid billing address and contact method
+    - **When** an authorized user requests to create an invoice from that Work Order
+    - **Then** the system successfully creates a new `Invoice` entity with a `status` of `Draft`
+    - **And** the `Invoice.workOrderId` and `Invoice.billableScopeSnapshotId` match the source records
+    - **And** the new invoice has exactly two `InvoiceItem` records that correspond to the items in the snapshot
+    - **And** the `Invoice.taxAmount` is calculated by Billing using current tax rules
+    - **And** the `Invoice.totalAmount` correctly reflects the sum of the `InvoiceItem` line totals plus calculated taxes.
+
+- **AC2: Attempting to Invoice a Non-Ready Work Order**
+    - **Given** a Work Order exists with invoiceReady=false (status `In-Progress`)
+    - **When** a user attempts to create an invoice from that Work Order
+    - **Then** the system must reject the request with a `409 Conflict` status code
+    - **And** the response body must contain an error message explaining that the Work Order is not in an invoice-ready state.
+
+- **AC3: Idempotent Invoice Creation (Existing Draft)**
+    - **Given** a `Completed` Work Order already has a linked Invoice in `Draft` status
+    - **When** a user attempts to create an invoice from the same Work Order
+    - **Then** the system returns the existing `invoiceId` with success status (idempotent)
+    - **And** no new invoice is created.
+
+- **AC4: Block Re-Invoice of Posted Invoice**
+    - **Given** a `Completed` Work Order already has a linked Invoice in `Posted` or `Paid` status
+    - **When** a user attempts to create a new invoice from the same Work Order
+    - **Then** the system must reject the request with a `409 Conflict` status code
+    - **And** the response body must indicate invoice already exists and corrections require credit notes.
+
+- **AC5: Block on Missing Customer Billing Data**
+    - **Given** a `Completed` Work Order with finalized BillableScopeSnapshot
+    - **And** the Customer Account is missing billing address
+    - **When** a user attempts to create an invoice
+    - **Then** the system must reject with `422 Unprocessable Entity`
+    - **And** the response includes explicit missing-field list (e.g., "billingAddress").
+
+- **AC6: Tax Calculation by Billing Domain**
+    - **Given** a Work Order with BillableScopeSnapshot containing taxable and non-taxable items
+    - **And** Billing's tax rules specify 8% for the tax category
+    - **When** invoice is generated
+    - **Then** the `Invoice.taxAmount` reflects Billing's calculation
+    - **And** tax is not sourced from the snapshot (snapshot provides inputs only).
+
+## Audit & Observability
+- **Audit Log:** On successful creation, an `invoice.draft.created` event MUST be emitted. The event payload must contain `invoiceId`, `workOrderId`, `customerAccountId`, `actorUserId`, and a timestamp.
+- **Metrics:**
+    - `invoice.creation.success.count` (Counter, tagged by source: `workorder`)
+    - `invoice.creation.failure.count` (Counter, tagged by reason: `not_ready`, `already_exists`, `missing_customer_data`, `downstream_error`)
+    - `invoice.creation.duration.ms` (Timer/Histogram)
+    - `invoice.idempotent_return.count` (Counter - when existing Draft is returned)
+- **Logging:** Structured logs with correlation IDs must be generated for key steps: request received, precondition check (invoiceReady), downstream data fetch, tax calculation, invoice persistence, and final outcome (success/failure).
+
+## Resolved Questions
+
+All clarification questions have been resolved:
+
+### 1. Primary Domain Ownership
+**Decision:** `domain:billing` is the primary owner of the "Generate Invoice Draft" capability.
+
+**Contract:**
+- Billing owns: Invoice API, invoice lifecycle, validation rules, idempotency
+- Work Execution owns: Work Order state machine and BillableScopeSnapshot DTO contract
+
+**Rationale:** Invoice is a financial document with its own lifecycle belonging to Billing long-term.
+
+### 2. Tax Calculation Authority
+**Decision:** Billing calculates taxes at invoice-generation time.
+
+**BillableScopeSnapshot provides inputs:** taxCategoryCode, taxable flag, serviceLocationId, customerAccountId, workOrderCompletedAt
+
+**Billing produces outputs:** taxAmount, per-line tax breakdown, invoice totals using current tax rules
+
+**Rationale:** Tax is policy-heavy and jurisdiction-dependent; must be owned where tax policy lives.
+
+### 3. Idempotency & Re-generation Policy
+**Decision:** One "primary" invoice per workOrderId with controlled regeneration.
+
+**Rules:**
+- Draft status: Return existing invoiceId (idempotent)
+- Posted/Paid status: Hard block (corrections use credit notes)
+- Void status: Regeneration allowed only via privileged endpoint with permission + reasonCode
+
+**Regenerate capability:** Separate privileged endpoint `POST /billing/v1/invoices:regenerateFromWorkOrder` with permission and mandatory reasonCode.
+
+### 4. Handling Missing Customer Data
+**Decision:** Hard-block invoice creation if required billing data is missing.
+
+**Required fields:** customerAccountId, billing address, billing contact method
+
+**Behavior:** Reject with `422 Unprocessable Entity` and explicit missing-field list.
+
+**Rationale:** Avoid creating Drafts that can never be posted.
+
+### 5. Definitive Source States
+**Decision:** Invoice generation allowed only when Work Execution reports `invoiceReady=true`.
+
+**Invoice-ready terminal states:** `COMPLETED`, `COMPLETED_PENDING_INVOICE`, `CLOSED` (if closed means completed)
+
+**Not invoice-ready:** `CANCELLED`, `VOIDED`, `IN_PROGRESS`, `ON_HOLD`, `LOCKED_FOR_REVIEW`, `REOPENED`
+
+**Implementation:** Billing relies on Work Execution's `invoiceReady` flag to avoid hardcoding state semantics.
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #149 — [BACKEND] [STORY] Invoicing: Generate Invoice Draft from Completed Workorder
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Invoicing: Generate Invoice Draft from Completed Workorder
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.
+
+# Functional Requirement
+
+## Classification (confirm labels)
+- Type: story
+- Layer: functional
+- Domain: workexec
+
+## Actor
+Back Office / Accounts Receivable Clerk
+
+## Trigger
+A workorder is Completed and invoice-ready.
+
+## Main Flow
+1. User selects 'Create Invoice' on the completed workorder.
+2. System creates a Draft invoice using the billable scope snapshot.
+3. System carries over customer billing details and references (PO number, terms).
+4. System populates invoice line items and initial totals.
+5. System links invoice to workorder, estimate version, and approval trail.
+
+## Alternate / Error Flows
+- Workorder not invoice-ready → block and show missing prerequisites.
+
+## Business Rules
+- Invoices are created from the billable scope snapshot.
+- Traceability links are required.
+
+## Data Requirements
+- Entities: Invoice, InvoiceItem, BillableScopeSnapshot, Workorder, ApprovalRecord
+- Fields: invoiceId, status, snapshotVersion, workorderId, estimateId, approvalId, termsId, poNumber
+
+## Acceptance Criteria
+- [ ] System creates a Draft invoice with all billable items present.
+- [ ] Invoice references workorder and upstream approval trail.
+- [ ] Invoice totals are populated.
+
+## Notes for Agents
+Keep invoice generation deterministic; the snapshot is the single source of truth.
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+
+════════════════════════════════════════
+ISSUE #147: [BACKEND] [STORY] Invoicing: Preserve Traceability Links (Estimate/Approval/Workorder)
+LABELS: type:story,domain:billing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:story-authoring
+- agent:billing
+- agent:workexec
+
+### Blocking / Risk
+- none
+
+**Rewrite Variant:** integration-conservative
+
+---
+
+## Story Intent
+**As a** Billing Administrator (or automated billing process),
+**I want** invoice drafts to persist immutable traceability links back to the originating workorder, estimate, and approval artifacts,
+**so that** every invoice is auditable and defensible with a clear lineage to authorized scope of work.
+
+## Actors & Stakeholders
+- **Billing Service (Primary System Actor):** Creates invoices and snapshots traceability references.
+- **Workexec Service (Upstream SoR):** Source of truth for billability state and canonical identifiers.
+- **Billing Administrator (User):** Initiates invoice draft generation and reviews traceability.
+- **Auditor (Stakeholder):** Requires end-to-end lineage.
+
+## Preconditions
+- A `Workorder` exists.
+- Workexec is the source of truth for whether a workorder (or work items) are billable.
+- Workexec exposes a **stable, versioned read model** (API and/or event projection) for billing to consume (no direct table reads).
+
+### Workexec Read Model (Consumed by Billing)
+Billing consumes a workexec-provided “billable work summary” that includes, at minimum:
+- `workorderId` (required)
+- `billableStatus` (required; e.g., `BILLABLE | NOT_BILLABLE | BILLABLE_PENDING_APPROVAL`)
+- `customerId` and/or `accountId` linkage (required; used to prevent cross-customer invoicing)
+- `estimateId` or `estimateVersionId` (optional)
+- `approvalId` (optional)
+- `readyForInvoicingAt` (optional)
+- `schemaVersion` (required)
+
+## Functional Behavior
+### Trigger
+A request is received to generate a **Draft Invoice** for a given `workorderId`.
+
+### Main Success Scenario
+1. Billing receives a request to generate a draft invoice for `workorderId`.
+2. Billing calls the workexec read model to retrieve billable status and traceability identifiers.
+3. Billing validates:
+	 - `billableStatus == BILLABLE`
+	 - The `customerId/accountId` from workexec matches the invoice customer/account context.
+4. Billing creates a new `Invoice` in `DRAFT`.
+5. Billing snapshots traceability references onto the invoice as immutable fields (at invoice-level and/or line-level):
+	 - `sourceWorkorderId` (required)
+	 - `sourceEstimateId` / `sourceEstimateVersionId` (if provided)
+	 - `sourceApprovalId(s)` (if provided)
+	 - `sourceSchemaVersion` (the workexec contract version used)
+6. Billing returns the created `invoiceId`.
+
+## Alternate / Error Flows
+- **Flow 1: Workorder Not Billable**
+	- If `billableStatus != BILLABLE`, reject invoice draft creation.
+	- **Outcome:** return `WORKORDER_NOT_BILLABLE` (or equivalent) and create no invoice.
+
+- **Flow 2: Cross-Customer / Cross-Account Mismatch**
+	- If the `customerId/accountId` from workexec does not match the invoice context, reject.
+	- **Outcome:** return `WORKORDER_CUSTOMER_MISMATCH` (or equivalent) and create no invoice.
+
+- **Flow 3: Workexec Contract Unavailable**
+	- If workexec read model cannot be retrieved (timeout/5xx), reject.
+	- **Outcome:** return an error without creating an invoice; log with a distinct reason code for operational visibility.
+
+- **Flow 4: Missing Traceability Identifiers**
+	- If workexec returns missing identifiers that are required by configured billing policy (e.g., approval required), invoice issuance must be blocked.
+	- **Outcome:** do not allow transition to `ISSUED` until required identifiers are present; alert for administrative review.
+
+## Business Rules
+- **BR-1 (Domain Ownership):**
+	- Workexec is the **source of truth** for billability state and canonical identifiers.
+	- Billing is the **source of truth** for invoices and snapshots traceability at invoice creation.
+- **BR-2 (No DB Coupling):** Billing must not query internal workexec tables/models directly.
+- **BR-3 (Snapshot Immutability):** Once persisted, invoice traceability references are immutable.
+- **BR-4 (Issuance Gating):** Company policy dictates an invoice cannot transition from `DRAFT` to `ISSUED` unless required traceability identifiers are present/valid.
+- **BR-5 (Scope):** UI rendering and customer-facing invoice document formatting are out of scope for this backend story (separate follow-up stories).
+
+## Data Requirements
+### Entity: `Invoice`
+Billing persists traceability references as invoice-level fields and/or per-line fields (implementation choice), including:
+
+| Field Name | Type | Constraints | Notes |
+| --- | --- | --- | --- |
+| `invoiceId` | UUID | PK | |
+| `status` | Enum | includes `DRAFT`, `ISSUED` | |
+| `sourceWorkorderId` | UUID/String | Not null, immutable | Identifier from workexec |
+| `sourceEstimateId` / `sourceEstimateVersionId` | UUID/String | Nullable, immutable | Snapshot if provided by workexec |
+| `sourceApprovalIds` | Array(UUID/String) | Nullable, immutable | Snapshot if provided by workexec |
+| `sourceSchemaVersion` | String | Not null, immutable | Workexec contract schema version used |
+
+## Acceptance Criteria
+- **AC-1: Draft Invoice Stores Immutable Traceability Snapshot**
+	- Given workexec returns `billableStatus=BILLABLE` for a `workorderId`
+	- When billing creates a draft invoice for that `workorderId`
+	- Then the created invoice persists immutable traceability references copied from the workexec contract (including `sourceWorkorderId` and any provided estimate/approval identifiers)
+	- And billing records which workexec contract `schemaVersion` was used (`sourceSchemaVersion`).
+
+- **AC-2: Non-Billable Workorders Cannot Create Draft Invoices**
+	- Given workexec returns `billableStatus != BILLABLE`
+	- When billing receives a request to create a draft invoice
+	- Then billing rejects the request and creates no invoice.
+
+- **AC-3: Issuance is Blocked When Policy-Required Traceability is Missing**
+	- Given an invoice is in `DRAFT`
+	- And billing policy requires certain traceability identifiers (e.g., approval)
+	- When an attempt is made to transition the invoice to `ISSUED`
+	- Then the transition is rejected unless all required identifiers are present.
+
+- **AC-4: Billing Does Not Couple to Workexec Storage**
+	- Given invoice draft creation runs
+	- Then billing retrieves billable/traceability data only via the versioned workexec contract (API/event projection), not by reading workexec persistence models directly.
+
+## Audit & Observability
+- **AUD-1:** Log successful draft invoice creation at `INFO` with `invoiceId`, `workorderId`, and captured traceability identifiers.
+- **AUD-2:** Log rejected invoice creation attempts at `WARN` with `workorderId` and a reason code (`WORKORDER_NOT_BILLABLE`, `WORKORDER_CUSTOMER_MISMATCH`, `WORKEXEC_UNAVAILABLE`, etc.).
+- **MET-1:** Increment `invoice.creation.attempts` for every request.
+- **MET-2:** Increment `invoice.creation.failures` on failure, tagged by reason.
+
+## Open Questions
+None. Domain ownership and scope decisions are resolved in the issue comment “Decision Document — Issue #147” (2026-01-14).
+
+---
+
+## Original Story (Unmodified – For Traceability)
+# Issue #147 — [BACKEND] [STORY] Invoicing: Preserve Traceability Links (Estimate/Approval/Workorder)
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Invoicing: Preserve Traceability Links (Estimate/Approval/Workorder)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.
+
+# Functional Requirement
+
+## Classification (confirm labels)
+- Type: story
+- Layer: functional
+- Domain: workexec
+
+## Actor
+System
+
+## Trigger
+Invoice draft is generated.
+
+## Main Flow
+1. System stores references from invoice to workorder.
+2. System stores references from invoice to originating estimate version.
+3. System stores references from invoice to approval artifacts/records.
+4. System exposes traceability in UI for authorized roles.
+5. System includes reference identifiers in customer-facing invoice where configured.
+
+## Alternate / Error Flows
+- Origin artifacts missing due to data corruption → block issuance and alert admin.
+
+## Business Rules
+- Invoices must be traceable to the approved scope and executed work.
+
+## Data Requirements
+- Entities: Invoice, Workorder, Estimate, ApprovalRecord, DocumentArtifact
+- Fields: workorderId, estimateId, estimateVersion, approvalId, artifactRef, traceabilitySummary
+
+## Acceptance Criteria
+- [ ] Invoice contains links to workorder and estimate/approval trail.
+- [ ] Authorized users can retrieve approval artifacts from invoice context.
+- [ ] Issuance is blocked if traceability is incomplete (policy).
+
+## Notes for Agents
+Traceability is your defense in disputes; enforce it.
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+
+════════════════════════════════════════
+ISSUE #145: [BACKEND] [STORY] Invoicing: Finalize and Issue Invoice
+LABELS: type:story,domain:accounting,domain:billing,status:ready-for-dev,agent:story-authoring,agent:accounting,agent:billing,risk:financial-integrity
+BODY:
+## Story Intent
+**As an** Accounts Receivable Clerk,
+**I want to** finalize and issue a draft invoice,
+**so that** it becomes a locked, official billing record and downstream accounting can create AR and post appropriately.
+
+**Rewrite Variant:** integration-conservative
+
+## Actors & Stakeholders
+- **Accounts Receivable Clerk:** Initiates issuance.
+- **Billing Service (`domain:billing`):** System of record (SoR) for the `Invoice` entity and its lifecycle/state machine.
+- **Accounting Service (`domain:accounting`):** Creates Accounts Receivable asynchronously upon `InvoiceIssued`.
+- **Customer:** Receives the final invoice.
+- **Auditor / Compliance:** Requires immutable history and non-repudiation.
+
+## Preconditions
+1. An `Invoice` exists in state `Draft`.
+2. The invoice is associated with a valid `Customer` with required billing/delivery attributes.
+3. The invoice contains one or more `InvoiceLine` items.
+4. Upstream source domains (e.g., `workexec`) have completed billable work and have produced inputs needed for a draft invoice.
+5. The initiating principal is authorized to issue invoices (existing permission concept: `invoice:issue`).
+
+## Functional Behavior
+### Happy Path: Successful Invoice Issuance
+1. **Trigger:** Accounts Receivable Clerk initiates “Issue Invoice” for a `Draft` invoice.
+2. **Validation (Billing-owned):** Validate all issuance rules (see Business Rules), including customer data completeness and invoice total consistency.
+3. **Finalization + State Transition (Billing-owned, single transaction):**
+   - Assign an `invoiceNumber` if not present (unique; sequential behavior is policy-driven).
+   - Set `issuedAt` to server time and capture `issuedBy`.
+   - Transition invoice state to `Issued`.
+   - Enforce immutability: once `Issued`, invoice header/lines/totals cannot be edited.
+4. **Event Emission (Billing-owned):** Publish `InvoiceIssued` reliably after commit (e.g., outbox pattern).
+   - `InvoiceIssued.sourceDomain` is `"billing"`.
+5. **Delivery:** Queue the finalized invoice document for delivery according to the customer’s `DeliveryPreference` (email/print).
+
+## Alternate / Error Flows
+- **Validation failure:** Reject issuance, keep invoice in `Draft`, and return actionable errors detailing what must be corrected.
+- **Invalid state (duplicate issuance attempt):** If invoice is not `Draft` (e.g., `Issued`, `Paid`, `Void`), reject with `409 Conflict`.
+- **Downstream unavailability:** Billing issuance succeeds even if the event bus is temporarily unavailable; `InvoiceIssued` is queued for later delivery.
+
+## Business Rules
+1. **Domain Ownership / SoR:** `domain:billing` owns the `Invoice` entity and its lifecycle/state transitions.
+2. **Workexec contract:** `workexec` signals “ready for invoicing” / eligibility and does not directly issue invoices.
+   - If `workexec` needs to initiate issuance, it calls a Billing command/API rather than mutating invoice state.
+3. **Allowed transition:** `Draft` → `Issued` only.
+4. **Immutability:** Once `Issued`, the invoice is an immutable financial/billing record; corrections occur via out-of-scope credit/rebill processes.
+5. **Issuance validations (must pass before issuing):**
+   - Customer has `billingAddress`.
+   - If delivery is Email, `emailAddress` is present and valid.
+   - Totals are internally consistent: header total equals the sum of lines/taxes/discounts per system calculation rules.
+   - Each line has quantity > 0 and non-negative unit price.
+   - Tax calculations are finalized per applicable tax rules.
+
+## Data Requirements
+| Entity / Event | Field | Type | Notes |
+|---|---|---|---|
+| `Invoice` | `status` | Enum/String | `Draft` → `Issued` |
+| `Invoice` | `invoiceNumber` | String | Unique business key |
+| `Invoice` | `issuedAt` | Timestamp | Set on issue |
+| `Invoice` | `issuedBy` | String/UUID | Principal ID |
+| `InvoiceIssued` | `eventId`, `eventTimestamp` | UUID/ISO8601 | Unique + timestamp |
+| `InvoiceIssued` | `sourceDomain` | String | Must be `"billing"` |
+| `InvoiceIssued` | `idempotencyKey` | String | `invoiceId:invoiceVersion` (or equivalent) |
+| `InvoiceIssued` | `payload` | JSON | Full invoice snapshot (header, customer, totals, taxes, lines) |
+| `AccountsReceivable` | created by accounting | — | Created asynchronously by `domain:accounting` on `InvoiceIssued` |
+
+## Acceptance Criteria
+**Scenario 1: Successful invoice issuance**
+- Given an invoice in `Draft` with all required data
+- When the user issues the invoice
+- Then invoice state becomes `Issued`
+- And `invoiceNumber`, `issuedAt`, and `issuedBy` are set
+- And the invoice becomes immutable
+- And `InvoiceIssued` is published exactly once (idempotent)
+
+**Scenario 2: Missing billing address blocks issuance**
+- Given a `Draft` invoice where the customer has no billing address
+- When the user attempts to issue
+- Then the operation fails with actionable validation errors
+- And the invoice remains `Draft`
+- And no `InvoiceIssued` event is emitted
+
+**Scenario 3: Re-issuing an already issued invoice is rejected**
+- Given an invoice in `Issued`
+- When issuance is attempted again
+- Then the system returns `409 Conflict`
+- And no duplicate `InvoiceIssued` event is emitted
+
+**Scenario 4: Accounting creates AR asynchronously from InvoiceIssued**
+- Given billing emits `InvoiceIssued`
+- When accounting consumes the event
+- Then accounting creates an `AccountsReceivable` entry idempotently (no duplicates on replay)
+
+## Audit & Observability
+- **Audit log:** Immutable audit entry on successful issuance capturing `invoiceId`, `invoiceNumber`, `issuedBy`, `issuedAt`, and key totals.
+- **Metrics:**
+  - `invoices_issued_total`
+  - `invoice_issuance_failures_total{reason=...}`
+  - `invoice_issuance_duration_seconds`
+- **Logging:** Structured logs with `invoiceId` and `correlationId` for start/end/failure.
+
+## Resolved Decisions (from issue comments)
+These decisions were applied from the resolution comment posted on 2026-01-14 ("Decision Record — Issue #145", generated by `clarification-resolver.sh`):
+1. **SoR:** `domain:billing` owns `Invoice` and its lifecycle.
+2. **Workexec contract:** `workexec` signals readiness only; `billing` performs `Draft → Issued`.
+3. **Event authority:** `InvoiceIssued.sourceDomain` must be `"billing"`.
+4. **AR creation:** handled asynchronously in `domain:accounting` by consuming `InvoiceIssued` (idempotent).
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #145 — [BACKEND] [STORY] Invoicing: Finalize and Issue Invoice
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Invoicing: Finalize and Issue Invoice
+
+**Domain**: payment
+
+### Story Description
+
+[Durion_Accounting_Event_Contract_v1.pdf](https://github.com/user-attachments/files/24300023/Durion_Accounting_Event_Contract_v1.pdf)
+
+/kiro
+Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.
+
+# Functional Requirement
+
+## Classification (confirm labels)
+- Type: story
+- Layer: functional
+- Domain: workexec
+
+## Actor
+Back Office / Accounts Receivable Clerk
+
+## Trigger
+Draft invoice is reviewed and ready to be issued.
+
+## Main Flow
+1. User reviews invoice totals and traceability links.
+2. User selects 'Issue Invoice'.
+3. System validates invoice completeness (customer details, taxes, totals, traceability).
+4. System transitions invoice to Issued/Posted state per workflow.
+5. System locks invoice lines and records issuance audit event; prepares delivery (email/print) per preference.
+
+## Alternate / Error Flows
+- Validation fails (missing billing info) → block issuance and show actionable errors.
+- Invoice already issued → prevent duplicate issuance.
+
+## Business Rules
+- Issuance is a state transition with validations and locking.
+- Issued invoice should be immutable except via credit/rebill (out of scope).
+
+ ## Data Requirements
+  - Entities: Invoice, Customer, AuditEvent, DeliveryPreference
+  - Fields: status, issuedAt, issuedBy, deliveryMethod, emailAddress, billingAddress
+
+## Acceptance Criteria
+- [ ] Invoice can be issued only when validations pass.
+- [ ] Issued invoice is locked against edits.
+- [ ] Issuance is auditable and invoice is prepared for delivery.
+- [ ] InvoiceIssued event is emitted exactly once per invoice version
+- [ ] Event includes full line-item, tax, and total breakdown
+- [ ] Accounts Receivable is created correctly
+- [ ] Revenue and tax liabilities post accurately
+- [ ] Duplicate or replayed events do not double-post
+
+## Integrations
+
+### Accounting
+- Emits Event: InvoiceIssued
+- Event Type: Posting
+- Source Domain: workexec
+- Source Entity: Invoice
+- Trigger: Invoice finalized and issued
+- Idempotency Key: invoiceId + invoiceVersion
+
+
+## Notes for Agents
+Issuance ends quote-to-cash; protect the integrity and lock the record.
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #128: [BACKEND] [STORY] AP: Execute Payment and Post to GL
+LABELS: type:story,domain:billing,status:ready-for-dev,agent:story-authoring,agent:accounting,agent:billing
+BODY:
+## Story Intent
+**As a** Billing/AP system,
+**I want to** execute a vendor payment and allocate it across one or more bills,
+**so that** bills are settled correctly, and accounting can post the corresponding journal entries to the GL.
+
+## Actors & Stakeholders
+- **Billing/AP system (primary):** Orchestrates payment execution and allocation.
+- **Payment gateway / payment-adapter (external):** Executes the funds transfer.
+- **Accounting service (downstream):** Posts immutable journal entries and owns posting rules / chart-of-accounts mapping.
+- **AP Clerk / Manager:** Reviews and reconciles exceptions.
+- **Auditors:** Require traceability from gateway transaction → allocations → journal entry.
+
+## Preconditions
+- One or more payable bills exist and are eligible for payment.
+- A valid payment method/instrument is available.
+- Billing can call the payment gateway (or adapter).
+- Accounting has configuration for journal posting rules and any needed accounts (e.g., AP liability, cash/bank, fee expense, clearing).
+
+## Functional Behavior
+### 1) Execute Payment (Billing-owned orchestration)
+1. **Trigger:** Billing receives a request to pay a vendor for a specified amount, optionally with explicit allocation instructions.
+2. **Idempotency:** Billing generates/accepts a unique idempotency key (`paymentRef` / `paymentId`) and MUST prevent duplicate execution.
+3. **Gateway call:** Billing calls the payment gateway/adapter to execute the payment.
+4. **On gateway success:**
+   - Persist payment success details (gateway transaction identifiers, timestamps, captured amounts).
+   - Allocate the payment across bills (explicit allocation if provided; otherwise deterministic automatic allocation).
+   - Update bill settlement status appropriately (paid/partially paid) based on allocation.
+5. **Emit event (outbox):** In the same DB transaction that records `gateway_succeeded` + allocations, write an outbox event representing payment success.
+
+### 2) Post to GL (Accounting-owned, asynchronous)
+1. **Trigger:** Accounting consumes the billing payment-success event.
+2. **Idempotency:** Accounting MUST be idempotent using a stable `(source_type=PAYMENT, source_id=billingPaymentId)` uniqueness rule.
+3. **Posting:** Accounting posts the journal entry using its posting rules and COA mapping.
+4. **Outcome:** Accounting emits an acknowledgement event (or otherwise signals) containing the created `journalEntryId` / posting reference.
+
+### 3) Completion semantics (two truths)
+- **Payment success truth:** based on payment gateway confirmation.
+- **Accounting completion truth:** based on successful GL posting.
+
+Suggested billing-owned state model:
+- `INITIATED` → `GATEWAY_PENDING` → (`GATEWAY_FAILED` | `GATEWAY_SUCCEEDED`) → `GL_POST_PENDING` → (`GL_POSTED` | `GL_POST_FAILED`)
+
+## Alternate / Error Flows
+- **Gateway failure:** Record failure; do not allocate bills; do not emit payment-success for GL posting.
+- **GL posting failure after gateway success:**
+  - Billing remains in `GL_POST_PENDING` (or moves to `GL_POST_FAILED` after retry exhaustion).
+  - Retry GL posting asynchronously with backoff; alert for manual remediation after N failed attempts.
+  - No automatic refund solely due to GL posting failure.
+- **Duplicate request (idempotency):** If a request is re-sent with the same `paymentRef/paymentId`, do not call the gateway; return the original outcome.
+
+## Business Rules
+- **BR-1 (Primary ownership):** `domain:billing` owns payment orchestration, allocations, idempotency, and payment workflow state.
+- **BR-2 (Accounting responsibility):** `domain:accounting` owns journal entry creation/posting rules and COA mapping; it does not call the gateway.
+- **BR-3 (Event-driven boundary):** GL posting is asynchronous/event-driven with eventual consistency; billing must guarantee eventual delivery via outbox.
+- **BR-4 (Allocation policy):**
+  - If caller provides explicit allocations, validate: non-negative amounts; sum ≤ payment amount; bills are payable/open.
+  - If not provided, allocate deterministically: oldest due date first (nulls last), then invoice date, then bill ID.
+  - Partial allocations are allowed.
+- **BR-5 (Unapplied remainder):** If payment amount exceeds allocatable open balance, record remainder as **Unapplied Cash / Vendor Credit** (do not silently discard or auto-refund).
+- **BR-6 (Fees):** Gateway fees are accounted for as a separate expense line in the journal entry. Billing must include `gross_amount` and (when known) `fee_amount` / `net_amount` in the event payload.
+
+## Data Requirements
+### Billing payment + allocations
+- `billingPaymentId` (UUID)
+- `paymentRef` (string/UUID; unique idempotency key)
+- `vendorId` (UUID)
+- `grossAmount` (money)
+- `feeAmount` (money, optional if known at capture time)
+- `netAmount` (money, optional)
+- `currency`
+- `gatewayTransactionId` (string)
+- `status` (billing workflow state)
+- Allocation line items: `(billingPaymentId, billId, appliedAmount)`
+
+### Inter-domain contract
+**Billing → Accounting event** (versioned): `Billing.PaymentSucceeded.v1` (name may be aligned to repo convention)
+Minimum payload includes:
+- `billingPaymentId` (used as `source_id`)
+- `paymentRef`
+- `vendorId`
+- `grossAmount`, `feeAmount` (if known), `netAmount` (if known), `currency`
+- Allocation breakdown per bill
+- Gateway transaction identifiers and timestamps
+
+**Accounting → Billing acknowledgement event** (optional but recommended): `Accounting.JournalEntryPosted.v1`
+- `source_type=PAYMENT`, `source_id=billingPaymentId`, `journalEntryId`, `postedAt`
+
+## Acceptance Criteria
+- **AC-1: Gateway success creates allocations and GL-post request**
+  - Given payable bills exist for a vendor
+  - When billing executes a payment and the gateway confirms success
+  - Then billing persists the payment, allocates amounts to bills, updates bill settlement state, and enqueues/publishes a payment-success event via outbox
+
+- **AC-2: Idempotency prevents duplicate payment execution**
+  - Given a payment request with `paymentRef` already processed
+  - When the request is retried
+  - Then billing does not call the gateway again and returns the original result
+
+- **AC-3: GL posting is eventual and idempotent**
+  - Given accounting receives the payment-success event
+  - When it posts the journal entry
+  - Then it creates exactly one journal entry for `(source_type=PAYMENT, source_id=billingPaymentId)` and acknowledges posting
+
+- **AC-4: GL post failure is recoverable**
+  - Given gateway success but accounting posting fails
+  - When retries are attempted
+  - Then billing remains in a GL-pending/failed state and alerts for manual remediation after retry exhaustion
+
+## Audit & Observability
+- Audit every state transition for payments and for GL posting acknowledgements.
+- Structured logs for `PaymentInitiated`, `GatewaySucceeded/Failed`, `AllocationApplied`, `OutboxPublished`, `JournalEntryPosted/Failed`.
+- Metrics: gateway success/failure counts, GL post latency, GL post failure counts, retry counts, and unapplied remainder totals.
+
+## Open Questions
+None. (Resolved in decision comment generated by `clarification-resolver.sh` on 2026-01-14.)
+
+## Original Story (Unmodified – For Traceability)
+# Issue #128 — [BACKEND] [STORY] AP: Execute Payment and Post to GL
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] AP: Execute Payment and Post to GL
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# Functional Requirement
+
+## Classification (confirm labels)
+- Type: story
+- Layer: functional
+- Domain: accounting
+
+## Capability
+[CAP] Accounts Payable (Bill → Payment)
+
+## Story
+AP: Execute Payment and Post to GL
+
+## Acceptance Criteria
+- [ ] Payment allocates across one or more bills (full/partial)
+- [ ] GL postings: Dr AP, Cr Cash/Bank (per rules)
+- [ ] Fees/unallocated amounts handled per policy
+- [ ] Idempotent by paymentRef/eventId
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #100: [BACKEND] [STORY] Billing: Define Account Billing Rules
+LABELS: payment,type:story,domain:billing,status:ready-for-dev,agent:story-authoring,agent:billing
+BODY:
+## 🏷️ Labels (Current)
+### Required
+- type:story
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:billing
+- agent:story-authoring
+
+---
+**Rewrite Variant:** integration-conservative
+**Conflict Resolution:** Resolved — `domain:billing` confirmed as primary owner (see resolution comment from 2026-01-14 generated by `clarification-resolver.sh`).
+---
+
+## Story Intent
+As a Billing Clerk, I want to define and manage a specific set of billing rules for each commercial account, so that the automated invoicing process is consistently accurate, adheres to client agreements, and requires minimal manual intervention.
+
+## Actors & Stakeholders
+- **Billing Clerk** (Primary Actor): The user responsible for configuring and maintaining billing rules for commercial accounts.
+- **System (Billing Service)**: System of record for Billing Rules; owns persistence, validation, and APIs.
+- **System (CRM Service)**: System of record for Commercial Account entities; emits account lifecycle events.
+- **System (Work Execution Service)**: Consumes billing rules once per work item lifecycle and enforces PO-required behavior using a persisted snapshot.
+- **Auditor**: Needs a history of changes to billing rules for compliance and financial controls.
+
+## Preconditions
+1. The Billing Clerk is authenticated and authorized to manage billing rules.
+2. The target commercial account exists in CRM and has a stable `accountId`.
+3. The Billing service has a system-wide default Billing Rules template configured.
+
+## Functional Behavior
+
+### UC-1: Create / Update Billing Rules (Idempotent Upsert)
+- **Trigger:** A Billing Clerk initiates “Manage Billing Rules” for an `accountId`.
+- **API (Billing-owned):** `PUT /billing-rules/{accountId}`
+- **Behavior:** Billing validates and persists the Billing Rules for the account (create if missing; update if present).
+- **Configurable fields (minimum):**
+  - `isPoRequired` (Boolean): Whether a PO number is mandatory for work orders.
+  - `paymentTermsId` (Reference): Agreed payment terms (e.g., `NET_30`).
+  - `invoiceDeliveryMethod` (Enum): e.g., `EMAIL`, `PORTAL`, `MAIL`.
+  - `invoiceGroupingStrategy` (Enum): e.g., `PER_WORK_ORDER`, `PER_VEHICLE`, `SINGLE_INVOICE`.
+- **Outcome:** The active Billing Rules for `accountId` are stored and immediately retrievable.
+- **Side-effect (audit):** A structured audit event is generated with field-level before/after values.
+
+### UC-2: Retrieve Billing Rules for Processing
+- **Trigger:** An internal service (Billing or Work Execution) needs the current billing rules for an account.
+- **API (Billing-owned):** `GET /billing-rules/{accountId}`
+- **Outcome:** Returns the currently active Billing Rules.
+
+### UC-3: Default Billing Rules Provisioning (Event-Driven)
+- **Trigger:** Billing receives an “AccountCreated” (commercial) event from CRM.
+- **Behavior:** Billing creates default Billing Rules for that `accountId` using the system default template.
+- **Idempotency:** Provisioning is idempotent (safe on retries / duplicate events).
+
+### UC-4: Work Execution Enforcement Contract (Snapshot)
+- **Trigger:** Work Execution creates a Work Order / Estimate (or transitions into a stage where PO enforcement becomes relevant).
+- **Behavior:** Work Execution fetches Billing Rules from Billing once and stores an internal snapshot for enforcement and traceability.
+- **Enforcement:** Estimate approval uses the snapshot:
+  - If `poRequiredAtApproval=true` and PO is missing/invalid → block approval.
+- **Rule change behavior:** Changes to Billing Rules apply to new work items; existing work items retain their snapshot unless a separate explicit refresh flow is invoked.
+
+## Alternate / Error Flows
+- **Billing Rules Not Found:** If Billing Rules do not exist for `accountId` (e.g., provisioning lag), Billing returns `404 Not Found`.
+- **Invalid Rule Value:** If a request contains an invalid value (e.g., non-existent `paymentTermsId`), return `400 Bad Request` with an actionable error message.
+- **Insufficient Permissions:** If the caller is not authorized to modify rules, return `403 Forbidden`.
+- **Concurrent Modification:** If optimistic concurrency is enabled (ETag/version), stale updates are rejected with `409 Conflict`.
+
+## Business Rules
+1. **Domain Ownership / SoR:** `domain:billing` is the system of record for Billing Rules; CRM is not authoritative for rule values.
+2. **Defaulting:** New commercial accounts receive a system-wide default Billing Rules configuration created by Billing.
+3. **Central enumerations:** Options for `paymentTermsId`, `invoiceDeliveryMethod`, `invoiceGroupingStrategy` are centrally managed and not defined per account.
+4. **Auditability:** All create/update operations must be recorded in an immutable audit log, capturing actor, timestamp, accountId, and field-level before/after changes.
+5. **Work Execution enforcement uses snapshot:** Work Execution must enforce PO-required behavior using a persisted snapshot, not by calling Billing on every approval.
+
+## Data Requirements
+### Entity: `BillingRules` (Billing-owned)
+- `id` (UUID, PK)
+- `accountId` (Indexed, Not Null, Unique)
+- `isPoRequired` (Boolean, Not Null, Default false)
+- `paymentTermsId` (String/UUID, Not Null)
+- `invoiceDeliveryMethod` (Enum, Not Null, Default `EMAIL`)
+- `invoiceGroupingStrategy` (Enum, Not Null, Default `PER_WORK_ORDER`)
+- `version` (Integer, Not Null) — for optimistic concurrency (optional but recommended)
+- `createdAt` (Timestamp, Not Null)
+- `updatedAt` (Timestamp, Not Null)
+- `updatedBy` (String/UUID, Not Null)
+
+### Work Execution Snapshot (Workexec-owned)
+- `accountId` (UUID)
+- `poRequiredAtApproval` (Boolean)
+- `billingRulesVersion` or `billingRulesUpdatedAt` (for traceability)
+
+## Acceptance Criteria
+
+### AC-1: Upsert Creates Billing Rules
+- **Given** a Billing Clerk is authorized
+- **When** they `PUT /billing-rules/{accountId}` for an account with no prior rules
+- **Then** the system returns success (`201 Created` or `200 OK`)
+- **And** a subsequent `GET /billing-rules/{accountId}` returns the configured rules
+- **And** an audit event `BillingRules.Created` is recorded.
+
+### AC-2: Upsert Updates Billing Rules
+- **Given** an account has existing Billing Rules
+- **When** an authorized user updates `paymentTermsId` via `PUT /billing-rules/{accountId}`
+- **Then** `GET /billing-rules/{accountId}` returns the updated value
+- **And** an audit event `BillingRules.Updated` is recorded with before/after fields.
+
+### AC-3: Defaults Are Provisioned on Commercial Account Creation
+- **Given** CRM emits a commercial account-created event for `accountId`
+- **When** Billing consumes the event
+- **Then** Billing creates Billing Rules for `accountId` using the system default template
+- **And** reprocessing the same event does not create duplicates (idempotent).
+
+### AC-4: Workexec Enforces PO Requirement Using Snapshot
+- **Given** Billing Rules indicate `isPoRequired=true` for an account
+- **And** Work Execution has created a work item and stored a snapshot with `poRequiredAtApproval=true`
+- **When** estimate approval is attempted without a PO
+- **Then** approval is blocked with an actionable error
+- **And** Work Execution does not require a real-time Billing call during the approval command.
+
+## Audit & Observability
+- **Audit:** Emit `BillingRules.Created` and `BillingRules.Updated` with `accountId`, `actorId`, `timestamp`, and a field-level changeSet.
+- **Logging:**
+  - INFO on successful create/update (include `accountId` + principal)
+  - WARN on validation or permission failures
+- **Metrics:**
+  - Counter `billing_rules.upserts.total`
+  - Counter `billing_rules.upserts.failures.total{reason=...}`
+
+## Open Questions
+None. All previously blocking questions are resolved by the decision record in the 2026-01-14 issue comment generated by `clarification-resolver.sh`.
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #100 — [BACKEND] [STORY] Billing: Define Account Billing Rules
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Billing: Define Account Billing Rules
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Billing Clerk**, I want **to set billing rules for a commercial account** so that **invoicing is correct and consistent**.
+
+## Details
+- Rules: PO required, payment terms, invoice delivery (email/portal), invoice grouping (per vehicle/per workorder).
+- Rule changes audited and permissioned.
+
+## Acceptance Criteria
+- Create/update rules.
+- Rules returned on account lookup.
+- Rule changes audited and access-controlled.
+
+## Integration Points (Workorder Execution)
+- Estimate approval enforces PO rules.
+- Invoicing uses delivery + grouping defaults.
+
+## Data / Entities
+- BillingRule
+- PaymentTerm
+- DeliveryPreference
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #13: [BACKEND] [STORY] Workexec: Display Invoice and Request Finalization (Controlled)
+LABELS: payment,type:story,domain:billing,status:ready-for-dev,agent:story-authoring,agent:billing
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:billing
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+Allow Service Advisors to review complete invoice details for a completed work order and request controlled finalization — enforcing permissions, amount thresholds, approvals, and immutable state transitions — then post finalized invoices to accounting with auditability and reliable error handling.
+
+---
+
+## Actors & Stakeholders
+
+- Service Advisor
+- Billing System (system of record)
+- Accounting System
+- Shop Manager
+- Work Execution Service
+- Audit Service
+- Customer
+
+---
+
+## Preconditions
+
+1. Invoice exists and is linked to a completed work order
+2. Invoice is in DRAFT/EDITABLE state and data-complete
+3. Service Advisor has `FINALIZE_INVOICE` permission (subject to amount limits)
+4. Taxes/fees calculated and customer account valid
+5. Accounting integration available (async posting supported)
+
+---
+
+## Functional Behavior (Summary)
+
+1. Display invoice (items, taxes, fees, totals) for review.
+2. Validate eligibility: invoice status, data completeness, work order completion, customer account, and duplicate posting prevention.
+3. Enforce permissions and amount limits; require manager approval for amounts above role limits.
+4. Submit FinalizeRequest; billing transitions invoice DRAFT → FINALIZED and emits `InvoiceFinalized` event.
+5. Accounting posts GL entries asynchronously; Billing updates invoice to POSTED or ERROR accordingly.
+6. Finalized invoices are read-only; reversion is a separate, controlled operation.
+
+---
+
+## Resolved Decisions (from comments)
+
+- Controlled finalization enforced via role-based permission `FINALIZE_INVOICE`, amount thresholds (Service Advisor ≤ $500, Shop Manager unlimited), and manager approval workflow for overrides. All requests and approvals are audited.
+- Finalization is the mandatory gate before payment and is one-way except for a controlled revert: reversion allowed within 24 hours and before POSTED with manager approval; POSTED invoices require accounting reversal.
+- Accounting integration is asynchronous and event-driven (`InvoiceFinalized`), idempotent by `invoiceId`, with retries (5 min, up to 24 hours) and alerting after repeated failures; successes emit `InvoicePosted` with GL entry ID.
+- Data integrity failures (missing prices/quantities, mismatched totals/taxes) are hard rejects — no override allowed; invoice must be corrected in DRAFT/EDITABLE state.
+- Error handling: automatic retries, alerts to accounting after failures, manual retry available, SLA target: 95% posted within 1 hour.
+
+---
+
+## Business Rules
+
+- Finalization eligibility: invoice in DRAFT/EDITABLE, linked work order COMPLETED, data-complete, customer account valid, not already posted.
+- Permission matrix: Service Advisor (FINALIZE_INVOICE ≤ $500), Shop Manager (FINALIZE_INVOICE unlimited), manager override audited.
+- Data validation is mandatory and non-overridable for integrity.
+- Finalization locks invoice and prevents edits; reversion is controlled and audited.
+- Accounting posting is async and idempotent; GL linkage recorded.
+
+---
+
+## Data Models (excerpt)
+
+- InvoiceView: invoiceId, workOrderId, customer, lineItems, taxes, fees, subtotal, grandTotal, invoiceStatus, finalizableReason, glEntryId, finalizedBy, finalizedAt.
+- FinalizeRequest: invoiceId, requestedBy, requestedAt, permissionLevel, amountLimit, managerApprovalRequired, managerApprovalCode, overrideReason.
+- AuditLog: auditId, eventType, invoiceId, actorId, invoiceAmount, permissionLevel, managerApprovalUsed, glEntryId, timestamp, notes.
+
+---
+
+## Acceptance Criteria (key)
+
+- AC1: Service Advisor can view full invoice details (items, taxes, fees, totals) for a completed work order.
+- AC2: Finalization eligibility checks run and block finalization when data incomplete or work order not complete.
+- AC3: Permission and amount limits enforced; manager approval required for overrides and logged.
+- AC4: FinalizeRequest transitions invoice DRAFT → FINALIZED and emits `InvoiceFinalized` event.
+- AC5: Accounting posts GL entries asynchronously; Billing marks POSTED with GL entry ID or ERROR with retry/alerts.
+- AC6: Finalized invoice is read-only; revert-to-draft requires manager approval within 24 hours (pre-POSTED).
+
+---
+
+## Audit & Observability
+
+Emit InvoiceFinalizationRequested, InvoiceFinalizationPermissionDenied, InvoiceFinalizationManagerApprovalRequested, InvoiceFinalized, InvoicePostedToGL, InvoicePostingFailed, InvoiceFinalizationOverridden. Track metrics: finalization success rate, posting latency, posting failure rate, amount override rate, permission denial rate.
+
+---
+
+## Original Story (for traceability)
+
+Original issue content and comments retained in issue history: https://github.com/louisburroughs/durion-positivity-backend/issues/13
+
+
+════════════════════════════════════════
+ISSUE #9: [BACKEND] [STORY] Payment: Initiate Card Authorization and Capture
+LABELS: payment,type:story,domain:billing,status:ready-for-dev
+BODY:
+## Story Intent
+
+Enable **Cashiers** to accept card payments at checkout by authorizing and capturing customer credit/debit card payments, ensuring PCI-DSS compliant tokenization, producing receipts, and notifying accounting of successful captures. Support both auth-then-capture (two-step) and sale/capture (one-step) flows with safe retry/idempotency semantics.
+
+---
+
+## Actors & Stakeholders
+
+- **Cashier** (initiates card payment)
+- **Customer** (presents card)
+- **Payment Gateway** (authorization/capture)
+- **Payment Service** (orchestrates tokenization, idempotency, status inquiries)
+- **Billing Service** (updates invoice status)
+- **Accounting Service** (receives `PaymentCaptured` events)
+- **Receipt Service**, **Audit Service**, **Finance Team**
+
+---
+
+## Preconditions
+
+- Invoice exists with outstanding balance > $0
+- POS terminal is online and authenticated with a configured gateway
+- Cashier has `PROCESS_PAYMENT` permission
+- Gateway provider configured for tenant/location (MVP: single gateway)
+
+---
+
+## Resolved: Answers to Open Questions (canonical decisions)
+
+### Q1: Supported gateways — Decision
+MVP supports exactly one configured gateway per environment/tenant via a `PaymentGatewayPort` adapter. Multi-gateway/failover is out-of-scope for v1; include `gatewayProvider` on `PaymentIntent` and preserve raw `gatewayResponse` for future adapters.
+
+---
+
+### Q2: Authorization hold duration — Decision
+Configurable defaults with warnings and automated cleanup:
+- Credit (Visa/MC/Amex): usable up to **7 days**; warn at >5 days.
+- Debit: usable up to **3 days**; warn at >2 days.
+- Background job marks authorizations **EXPIRED** after window and attempts gateway void if supported.
+
+---
+
+### Q3: When to use AUTH_ONLY vs SALE_CAPTURE — Decision
+Default: **SALE_CAPTURE** for POS checkout. Use **AUTH_ONLY** when invoice flags indicate delayed capture (e.g., `requiresManagerApproval`, `amountMayChange`, partial fulfillment). Cashier selection allowed only with `SELECT_PAYMENT_FLOW` permission.
+
+---
+
+### Q4: Partial capture rules — Decision
+Supported if gateway supports partial capture; v1 enforces **single partial capture per authorization** and voids remainder. Add `authorizedAmount`, `capturedAmount`, `voidedRemainderAmount` to model.
+
+---
+
+### Q5: Receipt requirements — Decision
+Reuse Receipt Content v1: print by default, email optional with consent, retain for 7 years, reprint supported with watermark. Mandatory fields: merchant info, invoice, amount, card brand + last4, auth code, txn id, timestamp, cashier/terminal.
+
+---
+
+### Q6: Retry policy for timeouts — Decision
+Tight, idempotent retries with inquiry on unknown outcome:
+- Authorization: timeout 30s, up to 2 automatic retries (total 3) backoff 5s/10s.
+- Capture: timeout 30s, up to 1 automatic retry (total 2) backoff 10s.
+- If outcome unknown, perform gateway status inquiry by idempotency key/txn ref before retrying to avoid duplicate charges.
+
+---
+
+### Q7: Authorization for manual capture/void — Decision
+Permission model:
+- `PROCESS_PAYMENT`: cashier can perform immediate sale/capture and same-session auth→capture.
+- `MANUAL_CAPTURE`: required for later/back-office captures.
+- `VOID_PAYMENT`: required to void authorizations (requires reason).
+- `OVERRIDE_PAYMENT_LIMIT`: for exceeding configured thresholds.
+Default thresholds (configurable): cashier up to $500; >$500 requires manager approval.
+
+---
+
+## Minimal spec deltas implied
+- Add `paymentStatus: EXPIRED` (or CAPTURE_FAILED+reason) and fields `authorizedAmount`, `capturedAmount`, `voidedRemainderAmount`.
+- Add `gateway status inquiry` operation for unknown outcomes.
+- Add explicit permissions: `SELECT_PAYMENT_FLOW`, `MANUAL_CAPTURE`, `VOID_PAYMENT`, `OVERRIDE_PAYMENT_LIMIT`.
+- Implement single-gateway MVP via adapter interface.
+
+---
+
+## Acceptance Criteria (high level)
+- Authorizations and captures follow the flows and update `PaymentIntent` statuses accordingly.
+- Sale/capture completes in one step; auth→capture supported with single partial capture and remainder void.
+- Tokenization used for PCI safety; no PAN/CVV stored.
+- Idempotency keys used for retry safety; status inquiries performed for unknown outcomes.
+- Receipt generated and retained per policy; reprint supported.
+- Audit events and metrics tracked as specified.
+
+---
+
+*Status: ready for development.*
+
+
+════════════════════════════════════════
+ISSUE #8: [BACKEND] [STORY] Payment: Void Authorization or Refund Captured Payment
+LABELS: payment,type:story,domain:billing,status:ready-for-dev
+BODY:
+## Story Intent
+
+Enable **Store Managers** to void authorized payments before settlement or refund captured payments after settlement, ensuring financial corrections are executed safely with proper authorization, reason capture, and accounting synchronization, while supporting both full and partial refund scenarios.
+
+This story establishes the **payment reversal workflow** that handles error correction, customer accommodation, and financial reconciliation while maintaining audit compliance and preventing unauthorized reversals.
+
+---
+
+## Actors & Stakeholders
+
+### Primary Actors
+- **Store Manager**: Initiates void or refund requests with authorization and reason
+- **Payment Service**: Executes void/refund operations via payment gateway API
+- **Payment Gateway**: Processes void (before settlement) or refund (after settlement) transactions
+- **Billing Service**: Updates invoice payment status based on void/refund outcomes
+- **Accounting Service**: Receives void/refund events and updates GL postings (reversal entries)
+
+### Secondary Stakeholders
+- **Customer**: Receives refund credit (card refund, cash refund, account credit)
+- **Cashier**: May be notified of refund approval and executes cash refund if applicable
+- **Audit Service**: Logs all void/refund attempts with authorization trail
+- **Finance Team**: Monitors refund metrics for fraud detection and reconciliation
+
+---
+
+## Preconditions
+
+1. Payment exists in one of the following states:
+   - **Authorized** (not yet captured/settled): Eligible for void
+   - **Captured/Settled**: Eligible for refund
+2. Original payment transaction has valid payment ID and gateway transaction reference
+3. User has required permission (`VOID_PAYMENT` or `REFUND_PAYMENT`) based on operation
+4. Invoice associated with payment exists and is accessible
+5. Payment gateway API is available and responding
+6. For partial refunds: Remaining refundable amount is greater than zero
+
+---
+
+## Functional Behavior
+
+(Full void/refund flows, error flows, business rules, data models and acceptance criteria are implemented as described in the original story.)
+
+---
+
+## Resolved: Answers to Open Questions (canonical decisions)
+
+### Q1: Complete list of void and refund reasons — Decision
+Use two controlled enums (VOID_REASON, REFUND_REASON) with tight, reportable categories; require “OTHER” notes.
+
+VOID_REASON (authorized-only):
+- CUSTOMER_REQUEST
+- DUPLICATE_AUTHORIZATION
+- ENTRY_ERROR
+- FRAUD_PREVENTION
+- MANAGER_DISCRETION
+- OTHER (requires notes)
+
+REFUND_REASON (captured/settled):
+- CUSTOMER_RETURN
+- SERVICE_ERROR
+- OVERCHARGE
+- DAMAGED_GOODS
+- GOODWILL
+- CHARGEBACK_AVOIDANCE
+- FRAUD_PREVENTION
+- MANAGER_DISCRETION
+- OTHER (requires notes)
+
+Policy: reasons are immutable; additions require a version bump.
+
+---
+
+### Q2: Time windows for voids and refunds — Decision
+Method-specific windows (configurable):
+- Card: Void ≤ 24h from authorization; Refund ≤ 180 days from capture.
+- ACH: Void ≤ 24h; Refund ≤ 60 days from settlement.
+- Cash/Check: POS policy enforces ≤ 30 days without finance override.
+Outside-window requires `SUPERVISOR_OVERRIDE` and emits an audit event.
+
+---
+
+### Q3: Authorization levels by amount — Decision
+Tiered approval (configurable):
+- ≤ $100: Store Manager (`REFUND_PAYMENT`)
+- $100.01–$500: Store Manager + notes
+- $500.01–$1,000: District Manager approval (request → approve → execute)
+- > $1,000: Finance approval and dual authorization
+Sums of refunds in 24h count toward thresholds.
+
+---
+
+### Q4: Cash vs Card refunds — Decision
+Refund to the original tender instrument by default:
+- Card → refund to same card via gateway only
+- Cash → cash refund with manager/till controls
+- Mixed tender → proportional refund by default; manager override only with permissions
+Cash refunds record till/drawer info for reconciliation.
+
+---
+
+### Q5: Asynchronous refund failures — Decision
+Refund lifecycle: REQUESTED → PENDING → COMPLETED / FAILED.
+Gateway webhooks update RefundRecord; POS shows REFUND_PENDING until COMPLETED.
+Poll PENDING beyond 7 days; alert customer service if terminal failure.
+On failure revert invoice status and alert for manual resolution.
+
+---
+
+### Q6: Limits on partial refunds — Decision
+- Max partial refunds per original payment: 10
+- Minimum partial refund amount: $0.50 (configurable)
+- No dust remainder: last refund must close to zero or meet minimum; overrides require finance approval.
+
+---
+
+### Q7: Multi-payment (split tender) refunds — Decision
+Refunds operate against specific payments with LIFO allocation by default. If needed, the user may select target payment(s) where permitted. Multi-payment refund requests may create multiple RefundRecords (one per underlying payment).
+
+---
+
+### Minimal spec adjustments implied
+- Add `RefundStatusChanged` event and `REFUND_PENDING` invoice state.
+- Add parent `RefundRequest` entity to support multi-payment allocation (recommended).
+- Make windows/thresholds configurable per tenant/store.
+- Enforce partial refund caps and minimums with override audit events.
+
+---
+
+## Acceptance Criteria (high level)
+- Voids on AUTHORIZED payments succeed and emit `PaymentVoided` event.
+- Refunds on CAPTURED/SETTLED payments create `RefundRecord`, emit `PaymentRefunded` and follow asynchronous lifecycle.
+- Partial refunds obey caps/minimums and update invoice net payment correctly.
+- Audit log captures reason, approver, and gateway responses; retention 7+ years.
+- Permissions and tiered approvals enforced; overrides recorded and auditable.
+
+---
+
+*Status: ready for development.*
+
+
+════════════════════════════════════════
+ISSUE #7: [BACKEND] [STORY] Payment: Print/Email Receipt and Store Reference
+LABELS: type:story,domain:billing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:billing
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+Enable **Cashiers** to generate, print, and optionally email payment receipts to customers immediately after successful payment capture, ensuring customers have verifiable proof of payment including transaction details, and support reprint functionality for lost or damaged receipts.
+
+This story establishes the **receipt generation and delivery pipeline** that serves as the customer-facing artifact for payment confirmation and the audit trail for transaction verification.
+
+---
+
+## Actors & Stakeholders
+
+### Primary Actors
+- **Cashier**: Generates receipt after payment capture, reprints receipts on customer request
+- **Payment Service**: Provides receipt data (authorization code, transaction reference, payment details)
+- **Receipt Generation Service**: Composes receipt content, formats for print/email, stores receipt reference
+- **Print Service**: Sends receipt to POS terminal printer
+- **Email Service**: Sends receipt to customer email address (optional)
+
+### Secondary Stakeholders
+- **Customer**: Receives printed or emailed receipt as proof of payment
+- **CRM Service**: Provides customer contact information (email, phone) for receipt delivery
+- **Audit Service**: Logs receipt generation, delivery attempts, and reprint requests
+- **Accounting Team**: Uses receipt references for reconciliation and dispute resolution
+
+---
+
+## Preconditions
+
+1. Payment has been successfully captured (authorization complete, funds transferred)
+2. Invoice exists with associated order and line items
+3. Payment service has returned transaction details (authorization code, transaction ID, gateway response)
+4. POS terminal is connected to a receipt printer (for physical receipt)
+5. Customer contact information is available in CRM (for email receipt, optional)
+6. Cashier has permission to generate and reprint receipts
+
+---
+
+## Functional Behavior
+
+### 1. Generate Receipt After Successful Payment Capture
+
+**Trigger**: Payment service confirms successful payment capture
+
+**Flow**:
+1. Payment service emits `PaymentCaptured` event with:
+   - Invoice ID, payment ID, amount, currency
+   - Authorization code, transaction reference (gateway transaction ID)
+   - Payment method, timestamp, gateway response
+2. Receipt Generation Service receives event
+3. Service retrieves receipt data:
+   - Invoice details (invoice number, total, line items summary)
+   - Payment details (amount paid, payment method, auth code, transaction ref)
+   - Customer details (name, account number, if available)
+   - Timestamp, cashier name/ID, terminal ID
+4. Service composes receipt content using template with template version reference:
+   - Header: Store name, address, phone, tax/VAT ID
+   - Transaction section: Invoice number, payment ID, date/time, POS terminal ID, cashier name/ID
+   - Payment section: Amount paid, payment method, auth code, transaction ref, last 4 digits of card (if applicable)
+   - Taxes: Total tax amount + tax rate/breakdown (if available and space allows)
+   - Multi-tender: List each tender with amount, method, auth code per tender
+   - Footer: Payment received statement, return policy, customer service contact, receipt number
+5. Service generates unique receipt reference: `RCP-{invoiceId}-{timestamp}-{sequence}`
+6. Service stores receipt record with templateId, templateVersion, and status "GENERATED"
+7. Service returns receipt payload (formatted text or PDF) to POS
+
+**Outcome**: Receipt content is ready for printing or emailing
+
+---
+
+### 2. Print Receipt to POS Terminal Printer
+
+**Trigger**: Receipt generation completes successfully
+
+**Flow**:
+1. POS receives receipt payload from Receipt Generation Service
+2. POS formats receipt for thermal printer (line width, font size, alignment)
+3. POS sends print command to terminal printer with receipt content
+4. Printer prints receipt
+5. POS updates receipt record with delivery status:
+   - `deliveryMethod: PRINT`
+   - `deliveryStatus: SUCCESS`
+   - `deliveryTimestamp: `
+6. Cashier hands printed receipt to customer
+
+**Alternate**: If printer is offline or out of paper, display error to cashier and offer email option
+
+**Outcome**: Customer receives printed receipt
+
+---
+
+### 3. Email Receipt to Customer (Optional)
+
+**Trigger**: Customer requests email receipt, or printer is unavailable
+
+**Flow**:
+1. Cashier selects "Email Receipt" option on POS
+2. POS prompts for email address or retrieves from CRM:
+   - If customer account exists, suggest stored email from CRM
+   - If no account or email not on file, prompt cashier to enter manually
+3. Cashier confirms email address
+4. POS sends receipt email request to Email Service with:
+   - Receipt reference, invoice ID
+   - Customer email address
+   - Receipt content (HTML or PDF attachment)
+   - Idempotency key: `(receiptReference, emailAddress)`
+5. Email Service sends email with subject: "Payment Receipt - {store name} - {invoice number}"
+6. Email Service returns delivery confirmation (sent, failed, bounced)
+7. POS updates receipt record with email delivery status:
+   - `deliveryMethod: EMAIL`
+   - `deliveryStatus: SUCCESS | FAILED`
+   - `emailAddress: ` (encrypted at rest)
+   - `emailDeliveryTimestamp: `
+   - Failure reason if applicable
+8. POS displays confirmation to cashier: "Receipt emailed to {email}"
+
+**Email SLA:** 95% delivered within 5 minutes of request (valid address, normal email provider operations)
+
+**Email Retry Policy:** up to 3 retries over 60 minutes (5m, 15m, 40m) for transient failures only; hard bounces marked as FAILED with reason
+
+**Outcome**: Customer receives receipt via email
+
+---
+
+### 4. Store Receipt Reference for Audit and Reprint
+
+**Trigger**: Receipt is generated (regardless of delivery method)
+
+**Flow**:
+1. Receipt Generation Service stores receipt record in database:
+   - Receipt reference (unique ID)
+   - Invoice ID, payment ID
+   - Receipt content canonical fields (normalized)
+   - TemplateId and templateVersion (immutable record of template used)
+   - Generation timestamp, cashier ID, terminal ID
+   - Delivery method(s): PRINT, EMAIL, or both
+   - Delivery status for each method
+2. Receipt reference is included in invoice record for lookup
+3. Receipt is retained per retention policy (see below)
+
+**Retention Policy:**
+- **Hot storage (0-24 months):** Keep rendered print-text and email PDF/HTML for fast reprints and exact reproduction
+- **Warm/Cold storage (3-7 years):** Archive rendered artifacts to cold/compressed storage, or regenerate deterministically from canonical data + original template version
+- **Purge:** After 7 years unless legal hold flag present
+
+**Outcome**: Receipt is retrievable for reprint or audit
+
+---
+
+### 5. Reprint Receipt on Customer Request
+
+**Trigger**: Customer requests duplicate receipt (lost or damaged)
+
+**Flow**:
+1. Cashier searches for receipt by:
+   - Invoice number
+   - Receipt reference
+   - Transaction date + customer name
+   - Last 4 digits of card or authorization code (with elevated permission)
+2. POS displays receipt record with delivery history
+3. **Authorization check:**
+   - Cashier (same day only): no verification required
+   - Cashier (after 7 days): require invoice number + last4 + transaction date, OR customer account login, OR supervisor override
+   - Supervisor/Manager: may reprint anytime
+   - Customer service (with `REPRINT_RECEIPT` permission): may reprint anytime with reason code
+4. POS checks reprint count: max 5 reprints per receipt (require supervisor override beyond 5)
+5. POS retrieves receipt content from Receipt Generation Service using original templateVersion
+6. POS adds **DUPLICATE** or **REPRINT** watermark with:
+   - Reprint timestamp
+   - Reprinted-by user ID
+   - Reason code (if supervisor override)
+7. POS renders receipt using original templateVersion to ensure exact reproduction
+8. POS prints receipt with original details + reprint metadata
+9. POS logs reprint event to audit log:
+   - Original receipt reference
+   - Reprint timestamp, cashier ID / approver ID
+   - Reprint reason (if captured)
+   - Reprint count (incremented)
+10. Receipt record is updated with reprint count and last reprint timestamp
+
+**Outcome**: Customer receives duplicate receipt with watermark
+
+---
+
+## Alternate / Error Flows
+
+### 1. Printer Offline or Out of Paper
+
+**Trigger**: Print command fails (printer unavailable, out of paper, paper jam)
+
+**Flow**:
+1. POS detects printer error
+2. POS displays alert to cashier: "Printer unavailable. Load paper or select email option."
+3. Cashier resolves printer issue (load paper, clear jam) and retries, OR
+4. Cashier selects "Email Receipt" option as fallback
+5. If email also fails or customer declines, mark receipt as "DELIVERY_FAILED" with failure reason "Printer offline, fallback to email"
+6. Store receipt reference for later reprint request
+
+**Outcome**: Customer may receive receipt later via reprint or email
+
+---
+
+### 2. Customer Email Address Invalid or Bounces
+
+**Trigger**: Email service returns bounce or invalid address error (after retry policy exhaustion)
+
+**Flow**:
+1. Email Service attempts to send receipt email with 3 retries over 60 minutes
+2. Email bounces (invalid address, mailbox full, spam filter)
+3. Email Service logs bounce event with provider reason/message ID
+4. After 3 retries, Email Service marks delivery as FAILED with reason
+5. POS displays error to cashier: "Email delivery failed: {reason}"
+6. Cashier offers alternatives:
+   - Re-enter correct email address and retry
+   - Print receipt instead
+   - Customer can retrieve receipt later via online portal (if available)
+7. Update receipt record with `deliveryStatus: FAILED`, `failureReason: {provider error}`, `failedEmail: {address}`
+
+---
+
+### 3. Receipt Generation Fails Due to Missing Data
+
+**Trigger**: Payment captured successfully but invoice or payment details are incomplete
+
+**Flow**:
+1. Receipt Generation Service attempts to compose receipt
+2. Service detects missing required fields (e.g., invoice number, payment amount)
+3. Service logs error with missing field details
+4. Service returns error to POS: "Cannot generate receipt: Missing {field}"
+5. POS displays error to cashier: "Receipt generation failed. Contact supervisor."
+6. Cashier can complete transaction but customer does not receive receipt immediately
+7. Supervisor investigates and manually generates receipt if possible
+
+**Outcome**: Receipt generation blocked until data issue resolved
+
+---
+
+### 4. Customer Declines Receipt (Paper or Email)
+
+**Trigger**: Customer explicitly declines receipt
+
+**Flow**:
+1. Cashier asks customer: "Would you like a receipt?"
+2. Customer declines
+3. Cashier selects "No Receipt" option on POS
+4. POS generates receipt reference and stores receipt content but does NOT print or email
+5. Receipt record is marked with `deliveryMethod: DECLINED`, `deliveryStatus: CUSTOMER_DECLINED`
+6. Receipt remains available for later reprint if customer changes mind
+
+**Outcome**: Receipt stored but not delivered; customer can request reprint later
+
+---
+
+### 5. Unauthorized Reprint Attempt
+
+**Trigger**: User without reprint permission attempts to reprint receipt
+
+**Flow**:
+1. User searches for receipt and clicks "Reprint"
+2. POS checks user permissions for `REPRINT_RECEIPT` permission
+3. If permission missing, display error: "You do not have permission to reprint receipts. Contact supervisor."
+4. Log unauthorized reprint attempt to audit log with user ID, receipt reference, timestamp
+5. Reprint is blocked
+
+**Outcome**: Unauthorized reprint prevented and logged
+
+---
+
+## Business Rules
+
+### 1. Receipt Content Requirements (v1 contract)
+
+**Mandatory on all receipts (print + email):**
+- **Store:** name, address, phone, tax/VAT ID (if applicable), location identifier
+- **Receipt identifiers:** receiptReference, invoice number, payment ID, POS terminal ID, cashier ID/name
+- **Date/time:** transaction timestamp (local time) + timezone
+- **Amounts:** total paid, currency, total due (at payment time), change given (if cash)
+- **Payment method details (per tender):** method type, amount, auth code + gateway transaction reference (when applicable), card brand + last4 (card only)
+- **Taxes:** total tax amount, tax-included indicator
+- **Footer:** "payment received" statement + customer service contact
+
+**Optional (channel-specific):**
+- **Print (thermal):** line item summary only (3 lines max + "see invoice for details"), discounts total, tax breakdown (if space allows)
+- **Email:** full line item list + per-line tax (optional), discounts/promotions, loyalty summary (if enabled), return policy full text link
+
+**Tax rule:** Always show total tax amount; show tax rate/breakdown only when available and space allows. If tax-exempt, show "Tax Exempt" + exemption reason code (no certificate number printed).
+
+---
+
+### 2. Receipt Format and Templates
+
+Receipt format MUST be determined by delivery method:
+- **Printed (Thermal)**: 40-48 character width, plain text, left-aligned, bold headers
+- **Email (HTML)**: Responsive HTML template with store branding
+- **Email (PDF)**: Standard 8.5x11 inch format for easy printing by customer
+
+**Template Ownership & Versioning:**
+- **Billing** owns receipt content structure and legal compliance
+- **Marketing** owns branding elements (subject to Billing approval)
+- **Change control:** Templates stored in controlled repository with approvals
+- **Each receipt must store:** templateId + templateVersion for immutable record
+- **Reprints must render using original templateVersion** to ensure exact reproduction
+
+**Template changes are additive where possible; breaking changes require new templateId.**
+
+---
+
+### 3. Receipt Reference Format
+
+Receipt reference MUST follow format: `RCP-{invoiceNumber}-{timestamp}-{sequence}`
+
+Example: `RCP-INV-12345-20260105T143022Z-001`
+
+Receipt reference MUST be unique and immutable once generated.
+
+---
+
+### 4. Reprint Authorization and Watermarking
+
+**Authorization Matrix:**
+- **Cashier:** may reprint same day without extra verification
+- **Supervisor/Manager:** may reprint anytime
+- **Customer service (with `REPRINT_RECEIPT` permission):** may reprint anytime
+
+**Identity Verification Policy:**
+- Same day: none required
+- After 7 days: require one of: invoice number + last4 + transaction date, OR customer account login, OR supervisor override
+
+**Limits:**
+- Max 5 reprints per receipt within retention window
+- Override beyond 5 requires supervisor + reason code
+
+**Watermarking (mandatory on all reprints):**
+- Always add **DUPLICATE** or **REPRINT** + reprint timestamp + reprinted-by user ID + reason code (if applicable)
+
+---
+
+### 5. Email Receipt Consent and Privacy
+
+**Email Delivery:**
+- Treat as **event-driven and asynchronous** with idempotent retries
+- SLA: 95% delivered within 5 minutes (valid address, normal email provider)
+- Retry: up to 3 attempts over 60 minutes (5m, 15m, 40m) for transient failures only
+- No retry for hard bounces; mark FAILED with reason
+- Idempotency key: `(receiptReference, emailAddress)`
+
+**Privacy & PCI Compliance:**
+- Email addresses MUST be encrypted at rest
+- Never store PAN; store only card brand + last4 + gateway transaction ID + auth code
+- Do NOT write email addresses to logs; log hashed value for correlation
+- Email addresses from manual cashier entry NOT stored in CRM without customer consent
+- Email receipt PDFs should NOT include full customer account number
+- Receipt search by last4/auth code requires elevated permission
+
+---
+
+### 6. Receipt Retention and Storage Format
+
+**System of Record for Receipt:**
+- Receipt service database retains canonical receipt data fields (normalized)
+- Each receipt stores templateId + templateVersion (immutable)
+- Optional: content hash/signature for tamper-evidence
+
+**Rendered Output Storage:**
+- **Hot storage (0-24 months):** Keep rendered print-text and email PDF/HTML for fast reprints and exact reproduction
+- **Warm/Cold storage (years 3-7):** Archive rendered artifacts to compressed cold storage OR regenerate deterministically from canonical data + original template version
+- **Purge:** After 7 years unless legal hold flag present
+
+**Strict Reproducibility:** Either store rendered artifact, OR guarantee deterministic re-rendering (same template version + formatting rules).
+
+---
+
+### 7. Multi-Tender Payments on Receipts
+
+One receipt per invoice settlement showing all tenders:
+- Tender list ordered by capture time
+- Each tender: method, amount, auth code/transaction reference
+- Totals: paid total, remaining balance (should be 0 on "paid in full"), change given
+- If partial payment, receipt indicates **PARTIAL PAYMENT** and remaining balance
+
+---
+
+## Data Requirements
+
+### Receipt (Primary Model)
+
+```json
+{
+  "receiptId": "string (UUID)",
+  "receiptReference": "string (format: RCP-{invoiceNumber}-{timestamp}-{sequence})",
+  "invoiceId": "string (UUID)",
+  "invoiceNumber": "string",
+  "paymentId": "string (UUID)",
+  "generatedAt": "timestamp (ISO 8601)",
+  "generatedBy": "string (cashier user ID)",
+  "terminalId": "string",
+  "templateId": "string (required, identifies receipt template)",
+  "templateVersion": "string (required, version of template used)",
+  "receiptContent": {
+    "storeInfo": {
+      "storeName": "string",
+      "address": "string",
+      "phone": "string",
+      "taxId": "string (optional)"
+    },
+    "transactionInfo": {
+      "invoiceNumber": "string",
+      "paymentId": "string",
+      "transactionDate": "timestamp (ISO 8601)",
+      "cashierName": "string",
+      "terminalId": "string"
+    },
+    "paymentInfo": {
+      "totalPaid": "decimal",
+      "currency": "string (ISO 4217)",
+      "paymentTenders": [
+        {
+          "method": "enum (CREDIT_CARD, DEBIT_CARD, CASH, CHECK, ACH, OTHER)",
+          "amount": "decimal",
+          "authorizationCode": "string",
+          "transactionReference": "string (gateway transaction ID)",
+          "cardBrand": "string (optional, e.g., Visa, Mastercard)",
+          "cardLast4": "string (optional, for card payments)"
+        }
+      ]
+    },
+    "taxInfo": {
+      "totalTax": "decimal",
+      "taxRate": "decimal (optional, if available)",
+      "taxExempt": "boolean (optional)",
+      "exemptionReason": "string (optional, reason code only)"
+    },
+    "customerInfo": {
+      "customerName": "string (optional)",
+      "accountNumber": "string (masked, last 4 only for account customers, optional)"
+    },
+    "lineItemsSummary": "string (optional, for print receipts; full list for email)",
+    "footer": "string (payment received statement, return policy, customer service contact)"
+  },
+  "deliveryMethods": [
+    {
+      "method": "enum (PRINT, EMAIL, DECLINED)",
+      "status": "enum (SUCCESS, FAILED, PENDING, CUSTOMER_DECLINED)",
+      "timestamp": "timestamp (ISO 8601)",
+      "emailAddress": "string (optional, encrypted at rest, for EMAIL method)",
+      "failureReason": "string (optional, if status is FAILED)"
+    }
+  ],
+  "reprintHistory": [
+    {
+      "reprintedAt": "timestamp (ISO 8601)",
+      "reprintedBy": "string (user ID)",
+      "reprintReason": "string (optional, e.g., 'LOST', 'DAMAGED')"
+    }
+  ],
+  "reprintCount": "integer",
+  "retentionExpiresAt": "timestamp (ISO 8601, generation date + 7 years)"
+}
+```
+
+---
+
+### ReceiptDelivery (Nested Model for Tracking)
+
+Used within Receipt model to track print and email delivery attempts.
+
+**Key Fields**:
+- `method`: PRINT, EMAIL, or DECLINED
+- `status`: SUCCESS, FAILED, PENDING, CUSTOMER_DECLINED
+- `timestamp`: When delivery was attempted
+- `emailAddress`: For email deliveries (encrypted at rest)
+- `failureReason`: Error message if delivery failed (e.g., "Printer offline", "Email bounced")
+
+---
+
+### ContactRef (Integration Model from CRM)
+
+Provided by CRM service for email receipt delivery (encrypted when stored with receipt).
+
+```json
+{
+  "customerId": "string (UUID)",
+  "customerName": "string",
+  "emailAddress": "string (encrypted at rest)",
+  "emailVerified": "boolean",
+  "emailPreference": "enum (RECEIPTS_ALLOWED, RECEIPTS_DECLINED, NO_PREFERENCE)"
+}
+```
+
+---
+
+## Acceptance Criteria
+
+### AC1: Receipt Produced on Successful Payment Capture
+
+**Given** a payment has been successfully captured with amount $50.00  
+**And** payment method is Visa ending in 1234  
+**And** authorization code is "AUTH-987654"  
+**And** gateway transaction reference is "TXN-GW-12345"  
+**When** the Receipt Generation Service receives the `PaymentCaptured` event  
+**Then** a receipt is generated with:  
+  - Invoice number  
+  - Payment amount: $50.00  
+  - Payment method: Visa ****1234  
+  - Authorization code: AUTH-987654  
+  - Transaction reference: TXN-GW-12345  
+  - Receipt reference: RCP-{invoiceNumber}-{timestamp}-001  
+  - TemplateId and templateVersion recorded  
+**And** the receipt record is stored with status "GENERATED"
+
+---
+
+### AC2: Printed Receipt Delivered to Customer
+
+**Given** a receipt has been generated  
+**And** the POS terminal printer is online  
+**When** the receipt is sent to the printer  
+**Then** the receipt is printed with all mandatory fields  
+**And** the receipt delivery record is updated with:  
+  - `method: PRINT`  
+  - `status: SUCCESS`  
+  - `timestamp: `  
+**And** the cashier hands the printed receipt to the customer
+
+---
+
+### AC3: Email Receipt Sent to Customer (Optional)
+
+**Given** a receipt has been generated  
+**And** the customer has email address "customer@example.com" on file in CRM  
+**When** the cashier selects "Email Receipt" option  
+**Then** an email is sent to "customer@example.com" with:  
+  - Subject: "Payment Receipt - {store name} - {invoice number}"  
+  - Body: HTML formatted receipt content  
+  - Attachment: PDF receipt (optional)  
+**And** the receipt delivery record is updated with:  
+  - `method: EMAIL`  
+  - `status: SUCCESS`  
+  - `emailAddress: customer@example.com` (encrypted at rest)  
+  - `timestamp: `  
+**And** the POS displays: "Receipt emailed to customer@example.com"  
+**And** email delivery is guaranteed at 95% within 5 minutes (valid address, normal operations)
+
+---
+
+### AC4: Receipt Reference Stored for Audit
+
+**Given** a receipt has been generated  
+**When** the receipt generation completes  
+**Then** the receipt record is stored in the database with:  
+  - Unique receipt reference (RCP-{invoiceNumber}-{timestamp}-{sequence})  
+  - Canonical receipt content fields  
+  - TemplateId and templateVersion (immutable)  
+  - Generation timestamp, cashier ID, terminal ID  
+  - Delivery method(s) and status  
+**And** the receipt reference is included in the invoice record  
+**And** the receipt is retained for 7 years from generation date
+
+---
+
+### AC5: Reprint Supported for Lost Receipts
+
+**Given** a receipt was originally generated with reference "RCP-INV-12345-20260105T143022Z-001"  
+**And** the receipt was printed 2 days ago  
+**When** a customer requests a duplicate receipt  
+**And** the cashier searches for the receipt by invoice number "INV-12345"  
+**And** the cashier (same day): clicks "Reprint Receipt" without verification  
+**Then** the original receipt content is retrieved using original templateVersion  
+**And** a "REPRINT" watermark is added with:  
+  - "Reprinted on: {current date/time}"  
+  - "Reprinted by: {cashier ID}"  
+**And** the receipt is printed with original details plus reprint metadata  
+**And** the reprint is logged to audit log with receipt reference, timestamp, cashier ID  
+**And** the receipt record is updated with reprint count incremented
+
+**When** a customer requests reprint 10 days later  
+**And** the cashier attempts reprint without verification  
+**Then** the system requires one of: invoice number + last4 + transaction date, OR customer account login, OR supervisor override
+
+---
+
+### AC6: Printer Offline Falls Back to Email Option
+
+**Given** a receipt has been generated  
+**And** the POS terminal printer is offline or out of paper  
+**When** the POS attempts to print the receipt  
+**Then** the POS displays error: "Printer unavailable. Load paper or select email option."  
+**And** the cashier can select "Email Receipt" as fallback  
+**And** if email is sent successfully, the receipt delivery record includes:  
+  - `method: EMAIL` (fallback)  
+  - `status: SUCCESS`  
+  - `failureReason: "Printer offline, fallback to email"`
+
+---
+
+### AC7: Customer Declines Receipt
+
+**Given** a payment has been successfully captured  
+**When** the cashier asks the customer "Would you like a receipt?"  
+**And** the customer declines  
+**And** the cashier selects "No Receipt" option  
+**Then** the receipt reference is generated and stored  
+**And** the receipt record is marked with:  
+  - `deliveryMethod: DECLINED`  
+  - `deliveryStatus: CUSTOMER_DECLINED`  
+**And** no receipt is printed or emailed  
+**And** the receipt remains available for later reprint if customer changes mind
+
+---
+
+### AC8: Reprint Count Limited and Enforced
+
+**Given** a receipt has been reprinted 5 times  
+**When** a user (non-supervisor) attempts to reprint again  
+**Then** the system displays: "Maximum reprints reached. Contact supervisor for override."  
+**When** a supervisor approves override with reason code (e.g., "LOST_BY_CUSTOMER")  
+**Then** the reprint is allowed and logged with override reason
+
+---
+
+## Audit & Observability
+
+### Required Audit Events
+
+1. **ReceiptGenerated**
+   - Timestamp, receipt reference, invoice ID, payment ID, cashier ID, terminal ID, templateId, templateVersion, generation latency
+
+2. **ReceiptPrinted**
+   - Timestamp, receipt reference, printer ID, print status (success/failed), failure reason (if failed)
+
+3. **ReceiptEmailed**
+   - Timestamp, receipt reference, email address (hashed for logging), send status (sent/failed/bounced), provider message ID (if available), failure reason (if failed)
+
+4. **ReceiptReprinted**
+   - Timestamp, receipt reference, reprint count, cashier ID / approver ID, reprint reason (if captured), original generation date, authorization method (same-day / verified / override)
+
+5. **ReceiptDeliveryFailed**
+   - Timestamp, receipt reference, delivery method (print/email), failure reason, fallback action taken
+
+6. **UnauthorizedReprintAttempt**
+   - Timestamp, receipt reference, user ID (who attempted), permission check result, denial reason
+
+7. **ReceiptRetentionPolicyApplied**
+   - Timestamp, receipt reference, archival action, storage tier transition (hot → warm → cold), purge (if 7-year retention elapsed)
+
+---
+
+### Metrics to Track
+
+- **Receipt Generation Latency:** Time from `PaymentCaptured` event to receipt generation complete (target: <2 seconds at p95)
+- **Print Success Rate:** Percentage of print attempts that succeed (target: >98%)
+- **Email Delivery Rate:** Percentage of email receipts successfully delivered (target: >95% within 5 minutes)
+- **Email Bounce Rate:** Percentage of email receipts that bounce (target: <5%)
+- **Email Retry Success:** Percentage of retries that succeed after initial transient failure (target: >80%)
+- **Reprint Request Rate:** Average number of reprint requests per day (should be low, <5% of total receipts)
+- **Fallback Usage Rate:** Percentage of receipts delivered via fallback method (email after print failure) (target: <2%)
+- **Max Reprint Limit Breaches:** Count of supervisor overrides for >5 reprints per day
+- **Receipt Storage Size:** Total storage used by receipt records for retention compliance (hot vs. cold tiers)
+- **Authorization Rate:** Percentage of reprint requests by permission level (cashier, supervisor, customer service)
+
+---
+
+## Resolved Open Questions Summary
+
+✅ **Q1 - Receipt Content (v1 contract):** Mandatory fields on all receipts (store, identifiers, date/time, amounts, payment details per tender, taxes, footer). Optional channel-specific sections (print summary vs. email detail).
+
+✅ **Q2 - Template Ownership & Versioning:** Billing owns content structure; Marketing owns branding; templates versioned in controlled repository. Each receipt stores templateId + templateVersion. Reprints use original template version for exact reproduction.
+
+✅ **Q3 - Email Delivery SLA & Retry:** 95% delivered within 5 minutes. Up to 3 retries over 60 minutes for transient failures. No retry for hard bounces. Idempotent by (receiptReference, emailAddress).
+
+✅ **Q4 - Reprint Authorization:** Cashier same-day (no verification), after 7 days (identity check), Supervisor/Manager anytime, Customer service with permission anytime. Max 5 reprints per receipt; supervisor override beyond 5. Mandatory watermark (DUPLICATE/REPRINT + timestamp + user ID).
+
+✅ **Q5 - Retention Duration & Storage Format:** 7-year retention. Hot storage (0-24 months) keeps rendered artifacts for fast reprints. Warm/Cold storage (3-7 years) archives or regenerates deterministically from canonical data + original template. Purge after 7 years unless legal hold.
+
+✅ **Q6 - Multi-Tender Payments:** Single receipt per invoice settlement with tender list ordered by capture time. Each tender shows method, amount, auth code. Totals show paid, remaining balance, change. Partial payments indicated.
+
+✅ **Q7 - Privacy & PCI Compliance:** Email addresses encrypted at rest, never stored in logs (hashed), manual entry NOT auto-stored in CRM. Never store PAN; store only card brand + last4 + gateway transaction ID. Email PDFs don't include full account number. Receipt search by last4/auth code requires elevated permission.
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+# Issue #7 — [BACKEND] [STORY] Payment: Print/Email Receipt and Store Reference
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Payment: Print/Email Receipt and Store Reference
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Cashier**, I want receipts so that customers have proof of payment.
+
+## Details
+- Receipt includes invoice ref, auth code, timestamp, transaction refs.
+- Email receipt optional.
+
+## Acceptance Criteria
+- Receipt produced on successful capture.
+- Receipt ref stored.
+- Reprint supported.
+
+## Integrations
+- Payment service returns receipt data; CRM provides email contact (optional).
+
+## Data / Entities
+- Receipt, ReceiptDelivery, ContactRef
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Experience
+- domain :  Point of Sale
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #3: [BACKEND] [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+LABELS: payment,type:story,domain:crm,domain:billing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:crm
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:crm
+- agent:billing
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+As a **POS Clerk**, I need to enforce customer-specific billing rules (particularly PO requirements) during checkout so that commercial accounts comply with their contractual billing terms and internal approval processes, preventing order finalization until required documentation is captured.
+
+---
+
+## Actors & Stakeholders
+
+- **POS Clerk / Service Advisor** (primary actor) — processes checkout and captures required PO references when prompted by the system
+- **Commercial Customer** — subject to PO requirements and specific payment terms based on their account configuration
+- **Finance / Accounts Receivable** — defines customer billing rules, payment terms, and credit limits via Billing Management system
+- **Billing Management System** — authoritative source for customer billing rules, versioning, and credit limits
+- **CRM System** — surfaces and caches customer billing configuration for UX and workflow (not authoritative)
+- **Accounting System** — receives orders with PO references and applies payment terms for invoicing; enforces posting against credit limits
+- **System** — enforces billing rules at checkout and blocks finalization if requirements are not met
+
+---
+
+## Preconditions
+
+- The customer account exists with billing configuration defined in **Billing Management** (authoritative source)
+- The customer's billing rules include a versioned "PO Required" flag (true/false) with effective dates
+- Payment terms and charge account eligibility are configured for the customer in Billing Management
+- The POS Clerk is authenticated and authorized to process checkout
+- Override permissions and approval policies are defined for bypassing PO requirements (if permitted)
+- Billing rule versions are immutably stored with `effectiveStartAt`, `effectiveEndAt`, `changedBy`, and `changeReason`
+
+---
+
+## Functional Behavior
+
+### Enforce PO Requirement at Checkout
+**When** a POS Clerk attempts to finalize an order for a commercial customer,
+**Then** the system SHALL:
+1. Query the customer's billing rules from **Billing Management** (authoritative source)
+2. Retrieve the active billing rule version based on the current timestamp
+3. If PO is required and no PO reference has been captured, block order finalization with a clear message (e.g., "PO number required for this customer")
+4. Prompt the POS Clerk to enter the PO reference (alphanumeric, 3-30 characters, letters/numbers/`-`/`_` allowed, case-insensitive)
+5. Validate the PO reference format:
+   - Length: 3-30 characters
+   - Pattern: alphanumeric with `-` and `_` allowed
+   - No prefix requirement by default (customer-specific prefix configurable)
+6. If customer has PO uniqueness policy configured, validate uniqueness:
+   - `PER_ORDER` (default): no uniqueness check
+   - `PER_ACCOUNT_OPEN_ORDERS`: check against open orders for this account
+   - `PER_ACCOUNT_ALL_TIME`: check against all orders for this account
+7. Link the PO reference to the order along with the `billingRuleVersion` used at checkout
+8. Allow order finalization once the PO is captured and validated
+
+### Apply Payment Terms (Optional Flow)
+**When** a commercial customer has specific payment terms configured (e.g., "Net 30", "Net 60"),
+**Then** the system SHALL:
+1. Retrieve the payment terms from **Billing Management**
+2. Apply the terms to the order/invoice (defer payment due date)
+3. Set the billing method flag: `billingMethod = CHARGE_ACCOUNT | IMMEDIATE_PAYMENT`
+4. Query credit limits and charge account eligibility from **Billing Management**
+5. Record the applied payment terms for accounting integration
+6. Pass credit limit information to Accounting for enforcement during posting
+
+### Override PO Requirement (With Permission and Approval)
+**When** a POS Clerk with override permission attempts to bypass the PO requirement,
+**Then** the system SHALL:
+1. Validate that the clerk has the `OVERRIDE_PO_REQUIREMENT` permission
+2. Evaluate override policy rules:
+   - Check order total against thresholds (e.g., > $10,000 requires escalated approval)
+   - Check customer risk tier
+   - Check account credit status
+3. If order is under threshold and account is standard risk:
+   - Allow **single approver** override (the clerk with permission)
+4. If order exceeds threshold or account is high-risk:
+   - Require **two-person approval** (second approver with override permission)
+   - Prompt for second approver authentication
+5. Prompt for an override reason code (mandatory, from predefined list or free text)
+6. Capture override approval details:
+   - `approverId(s)` (one or two approvers depending on policy)
+   - `policyVersion` (version of override policy applied)
+   - `overrideReasonCode` (mandatory)
+   - `overrideTimestamp`
+7. Allow order finalization without a PO reference
+8. Log the override event with complete audit trail
+9. Flag the order as "PO Overridden" for finance review
+
+---
+
+## Alternate / Error Flows
+
+### Error: PO Requirement Not Met
+**When** a POS Clerk attempts to finalize an order for a customer with PO requirement but no PO captured,
+**Then** the system SHALL:
+1. Reject the finalization request
+2. Display a clear error message: "PO number required for customer [Customer Name]. Please enter PO or contact finance for override approval."
+3. Log the blocked attempt (clerk, customer, timestamp, billingRuleVersion)
+
+### Error: Invalid PO Format
+**When** a PO reference is entered but does not match the validation pattern (3-30 characters, alphanumeric with `-` and `_`),
+**Then** the system SHALL:
+1. Reject the PO
+2. Display an error message describing the expected format: "PO must be 3-30 characters, letters, numbers, dashes, and underscores only."
+3. Prompt for correction
+
+### Error: PO Uniqueness Violation
+**When** a PO reference violates the customer's configured uniqueness policy,
+**Then** the system SHALL:
+1. Reject the PO
+2. Display an error message: "PO number [PO] is already in use for another order for this customer. Please use a unique PO or contact the customer."
+3. Log the uniqueness violation (clerk, customer, PO number, conflicting order reference)
+
+### Error: Unauthorized Override Attempt
+**When** a POS Clerk without override permission attempts to bypass the PO requirement,
+**Then** the system SHALL:
+1. Reject the override request
+2. Display an error message: "Insufficient permissions to override PO requirement. Contact a manager."
+3. Log the denied override attempt (clerk, customer, timestamp)
+
+### Error: Missing Customer Billing Configuration (Fail-Safe for B2B)
+**When** a customer account identified as B2B lacks billing rule configuration (PO required flag is undefined or invalid),
+**Then** the system SHALL:
+1. **Default to REQUIRING PO** (fail-safe for commercial accounts)
+2. Block checkout with a clear error message: "Billing rules not configured for this B2B customer. Please contact an administrator."
+3. Log a critical warning for Billing Management administrators to review and configure billing rules
+4. **Do not allow checkout to proceed** until rules are configured or an authorized override is applied
+
+### Error: Insufficient Credit Limit
+**When** an order with charge account billing method would exceed the customer's credit limit,
+**Then** the system SHALL:
+1. Query credit limit from **Billing Management**
+2. Block order finalization if credit limit would be exceeded
+3. Display an error message: "Order total exceeds available credit limit. Please select a different payment method or contact finance."
+4. Log the credit limit violation
+
+### Error: Two-Person Approval Required but Not Provided
+**When** an override requires two-person approval but only one approver is authenticated,
+**Then** the system SHALL:
+1. Reject the override request
+2. Display an error message: "This override requires approval from a second authorized user. Order total exceeds single-approval threshold."
+3. Prompt for second approver authentication
+4. Log the incomplete approval attempt
+
+---
+
+## Business Rules
+
+1. **Billing Rule Authority:** **Billing Management** is the authoritative source for customer billing rules. CRM may cache and display rules for UX, but all queries for enforcement must go to Billing Management.
+
+2. **Rule Versioning (Mandatory):** Billing rules are versioned and timestamped with:
+   - `ruleId` (unique identifier)
+   - `version` (immutable version number)
+   - `effectiveStartAt` (timestamp when rule becomes active)
+   - `effectiveEndAt` (timestamp when rule expires, nullable for current rules)
+   - `changedBy` (user identity who created the rule version)
+   - `changeReason` (mandatory audit note)
+
+3. **Order-Rule Linkage:** Orders must capture and store the `billingRuleVersion` used at time of checkout for historical reconciliation. No retroactive rule changes may affect completed orders.
+
+4. **PO Format (Default):** PO numbers must be:
+   - Alphanumeric (letters, numbers, `-`, `_` allowed)
+   - Case-insensitive
+   - Length: 3-30 characters
+   - No prefix requirement by default (customer-specific prefix configurable)
+
+5. **PO Uniqueness (Configurable):** PO uniqueness is configurable per customer:
+   - `PER_ORDER` (default): Same PO may be used across multiple orders (blanket PO pattern)
+   - `PER_ACCOUNT_OPEN_ORDERS`: PO must be unique among open orders for the customer
+   - `PER_ACCOUNT_ALL_TIME`: PO must be globally unique for the customer across all time
+
+6. **Override Permission:** `OVERRIDE_PO_REQUIREMENT` is a standalone permission. Roles (e.g., Manager, Finance Manager) may bundle this permission, but it is not role-specific.
+
+7. **Override Approval Workflow:** Overrides are subject to policy rules:
+   - **Single approver** sufficient for orders under threshold and standard-risk accounts
+   - **Two-person approval** required for:
+     - Orders exceeding dollar threshold (e.g., > $10,000)
+     - High-risk customer accounts
+     - Accounts with credit holds or past-due balances
+
+8. **Mandatory Override Audit:** All overrides must capture:
+   - `approverId(s)` (one or two approvers)
+   - `policyVersion` (version of override policy applied)
+   - `overrideReasonCode` (mandatory, from predefined list or free text)
+   - `overrideTimestamp`
+
+9. **Immutable PO Reference:** Once a PO reference is captured and linked to an order, it MUST NOT be editable (only correction via adjustment order or cancellation/re-entry).
+
+10. **Payment Terms Independence:** Payment terms (e.g., Net 30) and PO requirements are independent but commonly paired for commercial accounts. One does not automatically trigger the other, but policies may recommend specific combinations.
+
+11. **Charge Account Billing Method:** Charge account is a billing method flag on the order (`billingMethod = CHARGE_ACCOUNT | IMMEDIATE_PAYMENT`), not a separate checkout path. Orders with `CHARGE_ACCOUNT` billing method defer payment and apply terms.
+
+12. **Credit Limit Authority:** **Billing Management** owns customer credit limits and charge account eligibility. Accounting enforces posting against limits; CRM displays status for UX.
+
+13. **Fail-Safe Default for B2B Accounts:** If billing rules are undefined or invalid for a customer identified as B2B:
+    - **Default to REQUIRING PO** (fail-safe)
+    - **Block checkout** with clear error message
+    - **Require billing rule configuration** or authorized override before proceeding
+    - Global fallback policy: `ALL_B2B_REQUIRE_PO = true` (recommended default)
+
+14. **No External PO Validation (Default):** PO numbers are not validated against external customer procurement systems by default. Any value matching the format is acceptable unless customer-specific integration is configured.
+
+---
+
+## Data Requirements
+
+**Customer Billing Configuration (Billing Management - Authoritative):**
+- `customer_id` (unique identifier)
+- `billing_rule_id` (unique rule identifier)
+- `billing_rule_version` (immutable version number)
+- `po_required` (boolean flag)
+- `payment_terms` (e.g., "Net 30", "Net 60", "COD", nullable)
+- `charge_account_eligible` (boolean flag)
+- `credit_limit` (decimal, nullable)
+- `risk_tier` (e.g., "STANDARD", "HIGH_RISK", "CREDIT_HOLD")
+- `po_uniqueness_policy` (enum: `PER_ORDER`, `PER_ACCOUNT_OPEN_ORDERS`, `PER_ACCOUNT_ALL_TIME`)
+- `po_format_prefix` (optional customer-specific prefix requirement)
+- `effective_start_at` (timestamp when rule becomes active)
+- `effective_end_at` (timestamp when rule expires, nullable for current rules)
+- `changed_by` (user identity who created the rule version)
+- `change_reason` (mandatory audit note for rule changes)
+
+**PO Reference (Order Data):**
+- `order_id` (foreign key)
+- `po_number` (alphanumeric, 3-30 characters)
+- `po_captured_at` (timestamp)
+- `po_captured_by` (clerk identity)
+- `billing_rule_version` (foreign key to specific billing rule version used at checkout)
+- `po_overridden` (boolean flag, default false)
+- `override_reason_code` (mandatory if overridden, from predefined list or free text)
+- `override_approver_ids` (array of user identities, one or two approvers)
+- `override_policy_version` (version of override policy applied)
+- `override_at` (timestamp, nullable)
+
+**Override Policy Configuration:**
+- `policy_id` (unique identifier)
+- `policy_version` (immutable version number)
+- `single_approval_threshold` (decimal dollar amount, e.g., 10000.00)
+- `two_person_approval_required_above_threshold` (boolean)
+- `high_risk_requires_two_person` (boolean)
+- `credit_hold_requires_two_person` (boolean)
+- `effective_start_at` (timestamp)
+- `effective_end_at` (timestamp, nullable)
+
+**Audit Log (Billing Rule Enforcement Events):**
+- `audit_id` (unique identifier)
+- `event_type` (e.g., `PORequired`, `POCaptured`, `POOverridden`, `POBlockedCheckout`, `InvalidPOFormat`, `POUniquenessViolation`, `UnauthorizedPOOverride`, `TwoPersonApprovalRequired`, `CreditLimitExceeded`)
+- `customer_id` (foreign key)
+- `order_id` (foreign key, nullable if checkout blocked)
+- `billing_rule_version` (foreign key to billing rule version queried)
+- `actor_id` (clerk or approver performing action)
+- `approver_ids` (array of approver identities for overrides)
+- `override_policy_version` (foreign key if override occurred)
+- `timestamp` (immutable)
+- `details` (JSON or structured log, includes PO number, reason codes, policy evaluation results)
+
+---
+
+## Acceptance Criteria
+
+### AC1: PO Requirement Enforced (Billing Management Authority)
+- **Given** a commercial customer with "PO Required" enabled in **Billing Management**,
+- **When** a POS Clerk attempts to finalize an order without entering a PO reference,
+- **Then** the system queries Billing Management for the active billing rule version, blocks finalization, displays a clear error message, and logs the blocked attempt with `billingRuleVersion`.
+
+### AC2: PO Captured with Rule Version Linkage
+- **Given** a commercial customer with "PO Required" enabled,
+- **When** a POS Clerk enters a valid PO reference (e.g., "PO-12345") matching the format (3-30 characters, alphanumeric with `-` and `_`),
+- **Then** the system validates format, links the PO to the order, captures the `billingRuleVersion` used at checkout, allows finalization, and logs the `POCaptured` event.
+
+### AC3: PO Format Validation
+- **Given** a POS Clerk enters a PO reference,
+- **When** the PO does not match the format requirements (e.g., 2 characters, special characters),
+- **Then** the system rejects the PO, displays a clear format error message, and prompts for correction.
+
+### AC4: PO Uniqueness Policy Enforced
+- **Given** a customer with PO uniqueness policy set to `PER_ACCOUNT_OPEN_ORDERS`,
+- **When** a POS Clerk enters a PO number already used for another open order for this customer,
+- **Then** the system rejects the PO, displays a uniqueness error message with the conflicting order reference, and logs the violation.
+
+### AC5: Single Approver Override (Under Threshold)
+- **Given** a POS Clerk with `OVERRIDE_PO_REQUIREMENT` permission,
+- **And** an order total under the single-approval threshold (e.g., $8,000),
+- **And** the customer is standard-risk,
+- **When** the clerk overrides the PO requirement and provides a reason code (e.g., "Customer verbal approval obtained"),
+- **Then** the system allows finalization with single approver, flags the order as "PO Overridden", and logs the override event with clerk identity, reason code, and `policyVersion`.
+
+### AC6: Two-Person Approval Required (Above Threshold)
+- **Given** a POS Clerk with `OVERRIDE_PO_REQUIREMENT` permission,
+- **And** an order total exceeding the single-approval threshold (e.g., $12,000),
+- **When** the clerk attempts to override the PO requirement,
+- **Then** the system requires a second approver with override permission to authenticate, captures both `approverId`s, and logs the two-person approval event.
+
+### AC7: Unauthorized Override Denied
+- **Given** a POS Clerk without `OVERRIDE_PO_REQUIREMENT` permission,
+- **When** the clerk attempts to bypass the PO requirement,
+- **Then** the system rejects the override, displays an error message, and logs the denied attempt.
+
+### AC8: Fail-Safe Default for Misconfigured B2B Account
+- **Given** a customer identified as B2B with undefined or invalid billing rule configuration,
+- **When** a POS Clerk attempts to finalize an order,
+- **Then** the system defaults to REQUIRING PO (fail-safe), blocks checkout with a clear error message ("Billing rules not configured"), and logs a critical warning for administrators.
+
+### AC9: Audit Trail Includes Rule Version and Approvers
+- **Given** a PO requirement override has occurred with two-person approval,
+- **When** finance reviews the audit trail,
+- **Then** the `POOverridden` event is present with both approver identities, override reason code, `billingRuleVersion`, `policyVersion`, customer account, and timestamp.
+
+### AC10: Payment Terms Applied with Credit Limit Check
+- **Given** a commercial customer with "Net 30" payment terms and a credit limit of $50,000,
+- **And** the customer has $45,000 in outstanding invoices,
+- **When** an order for $6,000 is finalized with PO captured and `billingMethod = CHARGE_ACCOUNT`,
+- **Then** the system blocks finalization due to credit limit exceeded, displays a clear error message, and logs the `CreditLimitExceeded` event.
+
+### AC11: Historical Orders Reference Billing Rule Version
+- **Given** a completed order with a PO reference,
+- **When** the customer's billing rules are updated (new version created),
+- **Then** the completed order continues to reference the original `billingRuleVersion` used at checkout, and no retroactive rule changes affect the historical order.
+
+---
+
+## Audit & Observability
+
+**Audit Events to Log:**
+- `PORequired` — fired when the system detects a PO requirement for a customer at checkout (include customer, clerk, timestamp, billingRuleVersion)
+- `POCaptured` — fired when a PO reference is successfully entered and validated (include customer, order, PO number, clerk, timestamp, billingRuleVersion)
+- `POOverridden` — fired when a clerk overrides the PO requirement (include customer, order, clerk(s), reason code, timestamp, policyVersion, billingRuleVersion, number of approvers)
+- `POBlockedCheckout` — fired when finalization is blocked due to missing PO (include customer, order, clerk, timestamp, billingRuleVersion)
+- `InvalidPOFormat` — fired when a PO reference fails format validation (include customer, order, PO number, clerk, timestamp)
+- `POUniquenessViolation` — fired when a PO reference violates uniqueness policy (include customer, order, PO number, clerk, timestamp, conflicting order reference, uniqueness policy)
+- `UnauthorizedPOOverride` — fired when a clerk without permission attempts an override (include customer, order, clerk, timestamp)
+- `TwoPersonApprovalRequired` — fired when an override requires two-person approval (include customer, order, clerk, timestamp, policyVersion, order total, threshold)
+- `TwoPersonApprovalCompleted` — fired when two-person approval is successfully completed (include customer, order, both approver identities, timestamp)
+- `CreditLimitExceeded` — fired when an order would exceed customer credit limit (include customer, order, credit limit, current balance, order total, timestamp)
+- `MissingBillingConfiguration` — fired when a B2B customer lacks billing rule configuration (include customer, clerk, timestamp)
+
+**Observability Metrics:**
+- Count of PO-required orders per day/week/month (to understand commercial account volume)
+- Count of PO overrides per clerk (to detect pattern abuse or training needs)
+- Count of single-approver vs. two-person overrides (to validate policy effectiveness)
+- Count of blocked checkouts due to missing PO (to measure friction and potential process improvements)
+- Count of blocked checkouts due to misconfigured billing rules (to identify configuration gaps)
+- Average time from order start to PO capture (to measure clerk efficiency)
+- Count of invalid PO format errors (to identify validation rule issues)
+- Count of PO uniqueness violations (to identify customer PO management issues)
+- Count of credit limit exceeded events (to monitor credit risk exposure)
+- Billing rule version distribution (to track adoption of rule updates)
+
+---
+
+## Resolved Questions & Decisions
+
+The following clarifications were provided by business stakeholders and integrated into this story:
+
+### Decision 1: Billing Rule Ownership and Authority
+**Question:** Who is the authoritative source for customer billing rules?
+
+**Decision:**
+- **Billing Management (Billing domain)** is the system of record for customer billing rules
+- CRM may surface and cache selected flags (e.g., "PO Required") for UX and workflow, but is not authoritative
+- Accounting consumes rules for posting and reconciliation; it does not own them
+- Changes are performed via Billing Management APIs by users with `MANAGE_BILLING_RULES` permission
+- Billing rules are versioned and timestamped: `ruleId`, `version`, `effectiveStartAt`, `effectiveEndAt`, `changedBy`, `changeReason`
+- Orders reference the `billingRuleVersion` used at time of checkout
+- No retroactive mutation of rules for historical orders
+
+**Why this works:** Single authority, immutable history, and deterministic reconciliation.
+
+---
+
+### Decision 2: PO Validation Rules and Format
+**Question:** What are the PO format and validation requirements?
+
+**Decision:**
+- **Format:** Alphanumeric, case-insensitive
+- **Length:** 3-30 characters
+- **Allowed characters:** Letters, numbers, `-`, `_`
+- **No prefix requirement** by default (configurable per customer if needed)
+- **No external validation** against customer procurement systems by default
+- **Uniqueness scope** (configurable per customer):
+  - `PER_ORDER` (default): Same PO allowed across orders (blanket PO pattern)
+  - `PER_ACCOUNT_OPEN_ORDERS`: PO unique among open orders
+  - `PER_ACCOUNT_ALL_TIME`: PO globally unique for customer
+
+**Why this works:** Flexible format supports common blanket PO patterns while allowing customer-specific constraints.
+
+---
+
+### Decision 3: Override Permission Scope and Approval Workflow
+**Question:** What are the override permission and approval requirements?
+
+**Decision:**
+- `OVERRIDE_PO_REQUIREMENT` is a standalone permission, not implicitly tied to a role
+- Roles (e.g., Manager, Finance Manager) bundle this permission
+- Overrides are subject to policy rules:
+  - Order total thresholds (e.g., > $10,000)
+  - Customer risk tier
+  - Account credit status
+- **Approval workflow:**
+  - **Single approver** with permission for orders under threshold
+  - **Two-person rule** required above threshold or for high-risk accounts
+- **Approval captures:**
+  - `approverId(s)`
+  - `policyVersion`
+  - `overrideReasonCode`
+
+**Why this works:** Balances speed with control and audit strength. Prevents override sprawl while maintaining operational flexibility.
+
+---
+
+### Decision 4: Payment Terms and Charge Account Integration
+**Question:** How do payment terms and PO requirements interact?
+
+**Decision:**
+- **Independent but commonly paired:** PO Required does not automatically imply Net terms, and vice versa
+- Policies may recommend combinations (e.g., PO + Net 30) but do not hard-couple
+- **Charge account is a billing mode flag** on the order: `billingMethod = CHARGE_ACCOUNT | IMMEDIATE_PAYMENT`
+- **Billing Management owns:**
+  - Credit limits
+  - Charge account eligibility
+  - Risk holds
+- Accounting enforces posting against limits; CRM displays status
+
+**Why this works:** Keeps credit risk centralized and consistent while maintaining flexibility in payment workflows.
+
+---
+
+### Decision 5: Default Behavior for Missing or Misconfigured Rules
+**Question:** What should the system do if billing rules are undefined?
+
+**Decision:**
+- **Fail-safe for commercial (B2B) accounts**
+- If `PO Required` is undefined for a B2B account: **Require PO**
+- If rule configuration is missing or invalid: **Block checkout** with clear error: "Billing rules not configured. Please contact an administrator."
+- Optional global fallback: `ALL_B2B_REQUIRE_PO = true` (recommended default)
+- Authorized users may override with proper approval and audit
+
+**Why this works:** Prevents silent non-compliance while allowing controlled exceptions. Protects against configuration drift and ensures deliberate rule management.
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+# Issue #3 — [BACKEND] [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **POS Clerk**, I want billing rules enforced so that compliance is maintained for commercial accounts.
+
+## Details
+- If PO required, block finalization until captured.
+- Apply terms/charge account flow optional.
+- Override requires permission.
+
+## Acceptance Criteria
+- Rule enforced consistently.
+- Override requires permission.
+- Audit includes who/why.
+
+## Integrations
+- CRM billing rules; accounting terms may apply.
+
+## Data / Entities
+- BillingRuleCheck, PoReference, AuditLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Experience
+- domain :  Point of Sale
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+

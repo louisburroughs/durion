@@ -1,0 +1,3149 @@
+════════════════════════════════════════
+ISSUE #111: [BACKEND] [STORY] Party: Create Individual Person Record
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+## Story Intent
+As a Customer Service Representative (CSR), I want to create an individual person record with contact information, so that I can associate that person to business activities like commercial accounts, vehicles, and work orders.
+
+## Actors & Stakeholders
+- **Primary Actor:** CSR
+- **System of Record:** CRM / Party Service (owns Party/Person master data)
+- **Downstream Consumers:** Workorder Execution, Billing (reference Party/Person but do not own it)
+
+## Preconditions
+- CSR is authenticated and authorized to create person records.
+- Party/CRM service is available.
+
+## Functional Behavior
+1. CSR calls “Create Individual Person” endpoint.
+2. Request includes: `firstName`, `lastName`, `preferredContactMethod`, optional lists of emails and phones.
+3. System validates required fields and formats.
+4. System creates a `Person` record with a new immutable `personId`.
+5. System creates zero-to-many `ContactPoint` records and associates them to `personId`.
+6. System returns `201 Created` with `personId`.
+
+## Alternate / Error Flows
+- Missing required fields (e.g., `lastName`) → `400 Bad Request`.
+- Invalid email format → `400 Bad Request`.
+- Persistence failure → `500 Internal Server Error`; transaction rolled back.
+
+## Business Rules (Resolved)
+- **Domain authority:** `domain:crm` is the system of record for Party/Person entities; payment systems may reference but do not own Party/Person.
+- **Required fields:** `firstName` and `lastName`.
+- **Identifier:** `personId` is system-generated, unique, immutable.
+- **Contact points:** zero-to-many phones and emails.
+- **Preferred contact method enum (resolved):** `EMAIL | PHONE_CALL | SMS | NONE`.
+- **Role tags (billing contact, driver, approver) (resolved):** out of scope for this story; do not add placeholder schema.
+- **Duplicate detection (resolved):** duplicates are acceptable for this story; no dedup/merge workflow required.
+
+## Data Requirements
+### Person
+- `personId` (UUID)
+- `firstName` (string, required)
+- `lastName` (string, required)
+- `preferredContactMethod` (enum, required)
+- `createdAt`, `updatedAt`
+
+### ContactPoint
+- `contactPointId` (UUID)
+- `personId` (FK)
+- `contactType` (enum; e.g., `EMAIL`, `PHONE_MOBILE`, `PHONE_HOME`)
+- `value` (string)
+- `isPrimary` (boolean, default false)
+- `createdAt`, `updatedAt`
+
+## Acceptance Criteria
+- **AC1:** Minimal create (name + preferred method) returns `201` and persists a Person.
+- **AC2:** Create with two emails and two phone numbers persists four ContactPoints.
+- **AC3:** Missing `lastName` returns `400` and persists nothing.
+- **AC4:** Invalid email format returns `400` and persists nothing.
+
+## Audit & Observability
+- Audit event on success: `PERSON_CREATED` with `personId`, actorId, timestamp.
+- Metric: `person_creation_total` increments on success.
+
+## Open Questions
+None.
+
+---
+
+## Original Story (Unmodified – For Traceability)
+(See original content in the issue history prior to this rewrite.)
+
+════════════════════════════════════════
+ISSUE #110: [BACKEND] [STORY] Party: Associate Individuals to Commercial Account
+LABELS: backend,story-implementation,type:story,domain:crm,status:ready-for-dev,agent:story-authoring,agent:crm
+BODY:
+## Story Intent
+As a Fleet Account Manager, I want to link individuals to a commercial account with relationship roles and effective dates, so that work order approval and billing contacts are unambiguous for downstream processes.
+
+## Actors & Stakeholders
+- **Primary Actor:** Fleet Account Manager
+- **Service Owner:** CRM domain/service (party + relationship master data)
+- **Downstream Consumers:** Workorder Execution, Billing/Invoice workflows (read-only consumers)
+- **Stakeholders:** Service Advisors, Billing Department, Commercial Account customers
+
+## Preconditions
+- Commercial account (Organization party) exists.
+- Individual (Person party) exists.
+- Actor is authenticated/authorized to manage the commercial account.
+- Relationship roles are system-defined and validated (e.g., `APPROVER`, `BILLING`).
+
+## Functional Behavior
+
+### 1) Create party relationship
+- User creates an association between an Organization and a Person with one or more roles and an `effectiveStartDate`.
+- System persists an immutable/append-only history (no hard deletes).
+
+### 2) Designate primary billing contact (Decision)
+- **Rule:** Exactly one (1) primary billing contact per commercial account at a time.
+- Assigning a new primary billing contact **atomically demotes** any existing primary billing contact.
+- Primary billing contact must be an **active** relationship.
+- If the primary relationship is deactivated, the account can have **no primary billing contact** until one is assigned.
+
+### 3) Deactivate relationship
+- Deactivation sets `effectiveEndDate` (logical end of validity).
+- Deactivated relationships are excluded from “active contacts” reads.
+
+## Alternate / Error Flows
+- Party not found → `404`.
+- Role invalid → `400`.
+- Duplicate overlapping active relationship for same party pair + role → `409`.
+- Unauthorized → `403`.
+
+## Business Rules
+- **Domain authority (Decision):** `domain:crm` is the system of record for party relationships; Payment/Billing/Workexec are consumers.
+- Relationship uniqueness is based on (commercialAccount, individual, role, effective date range) with no overlapping active ranges.
+- Effective dates determine active/inactive status; null end date means active.
+
+## Data Requirements
+- `PartyRelationship`:
+  - `partyRelationshipId` (UUID)
+  - `fromPartyId` (commercial account / org)
+  - `toPartyId` (individual / person)
+  - `roleType` (e.g., `APPROVER`, `BILLING`)
+  - `isPrimaryBillingContact` (boolean; only meaningful for `BILLING` role)
+  - `effectiveStartDate`, `effectiveEndDate`
+  - audit fields (createdAt/By, updatedAt/By)
+
+## Consumer API Contract (Decision)
+CRM must expose a stable read API for consumers (default: real-time reads).
+
+### Read endpoint (recommended)
+`GET /crm/commercial-accounts/{commercialAccountId}/contacts`
+
+- Query params:
+  - `roles` (optional, comma-separated): `APPROVER,BILLING`
+  - `status` (optional, default `ACTIVE`): `ACTIVE|INACTIVE`
+  - `includeIndividuals` (optional, default `true`)
+
+- Semantics:
+  - **Active approvers** = contacts where `status=ACTIVE` and roles include `APPROVER`
+  - **Billing contacts** = contacts where `status=ACTIVE` and roles include `BILLING`
+  - **Primary billing contact** = billing contact with `isPrimaryBillingContact=true` (0 or 1 by rule)
+
+## Acceptance Criteria
+- Can create a relationship with role and effective start date.
+- Can deactivate a relationship (sets end date; does not delete).
+- Enforces single primary billing contact per account; assigning a new primary demotes the previous primary atomically.
+- Exposes `GET /crm/commercial-accounts/{id}/contacts` returning active approvers/billing contacts and at most one primary billing contact.
+
+## Audit & Observability
+- Audit log all create/update/deactivate operations with actor and timestamps.
+- Emit a distinct audit event when `isPrimaryBillingContact` changes.
+- Metrics for relationships created/deactivated and primary billing changes.
+
+## Open Questions
+- None. Decisions were supplied in the issue comments (Decision Record dated 2026-01-14).
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #110 — [BACKEND] [STORY] Party: Associate Individuals to Commercial Account
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Party: Associate Individuals to Commercial Account
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Fleet Account Manager**, I want **to link individuals to a commercial account with relationship types/roles** so that **workorder approval and billing contacts are unambiguous**.
+
+## Details
+- Relationship includes role(s) and effective dates.
+- Allow one or more primary billing contacts per account.
+
+## Acceptance Criteria
+- Can create relationship with role.
+- Primary billing contact can be designated.
+- Relationship can be deactivated.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution retrieves approvers/billing contacts for an account.
+
+## Data / Entities
+- PartyRelationship (roles, flags, effective dates)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #109: [BACKEND] [STORY] Party: Search and Merge Duplicate Parties (Basic)
+LABELS: type:story,domain:crm,status:needs-review
+BODY:
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+As an Admin user, I need a system capability to find and merge duplicate customer (Party) records. This will ensure data integrity, reduce confusion for service staff when selecting customers for workorders, and consolidate a customer's history into a single authoritative record. The system must ensure that all historical references to the merged record remain valid.
+
+## Actors & Stakeholders
+- **Admin:** The primary actor who identifies, selects, and executes the merge operation.
+- **System:** The backend service responsible for performing the data merge, re-associating related entities, creating audit trails, and managing ID redirections.
+- **Workorder Execution System (Stakeholder):** A downstream consumer of Party data. It relies on the CRM domain to ensure that Party IDs referenced in historical workorders remain resolvable after a merge.
+
+## Preconditions
+- The Admin is authenticated and has authorization to perform Party merge operations.
+- At least two Party records exist which are candidates for merging.
+- The system provides a user interface for searching Parties and initiating the merge action.
+
+## Functional Behavior
+1.  **Trigger:** The Admin initiates a search for duplicate Parties using criteria such as name, email address, or phone number.
+2.  The System returns a list of Party records matching the search criteria.
+3.  The Admin selects exactly two records from the list to be merged:
+    - One is designated the **Survivor Party** (the record to keep).
+    - The other is designated the **Source Party** (the record to be absorbed and deactivated).
+4.  The Admin confirms the merge action.
+5.  The System executes the merge transaction:
+    a. All child entities and relationships (e.g., Vehicles, Contacts, Workorders, Communications) associated with the `Source Party` are re-associated with the `Survivor Party`.
+    b. The `Source Party`'s status is changed to `MERGED` or an equivalent terminal state, effectively deactivating it. It should no longer appear in standard searches.
+    c. A `MergeAudit` record is created, immutably logging the `sourcePartyId`, `survivorPartyId`, the ID of the Admin who performed the merge, and the timestamp.
+    d. A `PartyAlias` record is created, mapping the `sourcePartyId` to the `survivorPartyId` to ensure permanent resolvability.
+
+## Alternate / Error Flows
+- **No Duplicates Found:** If the search yields zero or one result, the System informs the user that no duplicates were found to merge.
+- **Merge a Party with Itself:** If the Admin selects the same Party record as both the Source and Survivor, the System shall reject the operation with an error message: "Cannot merge a party with itself."
+- **Merge Transaction Failure:** If any part of the merge transaction fails (e.g., database constraint violation during re-association), the entire operation must be rolled back to its pre-merge state. An error log with a transaction ID should be created for technical investigation.
+
+## Business Rules
+- A merge operation is considered permanent and cannot be undone through the standard user interface.
+- Only two Party records can be merged at one time.
+- The core attributes of the `Survivor Party` (e.g., name, primary address) are preserved. The disposition of conflicting or unique attributes from the `Source Party` must be defined (see Open Questions).
+- After the merge, the `Source Party` must not be retrievable through standard search endpoints.
+- All future requests for the `sourcePartyId` must be transparently redirected to the `survivorPartyId`.
+
+## Data Requirements
+- **Party:**
+    - `partyId` (UUID, PK)
+    - `status` (Enum: `ACTIVE`, `INACTIVE`, `MERGED`)
+    - Customer attributes (name, etc.)
+- **MergeAudit (New Entity):**
+    - `mergeAuditId` (PK)
+    - `survivorPartyId` (FK to Party)
+    - `sourcePartyId` (FK to Party, but not enforced to allow for source record deletion policies)
+    - `mergedByUserId`
+    - `mergedAt` (Timestamp)
+- **PartyAlias (New Entity):**
+    - `sourcePartyId` (PK, Indexed)
+    - `targetPartyId` (FK to Party)
+    - `createdAt` (Timestamp)
+- **Affected Child Entities (Examples):**
+    - `Vehicle`: must have its `ownerPartyId` updated.
+    - `Contact`: must have its `associatedPartyId` updated.
+    - `Workorder`: must have its `customerPartyId` updated.
+
+## Acceptance Criteria
+- **AC1: Successful Merge Operation**
+    - **Given** two distinct Party records, "Party A" (Source) and "Party B" (Survivor), exist
+    - **And** "Party A" is associated with "Vehicle 123"
+    - **When** an Admin merges "Party A" into "Party B"
+    - **Then** a `MergeAudit` record is created linking Party A to Party B
+    - **And** a `PartyAlias` record is created mapping Party A's ID to Party B's ID
+    - **And** "Vehicle 123" is now associated with "Party B"
+    - **And** the status of "Party A" is set to `MERGED`
+
+- **AC2: Post-Merge ID Resolution**
+    - **Given** Party A has been merged into Party B
+    - **When** a system service requests data for Party A's ID
+    - **Then** the service transparently receives the data for Party B
+
+- **AC3: Prevent Merging a Party with Itself**
+    - **Given** a Party record "Party C" exists
+    - **When** an Admin attempts to merge "Party C" into itself
+    - **Then** the system must display an error and prevent the merge operation
+
+- **AC4: Search Excludes Merged Parties**
+    - **Given** Party A has been merged into Party B
+    - **When** an Admin performs a standard search that would have previously matched Party A
+    - **Then** Party A is not included in the search results
+
+## Audit & Observability
+- **Audit Log:** Every successful merge event must be logged in the `MergeAudit` table.
+- **Application Logging:**
+    - **INFO:** Log the initiation and successful completion of a merge, including all relevant IDs (`sourcePartyId`, `survivorPartyId`, `adminUserId`).
+    - **ERROR:** Log any failed merge attempts, including the reason for failure and a transaction correlation ID.
+- **Metrics:**
+    - `party_merges_total`: A counter for the number of successful merge operations.
+    - `party_merge_failures_total`: A counter for failed merge attempts.
+    - `party_alias_lookups_total`: A counter for how many times the `PartyAlias` table is used for redirection.
+
+## Open Questions
+1.  **Attribute Conflict Resolution:** When merging two parties, how are conflicting primitive attributes handled? For example, if both parties have a different `primaryEmail`.
+    - **Option A (Survivor Wins):** The Survivor Party's data is kept, and the Source Party's conflicting data is discarded. (Simplest approach for a "basic" story).
+    - **Option B (Manual Selection):** The UI presents conflicts to the Admin to choose which data to keep for each field. (More complex, likely a separate story).
+    - **Recommendation:** Clarify if "Survivor Wins" is an acceptable rule for this initial implementation.
+2.  **Source Party Final State:** What is the precise final state of the `source` Party record? Is it soft-deleted (e.g., `status = MERGED`), or is there a policy for eventual hard deletion? This impacts foreign key constraints.
+3.  **Merge Reversibility:** While the user-facing operation is permanent, is there a requirement for an administrative "un-merge" or rollback capability for disaster recovery?
+
+## Original Story (Unmodified – For Traceability)
+# Issue #109 — [BACKEND] [STORY] Party: Search and Merge Duplicate Parties (Basic)
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Party: Search and Merge Duplicate Parties (Basic)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Admin**, I want **to identify and merge obvious duplicate parties** so that **workorder selection remains clean and accurate**.
+
+## Details
+- Search by name/email/phone.
+- Merge workflow: choose survivor, move relationships/vehicles/contacts, record merge audit.
+- Optional alias/redirect record for merged IDs.
+
+## Acceptance Criteria
+- Can list possible duplicates.
+- Can merge with an audit record.
+- References remain resolvable after merge.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution references must remain resolvable after merge (alias/redirect lookup).
+
+## Data / Entities
+- Party
+- MergeAudit
+- PartyAlias (optional)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #107: [BACKEND] [STORY] Contacts: Store Communication Preferences and Consent Flags
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- none
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+As a **Customer Service Representative (CSR)**, I need to **accurately record and manage a customer's communication preferences and consent status** so that **we can engage with them through their preferred channels and comply with their explicit opt-in/opt-out choices**.
+
+## Actors & Stakeholders
+- **CSR (Customer Service Representative):** The primary actor who creates and updates communication preferences on behalf of a customer.
+- **Customer:** The individual whose preferences and consent are being recorded.
+- **System (CRM Service):** The authoritative system responsible for persisting, managing, and exposing this data.
+- **Downstream Systems (e.g., Workorder Execution, Marketing Platform):** Systems that consume this data to determine how and when to communicate with the customer.
+
+## Preconditions
+- The CSR is authenticated and has the necessary permissions to manage customer contact records.
+- The target `Customer` or `Contact` record already exists in the system.
+
+## Functional Behavior
+
+### 4.1. Record and Update Communication Preferences
+- **Trigger:** A CSR, interacting with the system via an authorized client (e.g., POS UI, Admin Portal), initiates a request to update a specific customer's communication preferences.
+
+- **Process:**
+    1. The system must provide a mechanism to set or update the customer's `preferredCommunicationChannel`.
+    2. The system must allow for the explicit recording of consent status (opt-in/opt-out) for distinct communication types, such as `emailMarketingConsent` and `smsNotificationConsent`.
+    3. Upon a successful update, the system MUST automatically record the following metadata:
+        - `updatedTimestampUTC`: The UTC timestamp of when the change was persisted.
+        - `updateSource`: An identifier for the system or context that initiated the change (e.g., `CSR_PORTAL`, `API:WORKORDER_SYSTEM`).
+
+### 4.2. Retrieve Communication Preferences
+- **Trigger:** An authorized system or user requests the communication preferences for a specific customer.
+- **Process:** The system exposes an API endpoint that, given a customer identifier, returns their complete and current communication preference and consent record.
+
+## Alternate / Error Flows
+- **Flow 1: Customer Not Found**
+    - **Given:** A request is made to update or retrieve preferences for a `customerId` that does not exist.
+    - **When:** The system processes the request.
+    - **Then:** The system MUST respond with a `404 Not Found` status and a descriptive error message.
+
+- **Flow 2: Invalid Input Data**
+    - **Given:** A request is made with invalid data (e.g., an unrecognized `preferredChannel` value, a non-boolean consent flag).
+    - **When:** The system validates the request payload.
+    - **Then:** The system MUST respond with a `400 Bad Request` status and a message detailing the validation failure.
+
+- **Flow 3: Unauthorized Access**
+    - **Given:** A user or system without the required permissions attempts to modify preferences.
+    - **When:** The system processes the request.
+    - **Then:** The system MUST respond with a `403 Forbidden` status.
+
+## Business Rules
+- Consent and preferences are managed at the individual `Customer` / `Contact` level.
+- A `null` or missing value for any consent flag MUST be interpreted as "Consent Not Given" (i.e., opt-out by default).
+- The list of available communication channels (e.g., `EMAIL`, `SMS`, `PHONE`, `NONE`) is a controlled vocabulary managed by the CRM domain.
+- The `updateSource` field is mandatory for every create or update operation to ensure a clear audit trail.
+- Once granted, consent remains active until it is explicitly revoked (i.e., changed to an opt-out status).
+
+## Data Requirements
+
+The implementation must support a logical entity, `CommunicationPreference`, with the following attributes:
+
+| Field Name | Type | Constraints | Description |
+|---|---|---|---|
+| `customerId` | UUID | FK, Not Null, Indexed | The unique identifier for the customer record. |
+| `preferredCommunicationChannel` | Enum | Not Null | The customer's preferred channel. (Values: `EMAIL`, `SMS`, `PHONE`, `NONE`) |
+| `emailMarketingConsent` | Boolean | Nullable | `true` for opt-in, `false` for opt-out, `null` for not specified. |
+| `smsNotificationConsent` | Boolean | Nullable | `true` for opt-in, `false` for opt-out, `null` for not specified. |
+| `updatedTimestampUTC` | DateTime (UTC) | Not Null | Timestamp of the last modification. |
+| `updateSource` | String(50) | Not Null | Identifier for the client or process that made the change. |
+
+## Acceptance Criteria
+
+**AC-1: Successfully Record a Customer's Initial Preferences**
+- **Given** a customer with ID `CUST-123` exists and has no previously recorded preferences.
+- **When** a CSR submits a request to set `preferredCommunicationChannel` to `EMAIL`, `emailMarketingConsent` to `true`, and `smsNotificationConsent` to `false` via the `CSR_PORTAL`.
+- **Then** the system successfully persists this new record for `CUST-123`, and a subsequent query for that customer returns the exact preferences and consent flags.
+- **And** the record's `updateSource` is `CSR_PORTAL` and the `updatedTimestampUTC` is current.
+
+**AC-2: Successfully Update an Existing Customer's Preferences**
+- **Given** a customer with ID `CUST-456` has an existing preference record with `preferredCommunicationChannel` set to `EMAIL`.
+- **When** a CSR submits a request to change the `preferredCommunicationChannel` to `SMS`.
+- **Then** the system updates the record for `CUST-456` to reflect `preferredCommunicationChannel` as `SMS`.
+- **And** all other fields (like consent flags) remain unchanged.
+- **And** the `updatedTimestampUTC` is updated to the current time.
+
+**AC-3: Retrieve Preferences for a Customer**
+- **Given** a customer with ID `CUST-789` has their preferences stored in the system.
+- **When** an authorized downstream system requests the preferences for `CUST-789`.
+- **Then** the API returns a `200 OK` response containing the complete and correct `CommunicationPreference` data for that customer.
+
+**AC-4: Default Consent is "Opt-Out"**
+- **Given** a customer with ID `CUST-101` has a preference record where `smsNotificationConsent` is `null`.
+- **When** a downstream system retrieves this record.
+- **Then** the downstream system MUST interpret the `null` value as "consent not granted" and MUST NOT send SMS notifications.
+
+## Audit & Observability
+- **Audit Trail:** Every creation or modification of a `CommunicationPreference` record MUST generate a discrete audit event.
+- **Event Payload:** The audit event must contain the `customerId`, the principal (user/system) performing the action, the `updateSource`, the state of the record *before* the change, and the state *after* the change.
+- **Metrics:** The service should expose metrics for the number of preference updates, broken down by source.
+- **Logging:** Failed update attempts due to validation, authorization, or other errors must be logged with a `WARN` or `ERROR` level, including relevant context like the `customerId` (if available) and the source of the request.
+
+## Open Questions
+- None at this time.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #107 — [BACKEND] [STORY] Contacts: Store Communication Preferences and Consent Flags
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Contacts: Store Communication Preferences and Consent Flags
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **CSR**, I want **to record preferred channel and opt-in/opt-out flags** so that **communications follow customer preferences**.
+
+## Details
+- Per-person preferences: preferred channel; basic consent flags for SMS/email.
+- Track last-updated and source.
+
+## Acceptance Criteria
+- Can set/get preferences.
+- Consent flags are available via API.
+- Audit is captured.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution uses preferences to select notification channel (stubbed initially).
+
+## Data / Entities
+- CommunicationPreference
+- ConsentRecord
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #106: [BACKEND] [STORY] Contacts: Capture Multiple Contact Points
+LABELS: type:story,domain:crm,status:needs-review
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:crm
+- status:draft
+- blocked:clarification
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+As a Customer Service Representative (CSR), I want to capture and manage multiple, labeled contact points (i.e., email addresses and phone numbers) for a customer, so that I and other system users can reliably contact the customer using the most appropriate method for a given context.
+
+## Actors & Stakeholders
+- **CSR (Customer Service Representative) (Primary Actor)**: Creates, reads, updates, and deletes customer contact information.
+- **Customer (Subject)**: The person or account whose contact information is being stored.
+- **Workorder Execution System (Secondary Actor/Consumer)**: Reads customer contact information to facilitate operational communication (e.g., sending approvals, notifications, and invoices).
+
+## Preconditions
+- The CSR is authenticated and authorized to manage customer records.
+- A customer record (e.g., Person or Account) exists in the system to which contact points can be associated.
+
+## Functional Behavior
+### 4.1. Creating Contact Points
+A CSR can add a new `ContactPoint` to a customer record. When adding a `ContactPoint`, the CSR must specify:
+- **Kind**: The type of contact point (`PHONE` or `EMAIL`).
+- **Value**: The actual phone number or email address.
+- **Label**: A usage descriptor for the contact point (e.g., `WORK`, `HOME`, `MOBILE`).
+- **Is Primary**: A boolean flag indicating if this is the primary contact point for its kind.
+
+### 4.2. Managing the Primary Contact Point
+The system will enforce a "single primary per kind" rule for each customer.
+- If a new `ContactPoint` is added and marked as primary, any existing primary `ContactPoint` of the same kind (e.g., `PHONE`) for that customer will automatically be demoted (its `isPrimary` flag will be set to `false`).
+- The same demotion logic applies when an existing, non-primary `ContactPoint` is updated to become the primary.
+
+### 4.3. Updating and Deleting Contact Points
+- A CSR can modify the `value`, `label`, or `isPrimary` status of any existing `ContactPoint`.
+- A CSR can permanently remove a `ContactPoint` from a customer's record.
+
+## Alternate / Error Flows
+- **Invalid Format**: If a user attempts to save a `ContactPoint` with a `value` that does not conform to a valid format for its `kind` (e.g., an invalid email address format), the system will reject the change and provide a user-friendly error message.
+- **Duplicate Entry**: If a user attempts to add a `ContactPoint` that is an exact duplicate (same `customerId`, `kind`, and `value`) of an existing one, the system will prevent the creation and notify the user.
+- **Deleting the Primary Contact**: If the primary `ContactPoint` for a kind is deleted, no other `ContactPoint` of that kind is automatically promoted to primary. The customer will simply have no primary contact for that kind until one is explicitly set.
+
+## Business Rules
+- A customer can have zero or many `ContactPoint` records.
+- Each `ContactPoint` must belong to exactly one customer.
+- Each `ContactPoint` must have a `kind` from the controlled vocabulary: `PHONE`, `EMAIL`.
+- Each `ContactPoint` may have a `label` from the controlled vocabulary: `WORK`, `HOME`, `MOBILE`, `OTHER`.
+- For any given customer, there can be at most one `ContactPoint` with `isPrimary=true` for the `PHONE` kind.
+- For any given customer, there can be at most one `ContactPoint` with `isPrimary=true` for the `EMAIL` kind.
+
+## Data Requirements
+The implementation will require a `ContactPoint` entity with the following attributes:
+
+| Field         | Type      | Description                                                 | Constraints               |
+|---------------|-----------|-------------------------------------------------------------|---------------------------|
+| `id`          | UUID      | Unique identifier for the contact point record.             | Primary Key, Not Null     |
+| `customerId`  | UUID      | Foreign key to the associated customer record.              | Foreign Key, Not Null     |
+| `kind`        | Enum      | The type of contact point. (`PHONE`, `EMAIL`)               | Not Null                  |
+| `label`       | Enum      | The usage context. (`WORK`, `HOME`, `MOBILE`, `OTHER`)      | Nullable                  |
+| `value`       | String    | The contact detail (e.g., "555-123-4567", "a@b.com").       | Not Null, Validated       |
+| `isPrimary`   | Boolean   | True if this is the default contact of its kind.            | Not Null, Default: `false`|
+
+## Acceptance Criteria
+
+### AC-1: Add a New Contact Point
+- **Given** a customer record exists
+- **When** a CSR adds a new `PHONE` contact point with the label `MOBILE` and `isPrimary` as `false`
+- **Then** the customer record is updated to include the new contact point with the correct details.
+
+### AC-2: Set the First Primary Contact Point
+- **Given** a customer has no primary `EMAIL` contact point
+- **When** a CSR adds a new `EMAIL` contact point and marks it as primary
+- **Then** that `EMAIL` is stored as the customer's primary email, with `isPrimary` set to `true`.
+
+### AC-3: Change the Primary Contact Point
+- **Given** a customer has an existing primary `PHONE` contact point (Phone A)
+- **When** a CSR updates a different phone contact point (Phone B) to be the new primary
+- **Then** Phone B's `isPrimary` flag is set to `true`
+- **And** Phone A's `isPrimary` flag is automatically set to `false`.
+
+### AC-4: Remove a Contact Point
+- **Given** a customer has at least two `EMAIL` contact points
+- **When** a CSR removes one of the `EMAIL` contact points
+- **Then** the customer record no longer contains the removed contact point.
+
+### AC-5: Reject Invalid Format
+- **Given** a CSR is adding a new `EMAIL` contact point
+- **When** they enter an invalid value (e.g., "invalid-email-address") and attempt to save
+- **Then** the system rejects the operation and displays a "Invalid email format" error message.
+
+## Audit & Observability
+- **Audit Logging**: Any CUD (Create, Update, Delete) operation on a `ContactPoint` record must trigger an audit event. The event must log the `customerId`, the `ContactPoint` ID, the change details (including before/after state for updates), the ID of the CSR performing the action, and a timestamp.
+- **Integration Logging**: All API requests from consumer systems (e.g., Workorder Execution) to retrieve contact data must be logged, including the consumer identity and the `customerId` requested.
+
+## Open Questions
+- **OQ1: Model Confirmation**: The proposed model separates `kind` (`PHONE`, `EMAIL`) from `label` (`WORK`, `HOME`, `MOBILE`). Please confirm this separation is correct and that the proposed list of labels is sufficient. Should this list of labels be configurable?
+- **OQ2: Primary Demotion Rule**: The proposed behavior is that setting a new primary `ContactPoint` of a certain `kind` (e.g., `PHONE`) automatically demotes the previous primary of the same `kind` for that customer. Please confirm this "single primary per kind" rule is the desired business logic.
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #106 — [BACKEND] [STORY] Contacts: Capture Multiple Contact Points
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Contacts: Capture Multiple Contact Points
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **CSR**, I want **to store multiple phone numbers and emails per person/account** so that **I can reach them via the right contact point**.
+
+## Details
+- Support type tags: work, mobile, home.
+- Basic formatting validation.
+
+## Acceptance Criteria
+- Add/update/remove contact points.
+- Identify primary contact point per type.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution displays contact points during approval/invoice delivery.
+
+## Data / Entities
+- ContactPoint (type, value, primaryFlag)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #105: [BACKEND] [STORY] Vehicle: Create Vehicle Record with VIN and Description
+LABELS: payment,type:story,domain:crm,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+As a **Service Advisor**, I want **to create a unique vehicle record by providing its essential identifiers (like VIN and Unit Number)** so that **I can accurately track all associated service history, work orders, and billing against a stable and reliable entity**.
+
+## Actors & Stakeholders
+- **Service Advisor**: The primary user who creates and manages vehicle records on behalf of a customer.
+- **System (CRM Domain)**: The system of record responsible for creating, persisting, and ensuring the integrity of vehicle data.
+- **Downstream Systems (Workorder Execution, Billing)**: External systems that consume the stable `vehicleId` to associate their own entities (e.g., Work Orders, Invoices) with a specific vehicle.
+
+## Preconditions
+- The Service Advisor is authenticated and has the necessary permissions to create new vehicle records.
+- The Service Advisor is operating within a customer account context where a new vehicle can be added.
+
+## Functional Behavior
+1.  The Service Advisor initiates the "Create Vehicle" action from the user interface.
+2.  The system presents a form requesting the vehicle's details.
+3.  The Service Advisor provides the required information: VIN, Unit Number, and a free-text Description (intended for Make/Model/Year). They may optionally provide the License Plate number.
+4.  Upon submission, the system validates the provided data against the defined business rules (e.g., field presence, basic VIN format).
+5.  If validation passes, the system generates a new, unique, and immutable system-wide `vehicleId`.
+6.  The system persists the new vehicle record to the database, associating it with the current customer account.
+7.  The system confirms successful creation to the Service Advisor.
+
+## Alternate / Error Flows
+- **Duplicate Vehicle**: If the submitted VIN (or other unique identifier) violates the defined uniqueness rule, the system will reject the creation request and display an error message indicating that the vehicle may already exist.
+- **Invalid Input**: If any required fields are missing or if the VIN fails basic format validation (e.g., incorrect length or invalid characters), the system will reject the request and display a specific validation error message.
+- **System Failure**: If a database or system error occurs during the creation process, the transaction will be rolled back, and a generic system error message will be displayed to the user.
+
+## Business Rules
+- **BR-1: Required Fields**: `vin`, `unitNumber`, and `description` are mandatory for creating a new vehicle record.
+- **BR-2: Optional Fields**: `licensePlate` is an optional field.
+- **BR-3: Vehicle ID Generation**: The `vehicleId` must be a system-generated, unique, and immutable identifier (e.g., UUID) that serves as the primary key and stable reference for all integrations.
+- **BR-4: VIN Format Validation**: A basic sanity check must be performed on the VIN to ensure it meets general format requirements (e.g., 17 characters, no invalid characters like 'I', 'O', 'Q'). A full external VIN decoding service is out of scope for this story.
+- **BR-5: Vehicle Uniqueness**: The uniqueness constraint for a Vehicle's VIN is subject to clarification. See OQ-1.
+
+## Data Requirements
+The following data attributes must be captured for the `Vehicle` entity:
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| `vehicleId` | UUID | Primary Key, Not Null, Immutable | System-generated unique identifier for the vehicle record. |
+| `accountId` | UUID | Foreign Key, Not Null, Indexed | Reference to the owning customer account. |
+| `vin` | String(17) | Not Null, Indexed | Vehicle Identification Number. Uniqueness scope to be defined. |
+| `unitNumber` | String | Not Null, Indexed | A business-specific identifier for the vehicle (e.g., fleet number). |
+| `description` | String | Not Null | Free-text field for Make, Model, Year, etc. |
+| `licensePlate` | String | Nullable | The vehicle's license plate number and state/province. |
+| `createdAt` | Timestamp | Not Null | Timestamp of when the record was created. |
+| `updatedAt` | Timestamp | Not Null | Timestamp of the last update to the record. |
+
+## Acceptance Criteria
+**AC-1: Successful Vehicle Creation**
+- **Given** a Service Advisor is authenticated and has permission to create vehicles
+- **When** they submit a form with valid and unique values for `vin`, `unitNumber`, and `description`
+- **Then** the system creates a new `Vehicle` record in the database
+- **And** the new record is assigned a unique, system-generated `vehicleId`
+- **And** the system returns a success confirmation.
+
+**AC-2: Attempt to Create a Duplicate Vehicle**
+- **Given** the VIN uniqueness rule is defined (e.g., "globally unique")
+- **And** a vehicle with VIN `123ABC456DEF789G0` already exists
+- **When** a Service Advisor attempts to create another vehicle with the same VIN `123ABC456DEF789G0`
+- **Then** the system must reject the request
+- **And** the system must display an informative error message stating the vehicle already exists.
+
+**AC-3: Attempt to Create with Invalid VIN Format**
+- **Given** a Service Advisor is on the "Create Vehicle" form
+- **When** they submit the form with a VIN that is only 10 characters long
+- **Then** the system must reject the request due to a format validation failure
+- **And** the system must display an error message explaining the VIN format is invalid.
+
+**AC-4: Attempt to Create with Missing Required Fields**
+- **Given** a Service Advisor is on the "Create Vehicle" form
+- **When** they submit the form without providing a `unitNumber`
+- **Then** the system must reject the request
+- **And** the system must display a validation error indicating that the `unitNumber` field is required.
+
+## Audit & Observability
+- **Event Emission**: A `VehicleCreated` event shall be emitted to a message bus upon successful creation.
+- **Event Payload**: The event must contain at a minimum: `vehicleId`, `accountId`, `vin`, and `eventTimestamp`.
+- **Logging**:
+    - **INFO**: Log successful vehicle creation with `vehicleId` and `accountId`.
+    - **WARN**: Log any validation failures, including the fields that failed and the reason.
+    - **ERROR**: Log any exceptions or failures during the database persistence step.
+
+## Open Questions
+- **OQ-1: VIN Uniqueness Scope**: What is the business rule for VIN uniqueness? Is a VIN required to be **globally unique** across all customer accounts, or only **unique within a single customer's account**? This decision is critical as it impacts database constraints, API design, and the business logic for duplicate detection.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #105 — [BACKEND] [STORY] Vehicle: Create Vehicle Record with VIN and Description
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Vehicle: Create Vehicle Record with VIN and Description
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Service Advisor**, I want **to create a vehicle record with VIN, unit number, and description** so that **future service and billing can be linked to the correct vehicle**.
+
+## Details
+- Capture VIN, make/model/year (free text initially), unit number, license plate (optional).
+- Minimal VIN format validation; external decode optional stub.
+
+## Acceptance Criteria
+- Can create vehicle with VIN.
+- Vehicle has stable Vehicle ID.
+- VIN uniqueness rule defined (global or per account).
+
+## Integration Points (Workorder Execution)
+- Workorder Execution selects vehicle for estimate/workorder; Vehicle ID stored on workorder.
+
+## Data / Entities
+- Vehicle
+- VehicleIdentifier (VIN, unit, plate)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #104: [BACKEND] [STORY] Vehicle: Associate Vehicles to Account and/or Individual
+LABELS: backend,story-implementation,type:story,domain:crm,status:ready-for-dev,agent:story-authoring,agent:crm
+BODY:
+## Story Intent
+As a Fleet Account Manager, I need to establish and maintain official relationships between a vehicle, its owning commercial account, and its optional primary driver, so downstream systems (Workorder Execution, Billing) can default to the correct billing entity and contact.
+
+## Actors & Stakeholders
+- **Primary Actor:** Fleet Account Manager
+- **Service Owner / SoR:** CRM domain/service (vehicle↔party associations lifecycle)
+- **Downstream Consumers:** Workorder Execution, Billing/Invoice workflows (read-only)
+
+## Preconditions
+- Vehicle exists.
+- Commercial account (Organization party) exists.
+- Optional driver (Person party) exists.
+- Actor is authorized to manage vehicle associations for the commercial account.
+
+## Functional Behavior
+
+### 1) Establish initial ownership (`OWNER`)
+- Create a `VehiclePartyAssociation` with `associationType=OWNER`, `effectiveStartDate=S`, `effectiveEndDate=NULL`.
+
+### 2) Assign optional primary driver (`PRIMARY_DRIVER`)
+- Create a `VehiclePartyAssociation` with `associationType=PRIMARY_DRIVER`, `effectiveStartDate=S`, `effectiveEndDate=NULL`.
+- Requires an active `OWNER` association.
+
+### 3) Owner reassignment behavior (Decision)
+- **Implicit reassignment on create:** creating a new active `OWNER` association automatically end-dates the existing active `OWNER` and creates the new one **atomically**.
+- **Idempotency:** if the existing active owner is the same party, treat as a no-op (do not create duplicates).
+- **Date/time semantics:** use **[start, end)** (exclusive end) when using timestamps; set old owner `endAt = newOwner.startAt`.
+
+### 4) Driver handling when owner changes (Decision)
+- Do **not** automatically end-date or modify `PRIMARY_DRIVER` when `OWNER` changes; it persists until explicitly changed.
+
+## Alternate / Error Flows
+- Unknown vehicle/account/driver → `404`.
+- Assign driver without active owner → validation error (`400`).
+- Invalid association type → `400`.
+- Conflicting historical overlap that cannot be reconciled automatically (e.g., start date intersects past segments) → `409`.
+
+## Business Rules
+- **Domain authority (Decision):** CRM is the system of record for vehicle↔party associations; payment/billing are consumers.
+- Exactly one active `OWNER` per vehicle at a time.
+- Zero or one active `PRIMARY_DRIVER` per vehicle at a time.
+- All changes are non-destructive: end-date old record(s), create new record(s); no hard deletes.
+
+## Data Requirements
+- `VehiclePartyAssociation`:
+  - `associationId` (UUID)
+  - `vehicleId` (FK)
+  - `partyId` (FK)
+  - `associationType` (`OWNER`, `PRIMARY_DRIVER`)
+  - `effectiveStartDate`, `effectiveEndDate`
+  - audit fields
+
+## Acceptance Criteria
+- Can create initial `OWNER` association for a vehicle.
+- Creating a new `OWNER` when one is active performs implicit reassignment atomically (end-date old + create new) with no overlap.
+- Assigning `PRIMARY_DRIVER` creates an active association and requires an active owner.
+- Owner reassignment does not modify `PRIMARY_DRIVER` unless explicitly requested.
+- Consumers can query current associations for a vehicle (owner + optional driver).
+
+## Audit & Observability
+- Audit log all create/end-date operations with actor and timestamps.
+- Publish domain events:
+  - `VehicleOwnerAssociated` / `VehicleOwnerReassigned`
+  - `VehiclePrimaryDriverAssigned` / `VehiclePrimaryDriverUnassigned`
+
+## Open Questions
+- None. Decisions were supplied in the issue comments (Decision Document dated 2026-01-14).
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #104 — [BACKEND] [STORY] Vehicle: Associate Vehicles to Account and/or Individual
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Vehicle: Associate Vehicles to Account and/or Individual
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Fleet Account Manager**, I want **to link a vehicle to a commercial account and optionally a primary driver** so that **workorders default to the right billing entity and contacts**.
+
+## Details
+- Vehicle associated to an account (owner) and optionally an individual (driver).
+- Support reassignment with history.
+
+## Acceptance Criteria
+- Create/update associations.
+- History preserved on reassignment.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution fetches owner/driver for selected vehicle.
+
+## Data / Entities
+- VehiclePartyAssociation (owner/driver, dates)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #103: [BACKEND] [STORY] Vehicle: Vehicle Lookup by VIN/Unit/Plate
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+
+As a Service Advisor, I need a robust search capability to find vehicles by their Vehicle Identification Number (VIN), internal unit number, or license plate. This functionality is critical for quickly and accurately identifying a customer's asset to initiate a service workflow, such as creating a new repair estimate.
+
+## Actors & Stakeholders
+
+- **Service Advisor**: The primary user who performs the vehicle search to serve a customer.
+- **System (CRM Domain)**: The system of record for customer and vehicle (asset) data, responsible for executing the search logic and returning results.
+- **System (Workorder Execution Domain)**: A key downstream consumer of this functionality. It will invoke this search to associate a specific vehicle with a new estimate or work order.
+
+## Preconditions
+
+- The Service Advisor is authenticated and has the necessary permissions to search for and view vehicle and customer information.
+- A data store (e.g., PostgreSQL, MySQL) exists, populated with vehicle records that include VIN, unit number, license plate, and associated owner account details.
+
+## Functional Behavior
+
+1.  **Trigger**: The Service Advisor initiates a vehicle search from a designated user interface within the Point-of-Sale (POS) system.
+2.  The Advisor enters a full or partial search query into a search field. The query corresponds to a vehicle's VIN, Unit Number, or License Plate.
+3.  The system sends a request to the search API endpoint with the provided query string.
+4.  The backend service executes a query against the vehicle data store, matching the term against the `vin`, `unitNumber`, and `licensePlate` fields.
+5.  The service returns a ranked list of matching vehicle summaries. Each summary must include sufficient information for the Advisor to uniquely identify the correct vehicle (e.g., Year/Make/Model, VIN, Unit #, Plate #, and Owner Name).
+6.  If no vehicles match the query, the system returns an empty result set.
+7.  The Advisor selects a specific vehicle from the returned list.
+8.  The system makes a subsequent request to retrieve a detailed data snapshot for the selected vehicle and its associated owner.
+9.  This detailed snapshot is then used by the calling system (e.g., Workorder Execution) to populate the context for a new estimate.
+
+## Alternate / Error Flows
+
+- **No Matches Found**: If the search query yields no results, the API must return a `200 OK` status with an empty array `[]` in the response body. The UI should display a "No vehicles found" message.
+- **Ambiguous/Broad Search**: If a partial search term matches more than a predefined limit (e.g., 50 records), the API should return the truncated list and indicate that more results exist. The UI should prompt the user to provide a more specific term.
+- **Invalid Input**: If the search term is empty or malformed, the API should return a `400 Bad Request` error with a clear message.
+- **System Failure**: If the search service encounters an internal error (e.g., database connection failure), it must return a `500 Internal Server Error` and the failure should be logged.
+
+## Business Rules
+
+- Search must be performed against the following canonical fields: `vin`, `unitNumber`, `licensePlate`.
+- The search must support partial matches. The exact matching strategy requires clarification (see Open Questions).
+- The search results must be ranked according to a defined relevance logic (see Open Questions).
+- The search API response must be paginated or limited to a maximum number of results (e.g., 50) to ensure performance.
+
+## Data Requirements
+
+### Search Request (API Endpoint)
+```json
+// POST /api/v1/vehicles/search
+{
+  "query": "TRK-123"
+}
+```
+
+### Search Response (List of Summaries)
+```json
+// 200 OK
+{
+  "results": [
+    {
+      "vehicleId": "veh-uuid-001",
+      "vin": "1A2B3C...8X9Y0Z",
+      "unitNumber": "TRK-123A",
+      "licensePlate": "CA-45678",
+      "description": "2022 Kenworth T680",
+      "owner": {
+        "accountId": "acct-uuid-987",
+        "name": "FleetCo Inc."
+      }
+    }
+  ]
+}
+```
+
+### Vehicle & Owner Snapshot (Returned on Selection)
+The precise data contract for the snapshot returned after selecting a search result requires clarification (see Open Questions). A proposed structure is:
+```json
+// GET /api/v1/vehicles/{vehicleId}?include=owner
+// 200 OK
+{
+  "vehicleId": "veh-uuid-001",
+  "vin": "1A2B3C...8X9Y0Z",
+  "unitNumber": "TRK-123A",
+  "licensePlate": "CA-45678",
+  "year": 2022,
+  "make": "Kenworth",
+  "model": "T680",
+  "engineDetails": "...",
+  "lastOdometerReading": 150234,
+  "owner": {
+    "accountId": "acct-uuid-987",
+    "name": "FleetCo Inc.",
+    "primaryContact": "John Doe",
+    "phone": "555-123-4567"
+  }
+}
+```
+
+## Acceptance Criteria
+
+**Scenario: Search with an Exact VIN Match**
+- **Given** a vehicle exists in the system with the VIN `1FTFW1E54KFA12345`.
+- **When** the Service Advisor performs a search with the query `1FTFW1E54KFA12345`.
+- **Then** the system returns a result list containing exactly one vehicle summary.
+- **And** the summary's VIN matches `1FTFW1E54KFA12345`.
+
+**Scenario: Search with a Partial Unit Number**
+- **Given** two vehicles exist with Unit Numbers `FLEET-A501` and `FLEET-A502`.
+- **And** another vehicle exists with Unit Number `TRUCK-B900`.
+- **When** the Service Advisor performs a search with the query `FLEET-A5`.
+- **Then** the system returns a result list containing the two vehicles `FLEET-A501` and `FLEET-A502`.
+- **And** the list does not contain `TRUCK-B900`.
+
+**Scenario: Search with No Matching Results**
+- **Given** no vehicle exists with a VIN, Unit Number, or License Plate containing the string `NONEXISTENT`.
+- **When** the Service Advisor performs a search with the query `NONEXISTENT`.
+- **Then** the system returns an empty list of results.
+
+**Scenario: Selection of a Vehicle from Search Results**
+- **Given** a search for `FLEET-A501` has returned a vehicle summary with `vehicleId` "veh-abc-123".
+- **When** the user selects that vehicle to start an estimate.
+- **Then** the system successfully retrieves the full vehicle and owner snapshot corresponding to `vehicleId` "veh-abc-123".
+
+## Audit & Observability
+
+- **Logging**: All search requests should be logged, including the search query and the number of results returned. Log the `vehicleId` selected for a new workflow.
+- **Metrics**: Monitor and alert on key performance indicators for the search endpoint:
+    - Search latency (p95, p99).
+    - Request rate.
+    - Error rate (4xx and 5xx).
+- **Events**:
+    - `vehicle.searched`: Emitted after a search is completed. Payload includes `query`, `resultCount`, `searchDurationMs`, `userId`.
+    - `vehicle.selected_for_service`: Emitted when a user selects a vehicle from the search results to begin a workflow. Payload includes `vehicleId`, `accountId`, `userId`, `sourceWorkflow`.
+
+## Open Questions
+
+1.  **Ranking Logic**: What is the required ranking algorithm for search results? For example, should exact matches appear first, followed by "starts with" matches, then "contains" matches?
+2.  **Partial Search Behavior**: What is the precise definition of a "partial" search? Should the query match any part of the string (`contains`) or only from the beginning (`starts with`)? Is there a minimum character length required to initiate a search?
+3.  **Data Snapshot Contract**: What specific fields must be included in the "full vehicle + owner snapshot" that is returned upon selection? Please provide the definitive data contract for both the vehicle and owner entities.
+4.  **Result Set Limit**: What is the maximum number of search results that should be returned in a single response? Does the API need to support full pagination for consumers who might need it?
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #103 — [BACKEND] [STORY] Vehicle: Vehicle Lookup by VIN/Unit/Plate
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Vehicle: Vehicle Lookup by VIN/Unit/Plate
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Service Advisor**, I want **to search vehicles by VIN, unit number, or plate** so that **I can quickly start an estimate for the correct asset**.
+
+## Details
+- Partial VIN and unit searches.
+- Return matches including owner account context.
+
+## Acceptance Criteria
+- Search returns ranked matches.
+- Selecting a match returns full vehicle + owner snapshot.
+
+## Integration Points (Workorder Execution)
+- Estimate creation uses vehicle search/selection.
+
+## Data / Entities
+- Vehicle search endpoint/index
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #102: [BACKEND] [STORY] Vehicle: Store Vehicle Care Preferences
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+As a Service Advisor, I need the ability to record, update, and view specific care preferences and general service notes for a customer's vehicle. This ensures that all service interactions, from estimates to final work execution, are consistently aligned with the customer's explicit expectations and the vehicle's history, thereby improving service quality and customer satisfaction.
+
+## Actors & Stakeholders
+- **Service Advisor (Primary Actor):** The user responsible for capturing and maintaining customer vehicle preferences.
+- **Mechanic / Technician (Secondary Actor):** Consumes the preference information during service execution to ensure compliance with customer wishes.
+- **System:** The POS system responsible for persisting, retrieving, and auditing preference data.
+- **Customer:** The beneficiary of the personalized service.
+
+## Preconditions
+1.  The Service Advisor is authenticated and has the necessary permissions to view and modify vehicle records.
+2.  A unique vehicle record, associated with a customer, exists in the system.
+
+## Functional Behavior
+1.  A Service Advisor navigates to a specific vehicle's profile page within the POS system.
+2.  The user accesses a dedicated section for "Vehicle Care Preferences & Notes".
+3.  The user can input or modify data into both structured preference fields (e.g., preferred tire brand) and a free-form text area for general notes.
+4.  Upon saving, the system validates the input and persists the preferences and notes, associating them directly with the vehicle's unique identifier (`VehicleID`).
+5.  When this vehicle is added to an Estimate or Work Order, the system retrieves and displays the saved preferences and notes in a designated, read-only section on the document's view.
+
+## Alternate / Error Flows
+- **Invalid Data Entry:** If the user enters data that fails validation (e.g., "abc" for a numeric `rotation_interval`), the system will display a user-friendly error message indicating the specific field in error and will prevent the data from being saved until corrected.
+- **Vehicle Not Found:** If the Service Advisor attempts to access a non-existent vehicle record, the system will display a "Vehicle not found" error.
+- **Save Operation Fails:** If the system encounters a database or service error during the save operation, it will inform the user that the preferences could not be saved and log the critical error for technical review.
+
+## Business Rules
+- Vehicle preferences are stored on a per-vehicle basis. A customer with multiple vehicles can have different preferences for each.
+- The system must support a combination of structured data fields and at least one unstructured, free-form notes field.
+- Once saved, these preferences are considered part of the vehicle's service record and should be readily accessible.
+- Any modification to existing preferences must overwrite the previous values, but the change itself must be recorded in an audit log.
+
+## Data Requirements
+The implementation requires a new data entity, likely `VehicleCarePreference`, with the following attributes:
+- `id`: Unique identifier for the preference record.
+- `vehicle_id`: Foreign key, linking to the unique identifier of the vehicle record.
+- **Structured Fields:**
+    - `preferred_tire_brand`: `String`
+    - `preferred_tire_line`: `String`
+    - `rotation_interval`: `Integer`
+    - `rotation_interval_unit`: `Enum` (e.g., MILES, KM)
+    - `alignment_preference`: `String` (e.g., "OEM Spec", "Custom Spec")
+    - `torque_spec_notes`: `String`
+- **Unstructured Field:**
+    - `service_notes`: `Text` (for free-form notes)
+- **Standard Audit Fields:**
+    - `created_at`: `Timestamp`
+    - `updated_at`: `Timestamp`
+    - `created_by_user_id`: `UUID`
+    - `updated_by_user_id`: `UUID`
+
+## Acceptance Criteria
+
+### AC-1: Create Vehicle Care Preferences
+- **Given** a Service Advisor is viewing a vehicle record that has no existing care preferences
+- **When** they enter valid data into the preference fields and general notes, and click "Save"
+- **Then** the system successfully persists the new preference record associated with the correct `vehicle_id`.
+
+### AC-2: Update Vehicle Care Preferences
+- **Given** a vehicle record has existing care preferences
+- **When** a Service Advisor modifies one or more preference fields or notes and clicks "Save"
+- **Then** the system updates the existing record with the new information and updates the `updated_at` and `updated_by_user_id` fields.
+
+### AC-3: View Preferences on Work Documents
+- **Given** a vehicle has saved care preferences
+- **When** a user (Service Advisor or Technician) views an Estimate or Work Order that includes this vehicle
+- **Then** the system displays the vehicle's saved care preferences and notes in a clear, designated section of the document.
+
+### AC-4: Audit Trail for Changes
+- **Given** a Service Advisor has successfully created or updated a vehicle's care preferences
+- **When** an authorized user or system process inspects the audit log for that vehicle
+- **Then** an audit entry is found detailing the change, including the user who made it, a timestamp, and the before/after values (or a snapshot of the new state).
+
+### AC-5: Input Validation
+- **Given** a Service Advisor is creating or editing vehicle preferences
+- **When** they enter non-numeric characters into the `rotation_interval` field and attempt to save
+- **Then** the system prevents the save operation and displays a validation error message specific to that field.
+
+## Audit & Observability
+- **Events to be Logged:**
+    - `VehiclePreferenceCreated`: Triggered on the first save for a vehicle.
+    - `VehiclePreferenceUpdated`: Triggered on any subsequent save.
+- **Log Payload:** Each event log must include `vehicle_id`, the `user_id` of the acting Service Advisor, a `timestamp`, and the full data payload of the preference record.
+- **Metrics:** Track the count of `VehiclePreferenceCreated` and `VehiclePreferenceUpdated` events to monitor feature usage.
+
+## Open Questions
+1.  **Schema Flexibility:** The story lists specific structured fields (tire brand, rotation interval, etc.) but also mentions "Structured key/values". Is the list of preferences fixed and defined by the schema, or do we need to implement a more flexible entity-attribute-value (EAV) or JSONB model to allow for adding new types of preferences in the future without schema changes? A fixed schema is simpler to implement initially.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #102 — [BACKEND] [STORY] Vehicle: Store Vehicle Care Preferences
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Vehicle: Store Vehicle Care Preferences
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Service Advisor**, I want **to record vehicle-specific care preferences and service notes** so that **the shop can deliver service aligned with customer expectations**.
+
+## Details
+- Preferences: preferred tire brand/line, rotation interval, alignment preference, torque spec notes.
+- Structured key/values + free-form notes.
+
+## Acceptance Criteria
+- Add/update preferences.
+- Preferences visible on estimate/workorder.
+- Changes audited.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution displays preferences at estimate and during execution.
+
+## Data / Entities
+- VehiclePreference
+- VehicleNote
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #101: [BACKEND] [STORY] Vehicle: Ingest Vehicle Updates from Workorder Execution
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+
+As the System, I want to ingest `VehicleUpdated` events originating from the Workorder Execution domain. I will use the data from these events, such as VIN corrections, updated mileage, and service notes, to update the canonical Vehicle record. This ensures that the CRM's vehicle data remains accurate and reflects the most recent state captured during service operations.
+
+## Actors & Stakeholders
+
+- **Primary Actor:** `System (CRM)`: The service responsible for consuming events, applying business logic, and persisting updates to the Vehicle entity.
+- **Triggering Actor:** `System (Workorder Execution)`: The external domain system that performs the vehicle service and emits the `VehicleUpdated` event upon completion or at a key milestone.
+- **Stakeholders:**
+    - `Service Advisor`: Relies on accurate vehicle information (mileage, VIN) for future customer interactions and service recommendations.
+    - `Business Operations`: Depends on data integrity for reporting, analytics, and understanding the vehicle lifecycle.
+
+## Preconditions
+
+1.  A `Vehicle` entity with a unique, stable identifier (`vehicleId`) exists within the CRM datastore.
+2.  The `Workorder Execution` domain has published a well-defined contract/schema for the `VehicleUpdated` event.
+3.  The CRM system is subscribed to the message topic where `VehicleUpdated` events are published.
+4.  The event transport mechanism (e.g., message queue) is operational.
+
+## Functional Behavior
+
+1.  **Event Consumption:** The CRM system's listener consumes a `VehicleUpdated` event from the message queue.
+2.  **Payload Validation:** The system validates the incoming event payload against the expected schema. Any deviation results in an error flow.
+3.  **Idempotency Check:** The system uses a unique identifier from the event (e.g., a combination of `workorderId` and a unique event ID) to check the `ProcessingLog`. If the event has already been processed successfully, the system acknowledges the message and stops further processing (see Alternate Flow).
+4.  **Data Retrieval:** The system uses the `vehicleId` from the event to retrieve the corresponding `Vehicle` record from the CRM database.
+5.  **Conflict Detection & Resolution:** The system compares the incoming data (e.g., `mileage`) with the existing data. If a conflict is detected (e.g., incoming mileage is lower than existing mileage), it applies the defined **Conflict Resolution Policy** (see Open Questions).
+6.  **Data Persistence:** If validation and conflict checks pass, the system updates the relevant fields (VIN, mileage, notes) on the `Vehicle` record and persists the changes to the database.
+7.  **Audit Logging:** Upon completion (success, duplicate, or error), the system creates a corresponding entry in the `ProcessingLog` table, including the source `workorderId`, `eventId`, and processing status.
+
+## Alternate / Error Flows
+
+- **Duplicate Event Received:** If the idempotency check finds that the event has already been processed, the system will log the duplicate attempt, acknowledge the message to remove it from the queue, and take no further action on the Vehicle record.
+- **Invalid Event Payload:** If the event fails schema validation, it is moved to a Dead-Letter Queue (DLQ). An alert is triggered for engineering review.
+- **Vehicle Not Found:** If the `vehicleId` from the event does not exist in the CRM database, the event is moved to a DLQ and an alert is triggered. This indicates a potential data synchronization issue.
+- **Data Conflict Detected:** The behavior depends on the chosen policy. If the policy is `last-write-wins`, the new data overwrites the old. If the policy is `review-queue`, the update is suspended, and the event is flagged for manual review by a data steward.
+
+## Business Rules
+
+- **Idempotency:** All event processing must be idempotent. A given event, if received multiple times, must only result in a single state change to the system.
+- **Source of Truth:** The Workorder Execution system is the authoritative source for vehicle data captured *during a specific service*. The CRM is the aggregate system of record for the vehicle's lifetime state.
+- **Conflict Resolution Policy:** **[TO BE DEFINED]** - The specific policy for handling data conflicts (e.g., mileage decreasing, VIN changing) must be explicitly defined. This is a blocking requirement.
+
+## Data Requirements
+
+- **`VehicleUpdated` Event (Payload)**
+    - `eventId`: `string` (UUID, unique per event)
+    - `workorderId`: `string` (Identifier for the source workorder)
+    - `vehicleId`: `string` (Identifier for the vehicle in CRM)
+    - `eventTimestamp`: `datetime` (ISO 8601)
+    - `updatedFields`: `object`
+        - `vin`: `string` (optional)
+        - `mileage`: `integer` (optional)
+        - `notes`: `string` (optional, may append or replace)
+
+- **`ProcessingLog` Entity**
+    - `logId`: `PK`
+    - `eventId`: `string` (indexed)
+    - `workorderId`: `string` (indexed)
+    - `vehicleId`: `string` (indexed)
+    - `receivedTimestamp`: `datetime`
+    - `processedTimestamp`: `datetime`
+    - `status`: `enum` ('SUCCESS', 'DUPLICATE', 'ERROR_VALIDATION', 'ERROR_NOT_FOUND', 'PENDING_REVIEW')
+    - `details`: `jsonb` or `text` (for error messages or context)
+
+## Acceptance Criteria
+
+**AC-1: Successful Vehicle Update**
+- **Given** a Vehicle with `vehicleId: "V-123"` exists in the CRM with `mileage: 50000`.
+- **When** a valid `VehicleUpdated` event is received for `vehicleId: "V-123"` with `mileage: 51500`.
+- **Then** the Vehicle record in the CRM is updated to `mileage: 51500`, and a `ProcessingLog` entry is created with `status: 'SUCCESS'`.
+
+**AC-2: Idempotent Processing of Duplicate Event**
+- **Given** a `VehicleUpdated` event with `eventId: "E-456"` has already been successfully processed.
+- **When** another event with the exact same `eventId: "E-456"` is received.
+- **Then** the system does not modify the Vehicle record, and a `ProcessingLog` entry is created with `status: 'DUPLICATE'`.
+
+**AC-3: Handling Vehicle Not Found**
+- **Given** the CRM does not contain a vehicle with `vehicleId: "V-999"`.
+- **When** a `VehicleUpdated` event is received for `vehicleId: "V-999"`.
+- **Then** the event is moved to the DLQ, and a `ProcessingLog` entry is created with `status: 'ERROR_NOT_FOUND'`.
+
+**AC-4: Handling Conflicting Data (Pending Policy)**
+- **Given** a Vehicle with `vehicleId: "V-123"` exists in the CRM with `mileage: 50000` and the conflict policy is defined as **[POLICY_NAME]**.
+- **When** a valid `VehicleUpdated` event is received for `vehicleId: "V-123"` with a conflicting `mileage: 49000`.
+- **Then** the system executes the behavior defined by **[POLICY_NAME]** (e.g., rejects the update and logs a `PENDING_REVIEW` status, or accepts the update).
+
+## Audit & Observability
+
+- **Audit Trail:** A `ProcessingLog` record must be created for every event received, capturing its `eventId`, `workorderId`, and final processing status. This provides a complete audit trail of all attempted updates.
+- **Metrics:** The service must emit metrics for:
+    - `events.consumed.count`
+    - `events.processed.success.count`
+    - `events.processed.duplicate.count`
+    - `events.processed.error.count`
+- **Alerting:** High-priority alerts must be configured for any events being sent to the DLQ, as this indicates a potential systemic issue requiring manual intervention.
+
+## Open Questions
+
+1.  **CRITICAL: What is the business policy for handling data conflicts?** Specifically:
+    - **Mileage Decrease:** What should happen if the incoming `mileage` is *less than* the currently stored mileage? Should it be rejected, flagged for review, or should last-write-wins apply?
+    - **VIN Correction:** If a `vin` is changed, what is the procedure? Is it a simple overwrite, or does it require a review process, especially if the old VIN was associated with other historical records?
+    - **Default Policy:** In the absence of specific field-level rules, should the default behavior be "last write wins" or "flag for manual review"?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+# Issue #101 — [BACKEND] [STORY] Vehicle: Ingest Vehicle Updates from Workorder Execution
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Vehicle: Ingest Vehicle Updates from Workorder Execution
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **System**, I want **to update vehicle details captured during service (VIN correction, mileage, notes)** so that **CRM remains accurate over time**.
+
+## Details
+- Accept updates via event envelope from Workorder Execution.
+- Apply idempotency and audit against workorder reference.
+
+## Acceptance Criteria
+- Vehicle updates are processed once.
+- Audit includes source Workorder/Estimate ID.
+- Conflicts handled (last-write or review queue; define policy).
+
+## Integration Points (Workorder Execution)
+- Workorder Execution emits VehicleUpdated events.
+- CRM persists updates and exposes updated snapshot.
+
+## Data / Entities
+- Vehicle
+- EventEnvelope
+- ProcessingLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #99: [BACKEND] [STORY] Billing: Expose CRM Snapshot (Account + Contacts + Vehicles + Rules)
+LABELS: type:story,domain:crm,status:ready-for-dev,agent:story-authoring,agent:crm,agent:workexec,agent:billing
+BODY:
+## Story Intent
+As a consuming system (initially Workorder Execution, and also Billing), I need a stable, efficient, CRM-owned read endpoint to retrieve a point-in-time snapshot of core customer relationship data (Account/Party, Contacts, Vehicles, and contactability + billing-relevant preferences), so downstream workflows can operate quickly and consistently without re-deriving CRM association rules.
+
+## Actors & Stakeholders
+- **Provider / SoR:** CRM service (`domain:crm`) owns the API and contract.
+- **Consumers:** Workorder Execution (`domain:workexec`), Billing (`domain:billing`).
+- **Indirect user:** Service Advisor (benefits from faster, consistent estimate creation).
+
+## Preconditions
+- Caller is service-to-service authenticated.
+- Caller is authorized by **both**:
+  - allowlisted service identity, and
+  - required scope: `crm.snapshot.read`
+- Request includes at least one identifier: `partyId` or `vehicleId`.
+
+## Functional Behavior
+### Endpoint
+- `GET /v1/crm-snapshot`
+- Query params:
+  - `partyId` (optional)
+  - `vehicleId` (optional)
+- Rule: request MUST include at least one of `partyId` or `vehicleId`.
+
+### Snapshot Retrieval (partyId)
+- If `partyId` is provided, CRM returns a snapshot for that party/account, including:
+  - account summary
+  - active contacts (with one primary contact indicated)
+  - associated vehicles (active)
+  - preferences (v1 scope defined below)
+
+### Snapshot Retrieval (vehicleId-only)
+When only `vehicleId` is provided, CRM MUST resolve a single “primary party” deterministically:
+1. Find all **active vehicle-party relationships** for the vehicle.
+2. Select primary party by precedence:
+   1. `PRIMARY_OWNER` (ACTIVE)
+   2. else `OWNER` (ACTIVE; most recent)
+   3. else `LESSEE/DRIVER` (ACTIVE; most recent)
+   4. else any ACTIVE relationship (most recent)
+3. Tie-breaker for “most recent”: latest `effectiveFrom`, then latest `updatedAt`.
+4. If **no active relationships**, return `404` with error code `VEHICLE_HAS_NO_ACTIVE_PARTY`.
+5. Return contacts:
+   - all active contacts for the resolved primary party/account
+   - mark one as `isPrimary=true` using CRM’s primary-contact flag; if none exists, choose most recently updated contact.
+
+## Alternate / Error Flows
+- Missing identifiers (`partyId` and `vehicleId` both absent) → `400 Bad Request`
+- Party not found (invalid `partyId`) → `404 Not Found`
+- Vehicle not found (invalid `vehicleId`) → `404 Not Found`
+- Vehicle has no active party relationship → `404 Not Found` with `errorCode=VEHICLE_HAS_NO_ACTIVE_PARTY`
+- Unauthorized (valid auth, but not allowlisted and/or missing scope) → `403 Forbidden`
+- Unexpected aggregation failure → `500 Internal Server Error` with correlation ID logged
+
+## Business Rules
+- **Domain ownership (Decision):** `domain:crm` owns this read API as a CRM read model. Billing/Workexec are consumers.
+- **Contract stability:** response schema is versioned (`/v1/...`) and changes must be backward compatible within a version.
+- **Preferences scope (Decision, v1):** “rules and preferences” means **contactability + billing-relevant preferences only**; explicitly exclude Workexec/Billing workflow/policy rules.
+- **Authorization (Decision):** NOT open to “any internal caller”; restricted to allowlisted service identities + required scope.
+
+## Data Requirements
+### Response (v1) — shape (illustrative)
+```json
+{
+  "snapshotMetadata": {
+    "snapshotId": "uuid",
+    "createdAt": "ISO-8601-Timestamp",
+    "version": "string | ETag"
+  },
+  "account": {
+    "partyId": "uuid",
+    "accountNumber": "string",
+    "accountName": "string",
+    "accountType": "INDIVIDUAL | BUSINESS"
+  },
+  "contacts": [
+    {
+      "contactId": "uuid",
+      "isPrimary": true,
+      "name": "string",
+      "roles": ["string"],
+      "phoneNumbers": [{ "type": "MOBILE", "number": "string" }],
+      "emailAddresses": [{ "type": "PRIMARY", "address": "string" }],
+      "preferences": {
+        "emailOptIn": true,
+        "smsOptIn": false,
+        "phoneOptIn": true,
+        "doNotContact": false,
+        "preferredContactMethod": "EMAIL | SMS | PHONE | NONE",
+        "preferredLanguage": "string"
+      }
+    }
+  ],
+  "vehicles": [
+    {
+      "vehicleId": "uuid",
+      "vin": "string",
+      "licensePlate": "string",
+      "make": "string",
+      "model": "string",
+      "year": 2024
+    }
+  ],
+  "preferences": {
+    "marketingOptOut": false,
+    "doNotContact": false,
+    "invoiceDeliveryMethod": "EMAIL | MAIL | NONE"
+  }
+}
+```
+
+## Acceptance Criteria
+- **AC-1: Successful snapshot retrieval by partyId**
+  - Given a valid `partyId` exists with contacts and vehicles
+  - When calling `GET /v1/crm-snapshot?partyId={partyId}`
+  - Then the service returns `200 OK` with the correct snapshot DTO and `snapshotMetadata.version`.
+
+- **AC-2: Successful snapshot retrieval by vehicleId using deterministic party resolution**
+  - Given a valid `vehicleId` exists with active relationships
+  - When calling `GET /v1/crm-snapshot?vehicleId={vehicleId}`
+  - Then the service returns `200 OK`
+  - And selects the primary party using precedence `PRIMARY_OWNER > OWNER > LESSEE/DRIVER > any active` with “most recent” tie-breaker.
+
+- **AC-3: Vehicle has no active party relationship**
+  - Given a valid `vehicleId` exists but has no active party relationship
+  - When calling `GET /v1/crm-snapshot?vehicleId={vehicleId}`
+  - Then the service returns `404 Not Found` with `errorCode=VEHICLE_HAS_NO_ACTIVE_PARTY`.
+
+- **AC-4: Missing identifier rejected**
+  - Given any state
+  - When calling `GET /v1/crm-snapshot` with no query params
+  - Then the service returns `400 Bad Request`.
+
+- **AC-5: Authorization is allowlist + scope enforced**
+  - Given a valid service token
+  - When the caller is not allowlisted and/or missing `crm.snapshot.read`
+  - Then the service returns `403 Forbidden`.
+
+- **AC-6: Preferences scope (v1) is limited**
+  - Given a valid snapshot request
+  - Then the response contains only contactability + billing-relevant preferences
+  - And does not contain Workexec/Billing workflow/policy rules.
+
+## Audit & Observability
+- **Audit:** log caller identity + queried identifiers + timestamp.
+- **Rate limiting:** per-caller rate limits to protect CRM.
+- **Metrics:** request count, latency, and status codes, tagged by caller identity.
+- **Logging:** structured logs with correlation IDs for all errors (4xx/5xx).
+
+## Open Questions
+- None. Decisions were supplied in the issue comments (Decision Record generated by `clarification-resolver.sh` on 2026-01-14).
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #99 — [BACKEND] [STORY] Billing: Expose CRM Snapshot (Account + Contacts + Vehicles + Rules)
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Billing: Expose CRM Snapshot (Account + Contacts + Vehicles + Rules)
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Workorder System**, I want **a single endpoint to fetch account/person, contacts, vehicles, rules, and preferences** so that **estimate creation can be fast and consistent**.
+
+## Details
+- Endpoint accepts partyId and/or vehicleId.
+- Returns normalized snapshot with version/timestamp.
+- Cache-friendly response model.
+
+## Acceptance Criteria
+- Returns expected fields.
+- Includes timestamps/version.
+- Not-found handled cleanly.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution calls snapshot at estimate draft and on-demand refresh.
+
+## Data / Entities
+- CRM Snapshot DTO / API
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #94: [BACKEND] [STORY] Promotions: Record Promotion Redemption from Invoicing
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:crm
+- status:draft
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** crm-pragmatic
+---
+
+## Story Intent
+As the CRM System, I want to idempotently consume a `PromotionRedeemed` event, create a permanent record of the redemption, and update relevant usage counters. This ensures that promotion usage is accurately tracked for analytics, reporting, and enables other systems to enforce usage limits.
+
+## Actors & Stakeholders
+- **System (CRM Domain):** The primary actor responsible for processing redemption events and maintaining the state of promotion usage.
+- **System (Workorder Execution Domain):** The upstream actor that emits the `PromotionRedeemed` event when an invoice is finalized with a promotion applied.
+- **Marketing Manager (Stakeholder):** Relies on accurate redemption data to measure promotion effectiveness and ROI.
+- **Customer Service Representative (Stakeholder):** May need to query redemption history to resolve customer inquiries.
+
+## Preconditions
+- A `Promotion` entity exists in the CRM database, identifiable by a unique `promotionId`.
+- The event-driven messaging infrastructure (e.g., Kafka, RabbitMQ) is operational.
+- The CRM service is subscribed to the topic where `PromotionRedeemed` events are published.
+- The schema for the `PromotionRedeemed` event is defined and agreed upon with the Workorder Execution domain.
+
+## Functional Behavior
+### Event-Triggered Redemption Recording
+1.  **Trigger:** The CRM service's event listener consumes a `PromotionRedeemed` event.
+2.  **Idempotency Check:** The service extracts a unique key from the event (e.g., a composite of `promotionId` and `workOrderId`, or a unique event ID) and checks if a `PromotionRedemption` record with this key already exists.
+    - If a record exists, the event is considered a duplicate. The service logs this, discards the event, and processing stops (see Alternate Flows).
+3.  **Validation:** If the event is not a duplicate, the service validates the `promotionId` from the payload against the CRM database to ensure the promotion exists and is in an active state.
+4.  **Record Creation:** The service creates a new `PromotionRedemption` entity instance. This record links the `promotionId`, `customerId`, `workOrderId`, and `invoiceId` from the event payload.
+5.  **Counter Updates:** In the same transaction as the record creation, the service atomically increments the `totalUsageCount` on the parent `Promotion` entity. If customer-specific limits are tracked, the corresponding customer usage counter is also incremented.
+6.  **Confirmation:** The transaction is committed, and the event is acknowledged as successfully processed.
+
+## Alternate / Error Flows
+- **Duplicate Event Received:**
+    - **Trigger:** An event is consumed for which a `PromotionRedemption` record already exists.
+    - **Outcome:** The system logs an informational message (e.g., "Duplicate PromotionRedeemed event ignored for workOrderId: [ID]") and acknowledges the message to prevent reprocessing. No database changes are made.
+- **Promotion Not Found:**
+    - **Trigger:** The `promotionId` in the event payload does not match any existing `Promotion` in the CRM database.
+    - **Outcome:** The system logs a critical error, does not create a redemption record, and moves the message to a Dead-Letter Queue (DLQ) for manual investigation.
+- **Invalid Event Payload:**
+    - **Trigger:** The event message is malformed, fails schema validation, or is missing a required field (e.g., `workOrderId`).
+    - **Outcome:** The system logs a critical error, rejects the message, and moves it to the DLQ.
+
+## Business Rules
+- **Idempotency is Mandatory:** The system MUST guarantee that processing the same `PromotionRedeemed` event multiple times results in exactly one `PromotionRedemption` record and one counter increment. The unique key for idempotency is the combination of `promotionId` and `workOrderId`.
+- **Transactional Integrity:** The creation of the `PromotionRedemption` record and the update of the `Promotion` usage counters MUST occur within a single atomic transaction. A failure in one part must roll back the entire operation.
+- **System of Record:** The CRM domain is the authoritative system of record for all promotion usage data.
+
+## Data Requirements
+### `PromotionRedemption` Entity
+- **`promotionRedemptionId`**: (PK) Unique identifier for the redemption record.
+- **`promotionId`**: (FK, Indexed) Reference to the `Promotion` that was redeemed.
+- **`customerId`**: (Indexed) Identifier for the customer who redeemed the promotion.
+- **`workOrderId`**: (Indexed, Unique with `promotionId`) Reference to the work order where the promotion was applied.
+- **`invoiceId`**: Reference to the finalized invoice.
+- **`redemptionTimestamp`**: The timestamp of the original redemption event from the source system.
+- **`createdAt`**: The timestamp when this record was created in the CRM database.
+
+### `Promotion` Entity (Fields to be updated)
+- **`totalUsageCount`**: A numeric counter that is incremented upon each successful redemption.
+
+## Acceptance Criteria
+### Scenario 1: Successful First-Time Redemption
+- **Given** a `Promotion` exists with `promotionId="PROMO123"` and a `totalUsageCount` of 5.
+- **And** no `PromotionRedemption` record exists for `workOrderId="WO-ABC"`.
+- **When** the CRM system consumes a valid `PromotionRedeemed` event with `promotionId="PROMO123"` and `workOrderId="WO-ABC"`.
+- **Then** a new `PromotionRedemption` record is created linking `promotionId="PROMO123"` and `workOrderId="WO-ABC"`.
+- **And** the `totalUsageCount` for `PROMO123` is updated to 6.
+
+### Scenario 2: Idempotent Handling of Duplicate Event
+- **Given** a `PromotionRedemption` record already exists for `promotionId="PROMO123"` and `workOrderId="WO-ABC"`.
+- **And** the `totalUsageCount` for `PROMO123` is 6.
+- **When** the CRM system consumes a second, identical `PromotionRedeemed` event for `workOrderId="WO-ABC"`.
+- **Then** no new `PromotionRedemption` record is created.
+- **And** the `totalUsageCount` for `PROMO123` remains 6.
+- **And** an informational log message is generated indicating a duplicate event was ignored.
+
+### Scenario 3: Event for Non-Existent Promotion
+- **Given** no `Promotion` exists with `promotionId="FAKEPROMO"`.
+- **When** the CRM system consumes a `PromotionRedeemed` event with `promotionId="FAKEPROMO"`.
+- **Then** no `PromotionRedemption` record is created.
+- **And** a critical error is logged stating the promotion was not found.
+- **And** the event message is moved to a Dead-Letter Queue.
+
+## Audit & Observability
+- **Logging:**
+    - `INFO`: Successful processing of each redemption event, including `promotionId` and `workOrderId`.
+    - `INFO`: Ignored duplicate redemption events, including `promotionId` and `workOrderId`.
+    - `ERROR`: Failed processing due to validation errors (e.g., promotion not found) or data persistence issues.
+- **Metrics:**
+    - `promotions.redemptions.processed` (Counter): Incremented for every successful redemption. Tagged by `promotionId`.
+    - `promotions.redemptions.duplicates` (Counter): Incremented for every duplicate event ignored. Tagged by `promotionId`.
+    - `promotions.redemptions.failures` (Counter): Incremented for every failed event. Tagged by `reason` (e.g., `not_found`, `invalid_payload`).
+
+## Open Questions
+1.  **Scope of Enforcement:** The original story's Acceptance Criteria mentions "Usage limits enforced when configured." Does this mean this service should *reject* the `PromotionRedeemed` event if a usage limit (e.g., total uses, uses per customer) has already been met? Or is its sole responsibility to *record* the redemption and increment counters, with enforcement happening in the Workorder Execution domain *before* the promotion is applied?
+    -   **Recommendation:** This story's scope should be limited to recording the event and updating counters. The Workorder Execution domain should be responsible for checking usage limits (by querying a CRM API) *before* finalizing an invoice with a promotion. This maintains clear separation of concerns. Please confirm this direction.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #94 — [BACKEND] [STORY] Promotions: Record Promotion Redemption from Invoicing
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Promotions: Record Promotion Redemption from Invoicing
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **System**, I want **to record when a promotion is redeemed against a finalized invoice/workorder** so that **we can track usage and prevent abuse**.
+
+## Details
+- On invoice finalization, Workorder Execution emits PromotionRedeemed.
+- CRM records redemption once (idempotent) and updates counters.
+
+## Acceptance Criteria
+- Redemption recorded once.
+- Usage limits enforced when configured.
+- Redemption links to Workorder/Invoice reference.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution emits PromotionRedeemed; CRM consumes and updates usage.
+
+## Data / Entities
+- PromotionUsage
+- RedemptionEvent
+- ProcessingLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #4: [BACKEND] [STORY] Customer: Load Customer + Vehicle Context and Billing Rules
+LABELS: type:story,domain:crm,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Updated)
+
+### Required
+- type:story
+- domain:crm
+- status:ready
+
+### Recommended
+- agent:crm
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+Enable **Service Advisors** to access a complete customer snapshot (account, contacts, vehicles, billing configuration) during order creation so that downstream processes can respect customer-specific billing rules, contact preferences, and vehicle context without repeated lookups or manual data entry.
+
+This story establishes the **foundational data retrieval capability** that supports accurate quoting, invoicing, and communication throughout the order lifecycle.
+
+---
+
+## Actors & Stakeholders
+
+### Primary Actors
+- **Service Advisor**: Retrieves customer snapshot when creating or managing orders
+- **CRM Service**: System of record for customer accounts, contacts, vehicles, and billing configuration
+- **Order Creation Service (Workexec)**: Consumer of customer snapshot during order flow
+
+### Secondary Stakeholders
+- **Billing/Invoicing Service**: Consumes billing rules for enforcement during checkout and payment
+- **Pricing Service**: May reference customer billing configuration (e.g., tax exemption) during quote calculation
+- **Audit Service**: Logs snapshot retrieval and cache behavior for compliance
+
+---
+
+## Preconditions
+
+1. Customer record exists in CRM with valid account ID
+2. Service Advisor has permission to view customer details
+3. CRM snapshot API is available and responding
+4. At least one of the following exists for the customer:
+   - Account-level billing configuration
+   - At least one contact
+   - At least one associated vehicle (optional but common)
+
+---
+
+## Functional Behavior
+
+### 1. Retrieve Customer Snapshot by Account ID
+
+**Trigger**: Service Advisor selects a customer during order creation or views customer details
+
+**Flow**:
+1. System receives request with customer account ID and requesting user context
+2. System checks cache for unexpired customer snapshot
+3. If cache miss or expired:
+   - System calls CRM snapshot API with account ID
+   - CRM returns CustomerSnapshot payload including:
+     - Account metadata (account ID, name, type, status)
+     - Contacts list (name, role, phone, email, preferred contact method)
+     - Vehicles list (VIN, make, model, year, mileage, description)
+     - Billing rules (PO requirement flag, tax exemption flag, payment terms, credit limit)
+4. System caches snapshot with configured TTL
+5. System returns snapshot to calling service/UI
+
+**Outcome**: Customer snapshot is available for immediate use in order creation and downstream billing processes
+
+---
+
+### 2. Expose Billing Rule Enforcement Hooks
+
+**Trigger**: Downstream service (e.g., order creation, invoicing) needs to validate or enforce billing rules
+
+**Flow**:
+1. Calling service requests billing rules from customer snapshot
+2. System returns BillingRuleRef with flags and configuration:
+   - `poRequired`: boolean
+   - `taxExempt`: boolean
+   - `paymentTerms`: string (e.g., "Net 30", "Due on Receipt")
+   - `creditLimit`: decimal (optional)
+   - `creditHold`: boolean
+   - `invoiceDeliveryMethod`: enum (EMAIL, MAIL, PORTAL, EDI)
+   - `billingAddressId`: UUID (optional)
+   - `autoPayEnabled`: boolean
+   - `discountPolicyRef`: string (optional)
+   - `currency`: string (ISO-4217, optional)
+3. Calling service applies rules according to its domain logic (e.g., checkout blocks if PO required but not provided)
+
+**Outcome**: Billing rules are accessible to enforcement services without direct CRM coupling
+
+---
+
+### 3. Cache and Update Strategy
+
+**Trigger**: Customer snapshot is requested or updated
+
+**Flow**:
+1. On first retrieval: Cache snapshot with TTL (15 minutes default)
+2. On subsequent requests within TTL: Return cached snapshot
+3. On cache expiration: Fetch fresh snapshot from CRM and update cache
+4. On explicit invalidation (e.g., customer update event from CRM): Purge cache entry for that account
+
+**Storage**: Redis (preferred) for shared cache across instances; in-memory cache for dev/test only  
+**Cache key format**: `customer-snapshot:v1:<accountId>`  
+**Invalidation triggers**: CustomerUpdated, ContactUpdated, VehicleUpdated, BillingRulesUpdated, AccountStatusChanged
+
+**Outcome**: Balance between performance (caching) and freshness (TTL-based expiration)
+
+---
+
+## Alternate / Error Flows
+
+### 1. Customer Not Found in CRM
+
+**Trigger**: Account ID does not exist in CRM
+
+**Flow**:
+1. CRM API returns 404 Not Found
+2. System logs error with account ID and requesting user
+3. System returns error to calling service: "Customer not found"
+4. UI displays user-friendly message: "Customer account not found. Please verify account ID."
+
+---
+
+### 2. CRM Service Unavailable
+
+**Trigger**: CRM API is unreachable or returns 5xx error
+
+**Flow**:
+1. System detects CRM unavailability (timeout or error response)
+2. System checks cache for stale snapshot (even if expired)
+3. If stale snapshot exists and `staleSince <= 60 minutes`:
+   - Return stale snapshot with warning flag: `stale: true, staleSince: timestamp`
+   - Log degraded mode operation
+4. If no snapshot exists or stale exceeds 60 minutes:
+   - **Fail-open for order drafting**: Allow creating order draft with minimal customer identifiers
+   - **Fail-closed for submission**: Block submission/checkout unless advisor provides required fields manually
+   - Flag order as "CRM-DEGRADED"
+   - Log critical alert for CRM outage
+5. Retry with exponential backoff for cache refresh
+
+**Outcome**: Graceful degradation using stale cache when CRM is unavailable
+
+---
+
+### 3. Incomplete Customer Data
+
+**Trigger**: CRM returns snapshot with missing expected fields (e.g., no contacts, no billing rules)
+
+**Flow**:
+1. System validates snapshot payload
+2. If billing rules are missing:
+   - Apply default billing configuration (e.g., no PO required, not tax exempt, payment terms "Due on Receipt")
+   - Log warning with account ID
+3. If contacts are missing:
+   - Include empty contacts array
+   - Log warning for manual follow-up
+4. Return snapshot with populated defaults and warning flags
+
+---
+
+### 4. Unauthorized Access
+
+**Trigger**: Requesting user does not have permission to view customer account
+
+**Flow**:
+1. System checks user permissions against account access rules (evaluated at request time even if returning cached data)
+2. If unauthorized:
+   - Return 403 Forbidden
+   - Log access attempt with user ID, account ID, timestamp
+3. UI displays: "You do not have permission to view this customer."
+
+---
+
+### 5. Cache Invalidation Failure
+
+**Trigger**: Customer update event is received but cache invalidation fails
+
+**Flow**:
+1. System receives customer update event from CRM (via event bus or webhook)
+2. System attempts to purge cache entry
+3. If purge fails:
+   - Log error with account ID and retry up to 3 times
+   - If still failing, rely on TTL-based expiration
+4. Monitor for cache staleness metrics
+
+---
+
+## Business Rules
+
+### 1. Customer Snapshot Composition
+
+A customer snapshot MUST include:
+- **Account**: ID, name, account type (individual, commercial, fleet), status (active, inactive)
+- **Contacts**: Array of contact records (may be empty)
+- **Vehicles**: Array of vehicle records (may be empty)
+- **Billing Rules**: PO requirement, tax exemption, payment terms, credit limit (with defaults if not configured)
+
+---
+
+### 2. Billing Rule Defaults
+
+If CRM does not provide explicit billing rules for a customer, apply the following defaults:
+- `poRequired`: false
+- `taxExempt`: false
+- `paymentTerms`: "Due on Receipt"
+- `creditLimit`: null (no limit)
+- `creditHold`: false
+- `autoPayEnabled`: false
+- `invoiceDeliveryMethod`: EMAIL
+
+These defaults MUST be logged and surfaced to users for manual review.
+
+---
+
+### 3. Cache TTL and Staleness Policy
+
+- **Default TTL**: 15 minutes (configurable per environment)
+- **Stale Tolerance**: Up to 60 minutes in degraded mode (CRM unavailable)
+- **Invalidation Events**: CustomerUpdated, ContactUpdated, VehicleUpdated, BillingRulesUpdated, AccountStatusChanged
+- Cache entries MUST include timestamp for staleness detection
+
+---
+
+### 4. Preferred Contact Method Priority
+
+If a customer has multiple contacts, the **preferred contact method** is determined by:
+1. Contact with `isPrimary=true`
+2. Contact with explicit preference for the relevant `preferredFor` category (if present)
+3. Contact with `preferredContactMethod` present (any)
+4. First in list (stable ordering from CRM)
+
+Calling services SHOULD respect preferred contact for notifications.
+
+**Allowed values**: PHONE, EMAIL, SMS, PORTAL, MAIL  
+**Scope**: Preference is per-contact; account-level default contact method may be added later.
+
+---
+
+### 5. Vehicle Context Association
+
+Vehicles are associated with customer accounts at the **account level**, not individual contact level. A customer may have:
+- Zero vehicles (walk-in service)
+- One vehicle (typical individual customer)
+- Many vehicles (fleet accounts)
+
+**Snapshot includes lightweight vehicle data only**: identity + order-creation essentials. Full service history, tire specs, warranty status are fetched separately from work history or dedicated vehicle-service-history services.
+
+---
+
+### 6. Billing Rule Enforcement Ownership
+
+This service **provides** billing rules but does NOT enforce them. Enforcement is the responsibility of:
+- **Checkout/Order Creation**: Validates PO requirement before order submission, handles creditHold during submission/approval gates
+- **Invoicing**: Applies payment terms and credit limit checks before invoice issuance
+- **Pricing**: Applies tax exemption and discount policy evaluation
+
+This service exposes `BillingRuleRef` as a **read-only configuration snapshot**.
+
+---
+
+### 7. Integration with Order Creation Flow
+
+**Touchpoints**:
+- **When fetched**: On **customer selection** in order creation UI/API flow
+- **How held**: Stored as a **snapshot reference** in the order draft/session:
+  - `orderDraft.customerSnapshotRef = { accountId, retrievedAt, cacheKey?, snapshotEtag? }`
+- **Refresh behavior**:
+  - Auto-refresh only on TTL expiry when UI explicitly re-opens customer panel or user hits **Refresh**
+  - Do not silently refresh mid-checkout unless a rule requires it
+
+**Security note**: Authorization must be evaluated at request time even if returning cached data.
+
+---
+
+## Data Requirements
+
+### CustomerSnapshot (Response Model)
+
+```json
+{
+  "accountId": "string (UUID)",
+  "accountName": "string",
+  "accountType": "enum (INDIVIDUAL, COMMERCIAL, FLEET)",
+  "accountStatus": "enum (ACTIVE, INACTIVE, SUSPENDED)",
+  "contacts": [
+    {
+      "contactId": "string (UUID)",
+      "name": "string",
+      "role": "string (e.g., Owner, Fleet Manager, Billing Contact)",
+      "phone": "string",
+      "email": "string",
+      "preferredContactMethod": "enum (PHONE, EMAIL, SMS, PORTAL, MAIL)",
+      "preferredFor": "enum list (QUOTES, INVOICES, APPOINTMENTS, MARKETING, GENERAL)",
+      "doNotContact": "boolean (optional)",
+      "isPrimary": "boolean"
+    }
+  ],
+  "vehicles": [
+    {
+      "vehicleId": "string (UUID)",
+      "vin": "string (17 characters)",
+      "make": "string",
+      "model": "string",
+      "year": "integer",
+      "mileage": "integer (optional)",
+      "description": "string (optional)",
+      "unitNumber": "string (optional)",
+      "licensePlate": "string (optional)"
+    }
+  ],
+  "billingRules": {
+    "poRequired": "boolean",
+    "taxExempt": "boolean",
+    "paymentTerms": "string (e.g., Net 30, Due on Receipt)",
+    "creditLimit": "decimal (optional)",
+    "creditHold": "boolean",
+    "invoiceDeliveryMethod": "enum (EMAIL, MAIL, PORTAL, EDI)",
+    "billingAddressId": "string (UUID, optional)",
+    "autoPayEnabled": "boolean",
+    "discountPolicyRef": "string (optional)",
+    "currency": "string (ISO-4217, optional)",
+    "extensions": "map<string, any> (for future fields)"
+  },
+  "metadata": {
+    "retrievedAt": "timestamp (ISO 8601)",
+    "source": "enum (CACHE, CRM_API)",
+    "stale": "boolean",
+    "staleSince": "timestamp (ISO 8601, optional)"
+  }
+}
+```
+
+---
+
+### VehicleRef (Nested Model)
+
+**Scope**: Lightweight identity + order-creation essentials only
+
+**Key Fields**:
+- `vehicleId`: Unique identifier in CRM
+- `vin`: Vehicle Identification Number (17-character standard)
+- `make`, `model`, `year`: Core vehicle identity
+- `mileage`: Optional odometer reading
+- `description`: Optional free-text field for notes
+- `unitNumber`: Optional fleet identifier
+- `licensePlate`: Optional for improved lookup UX
+
+**Explicitly out of scope**: Tire specs, full service history, warranty status, inspection history, attachments
+
+---
+
+### BillingRuleRef (Nested Model)
+
+**Authoritative owner**: CRM domain owns storage and delivery; Billing domain owns semantic meaning and enforcement
+
+**Key Fields (v1 schema)**:
+- `poRequired`: If true, customer MUST provide a PO number before order submission
+- `taxExempt`: If true, skip tax calculation (certificate presence tracked separately)
+- `paymentTerms`: Human-readable payment terms string
+- `creditLimit`: Optional decimal; cumulative unpaid invoices cannot exceed this limit
+- `creditHold`: If true, caller should block credit-based flows
+- `invoiceDeliveryMethod`: How invoices should be delivered to customer
+- `billingAddressId`: References address entity in CRM
+- `autoPayEnabled`: Informative flag (not an instruction to charge)
+- `discountPolicyRef`: Reference key only; pricing owns evaluation
+- `currency`: ISO-4217 currency code
+- `extensions`: Map for future sector-specific rules
+
+**Extension strategy**: Unknown keys in `extensions` must be ignored by consumers.
+
+**Defaulting rule**: Defaults apply when entire `billingRules` object is missing. If partial fields are missing, default only those missing fields and log which keys were defaulted.
+
+---
+
+### Cache Entry Schema
+
+Internal cache structure:
+
+```json
+{
+  "cacheKey": "customer-snapshot:v1:<accountId>",
+  "payload": "<CustomerSnapshot JSON>",
+  "cachedAt": "timestamp (ISO 8601)",
+  "expiresAt": "timestamp (ISO 8601)",
+  "version": "integer (for cache versioning)"
+}
+```
+
+---
+
+## Acceptance Criteria
+
+### AC1: Customer Snapshot Loads Successfully
+
+**Given** a valid customer account ID exists in CRM  
+**When** a Service Advisor requests the customer snapshot  
+**Then** the system returns a CustomerSnapshot payload within 2 seconds  
+**And** the payload includes account, contacts, vehicles, and billing rules sections  
+**And** the snapshot is cached with the configured TTL
+
+---
+
+### AC2: Billing Rule Enforcement Hooks Are Exposed
+
+**Given** a customer snapshot has been loaded  
+**When** a downstream service requests billing rules  
+**Then** the system returns a BillingRuleRef object with all flags and configuration  
+**And** the calling service can check `poRequired`, `taxExempt`, `creditHold`, and other billing fields without additional CRM calls
+
+---
+
+### AC3: Cache Behavior Works as Expected
+
+**Given** a customer snapshot has been cached  
+**When** the same customer is requested again within the TTL window  
+**Then** the system returns the cached snapshot without calling CRM  
+**And** the response includes `source: CACHE` in metadata  
+**When** the TTL expires  
+**Then** the next request fetches a fresh snapshot from CRM  
+**And** the cache is updated with the new snapshot
+
+---
+
+### AC4: Stale Cache Is Used When CRM Is Unavailable
+
+**Given** CRM service is unavailable or unresponsive  
+**And** a stale cached snapshot exists for the customer (stale <= 60 minutes)  
+**When** a Service Advisor requests the customer snapshot  
+**Then** the system returns the stale snapshot  
+**And** the response includes `stale: true` and `staleSince` timestamp in metadata  
+**And** a warning is logged for monitoring
+
+---
+
+### AC5: Missing Billing Rules Are Handled with Defaults
+
+**Given** CRM returns a customer snapshot without billing rules  
+**When** the system processes the response  
+**Then** the system applies default billing rules (poRequired: false, taxExempt: false, paymentTerms: "Due on Receipt", etc.)  
+**And** the response includes the defaults in the billingRules section  
+**And** a warning is logged with the account ID for manual review
+
+---
+
+### AC6: Unauthorized Access Is Denied
+
+**Given** a Service Advisor does not have permission to view customer account X  
+**When** they request the customer snapshot for account X  
+**Then** the system returns 403 Forbidden  
+**And** the access attempt is logged with user ID, account ID, and timestamp
+
+---
+
+### AC7: Degraded Mode Behavior for Extended CRM Outage
+
+**Given** CRM service is unavailable for more than 15 minutes  
+**When** Service Advisor attempts to create a new order  
+**Then** the system allows creating an order draft with minimal customer identifiers  
+**And** the system blocks submission/checkout unless advisor provides required fields manually  
+**And** the order is flagged as "CRM-DEGRADED"  
+**And** a prominent alert/metric is emitted
+
+---
+
+## Audit & Observability
+
+### Required Audit Events
+
+1. **CustomerSnapshotRetrieved**
+   - Timestamp, user ID, account ID, source (cache/CRM), response time, outcome (success/error)
+
+2. **BillingRulesAccessed**
+   - Timestamp, user ID, account ID, calling service, billing rule values
+
+3. **CacheHit / CacheMiss**
+   - Timestamp, account ID, cache key, TTL remaining (for hits), outcome
+
+4. **CRMServiceUnavailable**
+   - Timestamp, account ID, error message, retry count, degraded mode (yes/no)
+
+5. **DefaultBillingRulesApplied**
+   - Timestamp, account ID, reason (missing CRM data), default values applied
+
+6. **UnauthorizedAccessAttempt**
+   - Timestamp, user ID, account ID, requesting service, IP address
+
+---
+
+### Metrics to Track
+
+- **Snapshot Retrieval Latency**: p50, p95, p99 response times (target: <2 seconds)
+- **Cache Hit Rate**: Percentage of requests served from cache vs. CRM API (target: >80%)
+- **CRM API Availability**: Uptime percentage and error rate
+- **Stale Cache Usage**: Count of requests served with stale data (should be rare)
+- **Default Billing Rules Applied**: Count per day (indicates missing CRM configuration)
+- **Unauthorized Access Attempts**: Count per day (security monitoring)
+- **Degraded Mode Operations**: Count of CRM-DEGRADED orders created
+
+---
+
+## Resolution Summary
+
+All open questions (Q1-Q7) have been resolved with explicit decisions:
+
+1. **Q1 - Complete billing rules schema**: Extended to include creditHold, invoiceDeliveryMethod, billingAddressId, autoPayEnabled, discountPolicyRef, currency, and extensions map
+2. **Q2 - Caching strategy**: Redis with 15-min TTL, 60-min stale tolerance, event-driven invalidation + TTL safety net
+3. **Q3 - Enforcement ownership**: This service provides read-only configuration; enforcement is caller's responsibility (Workexec, Billing, Pricing)
+4. **Q4 - Preferred contact method**: Defined schema (PHONE, EMAIL, SMS, PORTAL, MAIL), priority logic, and per-contact scope
+5. **Q5 - Vehicle detail level**: Lightweight identity + order-creation essentials only; full history fetched separately
+6. **Q6 - Order creation integration**: Fetch on customer select, store snapshot ref in draft, explicit refresh points
+7. **Q7 - Extended CRM outage**: Stale cache up to 60 minutes; fail-open for drafts, fail-closed for submission with manual override
+
+**Status**: All clarifications resolved. Story is **READY FOR IMPLEMENTATION**.
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+# Issue #4 — [BACKEND] [STORY] Customer: Load Customer + Vehicle Context and Billing Rules
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Customer: Load Customer + Vehicle Context and Billing Rules
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Service Advisor**, I want a customer snapshot so that order creation respects billing rules and contacts.
+
+## Details
+- Show account, individuals, contacts, preferred contact method.
+- Show vehicles and VIN/description.
+- Show billing rules (PO required, tax exemption, terms).
+
+## Acceptance Criteria
+- Snapshot loads for selected customer.
+- Billing rule enforcement hooks present.
+- Cached/updated appropriately.
+
+## Integrations
+- CRM provides snapshot API; workexec can use same refs.
+
+## Data / Entities
+- CustomerSnapshot, VehicleRef, BillingRuleRef
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Experience
+- domain :  Point of Sale
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #3: [BACKEND] [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+LABELS: payment,type:story,domain:crm,domain:billing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:crm
+- domain:billing
+- status:ready-for-dev
+
+### Recommended
+- agent:crm
+- agent:billing
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+As a **POS Clerk**, I need to enforce customer-specific billing rules (particularly PO requirements) during checkout so that commercial accounts comply with their contractual billing terms and internal approval processes, preventing order finalization until required documentation is captured.
+
+---
+
+## Actors & Stakeholders
+
+- **POS Clerk / Service Advisor** (primary actor) — processes checkout and captures required PO references when prompted by the system
+- **Commercial Customer** — subject to PO requirements and specific payment terms based on their account configuration
+- **Finance / Accounts Receivable** — defines customer billing rules, payment terms, and credit limits via Billing Management system
+- **Billing Management System** — authoritative source for customer billing rules, versioning, and credit limits
+- **CRM System** — surfaces and caches customer billing configuration for UX and workflow (not authoritative)
+- **Accounting System** — receives orders with PO references and applies payment terms for invoicing; enforces posting against credit limits
+- **System** — enforces billing rules at checkout and blocks finalization if requirements are not met
+
+---
+
+## Preconditions
+
+- The customer account exists with billing configuration defined in **Billing Management** (authoritative source)
+- The customer's billing rules include a versioned "PO Required" flag (true/false) with effective dates
+- Payment terms and charge account eligibility are configured for the customer in Billing Management
+- The POS Clerk is authenticated and authorized to process checkout
+- Override permissions and approval policies are defined for bypassing PO requirements (if permitted)
+- Billing rule versions are immutably stored with `effectiveStartAt`, `effectiveEndAt`, `changedBy`, and `changeReason`
+
+---
+
+## Functional Behavior
+
+### Enforce PO Requirement at Checkout
+**When** a POS Clerk attempts to finalize an order for a commercial customer,
+**Then** the system SHALL:
+1. Query the customer's billing rules from **Billing Management** (authoritative source)
+2. Retrieve the active billing rule version based on the current timestamp
+3. If PO is required and no PO reference has been captured, block order finalization with a clear message (e.g., "PO number required for this customer")
+4. Prompt the POS Clerk to enter the PO reference (alphanumeric, 3-30 characters, letters/numbers/`-`/`_` allowed, case-insensitive)
+5. Validate the PO reference format:
+   - Length: 3-30 characters
+   - Pattern: alphanumeric with `-` and `_` allowed
+   - No prefix requirement by default (customer-specific prefix configurable)
+6. If customer has PO uniqueness policy configured, validate uniqueness:
+   - `PER_ORDER` (default): no uniqueness check
+   - `PER_ACCOUNT_OPEN_ORDERS`: check against open orders for this account
+   - `PER_ACCOUNT_ALL_TIME`: check against all orders for this account
+7. Link the PO reference to the order along with the `billingRuleVersion` used at checkout
+8. Allow order finalization once the PO is captured and validated
+
+### Apply Payment Terms (Optional Flow)
+**When** a commercial customer has specific payment terms configured (e.g., "Net 30", "Net 60"),
+**Then** the system SHALL:
+1. Retrieve the payment terms from **Billing Management**
+2. Apply the terms to the order/invoice (defer payment due date)
+3. Set the billing method flag: `billingMethod = CHARGE_ACCOUNT | IMMEDIATE_PAYMENT`
+4. Query credit limits and charge account eligibility from **Billing Management**
+5. Record the applied payment terms for accounting integration
+6. Pass credit limit information to Accounting for enforcement during posting
+
+### Override PO Requirement (With Permission and Approval)
+**When** a POS Clerk with override permission attempts to bypass the PO requirement,
+**Then** the system SHALL:
+1. Validate that the clerk has the `OVERRIDE_PO_REQUIREMENT` permission
+2. Evaluate override policy rules:
+   - Check order total against thresholds (e.g., > $10,000 requires escalated approval)
+   - Check customer risk tier
+   - Check account credit status
+3. If order is under threshold and account is standard risk:
+   - Allow **single approver** override (the clerk with permission)
+4. If order exceeds threshold or account is high-risk:
+   - Require **two-person approval** (second approver with override permission)
+   - Prompt for second approver authentication
+5. Prompt for an override reason code (mandatory, from predefined list or free text)
+6. Capture override approval details:
+   - `approverId(s)` (one or two approvers depending on policy)
+   - `policyVersion` (version of override policy applied)
+   - `overrideReasonCode` (mandatory)
+   - `overrideTimestamp`
+7. Allow order finalization without a PO reference
+8. Log the override event with complete audit trail
+9. Flag the order as "PO Overridden" for finance review
+
+---
+
+## Alternate / Error Flows
+
+### Error: PO Requirement Not Met
+**When** a POS Clerk attempts to finalize an order for a customer with PO requirement but no PO captured,
+**Then** the system SHALL:
+1. Reject the finalization request
+2. Display a clear error message: "PO number required for customer [Customer Name]. Please enter PO or contact finance for override approval."
+3. Log the blocked attempt (clerk, customer, timestamp, billingRuleVersion)
+
+### Error: Invalid PO Format
+**When** a PO reference is entered but does not match the validation pattern (3-30 characters, alphanumeric with `-` and `_`),
+**Then** the system SHALL:
+1. Reject the PO
+2. Display an error message describing the expected format: "PO must be 3-30 characters, letters, numbers, dashes, and underscores only."
+3. Prompt for correction
+
+### Error: PO Uniqueness Violation
+**When** a PO reference violates the customer's configured uniqueness policy,
+**Then** the system SHALL:
+1. Reject the PO
+2. Display an error message: "PO number [PO] is already in use for another order for this customer. Please use a unique PO or contact the customer."
+3. Log the uniqueness violation (clerk, customer, PO number, conflicting order reference)
+
+### Error: Unauthorized Override Attempt
+**When** a POS Clerk without override permission attempts to bypass the PO requirement,
+**Then** the system SHALL:
+1. Reject the override request
+2. Display an error message: "Insufficient permissions to override PO requirement. Contact a manager."
+3. Log the denied override attempt (clerk, customer, timestamp)
+
+### Error: Missing Customer Billing Configuration (Fail-Safe for B2B)
+**When** a customer account identified as B2B lacks billing rule configuration (PO required flag is undefined or invalid),
+**Then** the system SHALL:
+1. **Default to REQUIRING PO** (fail-safe for commercial accounts)
+2. Block checkout with a clear error message: "Billing rules not configured for this B2B customer. Please contact an administrator."
+3. Log a critical warning for Billing Management administrators to review and configure billing rules
+4. **Do not allow checkout to proceed** until rules are configured or an authorized override is applied
+
+### Error: Insufficient Credit Limit
+**When** an order with charge account billing method would exceed the customer's credit limit,
+**Then** the system SHALL:
+1. Query credit limit from **Billing Management**
+2. Block order finalization if credit limit would be exceeded
+3. Display an error message: "Order total exceeds available credit limit. Please select a different payment method or contact finance."
+4. Log the credit limit violation
+
+### Error: Two-Person Approval Required but Not Provided
+**When** an override requires two-person approval but only one approver is authenticated,
+**Then** the system SHALL:
+1. Reject the override request
+2. Display an error message: "This override requires approval from a second authorized user. Order total exceeds single-approval threshold."
+3. Prompt for second approver authentication
+4. Log the incomplete approval attempt
+
+---
+
+## Business Rules
+
+1. **Billing Rule Authority:** **Billing Management** is the authoritative source for customer billing rules. CRM may cache and display rules for UX, but all queries for enforcement must go to Billing Management.
+
+2. **Rule Versioning (Mandatory):** Billing rules are versioned and timestamped with:
+   - `ruleId` (unique identifier)
+   - `version` (immutable version number)
+   - `effectiveStartAt` (timestamp when rule becomes active)
+   - `effectiveEndAt` (timestamp when rule expires, nullable for current rules)
+   - `changedBy` (user identity who created the rule version)
+   - `changeReason` (mandatory audit note)
+
+3. **Order-Rule Linkage:** Orders must capture and store the `billingRuleVersion` used at time of checkout for historical reconciliation. No retroactive rule changes may affect completed orders.
+
+4. **PO Format (Default):** PO numbers must be:
+   - Alphanumeric (letters, numbers, `-`, `_` allowed)
+   - Case-insensitive
+   - Length: 3-30 characters
+   - No prefix requirement by default (customer-specific prefix configurable)
+
+5. **PO Uniqueness (Configurable):** PO uniqueness is configurable per customer:
+   - `PER_ORDER` (default): Same PO may be used across multiple orders (blanket PO pattern)
+   - `PER_ACCOUNT_OPEN_ORDERS`: PO must be unique among open orders for the customer
+   - `PER_ACCOUNT_ALL_TIME`: PO must be globally unique for the customer across all time
+
+6. **Override Permission:** `OVERRIDE_PO_REQUIREMENT` is a standalone permission. Roles (e.g., Manager, Finance Manager) may bundle this permission, but it is not role-specific.
+
+7. **Override Approval Workflow:** Overrides are subject to policy rules:
+   - **Single approver** sufficient for orders under threshold and standard-risk accounts
+   - **Two-person approval** required for:
+     - Orders exceeding dollar threshold (e.g., > $10,000)
+     - High-risk customer accounts
+     - Accounts with credit holds or past-due balances
+
+8. **Mandatory Override Audit:** All overrides must capture:
+   - `approverId(s)` (one or two approvers)
+   - `policyVersion` (version of override policy applied)
+   - `overrideReasonCode` (mandatory, from predefined list or free text)
+   - `overrideTimestamp`
+
+9. **Immutable PO Reference:** Once a PO reference is captured and linked to an order, it MUST NOT be editable (only correction via adjustment order or cancellation/re-entry).
+
+10. **Payment Terms Independence:** Payment terms (e.g., Net 30) and PO requirements are independent but commonly paired for commercial accounts. One does not automatically trigger the other, but policies may recommend specific combinations.
+
+11. **Charge Account Billing Method:** Charge account is a billing method flag on the order (`billingMethod = CHARGE_ACCOUNT | IMMEDIATE_PAYMENT`), not a separate checkout path. Orders with `CHARGE_ACCOUNT` billing method defer payment and apply terms.
+
+12. **Credit Limit Authority:** **Billing Management** owns customer credit limits and charge account eligibility. Accounting enforces posting against limits; CRM displays status for UX.
+
+13. **Fail-Safe Default for B2B Accounts:** If billing rules are undefined or invalid for a customer identified as B2B:
+    - **Default to REQUIRING PO** (fail-safe)
+    - **Block checkout** with clear error message
+    - **Require billing rule configuration** or authorized override before proceeding
+    - Global fallback policy: `ALL_B2B_REQUIRE_PO = true` (recommended default)
+
+14. **No External PO Validation (Default):** PO numbers are not validated against external customer procurement systems by default. Any value matching the format is acceptable unless customer-specific integration is configured.
+
+---
+
+## Data Requirements
+
+**Customer Billing Configuration (Billing Management - Authoritative):**
+- `customer_id` (unique identifier)
+- `billing_rule_id` (unique rule identifier)
+- `billing_rule_version` (immutable version number)
+- `po_required` (boolean flag)
+- `payment_terms` (e.g., "Net 30", "Net 60", "COD", nullable)
+- `charge_account_eligible` (boolean flag)
+- `credit_limit` (decimal, nullable)
+- `risk_tier` (e.g., "STANDARD", "HIGH_RISK", "CREDIT_HOLD")
+- `po_uniqueness_policy` (enum: `PER_ORDER`, `PER_ACCOUNT_OPEN_ORDERS`, `PER_ACCOUNT_ALL_TIME`)
+- `po_format_prefix` (optional customer-specific prefix requirement)
+- `effective_start_at` (timestamp when rule becomes active)
+- `effective_end_at` (timestamp when rule expires, nullable for current rules)
+- `changed_by` (user identity who created the rule version)
+- `change_reason` (mandatory audit note for rule changes)
+
+**PO Reference (Order Data):**
+- `order_id` (foreign key)
+- `po_number` (alphanumeric, 3-30 characters)
+- `po_captured_at` (timestamp)
+- `po_captured_by` (clerk identity)
+- `billing_rule_version` (foreign key to specific billing rule version used at checkout)
+- `po_overridden` (boolean flag, default false)
+- `override_reason_code` (mandatory if overridden, from predefined list or free text)
+- `override_approver_ids` (array of user identities, one or two approvers)
+- `override_policy_version` (version of override policy applied)
+- `override_at` (timestamp, nullable)
+
+**Override Policy Configuration:**
+- `policy_id` (unique identifier)
+- `policy_version` (immutable version number)
+- `single_approval_threshold` (decimal dollar amount, e.g., 10000.00)
+- `two_person_approval_required_above_threshold` (boolean)
+- `high_risk_requires_two_person` (boolean)
+- `credit_hold_requires_two_person` (boolean)
+- `effective_start_at` (timestamp)
+- `effective_end_at` (timestamp, nullable)
+
+**Audit Log (Billing Rule Enforcement Events):**
+- `audit_id` (unique identifier)
+- `event_type` (e.g., `PORequired`, `POCaptured`, `POOverridden`, `POBlockedCheckout`, `InvalidPOFormat`, `POUniquenessViolation`, `UnauthorizedPOOverride`, `TwoPersonApprovalRequired`, `CreditLimitExceeded`)
+- `customer_id` (foreign key)
+- `order_id` (foreign key, nullable if checkout blocked)
+- `billing_rule_version` (foreign key to billing rule version queried)
+- `actor_id` (clerk or approver performing action)
+- `approver_ids` (array of approver identities for overrides)
+- `override_policy_version` (foreign key if override occurred)
+- `timestamp` (immutable)
+- `details` (JSON or structured log, includes PO number, reason codes, policy evaluation results)
+
+---
+
+## Acceptance Criteria
+
+### AC1: PO Requirement Enforced (Billing Management Authority)
+- **Given** a commercial customer with "PO Required" enabled in **Billing Management**,
+- **When** a POS Clerk attempts to finalize an order without entering a PO reference,
+- **Then** the system queries Billing Management for the active billing rule version, blocks finalization, displays a clear error message, and logs the blocked attempt with `billingRuleVersion`.
+
+### AC2: PO Captured with Rule Version Linkage
+- **Given** a commercial customer with "PO Required" enabled,
+- **When** a POS Clerk enters a valid PO reference (e.g., "PO-12345") matching the format (3-30 characters, alphanumeric with `-` and `_`),
+- **Then** the system validates format, links the PO to the order, captures the `billingRuleVersion` used at checkout, allows finalization, and logs the `POCaptured` event.
+
+### AC3: PO Format Validation
+- **Given** a POS Clerk enters a PO reference,
+- **When** the PO does not match the format requirements (e.g., 2 characters, special characters),
+- **Then** the system rejects the PO, displays a clear format error message, and prompts for correction.
+
+### AC4: PO Uniqueness Policy Enforced
+- **Given** a customer with PO uniqueness policy set to `PER_ACCOUNT_OPEN_ORDERS`,
+- **When** a POS Clerk enters a PO number already used for another open order for this customer,
+- **Then** the system rejects the PO, displays a uniqueness error message with the conflicting order reference, and logs the violation.
+
+### AC5: Single Approver Override (Under Threshold)
+- **Given** a POS Clerk with `OVERRIDE_PO_REQUIREMENT` permission,
+- **And** an order total under the single-approval threshold (e.g., $8,000),
+- **And** the customer is standard-risk,
+- **When** the clerk overrides the PO requirement and provides a reason code (e.g., "Customer verbal approval obtained"),
+- **Then** the system allows finalization with single approver, flags the order as "PO Overridden", and logs the override event with clerk identity, reason code, and `policyVersion`.
+
+### AC6: Two-Person Approval Required (Above Threshold)
+- **Given** a POS Clerk with `OVERRIDE_PO_REQUIREMENT` permission,
+- **And** an order total exceeding the single-approval threshold (e.g., $12,000),
+- **When** the clerk attempts to override the PO requirement,
+- **Then** the system requires a second approver with override permission to authenticate, captures both `approverId`s, and logs the two-person approval event.
+
+### AC7: Unauthorized Override Denied
+- **Given** a POS Clerk without `OVERRIDE_PO_REQUIREMENT` permission,
+- **When** the clerk attempts to bypass the PO requirement,
+- **Then** the system rejects the override, displays an error message, and logs the denied attempt.
+
+### AC8: Fail-Safe Default for Misconfigured B2B Account
+- **Given** a customer identified as B2B with undefined or invalid billing rule configuration,
+- **When** a POS Clerk attempts to finalize an order,
+- **Then** the system defaults to REQUIRING PO (fail-safe), blocks checkout with a clear error message ("Billing rules not configured"), and logs a critical warning for administrators.
+
+### AC9: Audit Trail Includes Rule Version and Approvers
+- **Given** a PO requirement override has occurred with two-person approval,
+- **When** finance reviews the audit trail,
+- **Then** the `POOverridden` event is present with both approver identities, override reason code, `billingRuleVersion`, `policyVersion`, customer account, and timestamp.
+
+### AC10: Payment Terms Applied with Credit Limit Check
+- **Given** a commercial customer with "Net 30" payment terms and a credit limit of $50,000,
+- **And** the customer has $45,000 in outstanding invoices,
+- **When** an order for $6,000 is finalized with PO captured and `billingMethod = CHARGE_ACCOUNT`,
+- **Then** the system blocks finalization due to credit limit exceeded, displays a clear error message, and logs the `CreditLimitExceeded` event.
+
+### AC11: Historical Orders Reference Billing Rule Version
+- **Given** a completed order with a PO reference,
+- **When** the customer's billing rules are updated (new version created),
+- **Then** the completed order continues to reference the original `billingRuleVersion` used at checkout, and no retroactive rule changes affect the historical order.
+
+---
+
+## Audit & Observability
+
+**Audit Events to Log:**
+- `PORequired` — fired when the system detects a PO requirement for a customer at checkout (include customer, clerk, timestamp, billingRuleVersion)
+- `POCaptured` — fired when a PO reference is successfully entered and validated (include customer, order, PO number, clerk, timestamp, billingRuleVersion)
+- `POOverridden` — fired when a clerk overrides the PO requirement (include customer, order, clerk(s), reason code, timestamp, policyVersion, billingRuleVersion, number of approvers)
+- `POBlockedCheckout` — fired when finalization is blocked due to missing PO (include customer, order, clerk, timestamp, billingRuleVersion)
+- `InvalidPOFormat` — fired when a PO reference fails format validation (include customer, order, PO number, clerk, timestamp)
+- `POUniquenessViolation` — fired when a PO reference violates uniqueness policy (include customer, order, PO number, clerk, timestamp, conflicting order reference, uniqueness policy)
+- `UnauthorizedPOOverride` — fired when a clerk without permission attempts an override (include customer, order, clerk, timestamp)
+- `TwoPersonApprovalRequired` — fired when an override requires two-person approval (include customer, order, clerk, timestamp, policyVersion, order total, threshold)
+- `TwoPersonApprovalCompleted` — fired when two-person approval is successfully completed (include customer, order, both approver identities, timestamp)
+- `CreditLimitExceeded` — fired when an order would exceed customer credit limit (include customer, order, credit limit, current balance, order total, timestamp)
+- `MissingBillingConfiguration` — fired when a B2B customer lacks billing rule configuration (include customer, clerk, timestamp)
+
+**Observability Metrics:**
+- Count of PO-required orders per day/week/month (to understand commercial account volume)
+- Count of PO overrides per clerk (to detect pattern abuse or training needs)
+- Count of single-approver vs. two-person overrides (to validate policy effectiveness)
+- Count of blocked checkouts due to missing PO (to measure friction and potential process improvements)
+- Count of blocked checkouts due to misconfigured billing rules (to identify configuration gaps)
+- Average time from order start to PO capture (to measure clerk efficiency)
+- Count of invalid PO format errors (to identify validation rule issues)
+- Count of PO uniqueness violations (to identify customer PO management issues)
+- Count of credit limit exceeded events (to monitor credit risk exposure)
+- Billing rule version distribution (to track adoption of rule updates)
+
+---
+
+## Resolved Questions & Decisions
+
+The following clarifications were provided by business stakeholders and integrated into this story:
+
+### Decision 1: Billing Rule Ownership and Authority
+**Question:** Who is the authoritative source for customer billing rules?
+
+**Decision:**
+- **Billing Management (Billing domain)** is the system of record for customer billing rules
+- CRM may surface and cache selected flags (e.g., "PO Required") for UX and workflow, but is not authoritative
+- Accounting consumes rules for posting and reconciliation; it does not own them
+- Changes are performed via Billing Management APIs by users with `MANAGE_BILLING_RULES` permission
+- Billing rules are versioned and timestamped: `ruleId`, `version`, `effectiveStartAt`, `effectiveEndAt`, `changedBy`, `changeReason`
+- Orders reference the `billingRuleVersion` used at time of checkout
+- No retroactive mutation of rules for historical orders
+
+**Why this works:** Single authority, immutable history, and deterministic reconciliation.
+
+---
+
+### Decision 2: PO Validation Rules and Format
+**Question:** What are the PO format and validation requirements?
+
+**Decision:**
+- **Format:** Alphanumeric, case-insensitive
+- **Length:** 3-30 characters
+- **Allowed characters:** Letters, numbers, `-`, `_`
+- **No prefix requirement** by default (configurable per customer if needed)
+- **No external validation** against customer procurement systems by default
+- **Uniqueness scope** (configurable per customer):
+  - `PER_ORDER` (default): Same PO allowed across orders (blanket PO pattern)
+  - `PER_ACCOUNT_OPEN_ORDERS`: PO unique among open orders
+  - `PER_ACCOUNT_ALL_TIME`: PO globally unique for customer
+
+**Why this works:** Flexible format supports common blanket PO patterns while allowing customer-specific constraints.
+
+---
+
+### Decision 3: Override Permission Scope and Approval Workflow
+**Question:** What are the override permission and approval requirements?
+
+**Decision:**
+- `OVERRIDE_PO_REQUIREMENT` is a standalone permission, not implicitly tied to a role
+- Roles (e.g., Manager, Finance Manager) bundle this permission
+- Overrides are subject to policy rules:
+  - Order total thresholds (e.g., > $10,000)
+  - Customer risk tier
+  - Account credit status
+- **Approval workflow:**
+  - **Single approver** with permission for orders under threshold
+  - **Two-person rule** required above threshold or for high-risk accounts
+- **Approval captures:**
+  - `approverId(s)`
+  - `policyVersion`
+  - `overrideReasonCode`
+
+**Why this works:** Balances speed with control and audit strength. Prevents override sprawl while maintaining operational flexibility.
+
+---
+
+### Decision 4: Payment Terms and Charge Account Integration
+**Question:** How do payment terms and PO requirements interact?
+
+**Decision:**
+- **Independent but commonly paired:** PO Required does not automatically imply Net terms, and vice versa
+- Policies may recommend combinations (e.g., PO + Net 30) but do not hard-couple
+- **Charge account is a billing mode flag** on the order: `billingMethod = CHARGE_ACCOUNT | IMMEDIATE_PAYMENT`
+- **Billing Management owns:**
+  - Credit limits
+  - Charge account eligibility
+  - Risk holds
+- Accounting enforces posting against limits; CRM displays status
+
+**Why this works:** Keeps credit risk centralized and consistent while maintaining flexibility in payment workflows.
+
+---
+
+### Decision 5: Default Behavior for Missing or Misconfigured Rules
+**Question:** What should the system do if billing rules are undefined?
+
+**Decision:**
+- **Fail-safe for commercial (B2B) accounts**
+- If `PO Required` is undefined for a B2B account: **Require PO**
+- If rule configuration is missing or invalid: **Block checkout** with clear error: "Billing rules not configured. Please contact an administrator."
+- Optional global fallback: `ALL_B2B_REQUIRE_PO = true` (recommended default)
+- Authorized users may override with proper approval and audit
+
+**Why this works:** Prevents silent non-compliance while allowing controlled exceptions. Protects against configuration drift and ensures deliberate rule management.
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+# Issue #3 — [BACKEND] [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+
+## Current Labels
+- backend
+- story-implementation
+- payment
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout
+
+**Domain**: payment
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **POS Clerk**, I want billing rules enforced so that compliance is maintained for commercial accounts.
+
+## Details
+- If PO required, block finalization until captured.
+- Apply terms/charge account flow optional.
+- Override requires permission.
+
+## Acceptance Criteria
+- Rule enforced consistently.
+- Override requires permission.
+- Audit includes who/why.
+
+## Integrations
+- CRM billing rules; accounting terms may apply.
+
+## Data / Entities
+- BillingRuleCheck, PoReference, AuditLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Experience
+- domain :  Point of Sale
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+

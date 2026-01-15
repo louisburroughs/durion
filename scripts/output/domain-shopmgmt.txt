@@ -1,0 +1,329 @@
+════════════════════════════════════════
+ISSUE #12: [BACKEND] [STORY] Appointment: Create Appointment from Estimate or Order
+LABELS: type:story,domain:shopmgmt,status:ready-for-dev,agent:story-authoring,agent:shopmgmt
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:shopmgmt
+- status:ready-for-dev
+
+### Recommended
+- agent:shopmgmt
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+Create appointments directly from estimates or work orders with service and resource context pre-populated, validate scheduling conflicts, calculate service duration using the authoritative Work Execution service when available, and assign bays and mechanics based on skills and equipment requirements.
+
+---
+
+## Actors & Stakeholders
+
+- Scheduler (Service Advisor / Dispatcher)
+- Shop Management Service (system of record)
+- Work Execution Service (duration & skill authority)
+- People/HR Service (mechanic qualifications)
+- Customer
+- Mechanic
+- Notification Service
+- Audit Service
+
+---
+
+## Preconditions
+
+1. Source exists and is eligible (Estimate in APPROVED/QUOTED or Work Order not COMPLETED/CANCELLED)
+2. Source linked to customer and vehicle
+3. Caller has `CREATE_APPOINTMENT` permission
+4. Shop operating hours and bay inventory defined
+5. WorkExec and People services available (optional for richer data)
+
+---
+
+## Functional Behavior (Summary)
+
+1. Scheduler selects an estimate or work order; POS validates eligibility and non-duplication.
+2. Shop Management pre-populates appointment skeleton: service description, estimated duration (WorkExec authoritative when present), required skills, eligible bay types, mobile eligibility.
+3. Scheduler selects preferred date/time (today→90 days) and preferred time slots.
+4. Shop Management runs conflict checks (bay, mechanic skills/availability, capacity, overlapping appointments).
+5. Hard conflicts block creation unless permitted override; soft conflicts warn and allow override.
+6. Assignment strategy (auto, deferred, manual) applies per facility/service; default: auto-assign bay, defer mechanic for complex services.
+7. Appointment record created with immutable links to estimate/work order; emit `AppointmentCreatedFromEstimate`/`AppointmentCreatedFromWorkOrder` event to WorkExec.
+
+---
+
+## Resolved Decisions (from comments)
+
+- Duration authority: **Work Execution** is authoritative for work orders; otherwise derive from estimate or service catalog. If durations differ by >20% (or 30 minutes), default to WorkExec and surface a warning. Scheduler may override within ±25% (reason required); larger overrides require `APPROVE_DURATION_OVERRIDE`.
+- Skills: Model `required` vs `preferred` tags. Mechanic must possess ALL required skills and be active/on-shift to be auto-assigned. People/HR is source of truth for qualifications; shopmgmt caches a read model.
+- Bay types (MVP): `GENERAL_SERVICE_BAY`, `LIFT_BAY`, `ALIGNMENT_BAY`, `TIRE_BAY`, `INSPECTION_BAY`, `MOBILE_UNIT`. Mobile eligibility controlled by service and geo constraints.
+- Conflicts: Categorize Hard (non-overridable in many cases) vs Soft (warn/override). Overrides require reason and are audited.
+- Assignment strategy: Configurable per facility; default is to assign bay immediately and defer mechanic for complex or long-duration work. SLA for deferred assignment: assign by prior business day end or within 2 hours for same-day.
+- Cardinality: Default one-to-one estimate→appointment; multi-appointment mode allowed only when `source.allowsMultipleAppointments=true`.
+- Integration: Event-driven contract to WorkExec; events are idempotent and include `eventId`, `appointmentId`, and `version`.
+
+---
+
+## Business Rules
+
+- Appointment eligibility: only APPROVED/QUOTED/APPROVED work orders or estimates not already linked.
+- Service duration precedence: WorkExec → Estimate defaults → Service-type standard → Scheduler override.
+- Skill matching: All required skills must be present for auto-assign; otherwise appointment is created with `assignmentStatus=AWAITING_SKILL_FULFILLMENT` and emits `AppointmentNeedsSkillResolution`.
+- Referential integrity: Links to estimate/work order are immutable and enforced by unique constraints for active states.
+- Conflict handling: Hard blocks (no eligible bay/equipment, outside hours, hard capacity) are non-overridable; other hard conflicts (mechanic required) may be overridable with permission.
+
+---
+
+## Data Models (excerpt)
+
+- AppointmentRequest: sourceType (ESTIMATE|WORK_ORDER), sourceId, preferredDateTimeOptions[], bayTypePreference, mechanicPreference, overrideConflict, overrideReason, createdBy.
+
+- AppointmentRef: appointmentId, customerId, vehicleId, scheduledDateTime, estimatedDurationMinutes, serviceDescription, requiredSkills[], bayTypeRequired, assignedBay, assignedMechanic, appointmentStatus, estimateId, workOrderId, createdBy, createdAt.
+
+- ConflictResult: hasConflicts, conflictDetails[], suggestedAlternatives[]
+
+- AppointmentCreatedEvent: eventId, appointmentId, sourceId, customerId, vehicleId, scheduledDateTime, durationMinutes, assignedBay, assignedMechanic, requiredSkills, createdBy
+
+---
+
+## Acceptance Criteria (key)
+
+- AC1: Create appointment from eligible estimate/work order when no conflicts: appointment created, links preserved, WorkExec notified, estimate status → SCHEDULED.
+- AC2: Surface conflicts (bay/mechanic/skills/capacity) with suggested alternatives; allow override with permissions and reason.
+- AC3: Auto-assignment and deferred assignment behaviors per facility policy; deferred assignments meet SLA.
+- AC4: Duration authority follows WorkExec precedence; scheduling warns/disambiguates large mismatches and enforces override rules.
+- AC5: If no mechanics match required skills, appointment created with assignmentStatus=AWAITING_SKILL_FULFILLMENT and event emitted for dispatcher/manager.
+
+---
+
+## Audit & Observability
+
+Emit AppointmentCreationAttempted, ConflictDetected, ConflictOverridden, AppointmentCreated, EstimateStatusChanged, ReferentialLinkEstablished, AssignmentDecision, WorkExecutionNotified. Track metrics: creation success rate, conflict/override rates, deferred assignment queue time, duration estimation accuracy, estimate→appointment conversion rate.
+
+---
+
+## Original Story (for traceability)
+
+Original issue content and comments retained in issue history: https://github.com/louisburroughs/durion-positivity-backend/issues/12
+
+
+════════════════════════════════════════
+ISSUE #11: [BACKEND] [STORY] Appointment: Reschedule Appointment with Notifications
+LABELS: type:story,domain:shopmgmt,status:ready-for-dev,agent:story-authoring,agent:shopmgmt
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:shopmgmt
+- status:ready-for-dev
+
+### Recommended
+- agent:shopmgmt
+- agent:story-authoring
+
+---
+
+## Story Intent
+
+Enable Schedulers to reschedule appointments while preserving referential integrity to estimates and work orders, preventing scheduling conflicts with resource availability, capturing reasons for the change, and notifying affected parties (customer, mechanic, downstream systems) so operational workflows remain coordinated.
+
+---
+
+## Actors & Stakeholders
+
+- Scheduler (Service Advisor / Dispatcher)
+- Shop Management Service (system of record for schedules)
+- Customer
+- Assigned Mechanic
+- Work Execution Service
+- Notification Service
+- Audit Service
+
+---
+
+## Preconditions
+
+1. Appointment exists and is reschedulable (SCHEDULED, CONFIRMED, AWAITING_PARTS)
+2. Caller has `RESCHEDULE_APPOINTMENT` permission
+3. Appointment linked to estimate/work order
+4. Target date/time within operating hours
+
+---
+
+## Functional Behavior (Summary)
+
+1. POS collects new date/time, reschedule reason (enum), optional notes, and notify flag.
+2. Shop Management Service validates conflicts (bay, mechanic, capacity, overlapping appointments).
+3. Hard conflicts block reschedule unless overridden with `OVERRIDE_SCHEDULING_CONFLICT` and reason; soft conflicts warn and allow override.
+4. If valid (or overridden), appointment record is updated; previous scheduled time stored in history; `AppointmentRescheduled` event emitted to Work Execution and Notification services.
+5. Assignment preservation: preserve bay+mechanic only if both available at new time; otherwise clear unavailable parts and flag for reassignment.
+6. Notify customer and mechanic per rules; log audit event.
+
+---
+
+## Resolved Decisions (Answers to Open Questions)
+
+- Q1 — Conflicts: Distinguish Hard (block) vs Soft (warn). Hard includes outside business hours, non-reschedulable states, required resource unavailable, mechanic unavailable when required, and hard capacity exceed. Soft includes capacity near limit, mechanic overload, customer overlap, and preferences.
+- Q2 — Permissions: RBAC with `RESCHEDULE_APPOINTMENT`, `OVERRIDE_SCHEDULING_CONFLICT`, and `APPROVE_RESCHEDULE`. Default: Scheduler/Service Advisor have `RESCHEDULE_APPOINTMENT` scoped to facility; Shop Manager/Dispatcher may override.
+- Q3 — Reasons: Reason is mandatory (enum) with optional notes; enum values: CUSTOMER_REQUEST, SHOP_CAPACITY, EQUIPMENT_ISSUE, MECHANIC_UNAVAILABLE, PARTS_DELAY, WEATHER, EMERGENCY, MANAGER_DISCRETION, OTHER. Free-text required for OTHER or when overriding.
+- Q4 — Notifications: Customer (default on; mandatory for customer-initiated or within 24h), mechanic (if assigned), internal watchers optional. Channels: SMS (primary), Email (secondary); retries: SMS 1x, Email 2x; emit `NotificationFailed` and surface manual follow-up if delivery fails.
+- Q5 — Minimum notice: Standard ≥24h. Same-day (<24h) requires `APPROVE_RESCHEDULE` or manager override. Emergency (<4h) requires Shop Manager approval and customer confirmation.
+- Q6 — Assignment: Conditional preserve — only preserve assignment if both bay and mechanic available; otherwise clear and flag for dispatcher reassignment. Shopmgmt enforces deterministically.
+- Q7 — Recurring: Out of scope; handle single-instance only. If part of a series, prompt scheduler and defer series-wide edits to a separate story.
+
+---
+
+## Business Rules
+
+- Reschedule eligibility: Only SCHEDULED/CONFIRMED/AWAITING_PARTS may be rescheduled.
+- Minimum notice/enforcement as above.
+- Reschedule frequency limit: max 2 reschedules without manager approval.
+- Audit trail required for all reschedules and overrides; immutable retention policy applies.
+
+---
+
+## Data Models (excerpt)
+
+- AppointmentUpdate: appointmentId, previousScheduledDateTime, newScheduledDateTime, rescheduleReason (enum), rescheduleReasonNotes, rescheduledBy, rescheduledAt, conflictsDetected[], conflictOverridden (bool), assignmentStatus (PRESERVED|CLEARED|REASSIGNED), notifyCustomer, notificationStatus, estimateId, workOrderId.
+
+- NotificationOutbox: notificationId, appointmentId, recipientType, recipientId, notificationType, notificationChannel, notificationContent, notificationStatus, retryCount, createdAt.
+
+- AppointmentRescheduledEvent: eventId, appointmentId, estimateId, workOrderId, previousScheduledDateTime, newScheduledDateTime, rescheduleReason, rescheduledBy, rescheduledAt, assignmentStatus, mechanicId.
+
+- AuditLog: auditId, eventType, appointmentId, actorId, actorRole, action=RESCHEDULE, previousValues, newValues, reason, conflictsDetected, overrideApplied, timestamp.
+
+---
+
+## Acceptance Criteria (key)
+
+- AC1: Reschedule succeeds when no conflicts; appointment updated, event emitted, work order updated, customer notified, estimate/work order links preserved.
+- AC2: Conflicts detected (BAY_UNAVAILABLE etc.) and suggested alternatives shown; scheduler can choose alternatives or request override if permitted.
+- AC3: Hard conflict override requires `OVERRIDE_SCHEDULING_CONFLICT`; override logged with reason and approver.
+- AC4: If mechanic unavailable at new time, mechanic assignment cleared and flagged for reassignment; mechanic notified of unassignment.
+- AC5: If bay+mechanic available, assignment preserved and mechanic notified of time change.
+- AC6: Reschedule within minimum notice blocked without approval; override requires manager approval.
+- AC7: Customer notifications sent via SMS/email with calendar invite; notification status tracked and failures surfaced.
+- AC8: Notification failures emit `NotificationFailed` and prompt manual contact.
+- AC9: Audit log contains who, why, conflict details, override metadata.
+- AC10: Work Execution updates planned time on receiving `AppointmentRescheduled` event.
+
+---
+
+## Audit & Observability
+
+Emit and capture: AppointmentRescheduleAttempted, ConflictDetected, ConflictOverridden, AppointmentRescheduled, NotificationSent, NotificationFailed, AssignmentCleared, WorkOrderUpdated. Track metrics: reschedule success rate, conflict detection/override rates, assignment preservation rate, notification success rate, average processing time.
+
+---
+
+## Original Story (for traceability)
+
+Original issue content preserved in comments and history. See: https://github.com/louisburroughs/durion-positivity-backend/issues/11
+
+
+════════════════════════════════════════
+ISSUE #10: [BACKEND] [STORY] Appointment: Show Assignment (Location/Bay/Mobile + Mechanic)
+LABELS: type:story,domain:shopmgmt,status:ready-for-dev
+BODY:
+## Story Intent
+
+Enable **Service Advisors** to view the current assignment of shop resources (bay, mobile unit) and mechanic for each appointment, allowing them to set accurate customer expectations for service timing, location, and technician availability, while ensuring updates are reflected in near real-time as assignments change.
+
+This story provides **read-only visibility** into shop resource allocation without modifying assignment logic, supporting operational awareness and customer communication.
+
+---
+
+## Actors & Stakeholders
+
+### Primary Actors
+- **Service Advisor**: Views assignment details to communicate expectations to customer
+- **Shop Management Service**: System of record for assignments (bay, mobile unit, mechanic)
+- **People/HR Service**: Provides mechanic identity information (name, photo, certifications)
+- **Appointment Service**: Provides appointment context (customer, vehicle, service type)
+
+### Secondary Stakeholders
+- **Customer**, **Shop Manager**, **Mechanic**, **Dispatcher**, **Audit Service**, **Finance Team**
+
+---
+
+## Preconditions
+
+- Appointment exists in a schedulable or active state (SCHEDULED, IN_PROGRESS, AWAITING_PARTS)
+- Service Advisor is authenticated and has `VIEW_ASSIGNMENTS` permission scoped to their facility
+- Shop Management Service is available (or fallback to cached assignment)
+- Assignment data exists for the appointment (may be null if not assigned)
+
+---
+
+## Resolved: Answers to Open Questions (canonical decisions)
+
+### Q1: Source of truth — Decision
+`shopmgmt` (Shop Management Service) is authoritative for assignments. All writes go through `shopmgmt`, which persists state and emits `ASSIGNMENT_UPDATED` events; consumers (POS) treat it as the system of record.
+
+---
+
+### Q2: Refresh strategy — Decision
+Hybrid approach:
+- Preferred: WebSocket/SSE subscription to `ASSIGNMENT_UPDATED` for currently viewed appointments (target p95 latency <5s).
+- Fallback: Poll every 30s for visible appointment views.
+- Manual `Refresh` always available; immediate fetch on entering detail view.
+
+---
+
+### Q3: Permission model — Decision
+RBAC + facility scoping:
+- Roles with `VIEW_ASSIGNMENTS`: Service Advisor (facility-scoped), Shop Manager (facility-scoped), Dispatcher (org-scoped).
+- Cashiers and Parts Clerks denied by default.
+- Allow viewing for SCHEDULED, IN_PROGRESS, AWAITING_PARTS, READY; exclude CANCELLED unless user has `VIEW_CANCELLED_APPOINTMENTS`.
+
+---
+
+### Q4: Mobile GPS tracking — Decision
+Mobile units report GPS to `shopmgmt` (recommended every 5 minutes). Display last-known coords and `lastUpdated`; warn if >30 minutes stale and mark unavailable if >60 minutes. Reverse geocoding optional and feature-flagged.
+
+---
+
+### Q5: Assignment notes ownership — Decision
+`shopmgmt` owns notes; editable by roles with `EDIT_ASSIGNMENT_NOTES` (Shop Manager, Dispatcher). Notes: optional, 500-char limit, audited (versioned) in assignment history. Service Advisors view-only.
+
+---
+
+### Q6: Bay vs Mobile mutual exclusivity — Decision
+An appointment is either BAY or MOBILE_UNIT (mutually exclusive). Shopmgmt enforces this rule; future multi-leg work should be modeled as separate work items.
+
+---
+
+### Q7: Customer communication on changes — Decision
+This story is internal visibility only: POS shows prominent banner on assignment changes so advisors can notify customers; automated customer notifications are out-of-scope and should be a separate story.
+
+---
+
+## Functional Behavior (summary)
+- Appointment detail shows `AssignmentView` with `location`, `mechanic`, `assignmentNotes`, `assignedAt`, `lastUpdatedAt`.
+- List views show compact assignment summaries (e.g., `Bay 3 - J. Doe`, `Unassigned`).
+- Real-time updates via events or polling; UI displays a notification banner on changes.
+- Degraded behavior: when `shopmgmt` or `people/hr` unavailable, display cached last-known assignment or mechanic ID with a warning.
+
+---
+
+## Data Requirements (referenced models)
+- `AssignmentView`, `LocationRef`, `MechanicRef`, `AssignmentUpdatedEvent` (as defined in original story). `assignmentNotes` limited to 500 chars and versioned.
+
+---
+
+## Acceptance Criteria (high level)
+- Assignments visible for assigned/partially-assigned/unassigned appointments per AC1–AC10.
+- Real-time or near-real-time updates reflected (p95 <5s for event push; polling fallback 30s).
+- Permissions and facility scoping enforced.
+- Mobile GPS staleness warnings shown per thresholds.
+- Assignment notes editable only by manager/dispatcher and audited.
+
+---
+
+*Status: ready for development.*
+
+

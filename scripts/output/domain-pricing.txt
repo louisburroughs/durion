@@ -1,0 +1,2330 @@
+════════════════════════════════════════
+ISSUE #194: [BACKEND] [STORY] Pricing: Maintain MSRP per Product with Effective Dates
+LABELS: type:story,layer:functional,kiro,domain:pricing,status:needs-review
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:pricing
+- status:draft
+
+### Recommended
+- agent:pricing
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:financial-inference
+
+**Rewrite Variant:** pricing-strict
+## ⚠️ Domain Conflict Summary
+- **Candidate Primary Domains:** `domain:pricing`, `domain:inventory`
+- **Why conflict was detected:** The story title "Maintain MSRP per Product" implies a tight coupling between the Product entity (owned by Inventory) and the MSRP data (owned by Pricing). Without a clear definition of which domain is the System of Record for the combined concept, implementation could lead to data integrity issues. The original story was auto-generated and lacks this clarity.
+- **What must be decided:**
+    1. Which domain is the ultimate authority for product-price relationships? (Presumed `pricing`)
+    2. What is the exact inter-domain contract for validating that a `ProductID` from a pricing request is a valid, existing product? Is it a synchronous API call, an event-driven cache, or a direct database check?
+    3. How are product lifecycle events (e.g., product discontinuation in Inventory) propagated to the Pricing domain to manage related MSRPs?
+- **Recommended split:** No, splitting is not recommended. Instead, the inter-domain contract between `pricing` and `inventory` must be explicitly defined.
+
+## Story Intent
+**As a** Pricing Manager,
+**I want to** define and maintain a Manufacturer's Suggested Retail Price (MSRP) for each product, with specific effective start and end dates,
+**so that** the correct, time-sensitive MSRP is available for downstream pricing calculations, reporting, and compliance verification.
+
+## Actors & Stakeholders
+- **Pricing Manager (User):** The primary actor responsible for creating, updating, and managing MSRP records.
+- **System (Pricing Engine):** A consumer of MSRP data. It must be able to query the active MSRP for a given product on a specific date.
+- **System (Inventory Domain):** The authoritative source (System of Record) for Product definitions, including the `ProductID`. The Pricing domain depends on the Inventory domain for product existence validation.
+- **Auditor (User):** A stakeholder who needs to review the history of MSRP changes for compliance and financial audits.
+
+## Preconditions
+- The user is authenticated and possesses the necessary authorization grants (e.g., `pricing:msrp:manage`).
+- A product catalog exists in the Inventory domain, and products are identifiable by a stable, unique `ProductID`.
+- The system has a reliable mechanism to resolve the current date/time (UTC).
+
+## Functional Behavior
+### 1. Create a New MSRP Record
+A Pricing Manager can create a new MSRP for a specific `ProductID`. The creation process must capture:
+- **`ProductID`**: A valid identifier referencing an existing product in the Inventory domain.
+- **`Amount`**: The monetary value of the MSRP.
+- **`Currency`**: The ISO 4217 currency code (e.g., USD, EUR).
+- **`effectiveStartDate`**: The date on which this MSRP becomes active.
+- **`effectiveEndDate` (Optional)**: The date on which this MSRP is no longer active. If null, the MSRP is considered active indefinitely from the start date.
+
+The system MUST validate that the proposed effective date range does not overlap with any existing MSRP records for the same `ProductID`.
+
+### 2. Update an Existing MSRP Record
+A Pricing Manager can modify an existing MSRP record. The following fields may be updated:
+- `Amount`
+- `Currency`
+- `effectiveStartDate`
+- `effectiveEndDate`
+
+Any update to date fields must trigger the same overlap validation as in the creation process. Modifying historical records (where `effectiveEndDate` is in the past) may be restricted or require special permissions.
+
+### 3. Retrieve Active MSRP for a Product
+The system provides an endpoint to query the currently active MSRP for a given `ProductID` and an optional date.
+- If no date is provided, the query defaults to the current date.
+- The endpoint will return the single MSRP record where the query date falls between the `effectiveStartDate` and `effectiveEndDate`.
+
+## Alternate / Error Flows
+- **Error - Product Not Found:** If an MSRP is created or updated with a `ProductID` that does not exist in the Inventory domain, the system must reject the request with a `404 Not Found` or `400 Bad Request` error.
+- **Error - Overlapping Date Range:** If an attempt is made to create or update an MSRP that results in an overlapping effective date range for the same `ProductID`, the system must reject the request with a `409 Conflict` error.
+- **Error - Invalid Date Logic:** If `effectiveEndDate` is provided and is before `effectiveStartDate`, the system must reject the request with a `400 Bad Request` error.
+- **Error - Insufficient Permissions:** If the user making the request lacks the required permissions, the system must reject the request with a `403 Forbidden` error.
+
+## Business Rules
+- **BR1: Temporal Uniqueness:** For any given `ProductID`, there can be only one active MSRP record at any single point in time. Date ranges cannot overlap.
+- **BR2: Forward-Only Indefinite Pricing:** An MSRP with a null `effectiveEndDate` can only exist if it is the latest-starting record for that `ProductID`.
+- **BR3: Inventory Authority:** The Inventory domain is the sole System of Record for product existence. All `ProductID` values must be validated against it.
+- **BR4: Historical Immutability (To Be Confirmed):** MSRP records whose `effectiveEndDate` is in the past should be treated as immutable to preserve the historical audit trail.
+
+## Data Requirements
+The `ProductMSRP` entity within the Pricing domain shall contain the following fields:
+
+| Field Name         | Data Type        | Constraints                                     | Description                                          |
+|--------------------|------------------|-------------------------------------------------|------------------------------------------------------|
+| `msrpId`           | UUID             | Primary Key, Not Null                           | Unique identifier for the MSRP record.               |
+| `productId`        | UUID             | Not Null, Indexed, Foreign Key (Logical)        | Identifier of the product from the Inventory domain. |
+| `amount`           | DECIMAL(19, 4)   | Not Null, Positive                              | The monetary value of the MSRP.                      |
+| `currency`         | VARCHAR(3)       | Not Null, ISO 4217 code                         | The currency of the amount.                          |
+| `effectiveStartDate` | DATE             | Not Null                                        | The first date the MSRP is active.                   |
+| `effectiveEndDate`   | DATE             | Nullable                                        | The last date the MSRP is active. Null = indefinite. |
+| `createdAt`        | TIMESTAMP WITH TZ| Not Null, System-managed                        | Timestamp of record creation.                        |
+| `updatedAt`        | TIMESTAMP WITH TZ| Not Null, System-managed                        | Timestamp of the last record update.                 |
+| `updatedBy`        | VARCHAR(255)     | Not Null                                        | Identifier of the user/system that made the change.  |
+
+## Acceptance Criteria
+
+### AC1: Successful Creation of a Time-Bound MSRP
+**Given** a Pricing Manager is authenticated and has `pricing:msrp:manage` permissions
+**And** a product with `ProductID` "PROD-123" exists in the Inventory system
+**And** no other MSRP exists for "PROD-123" between '2025-01-01' and '2025-12-31'
+**When** the manager submits a request to create an MSRP for "PROD-123" with amount 99.99 USD, `effectiveStartDate` '2025-01-01', and `effectiveEndDate` '2025-12-31'
+**Then** the system shall create the new MSRP record successfully and return a `201 Created` status.
+**And** the record must be persisted in the database with the correct values.
+
+### AC2: Successful Creation of an Indefinite MSRP
+**Given** a Pricing Manager is authenticated
+**And** a product with `ProductID` "PROD-456" exists
+**When** the manager submits a request to create an MSRP for "PROD-456" with amount 150.00 EUR, `effectiveStartDate` '2026-01-01', and a null `effectiveEndDate`
+**Then** the system shall create the record successfully.
+
+### AC3: Failure Due to Overlapping Date Range
+**Given** an MSRP already exists for `ProductID` "PROD-123" from '2025-01-01' to '2025-12-31'
+**When** a user attempts to create a new MSRP for "PROD-123" with `effectiveStartDate` '2025-06-01'
+**Then** the system shall reject the request with a `409 Conflict` error and a message indicating a date range overlap.
+
+### AC4: Failure Due to Non-Existent Product
+**Given** a Pricing Manager is authenticated
+**And** no product exists with `ProductID` "PROD-999"
+**When** the manager attempts to create an MSRP for "PROD-999"
+**Then** the system shall reject the request with a `400 Bad Request` or `404 Not Found` error.
+
+### AC5: Retrieve the Currently Active MSRP
+**Given** two MSRPs exist for `ProductID` "PROD-789":
+- MSRP-A: 50.00 USD, from '2024-01-01' to '2024-12-31'
+- MSRP-B: 55.00 USD, from '2025-01-01' to null
+**When** a system requests the active MSRP for "PROD-789" on '2025-03-15'
+**Then** the system shall return the details for MSRP-B (55.00 USD).
+
+## Audit & Observability
+- **Events:** The system MUST emit domain events for the following actions, including the user, timestamp, and changed data:
+  - `MSRP.Created`
+  - `MSRP.Updated`
+- **Logging:** All API requests and business logic decisions (e.g., overlap validation failure) MUST be logged with structured context (e.g., `ProductID`, `msrpId`, `userId`).
+- **Metrics:** The system SHOULD expose metrics for:
+  - Count of MSRP creation/update operations (successes and failures).
+  - Latency for MSRP API endpoints.
+
+## Open Questions
+1.  **Inter-Domain Contract:** What is the specific, guaranteed contract for validating a `ProductID` against the Inventory domain? Is it a synchronous REST call, a replicated data cache, or another mechanism? This choice has significant performance and consistency implications.
+2.  **Product Lifecycle Handling:** What should happen to existing or future-dated MSRPs when a product is discontinued or deleted in the Inventory domain? Should they be automatically expired, or flagged for manual review?
+3.  **Historical Data Policy:** Is it permissible to *ever* modify an MSRP record once its `effectiveEndDate` has passed? If so, under what conditions and what are the auditing requirements? This has financial and compliance implications.
+4.  **Timezone Handling:** All dates are assumed to be full dates (not timestamps). Is this correct? If so, what timezone defines the start and end of a day for `effectiveStartDate` and `effectiveEndDate` (e.g., UTC, store local time)?
+
+## Original Story (Unmodified – For Traceability)
+# Issue #194 — [BACKEND] [STORY] Pricing: Maintain MSRP per Product with Effective Dates
+
+## Current Labels
+- backend
+- story-implementation
+- type:story
+- layer:functional
+- kiro
+
+## Current Body
+## 🤖 Implementation Issue - Created by Durion Workspace Agent
+
+### Original Story
+**Story**: #198 - Pricing: Maintain MSRP per Product with Effective Dates
+**URL**: https://github.com/louisburroughs/durion/issues/198
+**Domain**: general
+
+### Implementation Requirements
+This issue was automatically created by the Missing Issues Audit System to address a gap in the automated story processing workflow.
+
+The original story processing may have failed due to:
+- Rate limiting during automated processing
+- Network connectivity issues
+- Temporary GitHub API unavailability
+- Processing system interruption
+
+### Implementation Notes
+- Review the original story requirements at the URL above
+- Ensure implementation aligns with the story acceptance criteria
+- Follow established patterns for backend development
+- Coordinate with corresponding frontend implementation if needed
+
+### Technical Requirements
+**Backend Implementation Requirements:**
+- Use Spring Boot with Java 21
+- Implement RESTful API endpoints following established patterns
+- Include proper request/response validation
+- Implement business logic with appropriate error handling
+- Ensure database operations are transactional where needed
+- Include comprehensive logging for debugging
+- Follow security best practices for authentication/authorization
+
+
+### Notes for Agents
+- This issue was created automatically by the Missing Issues Audit System
+- Original story processing may have failed due to rate limits or network issues
+- Ensure this implementation aligns with the original story requirements
+- Backend agents: Focus on Spring Boot microservices, Java 21, REST APIs, PostgreSQL. Ensure API contracts align with frontend requirements.
+
+### Labels Applied
+- `type:story` - Indicates this is a story implementation
+- `layer:functional` - Functional layer implementation
+- `kiro` - Created by Kiro automation
+- `domain:general` - Business domain classification
+- `story-implementation` - Implementation of a story issue
+- `backend` - Implementation type
+
+---
+*Generated by Missing Issues Audit System - 2025-12-26T17:38:43.56218742*
+
+════════════════════════════════════════
+ISSUE #171: [BACKEND] [STORY] Estimate: Calculate Taxes and Totals on Estimate
+LABELS: general,type:story,domain:pricing,status:needs-review
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:pricing
+- status:draft
+
+### Recommended
+- agent:pricing
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** pricing-strict
+---
+## Story Intent
+**As a** System (Pricing Service),
+**I want to** reliably and accurately calculate all financial totals (subtotal, taxes, fees, grand total) for a service Estimate,
+**so that** Service Advisors can present correct pricing to customers and the business can maintain an auditable record of how totals were derived.
+
+## Actors & Stakeholders
+- **Primary Actor:**
+  - **System (Pricing Service):** The automated service responsible for executing pricing and tax calculations.
+- **Stakeholders:**
+  - **Service Advisor:** Relies on the accuracy of the calculated totals to communicate with customers.
+  - **`workexec` Domain:** The consumer of the calculation results. It owns the `Estimate` entity and its lifecycle state.
+  - **`accounting` Domain:** Will use the calculation snapshot for future invoicing and variance analysis.
+  - **`audit` Domain:** Requires a complete and reproducible calculation record for compliance.
+
+## Preconditions
+- An `Estimate` entity exists in a `Draft` or similar mutable state.
+- The `Estimate` is associated with a specific business location/jurisdiction for which tax rules are configured.
+- The `Estimate` has at least one line item (Part, Labor, Fee, or Discount).
+- All required pricing and tax configurations (e.g., tax rates, fee rules) for the relevant jurisdiction are available and active.
+
+## Functional Behavior
+### Trigger
+An `Estimate` is modified through the creation, update, or deletion of any of its constituent line items (e.g., parts, labor, fees, discounts). The `workexec` domain service will initiate a totals calculation request.
+
+### Main Flow
+1.  **Request Reception:** The Pricing Service receives a synchronous request from the `workexec` service to calculate totals for a specified `EstimateID`.
+2.  **Data Aggregation:** The service retrieves the current set of all line items associated with the `EstimateID`.
+3.  **Subtotal Calculation:** The service calculates the pre-tax, pre-fee subtotal by summing the extended price of all Part and Labor line items.
+4.  **Tax Calculation:**
+    a. For each line item, the service determines its taxability based on its type (Part, Labor, Fee) and assigned tax code.
+    b. It applies the appropriate tax rate(s) based on the Estimate's jurisdiction.
+    c. It calculates the total tax amount by summing the tax calculated for each individual line item.
+5.  **Fee & Discount Application:** The service calculates the total value of all applicable fees (e.g., shop supplies, environmental fees) and discounts.
+6.  **Grand Total Calculation:** The service calculates the grand total by summing the subtotal, total tax, and total fees, then subtracting total discounts. It applies a defined rounding policy to the final value.
+7.  **Snapshot Generation:** The service creates an immutable `CalculationSnapshot` record. This record contains all inputs (line items, quantities, prices), rules applied (tax rates, jurisdiction, fee rules), and all calculated output values.
+8.  **Response:** The Pricing Service returns the calculated totals (Subtotal, TaxTotal, FeeTotal, DiscountTotal, GrandTotal) and the unique identifier for the `CalculationSnapshot` to the calling `workexec` service.
+
+## Alternate / Error Flows
+- **Flow 1: Item with Missing Tax Configuration**
+  - **Trigger:** A line item that should be taxable is missing a required tax code.
+  - **Outcome:** The system's behavior is determined by business policy (see Open Question OQ1). The service will either apply a configured default or reject the calculation with a specific error code (`ERR_MISSING_TAX_CODE`).
+- **Flow 2: Unconfigured Tax Jurisdiction**
+  - **Trigger:** The `Estimate` is associated with a location/jurisdiction for which no tax rules are defined.
+  - **Outcome:** The calculation request is rejected with a `ERR_CONFIG_JURISDICTION_MISSING` error. The `workexec` domain must block the `Estimate` from proceeding to an `Approved` state.
+- **Flow 3: Invalid Input Data**
+  - **Trigger:** The calculation request contains invalid data (e.g., negative quantity on a part line).
+  - **Outcome:** The request is rejected with a `400 Bad Request` status and a descriptive error message.
+
+## Business Rules
+- **Rule-PRC-1 (Line-Level Taxability):** Taxability is determined at the individual line item level. Different item types (e.g., Parts, Labor, certain Fees) may have different tax rules.
+- **Rule-PRC-2 (Calculation Determinism):** All calculations must be deterministic. Given the exact same set of inputs and configuration, the service must always produce the exact same outputs.
+- **Rule-PRC-3 (Auditability):** Every calculation that results in a change to the Estimate's totals must generate a persistent, immutable `CalculationSnapshot`. This snapshot must contain sufficient context to reproduce the calculation.
+- **Rule-PRC-4 (Rounding Policy):** A system-wide, authoritative rounding policy shall be applied to the final Grand Total. (See Open Question OQ2).
+
+## Data Requirements
+- **Entity: `CalculationSnapshot`**
+  - An immutable record capturing the state of a single calculation event.
+  - **Fields:**
+    - `snapshotId` (Primary Key)
+    - `estimateId` (Foreign Key)
+    - `calculationTimestamp`
+    - `inputLineItems` (JSON/structured data: item ID, description, quantity, unit price, tax code)
+    - `appliedRules` (JSON/structured data: jurisdiction, tax rates, fee rules, discount IDs)
+    - `outputSubtotal`
+    - `outputTaxTotal`
+    - `outputFeeTotal`
+    - `outputDiscountTotal`
+    - `outputGrandTotal`
+    - `outputRoundingAdjustment`
+
+- **Data Contract (Response to `workexec`):**
+  - `subtotal`
+  - `taxTotal`
+  - `feeTotal`
+  - `discountTotal`
+  - `grandTotal`
+  - `calculationSnapshotId`
+
+## Acceptance Criteria
+- **AC1: Standard Calculation with Taxable Items**
+  - **Given** an Estimate with one Part line item at $100 and one Labor line item at $50.
+  - **And** both items are subject to a 10% tax rate.
+  - **When** the system calculates the totals.
+  - **Then** the Subtotal is $150.00, the Tax Total is $15.00, and the Grand Total is $165.00.
+  - **And** a `CalculationSnapshot` is created reflecting these inputs and outputs.
+
+- **AC2: Calculation with Mixed Taxable and Non-Taxable Items**
+  - **Given** an Estimate with a taxable Part at $100 (10% tax) and a non-taxable Labor line at $50.
+  - **When** the system calculates the totals.
+  - **Then** the Subtotal is $150.00, the Tax Total is $10.00, and the Grand Total is $160.00.
+  - **And** a `CalculationSnapshot` is created.
+
+- **AC3: Calculation Fails for Unconfigured Jurisdiction**
+  - **Given** an Estimate is created for a location with no configured tax rules.
+  - **When** a line item is added, triggering a calculation.
+  - **Then** the Pricing Service returns a `ERR_CONFIG_JURISDICTION_MISSING` error.
+  - **And** the `workexec` service prevents the Estimate from being approved.
+
+- **AC4: Calculation with Shop Fee and Discount**
+  - **Given** an Estimate with a subtotal of $200.
+  - **And** a 10% shop supply fee (calculated on subtotal) is applied.
+  - **And** a $15 discount is applied.
+  - **And** the total taxable amount is subject to a 5% tax rate.
+  - **When** the system calculates the totals.
+  - **Then** the Fee Total is $20.00, the Discount Total is $15.00, the Tax Total is $10.00 (on the $200 subtotal), and the Grand Total is $215.00 ($200 + $20 Fee + $10 Tax - $15 Discount).
+  - **And** a `CalculationSnapshot` is created.
+
+## Audit & Observability
+- **Audit Trail:** The `CalculationSnapshot` entity serves as the primary audit artifact for all financial totals on the Estimate. Its `snapshotId` must be stored on the `Estimate` entity in the `workexec` domain.
+- **Events:** Upon successful calculation, the Pricing Service shall emit a `EstimateTotalsCalculated` event containing the `estimateId` and the `calculationSnapshotId`.
+- **Logging:** Key stages of the calculation process (e.g., request received, rules applied, response sent) should be logged with correlation IDs. Errors during calculation must be logged with a high severity level.
+
+## Open Questions
+- **OQ1: Missing Tax Code Policy:** What is the specific business policy for handling a taxable item that is missing a tax code?
+  - **Option A:** Fail the calculation and return an error.
+  - **Option B:** Apply a configured "default" tax code and proceed.
+  - **Decision Needed:** Which behavior is required? If Option B, what is the default code and should this case be flagged for review?
+- **OQ2: Rounding Policy:** What is the authoritative rounding policy for final totals? (e.g., standard round half up to nearest cent, banker's rounding). This must be explicitly defined to ensure consistency.
+- **OQ3: Tax-Inclusive Pricing:** Does the system need to support tax-inclusive pricing models for any jurisdiction now, or is a tax-exclusive model (where tax is added to the base price) sufficient for the initial implementation?
+
+## Original Story (Unmodified – For Traceability)
+# Issue #171 — [BACKEND] [STORY] Estimate: Calculate Taxes and Totals on Estimate
+
+## Current Labels
+- backend
+- story-implementation
+- general
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Estimate: Calculate Taxes and Totals on Estimate
+
+**Domain**: general
+
+### Story Description
+
+/kiro
+Produce implementation-ready acceptance criteria, validations, and edge cases. Keep Moqui state transitions and audit requirements explicit.
+
+# Functional Requirement
+
+## Classification (confirm labels)
+- Type: story
+- Layer: functional
+- Domain: workexec
+
+## Actor
+System
+
+## Trigger
+Estimate line items are created or modified (parts/labor/fees/discounts).
+
+## Main Flow
+1. System identifies taxable basis per line item using tax codes and jurisdiction.
+2. System calculates line-level and/or header-level taxes per configuration.
+3. System applies discounts, fees (shop supplies, environmental), and rounding rules.
+4. System updates estimate subtotal, tax total, and grand total.
+5. System records calculation snapshot (inputs and outputs) for audit/reproducibility.
+
+## Alternate / Error Flows
+- Missing tax code on an item → apply default tax code or block based on policy.
+- Tax region not configured → block submission for approval and surface configuration error.
+
+## Business Rules
+- Tax rules may vary by item type (parts vs labor vs fees).
+- Support tax-inclusive and tax-exclusive modes.
+- Persist enough calculation context to explain totals later (disputes).
+
+## Data Requirements
+- Entities: Estimate, EstimateItem, TaxRule, FeeRule, CalculationSnapshot
+- Fields: taxCode, taxRate, taxAmount, subtotal, discountTotal, feeTotal, grandTotal, roundingAdjustment
+
+## Acceptance Criteria
+- [ ] Totals and taxes update correctly for mixed taxable/non-taxable items.
+- [ ] System stores a calculation snapshot that can be reviewed.
+- [ ] Estimate cannot proceed to approval if required tax configuration is missing (per policy).
+
+## Notes for Agents
+Ensure calculation snapshots can be reused during promotion/invoice variance explanations.
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #97: [BACKEND] [STORY] Promotions: Create Promotion Offer (Basic)
+LABELS: type:story,domain:pricing,status:needs-review
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:pricing
+- status:draft
+
+### Recommended
+- agent:pricing
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** pricing-strict
+---
+
+## Story Intent
+**As an** Account Manager,
+**I want to** define and create a new promotion with specific discount rules, validity dates, and usage limits,
+**so that** this promotion can be made available for application to work orders for eligible customers, driving sales and customer engagement.
+
+## Actors & Stakeholders
+- **Account Manager**: The primary actor who creates and manages promotions.
+- **Workorder Execution System**: A downstream system that needs to query and retrieve active promotions to apply them to customer work orders or estimates.
+- **Customer**: The beneficiary of the promotion.
+
+## Preconditions
+- The Account Manager is authenticated and has the necessary permissions to access the Promotion Management feature.
+- The system is in a state ready to accept new promotion definitions.
+
+## Functional Behavior
+### 4.1. Promotion Creation
+The Account Manager initiates the creation of a new promotion. The system presents a form to capture the promotion's definition, including:
+- **Promotion Code**: A unique, human-readable identifier (e.g., `SUMMER2024`).
+- **Description**: An internal-facing description of the promotion's purpose.
+- **Store Code**: An identifier for the store or location where the promotion is valid.
+- **Start Date & End Date**: The date range during which the promotion is considered active.
+- **Promotion Type & Value**:
+    - Percentage discount on labor (`%`)
+    - Percentage discount on parts (`%`)
+    - Fixed monetary amount discount on the total invoice (`$`)
+- **Usage Limit**: An optional numeric value defining the maximum number of times the promotion can be used in total.
+- **Initial State**: A new promotion is created in a `Draft` state by default and is not publicly available until explicitly activated.
+
+### 4.2. Promotion State Management
+- **Activation**: The Account Manager can activate a `Draft` or `Inactive` promotion. Upon activation, its state changes to `Active`, making it available for application by downstream systems, provided the current date is within its valid date range.
+- **Deactivation**: The Account Manager can deactivate an `Active` promotion. Its state changes to `Inactive`, immediately preventing any new applications of the promotion, regardless of the current date.
+
+## Alternate / Error Flows
+- **Duplicate Promotion Code**: If the Account Manager attempts to create a promotion with a `Promotion Code` that already exists, the system shall reject the request and display a "Promotion code must be unique" error.
+- **Invalid Date Range**: If the specified `Start Date` is after the `End Date`, the system shall reject the request and display a "Start date must be on or before the end date" error.
+- **Invalid Value**: If a negative value is entered for a discount amount or usage limit, the system shall reject the request with a validation error.
+- **Activation Attempt on Expired Promotion**: If an attempt is made to activate a promotion whose `End Date` is in the past, the system shall prevent the activation and indicate that the promotion has expired.
+
+## Business Rules
+- A `Promotion Code` must be unique across all promotions in the system.
+- The `Start Date` of a promotion must be on or before its `End Date`.
+- A promotion is only considered "available for use" if its state is `Active` AND the current system date is within its `Start Date` and `End Date` (inclusive).
+- Once a promotion is created, its `Promotion Code` cannot be changed.
+- Promotions are created in a `Draft` state and must be explicitly moved to `Active` to become available.
+
+## Data Requirements
+The system must persist a `PromotionOffer` entity with the following attributes:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `promotionOfferId` | UUID | Yes | Unique system identifier for the promotion. |
+| `promotionCode` | String | Yes | Unique, human-readable code for the promotion. |
+| `description` | String | Yes | Internal description of the promotion. |
+| `storeCode` | String | Yes | Identifier of the location where the promotion is valid. |
+| `startDate` | Date | Yes | The first day the promotion is valid. |
+| `endDate` | Date | Yes | The last day the promotion is valid. |
+| `promotionType` | Enum | Yes | Type of discount. Values: `PERCENT_LABOR`, `PERCENT_PARTS`, `FIXED_INVOICE`. |
+| `promotionValue` | Decimal | Yes | The numeric value of the discount (e.g., 10.00 for 10% or $10). |
+| `usageLimit` | Integer | No | The total number of times the promotion can be used. Null means unlimited. |
+| `status` | Enum | Yes | The current state of the promotion. Values: `DRAFT`, `ACTIVE`, `INACTIVE`, `EXPIRED`. |
+
+## Acceptance Criteria
+
+### Scenario: Successfully Create a New Percentage-Based Promotion
+- **Given** I am an Account Manager with permissions to create promotions
+- **When** I submit a new promotion with a unique code `LABOR15`, a `promotionType` of `PERCENT_LABOR`, a `promotionValue` of 15, and a valid start/end date range
+- **Then** the system successfully creates the new promotion
+- **And** the promotion is assigned a unique `promotionOfferId`
+- **And** its initial status is `DRAFT`.
+
+### Scenario: Successfully Activate a Draft Promotion
+- **Given** a promotion exists with the code `LABOR15` and a status of `DRAFT`
+- **When** I request to activate this promotion
+- **Then** the system updates the promotion's status to `ACTIVE`.
+
+### Scenario: Attempt to Create a Promotion with a Duplicate Code
+- **Given** a promotion with the code `SUMMER2024` already exists
+- **When** I attempt to create a new promotion with the code `SUMMER2024`
+- **Then** the system rejects the request
+- **And** I receive an error message stating "Promotion code must be unique".
+
+### Scenario: Attempt to Create a Promotion with an Invalid Date Range
+- **Given** I am creating a new promotion
+- **When** I set the `Start Date` to "2024-08-01" and the `End Date` to "2024-07-31"
+- **Then** the system rejects the request
+- **And** I receive an error message stating "Start date must be on or before the end date".
+
+## Audit & Observability
+- **Audit Log**: Every creation, activation, and deactivation of a promotion must be logged. The log entry should include the `promotionOfferId`, the acting user's ID, the timestamp, and the change made (e.g., "status: DRAFT -> ACTIVE").
+- **Metrics**: The system should expose a metric for the total number of promotions in each status (`DRAFT`, `ACTIVE`, `INACTIVE`).
+
+## Open Questions
+1.  **Customer Eligibility**: The original story mentions applying promotions to "eligible customers". How is eligibility defined? Is it a list of customer IDs, a customer segment/tag, or another attribute that must be attached to the promotion? This contract is critical for the Workorder domain integration.
+2.  **Promotion Type Specificity**: The story mentions "% off labor", "% off parts", and "fixed amount off invoice". Can a single promotion offer contain rules for more than one of these (e.g., 10% off parts AND 15% off labor), or is a promotion strictly one type? This rewrite assumes a promotion is only one type.
+3.  **Store Code Scope**: Is the `storeCode` a mandatory field? Does an empty/null `storeCode` imply the promotion is valid at all locations?
+4.  **Usage Limit Scope**: Is the optional `usageLimit` a global counter for the promotion, or is it tracked on a per-customer basis?
+
+---
+## Original Story (Unmodified – For Traceability)
+# Issue #97 — [BACKEND] [STORY] Promotions: Create Promotion Offer (Basic)
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Promotions: Create Promotion Offer (Basic)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Account Manager**, I want **to create a simple promotion (discount amount/percent) with start/end dates** so that **I can apply it to estimates for eligible customers**.
+
+## Details
+- Offer types: % off labor, % off parts, fixed amount off invoice.
+- Store code, description, active dates, optional usage limit.
+
+## Acceptance Criteria
+- Create/activate/deactivate offer.
+- Validate date range.
+- Unique code enforced.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution can query active offers for a customer.
+
+## Data / Entities
+- PromotionOffer
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #96: [BACKEND] [STORY] Promotions: Define Eligibility Rules (Account/Vehicle)
+LABELS: type:story,domain:pricing,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:pricing
+- status:draft
+
+### Recommended
+- agent:pricing
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+
+---
+**Rewrite Variant:** pricing-strict
+---
+
+## Story Intent
+As an Account Manager or Pricing Analyst, I want to define granular eligibility rules for promotions based on customer account and vehicle attributes, so that promotional discounts are applied accurately and exclusively to the intended target audience.
+
+## Actors & Stakeholders
+- **Primary Actor:** `Pricing Analyst / Account Manager` - The user responsible for configuring promotions and their associated business rules.
+- **System Actor:** `Pricing Engine` - The automated service that consumes eligibility rules during price calculation for work orders and estimates.
+- **Secondary Domains (Data Sources):**
+  - `domain:crm` - Provides authoritative data for customer accounts, including fleet size.
+  - `domain:inventory` - Provides authoritative data for vehicle attributes, such as category tags (e.g., 'tractor', 'trailer').
+- **Stakeholders:**
+  - `Service Advisor` - Benefits from the system automatically and correctly applying promotions during customer interactions.
+  - `Customer` - Receives accurate, targeted discounts they are eligible for.
+
+## Preconditions
+1. The user is authenticated and has the necessary permissions to create and modify promotions.
+2. A promotion entity already exists to which these eligibility rules can be attached.
+3. APIs are available to query customer account data (from CRM) and vehicle data (from Inventory) required for rule evaluation.
+
+## Functional Behavior
+
+### 1. Configure Promotion Eligibility Rules
+- **Trigger:** A Pricing Analyst navigates to the configuration screen for a specific promotion and chooses to add or edit an eligibility rule.
+- **Behavior:**
+    - The system provides a UI to define one or more rule conditions.
+    - Each condition consists of a type, an operator, and a value.
+    - Supported rule types include:
+        - `Account ID List`: Matches if the customer's account ID is in a specified list.
+        - `Vehicle Tag`: Matches if the vehicle in context has a specific tag.
+        - `Account Fleet Size`: Matches if the customer's account meets a numeric threshold (e.g., greater than or equal to 10 vehicles).
+- **Outcome:** The set of rules is validated and persisted, associated with the parent promotion ID. The system is now capable of evaluating these rules.
+
+### 2. Evaluate Promotion Eligibility
+- **Trigger:** The Pricing Engine requests an eligibility check for a given promotion during a pricing calculation (e.g., for a work order estimate). The request includes the context: `accountId` and `vehicleId`.
+- **Behavior:**
+    1. The Promotion service retrieves all active eligibility rules for the specified promotion.
+    2. It fetches necessary contextual data (e.g., account's fleet size, vehicle's tags) from the CRM and Inventory domains using the provided IDs.
+    3. It evaluates the context against each rule condition based on the configured logic (see Business Rules).
+- **Outcome:** The service returns a structured response to the Pricing Engine, indicating eligibility and the reason.
+    - **Success Response:** `{"isEligible": true, "reasonCode": "ELIGIBLE"}`
+    - **Failure Response:** `{"isEligible": false, "reasonCode": "ACCOUNT_MISMATCH"}` or `{"isEligible": false, "reasonCode": "FLEET_SIZE_TOO_SMALL"}`
+
+## Alternate / Error Flows
+- **Invalid Rule Configuration:** If a user tries to save a rule with invalid data (e.g., a fleet size threshold that is not a number), the system displays a validation error and prevents saving.
+- **Missing Evaluation Context:** If the Pricing Engine calls the eligibility service without a required piece of context (e.g., `accountId`), the service returns an error response with a `BAD_REQUEST` status and a reason code like `MISSING_ACCOUNT_CONTEXT`.
+- **Data Source Unavailable:** If the CRM or Inventory services are unavailable during evaluation, the eligibility check fails with an internal error, which should be logged. The default eligibility in this case must be `false` to prevent incorrect discounting.
+
+## Business Rules
+- **Rule Combination Logic:** The logic for combining multiple rules for a single promotion must be explicitly defined. A safe default is that **ALL** conditions must be met (`AND` logic). This requires clarification.
+- **Authoritative Data:** The CRM domain is the system of record for account data (including fleet size). The Inventory domain is the system of record for vehicle data (including tags).
+- **Fail-Safe Principle:** In case of ambiguity or system error during evaluation, the promotion shall be considered **not eligible**.
+- **Reason Codes:** The system must return a specific, machine-readable reason code for every eligibility decision (both positive and negative) to support auditing and troubleshooting.
+
+## Data Requirements
+**Entity: `PromotionEligibilityRule`**
+```json
+{
+  "ruleId": "uuid", // Primary Key
+  "promotionId": "uuid", // Foreign Key to Promotion entity
+  "conditionType": "ENUM", // ACCOUNT_ID_LIST, VEHICLE_TAG, ACCOUNT_FLEET_SIZE
+  "operator": "ENUM", // IN, NOT_IN, EQUALS, GREATER_THAN_OR_EQUAL_TO
+  "value": "string" // e.g., "CUST-001,CUST-002", "trailer", "10"
+}
+```
+**API Response: `EligibilityDecision`**
+```json
+{
+  "isEligible": "boolean",
+  "reasonCode": "string" // e.g., "ELIGIBLE", "ACCOUNT_MISMATCH", "VEHICLE_TAG_MISMATCH", "FLEET_SIZE_TOO_SMALL", "MISSING_CONTEXT"
+}
+```
+
+## Acceptance Criteria
+
+### Scenario 1: Configure an Account-Specific Rule
+- **Given** a Pricing Analyst is configuring the "National Fleet Discount" promotion
+- **When** they add an eligibility rule of type `ACCOUNT_ID_LIST`, operator `IN`, and value `CUST-001,CUST-007`
+- **Then** the system saves the rule and successfully associates it with the "National Fleet Discount" promotion.
+
+### Scenario 2: Eligible based on Account and Vehicle Tags
+- **Given** a promotion has two rules with `AND` logic:
+  1. `ACCOUNT_ID_LIST` `IN` `CUST-001`
+  2. `VEHICLE_TAG` `EQUALS` `tractor`
+- **And** account `CUST-001` exists and vehicle `VEH-555` has the tag `tractor`
+- **When** the Pricing Engine requests an eligibility check for the promotion with context `accountId: CUST-001` and `vehicleId: VEH-555`
+- **Then** the service returns `{"isEligible": true, "reasonCode": "ELIGIBLE"}`.
+
+### Scenario 3: Ineligible due to Vehicle Tag Mismatch
+- **Given** the same promotion rules as Scenario 2
+- **And** account `CUST-001` exists and vehicle `VEH-666` has the tag `trailer`
+- **When** the Pricing Engine requests an eligibility check for the promotion with context `accountId: CUST-001` and `vehicleId: VEH-666`
+- **Then** the service returns `{"isEligible": false, "reasonCode": "VEHICLE_TAG_MISMATCH"}`.
+
+### Scenario 4: Ineligible due to Fleet Size
+- **Given** a promotion has a rule: `ACCOUNT_FLEET_SIZE` `GREATER_THAN_OR_EQUAL_TO` `20`
+- **And** account `CUST-002` has a fleet size of `15`
+- **When** the Pricing Engine requests an eligibility check for the promotion with context `accountId: CUST-002`
+- **Then** the service returns `{"isEligible": false, "reasonCode": "FLEET_SIZE_TOO_SMALL"}`.
+
+### Scenario 5: Evaluation Fails due to Missing Context
+- **Given** any promotion with eligibility rules
+- **When** the Pricing Engine requests an eligibility check without providing an `accountId`
+- **Then** the service returns an error response with reason code `MISSING_ACCOUNT_CONTEXT`.
+
+## Audit & Observability
+- **Audit Trail:** All create, update, and delete operations on `PromotionEligibilityRule` entities must be logged with user attribution and timestamps.
+- **Structured Logging:** Every eligibility evaluation event must be logged with the `promotionId`, input context (`accountId`, `vehicleId`), the final decision (`isEligible`), and the `reasonCode`.
+- **Metrics:** The service should expose key metrics for monitoring, including:
+  - Latency of eligibility evaluation requests (p95, p99).
+  - Rate of eligible vs. ineligible decisions per promotion.
+  - Error rate for evaluation requests, categorized by error type (e.g., bad request, data source failure).
+
+## Open Questions
+1.  **Rule Combination Logic:** When a promotion has multiple rules (e.g., one for `Account ID` and one for `Vehicle Tag`), must **ALL** conditions be met (`AND` logic) or is meeting **ANY** condition sufficient (`OR` logic)? Is this logic configured per-promotion or is it a system-wide default?
+2.  **Authoritative Data Sources:** What are the specific service endpoints and contracts for retrieving an account's fleet size and a vehicle's tags?
+3.  **Reason Codes:** Please confirm the initial set of `reasonCode` enums required. Should we distinguish between `ACCOUNT_NOT_IN_LIST` and `ACCOUNT_IN_EXCLUSION_LIST` if that becomes a feature?
+
+## Original Story (Unmodified – For Traceability)
+# Issue #96 — [BACKEND] [STORY] Promotions: Define Eligibility Rules (Account/Vehicle)
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Promotions: Define Eligibility Rules (Account/Vehicle)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Account Manager**, I want **to restrict offers to certain accounts or vehicle categories** so that **promotions are applied correctly**.
+
+## Details
+- Eligibility: specific accounts, simple tags (e.g., trailer/tractor), optional fleet-size threshold.
+- Return eligibility decision with reason.
+
+## Acceptance Criteria
+- Configure eligibility.
+- Evaluate eligibility with explanation.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution calls eligibility evaluation during estimate pricing.
+
+## Data / Entities
+- PromotionEligibilityRule
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #95: [BACKEND] [STORY] Promotions: Apply Offer During Estimate Pricing
+LABELS: type:story,domain:pricing,status:ready-for-dev
+BODY:
+## Story Intent
+As a **Service Advisor**, I want **to apply a valid promotion code to a work estimate and see the calculated discount**, so that **customers receive accurate pricing before approving the work**.
+
+## Actors & Stakeholders
+- **Service Advisor** (Primary Actor): Initiates the promotion application on behalf of the customer.
+- **Customer** (Beneficiary): Receives the promotional discount on their service estimate.
+- **Pricing Service** (System): Validates promotion applicability and computes pricing adjustments.
+- **Work Execution Service** (System Context): Owns the estimate entity and persists/reflects pricing results.
+- **CRM Service** (Supporting System): System of record for promotion definitions, rules, and eligibility.
+
+## Preconditions
+- The Service Advisor is authenticated and authorized to create and modify estimates.
+- An active work estimate exists in a `Draft` or `Pending Approval` state.
+- The estimate has at least one priceable line item.
+- Pricing, Work Execution, and CRM services are available and can communicate securely.
+
+## Functional Behavior
+- **Trigger**: The Service Advisor provides a `promotionCode` and requests its application to a specific `estimateId`.
+
+1. **Request Initiation**: Work Execution receives the request and calls Pricing with `promotionCode` and estimate pricing context (customer + line items + totals).
+2. **Promotion Validation**: Pricing calls CRM synchronously to validate the code and retrieve eligibility/rules/parameters.
+3. **Eligibility Check**: CRM validates existence, active/expiry window, usage limits, and eligibility rules against the provided estimate context.
+4. **Pricing Adjustment Generation**: Pricing computes a canonical `PricingAdjustment` (promotion discount) and returns it along with updated totals.
+5. **Apply Results**: Work Execution persists the applied promotion reference and reflects the returned pricing adjustment(s) on the estimate (discount line + recalculated totals).
+
+## Alternate / Error Flows
+- **Invalid/Expired Code**: Pricing returns `PROMO_NOT_FOUND` (HTTP 400). UI displays a user-facing message (copy is provisional).
+- **Ineligible Estimate**: Pricing returns `PROMO_NOT_APPLICABLE` (HTTP 400). UI displays a user-facing message (copy is provisional).
+- **Multiple Promotions Attempted**: Pricing returns `PROMO_MULTIPLE_NOT_ALLOWED` (HTTP 400). No promotion applied.
+- **Service Unavailability**: Pricing returns `SERVICE_UNAVAILABLE` (HTTP 503). Estimate remains unchanged.
+
+## Business Rules
+- **Domain Ownership (Resolved):** `domain:pricing` is the ultimate authority for `PricingAdjustment` and all promotion math. `domain:workexec` consumes pricing results and persists references for the estimate.
+- **Promotion Count (Resolved):** Only **one** promotion may be applied to a single estimate for this story.
+- Promotion discounts are calculated on the pre-tax subtotal of eligible items.
+- The application of a promotion must be idempotent; applying the same valid code multiple times to the same estimate state results in the same final pricing.
+- User-facing error message strings are **provisional**; backend must expose **stable error codes**.
+
+## Data Requirements
+- **Input (to Pricing Service)**:
+  - `promotionCode`: `string`
+  - `estimateContext`:
+    - `estimateId`: `UUID`
+    - `customerId`: `UUID`
+    - `lineItems`: array of `{ sku, quantity, unitPrice }`
+    - `subtotal`: `MonetaryAmount`
+
+- **Output (from Pricing Service)**:
+  - **Success**: pricing result containing `subtotal`, `total`, and `appliedAdjustments[]` including the promotion adjustment.
+    - `PricingAdjustment` (promotion) fields:
+      - `type`: `PROMOTION`
+      - `sourceId`: `UUID` (promotion/offer id from CRM)
+      - `label`: `string`
+      - `amount`: `MonetaryAmount` (negative)
+      - `metadata`: optional object for display/audit
+  - **Failure**:
+    - `errorCode`: `string` (stable)
+    - `message`: `string` (provisional copy)
+    - `details`: optional object
+
+## Acceptance Criteria
+- **AC1: Valid Promotion Applied Successfully**
+  - **Given** a promotion "SAVE10" exists for a 10% discount
+  - **And** a work estimate with a subtotal of $200.00 is eligible
+  - **When** the Service Advisor applies the code "SAVE10"
+  - **Then** Pricing returns a promotion `PricingAdjustment` amount of `-$20.00`
+  - **And** Work Execution reflects a discount line and reduced estimate total
+
+- **AC2: Invalid Promotion Code Rejected**
+  - **Given** a work estimate exists
+  - **When** the Service Advisor applies an invalid code "FAKECODE"
+  - **Then** Pricing returns `PROMO_NOT_FOUND`
+  - **And** the estimate pricing and totals remain unchanged
+
+- **AC3: Valid Promotion for Ineligible Estimate**
+  - **Given** a promotion "OILSPECIAL" exists but only applies to "Full Synthetic Oil Change"
+  - **And** the estimate contains only "Tire Rotation"
+  - **When** the Service Advisor applies "OILSPECIAL"
+  - **Then** Pricing returns `PROMO_NOT_APPLICABLE`
+  - **And** the estimate pricing and totals remain unchanged
+
+## Audit & Observability
+- Emit `INFO` log on successful application: `estimateId`, `promotionId`, `promotionCode`, `userId`, `discountAmount`.
+- Emit `WARN` log on failed attempts: `estimateId`, `promotionCode`, `userId`, failure reason.
+- Instrument Pricing→CRM call for latency, error rate, traffic.
+
+## Open Questions
+None.
+
+---
+
+## Original Story (Unmodified – For Traceability)
+# Issue #95 — [BACKEND] [STORY] Promotions: Apply Offer During Estimate Pricing
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Promotions: Apply Offer During Estimate Pricing
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Service Advisor**, I want **to apply a promotion code to an estimate and see the discount** so that **customers receive correct pricing before approval**.
+
+## Details
+- Validate code and eligibility.
+- Record applied offer and discount parameters/lines.
+
+## Acceptance Criteria
+- Invalid code rejected.
+- Discount line appears in estimate totals.
+- Applied offer recorded for traceability.
+
+## Integration Points (Workorder Execution)
+- Workorder Execution calls CRM promotions API to validate/apply.
+- CRM returns discount parameters or rule reference.
+
+## Data / Entities
+- AppliedPromotion reference
+- PricingAdjustment (WO domain)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: CRM
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #54: [BACKEND] [STORY] Pricing: Define Base Company Price Book Rules
+LABELS: type:story,domain:pricing,status:ready-for-dev,agent:story-authoring,agent:pricing
+BODY:
+---
+**Rewrite Variant:** pricing-strict
+---
+
+## Story Intent
+**As a** Pricing Administrator or System Architect,
+**I want to** define and manage the base company price book rules that determine product pricing,
+**so that** pricing is consistent, auditable, and reflects company-wide policies across all locations and customer segments.
+
+## Actors & Stakeholders
+- **Pricing Administrator (Primary Actor)**: Defines/updates company-wide pricing rules (markups, margins, fixed prices, tier/location conditions).
+- **Pricing System (System Actor)**: Evaluates pricing rules, calculates effective prices, and publishes rule lifecycle events.
+- **CRM System (Integration / Data Source)**: Authoritative source for customer tier.
+- **Product System (Integration / Data Source)**: Authoritative source for MSRP.
+- **Inventory System (Integration / Data Source)**: Authoritative source for cost (location-aware).
+- **Store Manager (Indirect Stakeholder)**: May apply store/location overrides that layer on top of the base price book.
+- **Reporting / Analytics (Downstream Consumer)**: Consumes pricing data for margin and compliance reporting.
+
+## Preconditions
+1. Pricing Administrator is authenticated and authorized to manage base price books and rules.
+2. Product and Inventory data sources are reachable (MSRP and cost may be missing for some products).
+3. Customer tier source (CRM) is reachable (tier may be missing for some accounts).
+4. A company default base price book exists (or can be created).
+
+## Functional Behavior
+1. Pricing Administrator accesses base price book management.
+2. Administrator creates or updates a rule within a base price book. A rule supports:
+   - **Target granularity**: product (`SKU`/`productId`), category (`categoryId`), or global.
+   - **Pricing logic**: e.g., markup over MSRP, markup over cost, fixed price, tier discount from base.
+   - **Conditions**: optional conditions such as customer tier and/or location.
+   - **Effective date range**: `effectiveStartAt` and optional `effectiveEndAt`.
+   - **Priority**: deterministic tie-breaker when multiple candidate rules apply.
+3. System validates the rule:
+   - Required fields present.
+   - Conflicts are detected (same target/conditions with overlapping effective windows).
+   - Pricing logic is evaluatable given available base data.
+4. If validation passes, system persists the rule.
+5. System recalculates affected prices (or defers to price-request time; implementation choice) and publishes the appropriate rule lifecycle event.
+
+## Alternate / Error Flows
+- **Error Flow 1: Missing Base Data (Graceful Degradation)**
+  - If a rule requires base data (cost or MSRP) and that base data is missing, the system marks the rule evaluation outcome as `NOT_APPLICABLE_MISSING_BASE` and continues to evaluate the next applicable rule in precedence order.
+  - If *no* rule can produce a price and MSRP is missing, return error `PRICE_BASE_DATA_MISSING`.
+- **Error Flow 2: Conflicting Rules**
+  - If a new/updated rule conflicts with an existing active rule for the same target/conditions/effective window, reject the change with a validation error describing the conflicting rule(s).
+- **Error Flow 3: Unauthorized Action**
+  - If the user is not authorized to create/update base price book rules, return `403 Forbidden`.
+- **Alternate Flow 1: Rule Deactivation**
+  - Administrator can deactivate a rule by setting `effectiveEndAt` to a past date or marking `INACTIVE`.
+  - Deactivated rules do not influence pricing but remain queryable for audit.
+
+## Business Rules
+These decisions were resolved via Clarification #255 (see issue comments for decision record).
+
+- **BR1: Rule Target Granularity & Precedence (Most-Specific-Wins)**
+  - Supported targets: `SKU`/product (`productId`), `CATEGORY` (`categoryId`, with hierarchical taxonomy), `GLOBAL`.
+  - Precedence (highest → lowest):
+    1. SKU/product rule (exact product match)
+    2. Category rule (nearest category in the taxonomy; lowest depth distance wins)
+    3. Global rule
+    4. Fallback to MSRP (if present)
+- **BR2: Deterministic Tie-Breakers**
+  - If multiple rules apply at the same granularity, resolve deterministically by:
+    1. Highest `priority`
+    2. Most recent `effectiveStartAt`
+    3. Lowest `ruleId`
+- **BR3: Authoritative Data Sources**
+  - CRM is authoritative for customer tier.
+  - Product is authoritative for MSRP.
+  - Inventory is authoritative for cost (location-aware).
+- **BR4: Missing Base Data Handling**
+  - If a rule requires cost/MSRP and that base is missing, mark that rule evaluation as `NOT_APPLICABLE_MISSING_BASE` and continue evaluating lower-precedence rules.
+  - If no rule can price and MSRP is also missing, return `PRICE_BASE_DATA_MISSING`.
+- **BR5: Price Book Scope & Selection**
+  - Multiple base price books are allowed, but there must be exactly one active default per scope.
+  - Deterministic selection order (highest precedence first):
+    1. (locationId + customerTier)
+    2. (locationId)
+    3. (customerTier)
+    4. company default
+  - Store overrides (tracked in story #52) layer on top of the resolved base book result.
+- **BR6: Immutability of Historical Rules**
+  - Once a rule’s effective period has ended, it becomes immutable for audit; future changes require a new rule.
+
+## Data Requirements
+### Entities
+- **PriceBookRule**
+  - `ruleId` (PK)
+  - `priceBookId` (FK)
+  - `targetType` (Enum: `SKU`, `CATEGORY`, `GLOBAL`)
+  - `targetId` (productId or categoryId; null for GLOBAL)
+  - `pricingLogic` (structured JSON; supports markup/fixed/discount-from-base patterns)
+  - `conditionType` (Enum: `CUSTOMER_TIER`, `LOCATION`, `NONE`)
+  - `conditionValue` (e.g., tierCode or locationId)
+  - `priority` (Integer)
+  - `effectiveStartAt` (Timestamp)
+  - `effectiveEndAt` (Timestamp, Nullable)
+  - `status` (Enum: `ACTIVE`, `INACTIVE`, `NOT_APPLICABLE_MISSING_BASE`)
+  - `createdByUserId`
+  - `createdAt` (Timestamp)
+  - `updatedAt` (Timestamp)
+
+- **PriceBook**
+  - `priceBookId` (PK)
+  - `name` (String)
+  - `scope` (Enum: `COMPANY_DEFAULT`, `LOCATION`, `CUSTOMER_TIER`)
+  - `scopeId` (FK to location or tier; null for COMPANY_DEFAULT)
+  - `isDefault` (Boolean; only one default per scope)
+  - `status` (Enum: `ACTIVE`, `INACTIVE`)
+
+### Integration Contracts (Authoritative)
+- **CRM Tier**
+  - `GET /crm/v1/accounts/{accountId}/tier`
+
+    ```json
+    {
+      "accountId": "UUIDv7",
+      "tierId": "UUIDv7",
+      "tierCode": "FLEET_GOLD",
+      "effectiveAt": "2026-01-12T00:00:00Z"
+    }
+    ```
+
+  - Batch (recommended): `POST /crm/v1/accounts:tier-resolve`
+
+    ```json
+    { "accountIds": ["UUIDv7","UUIDv7"] }
+    ```
+
+- **MSRP (Product)**
+  - `GET /product/v1/products/{productId}/msrp?currency=USD`
+
+    ```json
+    {
+      "productId": "UUIDv7",
+      "msrp": { "amount": 199.99, "currency": "USD" },
+      "asOf": "2026-01-12T00:00:00Z"
+    }
+    ```
+
+- **Cost (Inventory, location-aware)**
+  - `GET /inventory/v1/cost/{productId}?locationId=UUIDv7`
+
+    ```json
+    {
+      "productId": "UUIDv7",
+      "locationId": "UUIDv7",
+      "unitCost": { "amount": 120.50, "currency": "USD" },
+      "costMethod": "AVERAGE | FIFO | STANDARD",
+      "asOf": "2026-01-12T00:00:00Z"
+    }
+    ```
+
+- **Performance note**: batch forms for tier/MSRP/cost are strongly recommended to avoid N+1 during price calculation.
+
+## Acceptance Criteria
+- **AC1: Create Global Markup Rule**
+  - **Given** the Pricing Administrator creates a new rule in the company base price book,
+  - **And** the rule is global with `pricingLogic` equivalent to “MSRP markup +20%”,
+  - **When** the rule is saved and activated,
+  - **Then** products without a more specific rule must price as `MSRP * 1.20`,
+  - **And** a `PriceBookRuleCreated` event is published.
+
+- **AC2: Create Product (SKU) Fixed Price Rule**
+  - **Given** a product `productId=P1` has an MSRP,
+  - **When** the Pricing Administrator creates a rule targeting `SKU/productId = P1` with fixed price $89.99,
+  - **Then** the effective price for `P1` is $89.99 and overrides category/global rules.
+
+- **AC3: Rule Precedence - Most Specific Wins**
+  - **Given** a global rule “MSRP * 1.20”,
+  - **And** a category rule for Category `C_Tires` “MSRP * 1.15”,
+  - **And** a product rule for `productId=P_Tire123` “fixed $99.99”,
+  - **When** the system prices `P_Tire123`,
+  - **Then** it uses the product rule ($99.99).
+
+- **AC4: Missing Base Data Handling**
+  - **Given** a rule requires `unitCost` and `unitCost` is missing for `(productId, locationId)`,
+  - **When** the system evaluates pricing,
+  - **Then** that rule evaluation is treated as `NOT_APPLICABLE_MISSING_BASE` and a lower-precedence rule is evaluated,
+  - **And** if no rule applies, the system falls back to MSRP if present,
+  - **And** if MSRP is also missing, the system returns `PRICE_BASE_DATA_MISSING`.
+
+  **Response contract (minimum required fields)**:
+
+  ```json
+  {
+    "productId": "UUIDv7",
+    "price": { "amount": 100.00, "currency": "USD" },
+    "priceSource": "RULE | MSRP_FALLBACK",
+    "appliedRuleId": "UUIDv7 | null",
+    "missingCost": true,
+    "missingMsrp": false
+  }
+  ```
+
+- **AC5: Customer Tier-Specific Rule**
+  - **Given** a rule applies a discount for tierCode `FLEET_GOLD`,
+  - **When** the system prices a product for an account whose CRM tier resolves to `FLEET_GOLD`,
+  - **Then** the system applies the tier rule,
+  - **And** for an account with a different tierCode, the rule does not apply.
+
+- **AC6: Multiple Base Price Books - Deterministic Selection**
+  - **Given** a company default base price book and a location-specific base price book for `locationId=L1`,
+  - **When** the system prices at `locationId=L1`,
+  - **Then** it evaluates the location-specific base price book first,
+  - **And** falls back to the company default base price book if no location-specific rule applies.
+
+## Audit & Observability
+- **Audit Trail:** Every create/update/deactivate operation for a price book rule is logged in an immutable audit log, including user, timestamps, and before/after values for updates.
+- **Events:** Publish domain events:
+  - `PriceBookRuleCreated`
+  - `PriceBookRuleUpdated`
+  - `PriceBookRuleDeactivated`
+- **Metrics:**
+  - Active rule count (by price book and target type)
+  - Rules marked `NOT_APPLICABLE_MISSING_BASE`
+  - Price calculation request rate
+  - Cache hit/miss rate (if caching is used)
+
+## Open Questions (if any)
+- None.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #54 — [BACKEND] [STORY] Pricing: Define Base Company Price Book Rules
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Pricing: Define Base Company Price Book Rules
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Pricing Administrator**, I want to define base price book rules (markup %, margin requirements, discount thresholds), so all locations start from the same pricing foundation.
+
+## Details
+- Rules at SKU or category level.
+- Conditions: customer tier, location, effective dates.
+- Stored overrides layer on top.
+
+## Acceptance Criteria
+- Rule created/updated.
+- Price calculation respects base rules before overrides.
+- Audited.
+
+## Integrations
+- Product service for MSRP/cost; CRM for customer tiers.
+
+## Data / Entities
+- PriceBookRule, PriceBook, AuditLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Product / Parts Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+
+════════════════════════════════════════
+ISSUE #52: [BACKEND] [STORY] StorePrice: Set Location Store Price Override within Guardrails
+LABELS: type:story,domain:pricing,status:ready-for-dev,agent:story-authoring,agent:pricing
+BODY:
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:pricing
+- status:ready-for-dev
+
+### Recommended
+- agent:pricing
+- agent:story-authoring
+
+---
+**Rewrite Variant:** pricing-strict
+---
+
+## Story Intent
+**As a** Store Manager,
+**I want to** set a location-specific store price override for a product,
+**so that** I can respond to local market conditions while adhering to centrally-defined pricing guardrails.
+
+## Actors & Stakeholders
+- **Store Manager (Primary Actor)**: Initiates a location-specific price override.
+- **Pricing System (System Actor)**: Enforces guardrails, manages override lifecycle, and exposes effective pricing.
+- **Approver (Secondary Actor)**: Approves/rejects overrides that exceed auto-approval thresholds (role-based; see decisions below).
+- **Workexec System (Downstream Consumer)**: Consumes the effective price for a given product at a location.
+- **Reporting / Analytics (Downstream Consumer)**: Tracks override volume, discount magnitude, and approval cycle times.
+
+## Preconditions
+1. Store Manager is authenticated and authorized to manage pricing for their assigned location(s).
+2. Target product exists and has a computed base price available (from company/base price book + other base pricing rules).
+3. An active `GuardrailPolicy` exists for the target location/region.
+
+## Functional Behavior
+1. Store Manager selects a product and initiates the override flow for their location.
+2. System displays:
+   - current base price,
+   - cost (if available),
+   - any active/pending override.
+3. Store Manager submits an `overridePrice`.
+4. System validates against the active `GuardrailPolicy` (hard limits + approval thresholds), computing:
+   - resulting margin % (where cost is available),
+   - discount % from base price.
+5. **Scenario A — Auto-Approval**
+   - If the override complies with hard guardrails and is within auto-approval thresholds, persist `LocationPriceOverride` as `ACTIVE`.
+   - Publish `PriceOverrideActivated`.
+6. **Scenario B — Requires Manual Approval**
+   - If the override complies with hard guardrails but exceeds auto-approval threshold, persist `LocationPriceOverride` as `PENDING_APPROVAL`.
+   - Create an `ApprovalRequest`, assign an approver deterministically (see BR5), and notify.
+   - Effective price remains unchanged until approved.
+   - Publish `PriceOverrideSubmittedForApproval`.
+7. **Scenario C — Rejected by Guardrails**
+   - If the override violates hard guardrails, reject the request and return a validation error explaining the violated rule.
+
+## Alternate / Error Flows
+- **Error Flow 1: Violation of Hard Guardrails**
+  - Reject with a clear error (e.g., “Margin below 15% minimum” or “Discount exceeds 25% maximum”).
+- **Error Flow 2: Unauthorized Action**
+  - If user attempts override for an unauthorized location, return `403 Forbidden`.
+- **Error Flow 3: Invalid Product**
+  - If product does not exist, return `404 Not Found`.
+
+## Business Rules
+These decisions were resolved via Clarification #254 (see issue comment issuecomment-3739398431).
+
+- **BR1: Price Precedence**
+  - Effective sale price at a location is the active `LocationPriceOverride` if present; otherwise the computed base price.
+
+- **BR2: Minimum Margin Enforcement (Hard Limit)**
+  - Override cannot be created if it results in margin below `min_margin_percent` from the applicable `GuardrailPolicy`.
+
+- **BR3: Maximum Discount Enforcement (Hard Limit)**
+  - Override cannot be created if it exceeds `max_discount_percent` from the applicable `GuardrailPolicy`.
+
+- **BR4: Approval Requirement (Soft Limit)**
+  - Overrides exceeding `auto_approval_threshold_percent` must be approved before activation.
+
+- **BR5: Approval Routing (Decision)**
+  - Use a **role-based approval pool** scoped by location/region with deterministic assignment.
+  - Required approver capability (example): `pricing:override:approve`.
+  - Typical holders: Regional Pricing Manager (primary), Pricing Desk (fallback pool).
+  - Deterministic assignment:
+    1. Determine scope (Location → Region)
+    2. Select primary approver for that scope
+    3. If unavailable, route to pool (round-robin or least-loaded)
+    4. Record `assignedApproverId` and `assignmentStrategy`
+
+- **BR6: Approval Workflow (Decision)**
+  - **In-app notification is primary; email is secondary; escalation is time-based.**
+  - Recommended defaults:
+    - SLA: 2 business hours
+    - Escalation: T+2h notify backup/pool; T+4h escalate to Regional Manager
+  - Escalations must be audit-logged.
+
+- **BR7: Rejection Handling (Decision)**
+  - Rejected overrides are retained (not deleted) with terminal `REJECTED` state.
+  - Record becomes immutable after rejection.
+  - Required rejection fields:
+    - `rejectedBy`, `rejectedAt`, `rejectionReasonCode`, `rejectionNotes` (required)
+  - Requester is notified immediately (in-app + email) with reason and next steps.
+
+## Data Requirements
+- **`LocationPriceOverride`**
+  - `overrideId` (PK)
+  - `locationId` (FK)
+  - `productId` (FK)
+  - `overridePrice` (Monetary Amount)
+  - `status` (Enum: `ACTIVE`, `PENDING_APPROVAL`, `REJECTED`, `INACTIVE`)
+  - `createdByUserId`
+  - `createdAt` (Timestamp)
+  - `approvedByUserId` (Nullable)
+  - Rejection fields: `rejectedBy`, `rejectedAt`, `rejectionReasonCode`, `rejectionNotes`
+  - `resolvedAt` (Timestamp, Nullable)
+
+- **`GuardrailPolicy`**
+  - `policyId` (PK)
+  - `scope` (e.g., `LOCATION`, `REGION`)
+  - `scopeId` (e.g., `locationId`)
+  - `min_margin_percent` (Decimal)
+  - `max_discount_percent` (Decimal)
+  - `auto_approval_threshold_percent` (Decimal)
+
+- **`ApprovalRequest`**
+  - `requestId` (PK)
+  - `overrideId` (FK)
+  - `status` (Enum: `PENDING`, `APPROVED`, `REJECTED`)
+  - `assignedApproverId` (UUID)
+  - `assignmentStrategy` (String)
+
+## Acceptance Criteria
+- **AC1: Override within Auto-Approval Limits**
+  - **Given** base price $100 and cost $50,
+  - **And** `GuardrailPolicy` min margin 15% and auto-approval threshold 10%,
+  - **When** Store Manager submits override $95 (5% discount),
+  - **Then** create `LocationPriceOverride` with status `ACTIVE`,
+  - **And** effective price becomes $95.
+
+- **AC2: Override Requires Manual Approval**
+  - **Given** base price $100 and cost $50,
+  - **And** `GuardrailPolicy` min margin 15% and auto-approval threshold 10%,
+  - **When** Store Manager submits override $88 (12% discount),
+  - **Then** create `LocationPriceOverride` with status `PENDING_APPROVAL`,
+  - **And** create `ApprovalRequest` with `assignedApproverId` populated,
+  - **And** effective price remains $100 until approved.
+
+- **AC3: Override Violates Hard Guardrail**
+  - **Given** base price $100 and cost $50,
+  - **And** `GuardrailPolicy` min margin 15%,
+  - **When** Store Manager submits override $55 (margin below 15%),
+  - **Then** reject with validation error,
+  - **And** do not create a `LocationPriceOverride` record.
+
+- **AC4: Audit Log Creation**
+  - **Given** any successful or failed attempt to create/update an override,
+  - **When** the transaction completes,
+  - **Then** an immutable audit entry exists including user, product, location, proposed price, and outcome.
+
+- **AC5: Rejection Persisted and Notified**
+  - **Given** a pending override is rejected with a reason,
+  - **When** rejection is processed,
+  - **Then** override status becomes `REJECTED` (not deleted),
+  - **And** requester is notified (in-app + email) with reason and next steps.
+
+## Audit & Observability
+- **Audit Trail:** Every state change of a `LocationPriceOverride` (creation, approval, rejection, deactivation) is captured in an immutable audit log with user, timestamps, and before/after values.
+- **Events:** Publish domain events:
+  - `PriceOverrideSubmittedForApproval`
+  - `PriceOverrideActivated`
+  - `PriceOverrideRejected`
+- **Metrics:**
+  - Overrides created (per location, per user)
+  - Average override discount %
+  - Time-to-approval for pending overrides
+
+## Open Questions (if any)
+- None.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #52 — [BACKEND] [STORY] StorePrice: Set Location Store Price Override within Guardrails
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] StorePrice: Set Location Store Price Override within Guardrails
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Store Manager**, I want to set store price overrides so that I can compete locally within policy.
+
+## Details
+- Override layered over base price.
+- Guardrails: min margin %, max discount %, approval thresholds.
+
+## Acceptance Criteria
+- Override created/updated.
+- Guardrails enforced with approvals.
+- Audited.
+
+## Integrations
+- Workexec receives store price for that location; reporting tracks override usage.
+
+## Data / Entities
+- LocationPriceOverride, GuardrailPolicy, ApprovalRecord, AuditLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Product / Parts Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+
+════════════════════════════════════════
+ISSUE #51: [BACKEND] [STORY] Workexec: Price Product for Estimate Line (Location + Customer Tier)
+LABELS: type:story,domain:pricing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:pricing
+- status:ready-for-dev
+
+### Recommended
+- agent:pricing
+- agent:story-authoring
+
+---
+**Rewrite Variant:** pricing-strict
+---
+
+## Story Intent
+As a Service Advisor using the POS system, I need to retrieve the accurate, context-sensitive price for a product when adding it to a customer's estimate, so that I can provide a reliable and transparent quote that reflects all applicable rules and promotions.
+
+## Actors & Stakeholders
+- **Primary Actor:** Service Advisor (initiates the action via the POS or Estimate Builder UI).
+- **System Actor:** Work Execution Service (the client system that makes the API call to the Pricing Service on behalf of the user).
+- **System of Record:** Pricing Service (the authoritative system that owns, calculates, and serves the price).
+- **Stakeholders:** Customer (receives the quote), Dealership Management (relies on correct pricing for profitability and reporting), Finance Department (relies on auditable pricing).
+
+## Preconditions
+- The calling service (Work Execution Service) is authenticated and authorized to access the Pricing API.
+- The `productId`, `locationId`, and `customerTier` provided in the request correspond to valid, existing entities in the system.
+- The Pricing Service is running, healthy, and accessible from the Work Execution Service.
+
+## Functional Behavior
+The system shall expose a synchronous API endpoint for retrieving a price quote for a given product and context.
+
+1.  **Trigger:** The Work Execution Service sends an HTTP `POST` request to a new `/v1/price-quotes` endpoint.
+2.  **Request Payload:** The request body will be a JSON object containing:
+    - `productId` (UUID)
+    - `quantity` (Integer)
+    - `locationId` (UUID)
+    - `customerTierId` (UUID, or similar identifier)
+    - `effectiveTimestamp` (ISO 8601 UTC, optional, defaults to `now()`)
+3.  **Core Logic:**
+    - The Pricing Service receives the request and validates the payload.
+    - It fetches the base price for the `productId`.
+    - It applies a deterministic sequence of pricing rules based on the provided context (`locationId`, `customerTierId`, `effectiveTimestamp`). The required evaluation order is:
+        1.  Base Product Price (MSRP)
+        2.  Location-Specific Price Overrides
+        3.  Customer Tier Adjustments (e.g., discounts, markups)
+        4.  Final Rounding
+    - The service generates a trace of all rules that were considered and applied.
+4.  **Success Response:** On successful calculation, the service returns an HTTP `200 OK` with a JSON payload containing:
+    - The final calculated `unitPrice` and `extendedPrice` (unitPrice * quantity).
+    - The original `msrp` for comparison.
+    - A `pricingBreakdown` array, detailing each rule applied in order.
+    - A `warnings` array for non-blocking issues (e.g., "Customer tier discount not applicable to this product category").
+
+## Alternate / Error Flows
+- **Invalid Product:** If the `productId` does not exist, the service returns an HTTP `404 Not Found`.
+- **Invalid Context:** If `locationId` or `customerTierId` are invalid or not found, the service returns an HTTP `400 Bad Request` with a descriptive error message.
+- **Malformed Request:** If any required fields are missing or have incorrect data types, the service returns an HTTP `400 Bad Request`.
+- **No Price Found:** If the product is valid but has no base price defined, the service returns an HTTP `404 Not Found` with a message indicating a data configuration issue.
+- **Internal Error:** If any unexpected server-side error occurs during processing, the service returns an HTTP `500 Internal Server Error`.
+
+## Business Rules
+- **BR1: Deterministic Evaluation:** The pricing evaluation order (Base → Location Override → Customer Tier → Rounding) is fixed and non-negotiable to ensure consistent and predictable pricing.
+- **BR2: Auditability:** Every component of the price calculation (base price, each adjustment) must be explicitly listed in the `pricingBreakdown` field of the response.
+- **BR3: Monetary Precision:** All internal monetary calculations will be performed using a precision of at least 4 decimal places. The final `unitPrice` and `extendedPrice` returned in the API response will be rounded to 2 decimal places according to the system's authoritative financial rounding policy.
+- **BR4: Time-Sensitivity:** Pricing rules are time-sensitive. The `effectiveTimestamp` in the request is used to determine which rules are active. If omitted, the request is processed using the current system time (`now()`).
+
+## Data Requirements
+**`PriceQuoteRequest`**
+```json
+{
+  "productId": "uuid",         // Non-nullable
+  "quantity": "integer",       // Non-nullable, > 0
+  "locationId": "uuid",        // Non-nullable
+  "customerTierId": "uuid",    // Non-nullable
+  "effectiveTimestamp": "date-time" // Optional, UTC
+}
+```
+
+**`PriceQuoteResponse`**
+```json
+{
+  "productId": "uuid",
+  "quantity": "integer",
+  "msrp": { "amount": "decimal", "currency": "string" },
+  "unitPrice": { "amount": "decimal", "currency": "string" },
+  "extendedPrice": { "amount": "decimal", "currency": "string" },
+  "pricingBreakdown": [
+    {
+      "ruleName": "string",
+      "ruleType": "string", // e.g., 'BASE_PRICE', 'LOCATION_OVERRIDE'
+      "adjustment": { "amount": "decimal", "currency": "string" },
+      "resultingValue": { "amount": "decimal", "currency": "string" }
+    }
+  ],
+  "warnings": ["string"]
+}
+```
+
+## Acceptance Criteria
+**AC1: Happy Path - Correct Price Calculation**
+- **Given** a product with a base MSRP of $100.00
+- **And** a location override rule that sets the price to $95.00
+- **And** a customer tier rule that applies a 10% discount
+- **When** a price quote is requested for a quantity of 2 with that product, location, and customer tier
+- **Then** the system returns a `200 OK` response
+- **And** the `unitPrice` is $85.50 (95.00 * 0.9)
+- **And** the `extendedPrice` is $171.00
+- **And** the `pricingBreakdown` contains entries for the base price, the location override, and the customer tier discount in that order.
+
+**AC2: No Applicable Rules**
+- **Given** a product with a base MSRP of $50.00
+- **And** no specific pricing rules for the requested location or customer tier
+- **When** a price quote is requested
+- **Then** the system returns a `200 OK` response
+- **And** the `unitPrice` is $50.00
+- **And** the `pricingBreakdown` shows only the 'BASE_PRICE' rule was applied.
+
+**AC3: Invalid Product ID**
+- **Given** the requesting service is authenticated
+- **When** a price quote is requested with a non-existent `productId`
+- **Then** the system returns an HTTP `404 Not Found` error response.
+
+**AC4: Invalid Request Payload**
+- **Given** the requesting service is authenticated
+- **When** a price quote is requested with a `quantity` of 0
+- **Then** the system returns an HTTP `400 Bad Request` error response with a clear validation message.
+
+**AC5: Performance SLA**
+- **Given** the Pricing Service is operating under normal load conditions
+- **When** 1000 valid price quote requests are processed
+- **Then** the P95 response time for the endpoint is less than 150ms.
+
+## Audit & Observability
+- **Logging:** All price quote requests (with sanitized PII) and their full responses shall be logged at the INFO level for traceability and support. All errors (4xx, 5xx) shall be logged at the ERROR level with a full stack trace where applicable.
+- **Metrics:** The service must expose metrics for:
+    - Request latency (P50, P90, P95, P99).
+    - Total request count, broken down by response code (2xx, 4xx, 5xx).
+- **Events:** On every successful price quote generation, a `PriceQuoteGenerated` event should be published to the event stream. The event payload should contain the full request and response data for consumption by downstream systems like analytics or audit logging.
+
+## Resolved Questions
+
+### RQ1 (Rounding Policy)
+**Question:** What is the authoritative financial rounding policy for the system (e.g., half-up, banker's rounding)?
+
+**Resolution:** The system uses **Banker's Rounding (Round Half to Even)** applied at currency precision (2 decimal places). This rounding must be applied:
+- Per line item (after all pricing rules applied)
+- At invoice total calculation
+
+**Example:** 
+- 2.345 → 2.34
+- 2.355 → 2.36
+
+**Rationale:** This method minimizes cumulative bias in financial calculations, particularly important for high-volume transactions. This approach is the financial industry standard (IEEE 754) and provides better statistical properties than simple half-up rounding.
+
+---
+
+### RQ2 (Performance SLA)
+**Question:** What is the specific P95 latency target in milliseconds for this endpoint?
+
+**Resolution:** The performance SLA targets are:
+- **P95 latency:** ≤ 150ms
+- **P50 latency:** ≤ 60ms  
+- **P99 latency:** ≤ 300ms
+
+**Measurement Scope:** These SLAs are measured at the Pricing service boundary (excluding network transit time from the client and excluding any upstream availability lookups from Inventory).
+
+**Rationale:** These targets support a responsive UI experience while allowing for reasonable database query time and pricing rule evaluation. The P95 target of 150ms allows the UI to render pricing feedback within 200ms end-to-end (including network), which meets user responsiveness expectations.
+
+---
+
+### RQ3 (Coupled Availability Check)
+**Question:** Should pricing synchronously check inventory availability in the same API call? What are the timeout and error handling requirements?
+
+**Resolution:** Coupled availability check is **NOT a hard requirement** and is **strongly discouraged for v1**. 
+
+**Preferred Architecture (v1):**
+- Pricing service must NOT synchronously call Inventory service
+- Client (Workexec) should make a separate, parallel API call to Inventory for availability
+- This maintains proper domain boundaries and prevents cascading failures
+
+**Fallback Option (if business requirement forces coupling):**
+- Availability check must be **best-effort only**
+- Must use a strict **75ms timeout** for the Inventory service call
+- On timeout or Inventory service failure:
+  - Return pricing successfully (200 OK)
+  - Include availability field: `"availabilityStatus": "UNKNOWN"`
+  - Log warning for monitoring
+- Pricing calculation must never fail due to Inventory unavailability
+
+**Rationale:** Coupling domains introduces tight dependencies and performance risks. Separate calls allow parallel execution, independent scaling, and better fault isolation. If coupling is required, the timeout and graceful degradation ensure pricing (the primary responsibility) is never blocked by availability lookups.
+
+---
+
+### RQ4 (No Price Found Behavior)
+**Question:** If a product has no pricing rules defined for the given context, what should the system do?
+
+**Resolution:** Fallback to the base MSRP is **correct and approved**.
+
+**Required Behavior:**
+1. If no location-specific or customer-tier pricing rules are found, use the base MSRP
+2. Mark the response with explicit source indicator:
+   - Include field: `"priceSource": "MSRP_FALLBACK"`
+3. Allow downstream business policy to:
+   - Warn the user (e.g., "Using MSRP - no special pricing available")
+   - Require manager override approval if needed
+4. **Do not** fail the pricing request, return null, or substitute a different customer tier's price
+
+**Rationale:** Providing MSRP as a fallback ensures pricing is always available, preventing workflow blockage. The explicit `priceSource` flag allows the UI and business logic to handle this scenario appropriately (e.g., showing a notice to the Service Advisor or requiring approval for quotes using fallback pricing). This balances system availability with business control.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #51 — [BACKEND] [STORY] Workexec: Price Product for Estimate Line (Location + Customer Tier)
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Workexec: Price Product for Estimate Line (Location + Customer Tier)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Service Advisor**, I want correct pricing on estimate lines so that customers receive accurate quotes.
+
+## Details
+- Request: productId, qty, locationId, customer tier, effective time.
+- Response: unit/ext price, MSRP, breakdown, policy flags.
+
+## Acceptance Criteria
+- Deterministic evaluation order (base→store override→rounding).
+- Returns breakdown + warnings.
+- SLA suitable for UI.
+
+## Integrations
+- Workexec → Product PriceQuote API; optional availability in same response.
+
+## Data / Entities
+- PriceQuoteRequest, PriceQuoteResponse, PricingRuleTrace
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Product / Parts Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #50: [BACKEND] [STORY] Workexec: Persist Immutable Pricing Snapshot for Estimate/WO Line
+LABELS: type:story,domain:pricing,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:pricing
+- status:ready-for-dev
+
+---
+**Rewrite Variant:** pricing-strict
+
+---
+
+## Story Intent
+**As a** System,
+**I want to** capture an immutable, detailed snapshot of the pricing components for a service or part at the moment it is added to an Estimate or Work Order,
+**so that** historical financial records remain accurate and auditable, regardless of subsequent changes to pricing rules, costs, or list prices.
+
+## Actors & Stakeholders
+- **Primary Actor:** `System` (Specifically, a collaboration between the `Work Execution` and `Pricing` services).
+- **Indirect User:** `Service Advisor` who adds items to documents and relies on price stability.
+- **Stakeholder:** `Accountant/Auditor` who consumes this immutable data for margin reporting, financial reconciliation, and audits.
+
+## Preconditions
+- A valid and priceable item (part or labor) exists in the system.
+- The `Pricing` service is available and can calculate a price for the item.
+- An active Estimate or Work Order document exists in the `Work Execution` service.
+
+## Functional Behavior
+1.  **Trigger:** A user adds a new line item (part or labor) to an Estimate or Work Order.
+2.  **Request:** The `Work Execution` service gathers the context (item ID, quantity, customer, document type) and makes a synchronous request to the `Pricing` service to "calculate and snapshot" a price.
+3.  **Execution:** The `Pricing` service:
+    a. Performs the price calculation based on all current rules, costs, and policies.
+    b. Creates a new, immutable `PricingSnapshot` record containing the full pricing breakdown.
+    c. Persists this snapshot to the `Pricing` database.
+    d. Returns the unique, permanent `snapshotId` to the `Work Execution` service.
+4.  **Confirmation:** The `Work Execution` service receives the `snapshotId` and persists it on the corresponding `DocumentLine` record. The final calculated price from the snapshot is also stored on the line for display purposes.
+
+## Alternate / Error Flows
+- **Error: Pricing Service Unavailable:** If the `Work Execution` service cannot reach the `Pricing` service, the action to add the line item MUST fail with a clear error message to the user. The line item is not added to the document.
+- **Error: Invalid Item for Pricing:** If the `Pricing` service cannot find the item or a valid price for it, it returns a specific error. The `Work Execution` service prevents the line from being added and surfaces the error.
+- **Error: Snapshot Persistence Failure:** If the `Pricing` service fails to persist the snapshot after calculation, it must not return a `snapshotId`. The overall operation fails, and the line is not added.
+
+## Business Rules
+- **Immutability:** Once a `PricingSnapshot` is written, it CANNOT be modified or deleted. Any change to a line item's pricing inputs (e.g., quantity, discount override) MUST generate a new snapshot.
+- **Source of Truth:** The `PricingSnapshot` is the authoritative system of record for the historical price calculation of a given document line. The price displayed on the `Work Order` line should be considered a denormalized copy for performance.
+- **Scope:** A snapshot is generated for every line item added to an Estimate (Quote) or a Work Order (Booking).
+
+## Data Requirements
+### `PricingSnapshot` Entity (Owned by `domain:pricing`)
+| Field Name | Type | Description | Example |
+|---|---|---|---|
+| `snapshotId` | UUID | Primary key. The immutable identifier. | `a4e1c7f9-3d1b-4d7a-8c9f-2b1a3e0f9c8d` |
+| `createdAt` | TimestampZ | ISO 8601 timestamp of snapshot creation. | `2023-10-27T10:00:00Z` |
+| `sourceContext` | JSONB | Data provided by the calling service (e.g., `workOrderId`, `lineItemId`). | `{"workOrderId": "WO-123", "lineId": "L-456"}` |
+| `itemIdentifier` | String | The SKU, Part #, or Labor Op Code. | `BKR-FL-PREM` |
+| `quantity` | Number | The quantity of the item being priced. | `1` |
+| `prices` | JSONB | Object containing all key price values. | `{"msrp": 100.00, "cost": 45.50, "finalPrice": 90.00}` |
+| `appliedRules`| JSONB Array | A list of all pricing rules that were triggered and applied. | `[{"ruleId": "LOYALTY10", "discount": "10%"}]` |
+| `policyVersion`| String | Identifier for the pricing policy version used. | `policy_v2.1_2023-10-01` |
+
+## Acceptance Criteria
+**AC-1: Successful Snapshot Creation for a New Work Order Line**
+- **Given** a valid part `P-123` with a list price of $150 and a 10% customer discount rule applies
+- **And** a `Work Order` `WO-101` exists
+- **When** the System adds one unit of `P-123` to `WO-101`
+- **Then** the `Pricing` service must create a new `PricingSnapshot`
+- **And** the snapshot must contain the final price of $135 and a trace of the 10% discount rule
+- **And** the `Work Execution` service must store the returned `snapshotId` on the new `WorkOrderLine` record.
+
+**AC-2: Snapshot is Immutable**
+- **Given** a `PricingSnapshot` with ID `S-XYZ` has been successfully created
+- **When** an external system attempts to issue an `UPDATE` or `DELETE` command against `S-XYZ`
+- **Then** the operation MUST be rejected at the application or database layer
+- **And** an audit log MUST be generated for the unauthorized modification attempt.
+
+**AC-3: Graceful Failure when Pricing Service is Down**
+- **Given** the `Pricing` service is unavailable
+- **And** a Service Advisor is attempting to add a part to an Estimate
+- **When** the `Work Execution` service calls the `Pricing` service to generate a snapshot
+- **Then** the request to add the part MUST fail
+- **And** the user interface must display a clear error message indicating that pricing is currently unavailable
+- **And** the line item MUST NOT be added to the Estimate.
+
+**AC-4: Snapshot Retrieval API**
+- **Given** a `PricingSnapshot` with ID `S-ABC` exists
+- **When** an authorized client calls `GET /pricing/v1/snapshots/S-ABC`
+- **Then** the system returns the snapshot with full pricing breakdown including resolved prices, policy identifiers, rule outcomes, versioning, and timestamps.
+
+## Audit & Observability
+- **Audit Trail:** An event `PricingSnapshotCreated` shall be published to the message bus upon successful creation of a snapshot. This event must contain the `snapshotId` and key context.
+- **Logging:** All requests to create snapshots, both successful and failed, must be logged with structured context (e.g., `workOrderId`, `itemIdentifier`).
+- **Metrics:** The `Pricing` service must expose metrics for:
+    - `pricing.snapshot.creation.success.count`
+    - `pricing.snapshot.creation.failure.count`
+    - `pricing.snapshot.creation.latency.ms` (histogram)
+
+## Resolved Questions
+
+### Question 1: Domain Ownership (RESOLVED)
+
+**Question:** Which domain, `domain:pricing` or `domain:workexec`, is the primary owner for this story's implementation and delivery?
+
+**Answer:** **domain:pricing** is the **primary owner** of this story.
+
+**Rationale:**
+- The core artifact is an **immutable pricing snapshot** (policy evaluation, price resolution, versioning).
+- Pricing owns:
+  - price calculation
+  - policy/version semantics
+  - snapshot immutability and retrieval
+- Workexec is a **consumer** that attaches the snapshot to a line item and enforces downstream behavior.
+
+**Primary domain label:** `domain:pricing`
+**Secondary/integrating domain:** `domain:workexec`
+
+### Question 2: Story Splitting (RESOLVED)
+
+**Question:** As recommended in the conflict summary, should this story be split into two separate, sequenced stories?
+
+**Answer:** **Yes—split into two sequenced stories.**
+
+**Story A — Pricing (foundational capability)** [THIS STORY]
+- **Owner:** domain:pricing
+- **Delivers:**
+  - Snapshot creation API
+  - Snapshot immutability guarantees
+  - Snapshot retrieval (read-only) via `GET /pricing/v1/snapshots/{id}`
+  - Error semantics and versioning
+
+**Story B — Workexec (integration)** [FUTURE STORY]
+- **Owner:** domain:workexec
+- **Delivers:**
+  - Line item creation that **requires** a snapshot
+  - Storage of `pricingSnapshotId` on estimate/WO lines
+  - UI/UX handling based on snapshot state
+
+**Rationale:** Prevents circular dependencies and keeps ownership clean.
+
+### Question 3: Error Handling Contract (RESOLVED)
+
+**Question:** The proposed behavior is to hard-fail the line item addition if a snapshot cannot be created. Is this the desired business behavior?
+
+**Answer:** **Hard-fail if a snapshot cannot be created. "Price Pending" is explicitly out of scope and not allowed.**
+
+**Required Behavior:**
+- When adding a line item:
+  - Workexec **must call Pricing** to create a snapshot
+  - If snapshot creation fails (Pricing unavailable, policy error):
+    - **Reject the line item add** with a clear, actionable error
+
+**Why not "Price Pending":**
+- Breaks estimate approval integrity
+- Complicates audit, repricing, and invoicing paths
+- Introduces partial states across domains
+
+**Explicit Rule:** A line item **cannot exist** without an attached immutable pricing snapshot.
+
+### Question 4: Drilldown Requirement (RESOLVED)
+
+**Question:** What are the specific requirements for "Drilldown supported"?
+
+**Answer:** This is an **API requirement in Pricing**, not a UI story.
+
+**Required API (Pricing-owned):**
+- `GET /pricing/v1/snapshots/{snapshotId}`
+
+**Response must include:**
+- resolved prices (unit/extended)
+- price list / policy identifiers
+- rule outcomes (applied/blocked)
+- versioning (`policyVersion`, `priceListVersion`)
+- timestamps and currency
+- enough metadata to explain *why* the price is what it is
+
+**Out of scope:**
+- Any specific UI implementation
+- Visualizations or user flows
+
+Workexec/UI will simply **link to or consume** this endpoint for drilldown when needed.
+
+---
+## Original Story (Unmodified – For Traceability)
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Workexec: Persist Immutable Pricing Snapshot for Estimate/WO Line
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **System**, I want an immutable pricing snapshot per document line so that later price changes don't alter history.
+
+## Details
+- Snapshot includes price, cost-at-time, MSRP-at-time, applied rules, timestamp, policy decisions.
+
+## Acceptance Criteria
+- Snapshot written on quote and/or booking.
+- Immutable.
+- Drilldown supported.
+
+## Integrations
+- Workexec stores snapshotId on lines; Accounting may consume for margin reporting (optional).
+
+## Data / Entities
+- PricingSnapshot, DocumentLineRef, PricingRuleTrace
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Product / Parts Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #43: [BACKEND] [STORY] Rules: Enforce Location Restrictions and Service Rules for Products
+LABELS: type:story,domain:pricing,status:ready-for-dev
+BODY:
+## Story Intent
+
+**As a** Shop Manager,
+**I want** to configure and enforce rules that restrict the sale or installation of specific products based on location or service context,
+**so that** we can prevent safety issues, regulatory non-compliance, and vehicle incompatibility, while maintaining a clear audit trail for any necessary exceptions.
+
+## Actors & Stakeholders
+
+-   **Shop Manager:** (User) Defines, manages, and overrides restriction rules.
+-   **Service Advisor:** (User) Encounters rule enforcement (blocks) when creating quotes or work orders.
+-   **System:** (Actor) The platform responsible for executing the rule checks and logging all related activities.
+-   **Pricing Service:** (System - System of Record) Owns the creation, management, and enforcement evaluation of `RestrictionRule` entities.
+-   **Work Execution Service:** (System Stakeholder) Provides the service context (e.g., service type) needed for rule evaluation and consumes restriction decisions.
+-   **Inventory Service:** (System Stakeholder) Provides product information but does not own restriction rules.
+
+## Preconditions
+
+1.  A product catalog exists with uniquely identifiable products.
+2.  Locations are defined and can be associated with metadata tags from the initial tag set.
+3.  Services are defined and can be associated with metadata tags from the initial tag set.
+4.  User roles and permissions (e.g., `Shop Manager`, `Service Advisor`) are established and enforceable.
+5.  The Pricing service's restriction evaluation API is available and responsive (target: 800ms response time).
+
+## Functional Behavior
+
+### 1. Rule Management (Shop Manager)
+
+-   The System SHALL provide an interface for a Shop Manager to create, view, update, and deactivate `RestrictionRule`s via the Pricing service.
+-   A `RestrictionRule` MUST be defined by:
+    -   A condition, which is composed of a type (from the initial location or service tag enums) and a corresponding value.
+    -   A list of one or more products to which the restriction applies.
+    -   An active/inactive status.
+    -   Effective dating and versioning for audit and historical tracking.
+
+### 2. Rule Enforcement (Service Advisor & System)
+
+-   When a Service Advisor attempts to add a restricted product to a quote or work order, the consuming system (Pricing or WorkExec) MUST call the Pricing service's restriction evaluation API: `POST /pricing/v1/restrictions:evaluate`.
+-   The evaluation request MUST include:
+    -   `tenantId`, `locationId`, `serviceTag`, `customerAccountId`
+    -   Array of items with `productId`, `quantity`, `uom`, `unitPrice`
+    -   Context information (`vehicleType`, `workType`, `salesChannel`)
+-   The Pricing service MUST evaluate the context against active `RestrictionRule`s for the requested products.
+-   The response will include a decision (`ALLOW`, `BLOCK`, or `ALLOW_WITH_OVERRIDE`) for each product, along with applicable `ruleIds` and `reasonCodes`.
+-   If the decision is `BLOCK` or `ALLOW_WITH_OVERRIDE`, the System MUST present a clear, user-facing message explaining why the product is restricted (e.g., "Product 'ABC-123' cannot be sold in this location - Restricted Item.").
+
+### 3. Rule Override (Shop Manager)
+
+-   When an action is blocked or requires override by a `RestrictionRule`, the System SHALL provide a modal dialog for an authorized user (Shop Manager) to initiate an override.
+-   To perform an override, the Shop Manager MUST:
+    -   Have the required permission (`pricing:restriction:override`)
+    -   Provide a mandatory override reason code (e.g., `MANAGER_APPROVAL`)
+    -   Provide free-text notes explaining the rationale (e.g., "Customer signed waiver for off-road use only.")
+    -   Optionally provide a second approver ID if required by the rule
+-   The override request is submitted to the Pricing service via: `POST /pricing/v1/restrictions:override`.
+-   Upon a successful override (response status `APPROVED`), the System SHALL:
+    -   Allow the originally blocked action to proceed
+    -   Store the returned `overrideId` on the line item
+    -   Include the `overrideId` in downstream accounting and audit events
+-   The Pricing service MUST record the override event in an immutable audit log.
+
+### 4. Caching Strategy (Optional Acceleration)
+
+-   WorkExec or other consuming services MAY cache published restriction rules for UI responsiveness.
+-   Cached evaluations MUST be marked as `confidence = CACHED` and include the `policyVersion`.
+-   The authoritative evaluation API remains the source of truth for all transactional decisions.
+-   Cached rules SHOULD be refreshed via event-driven updates when rules change.
+
+## Alternate / Error Flows
+
+### Error - Rule evaluation service unavailable
+
+-   **For transactional commit paths** (checkout, invoice finalize, commit sale):
+    -   The system MUST **fail closed** (block the transaction).
+    -   Return HTTP 503 or 409 with message: "Restriction service unavailable; cannot complete transaction."
+    -   Evaluation API timeout: 800ms (no synchronous retries).
+-   **For non-commit paths** (search, quote-building, browsing):
+    -   The system MAY **gracefully degrade**: allow adding items to cart but mark them as `RESTRICTION_UNKNOWN`.
+    -   Block finalization until restrictions are successfully evaluated.
+    -   This prevents unnecessary disruption to browsing while maintaining transaction safety.
+
+### Error - Invalid product or context
+
+-   If a product ID or context tag used in a rule becomes invalid or unavailable, the rule should be flagged for administrative review.
+-   The system SHOULD continue to enforce other valid rules and log the error for investigation.
+
+### Error - Cache inconsistency
+
+-   If a cached evaluation conflicts with the authoritative API, the API result MUST take precedence.
+-   The system SHOULD log cache inconsistencies for monitoring and alerting.
+
+## Business Rules
+
+-   A product can be subject to multiple restriction rules.
+-   A rule is considered "matched" if the transaction context (e.g., location, service type) matches any active restriction rule for the given product.
+-   All overrides must be captured in an immutable audit log with full traceability (user, timestamp, reason code, notes, approver IDs).
+-   The permission to override restrictions is role-based and configurable (`pricing:restriction:override`).
+-   Restriction rules support effective dating and versioning for historical audit and compliance.
+-   Location and service tags MUST be from the defined initial enum sets (not free-form strings).
+
+## Data Requirements
+
+### `RestrictionRule` Entity (Pricing Service - System of Record)
+
+-   `ruleId`: Unique Identifier (UUIDv7)
+-   `name`: Human-readable name for the rule
+-   `conditionType`: Enum (one of the initial location or service tag types)
+-   `conditionValue`: String (must be from the initial tag enum set)
+-   `restrictedProductIds`: List of UUIDv7
+-   `isActive`: Boolean
+-   `effectiveFrom`: DateTime
+-   `effectiveTo`: DateTime (optional)
+-   `policyVersion`: Integer (incremented on rule updates)
+-   `createdAt`, `updatedAt`, `createdBy`
+
+### `OverrideRecord` Entity (Pricing Service - System of Record)
+
+-   `overrideId`: Unique Identifier (UUIDv7)
+-   `ruleId`: FK to `RestrictionRule` (UUIDv7)
+-   `transactionId`: ID of the quote, work order, or sale (UUIDv7)
+-   `productId`: UUIDv7
+-   `overrideReasonCode`: String (enum: `MANAGER_APPROVAL`, etc.)
+-   `notes`: Text
+-   `approvedBy`: User ID (UUIDv7)
+-   `secondApprover`: User ID (UUIDv7, optional)
+-   `policyVersion`: Integer (version of rule at time of override)
+-   `timestamp`: DateTime
+-   `status`: Enum (`APPROVED`, `DENIED`)
+
+### Initial Tag Enums (Centrally Defined Constants)
+
+**Location Tags (Initial Set):**
+-   `ALL_LOCATIONS` (global)
+-   `RETAIL_STORE`
+-   `WAREHOUSE`
+-   `MOBILE_SERVICE`
+-   `FRANCHISE`
+-   `TEST_LOCATION` (non-prod / training)
+
+**Service Tags (Initial Set):**
+-   `POS_SALE` (counter sale)
+-   `WORKORDER` (service work execution)
+-   `ESTIMATE` (quote generation)
+-   `INVOICE` (finalization)
+-   `DELIVERY` (if applicable)
+
+## Acceptance Criteria
+
+```gherkin
+Scenario: Product is blocked due to a location-based restriction
+  Given a "RETAIL_STORE" location tag is assigned to the current location
+  And an active RestrictionRule exists that blocks "Part-X" for the "RETAIL_STORE" tag
+  When a Service Advisor attempts to add "Part-X" to a quote at that location
+  Then the Pricing service's evaluation API MUST return decision "BLOCK" for "Part-X"
+  And the system MUST display a message indicating the product is restricted at that location
+  And the message MUST include the relevant reason codes.
+
+Scenario: Product is allowed when no restriction applies
+  Given an active RestrictionRule exists that blocks "Part-X" for the "RETAIL_STORE" tag
+  When a Service Advisor attempts to add "Part-X" to a quote at a "WAREHOUSE" location
+  Then the Pricing service's evaluation API MUST return decision "ALLOW" for "Part-X"
+  And the system MUST allow the action to complete successfully.
+
+Scenario: Authorized user successfully overrides a restriction
+  Given an action to add "Part-X" is blocked by an active RestrictionRule
+  And the current user has the "Shop Manager" role with "pricing:restriction:override" permission
+  When the Shop Manager initiates an override via the modal dialog
+  And provides the override reason code "MANAGER_APPROVAL"
+  And provides the notes "Customer approved special order"
+  And calls the Pricing service's override API
+  Then the Pricing service MUST return status "APPROVED" with an overrideId
+  And the system MUST allow the action to complete
+  And an OverrideRecord MUST be created in the Pricing service's audit log with the correct user, rule, reason code, notes, and timestamp
+  And the overrideId MUST be stored on the transaction line item.
+
+Scenario: Unauthorized user fails to override a restriction
+  Given an action to add "Part-X" is blocked by an active RestrictionRule
+  And the current user has the "Service Advisor" role without "pricing:restriction:override" permission
+  When the Service Advisor attempts to initiate an override
+  Then the system MUST deny the override request
+  And the original action MUST remain blocked.
+
+Scenario: Evaluation service unavailable during transaction commit
+  Given a Service Advisor attempts to finalize an invoice containing "Part-Y"
+  And the Pricing service's restriction evaluation API is unavailable (timeout or error)
+  When the system attempts to evaluate restrictions for the invoice
+  Then the system MUST fail closed (block the transaction)
+  And return a 503 or 409 response with message "Restriction service unavailable; cannot complete transaction."
+
+Scenario: Evaluation service unavailable during quote building
+  Given a Service Advisor is building a quote and adds "Part-Z"
+  And the Pricing service's restriction evaluation API is unavailable (timeout or error)
+  When the system attempts to evaluate restrictions
+  Then the system MAY allow adding the item to the quote
+  But MUST mark the item as "RESTRICTION_UNKNOWN"
+  And MUST block finalization of the quote until restrictions are successfully evaluated.
+
+Scenario: Cached evaluation is used for UI responsiveness
+  Given WorkExec has a cached version of restriction rules (policyVersion 42)
+  When a Service Advisor adds "Part-A" to a quote
+  Then WorkExec MAY evaluate restrictions using the cached rules
+  And the response MUST include "confidence = CACHED" and "policyVersion = 42"
+  And the final transactional decision MUST be validated against the authoritative Pricing service API.
+```
+
+## Audit & Observability
+
+-   **Log Event:** `RestrictionRuleCreated`, `RestrictionRuleUpdated`, `RestrictionRuleDeactivated`
+    -   **Payload:** `ruleId`, `adminUserId`, changes, `policyVersion`, timestamp
+-   **Log Event:** `RestrictionEvaluated`
+    -   **Payload:** `ruleId`, `productId`, `transactionId`, `decision`, `reasonCodes`, `context` (location/service tags), `policyVersion`, `evaluatedAt`
+-   **Log Event:** `RestrictionOverridden`
+    -   **Payload:** `overrideId`, `ruleId`, `transactionId`, `productId`, `userId`, `overrideReasonCode`, `notes`, `approvedBy`, `secondApprover`, `policyVersion`, `timestamp`, `status`
+-   **Log Event:** `RestrictionEvaluationFailed`
+    -   **Payload:** `transactionId`, `errorType`, `errorMessage`, `context`, `timestamp`
+
+## Open Questions
+
+~~1.  **[BLOCKER] Domain Ownership:** Which domain (`inventory`, `pricing`, or `workexec`) is the definitive System of Record for creating and managing `RestrictionRule` entities?~~
+
+**RESOLVED:** `domain:pricing` is the System of Record for `RestrictionRule` entities. Restrictions are commercial policy (what can be sold/quoted under what conditions), and Pricing owns CRUD, versioning, effective dating, audit, and publication of rules.
+
+~~2.  **[BLOCKER] Enforcement Contract:** What is the technical contract for enforcement? Is it a synchronous API call from the Pricing/Workexec service to the primary domain's service (e.g., `inventory.canSellItem(itemId, context)`)?~~
+
+**RESOLVED:** Two-part enforcement model:
+- **Synchronous evaluation API** (authoritative): `POST /pricing/v1/restrictions:evaluate` exposed by Pricing service, callable by Pricing itself and WorkExec.
+- **Optional local cache** (non-authoritative acceleration): WorkExec may cache published rules for UI speed but must still use the evaluation API as the source of truth for transactions. Cached responses must include `confidence = CACHED` and `policyVersion`.
+
+~~3.  **[BLOCKER] Fail-Safe Behavior:** If the rule evaluation service is unavailable during a transaction, should the system 'fail open' (allow the transaction) or 'fail closed' (block the transaction)? 'Fail closed' is safer but risks operational disruption.~~
+
+**RESOLVED:** 
+- **Transactional commit paths** (checkout, invoice finalize, commit sale): **Fail closed** - return 503 or 409 with message "Restriction service unavailable; cannot complete transaction."
+- **Non-commit paths** (search, quote-building, browsing): **Gracefully degrade** - allow adding to cart but mark as `RESTRICTION_UNKNOWN` and block finalization until evaluated.
+- **Timeouts:** Evaluation call timeout is 800ms with no synchronous retries.
+
+~~4.  **Granularity:** What are the specific location and service tags we need to support for the initial implementation? Can we get a list?~~
+
+**RESOLVED:** 
+- **Location Tags (Initial):** `ALL_LOCATIONS`, `RETAIL_STORE`, `WAREHOUSE`, `MOBILE_SERVICE`, `FRANCHISE`, `TEST_LOCATION`
+- **Service Tags (Initial):** `POS_SALE`, `WORKORDER`, `ESTIMATE`, `INVOICE`, `DELIVERY`
+- These tags must be definitional and owned centrally (security or shared domain constants), not free-form strings.
+
+~~5.  **UI/UX for Override:** While this is a backend story, what is the expected user flow for an override? Is it a modal dialog triggered in the POS UI? Understanding the flow impacts the API design.~~
+
+**RESOLVED:** Modal override flow:
+1. User adds item / applies action
+2. System evaluates restrictions
+3. If `ALLOW_WITH_OVERRIDE` or `BLOCK` with override allowed: show modal dialog with reason (non-sensitive), required permission, optional second approver if needed, required reason code + notes
+4. On approval, client calls override API: `POST /pricing/v1/restrictions:override`
+5. Response includes `overrideId` and `status` (`APPROVED`)
+6. WorkExec/POS stores `overrideId` on line item and includes it in downstream accounting/audit events.
+
+## Clarification Resolution
+
+All open questions have been resolved via [Clarification Issue #238](https://github.com/louisburroughs/durion-positivity-backend/issues/238).
+
+**Key Decisions:**
+- **Domain ownership:** Pricing service is the System of Record
+- **Enforcement pattern:** Synchronous evaluation API with optional caching
+- **Fail-safe behavior:** Fail closed for commits, graceful degradation for browsing
+- **Tag granularity:** Defined initial enum sets for location and service tags
+- **Override UX:** Modal flow with pricing-owned override API
+
+## Original Story (Unmodified – For Traceability)
+
+# Issue #43 — [BACKEND] [STORY] Rules: Enforce Location Restrictions and Service Rules for Products
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Rules: Enforce Location Restrictions and Service Rules for Products
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Shop Manager**, I want restriction rules so that unsafe or incompatible items are not sold/installed.
+
+## Details
+- Block based on location tags or service type.
+- Override requires permission + rationale.
+
+## Acceptance Criteria
+- Restrictions enforced in pricing/quote APIs.
+- Override permission required.
+- Decision recorded in trace.
+
+## Integrations
+- Workexec receives warnings/errors; shopmgr provides service context tags (optional).
+
+## Data / Entities
+- RestrictionRule, OverrideRecord, AuditLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Product / Parts Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+

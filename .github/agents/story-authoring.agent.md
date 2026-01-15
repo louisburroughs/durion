@@ -1,7 +1,7 @@
 ---
 name: Story Authoring Agent
 description: This custom agent is responsible for authoring and refining implementation-ready user stories as GitHub issues, ensuring clarity, correctness, and domain alignment while coordinating with business-domain-specific agents.
-tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'github/*', 'agent', 'gitkraken/*', 'todo']
+tools: ['vscode', 'execute', 'read', 'github/*', 'playwright/*', 'edit', 'search', 'web', 'agent', 'github/*', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'todo']
 model: GPT-5.2 (copilot)
 ---
 

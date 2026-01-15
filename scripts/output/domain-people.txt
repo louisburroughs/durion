@@ -1,0 +1,1919 @@
+════════════════════════════════════════
+ISSUE #90: [BACKEND] [STORY] Users: Disable User (Offboarding) Without Losing History
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Final)
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:people
+- agent:story-authoring
+
+**Rewrite Variant:** crm-pragmatic
+
+## Story Intent
+**As an** Admin,
+**I want to** deactivate a user's account,
+**so that** their system access is immediately revoked while ensuring all their historical data, such as completed work and time entries, is preserved for reporting, payroll, and audit purposes.
+
+## Actors & Stakeholders
+- **Admin**: The user performing the deactivation.
+- **System (People Service)**: The primary service and system of record for the user/person lifecycle state.
+- **System (Security Service)**: A downstream service that consumes the deactivation event to block authentication.
+- **System (Work Execution Service)**: A downstream service that must react to the deactivation by stopping active timers and excluding the user from future work assignments.
+- **System (Scheduling Service)**: A downstream service that must exclude the deactivated user from being added to future schedules.
+
+## Preconditions
+1. The user account to be deactivated exists in the system and is in an `ACTIVE` state.
+2. The Admin is authenticated and possesses the necessary permissions (e.g., `user.disable`) to perform this action.
+
+## Functional Behavior
+1. The Admin navigates to the user management interface and selects the target user account.
+2. The Admin initiates the "Disable User" action.
+3. The system presents a confirmation dialog to prevent accidental deactivation.
+4. **(Optional, if policy allows):** The Admin is presented with assignment termination options:
+   - `END_ASSIGNMENTS_NOW` (default, always available)
+   - `END_ASSIGNMENTS_AT_DATE` (schedule end, if policy allows)
+   - `LEAVE_ASSIGNMENTS_ACTIVE` (requires elevated permission and policy configuration)
+5. Upon confirmation, the **People Service** orchestrates the deactivation process:
+   a. Atomically updates the `User` entity's status to `DISABLED` and the `Person` entity's status to `DISABLED`.
+   b. Sets `statusEffectiveAt` to current timestamp and records optional `statusReasonCode`.
+   c. Based on policy and admin selection, issues commands to terminate or schedule termination of active location/role assignments.
+   d. Issues a command to the **Work Execution Service** to find and terminate any active `TimeEntry` records associated with the user, calculating the final duration.
+   e. Emits a `user.disabled` event to an enterprise message bus for downstream consumers.
+6. The **Security Service**, subscribed to the `user.disabled` event, updates its internal records to **immediately** block any subsequent authentication attempts for the disabled user.
+7. The **Work Execution** and **Scheduling** services, upon receiving the event or on their next lookup, will exclude this user from any lists of available personnel for future assignments or schedules.
+8. If any downstream command fails (e.g., stop timer), the failure is logged and the command enters a **saga retry queue** with exponential backoff (1m, 5m, 15m, 1h, 6h). After 24 hours, unresolved commands move to a Dead Letter Queue (DLQ) for manual intervention.
+
+## Alternate / Error Flows
+- **Error: User Not Found**: If the specified user ID does not exist, the system displays a "User not found" error.
+- **Error: User Already Disabled**: If the user is already in a `DISABLED` or `TERMINATED` state, the system displays a message indicating "User is already disabled" and takes no further action.
+- **Error: Insufficient Permissions**: If the Admin does not have the required permissions, the action is blocked, and an "Access Denied" error is shown.
+- **Error: Downstream Service Failure**: If a downstream service (e.g., Work Execution Service) fails to process a command (e.g., stop timer), the failure is logged, and the command is placed in a retry queue with bounded retry policy (max 24 hours). The user deactivation in the People Service is **not** rolled back to ensure the primary goal of revoking access is met. **Primary guarantee:** Authentication is blocked immediately regardless of downstream lag.
+
+## Business Rules
+1. A disabled user **MUST NOT** be able to authenticate with the system via any method.
+2. The `Person` record and all associated historical records (e.g., completed `TimeEntry`, labor records on `WorkOrder`) **MUST** be preserved and remain associated with the disabled person.
+3. Deactivation is a logical "soft delete." No user or person data is physically removed from the database as part of this process.
+4. All active work timers and sessions for the user **MUST** be forcibly terminated at the moment of deactivation (or queued for eventual termination via saga).
+5. Disabled users **MUST NOT** appear in user pickers or lists for assigning future work or creating new schedules.
+6. **Status Lifecycle (Authoritative):**
+   - **`ACTIVE`** — can authenticate and be assigned work
+   - **`DISABLED`** — cannot authenticate; identity retained; reversible offboarding
+   - **`TERMINATED`** — employment ended; cannot authenticate; irreversible
+   - This story sets status to `DISABLED`.
+7. **Assignment Termination Policy:**
+   - **Default behavior:** End all active staffing/location assignments immediately on disable.
+   - **Optional exceptions:** Configurable via policy for specific `disableReason` values (e.g., `LEAVE_OF_ABSENCE`, `TEMP_SUSPENSION`).
+   - **Configuration:**
+     - `endAssignmentsOnDisable = true` (default)
+     - `allowKeepAssignmentsOnDisable = false` (default)
+     - `allowedDisableReasonsForKeepAssignments = []` (default empty)
+
+## Data Requirements
+- **`User` Entity**:
+  - Requires a `status` field: `ENUM('ACTIVE', 'DISABLED', 'TERMINATED')`.
+  - `statusEffectiveAt` (timestamp)
+  - `statusReasonCode` (optional enum/string)
+  - Foreign key relationship to `Person`.
+- **`Person` Entity**:
+  - Requires a `status` field: `ENUM('ACTIVE', 'DISABLED', 'TERMINATED')`.
+  - `statusEffectiveAt` (timestamp)
+  - `statusReasonCode` (optional enum/string)
+- **`TimeEntry` Entity**:
+  - Must be queryable by `userId` and `status` to find active entries.
+  - Requires a `forcedStopReason` field to indicate system-initiated termination.
+- **`Assignment` Entity**:
+  - Must have a status or end-date that can be updated to terminate the assignment.
+- **`AuditLog`**:
+  - Table to store records of significant system events, including user deactivation.
+- **Saga/Retry Infrastructure**:
+  - Retry queue with exponential backoff configuration
+  - Dead Letter Queue (DLQ) for failed commands after 24h
+  - Manual intervention workflow UI/API
+
+## Acceptance Criteria
+**AC1: Successful Deactivation Revokes Access**
+- **Given** an active user "jane.doe" exists in the system.
+- **When** an Admin deactivates the "jane.doe" account.
+- **Then** the `User` record for "jane.doe" has its status set to `DISABLED`.
+- **And** the related `Person` record has its status set to `DISABLED`.
+- **And** `statusEffectiveAt` is set to the deactivation timestamp.
+
+**AC2: Disabled User Cannot Authenticate**
+- **Given** the user "jane.doe" has been deactivated.
+- **When** an authentication attempt is made with "jane.doe"'s credentials.
+- **Then** the Security Service rejects the authentication request with a "User account is disabled" error.
+- **And** authentication is blocked **immediately**, even if downstream saga steps are still pending.
+
+**AC3: Active Job Timers are Forcibly Stopped**
+- **Given** user "jane.doe" is active and has a running job timer (`TimeEntry` record with `endTime` = NULL).
+- **When** an Admin deactivates the "jane.doe" account.
+- **Then** a command is issued to stop the active `TimeEntry`.
+- **And** if successful, the `TimeEntry` record is updated with an `endTime` equal to the deactivation timestamp and flagged as a forced stop.
+- **And** if the command fails, it enters the saga retry queue with exponential backoff.
+
+**AC4: Assignment Termination Follows Policy**
+- **Given** `endAssignmentsOnDisable = true` (default).
+- **When** an Admin deactivates a user.
+- **Then** all active location/role assignments for that user are ended immediately (or scheduled based on admin selection if policy allows).
+- **And** if policy allows keeping assignments (`allowKeepAssignmentsOnDisable = true` and reason matches `allowedDisableReasonsForKeepAssignments`), the Admin may choose to keep assignments active.
+
+**AC5: Deactivation is Audited**
+- **Given** any user deactivation attempt.
+- **When** the deactivation action is confirmed by the Admin.
+- **Then** a new record is created in the audit log containing the `timestamp`, `actorId` (the Admin), `targetUserId`, `targetPersonId`, `statusReasonCode`, and the event type `user.disabled`.
+
+**AC6: Disabled Users Excluded from Future Work**
+- **Given** user "jane.doe" has been deactivated.
+- **When** a Service Advisor attempts to assign a new work order.
+- **Then** "jane.doe" does not appear in the list of available technicians.
+
+**AC7: Downstream Failure Handling (Saga)**
+- **Given** a downstream command (e.g., stop timer) fails.
+- **When** the retry window (24 hours) expires without success.
+- **Then** the command is moved to the Dead Letter Queue (DLQ) with status `REQUIRES_MANUAL_INTERVENTION`.
+- **And** an alert is triggered for operators.
+
+**AC8: Manual Intervention Workflow**
+- **Given** a command in the DLQ.
+- **When** an operator views the offboarding case.
+- **Then** the operator can:
+  - Re-run the failed command(s)
+  - Mark as "accepted risk" with audited justification
+  - Export details for incident tracking
+
+## Audit & Observability
+- **Audit Event**: A `user.disabled` event must be logged to the central audit trail.
+  - **Payload**: `{ "timestamp": "...", "actor": { "type": "Admin", "id": "admin123" }, "subject": { "type": "User", "id": "user456", "personId": "person789", "status": "DISABLED", "statusReasonCode": "..." }, "outcome": "success" }`
+- **Metrics**:
+  - `user.deactivation.success` (Counter): Incremented on successful deactivation.
+  - `user.deactivation.failure` (Counter): Incremented on any failed attempt (e.g., permissions, downstream failure).
+  - `user.deactivation.saga.retry` (Counter): Incremented when downstream commands enter retry queue.
+  - `user.deactivation.saga.dlq` (Counter): Incremented when commands move to DLQ.
+  - `user.deactivation.saga.queue_depth` (Gauge): Current depth of retry queue.
+  - `user.deactivation.saga.oldest_retry_age` (Gauge): Age of oldest retry in queue.
+- **Logging**:
+  - INFO level log on initiation and successful completion.
+  - WARN level log if a downstream command (e.g., stop timer) fails and is queued for retry.
+  - ERROR level log if the core deactivation in the People Service fails.
+  - CRITICAL level log when commands move to DLQ.
+- **Alerting**:
+  - Alert when retry queue depth > 100 (default threshold)
+  - Alert when oldest retry age > 30 minutes (default threshold)
+  - Alert on any DLQ message of type `OFFBOARDING_CRITICAL`
+
+## Original Story (Unmodified – For Traceability)
+# Issue #90 — [BACKEND] [STORY] Users: Disable User (Offboarding) Without Losing History
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Users: Disable User (Offboarding) Without Losing History
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As an **Admin**, I want **to disable a user account** so that **access is removed while historical labor and timekeeping records remain intact**.
+
+## Details
+- Disable login in pos-security-service.
+- Optionally end active location assignments.
+- Force-stop any active job timers.
+
+## Acceptance Criteria
+- Disabled users cannot authenticate.
+- Person record retained and marked inactive (policy-driven).
+- All forced stops and changes are audited.
+
+## Integration Points (workexec/shopmgr)
+- workexec excludes disabled users from assignment.
+- shopmgr excludes disabled users from future schedules.
+
+## Data / Entities
+- User
+- Person
+- Assignment
+- TimeEntry
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+
+════════════════════════════════════════
+ISSUE #89: [BACKEND] [STORY] Access: Assign Roles and Scopes (Global vs Location)
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+## 🏷️ Labels (Final)
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:people
+- agent:story-authoring
+
+---
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## Story Intent
+
+**Goal:** To establish a robust and flexible access control system by enabling administrators to assign specific roles to users, with the ability to constrain those roles to a particular location or apply them globally across the entire organization.
+
+**Problem:** The current system lacks granular access control. Users either have too much or too little permission, and there is no mechanism to restrict a user's role (e.g., a `MANAGER`) to a single physical shop location. This creates operational risks and inefficiencies.
+
+**Value:** This feature will enhance security by enforcing the principle of least privilege, improve operational clarity by ensuring users only see and interact with data relevant to their job function and location, and provide a clear audit trail for all access grants.
+
+## Actors & Stakeholders
+
+- **Primary Actor:**
+  - **Admin:** A user with privileges to manage other users' roles and access scopes.
+
+- **System Actors:**
+  - **People Service:** The microservice responsible for managing user, role, and role assignment data. This is the System of Record for role assignments.
+  - **Auth Service:** The central authentication and authorization service that consumes role assignment data to make real-time access decisions.
+
+- **Stakeholders (Downstream Consumers):**
+  - **Work Execution Domain:** Consumes `MECHANIC` role assignments with `LOCATION` scope to determine technician eligibility for jobs at a specific shop.
+  - **Location Management Domain:** Consumes `MANAGER` and `DISPATCHER` role assignments to control scheduling and operational permissions within the `shopmgr` application.
+  - **Audit System:** Subscribes to all role assignment change events for compliance and security monitoring.
+
+## Preconditions
+
+1. A `User` entity exists and can be uniquely identified.
+2. A canonical list of `Role` entities (e.g., `OWNER`, `ADMIN`, `MANAGER`) is defined in the system with scope constraint metadata.
+3. A `Location` entity exists for all physical shops and can be uniquely identified.
+4. The `Admin` actor is authenticated and authorized to perform user management actions.
+
+## Functional Behavior
+
+An `Admin` actor must be able to create, view, and modify `RoleAssignments` for any user. A `RoleAssignment` links a `User` to a `Role` for a specified duration and scope.
+
+**1. Create Role Assignment:**
+- **Trigger:** Admin uses an API endpoint to grant a role to a user.
+- **Process:**
+  - The Admin provides the `UserID`, `RoleID`, `ScopeType` (`GLOBAL` or `LOCATION`), `EffectiveStartDate`, and optionally `EffectiveEndDate`.
+  - If `ScopeType` is `LOCATION`, a `LocationID` must also be provided.
+  - **Validation (NEW):** The system checks the target role's `allowedScopes` metadata:
+    - If role is inherently `GLOBAL` and scope is `LOCATION`, reject with error.
+    - If role is inherently `LOCATION` and scope is `GLOBAL`, reject with error.
+    - If role allows both scopes, accept the request.
+  - The system validates all inputs (e.g., existence of user, role, location).
+  - A new `RoleAssignment` record is created and persisted.
+  - An audit event is published indicating the creation of the role grant.
+
+**2. View Role Assignments:**
+- **Trigger:** Admin or service queries active role assignments.
+- **Process:**
+  - Query returns all `RoleAssignment` records where `effectiveStartDate <= now` AND (`effectiveEndDate` is null OR `effectiveEndDate > now`).
+  - Permissions are computed as the **union** of all active assignments' permissions.
+  - If multiple assignments exist with different scopes, permissions are scope-aware (GLOBAL applies everywhere; LOCATION applies to that location only).
+
+**3. Modify Role Assignment:**
+- **Trigger:** Admin needs to change the effective dates or scope of an existing assignment.
+- **Process:**
+  - The system supports modifying the `EffectiveEndDate` to extend or shorten an assignment's duration.
+  - Modifying the core `Role`, `User`, or `Scope` should be handled by ending the current assignment (setting `EffectiveEndDate`) and creating a new one to maintain a clear audit history.
+  - An audit event is published for the modification.
+
+**4. End (Revoke) Role Assignment:**
+- **Trigger:** Admin needs to revoke a user's role.
+- **Process:**
+  - The Admin modifies the `RoleAssignment` by setting its `EffectiveEndDate` to the current date/time (or a past date/time).
+  - This effectively deactivates the role grant without performing a hard delete, preserving the historical record.
+  - An audit event is published with actor, subject, effective dates, and optional reason code.
+
+## Alternate / Error Flows
+
+1. **Invalid User/Role/Location:**
+   - **Given:** An Admin attempts to create a role assignment.
+   - **When:** The provided `UserID`, `RoleID`, or `LocationID` does not correspond to an existing entity.
+   - **Then:** The system must reject the request with a `404 Not Found` or `400 Bad Request` error and a clear message.
+
+2. **Mismatched Scope and Location:**
+   - **Given:** An Admin attempts to create a role assignment.
+   - **When:** The `ScopeType` is `LOCATION` but no `LocationID` is provided.
+   - **Then:** The system must reject the request with a `400 Bad Request` error.
+   - **When:** The `ScopeType` is `GLOBAL` but a `LocationID` is provided.
+   - **Then:** The system must reject the request with a `400 Bad Request` error, as `LocationID` is not applicable for `GLOBAL` scope.
+
+3. **Invalid Scope for Role (NEW):**
+   - **Given:** An Admin attempts to assign a role with a scope not in its `allowedScopes` metadata.
+   - **When:** E.g., assigning `MECHANIC` (location-only) with `GLOBAL` scope.
+   - **Then:** The system rejects with `400 Bad Request` and a message: "Role {roleId} does not allow {scopeType} scope. Allowed scopes: {allowedScopes}".
+
+4. **Invalid Date Range:**
+   - **Given:** An Admin attempts to create or modify a role assignment.
+   - **When:** The `EffectiveEndDate` is earlier than the `EffectiveStartDate`.
+   - **Then:** The system must reject the request with a `400 Bad Request` error.
+
+5. **Permission Denied:**
+   - **Given:** A non-Admin user attempts to access the role assignment endpoints.
+   - **When:** The request is received.
+   - **Then:** The system must reject the request with a `403 Forbidden` error.
+
+## Business Rules
+
+1. **Role Definitions:** The system shall support the following roles: `OWNER`, `ADMIN`, `MANAGER`, `HR`, `ACCOUNTING`, `DISPATCHER`, `SERVICE_WRITER`, `MECHANIC`, `AUDITOR`, `READ_ONLY`. This list must be configurable.
+
+2. **Scope Types:** A role assignment must have a `ScopeType` of either `GLOBAL` or `LOCATION`.
+
+3. **Location Mandate:** If `ScopeType` is `LOCATION`, the `LocationID` field is mandatory.
+
+4. **Location Prohibition:** If `ScopeType` is `GLOBAL`, the `LocationID` field must be null.
+
+5. **Effective Dates:**
+   - `EffectiveStartDate` is mandatory for all assignments.
+   - `EffectiveEndDate` is optional. A null value signifies the assignment is active indefinitely.
+
+6. **Immutability:** To ensure a clean audit trail, a persisted `RoleAssignment`'s `UserID`, `RoleID`, and `ScopeType` should be treated as immutable. Changes require ending the existing assignment and creating a new one.
+
+7. **Scope Constraints (Authoritative - NEW):**
+   - **Inherently GLOBAL roles (cannot be LOCATION-scoped):**
+     - `GLOBAL_ADMIN` (or `ADMIN_GLOBAL`)
+     - `OWNER`
+     - `AUDITOR`
+     - `ACCOUNTING` (if spans multiple locations)
+     - `SECURITY_ADMIN` (if present)
+   - **Inherently LOCATION-scoped roles (cannot be GLOBAL):**
+     - `MECHANIC`
+     - `SERVICE_WRITER` / `ADVISOR`
+     - `DISPATCHER`
+     - `SHOP_MANAGER` (if management is per-location)
+   - **Hybrid roles (allowed in either scope):**
+     - `MANAGER`
+     - `INVENTORY`
+     - `REPORTING`
+   - **Enforcement:** Stored in `Role` metadata table with `allowedScopes` array. Validated on assignment creation/update.
+
+8. **Multiple Concurrent Assignments (NEW):**
+   - A user may hold multiple role assignments concurrently (e.g., `MANAGER@LocationA` + `GLOBAL_ADMIN@GLOBAL`).
+   - Permissions are computed as the **scope-aware union** of all active assignments.
+   - **Allow-only RBAC at launch:** No explicit denies; permissions are additive.
+
+9. **No Hard Deletes (NEW):**
+   - Role assignments are never physically deleted.
+   - Revocation always uses `effectiveEndDate`.
+   - Hard delete prohibited except test cleanup or privileged administrative purge.
+
+## Data Requirements
+
+**Entity: `Role` (Metadata)**
+
+| Field                 | Type           | Nullable | Description                                                              |
+| --------------------- | -------------- | -------- | ------------------------------------------------------------------------ |
+| `roleId`              | UUID/String    | false    | Primary Key.                                                             |
+| `roleName`            | String         | false    | Human-readable role name (e.g., `MECHANIC`).                            |
+| `allowedScopes`       | Array[Enum]    | false    | Set of allowed scopes for this role: `[GLOBAL]`, `[LOCATION]`, or both. |
+| `createdAt`           | Timestamp      | false    | Timestamp of role creation.                                              |
+| `updatedAt`           | Timestamp      | false    | Timestamp of last role update.                                           |
+
+**Entity: `RoleAssignment`**
+
+| Field                 | Type           | Nullable | Description                                                              |
+| --------------------- | -------------- | -------- | ------------------------------------------------------------------------ |
+| `assignmentId`        | UUID           | false    | Primary Key.                                                             |
+| `userId`              | UUID           | false    | Foreign key to the `User` entity.                                        |
+| `roleId`              | UUID/String    | false    | Foreign key to the `Role` entity.                                        |
+| `scopeType`           | Enum           | false    | The scope of the assignment. (Values: `GLOBAL`, `LOCATION`).             |
+| `locationId`          | UUID           | true     | Foreign key to the `Location` entity. Required if `scopeType=LOCATION`.  |
+| `effectiveStartDate`  | Timestamp      | false    | The date and time when the role assignment becomes active.               |
+| `effectiveEndDate`    | Timestamp      | true     | The date and time when the role assignment expires. Null means forever.  |
+| `createdAt`           | Timestamp      | false    | Timestamp of record creation.                                            |
+| `updatedAt`           | Timestamp      | false    | Timestamp of last record update.                                         |
+| `changedBy`           | UUID           | false    | Actor ID who created/modified the assignment.                            |
+| `reasonCode`          | String         | true     | Optional reason code for the change.                                     |
+| `version`             | Integer        | false    | Used for optimistic locking.                                             |
+
+## Acceptance Criteria
+
+**AC-1: Successfully assign a GLOBAL role**
+- **Given:** An `Admin` user is authenticated.
+- **And:** A `User` with ID `user-123` and a `Role` named `ACCOUNTING` (with `allowedScopes: [GLOBAL]`) exist.
+- **When:** The `Admin` submits a request to assign the `ACCOUNTING` role to `user-123` with a `GLOBAL` scope and a valid `effectiveStartDate`.
+- **Then:** The system returns a `201 Created` status.
+- **And:** A new `RoleAssignment` record is created in the database with the correct `userId`, `roleId`, `scopeType` set to `GLOBAL`, and a null `locationId`.
+
+**AC-2: Successfully assign a LOCATION-scoped role**
+- **Given:** An `Admin` user is authenticated.
+- **And:** A `User` with ID `user-456`, a `Role` named `MANAGER` (with `allowedScopes: [GLOBAL, LOCATION]`), and a `Location` with ID `loc-789` exist.
+- **When:** The `Admin` submits a request to assign the `MANAGER` role to `user-456` with a `LOCATION` scope, `locationId` of `loc-789`, and a valid `effectiveStartDate`.
+- **Then:** The system returns a `201 Created` status.
+- **And:** A new `RoleAssignment` record is created in the database with the correct `userId`, `roleId`, `scopeType` set to `LOCATION`, and `locationId` set to `loc-789`.
+
+**AC-3: Reject LOCATION scope without a Location ID**
+- **Given:** An `Admin` user is authenticated.
+- **When:** The `Admin` submits a request to assign a `MANAGER` role with a `LOCATION` scope but provides a null `locationId`.
+- **Then:** The system rejects the request with a `400 Bad Request` status and an informative error message.
+
+**AC-4: Reject scope not allowed by role (NEW)**
+- **Given:** An `Admin` attempts to assign a `MECHANIC` role (with `allowedScopes: [LOCATION]`) with `GLOBAL` scope.
+- **When:** The request is submitted.
+- **Then:** The system rejects with `400 Bad Request` and error: "Role MECHANIC does not allow GLOBAL scope. Allowed scopes: [LOCATION]".
+
+**AC-5: Permission check respects effective dates**
+- **Given:** A `User` has a `RoleAssignment` for the `MECHANIC` role with an `effectiveStartDate` of yesterday and an `effectiveEndDate` of tomorrow.
+- **When:** An external service (like the `Auth Service`) checks the user's permissions for the `MECHANIC` role today.
+- **Then:** The check confirms the user has the `MECHANIC` role.
+
+**AC-6: Permission check rejects expired assignment**
+- **Given:** A `User` has a `RoleAssignment` for the `MECHANIC` role that had an `effectiveEndDate` of yesterday.
+- **When:** An external service checks the user's permissions for the `MECHANIC` role today.
+- **Then:** The check confirms the user does NOT have the `MECHANIC` role.
+
+**AC-7: Multiple concurrent assignments (scope-aware union)**
+- **Given:** A `User` holds two role assignments:
+  - `MANAGER@LocationA`
+  - `GLOBAL_ADMIN@GLOBAL`
+- **When:** The `Auth Service` evaluates permissions for this user at `LocationA`.
+- **Then:** The user has permissions from both roles (union): location-specific manager permissions at `LocationA` plus global admin permissions.
+
+**AC-8: Audit event is generated on role assignment creation**
+- **Given:** An `Admin` is about to create a new role assignment.
+- **When:** The role assignment is successfully created via the API.
+- **Then:** An audit event of type `RoleAssignmentCreated` is published to the event bus, containing the `assignmentId`, the actor (`Admin`), full assignment state, and timestamp.
+
+**AC-9: Revocation via effectiveEndDate (soft delete)**
+- **Given:** A role assignment exists for `user-123` with `MECHANIC` role.
+- **When:** An `Admin` revokes this assignment by setting `effectiveEndDate = now`.
+- **Then:** The `RoleAssignment` record remains in the database (not deleted).
+- **And:** The user no longer has active `MECHANIC` permissions as of that effective date.
+- **And:** An audit event of type `RoleAssignmentEnded` is published with actor, subject, effective dates, and optional reason code.
+
+## Audit & Observability
+
+1. **Audit Trail:** All CUD (Create, Update, Delete/Deactivate) operations on the `RoleAssignment` entity MUST generate a structured audit event. The event must capture:
+   - `EventID`, `Timestamp`, `EventType` (`RoleAssignmentCreated`, `RoleAssignmentModified`, `RoleAssignmentEnded`).
+   - `ActorID` and `ActorType` (who performed the action).
+   - `SubjectID` (the user whose role was changed).
+   - `BeforeState` and `AfterState` of the `RoleAssignment` entity (for modifications).
+   - `ReasonCode` (optional, for revocations).
+
+2. **Downstream Integration Events:** A separate, public integration event (e.g., `people.RoleAssignmentChanged`) should be published to a dedicated topic for consumption by other domains like `workexec` and `location`. This decouples internal auditing from external system notifications.
+
+3. **Metrics:** The service should expose metrics for:
+   - Number of active role assignments per role.
+   - Rate of role assignment API calls (success vs. failure).
+   - Distribution of role assignments by scope type (GLOBAL vs. LOCATION).
+
+## Original Story (Unmodified – For Traceability)
+# Issue #89 — [BACKEND] [STORY] Access: Assign Roles and Scopes (Global vs Location)
+
+[Original story body preserved as provided in previous issue snapshot]
+
+
+════════════════════════════════════════
+ISSUE #88: [BACKEND] [STORY] Users: Create/Update Employee Profile (pos-people)
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Final)
+
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:people
+- agent:story-authoring
+
+---
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## Story Intent
+**As an** HR Administrator,
+**I want to** create and maintain comprehensive employee profiles through a system API,
+**so that** employee data is accurate, centralized, and available for operational, compliance, and integrated system needs.
+
+## Actors & Stakeholders
+- **HR Administrator:** The primary user responsible for creating and managing employee data.
+- **System (API Consumer):** Any authorized internal system that needs to create or update employee records.
+- **`workexec` System (Downstream Consumer):** Relies on accurate employee data (especially for technicians) to display user identity.
+- **`shopmgr` System (Downstream Consumer):** Uses employee name and status for workforce management and rosters.
+- **Audit System (Stakeholder):** Subscribes to all data modification events for compliance and traceability.
+
+## Preconditions
+- The calling user or system is authenticated.
+- The calling user or system possesses the necessary permissions (`people.employee.create`, `people.employee.update`) to manage employee profiles.
+
+## Functional Behavior
+
+### 1. Create Employee Profile
+- The system shall provide an API endpoint (e.g., `POST /employees`) to create a new employee profile.
+- The endpoint accepts a payload containing the employee's details as specified in the Data Requirements.
+- Before creation, the system MUST validate that the proposed `employeeNumber` and `primaryEmail` do not already exist for another employee.
+- The system performs duplicate detection checking high-confidence keys (email, phone, externalEmployeeNumber):
+  - If exact match found: return `409 Conflict` with optional `possibleDuplicatePersonId` (only if caller authorized)
+  - If ambiguous match found: create profile and return `200/201` with `warnings: [{ code: "POSSIBLE_DUPLICATE", matches: [...] }]`
+- Upon successful creation, the system returns the full profile of the newly created employee, including a system-generated unique identifier (`employeeId`), and returns an HTTP `201 Created` status.
+- A `EmployeeProfileCreated` event is emitted for auditing purposes.
+
+### 2. Update Employee Profile
+- The system shall provide an API endpoint (e.g., `PUT /employees/{employeeId}`) to update an existing employee profile.
+- The endpoint accepts a payload containing the complete set of modifiable fields.
+- The system MUST validate that the target `employeeId` exists before attempting an update.
+- If the `employeeNumber` or `primaryEmail` are being changed, the system MUST validate their uniqueness against other records (excluding the current employee).
+- The system performs duplicate detection on the new values using the same high-confidence/soft-warning logic as create.
+- Upon successful update, the system returns the full, updated profile and an HTTP `200 OK` status.
+- A `EmployeeProfileUpdated` event is emitted for auditing purposes, including before/after snapshot of changed fields.
+
+### 3. Contact Info Validation (Workflow Gate)
+- **Before activation or assignment to schedules/timekeeping:** The system SHALL require at least one reliable contact method (e.g., `primaryEmail` or `primaryPhone`).
+- This is a **workflow enforcement**, not a persistence constraint (to support progressive onboarding).
+- Downstream services (workexec, shopmgr) should check contact info completeness before assignment operations.
+
+## Alternate / Error Flows
+- **Invalid Data:** If the request payload is missing required fields or contains malformed data (e.g., invalid date format), the API shall return an HTTP `400 Bad Request` response with a clear error message detailing the validation failures.
+- **Duplicate Data on Create (High-Confidence):** If an attempt is made to create a profile with an exact match on email, phone, or employee number that already exists, the API shall return an HTTP `409 Conflict` response.
+- **Duplicate Data on Create (Ambiguous):** If name similarity, partial phone match, or same address is detected, the API shall create the profile and return `200/201 Created` with a warning payload.
+- **Resource Not Found:** If an update is attempted for an `employeeId` that does not exist, the API shall return an HTTP `404 Not Found` response.
+- **Authorization Failure:** If the authenticated actor lacks the required permissions to perform the action, the API shall return an HTTP `403 Forbidden` response.
+
+## Business Rules
+- `employeeNumber` must be unique across all employee profiles.
+- The primary email address in `contactInfo` must be unique across all employee profiles (if provided).
+- `legalName`, `employeeNumber`, `status`, and `hireDate` are mandatory fields for profile creation.
+- A `terminationDate`, if provided, cannot be earlier than the `hireDate`.
+- **Status Lifecycle (Authoritative - NEW):**
+  - `ACTIVE` — employed and eligible for assignment/work
+  - `ON_LEAVE` — employed but temporarily inactive for scheduling/timekeeping
+  - `SUSPENDED` — access/work paused pending action (administrative)
+  - `TERMINATED` — employment ended; historical record retained
+- **Status Rules:**
+  - `ON_LEAVE` and `SUSPENDED` are treated as **not eligible for new assignments** by consuming services.
+  - If you maintain separate User status, keep it aligned with Person status (e.g., User `DISABLED` while Person `SUSPENDED`).
+- **Duplicate Detection Policy (NEW):**
+  - Hard-block (409) for high-confidence matches: exact email, exact phone (E.164), exact externalEmployeeNumber, government ID
+  - Soft warning for ambiguous matches: name similarity, partial phone, same address
+  - Configuration: `duplicatePolicy = STRICT | BALANCED` (default: BALANCED)
+  - Duplicate keys at launch: email, phone, externalEmployeeNumber
+- **Contact Info Requirement (NEW):**
+  - No required fields at persistence level (progressive onboarding)
+  - At least one reliable contact method required **before activation/assignment** (workflow gate, not persistence)
+  - Recommended: primaryEmail, primaryPhone, emergencyContact (for field staff)
+  - Normalization: lowercase emails, E.164 for phones
+
+## Data Requirements
+
+### EmployeeProfile Entity
+| Field           | Type          | Constraints                                       | Description                                       |
+|-----------------|---------------|---------------------------------------------------|---------------------------------------------------|
+| `employeeId`    | UUID          | Primary Key, System-Generated, Not Null           | Unique identifier for the employee profile.       |
+| `legalName`     | String        | Not Null                                          | The employee's full legal name.                   |
+| `preferredName` | String        | Nullable                                          | The name the employee prefers to be called.       |
+| `employeeNumber`| String        | Not Null, Unique                                  | The unique number assigned to the employee.       |
+| `status`        | Enum          | Not Null, `ACTIVE \| ON_LEAVE \| SUSPENDED \| TERMINATED` | The current employment status of the employee. |
+| `hireDate`      | Date          | Not Null                                          | The date the employee was hired.                  |
+| `terminationDate`| Date         | Nullable, >= hireDate                            | The date the employee's employment was terminated.|
+| `contactInfo`   | JSON / Object | Structured (see below)                           | Structured contact information.                   |
+| `createdAt`     | Timestamp     | Not Null, System-Managed                          | Timestamp of when the record was created.         |
+| `updatedAt`     | Timestamp     | Not Null, System-Managed                          | Timestamp of the last update to the record.       |
+
+### ContactInfo Structure (Nested)
+```json
+{
+  "primaryEmail": "string (optional, unique if provided, normalized lowercase)",
+  "primaryPhone": "string (optional, unique if provided, normalized E.164)",
+  "secondaryEmail": "string (optional, normalized lowercase)",
+  "secondaryPhone": "string (optional, normalized E.164)",
+  "address": {
+    "line1": "string (optional)",
+    "line2": "string (optional)",
+    "city": "string (optional)",
+    "region": "string (optional)",
+    "postalCode": "string (optional)",
+    "country": "string (optional)"
+  },
+  "emergencyContact": {
+    "name": "string (optional)",
+    "relationship": "string (optional)",
+    "phone": "string (optional)",
+    "email": "string (optional)"
+  }
+}
+```
+
+## Acceptance Criteria
+
+### AC-1: Successfully Create a New Employee Profile
+**Given** an HR Administrator is authenticated and authorized
+**When** they submit a valid request to the `POST /employees` endpoint with all required fields
+**And** the `employeeNumber` and `primaryEmail` are unique
+**Then** the system shall create a new employee profile
+**And** return an HTTP `201 Created` status with the new profile data
+**And** an `EmployeeProfileCreated` audit event is published.
+
+### AC-2: Successfully Update an Existing Employee Profile
+**Given** an HR Administrator is authenticated and authorized
+**And** an employee profile with ID `E123` exists
+**When** they submit a valid request to `PUT /employees/E123` to change the `preferredName`
+**Then** the system shall update the employee profile
+**And** return an HTTP `200 OK` status with the updated profile data
+**And** an `EmployeeProfileUpdated` audit event is published with before/after snapshot of changed fields.
+
+### AC-3: Fail to Create a Profile with a Duplicate (High-Confidence)
+**Given** an employee profile exists with `primaryEmail` "jane@example.com"
+**And** an HR Administrator is authenticated and authorized
+**When** they submit a request to `POST /employees` with `primaryEmail` "jane@example.com"
+**Then** the system shall reject the request
+**And** return an HTTP `409 Conflict` response with a relevant error message.
+
+### AC-4: Create with Soft Warning on Ambiguous Duplicate
+**Given** an employee profile exists with name "Jane Smith" and phone "+1-555-0100"
+**And** an HR Administrator submits a new profile for "Jane Smythe" with phone "+1-555-0101" (similar but not exact)
+**When** the request is submitted
+**Then** the system shall create the profile
+**And** return `201 Created` with warning payload: `warnings: [{ code: "POSSIBLE_DUPLICATE", matches: [...] }]`
+
+### AC-5: Fail to Create a Profile with Missing Required Fields
+**Given** an HR Administrator is authenticated and authorized
+**When** they submit a request to `POST /employees` that is missing the `legalName`
+**Then** the system shall reject the request
+**And** return an HTTP `400 Bad Request` response detailing the missing field.
+
+### AC-6: Enforce Contact Info Completeness Before Assignment
+**Given** an employee profile exists with no `primaryEmail` or `primaryPhone`
+**When** a downstream service (workexec, shopmgr) attempts to assign this employee to a schedule or work
+**Then** the assignment is rejected with a message: "Employee must have at least one contact method (email or phone) before assignment."
+
+### AC-7: Audit Event Includes Before/After Snapshot
+**Given** an update to employee profile status from `ACTIVE` to `ON_LEAVE`
+**When** the update is successfully completed
+**Then** an `EmployeeProfileUpdated` audit event is published containing:
+- `employeeId`, actor ID, timestamp
+- `beforeState: { status: "ACTIVE", ... }`
+- `afterState: { status: "ON_LEAVE", ... }`
+
+## Audit & Observability
+- **Audit Events:**
+  - `EmployeeProfileCreated`: Triggered on successful creation. Must include the new profile data, actor ID, timestamp, and optional duplicate warning details.
+  - `EmployeeProfileUpdated`: Triggered on successful update. Must include the `employeeId`, actor ID, timestamp, and before/after snapshot of all changed fields.
+  - Include in event: `duplicatePolicy` setting used (STRICT or BALANCED), any warnings returned to caller
+- **Metrics:**
+  - Monitor latency and error rates (4xx/5xx) for the `POST /employees` and `PUT /employees/{employeeId}` endpoints.
+  - `employee.profile.created` (Counter): Incremented on successful creation.
+  - `employee.profile.updated` (Counter): Incremented on successful update.
+  - `employee.profile.duplicate_detected` (Counter): Incremented when duplicate detection triggers (hard-block or soft warning).
+  - `employee.profile.contact_incomplete` (Counter): Incremented when contact completeness workflow gate is triggered.
+- **Logging:**
+  - INFO: Profile creation/update success
+  - WARN: Duplicate detection (soft warning)
+  - ERROR: Profile creation/update failure, validation errors
+
+## Original Story (Unmodified – For Traceability)
+# Issue #88 — [BACKEND] [STORY] Users: Create/Update Employee Profile (pos-people)
+
+[Original story body preserved as provided in previous issue snapshot]
+
+
+════════════════════════════════════════
+ISSUE #86: [BACKEND] [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Final)
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:people
+- agent:story-authoring
+
+---
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## Story Intent
+**As a** Manager,
+**I want to** manage employee assignments to specific locations, including setting a primary location and effective dates,
+**so that** downstream systems can accurately determine staffing eligibility, build rosters, and enforce operational rules.
+
+## Actors & Stakeholders
+- **Manager:** The primary user performing the assignment action via a management UI.
+- **Employee:** The `Person` being assigned to one or more locations.
+- **System (People Domain Service):** The service of record responsible for storing assignment data and enforcing business rules.
+- **System (Work Execution Service):** A downstream consumer of assignment data that uses it to determine technician eligibility for jobs at a specific location.
+- **System (Shop Manager Service):** A downstream consumer of assignment data used to generate operational rosters.
+- **Auditor:** A stakeholder who needs to review the history of assignment changes for compliance and operational review.
+
+## Preconditions
+- A `Manager` user is authenticated and has the necessary permissions to manage employee assignments.
+- The `Person` (Employee) to be assigned exists in the system with a unique `personId`.
+- The `Location` to be assigned to exists in the system with a unique `locationId`.
+
+## Functional Behavior
+The system must provide capabilities to manage the lifecycle of `PersonLocationAssignment` records.
+
+1. **Create Assignment:** A Manager can create a new assignment linking a `Person` to a `Location`. The assignment must include an `effectiveStartAt` and a boolean `isPrimary` flag. An `effectiveEndAt` is optional.
+2. **Update Assignment:** A Manager can modify an existing assignment's attributes, such as its `effectiveStartAt`, `effectiveEndAt`, or `isPrimary` status.
+3. **Deactivate Assignment:** A Manager can end an assignment by setting its `effectiveEndAt` to a past or current timestamp. A hard delete is not permitted to preserve historical records.
+4. **Query Assignments:** The system must provide a way to query for all active and/or historical assignments for a given `Person` or `Location`.
+
+### Primary Assignment Automatic Demotion (NEW)
+- When creating a new primary assignment for `(personId, role)` (NEW):
+  - System automatically finds any existing active primary assignment
+  - If overlap detected: sets `effectiveEndAt = new.effectiveStartAt - 1 unit` (atomic transaction)
+  - If no overlap: existing primary remains unchanged
+  - Operation is **atomic**: demotion and creation succeed or both fail together
+
+## Alternate / Error Flows
+1. **Invalid References:** The system must return an error if an assignment is attempted with a non-existent `personId` or `locationId`.
+2. **Invalid Timestamps:** The system must return an error if an `effectiveEndAt` is set before the `effectiveStartAt`.
+3. **Overlapping Assignments (NEW):** The system must reject any transaction that would create overlapping assignments for the same `(personId, locationId, role)`. This prevents ambiguity in staffing/scheduling.
+4. **Authorization Failure:** The system must reject attempts to manage assignments by users without the required permissions.
+
+## Business Rules
+- **BR1: Multiple Assignments Allowed:** A `Person` can have multiple `PersonLocationAssignment` records simultaneously (to different locations or time periods).
+- **BR2: Single Primary Assignment:** For any given point in time, a `Person` must have **at most one** `PersonLocationAssignment` where `isPrimary=true`. Automatic demotion enforces this.
+- **BR3: Effective Dating (Timestamps - NEW):**
+  - Assignments are time-bound by `effectiveStartAt` (inclusive) and optional `effectiveEndAt` (inclusive)
+  - Both fields are ISO-8601 timestamps in UTC
+  - Assignment with null `effectiveEndAt` is active indefinitely
+  - Active assignment: `effectiveStartAt <= now < effectiveEndAt` (or `effectiveEndAt` null)
+- **BR4: No Overlapping Assignments (NEW):** For a given `(personId, locationId, role)`, there must be **no overlapping effective windows** among assignments. Prevents ambiguity.
+- **BR5: Immutability of History:** Past assignments (where `effectiveEndAt` is in the past) must not be deleted.
+- **BR6: Auditability:** All state-changing operations (Create, Update) on a `PersonLocationAssignment` must be logged in an audit trail, capturing the old/new values, the user performing the action, and a timestamp.
+- **BR7: Event Emission (Strict Schema - NEW):** Any state change to an assignment must trigger publication of `PersonLocationAssignmentChanged` domain event with versioned strict JSON schema (see Audit & Observability).
+
+## Data Requirements
+The core entity is `PersonLocationAssignment`.
+
+| Field Name           | Type      | Constraints                                        | Description                                                                 |
+| -------------------- | --------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
+| `assignmentId`       | UUID      | Primary Key, Not Null                              | Unique identifier for the assignment record.                                |
+| `personId`           | UUID      | Foreign Key (Person), Not Null                     | The identifier of the assigned employee.                                    |
+| `locationId`         | UUID      | Foreign Key (Location), Not Null                   | The identifier of the location for the assignment.                          |
+| `role`               | String    | Not Null                                           | The role/function at this location (e.g., MECHANIC, MANAGER, etc.).        |
+| `isPrimary`          | Boolean   | Not Null                                           | If true, this is the person's primary work location for the effective period. |
+| `effectiveStartAt`   | Timestamp | Not Null, ISO-8601 UTC                             | The moment the assignment becomes active (inclusive).                       |
+| `effectiveEndAt`     | Timestamp | Nullable, ISO-8601 UTC                             | The moment the assignment expires (inclusive). Null means ongoing.          |
+| `createdAt`          | Timestamp | Not Null, System-managed, ISO-8601 UTC             | Timestamp of record creation.                                               |
+| `updatedAt`          | Timestamp | Not Null, System-managed, ISO-8601 UTC             | Timestamp of the last update to the record.                                 |
+| `createdBy`          | UUID      | Not Null, Foreign Key (User)                       | The user who created the record.                                            |
+| `updatedBy`          | UUID      | Not Null, Foreign Key (User)                       | The user who last updated the record.                                       |
+| `changeReasonCode`   | String    | Nullable                                           | Optional code documenting why the assignment was changed (NEW).              |
+| `version`            | Integer   | Not Null, >= 1                                     | Version number for optimistic locking and event deduplication (NEW).        |
+
+## Acceptance Criteria
+
+**Scenario 1: Create a person's first and primary location assignment**
+- **Given** a `Person` exists with no current assignments
+- **When** a Manager creates a new assignment for that `Person` with `isPrimary=true` and a valid `effectiveStartAt`
+- **Then** the system successfully creates the `PersonLocationAssignment` record
+- **And** a `PersonLocationAssignmentChanged` event is published with event type `PersonLocationAssignmentCreated`.
+
+**Scenario 2: Add a secondary (non-primary) assignment for a person**
+- **Given** a `Person` has an existing primary assignment at "Location A"
+- **When** a Manager creates a new assignment for that `Person` at "Location B" with `isPrimary=false`
+- **Then** the system successfully creates the new non-primary assignment
+- **And** the person now has two active assignments
+- **And** the primary assignment at "Location A" remains active and primary.
+
+**Scenario 3: Automatic demotion when creating new primary assignment**
+- **Given** a `Person` has an active primary assignment at "Location A" (effective 2026-01-01 to null)
+- **When** a Manager creates a new assignment for that `Person` at "Location B" with `isPrimary=true` and `effectiveStartAt=2026-06-01`
+- **Then** the system automatically sets the old assignment's `effectiveEndAt=2026-05-31T23:59:59Z`
+- **And** the new assignment is created with `isPrimary=true`
+- **And** both operations complete in a single atomic transaction
+- **And** a `PersonLocationAssignmentChanged` event is published showing the demotion + creation.
+
+**Scenario 4: Reject overlapping assignments for same location/role**
+- **Given** a `Person` has an assignment to "Location A" (role=MECHANIC) from 2026-01-01 to 2026-12-31
+- **When** a Manager attempts to create a new assignment for that `Person` to "Location A" (role=MECHANIC) from 2026-06-01 to 2026-08-01
+- **Then** the system rejects the request with a `409 Conflict` or `400 Bad Request` error indicating overlapping assignments are not allowed.
+
+**Scenario 5: An assignment becomes inactive based on its end timestamp**
+- **Given** a `Person` has an active assignment with an `effectiveEndAt` of 2026-01-10T23:59:59Z
+- **When** the current time is 2026-01-11T00:00:00Z
+- **Then** that assignment is not considered active and the person is not eligible for work at that location based on this assignment.
+
+**Scenario 6: Update assignment effective dates (no overlap)**
+- **Given** a `Person` has an assignment to "Location A" from 2026-01-01 to 2026-06-30
+- **When** a Manager updates the `effectiveEndAt` to 2026-05-31
+- **Then** the update succeeds
+- **And** the assignment now ends one month earlier
+- **And** an audit entry and `PersonLocationAssignmentChanged` event (type: `PersonLocationAssignmentUpdated`) are generated.
+
+## Audit & Observability
+
+- **Audit Log:** Every create and update operation on the `PersonLocationAssignment` entity must generate an audit entry. The entry must contain `assignmentId`, `personId`, the user performing the change, a timestamp, and a representation of the changes made (e.g., JSON diff of old vs. new values).
+
+- **Domain Event (Versioned Strict Schema - NEW):**
+  - **Event Topic:** `people.PersonLocationAssignmentChanged.v1` (versioned for evolution)
+  - **Key:** `personId` (for ordering/partitioning)
+  - **Event Types:**
+    - `PersonLocationAssignmentCreated`
+    - `PersonLocationAssignmentUpdated`
+    - `PersonLocationAssignmentEnded`
+  - **Required Envelope:**
+    ```json
+    {
+      "eventId": "UUIDv7",
+      "eventType": "PersonLocationAssignmentCreated|Updated|Ended",
+      "occurredAt": "2026-01-11T14:00:00Z",
+      "producer": "people-service",
+      "schemaVersion": 1,
+      "payload": { ... }
+    }
+    ```
+  - **Required Payload:**
+    ```json
+    {
+      "assignmentId": "UUIDv7",
+      "personId": "UUIDv7",
+      "locationId": "UUIDv7",
+      "role": "string",
+      "isPrimary": true,
+      "effectiveStartAt": "2026-01-11T14:00:00Z",
+      "effectiveEndAt": null,
+      "changeReasonCode": "string|null",
+      "changedBy": "UUIDv7",
+      "version": 12
+    }
+    ```
+
+- **Metrics:**
+  - `assignment.created` (Counter)
+  - `assignment.updated` (Counter)
+  - `assignment.primary_demoted` (Counter) (NEW)
+  - `assignment.overlap_rejected` (Counter) (NEW)
+  - `assignment.active_count` (Gauge)
+
+## Original Story (Unmodified – For Traceability)
+# Issue #86 — [BACKEND] [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates
+
+[Original story body preserved as provided in previous issue snapshot]
+
+
+════════════════════════════════════════
+ISSUE #84: [BACKEND] [STORY] Timekeeping: Record Break Start/End
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Final)
+
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:people
+- agent:story-authoring
+
+---
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## Story Intent
+
+**As a** Mechanic,
+**I want to** accurately record the start and end times of my breaks during a workday,
+**so that** my timecard reflects my actual working hours, ensuring correct pay and compliance with labor regulations.
+
+## Actors & Stakeholders
+
+- **Mechanic (Primary Actor):** The user performing the action of starting and ending a break.
+- **Shop Manager (Stakeholder):** Reviews and approves timecards, which will now include break data.
+- **System (Actor):** The POS backend system responsible for validating rules and persisting time entries.
+
+## Preconditions
+
+- The Mechanic must have an active, open `ClockInSession` for the current workday.
+- An open `Timecard` entity must exist for the Mechanic for the current workday, associated with the active `ClockInSession`.
+
+## Functional Behavior
+
+1. **Start Break (with Type Selection - NEW):**
+   - **Trigger:** The Mechanic initiates the "Start Break" action via a client interface (e.g., POS terminal).
+   - **System Action:**
+     1. The system receives a request to start a break for the authenticated Mechanic.
+     2. Request includes `breakType` (MEAL, REST, or OTHER).
+     3. It validates that:
+        - Mechanic has an active `ClockInSession`
+        - No other break is currently `IN_PROGRESS`
+        - `breakType` is provided and valid
+     4. Upon successful validation, the system creates a new `Break` record.
+     5. Record is associated with Mechanic's active `Timecard` with:
+        - `startTime = current UTC timestamp`
+        - `breakType` as provided
+        - `status = IN_PROGRESS`
+     6. The system returns a success confirmation with the created break data.
+   - **UI Enhancement:** Default `breakType` to the mechanic's last-used break type to reduce friction.
+
+2. **End Break:**
+   - **Trigger:** The Mechanic initiates the "End Break" action.
+   - **System Action:**
+     1. The system receives a request to end a break for the authenticated Mechanic.
+     2. It validates that there is an active break (`status = IN_PROGRESS`) for the Mechanic.
+     3. Upon successful validation, the system updates the existing `Break` record:
+        - `endTime = current UTC timestamp`
+        - `status = COMPLETED`
+        - `endReason = MANUAL_ENDED`
+     4. The system returns a success confirmation.
+
+3. **Automatic Break Ending at Clock-Out (NEW):**
+   - **Trigger:** Mechanic clocks out while a break is `IN_PROGRESS`.
+   - **System Action:**
+     1. During clock-out processing, system checks if an active break exists.
+     2. If found, system automatically ends the break:
+        - `endTime = clockOutTime`
+        - `status = COMPLETED`
+        - `endReason = AUTO_ENDED_AT_CLOCKOUT`
+        - `autoEnded = true` (audit flag)
+        - `triggerEventId` = clock-out event ID
+        - `changedBy = system`
+     3. Clock-out proceeds normally without error or blocking.
+     4. Audit event `BreakAutoEnded` is generated.
+
+## Alternate / Error Flows
+
+- **Flow 1: Attempt to start a break while another is active.**
+  - **Trigger:** A Mechanic with an `IN_PROGRESS` break attempts to start another break.
+  - **System Response:** The request is rejected with an error indicating that a break is already in progress.
+
+- **Flow 2: Attempt to end a break when none is active.**
+  - **Trigger:** A Mechanic with no `IN_PROGRESS` break attempts to end a break.
+  - **System Response:** The request is rejected with an error indicating that there is no active break to end.
+
+- **Flow 3: Attempt to start a break without specifying break type (NEW).**
+  - **Trigger:** A Mechanic submits start-break request without `breakType` field.
+  - **System Response:** The request is rejected with an error indicating that `breakType` is required.
+
+- **Flow 4: Attempt to start a break when not clocked in.**
+  - **Trigger:** A Mechanic who is not clocked in attempts to start a break.
+  - **System Response:** The request is rejected with an error indicating that the user must be clocked in to start a break.
+
+- **Flow 5: Clock-out attempted while break is active (NEW).**
+  - **Trigger:** Mechanic attempts to clock out with an `IN_PROGRESS` break.
+  - **System Response:** Break is automatically ended with `endReason = AUTO_ENDED_AT_CLOCKOUT`, and clock-out completes successfully (no error).
+
+## Business Rules
+
+- **R1: Exclusive Active Break:** A Mechanic can have a maximum of one `IN_PROGRESS` break at any given time.
+- **R2: Clock-In Dependency:** A break can only be started or ended within the time boundaries of an active `ClockInSession`.
+- **R3: Non-Overlapping Breaks:** The start and end times of any two `Break` records for the same `Timecard` must not overlap. The system must enforce this chronologically.
+- **R4: Break Type Required (NEW):** Every break must have a `breakType` from the enum: `MEAL`, `REST`, `OTHER`.
+- **R5: Automatic Closure at Clock-Out (NEW):** If a break is `IN_PROGRESS` at clock-out time, the system automatically ends it with `endReason = AUTO_ENDED_AT_CLOCKOUT` without blocking clock-out.
+
+## Data Requirements
+
+The implementation will require a new or modified entity to store break information, associated with a user's timecard.
+
+- **Entity: `Break`**
+  - `id`: Unique identifier (UUID)
+  - `timecard_id`: Foreign key to the parent `Timecard` entity
+  - `mechanic_id`: Foreign key to the `Mechanic` (User) entity
+  - `breakType`: Enum (`MEAL`, `REST`, `OTHER`) — **required** (NEW)
+  - `status`: Enum (`IN_PROGRESS`, `COMPLETED`)
+  - `startTime`: Timestamp with UTC timezone (not null)
+  - `endTime`: Timestamp with UTC timezone (nullable until break is completed)
+  - `endReason`: Enum (`MANUAL_ENDED`, `AUTO_ENDED_AT_CLOCKOUT`) (NEW) — nullable until break ends
+  - `autoEnded`: Boolean, default false (NEW) — indicates system-triggered closure
+  - `triggerEventId`: UUID, nullable (NEW) — event ID that triggered auto-end (e.g., clock-out event ID)
+  - `createdAt`: Timestamp, system-managed
+  - `updatedAt`: Timestamp, system-managed
+  - `createdBy`: UUID (authenticated mechanic)
+  - `updatedBy`: UUID (authenticated mechanic or system)
+  - Optional `notes`: String (for `OTHER` break type explanations)
+
+## Acceptance Criteria
+
+**Scenario 1: Successfully record a work break**
+- **Given** a Mechanic is clocked in and has an active `Timecard`.
+- **When** the Mechanic initiates "Start Break" with `breakType = MEAL`.
+- **And** a period of time passes.
+- **And** the Mechanic initiates "End Break".
+- **Then** the system creates one `Break` record associated with their `Timecard`.
+- **And** the record has a valid `startTime` and `endTime`.
+- **And** the `endTime` is after the `startTime`.
+- **And** `breakType = MEAL` is stored.
+- **And** `endReason = MANUAL_ENDED`.
+
+**Scenario 2: Attempt to start a break when one is already in progress**
+- **Given** a Mechanic is clocked in and has an active break in the `IN_PROGRESS` state.
+- **When** the Mechanic attempts to initiate "Start Break" again.
+- **Then** the system rejects the request with an error message "A break is already in progress."
+- **And** no new `Break` record is created.
+
+**Scenario 3: Attempt to end a break when no break is active**
+- **Given** a Mechanic is clocked in but does not have a break in the `IN_PROGRESS` state.
+- **When** the Mechanic attempts to initiate "End Break".
+- **Then** the system rejects the request with an error message "No active break to end."
+
+**Scenario 4: Attempt to start a break without specifying type (NEW)**
+- **Given** a Mechanic is clocked in and has an active `Timecard`.
+- **When** the Mechanic submits a start-break request without providing `breakType`.
+- **Then** the system rejects the request with an error message "`breakType` is required."
+
+**Scenario 5: Attempt to start a break when not clocked in**
+- **Given** a Mechanic is not clocked in.
+- **When** the Mechanic attempts to initiate "Start Break".
+- **Then** the system rejects the request with an error message "You must be clocked in to start a break."
+
+**Scenario 6: Automatic break end at clock-out (NEW)**
+- **Given** a Mechanic has an active break with `status = IN_PROGRESS`.
+- **When** the Mechanic clocks out for the day.
+- **Then** the system automatically ends the break:
+  - `endTime = clockOutTime`
+  - `endReason = AUTO_ENDED_AT_CLOCKOUT`
+  - `autoEnded = true`
+  - `triggerEventId = clockOutEventId`
+- **And** the clock-out completes successfully (no error).
+- **And** a `BreakAutoEnded` audit event is generated.
+
+**Scenario 7: UI defaults break type to mechanic's last-used type (NEW)**
+- **Given** a Mechanic has previously started breaks with `breakType = REST`.
+- **When** the Mechanic initiates "Start Break" again.
+- **Then** the UI pre-selects `breakType = REST` as the default.
+- **And** the Mechanic can change it if needed.
+
+## Audit & Observability
+
+- **Audit Trail:**
+  - Every successful `Start Break`, `End Break`, and auto-ended break action must generate an audit event.
+  - Events must be immutable and include:
+    - `eventType` (`BREAK_STARTED`, `BREAK_ENDED`, `BREAK_AUTO_ENDED`)
+    - `mechanic_id`, `timecard_id`, `break_id`
+    - `breakType` (on start)
+    - `endReason` (on end) (NEW)
+    - `autoEnded` flag (for auto-ended breaks) (NEW)
+    - `triggerEventId` (for auto-ended breaks) (NEW)
+    - Server timestamp
+    - Actor (mechanic ID or "system" for auto-end) (NEW)
+
+- **Logging:**
+  - Log all validation failures (e.g., attempting to start an overlapping break) at a `WARN` level for monitoring.
+  - Log all auto-end operations at `INFO` level for audit trail visibility.
+
+- **Metrics:**
+  - `break.started` (Counter, tagged by break type)
+  - `break.ended_manual` (Counter)
+  - `break.ended_auto_at_clockout` (Counter) (NEW)
+  - `break.duplicate_prevented` (Counter)
+
+## Original Story (Unmodified – For Traceability)
+# Issue #84 — [BACKEND] [STORY] Timekeeping: Record Break Start/End
+
+[Original story body preserved as provided in previous issue snapshot]
+
+
+════════════════════════════════════════
+ISSUE #83: [BACKEND] [STORY] Timekeeping: Manager Approves/Rejects Time Entries
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+## Story Intent
+As a **Manager**, I want **to review and approve or reject submitted time entries for my direct reports for a given pay period**, so that **employee time is finalized and auditable, enabling accurate payroll processing and labor cost allocation**.
+
+## Actors & Stakeholders
+- **Manager (Primary Actor)**: A user authorized to review/approve time for assigned employees.
+- **Employee (Indirect Actor)**: The user whose time is being reviewed.
+- **System (Actor)**: Enforces rules and manages state transitions.
+- **Payroll System (Stakeholder)**: Consumes approved time for payroll processing.
+- **Work Execution System (Stakeholder)**: May consume approved job time for labor cost posting/analysis.
+
+## Preconditions
+1. Manager is authenticated and authorized.
+2. Time entries exist for `{employeeId, timePeriodId}`.
+3. The time period meets the gating rules for approval (see Business Rules).
+
+## Functional Behavior
+### View Pending Entries
+1. Manager selects an employee and a pay period.
+2. System returns all `TimeEntry` records for `{employeeId, timePeriodId}` filtered by status (primarily `PENDING_APPROVAL`).
+
+### Approve Period (Atomic)
+1. Manager triggers **Approve** for `{employeeId, timePeriodId}`.
+2. System validates:
+   - Manager has `timekeeping:approve` AND is authorized for the employee (direct report / configured reporting scope).
+   - TimePeriod is at least `SUBMISSION_CLOSED`.
+   - All entries for `{employeeId, timePeriodId}` are in `PENDING_APPROVAL`.
+3. System transitions all associated `TimeEntry.status` from `PENDING_APPROVAL` → `APPROVED` in a single transaction.
+4. System creates one append-only `TimePeriodApproval` record with `finalStatus=APPROVED`.
+5. System writes an immutable audit log entry.
+6. System publishes `TimeEntriesApprovedEvent` post-commit.
+
+### Reject Period (Atomic)
+1. Manager triggers **Reject** for `{employeeId, timePeriodId}` and supplies required rejection metadata.
+2. System validates:
+   - Manager has `timekeeping:approve` AND is authorized for the employee.
+   - TimePeriod is at least `SUBMISSION_CLOSED`.
+   - All entries for `{employeeId, timePeriodId}` are in `PENDING_APPROVAL`.
+   - `rejectionReasonCode` is present AND `rejectionNotes` is non-empty (trimmed).
+3. System records the rejection as period-level history:
+   - Creates one append-only `TimePeriodApproval` record with `finalStatus=REJECTED`, reasonCode, and notes.
+4. System returns entries to the employee for correction:
+   - Canonical persisted end state is editable, so entries are set to `DRAFT` for correction/resubmission.
+   - Rejection history remains preserved via `TimePeriodApproval` + audit trail.
+5. System writes an immutable audit log entry.
+6. System publishes `TimeEntriesRejectedEvent` post-commit (includes reasonCode + notes).
+
+## Alternate / Error Flows
+- **Reject without reasonCode/notes**: return `400 Bad Request` with field-level errors.
+- **Non-pending entries in period**: if any entries for `{employeeId, timePeriodId}` are not `PENDING_APPROVAL`, return `409 Conflict` and include which entry IDs blocked approval/rejection.
+- **Authorization failure**: return `403 Forbidden` (do not leak reporting relationship details).
+- **Concurrent modification**: if entries change during processing, return `409 Conflict`.
+
+## Business Rules
+- **Approval/Reject is period-atomic**: the action applies to all time entries for `{employeeId, timePeriodId}` currently in `PENDING_APPROVAL`. No partial approval/rejection.
+- **Canonical status model**:
+  - `TimeEntry.status` is the line-item state.
+  - `TimePeriodApproval.finalStatus` is the period-level decision and is append-only history.
+- **Canonical `TimeEntry` transitions**:
+  - Employee: `DRAFT → SUBMITTED → PENDING_APPROVAL`
+  - Manager: `PENDING_APPROVAL → APPROVED`
+  - Rejection outcome: rejection is recorded, but entries are returned for correction as `DRAFT` (rejection history preserved).
+- **Time period gating** (source of truth):
+  - `TimePeriod.status` includes at least: `OPEN`, `SUBMISSION_CLOSED`, `PAYROLL_CLOSED`.
+  - Manager approval/rejection requires `TimePeriod.status >= SUBMISSION_CLOSED`.
+  - Controlled adjustments require `TimePeriod.status < PAYROLL_CLOSED`.
+- **Immutability + controlled adjustments**:
+  - Approved `TimeEntry` rows are immutable to standard endpoints.
+  - Post-approval changes are performed via `TimeEntryAdjustment` linked to the original entry, with full audit trail (see Data Requirements).
+  - For this story, the minimum required is enforcing immutability and providing the adjustment scaffolding hooks; adjustment UX/flow may be covered by a separate story.
+- **Idempotency**:
+  - Retrying the same approve/reject request should be safe; if no state changes are needed return `200 OK`.
+
+## Data Requirements
+### `TimeEntry`
+- **Fields (minimum)**: `id`, `employeeId`, `timePeriodId`, `status`, `clockIn`, `clockOut`, optional `jobCode`.
+- **Status enum**: `DRAFT`, `SUBMITTED`, `PENDING_APPROVAL`, `APPROVED` (and optionally `REJECTED` if used transiently).
+
+### `TimePeriod`
+- **Fields (minimum)**: `id`, `status` (`OPEN|SUBMISSION_CLOSED|PAYROLL_CLOSED`), plus configuration fields from Clarification #265 (timezone, payPeriodType, etc.).
+
+### `TimePeriodApproval` (append-only history)
+- **Fields**: `id`, `employeeId`, `timePeriodId`, `finalStatus (APPROVED|REJECTED)`, `approvingManagerId`, `rejectionReasonCode`, `rejectionNotes`, `processedAt`, `policyVersion`, optional `requestId`.
+- **Behavior**: create one record per approve/reject action; maintain history.
+
+### `TimeEntryAdjustment` (controlled adjustment)
+- **Fields**: `id`, `originalTimeEntryId`, `adjustmentDeltaMinutes`, `reasonCode`, `notes`, `status (DRAFT|APPROVED|REJECTED)`, `approvedAt`.
+- **Constraints**: allowed only after approval and before payroll close; requires reasonCode and notes; full audit trail.
+
+## Acceptance Criteria
+### AC1: Approve pending entries for a period
+- Given all entries for `{employeeId, timePeriodId}` are `PENDING_APPROVAL` and `TimePeriod.status >= SUBMISSION_CLOSED`
+- When manager approves
+- Then all entries become `APPROVED`
+- And a `TimePeriodApproval(finalStatus=APPROVED)` record is created
+- And an audit entry is written
+- And `TimeEntriesApprovedEvent` is published post-commit
+
+### AC2: Reject pending entries for a period (requires reason)
+- Given all entries for `{employeeId, timePeriodId}` are `PENDING_APPROVAL` and `TimePeriod.status >= SUBMISSION_CLOSED`
+- When manager rejects with `rejectionReasonCode` and non-empty `rejectionNotes`
+- Then a `TimePeriodApproval(finalStatus=REJECTED)` record is created with the reason metadata
+- And entries are returned to the employee as `DRAFT`
+- And an audit entry is written
+- And `TimeEntriesRejectedEvent` is published post-commit
+
+### AC3: Reject without required reason metadata
+- Given manager attempts to reject without reason code and/or notes
+- When reject is submitted
+- Then API returns `400 Bad Request`
+- And no entry statuses change
+
+### AC4: Mixed statuses prevent period decision
+- Given any entry for `{employeeId, timePeriodId}` is not `PENDING_APPROVAL`
+- When manager attempts approve/reject
+- Then API returns `409 Conflict` and identifies blocking `timeEntryIds`
+
+### AC5: Approved entries are immutable
+- Given a `TimeEntry` is `APPROVED`
+- When a standard update endpoint is called
+- Then the update is rejected
+- And the system requires use of the adjustment workflow for post-approval changes
+
+## Audit & Observability
+- **Audit log (immutable)** per approve/reject action must include: `timestamp`, `actingManagerId`, `affectedEmployeeId`, `timePeriodId`, `action`, `timeEntryIds`, `rejectionReasonCode/rejectionNotes` (if rejected), `policyVersion`, optional `requestId`, `ip`, `userAgent`.
+- **Events (post-commit)**:
+  - `TimeEntriesApprovedEvent`
+  - `TimeEntriesRejectedEvent`
+  - Payload includes: `employeeId`, `timePeriodId`, `actedByManagerId`, `processedAt`, `finalStatus`, and `timeEntryIds` (recommended).
+- **Notifications**: in-app/email notifications are handled asynchronously by consumers; the approval/reject API must not block on email delivery.
+- **Metrics**: count approvals/rejections over time, optionally per manager.
+
+## Open Questions
+None.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #83 — [BACKEND] [STORY] Timekeeping: Manager Approves/Rejects Time Entries
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Timekeeping: Manager Approves/Rejects Time Entries
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Manager**, I want **to approve or reject time entries** so that **time is locked and ready for export and reconciliation**.
+
+## Details
+- Reject requires reason.
+- Approved becomes read-only except controlled adjustment.
+
+## Acceptance Criteria
+- Approve/reject per person per period.
+- Reason required on rejection.
+- Audit trail includes actor and changes.
+
+## Integration Points (workexec/shopmgr)
+- Optional: workexec uses approved job time for labor posting.
+
+## Data / Entities
+- TimeEntryApproval
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #80: [BACKEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report
+LABELS: type:story,domain:people,status:ready-for-dev,agent:story-authoring,agent:people
+BODY:
+**Rewrite Variant:** crm-pragmatic  
+**Status:** Ready-for-dev (clarification #403 applied)
+
+## Story Intent
+As a **Manager**, I want a report that compares a technician's total attendance time (time clocked in) against their total productive time (time logged on jobs) for a given period, so that I can efficiently identify and investigate significant discrepancies, such as unaccounted-for time, potential payroll padding, or operational overhead.
+
+## Actors & Stakeholders
+- **Manager**: Requests and consumes the report.
+- **Technician**: Subject of the report.
+- **People domain**: Owns attendance time, threshold policy, and report generation.
+- **Work Execution domain (`pos-workexec`)**: **System of record** for job-time totals (approved productive labor), exposed via an API contract consumed by People domain.
+
+## Preconditions
+- Manager is authenticated and authorized to view the requested scope.
+- Caller provides `startDate`, `endDate` (inclusive), and `timezone` (IANA TZ) for day-boundary definitions.
+- Attendance records exist in People domain for the date range (or an empty result is valid).
+- Job time records exist in Work Execution domain for the date range (or an empty result is valid).
+
+## Functional Behavior
+1. Manager calls the People-domain report endpoint with `startDate`, `endDate`, `timezone`, and optional scoping parameters.
+2. People domain computes per **technician + location + local day**:
+   - **Total Attendance Time** (minutes), aggregated by local day in the requested `timezone`.
+3. People domain queries Work Execution **once per report** (bulk), using the Work Execution contract for job-time totals.
+4. People domain joins Work Execution results by grouping key:
+   - `technicianId + locationId + localDate`
+5. People domain computes discrepancy:
+   - `discrepancyMinutes = attendanceMinutes - totalJobMinutes`
+6. People domain resolves the effective threshold (global default with optional per-location override).
+7. People domain flags exceptions:
+   - `isFlagged = abs(discrepancyMinutes) > thresholdMinutes`
+8. People domain returns per-row summary including the threshold applied.
+
+## Alternate / Error Flows
+- **No attendance data**:
+  - Include a row only if `technicianIds` is explicitly requested OR there is job time for that day.
+  - Otherwise omit the row to avoid noisy all-zero output.
+- **No job time data**:
+  - If attendance exists, treat job time as 0 and discrepancy equals attendance.
+- **Work Execution dependency failure**:
+  - On any Work Execution non-2xx (e.g., 400/403/503/500), People domain fails the report request (no partial data in v1).
+- **Unauthorized**:
+  - If manager requests out-of-scope location/technician, return `403 Forbidden` (do not silently filter).
+
+## Business Rules
+- **Report granularity**: per technician + location + local day.
+- **Timezone/day boundaries**: use request param `timezone` (IANA TZ) to define the local day.
+- **Attendance aggregation (People domain)**:
+  - Sum clock-in/out pair durations in minutes.
+  - Split cross-midnight entries at the day boundary (per requested `timezone`).
+  - For open/unclosed attendance entries: cap at day end (or “now” if reporting includes today) and log a warning; do not fail the report.
+- **Job time aggregation (Work Execution domain; authoritative)**:
+  - People domain must not compute or infer job time.
+  - People domain consumes Work Execution daily totals (minutes int) and does not split or recompute days.
+  - Job time definition: **approved productive labor time only** (excludes draft/rejected/in-progress; excludes travel/breaks unless modeled as labor in Work Execution).
+- **Threshold resolution** (People domain timekeeping policy):
+  1. Location override where `scopeType=LOCATION` and `scopeId=locationId` and effective for the report date
+  2. Global default where `scopeType=GLOBAL`
+- **Default threshold**: `jobTimeDiscrepancyThresholdMinutes = 30`
+
+## Data Requirements
+### API Contract (People domain)
+
+**Endpoint**
+- `GET /api/people/reports/attendance-jobtime-discrepancy`
+
+**Query params**
+- `startDate` (required, `YYYY-MM-DD`)
+- `endDate` (required, `YYYY-MM-DD`, inclusive)
+- `timezone` (required, IANA TZ, e.g. `America/Chicago`)
+- `locationId` (optional; if omitted, scope is “all locations manager can access”)
+- `technicianIds` (optional; if omitted, include all technicians in scope)
+- `flaggedOnly` (optional, default `false`)
+
+**Response** (per technician *per day* *per location*)
+- Store/compute internally in **minutes**.
+- Return time fields as **decimal hours** rounded to **2 decimals**.
+- Return `thresholdApplied` in **minutes** (int).
+
+Fields:
+- `technicianId`
+- `technicianName`
+- `locationId`
+- `reportDate` (YYYY-MM-DD)
+- `totalAttendanceHours`
+- `totalJobHours`
+- `discrepancyHours`
+- `isFlagged`
+- `thresholdApplied`
+
+### API Contract (Work Execution domain) — resolved by clarification #403
+
+**Authoritative system:** Work Execution (`pos-workexec`) is the sole system of record for job-time totals.
+
+**Endpoint (required)**
+- `GET /api/workexec/job-time-totals`
+
+**Query params**
+- `startDate` (required, `YYYY-MM-DD`, inclusive)
+- `endDate` (required, `YYYY-MM-DD`, inclusive)
+- `timezone` (required, IANA TZ)
+- `locationId` (optional; if omitted, all authorized locations)
+- `technicianIds` (optional list<UUID>; if omitted, all technicians in scope)
+
+**Response row shape**
+```json
+{
+  "technicianId": "uuid",
+  "locationId": 123,
+  "localDate": "YYYY-MM-DD",
+  "totalJobMinutes": 360
+}
+```
+
+**Semantics**
+- Grouping keys: `technicianId + locationId + localDate`
+- Units: minutes (integer)
+- Included: approved/finalized labor only
+- Excluded: draft/rejected/in-progress; non-labor (travel/breaks) unless modeled as labor
+
+**Error taxonomy (stable codes)**
+- `403` `WORKEXEC_FORBIDDEN`
+- `400` `WORKEXEC_INVALID_REQUEST`
+- `503` `WORKEXEC_UNAVAILABLE`
+- `500` `WORKEXEC_INTERNAL_ERROR`
+
+**Cross-domain contract rule**
+- On any Work Execution non-2xx, People domain fails the report (no partial data).
+
+### Policy Entity (People domain)
+
+**TimekeepingPolicy**
+- `scopeType`: GLOBAL | LOCATION
+- `scopeId`: null for GLOBAL, `locationId` for LOCATION
+- `jobTimeDiscrepancyThresholdMinutes`: int
+- `effectiveStartAt`, `effectiveEndAt`: optional
+- audit fields: `updatedBy`, `updatedAt`
+
+## Acceptance Criteria
+
+**Scenario 1: Discrepancy Above Threshold**
+- Given attendance is 8.0 hours and job time is 6.0 hours for the same day
+- And threshold is 60 minutes
+- When the report is generated
+- Then discrepancy is 2.0 hours and `isFlagged=true`
+
+**Scenario 2: Discrepancy Below Threshold**
+- Given attendance is 8.0 hours and job time is 7.5 hours
+- And threshold is 60 minutes
+- When the report is generated
+- Then discrepancy is 0.5 hours and `isFlagged=false`
+
+**Scenario 3: Job Time Exceeds Attendance (Data Anomaly)**
+- Given attendance is 8.0 hours and job time is 9.5 hours
+- And threshold is 60 minutes
+- When the report is generated
+- Then discrepancy is -1.5 hours and `isFlagged=true`
+
+**Scenario 4: No Discrepancy**
+- Given attendance is 8.0 hours and job time is 8.0 hours
+- And threshold is 60 minutes
+- When the report is generated
+- Then discrepancy is 0.0 hours and `isFlagged=false`
+
+**Scenario 5: Location Override Threshold**
+- Given global threshold is 30 minutes and Location A override is 60 minutes
+- When a 45-minute discrepancy is reported for Location A
+- Then thresholdApplied is 60 and `isFlagged=false`
+
+## Audit & Observability
+- **Audit event (required)**
+  - Name: `REPORT_ATTENDANCE_VS_JOBTIME_GENERATED`
+  - Fields: `managerId`, `startDate`, `endDate`, `timezone`, optional `locationId`, optional `technicianIds`, optional `flaggedOnly`, `generatedAt`
+- **Metrics**
+  - `people.reports.attendance_jobtime_discrepancy.latency`
+  - `people.workexec.errors` (tag by status/exception)
+  - `people.reports.attendance_jobtime_discrepancy.generated`
+- **Logging**
+  - On Work Execution failure: error log with correlationId, request scope, upstream status/exception
+
+## Resolved Questions
+- Clarification #262: threshold configuration (global default + per-location override; default 30 minutes).
+- Clarification #403: Work Execution is SoR for job-time totals; bulk endpoint contract defined and adopted above.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #80 — [BACKEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Integration: Attendance vs Job Time Discrepancy Report
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Manager**, I want **a report comparing attendance time to job time** so that **I can identify gaps, overhead, and anomalies**.
+
+## Details
+- Summarize by technician/day/location.
+- Flag differences above a configurable threshold.
+
+## Acceptance Criteria
+- Report shows clocked hours vs job timer total.
+- Flags exceptions.
+
+## Integration Points (workexec)
+- Optional: correlate with labor lines for reconciliation.
+
+## Data / Entities
+- TimeEntry
+- JobLink
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+
+════════════════════════════════════════
+ISSUE #72: [BACKEND] [STORY] Dispatch: Import Mechanic Roster and Skills from HR
+LABELS: type:story,domain:people,status:ready-for-dev
+BODY:
+## Story Intent
+**As a** Dispatch/Shop Management backend,
+**I want** to import and maintain the mechanic roster and mechanic skill/certification data from the Durion HR system,
+**so that** dispatch decisions, work order assignments, and skill-based scheduling use the current authoritative roster and qualifications.
+
+## Actors & Stakeholders
+- **Durion HR System (SoR)**: authoritative source for employment status, roster, and certifications.
+- **Shop Management / Dispatch Backend (this repo)**: owns the local read model used by dispatch/scheduling.
+- **HR Administrator**: maintains roster/certifications in HR.
+- **Dispatch Manager**: depends on accurate roster + skill data for assignments.
+
+## Preconditions
+- HR is the system of record for mechanic identity/status and skills/certifications.
+- HR publishes events for roster and skill changes.
+- This service can consume HR events and (optionally) call an HR REST API for reconciliation.
+
+## Functional Behavior
+### Primary integration: event-driven push (authoritative)
+- HR publishes domain events when mechanic roster/skills change.
+- This service consumes events and **upserts** mechanics and skills using `personId` as the external identity key.
+
+**Supported event types (minimum):**
+- `MechanicUpserted`
+- `MechanicDeactivated`
+- `MechanicSkillsUpdated`
+
+**Event contract requirements (minimum):**
+- `eventId` (UUID)
+- `eventType`
+- `personId` (string)
+- Ordering field: `version` (int) **or** `effectiveAt` (timestamp)
+- `occurredAt` (timestamp)
+- `payload` containing mechanic details and skills (see payload strategy)
+
+**Payload strategy (required for implementability):**
+- Prefer **snapshot-style payloads** (not diffs):
+  - `MechanicUpserted` includes full mechanic snapshot + full current skills list.
+  - `MechanicSkillsUpdated` includes full current skills list.
+
+### Monotonic update rule (ordering)
+- Store `Mechanic.version` (preferred) or `Mechanic.lastEffectiveAt`.
+- Processing:
+  - If incoming ordering value is **<=** stored ordering value: **discard/no-op** (log as stale/out-of-order).
+  - Else: apply update and persist ordering value.
+
+### Idempotency / dedupe
+- Consumers must be idempotent.
+- Implement dedupe using both:
+  1) ordering rule above, and
+  2) `eventId` dedupe via an integration log table.
+
+### Secondary integration: REST reconciliation/backfill (fallback only)
+- A scheduled job (configurable cron; e.g., nightly) may call HR to reconcile ACTIVE mechanics.
+- Example endpoint: `GET /hr/v1/mechanics?status=ACTIVE&modifiedSince=...` (or without `modifiedSince` if unsupported).
+
+**Reconciliation rules:**
+1. Fetch ACTIVE mechanics from HR.
+2. Upsert each using the same monotonic ordering logic.
+3. Any locally ACTIVE mechanic missing from the HR ACTIVE response is marked `INACTIVE`.
+
+## Alternate / Error Flows
+- **Malformed event** (missing `personId`, missing ordering field, unsupported schema version): log structured error, send to DLQ, emit alert.
+- **Transient processing failure** (DB/network): retry via broker retry policy; DLQ only after retry exhaustion.
+- **HR REST API unavailable during reconciliation**: exponential backoff retries; alert on final failure.
+
+## Business Rules
+- **BR1 (SoR):** HR is authoritative; this service must not provide local edit flows that contradict HR.
+- **BR2 (Primary integration):** event-driven push is primary; REST is fallback/backfill only.
+- **BR3 (Ordering):** only newer versions/effective timestamps may overwrite stored state.
+- **BR4 (Idempotent):** reprocessing the same event must not create duplicates or corrupt state.
+- **BR5 (Deactivation):** `MechanicDeactivated` sets `status=INACTIVE` (and `terminationDate` if provided); INACTIVE mechanics are excluded from new assignment queries.
+
+## Data Requirements
+### Mechanic (read model)
+- `mechanicId` (UUID, PK)
+- `personId` (string, unique; external upsert key)
+- `firstName`, `lastName`
+- `status` (Enum: `ACTIVE`, `INACTIVE`, `ON_LEAVE`)
+- `hireDate`, `terminationDate?`
+- `version` (int) or `lastEffectiveAt` (timestamp)
+- `lastSyncedAt` (timestamp)
+
+### MechanicSkill
+- Unique constraint: `(mechanicId, skillCode)`
+- Suggested fields: `skillCode`, `proficiencyLevel`, `certifiedDate`, `expirationDate?`
+- Update semantics on snapshot events: **replace-set** (upsert present skills; remove missing skills or mark inactive—choose one implementation, default to hard delete unless history is required).
+
+### Integration/audit tables
+- `hr_integration_log(eventId PK, personId, eventType, receivedAt, processedAt, status, errorMessage, payloadHash)`
+- `mechanic_audit_log(eventId, personId, eventType, before, after, appliedAt)` (immutable)
+
+## Acceptance Criteria
+- **AC1: New mechanic upsert** — consuming `MechanicUpserted` creates/updates the local `Mechanic` + skills; mechanic becomes available for dispatch queries.
+- **AC2: Deactivation** — consuming `MechanicDeactivated` marks mechanic `INACTIVE` and excludes from new assignment queries.
+- **AC3: Skills update** — consuming `MechanicSkillsUpdated` updates the mechanic’s skills so skill-based queries reflect the new snapshot.
+- **AC4: Out-of-order handling** — an event with ordering value older/equal to stored value is discarded/no-op; stored record remains unchanged.
+- **AC5: Malformed event** — missing required fields routes to DLQ and emits alert; no partial write occurs.
+- **AC6: Reconciliation** — nightly reconciliation upserts ACTIVE roster and marks missing ACTIVE mechanics as `INACTIVE`.
+
+## Audit & Observability
+- Persist immutable audit entries for every applied change with `eventId`, `personId`, `eventType`, before/after, and timestamp.
+- Metrics (minimum):
+  - `hr_events_processed_total{type}`
+  - `hr_events_dlq_total{type,reason}`
+  - `hr_event_processing_latency_ms`
+  - `hr_reconciliation_success_total`, `hr_reconciliation_failure_total`
+
+## Open Questions
+None.
+
+## Traceability / Sources
+- Clarification Issue #257 resolved the primary integration pattern: **event-driven push is definitive primary; REST pull is fallback/backfill only**.
+
+## Original Story (Unmodified – For Traceability)
+# Issue #72 — [BACKEND] [STORY] Dispatch: Import Mechanic Roster and Skills from HR
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Dispatch: Import Mechanic Roster and Skills from HR
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As the **Dispatch System**, I want to import the mechanic roster and skills from Durion-HR, so that assignments reflect current certifications and availability.
+
+## Details
+- Import roster: Name, status (active/inactive), skills, proficiency levels, cert dates.
+- Either push (HR publishes events) or pull (scheduled or on-demand).
+
+## Acceptance Criteria
+- Mechanic data synchronized.
+- Skills updated.
+- Status changes reflected.
+
+## Integrations
+- Durion-HR is system-of-record; Dispatch/Shopmgr consumes.
+
+## Data / Entities
+- Mechanic, MechanicSkill, HRIntegrationLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Integration
+- Domain: Shop Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════
+ISSUE #58: [BACKEND] [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr
+LABELS: type:story,domain:people,status:ready-for-dev,agent:story-authoring,agent:workexec,agent:people
+BODY:
+## 🏷️ Labels (Proposed)
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:story-authoring
+- agent:people
+- agent:workexec
+
+### Blocking / Risk
+- none
+
+**Rewrite Variant:** clarification-406-applied
+
+## Story Intent
+As a **Payroll Clerk**, I want the People/HR system to ingest finalized work session facts produced by Shop Management so that payroll timekeeping entries are complete, auditable, and ready for HR approval workflows.
+
+## Actors & Stakeholders
+- **Primary actor:** Payroll Clerk
+- **Primary domain owner / SoR for payroll timekeeping:** People/HR (`domain:people`) owns `TimekeepingEntry`.
+- **Upstream producer of operational work session facts:** Shop Management / Workexec (`domain:workexec`) publishes `WorkSessionCompleted`.
+- **Stakeholders:** Compliance Officer, Shop Manager
+
+## Preconditions
+- `shopmgr` publishes an event when a work session is finalized: `WorkSessionCompleted` (v1).
+- `WorkSessionCompleted` includes required idempotency fields: `tenantId` and `sessionId`.
+- People/HR has (or will add) a `TimekeepingEntry` model with an approval lifecycle (e.g., `PENDING_APPROVAL`, `APPROVED`, `REJECTED`).
+
+## Functional Behavior
+### 1) Domain ownership (from Decision Record on #58)
+- **Primary story owner:** `domain:people` owns ingestion, mapping/validation, idempotency, and persistence of `TimekeepingEntry`.
+- `domain:workexec`/shopmgr remains the producer of operational work session facts and does not implement HR/payroll rules.
+
+### 2) Integration contract (from Decision Record on #58)
+- **Decision:** Asynchronous event ingestion from shopmgr → people.
+- Producer publishes `WorkSessionCompleted` when a session is finalized/closed.
+- People subscribes and ingests into `TimekeepingEntry`.
+
+### 3) Idempotency + stability (resolved by Clarification #406)
+- **Idempotency key:** `(tenantId, sessionId)`.
+- **Stability:** `sessionId` is immutable and never reused.
+- People MUST deduplicate on `(tenantId, sessionId)` and treat duplicate deliveries as no-op.
+
+### 4) Ingestion flow (People-owned)
+1. People receives `WorkSessionCompleted`.
+2. Validate required fields:
+   - Must include `tenantId` and `sessionId` (reject if missing).
+3. Perform idempotency lookup using `(tenantId, sessionId)`.
+4. If new:
+   - Map event → `TimekeepingEntry`.
+   - Default `approvalStatus` to `PENDING_APPROVAL`.
+   - Persist the entry.
+5. If duplicate:
+   - Record metric/log duplicate and ack/complete without creating or modifying entries.
+
+### 5) System of record + correction semantics (from Decision Record on #58, confirmed)
+- After ingestion, `people.TimekeepingEntry` is the system of record for payroll.
+- `WorkSessionCompleted` is treated as immutable/final for payroll purposes.
+- Corrections are communicated by shopmgr via explicit events:
+  - `WorkSessionCorrected` (preferred), or
+  - `WorkSessionVoided` followed by a new `WorkSessionCompleted` with a new `sessionId`.
+- People records corrections as an immutable adjustment entry (preferred) or as a versioned update history (must be explicitly chosen in implementation).
+
+### 6) Out of scope (from Decision Record on #58)
+- HR → shopmgr “approval feedback” updates are out of scope for this story.
+
+## Alternate / Error Flows
+- **Missing required fields (`tenantId` or `sessionId`)**: reject event, route to DLQ/alerting, and do not persist partial records.
+- **Invalid payload/schema violation**: reject and route to DLQ/alerting; no record persisted.
+- **Duplicate delivery**: no-op; record metric.
+- **Mapping/transformation error**: log failure and do not persist partial record.
+
+## Business Rules
+- Ingestion MUST be idempotent: one finalized session results in exactly one `TimekeepingEntry` for the idempotency key.
+- All newly created `TimekeepingEntry` records default to `PENDING_APPROVAL`.
+- People is authoritative for payroll after ingestion; operational session tracking remains in shopmgr/workexec.
+
+## Data Requirements
+### Source event: `WorkSessionCompleted.v1`
+**Guaranteed fields (Clarification #406):**
+- `tenantId` (required)
+- `sessionId` (required)
+- `employeeId`
+- `startTime`
+- `endTime`
+
+**Optional/contextual fields:**
+- `shopId` / `locationId` (may be present but not required for idempotency)
+- `workOrderId` (optional)
+
+### Destination: `TimekeepingEntry` (people)
+- `timekeepingEntryId` (UUID)
+- `tenantId`
+- `sourceSystem = 'shopmgr'`
+- `sourceSessionId = sessionId`
+- `employeeId`
+- `sessionStartTime`, `sessionEndTime`
+- `approvalStatus`
+- `associatedWorkOrderId` (optional)
+
+### Persistence constraint (idempotency)
+- Enforce uniqueness on `(tenantId, sourceSystem, sourceSessionId)` (or equivalent) so duplicates cannot create double payroll.
+
+## Acceptance Criteria
+- **AC1: Successful ingestion**
+  - Given no existing entry for `(tenantId, sessionId)`
+  - When a valid `WorkSessionCompleted` is received
+  - Then a new `TimekeepingEntry` is created with `approvalStatus = PENDING_APPROVAL`.
+
+- **AC2: Duplicate delivery is idempotent**
+  - Given an entry already exists for `(tenantId, sessionId)`
+  - When a duplicate `WorkSessionCompleted` is received
+  - Then no new entry is created and the existing entry is not modified.
+
+- **AC3: Required fields enforced**
+  - When `tenantId` or `sessionId` is missing
+  - Then the event is rejected (DLQ/alerting) and no `TimekeepingEntry` is created.
+
+- **AC4: Corrections handled via explicit events**
+  - Given a `WorkSessionCompleted` has been ingested
+  - When a `WorkSessionCorrected` or `WorkSessionVoided` is later received
+  - Then People records an auditable correction (adjustment or version history) without silently overwriting the original finalized payroll fact.
+
+## Audit & Observability
+- Audit each `TimekeepingEntry` creation with source event identifiers, timestamp, and system principal.
+- Metrics:
+  - ingestion success count
+  - ingestion failure count (tagged by reason: `missing_required_fields`, `schema_invalid`, `mapping_error`)
+  - duplicates detected count
+
+## Open Questions (if any)
+- none (Clarification #406 resolved the remaining blocker)
+
+## Original Story (Unmodified – For Traceability)
+# Issue #58 — [BACKEND] [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr
+
+## Current Labels
+- backend
+- story-implementation
+- user
+
+## Current Body
+## Backend Implementation for Story
+
+**Original Story**: [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Payroll Clerk**, I want HR to receive work sessions from shopmgr so that payroll and compliance reporting can be produced.
+
+## Details
+- HR stores sessions with approval status.
+- Reject/adjust supported.
+
+## Acceptance Criteria
+- Ingest idempotent.
+- Visible for payroll.
+- Approval tracked.
+
+## Integrations
+- Shopmgr→HR WorkSession events/API; optional HR→Shopmgr approval updates.
+
+## Data / Entities
+- TimekeepingEntry (hr domain)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Shop Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+

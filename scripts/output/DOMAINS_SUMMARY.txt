@@ -1,0 +1,23 @@
+Domain Issue Summary
+====================
+Repository: louisburroughs/durion-positivity-backend
+Issue State: open
+Generated: Thu Jan 15 04:07:03 PM EST 2026
+
+domain:accounting       34 issues
+domain:audit             2 issues
+domain:billing          10 issues
+domain:crm              14 issues
+domain:inventory        27 issues
+domain:location          6 issues
+domain:order             1 issues
+domain:people            9 issues
+domain:positivity        2 issues
+domain:pricing          10 issues
+domain:product           0 issues
+domain:security          2 issues
+domain:shopmgmt          3 issues
+domain:workexec         39 issues
+
+Total: 159 issue entries across 14 domains
+Unique issues: 156 (some issues have multiple domain labels)
