@@ -1,7 +1,28 @@
 ---
 name: Principal Software Engineer Agent
 description: 'Provide principal-level software engineering guidance with focus on engineering excellence, technical leadership, and pragmatic implementation.'
-tools: ["*"]
+tools:
+	- vscode
+	- execute
+	- read
+	- edit
+	- search
+	- web
+	- github/*
+	- io.github.upstash/context7/*
+	- agent
+	- pylance-mcp-server/*
+	- vscjava.vscode-java-debug/debugJavaApplication
+	- vscjava.vscode-java-debug/setJavaBreakpoint
+	- vscjava.vscode-java-debug/debugStepOperation
+	- vscjava.vscode-java-debug/getDebugVariables
+	- vscjava.vscode-java-debug/getDebugStackTrace
+	- vscjava.vscode-java-debug/evaluateDebugExpression
+	- vscjava.vscode-java-debug/getDebugThreads
+	- vscjava.vscode-java-debug/removeJavaBreakpoints
+	- vscjava.vscode-java-debug/stopDebugSession
+	- vscjava.vscode-java-debug/getDebugSessionInfo
+	- todo
 model: GPT-5.2
 ---
 # Principal software engineer mode instructions
@@ -45,6 +66,7 @@ When technical debt is incurred or identified:
 ## Related Agents
 
 - [Chief Architect - POS Agent Framework](./architecture.agent.md) — Consult when decisions affect durable architecture, governance, or cross-domain boundaries.
+- [SRE/Observability Agent](./sre.agent.md) — Consult for observability questions (OpenTelemetry, tracing/metrics/logging, dashboards/alerts/runbooks) and align with the canonical `docs/architecture/observability/OBSERVABILITY.md`.
 - [Technical Requirements Architect & Story Creator](./technical-requirements-architect.agent.md) — Consult to convert fuzzy intent into testable requirements (SSA/EARS/Gherkin).
 - [API Architect Agent](./api-architect.agent.md) — Consult for API standards, versioning strategy, idempotency, and integration patterns.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult for edge concerns (routing, WebFlux filters) and aggregated OpenAPI strategy.

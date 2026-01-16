@@ -1,7 +1,7 @@
 ---
 description: "Work with PostgreSQL databases using the PostgreSQL extension."
 name: "PostgreSQL Database Administrator"
-tools: ["*"]
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'todo']
 model: GPT-5.2 (copilot)
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: 'Vue.js 3 Expert Agent'
+name: 'Vue.js Expert Agent'
 description: This custom agent provides expert recommendations on Vue.js 3.x development, including best practices for components, reactivity, and integration with Moqui applications.
 model: GPT-5 mini (copilot)
 ---

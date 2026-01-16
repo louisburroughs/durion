@@ -99,3 +99,18 @@ When answering:
 5. Always warn the user before they disable "Self-Preservation Mode" in production.
 
 ```
+
+## Collaboration (APIs: Discoverability & Load Balancing)
+
+When building or changing API services, ensure **discoverability** and **load balancing** are addressed end-to-end:
+
+- **Discoverability**: services register as Eureka clients with correct health checks and stable instance identity.
+- **Load balancing**: gateway and service-to-service calls use service IDs (e.g., `lb://SERVICE-ID`) so traffic is distributed across instances.
+
+Coordinate API exposure and routing with the agents below to keep contracts, routes, and discovery metadata consistent.
+
+## Related Agents
+
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Align Gateway routing with Eureka discovery and `lb://` URIs; keep OpenAPI aggregation discoverable.
+- [API Architect Agent](./api-architect.agent.md) — Align API contracts and versioning with gateway exposure patterns and discovery expectations.
+- [Senior Software Engineer - REST API Agent](./api.agent.md) — Ensure API implementations are consistent with gateway routes and operational requirements (health checks, docs, error model).

@@ -1,14 +1,12 @@
-Designing an Open Source application for observability using OpenTelemetry with hundreds of Spring Boot microservices in Docker containers involves a layered approach. The core idea is to leverage OpenTelemetry's standardized instrumentation and collection capabilities, centralize data, and provide flexible backend storage and visualization.
-
-Here's an Open Source application design:
+# Observability
 
 ## Architecture Overview
 
 At a high level, the architecture would look like this:
 
-1.  **Instrumented Spring Boot Microservices (Clients):** Hundreds of Spring Boot microservices, each running in its own Docker container, generate telemetry data (traces, metrics, logs).
-2.  **OpenTelemetry Collector (Gateway):** A cluster of OpenTelemetry Collectors acts as a central gateway, receiving telemetry from all microservices, processing it, and forwarding it to the backend.
-3.  **Observability Backend (Storage & Analysis):** Open-source tools for storing, querying, and visualizing traces, metrics, and logs. This is where the collected telemetry data resides for analysis.
+1. **Instrumented Spring Boot Microservices (Clients):** Hundreds of Spring Boot microservices, each running in its own Docker container, generate telemetry data (traces, metrics, logs).
+2. **OpenTelemetry Collector (Gateway):** A cluster of OpenTelemetry Collectors acts as a central gateway, receiving telemetry from all microservices, processing it, and forwarding it to the backend.
+3. **Observability Backend (Storage & Analysis):** Open-source tools for storing, querying, and visualizing traces, metrics, and logs. This is where the collected telemetry data resides for analysis.
 
 ```mermaid
 graph TD
@@ -42,16 +40,16 @@ graph TD
 ### 1. Spring Boot Microservices (Clients)
 
 * **Instrumentation:**
-    * **OpenTelemetry Java Agent:** The most common and recommended approach for Spring Boot. This Java agent can be attached to the JVM at startup (`-javaagent:path/to/opentelemetry-javaagent.jar`) and provides automatic instrumentation for popular libraries and frameworks used by Spring Boot (e.g., Spring Web, JDBC, HTTP clients, Kafka, etc.). This minimizes code changes.
-    * **Micrometer Tracing with OpenTelemetry Exporter:** Spring Boot 3 has adopted Micrometer Tracing as its observability abstraction. By including `micrometer-tracing-bridge-otel` and `opentelemetry-exporter-otlp`, Spring Boot applications can automatically generate OpenTelemetry-compliant traces and metrics. This is often used in conjunction with the Java agent for more comprehensive coverage.
-    * **Manual Instrumentation (Optional):** For specific business logic or custom operations not covered by auto-instrumentation, developers can use the OpenTelemetry API to manually create spans, add attributes, and record metrics.
+  * **OpenTelemetry Java Agent:** The most common and recommended approach for Spring Boot. This Java agent can be attached to the JVM at startup (`-javaagent:path/to/opentelemetry-javaagent.jar`) and provides automatic instrumentation for popular libraries and frameworks used by Spring Boot (e.g., Spring Web, JDBC, HTTP clients, Kafka, etc.). This minimizes code changes.
+  * **Micrometer Tracing with OpenTelemetry Exporter:** Spring Boot 3 has adopted Micrometer Tracing as its observability abstraction. By including `micrometer-tracing-bridge-otel` and `opentelemetry-exporter-otlp`, Spring Boot applications can automatically generate OpenTelemetry-compliant traces and metrics. This is often used in conjunction with the Java agent for more comprehensive coverage.
+  * **Manual Instrumentation (Optional):** For specific business logic or custom operations not covered by auto-instrumentation, developers can use the OpenTelemetry API to manually create spans, add attributes, and record metrics.
 * **Log Correlation:**
-    * Use a logging framework like Logback or Log4j2.
-    * Configure the logging framework to include `traceId` and `spanId` (automatically propagated by OpenTelemetry) in log messages, ideally in JSON format. This allows for correlation of logs with traces.
+  * Use a logging framework like Logback or Log4j2.
+  * Configure the logging framework to include `traceId` and `spanId` (automatically propagated by OpenTelemetry) in log messages, ideally in JSON format. This allows for correlation of logs with traces.
 * **Docker Containerization:**
-    * Each Spring Boot microservice is packaged into a Docker image.
-    * The Dockerfile for each service will include the OpenTelemetry Java Agent (if used) and ensure that the application is configured to send telemetry data to the OpenTelemetry Collector.
-    * Example Dockerfile snippet for Java Agent:
+  * Each Spring Boot microservice is packaged into a Docker image.
+  * The Dockerfile for each service will include the OpenTelemetry Java Agent (if used) and ensure that the application is configured to send telemetry data to the OpenTelemetry Collector.
+  * Example Dockerfile snippet for Java Agent:
         ```dockerfile
         FROM openjdk:17-jdk-slim
         WORKDIR /app
@@ -60,37 +58,37 @@ graph TD
         CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "/app/your-app.jar"]
         ```
 * **Configuration (e.g., `application.yml` or Environment Variables):**
-    * `otel.service.name`: Unique name for each microservice.
-    * `otel.resource.attributes`: Additional attributes to identify the service (e.g., environment, version).
-    * `otel.exporter.otlp.endpoint`: The endpoint of the OpenTelemetry Collector (e.g., `http://otel-collector:4317` for gRPC or `http://otel-collector:4318` for HTTP).
-    * `otel.traces.sampler.arg`: Sampling probability (e.g., `1.0` for full sampling in development, `0.1` for 10% sampling in production).
+  * `otel.service.name`: Unique name for each microservice.
+  * `otel.resource.attributes`: Additional attributes to identify the service (e.g., environment, version).
+  * `otel.exporter.otlp.endpoint`: The endpoint of the OpenTelemetry Collector (e.g., `http://otel-collector:4317` for gRPC or `http://otel-collector:4318` for HTTP).
+  * `otel.traces.sampler.arg`: Sampling probability (e.g., `1.0` for full sampling in development, `0.1` for 10% sampling in production).
 
 ### 2. OpenTelemetry Collector Cluster (Gateway)
 
 * **Deployment:** Deploy as a scalable cluster (e.g., using Kubernetes StatefulSets or a Docker Compose setup with multiple replicas) to handle the load from hundreds of microservices.
 * **Configuration (`otel-collector-config.yaml`):**
-    * **Receivers:**
-        * `otlp:` Configured to receive OpenTelemetry Protocol (OTLP) data via gRPC (port 4317) and HTTP (port 4318). This is the standard protocol for OpenTelemetry.
-        * Potentially other receivers if you have legacy systems (e.g., `jaeger`, `zipkin`, `prometheus`).
-    * **Processors:**
-        * `batch:` Batches telemetry data to improve export efficiency. Crucial for high-volume scenarios.
-        * `memory_limiter:` Prevents the collector from consuming excessive memory.
-        * `queued_retry:` Provides resilience by queuing data and retrying exports if the backend is temporarily unavailable.
-        * `attributes:` Enrich data with common attributes (e.g., `cluster_name`, `datacenter`).
-        * `resource:` Add or modify resource attributes (e.g., host information).
-        * `tail_sampling:` Implement advanced sampling strategies (e.g., always sample errors, or sample a fixed percentage of traces).
-        * `filter:` Filter out sensitive data or unnecessary telemetry.
-    * **Exporters:**
-        * **Traces:**
-            * `jaeger:` Export traces to Jaeger (e.g., `jaeger:14250` for gRPC).
-            * `otlp:` Export traces to a different OTLP-compliant backend if desired.
-        * **Metrics:**
-            * `prometheus:` Exposes a Prometheus scrape endpoint for the collector itself, and can forward metrics to Prometheus.
-            * `otlp:` Export metrics to an OTLP-compliant metrics store.
-        * **Logs:**
-            * `loki:` Export logs to Loki.
-            * `otlp:` Export logs to an OTLP-compliant log store.
-    * **Pipelines:** Define pipelines for `traces`, `metrics`, and `logs`, specifying which receivers, processors, and exporters to use for each signal type.
+  * **Receivers:**
+    * `otlp:` Configured to receive OpenTelemetry Protocol (OTLP) data via gRPC (port 4317) and HTTP (port 4318). This is the standard protocol for OpenTelemetry.
+    * Potentially other receivers if you have legacy systems (e.g., `jaeger`, `zipkin`, `prometheus`).
+  * **Processors:**
+    * `batch:` Batches telemetry data to improve export efficiency. Crucial for high-volume scenarios.
+    * `memory_limiter:` Prevents the collector from consuming excessive memory.
+    * `queued_retry:` Provides resilience by queuing data and retrying exports if the backend is temporarily unavailable.
+    * `attributes:` Enrich data with common attributes (e.g., `cluster_name`, `datacenter`).
+    * `resource:` Add or modify resource attributes (e.g., host information).
+    * `tail_sampling:` Implement advanced sampling strategies (e.g., always sample errors, or sample a fixed percentage of traces).
+    * `filter:` Filter out sensitive data or unnecessary telemetry.
+  * **Exporters:**
+    * **Traces:**
+      * `jaeger:` Export traces to Jaeger (e.g., `jaeger:14250` for gRPC).
+      * `otlp:` Export traces to a different OTLP-compliant backend if desired.
+    * **Metrics:**
+      * `prometheus:` Exposes a Prometheus scrape endpoint for the collector itself, and can forward metrics to Prometheus.
+      * `otlp:` Export metrics to an OTLP-compliant metrics store.
+    * **Logs:**
+      * `loki:` Export logs to Loki.
+      * `otlp:` Export logs to an OTLP-compliant log store.
+  * **Pipelines:** Define pipelines for `traces`, `metrics`, and `logs`, specifying which receivers, processors, and exporters to use for each signal type.
 
 * **Docker Image:** Use the `otel/opentelemetry-collector-contrib` Docker image, which includes a wide range of receivers, processors, and exporters.
 * **Scaling:** Use a container orchestration platform like Kubernetes to automatically scale the Collector cluster based on incoming telemetry load.
@@ -100,26 +98,26 @@ graph TD
 This layer provides the persistent storage, querying capabilities, and visualization for your telemetry data. All components here are open-source.
 
 * **Traces:**
-    * **Jaeger:**
-        * **Components:** `jaeger-collector`, `jaeger-query`, `jaeger-agent`, `jaeger-all-in-one` (for small setups), and a storage backend (e.g., Cassandra, Elasticsearch, or Badger for ephemeral).
-        * **Purpose:** Stores and visualizes distributed traces, allowing you to see the full path of a request through your microservices. Provides dependency graphs and flame graphs for troubleshooting.
-        * **Deployment:** Typically deployed as Docker containers or Kubernetes deployments.
+  * **Jaeger:**
+    * **Components:** `jaeger-collector`, `jaeger-query`, `jaeger-agent`, `jaeger-all-in-one` (for small setups), and a storage backend (e.g., Cassandra, Elasticsearch, or Badger for ephemeral).
+    * **Purpose:** Stores and visualizes distributed traces, allowing you to see the full path of a request through your microservices. Provides dependency graphs and flame graphs for troubleshooting.
+    * **Deployment:** Typically deployed as Docker containers or Kubernetes deployments.
 * **Metrics:**
-    * **Prometheus:**
-        * **Components:** `prometheus-server` (for scraping and storage), `alertmanager` (for alerting), `node-exporter` (for host metrics).
-        * **Purpose:** Pull-based metrics system. The OpenTelemetry Collector can expose a Prometheus-compatible endpoint, or you can configure Prometheus to scrape the Collector directly. Stores time-series data for quantitative analysis.
-        * **Deployment:** Docker container.
+  * **Prometheus:**
+    * **Components:** `prometheus-server` (for scraping and storage), `alertmanager` (for alerting), `node-exporter` (for host metrics).
+    * **Purpose:** Pull-based metrics system. The OpenTelemetry Collector can expose a Prometheus-compatible endpoint, or you can configure Prometheus to scrape the Collector directly. Stores time-series data for quantitative analysis.
+    * **Deployment:** Docker container.
 * **Logs:**
-    * **Loki:**
-        * **Components:** `loki` (main server), `promtail` (agent for collecting logs).
-        * **Purpose:** Log aggregation system designed for cost-effective log storage and querying. It indexes log metadata (labels) rather than full log content, making it efficient for large volumes.
-        * **Deployment:** Docker container. Alternatively, **OpenSearch / Elasticsearch + Kibana** can be used for more full-text search capabilities, but might be more resource-intensive for hundreds of services.
+  * **Loki:**
+    * **Components:** `loki` (main server), `promtail` (agent for collecting logs).
+    * **Purpose:** Log aggregation system designed for cost-effective log storage and querying. It indexes log metadata (labels) rather than full log content, making it efficient for large volumes.
+    * **Deployment:** Docker container. Alternatively, **OpenSearch / Elasticsearch + Kibana** can be used for more full-text search capabilities, but might be more resource-intensive for hundreds of services.
 * **Visualization & Dashboards:**
-    * **Grafana:**
-        * **Purpose:** A powerful open-source platform for data visualization and monitoring. It can connect to Jaeger (for traces), Prometheus (for metrics), and Loki (for logs) to create unified dashboards.
-        * **Dashboards:** Create custom dashboards to monitor service health, performance, error rates, resource utilization, and to drill down from high-level metrics to specific traces and logs.
-        * **Alerting:** Configure alerts based on metric thresholds or log patterns.
-        * **Deployment:** Docker container.
+  * **Grafana:**
+    * **Purpose:** A powerful open-source platform for data visualization and monitoring. It can connect to Jaeger (for traces), Prometheus (for metrics), and Loki (for logs) to create unified dashboards.
+    * **Dashboards:** Create custom dashboards to monitor service health, performance, error rates, resource utilization, and to drill down from high-level metrics to specific traces and logs.
+    * **Alerting:** Configure alerts based on metric thresholds or log patterns.
+    * **Deployment:** Docker container.
 
 ## Deployment Strategy (Example with Docker Compose or Kubernetes)
 
@@ -284,35 +282,39 @@ scrape_configs:
 
 This design provides a robust, scalable, and flexible observability solution for a microservices architecture built with Spring Boot and Docker, all leveraging the power of Open Source software and the OpenTelemetry standard.
 
-![Observability Architecture](aws_observability_diagram.png)
+![Observability Architecture](./observability-architecture.png)
 
-The image shows a comprehensive AWS Observability Architecture 
-diagram with the following 
-components:
+The image shows a comprehensive AWS Observability Architecture diagram with the following components:
 
 ## Application Layer
+
 • **Application Services (ECS Fargate)**: Contains three microservices (Service 1, Service 2, and Service 3) running in AWS Fargate containers
 
 ## Data Collection Layer
+
 • **OpenTelemetry Collector Cluster**: Contains two OpenTelemetry collectors (OTel Collector 1 and OTel Collector 2) that receive telemetry data from the application services
 • The collectors are represented with the OpenTelemetry logo (green hexagon with "N")
 • Green arrows indicate log data flow, blue arrows indicate trace data flow, and orange arrows indicate metrics data flow
 
 ## Observability Stack (ECS Fargate)
+
 • **Logging**: Loki for log aggregation and management
 • **Tracing**: Jaeger for distributed tracing visualization
 • **Metrics**: Prometheus for metrics collection and alerting
 • **Visualization**: Grafana dashboard that integrates with all three data sources
 
 ## Storage Layer
+
 • **Logs Storage**: S3-compatible storage for log data (represented by the S3 bucket icon)
 • **Traces Storage**: ElastiCache-compatible storage for trace data
 • **Metrics Storage**: DynamoDB-compatible storage for metrics data
 
 ## Network Layer
+
 • **Application Load Balancer**: Provides external access to the Grafana dashboard
 
 The diagram effectively illustrates the complete observability pipeline:
+
 1. Application services generate telemetry data
 2. OpenTelemetry collectors receive, process, and route the data
 3. Specialized backends (Loki, Jaeger, Prometheus) store and process specific types of telemetry

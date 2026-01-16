@@ -1,7 +1,8 @@
 ---
 name: Senior Software Engineer - REST API Agent
 description: Senior Software Engineer - REST API development and error handling
-tools: ["*"]
+tools:
+    ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'todo']
 model: Claude Sonnet 4.5 (copilot)
 ---
   
@@ -429,6 +430,7 @@ When creating APIs, document:
 - **Collaborate with `test_agent`** to ensure API contract tests are comprehensive
 - **Coordinate with `sre_agent`** to instrument API endpoints with metrics (response times, error rates)
 - **Work with `dba_agent`** to optimize queries used in API endpoints for performance
+- **When APIs must be discoverable/load balanced** (POS backend + gateway patterns), coordinate with the Eureka, API Architect, and Gateway agents to ensure service registration and `lb://SERVICE-ID` routing stays consistent.
 
 ## Related Agents
 
@@ -439,4 +441,6 @@ When creating APIs, document:
 - [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring MVC/WebFlux, modern Jakarta APIs, and Springdoc/OpenAPI patterns.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult when endpoint work impacts query performance, pagination, or data model fit.
 - [Database Administrator Agent](./dba.agent.md) — Consult for migration strategy, schema lifecycle, and environment parity.
+- [API Architect Agent](./api-architect.agent.md) — Consult for contract standards, versioning, and integration patterns that must align across services.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when changes must stay consistent with gateway routing and aggregated docs.
+- [Netflix Eureka Server Expert](./netflix-eureka.agent.md) — Consult to ensure service discovery and client-side load balancing patterns are correctly applied.
