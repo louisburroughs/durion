@@ -1,7 +1,7 @@
 ---
 name: 'Generic Code Review Instructions'
 description: 'Generic code review instructions that can be customized for any project using GitHub Copilot'
-applyTo: '**/*.java'
+applyTo: '**/*.java, **/*.ts, **/*.js, **/*.py, **/*.go, **/*.kt, **/*.rs, **/*.groovy'
 ---
 
 # Generic Code Review Instructions
@@ -409,32 +409,41 @@ When performing a code review, apply these prompt engineering principles from th
 
 ## Project Context
 
-Durion ERP - Moqui Framework Project
+Durion Platform (Moqui frontend platform + POS Spring Boot backend)
 
-- **Tech Stack**: 
-  - Backend: Moqui Framework (Java-based), Groovy scripting
-  - Frontend: Vue.js 2.7.14, Quasar v1.22.10, TypeScript 4.x+
-  - Database: PostgreSQL (primary), MySQL (supported)
-  - Templating: FreeMarker (.ftl)
-  
-- **Architecture**: 
-  - Component-based Moqui framework architecture
-  - REST API layer for frontend integration
-  - Multi-tenant ERP structure
-  
-- **Build Tool**: 
-  - Backend: Gradle (gradlew)
-  - Frontend: npm/yarn for Vue.js components
-  
-- **Testing**: 
-  - Backend: JUnit (Moqui testing framework)
-  - Frontend: Jest for TypeScript/Vue components
-  
-- **Deployment**: 
-  - Docker containers (Compose configurations available)
-  - Support for PostgreSQL and MySQL databases
-  
-- **Code Style**: 
-  - Java/Groovy: Follow Moqui framework conventions
-  - TypeScript/Vue: ESLint + Prettier configurations
-  - Vue 2 class components with TypeScript decorators
+- **Repositories in this workspace**:
+    - `durion-moqui-frontend`: Moqui Framework application (runtime + UI)
+    - `durion-positivity-backend`: POS backend microservices (`pos-*`)
+    - `durion`: workspace-level docs, governance, and agent coordination
+
+- **Tech Stack**:
+    - Frontend platform runtime: Moqui Framework (Java/Groovy)
+    - Frontend UI: Vue.js 3 + Quasar + TypeScript 5
+    - Backend services: Java 21 + Spring Boot 3.x (microservice suite)
+    - Databases: PostgreSQL (primary), MySQL (supported)
+    - Templating (Moqui): FreeMarker (`.ftl`)
+
+- **Architecture**:
+    - Domain/bounded-context structure across components and services
+    - Moqui component-based backend (`runtime/component/*`) serving UI and APIs
+    - Spring Boot microservices under `pos-*`, typically routed via an API gateway
+    - Cross-repo integration relies on stable REST contracts and consistent RBAC patterns
+
+- **Build & Tooling**:
+    - Moqui: Gradle wrapper (`./gradlew`)
+    - UI tooling: `npm` scripts (dev/build/lint/type-check as configured)
+    - Spring Boot services: Maven wrapper (`./mvnw`) with `-pl <module> -am` module builds
+
+- **Testing**:
+    - Moqui/server-side: Groovy/Spock and/or JUnit (as configured by the repo)
+    - Frontend: Jest for Vue/TypeScript (as configured by the repo)
+    - Spring Boot: JUnit 5 + Spring Boot test slices/integration tests
+
+- **Deployment**:
+    - Containerized deployments; Docker Compose commonly used for local stacks
+    - Production orchestration is environment-specific (Kubernetes/ECS/etc.)
+
+- **Code Style / Conventions**:
+    - Java/Groovy (Moqui): follow Moqui conventions and component boundaries
+    - Java (Spring Boot): thin controllers, business logic in services, consistent error handling
+    - TypeScript/Vue: ESLint + Prettier; Composition API patterns where used

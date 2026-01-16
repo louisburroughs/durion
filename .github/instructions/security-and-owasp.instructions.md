@@ -1,6 +1,6 @@
 ---
 name: 'Secure Coding and OWASP Guidelines'
-applyTo: '*'
+applyTo: '**/*.java, **/*.ts, **/*.js, **/*.py, **/*.go, **/*.kt, **/*.rs, **/*.groovy'
 description: "Comprehensive secure coding instructions for all languages and frameworks, based on OWASP Top 10 and industry best practices."
 ---
 # Secure Coding and OWASP Guidelines

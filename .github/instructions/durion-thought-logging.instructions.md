@@ -1,6 +1,6 @@
 ---
 name: 'Thought Logging Instructions'
-applyTo: '**/*.java'
+applyTo: '**'
 description: 'See process the agent is following where you can edit this to reshape the interaction or save when follow up may be needed'
 ---
 
