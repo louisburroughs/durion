@@ -3,7 +3,6 @@ name: 'Feature Code Generation from Planning Document'
 agent: 'agent'
 description: 'Transform implementation planning document into production-ready code. Generates all backend services, frontend components, tests, migrations, and configuration in a single output file before applying changes to project repositories.'
 model: 'Claude Sonnet 4.5 (copilot)'
-tools: [*]
 ---
 
 # Feature Code Generation from Planning Document

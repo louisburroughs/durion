@@ -3,7 +3,6 @@ name: 'Feature Implementation Plan'
 agent: 'agent'
 description: 'Prompt for creating detailed feature implementation plans, following Epoch monorepo structure.'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 
 # Feature Implementation Plan Prompt

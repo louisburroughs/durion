@@ -3,7 +3,6 @@ name: 'Feature Product Requirements Document (PRD)'
 agent: 'agent'
 description: 'Prompt for creating Product Requirements Documents (PRDs) for new features, based on an Epic.'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 
 # Feature PRD Prompt

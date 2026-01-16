@@ -3,7 +3,6 @@ name: 'Copilot Instructions Blueprint Generator'
 description: 'Technology-agnostic blueprint generator for creating comprehensive copilot-instructions.md files that guide GitHub Copilot to produce code consistent with project standards, architecture patterns, and exact technology versions by analyzing existing codebase patterns and avoiding assumptions.'
 agent: 'agent'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 
 # Copilot Instructions Blueprint Generator

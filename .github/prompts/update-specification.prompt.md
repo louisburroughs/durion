@@ -2,7 +2,6 @@
 name: 'Update Specification'
 agent: 'agent'
 description: 'Update an existing specification file for the solution, optimized for Generative AI consumption based on new requirements or updates to any existing code.'
-tools: [*]
 model: GPT-5 mini (copilot)
 ---
 # Update Specification

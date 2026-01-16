@@ -3,7 +3,6 @@ name: 'Code Application & PR Automation'
 agent: 'agent'
 description: 'Apply generated code to project files, create feature branch, run quality checks, commit changes, and open pull request with full traceability'
 model: 'Claude Sonnet 4.5 (copilot)'
-tools: [*]
 ---
 
 # Code Application & PR Automation Agent

@@ -3,7 +3,6 @@ name: 'Architectural Decision Record Generator'
 agent: 'agent'
 description: 'Create an Architectural Decision Record (ADR) document for AI-optimized decision documentation.'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 # Create Architectural Decision Record
 

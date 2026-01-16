@@ -3,7 +3,6 @@ name: 'GitHub Issue Planning & Project Automation'
 agent: 'agent'
 description: 'Issue Planning and Automation prompt that generates comprehensive project plans with Epic > Feature > Story/Enabler > Test hierarchy, dependencies, priorities, and automated tracking.'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 
 # GitHub Issue Planning & Project Automation Prompt

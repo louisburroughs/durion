@@ -1,9 +1,8 @@
 ---
-name: 'AGENTS.md Generator'
+name: 'AGENTS markdown file Generator'
 description: "Prompt for generating an AGENTS.md file for a repository"
 agent: "agent"
 model: GPT-5 mini
-tools:[*]
 ---
 
 # Create high‑quality AGENTS.md file

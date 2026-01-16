@@ -3,7 +3,6 @@ name: 'JavaScript/TypeScript Jest Testing Best Practices'
 description: 'Best practices for writing JavaScript/TypeScript tests using Jest, including mocking strategies, test structure, and common patterns.'
 agent: 'agent'
 model: GPT-5 mini
-tools: [*]
 ---
 
 ### Test Structure

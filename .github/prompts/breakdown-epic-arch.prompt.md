@@ -3,7 +3,6 @@ name: 'Epic Architecture Specification'
 agent: 'agent'
 description: 'Prompt for creating the high-level technical architecture for an Epic, based on a Product Requirements Document.'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 
 # Epic Architecture Specification Prompt

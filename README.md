@@ -1,179 +1,100 @@
 # Durion Workspace
 
-A comprehensive workspace-level agent framework that provides unified coordination across the durion ecosystem, enabling seamless integration between backend and frontend systems.
+This workspace contains the Durion platform: a Moqui-based frontend/runtime and a Spring Boot POS backend. It provides agent-run documentation, development tooling, and observability guidance to help engineers and automation agents work across repositories.
 
-## Overview
+Repositories in this workspace
 
-Durion is a sophisticated agent-based coordination system designed to manage and optimize development workflows across multiple projects in the durion ecosystem. It serves as the central nervous system for coordinating activities between:
+- `durion-moqui-frontend` — Moqui runtime + UI (Vue 3, Quasar, TypeScript 5)
+- `durion-positivity-backend` — POS microservices (Java 21, Spring Boot 3.x)
+- `durion` — workspace coordination, agent docs, and governance (this repo)
 
-- **Positivity**: Spring Boot-based POS backend microservices
-- **Moqui Example**: Moqui Framework-based frontend application
+Quick links
 
-## Key Features
+- Root agent guide: `AGENTS.md`
+- Observability architecture: `docs/architecture/observability/OBSERVABILITY.md`
+- SRE runbook: `.github/agents/sre.agent.md`
 
-- **Cross-Project Coordination**: Unified agent framework for backend-frontend integration
-- **Performance Monitoring**: Real-time tracking with 99.9% availability targets
-- **Security-First Design**: JWT authentication with AES-256 encryption
-- **Scalable Architecture**: Supports 100+ concurrent users and 50% workspace growth
-- **Property-Based Testing**: Automated validation of architectural consistency
-- **Disaster Recovery**: 4-hour RTO and 1-hour RPO capabilities
-
-## Architecture
-
-The framework is organized into four coordination layers:
-
-### 1. Workspace Coordination Layer
-
-- Full-Stack Integration Agent
-- Workspace Architecture Agent
-- Unified Security Agent
-- Performance Coordination Agent
-
-### 2. Technology Bridge Layer
-
-- API Contract Agent
-- Data Integration Agent
-- Frontend-Backend Bridge Agent
-
-### 3. Operational Coordination Layer
-
-- Multi-Project DevOps Agent
-- Workspace SRE Agent
-- Cross-Project Testing Agent
-- Disaster Recovery Agent
-
-### 4. Governance and Compliance Layer
-
-- Data Governance Agent
-- Documentation Coordination Agent
-- Workflow Coordination Agent
-
-## Quick Start
-
-### Prerequisites
+Prerequisites
 
 - Java 21+
-- Gradle 7.0+
-- Git
+- Node 18+ and npm
+- Maven (or use `./mvnw`) for backend
+- Gradle (or use `./gradlew`) for Moqui runtime builds
+- Docker & Docker Compose (for local stacks)
 
-### Setup
+Quick start
 
-1. Clone the repository:
+1. Clone the workspace:
 
 ```bash
-git clone https://github.com/louisburroughs/durion.git
+git clone git@github.com:louisburroughs/durion.git
 cd durion
 ```
 
-2. Build the workspace agents:
+2. Read the root agent guide for repo-specific instructions:
 
 ```bash
-cd .kiro/workspace-agents
-./gradlew build
+less AGENTS.md
 ```
 
-3. Run the demo:
+3. Frontend quick build (Moqui):
 
 ```bash
-java -cp build/libs/workspace-agents.jar durion.workspace.agents.WorkspaceAgentDemo
+cd durion-moqui-frontend
+npm install
+./gradlew build -x test
 ```
 
-## Project Structure
-
-```
-durion/
-├── .kiro/
-│   ├── specs/
-│   │   └── workspace-agent-structure/
-│   │       ├── design.md
-│   │       ├── requirements.md
-│   │       └── tasks.md
-│   └── workspace-agents/
-│       ├── src/main/java/durion/workspace/agents/
-│       ├── build.gradle
-│       ├── README.md
-│       └── ...
-├── durion.code-workspace
-└── README.md (this file)
-```
-
-## Performance Requirements
-
-- **Response Time**: 5-second target for 95% of requests
-- **Availability**: 99.9% uptime during business hours
-- **Concurrency**: 100 concurrent users supported
-- **Scalability**: 50% workspace growth tolerance
-
-## Security
-
-- JWT-based authentication across all agent communications
-- AES-256 encryption for sensitive data
-- Role-based access control (RBAC)
-- Comprehensive audit logging
-
-## Testing
-
-The framework includes property-based testing to ensure architectural consistency:
+4. Backend quick build (Positivity):
 
 ```bash
-# Run property tests
-cd .kiro/workspace-agents
-node test/simple-property-test.js
+cd durion-positivity-backend
+./mvnw -pl pos-api-gateway -am clean package
 ```
 
-## Integration Points
-
-### Positivity Backend (Spring Boot)
-
-- REST API coordination
-- Microservices communication
-- AWS Fargate deployment integration
-
-### Moqui Example Frontend
-
-- XML configuration management
-- Groovy service integration
-- Frontend-backend bridge patterns
-
-## Development
-
-### Building
+Local compose examples
 
 ```bash
-cd .kiro/workspace-agents
-./gradlew clean build
+# Start Moqui + Postgres local stack
+cd durion-moqui-frontend
+docker-compose -f docker/moqui-postgres-compose.yml up -d
+
+# (If present) start observability demo
+docker-compose -f docs/observability-compose.yml up -d
 ```
 
-### Testing
+Testing
+
+- Backend tests:
 
 ```bash
-./gradlew test
+cd durion-positivity-backend
+./mvnw -DskipTests=false clean test
 ```
 
-### Code Style
+- Frontend tests:
 
-The project follows standard Java conventions with Gradle build tooling.
+```bash
+cd durion-moqui-frontend
+npm test
+```
 
-## Contributing
+Observability
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+- The canonical observability architecture and collector configuration live at `docs/architecture/observability/OBSERVABILITY.md`.
+- See `.github/agents/sre.agent.md` for telemetry contract, SLIs, and runbooks.
 
-## License
+Contributing
 
-This project is part of the durion ecosystem. See individual project licenses for details.
+- Follow the `AGENTS.md` guidance and the per-repo `AGENTS.md` files.
+- Preface PR titles with the affected area, e.g. `[moqui]`, `[pos-order]`, `[infra]`.
+- Ensure lint and tests pass before opening a PR.
 
-## Contact
+Further reading & tools
 
-For questions or support, please refer to the individual project documentation or create an issue in the appropriate repository.
+- Workspace AGENTS.md: `AGENTS.md`
+- Per-repo AGENTS.md: `durion-moqui-frontend/AGENTS.md`, `durion-positivity-backend/AGENTS.md`
+- Agent docs: `.github/agents/`
 
-## Related Projects
-
-- [Positivity](https://github.com/louisburroughs/positivity) - POS backend microservices
-- [Moqui Example](https://github.com/louisburroughs/durion-moqui-frontend) - Frontend application
-- [Moqui Example Runtime](https://github.com/louisburroughs/durion-moqui-frontend_runtime) - Runtime environment</content>
+If you'd like, I can run the main build/test commands to validate the instructions or create CI snippets for common workflows.
 <parameter name="filePath">/home/n541342/IdeaProjects/durion/README.md

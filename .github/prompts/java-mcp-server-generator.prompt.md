@@ -3,7 +3,6 @@ name: 'Java MCP Server Generator'
 description: 'Generate a complete Model Context Protocol server project in Java using the official MCP Java SDK with reactive streams and optional Spring Boot integration.'
 agent: agent
 model: Claude Sonnet 4.5 (copilot)
-tools:[*]
 ---
 
 # Java MCP Server Generator

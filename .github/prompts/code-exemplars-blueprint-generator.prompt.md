@@ -3,7 +3,6 @@ name: 'Code Exemplars Blueprint Generator'
 description: 'Technology-agnostic prompt generator that creates customizable AI prompts for scanning codebases and identifying high-quality code exemplars. Supports multiple programming languages (Java, JavaScript, TypeScript, Vue, Quasar, Python) with configurable analysis depth, categorization methods, and documentation formats to establish coding standards and maintain consistency across development teams.'
 agent: 'agent'
 model: GPT-5 mini (copilot)
-tools:[*]
 ---
 
 # Code Exemplars Blueprint Generator
