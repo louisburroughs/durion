@@ -3,7 +3,6 @@ name: 'Feature Development Orchestration & Lifecycle Planning'
 agent: 'agent'
 description: 'Orchestrate the complete feature development lifecycle: analyze ready-for-development stories, update architecture documentation, build features, document changes, test, and deploy. Guides end-to-end workflow from issue to production.'
 model: 'Claude Sonnet 4.5 (copilot)'
-tools: [*]
 ---
 
 # Feature Development Orchestration & Lifecycle Planning

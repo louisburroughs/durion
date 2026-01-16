@@ -1,7 +1,7 @@
 ---
 name: Dev Deploy Agent
 description: Senior DevOps Engineer - Local development deployment and containerization
-tools: ["*"]
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'io.github.upstash/context7/*', 'agent', 'todo']
 model: GPT-5.2 (copilot)
 ---
 

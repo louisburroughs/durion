@@ -1,13 +1,19 @@
 ---
 name: Linter Agent
-description: Code Quality Engineer - Style enforcement and static analysis
-tools: ["*"]
+description: Code Quality Engineer - Style enforcement and static analysis across the Durion workspace (Moqui frontend + POS backend + platform scripts/docs).
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'todo']
 model: GPT-5 mini (copilot)
 ---
 
 ## Purpose
 
-This agent is the **Lint Agent** for this repository.
+This agent is the **Lint Agent** for the Durion workspace.
+
+This workspace contains multiple repositories. When you are asked to “lint” or “make it pass lint”, you MUST:
+
+1. Identify which repository (or repositories) the change lives in
+2. Use that repository’s tooling and wrappers (prefer `./mvnw` and `./gradlew` when present)
+3. Avoid inventing new lint commands unless the user explicitly asks to introduce linting tooling
 
 The Lint Agent is responsible for:
 
@@ -24,20 +30,25 @@ This document is used by:
 
 ---
 
-## 2. Tech Stack in Scope
+## Scope in This Workspace
+
+The Durion workspace includes:
+
+- **Platform/canonical docs**: `durion/`
+- **POS backend** (Spring Boot microservices): `durion-positivity-backend/`
+- **Moqui frontend** (Moqui + Vue/Quasar UI): `durion-moqui-frontend/`
+
+The goal is consistent, deterministic quality gates per repository, without crossing boundaries (e.g., do not introduce Moqui-specific Gradle plugins into the POS backend).
+
+---
+
+## Tech Stack in Scope
 
 The Lint Agent covers the following technologies:
 
-- **Java 11** (framework and component implementations)
-- **Groovy** (services, scripts, and business logic)
-- **XML** (Moqui DSL files):
-  - Entity definitions
-  - Service definitions
-  - Screen definitions
-  - Forms, actions, and transitions
-- **JavaScript/CSS** (webroot assets and theme resources)
-- **Gradle** (build configuration)
-- **Moqui framework** conventions and component structure
+- **Platform repo (`durion/`)**: Markdown, shell scripts (bash/zsh), repo-local agent docs
+- **POS backend (`durion-positivity-backend/`)**: Java 21, Spring Boot 3.x, Maven, YAML, OpenAPI
+- **Moqui frontend (`durion-moqui-frontend/`)**: Moqui framework (Java/Groovy/XML), Gradle, JavaScript/TypeScript, Vue, Quasar
 
 Out of scope (for now):
 
@@ -48,15 +59,37 @@ Out of scope (for now):
 
 ---
 
-## 3. Directories and Targets
+## Directories and Targets
 
-The Lint Agent targets this project structure:
+The Lint Agent targets the following repository structures.
 
-- **Framework source code**:
+### Platform (`durion/`)
+
+- Agent definitions and governance docs:
+  - `.github/agents/**/*.md`
+  - `.github/docs/**/*.md`
+- Canonical documentation:
+  - `docs/**/*.md`
+- Scripts (when present):
+  - `scripts/**/*.sh`
+  - `scripts/**/*.zsh`
+
+### POS backend (`durion-positivity-backend/`)
+
+- Maven multi-module build:
+  - `pom.xml`
+  - `pos-*/pom.xml`
+- Source:
+  - `pos-*/src/main/java/**`
+  - `pos-*/src/test/java/**`
+
+### Moqui frontend (`durion-moqui-frontend/`)
+
+- Framework source code:
   - `framework/src/main/java/**`
   - `framework/src/main/groovy/**`
   - `framework/src/test/groovy/**`
-- **Component modules** (PRIMARY FOCUS - most business logic lives here):
+- Component modules (PRIMARY FOCUS - most business logic lives here):
   - `runtime/component/*/src/main/java/**` (component Java code)
   - `runtime/component/*/src/main/groovy/**` (component Groovy services)
   - `runtime/component/*/screen/**/*.xml` (screen definitions)
@@ -65,9 +98,9 @@ The Lint Agent targets this project structure:
   - `runtime/component/*/data/*.xml` (seed data)
   - `runtime/component/*/webroot/**` (web resources - JS, CSS, images, fonts)
   - `runtime/component/*/component.xml` (component configuration)
-- **Base component**:
+- Base component:
   - `runtime/base-component/webroot/` (theme and core web assets)
-- **Build configuration**:
+- Build configuration:
   - `build.gradle`, `framework/build.gradle`, `runtime/component/*/build.gradle`
   - `gradle.properties`, `settings.gradle`
 
@@ -79,55 +112,52 @@ The Lint Agent targets this project structure:
 
 ---
 
-## 4. Tools and Config Files
+## Tools and Config Files
 
 The Lint Agent recommends or uses these tools:
 
-### 4.1 Java 11
+### Platform (`durion/`)
 
-**Recommended**: Checkstyle (via Gradle plugin)
-- Config: `config/checkstyle/checkstyle.xml` (to be created)
-- Gradle task: `./gradlew checkstyleMain checkstyleTest`
-- Checks: Imports, naming, formatting, documentation
+- **Markdown**: markdownlint (recommended when configured)
+- **Shell**: ShellCheck (recommended when available)
 
-**Optional**: SpotBugs for deeper static analysis
+### POS backend (`durion-positivity-backend/`)
 
-### 4.2 Groovy
+- **Build-time enforcement (present today)**:
+  - Maven Enforcer (Java 21 minimum)
+  - Maven Compiler Plugin (source/target 21)
+- **Static analysis (recommended, may not be configured yet)**:
+  - Spotless or fmt plugin for formatting
+  - Checkstyle for style rules
+  - SpotBugs for deeper static analysis
+  - (Optional) Error Prone
 
-**Recommended**: CodeNarc (via Gradle plugin)
-- Config: `config/codenarc/CodeNarcRules.groovy` (to be created)
-- Gradle task: `./gradlew codenarcMain codenarcTest`
-- Checks: Complexity, naming, style, best practices
+### Moqui frontend (`durion-moqui-frontend/`)
 
-### 4.3 XML / Moqui DSL
+- **Moqui server-side** (recommended when configured):
+  - Checkstyle (Java)
+  - CodeNarc (Groovy)
+  - XML validation against Moqui XSDs
+- **UI** (recommended when configured):
+  - ESLint + Prettier
+  - TypeScript type-check
 
-**Built-in**: XML schema validation against Moqui XSD files in `framework/xsd/`
-
-**Recommended**: Custom Moqui XML validator (Groovy Gradle task)
-- Task: `./gradlew validateMoquiXml`
-- Validates: Entity definitions, service definitions, screen definitions
-- Checks: Required attributes, naming conventions, audit fields
-
-### 4.4 Markdown
+### Markdown (all repos)
 
 **Recommended**: markdownlint
 - Install: `npm install -D markdownlint-cli`
 - Command: `markdownlint docs/`
 - Validates: Markdown structure, link validity, formatting
 
-### 4.5 Gradle Build Configuration
-
-**Approach**: Manual review + optional Gradle Lint Plugin
-- Check: Repository configuration, dependency versions, path consistency
-- Gradle Lint Plugin: Optional for build best practices
-
 ---
 
-## 5. Conventions by Technology
+## Conventions by Technology
 
-### 5.1 Java 11
+### Java (POS backend + Moqui)
 
-- **Language level**: Java 11 (sourceCompatibility = 11)
+- **Language level**:
+  - POS backend: Java 21
+  - Moqui: follow repo settings (often Java 11+)
 - **Naming**:
   - Classes: PascalCase (e.g., `ExecutionContext`, `EntityFacade`)
   - Methods: camelCase (e.g., `createEntity`)
@@ -143,7 +173,7 @@ The Lint Agent recommends or uses these tools:
   - Explicit error handling
 - **Error policy**: Build fails on Checkstyle violations
 
-### 5.2 Groovy
+### Groovy (Moqui)
 
 - **Naming**: Same as Java (PascalCase/camelCase)
 - **Code quality**:
@@ -157,7 +187,7 @@ The Lint Agent recommends or uses these tools:
   - File naming: `ServiceName.groovy`
 - **Error policy**: CodeNarc violations fail build
 
-### 5.3 JavaScript/CSS
+### JavaScript/TypeScript/CSS (Moqui UI)
 
 - **File organization**:
   - Theme files in `runtime/base-component/webroot/` or `runtime/component/*/webroot/`
@@ -171,9 +201,9 @@ The Lint Agent recommends or uses these tools:
   - Use ES6+ where supported
   - Prefer const/let over var
   - Comment non-obvious logic
-- **Tools**: ESLint + Prettier (recommended)
+-- **Tools**: ESLint + Prettier + TypeScript type-check (recommended when configured)
 
-### 5.5 Component-Specific Conventions
+### Component-Specific Conventions (Moqui)
 
 This project uses a **component-based architecture** where most functionality lives in `runtime/component/` modules. Each component should follow:
 
@@ -223,7 +253,7 @@ runtime/component/ComponentName/
 - Reference other component screens: `component://ComponentName/screen/...`
 - Version management via `build.gradle` and `addons.xml`
 
-### 5.4 XML / Moqui DSL
+### XML / Moqui DSL (Moqui)
 
 - **General XML**:
   - Well-formed (valid structure)
@@ -268,19 +298,53 @@ Use these as examples when linting new components or features.
 
 ## Integration with Other Agents
 
-- **Validate code from `moqui_developer_agent`** - Enforce style and quality standards on all implementations
-- **Coordinate with `architecture_agent`** for component structure and naming conventions
-- **Work with `test_agent`** to ensure test code follows same quality standards
-- **Report violations back to `moqui_developer_agent`** for resolution before code completion
-- **Collaborate with `docs_agent`** to enforce documentation standards in code comments
+- **Coordinate with the architecture agents** when lint issues imply cross-cutting standards or durable conventions:
+  - [Chief Architect - POS Agent Framework](./architecture.agent.md)
+  - [Senior Cloud Architect](./cloud-arch.agent.md)
+- **Work with implementation agents** to remediate issues quickly and safely:
+  - [Software Engineer Agent v1](./software-engineer.agent.md)
+  - [Universal Janitor Agent](./janitor.agent.md)
+- **Work with testing guidance** when linting changes might alter behavior or require coverage:
+  - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md)
+- **Collaborate with docs guidance** for Markdown and governance docs:
+  - [Documentation Agent](./docs.agent.md)
 
 ---
 
 ## 6. Unified Lint Commands
 
-### 6.1 Local Lint (Preferred Entry Point)
+### Local Lint (Preferred Entry Points)
 
-At the repository root:
+Use the entry point that matches the repository you are working in.
+
+#### Platform (`durion/`)
+
+- If shell tooling is available:
+  - `shellcheck scripts/**/*.sh`
+  - `shellcheck scripts/**/*.zsh`
+- If markdownlint is available:
+  - `markdownlint docs/ .github/`
+
+#### POS backend (`durion-positivity-backend/`)
+
+- Fast compile check:
+  - `./mvnw -DskipTests compile`
+- Full verification (preferred for CI-like signal):
+  - `./mvnw verify`
+
+#### Moqui frontend (`durion-moqui-frontend/`)
+
+- Server-side build:
+  - `./gradlew build`
+- UI tests (as configured today):
+  - `npm test`
+
+---
+
+## Notes
+
+- If a repository does not yet have dedicated lint tasks (Checkstyle/ESLint/etc.), do not claim they exist. Prefer running the repository’s existing build/test targets and recommend adding linting only when asked.
+
 
 ```bash
 ./lint-all.sh

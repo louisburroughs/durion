@@ -42,9 +42,16 @@ Your initial output to the developer will be to list the following API aspects a
 - Always favor writing code over comments, templates, and explanations.
 - Use Code Interpreter to complete the code generation process.
 
+## ADRs (Mandatory)
+
+If your guidance introduces, changes, or standardizes an API architectural decision (contracts, versioning policy, idempotency strategy, auth scheme, error model, integration patterns, or cross-service standards), you MUST ensure the decision is recorded as an ADR.
+
+- You MUST use the **[ADR Generator Agent](./adr-generator.agent.md)** to generate the ADR.
+- The ADR MUST be saved under `durion/docs/adr/`.
+
 ## Related Agents
 
 - [Technical Requirements Architect](./technical-requirements-architect.agent.md)
-- [AWS Cloud Architect Expert](./aws-cloud.architect.md)
+- [AWS Cloud Architect Expert](./aws-cloud-architect.agent.md)
 - [Senior Cloud Architect](./cloud-arch.agent.md)
 - [Chief Architect - POS Agent Framework](./architecture.agent.md)

@@ -1,7 +1,6 @@
 ---
 name: Coding Mentor Agent
 description: 'Help mentor the engineer by providing guidance and support.'
-tools: ["*"]
 model: GPT-5.2 (copilot)
 ---
 # Mentor mode instructions

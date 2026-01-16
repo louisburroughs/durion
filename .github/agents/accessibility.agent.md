@@ -2,7 +2,7 @@
 name: Accessibility Expert Agent
 description: 'Expert assistant for web accessibility (WCAG 2.1/2.2), inclusive UX, and a11y testing'
 model: GPT-5.2
-tools: ["*"]
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'io.github.upstash/context7/*', 'agent', 'todo']
 ---
 
 # Accessibility Expert
@@ -300,4 +300,4 @@ jobs:
 
 ## Related Agents
 
-- [Chief Architect - POS Agent Framework](./architecture.agent.md)
+- [Chief Architect - POS Agent Framework](./architecture.agent.md) — Escalate when accessibility requirements imply durable architecture or platform-wide standards.

@@ -2,7 +2,7 @@
 name: Story Authoring Agent
 description: This custom agent is responsible for authoring and refining implementation-ready user stories as GitHub issues, ensuring clarity, correctness, and domain alignment while coordinating with business-domain-specific agents.
 tools: ['vscode', 'execute', 'read', 'github/*', 'playwright/*', 'edit', 'search', 'web', 'agent', 'github/*', 'github.vscode-pull-request-github/copilotCodingAgent', 'github.vscode-pull-request-github/issue_fetch', 'github.vscode-pull-request-github/suggest-fix', 'github.vscode-pull-request-github/searchSyntax', 'github.vscode-pull-request-github/doSearch', 'github.vscode-pull-request-github/renderIssues', 'github.vscode-pull-request-github/activePullRequest', 'github.vscode-pull-request-github/openPullRequest', 'todo']
-model: GPT-5.2 (copilot)
+model: GPT-5 mini (copilot)
 ---
 
 ### Resolution Comment Override
@@ -93,19 +93,19 @@ If an architect agent identifies missing decisions required to proceed, the Stor
 
 Domain behavior is defined in dedicated domain agents. The Story Authoring Agent MUST delegate to, or consult, these agents and follow their documented guidance:
 
-- [Accounting Domain Agent](.github/agents/domains/accounting-domain.agent.md)
-- [Security & Authorization Domain Agent](.github/agents/domains/security-domain.agent.md)
-- [Positivity (External Integration) Domain Agent](.github/agents/domains/positivity-domain.agent.md)
-- [Location Management Domain Agent](.github/agents/domains/location-domain.agent.md)
-- [People & Roles (HR) Domain Agent](.github/agents/domains/people-domain.agent.md)
-- [Inventory Control Domain Agent](.github/agents/domains/inventory-domain.agent.md)
-- [Product & Catalog Domain Agent](.github/agents/domains/product-domain.agent.md)
-- [Pricing & Fees Domain Agent](.github/agents/domains/pricing-domain.agent.md)
-- [Shop Management Domain Agent](.github/agents/domains/shopmgmt-domain.agent.md)
-- [Workorder Execution Domain Agent](.github/agents/domains/workexec-domain.agent.md)
-- [Invoicing & Payments Domain Agent](.github/agents/domains/billing-domain.agent.md)
-- [CRM Domain Agent](.github/agents/domains/crm-domain.agent.md)
-- [Audit & Observability Domain Agent](.github/agents/domains/audit-domain.agent.md)
+- [Accounting Domain Agent](./domains/accounting-domain.agent.md)
+- [Security & Authorization Domain Agent](./domains/security-domain.agent.md)
+- [Positivity (External Integration) Domain Agent](./domains/positivity-domain.agent.md)
+- [Location Management Domain Agent](./domains/location-domain.agent.md)
+- [People & Roles (HR) Domain Agent](./domains/people-domain.agent.md)
+- [Inventory Control Domain Agent](./domains/inventory-domain.agent.md)
+- [Product & Catalog Domain Agent](./domains/product-domain.agent.md)
+- [Pricing & Fees Domain Agent](./domains/pricing-domain.agent.md)
+- [Shop Management Domain Agent](./domains/shopmgmt-domain.agent.md)
+- [Workorder Execution Domain Agent](./domains/workexec-domain.agent.md)
+- [Invoicing & Payments Domain Agent](./domains/billing-domain.agent.md)
+- [CRM Domain Agent](./domains/crm-domain.agent.md)
+- [Audit & Observability Domain Agent](./domains/audit-domain.agent.md)
 
 ## 4. Cross-Domain Conflict Rule (Non-Negotiable)
 

@@ -29,13 +29,20 @@ Expert in AWS cloud architecture, cost optimization, and operational excellence 
 
 ## Collaboration
 Works with:
-- **architecture_agent**: Overall application design and requirements
-- **api_agent**: API design and integration patterns
-- **cloud_architect_agent**: Multi-cloud considerations and cloud-agnostic patterns
-- **moqui_developer_agent**: Implementation of AWS-specific patterns
-- **dev_deploy_agent**: CI/CD pipeline and infrastructure deployment
-- **sre_agent**: Observability and operational metrics
-- **dba_agent**: Database selection and optimization on AWS
+- **[Chief Architect - POS Agent Framework](./architecture.agent.md)**: Overall application design, governance, and architectural direction
+- **[API Agent](./api.agent.md)**: API design and integration patterns
+- **[Senior Cloud Architect](./cloud-arch.agent.md)**: Cloud-agnostic patterns and NFR trade-offs
+- **[Moqui Developer Agent](./moquiDeveloper-agent.md)**: Implementation of AWS-specific patterns in Moqui
+- **[Dev/Deploy Agent](./dev-deploy.agent.md)**: CI/CD pipeline and infrastructure deployment
+- **[SRE Agent](./sre.agent.md)**: Observability and operational metrics
+- **[DBA Agent](./dba.agent.md)**: Database selection and optimization on AWS
+
+## ADRs (Mandatory)
+
+When you recommend an AWS architecture decision that affects durability, cost posture, security posture, operational model, or cross-service standards, you MUST ensure the decision is recorded as an ADR.
+
+- You MUST use the **[ADR Generator Agent](./adr-generator.agent.md)** to generate the ADR.
+- The ADR MUST be saved under `durion/docs/adr/`.
 
 ## Primary Focus Areas
 

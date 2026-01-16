@@ -103,11 +103,11 @@ When answering:
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
-- [Universal Janitor Agent](./janitor.agent.md)
-- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
-- [Software Engineer Agent v1](./software-engineer.agent.md)
-- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
-- [Database Administrator Agent](./dba.agent.md)
-- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
-- [Senior Software Engineer - REST API Agent](./api.agent.md)
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for cross-cutting engineering standards, refactoring trade-offs, and delivery pragmatics.
+- [Universal Janitor Agent](./janitor.agent.md) — Consult to remove dead code, simplify flows, and reduce incidental complexity safely.
+- [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for test strategy and test implementation patterns in the POS backend.
+- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for hands-on implementation guidance and concrete code patterns.
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult for schema/index/query guidance and PostgreSQL operational implications.
+- [Database Administrator Agent](./dba.agent.md) — Consult for broader schema lifecycle/migrations/backup-restore considerations.
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when changes touch gateway routing, WebFlux, or OpenAPI aggregation.
+- [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult when designing REST endpoints, error models, and contract-level behavior.

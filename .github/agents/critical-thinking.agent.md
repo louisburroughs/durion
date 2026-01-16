@@ -1,7 +1,6 @@
 ---
 name: Critical Thinking Agent
 description: 'Challenge assumptions and encourage critical thinking to ensure the best possible solution and outcomes.'
-tools: ["*"]
 model: GPT-5 mini (copilot)
 ---
 # Critical thinking mode instructions

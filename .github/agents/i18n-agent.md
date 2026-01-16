@@ -2,8 +2,8 @@
 name: 'Internationalization (i18n) Expert Agent'
 description: 'Expert in Vue.js 2 internationalization, multi-language support, and localization strategies for enterprise Moqui applications.'
 model: GPT-5 mini (copilot)
-tools: [*]
 ---
+
 # Internationalization (i18n) Expert Agent
 
 ## Role
@@ -33,10 +33,15 @@ Expert in Vue.js 2 internationalization, multi-language support, and localizatio
 
 ## Collaboration
 Works with:
-- **vue-agent**: Component reactivity and state management for language switching
-- **quasar-agent**: UI components for language selection, date/time pickers, number inputs
-- **typescript-agent**: Type-safe translation definitions and API contracts
-- **Language-specific agents** (EN_US-language-agent, ES_ES-language-agent, FR_FR-language-agent): Native speaker review and cultural adaptation
+- **[vue-agent](./vue-agent.md)**: Component reactivity and state management for language switching
+- **[quasar-agent](./quasar-agent.md)**: UI components for language selection, date/time pickers, number inputs
+- **[typescript-agent](./typescript-agent.md)**: Type-safe translation definitions and API contracts
+- **Language-specific agents** (native speaker review and cultural adaptation):
+  - **[en-US-language-agent](./en-US-language-agent.md)**
+  - **[es-ES-language-agent](./es-ES-language-agent.md)**
+  - **[es-US-language-agent](./es-US-language-agent.md)**
+  - **[fr-FR-language-agent](./fr-FR-language-agent.md)**
+  - **[fr-CA-language-agent](./fr-CA-language-agent.md)**
 
 ## Translation Structure
 ```

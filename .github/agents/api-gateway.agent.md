@@ -1,7 +1,6 @@
 ---
 name: API Gateway & OpenAPI Architect
 description: This custom agent specializes in designing and implementing Spring Cloud Gateway solutions with integrated Netflix Eureka service discovery and Springdoc-OpenAPI documentation aggregation for microservices architectures.
-tools: ["*"]
 model: GPT-5 mini (copilot)
 ---
 Here is a comprehensive agent description for a **Spring Cloud Gateway & OpenAPI Architect**, formatted in Markdown.
@@ -120,11 +119,11 @@ When answering:
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
-- [Universal Janitor Agent](./janitor.agent.md)
-- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
-- [Software Engineer Agent v1](./software-engineer.agent.md)
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
-- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
-- [Database Administrator Agent](./dba.agent.md)
-- [Senior Software Engineer - REST API Agent](./api.agent.md)
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for cross-service design trade-offs, quality gates, and review-ready changes.
+- [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify gateway filters/routes and remove duplication safely.
+- [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for contract and integration testing strategy in the POS backend.
+- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for implementing concrete gateway features end-to-end.
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Cloud Gateway/WebFlux best practices and modern Spring idioms.
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult if gateway changes surface DB-driven performance concerns (e.g., downstream query patterns).
+- [Database Administrator Agent](./dba.agent.md) — Consult for data lifecycle concerns that impact gateway exposure (migrations, backups, environments).
+- [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult for REST semantics and consistency of downstream API contracts surfaced at the edge.

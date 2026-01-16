@@ -2,7 +2,6 @@
 name: 'English (US) Language Expert Agent'
 description: 'Expert in American English localization, cultural adaptation, and native speaker review for the Durion ERP application.'
 model: GPT-5 mini (copilot)
-tools: [*]
 ---
 
 

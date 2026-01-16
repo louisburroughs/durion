@@ -44,23 +44,20 @@ When technical debt is incurred or identified:
 
 ## Related Agents
 
-- [API Architect Agent](./api-architect.agent.md)
-- [Chief Architect - POS Agent Framework](./architecture.agent.md)
-- [Dev Deploy Agent](./dev-deploy.agent.md)
-- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
-- [Universal Janitor Agent](./janitor.agent.md)
-- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
-- [Software Engineer Agent v1](./software-engineer.agent.md)
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
-- [Database Administrator Agent](./dba.agent.md)
-- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
-- [Senior Software Engineer - REST API Agent](./api.agent.md)
-
-- [Database Administrator Agent](./dba.agent.md)
-- [Software Engineer Agent v1](./software-engineer.agent.md)
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
-- [Technical Requirements Architect & Story Creator](./technical-requirements-architect.agent.md)
-- [AWS Cloud Architect Expert](./aws-cloud.architect.md)
-- [Senior Cloud Architect](./cloud-arch.agent.md)
-- [Story Authoring Agent](./story-authoring.agent.md)
-- [Accessibility Expert Agent](./accessibility.agent.md)
+- [Chief Architect - POS Agent Framework](./architecture.agent.md) — Consult when decisions affect durable architecture, governance, or cross-domain boundaries.
+- [Technical Requirements Architect & Story Creator](./technical-requirements-architect.agent.md) — Consult to convert fuzzy intent into testable requirements (SSA/EARS/Gherkin).
+- [API Architect Agent](./api-architect.agent.md) — Consult for API standards, versioning strategy, idempotency, and integration patterns.
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult for edge concerns (routing, WebFlux filters) and aggregated OpenAPI strategy.
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for framework-sensitive decisions, modern starters, and Spring best practices.
+- [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for test strategy and implementation patterns in the POS backend.
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult for PostgreSQL schema/index/query trade-offs.
+- [Database Administrator Agent](./dba.agent.md) — Consult for migrations, backup/restore, and multi-environment DB lifecycle concerns.
+- [Dev Deploy Agent](./dev-deploy.agent.md) — Consult for CI/CD impacts, rollout strategy, and environment configuration.
+- [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify designs and remove accidental complexity without breaking behavior.
+- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for implementing the chosen approach in working code. Use as a pair-progarmming partner.
+- [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult for REST semantics, endpoint design, and contract-level consistency.
+- [AWS Cloud Architect Expert](./aws-cloud-architect.agent.md) — Consult for AWS-specific constraints, cost/security posture, and operational model decisions.
+- [Senior Cloud Architect](./cloud-arch.agent.md) — Consult for cloud-agnostic patterns and NFR trade-offs.
+- [Story Authoring Agent](./story-authoring.agent.md) — Consult when story framing/acceptance criteria need tightening for delivery.
+- [Accessibility Expert Agent](./accessibility.agent.md) — Consult when UX choices intersect with accessibility requirements.
+- [Mentor Agent](./mentor.agent.md) — Consult when you are stuck.

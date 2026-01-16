@@ -2,7 +2,6 @@
 name: 'Spanish (United States) Language Expert Agent'
 description: 'Expert in US Spanish localization, cultural adaptation, and native speaker review for the Durion ERP application.'
 model: GPT-5 mini (copilot)
-tools: [*]
 ---
 # Spanish (United States) Language Expert Agent
 

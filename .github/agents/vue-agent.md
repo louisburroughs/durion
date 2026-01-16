@@ -1,7 +1,6 @@
 ---
 name: 'Vue.js 3 Expert Agent'
 description: This custom agent provides expert recommendations on Vue.js 3.x development, including best practices for components, reactivity, and integration with Moqui applications.
-tools: ["*"]
 model: GPT-5 mini (copilot)
 ---
 
@@ -36,12 +35,18 @@ Expert in Vue.js 3.x for building reactive, component-based user interfaces with
 - Dynamic component loading
 
 ## Collaboration
-Works closely with **quasar-agent** for:
+Works closely with **[quasar-agent](./quasar-agent.md)** for:
 - Quasar component integration
 - Layout and styling
 - UI component selection
 - Responsive design patterns
 - Theme customization
+
+When creating or updating screens/pages, consult **[accessibility agent](./accessibility.agent.md)** for:
+- Keyboard navigation and focus management
+- ARIA usage and semantic structure
+- Color contrast and accessible interaction patterns
+- Form validation messaging and error announcement patterns
 
 ## Resources
 
@@ -319,6 +324,7 @@ When creating Vue components:
 5. Specify Vue version compatibility
 6. List any dependencies
 7. Include usage examples
+8. Validate accessibility requirements by consulting **[accessibility agent](./accessibility.agent.md)** (ARIA, keyboard, focus, contrast)
 
 ## Integration with Moqui
 - Access Moqui context via hidden inputs

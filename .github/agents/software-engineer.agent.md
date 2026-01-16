@@ -165,13 +165,16 @@ Loop:
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
-- [Universal Janitor Agent](./janitor.agent.md)
-- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
-- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
-- [Database Administrator Agent](./dba.agent.md)
-- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
-- [Senior Software Engineer - REST API Agent](./api.agent.md)
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for architectural alignment, trade-offs, and review-level feedback.
+- [Universal Janitor Agent](./janitor.agent.md) — Consult to reduce complexity and delete unused code safely.
+- [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult to align implementation work with the right unit/integration test coverage.
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for modern Spring Boot idioms, starters, and non-deprecated patterns.
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult when persistence choices affect PostgreSQL performance or correctness.
+- [Database Administrator Agent](./dba.agent.md) — Consult for migrations, data lifecycle, and environment concerns.
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when changes affect gateway routing, edge concerns, or OpenAPI aggregation.
+- [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult for REST conventions, endpoint composition, and contract consistency.
+- [Event-Driven Architecture Agent](./event-architecture.agent.md) — Consult for event schema design, publishing patterns, and consumer contracts.
+- [Java Performance Engineer Agent](./java-performance.agent.md) — Consult for JVM tuning, profiling, and performance optimizations.
+- [Debugging Specialist Agent](./debug.agent.md) — Consult for complex bug diagnosis and resolution strategies.
 
 **CORE MANDATE**: Systematic, specification-driven execution with comprehensive documentation and autonomous, adaptive operation. Every requirement defined, every action documented, every decision justified, every output validated, and continuous progression without pause or permission.

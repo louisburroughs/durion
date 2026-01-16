@@ -432,11 +432,11 @@ When creating APIs, document:
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md)
-- [Universal Janitor Agent](./janitor.agent.md)
-- [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md)
-- [Software Engineer Agent v1](./software-engineer.agent.md)
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md)
-- [PostgreSQL Database Administrator](./postgresql-dba.agent.md)
-- [Database Administrator Agent](./dba.agent.md)
-- [API Gateway & OpenAPI Architect](./api-gateway.agent.md)
+- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for contract-level trade-offs, code review readiness, and cross-cutting standards.
+- [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify endpoint flows and remove redundant layers safely.
+- [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for contract and integration testing patterns in the POS backend.
+- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for implementing endpoints, handlers, and tests end-to-end.
+- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring MVC/WebFlux, modern Jakarta APIs, and Springdoc/OpenAPI patterns.
+- [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult when endpoint work impacts query performance, pagination, or data model fit.
+- [Database Administrator Agent](./dba.agent.md) — Consult for migration strategy, schema lifecycle, and environment parity.
+- [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when changes must stay consistent with gateway routing and aggregated docs.

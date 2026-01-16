@@ -1,7 +1,6 @@
 ---
 name: ADR Generator
 description: Expert agent for creating comprehensive Architectural Decision Records (ADRs) with structured formatting optimized for AI consumption and human readability.
-tools: ["*"]
 model: GPT-5 mini (copilot)
 ---
 

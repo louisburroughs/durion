@@ -2,7 +2,6 @@
 name: 'French (France) Language Expert Agent'
 description: 'Expert in Metropolitan French localization, cultural adaptation, and native speaker review for the Durion ERP application.'
 model: GPT-5 mini (copilot)
-tools: [*]
 ---
 
 

@@ -1,7 +1,6 @@
 ---
 name: 'TypeScript Expert Agent'
 description: This custom agent provides expert recommendations on TypeScript development, including best practices for type safety, interfaces, generics, and integration with Vue.js 2 and Moqui applications.
-tools: ["*"]
 model: GPT-5 mini (copilot)
 ---
 
