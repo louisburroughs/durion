@@ -40,7 +40,7 @@ USAGE
 INPUT_DIR="/home/louisb/Projects/durion/scripts/output"
 BACKEND_DIR="/home/louisb/Projects/durion-positivity-backend"
 OPENAI_MODEL="${OPENAI_MODEL:-gpt-5.2}"
-OPENAI_API_BASE="${OPENAI_API_BASE:-https://api.openai.com/v1/responses}"
+OPENAI_API_BASE="${OPENAI_API_BASE:-https://api.openai.com/v1}"
 ONLY_DOMAIN=""
 MAX_CHARS="120000"
 DRY_RUN="0"
@@ -94,14 +94,14 @@ fi
 # If no mapping exists, we fall back to pos-<domain> when present.
 declare -A DOMAIN_TO_MODULE=(
   [accounting]="pos-accounting"
- # [audit]="pos-accounting"
+  [audit]="pos-event-receiver"
   [billing]="pos-invoice"
   [crm]="pos-customer"
   [inventory]="pos-inventory"
   [location]="pos-location"
   [order]="pos-order"
   [people]="pos-people"
-  #[positivity]="pos-agent-framework"
+  [positivity]="pos-agent-framework"
   [pricing]="pos-price"
   [product]="pos-catalog"
   [security]="pos-security-service"
@@ -236,17 +236,17 @@ process_domain_file() {
   local base
   base=$(basename "$file")
 
-  if [[ ! -s "$file" ]]; then
-    echo "[SKIP] Empty domain file: $file" >&2
-    return 0
-  fi
-
   # domain-foo.txt -> foo
   local domain
   domain="${base#domain-}"
   domain="${domain%.txt}"
 
   if [[ -n "$ONLY_DOMAIN" && "$domain" != "$ONLY_DOMAIN" ]]; then
+    return 0
+  fi
+
+  if [[ ! -s "$file" ]]; then
+    echo "[SKIP] Empty domain file: $file" >&2
     return 0
   fi
 
