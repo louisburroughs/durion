@@ -65,6 +65,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 VERSION = "1.0"
 
+# Always include safe defaults assumptions in prompts to keep behavior consistent.
+SAFE_DEFAULTS_REL_PATH = Path("agents") / "assumptions" / "safe-defaults.md"
+
 # Default pattern matches the example used in the prompt.
 #
 # IMPORTANT: this is the *regex* itself (not the outer `r"..."` wrapper).
@@ -446,6 +449,14 @@ def build_agent_prompt(
         "appended domain-specific guidance and business rules. Preserve the original before.md content in the Original Story (Unmodified – "
         "For Traceability) section at the end. Ensure output contains required section headers."
     )
+
+    # Final: Assumptions / safe defaults (mandatory)
+    safe_defaults_path = root_repo / SAFE_DEFAULTS_REL_PATH
+    if not safe_defaults_path.exists():
+        raise SystemExit(f"Missing required prompt include: {safe_defaults_path}")
+    parts.append(f"--- Assumptions / Safe Defaults: {SAFE_DEFAULTS_REL_PATH.as_posix()} ---\n")
+    parts.append(load_text_file(safe_defaults_path))
+
     return "\n\n".join(parts)
 
 
@@ -545,7 +556,25 @@ def call_agent(prompt: str) -> str:
             - Uses HTTPS endpoints.
             - Does not log secrets.
             - Uses Python stdlib (no external HTTP dependency).
+            - Set LLM_TIMEOUT_S to allow long-running generations (default: 900 seconds).
     """
+
+    def _get_llm_timeout_s() -> int:
+        raw = (os.environ.get("LLM_TIMEOUT_S") or "").strip()
+        if not raw:
+            return 900
+        try:
+            val = int(raw)
+        except Exception:
+            raise SystemExit(f"Invalid LLM_TIMEOUT_S={raw!r}; expected integer seconds")
+        if val < 30:
+            return 30
+        if val > 3600:
+            return 3600
+        return val
+
+    llm_timeout_s = _get_llm_timeout_s()
+
     openai_key = os.environ.get("OPENAI_API_KEY")
     if openai_key:
         model = os.environ.get("OPENAI_MODEL", "gpt-5.2")
@@ -567,7 +596,7 @@ def call_agent(prompt: str) -> str:
         last_err: Optional[Exception] = None
         for attempt in range(0, 4):
             try:
-                data = _http_post_json(url, headers=headers, payload=payload, timeout_s=60)
+                data = _http_post_json(url, headers=headers, payload=payload, timeout_s=llm_timeout_s)
                 break
             except RuntimeError as e:
                 last_err = e
@@ -599,7 +628,7 @@ def call_agent(prompt: str) -> str:
         last_err2: Optional[Exception] = None
         for attempt in range(0, 4):
             try:
-                data = _http_post_json(url, headers=headers, payload=payload, timeout_s=60)
+                data = _http_post_json(url, headers=headers, payload=payload, timeout_s=llm_timeout_s)
                 break
             except RuntimeError as e:
                 last_err2 = e

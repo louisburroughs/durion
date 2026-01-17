@@ -24,7 +24,10 @@
 			"editor.defaultFormatter": "redhat.java",
 			"editor.formatOnSave": true
 		},
-		
+		"java.import.gradle.enabled": true,
+		"java.import.maven.enabled": true,
+		"java.import.gradle.offline.enabled": false,
+		"java.import.maven.offline.enabled": false,
 		"java.debug.settings.onBuildFailureProceed": true,
 		"markdown.validate.enabled": true,
 		// XML validation settings to handle Maven schema SSL issues

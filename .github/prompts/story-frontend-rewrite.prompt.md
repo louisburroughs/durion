@@ -33,7 +33,9 @@ If something cannot be determined:
 
 ## 1. Authoritative References (Treat as Truth)
 
-You MUST follow and be consistent with:
+The README at: https://github.com/louisburroughs/durion-moqui-frontend will describe the project and its conventions.
+
+You MUST follow and be consistent with (I you don't have the project in context, look for the information in the prompt before failing):
 
 - `/agents/story-authoring-agent.md`
 - `/agents/domains/*.md`
@@ -351,7 +353,7 @@ Be unambiguous.
 
 ## 12.  Project References
 
-Project references for context can be found in the following public repositories:
+Project references for context can be found in the README.md of the following public repositories:
 
 - Durion Project - https://github.com/louisburroughs/durion.git
 - Durion Frontend - https://github.com/louisburroughs/durion-moqui-frontend.git
