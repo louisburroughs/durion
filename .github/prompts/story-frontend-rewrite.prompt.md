@@ -349,6 +349,14 @@ Be unambiguous.
 
 ---
 
+## 12.  Project References
+
+Project references for context can be found in the following public repositories:
+
+- Durion Project - https://github.com/louisburroughs/durion.git
+- Durion Frontend - https://github.com/louisburroughs/durion-moqui-frontend.git
+- Durion Backend - https://github.com/louisburroughs/durion-positivity-backend.git
+
 ## 🔴 FINAL CHECKLIST – Before Submitting
 
 * [ ] Labels (Proposed) included at top
