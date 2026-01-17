@@ -9,6 +9,18 @@ python story_update.py --root ./stories --pattern "r\"Original Story\\s+Story:\\
 
 python story_update.py --root ./stories --pattern "r\"Original Story\\s+Story:\\s+#\\d{1,3}\\s+-\\s+.+?:\\s+.+\"" --concurrency 4
 
+# Process a single story folder (numeric IDs map to frontend/<id>):
+python story_update.py --root ./stories --story 123 --concurrency 1
+
+# Process a list:
+python story_update.py --root ./stories --stories 101,102,frontend/103 --concurrency 4
+
+# Process a numeric range (inclusive):
+python story_update.py --root ./stories --range 200-250 --concurrency 4
+
+# Reprocess (overwrite existing after.md):
+python story_update.py --root ./stories --story 123 --reprocess
+
 Description:
 - Crawl `<root>/frontend/*/` for folders containing `before.md` but missing `after.md`.
 - For each, extract a pattern from `before.md`, search `<root>/backend/` MD files for related matches.
@@ -112,7 +124,7 @@ def release_lock(root: Path) -> None:
         pass
 
 
-def scan_frontend_missing_after(root: Path) -> List[Path]:
+def scan_frontend_candidates(root: Path, include_existing_after: bool = False) -> List[Path]:
     frontend_root = root / "frontend"
     if not frontend_root.exists():
         return []
@@ -122,9 +134,92 @@ def scan_frontend_missing_after(root: Path) -> List[Path]:
             continue
         before = child / "before.md"
         after = child / "after.md"
-        if before.exists() and not after.exists():
+        if before.exists() and (include_existing_after or not after.exists()):
             dirs.append(child)
     return dirs
+
+
+def scan_frontend_missing_after(root: Path) -> List[Path]:
+    return scan_frontend_candidates(root, include_existing_after=False)
+
+
+def _normalize_story_selector(root: Path, raw: str) -> str:
+    """Normalize a user selector to a plan item key like 'frontend/<dir>'.
+
+    Accepted forms:
+    - '123' -> 'frontend/123'
+    - 'frontend/123' -> 'frontend/123'
+    - './frontend/123' -> 'frontend/123'
+    - absolute path under <root> -> relative posix path
+    """
+    s = (raw or "").strip().strip("\"").strip("'")
+    if not s:
+        raise ValueError("Empty story selector")
+
+    # Pure numeric ID => assume frontend/<id>
+    if re.fullmatch(r"\d+", s):
+        return f"frontend/{s}"
+
+    # Strip leading ./
+    if s.startswith("./"):
+        s = s[2:]
+
+    # Absolute path => make relative to root if possible
+    p = Path(s)
+    if p.is_absolute():
+        try:
+            rel = p.resolve().relative_to(root.resolve())
+        except Exception as e:
+            raise ValueError(f"Story path is not under --root: {s}") from e
+        return rel.as_posix()
+
+    # Already relative path
+    return Path(s).as_posix()
+
+
+def _parse_story_range(raw: str) -> Tuple[int, int]:
+    # Accept "10-20" or "10..20" (inclusive)
+    m = re.match(r"^\s*(\d+)\s*(?:-+|\.\.)\s*(\d+)\s*$", raw or "")
+    if not m:
+        raise ValueError(f"Invalid range: {raw!r}. Expected like '10-20' or '10..20'")
+    a = int(m.group(1))
+    b = int(m.group(2))
+    if a <= 0 or b <= 0:
+        raise ValueError(f"Invalid range: {raw!r}. Values must be positive")
+    if a > b:
+        a, b = b, a
+    return a, b
+
+
+def _expand_story_selectors(root: Path, story_args: List[str], stories_csv: Optional[str], range_arg: Optional[str]) -> Optional[List[str]]:
+    """Return a list of normalized plan item keys, or None if no selectors provided."""
+    selectors: List[str] = []
+
+    for s in story_args or []:
+        selectors.append(_normalize_story_selector(root, s))
+
+    if stories_csv:
+        # Split on comma, tolerate whitespace.
+        for part in re.split(r"[\s,]+", stories_csv.strip()):
+            if part:
+                selectors.append(_normalize_story_selector(root, part))
+
+    if range_arg:
+        start, end = _parse_story_range(range_arg)
+        for n in range(start, end + 1):
+            selectors.append(f"frontend/{n}")
+
+    if not selectors:
+        return None
+
+    # De-dup preserve order
+    seen: set[str] = set()
+    ordered: List[str] = []
+    for s in selectors:
+        if s not in seen:
+            seen.add(s)
+            ordered.append(s)
+    return ordered
 
 
 def extract_pattern(before_text: str, pattern: str) -> Optional[re.Match]:
@@ -526,7 +621,12 @@ def call_agent(prompt: str) -> str:
     raise RuntimeError("No LLM provider configured: set OPENAI_API_KEY or GEMINI_API_KEY")
 
 
-def ensure_plan(root: Path, agent_file: Optional[str], force_refresh: bool = False) -> Dict[str, Any]:
+def ensure_plan(
+    root: Path,
+    agent_file: Optional[str],
+    force_refresh: bool = False,
+    reprocess: bool = False,
+) -> Dict[str, Any]:
     plan_path = root / ".story_update_plan.json"
     if plan_path.exists() and not force_refresh:
         try:
@@ -534,7 +634,7 @@ def ensure_plan(root: Path, agent_file: Optional[str], force_refresh: bool = Fal
         except Exception:
             raise SystemExit("Plan file corrupt; remove or use --force-refresh-plan")
     # create plan
-    pending_dirs = [str(p.relative_to(root)) for p in scan_frontend_missing_after(root)]
+    pending_dirs = [str(p.relative_to(root)) for p in scan_frontend_candidates(root, include_existing_after=reprocess)]
     plan = {
         "version": VERSION,
         "created_at": iso_now(),
@@ -645,6 +745,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--force-refresh-plan", action="store_true")
     p.add_argument(
+        "--reprocess",
+        action="store_true",
+        help="Re-run even if after.md exists (overwrites after.md when output validates).",
+    )
+    p.add_argument(
+        "--story",
+        action="append",
+        default=[],
+        help="Process a specific story folder (e.g. '123' or 'frontend/123'). May be repeated.",
+    )
+    p.add_argument(
+        "--stories",
+        default=None,
+        help="Comma/space-separated list of stories (e.g. '101,102,frontend/103').",
+    )
+    p.add_argument(
+        "--range",
+        dest="story_range",
+        default=None,
+        help="Numeric inclusive range of story IDs to process (e.g. '200-250' or '200..250').",
+    )
+    p.add_argument(
         "--pause-seconds",
         type=float,
         default=0.0,
@@ -673,6 +795,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 5
 
     root = Path(args.root).resolve()
+
+    try:
+        selected_items = _expand_story_selectors(root, args.story, args.stories, args.story_range)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
     frontend_prompt_file = (
         repo_root()
         / ".github"
@@ -687,7 +815,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
 
     try:
-        plan = ensure_plan(root, args.agent_file, force_refresh=args.force_refresh_plan)
+        plan = ensure_plan(root, args.agent_file, force_refresh=args.force_refresh_plan, reprocess=args.reprocess)
     except SystemExit as e:
         release_lock(root)
         print(str(e), file=sys.stderr)
@@ -695,10 +823,62 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     plan_path = root / ".story_update_plan.json"
 
+    # If reprocess is requested without selectors, refresh pending from disk (keep history maps).
+    # This is intentionally non-destructive: completed/failed/skipped remain as history.
+    if args.reprocess and not selected_items:
+        plan["pending"] = [str(p.relative_to(root)) for p in scan_frontend_candidates(root, include_existing_after=True)]
+        plan["processing"] = []
+        plan["updated_at"] = iso_now()
+        write_json_atomic(plan_path, plan)
+
+    # If the user selected specific items, ensure they are present in plan["pending"] if eligible.
+    # By default, we only auto-add items missing after.md; with --reprocess we also allow existing after.md.
+    if selected_items:
+        pending_list = plan.get("pending", [])
+        processing_list = plan.get("processing", [])
+        completed_map = plan.get("completed", {})
+        failed_map = plan.get("failed", {})
+        skipped_map = plan.get("skipped_no_pattern", {})
+        changed = False
+        for sel in selected_items:
+            # Skip if already tracked in any state.
+            if sel in pending_list or sel in processing_list or sel in completed_map or sel in failed_map or sel in skipped_map:
+                continue
+            # Only add if it is a frontend/<dir> path.
+            if not sel.startswith("frontend/"):
+                continue
+            item_path = root / sel
+            before_path = item_path / "before.md"
+            after_path = item_path / "after.md"
+            if before_path.exists() and (args.reprocess or not after_path.exists()):
+                pending_list.append(sel)
+                changed = True
+        if changed:
+            # Keep deterministic-ish ordering for humans.
+            try:
+                plan["pending"] = sorted(set(pending_list), key=lambda x: (x.split("/", 1)[0], x.split("/", 1)[1]))
+            except Exception:
+                plan["pending"] = pending_list
+            plan["updated_at"] = iso_now()
+            write_json_atomic(plan_path, plan)
+
     # If dry-run, print up to first 3 prompts for preview
     pending = list(plan.get("pending", []))
+    if selected_items:
+        selected_set = set(selected_items)
+        pending = [p for p in pending if p in selected_set]
     summary = {"processed": 0, "updated": 0, "skipped_no_pattern": 0, "failed": 0}
     dry_run_previews_printed = 0
+
+    if selected_items and args.verbose:
+        # Report selectors that are not currently schedulable (not pending).
+        schedulable_set = set(pending)
+        not_schedulable = [s for s in selected_items if s not in schedulable_set]
+        if not_schedulable:
+            print(f"[select] {len(not_schedulable)} selected item(s) not pending; they may be completed/failed/skipped or already have after.md")
+            for s in not_schedulable[:50]:
+                print(f"- {s}")
+        print(f"[select] scheduling {len(pending)} item(s)")
 
     rate_limiter = RateLimiter(args.pause_seconds) if (not args.dry_run and args.pause_seconds > 0) else None
     consecutive_429 = 0
