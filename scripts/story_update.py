@@ -732,8 +732,13 @@ def process_item(
         f"{before_path}:L{line_no} (match@{m.start()})",
     )
     if dry_run:
-        # in dry-run return preview and do not call agent
-        return item_rel, {"status": "dry-run", "preview_prompt": prompt[:4000], "processed_at": iso_now()}
+        # in dry-run return the prompt and do not call agent
+        return item_rel, {
+            "status": "dry-run",
+            "preview_prompt": prompt[:4000],
+            "prompt": prompt,
+            "processed_at": iso_now(),
+        }
     try:
         if rate_limiter is not None:
             rate_limiter.wait()
@@ -772,6 +777,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument("--agent-file", default=None)
     p.add_argument("--concurrency", type=int, default=1)
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument(
+        "--dry-run-prompt-log",
+        default=None,
+        help=(
+            "When --dry-run is set, append each generated prompt to this logfile. "
+            "Defaults to <root>/.story_update_dry_run_prompts.log"
+        ),
+    )
     p.add_argument("--force-refresh-plan", action="store_true")
     p.add_argument(
         "--reprocess",
@@ -798,7 +811,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p.add_argument(
         "--pause-seconds",
         type=float,
-        default=0.0,
+        default=15.0,
         help="Minimum pause (seconds) between LLM calls across threads (0 disables).",
     )
     p.add_argument(
@@ -809,6 +822,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args(argv)
+
+    def _log(msg: str) -> None:
+        print(msg, flush=True)
+
+    def _append_prompt_log(log_path: Path, key: str, prompt: str) -> None:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write("\n" + ("=" * 100) + "\n")
+            f.write(f"item: {key}\n")
+            f.write(f"processed_at: {iso_now()}\n")
+            f.write("-" * 100 + "\n")
+            f.write(prompt)
+            if not prompt.endswith("\n"):
+                f.write("\n")
 
     try:
         _ensure_provider_config(args.dry_run)
@@ -824,6 +851,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 5
 
     root = Path(args.root).resolve()
+
+    dry_run_log_path: Optional[Path] = None
+    if args.dry_run:
+        dry_run_log_path = Path(args.dry_run_prompt_log) if args.dry_run_prompt_log else (root / ".story_update_dry_run_prompts.log")
 
     try:
         selected_items = _expand_story_selectors(root, args.story, args.stories, args.story_range)
@@ -899,6 +930,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     summary = {"processed": 0, "updated": 0, "skipped_no_pattern": 0, "failed": 0}
     dry_run_previews_printed = 0
 
+    if args.dry_run and dry_run_log_path:
+        _log(f"[dry-run] prompt log: {dry_run_log_path}")
+
     if selected_items and args.verbose:
         # Report selectors that are not currently schedulable (not pending).
         schedulable_set = set(pending)
@@ -913,115 +947,138 @@ def main(argv: Optional[List[str]] = None) -> int:
     consecutive_429 = 0
     stop_scheduling = False
 
-    with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as ex:
-        futures: Dict[Any, str] = {}
-        pending_iter = iter(pending)
+    try:
+        with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as ex:
+            futures: Dict[Any, str] = {}
+            pending_iter = iter(pending)
 
-        def submit_next() -> None:
-            if stop_scheduling:
-                return
-            try:
-                nxt = next(pending_iter)
-            except StopIteration:
-                return
-            plan["processing"].append(nxt)
-            write_json_atomic(plan_path, plan)
-            fut2 = ex.submit(
-                process_item,
-                root,
-                nxt,
-                args.pattern,
-                Path(args.agent_file) if args.agent_file else None,
-                frontend_prompt_file,
-                args.dry_run,
-                rate_limiter,
-            )
-            futures[fut2] = nxt
+            def submit_next() -> None:
+                if stop_scheduling:
+                    return
+                try:
+                    nxt = next(pending_iter)
+                except StopIteration:
+                    return
+                plan["processing"].append(nxt)
+                write_json_atomic(plan_path, plan)
+                if not args.dry_run:
+                    _log(f"[start] {nxt}")
+                fut2 = ex.submit(
+                    process_item,
+                    root,
+                    nxt,
+                    args.pattern,
+                    Path(args.agent_file) if args.agent_file else None,
+                    frontend_prompt_file,
+                    args.dry_run,
+                    rate_limiter,
+                )
+                futures[fut2] = nxt
 
-        # Prime the pool
-        for _ in range(max(1, args.concurrency)):
-            submit_next()
+            # Prime the pool
+            for _ in range(max(1, args.concurrency)):
+                submit_next()
 
-        while futures:
-            # Wait for any in-flight task to complete, then process exactly one.
-            fut = next(as_completed(list(futures.keys())))
-            item = futures.pop(fut)
-            try:
-                key, res = fut.result()
-            except Exception as e:
-                key = item
-                res = {"status": "failed", "error": str(e), "processed_at": iso_now()}
+            while futures:
+                # Wait for any in-flight task to complete, then process exactly one.
+                fut = next(as_completed(list(futures.keys())))
+                item = futures.pop(fut)
+                try:
+                    key, res = fut.result()
+                except Exception as e:
+                    key = item
+                    res = {"status": "failed", "error": str(e), "processed_at": iso_now()}
 
-            # update plan
-            if res.get("status") == "completed":
-                plan["completed"][key] = {"file": res.get("file"), "processed_at": res.get("processed_at")}
-                summary["updated"] += 1
-                consecutive_429 = 0
-                if args.verbose:
-                    print(f"[completed] {key} -> {res.get('file')}")
-            elif res.get("status") == "dry-run":
-                # print preview for first 3
-                if dry_run_previews_printed < 3:
-                    print(f"[dry-run] would write {key}/after.md")
-                    print("--- prompt preview ---")
-                    print(res.get("preview_prompt")[:2000])
-                    print("--- end preview ---")
-                    dry_run_previews_printed += 1
-                if args.verbose:
-                    print(f"[dry-run] {key}")
-            elif res.get("status") == "skipped_no_pattern":
-                plan["skipped_no_pattern"][key] = {"processed_at": res.get("processed_at")}
-                summary["skipped_no_pattern"] += 1
-                consecutive_429 = 0
-                if args.verbose:
-                    print(f"[skipped_no_pattern] {key}")
-            else:
-                plan["failed"][key] = {
-                    "error": res.get("error"),
-                    "processed_at": res.get("processed_at"),
-                    "agent_output": res.get("agent_output"),
-                }
-                summary["failed"] += 1
-                if args.verbose:
-                    err = (res.get("error") or "").strip()
-                    print(f"[failed] {key}: {err[:240]}")
-
-                err_msg = (res.get("error") or "").strip()
-                if err_msg.startswith("HTTP 429 "):
-                    consecutive_429 += 1
-                    if args.max_consecutive_429 > 0 and consecutive_429 >= args.max_consecutive_429:
-                        stop_scheduling = True
-                        if args.verbose:
-                            print(
-                                f"[stop] hit {consecutive_429} consecutive HTTP 429 errors; "
-                                "stopping scheduling new items"
-                            )
-                else:
+                # update plan
+                if res.get("status") == "completed":
+                    plan["completed"][key] = {"file": res.get("file"), "processed_at": res.get("processed_at")}
+                    summary["updated"] += 1
                     consecutive_429 = 0
+                    _log(f"[done] {key} -> {res.get('file')}")
+                    if args.verbose:
+                        print(f"[completed] {key} -> {res.get('file')}")
+                elif res.get("status") == "dry-run":
+                    if dry_run_log_path and res.get("prompt"):
+                        _append_prompt_log(dry_run_log_path, key, res.get("prompt"))
+                    # print preview for first 3
+                    if dry_run_previews_printed < 3:
+                        print(f"[dry-run] would write {key}/after.md")
+                        print("--- prompt preview ---")
+                        print(res.get("preview_prompt")[:2000])
+                        print("--- end preview ---")
+                        dry_run_previews_printed += 1
+                    if args.verbose:
+                        print(f"[dry-run] {key}")
+                elif res.get("status") == "skipped_no_pattern":
+                    plan["skipped_no_pattern"][key] = {"processed_at": res.get("processed_at")}
+                    summary["skipped_no_pattern"] += 1
+                    consecutive_429 = 0
+                    _log(f"[skip] {key} (no pattern match)")
+                    if args.verbose:
+                        print(f"[skipped_no_pattern] {key}")
+                else:
+                    plan["failed"][key] = {
+                        "error": res.get("error"),
+                        "processed_at": res.get("processed_at"),
+                        "agent_output": res.get("agent_output"),
+                    }
+                    summary["failed"] += 1
+                    err = (res.get("error") or "").strip()
+                    _log(f"[fail] {key}: {err[:240]}")
+                    if args.verbose:
+                        print(f"[failed] {key}: {err[:240]}")
 
-            # Remove from pending once we have a terminal result.
-            try:
-                if key in plan.get("pending", []):
-                    plan["pending"].remove(key)
-            except Exception:
-                pass
-            # remove from processing if present
-            try:
-                if key in plan.get("processing", []):
-                    plan["processing"].remove(key)
-            except Exception:
-                pass
-            # mark processed count
-            summary["processed"] += 1
+                    err_msg = (res.get("error") or "").strip()
+                    if err_msg.startswith("HTTP 429 "):
+                        consecutive_429 += 1
+                        if args.max_consecutive_429 > 0 and consecutive_429 >= args.max_consecutive_429:
+                            stop_scheduling = True
+                            if args.verbose:
+                                print(
+                                    f"[stop] hit {consecutive_429} consecutive HTTP 429 errors; "
+                                    "stopping scheduling new items"
+                                )
+                    else:
+                        consecutive_429 = 0
+
+                # Remove from pending once we have a terminal result.
+                try:
+                    if key in plan.get("pending", []):
+                        plan["pending"].remove(key)
+                except Exception:
+                    pass
+                # remove from processing if present
+                try:
+                    if key in plan.get("processing", []):
+                        plan["processing"].remove(key)
+                except Exception:
+                    pass
+                # mark processed count
+                summary["processed"] += 1
+                plan["updated_at"] = iso_now()
+                write_json_atomic(plan_path, plan)
+
+                # Submit next only if we are still running.
+                submit_next()
+
+                # Break out early if stop condition triggered and nothing is in-flight.
+                if stop_scheduling and not futures:
+                    break
+
+    except KeyboardInterrupt:
+        # Return processing items back to pending and release lock for resumability.
+        _log("[interrupt] received Ctrl+C; saving plan and releasing lock")
+        try:
+            pending_set = set(plan.get("pending", []))
+            for it in plan.get("processing", []) or []:
+                if it not in pending_set:
+                    plan["pending"].insert(0, it)
+            plan["processing"] = []
             plan["updated_at"] = iso_now()
             write_json_atomic(plan_path, plan)
-
-            # Submit next only if we are still running.
-            submit_next()
-
-            # Break out early if stop condition triggered and nothing is in-flight.
-            if stop_scheduling and not futures:
-                break
+        finally:
+            release_lock(root)
+        return 130
 
     release_lock(root)
     if args.verbose and summary.get("failed", 0):

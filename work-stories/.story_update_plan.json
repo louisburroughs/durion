@@ -1,11 +1,22 @@
 {
   "version": "1.0",
   "created_at": "2026-01-17T00:38:45.425638+00:00",
-  "updated_at": "2026-01-17T00:38:50.404277+00:00",
+  "updated_at": "2026-01-17T16:21:47.052575+00:00",
   "agent_file": null,
   "pending": [],
   "processing": [],
   "completed": {},
-  "failed": {},
+  "failed": {
+    "frontend/65": {
+      "error": "agent missing sections: ['## 🏷️ Labels (Proposed)', '**Rewrite Variant:', '## Original Story (Unmodified – For Traceability)']",
+      "processed_at": "2026-01-17T16:16:04.231307+00:00",
+      "agent_output": ""
+    },
+    "frontend/66": {
+      "error": "agent missing sections: ['## 🏷️ Labels (Proposed)', '**Rewrite Variant:', '## Original Story (Unmodified – For Traceability)']",
+      "processed_at": "2026-01-17T16:16:48.757349+00:00",
+      "agent_output": ""
+    }
+  },
   "skipped_no_pattern": {}
 }
