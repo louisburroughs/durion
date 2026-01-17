@@ -8,13 +8,13 @@ model: GPT-5.2 (copilot)
 # Shop Management Domain Agent Contract
 
 **Authoritative Agent:** `shopmgmt-domain-agent`
-**Business Rules:** `durion/domains/shop-manager/.business-rules/`
+**Business Rules:** `durion/domains/shopmgmt/.business-rules/`
 
 ### Creative Authority
 
 The `shopmgmt-domain-agent` **MAY use imagination** to author user stories within the shop management domain, provided:
-- All guidance in `durion/domains/shop-manager/.business-rules/AGENT_GUIDE.md` is followed
-- All validation rules in `durion/domains/shop-manager/.business-rules/STORY_VALIDATION_CHECKLIST.md` are satisfied
+- All guidance in `durion/domains/shopmgmt/.business-rules/AGENT_GUIDE.md` is followed
+- All validation rules in `durion/domains/shopmgmt/.business-rules/STORY_VALIDATION_CHECKLIST.md` are satisfied
 - If rules or guidelines are **missing or insufficient** for the story being authored, the agent **MUST immediately escalate** to the Story Authoring Agent to open a CLARIFICATION issue with specific questions about the missing guidance
 
 ### The Story Authoring Agent MAY

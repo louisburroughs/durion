@@ -1,39 +1,46 @@
 # Durion Processing Log
 
 ## Request
-Update the SRE agent to cover frontend and backend scopes.
+Update `scripts/story_update.py` to remove the nonexistent `story-authoring` CLI option and use only LLM providers (OpenAI/Gemini).
 
 ## Context
 - Repo: /home/louisb/Projects/durion
-- Current file in editor: .github/agents/sre.agent.md
-- Desired change: Expand SRE agent guidance/checklists to explicitly cover both frontend (Vue/Quasar/TypeScript) and backend (Moqui + POS Spring Boot microservices) operational scopes.
+- Current file in editor: scripts/story_update.py
+- Observed behavior: `story-authoring` is not installed (`--help` returns exit code 127).
+- Desired behavior: `story_update.py` should not advertise or attempt to use `story-authoring`.
 
 ## Action Plan
 
-### 1) Assess current SRE agent scope
-- [x] Read current `.github/agents/sre.agent.md` and identify existing sections and gaps.
-- [x] Confirm what “frontend” means in this repo (Moqui UI assets, Vue/Quasar app) and what “backend” means (Moqui runtime, POS Spring Boot services).
+### 1) Remove local CLI path
+- [x] Remove `story-authoring` checks and invocation.
+- [x] Remove unused imports related to the CLI.
+- [x] Update docstring to mention provider-only invocation.
 
-### 2) Extend SRE agent content for Frontend scope
-- [x] Add frontend-specific SLO/SLI suggestions (Core Web Vitals, JS error rate, API latency from browser perspective).
-- [x] Add frontend observability guidance (RUM, logging, release/version tagging, source maps).
-- [x] Add frontend incident runbooks (blank screen, broken auth, CDN/cache issues, config/env mismatch).
-
-### 3) Extend SRE agent content for Backend scope
-- [x] Add Moqui runtime ops guidance (war startup, DB connectivity, job scheduling, service health, logs).
-- [x] Add POS microservices ops guidance (per-service health, actuator, dependency chain, message/event receiver).
-- [x] Add backend incident runbooks (latency spikes, DB pool exhaustion, event backlog, auth/permissions).
-
-### 4) Align with repo conventions
-- [x] Ensure references match repo docs: `docs/OPERATIONS_RUNBOOK.md`, module docs, and existing scripts.
-- [x] Keep language consistent with Durion domains (security, RBAC, deployments).
-
-### 5) Validate and finalize
-- [x] Quick scan for completeness and duplication.
-- [x] Add final summary notes.
+### 2) Validation
+- [x] `python3 -m py_compile scripts/story_update.py`
+- [x] `python3 -m flake8 scripts/story_update.py`
+- [x] Dry-run still runs: `python3 scripts/story_update.py --root ../work-stories --dry-run`
 
 ## Summary
-- Updated `.github/agents/sre.agent.md` to be explicitly platform-wide, covering frontend (browser/UI) and backend (Moqui + Spring Boot) observability.
-- Added a standard telemetry contract for shared attributes, plus frontend SLIs (Web Vitals, JS errors, API failures) and backend hotspots.
-- Added cross-stack triage flow to encourage correlation from frontend issues through gateway/services/DB.
+- Updated `scripts/story_update.py` to remove the `story-authoring` CLI option.
+- The script now supports provider-only invocation (OpenAI/Gemini) and remains lint/compile clean.
+- Aligned OpenAI defaults with `scripts/story-output-consolidation/generate-domain-business-rules.sh`: default model `gpt-5.2`, base URL from `OPENAI_API_BASE` (default `https://api.openai.com/v1`), and optional `OPENAI_ORG` header.
+- Fixed runtime failures:
+  - Removed the external `requests` dependency by using Python stdlib `urllib` for HTTP.
+  - Updated OpenAI request to use `max_completion_tokens` (model `gpt-5.2` rejects `max_tokens`).
+  - Implemented provider preflight to fail fast on misconfiguration and made `--verbose` print per-item failures plus an aggregated failure summary.
 
+## Follow-up Request
+Fix the progressive scheduler so dry-run processes all pending items (it was only processing one due to a loop indentation/break issue).
+
+## Follow-up Action Plan
+- [x] Fix the in-flight completion loop to process exactly one completed future per iteration using `next(as_completed(...))`.
+- [x] Re-run compile + lint.
+- [x] Re-run dry-run and confirm `processed` reflects all pending items.
+
+## Final Summary
+- Fixed the scheduler loop in `scripts/story_update.py` so it processes all pending items (and still supports stop-on-consecutive-429).
+- Verified locally:
+  - `python3 -m py_compile scripts/story_update.py`
+  - `python3 -m flake8 scripts/story_update.py`
+  - Dry-run processes all items (example run returned `{"processed": 186, "updated": 0, "skipped_no_pattern": 0, "failed": 0}`).
