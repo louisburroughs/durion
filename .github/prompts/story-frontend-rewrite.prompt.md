@@ -47,6 +47,22 @@ Domain agent contracts are **binding constraints**:
 - Where clarification is required → surface Open Questions and STOP if needed
 
 ---
+## SAFE DEFAULTS GATE (STRICT)
+
+SAFE_DEFAULTS_MODE: ON_STRICT
+
+You MAY apply safe defaults ONLY for:
+- UI ergonomics (empty states, pagination, standard filtering)
+- Standard error-handling mapping when the backend contract implies it
+- Observability boilerplate consistent with workspace defaults
+
+You MUST NOT apply safe defaults for:
+- Domain ownership, SoR, lifecycle/state machines
+- Any business formula/threshold/policy
+- Permission scope, role inheritance, security boundaries
+- Event contracts or identifiers
+If any denylist item is unclear, create Open Questions and add blocked:clarification.
+---
 
 ## 2. Label Awareness (Critical)
 
@@ -284,7 +300,16 @@ Conflict signals include:
     * Responsiveness
     * i18n/timezone/currency (if applicable)
 
-15. **Open Questions**
+15. **Applied Safe Defaults**
+   * REQUIRED even if empty
+   * List each default applied with:
+     - Default ID (from safe-defaults allowlist)
+     - What was assumed
+     - Why it qualifies as safe (1 sentence)
+     - Impacted sections (UX, Service Contracts, Error Flows, etc.)
+   * If none: write `- none`
+
+16. **Open Questions**
 
     * Only if needed
     * Explicit, blocking questions

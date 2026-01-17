@@ -308,6 +308,7 @@ def _derive_search_keys(matched_line: str) -> List[str]:
 def search_backend(root: Path, value: str, max_matches: int = 3) -> List[Dict[str, Any]]:
     backend_root = root / "backend"
     matches: List[Dict[str, Any]] = []
+    seen_paths: set[str] = set()
     if not backend_root.exists():
         return matches
     for p in backend_root.rglob("*.md"):
@@ -315,6 +316,11 @@ def search_backend(root: Path, value: str, max_matches: int = 3) -> List[Dict[st
             txt = p.read_text(encoding="utf-8")
         except Exception:
             continue
+        rel_path = str(p.relative_to(root))
+        # Skip if we've already matched this file path (deduplicate)
+        if rel_path in seen_paths:
+            continue
+        # Only take the first match from each file
         for m in re.finditer(re.escape(value), txt, re.IGNORECASE):
             # capture a small context
             lines = txt.splitlines()
@@ -331,9 +337,11 @@ def search_backend(root: Path, value: str, max_matches: int = 3) -> List[Dict[st
             if lab_m:
                 lab_line = lab_m.group(1).strip()
                 labels = [s.strip() for s in lab_line.split(",") if s.strip()]
-            matches.append({"path": str(p.relative_to(root)), "excerpt": excerpt, "labels": labels})
-            if len(matches) >= max_matches:
-                return matches
+            matches.append({"path": rel_path, "excerpt": excerpt, "labels": labels})
+            seen_paths.add(rel_path)
+            break  # Only take first match from this file, then move to next file
+        if len(matches) >= max_matches:
+            return matches
     return matches
 
 
@@ -405,8 +413,13 @@ def build_agent_prompt(
     backend_matches: List[Dict[str, Any]],
     matched_value: str,
     matched_location: str,
+    story_root: Optional[Path] = None,
 ) -> str:
     parts: List[str] = []
+    # Set default story_root if not provided (used for resolving backend file paths)
+    if story_root is None:
+        story_root = root_repo / "scripts" / "story-work"
+    
     # 1. Story Authoring Agent
     if agent_file:
         af = load_text_file(agent_file)
@@ -426,23 +439,52 @@ def build_agent_prompt(
             parts.append(f"--- Business Rules: {br_file.relative_to(root_repo)} ---\n")
             parts.append(load_text_file(br_file))
     # 5. Story Synopsis
-    parts.append("""Story Synopsis:
-""")
+    parts.append("Story Synopsis:")
     parts.append(synopsis)
-    # 6. Backend Labels & Context
+    # 5a. Full frontend story (preserve exact before.md body for context)
+    parts.append("\n" + "="*100)
+    parts.append("FRONTEND STORY (FULL CONTEXT)")
+    parts.append("="*100)
+    parts.append(before_text)
+    parts.append("="*100 + "\n")
+    # 6. Backend References & Full Content
     if backend_matches:
-        parts.append("Backend matches:\n")
-        for bm in backend_matches:
+        parts.append("BACKEND STORY REFERENCES (FOR REFERENCE ONLY)")
+        parts.append("-"*100)
+        # First, list all backend matches as a summary
+        parts.append("Backend matches (extracted from story-work):\n")
+        for i, bm in enumerate(backend_matches, start=1):
             labels = ", ".join(bm.get("labels", []))
-            parts.append(
-                f"- Path: {bm['path']}\n"
-                f"  Excerpt:\n{bm['excerpt']}\n"
-                f"  Labels: {labels}\n"
-            )
+            parts.append(f"[{i}] {bm['path']}")
+            parts.append(f"    Labels: {labels}\n")
+        
+        # Then, for each backend match, show the full file content
+        parts.append("-"*100)
+        parts.append("Backend Story Full Content:\n")
+        for i, bm in enumerate(backend_matches, start=1):
+            parts.append(f"\n### BACKEND STORY #{i}: {bm['path']}")
+            parts.append("-" * 60)
+            try:
+                # Resolve path relative to story_root (e.g., story-work/backend/36/backend.md)
+                backend_path = story_root / bm['path']
+                backend_body = load_text_file(backend_path)
+                if backend_body.strip():
+                    parts.append(backend_body)
+                else:
+                    parts.append("[Backend story file is empty or uninitialized]")
+            except FileNotFoundError:
+                parts.append(f"[Backend story file not found at: {backend_path}]")
+            except Exception as e:
+                parts.append(f"[Error reading backend story: {str(e)}]")
+            parts.append("-" * 60)
+        parts.append("="*100)
+        parts.append("END BACKEND REFERENCES\n")
     else:
         parts.append("No backend matches found.\n")
     # 7. Matched pattern details
-    parts.append(f"Matched value: {matched_value}\nLocation: {matched_location}\n")
+    parts.append(f"Pattern Match Info:")
+    parts.append(f"  Matched value: {matched_value}")
+    parts.append(f"  Location: {matched_location}\n")
     # 8. Final instruction block
     parts.append(
         "Review and update the issue: produce an implementation-ready rewrite (after.md) following the Story Authoring Agent rules and any "
@@ -730,6 +772,7 @@ def process_item(
         backend_matches,
         search_key,
         f"{before_path}:L{line_no} (match@{m.start()})",
+        story_root=root,
     )
     if dry_run:
         # in dry-run return the prompt and do not call agent
