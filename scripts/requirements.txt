@@ -1,0 +1,2 @@
+# Python dependencies for story publishing scripts
+requests>=2.31.0
