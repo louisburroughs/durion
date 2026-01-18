@@ -587,6 +587,16 @@ def _preflight_llm() -> None:
         raise SystemExit(f"LLM preflight failed: {e}")
 
 
+def _extract_http_status(msg: str) -> Optional[int]:
+    m = re.search(r"HTTP\s+(\d{3})", msg)
+    if m:
+        try:
+            return int(m.group(1))
+        except Exception:
+            return None
+    return None
+
+
 def call_agent(prompt: str) -> str:
     """Invoke an LLM provider (environment-driven).
 
@@ -629,16 +639,33 @@ def call_agent(prompt: str) -> str:
         openai_org = os.environ.get("OPENAI_ORG")
         if openai_org:
             headers["OpenAI-Organization"] = openai_org
-        max_completion_tokens = int(os.environ.get("OPENAI_MAX_COMPLETION_TOKENS", "2000"))
+        max_completion_tokens = int(os.environ.get("OPENAI_MAX_COMPLETION_TOKENS", "16000"))
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "max_completion_tokens": max_completion_tokens,
         }
+        print(f"[debug-openai] Sending request: model={model}, prompt_length={len(prompt)}, max_completion_tokens={max_completion_tokens}")
         last_err: Optional[Exception] = None
         for attempt in range(0, 4):
             try:
                 data = _http_post_json(url, headers=headers, payload=payload, timeout_s=llm_timeout_s)
+                # Debug: print raw API response structure
+                print(f"[debug-openai] API response keys: {list(data.keys())}")
+                if "choices" in data:
+                    print(f"[debug-openai] choices count: {len(data.get('choices', []))}")
+                    if data.get("choices"):
+                        first_choice = data["choices"][0]
+                        print(f"[debug-openai] first choice keys: {list(first_choice.keys())}")
+                        print(f"[debug-openai] finish_reason: {first_choice.get('finish_reason')}")
+                        if "message" in first_choice:
+                            message = first_choice.get("message", {})
+                            print(f"[debug-openai] message keys: {list(message.keys())}")
+                            refusal = message.get("refusal")
+                            if refusal:
+                                print(f"[debug-openai] REFUSAL: {refusal}")
+                else:
+                    print(f"[debug-openai] No 'choices' in response. Full data: {json.dumps(data, indent=2)[:500]}")
                 break
             except RuntimeError as e:
                 last_err = e
@@ -652,7 +679,10 @@ def call_agent(prompt: str) -> str:
         choices = data.get("choices") or []
         if choices:
             msg = (choices[0].get("message") or {})
-            return (msg.get("content") or "").strip()
+            content = msg.get("content") or ""
+            print(f"[debug-openai] content length: {len(content)}, content preview: {repr(content[:200])}")
+            return content.strip()
+        print(f"[debug-openai] No choices, checking 'text' field")
         return (data.get("text") or "").strip()
 
     gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -729,6 +759,7 @@ def process_item(
     frontend_prompt_file: Path,
     dry_run: bool,
     rate_limiter: Optional[RateLimiter] = None,
+    verbose: bool = False,
 ) -> Tuple[str, Dict[str, Any]]:
     """Process a single frontend directory. Returns key and result dict for plan updates."""
     item_path = root / item_rel
@@ -787,7 +818,19 @@ def process_item(
             rate_limiter.wait()
         out = call_agent(prompt)
     except Exception as e:
-        return item_rel, {"status": "failed", "error": str(e), "processed_at": iso_now(), "agent_output": ""}
+        return item_rel, {
+            "status": "failed",
+            "error": str(e),
+            "http_status": _extract_http_status(str(e)),
+            "processed_at": iso_now(),
+            "agent_output": "",
+        }
+    if verbose:
+        try:
+            preview = out[:1200]
+            print(f"[llm-output] {item_rel} (truncated 1200 chars)\n{preview}\n--- end llm-output ---")
+        except Exception:
+            pass
     ok, missing = validate_agent_output(out)
     if not ok:
         return item_rel, {
@@ -1015,6 +1058,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     frontend_prompt_file,
                     args.dry_run,
                     rate_limiter,
+                    args.verbose,
                 )
                 futures[fut2] = nxt
 
@@ -1064,12 +1108,14 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "error": res.get("error"),
                         "processed_at": res.get("processed_at"),
                         "agent_output": res.get("agent_output"),
+                        "http_status": res.get("http_status"),
                     }
                     summary["failed"] += 1
                     err = (res.get("error") or "").strip()
-                    _log(f"[fail] {key}: {err[:240]}")
+                    status_hint = f" (HTTP {res.get('http_status')})" if res.get("http_status") else ""
+                    _log(f"[fail] {key}: {err[:240]}{status_hint}")
                     if args.verbose:
-                        print(f"[failed] {key}: {err[:240]}")
+                        print(f"[failed] {key}: {err[:240]}{status_hint}")
 
                     err_msg = (res.get("error") or "").strip()
                     if err_msg.startswith("HTTP 429 "):
