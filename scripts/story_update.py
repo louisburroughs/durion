@@ -635,7 +635,7 @@ def call_agent(prompt: str) -> str:
         headers = {
             "Authorization": f"Bearer {openai_key}",
             "Content-Type": "application/json",
-        }
+        } 
         openai_org = os.environ.get("OPENAI_ORG")
         if openai_org:
             headers["OpenAI-Organization"] = openai_org
