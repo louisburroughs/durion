@@ -1,548 +1,679 @@
-```markdown
-# AGENT_GUIDE.md — Inventory Domain (POS / Moqui Frontend)
+# AGENT_GUIDE.md — Inventory Control Domain (Normative)
 
-> **Status:** Living document. Updated to reflect new frontend stories in `durion-moqui-frontend` for the **inventory** domain.
+> **Status:** Normative. This document is safe for direct agent input, CI validation, and story execution rules.
 >
-> **Scope:** This guide is for engineers implementing or integrating Inventory-domain UI flows in the Moqui/Vue/Quasar POS frontend, and for aligning with the Inventory backend service(s).
+> **Scope:** Inventory-control UI flows and their backend contracts for Durion Moqui/Vue/Quasar POS.
+>
+> **Non-normative companion:** `INVENTORY_CONTROL_DOMAIN_NOTES.md` (rationale, tradeoffs, auditor explanations; forbidden for direct agent execution).
+
+---
+
+## 0. Decision Index (Authoritative)
+
+Each Decision ID corresponds 1:1 to a section in `INVENTORY_CONTROL_DOMAIN_NOTES.md`.
+
+| Decision ID | Title |
+|---|---|
+| INV-DEC-001 | Canonical Location Model: `LocationRef` as Site; `StorageLocation` as Bin |
+| INV-DEC-002 | Integration Pattern: Moqui Service Proxy (Frontend does not call inventory backend directly) |
+| INV-DEC-003 | API Envelopes & Error Schema (plain JSON + deterministic error codes) |
+| INV-DEC-004 | Availability Contract (inputs, outputs, deep-linking, and “success with zeros”) |
+| INV-DEC-005 | Ledger Contract (filters, location semantics, pagination, and immutability) |
+| INV-DEC-006 | Adjustment Workflow Scope (create-only in v1; no approve/post UI) |
+| INV-DEC-007 | StorageLocation CRUD + Deactivation (destination-required semantics; editability rules) |
+| INV-DEC-008 | HR Sync Contracts: LocationRef + SyncLog + Manual Sync Trigger |
+| INV-DEC-009 | Inactive/Pending Location Selection Rules (movement blocking) |
+| INV-DEC-010 | Permission Naming Convention (canonical permission strings) |
+| INV-DEC-011 | Sensitive Data & Logging Policy (quantities/payloads) |
+| INV-DEC-012 | Correlation/Request ID Convention (headers + UI behavior) |
+| INV-DEC-013 | Availability Feed Ops Ownership & Contracts (runs, normalized, unmapped, exceptions) |
+| INV-DEC-014 | Deep-Link Parameter Names & Routing Conventions (canonical) |
+| INV-DEC-015 | JSON Field Handling (tags/capacity/temperature/payload viewer safety) |
 
 ---
 
 ## 1. Domain Overview
 
-The **Inventory** domain is responsible for representing and enforcing the state of **physical stock** and the **operational topology** (sites/locations/bins) where stock exists, plus the **auditability** of stock movements.
+The Inventory Control domain represents and enforces the state of physical stock and the topology where that stock exists, plus auditability of stock movements.
 
-Inventory is **not** the owner of:
-- Product master data (SKU, base UOM, descriptions) — typically **Product** domain.
-- Work order lifecycle and scheduling — typically **Work Execution** domain.
-- Pricing, quoting, and customer data — typically **Pricing/CRM** domains.
+Inventory Control **does not** own:
 
-Inventory **does** provide:
-- Availability (On-hand, Allocated, ATP) at a location/bin scope.
-- Append-only ledger of stock movements.
-- Location topology management:
-  - HR-synced “real-world” locations (shops/mobile sites) used for scoping and validation.
-  - Inventory-managed storage/bin hierarchy used for operational workflows.
-- Operational controls:
-  - Blocking new stock movements to inactive locations.
-  - Adjustment workflows (if implemented in this frontend).
-- **Integration operations visibility** for availability feeds (ingestion runs, normalized availability, unmapped parts, exception queue) when the inventory service is the system of record for those artifacts. **CLARIFY** exact ownership vs “integration” domain.
+- Product master data (SKU display name, base UOM definition, descriptions) — Product domain
+- Work order lifecycle and scheduling — Work Execution domain
+- Pricing, quoting, customer master — Pricing/CRM domains
 
----
+Inventory Control **does** provide:
 
-## 2. Domain Boundaries & Responsibilities
-
-### Inventory owns (or is authoritative for)
-- **InventoryLedgerEntry**: immutable record of physical stock movements.
-- **AvailabilityView**: computed view (on-hand, allocated, ATP) for a SKU at a location/bin scope.
-- **StorageLocation**: user-managed storage/bin hierarchy within a site (barcode, type, parent/child).
-- **LocationRef**: HR-synced “site/shop/mobile location” reference used for scoping and validation.
-- **SyncLog**: immutable audit log of HR sync ingestion and outcomes.
-- **Availability Feed Ops artifacts** (if implemented in inventory backend):
-  - `IngestionRun` (or equivalent)
-  - `ExternalAvailability` / “NormalizedAvailability”
-  - `UnmappedManufacturerParts`
-  - `ExceptionQueue` entries related to availability ingestion
-
-### Inventory integrates with (but does not own)
-- **Product**: SKU ↔ productId mapping, base UOM, display name, manufacturer part mapping tools.
-- **Allocations/Reservations**: allocated quantities used in ATP (may be inventory-owned or separate service; treat as external dependency unless confirmed).
-- **Work Execution**: source transactions for ledger entries (workorderId/workorderLineId, pick/consume/issue flows).
-- **HR Topology**: upstream source for LocationRef roster and lifecycle.
-- **Integration platform** (if separate): may own exception queue, run orchestration, retention/TTL policies.
-
-### Practical boundary guidance for frontend
-- If a screen is primarily about **stock quantities, movements, or locations**, it belongs under Inventory navigation.
-- If a screen is primarily about **product attributes** (fitment hints, UOM conversions, manufacturer part mapping), it likely belongs to Product domain even if inventory consumes it.
-  - **CLARIFY:** Some frontend issues are labeled `domain:inventory` but describe Product Admin workflows (e.g., fitment hints). Confirm ownership before adding to Inventory nav.
+- On-hand, Allocated, ATP availability views
+- Append-only inventory ledger of physical movements
+- Storage/bin hierarchy management within sites
+- HR-synced business location references (site/shop/mobile units)
+- Operational controls: block new movements into inactive/pending business locations
+- Ops visibility for manufacturer availability feed ingestion artifacts (see INV-DEC-013)
 
 ---
 
-## 3. Key Entities & Relationships
+## 2. Domain Boundaries & Responsibilities (Normative)
 
-### 3.1 Location model (two layers)
+### Inventory Control owns (authoritative for)
 
-Inventory stories imply two related but distinct concepts:
+- `InventoryLedgerEntry` (append-only)
+- `AvailabilityView` (computed; server authoritative)
+- `StorageLocation` (inventory-managed bin hierarchy)
+- `LocationRef` (HR-synced site reference; inventory stores a read model but HR is upstream truth)
+- `SyncLog` (immutable audit log of HR sync ingestion)
+- Availability feed ops artifacts (see INV-DEC-013)
 
-1) **LocationRef** (HR-synced “shop/mobile site”)
-- Fields: `id`, `tenantId`, `hrLocationId`, `name`, `status` (`ACTIVE|INACTIVE|PENDING`), `isActive`, `timezone`, `tags`, `version`, timestamps.
-- Used to **scope** inventory operations and to block new movements to inactive locations.
-- Backend reference indicates deactivation causes existing stock to be treated as **PendingTransfer** (derived state) requiring manual reconciliation; no auto-transfer in v1.
+### Inventory Control integrates with (not authoritative for)
 
-2) **StorageLocation** (inventory-managed internal hierarchy)
-- Fields: `storageLocationId`, `siteId` (or mapping to LocationRef), `parentLocationId`, `name`, `barcode`, `storageType`, `status`, optional `capacity`, `temperature`.
-- Used for **bin-level** operations: putaway, pick, cycle count, availability by bin, etc.
-
-**CLARIFY:** Are `siteId` and `locationId` the same as `LocationRef.id`, or is there a separate Site entity? Frontend stories use `siteId`, `locationId`, and `storageLocationId`.
-
-**Actionable UI guidance**
-- Treat `LocationRef` as the “business location” selector (shop/site).
-- Treat `StorageLocation` as the “bin within a site” selector.
-- When both are present in a flow, enforce: `storageLocation.siteId == locationRef.id` (or equivalent mapping) in the UI when possible; backend remains authoritative.
-
-### 3.2 InventoryLedgerEntry (append-only)
-- Identifies a movement of stock with:
-  - `productId` (or `productSku` in some views)
-  - `timestamp` (UTC)
-  - `movementType` (see 4.2)
-  - `quantityChange` (signed decimal)
-  - `unitOfMeasure` (product base UOM)
-  - `fromLocationId` / `toLocationId` (nullable)
-  - `actorId` (user/system)
-  - `reasonCode` (required for adjustments)
-  - `sourceTransactionId` (links to upstream transaction/work order)
-
-Relationship highlights:
-- Availability is computed by **replaying/summing ledger entries** (physical movements only) and subtracting allocations.
-- StorageLocation deactivation may trigger **transfer** of stock to a destination location (atomic backend operation) for storage locations; HR LocationRef deactivation does **not** auto-transfer in v1 (PendingTransfer instead). **CLARIFY** if both behaviors exist simultaneously and how they interact.
-
-### 3.3 AvailabilityView (computed)
-- Request: `productSku`, `locationId`, optional `storageLocationId`
-- Response: `onHandQuantity`, `allocatedQuantity`, `availableToPromiseQuantity`, `unitOfMeasure`
-
-### 3.4 Availability feed ingestion (ops visibility)
-If the inventory backend exposes manufacturer feed normalization artifacts, the frontend will treat them as read-only operational entities:
-- `IngestionRun`: run id, manufacturer, startedAt/endedAt, asOfTime, outcome, counts (processed/failed/unmapped), error summary.
-- `NormalizedAvailability` / `ExternalAvailability`: manufacturer part number, mapped productSku/productId (if mapped), quantity, asOfTime, location scope (if any), source metadata.
-- `UnmappedManufacturerParts`: manufacturer, partNumber, firstSeenAt, lastSeenAt, status (`PENDING_REVIEW|IGNORED|RESOLVED`), notes (maybe).
-- `ExceptionQueue`: severity, status (`OPEN|ACKNOWLEDGED|RESOLVED`), details, createdAt, updatedAt, operator notes, correlation ids.
-
-**TODO:** Confirm exact entity names and fields; build UI adapters to tolerate additive fields.
+- Product: SKU ↔ productId mapping, base UOM, display attributes
+- Work Execution: generates ledger source transactions (pick/consume/issue, returns)
+- Allocation/Reservation service: allocated quantities used in ATP (treated as external dependency unless confirmed otherwise)
+- Integration platform: may produce upstream feed events, but inventory ops artifacts are exposed here (INV-DEC-013)
 
 ---
 
-## 4. Business Rules & Invariants (Frontend-Relevant)
+## 3. Canonical Location Model (INV-DEC-001)
+
+### 3.1 Canonical entities
+
+**LocationRef** = business site/shop/mobile location (HR-synced)
+
+- Canonical key: `locationId` (UUIDv7) == `LocationRef.id`
+- Fields (minimum): `locationId`, `tenantId`, `hrLocationId`, `name`, `status`, `timezone`, `tags`, timestamps
+
+**StorageLocation** = bin/location inside a business site (inventory-managed)
+
+- Canonical key: `storageLocationId` (UUIDv7)
+- Always belongs to a `locationId` (site): `storageLocation.locationId`
+
+### 3.2 Naming rule (resolved)
+
+- `siteId` in older story text is treated as **synonym** for `locationId`.
+- UI and APIs use **only**: `locationId` and `storageLocationId`.
+
+### 3.3 UI rules
+
+- Business location selector uses `LocationRef` (`locationId`)
+- Bin selector uses `StorageLocation` (`storageLocationId`)
+- Enforce in UI when possible: selected `storageLocationId` must belong to selected `locationId`
+
+---
+
+## 4. Business Rules & Invariants (Frontend-relevant, Normative)
 
 ### 4.1 Ledger immutability
-- Ledger entries are **append-only**. UI must never offer edit/delete.
-- Any “correction” is a new movement (e.g., adjustment) that creates new ledger entries.
 
-### 4.2 On-hand vs allocations vs ATP (resolved by backend story #36)
-From backend reference:
-- **On-hand** = net sum of **physical stock movements** (receipts/issues/transfers/returns/adjustments/count variances).
-- **Allocations** are excluded from on-hand.
-- **ATP v1** = `OnHand - Allocations` (expected receipts excluded).
+- Ledger entries are append-only. UI never offers edit/delete.
+- Corrections occur via new ledger entries (adjustments).
 
-Physical movement types included in on-hand:
-- Inbound: `GOODS_RECEIPT`, `TRANSFER_IN`, `RETURN_TO_STOCK`, `ADJUSTMENT_IN`, `COUNT_VARIANCE_IN`
-- Outbound: `GOODS_ISSUE`, `TRANSFER_OUT`, `SCRAP_OUT`, `ADJUSTMENT_OUT`, `COUNT_VARIANCE_OUT`
+### 4.2 On-hand vs allocations vs ATP
 
-Explicitly excluded from on-hand:
-- reservation/allocation events and pick task lifecycle events unless they post a physical movement.
+- On-hand: net sum of physical movement ledger entries
+- Allocations: excluded from on-hand
+- ATP v1: `OnHand - Allocations`
+Frontend must not compute these; backend is authoritative.
 
-Frontend invariants:
-- Do not compute ATP client-side.
-- Display values in **product base UOM** only (no conversions in v1).
-- Quantities are **decimal**; do not assume integer-only.
+### 4.3 Availability “no history” is success
 
-### 4.3 Availability empty state is success
-- “No inventory history” must be treated as a **successful** response with all quantities = 0.
-- UI should show an explicit note (“No inventory history for this scope”) rather than an error.
+- Successful response with zeros is valid; UI shows “No inventory history for this scope”.
 
 ### 4.4 Location aggregation
-- Querying a parent `locationId` aggregates across child storage locations.
-- Providing `storageLocationId` scopes to that bin only.
-- If `storageLocationId` is provided, it must belong to the selected `locationId`.
 
-### 4.5 StorageLocation hierarchy constraints
-- Barcode must be **unique per site**.
-- Parent/child hierarchy must be **cycle-free**.
-- Deactivation:
-  - If location is non-empty, backend may require `destinationLocationId` and perform atomic transfer+deactivate.
-  - Inactive locations should be excluded from parent pickers by default (configurable; see Open Questions).
+- Query by `locationId` aggregates across storage locations within that location
+- Providing `storageLocationId` scopes to that bin only
 
-### 4.6 HR-synced LocationRef constraints (resolved by backend story #40)
-- HR is authoritative for `LocationRef` lifecycle and attributes.
-- **Inactive LocationRef cannot receive new inbound stock movements**; backend rejects with **422**.
-- Existing stock at an HR-deactivated location becomes **PendingTransfer** (derived state) requiring manual reconciliation within SLA (5 business days per backend reference).
-- Frontend must proactively prevent selection of inactive locations in “new movement” flows (defense in depth).
+### 4.5 HR LocationRef lifecycle constraints (INV-DEC-009)
 
-**CLARIFY:** What constitutes “new inbound stock movements” in this frontend repo (receipts/transfers/adjustments/consumption/etc.) and which routes/screens must be updated.
-
-### 4.7 Deep-linking behavior (availability + ledger)
-- Availability story expects query params (`productSku`, `locationId`, optional `storageLocationId`) and auto-run on load.
-- Ledger story expects deep links to list with filters and to entry detail by id.
-
-**CLARIFY:** Whether deep-linking is officially supported and canonical param names/routing conventions.
+- `INACTIVE` and `PENDING` LocationRef cannot be selected for **new movement** flows
+- Historical records may display inactive/pending locations read-only
 
 ---
 
-## 5. Integration Patterns & Events
+## 5. Integration Pattern (INV-DEC-002)
 
-### 5.1 HR → Inventory topology sync
-- Inventory consumes HR events or roster sync and upserts `LocationRef`.
-- Every applied change produces a `SyncLog` entry.
-- Frontend provides read-only visibility into LocationRef and SyncLog, and optionally a “Sync now” trigger if backend supports it.
+Frontend uses **Moqui service proxy**:
 
-**Backend reference nuance:** backend supports both event-driven and bulk reconcile; UI “Sync now” should likely trigger bulk reconcile (FULL/INCREMENTAL) if exposed.
+- Vue/Quasar screens call Moqui services (or Moqui REST endpoints)
+- Moqui services proxy to inventory backend(s), centralizing auth, session, correlation headers, error mapping
 
-### 5.2 Work Execution ↔ Inventory ledger linkage
-- Ledger entries should be linkable from work order lines for “movement history”.
-- Frontend needs a stable identifier to filter ledger entries:
-  - `sourceTransactionId` and/or `workorderId/workorderLineId` fields.
-
-**CLARIFY:** Which identifier is guaranteed in ledger entries for workexec integration.
-
-### 5.3 Inventory availability consumers
-- Service Advisor screens (estimate/quote) may call availability.
-- Prefer a consistent integration approach:
-  - either Vue client calls backend directly, or
-  - Moqui services act as a proxy/facade (common in Moqui setups).
-
-**TODO:** Confirm repo convention and standardize.
-
-### 5.4 Availability feed normalization (manufacturer feeds)
-If inventory owns the normalization pipeline (or exposes its artifacts), frontend patterns should follow:
-- Read-only list/detail screens for runs and normalized availability.
-- ExceptionQueue triage actions (status updates, operator notes) must be permission-gated and use optimistic locking if supported.
-- Retention/TTL: UI must tolerate missing older runs and provide date-range filters rather than assuming infinite history.
-
-**CLARIFY:** Whether ExceptionQueue is inventory-specific or shared across integrations.
+Frontend **does not** call inventory backend directly unless an explicit exception is documented per story.
 
 ---
 
-## 6. API Contracts & Patterns (Moqui Frontend)
+## 6. API Contracts & Patterns (Normative)
 
-> Many frontend stories are blocked on exact service names/paths. Until confirmed, implement UI with a thin adapter layer so endpoint changes are localized.
+### 6.1 Envelope and error schema (INV-DEC-003)
 
-### 6.1 Contract conventions (recommended)
-- Prefer **plain JSON** responses with stable shapes.
-- If backend uses an envelope (`{ data, meta, errors }`), centralize unwrapping in one client module.
-- Pagination should be consistent across list endpoints:
-  - Either `items + totalCount + pageIndex/pageSize`
-  - Or cursor-based `items + nextPageToken`
+Responses are plain JSON (no `{data: ...}` envelope).
 
-**CLARIFY:** Ledger list pagination shape and parameter names.
+Error payload (minimum):
 
-### 6.2 Availability API (read-only)
-- **Purpose:** show on-hand/allocated/ATP for a SKU at location/bin scope.
-- **Inputs:** `productSku`, `locationId`, optional `storageLocationId`
-- **Outputs:** `AvailabilityView`
-- **Performance expectation (backend):** p95 < 200ms at service boundary (warm cache). Frontend should:
-  - show loading state immediately
-  - avoid repeated auto-refresh loops
-  - debounce input changes; only call on explicit submit or deep-link auto-run once
-
-**TODO:** Confirm exact endpoint path (e.g., `/v1/inventory/availability`) and auth mechanism.
-
-### 6.3 Ledger APIs (read-only list + detail)
-- List supports filters: product, location, movementType, date range, sourceTransactionId.
-- Location filter semantics should be:
-  - match `fromLocationId OR toLocationId` (recommended for usability) unless backend dictates otherwise.
-- Must be paginated; default page size 25.
-
-**CLARIFY:** Confirm location filter semantics and paging contract.
-
-### 6.4 Adjustments APIs (create + approve/post) — if in scope
-- Adjustment create requires:
-  - permission
-  - non-zero quantityChange
-  - reasonCode
-- Approve/post may be a separate transition and may require optimistic locking.
-
-**CLARIFY:** Whether adjustments are implemented in this repo or link-out only; confirm entity/state machine.
-
-### 6.5 StorageLocation APIs (CRUD + deactivate)
-- List by site, get detail, create, update, deactivate.
-- Deactivate may require destination selection if non-empty.
-
-**TODO:** Confirm service names/paths and error codes for `DESTINATION_REQUIRED` / `INVALID_DESTINATION`.
-
-### 6.6 LocationRef / SyncLog APIs (read-only + optional trigger)
-- List/detail for LocationRef and SyncLog.
-- SyncLog payload visibility may be permission-gated.
-- Optional “Sync now” trigger:
-  - should return a run id or acknowledgement; UI should not assume synchronous completion.
-
-**TODO:** Confirm permissions and whether payload is always returned or requires separate call.
-
-### 6.7 Availability feed ops APIs (runs, normalized availability, unmapped, exceptions)
-Frontend stories require contracts for:
-- ingestion run list + detail
-- normalized availability list
-- unmapped parts list (+ optional status update)
-- exception queue list + detail (+ optional status update, operator notes)
-
-**TODO:** Confirm endpoints/services, error schema, paging, and whether updates are PUT vs PATCH.
-
----
-
-## 7. Security / Authorization Requirements
-
-### 7.1 Backend enforcement is mandatory
-Frontend gating improves UX but must not be relied upon for security. Always handle:
-- `401 Unauthorized` (session expired)
-- `403 Forbidden` (insufficient permissions)
-- `422 Unprocessable Entity` (business rule violations like inactive location)
-
-### 7.2 Permission-driven UI affordances (when available)
-Stories reference permissions like:
-- `INVENTORY_ADJUST_CREATE`, `INVENTORY_ADJUST_APPROVE` (ledger/adjustments)
-- Topology view/admin permissions (LocationRef/SyncLog)
-- Integration ops permissions (availability ingestion monitoring, exception triage)
-- Potential inventory.* style permissions (other stories mention conflicts)
-
-**CLARIFY:** Permission naming convention for this repo (enum-like vs `inventory.*` strings). Do not hardcode until confirmed.
-
-### 7.3 Sensitive data handling
-- Availability quantities may be considered sensitive in some environments.
-- SyncLog payloads may contain upstream metadata; treat as potentially sensitive.
-- ExceptionQueue details may include vendor identifiers or operational notes; treat as sensitive-by-default.
-
-**TODO:** Decide logging policy for quantities and payloads (see Open Questions).
-
-### 7.4 Secure-by-default UI patterns
-- Do not render SyncLog payload by default; require explicit “View payload” action and permission check.
-- Avoid storing sensitive payloads in client-side persistent storage.
-- When showing correlation IDs, do not show internal stack traces or raw exception dumps.
-- For exception triage updates:
-  - require explicit confirmation for status transitions that imply resolution
-  - include optimistic locking token if provided (ETag/version) to prevent overwriting another operator’s work
-
----
-
-## 8. Observability Guidance (Frontend)
-
-### 8.1 Logs (structured, minimal)
-Log events for:
-- Availability query initiated/succeeded/failed
-- Ledger list query initiated/succeeded/failed
-- StorageLocation create/update/deactivate attempts and outcomes
-- Topology LocationRef/SyncLog list/detail fetch outcomes
-- Availability feed ops:
-  - ingestion run list/detail fetch
-  - exception queue list/detail fetch
-  - exception status update attempts/outcomes
-  - unmapped parts list fetch and status update (if supported)
-
-Recommended log fields:
-- `feature`: `inventory.availability | inventory.ledger | inventory.topology | inventory.availabilityOps`
-- `action`: `query | list | detail | create | update | deactivate | triage`
-- `httpStatus`
-- `durationMs`
-- Identifiers: `locationId`, `storageLocationId`, `ledgerEntryId`, `syncId`, `runId`, `exceptionId` (avoid PII)
-- Correlation ID if present
-
-**Avoid** logging:
-- Full SyncLog payloads
-- ExceptionQueue full details blobs
-- Potentially sensitive quantities unless explicitly allowed (see Open Questions)
-
-### 8.2 Metrics (frontend-side)
-If the repo has a metrics hook, emit:
-- `inventory_availability_request_count{status}`
-- `inventory_availability_latency_ms`
-- `inventory_ledger_list_request_count{status}`
-- `inventory_topology_syncLog_payload_view_count{status}`
-- `inventory_availabilityOps_exception_update_count{status}`
-
-### 8.3 Traces / correlation
-- Propagate correlation IDs if the repo supports it (e.g., `X-Correlation-Id`).
-- Surface correlation ID in error UI under “Technical details” (collapsed by default).
-
-**CLARIFY:** Existing convention in this repo for correlation IDs and 401 vs 403 handling.
-
----
-
-## 9. Testing Strategies
-
-### 9.1 Unit tests (Vue components)
-- Availability form validation:
-  - required SKU/location
-  - storage selector disabled until location selected
-  - “stale result” behavior when inputs change after success
-- Ledger filters:
-  - dateFrom <= dateTo validation
-  - location filter semantics (UI expectation: from OR to)
-- StorageLocation forms:
-  - required fields
-  - self-as-parent prevention
-  - inactive state disables actions per rules
-- Topology screens:
-  - status badges (ACTIVE/INACTIVE/PENDING)
-  - payload viewer gated and truncated rendering
-- Availability ops screens:
-  - list paging controls
-  - status chips and filters
-  - exception status update confirmation flows
-
-### 9.2 Integration tests (service adapters)
-- Contract tests for:
-  - availability response mapping (including success-with-zeros)
-  - ledger pagination mapping
-  - deactivate location error mapping (`DESTINATION_REQUIRED`, `INVALID_DESTINATION`)
-  - inactive location rejection (422) mapping to user message
-  - SyncLog payload access denied (403) mapping to “not authorized to view payload”
-  - exception queue update conflict (409) mapping if optimistic locking exists
-
-Use mock server fixtures with:
-- 200 success
-- 400 validation errors (field-level)
-- 401/403 auth errors
-- 404 not found
-- 409 conflict (optimistic locking)
-- 422 business rule violations (inactive location)
-
-### 9.3 End-to-end tests (happy paths)
-- Availability screen:
-  - location-level query
-  - storage-level query
-  - deep-link load with query params (if supported)
-  - 403 path does not display quantities
-- Ledger:
-  - list + filter + open detail
-  - verify no edit/delete actions exist
-- Storage locations:
-  - create, update parent, deactivate empty, deactivate non-empty requiring destination
-- Topology:
-  - view LocationRef list/detail
-  - view SyncLog list and handle forbidden payload
-- Availability ops:
-  - view ingestion runs list
-  - view exception queue list/detail
-  - update exception status (if supported) with retry on conflict
-
----
-
-## 10. Common Pitfalls & Gotchas
-
-1. **Confusing `locationId` vs `storageLocationId` vs `siteId`:**
-   - Stories use all three. Ensure UI labels and service calls are consistent.
-   - **CLARIFY** the canonical model and naming.
-
-2. **Assuming pickers exist:**
-   - Availability and ledger filters need product/location pickers.
-   - If pickers/services don’t exist, scope expands significantly. Prefer minimal UUID/text input only if explicitly approved.
-
-3. **Leaking sensitive data in logs:**
-   - Avoid logging quantities and payloads until policy is confirmed.
-   - Treat SyncLog payload and ExceptionQueue details as sensitive-by-default.
-
-4. **Not handling “success with zeros”:**
-   - Availability “no history” is a valid success state; do not treat as error.
-
-5. **Not enforcing inactive location blocking consistently:**
-   - Must be applied to all “new movement” flows, not just topology screens.
-   - Backend will reject with 422; frontend should prevent selection and handle 422 gracefully.
-
-6. **Pagination mismatches:**
-   - Ledger lists and ops lists must not fetch unbounded results.
-   - Centralize pagination mapping to avoid off-by-one and “totalCount missing” bugs.
-
-7. **Timezone confusion:**
-   - Ledger timestamps are UTC; display in user locale.
-   - For date filters, ensure ISO formatting and clarify whether backend expects UTC boundaries.
-   - LocationRef has its own `timezone` field; do not “convert” it—display as IANA string.
-
-8. **Mixing HR LocationRef deactivation vs StorageLocation deactivation semantics:**
-   - HR deactivation: blocks new inbound movements; existing stock becomes PendingTransfer (no auto-transfer).
-   - StorageLocation deactivation: may require destination transfer to deactivate.
-   - UI must not assume the same workflow applies to both.
-
----
-
-## 11. Implementation Notes (Moqui-Oriented)
-
-### 11.1 Prefer Moqui service façade (recommended default)
-Unless the repo explicitly calls backend APIs directly from Vue:
-- Implement Moqui services that proxy to backend endpoints.
-- Keep auth/session handling centralized in Moqui.
-- Standardize error mapping and correlation ID propagation.
-
-**TODO:** Confirm whether Vue calls backend directly or via Moqui transitions/services.
-
-### 11.2 Screen deep-linking
-Availability story proposes query params:
-- `productSku`, `locationId`, `storageLocationId`
-
-Ledger story proposes:
-- list with query params (filters)
-- detail route by `ledgerEntryId`
-
-**CLARIFY:** Whether deep-linking is officially supported and the canonical param names/routing conventions.
-
-### 11.3 Adapter layer pattern (actionable)
-Implement a single `inventoryApi.ts` (or Moqui service wrapper) with functions:
-- `getAvailability({ productSku, locationId, storageLocationId? })`
-- `listLedger({ filters..., page })`
-- `getLedgerEntry(id)`
-- `listStorageLocations(siteId, filters, page)`
-- `deactivateStorageLocation(id, destinationId?)`
-- `listLocationRefs(filters, page)`
-- `listSyncLogs(filters, page)`
-- `getSyncLog(syncId)` (payload gated)
-- `listIngestionRuns(filters, page)` **TODO**
-- `listNormalizedAvailability(filters, page)` **TODO**
-- `listUnmappedParts(filters, page)` **TODO**
-- `updateUnmappedPartStatus(id, status)` **TODO**
-- `listExceptionQueue(filters, page)` **TODO**
-- `updateExceptionStatus(id, status, version?)` **TODO**
-
-This keeps endpoint churn localized while stories are still clarifying contracts.
-
----
-
-## 12. Open Questions from Frontend Stories
-
-Consolidated questions requiring clarification before finalizing contracts and UI behavior:
-
-### 12.1 Availability (On-hand / ATP)
-1. What is the **exact backend endpoint path and auth mechanism** the Moqui frontend should call for availability (e.g., `/v1/inventory/availability` vs something else), and what is the expected request/response envelope (plain JSON vs wrapped `{data: ...}`)?
-2. Does the frontend already have **existing pickers** for `locationId` and `storageLocationId` (and a known service to load them)? If not, should this story:
-   - (a) use free-text UUID entry, or
-   - (b) include building minimal location/storage lookup UI (expanded scope)?
-3. Should the Availability screen support **deep-linking via URL query params** officially (bookmarked by advisors), and if so what are the canonical parameter names and routing conventions in this repo?
-4. Are availability quantities considered sensitive such that frontend logs must **avoid logging numeric quantities** (only status/timing), or is it acceptable to log them for debugging?
-
-### 12.2 Ledger (Stock movements)
-5. **Backend contract for ledger queries:** What are the exact Moqui service names or REST endpoints, including query parameter names and pagination response shape (items/total, page tokens, etc.)?
-6. **Adjustment UI scope:** Should the frontend implement full Adjustment Request screens in this repo, or only provide links to an existing adjustments area? If full, what is the adjustment request entity name/fields and state machine (`PENDING/APPROVED/POSTED`)?
-7. **Location filtering semantics:** For the ledger list filter by location, should it match `fromLocationId OR toLocationId` (recommended), or only a specific side depending on movement type?
-8. **Workexec integration key:** For “Workexec can query movement history for a workorder line”, what identifier is available in ledger entries—`sourceTransactionId` only, or a dedicated `workorderId/workorderLineId` field?
-
-### 12.3 Storage Locations (Topology: StorageLocation CRUD)
-9. What are the exact Moqui service names / REST endpoints and response schemas for:
-   - list sites, list storage types, list locations by site, get location detail, create, update, deactivate?
-10. Are `capacity` and `temperature` structured JSON inputs expected to follow a defined schema (keys/units), or should the frontend treat them as freeform JSON text?
-11. Can an **Inactive** storage location be edited (e.g., name/barcode fixes), or must it be fully read-only?
-12. Is changing `storageType` allowed after creation, or is it immutable?
-13. Should parent selection exclude **Inactive** locations strictly, or allow choosing an inactive parent for historical organization (while still preventing operational use)?
-
-### 12.4 HR-synced Locations (Topology: LocationRef + SyncLog)
-14. **Backend service contracts:** What are the exact Moqui service names (or REST endpoints) and request/response schemas for `LocationRef` and `SyncLog` list/detail?
-15. **Permissions:** What permission(s) gate access to Topology screens and SyncLog payload visibility?
-16. **Manual sync trigger:** Does the backend support an on-demand “Sync now” / reconcile action? If yes, what are the inputs/outputs, and should it be restricted to admins only?
-17. **Definition of “stock movements” in the current frontend:** Which specific screens/components in `durion-moqui-frontend` represent “new inbound stock movements” (receipts/transfers/adjustments/consumption) that must block inactive locations? Provide routes/screen names to update.
-18. **PENDING status behavior:** If `LocationRef.status=PENDING` exists in v1, should PENDING locations be selectable for new movements, or treated as inactive until ACTIVE?
-19. **Tags display expectations:** Should tags be treated as opaque JSON, or are there known keys that need friendly rendering/filtering?
-
-### 12.5 Availability feed normalization / integration ops (Manufacturer feeds)
-20. **Backend API contracts (blocking):** What are the exact endpoints (paths), request params, and response schemas for:
-   - ingestion run list + detail
-   - normalized availability list
-   - unmapped parts list (+ optional status update)
-   - exception queue list + detail
-21. **Authorization (blocking):** What permission(s)/role(s) gate access to these screens? Are they the same as existing “inventory ops” permissions or new integration-specific ones?
-22. **ExceptionQueue scope (blocking):** Is there an existing exception queue API in this frontend/backends, or must this screen be limited to inventory-domain exceptions only? What fields are guaranteed (severity, status, details)?
-23. **Unmapped status update (scope decision):** Should the frontend allow changing `UnmappedManufacturerParts.status` (PENDING_REVIEW/IGNORED/RESOLVED), or is it strictly read-only in v1?
-24. **Retention/TTL UX:** Will runs/availability be retained, and should UI support selecting archived ranges?
-
-### 12.6 Cross-cutting (Moqui integration + routing)
-25. **Moqui integration pattern (blocking):** Should the frontend call the backend Inventory API directly from the Vue client, or via Moqui screen transitions/services acting as a proxy (preferred in many Moqui setups)?
-26. **Auth/correlation (blocking):** Is there an existing convention in this repo for propagating correlation IDs (e.g., `X-Correlation-Id`) and for handling 401 vs 403 in the UI?
-27. **SLA requirement detail:** Availability backend targets p95 < 200ms at service boundary; is there a frontend SLA expectation (e.g., p95 end-to-end) that should be monitored/enforced?
-
----
-
-## 13. TODO / CLARIFY Summary (Actionable)
-
-- TODO: Confirm canonical identifiers and naming: `siteId` vs `locationId` vs `LocationRef.id`.
-- TODO: Confirm integration pattern: Vue direct-to-backend vs Moqui proxy services.
-- TODO: Confirm endpoint paths, envelopes, and pagination shapes for availability/ledger/topology/availability-ops.
-- TODO: Confirm permission strings and how frontend discovers them (claims vs endpoint).
-- TODO: Confirm logging policy for quantities and SyncLog/ExceptionQueue payload visibility.
-- TODO: Confirm whether availability feed normalization artifacts are inventory-owned and what the canonical entity names are.
-- CLARIFY: Which inventory “movement” screens exist today and must enforce inactive-location blocking.
-- CLARIFY: Whether StorageLocation deactivation transfer semantics and LocationRef deactivation PendingTransfer semantics both exist, and which applies in which UI flows.
-
----
+```json
+{
+  "errorCode": "INV_VALIDATION_FAILED",
+  "message": "Validation failed",
+  "fieldErrors": { "locationId": "REQUIRED" },
+  "reasonCode": "INACTIVE_LOCATION",
+  "correlationId": "optional-string"
+}
 ```
+
+### 6.2 Pagination contract (cursor-based)
+
+List endpoints return:
+
+- `items[]`
+- `nextPageToken` (null/absent when done)
+- `pageSize`
+- `sort` (optional echo)
+
+Requests accept:
+
+- `pageSize` (default 25; max 200)
+- `pageToken` (optional)
+- `sort` (optional; e.g., `-timestamp`)
+
+## 7. Availability Contract (INV-DEC-004)
+
+### 7.1 Endpoint (via Moqui proxy)
+
+`GET /inventory/availability`
+
+Query params:
+
+- `productSku` (required, trimmed)
+- `locationId` (required)
+- `storageLocationId` (optional)
+
+Response:
+
+```json
+{
+  "productSku": "string",
+  "locationId": "uuidv7",
+  "storageLocationId": "uuidv7-or-null",
+  "onHandQuantity": "decimal-string",
+  "allocatedQuantity": "decimal-string",
+  "availableToPromiseQuantity": "decimal-string",
+  "unitOfMeasure": "string"
+}
+```
+
+### 7.2 Deep-linking (official) (INV-DEC-014)
+
+productSku, locationId, storageLocationId (optional)
+
+Auto-run:
+
+Runs once on initial load when required params present
+
+Marks results stale if user edits inputs after success; does not auto-refresh unless user submits again### 7.3 Pickers requirement (resolved)
+Frontend must provide selectors for:
+
+locationId (LocationRef picker)
+
+storageLocationId (StorageLocation picker filtered by location)
+No free-text UUID entry in v1 UI (except internal admin/debug screen, if explicitly approved).### 7.4 Logging policy for quantities (INV-DEC-011)
+Do not log returned quantities. Only log:
+
+productSku (hashed if tenant policy requires)
+
+locationId, presence of storageLocationId (boolean)
+
+status/timing/correlationId
+
+## 8. Ledger Contract (INV-DEC-005)
+
+### 8.1 Endpoints (via Moqui proxy)
+
+GET /inventory/ledger
+Filters:
+
+productSku (optional)
+
+productId (optional; prefer when available)
+
+locationId (optional)
+
+movementType (optional)
+
+fromUtc, toUtc (optional but recommended for large tenants)
+
+sourceTransactionId (optional)
+
+workOrderId (optional)
+
+workOrderLineId (optional)
+Pagination: pageSize, pageToken, sort
+
+GET /inventory/ledger/{ledgerEntryId}### 8.2 Location filter semantics (resolved)
+If locationId filter is provided, it matches:
+
+fromLocationId == locationId OR toLocationId == locationId
+
+### 8.3 WorkExec integration key (resolved)
+
+Ledger entries support these linkage fields (when applicable):
+
+sourceTransactionId (always present for workexec-originated movements)
+
+workOrderId (present when source is a work order)
+
+workOrderLineId (present when movement is tied to a specific line)
+
+WorkExec “View Movement History” filter uses:
+
+workOrderLineId primarily
+
+fallback: sourceTransactionId when line id absent
+
+## 9. Adjustments Scope (INV-DEC-006)
+
+Adjustment UI scope in v1:
+
+Create Adjustment Request only (single-step post)
+
+No approve/post state machine UI
+
+Backend posts the ledger entry immediately upon successful create
+
+Endpoint:
+
+POST /inventory/adjustments
+Request (minimum):
+
+```json
+{
+  "locationId": "uuidv7",
+  "storageLocationId": "uuidv7-or-null",
+  "productSku": "string",
+  "quantityChange": "decimal-string",
+  "reasonCode": "string",
+  "reasonNotes": "string-or-null"
+}
+```
+
+Rules:
+
+- `quantityChange` must be non-zero
+- `reasonCode` required
+- `locationId` must be ACTIVE (not INACTIVE/PENDING)
+
+## 10. StorageLocation Contracts (INV-DEC-007)
+
+### 10.1 Endpoints
+
+GET /inventory/storage-locations?locationId=... (list bins within a location)
+
+GET /inventory/storage-locations/{storageLocationId}
+
+POST /inventory/storage-locations
+
+PUT /inventory/storage-locations/{storageLocationId}
+
+POST /inventory/storage-locations/{storageLocationId}/deactivate
+
+### 10.2 Field schema decisions (resolved)
+
+capacity and temperature are treated as freeform JSON objects (stored and displayed as JSON).
+
+UI provides a JSON editor/viewer with validation for valid JSON only; no unit enforcement in v1.
+
+### 10.3 Editability decisions (resolved)
+
+Inactive StorageLocations:
+
+editable for non-operational metadata only (name, barcode, tags, notes)
+
+cannot be reactivated in v1 unless explicitly implemented by backend story
+
+storageType is immutable after creation (create-only).
+
+### 10.4 Parent selection rules (resolved)
+
+Parent picker defaults to Active-only.
+
+UI may provide “Include inactive parents” toggle for historical organization, but operational flows must still exclude inactive bins.
+
+### 10.5 Deactivation rules
+
+If backend indicates destination required (non-empty bin):
+
+UI requires destinationStorageLocationId
+
+destination must be Active, same locationId, and not the source bin
+
+Backend errors:
+
+422 DESTINATION_REQUIRED
+
+422 INVALID_DESTINATION
+
+409 CONFLICT (optimistic locking if implemented)
+
+## 11. HR-synced LocationRef & SyncLog (INV-DEC-008, INV-DEC-009)
+
+### 11.1 Endpoints
+
+GET /inventory/locations (LocationRef list)
+
+GET /inventory/locations/{locationId} (detail)
+
+GET /inventory/sync-logs (SyncLog list)
+
+GET /inventory/sync-logs/{syncLogId} (detail)
+
+Optional trigger:
+
+POST /inventory/locations/sync → { "syncRunId": "uuidv7" }
+
+### 11.2 Permissions gating (INV-DEC-010)
+
+LocationRef list/detail: inventory:topology:view
+
+SyncLog list/detail (metadata): inventory:topology:view
+
+SyncLog payload “View payload”: inventory:topology:payload:view
+
+Manual “Sync now”: inventory:topology:sync:trigger
+
+### 11.3 Manual sync trigger (resolved)
+
+Supported; admin-only by permission above
+
+Async acknowledgement only; UI polls SyncLog list by syncRunId if supported, otherwise refresh
+
+### 11.4 PENDING behavior (resolved)
+
+Treat PENDING the same as INACTIVE for movement selection:
+
+blocked for new inbound/outbound/adjustment/transfer movements
+
+visible read-only for historical records
+
+### 11.5 “New stock movement” screens (authoritative list for this repo) (INV-DEC-009)
+
+The following UI flows must block selecting INACTIVE/PENDING locationId and must handle backend 422:
+
+Goods Receipt (receiving into inventory)
+
+Inventory Transfer (between locations/bins)
+
+Inventory Adjustment (manual correction)
+
+WorkExec Issue/Consume parts (posting physical issue to a location/bin)
+
+Return-to-stock (posting physical return into a location/bin)
+If the repo has additional movement screens later, they must adopt the same guardrail.
+
+## 12. Availability Feed Ops (Manufacturer Feeds) (INV-DEC-013)
+
+### 12.2 Endpoints
+
+Ingestion runs:
+
+GET /inventory/availability-feeds/runs
+
+GET /inventory/availability-feeds/runs/{runId}
+
+Normalized availability:
+
+GET /inventory/availability-feeds/normalized
+
+Unmapped parts:
+
+GET /inventory/availability-feeds/unmapped
+
+PATCH /inventory/availability-feeds/unmapped/{unmappedId} (status update allowed; see below)
+
+Exception queue:
+
+GET /inventory/availability-feeds/exceptions
+
+GET /inventory/availability-feeds/exceptions/{exceptionId}
+
+PATCH /inventory/availability-feeds/exceptions/{exceptionId} (status update + operator notes)
+
+### 12.3 Permissions (INV-DEC-010)
+
+View feed ops: inventory:feedops:view
+
+Update unmapped status: inventory:feedops:unmapped:update
+
+Update exception status/notes: inventory:feedops:exception:update
+
+### 12.4 ExceptionQueue scope (resolved)
+
+Inventory feed exception queue is inventory-scoped.
+
+Required fields: severity, status, message, details (redacted-safe), correlationId, timestamps.
+
+Status enum: OPEN, ACKNOWLEDGED, RESOLVED.
+
+### 12.5 Unmapped status update (resolved)
+
+Allowed in v1:
+
+PENDING_REVIEW, IGNORED, RESOLVED
+Status updates require optimistic locking if etag/version is provided.
+
+### 12.6 Retention/TTL UX (resolved)
+
+Runs and exceptions are retained for 90 days minimum.
+
+UI requires date range filters for runs and exceptions; tolerate missing older records gracefully.
+
+## 13. Permission Naming Convention (INV-DEC-010)
+
+Canonical permission strings are colon-separated, stable, and action-scoped.
+
+Minimum set:
+
+Availability:
+
+view: inventory:availability:view
+
+Ledger:
+
+view: inventory:ledger:view
+
+Adjustments:
+
+create: inventory:adjustment:create
+
+Storage locations:
+
+view: inventory:storage:view
+
+manage: inventory:storage:manage
+
+deactivate: inventory:storage:deactivate
+
+Topology:
+
+view: inventory:topology:view
+
+payload view: inventory:topology:payload:view
+
+sync trigger: inventory:topology:sync:trigger
+
+Feed ops:
+
+view: inventory:feedops:view
+
+update unmapped: inventory:feedops:unmapped:update
+
+update exception: inventory:feedops:exception:update
+
+UI hides/disables actions when permissions absent; backend remains authoritative.
+
+## 14. Correlation / 401 vs 403 Handling (INV-DEC-012)
+
+### 14.1 Headers
+
+Request header: X-Correlation-Id (generated by frontend per request if not present)
+
+Response header: X-Correlation-Id (echoed by backend/Moqui proxy)
+
+### 14.2 UI behavior
+
+401: redirect to login/session refresh per app convention; do not show cached sensitive content
+
+403: show forbidden state; do not leak data; keep filters but clear results
+
+Error UI shows correlation id under collapsed “Technical details”.
+
+## 15. Sensitive Data & Logging (INV-DEC-011, INV-DEC-015)
+
+### 15.1 Do not log
+
+Returned availability quantities
+
+SyncLog full payloads
+
+ExceptionQueue full details blobs (only safe summary fields)
+
+Tags/capacity/temperature JSON beyond minimal size (avoid in logs)
+
+### 15.2 Safe JSON rendering
+
+All JSON/payload fields are rendered with:
+
+escaped text (no HTML)
+
+truncation in list views
+
+explicit expand/copy affordances
+
+no persistence to localStorage
+
+Fields covered:
+
+tags, capacity, temperature
+
+SyncLog payload
+
+Ingestion payloads / exception details (redacted-safe)
+
+## 16. Open Questions — Resolved (Full Q/A, with provenance)
+
+Questions are restated from the prior Inventory AGENT_GUIDE “Open Questions from Frontend Stories” section and the prior Inventory STORY_VALIDATION_CHECKLIST “Open Questions to Resolve” section. Each has a clear Response and is now reconciled into this guide.
+
+Source: AGENT_GUIDE.md — 12.1 Availability (On-hand / ATP)
+AGENT_GUIDE
+
+Question 1: What is the exact backend endpoint path and auth mechanism the Moqui frontend should call for availability (e.g., /v1/inventory/availability vs something else), and what is the expected request/response envelope (plain JSON vs wrapped {data: ...})?
+Response: Use Moqui proxy endpoint GET /inventory/availability with plain JSON response (no {data:...} envelope). Auth uses existing POS session/cookie/headers via Moqui; Vue does not call backend directly. (INV-DEC-002, INV-DEC-003, INV-DEC-004)
+
+Question 2: Does the frontend already have existing pickers for locationId and storageLocationId (and a known service to load them)? If not, should this story: (a) use free-text UUID entry, or (b) include building minimal location/storage lookup UI (expanded scope)?
+Response: Inventory screens must use pickers (LocationRef picker and StorageLocation picker filtered by location). Free-text UUID entry is not allowed in v1 user-facing flows. (INV-DEC-004, INV-DEC-001)
+
+Question 3: Should the Availability screen support deep-linking via URL query params officially (bookmarked by advisors), and if so what are the canonical parameter names and routing conventions in this repo?
+Response: Yes, supported. Canonical params: productSku, locationId, storageLocationId (optional). Auto-run once per load. (INV-DEC-014, INV-DEC-004)
+
+Question 4: Are availability quantities considered sensitive such that frontend logs must avoid logging numeric quantities (only status/timing), or is it acceptable to log them for debugging?
+Response: Treat as sensitive-by-default; do not log quantities. Log identifiers/timing only. (INV-DEC-011)
+
+Source: AGENT_GUIDE.md — 12.2 Ledger (Stock movements)
+AGENT_GUIDE
+
+Question 5: Backend contract for ledger queries: What are the exact Moqui service names or REST endpoints, including query parameter names and pagination response shape (items/total, page tokens, etc.)?
+Response: Use GET /inventory/ledger (cursor pagination with nextPageToken, request pageToken + pageSize, optional sort). Detail: GET /inventory/ledger/{ledgerEntryId}. (INV-DEC-005, INV-DEC-003)
+
+Question 6: Adjustment UI scope: Should the frontend implement full Adjustment Request screens in this repo, or only provide links to an existing adjustments area? If full, what is the adjustment request entity name/fields and state machine (PENDING/APPROVED/POSTED)?
+Response: Implement create-only adjustment in v1 (POST /inventory/adjustments), backend posts immediately; no approve/post UI and no multi-state workflow in v1. (INV-DEC-006)
+
+Question 7: Location filtering semantics: For the ledger list filter by location, should it match fromLocationId OR toLocationId (recommended), or only a specific side depending on movement type?
+Response: Match fromLocationId OR toLocationId. (INV-DEC-005)
+
+Question 8: Workexec integration key: For “Workexec can query movement history for a workorder line”, what identifier is available in ledger entries—sourceTransactionId only, or a dedicated workorderId/workorderLineId field?
+Response: Ledger entries include sourceTransactionId and, when applicable, workOrderId and workOrderLineId. WorkExec uses workOrderLineId primarily. (INV-DEC-005)
+
+Source: AGENT_GUIDE.md — 12.3 Storage Locations (Topology)
+AGENT_GUIDE
+
+Question 9: What are the exact Moqui service names / REST endpoints and response schemas for: list sites, list storage types, list locations by site, get location detail, create, update, deactivate?
+Response: Use:
+
+GET /inventory/locations (sites / LocationRefs)
+
+GET /inventory/storage-locations?locationId=...
+
+GET /inventory/storage-locations/{storageLocationId}
+
+POST /inventory/storage-locations
+
+PUT /inventory/storage-locations/{storageLocationId}
+
+POST /inventory/storage-locations/{storageLocationId}/deactivate
+Storage types come from GET /inventory/meta/storage-types. (INV-DEC-007, INV-DEC-001)
+
+Question 10: Are capacity and temperature structured JSON inputs expected to follow a defined schema (keys/units), or should the frontend treat them as freeform JSON text?
+Response: Treat as freeform JSON objects; validate JSON syntax only. (INV-DEC-015, INV-DEC-007)
+
+Question 11: Can an Inactive storage location be edited (e.g., name/barcode fixes), or must it be fully read-only?
+Response: Editable for non-operational metadata only; not reactivatable in v1 unless explicitly supported by backend. (INV-DEC-007)
+
+Question 12: Is changing storageType allowed after creation, or is it immutable?
+Response: Immutable after creation. (INV-DEC-007)
+
+Question 13: Should parent selection exclude Inactive locations strictly, or allow choosing an inactive parent for historical organization (while still preventing operational use)?
+Response: Exclude inactive by default; allow optional “include inactive” toggle for historical organization only. (INV-DEC-007)
+
+Source: AGENT_GUIDE.md — 12.4 HR-synced Locations (Topology)
+AGENT_GUIDE
+
+Question 14: Backend service contracts: What are the exact Moqui service names (or REST endpoints) and request/response schemas for LocationRef and SyncLog list/detail?
+Response: Use:
+
+GET /inventory/locations, GET /inventory/locations/{locationId}
+
+GET /inventory/sync-logs, GET /inventory/sync-logs/{syncLogId} (INV-DEC-008)
+
+Question 15: Permissions: What permission(s) gate access to Topology screens and SyncLog payload visibility?
+Response: inventory:topology:view and inventory:topology:payload:view for payload. (INV-DEC-010)
+
+Question 16: Manual sync trigger: Does the backend support an on-demand “Sync now” / reconcile action? If yes, what are the inputs/outputs, and should it be restricted to admins only?
+Response: Yes. POST /inventory/locations/sync returns {syncRunId}; restricted by inventory:topology:sync:trigger. (INV-DEC-008, INV-DEC-010)
+
+Question 17: Definition of “stock movements” in the current frontend: Which specific screens/components represent “new inbound stock movements” that must block inactive locations? Provide routes/screen names to update.
+Response: Authoritative movement flows listed in §11.5; all must block INACTIVE/PENDING locations and handle backend 422. (INV-DEC-009)
+
+Question 18: PENDING status behavior: If LocationRef.status=PENDING exists in v1, should PENDING locations be selectable for new movements, or treated as inactive until ACTIVE?
+Response: Treat as inactive until ACTIVE. (INV-DEC-009)
+
+Question 19: Tags display expectations: Should tags be treated as opaque JSON, or are there known keys that need friendly rendering/filtering?
+Response: Treat as opaque JSON. Provide generic JSON viewer + optional tag chips if tags is an array of strings; do not assume keys. (INV-DEC-015)
+
+Source: AGENT_GUIDE.md — 12.5 Availability feed normalization / ops
+AGENT_GUIDE
+
+Question 20: Backend API contracts (blocking): What are the exact endpoints (paths), request params, and response schemas for runs/normalized/unmapped/exceptions?
+Response: Endpoints are defined in §12.2. Lists use cursor paging; filters include manufacturer, status, date range (runs/exceptions). (INV-DEC-013, INV-DEC-003)
+
+Question 21: Authorization (blocking): What permission(s)/role(s) gate access to these screens?
+Response: inventory:feedops:view, inventory:feedops:unmapped:update, inventory:feedops:exception:update. (INV-DEC-010)
+
+Question 22: ExceptionQueue scope (blocking): inventory-specific or shared? What fields are guaranteed?
+Response: Inventory-scoped feed exception queue; required fields are defined in §12.4. (INV-DEC-013)
+
+Question 23: Unmapped status update (scope decision): allow changing UnmappedManufacturerParts.status?
+Response: Yes, allowed in v1 with enum values in §12.5. (INV-DEC-013)
+
+Question 24: Retention/TTL UX: Will runs/availability be retained, and should UI support selecting archived ranges?
+Response: Retain minimum 90 days; UI supports date range filters and tolerates older missing records. (INV-DEC-013)
+
+Source: AGENT_GUIDE.md — 12.6 Cross-cutting (Moqui integration + routing)
+AGENT_GUIDE
+
+Question 25: Moqui integration pattern (blocking): call backend directly from Vue client, or via Moqui proxy services?
+Response: Use Moqui proxy services. (INV-DEC-002)
+
+Question 26: Auth/correlation (blocking): existing convention for correlation IDs (e.g., X-Correlation-Id) and for handling 401 vs 403 in UI?
+Response: Use X-Correlation-Id and behaviors in §14.2. (INV-DEC-012)
+
+Question 27: SLA requirement detail: is there a frontend SLA expectation to monitor/enforce?
+Response: Frontend UX SLA: show loading indicator within 100ms; surface timeout at 8 seconds with retry; no auto-refresh loops. Backend SLA remains p95 < 200ms service boundary when warm. (INV-DEC-004)
+
+# End of AGENT_GUIDE.md
