@@ -136,7 +136,8 @@ To ensure traceability and prevent scattered outputs, the Story Authoring Agent 
 
 * **Single Folder Per Update:** All files produced during a single story update MUST live under: `.story-work/<ISSUE_NUMBER>/` at the repository root.
 * **Derive ISSUE_NUMBER:** Resolve the `<ISSUE_NUMBER>` from the GitHub issue being authored/refined.
-* **No External Writes:** The agent MUST NOT write, move, or modify files outside `.story-work/<ISSUE_NUMBER>/` for that update.
+* **Allowed Domain Docs Writes (Exception):** When the user request is explicitly to generate or update domain business-rules documentation (per `domain-business-rules.prompt.md`), the agent MAY also write directly to: `durion/domains/{domain}/.business-rules/` (for that same `{domain}` only).
+* **No Other External Writes:** Outside of the domain business-rules exception above, the agent MUST NOT write, move, or modify files outside `.story-work/<ISSUE_NUMBER>/` for that update.
 * **Create If Missing:** If the folder does not exist, create `.story-work/<ISSUE_NUMBER>/` before writing.
 * **One Story Per Invocation:** Do not write to multiple issue-numbered folders in the same run. If another story needs updating, stop and re-run for that issue.
 * **Auditability:** Log or summarize created/updated files in the story handoff comment to maintain an auditable trail.

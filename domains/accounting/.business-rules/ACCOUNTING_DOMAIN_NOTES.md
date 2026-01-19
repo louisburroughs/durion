@@ -469,4 +469,6 @@ That is intentional.
 
 ---
 
-**End of ACCOUNTING_DOMAIN_NOTES.md**
+## End
+
+End of document.

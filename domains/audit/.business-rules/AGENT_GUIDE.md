@@ -1,4 +1,15 @@
-# AGENT_GUIDE.md — Domain: `audit` (Normative)
+# AGENT_GUIDE.md
+
+## Summary
+
+This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export.
+It is authoritative for permission gating, guardrails, and capability contracts; rationale and auditor narrative live in `AUDIT_DOMAIN_NOTES.md`.
+
+## Completed items
+
+- [x] Generated/maintained Decision Index
+- [x] Mapped Decision IDs to `AUDIT_DOMAIN_NOTES.md`
+- [x] Reconciled open questions into normative answers
 
 ## Purpose
 
@@ -28,6 +39,23 @@ This document is **normative** (direct agent input, CI validation, story executi
 | **AUD-SEC-010** | Event Type Vocabulary and Discovery Endpoint |
 | **AUD-SEC-011** | Deep-Link Metadata Policy (No Hardcoded URLs; Authorization-Safe) |
 | **AUD-SEC-012** | Correlation and Trace Context Standard |
+
+## Mapping: Decisions → Notes
+
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| AUD-SEC-001 | Enforce tenant isolation for all reads/writes | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-001---tenant-isolation-and-scoping-rules) |
+| AUD-SEC-002 | Require and enforce location scoping; gated cross-location | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-002---location-scoping-and-cross-location-permission-model) |
+| AUD-SEC-003 | Least-privilege permissions and role guidance | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-003---authorization-model-roles-%E2%86%92-permission-strings) |
+| AUD-SEC-004 | Restrict, redact, and safely render raw payloads | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-004---raw-payload-handling-redaction-and-safe-rendering) |
+| AUD-SEC-005 | Guardrails: date range required, indexed filters, max window | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-005---query-guardrails) |
+| AUD-SEC-006 | Async export jobs with auditing + digest manifest | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-006---export-security-model) |
+| AUD-SEC-007 | Support multiple identifier semantics; backend normalization | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-007---identifier-semantics-for-search) |
+| AUD-SEC-008 | Pricing evidence access with size limits and pagination | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-008---pricing-evidence-access-size-limits-pagination) |
+| AUD-SEC-009 | Proof fields display-only unless verification is explicit | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-009---immutability-proof-fields-hash-chain--signature) |
+| AUD-SEC-010 | Controlled eventType vocabulary via discovery endpoint | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-010---event-type-vocabulary) |
+| AUD-SEC-011 | Deep-link metadata only; no hardcoded URLs | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-011---deep-link-metadata-policy) |
+| AUD-SEC-012 | Use W3C Trace Context for correlation | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-012---correlation-and-trace-context-standard) |
 
 ---
 
@@ -371,4 +399,10 @@ Export and pricing evidence are separately permissioned. (AUD-SEC-003)
 
 ---
 
-# End of AGENT_GUIDE.md
+## Todos Reconciled
+
+- None (the current audit guide uses resolved Q/A blocks rather than free-form todos).
+
+## End
+
+End of document.

@@ -1,6 +1,13 @@
-# STORY_VALIDATION_CHECKLIST.md — Billing Domain (Updated)
+# STORY_VALIDATION_CHECKLIST.md
+
+## Summary
 
 This checklist validates implementations within the Billing domain (billing rules, invoice draft creation, invoice issuance, traceability/artifacts, AP vendor payments, checkout PO enforcement, receipts).
+
+## Completed items
+
+- [x] Aligned checklist items with `BILL-DEC-###` decisions in `AGENT_GUIDE.md`
+- [x] Captured contract and security invariants needed for implementation
 
 ---
 
@@ -199,4 +206,6 @@ Invoice detail must include `traceability` and `issuancePolicy/issuanceBlockers`
 
 ---
 
-# End of STORY_VALIDATION_CHECKLIST.md
+## End
+
+End of document.

@@ -1,4 +1,13 @@
-# AUDIT_DOMAIN_NOTES.md — Domain: `audit` (Non-Normative)
+# AUDIT_DOMAIN_NOTES.md
+
+## Summary
+
+This document captures the rationale, alternatives, and auditor-facing explanations behind the audit domain’s normative decisions.
+It is intentionally non-normative and should not be treated as executable policy; the authoritative rules are in `AGENT_GUIDE.md`.
+
+## Completed items
+
+- [x] Linked each Decision ID to detailed rationale sections
 
 ## Intended uses
 
@@ -302,4 +311,6 @@ Standard tracing reduces debugging time and supports incident response without e
 
 ---
 
-# End of AUDIT_DOMAIN_NOTES.md
+## End
+
+End of document.

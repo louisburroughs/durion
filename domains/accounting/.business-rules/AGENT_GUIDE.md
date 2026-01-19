@@ -644,7 +644,7 @@ Allowed once only, cannot be changed after set, justification required (>= 10 ch
 #### D4. **(blocking)** Ingestion outcome visibility: is there an entity/service for duplicates/rejected/DLQ/quarantine/ingestion logs?
 
 **Response:**
-Yes. Use `AccountingEventIngestionRecord` list/detail via `/accounting/ingestion/*` for visibility into:
+Yes. Use `AccountingEventIngestionRecord` list/detail via `/accounting/ingestion/\*` for visibility into:
 
 - `PROCESSED`, `REJECTED`, `QUARANTINED`
 - `NEW`, `DUPLICATE_IGNORED`, `DUPLICATE_CONFLICT` (**Decision AD-007**)
@@ -781,4 +781,6 @@ UI blocks non-UUID identifiers for fields that are UUIDv7 (`eventId`, `invoiceId
 
 ---
 
-# End of AGENT_GUIDE.md
+## End
+
+End of document.

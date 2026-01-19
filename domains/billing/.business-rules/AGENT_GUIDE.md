@@ -1,4 +1,15 @@
-# AGENT_GUIDE.md — Billing Domain (Normative)
+# AGENT_GUIDE.md
+
+## Summary
+
+This guide defines the Billing domain’s normative business rules and system-of-record boundaries for invoice lifecycle, BillingRules, checkout enforcement, receipts, and billing-orchestrated payments.
+Decision IDs in the index are authoritative and map 1:1 to rationale sections in `BILLING_DOMAIN_NOTES.md`.
+
+## Completed items
+
+- [x] Generated/maintained Decision Index
+- [x] Mapped Decision IDs to `BILLING_DOMAIN_NOTES.md`
+- [x] Preserved resolved open questions and contract guidance
 
 ## Purpose
 
@@ -42,6 +53,27 @@ Decision IDs below correspond 1:1 to sections in `BILLING_DOMAIN_NOTES.md`.
 | BILL-DEC-016 | Frontend Deep-Link Metadata (No Hardcoded Routes) |
 
 ---
+
+## Mapping: Decisions → Notes
+
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| BILL-DEC-001 | Canonical invoice status enums/state machine | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-001--canonical-invoice-status-enums-and-state-machine) |
+| BILL-DEC-002 | Idempotent draft creation gated by Workexec readiness | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-002--draft-invoice-creation-command-idempotency--work-order-preconditions) |
+| BILL-DEC-003 | Issuance gating with blockers + policy envelope | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-003--issuance-gating-model-blockers--policy-envelope) |
+| BILL-DEC-004 | Immutable traceability snapshot schema | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-004--traceability-snapshot-schema-canonical-field-names--immutability) |
+| BILL-DEC-005 | Artifact retrieval list + secure download contract | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-005--artifact-retrieval-contract-list--secure-download) |
+| BILL-DEC-006 | BillingRules concurrency via ETag/If-Match | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-006--billingrules-concurrency-model-etagif-match) |
+| BILL-DEC-007 | Discovery endpoints for options/enums | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-007--billingrules-optionsenums-discovery-endpoints) |
+| BILL-DEC-008 | Canonical permission strings, least-privilege model | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-008--permission-model-canonical-permission-strings) |
+| BILL-DEC-009 | PO capture + override workflow contract | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-009--checkout-po-capture-and-override-workflow-contract) |
+| BILL-DEC-010 | Step-up auth via elevation token (no shared codes) | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-010--managersupervisor-approval-semantics-re-auth-token) |
+| BILL-DEC-011 | Receipts generation/delivery/reprint policy evaluation | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-011--receipts-generation-delivery-statuses-reprint-policy-evaluation) |
+| BILL-DEC-012 | Partial payments policy and receipt display rules | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-012--partial-payments-policy-and-receipt-display-rules) |
+| BILL-DEC-013 | AP vendor payment semantics (if in boundary) | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-013--ap-vendor-payments-status-enums-idempotency-allocation-rules) |
+| BILL-DEC-014 | Posting error visibility and sanitization policy | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-014--posting-error-visibility-policy-sanitization--role-targeted-detail) |
+| BILL-DEC-015 | W3C Trace Context correlation/tracing standard | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-015--observability-correlationtracing-standard-w3c-trace-context) |
+| BILL-DEC-016 | Deep-link metadata (no hardcoded routes) | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-016--frontend-deep-link-metadata-no-hardcoded-routes) |
 
 ## Domain Boundaries
 
@@ -527,6 +559,12 @@ Optional: `ERROR` only if implemented. UI must not invent “EDITABLE/FINALIZED/
 - editable if `status==DRAFT`
 - finalized if `status in {ISSUED,PAID,VOID}` (BILL-DEC-001)
 
+## Todos Reconciled
+
+- None (this domain guide’s work items are captured as Decision IDs and the checklist’s resolved open questions).
+
 ---
 
-# End of AGENT_GUIDE.md
+## End
+
+End of document.

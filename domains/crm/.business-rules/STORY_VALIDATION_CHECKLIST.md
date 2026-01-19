@@ -1,180 +1,396 @@
-# CRM Story Validation Checklist
+# STORY_VALIDATION_CHECKLIST.md
 
-This checklist is intended for engineers and reviewers to validate story implementations within the CRM domain. It covers key areas to ensure correctness, security, observability, and maintainability—updated to include validation needs introduced by the new CRM frontend stories (integration monitoring, promotion redemptions viewer, CRM snapshot viewer, vehicle ingestion log UI, vehicle lookup, vehicle care preferences, contact points/preferences/merge/account/contact roles).
+## Summary
 
----
+This checklist validates CRM-domain story implementations for correctness, security, operational visibility, and contract fidelity. It incorporates resolved open questions from the prior CRM docs by turning them into testable acceptance criteria. Where upstream contracts remain pending, it encodes safe defaults and requires explicit contract documentation before release.
 
-## Scope/Ownership
-- [ ] Verify the story is correctly labeled `domain:crm` and CRM is the system-of-record for the data being displayed/edited (e.g., snapshot, vehicles, preferences, redemptions, ingestion logs).
-- [ ] Confirm whether the UI is **read-only** vs **mutating** (e.g., integration logs and redemptions are read-only; vehicle care preferences are create/update).
-- [ ] Confirm the primary persona(s) and intended entry points exist in the POS navigation (e.g., Integration Admin menu, CRM tools, Vehicle profile, Estimate/Work Order screens).
-- [ ] Verify out-of-scope operator actions are not accidentally implemented (e.g., “reprocess DLQ”, “acknowledge”, “mark resolved”) unless explicitly approved.
-- [ ] Confirm cross-domain dependencies are documented and respected (Workorder Execution event references, Billing snapshot consumers).
-- [ ] Verify screen routing/deep-link behavior is defined and consistent (list → detail, query params preserved, direct detail URL handling).
-- [ ] Confirm ownership of “contact roles” and “commercial account creation” is resolved if labels conflict with other domains (payment/billing vs CRM).
+## Completed items
 
----
+- [x] Updated acceptance criteria for each resolved open question
+
+## Scope / Ownership
+
+- [ ] Confirm story labeled `domain:crm`
+- [ ] Verify primary actor(s) and permissions
+- [ ] Confirm CRM is SoR for mutated entities (Party, Vehicle, ContactPoint, roles, preferences)
+- [ ] Ensure operational screens are read-only unless explicitly approved
 
 ## Data Model & Validation
-- [ ] Verify all identifiers accepted from user input are validated and trimmed (e.g., `eventId`, `partyId`, `vehicleId` must be UUID when required; free-text search query trimmed).
-- [ ] Verify client-side validation blocks invalid requests where specified:
-  - [ ] Date range validation: `end >= start` for list filters (processing logs, suspense, redemptions).
-  - [ ] UUID format validation for `eventId` filters and snapshot inputs (`partyId`, `vehicleId`).
-  - [ ] “At least one identifier required” validation for CRM snapshot (`partyId` or `vehicleId`).
-  - [ ] Vehicle care preferences: `rotationInterval` must be an integer when provided.
-- [ ] Verify enum fields are validated against allowed values and rendered safely:
-  - [ ] ProcessingLog statuses (e.g., `SUCCESS`, `FAILURE`, `SKIPPED_DUPLICATE`, `ERROR_VALIDATION`, `ERROR_NOT_FOUND`, `PENDING_REVIEW`, `DUPLICATE` depending on screen).
-  - [ ] Snapshot preferences enums (e.g., `invoiceDeliveryMethod`).
-  - [ ] Vehicle care preference unit enum (once defined).
-- [ ] Verify “missing record” behavior is handled deterministically:
-  - [ ] Preferences load returns empty state when record does not exist (whether backend returns 404 vs 200 empty must be handled).
-  - [ ] Detail views show “not found” state on 404 and provide a safe navigation back to list.
-- [ ] Verify UI does not invent fields not present in backend DTOs; fields/columns are conditional on response schema.
-- [ ] Verify free-form text fields (notes, details, payload) are treated as text/JSON and never rendered as HTML.
-- [ ] Verify vehicle lookup does not assume VIN format rules unless explicitly required; only enforce non-empty query (and minimum length only if backend defines it).
-- [ ] Verify identifier display formatting/masking rules are applied consistently if required (VIN, license plate, payload JSON).
 
----
+- [ ] Validate required inputs and types (`partyId`, `vehicleId`, `eventId` are UUID when specified)
+- [ ] Verify date/time semantics and timezone labeling for displayed timestamps
+- [ ] Validate vehicle care preferences fields:
+  - [ ] `rotationInterval` integer and 1–100000
+  - [ ] `rotationIntervalUnit` required when interval present; enum: `MILES`, `KM`
+  - [ ] Free-form notes treated as text only
 
 ## API Contract
-- [ ] Verify the frontend calls the **actual** Moqui services/endpoints (not placeholders) and the contract is documented (service name, params, response fields).
-- [ ] Verify list endpoints support server-side pagination and sorting where required (processing logs, suspense/DLQ, promotion redemptions).
-- [ ] Verify filter semantics match backend behavior and are documented (exact vs prefix vs contains for `correlationId`, VIN/unit/plate matching).
-- [ ] Verify error handling is mapped consistently across screens:
-  - [ ] `400` shows user-correctable validation messaging (inline when possible).
-  - [ ] `401` triggers standard login flow.
-  - [ ] `403` shows access denied and does not display partial data.
-  - [ ] `404` shows not-found state on detail screens.
-  - [ ] `409` (if used for optimistic locking) shows conflict guidance (reload vs overwrite).
-  - [ ] `5xx`/network shows generic error + retry affordance.
-- [ ] Verify CRM snapshot viewer calls `GET /v1/crm-snapshot` with at least one query param and renders `snapshotMetadata` when present.
-- [ ] Verify vehicle lookup uses the confirmed endpoints/methods and handles truncation/pagination signals if provided.
-- [ ] Verify create/update calls (vehicle care preferences, communication preferences, contact points, contact roles, commercial account creation, merge) send only allowed fields and handle field-level errors from backend.
 
----
+- [ ] Verify endpoints/services and DTO fields are documented near the owning component
+- [ ] Verify pagination (`pageIndex`, `pageSize`) and sorting for all list screens
+- [ ] Verify error payloads include `errorCode` and do not leak sensitive data
 
 ## Events & Idempotency
-- [ ] Verify integration monitoring screens correctly display idempotency-related statuses (e.g., `SKIPPED_DUPLICATE`, `DUPLICATE`) without implying remediation actions.
-- [ ] Verify event identity is consistent across list/detail navigation (e.g., suspense item addressed by `suspenseId` vs `eventId`).
-- [ ] Verify correlation identifiers are displayed for traceability (e.g., `eventId`, `correlationId`, `workorderId`, `invoiceId`) and copy-to-clipboard works where implemented.
-- [ ] Verify retry/attempt metadata is displayed only if backend provides it (retry count, last error, next retry timestamp) and is clearly labeled as read-only.
-- [ ] Verify UI does not assume event ordering guarantees; it should sort by timestamps provided (processed/received/routed).
 
----
+- [ ] Inbound event processing is idempotent by `eventId`
+- [ ] UI and services handle retry semantics without creating duplicates
 
 ## Security
-- [ ] Verify every screen and backend call enforces authentication and authorization (RBAC) and fails closed.
-- [ ] Verify UI entry points are hidden/disabled when user lacks permission (if the app supports client-side permission gating), and backend 403 is still handled safely.
-- [ ] Verify sensitive fields are not exposed:
-  - [ ] Suspense/DLQ payload JSON is shown only if explicitly allowed and sanitized/redacted.
-  - [ ] ProcessingLog `details` is treated as potentially sensitive and masked/redacted per policy.
-  - [ ] VIN/license plate display and logging follow the approved masking policy (if required).
-  - [ ] Do not log free-form notes or raw payloads in client logs/telemetry.
-- [ ] Verify input sanitization prevents injection:
-  - [ ] No raw HTML rendering from backend strings (`details`, `notes`, `payload`).
-  - [ ] Query/filter values are not interpolated into templates unsafely.
-- [ ] Verify merge and role-editing flows (if implemented) require elevated permissions and produce audit trails (backend + UI confirmation).
-- [ ] Verify environment-based restrictions are enforced if required (e.g., integration monitoring only in non-prod or only for internal support).
 
----
+- [ ] Permission gating for sensitive payloads and redaction
+- [ ] UI never renders backend strings as HTML
+- [ ] Snapshot calls are proxied server-side; no browser-to-snapshot direct calls
 
 ## Observability
-- [ ] Verify correlation/request IDs are propagated and surfaced for support:
-  - [ ] UI displays correlation ID on 5xx when provided (header or body).
-  - [ ] Server-side logs include correlation ID for failed calls.
-- [ ] Verify operational screens provide sufficient traceability fields (eventId, correlationId/workorder reference, timestamps, status, failure reason).
-- [ ] Verify UI telemetry (if present) avoids sensitive data:
-  - [ ] Log query length and result count for vehicle lookup rather than full VIN/plate (unless policy allows).
-  - [ ] Log screen name, status code, and timing without payload contents.
-- [ ] Verify audit history UI (vehicle care preferences, communication preferences, contact roles, merges) displays actor/time and change type; field-level diffs only if backend provides them.
 
----
+- [ ] Trace identifiers and audit fields surface in UI and logs
+- [ ] UI telemetry avoids raw payloads, VIN, and plate values
 
-## Performance & Failure Modes
-- [ ] Verify list screens use server-side pagination and do not load unbounded results.
-- [ ] Verify default sorting is deterministic and uses indexed fields (e.g., `processedTimestamp DESC`, `receivedTimestamp DESC`).
-- [ ] Verify filter patterns are performance-safe:
-  - [ ] `correlationId` contains/prefix searches are only enabled if backend supports indexing/efficient queries.
-  - [ ] Vehicle lookup partial matching is constrained (min length, result limits) per backend rules.
-- [ ] Verify UI handles backend timeouts/unavailability gracefully (retry button, preserves filters/inputs).
-- [ ] Verify “refresh snapshot” does not spam backend (disable during in-flight; optional debounce/throttle if needed).
-- [ ] Verify stale-data behavior is explicit:
-  - [ ] Snapshot viewer indicates when data is being refreshed and avoids blanking the UI unexpectedly.
-  - [ ] If keeping prior snapshot on error, it is clearly marked as stale (or cleared deterministically).
+## Acceptance Criteria (per resolved question)
 
----
+### Q: What are the exact Moqui services/entity views to query `ProcessingLog` and `SuspenseQueue` (list + detail), including required params and returned fields?
 
-## Testing
-- [ ] Unit tests cover client-side validation rules:
-  - [ ] UUID validation for eventId/partyId/vehicleId.
-  - [ ] Date range validation.
-  - [ ] “At least one identifier” rule for snapshot.
-  - [ ] Integer validation for rotation interval.
-- [ ] Component tests verify UI state transitions: `idle/loading/loaded/empty/error` for list/detail screens.
-- [ ] Integration tests (or contract tests) validate API/service calls:
-  - [ ] Correct query params/body for search/list endpoints.
-  - [ ] Pagination parameters and sorting.
-  - [ ] Correct handling of 400/401/403/404/409/5xx.
-- [ ] Security tests verify unauthorized users cannot see data (403 handling shows no partial results).
-- [ ] Tests verify sensitive fields are not rendered/logged:
-  - [ ] Payload redaction behavior (when payload is present).
-  - [ ] No HTML injection via `details/notes/payload`.
-- [ ] E2E tests cover key workflows:
-  - [ ] Integration logs list → detail navigation and back with preserved filters.
-  - [ ] Suspense list → detail navigation.
-  - [ ] Promotion redemptions list → detail.
-  - [ ] Snapshot load by partyId and by vehicleId; refresh behavior.
-  - [ ] Vehicle lookup search → select → snapshot load → handoff to caller.
-  - [ ] Vehicle care preferences create/update, cancel, and audit history view.
-- [ ] Concurrency tests (if optimistic locking is used) verify 409 conflict handling for editable preferences.
+- Acceptance: UI uses dedicated read endpoints that return safe DTOs (not direct entity-find); list supports pagination + filters (`eventType`, `eventId`, `correlationIdPrefix`, status, date range).
+- Test Fixtures: Two log rows exist with different event types.
+- Example API request/response (code block)
 
----
+```http
+GET /rest/api/v1/crm/integrations/processing-logs?eventType=VehicleUpdated&pageIndex=0&pageSize=25
+```
 
-## Documentation
-- [ ] Document the final Moqui service names/endpoints used by each screen (ProcessingLog, SuspenseQueue, PromotionRedemption, Vehicle search/snapshot, Vehicle preferences, audit history).
-- [ ] Document required permissions/roles for each screen and action (view vs edit vs audit vs merge).
-- [ ] Document redaction/masking rules for payload/details/VIN/plate and logging policy.
-- [ ] Document filter semantics and any minimum query length/result limits for search screens.
-- [ ] Document error payload shapes used for user messaging (field-level errors, `errorCode` for snapshot 404 cases).
-- [ ] Document navigation/handoff mechanism for VehicleLookup returning selected context to the calling workflow.
-- [ ] Record decisions resolving open questions and link them to the story/ADR/issue.
+```json
+{"items":[{"processingLogId":"...","eventType":"VehicleUpdated","status":"SUCCESS"}],"pageIndex":0,"pageSize":25,"total":1}
+```
 
----
+### Q: Is a suspense/DLQ record addressed by `eventId` or a separate `suspenseId`/messageId?
 
-## Open Questions to Resolve
-- [ ] What are the exact Moqui services/entity views to query `ProcessingLog` and `SuspenseQueue` (list + detail), including required params and returned fields?
-- [ ] Is a suspense/DLQ record addressed by `eventId` or a separate `suspenseId`/messageId?
-- [ ] Can the UI display raw `payload` JSON for suspense items? If yes, what redaction rules apply and is there a safe `payloadSummary` field?
-- [ ] What permission keys/roles gate access to integration monitoring screens, and are there environment-based restrictions (prod vs non-prod)?
-- [ ] What are the filter semantics for `correlationId` (exact/prefix/contains), and what performance/indexing constraints apply?
-- [ ] Should the UI expose retry/attempt metadata (retry count, last error, next retry timestamp), and what fields provide it?
-- [ ] Are operator actions (reprocess/retry/ack/export/mark resolved) required? If yes, define allowed actions and audit requirements.
-- [ ] Promotions redemptions: what is the exact API/service contract for listing/getting `PromotionRedemption` (pagination/sort/filters)?
-- [ ] Promotions redemptions: what roles/permissions gate CSR vs Marketing access?
-- [ ] Promotions redemptions: which entity is the canonical read model exposed to UI (`PromotionRedemption` only vs also `ProcessingLog`/event metadata)?
-- [ ] Promotions redemptions: are `workOrderId` and `invoiceId` UUIDs or external human-readable identifiers?
-- [ ] VehicleUpdated ingestion logs: what is the conflict resolution policy and when is `PENDING_REVIEW` used vs last-write-wins?
-- [ ] VehicleUpdated ingestion logs: does ProcessingLog include `estimateId` in addition to `workorderId`, and what is the field name?
-- [ ] VehicleUpdated ingestion logs: can `details` contain sensitive customer data and what masking rules apply?
-- [ ] Vehicle care preferences: what are the exact endpoints/services for load, upsert, and audit history (including error payload shape and field-level errors)?
-- [ ] Vehicle care preferences: fixed schema vs dynamic key/value preferences (EAV/JSON)?
-- [ ] Vehicle care preferences: is optimistic locking required (version/ETag/lastUpdatedStamp) and what is the expected 409 behavior?
-- [ ] Vehicle care preferences: allowed `rotationIntervalUnit` enum values, whether unit is required when interval is provided, and min/max constraints.
-- [ ] Vehicle lookup: confirm endpoints/methods/response shapes for search and vehicle+owner snapshot.
-- [ ] Vehicle lookup: ranking logic and whether backend returns `rankScore`/`matchType`.
-- [ ] Vehicle lookup: minimum query length and matching rules (contains vs startsWith) for VIN/unit/plate.
-- [ ] Vehicle lookup: result limiting/pagination and whether truncation is indicated in response.
-- [ ] Vehicle lookup: permission model and required behavior when permission is missing (hide entry point vs show blocked screen).
-- [ ] Vehicle lookup: PII policy for displaying/logging full VIN and license plate (masking standard).
-- [ ] Vehicle lookup: Moqui screen-flow handoff mechanism to return selected vehicle context to estimate creation (return transition vs redirect params vs shared context).
-- [ ] CRM snapshot viewer: should the browser call `GET /v1/crm-snapshot` directly or must it be proxied via Moqui server-side service (allowlist + scope)?
-- [ ] CRM snapshot viewer: where is correlation ID provided (header name vs JSON field), and is logging partyId/vehicleId allowed or must be masked?
-- [ ] Contact points/preferences/contact roles/merge/commercial account creation: confirm canonical identifiers (`partyId` vs `personId` vs `customerId`) used in routes and service calls.
-- [ ] Contact points: phone validation policy (E.164 vs digits-only vs extensions) and whether `kind` is mutable after creation.
-- [ ] Party merge: search requirements (allow browse vs require criteria), party types allowed, alias/redirect behavior, and conflict resolution policy (“survivor wins”).
-- [ ] Contact roles: CRM vs Billing ownership, role list source of truth, and primary auto-demotion vs reject behavior.
-- [ ] Commercial account creation: duplicate detection inputs and backend response shape (separate duplicateCheck vs create returns duplicates requiring confirmation), billing terms source, external identifiers validation, and post-create navigation route.
+- Acceptance: List returns `suspenseId`; detail loads by `suspenseId`. `eventId` is filterable but not the primary key.
+- Test Fixtures: One suspense record exists.
+- Example API request/response (code block)
 
----
+```http
+GET /rest/api/v1/crm/integrations/suspense?suspenseId=0f0f0f0f-0000-0000-0000-000000000001
+```
 
-# End of Checklist
+```json
+{"suspenseId":"0f0f0f0f-0000-0000-0000-000000000001","eventId":"11111111-1111-1111-1111-111111111111","status":"ERROR_VALIDATION"}
+```
+
+### Q: Can the UI display raw `payload` JSON for suspense items? If yes, what redaction rules apply and is there a safe `payloadSummary` field?
+
+- Acceptance: Users without payload permission only see `payloadSummary` and `redactedPayload`. No screen renders raw payload.
+- Test Fixtures: A suspense record contains a payload.
+- Example API request/response (code block)
+
+```json
+{"payloadSummary":"Schema validation failed","redactedPayload":{"eventType":"VehicleUpdated"}}
+```
+
+### Q: What permission keys/roles gate access to integration monitoring screens, and are there environment-based restrictions (prod vs non-prod)?
+
+- Acceptance: Access is denied (403) without the explicit permission; UI handles 403 as “Access denied” without partial data.
+- Test Fixtures: A user without permission loads the screen.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FORBIDDEN","message":"Missing permission"}
+```
+
+### Q: What are the filter semantics for `correlationId` (exact/prefix/contains), and what performance/indexing constraints apply?
+
+- Acceptance: Prefix match is supported; contains is rejected with 400.
+- Test Fixtures: Call contains filter.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"UNSUPPORTED_FILTER","message":"Contains search is not supported for correlationId"}
+```
+
+### Q: Should the UI expose retry/attempt metadata (retry count, last error, next retry timestamp), and what fields provide it?
+
+- Acceptance: UI renders retry fields only if present; absence does not break rendering.
+- Test Fixtures: One record includes `attemptCount`, another does not.
+- Example API request/response (code block)
+
+```json
+{"attemptCount":3,"lastAttemptAt":"2026-01-19T00:00:00Z","nextAttemptAt":"2026-01-19T00:05:00Z"}
+```
+
+### Q: Are operator actions (reprocess/retry/ack/export/mark resolved) required? If yes, define allowed actions and audit requirements.
+
+- Acceptance: No operator action endpoints are called; the UI has no action buttons.
+- Test Fixtures: N/A.
+- Example API request/response (code block)
+
+```text
+No mutation requests occur from this screen.
+```
+
+### Q: Promotions redemptions: what is the exact API/service contract for listing/getting `PromotionRedemption` (pagination/sort/filters)?
+
+- Acceptance: List supports pagination and date range filtering; detail loads by `promotionRedemptionId`.
+- Test Fixtures: A redemption exists in the date range.
+- Example API request/response (code block)
+
+```http
+GET /rest/api/v1/crm/promotions/redemptions?pageIndex=0&pageSize=25&from=2026-01-01&to=2026-01-31
+```
+
+```json
+{"items":[{"promotionRedemptionId":"...","promotionId":"...","partyId":"..."}],"pageIndex":0,"pageSize":25,"total":1}
+```
+
+### Q: Promotions redemptions: what roles/permissions gate CSR vs Marketing access?
+
+- Acceptance: Different permissions can be applied; without permission, API returns 403 and UI shows access denied.
+- Test Fixtures: User without access loads list.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FORBIDDEN"}
+```
+
+### Q: Promotions redemptions: which entity is the canonical read model exposed to UI (`PromotionRedemption` only vs also `ProcessingLog`/event metadata)?
+
+- Acceptance: UI renders from `PromotionRedemption` DTO; `eventId` link is optional.
+- Test Fixtures: A DTO without `eventId` still renders.
+- Example API request/response (code block)
+
+```json
+{"promotionRedemptionId":"...","promotionId":"...","eventId":null}
+```
+
+### Q: Promotions redemptions: are `workOrderId` and `invoiceId` UUIDs or external human-readable identifiers?
+
+- Acceptance: UUID IDs are accepted in filters; display numbers are optional read-only fields.
+- Test Fixtures: Filter by UUID workOrderId.
+- Example API request/response (code block)
+
+```json
+{"workOrderId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","workOrderNumber":"WO-12345"}
+```
+
+### Q: VehicleUpdated ingestion logs: what is the conflict resolution policy and when is `PENDING_REVIEW` used vs last-write-wins?
+
+- Acceptance: VIN changes or significant mileage decreases produce `PENDING_REVIEW` and do not mutate Vehicle.
+- Test Fixtures: Existing vehicle VIN A; inbound VIN B.
+- Example API request/response (code block)
+
+```json
+{"status":"PENDING_REVIEW","reasonCode":"VIN_CHANGED"}
+```
+
+### Q: VehicleUpdated ingestion logs: does ProcessingLog include `estimateId` in addition to `workorderId`, and what is the field name?
+
+- Acceptance: DTO includes optional `estimateId` and `workorderId` fields.
+- Test Fixtures: One log row includes estimateId.
+- Example API request/response (code block)
+
+```json
+{"estimateId":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","workorderId":null,"correlationId":"ESTIMATE:bbbb..."}
+```
+
+### Q: VehicleUpdated ingestion logs: can `details` contain sensitive customer data and what masking rules apply?
+
+- Acceptance: `details` is redacted server-side; UI does not log or render as HTML.
+- Test Fixtures: A details string containing PII is returned redacted.
+- Example API request/response (code block)
+
+```json
+{"details":"[REDACTED]"}
+```
+
+### Q: Vehicle care preferences: what are the exact endpoints/services for load, upsert, and audit history (including error payload shape and field-level errors)?
+
+- Acceptance: Load returns a fixed DTO; upsert returns 200/201; validation errors return 400 with `fieldErrors`.
+- Test Fixtures: Submit invalid interval.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FIELD_INVALID","fieldErrors":{"rotationInterval":"Must be an integer between 1 and 100000"}}
+```
+
+### Q: Vehicle care preferences: fixed schema vs dynamic key/value preferences (EAV/JSON)?
+
+- Acceptance: Unknown fields are rejected.
+- Test Fixtures: Request includes `unknownField`.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FIELD_NOT_ALLOWED","fieldErrors":{"unknownField":"Not allowed"}}
+```
+
+### Q: Vehicle care preferences: is optimistic locking required (version/ETag/lastUpdatedStamp) and what is the expected 409 behavior?
+
+- Acceptance: Stale version returns 409 with `currentVersion`.
+- Test Fixtures: Two clients update same record.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"CONFLICT","currentVersion":4}
+```
+
+### Q: Vehicle care preferences: allowed `rotationIntervalUnit` enum values, whether unit is required when interval is provided, and min/max constraints.
+
+- Acceptance: Unit must be `MILES` or `KM`; missing unit with interval returns 400.
+- Test Fixtures: interval=6000 with missing unit.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FIELD_INVALID","fieldErrors":{"rotationIntervalUnit":"Required when rotationInterval is set"}}
+```
+
+### Q: Vehicle lookup: confirm endpoints/methods/response shapes for search and vehicle+owner snapshot.
+
+- Acceptance: Search uses POST and supports pagination; snapshot returns owner section.
+- Test Fixtures: Query length >= 3.
+- Example API request/response (code block)
+
+```http
+POST /rest/api/v1/crm/vehicles/search
+Content-Type: application/json
+
+{"query":"ABC","pageIndex":0,"pageSize":25}
+```
+
+```json
+{"items":[{"vehicleId":"...","vin":"...","unitNumber":"...","licensePlate":"..."}],"pageIndex":0,"pageSize":25,"total":1}
+```
+
+### Q: Vehicle lookup: ranking logic and whether backend returns `rankScore`/`matchType`.
+
+- Acceptance: UI renders match info only if present; it does not compute ranking.
+- Test Fixtures: Response includes matchType.
+- Example API request/response (code block)
+
+```json
+{"matchType":"VIN_PREFIX","rankScore":0.92}
+```
+
+### Q: Vehicle lookup: minimum query length and matching rules (contains vs startsWith) for VIN/unit/plate.
+
+- Acceptance: Queries shorter than 3 are rejected; UI disables submit.
+- Test Fixtures: query="AB".
+- Example API request/response (code block)
+
+```json
+{"errorCode":"QUERY_TOO_SHORT","message":"Query must be at least 3 characters"}
+```
+
+### Q: Vehicle lookup: result limiting/pagination and whether truncation is indicated in response.
+
+- Acceptance: Response includes `total` and paginated items.
+- Test Fixtures: total > pageSize.
+- Example API request/response (code block)
+
+```json
+{"pageIndex":0,"pageSize":25,"total":120,"items":[...]}
+```
+
+### Q: Vehicle lookup: permission model and required behavior when permission is missing (hide entry point vs show blocked screen).
+
+- Acceptance: Without permission, backend returns 403; UI shows blocked state.
+- Test Fixtures: User without permission.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FORBIDDEN"}
+```
+
+### Q: Vehicle lookup: PII policy for displaying/logging full VIN and license plate (masking standard).
+
+- Acceptance: UI does not emit VIN/plate into client logs/telemetry; server logs mask these values.
+- Test Fixtures: Inspect client logs.
+- Example API request/response (code block)
+
+```text
+Client telemetry contains no VIN/licensePlate values.
+```
+
+### Q: Vehicle lookup: Moqui screen-flow handoff mechanism to return selected vehicle context to estimate creation (return transition vs redirect params vs shared context).
+
+- Acceptance: Selecting a vehicle returns to caller with `vehicleId` (and optionally `partyId`) in a deterministic way.
+- Test Fixtures: Caller provides returnUrl.
+- Example API request/response (code block)
+
+```text
+After selection, browser navigates to returnUrl?vehicleId=<uuid>
+```
+
+### Q: CRM snapshot viewer: should the browser call `GET /v1/crm-snapshot` directly or must it be proxied via Moqui server-side service (allowlist + scope)?
+
+- Acceptance: Browser calls Moqui endpoint; Moqui calls snapshot server-to-server.
+- Test Fixtures: Inspect network requests.
+- Example API request/response (code block)
+
+```http
+GET /rest/api/v1/crm/snapshot?partyId=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+```
+
+```json
+{"snapshotMetadata":{"generatedAt":"2026-01-19T00:00:00Z"},"party":{"partyId":"aaaaaaaa-..."}}
+```
+
+### Q: CRM snapshot viewer: where is correlation ID provided (header name vs JSON field), and is logging partyId/vehicleId allowed or must be masked?
+
+- Acceptance: Responses include `X-Correlation-Id`; server logs can include partyId/vehicleId; client telemetry does not.
+- Test Fixtures: Inspect response headers and client telemetry.
+- Example API request/response (code block)
+
+```text
+Response header includes X-Correlation-Id: <value>
+```
+
+### Q: Contact points/preferences/contact roles/merge/commercial account creation: confirm canonical identifiers (`partyId` vs `personId` vs `customerId`) used in routes and service calls.
+
+- Acceptance: All routes use `partyId`; no endpoint requires `customerId` as primary identifier.
+- Test Fixtures: Verify UI routes and request payloads.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"MISSING_PARTY_ID","message":"partyId is required"}
+```
+
+### Q: Contact points: phone validation policy (E.164 vs digits-only vs extensions) and whether `kind` is mutable after creation.
+
+- Acceptance: Invalid phone values are rejected; kind cannot be changed after creation.
+- Test Fixtures: Attempt to edit kind.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"FIELD_INVALID","fieldErrors":{"kind":"Immutable"}}
+```
+
+### Q: Party merge: search requirements (allow browse vs require criteria), party types allowed, alias/redirect behavior, and conflict resolution policy (“survivor wins”).
+
+- Acceptance: Merge requires explicit selection and justification; reads of merged party return 409 with `mergedToPartyId`.
+- Test Fixtures: Merge two parties then load merged party.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"PARTY_MERGED","mergedToPartyId":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"}
+```
+
+### Q: Contact roles: CRM vs Billing ownership, role list source of truth, and primary auto-demotion vs reject behavior.
+
+- Acceptance: CRM services manage roles; primary selection auto-demotes prior primary.
+- Test Fixtures: Set primary on another contact.
+- Example API request/response (code block)
+
+```json
+{"role":"BILLING","primaryContactPartyId":"..."}
+```
+
+### Q: Commercial account creation: duplicate detection inputs and backend response shape (separate duplicateCheck vs create returns duplicates requiring confirmation), billing terms source, external identifiers validation, and post-create navigation route.
+
+- Acceptance: Duplicate-check returns candidates; create returns 409 with candidates unless override is provided.
+- Test Fixtures: Create with duplicate name/phone.
+- Example API request/response (code block)
+
+```json
+{"errorCode":"DUPLICATE_CANDIDATES","candidates":[{"partyId":"...","matchReason":"NAME+PHONE"}]}
+```
+
+## End
+
+End of document.

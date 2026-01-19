@@ -1,4 +1,14 @@
-# BILLING_DOMAIN_NOTES.md — Domain: `billing` (Non-Normative)
+# BILLING_DOMAIN_NOTES.md
+
+## Summary
+
+This document provides rationale, tradeoffs, and audit/security considerations for the Billing domain’s normative decisions.
+It is intentionally non-normative and must not be used directly for agent execution or CI validation.
+
+## Completed items
+
+- [x] Documented rationale for each `BILL-DEC-###` in `AGENT_GUIDE.md`
+- [x] Preserved decision IDs and anchors for deep linking
 
 ## Intended uses
 
@@ -306,4 +316,6 @@ Return link metadata, not URLs; frontend resolves routes.
 
 ---
 
-# End of BILLING_DOMAIN_NOTES.md
+## End
+
+End of document.

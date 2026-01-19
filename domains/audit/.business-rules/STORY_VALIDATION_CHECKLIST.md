@@ -1,4 +1,14 @@
-# STORY_VALIDATION_CHECKLIST.md (domain: audit) — Updated
+# STORY_VALIDATION_CHECKLIST.md
+
+## Summary
+
+This checklist validates audit-domain story implementations for correctness, security, auditability, and operational robustness.
+It includes resolved open questions with concrete responses so stories remain implementable and reviewable.
+
+## Completed items
+
+- [x] Updated acceptance and validation criteria for audit stories
+- [x] Captured and answered prior open questions
 
 Use this checklist to validate any story implementation in the audit domain, including frontend audit UI (search/list/detail/drilldown/export), and backend responsibilities that the UI depends on (query contracts, authorization, immutability guarantees, retention, and cross-domain integration).
 
@@ -236,4 +246,6 @@ Moqui service naming must map to these capability contracts; UI must not hardcod
 
 ---
 
-# End of STORY_VALIDATION_CHECKLIST.md
+## End
+
+End of document.

@@ -422,3 +422,7 @@ The system uses **W3C Trace Context**:
 Frontend must propagate these headers unchanged on all backend calls.
 
 ---
+
+## End
+
+End of document.

@@ -1,513 +1,479 @@
-```markdown
-# CRM Domain Agent Guide
+# AGENT_GUIDE.md
 
-## Purpose
-The CRM domain is the authoritative system of record (SoR) for customer relationship data within the modular POS system. It manages party (individuals and organizations), contact points, vehicles, party relationships, communication preferences, promotions/redemptions, and CRM-owned “snapshot” read models used by downstream domains (Workorder Execution, Billing).
+## Summary
 
-This guide is written for engineers implementing or integrating CRM features (Moqui services/screens, REST endpoints, and event handlers) with secure-by-default patterns, explicit invariants, and operational guidance.
+This document is the normative agent guide for the CRM domain: system-of-record boundaries, invariants, and integration rules for CRM UI and services. It resolves prior CLARIFY/TODO items by making conservative, explicit decisions with stable IDs and links to detailed rationale in `CRM_DOMAIN_NOTES.md`. Where upstream contracts are not yet finalized, it adopts safe defaults and calls out what is safe-to-defer.
 
----
+## Completed items
+
+- [x] Generated Decision Index
+- [x] Mapped Decision IDs to `CRM_DOMAIN_NOTES.md`
+- [x] Reconciled todos from original AGENT_GUIDE
+
+## Decision Index
+
+| Decision ID | Title |
+| --- | --- |
+| DECISION-INVENTORY-001 | Canonical identifiers (`partyId`) |
+| DECISION-INVENTORY-002 | Contact roles ownership + primary policy + billing contact rule |
+| DECISION-INVENTORY-003 | Contact point validation (phone) + kind immutability |
+| DECISION-INVENTORY-004 | CRM Snapshot proxy + correlation/logging policy |
+| DECISION-INVENTORY-005 | ProcessingLog/Suspense contracts + identifiers |
+| DECISION-INVENTORY-006 | Payload/details visibility + redaction/masking |
+| DECISION-INVENTORY-007 | Permissions + environment restrictions |
+| DECISION-INVENTORY-008 | Correlation semantics + filter semantics |
+| DECISION-INVENTORY-009 | Operator actions + retry metadata |
+| DECISION-INVENTORY-010 | Promotion redemption model, access, and limits visibility |
+| DECISION-INVENTORY-011 | VehicleUpdated conflict policy + required fields |
+| DECISION-INVENTORY-012 | Vehicle care preferences schema, enums, locking, audit |
+| DECISION-INVENTORY-013 | Vehicle lookup/search contract defaults + handoff |
+| DECISION-INVENTORY-014 | Party merge policy + alias behavior |
+| DECISION-INVENTORY-015 | Commercial account creation + duplicate detection |
 
 ## Domain Boundaries
 
-### Authoritative Ownership (Write)
-CRM owns and is the only domain allowed to **mutate**:
-- **Party** master data (Persons, Organizations/Accounts)
-- **Contact points** (email/phone) and primary flags
-- **Party relationships** (e.g., account contacts + roles like BILLING/APPROVER/DRIVER)
-- **Vehicles** and vehicle-party associations (owner/driver/lessee)
-- **Communication preferences / consent** (contactability + billing-relevant preferences)
-- **Vehicle care preferences/notes** (vehicle-specific service preferences + audit trail) *(new from frontend stories; backend contract TBD)*
-- **Promotion redemption records** (idempotent tracking of redemption events)
+- What CRM owns (system of record)
+  - Party master data (Person/Organization/Account) and party lifecycle state
+  - Contact points (email/phone) and primary flags
+  - Party relationships, including account contact roles and vehicle-party associations
+  - Vehicles (VIN/unit/plate/attributes) and ownership/association history
+  - Communication preferences (contactability + consent)
+  - Promotion redemption records (authoritative recording of redemption events)
+  - CRM Snapshot read model and deterministic resolution rules
+  - Operational integration read models for inbound event outcomes (ProcessingLog/Suspense)
 
-### CRM-Owned Read Models (Read APIs)
-CRM provides stable read models for consumers:
-- **CRM Snapshot** (`GET /v1/crm-snapshot`) — account/person + contacts + vehicles + preferences (contactability + billing-relevant only). This is explicitly CRM-owned even if consumers are Billing/Workexec.
-
-### Read-Only Consumers (No Writes)
-- Workorder Execution, Billing, and other domains **consume** CRM data but do not modify CRM entities directly.
-- POS frontend screens may be read-only for some operational surfaces (e.g., ingestion logs, redemption viewer) unless explicitly authorized and designed for mutation.
-
-### Event-Driven Integration Boundary
-- CRM **consumes** inbound events from Workorder Execution (e.g., `VehicleUpdated`, `PromotionRedeemed`, `ContactPreferenceUpdated`, `PartyNoteAdded`).
-- CRM **emits** outbound domain events for downstream consumers (e.g., `PERSON_CREATED`, vehicle association events).
-- CRM maintains **operational processing logs** and a **suspense/DLQ** mechanism for failed inbound events; frontend stories add operator-facing UI for these.
-
-**CLARIFY:** Whether CRM exposes operator actions (retry/reprocess/acknowledge) on suspense items is explicitly out-of-scope unless confirmed.
-
----
+- What CRM does *not* own
+  - Work order lifecycle (Workexec)
+  - Invoice issuance lifecycle (Billing)
+  - Payment capture/settlement/refund execution (Billing/Payment)
+  - Promotion policy enforcement beyond recording redemption events (unless explicitly contracted)
 
 ## Key Entities / Concepts
 
-### Party / Person / Organization(Account)
-- **Party** is the canonical identifier for customer entities.
-- **Person** and **Organization/Account** are party subtypes.
-- Identifiers:
-  - Existing guide uses `personId` and `partyId`. Frontend stories frequently ask whether routes use `partyId`, `personId`, or `customerId`.
-  - **TODO:** Standardize on `partyId` as the canonical identifier in frontend routes and service contracts; document mapping if legacy IDs exist.
-
-### ContactPoint
-- Multiple emails/phones per party.
-- Primary per kind (`EMAIL`, `PHONE`) invariant (see below).
-- Used by snapshot and by account contact role assignment screens.
-
-### PartyRelationship (Account Contacts / Roles)
-- Links parties with roles such as `BILLING`, `APPROVER`, `DRIVER`.
-- Supports “primary” designation per role (policy must be explicit; see invariants).
-- Also ties into billing preferences such as invoice delivery method.
-
-**CLARIFY:** Domain ownership for “contact roles” is questioned in frontend stories (CRM vs Payment/Billing labels). CRM should remain SoR; update labels accordingly.
-
-### Vehicle
-- CRM-owned vehicle master record.
-- Identified by `vehicleId` (UUID).
-- Attributes: VIN, unit number, license plate, description, mileage, etc.
-
-### VehiclePartyAssociation
-- Links vehicle to parties with relationship types (e.g., `PRIMARY_OWNER`, `OWNER`, `LESSEE/DRIVER`).
-- Effective dating and deterministic resolution rules are required for snapshot (see below).
-
-### Vehicle Care Preferences / Notes *(new)*
-- Vehicle-specific service preferences: tire brand/line, rotation interval + unit, alignment preference, torque notes, service notes.
-- Must be editable from vehicle profile and visible read-only in estimate/workorder contexts.
-- Requires audit history (who/when; ideally field-level diffs).
-
-**TODO:** Confirm entity name (`VehiclePreference` vs `VehicleCarePreference`) and whether schema is fixed vs dynamic key/value.
-
-### CommunicationPreference
-- Contactability + consent flags (email/sms/phone opt-in, do-not-contact, preferred method/language).
-- Account-level preferences include invoice delivery method and marketing opt-out.
-
-### PromotionRedemption
-- CRM record of promotion usage linked to work order and invoice.
-- Used for auditing and abuse detection; frontend story adds read-only viewer.
-
-### CustomerSnapshot (CRM Snapshot DTO)
-- Aggregated read model returned by `GET /v1/crm-snapshot`.
-- Includes snapshot metadata (version/timestamp), account summary, contacts, vehicles, and preferences.
-
-### ProcessingLog / SuspenseQueue (Operational Integration Surfaces) *(expanded)*
-- **ProcessingLog**: operational record of inbound event processing outcomes (success/failure/duplicate/etc.).
-- **SuspenseQueue/DLQ**: records for failed/unprocessable events requiring triage.
-- Frontend stories require list/detail screens with filtering by eventId/correlationId/status/type/date.
-
-**CLARIFY:** Whether `ProcessingLog` is a single shared entity across event types or per-integration (vehicle ingestion vs generic inbound events) is unclear; align naming and fields.
-
----
+| Entity | Description |
+| --- | --- |
+| Party | Canonical customer identifier; subtype is Person or Organization/Account. |
+| ContactPoint | Email/phone contact points for a party; supports primary per kind. |
+| PartyRelationship | Relationship between parties with role codes (BILLING/APPROVER/DRIVER). |
+| Vehicle | CRM-owned vehicle record. |
+| VehiclePartyAssociation | Effective-dated vehicle-to-party association (owner/driver/lessee). |
+| CustomerSnapshot | Aggregated CRM Snapshot DTO for downstream consumers. |
+| VehicleCarePreference | Fixed-schema vehicle-specific service preferences with audit history. |
+| PromotionRedemption | CRM record of a promotion redemption event (idempotent). |
+| ProcessingLog | Operational read model for inbound event processing outcomes. |
+| SuspenseItem | Operational read model for unprocessable events requiring triage. |
 
 ## Invariants / Business Rules
 
-### Party & Identity
-- Party creation requires required name fields (e.g., `firstName`, `lastName` for Person).
-- Party identifiers are immutable once created.
-- Merge behavior:
-  - Source party becomes `MERGED`.
-  - Child entities reassociate to survivor.
-  - Alias/redirect behavior must be consistent (PartyAlias).
-
-### Contact Points
-- A party can have zero or more contact points.
-- **Exactly one primary per kind** (`EMAIL`, `PHONE`) at a time.
-- Format validation:
-  - Email must be valid format.
-  - Phone validation policy must be explicit (E.164 vs digits-only vs extensions). **CLARIFY** (frontend story asks).
-
-### Party Relationships / Contact Roles
-- No overlapping active relationships for same party pair + role.
-- Primary behavior:
-  - When setting a new primary for a role, system must either:
-    - auto-demote previous primary, or
-    - reject until cleared.
-  - **CLARIFY** which policy applies (frontend blocker).
-- Billing constraints:
-  - If invoice delivery method is `EMAIL`, a billing contact may be required. **CLARIFY** config scope (global vs per account vs derived only).
-
-### Vehicle Ownership & Snapshot Resolution
-- Exactly one active `OWNER` (or `PRIMARY_OWNER`) per vehicle at a time (depending on model).
-- Creating a new owner association must atomically end-date the previous owner association.
-- Snapshot resolution (backend story #99, authoritative):
-  - When only `vehicleId` is provided, CRM resolves a single primary party by precedence:
-    1. `PRIMARY_OWNER` (ACTIVE)
-    2. else `OWNER` (ACTIVE; most recent)
-    3. else `LESSEE/DRIVER` (ACTIVE; most recent)
-    4. else any ACTIVE relationship (most recent)
-  - Tie-breaker: latest `effectiveFrom`, then latest `updatedAt`.
-  - If no active relationships: `404` with `errorCode=VEHICLE_HAS_NO_ACTIVE_PARTY`.
-
-### VehicleUpdated Ingestion (Operational)
-- Event processing must be idempotent.
-- Conflicts must follow a defined policy (last-write-wins vs pending review).
-- Frontend story expects statuses like:
-  - `SUCCESS`, `DUPLICATE`, `ERROR_VALIDATION`, `ERROR_NOT_FOUND`, `PENDING_REVIEW`.
-
-**CLARIFY:** Conflict resolution policy for mileage decreases, VIN changes, etc., and when `PENDING_REVIEW` is used.
-
-### Vehicle Care Preferences
-- Rotation interval must be integer if provided.
-- Unit enum must be explicit (e.g., `MILES`, `KM`). **TODO/CLARIFY** min/max constraints and whether unit is required when interval is present.
-- Updates must be auditable and concurrency-safe (optimistic locking preferred). **CLARIFY** version/ETag behavior.
-
-### Promotion Redemption
-- Idempotent processing keyed by a stable dedupe key (existing guide says `promotionId + workOrderId`).
-- Redemption records should link to workOrderId and invoiceId (nullable if not available).
-- Usage limits enforcement exists “when configured” but ownership/visibility is unclear.
-  - **CLARIFY:** whether CRM enforces limits or only records redemptions; whether UI should show “limit reached” indicators.
-
-### Integration Monitoring (ProcessingLog + Suspense)
-- Logs must be queryable by operational identifiers:
-  - `eventId`, `correlationId` (workorder reference), event type/version/source, timestamps, status, failure reason.
-- Payload visibility must be safe:
-  - Prefer returning a sanitized `payloadSummary` rather than raw payload.
-  - **CLARIFY:** redaction rules and whether raw payload can ever be displayed.
-
----
-
-## Events / Integrations
-
-### Inbound Events (from Workorder Execution)
-- `VehicleUpdated`
-- `PromotionRedeemed`
-- `ContactPreferenceUpdated`
-- `PartyNoteAdded`
-
-Operational requirements from frontend stories:
-- Each inbound event should produce:
-  - a ProcessingLog record (success/failure/duplicate)
-  - a SuspenseQueue record when unprocessable or retries exhausted
-  - correlation identifiers for traceability (`eventId`, `correlationId`/workorder reference)
-
-**CLARIFY:** Whether `correlationId` is always `workorderId`, or a separate correlation identifier that may include estimateId.
-
-### Outbound Events (from CRM)
-- `PERSON_CREATED`
-- `VehicleOwnerAssociated`, `VehicleOwnerReassigned`, `VehiclePrimaryDriverAssigned`
-- Audit events for:
-  - contact point changes
-  - communication preference updates
-  - party merges
-  - relationship changes
-  - vehicle care preference changes *(new; ensure audit event exists or audit log is queryable)*
-
-### Integration Patterns
-- **Idempotency:** inbound events must be deduped by `eventId` (preferred) and/or domain-specific dedupe keys.
-- **Suspense/DLQ:** failures route to suspense with enough metadata to triage without DB access.
-- **Read models:** snapshot endpoint is cache-friendly and versioned; consumers should treat it as authoritative for association rules.
-
----
-
-## APIs
-
-### CRM Snapshot (Confirmed Contract)
-- `GET /v1/crm-snapshot?partyId={uuid}&vehicleId={uuid}`
-- At least one identifier required; else `400`.
-- `403` if caller not allowlisted and/or missing scope `crm.snapshot.read`.
-- `404` with `errorCode=VEHICLE_HAS_NO_ACTIVE_PARTY` when vehicle exists but has no active party relationship.
-
-**Implementation guidance (secure-by-default):**
-- Prefer server-side calls from Moqui to avoid exposing service tokens to browsers.
-- Propagate correlation IDs across calls (see Observability).
-
-### Vehicle Search + Vehicle+Owner Snapshot (Proposed, not confirmed)
-Frontend story references:
-- `POST /api/v1/vehicles/search` with `{ query }`
-- `GET /api/v1/vehicles/{vehicleId}?include=owner`
-
-**TODO/CLARIFY:** Confirm endpoints, response schema, pagination/limits, ranking fields (`rankScore`/`matchType`), and minimum query length.
-
-### Promotion Redemption Read APIs (Not confirmed)
-Frontend requires:
-- list/search with pagination/sorting and filters: promotionId, workOrderId, invoiceId, customerId, date range
-- detail by `promotionRedemptionId`
-
-**TODO/CLARIFY:** Provide Moqui service names or REST endpoints and canonical read model (`PromotionRedemption` vs additional entities).
-
-### Vehicle Care Preferences APIs (Not confirmed)
-Frontend requires:
-- load by `vehicleId`
-- create/update/upsert by `vehicleId`
-- audit history by `vehicleId`
-
-**TODO/CLARIFY:** Provide service names, parameters, response schema, and error payload shape (field-level errors, 409 conflicts).
-
-### Integration Monitoring APIs (Not confirmed)
-Frontend requires:
-- ProcessingLog list/detail
-- SuspenseQueue list/detail
-
-**TODO/CLARIFY:** Provide service names/entity views, required parameters, and returned fields; define identity key for suspense items.
-
----
-
-## API Expectations (Patterns)
-
-### Versioning & Compatibility
-- Public/consumer-facing REST endpoints must be versioned (`/v1/...`).
-- Backward compatible changes only within a version.
-
-### Pagination & Filtering
-- All list endpoints/services must support:
-  - `pageIndex`, `pageSize`
-  - stable sorting (`orderBy`)
-- Filtering semantics must be explicit and index-friendly:
-  - **CLARIFY:** correlationId filtering (exact vs prefix vs contains). Prefer exact or prefix for performance unless strong need for contains.
-
-### Error Contracts
-- Standardize error payload shape for frontend mapping:
-  - `errorCode` (string)
-  - `message` (string)
-  - `fieldErrors` (map) when applicable
-  - `correlationId` (string) when available
-- Use:
-  - `400` for validation
-  - `403` for authorization
-  - `404` for not found
-  - `409` for optimistic locking conflicts
-  - `5xx` for unexpected errors
-
-### Idempotency
-- Event ingestion endpoints/handlers must be idempotent by `eventId`.
-- Promotion redemption must be idempotent by a stable dedupe key (document exact key in backend contract).
-
----
-
-## Security / Authorization Requirements
-
-### General
-- All APIs require authentication.
-- Enforce authorization at the backend (Moqui artifact auth + service-level checks).
-- Do not expose secrets or internal stack traces to the frontend.
-
-### Service-to-Service (Snapshot)
-- Snapshot endpoint requires:
-  - allowlisted service identity
-  - scope `crm.snapshot.read`
-
-### User-Level RBAC (Frontend Screens)
-Frontend stories introduce multiple user-facing screens requiring explicit permissions:
-
-1. **Integration Monitoring (ProcessingLog + Suspense/DLQ)**
-   - Proposed permission: `crm.integration.monitor.read` (placeholder)
-   - **CLARIFY:** exact permission keys/roles and whether access is restricted by environment (prod vs non-prod).
-
-2. **Vehicle Ingestion Logs (VehicleUpdated processing)**
-   - Proposed permissions: `crm.audit.read` and/or `crm.vehicle.read` (placeholder)
-   - **CLARIFY:** exact roles/scopes and any org/location restrictions.
-
-3. **Promotion Redemption Viewer**
-   - Proposed permissions: `crm.promotions.read` / `crm.redemptions.read` (placeholder)
-   - **CLARIFY:** whether CSR vs Marketing have different access.
-
-4. **Vehicle Search + Vehicle Snapshot**
-   - Proposed permissions: `crm.vehicle.read`, `crm.snapshot.read` (placeholder)
-   - **CLARIFY:** UI behavior on missing permission (hide entry point vs show forbidden).
-
-5. **Vehicle Care Preferences**
-   - Separate permissions for:
-     - view preferences
-     - edit preferences
-     - view audit history
-   - **CLARIFY:** enforcement mechanism (artifact auth vs permission service vs route guards).
-
-### Sensitive Data Handling
-- VIN/license plate and payload/details fields may be sensitive.
-- **CLARIFY:** masking policy for VIN/plate in UI and logs.
-- For integration payloads:
-  - Prefer backend-provided sanitized fields (`payloadSummary`, `redactedPayload`) over raw JSON.
-  - Never log raw payloads client-side.
-
----
-
-## Observability (Logs / Metrics / Tracing)
-
-### Correlation & Traceability
-- Every inbound event should carry:
-  - `eventId` (UUID)
-  - `correlationId` (workorder reference; may be workorderId)
-  - `sourceSystem`, `eventType`, `eventVersion`
-- Persist these into ProcessingLog and SuspenseQueue for operator UI and debugging.
-
-### Logging (Backend)
-- Structured logs for:
-  - inbound event receipt
-  - processing outcome (status)
-  - suspense routing
-  - snapshot requests (caller identity + identifiers)
-- Include `correlationId` and `eventId` in log fields.
-- Avoid logging PII and free-form notes; if necessary, mask.
-
-### Metrics (Backend)
-Minimum recommended metrics (tagged by eventType/caller/status):
-- `crm_inbound_events_total{eventType,status}`
-- `crm_inbound_event_processing_latency_ms{eventType}`
-- `crm_suspense_queue_depth{eventType}` (gauge)
-- `crm_snapshot_requests_total{status,caller}`
-- `crm_snapshot_latency_ms{status,caller}`
-- `crm_vehicle_search_requests_total{status}` *(if/when implemented)*
-- `crm_promotion_redemption_queries_total{status}` *(if/when implemented)*
-
-### Tracing
-- Propagate trace context from:
-  - inbound event envelope (if present) into processing spans
-  - REST calls (snapshot/search/redemptions) into distributed traces
-- Ensure UI surfaces show `eventId` and `correlationId` for human correlation with traces.
-
-### Operator UI Observability
-For the integration monitoring screens:
-- Ensure list/detail DTOs include:
-  - timestamps (received/processed/routed)
-  - status/failure reason
-  - identifiers (eventId, correlationId)
-  - retry/attempt metadata if available (**CLARIFY**)
-
----
-
-## Testing Guidance
-
-### Unit Tests
-- Validate invariants:
-  - primary contact per kind
-  - primary role per account (if applicable)
-  - vehicle association uniqueness and end-dating
-  - promotion redemption idempotency key behavior
-  - rotation interval validation and unit enum validation (once defined)
-
-### Integration Tests (Service/API)
-- Snapshot endpoint:
-  - partyId path
-  - vehicleId-only resolution precedence and tie-breakers
-  - 400 missing identifiers
-  - 404 vehicle has no active party (`errorCode=VEHICLE_HAS_NO_ACTIVE_PARTY`)
-  - 403 allowlist/scope enforcement
-- Vehicle search (once contract confirmed):
-  - minimum query length
-  - ranking/matchType fields
-  - pagination/limit behavior
-- Promotion redemption read APIs:
-  - pagination/sorting
-  - filter combinations
-  - authorization
-- Vehicle care preferences:
-  - create/update/upsert behavior
-  - 404 empty state semantics
-  - 409 optimistic locking behavior (if used)
-  - audit history retrieval
-
-### Event Processing Tests
-- Idempotency:
-  - duplicate `eventId` produces `SKIPPED_DUPLICATE`/`DUPLICATE` status without double-apply
-- Failure routing:
-  - schema validation failure routes to suspense with reason
-  - missing entity routes to suspense with reason
-- ProcessingLog correctness:
-  - required fields persisted and queryable for UI
-
-### Contract Tests
-- Snapshot DTO schema stability (consumer-facing).
-- ProcessingLog/Suspense DTOs for operator UI (once defined).
-- Error payload shape consistency (fieldErrors, errorCode, correlationId).
-
-### Security Tests
-- RBAC enforcement:
-  - unauthorized users cannot access integration monitoring, ingestion logs, redemptions, preferences edit
-- Data leakage:
-  - ensure payload/details redaction rules are enforced server-side
-  - ensure logs do not include raw payloads or free-form notes
-
-### End-to-End Tests
-- Vehicle lookup → select → snapshot load → handoff to estimate flow (mechanism TBD).
-- Vehicle preferences visible in vehicle profile and read-only in estimate/workorder screens.
-- Integration monitoring screens load lists and details with filters and handle 403/404/empty states.
-
----
-
-## Common Pitfalls / Gotchas
-
-1. **Unclear identifier conventions (`partyId` vs `personId` vs `customerId`)**
-   - Leads to broken routes and incorrect service calls.
-   - **TODO:** Standardize and document canonical identifiers per entity.
-
-2. **CorrelationId filter semantics**
-   - “contains” searches can cause full table scans.
-   - Prefer exact/prefix with indexes; only allow contains if indexed/trigram supported.
-   - **CLARIFY** required semantics.
-
-3. **Payload/details exposure**
-   - Rendering raw JSON payloads or `details` can leak PII/secrets.
-   - Require backend-provided sanitized fields; treat all payload as untrusted text (no HTML rendering).
-
-4. **Primary flag race conditions**
-   - Concurrent updates to primary contact/role can violate invariants.
-   - Use transactional updates and unique constraints where possible; return 409 on conflict.
-
-5. **VehicleUpdated conflict policy not defined**
-   - Without explicit policy, ingestion may silently corrupt data (e.g., mileage decreases).
-   - **CLARIFY** and encode policy in handler + surfaced status (`PENDING_REVIEW`).
-
-6. **Snapshot misuse**
-   - Snapshot is a read model; do not treat it as a write API.
-   - Ensure consumers do not cache beyond intended TTL without version checks.
-
-7. **Operational UI without backend RBAC**
-   - Direct entity-find from screens can bypass redaction/RBAC.
-   - Prefer services returning safe DTOs for ProcessingLog/Suspense/Redemptions.
-
-8. **Audit history expectations mismatch**
-   - UI needs to know whether audit provides field-level diffs or only “who/when”.
-   - **CLARIFY** audit payload shape early to avoid rework.
-
----
-
-## Open Questions from Frontend Stories
-
-### A) Integration Monitoring (ProcessingLog + Suspense/DLQ)
-1. **Backend contract:** Exact Moqui services/entity views to query `ProcessingLog` and `SuspenseQueue` (service names, params, returned fields).
-2. **Suspense identity:** Is suspense addressed by `eventId` or a separate `suspenseId`/messageId?
-3. **Payload visibility/redaction:** Can UI display raw payload JSON? If yes, what redaction rules apply? Is there a safe `payloadSummary`?
-4. **Permissions/RBAC:** Exact permission keys/roles (e.g., `crm.integration.monitor.read`) and environment restrictions (prod vs non-prod).
-5. **Filter semantics:** `correlationId` filtering exact vs prefix vs contains.
-6. **Retry/attempt details:** Should UI expose retry count/last error/next retry timestamp or only final status?
-7. **Operator actions:** Should UI support retry/reprocess/ack/export/mark resolved? If yes, define allowed actions + audit requirements.
-
-### B) Promotion Redemption Viewer
-1. **Frontend scope:** Confirm expected UX: read-only redemption viewer vs promotion detail enhancement vs no UI.
-2. **API/service contract:** Actual Moqui services/REST endpoints for listing/getting `PromotionRedemption` (pagination/sorting/filters).
-3. **Authorization model:** Required permissions/roles; CSR vs Marketing access differences.
-4. **Canonical read model:** Is `PromotionRedemption` the only entity exposed, or also `PromotionUsage`, `RedemptionEvent`, `ProcessingLog`?
-5. **Usage limits visibility:** Should UI show “limit reached” indicators? What backend field/source provides this?
-6. **Identifier formats:** Are `workOrderId` and `invoiceId` UUIDs or external human-readable references?
-
-### C) VehicleUpdated Ingestion Log UI
-1. **Conflict resolution policy:** How to handle mileage decreases, VIN changes; when to use `PENDING_REVIEW` vs last-write-wins.
-2. **Data fields:** Does ProcessingLog include `estimateId` in addition to `workorderId`? If yes, exact field name.
-3. **Security:** Roles/scopes required to view ingestion logs; restrictions by location/org.
-4. **Backend contract:** Actual Moqui services/screen paths/endpoints to query ProcessingLog and Vehicle; entity-find vs REST.
-5. **Sensitive details:** Can `details` contain customer data/notes? Masking/redaction rules for UI.
-
-### D) Vehicle Care Preferences
-1. **Backend contract (blocking):** Endpoints/services for load by `vehicleId`, upsert, and audit history; include error schema and field-level errors.
-2. **Schema model:** Fixed schema vs dynamic key/value preferences (EAV/JSON).
-3. **Authorization:** Permissions for view/edit/audit; enforcement mechanism (artifact auth vs permission service vs route guards).
-4. **Audit detail:** Field-level diffs/before-after vs summary only.
-5. **Concurrency/versioning:** Version/ETag/lastUpdatedStamp requirements; expected 409 behavior.
-6. **Rotation interval unit enum:** Allowed units; whether unit required; min/max constraints.
-
-### E) Vehicle Lookup (Search + Select Snapshot)
-1. **Backend API contract (blocking):** Confirm endpoints/methods/response shapes for vehicle search and vehicle+owner snapshot.
-2. **Ranking logic:** Expected ranking rules; whether backend returns `rankScore`/`matchType`.
-3. **Partial search rules:** Minimum query length; contains vs startsWith for VIN/unit/plate.
-4. **Result limiting/pagination:** Max results; truncation indicator; pagination support.
-5. **Permission model:** Roles/scopes for vehicle search and snapshot view; UI behavior when missing permission.
-6. **PII display policy:** Whether full VIN/license plate can be displayed and logged; masking standard.
-7. **Caller handoff mechanism:** How VehicleLookup returns selected context to estimate creation flow in Moqui (transition params vs shared context vs redirect).
-
-### F) Additional CRM Frontend Areas (from consolidated questions)
-1. **Contact points:** Canonical identifier (`partyId` vs `personId` vs `customerId`), kind mutability, route conventions, phone validation policy, permissions split (view vs manage).
-2. **Communication preferences:** Missing record behavior (404 vs 200 empty), `updateSource` handling, whether separate `ConsentRecord` exists, optimistic locking.
-3. **Account contact roles:** Domain ownership (CRM vs Payment/Billing), backend contract for loading/updating roles + invoice delivery method, primary auto-demotion policy, role list source (fixed vs backend-driven), which roles support “Primary”, permissions.
-4. **Party merge:** Search contract, merge contract, criteria requirements, alias behavior, party types allowed, authorization, post-merge visibility, conflict resolution policy.
-5. **Create commercial account:** Domain label confirmation (CRM SoR), duplicate detection inputs and contract, accountStatus defaulting, billing terms source, external identifiers structure, post-create navigation route.
-
----
-
-*This guide summarizes the CRM domain’s responsibilities, invariants, integration surfaces, and operational requirements as implied by current frontend stories. Items marked TODO/CLARIFY must be resolved to finalize service contracts and UI behavior safely.*
-```
+- Identifiers
+  - `partyId` is the canonical identifier for customer parties; do not invent `customerId` as a separate primary key. (DECISION-INVENTORY-001)
+
+- Contact points
+  - At most one primary per party per kind (`EMAIL`, `PHONE`).
+  - Contact point kind is immutable after creation. (DECISION-INVENTORY-003)
+  - Phone input is normalized and validated as described in DECISION-INVENTORY-003.
+
+- Contact roles
+  - CRM is the system of record for account-contact roles; downstream domains consume read-only. (DECISION-INVENTORY-002)
+  - Setting a new primary for a role auto-demotes the prior primary atomically. (DECISION-INVENTORY-002)
+  - Default validation: if `invoiceDeliveryMethod=EMAIL`, require a billing contact with a primary email. (DECISION-INVENTORY-002, safe-to-defer exact configuration scope)
+
+- Snapshot
+  - Snapshot is a CRM-owned read model; consumers must not treat it as a write API.
+  - Browser does not call snapshot directly; it is proxied server-side via Moqui. (DECISION-INVENTORY-004)
+
+- Integration monitoring
+  - ProcessingLog and Suspense are read-only UI surfaces by default. (DECISION-INVENTORY-009)
+  - Raw payload visibility is default-deny; use backend-provided redacted fields. (DECISION-INVENTORY-006)
+
+- VehicleUpdated ingestion
+  - Processing is idempotent by `eventId`.
+  - Destructive conflicts use `PENDING_REVIEW` and do not auto-apply. (DECISION-INVENTORY-011)
+
+- Vehicle care preferences
+  - Fixed schema, optimistic locking, and audit history are required. (DECISION-INVENTORY-012)
+
+## Mapping: Decisions → Notes
+
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| DECISION-INVENTORY-001 | Canonical ID strategy for CRM routes/contracts | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-001--canonical-identifiers-partyid) |
+| DECISION-INVENTORY-002 | Roles owned by CRM; primary auto-demotion; billing contact rule | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-002--contact-roles-ownership--primary-policy--billing-contact-rule) |
+| DECISION-INVENTORY-003 | Phone validation/normalization; contact kind immutability | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-003--contact-point-validation-phone--kind-immutability) |
+| DECISION-INVENTORY-004 | Snapshot proxy; correlation and logging/masking | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-004--crm-snapshot-proxy--correlationlogging-policy) |
+| DECISION-INVENTORY-005 | ProcessingLog/Suspense contracts and identifiers | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-005--processinglogsuspense-contracts--identifiers) |
+| DECISION-INVENTORY-006 | Payload/details visibility and redaction | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-006--payloaddetails-visibility--redactionmasking) |
+| DECISION-INVENTORY-007 | Permission keys and environment restrictions | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-007--permissions--environment-restrictions) |
+| DECISION-INVENTORY-008 | Correlation semantics and filter semantics | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-008--correlation-semantics--filter-semantics) |
+| DECISION-INVENTORY-009 | Operator actions and retry metadata | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-009--operator-actions--retry-metadata) |
+| DECISION-INVENTORY-010 | Promotion redemption model/access/limits | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-010--promotion-redemption-model-access--limits-visibility) |
+| DECISION-INVENTORY-011 | VehicleUpdated conflict policy and required fields | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-011--vehicleupdated-conflict-policy--required-fields) |
+| DECISION-INVENTORY-012 | Vehicle care preferences schema/enums/locking/audit | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-012--vehicle-care-preferences-schema-enums-locking-audit) |
+| DECISION-INVENTORY-013 | Vehicle lookup/search defaults and handoff | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-013--vehicle-lookupsearch-defaults--handoff) |
+| DECISION-INVENTORY-014 | Party merge policy and alias behavior | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-014--party-merge-policy--alias-behavior) |
+| DECISION-INVENTORY-015 | Commercial account creation and duplicate detection | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-015--commercial-account-creation--duplicate-detection) |
+
+## Open Questions (from source)
+
+### Q: What are the exact Moqui services/entity views to query `ProcessingLog` and `SuspenseQueue` (list + detail), including required params and returned fields?
+
+- Answer: CRM must expose dedicated read services returning safe DTOs (not direct entity-find), supporting pagination, sorting, and filters by `eventType`, `eventId`, `correlationIdPrefix`, date range, and status.
+- Assumptions:
+- Moqui screens can call services; services can enforce RBAC and redaction.
+- Rationale:
+- Prevents RBAC/redaction bypass.
+- Impact:
+- Requires a written contract and DTO schema before UI ships.
+- Decision ID: DECISION-INVENTORY-005
+
+### Q: Is a suspense/DLQ record addressed by `eventId` or a separate `suspenseId`/messageId?
+
+- Answer: A separate `suspenseId` is the identity key for suspense records; `eventId` is a field and filter.
+- Assumptions:
+- Multiple suspense attempts/records may exist over time.
+- Rationale:
+- Stable UI navigation and audit history.
+- Impact:
+- List returns `suspenseId`; detail loads by `suspenseId`.
+- Decision ID: DECISION-INVENTORY-005
+
+### Q: Can the UI display raw `payload` JSON for suspense items? If yes, what redaction rules apply and is there a safe `payloadSummary` field?
+
+- Answer: Default-deny raw payload. Provide `payloadSummary` and `redactedPayload` only. Raw payload is auditor-only and still redacted for secrets.
+- Assumptions:
+- Redaction policy is centrally defined and testable.
+- Rationale:
+- PII/secrets leakage risk.
+- Impact:
+- Add redaction tests and payload size limits.
+- Decision ID: DECISION-INVENTORY-006
+
+### Q: What permission keys/roles gate access to integration monitoring screens, and are there environment-based restrictions (prod vs non-prod)?
+
+- Answer: Use explicit permissions and fail closed. Default is allowed in all envs for internal support roles; environment restriction is safe-to-defer.
+- Assumptions:
+- Security domain will map permissions to roles.
+- Rationale:
+- Least privilege and auditability.
+- Impact:
+- UI may hide menu entries, but backend must enforce.
+- Decision ID: DECISION-INVENTORY-007
+
+### Q: What are the filter semantics for `correlationId` (exact/prefix/contains), and what performance/indexing constraints apply?
+
+- Answer: Exact and prefix match only; contains is unsupported unless explicitly indexed and approved.
+- Assumptions:
+- Correlation identifiers are structured.
+- Rationale:
+- Avoid full scans.
+- Impact:
+- UI labels “starts with”.
+- Decision ID: DECISION-INVENTORY-008
+
+### Q: Should the UI expose retry/attempt metadata (retry count, last error, next retry timestamp), and what fields provide it?
+
+- Answer: UI may display retry metadata if backend provides it; UI must not assume these fields exist.
+- Assumptions:
+- Retry is asynchronous and backend-owned.
+- Rationale:
+- Useful observability without implying actionability.
+- Impact:
+- DTO may include `attemptCount`, `lastAttemptAt`, `nextAttemptAt`.
+- Decision ID: DECISION-INVENTORY-009
+
+### Q: Are operator actions (reprocess/retry/ack/export/mark resolved) required? If yes, define allowed actions and audit requirements.
+
+- Answer: Not required by default; any future operator actions require audited commands with idempotency keys and strict RBAC.
+- Assumptions:
+- Ops runbooks cover remediation.
+- Rationale:
+- Reduces mutation surface.
+- Impact:
+- Separate story needed before adding any actions.
+- Decision ID: DECISION-INVENTORY-009
+
+### Q: Promotions redemptions: what is the exact API/service contract for listing/getting `PromotionRedemption` (pagination/sort/filters)?
+
+- Answer: Provide list/detail read services with server-side pagination and filters by promotionId, partyId, workOrderId, invoiceId, and date range.
+- Assumptions:
+- Read-only UI.
+- Rationale:
+- Audit/operational use cases require filtering.
+- Impact:
+- Backend contract required.
+- Decision ID: DECISION-INVENTORY-010
+
+### Q: Promotions redemptions: what roles/permissions gate CSR vs Marketing access?
+
+- Answer: Gate via separate read permissions; CSR may have narrower access than Marketing. Exact role mapping is safe-to-defer.
+- Assumptions:
+- Security domain owns role mapping.
+- Rationale:
+- Least privilege.
+- Impact:
+- Two permissions recommended: `crm.promotions.redemptions.read` and `crm.promotions.redemptions.audit`.
+- Decision ID: DECISION-INVENTORY-007
+
+### Q: Promotions redemptions: which entity is the canonical read model exposed to UI (`PromotionRedemption` only vs also `ProcessingLog`/event metadata)?
+
+- Answer: UI consumes a dedicated `PromotionRedemption` read model; `eventId` may be included for optional cross-linking.
+- Assumptions:
+- ProcessingLog schema can evolve independently.
+- Rationale:
+- Keeps UI stable.
+- Impact:
+- Detail DTO may include `eventId`.
+- Decision ID: DECISION-INVENTORY-010
+
+### Q: Promotions redemptions: are `workOrderId` and `invoiceId` UUIDs or external human-readable identifiers?
+
+- Answer: Treat as UUIDs; optionally also return display-only numbers.
+- Assumptions:
+- UUIDs are canonical join keys.
+- Rationale:
+- Deterministic integration.
+- Impact:
+- DTO may include both ID and number.
+- Decision ID: DECISION-INVENTORY-010
+
+### Q: VehicleUpdated ingestion logs: what is the conflict resolution policy and when is `PENDING_REVIEW` used vs last-write-wins?
+
+- Answer: Non-critical conflicts use last-write-wins; destructive conflicts (VIN change, significant mileage decrease) are `PENDING_REVIEW` and not applied.
+- Assumptions:
+- Thresholds are configurable (safe-to-defer exact values).
+- Rationale:
+- Prevent silent corruption.
+- Impact:
+- Include `reasonCode` and conflict metadata.
+- Decision ID: DECISION-INVENTORY-011
+
+### Q: VehicleUpdated ingestion logs: does ProcessingLog include `estimateId` in addition to `workorderId`, and what is the field name?
+
+- Answer: Include optional UUID fields `estimateId` and `workorderId`; also keep `correlationId` as a generic string.
+- Assumptions:
+- Some flows create estimates before workorders.
+- Rationale:
+- Better traceability.
+- Impact:
+- UI shows whichever reference is present.
+- Decision ID: DECISION-INVENTORY-011
+
+### Q: VehicleUpdated ingestion logs: can `details` contain sensitive customer data and what masking rules apply?
+
+- Answer: Treat `details` as sensitive; backend must redact PII/secrets and UI must not render as HTML or log it.
+- Assumptions:
+- Security policy defines masking.
+- Rationale:
+- Prevent leakage.
+- Impact:
+- Add redaction tests.
+- Decision ID: DECISION-INVENTORY-006
+
+### Q: Vehicle care preferences: what are the exact endpoints/services for load, upsert, and audit history (including error payload shape and field-level errors)?
+
+- Answer: Provide read (`GET by vehicleId`), upsert (`PUT by vehicleId`), and audit history (`GET /audit`) services. Error payloads include `errorCode`, `message`, `fieldErrors`.
+- Assumptions:
+- UI expects field-level errors.
+- Rationale:
+- Avoid UI guessing.
+- Impact:
+- Backend contract required.
+- Decision ID: DECISION-INVENTORY-012
+
+### Q: Vehicle care preferences: fixed schema vs dynamic key/value preferences (EAV/JSON)?
+
+- Answer: Fixed schema.
+- Assumptions:
+- Fields are known.
+- Rationale:
+- Auditability and validation.
+- Impact:
+- DB migrations for additions.
+- Decision ID: DECISION-INVENTORY-012
+
+### Q: Vehicle care preferences: is optimistic locking required (version/ETag/lastUpdatedStamp) and what is the expected 409 behavior?
+
+- Answer: Yes; stale updates return `409` with `currentVersion` and guidance to reload.
+- Assumptions:
+- Concurrent edits possible.
+- Rationale:
+- Prevent silent overwrite.
+- Impact:
+- Include `version` in read DTO.
+- Decision ID: DECISION-INVENTORY-012
+
+### Q: Vehicle care preferences: allowed `rotationIntervalUnit` enum values, whether unit is required when interval is provided, and min/max constraints.
+
+- Answer: Units: `MILES|KM`. Unit required when interval present. Interval integer 1–100000.
+- Assumptions:
+- Time-based units are out of scope.
+- Rationale:
+- Determinism.
+- Impact:
+- Shared validation in UI and backend.
+- Decision ID: DECISION-INVENTORY-012
+
+### Q: Vehicle lookup: confirm endpoints/methods/response shapes for search and vehicle+owner snapshot.
+
+- Answer: Default contract: `POST /rest/api/v1/crm/vehicles/search` and `GET /rest/api/v1/crm/vehicles/{vehicleId}/snapshot` via Moqui proxy; safe-to-defer final naming.
+- Assumptions:
+- Search is paginated.
+- Rationale:
+- Enables UI implementation.
+- Impact:
+- Requires DTO contract.
+- Decision ID: DECISION-INVENTORY-013
+
+### Q: Vehicle lookup: ranking logic and whether backend returns `rankScore`/`matchType`.
+
+- Answer: Backend may return `matchType` and optional `rankScore`; UI treats them as display-only.
+- Assumptions:
+- Ranking evolves.
+- Rationale:
+- Avoid UI encoding policy.
+- Impact:
+- DTO may include these fields.
+- Decision ID: DECISION-INVENTORY-013
+
+### Q: Vehicle lookup: minimum query length and matching rules (contains vs startsWith) for VIN/unit/plate.
+
+- Answer: Minimum query length is 3. Default matching is prefix for unit/plate; VIN contains only if indexed and approved (safe-to-defer).
+- Assumptions:
+- Performance constraints apply.
+- Rationale:
+- Avoid expensive queries.
+- Impact:
+- UI disables submit until length met.
+- Decision ID: DECISION-INVENTORY-013
+
+### Q: Vehicle lookup: result limiting/pagination and whether truncation is indicated in response.
+
+- Answer: Require server-side pagination with `total`; UI never assumes full set.
+- Assumptions:
+- Backend enforces max page size.
+- Rationale:
+- Performance safety.
+- Impact:
+- Response includes `pageIndex`, `pageSize`, `total`.
+- Decision ID: DECISION-INVENTORY-013
+
+### Q: Vehicle lookup: permission model and required behavior when permission is missing (hide entry point vs show blocked screen).
+
+- Answer: UI may hide entry points, but backend must enforce and UI must handle 403 deterministically.
+- Assumptions:
+- Moqui supports menu gating.
+- Rationale:
+- Fail closed.
+- Impact:
+- Provide an access-denied state.
+- Decision ID: DECISION-INVENTORY-007
+
+### Q: Vehicle lookup: PII policy for displaying/logging full VIN and license plate (masking standard).
+
+- Answer: Display full values only to authorized roles; mask in logs and client telemetry.
+- Assumptions:
+- Security confirms masking rules.
+- Rationale:
+- PII minimization.
+- Impact:
+- Shared masking helpers.
+- Decision ID: DECISION-INVENTORY-006
+
+### Q: Vehicle lookup: Moqui screen-flow handoff mechanism to return selected vehicle context to estimate creation (return transition vs redirect params vs shared context).
+
+- Answer: Use caller-provided return URL/params; lookup redirects back with `vehicleId` (and optionally `partyId`). Safe-to-defer exact Moqui wiring.
+- Assumptions:
+- Calling flow provides return destination.
+- Rationale:
+- Reusable component.
+- Impact:
+- Preserve filters on return.
+- Decision ID: DECISION-INVENTORY-013
+
+### Q: CRM snapshot viewer: should the browser call `GET /v1/crm-snapshot` directly or must it be proxied via Moqui server-side service (allowlist + scope)?
+
+- Answer: Must be proxied server-side via Moqui.
+- Assumptions:
+- Snapshot requires allowlist/scope.
+- Rationale:
+- Do not expose service credentials.
+- Impact:
+- Moqui injects correlation headers.
+- Decision ID: DECISION-INVENTORY-004
+
+### Q: CRM snapshot viewer: where is correlation ID provided (header name vs JSON field), and is logging partyId/vehicleId allowed or must be masked?
+
+- Answer: Use `X-Correlation-Id` and `traceparent`. Server logs may include partyId/vehicleId; client telemetry must not include VIN/plate and should avoid logging full IDs.
+- Assumptions:
+- Platform correlation standards apply.
+- Rationale:
+- Supportability without leaking PII.
+- Impact:
+- Logging/telemetry guidelines.
+- Decision ID: DECISION-INVENTORY-004
+
+### Q: Contact points/preferences/contact roles/merge/commercial account creation: confirm canonical identifiers (`partyId` vs `personId` vs `customerId`) used in routes and service calls.
+
+- Answer: Canonical is `partyId`. `customerId` must map to `partyId`. `personId` is only for subtype-specific operations.
+- Assumptions:
+- Legacy IDs may exist.
+- Rationale:
+- Eliminate ambiguity.
+- Impact:
+- Standardize route params.
+- Decision ID: DECISION-INVENTORY-001
+
+### Q: Contact points: phone validation policy (E.164 vs digits-only vs extensions) and whether `kind` is mutable after creation.
+
+- Answer: Phone policy is defined in DECISION-INVENTORY-003; contact kind is immutable.
+- Assumptions:
+- Changing kind is delete + recreate.
+- Rationale:
+- Cleaner audit trail.
+- Impact:
+- UI blocks kind changes.
+- Decision ID: DECISION-INVENTORY-003
+
+### Q: Party merge: search requirements (allow browse vs require criteria), party types allowed, alias/redirect behavior, and conflict resolution policy (“survivor wins”).
+
+- Answer: Merge requires explicit selection (no unfiltered browse). Only merge same subtype. Survivor wins. Reads by merged party return `409 PARTY_MERGED` with `mergedToPartyId`.
+- Assumptions:
+- Merge is privileged.
+- Rationale:
+- Prevent accidental merges.
+- Impact:
+- Audit event required.
+- Decision ID: DECISION-INVENTORY-014
+
+### Q: Contact roles: CRM vs Billing ownership, role list source of truth, and primary auto-demotion vs reject behavior.
+
+- Answer: CRM owns roles; role codes are backend-owned; primary uses auto-demotion.
+- Assumptions:
+- Billing consumes snapshot.
+- Rationale:
+- Avoid split-brain.
+- Impact:
+- Domain labels and docs align to CRM.
+- Decision ID: DECISION-INVENTORY-002
+
+### Q: Commercial account creation: duplicate detection inputs and backend response shape (separate duplicateCheck vs create returns duplicates requiring confirmation), billing terms source, external identifiers validation, and post-create navigation route.
+
+- Answer: Duplicate-check then create. Create returns 409 with candidates unless override + justification. Billing terms are selected from Billing-owned reference data (safe-to-defer exact wiring). Post-create navigates to the new party profile route.
+- Assumptions:
+- Billing provides terms list.
+- Rationale:
+- Prevent duplicate accounts while allowing controlled overrides.
+- Impact:
+- Requires cross-domain integration for billing terms.
+- Decision ID: DECISION-INVENTORY-015
+
+## Todos Reconciled
+
+- Original todo: "Standardize on `partyId` as the canonical identifier in frontend routes and service contracts" → Resolution: Resolved | Replace with task: `TASK-CRM-IDS-001`
+- Original todo: "Confirm entity name (`VehiclePreference` vs `VehicleCarePreference`) and whether schema is fixed vs dynamic" → Resolution: Resolved (fixed schema `VehicleCarePreference`)
+- Original todo: "Provide Moqui service names/endpoints for ProcessingLog/Suspense/Redemptions" → Resolution: Defer (requires backend contract doc) | Replace with task: `TASK-CRM-CONTRACT-001`
+- Original todo: "Confirm vehicle search endpoints/response schema/pagination/limits" → Resolution: Defer (safe defaults set; finalize with backend) | Replace with task: `TASK-CRM-CONTRACT-002`
+
+## End
+
+End of document.

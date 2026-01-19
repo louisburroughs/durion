@@ -1,180 +1,162 @@
-```markdown
-# STORY_VALIDATION_CHECKLIST (inventory)
+# STORY_VALIDATION_CHECKLIST.md
+
+## Summary
+
+Validation checklist for inventory-domain stories. Use this alongside `AGENT_GUIDE.md` and the decision set `DECISION-INVENTORY-###`.
+
+## Completed items
+
+- [x] Converted prior open questions into acceptance criteria
 
 ## Scope/Ownership
-- [ ] Verify each story is correctly labeled `domain:inventory` and resolve conflicts where frontend issue text says `domain:user` or `Product / Parts Management` but inventory backend owns the capability.
-- [ ] Verify each screen/flow has a clear primary persona and entry point (Inventory menu vs contextual links from Product/Work Order/Estimate).
-- [ ] Verify out-of-scope items are explicitly not implemented (e.g., no inventory edits on Availability screen; no ledger mutation; no UOM conversions when stated out-of-scope; no product master editing in fitment hints story).
-- [ ] Verify Moqui integration pattern is consistent with repo conventions (direct Vue→backend vs Moqui service proxy), and the chosen pattern is documented per story.
-- [ ] Verify all “optional” sub-scopes are either implemented or explicitly deferred (e.g., deep-linking, adjustment screens vs link-out, manual sync trigger, unmapped status updates).
-- [ ] Verify cross-module entry points are explicitly enumerated and tested (e.g., “View Movement History” from Work Order Line; Availability link from estimate/work order if implemented).
-- [ ] Verify admin/ops screens (Topology, SyncLog, ingestion monitoring) are placed under the correct navigation namespace and are not exposed to general users by default.
+
+- [ ] Verify each story is correctly labeled `domain:inventory` and resolve conflicts where issue text suggests a different domain but inventory owns the capability.
+- [ ] Verify each screen/flow has a clear primary persona and entry point (Inventory menu vs contextual links).
+- [ ] Verify out-of-scope items are explicitly not implemented (e.g., no inventory edits on Availability screen; no ledger mutation; no implicit UOM conversions).
+- [ ] Verify integration pattern: UI calls Moqui proxy only (no direct Vue → inventory backend). (DECISION-INVENTORY-002)
+- [ ] Verify admin/ops screens (Topology, SyncLog, feed monitoring) are placed under correct navigation namespace and are not exposed to general users by default.
 
 ## Data Model & Validation
-- [ ] Verify required identifiers are validated client-side before calling backend (trimmed non-empty SKU, required locationId, required productId where applicable).
+
+- [ ] Verify required identifiers are validated client-side before calling backend (trimmed non-empty `productSku`, required `locationId` where applicable).
 - [ ] Verify Availability query validation:
   - [ ] `productSku` is trimmed and non-empty; whitespace-only is rejected.
   - [ ] `locationId` is required.
-  - [ ] `storageLocationId` is optional and cannot be provided unless `locationId` is present.
-  - [ ] If `storageLocationId` is provided, UI prevents selecting a storage location outside the selected `locationId` when picker supports it; otherwise backend error is surfaced clearly.
-- [ ] Verify date range filters enforce `from <= to` and block submit when invalid (Ledger list, SyncLog list, ingestion runs, exception queues, any list screens with date filters).
+  - [ ] `storageLocationId` is optional; if provided it must belong to the selected `locationId`.
+- [ ] Verify date range filters enforce `from <= to` and block submit when invalid.
 - [ ] Verify quantity inputs enforce domain rules where applicable:
-  - [ ] Availability display never allows editing quantities (read-only).
-  - [ ] Adjustment request `quantityChange` is required and cannot be zero (block submit).
-  - [ ] Quantity fields accept decimals only if backend/UOM rules allow; otherwise enforce integer-only (confirm per workflow).
-- [ ] Verify inventory quantities displayed are never shown as `null/undefined`; render numeric values only when backend returns success.
-- [ ] Verify “no inventory history” is treated as success for Availability:
-  - [ ] UI renders `onHandQuantity`, `allocatedQuantity`, `availableToPromiseQuantity` as `0` only when backend returns success with zeros (not on error).
-  - [ ] UI shows an explicit “No inventory history” note in the success state.
+  - [ ] Availability display is read-only (no quantity edits). (DECISION-INVENTORY-004)
+  - [ ] Adjustments: `quantityChange` required and cannot be zero. (DECISION-INVENTORY-006)
+- [ ] Verify “no inventory history” is treated as success for Availability with zeros and a clear empty-state message. (DECISION-INVENTORY-004)
 - [ ] Verify storage location create/update validation:
-  - [ ] `siteId`, `name`, `barcode`, `storageType` required on create.
-  - [ ] `barcode` is trimmed and non-empty; duplicates are surfaced as field errors.
-  - [ ] Parent selection prevents self-parenting; cycle prevention errors from backend are displayed clearly.
-  - [ ] Parent picker is constrained to same `siteId`.
+  - [ ] `locationId`/site, `name`, `barcode`, `storageType` required on create. (DECISION-INVENTORY-007)
+  - [ ] `barcode` is trimmed and non-empty; duplicates are surfaced as field errors. (DECISION-INVENTORY-003)
+  - [ ] Parent selection prevents self-parenting and cycles.
 - [ ] Verify deactivation workflow validation:
   - [ ] Deactivate action is disabled/hidden when already inactive.
-  - [ ] If backend indicates destination required for non-empty location, UI requires `destinationLocationId` and prevents submit without it.
-  - [ ] Destination must be Active, same site, and not equal to source (enforced in UI when possible; backend authoritative).
-- [ ] Verify inactive/pending location selection rules are enforced consistently across “new stock movement” screens (block selection; allow read-only display for historical records).
-- [ ] Verify tags/JSON fields are handled safely:
-  - [ ] `tags`, `capacity`, `temperature`, SyncLog payloads, and ingestion payloads render via safe JSON viewer (no HTML injection).
-  - [ ] Large JSON payloads are truncated in list views with explicit “expand” behavior.
-- [ ] Verify fitment hints/tag editor validation (if implemented under inventory domain):
-  - [ ] Prevent submitting a hint with blank `tagType`/key or blank `tagValue`.
-  - [ ] Prevent duplicate tag rows within a hint when backend enforces uniqueness (or surface backend field errors precisely).
-  - [ ] Enforce year range format rules exactly as specified by backend (no “best guess” parsing).
-  - [ ] Prevent submitting a hint with zero tags unless backend explicitly allows it.
+  - [ ] If backend indicates destination is required for non-empty location, UI requires `destinationLocationId` and blocks submit without it. (DECISION-INVENTORY-007)
+- [ ] Verify inactive/pending location selection rules are enforced consistently across any “new movement” flow (block selection; historical display read-only). (DECISION-INVENTORY-009)
+- [ ] Verify JSON fields render safely:
+  - [ ] `tags`, `capacity`, `temperature`, SyncLog payloads, and feed payloads render via a safe JSON viewer (escape + truncate + explicit expand/copy). (DECISION-INVENTORY-015)
 
 ## API Contract
-- [ ] Verify exact endpoint/service names, HTTP methods, and parameter names are implemented as agreed (no “TBD” left in code).
-- [ ] Verify request/response envelope handling matches backend (plain JSON vs `{data: ...}`) and is consistent across inventory screens.
-- [ ] Verify Availability contract implementation:
-  - [ ] Request includes `productSku`, `locationId`, and optional `storageLocationId` only when provided.
-  - [ ] Response fields are mapped exactly: `onHandQuantity`, `allocatedQuantity`, `availableToPromiseQuantity`, `unitOfMeasure`.
-- [ ] Verify pagination contract is implemented correctly for list screens (Ledger, LocationRef, SyncLog, ingestion runs, normalized availability, unmapped parts, exception queues):
-  - [ ] Page size/index (or token) is sent correctly.
-  - [ ] Total count (or next token) is handled correctly.
-  - [ ] Sorting parameters match backend expectations (e.g., `-timestamp`, `-appliedAt`).
+
+- [ ] Verify API contracts use plain JSON responses and deterministic error schema. (DECISION-INVENTORY-003)
+- [ ] Verify all list screens use cursor pagination (`pageSize`, `pageToken`, `nextPageToken`) and do not rely on total counts unless explicitly provided. (DECISION-INVENTORY-003)
 - [ ] Verify error payload parsing is robust:
-  - [ ] Field-level validation errors map to the correct form fields when possible (including row-indexed errors for tag editors).
+  - [ ] Field-level validation errors map to the correct form fields when possible.
   - [ ] Unknown error shapes fall back to a generic message without crashing.
-- [ ] Verify 404 semantics are handled per flow:
-  - [ ] Availability: 404 SKU vs 404 location show distinct user messages.
-  - [ ] Detail screens: 404 routes back to list with “Not found”.
-- [ ] Verify 422 semantics are handled where specified:
-  - [ ] Inactive location rejection shows a clear, actionable message and preserves inputs.
-- [ ] Verify list endpoints support server-side filtering and the UI does not implement client-side filtering over unbounded datasets.
 
 ## Events & Idempotency
-- [ ] Verify read-only screens do not emit mutation events or side effects (Availability query, Ledger view, LocationRef/SyncLog views, ingestion monitoring views).
-- [ ] Verify mutation actions (create/update/deactivate storage location; adjustment create/post if implemented; fitment hint CRUD if implemented; exception/unmapped status updates if supported) are protected against double-submit:
-  - [ ] Submit buttons disabled while request is in-flight.
-  - [ ] UI prevents duplicate transitions on rapid clicks/navigation.
-- [ ] Verify idempotency expectations are documented and implemented where backend supports it (e.g., idempotency key header for posting actions); if not supported, UI retry behavior is conservative (no automatic retries for mutations).
-- [ ] Verify “manual trigger” actions (e.g., “Sync now”, ingestion trigger) are guarded against repeated clicks and show clear in-flight/progress state.
-- [ ] Verify eventual consistency expectations are handled:
-  - [ ] If a mutation returns success but list/detail may lag, UI shows “refresh” affordance and does not assume immediate list visibility.
+
+- [ ] Verify read-only screens do not emit mutation side effects (Availability, Ledger view, Topology views).
+- [ ] Verify mutation actions are protected against double-submit (disable while in-flight).
+- [ ] Verify UI does not auto-retry mutations.
 
 ## Security
-- [ ] Verify all inventory screens enforce authentication (401 routes to login/session refresh per app convention).
+
+- [ ] Verify all inventory screens enforce authentication (401 routes to login/session refresh per app convention). (DECISION-INVENTORY-012)
 - [ ] Verify authorization is enforced in UI and backend:
-  - [ ] Navigation items and action buttons are hidden/disabled when user lacks permission (if permissions are discoverable).
-  - [ ] Backend 403 responses are handled gracefully with a forbidden state and no data leakage.
+  - [ ] UI hides/disables gated actions when permission data is available. (DECISION-INVENTORY-010)
+  - [ ] Backend 403 is handled gracefully with a forbidden state and no data leakage. (DECISION-INVENTORY-012)
 - [ ] Verify sensitive data handling:
-  - [ ] Availability quantities are not logged to console/telemetry unless explicitly approved.
-  - [ ] SyncLog payload visibility is permission-gated; if 403, payload is not shown and UI does not attempt to render cached payload.
-  - [ ] Ingestion/exception payloads (if present) are treated as potentially sensitive; do not log raw payloads by default.
-- [ ] Verify no secrets are stored in frontend code/config (API keys, tokens); only use existing auth/session mechanisms.
-- [ ] Verify input fields that accept IDs (SKU, UUIDs, hrLocationId, sourceTransactionId) are treated as untrusted:
-  - [ ] Proper encoding in URLs/query params.
-  - [ ] No direct HTML rendering of user-provided strings.
-- [ ] Verify deep-linking does not bypass authorization (screen must still enforce 401/403 and must not show cached results from a prior authorized session/user).
+  - [ ] Availability quantities are not logged to console/telemetry. (DECISION-INVENTORY-011)
+  - [ ] Raw payload blobs (SyncLog, feed payloads) are not logged and are permission-gated. (DECISION-INVENTORY-011)
 
 ## Observability
-- [ ] Verify each screen logs structured client events per repo convention:
-  - [ ] Request initiated (without sensitive payloads).
-  - [ ] Request success with timing.
-  - [ ] Request failure with HTTP status and safe error code/message.
-- [ ] Verify correlation/request ID propagation and display:
-  - [ ] If backend returns `X-Correlation-Id` (or equivalent), include it in error UI “Technical details” and logs.
-  - [ ] If frontend generates correlation IDs, ensure they are passed consistently.
-- [ ] Verify Availability logging is safe:
-  - [ ] Log SKU and location identifiers only as allowed by policy; do not log returned quantities unless approved.
-  - [ ] Log whether `storageLocationId` was provided (boolean) rather than always logging the raw value if considered sensitive.
-- [ ] Verify error UI does not expose stack traces or raw backend internals; only safe, actionable messages.
-- [ ] Verify audit metadata is displayed when provided (createdAt/By, updatedAt/By, deactivatedAt/By, actorId on ledger entries) and omitted when not provided (no fabricated values).
+
+- [ ] Verify `X-Correlation-Id` is propagated on requests and shown in error UI technical details. (DECISION-INVENTORY-012)
 
 ## Performance & Failure Modes
-- [ ] Verify list screens use server-side pagination and do not fetch unbounded datasets (Ledger, LocationRef, SyncLog, ingestion runs, normalized availability, unmapped parts, exception queues).
-- [ ] Verify large JSON payloads (SyncLog payloads, ingestion payloads, tags) are not rendered eagerly in tables; use preview + on-demand expand.
-- [ ] Verify loading states prevent UI thrash:
-  - [ ] Show spinner/progress during calls.
-  - [ ] Disable inputs/actions during in-flight requests where appropriate.
-- [ ] Verify retry UX:
-  - [ ] For transient network/5xx errors, show “Try again” and keep user inputs/filters.
-  - [ ] For mutations, do not auto-retry; require explicit user retry.
-- [ ] Verify Availability deep-link auto-run behavior:
-  - [ ] Auto-run executes at most once per load unless inputs change.
-  - [ ] No infinite loops when query params update the form state.
-  - [ ] Results are marked “stale” when inputs change after a success.
-- [ ] Verify SLA-related UX for Availability:
-  - [ ] UI shows a loading indicator quickly (no “frozen” feel).
-  - [ ] If request exceeds a reasonable client timeout, show a timeout message and allow retry (do not keep spinner indefinitely).
+
+- [ ] Verify list screens use server-side pagination; do not fetch unbounded datasets.
+- [ ] Verify large JSON payloads are not rendered eagerly in tables (preview + on-demand expand).
+- [ ] Verify timeout UX is bounded (spinner appears quickly; timeouts show retry).
 
 ## Testing
-- [ ] Verify unit tests cover client-side validation rules:
-  - [ ] Required fields (SKU/locationId).
-  - [ ] Date range validation.
-  - [ ] Adjustment quantity non-zero.
-  - [ ] Parent selection cannot be self.
-  - [ ] Fitment hint tag row validation (no blank type/value; year range format).
-- [ ] Verify component tests cover state transitions: `idle → loading → success/error` and correct UI rendering for each.
-- [ ] Verify API contract tests/mocks cover:
-  - [ ] Success responses (including “no history” zeros for Availability).
-  - [ ] 400 field validation errors (including row-indexed errors for tag editors).
-  - [ ] 401/403 forbidden flows.
-  - [ ] 404 not found flows.
-  - [ ] 409 conflict (where applicable: adjustments, hint updates, optimistic locking).
-  - [ ] 422 inactive location rejection.
-- [ ] Verify E2E tests for critical flows:
-  - [ ] Availability query via form submit and via deep-link query params (if supported).
-  - [ ] Ledger list filtering and detail rendering with nullable from/to locations.
-  - [ ] Storage location create/update/deactivate (including destination-required path).
-  - [ ] Topology LocationRef/SyncLog list filtering and payload viewer permission handling.
-  - [ ] Ingestion monitoring list screens (runs/availability/unmapped/exceptions) enforce pagination and safe payload rendering (if implemented).
-- [ ] Verify accessibility checks:
-  - [ ] Form labels and ARIA association for validation errors.
-  - [ ] Keyboard navigation for tables/forms/dialogs.
-  - [ ] Status not conveyed by color alone.
-  - [ ] JSON/payload viewer is keyboard accessible and supports copy/select.
+
+- [ ] Unit tests cover client-side validation rules (required fields, date ranges, non-zero adjustments).
+- [ ] Component tests cover `idle → loading → success/error` and correct UI rendering.
+- [ ] Contract tests/mocks cover success and failure (401/403/404/422/5xx) with deterministic error schema.
 
 ## Documentation
-- [ ] Verify each new/modified screen has a short README or inline doc comment describing:
-  - [ ] Route/path and entry point.
-  - [ ] Backend service(s) called and parameters.
-  - [ ] Required permissions.
-- [ ] Verify error mapping table is documented for each flow (400/401/403/404/409/422/5xx) with user-facing messages.
-- [ ] Verify any repo-wide conventions used are documented/linked (routing conventions, correlation ID handling, permission discovery mechanism).
-- [ ] Verify “safe defaults” applied in stories are reflected in implementation notes (pagination defaults, empty states, loading states).
-- [ ] Verify deep-linking behavior (if supported) is documented: canonical query param names, auto-run rules, and how stale results are indicated.
 
-## Open Questions to Resolve
-- [ ] What is the exact backend endpoint path and auth mechanism for Availability, and what is the request/response envelope (plain JSON vs `{data: ...}`)?
-- [ ] Do existing pickers/services exist for `locationId` and `storageLocationId`? If not, is free-text UUID entry acceptable or must minimal lookup UI be added?
-- [ ] Should Availability support official deep-linking via URL query params? If yes, what are the canonical parameter names and routing conventions?
-- [ ] Are Availability quantities considered sensitive such that frontend logs/telemetry must avoid logging numeric quantities?
-- [ ] Ledger queries: what are the exact endpoints/service names, query params, and pagination response shape (items/total vs tokens)?
-- [ ] Ledger location filter semantics: should location filter match `fromLocationId OR toLocationId` (recommended) or only one side depending on movement type?
-- [ ] Ledger Workexec integration: what identifier is available for “movement history for a workorder line” (`sourceTransactionId` only vs `workorderId/workorderLineId`)?
-- [ ] Storage location fields: are `capacity` and `temperature` structured with a defined schema/units or treated as freeform JSON?
-- [ ] Can an Inactive storage location be edited (name/barcode fixes), or must it be fully read-only?
-- [ ] Is `storageType` mutable after creation, or create-only?
-- [ ] Should parent selection exclude Inactive locations strictly, or allow inactive parents for historical organization?
-- [ ] Topology sync screens: what permissions gate LocationRef/SyncLog access and SyncLog payload visibility?
-- [ ] Does backend support a manual “Sync now” trigger? If yes, what inputs/outputs and who is authorized?
-- [ ] What is the authoritative definition/list of “new stock movement” screens in this repo that must block inactive locations (routes/screen IDs)?
-- [ ] If `LocationRef.status=PENDING` exists, should PENDING locations be selectable for new movements or treated as inactive until ACTIVE?
-- [ ] Tags rendering: are tags opaque JSON or are there known keys requiring friendly rendering/filtering?
-- [ ] Fitment hints (if kept under inventory domain): what are the exact endpoints/services, permissions, tag model (free-form vs enum), year range format, hint cardinality/uniqueness constraints, and audit payload shape?
-- [ ] Ingestion monitoring (manufacturer feed normalization): what are the exact endpoints/services, permissions, and which lists are read-only vs allow status updates (unmapped parts, exception queue)?
-```
+- [ ] Each new/modified screen documents route, backend services called, and required permissions.
+- [ ] Error mapping table documented for each flow (400/401/403/404/409/422/5xx) with user-facing messages.
+
+## Acceptance Criteria (Resolved Open Questions)
+
+### Availability endpoint, auth mechanism, and envelope
+
+- [ ] Availability uses the contract described in the inventory domain docs and is called via Moqui proxy. (DECISION-INVENTORY-002, DECISION-INVENTORY-004)
+- [ ] Response is plain JSON (no `{data: ...}` envelope) and errors follow deterministic schema. (DECISION-INVENTORY-003)
+
+### Pickers for `locationId` and `storageLocationId`
+
+- [ ] UI uses pickers backed by inventory read models; no free-text UUID entry in normal user flows. (DECISION-INVENTORY-001, DECISION-INVENTORY-008)
+- [ ] UI prevents choosing a storage location outside the selected site when possible; backend errors are surfaced when not preventable. (DECISION-INVENTORY-001, DECISION-INVENTORY-003)
+
+### Availability deep-linking
+
+- [ ] Availability supports canonical deep-link parameters and does not loop on auto-run. (DECISION-INVENTORY-004, DECISION-INVENTORY-014)
+
+### Availability quantity sensitivity
+
+- [ ] Client logs/telemetry never emit numeric quantities from Availability results. (DECISION-INVENTORY-011)
+
+### Ledger endpoints and pagination shape
+
+- [ ] Ledger uses cursor pagination and immutable entries; UI never attempts to mutate ledger records. (DECISION-INVENTORY-003, DECISION-INVENTORY-005)
+
+### Ledger location filter semantics
+
+- [ ] Filtering by location matches `fromLocationId OR toLocationId` semantics and UI copy reflects this. (DECISION-INVENTORY-005)
+
+### Workexec integration identifier
+
+- [ ] Movement history deep-links use identifiers that exist on ledger entries (e.g., `sourceTransactionId`), without assuming Workexec-only IDs. (DECISION-INVENTORY-005)
+
+### Storage location field schemas (`capacity`, `temperature`)
+
+- [ ] `capacity` and `temperature` are treated as opaque JSON; UI validates JSON syntax only and renders safely. (DECISION-INVENTORY-015)
+
+### Inactive storage location editability
+
+- [ ] Inactive locations are blocked for new movement flows; historical display is read-only. (DECISION-INVENTORY-009)
+- [ ] If backend allows metadata fixes on inactive bins, UI supports it without enabling operational use. (DECISION-INVENTORY-007, DECISION-INVENTORY-009)
+
+### Storage type mutability
+
+- [ ] `storageType` is create-only unless backend explicitly documents mutation support. (DECISION-INVENTORY-007)
+
+### Parent selection rules (inactive parents)
+
+- [ ] Parent selection defaults to active-only for operational flows; historical organization may include inactive parents if explicitly enabled. (DECISION-INVENTORY-009)
+
+### Topology permissions (LocationRef / SyncLog / payload)
+
+- [ ] Topology screens are permission-gated and payload visibility is separately gated. (DECISION-INVENTORY-010, DECISION-INVENTORY-011)
+
+### Manual “Sync now” trigger
+
+- [ ] If manual sync exists, it is permission-gated and guarded against double-trigger. (DECISION-INVENTORY-008)
+
+### “New movement” flows that block inactive locations
+
+- [ ] Any flow that creates movement/adjustment blocks `INACTIVE` and `PENDING` sites/bins; PENDING is treated like INACTIVE. (DECISION-INVENTORY-009)
+
+### Tags rendering expectations
+
+- [ ] Tags are treated as opaque JSON and are rendered safely (escape + truncate + expand/copy). (DECISION-INVENTORY-015)
+
+### Fitment hints scope (if applicable)
+
+- [ ] Fitment hints remain out-of-scope unless an inventory-owned contract exists; if implemented, they use deterministic errors and inventory permission naming. (DECISION-INVENTORY-003, DECISION-INVENTORY-010)
+
+### Feed normalization / ingestion monitoring
+
+- [ ] Feed ops screens and allowed updates match inventory-owned contracts and permissions. (DECISION-INVENTORY-013, DECISION-INVENTORY-010)
+
+## End
+
+End of document.
