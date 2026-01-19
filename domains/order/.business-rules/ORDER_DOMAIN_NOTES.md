@@ -14,6 +14,7 @@ This document provides non-normative, verbose rationale and decision logs for th
 
 ## Decision details
 
+<a id="decision-order-001---order-domain-as-cancellation-orchestrator"></a>
 ### DECISION-ORDER-001 — Order Domain as Cancellation Orchestrator
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-001)
@@ -94,6 +95,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Quarterly review of cancellation policies and success rates
   - **Escalation:** Product team approval required for policy changes (e.g., adding new blocking conditions)
 
+<a id="decision-order-002---work-status-blocking-rules-for-cancellation"></a>
 ### DECISION-ORDER-002 — Work Status Blocking Rules for Cancellation
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-002)
@@ -183,6 +185,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Policy changes:** Require cross-functional approval (Product, Operations, Tech Lead)
   - **Monitoring:** Alert on high rate of cancellation blocks (may indicate UX issue)
 
+<a id="decision-order-003---payment-settlement-handling-in-cancellation"></a>
 ### DECISION-ORDER-003 — Payment Settlement Handling in Cancellation
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-003)
@@ -276,6 +279,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Escalation:** Alert if refund backlog exceeds threshold or SLA violations occur
   - **Future enhancement:** Consider semi-automatic refund with approval workflow (phase 2)
 
+<a id="decision-order-004---cancellation-audit-record-immutability"></a>
 ### DECISION-ORDER-004 — Cancellation Audit Record Immutability
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-004)
@@ -376,6 +380,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Retention policy:** Define retention period for cancellation records (e.g., 7 years for financial data)
   - **Access control:** Restrict cancellation_record table access to read-only for most users
 
+<a id="decision-order-005---idempotent-cancellation-semantics"></a>
 ### DECISION-ORDER-005 — Idempotent Cancellation Semantics
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-005)
@@ -484,6 +489,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Monitoring:** Alert on high rate of 409 responses or locking timeouts
   - **Documentation:** Update API docs with clear idempotency guarantees
 
+<a id="decision-order-006---cancellation-reason-taxonomy"></a>
 ### DECISION-ORDER-006 — Cancellation Reason Taxonomy
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-006)
@@ -600,6 +606,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Reason taxonomy updates:** Requires cross-functional approval; consider impact on reporting
   - **Future enhancement:** If OTHER usage is high, conduct user research to identify new reason categories
 
+<a id="decision-order-007---cancellation-orchestration-timeout-and-failure-handling"></a>
 ### DECISION-ORDER-007 — Cancellation Orchestration Timeout and Failure Handling
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-007)
@@ -713,6 +720,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Root cause analysis:** Investigate patterns in downstream failures; address systemic issues
   - **Future enhancement:** Consider semi-automatic retry with approval workflow for specific failure types
 
+<a id="decision-order-008---cancellation-comments-maximum-length"></a>
 ### DECISION-ORDER-008 — Cancellation Comments Maximum Length
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-008)
@@ -798,6 +806,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** No regular review needed; stable limit
   - **Future consideration:** If users consistently hit the limit, reconsider increasing to 5000
 
+<a id="decision-order-009---concurrency-control-with-409-conflict-response"></a>
 ### DECISION-ORDER-009 — Concurrency Control with 409 Conflict Response
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-009)
@@ -896,6 +905,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Monitoring:** Alert if 409 rate exceeds threshold (indicates UI issue)
   - **Review cadence:** Monthly review of concurrency patterns
 
+<a id="decision-order-010---authorization-and-permission-model-for-cancellation"></a>
 ### DECISION-ORDER-010 — Authorization and Permission Model for Cancellation
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-010)
@@ -984,6 +994,143 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Quarterly review of permission assignments
   - **Access requests:** Standard approval process for granting ORDER_CANCEL permission
   - **Monitoring:** Alert on unusual cancellation patterns (may indicate compromised account)
+
+<a id="decision-order-011---canonical-domain-label-and-ownership-for-cancellation-ui"></a>
+### DECISION-ORDER-011 — Canonical Domain Label and Ownership for Cancellation UI
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-011)
+- **Decision:** Cancellation orchestration and cancellation UI stories are canonically owned by the Order domain and should be labeled `domain:order`. Payment and Work Execution are dependencies and remain authoritative for their own statuses, but do not own the cancellation entrypoint.
+- **Alternatives considered:**
+  - **Option A (Chosen):** `domain:order` ownership
+    - Pros: Aligns with order lifecycle state machine and orchestration responsibility
+    - Cons: Requires cross-domain coordination and clear contracts
+  - **Option B:** Label as `domain:payment` / “Point of Sale”
+    - Pros: Matches some frontend labeling conventions
+    - Cons: Misroutes ownership; encourages UI to couple directly to payment logic
+  - **Option C:** Split ownership across domains
+    - Pros: Domain autonomy
+    - Cons: Inconsistent policy, split audit trail, unclear accountability
+- **Reasoning and evidence:**
+  - Cancellation is an order lifecycle change with cross-domain side effects
+  - Centralized ownership reduces divergence and improves auditability
+- **Architectural implications:**
+  - Code review routing and story routing should include Order domain reviewers
+  - Contracts for payment/work integration must be documented and versioned
+- **Auditor-facing explanation:**
+  - Validate that cancellations are initiated via Order-domain services and audited consistently
+- **Migration & backward-compatibility notes:**
+  - Update story labels and docs; no data migration required
+- **Governance & owner recommendations:**
+  - **Owner:** Order domain
+  - **Review cadence:** Annual or when cancellation expands beyond current scope
+
+<a id="decision-order-012---ui-to-moqui-service-contract-conventions-safe-defaults"></a>
+### DECISION-ORDER-012 — UI to Moqui Service Contract Conventions (Safe Defaults)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-012)
+- **Decision:** Use a single command-style cancel service owned by Order (inputs: `orderId`, `reason`, `comments`) and a single order-detail read service that returns cancellation summary (or a dedicated Order-owned “latest cancellation” read service if embedding is not feasible). Error responses should include stable `errorCode` and user-safe `message` with optional `details`/`fieldErrors`.
+- **Alternatives considered:**
+  - **Option A (Chosen):** Single cancel command + order detail includes summary
+    - Pros: Minimal UI complexity; avoids UI calling downstream domains
+    - Cons: Requires order detail contract evolution
+  - **Option B:** UI calls downstream domains for work/payment pre-checks
+    - Pros: Potentially richer pre-submit warnings
+    - Cons: Double calls, stale data risk, tighter coupling, security complexity
+  - **Option C:** Separate pre-check endpoint
+    - Pros: Early feedback without side effects
+    - Cons: More surface area; still risks divergence from submit policy
+- **Reasoning and evidence:**
+  - Submit response is authoritative and already needs structured errors
+  - Pre-checks can be advisory using already-loaded summaries
+- **Architectural implications:**
+  - Requires a documented contract in Moqui services/screens
+  - Standardize error schema for deterministic UI mapping
+- **Auditor-facing explanation:**
+  - Ensure error codes are logged and auditable without leaking sensitive data
+- **Migration & backward-compatibility notes:**
+  - safe_to_defer: true (service naming/paths must be confirmed per repo conventions)
+  - Start with contract tests; finalize service names in implementation
+- **Governance & owner recommendations:**
+  - **Owner:** Order domain + Moqui frontend maintainers
+  - **Review cadence:** Per release when contracts change
+
+<a id="decision-order-013---canonical-order-cancellation-status-enum-contract"></a>
+### DECISION-ORDER-013 — Canonical Order Cancellation Status Enum Contract
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-013)
+- **Decision:** The UI-facing canonical cancellation-related statuses are `CANCELLING`, `CANCELLED`, `CANCELLED_REQUIRES_REFUND`, and `CANCELLATION_FAILED`. Any legacy backend variants must be mapped server-side to these canonical values for UI.
+- **Alternatives considered:**
+  - **Option A (Chosen):** Canonicalize to a small stable set
+    - Pros: Prevents enum drift; simplifies UI logic
+    - Cons: Requires mapping layer if legacy values exist
+  - **Option B:** Expose all internal variants to UI
+    - Pros: No mapping work
+    - Cons: UI complexity, higher chance of mismatch, harder to test
+- **Reasoning and evidence:**
+  - Frontend stories explicitly warn about status drift risk
+  - Canonical enum supports deterministic rendering and reduced QA matrix
+- **Architectural implications:**
+  - Backend should document and test mapping behavior
+  - UI should still treat unknown values as non-fatal
+- **Auditor-facing explanation:**
+  - Inspect state transition logs; confirm mapping does not hide failed cancellations
+- **Migration & backward-compatibility notes:**
+  - safe_to_defer: true (mapping details depend on existing persisted status values)
+  - Add compatibility tests for any legacy states encountered
+- **Governance & owner recommendations:**
+  - **Owner:** Order domain
+  - **Review cadence:** Only when adding new cancellation-related states
+
+<a id="decision-order-014---frontend-permission-exposure-pattern-safe-default"></a>
+### DECISION-ORDER-014 — Frontend Permission Exposure Pattern (Safe Default)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-014)
+- **Decision:** UI should gate cancel action based on a backend-provided capability signal (e.g., `canCancel`) returned by order detail (or a capability set), not by duplicating permission rules client-side. Server-side still enforces `ORDER_CANCEL`.
+- **Alternatives considered:**
+  - **Option A (Chosen):** Capability boolean in order detail
+    - Pros: Single source of truth; avoids duplicating authorization logic in UI
+    - Cons: Requires order detail contract update
+  - **Option B:** UI evaluates permissions from session context
+    - Pros: Less backend coupling
+    - Cons: Risk of drift; hard to keep consistent across screens
+- **Reasoning and evidence:**
+  - Conservative pattern: UI should not infer security policy
+- **Architectural implications:**
+  - Order detail must compute capability using the same server-side checks
+- **Auditor-facing explanation:**
+  - Validate unauthorized users cannot cancel (403) even if UI gating fails
+- **Migration & backward-compatibility notes:**
+  - safe_to_defer: true (repo may already have a standard permission exposure mechanism)
+  - If a standard exists, replace `canCancel` with that mechanism
+- **Governance & owner recommendations:**
+  - **Owner:** Security domain + Order domain
+  - **Review cadence:** When permission model changes
+
+<a id="decision-order-015---correlation-ids-and-admin-only-details-visibility"></a>
+### DECISION-ORDER-015 — Correlation IDs and Admin-only Details Visibility
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-015)
+- **Decision:** `cancellationId` is visible to all users authorized to view the order. Correlation IDs and downstream subsystem detail fields are returned and displayed only when the caller has an explicit admin/support permission; otherwise they are omitted/redacted.
+- **Alternatives considered:**
+  - **Option A (Chosen):** Admin-only operational detail
+    - Pros: Reduces internal leakage; still supports troubleshooting
+    - Cons: Support users need explicit permission
+  - **Option B:** Show correlation IDs to all
+    - Pros: Self-service support
+    - Cons: Higher leakage risk; encourages exposing internals
+- **Reasoning and evidence:**
+  - Correlation identifiers can be operationally sensitive even if not secret
+  - Supportability is maintained via role-scoped visibility
+- **Architectural implications:**
+  - Backend must apply field-level redaction based on permissions
+  - UI must handle absence of correlation fields gracefully
+- **Auditor-facing explanation:**
+  - Validate only support/admin roles can access operational detail
+- **Migration & backward-compatibility notes:**
+  - Add permissions and implement redaction; no historical data migration required
+- **Governance & owner recommendations:**
+  - **Owner:** Security domain
+  - **Review cadence:** Quarterly review of who has access to support identifiers
 
 ## End
 

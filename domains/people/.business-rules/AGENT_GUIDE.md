@@ -1,522 +1,302 @@
-```markdown
-# AGENT_GUIDE.md — People Domain
+# AGENT_GUIDE.md
 
----
+## Summary
 
-## Purpose
+This guide defines the People domain’s **normative** business rules for identity/lifecycle, roles and assignments, and timekeeping-oriented People workflows (breaks, approvals, payroll timekeeping ingestion). It resolves the prior open questions into safe defaults that keep UI and backend behavior deterministic without inventing cross-domain policy. Each decision is indexed and cross-referenced to `PEOPLE_DOMAIN_NOTES.md`.
 
-The People domain manages user and employee lifecycle, identity, roles, assignments, and timekeeping-related personnel data within the modular POS system. It serves as the authoritative source for user status, employee profiles, role assignments, location assignments, and manages offboarding workflows that revoke access while preserving historical data for audit and payroll.
+## Completed items
 
-This guide is used by agents implementing People-domain backend + Moqui screens and integrating with other domains (Work Execution, Shop Management, Security).
+- [x] Generated Decision Index
+- [x] Mapped Decision IDs to `PEOPLE_DOMAIN_NOTES.md`
+- [x] Reconciled todos from original AGENT_GUIDE
 
----
+## Decision Index
+
+| Decision ID | Title |
+| --- | --- |
+| DECISION-PEOPLE-001 | User lifecycle states and soft offboarding |
+| DECISION-PEOPLE-002 | Disable user workflow uses saga + DLQ |
+| DECISION-PEOPLE-003 | Role assignment scopes (GLOBAL vs LOCATION) |
+| DECISION-PEOPLE-004 | Person-location assignment primary semantics |
+| DECISION-PEOPLE-005 | TimekeepingEntry ingestion and deduplication |
+| DECISION-PEOPLE-006 | Time period approval atomicity |
+| DECISION-PEOPLE-007 | Break type enum and auto-end behavior |
+| DECISION-PEOPLE-008 | Employee profile conflict handling (409 vs warnings) |
+| DECISION-PEOPLE-009 | Mechanic roster is an HR-synced read model |
+| DECISION-PEOPLE-010 | Time entry approval authorization |
+| DECISION-PEOPLE-011 | Mechanic roster storage ownership (SoR vs read model) |
+| DECISION-PEOPLE-012 | Person↔User cardinality and identifiers |
+| DECISION-PEOPLE-013 | Permission naming and UI capability exposure |
+| DECISION-PEOPLE-014 | Assignment effective-dating semantics (exclusive end) |
+| DECISION-PEOPLE-015 | Timezone display standard for People UIs |
+| DECISION-PEOPLE-016 | Break notes requirement for OTHER |
+| DECISION-PEOPLE-017 | Optimistic concurrency default (lastUpdatedStamp) |
+| DECISION-PEOPLE-018 | Error response schema (400/409) |
+| DECISION-PEOPLE-019 | `tenantId` UI visibility policy |
+| DECISION-PEOPLE-020 | `technicianIds` query encoding + report range |
+| DECISION-PEOPLE-021 | People REST API conventions (paths, paging, shapes) |
+| DECISION-PEOPLE-022 | Break API contract and identity derivation |
+| DECISION-PEOPLE-023 | Person-location assignment API contract and reason codes |
+| DECISION-PEOPLE-024 | Disable user API contract and UX defaults |
+| DECISION-PEOPLE-025 | Employee profile defaults and terminated edit rules |
+| DECISION-PEOPLE-026 | Role assignment API contract, dating, and history defaults |
 
 ## Domain Boundaries
 
-### Authoritative Data Ownership (People is SoR)
-- **Identity & lifecycle**
-  - User and Person lifecycle states (`ACTIVE`, `DISABLED`, `TERMINATED`) and employment statuses (`ACTIVE`, `ON_LEAVE`, `SUSPENDED`, `TERMINATED`).
-  - Employee profile data (legal name, employee number, contact info, hire/termination dates).
-- **Access modeling**
-  - Role definitions and role assignments with scope constraints (`GLOBAL`, `LOCATION`).
-  - User disable workflow (soft offboarding) and its downstream revocation signaling.
-- **Eligibility modeling**
-  - Person-to-location assignments with effective dating and primary flags (used by downstream rosters/eligibility).
-- **Timekeeping (People-owned time facts for payroll readiness)**
-  - Break records (start/end, type, audit flags).
-  - Time entry approval state and approval history (period-atomic approvals/rejections).
-  - `TimekeepingEntry` records ingested from Shop Management work sessions for payroll review and approval visibility.
-- **Reporting**
-  - People-owned reports that aggregate People time + integrate with Work Execution totals (e.g., attendance vs job time discrepancy report).
+### What People owns (system of record)
 
-### Exclusions (People is not SoR)
-- **Authentication/session management**: delegated to Security service (People emits events and maintains status; Security enforces auth).
-- **Work session/job time facts**: owned by Work Execution / Shop Management (People consumes via events or backend-to-backend calls).
-- **Dispatch decisions and assignment workflows**: consumers of People roster/eligibility; People provides read models and constraints.
-- **UI-only read models in other apps** (e.g., Dispatch roster screens): People may be upstream SoR, but the consuming domain owns its UI.
+- Identity lifecycle: `User`/`Person` status and offboarding semantics
+- Employee profile master data and uniqueness rules
+- Role definitions and role assignments (scope-aware)
+- Person↔Location assignments (effective-dated, primary semantics)
+- Payroll timekeeping ingestion read model (`TimekeepingEntry`) and approval workflow state
 
-### Cross-domain read models (important nuance)
-Frontend stories introduce read-only screens in other modules (e.g., Dispatch roster). Treat these as **consumers** of People data:
-- People owns the canonical identity/status/assignment rules.
-- Consumers may maintain their own read model (e.g., `Mechanic` + `MechanicSkill`) populated from People/HR events or APIs.
-- People must provide stable identifiers and event semantics to support idempotent sync.
+### What People does *not* own
 
-**CLARIFY:** Whether the `Mechanic` roster read model lives in People domain storage or in Shop/Dispatch domain storage. Frontend story #136 describes it as “HR-synced” and references backend story #72 (domain:people), but the UI entry point is under Dispatch.
-
----
+- Authentication/session enforcement (owned by Security; People provides status)
+- Work session/job time source-of-truth (owned by Shop Management / Work Execution)
+- Dispatch decisions and assignment workflows (consumers of People data)
 
 ## Key Entities / Concepts
 
-| Entity                      | Description                                                                                  |
-|-----------------------------|----------------------------------------------------------------------------------------------|
-| **User**                    | Represents system login identity; status controls authentication eligibility.                |
-| **Person**                  | Represents the employee or individual; linked to User; holds employment status and profile. |
-| **EmployeeProfile**         | Detailed employee data including contact info, employment dates, and status.                 |
-| **Role**                    | Defines a permission set with allowed scopes (`GLOBAL`, `LOCATION`).                         |
-| **RoleAssignment**          | Links a User to a Role with scope, effective dates, and audit metadata.                      |
-| **PersonLocationAssignment**| Assigns a Person to a Location with role, primary flag, and effective dating.                |
-| **Break**                   | Records start/end of breaks during a workday, including type and auto-end flags.             |
-| **TimeEntry**               | Represents work time records; used for active timers and payroll.                            |
-| **TimePeriod**              | Pay period container with gating status (`OPEN`, `SUBMISSION_CLOSED`, `PAYROLL_CLOSED`).     |
-| **TimePeriodApproval**      | Append-only records of manager approvals or rejections of time entries per pay period.       |
-| **TimekeepingEntry**        | Payroll timekeeping facts ingested from Shop Management (`WorkSessionCompleted`).            |
-| **Mechanic (read model)**   | HR-synced roster identity used by Dispatch/ShopMgr; includes status and home location.       |
-| **MechanicSkill (read model)** | Skill snapshot associated with a mechanic for dispatch selection.                         |
-
-### Relationships (actionable mental model)
-- `User 1—1 Person` (typical; **CLARIFY** if multiple Persons per User is allowed).
-- `Person 1—1 EmployeeProfile` (or EmployeeProfile is a projection of Person; depends on backend schema).
-- `User 1—N RoleAssignment` (effective-dated, scope-aware).
-- `Person 1—N PersonLocationAssignment` (effective-dated; primary uniqueness rule applies).
-- `Person/User 1—N TimeEntry` (attendance time) and `Person/User 1—N Break` (subset/type of time entries).
-- `Person 1—N TimekeepingEntry` (ingested sessions; payroll readiness).
-- `TimePeriod 1—N TimeEntry` and `TimePeriod 1—N TimePeriodApproval` (history).
-
----
+| Entity | Description |
+| --- | --- |
+| User | Login identity and lifecycle status used for authentication eligibility. |
+| Person | Human/employee identity linked to a User (canonical person identifier). |
+| EmployeeProfile | HR-like profile data and employment status. |
+| Role / RoleAssignment | Permission-bearing role and effective-dated scoped assignment. |
+| PersonLocationAssignment | Effective-dated home/location association with primary semantics. |
+| TimekeepingEntry | Read model of finalized work sessions for payroll review and approvals. |
+| TimePeriod / TimePeriodApproval | Pay period container and append-only approval history. |
+| Break | Break lifecycle record; constrained to one active break at a time. |
+| Mechanic / MechanicSkill (read model) | Roster data consumed by Dispatch/ShopMgr (HR-synced projection). |
 
 ## Invariants / Business Rules
 
-### User & Person Status Lifecycle
-- `ACTIVE`: User can authenticate and be assigned work.
-- `DISABLED`: User cannot authenticate; identity retained; reversible offboarding.
-- `TERMINATED`: Employment ended; cannot authenticate; irreversible.
-- Disabling a user is a logical soft delete; no physical data removal.
-- Disabled users must be excluded from authentication, assignment pickers, and scheduling.
-
-**Frontend impact:** UI must treat `DISABLED` as non-assignable and hide/disable actions that require an active identity.
-
-### User Deactivation Workflow
-- Disabling a user atomically updates User and Person statuses to `DISABLED`.
-- Active assignments are ended immediately or scheduled per policy.
-- Active timers (`TimeEntry`) are forcibly stopped or queued for saga retries.
-- A `user.disabled` event is emitted for downstream consumers.
-- Downstream failures do not rollback disable; authentication is blocked immediately.
-- Saga retry queue with exponential backoff handles downstream command failures.
-- Dead Letter Queue (DLQ) triggers manual intervention after 24h of retry failures.
-
-**Frontend story alignment:** “Disable User” UX requires:
-- explicit permission gating (exact permission string is **CLARIFY**),
-- policy-driven options (leave assignments active vs end at date) surfaced as capabilities (**CLARIFY** how backend communicates).
-
-### Role and RoleAssignment
-- Roles have allowed scopes: `GLOBAL`, `LOCATION`, or both.
-- RoleAssignments link Users to Roles with scope, location (if applicable), and effective dates.
-- RoleAssignments are immutable in core fields; modifications require ending and recreating assignments.
-- Multiple concurrent role assignments allowed; permissions computed as scope-aware union.
-- Revocation is via setting `effectiveEndDate` (soft delete).
-- No hard deletes except for test or privileged purge.
-
-**Frontend story alignment:** Role assignment UI needs:
-- list roles (including allowedScopes),
-- list user’s assignments (active and optionally history),
-- create assignment,
-- end assignment (effectiveEndDate),
-- date picker constraints for future/backdated ends (**CLARIFY** backend support).
-
-### PersonLocationAssignment
-- Persons can have multiple assignments with effective start/end timestamps.
-- Exactly one primary assignment per person per role at any point in time.
-- Overlapping assignments for the same `(personId, locationId, role)` are prohibited.
-- Creating a new primary assignment automatically demotes existing primary assignments atomically.
-- All changes are audited and emit versioned domain events.
-
-**CLARIFY (from frontend story #150):**
-- Is primary uniqueness enforced per `personId` overall, or per `(personId, role)`?
-- Is `role` required on `PersonLocationAssignment` and if so, what are allowed values?
-- Is `effectiveEndAt` inclusive or exclusive? Backend text is inconsistent; UI needs a single rule.
-
-### Employee Profile
-- `employeeNumber` and `primaryEmail` must be unique.
-- Mandatory fields: `legalName`, `employeeNumber`, `status`, `hireDate`.
-- Status lifecycle: `ACTIVE`, `ON_LEAVE`, `SUSPENDED`, `TERMINATED`.
-- Contact info completeness enforced as a workflow gate before assignment or activation.
-- Duplicate detection with hard-block (409) on high-confidence matches; soft warnings on ambiguous matches.
-
-**Frontend story alignment (#152):**
-- Create/update screens must handle:
-  - 409 hard duplicate conflicts (blocking),
-  - warnings payload (non-blocking),
-  - field-level validation errors (400),
-  - optimistic concurrency if required (e.g., `lastUpdatedStamp`/version) (**CLARIFY**).
-
-### Breaks (Timekeeping)
-- Only one active (`IN_PROGRESS`) break per mechanic at a time.
-- Breaks must have a valid `breakType` (`MEAL`, `REST`, `OTHER`).
-- Breaks can only be started/ended within an active clock-in session.
-- Breaks auto-end at clock-out with audit flags and event generation.
-- Break start/end times must not overlap.
-
-**Frontend story alignment (#148):**
-- UI must load “current clock-in/break context” and enforce:
-  - cannot start if not clocked in,
-  - cannot start if break already active,
-  - cannot end if none active.
-- `breakType=OTHER` notes requirement is **CLARIFY**.
-- Timezone for display is **CLARIFY** (user vs location vs device).
-
-### Time Entry Approval (Period-Atomic)
-- Manager approves or rejects all `PENDING_APPROVAL` time entries for an employee per pay period atomically.
-- Rejection requires reason code and notes.
-- Approved entries are immutable; adjustments handled via separate workflow.
-- Approval/rejection emits audit logs and domain events.
-- Gating: decisions require `TimePeriod.status >= SUBMISSION_CLOSED`.
-
-**Frontend story alignment (#147):**
-- Approve/reject endpoints should be idempotent and return actionable 409 conflicts (e.g., blocking entry IDs) when mixed statuses occur.
-- Approval history must be append-only and queryable.
-
-### Payroll Timekeeping Ingestion (`TimekeepingEntry`)
-- People domain ingests finalized work sessions (`WorkSessionCompleted`) from Shop Management.
-- Idempotent ingestion keyed by `(tenantId, sourceSystem, sourceSessionId)` (or equivalent).
-- Corrections handled via explicit correction events; no silent overwrites.
-- Default approval status is `PENDING_APPROVAL`.
-
-**Frontend story alignment (#122):**
-- UI list/detail must expose stable source identifiers (`sourceSystem`, `sourceSessionId`) for audit traceability.
-- UI must not show duplicates; backend must enforce idempotency.
-
-### Attendance vs Job Time Discrepancy Report
-- People domain aggregates attendance (clocked time) and integrates with Work Execution job time totals.
-- Flagging threshold is applied server-side and returned per row (`thresholdApplied`).
-- Backend must surface upstream dependency failures (WorkExec unavailable) with a stable error code if possible.
-
----
-
-## Events / Integrations
-
-| Event Name                         | Direction         | Description                                                                                  |
-|-----------------------------------|-------------------|----------------------------------------------------------------------------------------------|
-| `user.disabled`                   | Outbound          | Emitted on user disable; consumed by Security, Work Execution, Scheduling services.          |
-| `PersonLocationAssignmentChanged` | Outbound          | Versioned event emitted on assignment create/update/end.                                     |
-| `RoleAssignmentCreated/Ended`     | Outbound          | Audit and integration events on role assignment lifecycle changes.                           |
-| `EmployeeProfileCreated/Updated`  | Outbound          | Audit events emitted on employee profile changes.                                            |
-| `BreakStarted/Ended/AutoEnded`    | Outbound          | Audit events for break lifecycle actions.                                                    |
-| `TimeEntriesApprovedEvent`        | Outbound          | Emitted after manager approves time entries.                                                 |
-| `TimeEntriesRejectedEvent`        | Outbound          | Emitted after manager rejects time entries.                                                  |
-| `WorkSessionCompleted`            | Inbound           | Event from Shop Management to ingest payroll timekeeping entries.                            |
-| `MechanicUpserted` / `RosterSynced` (name TBD) | Outbound or Inbound | HR roster/skills sync events used by Dispatch read models. **CLARIFY** canonical event names. |
-
-### Integration patterns (what to implement)
-- **Event-driven ingestion (ShopMgr → People):**
-  - Consume `WorkSessionCompleted` and upsert `TimekeepingEntry` idempotently.
-  - Emit a People-domain event when a `TimekeepingEntry` is created/updated for downstream audit/reporting (**TODO** define event name/version if needed).
-- **Backend-to-backend report dependency (People → WorkExec):**
-  - People report endpoint calls WorkExec to fetch job time totals.
-  - Map upstream failures to stable error codes (e.g., `WORKEXEC_UNAVAILABLE`) so UI can message correctly.
-- **Roster sync (People/HR → Dispatch/ShopMgr):**
-  - Provide either:
-    - events (preferred for near-real-time), or
-    - reconciliation API (for periodic sync).
-  - Ensure stable external key (`personId`/`hrPersonId`) and versioning (`lastSyncedAt`/`version`) for idempotency.
-
----
-
-## API Expectations (High-Level)
-
-> Moqui can expose services via REST or screen transitions calling services. Frontend stories repeatedly flag missing contract details. Until clarified, treat these as required capabilities and document the expected shapes and error semantics.
-
-### User Management
-- Disable user endpoint with confirmation and assignment termination options (**CLARIFY** exact payload and capability discovery).
-- Must return updated user/person status and effective timestamp.
-
-### Employee Profile
-- Create (`POST /employees`) and update (`PUT /employees/{id}`) endpoints with:
-  - 400 field validation errors,
-  - 409 duplicate conflicts,
-  - optional `warnings[]` for soft duplicates,
-  - optional optimistic concurrency (`version`/`lastUpdatedStamp`) (**CLARIFY**).
-
-**CLARIFY:** authoritative read endpoint for edit prefill (`GET /employees/{id}` vs service name).
-
-### Role Assignment
-- List roles (include `allowedScopes`).
-- List a user’s role assignments (active + optional history).
-- Create role assignment (validate scope/location).
-- End role assignment (set `effectiveEndDate`).
-- Support 409 for conflicts (overlap, version mismatch, invalid end date).
-
-### Person Location Assignment
-- List assignments by person (active-only default + include history toggle).
-- Create assignment (enforce overlap + primary uniqueness).
-- Update assignment or enforce immutability (end + recreate) (**CLARIFY**).
-- End assignment (set `effectiveEndAt`).
-- List locations for selection.
-
-### Break Management (Mechanic self-service)
-- Load current clock-in/break context.
-- Start break (`breakType`, optional `notes`).
-- End break (prefer server-derived active break; avoid client passing IDs unless required).
-- Return stable error codes for 409 conflicts (already in progress, overlap) and state mismatches.
-
-### Time Entry Approval (Manager)
-- List manager-authorized employees (direct reports / scoped).
-- List time periods (with status and start/end dates if available).
-- Fetch time entries for `{employeeId,timePeriodId}`.
-- Fetch approval history (`TimePeriodApproval`) for `{employeeId,timePeriodId}`.
-- Approve/reject period-atomic actions (idempotent).
-- Rejection requires reason code + notes; reason codes should be enumerable via endpoint/service (**CLARIFY**).
-
-### TimekeepingEntry (Ingested Sessions)
-- List `TimekeepingEntry` with paging + filters (employeeId, date range, approvalStatus, locationId, workOrderId).
-- Get `TimekeepingEntry` detail by `timekeepingEntryId`.
-- Include source identifiers and approval status; include rejection metadata/history if available (**CLARIFY**).
-
-### Reports
-- Attendance vs Job Time Discrepancy:
-  - `GET /api/people/reports/attendance-jobtime-discrepancy`
-  - Required params: `startDate`, `endDate`, `timezone`
-  - Optional: `locationId`, `technicianIds`, `flaggedOnly`
-  - Return `thresholdApplied` per row and `isFlagged` computed server-side.
-
-**CLARIFY:** encoding for `technicianIds` (repeat vs comma-separated) and any max date range constraints.
-
----
-
-## Security / Authorization Assumptions
-
-### Baseline
-- All API calls require authentication.
-- Authorization is enforced server-side; UI may hide menu entries/actions but must not rely on client-side gating.
-
-### Role-based access control (expected)
-- Admins: disable users, assign roles, manage assignments.
-- HR Administrators: manage employee profiles.
-- Managers: approve/reject time entries for authorized employees; run discrepancy report for authorized scope.
-- Payroll Clerks: view ingested `TimekeepingEntry` records (read-only).
-
-**CLARIFY:** exact permission strings and how the frontend repo checks them (named permissions vs role names).
-
-### Permission hooks (concrete expectations)
-Frontend stories require explicit gating for:
-- Viewing `TimekeepingEntry` list/detail (Payroll Clerk).
-- Starting/ending breaks (Mechanic self-service).
-- Managing person location assignments (Manager/People admin).
-- Managing role assignments (Admin).
-- Disabling users (Admin or elevated permission).
-- Running discrepancy report (Manager).
-
-**TODO:** Document the canonical permission names once confirmed (e.g., `timekeeping:read`, `timekeeping:approve`, `people.locationAssignment.manage`, `people.roleAssignment.manage`, `user.disable`, etc.).
-
-### Sensitive data handling
-- Do not expose unnecessary identifiers in UI/logs.
-- `tenantId` display policy is **CLARIFY** (frontend story asks if it is sensitive).
-- Avoid leaking existence of users/persons on 403/404 (prefer generic “not authorized” for forbidden scopes).
-
----
-
-## Observability (Logs / Metrics / Tracing)
-
-### Audit Logs (must be immutable)
-- User disable actions (include chosen assignment handling option, effective timestamp, actor).
-- Employee profile create/update (include changed fields list; avoid storing raw PII in logs).
-- Role assignment create/end.
-- Person location assignment create/update/end (include primary demotion outcomes).
-- Break start/end/auto-end (include endReason).
-- Time period approve/reject (include reason code + notes for rejection; notes may contain sensitive info—store carefully and restrict access).
-- TimekeepingEntry ingestion (include source identifiers and idempotency key).
-
-### Metrics (additions based on frontend stories)
-- `people_timekeeping_entry_list_requests_total{status}` and latency histogram.
-- `people_timekeeping_entry_detail_requests_total{status}`.
-- `people_break_start_total{status,breakType}` and `people_break_end_total{status,endReason}`.
-- `people_time_period_approve_total{status}` / `people_time_period_reject_total{status}` plus `conflict_total`.
-- `people_location_assignment_mutations_total{operation,status}` and `primary_demotion_total`.
-- `people_employee_profile_mutations_total{operation,status}` plus `duplicate_conflict_total` and `duplicate_warning_total`.
-- Report metrics:
-  - `people_report_attendance_jobtime_runs_total{status}`
-  - `people_report_attendance_jobtime_upstream_failures_total{code}` (e.g., WorkExec unavailable)
-  - latency histogram for report generation.
-
-### Logs (actionable guidance)
-- Always include:
-  - `tenantId` (if not sensitive; **CLARIFY**), otherwise include a hashed/opaque tenant key,
-  - `correlationId` / `requestId`,
-  - actor id (userId) and role context where available,
-  - entity ids (userId/personId/timekeepingEntryId) but avoid names/emails/phones.
-- For UI-triggered actions (approve/reject, disable user, assignment changes), log:
-  - operation name,
-  - target ids,
-  - outcome (success/failure),
-  - HTTP status and backend `errorCode` if present.
-
-### Tracing
-- Distributed tracing for:
-  - user disable saga (including downstream calls and retries),
-  - report generation (People → WorkExec call),
-  - ingestion pipeline (event consume → upsert → emit).
-- Propagate correlation IDs through:
-  - Moqui screen transitions,
-  - REST calls,
-  - event headers/metadata.
-
-**TODO:** Confirm the standard header names used in this stack (`X-Request-Id`, `traceparent`, etc.) and document them.
-
----
-
-## Testing Guidance
-
-### Unit Tests (domain rules)
-- Status transitions: `ACTIVE → DISABLED`, `DISABLED → ACTIVE` (if supported), `TERMINATED` immutability.
-- Role scope validation: cannot assign LOCATION-scoped role without location; cannot assign GLOBAL-only role with location.
-- RoleAssignment immutability: ensure updates require end+create.
-- PersonLocationAssignment:
-  - overlap detection for `(personId, locationId, role)`,
-  - primary uniqueness enforcement (per person vs per person+role) once clarified,
-  - demotion behavior is atomic.
-- Break rules:
-  - single active break,
-  - cannot start/end without active clock-in session,
-  - overlap prevention.
-- Time period approval:
-  - period gating by `TimePeriod.status`,
-  - atomic approve/reject,
-  - rejection requires reason+notes.
-
-### Integration Tests (API + persistence)
-- `TimekeepingEntry` list/detail:
-  - paging/filter correctness,
-  - stable sorting (define default sort; **TODO**),
-  - 404 on missing id,
-  - 403 on unauthorized.
-- Break start/end:
-  - conflict behavior across multiple sessions (409),
-  - state mismatch handling (end when none active).
-- Person location assignment mutations:
-  - 409 overlap,
-  - primary demotion reflected after create.
-- Employee profile create/update:
-  - 409 duplicates,
-  - warnings payload handling,
-  - optimistic concurrency conflict (if enabled).
-- Attendance vs job time report:
-  - success path,
-  - upstream WorkExec failure mapping to stable error code.
-
-### Contract Tests (events + error payloads)
-- Validate event schemas for:
-  - `user.disabled`,
-  - assignment change events,
-  - approval events,
-  - break events,
-  - ingestion events (if added).
-- Standardize error payload shape across endpoints:
-  - `errorCode`, `message`, `fieldErrors{field:msg}`, `correlationId`.
-  - Provide fixtures and ensure frontend can map them.
-
-**CLARIFY:** Frontend story asks for standard error payload examples for 400/409.
-
-### Performance Tests
-- `TimekeepingEntry` list with typical payroll volumes (paging must remain fast).
-- Report endpoint with large date ranges (ensure server-side limits; **CLARIFY** max range policy).
-
----
-
-## Common Pitfalls
-
-- **Partial disable rollback:** Avoid rolling back user disable on downstream failures; authentication must be blocked immediately.
-- **Assignment overlap:** Ensure strict enforcement of no overlapping assignments for the same `(personId, locationId, role)`.
-- **Primary uniqueness ambiguity:** UI and backend must agree whether “one primary” is per person or per person+role. Misalignment causes confusing UI and incorrect eligibility.
-- **Effective end inclusivity:** Inconsistent inclusive/exclusive end semantics will cause off-by-one-day/hour display bugs and incorrect “active” labeling. Resolve and codify.
-- **Role scope mismatch:** Validate role assignment scopes against role metadata to prevent invalid global/location combinations.
-- **Duplicate detection false negatives:** Implement robust normalization (lowercase emails; consistent phone normalization policy) to prevent duplicate employee profiles.
-- **Optimistic concurrency gaps:** If backend requires `version`/`lastUpdatedStamp`, missing it will cause lost updates or unexpected 409s. Confirm and enforce.
-- **Break concurrency across devices:** Mechanics may have multiple sessions (tablet + terminal). Backend must enforce single active break; UI must handle 409 by refreshing context.
-- **Report dependency failures:** Attendance vs job time report depends on WorkExec; ensure errors are mapped to stable codes so UI can message “job time system unavailable” rather than generic failure.
-- **Leaking sensitive identifiers:** Avoid showing `tenantId` or internal IDs unless policy allows; avoid logging PII in client/server logs.
-- **Event ordering/idempotency:** Ingestion and roster sync must be idempotent and resilient to replays; UI should rely on stable source identifiers rather than assuming uniqueness by timestamps.
-- **Menu/routing drift:** Moqui screen paths and navigation entries must match repo conventions; multiple frontend stories flag uncertainty. Resolve early to avoid broken deep links.
-
----
-
-## Open Questions from Frontend Stories
-
-> Consolidated and organized from the provided frontend stories. These are blocking unless marked non-blocking.
-
-### A) Moqui service names / REST endpoints (blocking)
-1. TimekeepingEntry:
-   - Exact service/endpoints for listing `TimekeepingEntry` with filters + paging.
-   - Exact service/endpoints for fetching `TimekeepingEntry` by `timekeepingEntryId`.
-2. Breaks:
-   - Exact service/endpoints + payloads for:
-     - loading current clock-in/break context,
-     - starting a break,
-     - ending a break.
-   - Include status codes and stable error codes.
-3. PersonLocationAssignment:
-   - Exact service/endpoints for:
-     - listing assignments by person,
-     - creating an assignment,
-     - updating an assignment,
-     - ending an assignment,
-     - listing locations for selection.
-4. Employee profile:
-   - Authoritative read endpoint/service to load an employee profile for edit (`GET /employees/{id}` vs Moqui service name) and exact response schema.
-5. Role assignments:
-   - Exact service/endpoints for:
-     - listing Roles (with `allowedScopes`),
-     - listing Locations,
-     - listing a user’s RoleAssignments,
-     - creating RoleAssignment,
-     - ending RoleAssignment (set `effectiveEndDate`).
-6. Disable user:
-   - Exact service/endpoints for:
-     - loading user detail (User + Person status fields),
-     - performing disable action (payload + response).
-
-### B) Authorization / permissions (blocking)
-1. What permission/authorization hook is used in this frontend repo for People screens (named permissions vs roles)?
-2. Which roles include **Payroll Clerk**, and what permission gates `TimekeepingEntry` read?
-3. Permissions gating view vs manage for:
-   - person location assignments,
-   - role assignments,
-   - disable user action,
-   - break start/end (self-service).
-4. For disable user: is it strictly `user.disable` or another permission string?
-
-### C) Identifiers, routing, and module placement (blocking)
-1. What is the correct Moqui screen path/module for `pos-people` (e.g., `/apps/pos-people/...`) and where should navigation entries live?
-2. Mechanic roster:
-   - Stable identifier for routing: `personId` (HR key) vs `mechanicId` (local UUID).
-3. For breaks: is a break tied to a `Timecard`, `ClockInSession`, or generic `TimeEntry`? Which identifiers must UI pass, or is it derived from authenticated user?
-
-### D) Data shape / fields / enums (blocking unless noted)
-1. Is `tenantId` considered sensitive in UI (hide vs admin-only vs always show)?
-2. Does `TimekeepingEntry` include rejection metadata (reason code, notes) and/or approval audit history fields for detail display?
-3. Should `TimekeepingEntry` list display `employeeId` only, or resolve/display employee name (requires lookup)?
-4. PersonLocationAssignment:
-   - Is `role` required? If yes, allowed values and selection mechanism (enum vs free text).
-   - Primary uniqueness scope: per person overall vs per person+role.
-   - Effective end inclusivity: inclusive vs exclusive (backend text inconsistent).
-   - Editability: editable after creation vs end+create only; which fields editable?
-   - Is `changeReasonCode` required/available? If yes, valid codes and source endpoint.
-5. Employee profile:
-   - Default status on create (`ACTIVE` vs `ON_LEAVE` vs explicit selection).
-   - Edit rules for `TERMINATED` employees (locked vs limited edits; permission).
-   - Phone normalization: enforce E.164 in frontend or backend-only; standard library/pattern in repo.
-   - Optimistic concurrency: version/etag required (e.g., `lastUpdatedStamp`)?
-6. Role assignments:
-   - Required permission(s) for viewing vs mutating role assignments.
-   - Support for ending future assignments and/or backdating end dates.
-   - Reason code requirement for ending/revoking assignments; allowed values.
-   - Optimistic locking/version required for end/update.
-   - Default list behavior: active only vs include history.
-7. Breaks:
-   - For `breakType=OTHER`, are `notes` required/optional/unsupported?
-   - Timezone standard for displaying break times (user vs location vs device).
-   - Last-used break type default: backend-provided vs frontend inference (non-blocking but important).
-
-### E) Error handling and standards (blocking)
-1. What is the standard error response format for 400/409 in this stack (field error mapping keys)? Provide an example payload.
-2. For report endpoint: expected encoding for `technicianIds` (repeat vs comma-separated vs JSON string).
-3. Should report screen enforce a maximum date range, or is it server-controlled?
-
-### F) UX/security policy (blocking)
-1. Disable user confirmation UX: required mechanism (simple confirm vs typed username vs checkbox + reason).
-2. Disable user: how does backend communicate allowed assignment options (`LEAVE_ASSIGNMENTS_ACTIVE` vs `END_ASSIGNMENTS_AT_DATE`)? Is there a capabilities field?
-3. Post-disable navigation: stay on detail (refreshed) vs navigate back to list.
-4. Timezone source for displaying `statusEffectiveAt` on disable user screen.
-
----
-
-# End of AGENT_GUIDE.md
-```
+- User lifecycle is `ACTIVE`, `DISABLED` (reversible), `TERMINATED` (irreversible); authentication is blocked when not ACTIVE. (Decision ID: DECISION-PEOPLE-001)
+- Disable user is atomic locally then propagated asynchronously via saga; downstream failures do not roll back disable. (Decision ID: DECISION-PEOPLE-002)
+- Role assignments are scope-aware (`GLOBAL`/`LOCATION`) and effective-dated; mutations prefer end+recreate over in-place edits. (Decision ID: DECISION-PEOPLE-003)
+- Person-location assignments are effective-dated with a single primary “home” assignment per person at a time; primary promotion demotes prior primary atomically. (Decision ID: DECISION-PEOPLE-004)
+- TimekeepingEntry ingestion is idempotent by stable source key; no duplicate UI rows. (Decision ID: DECISION-PEOPLE-005)
+- Time approvals are period-atomic and append-only; approved entries are immutable. (Decision ID: DECISION-PEOPLE-006)
+- Exactly one active break at a time; breaks auto-end at clock-out with audit flags. (Decision ID: DECISION-PEOPLE-007)
+
+## Mapping: Decisions → Notes
+
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| DECISION-PEOPLE-001 | User lifecycle model | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-001---user-lifecycle-states-and-soft-offboarding) |
+| DECISION-PEOPLE-002 | Disable saga + DLQ | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-002---user-disable-workflow-with-saga-pattern) |
+| DECISION-PEOPLE-003 | Role scope model | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-003---role-assignment-scopes-global-vs-location) |
+| DECISION-PEOPLE-004 | Primary assignment semantics | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-004---person-location-assignment-primary-flag-semantics) |
+| DECISION-PEOPLE-005 | Idempotent ingestion | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-005---timekeeping-entry-ingestion-and-deduplication) |
+| DECISION-PEOPLE-006 | Period-atomic approvals | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-006---time-period-approval-atomicity) |
+| DECISION-PEOPLE-007 | Break types + auto-end | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-007---break-type-enumeration-and-auto-end-flag) |
+| DECISION-PEOPLE-008 | Employee profile conflicts | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-008---employee-profile-conflict-handling-409-vs-warnings) |
+| DECISION-PEOPLE-009 | Mechanic roster read model | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-009---mechanic-roster-as-read-model-synced-from-hr) |
+| DECISION-PEOPLE-010 | Approval authorization | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-010---time-entry-approval-authorization) |
+| DECISION-PEOPLE-011 | Roster storage ownership | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-011---mechanic-roster-storage-ownership) |
+| DECISION-PEOPLE-012 | Person↔User cardinality | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-012---person-user-cardinality-and-identifiers) |
+| DECISION-PEOPLE-013 | Permission naming + capability exposure | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-013---permission-naming-and-ui-capability-exposure) |
+| DECISION-PEOPLE-014 | Effective dating semantics | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-014---assignment-effective-dating-semantics-exclusive-end) |
+| DECISION-PEOPLE-015 | UI timezone standard | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-015---timezone-display-standard-for-people-uis) |
+| DECISION-PEOPLE-016 | Break notes for OTHER | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-016---break-notes-requirement-for-other) |
+| DECISION-PEOPLE-017 | Optimistic concurrency | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-017---optimistic-concurrency-default-lastupdatedstamp) |
+| DECISION-PEOPLE-018 | Error schema | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-018---error-response-schema-400409) |
+| DECISION-PEOPLE-019 | tenantId visibility | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-019---tenantid-ui-visibility-policy) |
+| DECISION-PEOPLE-020 | technicianIds encoding | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-020---technicianids-query-encoding-and-report-range) |
+| DECISION-PEOPLE-021 | REST API conventions | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-021---people-rest-api-conventions-paths-paging-shapes) |
+| DECISION-PEOPLE-022 | Break contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-022---break-api-contract-and-identity-derivation) |
+| DECISION-PEOPLE-023 | Assignment contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-023---person-location-assignment-api-contract-and-reason-codes) |
+| DECISION-PEOPLE-024 | Disable user contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-024---disable-user-api-contract-and-ux-defaults) |
+| DECISION-PEOPLE-025 | Employee profile defaults | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-025---employee-profile-defaults-and-terminated-edit-rules) |
+| DECISION-PEOPLE-026 | Role assignment contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-026---role-assignment-api-contract-dating-and-history-defaults) |
+
+## Open Questions (from source)
+
+### Q: Whether the `Mechanic` roster read model lives in People domain storage or in Shop/Dispatch domain storage?
+
+- Answer: People is the SoR for Person identity and employment status; the Mechanic roster is a **read model** that may live in the consuming domain (Dispatch/ShopMgr) and is populated from People/HR events or People APIs.
+- Assumptions:
+  - Consumers need local query performance for roster operations.
+- Rationale:
+  - Keeps system-of-record boundaries clear and avoids duplicated write authority.
+- Impact:
+  - Define roster sync contract (events or pull) and stable person identifier.
+- Decision ID: DECISION-PEOPLE-011
+
+### Q: Is multiple Persons per User allowed?
+
+- Answer: Safe default is 1:1 `User`→`Person` for Durion POS; do not model multiple persons per login identity in v1.
+- Assumptions:
+  - Shared logins are disallowed; each employee has a unique identity.
+- Rationale:
+  - Simplifies auditability and access control.
+- Impact:
+  - UI routes and APIs use `personId` as the stable human identifier.
+- Decision ID: DECISION-PEOPLE-012
+
+### Q: For disable user, what is the permission string and how does UI discover allowed options?
+
+- Answer: Use named permissions and backend-provided capability flags; safe defaults: `people:user.disable` for disable action and a response payload that includes allowed disable options (or omits options not permitted).
+- Assumptions:
+  - UI must not infer policy (assignment termination options) locally.
+- Rationale:
+  - Prevents drift between UI gating and server enforcement.
+- Impact:
+  - Backend returns `canDisableUser` and `disableOptions[]` (or equivalent).
+- Decision ID: DECISION-PEOPLE-013
+
+### Q: PersonLocationAssignment primary uniqueness scope and effective end inclusivity?
+
+- Answer: Enforce one primary assignment per person overall (home location). Use half-open intervals: `effectiveStartAt` inclusive, `effectiveEndAt` exclusive.
+- Assumptions:
+  - “Primary” maps to payroll/home-location concepts.
+- Rationale:
+  - Half-open intervals avoid overlap ambiguity and simplify validation.
+- Impact:
+  - UI “active” display uses `now >= start && now < end`.
+- Decision ID: DECISION-PEOPLE-004, DECISION-PEOPLE-014
+
+### Q: Is `role` required on PersonLocationAssignment and what are allowed values?
+
+- Answer: `role` is optional for the assignment record in v1; when present it is an enum controlled by People domain and presented via a picker.
+- Assumptions:
+  - Some consumers may want “assignment type” without making it authorization-bearing.
+- Rationale:
+  - Avoids coupling location assignment to RBAC (RBAC lives in RoleAssignment).
+- Impact:
+  - If role is introduced later, migration can backfill `role=null`.
+- Decision ID: DECISION-PEOPLE-004
+
+### Q: Are assignments editable after creation?
+
+- Answer: Safe default is end+create (immutable core fields) for assignments and role assignments; allow only comments/metadata edits if needed.
+- Assumptions:
+  - Auditability is a requirement.
+- Rationale:
+  - Reduces historical ambiguity.
+- Impact:
+  - UI uses “End assignment” then “Create new assignment”.
+- Decision ID: DECISION-PEOPLE-003, DECISION-PEOPLE-014
+
+### Q: For `breakType=OTHER`, are `notes` required and what timezone is used for displaying timekeeping/break timestamps?
+
+- Answer: Notes are optional but recommended for OTHER; UI displays times in user profile timezone when available, otherwise falls back to location timezone.
+- Assumptions:
+  - Backend stores instants in UTC.
+- Rationale:
+  - Keeps UX consistent while preserving correct instants.
+- Impact:
+  - UI must show timezone context (tooltip or label) where ambiguity exists.
+- Decision ID: DECISION-PEOPLE-016, DECISION-PEOPLE-015
+
+### Q: Do employee profile and assignments require optimistic concurrency (`lastUpdatedStamp`/version)?
+
+- Answer: Default to optimistic concurrency when the backend exposes a version field (prefer `lastUpdatedStamp`); require clients to send it on update.
+- Assumptions:
+  - Multiple admins can edit profiles/assignments.
+- Rationale:
+  - Prevents silent lost updates.
+- Impact:
+  - UI includes version in submit payload and handles 409 by refresh.
+- Decision ID: DECISION-PEOPLE-017
+
+### Q: What is the standard error response format for 400/409, and how should `technicianIds` be encoded for the discrepancy report?
+
+- Answer: Require `errorCode` + `message` with optional `fieldErrors` and `blockingIds` for 409; encode `technicianIds` as repeated query params, with server accepting comma-separated as compatibility.
+- Assumptions:
+  - UI needs deterministic mapping.
+- Rationale:
+  - Avoids fragile string parsing.
+- Impact:
+  - Contract tests should enforce schema stability.
+- Decision ID: DECISION-PEOPLE-018, DECISION-PEOPLE-020
+
+### Q: Is `tenantId` considered sensitive in UI?
+
+- Answer: Treat `tenantId` as sensitive; do not display by default, and only show it to admin/support roles if explicitly approved.
+- Assumptions:
+  - Multi-tenant identifiers can leak internal structure.
+- Rationale:
+  - Conservative minimization of internal identifiers.
+- Impact:
+  - UI uses personId/employeeId as primary identifiers.
+- Decision ID: DECISION-PEOPLE-019
+
+### Q: What are the default People endpoints/services for timekeeping entry list/detail and discrepancy report?
+
+- Answer: Default to REST endpoints under `/rest/api/v1/people` with paging and stable error schema; story implementers must document the final service names/paths in module docs.
+- Assumptions:
+  - Moqui REST exposure follows the platform’s `/rest/api/v{version}` convention.
+- Rationale:
+  - Allows UI implementation to proceed while preserving a single place to finalize naming.
+- Impact:
+  - Contract tests validate query params and response schema stability.
+- Decision ID: DECISION-PEOPLE-021
+
+### Q: What are the break endpoints and must the UI pass timecard/session identifiers?
+
+- Answer: Break operations derive identity and current session from the authenticated user; UI should not pass timecard/session identifiers unless backend explicitly requires it.
+- Assumptions:
+  - Backend can locate the active clock-in/session for the user.
+- Rationale:
+  - Avoids fragile client state and prevents spoofing.
+- Impact:
+  - UI refreshes “current context” after start/end and treats 409 as refresh-required.
+- Decision ID: DECISION-PEOPLE-022
+
+### Q: What are the person-location assignment endpoints and are reason codes required?
+
+- Answer: Provide list/create/end endpoints under People REST conventions; reason codes are optional in v1 and can be introduced later via a reference endpoint.
+- Assumptions:
+  - Audit log captures actor/time even if reason omitted.
+- Rationale:
+  - Keeps flows shippable while enabling later policy hardening.
+- Impact:
+  - UI can optionally collect reason text without blocking.
+- Decision ID: DECISION-PEOPLE-023
+
+### Q: What are disable user UX defaults (confirmation, navigation) and how are options communicated?
+
+- Answer: Require explicit confirmation (modal confirm) and optionally a reason; remain on refreshed detail after success. Backend communicates options via capability fields.
+- Assumptions:
+  - Confirm-by-typing is not required by default.
+- Rationale:
+  - Minimizes UX friction while keeping the action deliberate.
+- Impact:
+  - UI relies on server-provided `disableOptions`.
+- Decision ID: DECISION-PEOPLE-024
+
+### Q: What is the default employee status on create and can terminated employees be edited?
+
+- Answer: Default status on create is `ACTIVE`. Terminated employees are read-only by default; limited edits (contact info) require explicit HR admin permission.
+- Assumptions:
+  - Payroll/audit integrity requires stability post-termination.
+- Rationale:
+  - Avoids altering historical payroll identity.
+- Impact:
+  - UI disables editing for terminated unless capability says otherwise.
+- Decision ID: DECISION-PEOPLE-025
+
+### Q: Should role assignment lists default to active-only, and are backdated/future ends allowed?
+
+- Answer: Default to active-only with an explicit `includeHistory=true` option. Allow future-dated ends; allow backdated ends only when they do not contradict already-audited actions (server-enforced).
+- Assumptions:
+  - Backend enforces constraints and returns 409 when invalid.
+- Rationale:
+  - Balances UX simplicity with admin flexibility.
+- Impact:
+  - UI includes history toggle and handles 409 conflicts.
+- Decision ID: DECISION-PEOPLE-026
+
+## Todos Reconciled
+
+- Original todo: "Define event name/version for TimekeepingEntry created/updated." → Resolution: Replace with task: `TASK-PEOPLE-001` (define event contract and versioning).
+- Original todo: "Document canonical permission names once confirmed." → Resolution: Resolved (safe default naming) + Replace with task: `TASK-PEOPLE-002` (align with actual repo permission catalog).
+- Original todo: "Confirm standard header names for correlation/trace." → Resolution: Replace with task: `TASK-PEOPLE-003` (confirm header standard and document in module docs).
+- Original todo: "Define default sort for lists." → Resolution: Replace with task: `TASK-PEOPLE-004` (set stable backend sort + UI defaults).
+
+## End
+
+End of document.

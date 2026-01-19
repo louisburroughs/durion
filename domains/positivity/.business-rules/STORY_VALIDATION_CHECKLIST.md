@@ -1,11 +1,15 @@
-```markdown
-# STORY_VALIDATION_CHECKLIST.md (domain: positivity)
+# STORY_VALIDATION_CHECKLIST.md
 
-Checklist for engineers/reviewers to validate story implementations in the **positivity** domain (POS backend + POS frontend integration points owned by positivity). Items are intended to be **actionable and verifiable**.
+## Summary
 
----
+This checklist is used to validate that changes in the `positivity` domain are implementable, testable, and safe across POS backend and frontend integration points. It incorporates previously open questions into explicit, testable acceptance criteria so stories can be implemented without guesswork. It is intended for engineers and reviewers validating PRs.
 
-## Scope/Ownership
+## Completed items
+
+- [x] Updated acceptance criteria for each resolved open question
+- [x] Ensured checklist aligns with `AGENT_GUIDE.md` decisions
+
+## Scope / Ownership
 
 - [ ] The change is correctly scoped to **positivity** responsibilities (POS orchestration, aggregation, Order aggregate ownership, POS-facing read models).
 - [ ] Cross-domain authority boundaries are respected:
@@ -183,12 +187,84 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 
 ---
 
-## Open Questions to Resolve
+## Acceptance Criteria (per resolved question)
 
-- [ ] What is the frontend **source of truth** for selected `locationId` (global state, route query `location_id`, user default, or screen-level selector), and what is the repo convention?
-- [ ] What is the standard **Moqui ↔ Vue integration pattern** here (Moqui screen hosting Vue vs Vue SPA route with Moqui shell/auth)?
-- [ ] What exact **permission/role gate** should be enforced for product/location reads, and what is the naming convention?
-- [ ] Are `pricing.status` / `availability.status` enums **strict** (`OK|UNAVAILABLE|STALE`) or should clients treat them as opaque strings and only special-case `OK` vs non-OK?
-- [ ] What is the project-standard **currency formatting** utility/component (including null-safe display and ISO-4217 handling)?
-- [ ] Should `generatedAt` and component `asOf` be **visible in the UI** by default, and if so, where is the standard placement/pattern?
+### Q: What is the frontend source of truth for selected `locationId`?
+
+- Acceptance: The frontend obtains `locationId` from a single app-level “location context” and always calls Product Detail with `location_id={locationId}`.
+- Test Fixtures:
+  - `locationId = 11111111-1111-1111-1111-111111111111`
+  - `productId = 22222222-2222-2222-2222-222222222222`
+- Example API request/response:
+
+```http
+GET /api/v1/products/22222222-2222-2222-2222-222222222222?location_id=11111111-1111-1111-1111-111111111111
 ```
+
+### Q: What is the standard Moqui ↔ Vue integration pattern for Product Detail?
+
+- Acceptance: The Product Detail UI is served under a Moqui-hosted screen that mounts a Vue component; the Vue component calls the single aggregated backend endpoint.
+- Test Fixtures:
+  - Navigate to the Product Detail screen and confirm authenticated session is required.
+- Example behavior:
+  - If unauthenticated, navigation results in `401/redirect` per Moqui convention.
+
+### Q: What exact permission/role gate should be enforced for product/location reads?
+
+- Acceptance: Backend requires permission `positivity:product_detail:read` and enforces location-scoped authorization; unauthorized requests return `403` with no partial response payload.
+- Test Fixtures:
+  - User A has `positivity:product_detail:read` and access to Location X.
+  - User B has `positivity:product_detail:read` but lacks access to Location X.
+- Example API request/response:
+
+```http
+GET /api/v1/products/22222222-2222-2222-2222-222222222222?location_id=11111111-1111-1111-1111-111111111111
+```
+
+### Q: Are `pricing.status` / `availability.status` strict enums or opaque strings?
+
+- Acceptance: Frontend gates display logic only on `status === "OK"`; any other value is treated as “non-OK” (no numeric display and no “in stock/out of stock” claim).
+- Test Fixtures:
+  - pricing.status = `OK`
+  - pricing.status = `UNAVAILABLE`
+  - pricing.status = `SOME_NEW_STATUS`
+- Example API response snippet:
+
+```json
+{
+  "pricing": { "status": "SOME_NEW_STATUS", "storePrice": null, "currency": null },
+  "availability": { "status": "UNAVAILABLE", "onHandQuantity": null }
+}
+```
+
+### Q: What is the project-standard currency formatting utility/component?
+
+- Acceptance: When `pricing.status == OK`, UI formats `storePrice` using locale-aware currency formatting with the provided ISO-4217 `currency`. When `storePrice` is null or status is non-OK, UI renders a non-numeric fallback.
+- Test Fixtures:
+  - `storePrice = 19.99`, `currency = "USD"`
+  - `storePrice = null`, `currency = null`
+- Example API response snippet:
+
+```json
+{
+  "pricing": { "status": "OK", "storePrice": 19.99, "currency": "USD" }
+}
+```
+
+### Q: Should `generatedAt` and component `asOf` be visible in the UI?
+
+- Acceptance: API always returns `generatedAt` and may return component `asOf`. UI does not display these timestamps by default, but they are accessible via an optional details view and are preserved for diagnostics.
+- Test Fixtures:
+  - `generatedAt` is present and ISO-8601 parseable.
+- Example API response snippet:
+
+```json
+{
+  "generatedAt": "2026-01-19T17:10:30Z",
+  "pricing": { "status": "OK", "asOf": "2026-01-19T17:10:15Z" }
+}
+```
+
+## End
+
+End of document.

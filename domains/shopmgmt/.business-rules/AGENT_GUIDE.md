@@ -13,6 +13,7 @@ This domain also supports **near-real-time visibility** of assignment changes (b
 ## Domain Boundaries
 
 ### Authoritative for
+
 - **Appointment lifecycle** within the shop context:
   - Create appointment from **Estimate** or **Work Order**
   - Reschedule appointment (date/time changes)
@@ -33,6 +34,7 @@ This domain also supports **near-real-time visibility** of assignment changes (b
 - **Audit trail** for scheduling/assignment changes and overrides (who/why/when)
 
 ### Not responsible for
+
 - **Work duration calculation** (delegated to Work Execution service; shopmgmt consumes/uses it)
 - **Mechanic HR profile** (name/photo/certs) and qualifications source of truth (People/HR)
 - **Notification delivery** (Notification service handles delivery; shopmgmt triggers/requests)
@@ -40,6 +42,7 @@ This domain also supports **near-real-time visibility** of assignment changes (b
 - **UI-specific diffing** of assignment changes (backend may emit full view or delta; frontend can render generic “updated”)
 
 ### Boundary clarifications (from frontend stories)
+
 - **Assignment display** is a first-class read model (`AssignmentView`) used by Appointment Detail and optionally list contexts.
 - **Near-real-time updates** are required for assignment display; mechanism (push vs polling) is an integration concern (see Open Questions).
 
@@ -50,9 +53,11 @@ This domain also supports **near-real-time visibility** of assignment changes (b
 > Names below reflect domain concepts; actual Moqui entity/service names may differ. Where unknown, marked **TODO/CLARIFY**.
 
 ### Appointment
+
 A scheduled service event, linked to exactly one source document (Estimate or Work Order) for the “create from source” flows.
 
 Key fields (conceptual):
+
 - `appointmentId`
 - `facilityId`
 - `scheduledStartDateTime` (timezone-sensitive)
@@ -62,6 +67,7 @@ Key fields (conceptual):
 - `version` (preferred for optimistic concurrency and change detection; **CLARIFY**)
 
 ### Assignment
+
 Allocation of resources to an appointment.
 
 - Exactly one of:
@@ -71,9 +77,11 @@ Allocation of resources to an appointment.
 - May include mechanic assignment (optional/nullable)
 
 ### AssignmentView (read model)
+
 Frontend-facing view model for displaying assignment details on Appointment Detail.
 
 Expected fields (from story #74; treat as contract shape):
+
 - `appointmentId`, `facilityId`
 - `assignmentType`: `BAY | MOBILE_UNIT | UNASSIGNED`
 - `bay { bayId, bayNameOrNumber, locationName? }`
@@ -85,484 +93,409 @@ Expected fields (from story #74; treat as contract shape):
 - `assignmentStatus` (optional enum, e.g., `AWAITING_SKILL_FULFILLMENT`)
 
 **Relationship notes**
+
 - `Appointment (1) -> Assignment (0..1 current)` (historical assignments exist via audit/history)
-- `Assignment (0..1) -> Mechanic (People/HR)` by `mechanicId`
-- `Assignment (0..1) -> Bay (facility resource)`
-- `Assignment (0..1) -> MobileUnit (fleet resource; may include GPS telemetry timestamps)`
 
-### Conflict
-Represents a scheduling/resource constraint violation.
+# AGENT_GUIDE.md
 
-Conflict fields (conceptual, from stories #75/#76):
-- `severity`: `HARD | SOFT`
-- `code` (stable identifier for UI mapping)
-- `message` (safe-to-display text)
-- `resourceType`: `BAY | MECHANIC | CAPACITY | HOURS | OTHER`
-- `overridable` (boolean; **CLARIFY if provided**)
-- `suggestedAlternatives[]` (optional)
+## Summary
 
-### Audit Entry
-Immutable record of sensitive actions:
-- appointment created/rescheduled
-- conflict override applied
-- duration override applied
-- assignment notes edited (if enabled)
-- assignment updated (resource changes)
+The shopmgmt domain is responsible for appointment scheduling, assignment visibility, and enforcement of facility-scoped scheduling policies.
+This update normalizes shopmgmt business rules into a decision-indexed format, resolves previously open questions with safe defaults,
+and defines what must be treated as backend-authoritative vs UI hints.
 
-**PII constraints**: audit payloads displayed in UI must avoid customer PII unless explicitly allowed (**CLARIFY allowed fields**).
+## Completed items
 
----
+- [x] Generated Decision Index
+- [x] Mapped Decision IDs to SHOPMGMT_DOMAIN_NOTES.md
+- [x] Reconciled todos from original AGENT_GUIDE
+
+## Decision Index
+
+| Decision ID | Title |
+| --- | --- |
+| DECISION-SHOPMGMT-001 | Appointment-source document immutability |
+| DECISION-SHOPMGMT-002 | Conflict severity model (hard vs soft) |
+| DECISION-SHOPMGMT-003 | Assignment type exclusivity (bay/mobile/unassigned) |
+| DECISION-SHOPMGMT-004 | Reschedule policy (count limits + minimum notice) |
+| DECISION-SHOPMGMT-005 | Assignment notes rules (length + mutability) |
+| DECISION-SHOPMGMT-006 | Near-real-time assignment updates (SSE + fallback) |
+| DECISION-SHOPMGMT-007 | Conflict override audit trail requirements |
+| DECISION-SHOPMGMT-008 | Operating hours constraint enforcement |
+| DECISION-SHOPMGMT-009 | Mechanic reference model (foreign reference to People) |
+| DECISION-SHOPMGMT-010 | Assignment status model (state machine) |
+| DECISION-SHOPMGMT-011 | API contract naming + Moqui exposure conventions |
+| DECISION-SHOPMGMT-012 | Facility scoping and authorization enforcement |
+| DECISION-SHOPMGMT-013 | Appointment status enum + UI gating rules |
+| DECISION-SHOPMGMT-014 | Idempotency model for create/reschedule |
+| DECISION-SHOPMGMT-015 | Timezone semantics for scheduling + display |
+| DECISION-SHOPMGMT-016 | Notifications toggles + partial success semantics |
+| DECISION-SHOPMGMT-017 | Audit visibility + PII-safe fields for UI |
+
+## Domain Boundaries
+
+### What shopmgmt owns (system of record)
+
+- Appointment lifecycle within a facility:
+  - Create appointment from Estimate or Work Order
+  - Reschedule appointment
+  - Cancel/no-show within shop policy (if supported)
+- Assignment representation and visibility:
+  - Bay vs mobile unit vs unassigned
+  - Mechanic assignment references (identity details may be derived)
+  - Assignment notes (policy + audit)
+  - Assignment status (workflow state machine)
+- Scheduling policy enforcement:
+  - Operating hours constraints
+  - Minimum notice windows
+  - Reschedule limits and approval requirements
+- Conflict detection and classification:
+  - Hard vs soft conflicts
+  - Suggested alternatives (when available)
+- Audit trail for scheduling/assignment changes and overrides
+
+### What shopmgmt does not own
+
+- Work duration calculation and work execution workflow (Work Execution domain)
+- Mechanic HR profile and qualifications system of record (People domain)
+- Notification delivery implementation (Notification domain)
+- Financial documents and payments (Billing/Accounting domains)
+
+## Key Entities / Concepts
+
+| Entity | Description |
+| --- | --- |
+| Appointment | Scheduled service event linked to exactly one source document (estimate or work order). |
+| Assignment | Current resource allocation for an appointment: bay, mobile unit, or unassigned (exclusive). |
+| AssignmentView | Frontend read model for assignment display (appointmentId/facilityId/assignmentType/bay/mobile/mechanic/notes/version/timestamps). |
+| Conflict | Scheduling constraint violation with severity, code, and safe message. |
+| AuditEntry | Immutable record of sensitive actions (create/reschedule/override/notes-change/assignment-change). |
 
 ## Invariants / Business Rules
 
-Backend is authoritative. Frontend stories introduce additional UI-facing expectations that should be backed by enforceable invariants.
-
-### Appointment creation (from Estimate/Work Order)
-- **Eligibility**:
-  - Estimate must be in eligible statuses (previous guide: APPROVED/QUOTED).  
-    **CLARIFY exact enum values** and whether additional statuses apply.
-  - Work Order must not be COMPLETED/CANCELLED.  
-    **CLARIFY exact enum values**.
-- **Unique active link**:
-  - A source (estimate/work order) must not be linked to another *active* appointment unless backend explicitly allows multiple (`allowsMultipleAppointments=true` or similar).  
-  - Link is **immutable** once created.
-- **Conflict handling**:
-  - Hard conflicts block create unless:
-    - conflict is marked overridable, and
-    - actor has `OVERRIDE_SCHEDULING_CONFLICT`, and
-    - override reason is provided (non-empty).
-  - Soft conflicts warn but allow create.
-- **Operating hours**:
-  - Scheduling outside facility hours should be blocked or returned as a conflict/policy error.  
-    **CLARIFY whether hours are returned for UI display**.
-- **Idempotency**:
-  - Create should support an idempotency key (`clientRequestId`) to prevent duplicate appointments on retries.  
-    **TODO/CLARIFY contract (field/header name, retention window)**.
-
-### Appointment reschedule
-- **Reschedulable states**:
-  - Stories mention reschedulable: `SCHEDULED`, `CONFIRMED`, `AWAITING_PARTS`.  
-    **CLARIFY canonical list**.
-  - Not reschedulable: `COMPLETED`, `CANCELLED` (and others).
-- **Reason required**:
-  - Reschedule requires a reason enum.
-  - Notes required when reason = `OTHER`.
-  - Notes also required when applying overrides (hard conflict override and/or policy override).
-- **Reschedule limits & minimum notice**:
-  - Existing guide: max 2 reschedules without manager approval; minimum notice enforced with escalation.  
-  - Frontend needs a clear backend representation of “approval required” vs “not allowed”.  
-    **CLARIFY how approval is represented (permission-only vs workflow)**.
-- **Conflict check contract**:
-  - Either:
-    - explicit conflict-check endpoint returning conflicts/suggestions, or
-    - conflicts returned on submit (409) with payload.
-  - If backend requires a token/version from conflict check to submit, frontend must enforce it.  
-    **CLARIFY**.
-- **Assignment impact**:
-  - Reschedule may preserve or clear assignment depending on backend rules (resource availability, policy). Backend should return outcome so UI can render it.
-
-### Assignment display & notes
-- **Visibility gating by appointment status** (UI expectation from story #74):
-  - Show assignment for: `SCHEDULED`, `IN_PROGRESS`, `AWAITING_PARTS`, `READY`
-  - For `CANCELLED`: hide unless user has `VIEW_CANCELLED_APPOINTMENTS`
-  - Backend must still enforce authorization; frontend gating is a UX optimization only.
-- **Notes constraints**:
-  - `assignmentNotes` max length 500 characters (client-side validation + server-side enforcement).
-  - Notes are read-only by default; editable only with `EDIT_ASSIGNMENT_NOTES` and only if backend exposes a write endpoint.
-  - If notes editing uses optimistic concurrency, backend should enforce `version` and return 409 on mismatch (**CLARIFY**).
-- **Mobile GPS staleness** (UI expectation; backend should provide timestamps):
-  - If `assignmentType=MOBILE_UNIT` and `mobileUnit.lastUpdatedAt` exists:
-    - >30 minutes: warn “Location may be stale”
-    - >60 minutes: treat as “unavailable (stale location)” and de-emphasize location fields
-  - Backend should not require frontend to compute business policy beyond these thresholds unless explicitly defined (**CLARIFY whether thresholds are configurable per facility**).
-
----
-
-## Events / Integrations
-
-### Emitted Events
-Existing list remains, with additional specificity needed for frontend near-real-time updates:
-
-- `AppointmentCreatedFromEstimate`
-- `AppointmentCreatedFromWorkOrder`
-- `AppointmentRescheduled`
-- `AssignmentUpdated` (used for near-real-time UI updates)
-- `ConflictDetected`
-- `ConflictOverridden`
-- `AppointmentCreationAttempted`
-- `ReferentialLinkEstablished`
-- `AssignmentDecision`
-- `WorkExecutionNotified`
-- `AuditLog` entries
-
-**Event contract expectations**
-- Events are idempotent and include:
-  - `eventId`
-  - `appointmentId`
-  - `facilityId` (recommended for routing/scoping)
-  - `version` and/or `lastUpdatedAt`
-  - `actorId` (internal identifier; avoid PII)
-- For `AssignmentUpdated`, frontend needs to know whether payload contains:
-  - full `AssignmentView`, or
-  - partial delta requiring a follow-up fetch  
-  **CLARIFY**.
-
-### Consumed Services
-- **Work Execution Service**
-  - Duration authority and skill requirements for appointment defaults
-  - Receives reschedule updates for planned time changes
-- **People/HR Service**
-  - Mechanic identity details (displayName/photo/certs summary)
-  - Qualifications/availability (used indirectly by shopmgmt)
-- **Notification Service**
-  - Reschedule notifications (customer/mechanic)
-  - Create notifications (if any policy triggers)
-  - Frontend may expose toggles; backend remains authoritative (**CLARIFY**)
-- **Audit Service**
-  - Immutable audit logging
-  - Optional audit retrieval for UI display (**CLARIFY**)
-
-### Real-time update mechanism (frontend requirement)
-Frontend story #74 requires near-real-time assignment updates:
-- Preferred: push subscription (WebSocket or SSE)
-- Fallback: polling every 30 seconds while Appointment Detail is visible
-- Manual refresh action always available
-
-**CLARIFY**: exact push mechanism, channel/topic naming, and subscription identifiers.
-
----
-
-## API Expectations (High-Level)
-
-> This section remains high-level but is updated with concrete contract shapes required by the frontend stories. Exact Moqui service names/routes are **TODO/CLARIFY** until confirmed.
-
-### 1) Create Appointment (from Estimate or Work Order)
-**Intent**: Convert eligible source into an appointment with defaults, conflict visibility, and immutable linkage.
-
-**Request (conceptual)**
-- `sourceType`: `ESTIMATE | WORK_ORDER`
-- `sourceId`
-- `facilityId` (**CLARIFY if inferred from session**)
-- `scheduledStartDateTime` (ISO-8601 with timezone)
-- Optional:
-  - `durationMinutes` (only if backend allows override)
-  - `bayPreferenceId`, `mechanicPreferenceId` (if supported)
-  - `overrideConflict`, `overrideReason`
-  - `clientRequestId` (idempotency)
-
-**Response (conceptual)**
-- `appointmentId`
-- `appointmentStatus`
-- `assignmentStatus`
-- `scheduledStartDateTime`
-- Optional: assignment summary fields for confirmation screen (bay/mechanic)
-- Optional: conflicts (if create embeds conflict evaluation)
-
-**Errors**
-- 400 validation (missing datetime, invalid timezone format, missing override reason)
-- 403 permission/facility scope
-- 409 conflict/duplicate link/concurrency (payload should include conflict details or existing appointment reference)
-- 422 policy/eligibility failure (or 400 depending on conventions) — **CLARIFY**
-- 5xx/503 downstream dependency failures (WorkExec/People) with degraded behavior if allowed
-
-### 2) Reschedule Appointment
-**Intent**: Change scheduled time with required reason/notes, conflict handling, audit, and notifications.
-
-**Request (conceptual)**
-- `appointmentId`
-- `newScheduledDateTime`
-- `rescheduleReason` enum
-- `rescheduleReasonNotes` (required for OTHER and overrides)
-- Optional:
-  - `notifyCustomer`, `notifyMechanic` (**CLARIFY if accepted**)
-  - `overrideHardConflicts`, `overrideReason`
-  - `clientRequestId` (recommended)
-
-**Response (conceptual)**
-- Updated appointment schedule fields
-- Assignment outcome: preserved/cleared + current assignmentStatus
-- Notification outcome summary (queued/sent/failed) if available
-- Audit reference/summary if available
-
-**Errors**
-- 403 permission
-- 409 conflicts or version mismatch (if optimistic concurrency is used)
-- 400/422 policy blocks (min notice, reschedule limit) with machine-readable codes for UI
-
-### 3) View Assignment (Appointment Detail)
-**Intent**: Read-only assignment display with near-real-time updates.
-
-**Request**
-- `appointmentId`
-- Optional: `facilityId` (**CLARIFY**)
-
-**Response**
-- `AssignmentView` (see entity section)
-
-**Errors**
-- 403 facility scope / permission
-- 404 not found / not accessible
-- 503 unavailable (frontend should show degraded state)
-
-### 4) Update Assignment Notes (Optional)
-**Intent**: Allow authorized roles to edit assignment notes.
-
-**Request**
-- `appointmentId`
-- `assignmentNotes` (<= 500 chars)
-- Optional: `expectedVersion` (optimistic concurrency)
-- Optional: `reason` (if required by audit policy) **CLARIFY**
-
-**Response**
-- Updated `AssignmentView` (preferred) or updated fields + new version
-
-**Errors**
-- 403 permission
-- 409 version mismatch
-- 400 validation
-
-### 5) Conflict Checking (Create/Reschedule)
-Two supported patterns; backend must pick one and document it:
-
-- **Pattern A: Explicit conflict-check endpoint**
-  - Returns `conflicts[]`, `suggestedAlternatives[]`, and optionally a `conflictCheckToken/version` required for submit.
-- **Pattern B: Conflicts returned on submit**
-  - Submit returns 409 with conflict payload; override requires resubmission with override fields.
-
-**CLARIFY** which pattern is canonical for shopmgmt.
-
----
-
-## Security / Authorization Assumptions
-
-### RBAC permissions (scoped by facility)
-Existing permissions remain, with additions/clarifications from frontend stories:
-
-- `CREATE_APPOINTMENT`
-- `RESCHEDULE_APPOINTMENT`
-- `OVERRIDE_SCHEDULING_CONFLICT`
-- `APPROVE_DURATION_OVERRIDE`
-- `APPROVE_RESCHEDULE` (policy exceptions: min notice, reschedule count) **CLARIFY semantics**
-- `VIEW_ASSIGNMENTS`
-- `EDIT_ASSIGNMENT_NOTES`
-- `VIEW_CANCELLED_APPOINTMENTS` (required to view assignment details for cancelled appointments; from story #74)
-
-### Facility scoping
-- All operations must be scoped to a facility.
-- **CLARIFY** whether Moqui services infer `facilityId` from session/context or require explicit parameter.
-- Never allow cross-facility access via predictable IDs; backend must enforce facility ownership checks on `appointmentId`.
-
-### Data minimization / PII
-- Assignment display may include mechanic displayName/photo; treat as PII-adjacent and avoid logging it.
-- Audit display must not expose customer PII unless explicitly allowed (**CLARIFY**).
-- Frontend logs should include only identifiers (`appointmentId`, `facilityId`, conflict codes), not names/notes.
-
-### Concurrency & integrity
-- Prefer optimistic concurrency for mutable fields exposed to UI (notes, reschedule) using `version`.
-- On mismatch, return 409 with current version and/or current state to allow UI refresh.
-
----
-
-## Observability (Logs / Metrics / Tracing)
-
-### Logs (backend)
-Add/ensure structured logs include:
-- `appointmentId`, `facilityId`, `actorId`, `action`
-- Create/reschedule attempts and outcomes
-- Conflict detection results (counts by severity + codes; avoid free-text that may contain PII)
-- Override usage (permission, reason presence, policy code)
-- Assignment updates (resource changes; avoid mechanic name)
-- Notes edits (length only; do not log note content)
-- Integration call failures (WorkExec/People/Notification) with dependency name and error class
-
-### Metrics
-Recommended counters/timers (tagged by `facilityId` where cardinality is acceptable; otherwise aggregate):
-- `shopmgmt_appointment_create_total{result=success|failure, reasonCode}`
-- `shopmgmt_appointment_reschedule_total{result, reasonEnum}`
-- `shopmgmt_conflict_detected_total{severity, resourceType, code}`
-- `shopmgmt_conflict_override_total{severity=HARD, code}`
-- `shopmgmt_assignment_view_load_latency_ms`
-- `shopmgmt_assignment_updated_total{assignmentType}`
-- `shopmgmt_notes_edit_total{result=success|conflict|denied}`
-- `shopmgmt_notification_request_total{type=create|reschedule, result=queued|failed}`
-
-### Tracing
-- Propagate a correlation ID across:
-  - create/reschedule request → conflict check → WorkExec/People/Notification calls → event emission
-- Include `appointmentId` as a trace attribute (not as span name).
-- For near-real-time updates:
-  - trace event publication latency for `AssignmentUpdated`
-  - if push gateway exists, trace delivery latency to subscription service (**CLARIFY architecture**)
-
-### Frontend observability expectations (from stories)
-- Log (client-side) subscription failures and polling fallback activation (no PII).
-- Include `appointmentId` in frontend logs for troubleshooting.
-- Propagate request/correlation headers if supported (e.g., `X-Request-Id`) **CLARIFY standard header**.
-
----
-
-## Testing Guidance
-
-### Unit Tests (backend)
-- Eligibility evaluation for create from estimate/work order (status enums, already-linked rules)
-- Conflict classification (hard/soft) and overridability
-- Policy enforcement:
-  - operating hours
-  - minimum notice
-  - reschedule count limit and approval gating
-- Notes validation (<= 500 chars) and permission enforcement
-- Cancelled appointment assignment visibility gating (`VIEW_CANCELLED_APPOINTMENTS`)
-- Mobile GPS staleness computation if backend provides derived flags (or ensure timestamps are present)
-
-### Contract / API Tests
-- `AssignmentView` schema stability (fields, enums, nullability)
-- Conflict payload shape for both create and reschedule flows
-- 409 behavior:
-  - conflict payload on submit (if Pattern B)
-  - version mismatch payload for notes/reschedule (if optimistic concurrency)
-- Idempotency behavior for create/reschedule when `clientRequestId` is reused (**TODO**)
-
-### Integration Tests
-- WorkExec dependency:
-  - duration/skills retrieval success and degraded behavior when unavailable
-- People/HR dependency:
-  - mechanic identity retrieval path (embedded vs separate call) **CLARIFY**
-- Notification dependency:
-  - reschedule triggers notification request; failure surfaces as partial success if supported
-- Event emission:
-  - `AssignmentUpdated` emitted on assignment changes and notes edits (if notes are part of assignment view)
-  - idempotency of events
-
-### End-to-End Tests (system)
-- Create appointment from eligible estimate/work order:
-  - no conflicts
-  - soft conflicts
-  - hard conflicts with/without override permission
-  - duplicate link scenario
-- Reschedule:
-  - reason OTHER requires notes
-  - hard conflict override requires permission + reason
-  - policy block (min notice / reschedule limit) and approval path (**CLARIFY expected behavior**)
-- Assignment display:
-  - unassigned/partial assignment rendering
-  - cancelled appointment visibility gating
-  - People/HR outage degraded mechanic display
-  - near-real-time update: push event updates UI or polling detects within 30s
-
-### Performance Tests
-- Conflict check under concurrent scheduling attempts (same facility, same bay/mechanic)
-- Assignment view load under high read volume (Appointment Detail usage)
-- Event-driven update fanout (if WebSocket/SSE) vs polling load (30s interval)
-
----
-
-## Common Pitfalls
-
-- **Assuming service names/routes**: Moqui service/screen route conventions must be confirmed; do not hardcode guessed paths. (See Open Questions.)
-- **Facility scoping leaks**: caching `AssignmentView` or appointment snapshots across facility context can expose data across shops. Ensure cache keys include `facilityId` (or disable caching).
-- **Timezone drift**:
-  - Submitting datetimes without explicit timezone can shift schedules.
-  - Displaying in browser timezone when facility timezone is required causes operational errors. (**CLARIFY standard**.)
-- **Conflict-check mismatch**:
-  - Implementing a separate conflict check when backend only supports submit-time conflicts (or vice versa) leads to broken UX.
-  - If backend requires a conflict-check token/version, skipping it will cause submit failures.
-- **Notes edit without concurrency**:
-  - Without `version`/409 handling, notes edits can silently overwrite changes.
-- **Logging sensitive data**:
-  - Do not log `assignmentNotes`, mechanic names, or customer details.
-- **Over-polling**:
-  - Poll only while the Appointment Detail screen is visible; back off on repeated failures.
-- **Assuming mechanic identity is always embedded**:
-  - Frontend story explicitly allows degraded mode; backend contract must be clear whether People/HR call is required.
-- **Cancelled appointment visibility**:
-  - Frontend gating is not sufficient; backend must enforce `VIEW_CANCELLED_APPOINTMENTS` (or equivalent) to prevent data leakage.
-
----
-
-## Open Questions from Frontend Stories
-
-Consolidated and organized from issues #74, #75, #76.
-
-### A) Moqui API / Service Contract Names (blocking)
-1. **AssignmentView load**
-   - Exact Moqui-accessible endpoint/service to load `AssignmentView` by `appointmentId`
-   - Request params (is `facilityId` required?)
-   - Response schema (fields, enums, nullability)
-2. **Mechanic identity**
-   - Is mechanic identity embedded in `AssignmentView` (displayName/photoUrl), or must frontend call People/HR?
-   - If separate: exact endpoint/service name and minimal response fields
-3. **Create appointment**
-   - Exact endpoints/services for:
-     - load defaults/eligibility from estimate/work order
-     - conflict check (if separate)
-     - create appointment
-   - Provide request/response schemas and error shapes (400/403/409/422)
-4. **Reschedule appointment**
-   - Exact endpoints/services for:
-     - load appointment for reschedule (including eligibility, rescheduleCount, allowed reasons)
-     - conflict checking (if separate)
-     - submit reschedule
-   - Provide request/response schemas and error shapes
-
-### B) Real-time updates / events (blocking for near-real-time UX)
-1. Push mechanism: **WebSocket vs SSE** (or none)
-2. Channel/topic naming and subscription identifiers:
-   - How to subscribe for a specific `appointmentId` (and/or `facilityId`)
-3. `ASSIGNMENT_UPDATED` / `AssignmentUpdated` payload:
-   - full `AssignmentView` vs partial delta
-   - includes `version`/`lastUpdatedAt`?
-4. If no push: confirm polling endpoint and recommended interval (frontend assumes 30s)
-
-### C) Facility scoping & authorization (needs confirmation)
-1. Is `facilityId` required explicitly in requests, or inferred from session/context in Moqui services?
-2. Appointment status gating for cancelled appointments:
-   - Does Appointment Detail already provide status for frontend gating?
-   - Or should backend enforce “hide CANCELLED unless permitted” entirely?
-3. Permission model clarifications:
-   - Confirm `VIEW_CANCELLED_APPOINTMENTS` (or actual permission name)
-   - Confirm `APPROVE_RESCHEDULE` semantics (permission-only vs workflow)
-
-### D) Conflict-check UX contract (create + reschedule)
-1. Is conflict checking required as a separate call before submit, or embedded in submit?
-2. If separate:
-   - does backend return a `conflictCheckToken/version` required for submit?
-3. Do conflict responses include `suggestedAlternatives[]`? If so, shape (datetimes only vs resource suggestions)
-
-### E) Notes editing scope (assignment display story)
-1. Should notes editing be included now or remain read-only?
-2. If included:
-   - endpoint/service and payload
-   - optimistic concurrency via `version` and 409 behavior
-   - is an edit “reason” required?
-
-### F) Timezone & timestamp conventions (cross-cutting)
-1. What is the standard timezone for:
-   - scheduling input/output (create/reschedule)
-   - timestamp display (assignedAt/lastUpdatedAt)
-   Options: facility timezone vs user profile timezone vs browser timezone
-2. Is facility timezone returned in appointment/assignment payloads?
-
-### G) UI route conventions (repo-specific)
-1. Exact Moqui screen route conventions in this repo for:
-   - Estimate Detail
-   - Work Order Detail
-   - Appointment Create
-   - Appointment Detail  
-   Include screen paths and parameter names.
-
-### H) Notifications & audit visibility (reschedule story)
-1. Notification toggles:
-   - Does frontend send `notifyCustomer` / `notifyMechanic`, or is behavior backend-only?
-   - Defaults and forced-on rules (e.g., within 24h)
-2. Audit visibility:
-   - Is there an API to retrieve audit entries for an appointment?
-   - Or does reschedule response include audit metadata?
-   - What fields are allowed to display (PII constraints)?
-
-### I) Variant mapping / process (documentation/process)
-1. Story tooling “Rewrite Variant conflict”:
-   - Variant mapping table lacks `domain:shopmgmt`. Which variant should be used for shopmgmt stories? (**CLARIFY**)
-
----
-
-*End of AGENT_GUIDE.md*
+- Appointment must be linked to exactly one source document at creation; link is immutable.
+- A source document may not have multiple active appointments unless backend explicitly supports it.
+- Conflicts:
+  - HARD conflicts block scheduling and are not overridable.
+  - SOFT conflicts may be overridden only with explicit permission + reason and are always audited.
+- Operating hours are enforced server-side; the UI must not infer hours.
+- Reschedule requires:
+  - reason enum
+  - notes when reason is OTHER
+  - notes and permission when overriding a SOFT conflict or policy exception
+- Assignment notes:
+  - maximum length 500 characters
+  - treated as potentially sensitive; never logged client-side
+- Cancelled appointment assignment visibility is permission-gated server-side.
+
+## Mapping: Decisions → Notes
+
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| DECISION-SHOPMGMT-001 | Appointment is created from a single immutable source. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-002 | Conflicts are classified HARD vs SOFT. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-003 | Exactly one assignment type applies at a time. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-004 | Reschedule limits and minimum notice are enforced. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-005 | Notes length and update semantics are defined. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-006 | Assignment updates are near-real-time with fallback. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-007 | Overrides require audit artifacts. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-008 | Operating-hours enforcement policy is explicit. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-009 | Mechanic identity is a foreign reference. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-010 | Assignment status transitions are constrained. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-011 | Contract naming patterns are standardized. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-012 | Facility scoping is deny-by-default. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-013 | Status enums and UI gating are defined. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-014 | Create/reschedule are idempotent by requestId. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-015 | Facility timezone is source of truth. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-016 | Notification toggles are backend-owned. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-017 | Audit UI is permission-gated and redacted. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+
+## Open Questions (from source)
+
+### Q: What are the canonical appointment status enum values?
+
+- Answer: Use a single backend-owned enum; UI must treat values as opaque strings and rely on backend-provided allowed actions. A recommended canonical set is: SCHEDULED, CONFIRMED, IN_PROGRESS, AWAITING_PARTS, READY, COMPLETED, CANCELLED, NO_SHOW.
+- Assumptions:
+  - Backend returns status in appointment payloads used by Appointment Detail.
+  - Backend also returns an allow-list such as allowedActions[] when needed.
+- Rationale:
+  - Prevents frontend hardcoding from drifting away from backend policy.
+- Impact:
+  - APIs: appointment detail payload must include status.
+  - Tests: add contract tests validating status + allowedActions presence.
+- Decision ID: DECISION-SHOPMGMT-013
+
+### Q: What are the eligible estimate statuses for creating an appointment?
+
+- Answer: Eligible estimate statuses are APPROVED and QUOTED. Anything else is ineligible and returns a deterministic eligibility error with a machine-readable code.
+- Assumptions:
+  - Estimate lifecycle is owned elsewhere; shopmgmt consumes status as input.
+- Rationale:
+  - Limits scheduling to estimates ready for operational commitment.
+- Impact:
+  - APIs: create-from-estimate returns 422 with code ESTIMATE_NOT_ELIGIBLE.
+  - UI: shows blocked state and guidance.
+- Decision ID: DECISION-SHOPMGMT-013
+
+### Q: What are the eligible work order statuses for creating an appointment?
+
+- Answer: Work orders are eligible unless they are COMPLETED or CANCELLED.
+- Assumptions:
+  - Work order terminal statuses are stable and backend-owned.
+- Rationale:
+  - Prevents scheduling work already finished or void.
+- Impact:
+  - APIs: create-from-work-order returns 422 with code WORK_ORDER_NOT_ELIGIBLE.
+- Decision ID: DECISION-SHOPMGMT-013
+
+### Q: Are HARD conflicts overridable?
+
+- Answer: No. HARD conflicts are not overridable.
+- Assumptions:
+  - HARD conflicts represent physical impossibilities or safety constraints.
+- Rationale:
+  - Avoids double-booking and invalid schedules.
+- Impact:
+  - UI: remove “override” affordance for HARD conflicts.
+  - APIs: return conflicts with severity=HARD and overridable=false.
+- Decision ID: DECISION-SHOPMGMT-002
+
+### Q: Are SOFT conflicts overridable, and what is required?
+
+- Answer: Yes. SOFT conflicts may be overridden only when the actor has OVERRIDE_SCHEDULING_CONFLICT and provides a non-empty overrideReason; the override is always audited.
+- Assumptions:
+  - Permission checks are enforced server-side.
+- Rationale:
+  - Allows operational exceptions with accountability.
+- Impact:
+  - APIs: conflict override requires overrideReason.
+  - Tests: ensure override path logs audit entry.
+- Decision ID: DECISION-SHOPMGMT-007
+
+### Q: Is conflict checking a separate call or returned on submit?
+
+- Answer: Canonical contract is “conflicts returned on submit” (Pattern B). A separate pre-check may exist for UX but must not be required for correctness.
+- Assumptions:
+  - Backend can compute conflicts deterministically at submit time.
+- Rationale:
+  - Prevents token/version coupling and simplifies clients.
+- Impact:
+  - APIs: create/reschedule return 409 with conflicts payload.
+- Decision ID: DECISION-SHOPMGMT-011
+
+### Q: Do conflict responses include suggestedAlternatives[]? What is the shape?
+
+- Answer: If present, suggestedAlternatives[] contains suggested time slots (startDateTime/endDateTime) only; resource suggestions are optional and must be treated as hints.
+- Assumptions:
+  - Alternatives are computed from facility schedule constraints.
+- Rationale:
+  - Keeps payload stable and avoids embedding HR/WorkExec optimization logic.
+- Impact:
+  - UI: render alternative times without assuming resource assignments.
+- Decision ID: DECISION-SHOPMGMT-011
+
+### Q: Is facilityId required explicitly in requests, or inferred?
+
+- Answer: facilityId must be explicit in all write requests. Read requests may omit facilityId if backend resolves it from appointmentId and still enforces facility authorization.
+- Assumptions:
+  - appointmentId is globally unique, but authorization remains facility-scoped.
+- Rationale:
+  - Prevents ambiguity and reduces session-context coupling.
+- Impact:
+  - APIs: create/reschedule accept facilityId.
+  - Tests: deny cross-facility access.
+- Decision ID: DECISION-SHOPMGMT-012
+
+### Q: What is the idempotency key name and retention window for create/reschedule?
+
+- Answer: Use clientRequestId in the request body for Moqui-style services; retain idempotency keys for at least 24 hours. Duplicate requestId returns the original success response.
+- Assumptions:
+  - UI can persist requestId for retries after timeouts.
+  - safe_to_defer: true (re-evaluate after first production learnings).
+- Rationale:
+  - Makes retry safe without depending on transport-level retries.
+- Impact:
+  - APIs: accept clientRequestId; store outcome.
+  - Tests: verify duplicates do not create duplicates.
+- Decision ID: DECISION-SHOPMGMT-014
+
+### Q: What is the reschedule limit and how is approval represented?
+
+- Answer: Allow up to 2 reschedules without approval; 3rd and beyond require APPROVE_RESCHEDULE permission and an approvalReason. There is no separate approver workflow in the initial version.
+- Assumptions:
+  - safe_to_defer: true (workflow may be added later).
+- Rationale:
+  - Keeps policy enforceable while minimizing workflow complexity.
+- Impact:
+  - APIs: policy errors return code RESCHEDULE_APPROVAL_REQUIRED.
+  - UI: prompt for reason when approval required.
+- Decision ID: DECISION-SHOPMGMT-004
+
+### Q: Are assignment notes editable now, and what concurrency behavior applies?
+
+- Answer: Notes are editable only for users with EDIT_ASSIGNMENT_NOTES, and updates are protected by optimistic concurrency (version; 409 on mismatch).
+- Assumptions:
+  - Backend includes version in AssignmentView.
+  - safe_to_defer: true (may become append-only later if audit needs evolve).
+- Rationale:
+  - Prevents silent overwrites while keeping UI simple.
+- Impact:
+  - APIs: update-notes endpoint must accept expectedVersion.
+  - UI: handle 409 by prompting reload.
+- Decision ID: DECISION-SHOPMGMT-005
+
+### Q: Is an edit “reason” required for notes updates?
+
+- Answer: Yes, a notesEditReason is required when editing notes; it is stored in audit records but not shown by default in UI.
+- Assumptions:
+  - Reason is short free-text (<= 200 chars).
+- Rationale:
+  - Ensures traceability for operational notes edits.
+- Impact:
+  - APIs: update-notes requires notesEditReason.
+  - Tests: audit entry contains reason.
+- Decision ID: DECISION-SHOPMGMT-017
+
+### Q: What is the real-time update mechanism for assignment updates?
+
+- Answer: Preferred mechanism is Server-Sent Events (SSE) delivering AssignmentUpdated events; fallback is polling every 30 seconds while Appointment Detail is visible.
+- Assumptions:
+  - UI supports EventSource; fallback exists for degraded cases.
+  - safe_to_defer: true (WebSocket may replace SSE later).
+- Rationale:
+  - SSE is simpler than WebSockets for one-way updates.
+- Impact:
+  - UI: implement SSE with reconnect/backoff.
+  - Backend: publish events scoped by facility/appointment.
+- Decision ID: DECISION-SHOPMGMT-006
+
+### Q: What are channel/topic naming and subscription identifiers for push updates?
+
+- Answer: Use a facility-scoped stream and filter by appointmentId client-side. Recommended topic name: shopmgmt.assignment.facility.<facilityId>.
+- Assumptions:
+  - Facility streams reduce topic explosion.
+  - safe_to_defer: true (could move to appointment-scoped topics if needed).
+- Rationale:
+  - Simplifies subscription model.
+- Impact:
+  - Backend: provide SSE endpoint accepting facilityId.
+  - UI: subscribe once per facility context.
+- Decision ID: DECISION-SHOPMGMT-006
+
+### Q: Does AssignmentUpdated deliver full AssignmentView or a delta?
+
+- Answer: Deliver full AssignmentView.
+- Assumptions:
+  - Payload size is small enough for UI use.
+- Rationale:
+  - Avoids follow-up fetch thundering-herd.
+- Impact:
+  - Backend: event payload includes version/lastUpdatedAt.
+  - UI: ignore out-of-order updates by version.
+- Decision ID: DECISION-SHOPMGMT-006
+
+### Q: Is mechanic identity embedded in AssignmentView or loaded from People?
+
+- Answer: AssignmentView contains mechanicId and may optionally contain displayName/photoUrl when authorized; UI must support degraded mode and must not require People calls.
+- Assumptions:
+  - People domain remains SoR; shopmgmt exposes a minimal derived view.
+- Rationale:
+  - Keeps appointment display resilient during HR outages.
+- Impact:
+  - UI: show mechanicId-only fallback.
+- Decision ID: DECISION-SHOPMGMT-009
+
+### Q: What timezone is the source of truth for scheduling input/output and display?
+
+- Answer: Facility timezone is the source of truth for scheduling. APIs accept/return ISO-8601 timestamps with offset, and also return facilityTimeZoneId so the UI can display unambiguously.
+- Assumptions:
+  - Facility has a configured IANA timezone ID.
+  - safe_to_defer: true (could add user-preference rendering later).
+- Rationale:
+  - Scheduling is an operational facility concern.
+- Impact:
+  - APIs: include facilityTimeZoneId.
+  - UI: display in facility timezone.
+- Decision ID: DECISION-SHOPMGMT-015
+
+### Q: Are notifyCustomer/notifyMechanic toggles supported for reschedule?
+
+- Answer: Not in the initial contract. Notification behavior is backend-owned; UI may show informational text but does not send toggles.
+- Assumptions:
+  - safe_to_defer: true (toggles may be added later).
+- Rationale:
+  - Avoids UI/business policy drift.
+- Impact:
+  - APIs: reschedule response includes notificationOutcomeSummary if relevant.
+- Decision ID: DECISION-SHOPMGMT-016
+
+### Q: Is there an API to retrieve audit entries for an appointment, and what fields are allowed?
+
+- Answer: Provide a read-only audit endpoint returning redacted entries (actorId, action, occurredAt, reasonCode, and identifiers). Do not return customer PII or free-text notes to unauthorized roles.
+- Assumptions:
+  - Audit detail visibility is permission-gated (AUDIT_VIEW).
+  - safe_to_defer: true (field set may evolve).
+- Rationale:
+  - Audit data is high value but sensitive.
+- Impact:
+  - APIs: add audit list endpoint with redaction.
+- Decision ID: DECISION-SHOPMGMT-017
+
+### Q: Should policy/eligibility failures be 422 or 400?
+
+- Answer: Use 422 for business rule/policy failures (eligibility, operating hours, reschedule limit) and 400 for syntactic validation.
+- Assumptions:
+  - Backend supports a machine-readable error code field.
+- Rationale:
+  - Improves UI messaging and analytics.
+- Impact:
+  - APIs: unify error shape.
+- Decision ID: DECISION-SHOPMGMT-011
+
+### Q: What is the standard correlation/request header?
+
+- Answer: Use X-Request-Id as the client-generated correlation header and propagate it end-to-end.
+- Assumptions:
+  - A gateway/service mesh preserves the header.
+- Rationale:
+  - Enables tracing and log correlation without PII.
+- Impact:
+  - UI: set X-Request-Id on calls.
+- Decision ID: DECISION-SHOPMGMT-011
+
+### Q: What are the UI route conventions for Estimate Detail, Work Order Detail, and Appointment screens?
+
+- Answer: UI routes are Moqui screen paths and must be documented per repository conventions as part of each story. This guide requires that each story includes: screen path, required parameters, and permission gates.
+- Assumptions:
+  - safe_to_defer: true (route names are repo-specific).
+- Rationale:
+  - Prevents “guessing routes” during implementation.
+- Impact:
+  - Stories: must include route details.
+- Decision ID: DECISION-SHOPMGMT-011
+
+### Q: Which story variant should be used when domain:shopmgmt is missing from variant mapping?
+
+- Answer: Use the same variant as other Moqui “frontend-first domain docs” stories until domain:shopmgmt is added (recommended: the generic frontend-first Moqui variant).
+- Assumptions:
+  - Variant mapping is tooling-only and does not affect runtime.
+- Rationale:
+  - Keeps authoring flow unblocked.
+- Impact:
+  - Process: update variant mapping table to include domain:shopmgmt.
+- Decision ID: DECISION-SHOPMGMT-011
+
+## Todos Reconciled
+
+- Original todo: "CLARIFY exact appointment status enums" → Resolution: Resolved (backend-owned enum + recommended set) | Decision: DECISION-SHOPMGMT-013
+- Original todo: "CLARIFY rescheduleCount field name/source" → Resolution: Replace with task: TASK-SHOP-001 (confirm field in schema + expose in API)
+- Original todo: "CLARIFY idempotency contract" → Resolution: Resolved with safe default (clientRequestId, 24h retention) | Decision: DECISION-SHOPMGMT-014
+- Original todo: "CLARIFY conflict-check token/version" → Resolution: Resolved (submit-time conflicts; no token required) | Decision: DECISION-SHOPMGMT-011
+- Original todo: "CLARIFY push mechanism" → Resolution: Resolved with safe default (SSE + polling fallback) | Decision: DECISION-SHOPMGMT-006
+- Original todo: "CLARIFY facilityId inferred vs explicit" → Resolution: Resolved (explicit for writes) | Decision: DECISION-SHOPMGMT-012
+- Original todo: "CLARIFY timezone standard" → Resolution: Resolved (facility timezone) | Decision: DECISION-SHOPMGMT-015
+- Original todo: "CLARIFY audit visibility + PII" → Resolution: Resolved (redacted audit endpoint) | Decision: DECISION-SHOPMGMT-017
+
+## End
+
+End of document.

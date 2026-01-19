@@ -52,195 +52,283 @@ This checklist is intended for engineers and reviewers to validate story impleme
   - [ ] `name` required.
   - [ ] `baseLocationId` required and must exist.
   - [ ] `maxDailyJobs` required integer `>= 0`.
-  - [ ] `status` is one of `ACTIVE|INACTIVE|OUT_OF_SERVICE`.
-  - [ ] `travelBufferPolicyId` is required when `status=ACTIVE` and optional otherwise.
-  - [ ] `capabilityIds[]` values come from capabilities lookup; unknown IDs returned by backend are surfaced clearly.
-- [ ] Validate **Coverage Rule** rules:
-  - [ ] `serviceAreaId` required.
-  - [ ] `priority` required integer (documented ordering: lower number = higher priority).
-  - [ ] If both effective timestamps provided, enforce `effectiveEndAt > effectiveStartAt`.
-  - [ ] Null start/end semantics match backend (immediate/indefinite).
-- [ ] Validate **Travel Buffer Policy** rules:
-  - [ ] `name` required; `policyType` required.
-  - [ ] FIXED_MINUTES config enforces non-negative minutes (exact key names/types per contract).
-  - [ ] DISTANCE_TIER config:
-    - [ ] At least one tier.
-    - [ ] `bufferMinutes >= 0` for each tier.
-    - [ ] `maxDistance` strictly increasing for non-null tiers.
-    - [ ] Exactly one catch-all tier with `maxDistance = null`.
-    - [ ] Unit handling (KM/MI) matches backend contract; UI does not guess conversions.
-- [ ] Validate **Site Default Locations** rules:
-  - [ ] Both `defaultStagingLocationId` and `defaultQuarantineLocationId` are required (unless rollout allows nulls—see Open Questions).
-  - [ ] Staging and quarantine defaults must be distinct; enforce client-side and handle backend error code `DEFAULT_LOCATION_ROLE_CONFLICT`.
-  - [ ] Picker options are filtered to storage locations belonging to the site; backend still validates belongs-to-site.
-  - [ ] Eligibility rules for inactive storage locations are enforced per contract (ACTIVE-only vs allow INACTIVE).
-- [ ] Validate **Location Sync roster/logs** display rules:
-  - [ ] Locations are read-only; no edit actions are present.
-  - [ ] Unknown status values are displayed safely (raw value, neutral styling).
-  - [ ] `tags` rendering supports the actual type (array vs CSV) without breaking.
+  # STORY_VALIDATION_CHECKLIST.md
 
----
+  ## Summary
 
-## API Contract
-- [ ] Confirm the exact Moqui service names or REST endpoints exist for all screens:
-  - [ ] Locations list/get/create/update/status change.
-  - [ ] Bays create/list/get under a location.
-  - [ ] Mobile units list/get/create/update.
-  - [ ] Coverage rules replace/update semantics for a mobile unit.
-  - [ ] Travel buffer policies list/get/create.
-  - [ ] Site default locations get/update and storage locations list for a site.
-  - [ ] Sync logs list/get and location roster list/get.
-- [ ] Verify list endpoints support required query parameters and response envelopes:
-  - [ ] Pagination: `pageIndex/pageSize` (or equivalent) and `totalCount`.
-  - [ ] Sorting: supported fields and order.
-  - [ ] Filtering: status filters (ACTIVE/INACTIVE/ALL), baseLocationId, run status, etc.
-- [ ] Verify update semantics are consistent and safe:
-  - [ ] PUT vs PATCH usage matches backend expectations.
-  - [ ] Optimistic locking/version is included where required (e.g., Location updates/deactivate).
-  - [ ] Coverage rules update is **atomic replacement** (single request results in exact saved set).
-- [ ] Verify error response format is consistent and mappable:
-  - [ ] Field-level errors include field identifiers usable by UI.
-  - [ ] Domain error codes are stable (e.g., `INVALID_TIMEZONE`, `INVALID_OPERATING_HOURS`, `LOCATION_NAME_TAKEN`, `OPTIMISTIC_LOCK_FAILED`, `DEFAULT_LOCATION_ROLE_CONFLICT`).
-  - [ ] 404 behavior is defined for missing `locationId/siteId/bayId/mobileUnitId/syncId`.
-- [ ] Verify default filter behavior is implemented as specified (e.g., Locations list default `status=ACTIVE` vs `ALL`).
-- [ ] Verify timestamp fields returned by APIs include timezone/offset information or are explicitly documented as UTC.
+  This checklist validates Location-domain story implementations for correctness, consistency, and safety across Locations CRUD, Bays, Mobile Units/Coverage/Policies, Site Default Locations, and Sync roster/log screens. It has been updated to include testable acceptance criteria for each previously open question, using safe defaults from `AGENT_GUIDE.md` when contracts are not yet finalized.
 
----
+  ## Completed items
 
-## Events & Idempotency
-- [ ] Verify UI actions that can be retried are safe:
-  - [ ] Create actions prevent double-submit (disable Save while in-flight).
-  - [ ] Update/deactivate actions handle retries without creating duplicates.
-- [ ] Verify coverage rules “replace” operation is idempotent for identical payloads.
-- [ ] Verify sync roster/log screens do not imply a “rerun sync” action unless a backend idempotent trigger exists.
-- [ ] If backend emits domain events for changes (LocationUpdated, MobileUnitUpdated, etc.), confirm UI does not depend on events for correctness (UI should rely on API responses/refetch).
+  - [x] Updated acceptance criteria for each resolved open question
 
----
+  ## Scope / Ownership
 
-## Security
-- [ ] Verify all screens enforce AuthN/AuthZ via backend (401/403) and UI handles them safely:
-  - [ ] 401 triggers login/session-expired flow.
-  - [ ] 403 shows access denied and does not render partial sensitive data.
-- [ ] Confirm permission model is applied consistently:
-  - [ ] Location CRUD gated by `location:manage` (or confirmed equivalent).
-  - [ ] Read-only location roster/logs gated by `location:view` (or confirmed equivalent).
-  - [ ] Mobile unit/policy/coverage management gated by `location.mobile-unit.manage` (or confirmed equivalent).
-  - [ ] Bay management gated by appropriate permission (confirmed string).
-  - [ ] Site default locations update gated by appropriate permission (confirmed string).
-- [ ] Verify UI does not leak sensitive data in logs/errors:
-  - [ ] No tokens, headers, or full payload dumps in console logs.
-  - [ ] Error dialogs show correlation/reference IDs only (when available), not stack traces by default.
-- [ ] Verify IDOR protections are enforced server-side and validated in testing (e.g., cannot update defaults for a site you cannot access).
+  - [ ] Confirm story labeled `domain:location`
+  - [ ] Verify primary actor(s) and permissions
+  - [ ] Confirm Storage Location entities remain Inventory-owned; Location only references them for site defaults
+  - [ ] Verify read-only vs editable behavior is consistent (sync roster/logs are read-only)
 
----
+  ## Data Model & Validation
 
-## Observability
-- [ ] Verify correlation/request IDs are propagated and surfaced:
-  - [ ] Frontend includes correlation ID header if standard in app.
-  - [ ] Frontend surfaces backend-provided correlation ID in error UI (non-sensitive “reference id”).
-- [ ] Verify audit metadata is displayed when available:
-  - [ ] Location detail shows `createdAt/updatedAt/version` and optionally `updatedBy`.
-  - [ ] Site defaults screen shows “last updated at/by” if provided.
-  - [ ] Bay/MobileUnit/Policy detail shows created/updated timestamps if provided.
-- [ ] Verify structured client logging exists for key actions (create/update/deactivate/save coverage/save defaults) including entity IDs and outcome, without PII.
-- [ ] Verify sync log screens clearly display run status and counts and handle “running” logs (missing `syncFinishedAt`) gracefully.
+  - [ ] Validate required inputs and types: `locationId`, `siteId`, `bayId`, `mobileUnitId`, `serviceAreaId`, `travelBufferPolicyId`, `syncId`
+  - [ ] Validate `code` required on create and immutable on update
+  - [ ] Validate timezone is IANA ID and loaded from backend allowed list
+  - [ ] Validate operating hours rules: one per day, `open < close`, no overnight, empty list allowed
+  - [ ] Validate holiday closures rules: unique dates, optional reason max 255, null allowed
+  - [ ] Validate buffers are null or non-negative integers
+  - [ ] Validate DISTANCE_TIER tiers: increasing `maxDistance`, exactly one catch-all `maxDistance=null`, `bufferMinutes >= 0`
 
----
+  ## API Contract
 
-## Performance & Failure Modes
-- [ ] Verify list screens are paginated and do not fetch unbounded datasets:
-  - [ ] Locations roster list.
-  - [ ] Sync logs list.
-  - [ ] Mobile units list.
-  - [ ] Travel buffer policies list (if present).
-  - [ ] Service/skills/capabilities pickers use search/autocomplete or pagination where needed.
-- [ ] Verify initial page loads avoid N+1 calls; target minimal calls per screen (e.g., defaults + options).
-- [ ] Verify graceful handling of dependency outages:
-  - [ ] Capability lookup/service catalog unavailable → show retryable error and prevent invalid saves.
-  - [ ] Skills/services lookup unavailable → allow bay creation without constraints if constraints are optional; otherwise block with clear message.
-- [ ] Verify empty states are explicit and actionable:
-  - [ ] No storage locations available for site defaults.
-  - [ ] No service areas available for coverage rules.
-  - [ ] No travel buffer policies available when creating ACTIVE mobile unit.
-  - [ ] No synced locations/logs yet.
-- [ ] Verify concurrency failure handling:
-  - [ ] Location optimistic lock conflict shows reload prompt and prevents silent overwrite.
-  - [ ] Duplicate name conflicts (Location/Bay/MobileUnit) map to the correct field and preserve user input.
+  - [ ] Verify endpoints and response envelopes are documented per screen
+  - [ ] Verify pagination: `pageIndex/pageSize` (or equivalent) and `totalCount`
+  - [ ] Verify stable error codes and field-level error mapping
+  - [ ] Verify optimistic locking conflicts are handled (`OPTIMISTIC_LOCK_FAILED`)
 
----
+  ## Events & Idempotency
 
-## Testing
-- [ ] Unit tests cover client-side validation rules:
-  - [ ] Location timezone required + invalid timezone mapping.
-  - [ ] Operating hours duplicate day / close<=open / overnight rejection.
-  - [ ] Holiday closure duplicate date prevention.
-  - [ ] Buffers non-negative integer validation.
-  - [ ] Bay capacity `>=1`, enum validation, trimming name.
-  - [ ] Mobile unit travel buffer policy required when ACTIVE; maxDailyJobs `>=0`.
-  - [ ] Coverage effective window validation.
-  - [ ] Distance tier validation (increasing distances, single catch-all).
-  - [ ] Site defaults distinctness validation.
-- [ ] Integration/API contract tests (or contract fixtures) validate:
-  - [ ] Correct endpoints, query params, and payload shapes are used.
-  - [ ] Error code mapping to UI fields/banners works for 400/401/403/404/409/422/503.
-  - [ ] Optimistic locking/version is sent and handled.
-  - [ ] Coverage rules replace semantics result in exact saved set.
-- [ ] Authorization tests validate:
-  - [ ] Read-only users cannot see create/edit actions.
-  - [ ] Forbidden responses do not leak data and disable editing.
-- [ ] E2E tests cover critical flows:
-  - [ ] Create/edit/deactivate location.
-  - [ ] Create bay under location and handle duplicate name.
-  - [ ] Create mobile unit, set OUT_OF_SERVICE, configure coverage, create policy.
-  - [ ] Configure site default staging/quarantine and handle conflict.
-  - [ ] View synced locations roster and sync logs with filters/pagination.
+  - [ ] UI prevents double-submit and supports safe retries
+  - [ ] Coverage rules replace is idempotent for identical payloads
 
----
+  ## Security
 
-## Documentation
-- [ ] Document route paths, menu placement, and screen ownership (admin vs locations section).
-- [ ] Document API/service contracts used by each screen (endpoints, params, payloads, response envelopes).
-- [ ] Document validation rules implemented client-side and which are server-authoritative.
-- [ ] Document error code mappings used by UI (code → field/message).
-- [ ] Document timezone handling rules for:
-  - [ ] Location timezone field.
-  - [ ] Coverage effective windows display/input timezone.
-  - [ ] Display of audit timestamps (user locale vs location timezone vs UTC).
-- [ ] Document read-only vs editable behavior for:
-  - [ ] HR-synced location roster.
-  - [ ] INACTIVE locations (editability).
-- [ ] Record decisions resolving the Open Questions below and link to the decision record/ticket.
+  - [ ] Permission gating enforced server-side (401/403 handling)
+  - [ ] UI does not leak sensitive data in logs/errors
+  - [ ] Verify IDOR protections via tests (cannot mutate outside authorized scope)
 
----
+  ## Observability
 
-## Open Questions to Resolve
-- [ ] What are the exact Moqui service names or REST endpoints (and response envelopes/error formats) for:
-  - [ ] listing locations and retrieving by `locationId`
-  - [ ] creating/updating/deactivating locations
-  - [ ] listing sync logs and retrieving by `syncId`
-  - [ ] site default locations get/update and storage locations list for a site
-  - [ ] mobile units list/get/create/update
-  - [ ] coverage rules atomic replacement endpoint/payload
-  - [ ] travel buffer policies list/get/create
-  - [ ] bays create/list/get under a location
-- [ ] What permissions/roles gate each screen and action?
-  - [ ] Is there a `location:view` vs `location:manage` split?
-  - [ ] Can pricing admins access roster/logs read-only without manage permissions?
-  - [ ] What permission gates site default locations update?
-  - [ ] What permission gates bay management?
-- [ ] Locations list default status filter: should it default to `ACTIVE` or `ALL`?
-- [ ] `tags` type for synced locations: array vs CSV vs other; any max length/count constraints?
-- [ ] `region` semantics: free-text vs controlled vocabulary; should it be filterable?
-- [ ] Menu placement: where should Locations, Mobile Units, Policies, Sync Logs live in POS navigation?
-- [ ] Service Area management scope: does frontend need CRUD for Service Areas or only a picker to link existing ones?
-- [ ] Capabilities lookup: which endpoint provides valid capability IDs/names (service-catalog direct vs proxy), and what is the response shape?
-- [ ] Mobile unit list endpoint: confirm filters (`status`, `baseLocationId`), pagination params, and response envelope.
-- [ ] Travel buffer policy FIXED_MINUTES schema: exact `policyConfiguration` JSON keys and types.
-- [ ] DISTANCE_TIER unit handling: must stored config always be `"KM"`? Can UI accept MI and convert, or must it send KM only?
-- [ ] Timezone rule for coverage effective windows: entered/displayed in base location timezone, user/session timezone, or UTC with offsets?
-- [ ] Address schema for Location: structured object fields and requiredness vs free-text string.
-- [ ] Operating hours payload shape: day enum values/property names; is empty list allowed?
-- [ ] Holiday closures: nullable vs empty array; `reason` constraints.
+  - [ ] Correlation/request IDs surfaced in error UI when provided
+  - [ ] Audit fields displayed (`createdAt/updatedAt/version`) and optional audit events when available
+
+  ## Acceptance Criteria (per resolved question)
+
+  ### Q: What are the exact Moqui service names or REST endpoints (and response envelopes/error formats) for the Location domain screens?
+
+  - Acceptance: Each screen includes a short contract note (endpoint/service name + request/response fields) in its story/PR and uses versioned `/rest/api/v1/location/...` paths.
+  - Test Fixtures:
+    - List locations: `status=ACTIVE`, `pageIndex=0`, `pageSize=25`
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/location/locations?status=ACTIVE&pageIndex=0&pageSize=25
+  ```
+
+  ### Q: What permissions/roles gate each screen and action?
+
+  - Acceptance: Read-only pages are accessible with `location:view` and mutations require `location:manage` (or a documented stronger permission). Unauthorized mutation returns 403.
+  - Test Fixtures:
+    - User A: view-only
+    - User B: manage
+  - Example API request/response:
+  ```http
+  POST /rest/api/v1/location/locations
+  ```
+
+  ### Q: Locations list default status filter: should it default to ACTIVE or ALL?
+
+  - Acceptance: CRUD list defaults to `status=ACTIVE`; sync/ops lists default to `status=ALL` and expose filter control.
+  - Test Fixtures:
+    - CRUD list load without explicit filter
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/location/locations
+  ```
+
+  ### Q: tags type for synced locations: array vs CSV vs other; any constraints?
+
+  - Acceptance: UI renders tags safely whether `tags` is `string[]` or CSV string. No runtime error for either shape.
+  - Test Fixtures:
+    - `tags: ["foo", "bar"]`
+    - `tags: "foo,bar"`
+  - Example API request/response:
+  ```json
+  { "locationId": "loc-1", "tags": ["foo", "bar"] }
+  ```
+
+  ### Q: region semantics: free-text vs controlled vocabulary; should it be filterable?
+
+  - Acceptance: UI treats `region` as display-only free text and does not enforce vocabulary. Filtering is optional and only enabled if the API provides it.
+  - Test Fixtures:
+    - `region: "West"`
+  - Example API request/response:
+  ```json
+  { "locationId": "loc-1", "region": "West" }
+  ```
+
+  ### Q: Menu placement: where should Locations, Mobile Units, Policies, Sync Logs live in navigation?
+
+  - Acceptance: All screens are reachable from a single navigation area per the frontend convention; no duplicate entry points.
+  - Test Fixtures:
+    - Navigation config snapshot test
+  - Example API request/response:
+  ```text
+  N/A (navigation)
+  ```
+
+  ### Q: Service Area management scope: CRUD vs picker-only?
+
+  - Acceptance: No Service Area mutation UI exists unless a dedicated CRUD story exists; coverage rules only link existing service areas.
+  - Test Fixtures:
+    - Coverage rule editor uses picker
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/location/service-areas?pageIndex=0&pageSize=25
+  ```
+
+  ### Q: Capabilities lookup endpoint provides valid capability IDs/names; response shape?
+
+  - Acceptance: Capability IDs are selected from a read-only lookup API and sent as IDs only (no free-text). If lookup is unavailable, UI blocks save with retryable error.
+  - Test Fixtures:
+    - Catalog API 503
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/catalog/capabilities?q=oil
+  ```
+
+  ### Q: Mobile unit list endpoint: confirm filters, pagination, response envelope.
+
+  - Acceptance: `status` and `baseLocationId` filters work; response includes `items[]` and `totalCount`.
+  - Test Fixtures:
+    - `status=ACTIVE&baseLocationId=loc-1`
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/location/mobile-units?status=ACTIVE&baseLocationId=loc-1&pageIndex=0&pageSize=25
+  ```
+
+  ### Q: Travel buffer policy FIXED_MINUTES schema keys and types.
+
+  - Acceptance: FIXED_MINUTES uses `policyConfiguration.minutes` (integer >= 0). Invalid payload is rejected with 400/422.
+  - Test Fixtures:
+    - `minutes = -1` (invalid)
+  - Example API request/response:
+  ```json
+  { "policyType": "FIXED_MINUTES", "policyConfiguration": { "minutes": 15 } }
+  ```
+
+  ### Q: DISTANCE_TIER unit handling: must stored config always be KM? MI conversion?
+
+  - Acceptance: UI captures and submits distances in KM only and labels it. No MI entry or conversion exists in v1.
+  - Test Fixtures:
+    - Tier list with KM distances
+  - Example API request/response:
+  ```json
+  { "policyType": "DISTANCE_TIER", "policyConfiguration": { "unit": "KM", "tiers": [] } }
+  ```
+
+  ### Q: Timezone rule for coverage effective windows: base location timezone vs user timezone vs UTC?
+
+  - Acceptance: UI submits ISO-8601 timestamps with offsets; backend stores them as instants. Display may use user timezone but preserves instant.
+  - Test Fixtures:
+    - `effectiveStartAt=2026-01-01T08:00:00-05:00`
+  - Example API request/response:
+  ```json
+  { "effectiveStartAt": "2026-01-01T08:00:00-05:00", "effectiveEndAt": null }
+  ```
+
+  ### Q: Address schema for Location: structured object fields vs free-text.
+
+  - Acceptance: UI only sends address fields defined by the backend contract. If contract is unknown, UI uses a minimal address input and sends it in the backend-expected field.
+  - Test Fixtures:
+    - Contract fixture defines allowed keys
+  - Example API request/response:
+  ```json
+  { "address": { "line1": "123 Main St", "city": "Austin" } }
+  ```
+
+  ### Q: Operating hours payload shape and empty list allowed?
+
+  - Acceptance: UI uses `[{dayOfWeek, open, close}]` with `HH:mm`; empty list is allowed and round-trips without server error.
+  - Test Fixtures:
+    - `operatingHours=[]`
+  - Example API request/response:
+  ```json
+  { "operatingHours": [{"dayOfWeek":"MONDAY","open":"08:00","close":"17:00"}] }
+  ```
+
+  ### Q: Holiday closures: nullable vs empty array; reason constraints.
+
+  - Acceptance: UI supports null and empty; prevents duplicate dates; trims reason and enforces max length 255.
+  - Test Fixtures:
+    - Duplicate date attempt
+  - Example API request/response:
+  ```json
+  { "holidayClosures": [{"date":"2026-12-25","reason":"Christmas"}] }
+  ```
+
+  ### Q: Editing INACTIVE locations: read-only or editable? Reactivation allowed?
+
+  - Acceptance: INACTIVE locations are editable for non-identity fields and can be reactivated via explicit action; code remains immutable.
+  - Test Fixtures:
+    - INACTIVE location update of name
+  - Example API request/response:
+  ```http
+  PATCH /rest/api/v1/location/locations/{locationId}
+  ```
+
+  ### Q: Audit UI endpoint: standard endpoint/pattern to fetch audit events per entity?
+
+  - Acceptance: If audit endpoint exists, UI can fetch and display audit events; otherwise it displays only core audit fields.
+  - Test Fixtures:
+    - Audit endpoint missing returns 404
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/audit/events?entityType=Location&entityId=loc-1
+  ```
+
+  ### Q: Parent hierarchy constraints: prevent cycles/max depth; UI constraints?
+
+  - Acceptance: UI blocks selecting self as parent; backend rejects cycle creation.
+  - Test Fixtures:
+    - Attempt to set parent to self
+  - Example API request/response:
+  ```json
+  { "parentLocationId": "loc-1" }
+  ```
+
+  ### Q: Status on create: can admin set status during creation?
+
+  - Acceptance: Create defaults to ACTIVE; UI does not offer a status selector.
+  - Test Fixtures:
+    - Create request without status
+  - Example API request/response:
+  ```json
+  { "code":"SHOP-1","name":"Main Shop" }
+  ```
+
+  ### Q: Site default staging/quarantine: null handling during rollout?
+
+  - Acceptance: UI shows “Not configured” when defaults are null and allows setting them if authorized.
+  - Test Fixtures:
+    - `defaultStagingLocationId=null`
+  - Example API request/response:
+  ```json
+  { "defaultStagingLocationId": null, "defaultQuarantineLocationId": null }
+  ```
+
+  ### Q: Storage location eligibility: can inactive storage locations be selected?
+
+  - Acceptance: Picker shows ACTIVE storage locations only; backend rejects inactive selections.
+  - Test Fixtures:
+    - Attempt selecting INACTIVE storage location
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/inventory/sites/{siteId}/storage-locations?status=ACTIVE
+  ```
+
+  ### Q: Timezone source: backend-provided list vs static frontend list?
+
+  - Acceptance: UI uses backend list endpoint and falls back to static list only when the endpoint is unavailable.
+  - Test Fixtures:
+    - Timezone list endpoint returns 500
+  - Example API request/response:
+  ```http
+  GET /rest/api/v1/location/timezones
+  ```
+
+## End
+
+End of document.
 - [ ] Editing INACTIVE locations: read-only or editable (aside from status)?
 - [ ] Audit UI endpoint: is there a standard endpoint/pattern to fetch audit events per Location (and other entities)?
 - [ ] Parent hierarchy constraints: prevent cycles/max depth; should UI enforce any constraints beyond “must exist”?

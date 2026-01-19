@@ -1,196 +1,326 @@
-```markdown
-# Pricing Story Validation Checklist
 
-This checklist is intended for engineers and reviewers to validate story implementations within the **pricing** domain. It covers key aspects to ensure correctness, security, observability, and maintainability—especially for Moqui/Vue/Quasar frontend integrations.
+# STORY_VALIDATION_CHECKLIST.md
 
----
+## Summary
 
-## Scope/Ownership
-- [ ] Confirm the story belongs to the **pricing** domain (pricing quotes, price books/rules, promotions, restrictions, overrides, snapshots) and does not implement pricing math in the UI.
-- [ ] Verify cross-domain ownership boundaries are respected (e.g., Workexec owns estimates/WO lines; Inventory owns products; CRM owns promotions).
-- [ ] Confirm the UI only **consumes** authoritative pricing decisions (quote results, restriction decisions, snapshot payloads) and does not infer/compute missing values (e.g., do not compute extended price unless provided).
-- [ ] Verify entry points are implemented in the correct Workexec/POS screens (Estimate vs Work Order vs Invoice/Commit flows) per agreed scope.
-- [ ] Confirm admin screens (price books/rules, restriction rules, store overrides) are placed under the correct Moqui module/menu and follow repo routing conventions.
+This checklist validates implementations in the Pricing domain across UI, API contracts, security, and observability. It incorporates the resolved open questions from the Pricing domain docs into testable acceptance criteria so stories can be reviewed consistently. The UI must remain strictly consumer-only for pricing math and policy.
 
----
+## Completed items
+
+- [x] Updated acceptance criteria for each resolved open question
+
+## Scope / Ownership
+
+- [ ] Confirm story labeled `domain:pricing`.
+- [ ] Verify primary actor(s) and permissions for the story.
+- [ ] Confirm Pricing is system-of-record only for pricing entities (price books, promos, restrictions, snapshots), not Workexec lifecycle.
 
 ## Data Model & Validation
-- [ ] Verify all IDs are treated as opaque identifiers (UUID/string) and are not parsed for meaning (e.g., `snapshotId`, `overrideId`).
-- [ ] Verify quantity validation is enforced client-side where required:
-  - [ ] Price quote requests: quantity is an integer > 0.
-  - [ ] Restriction evaluation: quantity is decimal > 0 (as required by API contract).
-- [ ] Verify monetary inputs are validated without re-implementing pricing logic:
-  - [ ] Store price override `overridePrice` is parseable, > 0, and supports up to 4 decimal places (or backend-specified precision).
-  - [ ] UI does not round/normalize amounts beyond formatting for display.
-- [ ] Verify effective dating validation for rule/config screens:
-  - [ ] `effectiveStartAt` is required where specified.
-  - [ ] If `effectiveEndAt` is provided, ensure `effectiveEndAt >= effectiveStartAt`.
-  - [ ] Historical/ended rules are rendered read-only when backend indicates immutability (or when `effectiveEndAt < now` per contract).
-- [ ] Verify enum-backed fields are not free-form:
-  - [ ] Restriction rule `conditionType/conditionValue` selected from allowed sets.
-  - [ ] Restriction evaluation `serviceTag` is from known enum set.
-  - [ ] Override `overrideReasonCode` is selected from authoritative list (not arbitrary text).
-- [ ] Verify UI handles optional context fields safely:
-  - [ ] Missing `customerTierId` / `customerAccountId` blocks calls only if required by contract; otherwise omit field.
-  - [ ] `sourceContext` JSON is treated as optional and rendered only per UX decision (e.g., Advanced toggle).
-- [ ] Verify UI prevents invalid state transitions:
-  - [ ] Finalize/commit is blocked when any line is `BLOCK`, `RESTRICTION_UNKNOWN`, or `ALLOW_WITH_OVERRIDE` without `overrideId`.
-  - [ ] Override submission is blocked unless required fields are present (`overrideReasonCode`, non-empty `notes`, conditional `secondApprover`).
 
----
+- [ ] IDs are treated as opaque identifiers (no parsing).
+- [ ] Money is displayed using backend-provided values and currency (`currencyUomId`) (DECISION-PRICING-001).
+- [ ] Effective dating uses store-local timezone semantics; UI shows timezone in date editors (DECISION-PRICING-003).
 
 ## API Contract
-- [ ] Verify all pricing-related calls use the agreed base path/versioning (e.g., `/pricing/v1/...`) and do not hardcode environment-specific URLs.
-- [ ] Verify request payloads match contract exactly (field names, nesting, types):
-  - [ ] `POST /pricing/v1/restrictions:evaluate` includes required context (`tenantId`, `locationId`, `serviceTag`, `items[]`) and does not send null/empty `items`.
-  - [ ] `POST /pricing/v1/restrictions:override` includes required identifiers (`transactionId`, `productId`, and `ruleId`/`policyVersion` if required by backend).
-  - [ ] Price quote request includes required context (`productId`, `quantity`, `locationId`, `customerTierId`) and optional `effectiveTimestamp` only when supported.
-  - [ ] Promotion apply request sends trimmed `promotionCode` and correct estimate identifier.
-- [ ] Verify response parsing is resilient to optional/missing fields:
-  - [ ] Snapshot view renders required minimum (`snapshotId`, `createdAt`, final price field) and shows “Not provided” for optional fields.
-  - [ ] Quote panel renders breakdown entries in the order returned and does not assume non-empty arrays.
-  - [ ] Restriction evaluation response maps per-item decisions and captures `ruleIds[]`, `reasonCodes[]`, optional `policyVersion/confidence`.
-- [ ] Verify error handling is deterministic and based on HTTP status + stable error codes:
-  - [ ] 400: show validation/business error; map field errors when provided.
-  - [ ] 401: follow app auth flow (re-auth).
-  - [ ] 403: show unauthorized message; do not leak sensitive details.
-  - [ ] 404: show not-found/no-price messaging without guessing root cause unless backend provides code.
-  - [ ] 409: handle conflicts (optimistic locking, policyVersion mismatch) with reload/retry UX.
-  - [ ] 5xx/timeout: show “service unavailable” and provide retry where safe.
-- [ ] Verify commit-path behavior fails closed where required:
-  - [ ] If restriction evaluation is unavailable during finalize/commit, finalize is blocked with the agreed message.
-- [ ] Verify UI does not rely on undocumented fields (denylist: computing extended price, inferring currency, inferring eligibility).
 
----
+- [ ] All pricing calls use `/pricing/v1/...` base path (DECISION-PRICING-002).
+- [ ] Requests match documented schema; responses are handled defensively for optional fields.
 
 ## Events & Idempotency
-- [ ] Verify UI behavior is idempotent for user actions that may be retried:
-  - [ ] Applying the same promotion code twice does not create duplicate adjustment lines in the UI (and handles backend idempotency semantics).
-  - [ ] Retrying restriction evaluation updates line state based on latest authoritative response (no stale merge).
-  - [ ] Retrying snapshot load does not display stale data after an error (clear state on error).
-- [ ] Verify UI handles out-of-order responses for rapid input changes:
-  - [ ] Price quote requests are debounced and/or sequenced; only the latest response updates the UI.
-  - [ ] Restriction evaluation requests for edits do not overwrite newer decisions with older responses.
-- [ ] Verify conflict/policy version handling:
-  - [ ] If override fails due to policyVersion mismatch, UI forces re-evaluation before allowing another override attempt.
 
----
+- [ ] Promotion apply is idempotent (no duplicate adjustments on re-apply).
+- [ ] Restriction evaluate and override handle retry safely and do not overwrite newer results.
 
 ## Security
-- [ ] Verify permission gating is enforced in UI **and** handled defensively on API responses:
-  - [ ] Restriction override action requires `pricing:restriction:override` (or final agreed permission).
-  - [ ] Store price override screens/actions require `pricing:override:manage`.
-  - [ ] Price book/rule admin screens require manage permission (exact string TBD).
-  - [ ] Snapshot view requires view permission (exact string TBD) or document-derived access per policy.
-- [ ] Verify location scoping is enforced for store override flows:
-  - [ ] Location selector is constrained to authorized locations.
-  - [ ] Direct navigation to unauthorized location shows 403 UX and disables submit.
-- [ ] Verify sensitive data handling:
-  - [ ] Do not log override `notes` content.
-  - [ ] Do not log cost values (if returned) unless explicitly approved and redacted.
-  - [ ] Do not expose internal rule metadata beyond allowed `reasonCodes`/`ruleIds`.
-- [ ] Verify input validation prevents injection and unsafe rendering:
-  - [ ] User-entered strings (promotion code, override notes) are escaped in UI and not rendered as HTML.
-  - [ ] `sourceContext` JSON is rendered safely (no HTML injection).
-- [ ] Verify “fail closed” behavior for restricted operations:
-  - [ ] Finalize/commit is blocked when restriction state is unknown or blocked.
-  - [ ] Admin CRUD actions are disabled/hidden without permission and still handle 403 safely.
 
----
+- [ ] Sensitive fields (like cost) are not logged and are redacted unless explicitly authorized (DECISION-PRICING-014).
+- [ ] Override operations require explicit permission and backend 403s are handled safely.
 
 ## Observability
-- [ ] Verify correlation/request IDs are propagated on pricing API calls per project convention (headers) and captured for troubleshooting.
-- [ ] Verify structured client-side logging/telemetry exists for key actions (without PII):
-  - [ ] `restriction.evaluate.*` with transactionId, productId(s), decision, status code.
-  - [ ] `restriction.override.*` with transactionId, productId, overrideId (if approved), status code.
-  - [ ] `priceQuote.requested/succeeded/failed` with productId, quantity, locationId, customerTierId, requestId/hash.
-  - [ ] `snapshot.load.*` with snapshotId and calling document context (estimateId/workOrderId/lineId if available).
-  - [ ] `promotion.apply.*` with estimateId and errorCode/status.
-- [ ] Verify UI error states include enough non-sensitive context for support (e.g., show error code, optionally correlationId if policy allows).
-- [ ] Verify audit/history panels render backend-provided audit entries without assuming fields:
-  - [ ] Price book/rule audit tab shows timestamp, actor, entity id, change summary if provided.
-  - [ ] Store override detail shows status history and approval/rejection metadata if provided.
 
----
+- [ ] UI and backend propagate correlation/request IDs and log only safe identifiers.
 
-## Performance & Failure Modes
-- [ ] Verify restriction evaluation does not block the UI thread:
-  - [ ] Per-line loading indicators are shown during evaluation.
-  - [ ] Evaluation timeouts are handled (e.g., treat >800ms as unavailable per story guidance).
-- [ ] Verify commit-path restriction evaluation fails fast and blocks finalize on timeout/503.
-- [ ] Verify quote calls are debounced (e.g., 250–400ms) and do not flood the backend during typing.
-- [ ] Verify list screens use pagination/server-side filtering for large datasets (price books/rules, restriction rules, overrides).
-- [ ] Verify graceful degradation:
-  - [ ] If restriction evaluation fails in non-commit flows, line is marked `RESTRICTION_UNKNOWN` and finalize is blocked until resolved.
-  - [ ] If snapshot load fails, no stale snapshot data remains visible.
-  - [ ] If pricing context load fails for store overrides, submit is disabled (fail closed).
-- [ ] Verify retry behavior is safe and user-controlled:
-  - [ ] Provide “Retry” for snapshot load and restriction evaluation failures.
-  - [ ] Do not auto-retry on 403/404.
+## Acceptance Criteria (per resolved question)
 
----
+### Q: What is the exact response payload for `GET /pricing/v1/snapshots/{snapshotId}` (field names, unit vs extended prices, and currency code field name)?
 
-## Testing
-- [ ] Unit tests cover client-side validation rules:
-  - [ ] Quantity validation (integer vs decimal rules per endpoint).
-  - [ ] Promotion code trimming and empty handling.
-  - [ ] Override modal required fields and conditional second approver.
-  - [ ] Effective date validation and immutability read-only behavior.
-- [ ] Component tests cover UI state machines:
-  - [ ] Snapshot view states: loading/loaded/notFound/forbidden/unavailable.
-  - [ ] Quote panel states: idle/loading/success/error and stale/out-of-order response protection.
-  - [ ] Restriction line item states: ALLOW/BLOCK/ALLOW_WITH_OVERRIDE/RESTRICTION_UNKNOWN and finalize gating.
-- [ ] Integration tests (mocked HTTP) verify API contract adherence:
-  - [ ] Correct request payload shapes and headers.
-  - [ ] Correct mapping of 400/403/404/409/5xx to UI messages and state.
-- [ ] E2E tests validate critical workflows:
-  - [ ] Add/edit line triggers restriction evaluation and blocks finalize appropriately.
-  - [ ] Override flow stores `overrideId` and unblocks finalize.
-  - [ ] Apply promotion updates totals and is idempotent on re-apply.
-  - [ ] Store override submit results in ACTIVE vs PENDING_APPROVAL and renders approval panel.
-  - [ ] Snapshot drilldown opens from line item and handles 403/404/5xx.
-- [ ] Security tests validate permission gating:
-  - [ ] Actions hidden/disabled without permission and backend 403 handled safely if forced.
-- [ ] Accessibility tests validate:
-  - [ ] Modal focus trap, labeled fields, ARIA-live for async errors, keyboard navigation for drilldowns.
+- Acceptance: Snapshot endpoint returns `snapshotId`, `createdAt`, `unitPrice`, and `extendedPrice` as `{ amount, currencyUomId }`; UI renders read-only without recomputation.
+- Test Fixtures: `snapshotId=11111111-1111-1111-1111-111111111111`
+- Example API request/response (code block)
 
----
-
-## Documentation
-- [ ] Document the UI-to-backend contracts used (endpoints/services, request/response schemas, error codes).
-- [ ] Document required permissions for each screen/action (view vs manage vs override).
-- [ ] Document commit-path vs non-commit-path restriction behavior (fail open for add/edit with unknown; fail closed for finalize).
-- [ ] Document how currency is displayed and what happens when currency code is missing (do not guess).
-- [ ] Document concurrency/conflict handling patterns (409 reload, policyVersion mismatch → re-evaluate).
-- [ ] Document where new Moqui screens are registered (menu entries, routes) and any repo conventions followed.
-- [ ] Record all open questions and final decisions with links to issues/PRs.
-
----
-
-## Open Questions to Resolve
-- [ ] What is the exact response payload for `GET /pricing/v1/snapshots/{snapshotId}` (field names, unit vs extended prices, and currency code field name)?
-- [ ] What permission/role gates viewing a pricing snapshot in the UI (dedicated permission vs inherited from document access)?
-- [ ] Should snapshot drilldown be added to both Estimate and Work Order line UIs, or only one (and which is priority)?
-- [ ] Should snapshot drilldown open as a modal dialog or a dedicated route/screen (and what is the repo convention)?
-- [ ] Should `sourceContext` be shown to end users (collapsed/advanced) or omitted entirely?
-- [ ] What are the exact Moqui routing/screen conventions for pricing admin screens in `durion-moqui-frontend` (module path and menu extension point)?
-- [ ] What permissions/roles gate *view* vs *manage* for price books/rules and restriction rules (exact permission strings)?
-- [ ] What are the exact backend CRUD endpoints/services for `PriceBook`, `PriceBookRule`, and `RestrictionRule` (including error payload formats for 400 vs 409)?
-- [ ] Can a price book rule express both location and customer tier simultaneously, or must it be modeled via scoped price books + single-condition rules?
-- [ ] Does `PriceBook.scope` support a combined location+tier scope, and what is the exact representation?
-- [ ] What is the exact `pricingLogic` JSON schema (types, percent representation, decimal precision/rounding rules)?
-- [ ] Are base price books single-currency or multi-currency; for fixed price rules, what currencies are allowed and is currency required?
-- [ ] What timezone semantics apply to `effectiveStartAt/effectiveEndAt` (UTC vs store local vs user timezone), and should UI use date-only or date-time pickers?
-- [ ] For deactivation, should UI set `status=INACTIVE`, set `effectiveEndAt`, or either (and which is preferred)?
-- [ ] What entity/service provides audit entries for rule changes and what fields are available (diffs, actor display name, correlation id)?
-- [ ] Promotions: what are the exact endpoints/services for loading an estimate with totals/adjustments and applying a promotion code, and does apply return the full updated estimate payload?
-- [ ] Promotions: what are the canonical estimate status enum values allowed for applying promotions?
-- [ ] Promotions: is replace/remove promotion supported; if yes, what is the service contract and audit expectation?
-- [ ] Promotions: what is the concurrency/versioning error behavior (HTTP status/code) when estimate changes concurrently, and should UI auto-refresh or prompt?
-- [ ] Promotions: are there promotion code length/character constraints that should be validated client-side?
-- [ ] Restrictions: can `BLOCK` ever be override-eligible, and how does the evaluate response indicate override eligibility?
-- [ ] Restrictions: what is the authoritative list of `overrideReasonCode` values and how should the UI fetch it?
-- [ ] Restrictions: does override require a single `ruleId` when multiple rules match, or can backend accept multiple ruleIds?
-- [ ] Restrictions: is `transactionId` guaranteed to exist at add-item time; if not, should override be disabled until persisted?
-- [ ] Product lookup: what is the supported product search/lookup contract for selecting `productId` in admin screens (minimal fields: SKU/name/id)?
+```http
+GET /pricing/v1/snapshots/11111111-1111-1111-1111-111111111111
 ```
+
+```json
+{
+  "snapshotId": "11111111-1111-1111-1111-111111111111",
+  "createdAt": "2026-01-19T12:00:00Z",
+  "unitPrice": { "amount": "100.00", "currencyUomId": "USD" },
+  "extendedPrice": { "amount": "200.00", "currencyUomId": "USD" }
+}
+```
+
+### Q: What permission/role gates viewing a pricing snapshot in the UI (dedicated permission vs inherited from document access)?
+
+- Acceptance: If user can view the owning estimate/work order line, snapshot view is allowed; unauthorized users receive 403 UX and no data is shown.
+- Test Fixtures: User without estimate access attempts snapshot view.
+- Example API request/response (code block)
+
+```http
+GET /pricing/v1/snapshots/11111111-1111-1111-1111-111111111111
+```
+
+```json
+{ "errorCode": "FORBIDDEN" }
+```
+
+### Q: Should snapshot drilldown be added to both Estimate and Work Order line UIs, or only one?
+
+- Acceptance: Any UI line showing `pricingSnapshotId` renders a “View pricing snapshot” action; both estimate and work order contexts behave identically.
+- Test Fixtures: One estimate line and one work order line with `pricingSnapshotId`.
+- Example API request/response (code block)
+
+```json
+{ "pricingSnapshotId": "11111111-1111-1111-1111-111111111111" }
+```
+
+### Q: Should snapshot drilldown open as a modal dialog or a dedicated route/screen (and what is the repo convention)?
+
+- Acceptance: Snapshot drilldown opens in a modal/drawer; closing returns to the originating screen without losing form state.
+- Test Fixtures: Open snapshot from an editable estimate line, then close.
+- Example API request/response (code block)
+
+```json
+{ "ui": { "presentation": "modal" } }
+```
+
+### Q: Should `sourceContext` be shown to end users (collapsed/advanced) or omitted entirely?
+
+- Acceptance: `sourceContext` is not shown by default; if present it is behind an “Advanced” toggle and rendered as escaped JSON.
+- Test Fixtures: Snapshot payload includes `sourceContext`.
+- Example API request/response (code block)
+
+```json
+{ "sourceContext": { "internal": "value" } }
+```
+
+### Q: What are the exact Moqui routing/screen conventions for pricing admin screens in `durion-moqui-frontend` (module path and menu extension point)?
+
+- Acceptance: New admin screens match the nearest existing admin convention in the repo (menu placement, route naming, permissions) and are discoverable from the admin menu.
+- Test Fixtures: A PriceBooks list screen appears under the admin navigation.
+- Example API request/response (code block)
+
+```json
+{ "ui": { "menu": "admin", "section": "pricing" } }
+```
+
+### Q: What permissions/roles gate view vs manage for price books/rules and restriction rules (exact permission strings)?
+
+- Acceptance: View screens are accessible with view permission; create/update/deactivate require manage permission; forced navigation without permission returns 403 UX.
+- Test Fixtures: User with view but not manage permissions.
+- Example API request/response (code block)
+
+```json
+{ "requiredPermissions": ["pricing:pricebook:view"], "managePermissions": ["pricing:pricebook:manage"] }
+```
+
+### Q: What are the exact backend CRUD endpoints/services for `PriceBook`, `PriceBookRule`, and `RestrictionRule` (including error payload formats for 400 vs 409)?
+
+- Acceptance: CRUD uses `/pricing/v1/...` endpoints; 400 returns field errors; 409 returns conflict code and a recoverable message.
+- Test Fixtures: Submit invalid rule and conflicting update.
+- Example API request/response (code block)
+
+```json
+{ "errorCode": "VALIDATION_ERROR", "fieldErrors": { "effectiveStartAt": "required" } }
+```
+
+```json
+{ "errorCode": "CONFLICT", "message": "policyVersion mismatch" }
+```
+
+### Q: Can a price book rule express both location and customer tier simultaneously, or must it be modeled via scoped price books + single-condition rules?
+
+- Acceptance: UI does not allow multi-condition rule editing; combined scenarios are represented by scoped price books.
+- Test Fixtures: Attempt to set both location and tier conditions.
+- Example API request/response (code block)
+
+```json
+{ "conditionType": "LOCATION", "conditionValue": "loc-1" }
+```
+
+### Q: Does `PriceBook.scope` support a combined location+tier scope, and what is the exact representation?
+
+- Acceptance: PriceBook includes optional `locationId` and `customerTierId` and selection logic chooses most-specific match.
+- Test Fixtures: A book scoped to both `locationId` and `customerTierId`.
+- Example API request/response (code block)
+
+```json
+{ "priceBookId": "pb-1", "locationId": "loc-1", "customerTierId": "tier-1", "currencyUomId": "USD" }
+```
+
+### Q: What is the exact `pricingLogic` JSON schema (types, percent representation, decimal precision/rounding rules)?
+
+- Acceptance: `pricingLogic` supports an explicit `type` enum and validated parameters; UI only edits the JSON shape and displays backend validation errors.
+- Test Fixtures: Create a discount-percent rule.
+- Example API request/response (code block)
+
+```json
+{ "pricingLogic": { "type": "DISCOUNT_PERCENT", "percent": "10.5" } }
+```
+
+### Q: Are base price books single-currency or multi-currency; for fixed price rules, what currencies are allowed and is currency required?
+
+- Acceptance: PriceBook is single-currency (`currencyUomId` required); rules do not override currency.
+- Test Fixtures: Create a book without `currencyUomId` (must fail).
+- Example API request/response (code block)
+
+```json
+{ "errorCode": "VALIDATION_ERROR", "fieldErrors": { "currencyUomId": "required" } }
+```
+
+### Q: What timezone semantics apply to `effectiveStartAt/effectiveEndAt` (UTC vs store local vs user timezone), and should UI use date-only or date-time pickers?
+
+- Acceptance: UI uses date-time pickers and displays store timezone; backend stores UTC and evaluates as store-local.
+- Test Fixtures: Rule starts at store midnight.
+- Example API request/response (code block)
+
+```json
+{ "effectiveStartAt": "2026-01-20T00:00:00", "timezone": "America/Chicago" }
+```
+
+### Q: For deactivation, should UI set `status=INACTIVE`, set `effectiveEndAt`, or either (and which is preferred)?
+
+- Acceptance: UI deactivates by setting `effectiveEndAt` and shows derived status in lists.
+- Test Fixtures: Deactivate a rule and verify it no longer applies after end time.
+- Example API request/response (code block)
+
+```json
+{ "effectiveEndAt": "2026-02-01T00:00:00" }
+```
+
+### Q: What entity/service provides audit entries for rule changes and what fields are available (diffs, actor display name, correlation id)?
+
+- Acceptance: Audit history includes `changedAt`, `changedBy`, `action`, `summary`; UI renders safely without assuming deep diffs.
+- Test Fixtures: Update rule priority.
+- Example API request/response (code block)
+
+```json
+{ "changedAt": "2026-01-19T12:01:00Z", "changedBy": "user-1", "action": "UPDATE", "summary": "priority: 10 -> 20" }
+```
+
+### Q: Promotions: what are the exact endpoints/services for loading an estimate with totals/adjustments and applying a promotion code, and does apply return the full updated estimate payload?
+
+- Acceptance: Apply returns updated totals/adjustments (either full estimate or sufficient pricing subtree); UI does not recompute totals.
+- Test Fixtures: Apply `SUMMER10` to estimate.
+- Example API request/response (code block)
+
+```http
+POST /pricing/v1/estimates/est-1/promotion:apply
+```
+
+```json
+{ "promotionCode": "SUMMER10" }
+```
+
+### Q: Promotions: what are the canonical estimate status enum values allowed for applying promotions?
+
+- Acceptance: UI relies on backend capability flag (e.g., `canApplyPromotions`) and blocks apply when false.
+- Test Fixtures: Estimate with `canApplyPromotions=false`.
+- Example API request/response (code block)
+
+```json
+{ "estimateId": "est-1", "canApplyPromotions": false }
+```
+
+### Q: Promotions: is replace/remove promotion supported; if yes, what is the service contract and audit expectation?
+
+- Acceptance: Applying a new promotion replaces the previous one; removing is supported by a dedicated endpoint if needed, and changes are auditable.
+- Test Fixtures: Replace `SUMMER10` with `WINTER5`.
+- Example API request/response (code block)
+
+```http
+POST /pricing/v1/estimates/est-1/promotion:apply
+```
+
+### Q: Promotions: what is the concurrency/versioning error behavior (HTTP status/code) when estimate changes concurrently, and should UI auto-refresh or prompt?
+
+- Acceptance: Backend returns 409 conflict with stable error code; UI prompts reload and does not show success.
+- Test Fixtures: Concurrent edit.
+- Example API request/response (code block)
+
+```json
+{ "errorCode": "CONFLICT", "message": "estimate version changed" }
+```
+
+### Q: Promotions: are there promotion code length/character constraints that should be validated client-side?
+
+- Acceptance: UI validates code length 1–32 and charset `[A-Z0-9_-]` and trims whitespace before submit.
+- Test Fixtures: `"  SUMMER10  "`.
+- Example API request/response (code block)
+
+```json
+{ "promotionCode": "SUMMER10" }
+```
+
+### Q: Restrictions: can `BLOCK` ever be override-eligible, and how does the evaluate response indicate override eligibility?
+
+- Acceptance: Only `ALLOW_WITH_OVERRIDE` can be overridden; UI never shows override for `BLOCK`.
+- Test Fixtures: Evaluate returns `BLOCK`.
+- Example API request/response (code block)
+
+```json
+{ "decision": "BLOCK" }
+```
+
+### Q: Restrictions: what is the authoritative list of `overrideReasonCode` values and how should the UI fetch it?
+
+- Acceptance: UI fetches reason codes from catalog endpoint; if unavailable, override action is disabled.
+- Test Fixtures: Catalog endpoint returns list.
+- Example API request/response (code block)
+
+```http
+GET /pricing/v1/restrictions/override-reasons
+```
+
+```json
+{ "reasonCodes": ["SAFETY_EXCEPTION", "CUSTOMER_OVERRIDE", "OTHER"] }
+```
+
+### Q: Restrictions: does override require a single `ruleId` when multiple rules match, or can backend accept multiple ruleIds?
+
+- Acceptance: Override request includes a selected `ruleId` if multiple candidates exist; backend rejects ambiguous override without selection.
+- Test Fixtures: Evaluate returns multiple `ruleIds`.
+- Example API request/response (code block)
+
+```json
+{ "ruleIds": ["rule-1", "rule-2"], "overrideRuleSelectionRequired": true }
+```
+
+### Q: Restrictions: is `transactionId` guaranteed to exist at add-item time; if not, should override be disabled until persisted?
+
+- Acceptance: If `transactionId` is missing, override is disabled and user is prompted to persist/save first.
+- Test Fixtures: New line without transactionId.
+- Example API request/response (code block)
+
+```json
+{ "transactionId": null, "overrideEnabled": false }
+```
+
+### Q: Product lookup: what is the supported product search/lookup contract for selecting `productId` in admin screens (minimal fields: SKU/name/id)?
+
+- Acceptance: Admin uses Inventory search and displays SKU/name; UI does not accept free-form productId without validation.
+- Test Fixtures: Search query `"oil"`.
+- Example API request/response (code block)
+
+```http
+GET /inventory/v1/products?query=oil&page=1&pageSize=10
+```
+
+```json
+{ "items": [{ "productId": "p-1", "sku": "OIL-5W30", "name": "5W-30 Oil" }] }
+```
+
+## End
+
+End of document.

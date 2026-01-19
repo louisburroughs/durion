@@ -2,295 +2,63 @@
 
 ## Summary
 
-This document provides non-normative, verbose rationale and decision logs for the Location domain within the Durion enterprise truck service management system. It supports auditors, architects, and engineers by documenting the reasoning behind design choices, alternatives considered, architectural implications, and migration notes for key decisions referenced in the normative AGENT_GUIDE.md.
+### DECISION-LOCATION-003 — Timezone validation and allowed list
 
-## Completed items
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Store IANA timezone IDs; backend validates and provides an allowed list endpoint; UI uses it with a temporary static fallback.
+- Alternatives considered:
+  - Static-only list: becomes stale.
+  - Offset-only zones: breaks DST.
+- Reasoning and evidence:
+  - IANA is the interoperable standard across Java/DBs.
+- Architectural implications:
+  - Add/confirm a `GET .../timezones` endpoint.
+  - Backend returns stable error code `INVALID_TIMEZONE`.
+- Auditor-facing explanation:
+  - Inspect stored timezones for non-IANA values; expect none.
+- Migration & backward-compatibility notes:
+  - Map legacy strings/offsets to IANA IDs during migration.
+- Governance & owner recommendations:
+  - Owner: Location domain with infra support.
 
-- [x] Linked each Decision ID to a detailed rationale
-- [x] Documented alternatives considered for each decision
-- [x] Provided architectural implications and migration notes
-- [x] Included auditor-facing explanations with example queries
+### DECISION-LOCATION-004 — Operating hours representation and validation
 
-## Decision details
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: `operatingHours` is `[{dayOfWeek, open, close}]` using `MONDAY..SUNDAY` and `HH:mm` local times; empty array is allowed.
+- Alternatives considered:
+  - Multiple ranges per day: higher UI/validation complexity.
+  - Overnight ranges: ambiguous day boundary.
+- Reasoning and evidence:
+  - The simplest model covers typical shop operations.
+- Architectural implications:
+  - Backend validates one entry per day and `open < close`.
+  - UI prevents duplicates and disallows overnight.
+- Auditor-facing explanation:
+  - Inspect for duplicates or `open >= close`; expect none.
+- Migration & backward-compatibility notes:
+  - If existing data violates constraints, normalize during migration.
+- Governance & owner recommendations:
+  - Owner: Location domain.
 
-### DECISION-LOCATION-001 — Location Code Immutability
+### DECISION-LOCATION-005 — Holiday closures representation and validation
 
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-001)
-- **Decision:** The `code` field of a Location entity is immutable after creation. Once a location is created with a specific code, that code cannot be changed through any update operation.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Make code immutable after creation
-    - Pros: Prevents breaking references, simplifies audit trails, ensures stable external integrations
-    - Cons: Requires creating a new location if code needs to change
-  - **Option B:** Allow code updates with cascading reference updates
-    - Pros: Provides flexibility for correcting mistakes
-    - Cons: High risk of breaking external system integrations, complex cascading update logic, audit trail complexity
-  - **Option C:** Support code updates with a deprecation/migration period
-    - Pros: Balances flexibility with safety
-    - Cons: Adds significant complexity to API and data model, requires temporal versioning
-- **Reasoning and evidence:**
-  - Location codes serve as stable identifiers in external systems (scheduling, inventory, work execution)
-  - Changing codes would require coordinated updates across multiple microservices
-  - Historical data and audit trails rely on stable identifiers
-  - Most enterprise systems treat location codes as immutable primary keys
-  - Correction scenarios are rare and can be handled through location deactivation and recreation
-- **Architectural implications:**
-  - **Components affected:**
-    - Location API: PUT/PATCH endpoints must reject code changes with 400 BAD_REQUEST
-    - Database schema: Code field remains in location table with unique constraint
-    - Events: LocationCreated includes code; LocationUpdated does not allow code changes
-  - **Data integrity:**
-    - Unique constraint on code at database level prevents duplicates
-    - API layer validates that update requests do not attempt to modify code
-  - **Integration contracts:**
-    - External systems can safely cache location code mappings
-    - No code-change events need to be supported in consumer services
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify that all Location update operations preserve the original code value
-  - **Logs to query:**
-    ```sql
-    -- Verify no code changes in update events
-    SELECT event_id, location_id, event_type, payload
-    FROM location_events
-    WHERE event_type = 'LocationUpdated'
-      AND JSON_EXTRACT(payload, '$.code') IS NOT NULL
-    ORDER BY created_at DESC;
-    ```
-  - **Expected outcome:** Zero records with code present in LocationUpdated payloads
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Document code immutability in API specification
-    2. Add validation in API layer to reject code modification attempts
-    3. Update client libraries and UI to remove code editing capability
-  - **Safe-to-deploy order:**
-    1. Backend validation deployment (returns 400 for code changes)
-    2. UI updates to remove code editing
-  - **Data migration:** No data migration required; existing codes remain unchanged
-- **Governance & owner recommendations:**
-  - **Owner:** Location domain team / API Platform team
-  - **Review cadence:** Annual review of immutability policy
-  - **Gating criteria:** Any code immutability relaxation requires architectural review board approval
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: `holidayClosures` is nullable; when present it is an array of `{date, reason?}` with unique date values and optional `reason` max length 255.
+- Alternatives considered:
+  - Non-null array only: loses “unknown/not provided” semantics.
+  - Free-form text blob: not reliably searchable.
+- Reasoning and evidence:
+  - Matches typical “calendar exceptions” modelling.
+- Architectural implications:
+  - Backend enforces unique date constraint.
+  - UI preserves null vs empty when required.
+- Auditor-facing explanation:
+  - Inspect duplicate closure dates and overlong reasons; expect none.
+- Migration & backward-compatibility notes:
+  - Convert legacy closure notes into per-date entries where possible.
+- Governance & owner recommendations:
+  - Owner: Location domain.
 
-### DECISION-LOCATION-002 — Location Name Uniqueness with Case-Insensitive Normalization
-
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-002)
-- **Decision:** Location names must be unique across all locations using case-insensitive comparison with whitespace trimming. The system normalizes names to lowercase and trims whitespace before uniqueness checking.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Case-insensitive, trimmed uniqueness
-    - Pros: Prevents user confusion, handles common input variations, clear error messages
-    - Cons: Requires normalization logic, may reject semantically distinct names
-  - **Option B:** Case-sensitive uniqueness
-    - Pros: Simpler implementation, allows "Shop A" and "shop a" as distinct
-    - Cons: Confusing for users, prone to accidental duplicates
-  - **Option C:** No uniqueness constraint
-    - Pros: Maximum flexibility
-    - Cons: Duplicate locations cause operational confusion, difficult to reference in UI
-- **Reasoning and evidence:**
-  - Human users naturally treat "Main Shop" and "main shop" as the same location
-  - Case variations typically indicate data entry errors rather than distinct entities
-  - Leading/trailing whitespace is almost always unintentional
-  - Industry standard for location management systems
-- **Architectural implications:**
-  - **Components affected:**
-    - Location API: Create/update endpoints normalize names before uniqueness checks
-    - Database: Add functional index on LOWER(TRIM(name))
-    - UI: Display names preserve original casing for readability
-  - **Database schema:**
-    ```sql
-    -- Functional unique index for normalized names
-    CREATE UNIQUE INDEX idx_location_name_normalized
-    ON location (LOWER(TRIM(name)));
-    ```
-  - **Error handling:**
-    - Return 409 CONFLICT with error code `LOCATION_NAME_TAKEN`
-    - Error payload includes normalized conflicting name and existing location ID
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify no locations exist with names that differ only by case or whitespace
-  - **Query example:**
-    ```sql
-    -- Find potential duplicate names
-    SELECT LOWER(TRIM(name)) as normalized_name, COUNT(*) as count
-    FROM location
-    GROUP BY LOWER(TRIM(name))
-    HAVING COUNT(*) > 1;
-    ```
-  - **Expected outcome:** Zero records returned
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Audit existing location names for conflicts
-    2. Manually resolve any existing duplicates before deploying unique index
-    3. Deploy database migration with functional unique index
-    4. Deploy API validation logic
-  - **Migration command:**
-    ```sql
-    -- Identify existing conflicts before migration
-    SELECT name, COUNT(*)
-    FROM location
-    GROUP BY LOWER(TRIM(name))
-    HAVING COUNT(*) > 1;
-    ```
-  - **Rollback strategy:** Drop functional index if issues arise; name changes remain valid
-- **Governance & owner recommendations:**
-  - **Owner:** Location domain team
-  - **Review cadence:** No regular review needed; stable decision
-  - **Escalation:** Data team involvement for resolving discovered conflicts
-
-### DECISION-LOCATION-003 — Timezone Validation Using IANA Time Zone Database
-
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-003)
-- **Decision:** Location timezone values must be valid IANA time zone identifiers (e.g., "America/New_York", "Europe/London"). The backend validates against the IANA tz database. The frontend uses a backend-provided endpoint that returns the current allowed list of time zones.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Backend-provided dynamic timezone list
-    - Pros: Always current, supports IANA updates, consistent validation
-    - Cons: Requires backend endpoint, frontend dependency on backend for picker
-  - **Option B:** Static frontend timezone list
-    - Pros: No runtime dependency, faster UI load
-    - Cons: Becomes stale, requires frontend updates for new timezones
-  - **Option C:** Offset-based timezones (+05:00)
-    - Pros: Simple representation
-    - Cons: Loses DST handling, no semantic location context
-- **Reasoning and evidence:**
-  - IANA tz database is the global standard for timezone representation
-  - DST rules change frequently and vary by jurisdiction
-  - Offset-only representation breaks during DST transitions
-  - Most programming languages and databases have built-in IANA tz support
-  - Backend validation ensures data integrity regardless of client behavior
-- **Architectural implications:**
-  - **Components affected:**
-    - Location API: Validation middleware checks timezone against IANA database
-    - New endpoint: `GET /v1/timezones` returns list of allowed timezone identifiers
-    - Database: Store timezone as VARCHAR with CHECK constraint or enum type
-  - **API contract:**
-    ```json
-    // GET /v1/timezones response
-    {
-      "timezones": [
-        {"id": "America/New_York", "displayName": "America/New York (EST/EDT)", "offset": "-05:00"},
-        {"id": "Europe/London", "displayName": "Europe/London (GMT/BST)", "offset": "+00:00"}
-      ]
-    }
-    ```
-  - **Error handling:**
-    - Return 400 with error code `INVALID_TIMEZONE` when timezone is not in allowed list
-    - Error payload includes list of suggestions based on string similarity
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify all location timezone values are valid IANA identifiers
-  - **Query example:**
-    ```sql
-    -- Identify invalid timezones (PostgreSQL example)
-    SELECT location_id, code, timezone
-    FROM location
-    WHERE timezone IS NOT NULL
-      AND timezone NOT IN (SELECT name FROM pg_timezone_names);
-    ```
-  - **Expected outcome:** Zero records with invalid timezones
-  - **Audit artifact:** API request/response logs showing timezone validation
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Audit existing location timezone values
-    2. Migrate any invalid or offset-based values to IANA identifiers
-    3. Deploy timezone validation endpoint
-    4. Deploy location API validation
-    5. Update frontend to use timezone picker endpoint
-  - **Migration script example:**
-    ```sql
-    -- Convert common offset patterns to IANA identifiers
-    UPDATE location
-    SET timezone = 'America/New_York'
-    WHERE timezone IN ('EST', 'Eastern', '-05:00', 'US/Eastern');
-    ```
-  - **Safe-to-deploy order:**
-    1. Deploy timezone list endpoint
-    2. Deploy validation in location API (initially as warning, not blocking)
-    3. Complete data migration
-    4. Enable strict validation
-- **Governance & owner recommendations:**
-  - **Owner:** Location domain team with infrastructure support for IANA database updates
-  - **Review cadence:** Annual review after IANA database updates
-  - **Update process:** Backend automatically picks up new IANA versions through library updates
-
-### DECISION-LOCATION-004 — Operating Hours Validation Rules
-
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-004)
-- **Decision:** Operating hours must be represented as day-of-week entries with local time ranges. Each day can have at most one entry. Open time must be strictly less than close time (no overnight ranges). Closed days are represented by omission. An empty array is allowed and indicates the location has no standard operating hours defined.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Single time range per day, no overnight
-    - Pros: Simple representation, clear semantics, easier to validate and display
-    - Cons: Cannot represent split shifts or overnight operations
-  - **Option B:** Multiple time ranges per day
-    - Pros: Supports split shifts (e.g., 8am-noon, 2pm-6pm)
-    - Cons: Complex validation, UI complexity, rarely needed for location-level hours
-  - **Option C:** Overnight ranges (close < open)
-    - Pros: Natural representation for 24-hour or overnight operations
-    - Cons: Complex timezone handling, ambiguous day boundary, validation complexity
-- **Reasoning and evidence:**
-  - Location-level operating hours define when a facility is generally available
-  - Split shifts and overnight operations are typically managed at the bay or appointment level
-  - Simple model reduces validation complexity and UI errors
-  - 24-hour operations can be represented as "00:00-23:59" or omitting hours constraints
-  - Most locations operate within a single continuous daily window
-- **Architectural implications:**
-  - **Components affected:**
-    - Location API: Validation logic for operating hours structure
-    - Database: Store as JSONB with schema validation
-    - UI: Day-of-week picker with time range inputs
-  - **Payload structure:**
-    ```json
-    {
-      "operatingHours": [
-        {"dayOfWeek": "MONDAY", "open": "08:00", "close": "17:00"},
-        {"dayOfWeek": "TUESDAY", "open": "08:00", "close": "17:00"}
-      ]
-    }
-    ```
-  - **Validation rules:**
-    1. No duplicate `dayOfWeek` values
-    2. `open` and `close` must be valid local times (HH:MM format)
-    3. `open` < `close` (string comparison works for HH:MM)
-    4. Empty array is valid (no hours defined)
-  - **Database constraint:**
-    ```sql
-    -- JSONB schema validation (PostgreSQL)
-    ALTER TABLE location ADD CONSTRAINT operating_hours_schema
-    CHECK (
-      jsonb_typeof(operating_hours) = 'array'
-      AND (
-        operating_hours = '[]'::jsonb
-        OR (
-          SELECT COUNT(*) = COUNT(DISTINCT elem->>'dayOfWeek')
-          FROM jsonb_array_elements(operating_hours) AS elem
-        )
-      )
-    );
-    ```
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify all operating hours entries follow validation rules
-  - **Query example:**
-    ```sql
-    -- Find locations with invalid operating hours
-    SELECT location_id, code, operating_hours
-    FROM location
-    WHERE operating_hours IS NOT NULL
-      AND (
-        -- Check for duplicates
-        jsonb_array_length(operating_hours) != 
-          (SELECT COUNT(DISTINCT value->>'dayOfWeek') 
-           FROM jsonb_array_elements(operating_hours))
-        -- Check for invalid time ranges
-        OR EXISTS (
-          SELECT 1 FROM jsonb_array_elements(operating_hours) elem
-          WHERE elem->>'open' >= elem->>'close'
-        )
-      );
-    ```
-  - **Expected outcome:** Zero locations with validation violations
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Audit existing operating hours for overnight ranges or duplicates
-    2. Normalize overnight ranges to 23:59 close or remove hours constraint
-    3. Deploy schema validation
-    4. Update frontend to prevent invalid input
-  - **Migration considerations:**
-    - Locations with overnight operations may need manual review
     - Consider adding a boolean flag `operates24x7` if needed
 - **Governance & owner recommendations:**
   - **Owner:** Location domain team

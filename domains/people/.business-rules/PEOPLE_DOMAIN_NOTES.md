@@ -14,7 +14,7 @@ This document provides non-normative, verbose rationale and decision logs for th
 
 ## Decision details
 
-### DECISION-PEOPLE-001 — User Lifecycle States and Soft Offboarding
+## DECISION-PEOPLE-001 - User lifecycle states and soft offboarding
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-001)
 - **Decision:** User lifecycle includes three states: `ACTIVE` (can authenticate and be assigned), `DISABLED` (cannot authenticate but identity retained, reversible), and `TERMINATED` (employment ended, cannot authenticate, irreversible). Disabling a user is a logical soft delete with no physical data removal. Authentication is blocked immediately upon status change.
@@ -108,7 +108,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Policy:** Define retention period for TERMINATED user data (e.g., 7 years)
   - **Monitoring:** Alert on DISABLED users attempting authentication (potential security issue)
 
-### DECISION-PEOPLE-002 — User Disable Workflow with Saga Pattern
+## DECISION-PEOPLE-002 - User disable workflow with saga pattern
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-002)
 - **Decision:** Disabling a user follows an atomic local update followed by asynchronous downstream propagation via saga pattern. User status changes immediately (blocking authentication), then downstream systems (assignment termination, timer stops) are notified via events with retry logic. Downstream failures do not rollback the disable; they are retried with exponential backoff and routed to Dead Letter Queue (DLQ) after 24 hours.
@@ -221,7 +221,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **SLA:** DLQ items should be resolved within 24 hours of creation
   - **Review cadence:** Monthly review of DLQ patterns and downstream reliability
 
-### DECISION-PEOPLE-003 — Role Assignment Scopes (GLOBAL vs LOCATION)
+## DECISION-PEOPLE-003 - Role assignment scopes (GLOBAL vs LOCATION)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-003)
 - **Decision:** Role assignments support two scopes: `GLOBAL` (applies across all locations) and `LOCATION` (applies only to specific location). Role definitions declare allowed scopes. A role assignment must specify scope; LOCATION-scoped assignments require a location reference. Multiple location-scoped assignments for the same role are allowed. UI displays effective permissions as the union of all assignments.
@@ -351,7 +351,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Policy:** Prefer LOCATION scope for operational roles, GLOBAL only for admin/corporate
   - **Documentation:** Maintain catalog of roles with recommended scopes
 
-### DECISION-PEOPLE-004 — Person-Location Assignment Primary Flag Semantics
+## DECISION-PEOPLE-004 - Person-location assignment primary flag semantics
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-004)
 - **Decision:** Person-location assignments include a `primary` boolean flag. At most one assignment per person can be primary at any given point in time (within effective date range). When a new assignment is created with `primary=true`, the backend automatically demotes (sets `primary=false`) any existing primary assignment. UI displays primary status and reflects backend-driven demotion after creation.
@@ -457,7 +457,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** No regular review needed; stable invariant
   - **Monitoring:** Alert on uniqueness constraint violations (should not occur)
 
-### DECISION-PEOPLE-005 — Timekeeping Entry Ingestion and Deduplication
+## DECISION-PEOPLE-005 - Timekeeping entry ingestion and deduplication
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-005)
 - **Decision:** Timekeeping entries are ingested from Shop Management `WorkSessionCompleted` events. Each entry includes a source correlation key (e.g., `workSessionId`). The backend deduplicates entries using this key: if an entry with the same source key already exists, the ingestion is idempotent (no duplicate created). UI displays deduplicated entries only.
@@ -573,7 +573,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Monthly reconciliation of work sessions vs timekeeping entries
   - **Data quality:** Periodic audit to ensure no missing entries for completed sessions
 
-### DECISION-PEOPLE-006 — Time Period Approval Atomicity
+## DECISION-PEOPLE-006 - Time period approval atomicity
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-006)
 - **Decision:** Manager approval/rejection of time entries operates at the time period level (pay period) as an atomic action. All pending entries for an employee within a period are approved or rejected together. Each approval action creates an immutable `TimePeriodApproval` record capturing the manager, timestamp, and outcome. Multiple approval records per period-employee are allowed (history of approval cycles).
@@ -712,7 +712,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Policy:** Define approval SLA (e.g., manager must approve within 3 days of period close)
   - **Monitoring:** Alert on periods without approvals after submission deadline
 
-### DECISION-PEOPLE-007 — Break Type Enumeration and Auto-End Flag
+## DECISION-PEOPLE-007 - Break type enumeration and auto-end flag
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-007)
 - **Decision:** Break records include a `breakType` enum (`MEAL`, `REST`, `OTHER`) and an optional `autoEnded` boolean flag. The enum categorizes breaks for compliance reporting (e.g., meal breaks >30min). The autoEnded flag indicates system-initiated break ends (e.g., shift end auto-closes break) vs. user-initiated. Backend enforces break type validation; UI provides picker with standard types.
@@ -825,7 +825,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Policy:** Document meal break duration requirements per jurisdiction
   - **Monitoring:** Alert on high rate of auto-ended breaks (indicates training issue)
 
-### DECISION-PEOPLE-008 — Employee Profile Conflict Handling (409 vs Warnings)
+## DECISION-PEOPLE-008 - Employee profile conflict handling (409 vs warnings)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-008)
 - **Decision:** Employee profile create/update returns HTTP 409 Conflict for blocking errors (e.g., duplicate employee number) and HTTP 200 with warnings array for non-blocking validation issues (e.g., missing optional fields recommended for payroll). The UI must distinguish between blocking errors (prevent save, show error) and warnings (allow save, show warnings banner).
@@ -952,7 +952,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Policy:** Define which fields are required for payroll processing
   - **Monitoring:** Track warning rates to identify data quality trends
 
-### DECISION-PEOPLE-009 — Mechanic Roster as Read Model Synced from HR
+## DECISION-PEOPLE-009 - Mechanic roster as read model synced from HR
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-009)
 - **Decision:** The Mechanic roster (used by Dispatch and Shop Management) is a read-only projection of authoritative Person/User data from the People domain. It is populated via HR sync events or backend-to-backend API calls. The roster includes status, home location, and skills snapshot. Roster data is eventually consistent with authoritative source. UI displays sync timestamp and refresh capability.
@@ -1093,7 +1093,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **SLA:** Sync lag should be < 5 minutes under normal operation
   - **Incident response:** Manual bulk sync procedure for sync failures
 
-### DECISION-PEOPLE-010 — Time Entry Approval Authorization
+## DECISION-PEOPLE-010 - Time entry approval authorization
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-010)
 - **Decision:** Time entry approval requires the `TIME_APPROVE` permission. Only users with this permission can approve/reject time entries. The backend enforces permission checks server-side. Managers can only approve entries for employees under their management (location-based or hierarchical). Unauthorized approval attempts return HTTP 403 Forbidden.
@@ -1201,6 +1201,127 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Quarterly audit of TIME_APPROVE permission assignments
   - **Policy:** Grant TIME_APPROVE to managers, payroll clerks, and HR admins only
   - **Monitoring:** Alert on unusual approval patterns (high volume, cross-location approvals)
+
+## DECISION-PEOPLE-011 - Mechanic roster storage ownership
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-011)
+- **Decision:** People is the system of record for `Person` identity and lifecycle status. The Mechanic roster is a read model that may be physically stored in the consuming domain (Dispatch/ShopMgmt) for query performance, but it must be derived from People/HR data and must not redefine lifecycle truth.
+- **Alternatives considered:**
+  - **Option A (Chosen):** Store roster read model with consumers; sync from People/HR
+    - Pros: Local query performance; clear SoR boundary
+    - Cons: Requires sync and reconciliation
+  - **Option B:** Store roster read model in People and force consumers to query People
+    - Pros: Single storage location
+    - Cons: Couples consumers to People availability/performance
+- **Implications:**
+  - Define a sync contract (event-driven or pull) and idempotency keys.
+  - Consumers must show status sourced from People.
+
+## DECISION-PEOPLE-012 - Person-user cardinality and identifiers
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-012)
+- **Decision:** Default to 1:1 `User`→`Person` in v1. Use `personId` as the stable identifier for employee-centric screens and read models.
+- **Rationale:** Simplifies auditing, authorization, and routing.
+- **Implications:**
+  - APIs should prefer `personId` parameters for People workflows.
+  - If shared logins become necessary, it must be introduced as an explicit model change.
+
+## DECISION-PEOPLE-013 - Permission naming and UI capability exposure
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-013)
+- **Decision:** UI gates actions using named permissions (not role name heuristics). Where policy options exist (e.g., disable-user options), backend must return capability flags/options. Safe default permission names are listed in `AGENT_GUIDE.md` and must be reconciled to the platform permission catalog.
+- **Rationale:** Prevents UI from becoming the policy engine and reduces drift.
+- **Implications:**
+  - Backend provides `canX`/`allowedActions` style fields for complex flows.
+  - Security service remains the enforcement point.
+
+## DECISION-PEOPLE-014 - Assignment effective dating semantics (exclusive end)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-014)
+- **Decision:** Use half-open intervals for effective dating: `effectiveStartAt` inclusive, `effectiveEndAt` exclusive.
+- **Rationale:** Deterministic overlap checks and no boundary ambiguity.
+- **Implications:**
+  - Backend validators and UI validators must match.
+  - Display layers may present “end date” in a user-friendly way, but the stored semantics remain exclusive.
+
+## DECISION-PEOPLE-015 - Timezone display standard for People UIs
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-015)
+- **Decision:** Store instants in UTC. Display in user profile timezone when available; otherwise fall back to the relevant location timezone for location-scoped records.
+- **Rationale:** Preserves correct instants while maximizing UX clarity.
+- **Implications:** UI must indicate the timezone used for critical timestamps.
+
+## DECISION-PEOPLE-016 - Break notes requirement for OTHER
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-016)
+- **Decision:** Notes are optional but recommended for `breakType=OTHER`.
+- **Rationale:** Allows low-friction entry while enabling richer auditing.
+- **Implications:** UI should prompt for notes but not hard-block.
+
+## DECISION-PEOPLE-017 - Optimistic concurrency default (lastUpdatedStamp)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-017)
+- **Decision:** When entities expose a concurrency token (prefer `lastUpdatedStamp`), require clients to submit it on update and return 409 on mismatch.
+- **Rationale:** Prevents lost updates in admin workflows.
+- **Implications:** UI must handle 409 by refreshing and reapplying intended changes.
+
+## DECISION-PEOPLE-018 - Error response schema (400/409)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-018)
+- **Decision:** Standardize error responses:
+  - 400 includes `errorCode`, `message`, optional `fieldErrors`
+  - 409 includes `errorCode`, `message`, optional `blockingIds`, optional `details`
+- **Rationale:** Enables consistent UI rendering and testing.
+- **Implications:** If a gateway standard exists, People must map to it consistently.
+
+## DECISION-PEOPLE-019 - tenantId UI visibility policy
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-019)
+- **Decision:** Treat `tenantId` as sensitive; hide by default and only show for approved support/admin use cases.
+- **Rationale:** Minimize internal identifier exposure.
+- **Implications:** Use personId/employeeId as primary UI identifiers.
+
+## DECISION-PEOPLE-020 - technicianIds query encoding and report range
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-020)
+- **Decision:** Encode multi-tech filters as repeated query params (`technicianId=<id>`). Backend enforces a maximum date range and may expose this as a capability.
+- **Rationale:** Avoids quoting/escaping pitfalls and supports standard HTTP clients.
+- **Implications:** UI should surface server range violations with a clear message.
+
+## DECISION-PEOPLE-021 - People REST API conventions (paths, paging, shapes)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-021)
+- **Decision:** Default People HTTP APIs are exposed under `/rest/api/v1/people` using consistent list conventions:
+  - Lists accept `page` and `pageSize` (or `pageIndex`/`pageSize`), with stable default sort.
+  - List responses return `{ items: [], page, pageSize, total }` (or equivalent) and must not require UI inference.
+  - Error responses follow DECISION-PEOPLE-018.
+- **Rationale:** UI must be able to implement screens consistently across People features.
+
+## DECISION-PEOPLE-022 - Break API contract and identity derivation
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-022)
+- **Decision:** Break start/end operate on the authenticated user’s active session; UI does not pass timecard/session IDs by default.
+- **Implications:** 409 conflicts (already in progress / no active break) are treated as refresh-required.
+
+## DECISION-PEOPLE-023 - Person-location assignment API contract and reason codes
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-023)
+- **Decision:** Provide list/create/end assignment endpoints under People REST conventions. `changeReasonCode` is optional in v1; introduce reference lists later if policy requires.
+
+## DECISION-PEOPLE-024 - Disable user API contract and UX defaults
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-024)
+- **Decision:** Disable user is a privileged action with explicit confirmation. Backend communicates allowed options via capability fields. Default UX stays on refreshed detail view after success.
+
+## DECISION-PEOPLE-025 - Employee profile defaults and terminated edit rules
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-025)
+- **Decision:** Default employee status on create is `ACTIVE`. Terminated employees are read-only by default; limited edits require explicit HR-admin capability.
+
+## DECISION-PEOPLE-026 - Role assignment API contract, dating, and history defaults
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-026)
+- **Decision:** Role assignment lists default to active-only, with an explicit `includeHistory` toggle. Allow future-dated ends; allow backdated ends only when server validation allows (return 409 otherwise).
 
 ## End
 

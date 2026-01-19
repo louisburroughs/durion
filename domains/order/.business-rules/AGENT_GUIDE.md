@@ -1,281 +1,222 @@
-# AGENT_GUIDE.md — Order Domain
+# AGENT_GUIDE.md
 
----
+## Summary
 
-## Purpose
+This guide defines the Order domain’s **normative** rules for order cancellation orchestration in the Durion POS platform. It resolves the prior “open questions” into safe defaults so frontend (Moqui/Quasar) work can proceed without inventing policy. Decisions are indexed and cross-referenced to `ORDER_DOMAIN_NOTES.md` for non-normative rationale.
 
-The Order domain manages lifecycle and state transitions of POS orders, with a focus on orchestrating order cancellation. It enforces cancellation policies, coordinates with Payment and Work Execution domains, and ensures auditability and operational correctness in cancellation workflows.
+## Completed items
 
-This guide is updated to reflect new Moqui + Quasar frontend stories that surface cancellation from the Order Detail UI, require reason/comments capture, and require deterministic UI rendering of cancellation outcomes and audit details.
+- [x] Generated Decision Index
+- [x] Mapped Decision IDs to `ORDER_DOMAIN_NOTES.md`
+- [x] Reconciled todos from original AGENT_GUIDE
 
----
+## Decision Index
+
+| Decision ID | Title |
+| --- | --- |
+| DECISION-ORDER-001 | Order domain is cancellation orchestrator |
+| DECISION-ORDER-002 | Work status blocking rules |
+| DECISION-ORDER-003 | Payment settlement handling (void vs refund required) |
+| DECISION-ORDER-004 | Cancellation audit record immutability |
+| DECISION-ORDER-005 | Idempotent cancellation semantics |
+| DECISION-ORDER-006 | Cancellation reason taxonomy |
+| DECISION-ORDER-007 | Orchestration timeout and failure handling |
+| DECISION-ORDER-008 | Cancellation comments maximum length |
+| DECISION-ORDER-009 | Concurrency control and 409 response |
+| DECISION-ORDER-010 | Authorization and permission model |
+| DECISION-ORDER-011 | Canonical domain label and ownership for cancellation UI |
+| DECISION-ORDER-012 | UI → Moqui service contract conventions (safe defaults) |
+| DECISION-ORDER-013 | Canonical order cancellation status enum contract |
+| DECISION-ORDER-014 | Frontend permission exposure pattern (safe default) |
+| DECISION-ORDER-015 | Correlation IDs and admin-only details visibility |
 
 ## Domain Boundaries
 
-- **Primary Authority:** POS Order domain owns:
-  - Order lifecycle state machine (including cancellation-related states)
-  - Cancellation policy decisions (cancellable vs blocked)
-  - Orchestration of downstream actions (work rollback/cancel, payment void/refund requirement)
-  - Audit record creation for every cancellation attempt
+### What Order owns (system of record)
 
-- **Downstream Dependencies (authoritative sources):**
-  - **Payment/Billing System:** authoritative on payment state and whether a void is possible vs refund required.
-  - **Work Execution System:** authoritative on work status and whether work can be rolled back/cancelled.
+- Order lifecycle state transitions (including cancellation variants)
+- Cancellation policy (cancellable vs blocked) and orchestration outcomes
+- Downstream coordination and final order status selection
+- Immutable audit records for cancellation attempts
 
-- **Frontend (Moqui/Quasar) responsibilities (experience layer):**
-  - Permission-gated “Cancel Order” action in Order Detail context
-  - Collect cancellation inputs (`reason` required, `comments` optional <= 2000 chars)
-  - Call the Order domain cancellation operation via Moqui transition/service
-  - Render cancellation outcomes and audit metadata returned by backend
-  - Handle concurrency (`409`) and in-flight states (`CANCELLING` or equivalent)
-  - Avoid leaking sensitive internals in UI and logs
+### What Order does *not* own
 
-- **Out of Scope (for this domain guide):**
-  - Accounting/GL impacts and refund processing workflow UI
-  - Operator/admin dashboards for resolving failed cancellations (except displaying current state and audit details)
-  - Implementing payment void/refund logic itself (owned by Payment/Billing)
-
-**CLARIFY:** Some frontend issue labels mention `domain:payment` / “domain: Point of Sale”. Backend reference stories place cancellation orchestration under `domain:order` (and possibly `domain:positivity`). Confirm canonical domain label and routing for this repo.
-
----
+- Payment execution (authorization/capture/settlement/void/refund execution)
+- Work execution state machine and physical rollback procedures
+- Accounting/GL postings and refund processing workflows
 
 ## Key Entities / Concepts
 
 | Entity | Description |
-|---|---|
-| **Order** | Core POS order with status and identifiers needed for downstream coordination. Must expose cancellation-related status to UI. |
-| **CancellationRecord** | Immutable audit record for each cancellation attempt. UI stories require displaying at least latest attempt details. |
-| **WorkOrder** (external) | Work execution representation linked to the order; used to determine cancellability and rollback outcome. |
-| **PaymentTransaction** (external) | Payment representation linked to the order; used to determine void vs refund requirement and void outcome. |
-| **CancelOrderRequest** | Input DTO: `orderId`, `reason` (required), `comments` (optional, max 2000). |
-| **CancelOrderResponse** | Output DTO: `orderId`, `status`, `message`, `cancellationId`, `paymentVoidStatus`, `workRollbackStatus` (+ optional correlation id). |
-
-### Relationships (practical)
-- `Order (1) -> (0..n) CancellationRecord`
-  - UI typically needs **latest** cancellation record; optionally a history list if backend provides it.
-- `Order (0..1) -> WorkOrder` (via `workOrderId` or equivalent)
-- `Order (0..1) -> PaymentTransaction` (via `paymentId` or equivalent)
-
-**TODO:** Confirm actual Moqui entity names/fields and whether cancellation summary is embedded in Order detail response or fetched separately.
-
----
+| --- | --- |
+| Order | Order record and authoritative status values, including cancellation-related states. |
+| CancellationRecord | Immutable audit record per cancellation attempt (success or failure). |
+| WorkOrder (external) | Work execution object linked to the order; used to evaluate cancellability and rollback status. |
+| PaymentTransaction (external) | Payment object linked to the order; used to decide void vs refund-required and void status. |
+| CancelOrderRequest | Inputs: `orderId`, `reason` (required), `comments` (optional, max 2000). |
+| CancelOrderResponse | Outputs: `orderId`, `status`, `message`, `cancellationId`, `paymentVoidStatus`, `workRollbackStatus`, optional support identifiers. |
 
 ## Invariants / Business Rules
 
-- **BR-1:** POS Order domain is the orchestrator and authoritative owner of cancellation policy and order state transitions.
-- **BR-2:** Cancellation is blocked if work status is in blocking list:  
-  `IN_PROGRESS`, `LABOR_STARTED`, `PARTS_ISSUED`, `MATERIALS_CONSUMED`, `COMPLETED`, `CLOSED`.  
-  - Backend must enforce; UI may optionally pre-check but must not rely on it.
-- **BR-3:** Cancellation allowed regardless of payment settlement state:
-  - If payment is authorized/captured but not settled: attempt void.
-  - If payment is settled: transition to `CANCELLED_REQUIRES_REFUND` and require manual refund (no refund UI in scope).
-- **BR-4:** On downstream failure (payment void or work rollback), transition to `CANCELLATION_FAILED` and require manual intervention.
-- **BR-5:** All cancellation attempts must be fully audited with user, timestamp, reason, downstream results, and correlation IDs.
-- **BR-6 (UI-driven constraint, must be validated server-side too):**
-  - `reason` is required.
-  - `comments` length must be `<= 2000` characters.
-- **BR-7 (Concurrency / idempotency):**
-  - If cancellation is already in progress, return a conflict (`409`) and do not start a second orchestration.
-  - If already cancelled, operation must be idempotent (return current state and latest cancellation metadata).
+- Order domain is the orchestrator and authority for cancellation policy and resulting order status. (Decision ID: DECISION-ORDER-001)
+- Cancellation is blocked if work is in a non-reversible state set. (Decision ID: DECISION-ORDER-002)
+- Cancellation proceeds regardless of payment settlement state; settled payments imply refund-required status, not a UI refund flow. (Decision ID: DECISION-ORDER-003)
+- Every cancellation attempt is audited as an immutable record (including blocked attempts and failures). (Decision ID: DECISION-ORDER-004)
+- Cancellation is idempotent for already-cancelled orders and conflict-protected for in-flight cancellation. (Decision ID: DECISION-ORDER-005, DECISION-ORDER-009)
+- `reason` is required; `comments` is optional and limited to 2000 characters (server-enforced). (Decision ID: DECISION-ORDER-008)
 
-**CLARIFY:** Definitive order status enum(s) exposed to frontend: `CANCELLING` vs `CANCEL_REQUESTED`/`CANCEL_PENDING`, and failure variants (`CANCEL_FAILED_*` vs `CANCELLATION_FAILED`).
+## Mapping: Decisions → Notes
 
----
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| DECISION-ORDER-001 | Order domain orchestrates cancellation | [ORDER_DOMAIN_NOTES.md](#decision-order-001---order-domain-as-cancellation-orchestrator) |
+| DECISION-ORDER-002 | Work blocks cancellation in irreversible states | [ORDER_DOMAIN_NOTES.md](#decision-order-002---work-status-blocking-rules-for-cancellation) |
+| DECISION-ORDER-003 | Void if unsettled; refund-required if settled | [ORDER_DOMAIN_NOTES.md](#decision-order-003---payment-settlement-handling-in-cancellation) |
+| DECISION-ORDER-004 | Cancellation audit is immutable | [ORDER_DOMAIN_NOTES.md](#decision-order-004---cancellation-audit-record-immutability) |
+| DECISION-ORDER-005 | Idempotency for repeat cancels | [ORDER_DOMAIN_NOTES.md](#decision-order-005---idempotent-cancellation-semantics) |
+| DECISION-ORDER-006 | Canonical reason list and governance | [ORDER_DOMAIN_NOTES.md](#decision-order-006---cancellation-reason-taxonomy) |
+| DECISION-ORDER-007 | Timeout/failure handling policy | [ORDER_DOMAIN_NOTES.md](#decision-order-007---cancellation-orchestration-timeout-and-failure-handling) |
+| DECISION-ORDER-008 | Comments max length (2000) | [ORDER_DOMAIN_NOTES.md](#decision-order-008---cancellation-comments-maximum-length) |
+| DECISION-ORDER-009 | Concurrency returns 409 | [ORDER_DOMAIN_NOTES.md](#decision-order-009---concurrency-control-with-409-conflict-response) |
+| DECISION-ORDER-010 | Permission model for cancellation | [ORDER_DOMAIN_NOTES.md](#decision-order-010---authorization-and-permission-model-for-cancellation) |
+| DECISION-ORDER-011 | Canonical story label is domain:order | [ORDER_DOMAIN_NOTES.md](#decision-order-011---canonical-domain-label-and-ownership-for-cancellation-ui) |
+| DECISION-ORDER-012 | Safe-default Moqui contract conventions | [ORDER_DOMAIN_NOTES.md](#decision-order-012---ui-to-moqui-service-contract-conventions-safe-defaults) |
+| DECISION-ORDER-013 | Canonical cancellation status enum | [ORDER_DOMAIN_NOTES.md](#decision-order-013---canonical-order-cancellation-status-enum-contract) |
+| DECISION-ORDER-014 | Permission exposure pattern to UI | [ORDER_DOMAIN_NOTES.md](#decision-order-014---frontend-permission-exposure-pattern-safe-default) |
+| DECISION-ORDER-015 | Correlation IDs/admin details policy | [ORDER_DOMAIN_NOTES.md](#decision-order-015---correlation-ids-and-admin-only-details-visibility) |
 
-## Events / Integrations
+## Open Questions (from source)
 
-| Event Name | Emitted When | Payload Highlights |
-|---|---|---|
-| `OrderCancelled` | Successful cancellation with void/refund decision | `orderId`, `cancellationReason`, `cancelledBy`, `paymentVoidStatus`, `workRollbackStatus`, correlation IDs |
-| `OrderCancelledRequiresRefund` | Cancellation when payment settled | `orderId`, payment details (non-sensitive), cancellation reason, correlation IDs |
-| `OrderCancellationFailed` | Downstream failure during cancellation | `orderId`, failed subsystems, correlation IDs, retry eligibility |
+### Q: What is the canonical frontend domain label for this work: `domain:order` vs `domain:positivity` vs `domain:payment` / “Point of Sale”?
 
-### Integration Patterns
+- Answer: Use `domain:order` as the canonical label for cancellation UI and orchestration work; tag cross-domain dependencies separately (e.g., Payment/Work Execution) but do not re-home ownership.
+- Assumptions:
+  - The cancellation operation’s system-of-record is the Order domain.
+  - Other domains remain authoritative for their own statuses but do not expose cancellation entrypoints directly to UI.
+- Rationale:
+  - Ownership aligns with order lifecycle and the state machine.
+- Impact:
+  - Story routing, code ownership, and review routing should be normalized under Order domain.
+- Decision ID: DECISION-ORDER-011
 
-- **Synchronous orchestration call** from UI → Moqui → Order domain cancel operation.
-  - UI expects deterministic HTTP-like outcomes: `200/400/403/409/500`.
-- **Downstream calls** (server-side only):
-  - Work Execution: query status + attempt rollback/cancel if allowed.
-  - Payment/Billing: query payment state + attempt void if possible; otherwise mark refund required.
+### Q: What is the exact Moqui screen route/screen name for Order Detail in this repo?
 
-**TODO:** Replace placeholder endpoints with actual Moqui service names and/or REST endpoints once confirmed.
+- Answer: Safe default is a single Order Detail screen that accepts `orderId` as a parameter and is the only launch point for cancellation UI; the exact route must match repo conventions and should be treated as a configuration/implementation detail.
+- Assumptions:
+  - Order Detail exists as a stable navigation target.
+  - Order Detail can load cancellation summary fields or can trigger a dedicated “latest cancellation” fetch.
+- Rationale:
+  - Keeps cancellation UX in the order context and avoids fragmenting navigation.
+- Impact:
+  - Requires confirming the screen name/URL in Moqui screens before implementation.
+- Decision ID: DECISION-ORDER-012
 
----
+### Q: What are the Moqui service names/endpoints and parameter mappings for loading order detail, submitting cancellation, and retrieving latest cancellation record?
 
-## API Expectations (High-Level)
+- Answer: Use a single Order-owned cancel service and a single order-detail service; if cancellation records are not embedded in order detail, add a dedicated “latest cancellation record” read service owned by Order.
+- Assumptions:
+  - Moqui service names will follow repository naming conventions; until confirmed, treat them as placeholders.
+  - Cancellation submit is a single command-like service with validations and orchestration server-side.
+- Rationale:
+  - Minimizes UI coupling to downstream systems.
+- Impact:
+  - Backend/Moqui service contracts must be documented alongside the story.
+- Decision ID: DECISION-ORDER-012
 
-### Cancel Order Operation (contract required by frontend)
+### Q: What is the definitive error response schema (stable `errorCode` vs message-only)?
 
-- **Input**
-  - `orderId` (required)
-  - `reason` (required; enum or string)
-  - `comments` (optional; max 2000 chars)
+- Answer: Require a stable `errorCode` plus a user-safe `message`, with optional `details` and optional `fieldErrors` for validation.
+- Assumptions:
+  - UI needs deterministic mapping for 400/403/409/500.
+- Rationale:
+  - Prevents UI from parsing free-form strings and reduces leakage risk.
+- Impact:
+  - Backend contracts and tests should validate `errorCode` is always present on non-2xx responses.
+- Decision ID: DECISION-ORDER-012
 
-- **Validations**
-  - Order exists and is visible to the user/tenant context
-  - User permission `ORDER_CANCEL`
-  - Order is in cancellable state (not `COMPLETED`, `CLOSED`, already `CANCELLED`, etc.)
-  - Work status not in blocking list
-  - Input validation: reason present; comments length
+### Q: What is the definitive order status enum set the frontend will receive (in-flight + failure variants)?
 
-- **Behavior**
-  - Transition order to in-flight cancellation state (if modeled)
-  - Orchestrate downstream work rollback and payment void/refund requirement
-  - Persist `CancellationRecord` with downstream outcomes and correlation IDs
-  - Return a response suitable for UI rendering (status + message + metadata)
+- Answer: Canonical cancellation-relevant statuses are `CANCELLING`, `CANCELLED`, `CANCELLED_REQUIRES_REFUND`, and `CANCELLATION_FAILED`; legacy variants should be mapped server-side to these canonical values for UI.
+- Assumptions:
+  - Some legacy status values may exist; UI must not need to understand all historical variants.
+- Rationale:
+  - Prevents enum drift and broken UI rendering.
+- Impact:
+  - Backend should provide a stable status contract and optionally a `statusDisplay` field.
+- Decision ID: DECISION-ORDER-013
 
-- **Responses (UI mapping)**
-  - `200 OK`: cancellation accepted/completed; status is one of:
-    - `CANCELLED`
-    - `CANCELLED_REQUIRES_REFUND`
-    - (optionally) `CANCELLING` if async completion is used
-  - `400 Bad Request`: validation failures, terminal state, or work-blocking status
-  - `403 Forbidden`: missing permission
-  - `409 Conflict`: cancellation already in progress
-  - `500 Internal Server Error`: downstream failure requiring manual intervention (order should end in `CANCELLATION_FAILED`)
+### Q: How does the frontend determine `ORDER_CANCEL` capability in this repo?
 
-- **Idempotency**
-  - Repeated cancel requests for an already-cancelled order should return current state and latest cancellation metadata (no duplicate side effects).
-  - Repeated requests during in-flight cancellation should return `409` (or a stable “in progress” response) consistently.
+- Answer: Safe default is: backend returns an explicit boolean `canCancel` in the order detail response (and/or a capability set), and UI gates the button based on that; backend still enforces permission.
+- Assumptions:
+  - A standard permission exposure mechanism exists but may not be uniform across screens.
+- Rationale:
+  - Avoids duplicating security policy in the UI.
+- Impact:
+  - Order detail contract should include `canCancel` or a capabilities array.
+- Decision ID: DECISION-ORDER-014
 
-**CLARIFY:** Error response schema. Frontend stories ask whether there is a stable `errorCode` vs only `message`. Define and document a stable error contract if possible.
+### Q: Which roles besides Store Manager can cancel orders?
 
----
+- Answer: Cancellation eligibility is permission-based, not role-name-based; at minimum Store Manager and Service Advisor are expected to have `ORDER_CANCEL` where appropriate.
+- Assumptions:
+  - Role names vary by tenant; permissions are stable.
+- Rationale:
+  - Keeps RBAC flexible across deployments.
+- Impact:
+  - Security team/config must grant `ORDER_CANCEL` to intended roles.
+- Decision ID: DECISION-ORDER-010
 
-## Security / Authorization Assumptions
+### Q: Should the frontend call any advisory pre-check endpoints before submit?
 
-- Users must have `ORDER_CANCEL` permission to initiate cancellation.
-- Authorization checks occur **before** any state changes or downstream calls.
-- UI must gate the Cancel action, but server-side enforcement is mandatory.
-- Audit trails record user identity and actions for accountability.
+- Answer: No separate pre-check endpoint is required for v1; the submit response is the source of truth. UI may render advisory warnings based on already-loaded order/work/payment summaries, but must not treat them as authoritative.
+- Assumptions:
+  - Submit is fast enough and returns structured reasons for blocking.
+- Rationale:
+  - Avoids double-calling and stale pre-check results.
+- Impact:
+  - Ensure cancel submit returns user-safe blocking codes like `WORK_NOT_CANCELLABLE`.
+- Decision ID: DECISION-ORDER-012
 
-### Frontend-specific security requirements (from stories)
-- Do not display or log sensitive payment data (PAN, tokens, full processor responses).
-- If correlation IDs are exposed to UI, ensure they are safe to share with support and do not embed secrets.
+### Q: For `CANCELLATION_FAILED`, should the UI offer a “Retry cancellation” action?
 
-**CLARIFY:** How the frontend determines `ORDER_CANCEL` capability:
-- via permissions API,
-- session context,
-- Moqui screen conditions,
-- or another standard pattern in this repo.
+- Answer: No retry button in the standard Order Detail UI for v1; UI should display failure status and guidance for manual intervention. Retry (if supported) is an admin-only capability and should be delivered as a separate story.
+- Assumptions:
+  - Retrying can create repeated side effects in downstream systems.
+- Rationale:
+  - Conservative UX prevents accidental repeated void/rollback attempts.
+- Impact:
+  - UI includes support text and surfaces identifiers for support.
+- Decision ID: DECISION-ORDER-015
 
----
+### Q: Is `reason` a fixed enum list (hardcoded) or loaded from backend/config?
 
-## Observability (Logs / Metrics / Tracing)
+- Answer: `reason` is a canonical enum owned by Order domain and versioned; UI should prefer loading the allowed list from backend/config, with a safe fallback to a locally-configured list.
+- Assumptions:
+  - New reason codes may be added over time.
+- Rationale:
+  - Prevents UI deployments from blocking new backend reason codes.
+- Impact:
+  - Backend provides allowed reasons endpoint or embeds it in metadata.
+- Decision ID: DECISION-ORDER-006
 
-### Logs (server-side)
-Log at **INFO** for each cancellation attempt:
-- `orderId`, `cancellationId` (once created), `userId`/actor, `reason`
-- state transitions (from → to)
-- downstream call outcomes (work rollback status, payment void status)
-- correlation IDs for downstream calls
+### Q: Should correlation IDs and downstream subsystem details be displayed in the UI?
 
-Log at **WARN/ERROR**:
-- downstream failures leading to `CANCELLATION_FAILED`
-- repeated conflicts (`409`) above a threshold (could indicate stuck state)
+- Answer: Show `cancellationId` to all authorized users; show correlation IDs and subsystem details only to admin/support roles via explicit permission.
+- Assumptions:
+  - Correlation IDs can be used to query logs/traces and should be treated as operational data.
+- Rationale:
+  - Balances supportability with minimization of internal leakage.
+- Impact:
+  - Backend redacts restricted fields unless permission is present.
+- Decision ID: DECISION-ORDER-015
 
-### Metrics
-- `order_cancellation_requests_total{reason}`
-- `order_cancellation_success_total`
-- `order_cancellation_requires_refund_total`
-- `order_cancellation_failed_total{failedSubsystem}`
-- `order_cancellation_conflict_total` (409s)
-- `order_cancellation_latency_ms` (end-to-end orchestration time)
-- Gauge: `orders_in_cancellation_failed` (alert if above threshold or aging)
+## Todos Reconciled
 
-### Tracing
-- Propagate a correlation/trace ID through:
-  - UI request → Moqui → Order domain → downstream calls
-- Include `orderId` and `cancellationId` as trace attributes (avoid PII).
+- Original todo: "Confirm actual Moqui entity names/fields and whether cancellation summary is embedded in Order detail response or fetched separately." → Resolution: Replace with task: `TASK-ORDER-001` (confirm and document contracts in Moqui screens/services).
+- Original todo: "Replace placeholder endpoints with actual Moqui service names and/or REST endpoints once confirmed." → Resolution: Replace with task: `TASK-ORDER-002` (document service names and schemas).
+- Original todo: "Add explicit fixtures for status enum variants once the definitive enum set is confirmed." → Resolution: Resolved (define canonical UI enum contract) + Replace with task: `TASK-ORDER-003` (add fixtures for any legacy mappings that remain).
 
-### Frontend observability (Moqui/Quasar)
-- UI should not log sensitive details.
-- If the platform has client telemetry, include:
-  - `orderId`, `cancellationId` (if returned), and correlation id (if safe)
-  - outcome status (`CANCELLED`, `CANCELLED_REQUIRES_REFUND`, `CANCELLATION_FAILED`, `CONFLICT`, `FORBIDDEN`)
+## End
 
-**CLARIFY:** Whether correlation IDs should be displayed in UI (copyable) or restricted to logs/admin views.
-
----
-
-## Testing Guidance
-
-### Backend/domain tests
-- Unit tests for cancellation policy:
-  - blocking work statuses
-  - terminal order states
-  - payment settlement scenarios (void vs refund required)
-  - comments length and reason required
-- Integration tests with mocked downstream systems:
-  - Work Execution: blocking vs non-blocking; rollback success/failure
-  - Payment: authorized/captured/settled; void success/failure
-- Concurrency tests:
-  - two cancel requests in parallel → one succeeds, one returns `409`
-- Idempotency tests:
-  - cancel twice after success → no duplicate downstream calls; stable response
-- Failure-mode tests:
-  - downstream timeout/error → `CANCELLATION_FAILED` + audit record + event emission
-
-### Frontend tests (Moqui/Quasar)
-- Component tests for Cancel dialog:
-  - reason required
-  - comments max length 2000
-  - submit disabled while in-flight
-- Contract tests (mock Moqui service responses):
-  - `200` → render status + cancellation metadata
-  - `400` → show safe error message; keep dialog open
-  - `403` → hide action + show permission error on forced attempt
-  - `409` → show conflict message; refresh order state
-  - `500` → show “manual intervention required”; render `CANCELLATION_FAILED` after refresh
-- Snapshot/visual tests for cancellation summary panel across states.
-
-**TODO:** Add explicit fixtures for status enum variants once the definitive enum set is confirmed.
-
----
-
-## Common Pitfalls
-
-- **Ignoring work status blocking rules:** Cancelling orders with irreversible work started leads to inconsistent states.
-- **Treating cancellation as financial reversal:** Cancellation is a logical state; settled payments require manual refund.
-- **Leaking internal error details to UI:** Backend `400/500` messages must be user-safe; otherwise return stable `errorCode` and map to safe UI text.
-- **Not handling concurrency:** Double-clicks and parallel requests must be handled via server-side locking/idempotency and UI disabling.
-- **Not handling idempotency:** Duplicate cancellation requests must not duplicate downstream side effects.
-- **Status enum drift:** UI stories explicitly call out mismatch risk (`CANCELLING` vs `CANCEL_PENDING`, etc.). Publish a single canonical enum contract.
-- **Missing audit metadata in Order detail:** UI requires cancellation summary (id, who/when, reason/comments, downstream statuses). Ensure Order detail includes it or provide a dedicated endpoint/service.
-- **Correlation ID confusion:** If correlation IDs are exposed, ensure they are consistent (header vs body) and safe to share.
-
----
-
-## Open Questions from Frontend Stories
-
-### Domain ownership / labeling
-1. **Domain label mismatch:** Frontend issue text says **Domain: payment** and “domain: Point of Sale”, but backend reference stories assert cancellation orchestration under **domain:order** (and/or `domain:positivity`). Confirm the frontend repo’s canonical domain label for this story: `domain:order` vs `domain:positivity`. (Blocking: label + routing.)
-
-### Moqui UI routing and integration contracts
-2. **Order Detail route/screen:** What is the exact Moqui screen route/screen name for Order Detail in this repo (e.g., `/apps/pos/order/detail?orderId=...`)?
-3. **Moqui integration contract:** What are the actual Moqui service names/endpoints to call for:
-   - loading order detail (including cancellation summary),
-   - submitting cancellation,
-   - retrieving cancellation record (if separate)?
-   Provide names, parameters, and response mappings.
-4. **Frontend-to-backend cancellation contract:** Confirm:
-   - endpoint/path or Moqui service name
-   - request/response JSON fields (as per story §8)
-   - error response schema (stable `errorCode` vs only `message`)
-
-### Status enums and UI rendering
-5. **Order status enum:** Which exact status values will the frontend receive (`CANCELLING` vs `CANCEL_REQUESTED`/`CANCEL_PENDING`, `CANCEL_FAILED_*` vs `CANCELLATION_FAILED`)? Provide the definitive enum set to render.
-
-### Authorization / roles
-6. **Permission exposure:** How does the frontend determine `ORDER_CANCEL` capability—via a permissions API, session context, or screen conditions in Moqui? Provide the standard pattern used in this repo.
-7. **Roles allowed:** Which roles besides Store Manager can cancel orders? Backend reference includes Service Advisor—confirm if UI should allow this when permission `ORDER_CANCEL` is present.
-
-### UX behavior decisions
-8. **Work/payment advisory pre-check:** Should the frontend call any pre-check endpoints (e.g., show “work not cancellable” before submit), or rely solely on submit response for blocking?
-9. **Retry/admin re-trigger UI:** For `CANCELLATION_FAILED`, should the frontend present a “Retry cancellation” button (admin only) or only display status? Is retry handled elsewhere (operator/admin dashboard)?
-10. **Cancellation reason source:** Is `reason` a fixed enum list (e.g., `CUSTOMER_REQUEST|INVENTORY_UNAVAILABLE|PRICING_ERROR|DUPLICATE_ORDER|OTHER`) that UI can hardcode, or should it be loaded from backend/config?
-11. **Correlation IDs visibility:** Should the UI display correlation IDs and downstream subsystem details, or are those restricted to logs/admin views?
-
----
-
-*End of AGENT_GUIDE.md*
+End of document.

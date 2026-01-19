@@ -6,7 +6,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
 ## Completed items
 
-- [x] Documented 10 key shopmgmt decisions
+- [x] Documented 17 key shopmgmt decisions
 - [x] Provided alternatives analysis
 - [x] Included architectural schemas
 - [x] Added auditor SQL queries
@@ -39,6 +39,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Appointment service: Validates source document at creation
     - Database: Immutable foreign key to estimate OR work order
   - **Database schema:**
+
     ```sql
     CREATE TABLE appointment (
       id UUID PRIMARY KEY,
@@ -58,7 +59,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     CREATE INDEX idx_appointment_estimate ON appointment(estimate_id) WHERE estimate_id IS NOT NULL;
     CREATE INDEX idx_appointment_work_order ON appointment(work_order_id) WHERE work_order_id IS NOT NULL;
     ```
+
   - **Creation validation:**
+
     ```java
     @Transactional
     public Appointment createAppointment(CreateAppointmentRequest request) {
@@ -85,9 +88,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     
     // No update method that changes source document
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify all appointments have exactly one source, no source changes
   - **Query example:**
+
     ```sql
     -- Find appointments with invalid source (should be zero)
     SELECT id, estimate_id, work_order_id
@@ -95,6 +100,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     WHERE (estimate_id IS NULL AND work_order_id IS NULL)
        OR (estimate_id IS NOT NULL AND work_order_id IS NOT NULL);
     ```
+
   - **Expected outcome:** Zero invalid appointments
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -103,12 +109,14 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Fix data issues before enforcing constraint
     4. Deploy immutability enforcement
   - **Data fix:**
+
     ```sql
     -- Find and fix appointments with no source
     UPDATE appointment
     SET status = 'CANCELLED'
     WHERE estimate_id IS NULL AND work_order_id IS NULL;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain team
   - **Policy:** Source document is immutable by design
@@ -140,6 +148,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Scheduling API: Enforces hard conflicts, allows soft overrides
     - Override service: Records manager overrides
   - **Conflict schema:**
+
     ```sql
     CREATE TYPE conflict_severity AS ENUM ('HARD', 'SOFT');
     CREATE TYPE conflict_resource_type AS ENUM ('BAY', 'MECHANIC', 'CAPACITY', 'HOURS', 'SKILL');
@@ -173,7 +182,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     ```
+
   - **Conflict detection:**
+
     ```java
     public List<Conflict> detectConflicts(ScheduleAppointmentRequest request) {
         List<Conflict> conflicts = new ArrayList<>();
@@ -230,9 +241,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         return appointment;
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify hard conflicts never overridden, soft conflicts have approvals
   - **Query example:**
+
     ```sql
     -- Find hard conflicts with overrides (should be zero)
     SELECT sc.id, sc.appointment_id, cr.code, sc.severity
@@ -248,6 +261,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     WHERE sc.severity = 'SOFT'
       AND (co.approved_by IS NULL OR co.approved_at IS NULL);
     ```
+
   - **Expected outcome:** Zero hard overrides, all soft overrides approved
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -256,6 +270,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Deploy conflict detection
     4. Train managers on override process
   - **Initial rules:**
+
     ```sql
     INSERT INTO conflict_rule (id, code, severity, resource_type, message_template, is_active)
     VALUES
@@ -264,6 +279,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
       (gen_random_uuid(), 'MECHANIC_OVERTIME', 'SOFT', 'MECHANIC', 'Mechanic will exceed 40 hours this week', true),
       (gen_random_uuid(), 'FACILITY_NEAR_CAPACITY', 'SOFT', 'CAPACITY', 'Facility is at 90% capacity', true);
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain with Operations oversight
   - **Policy:** Review conflict rules quarterly
@@ -294,6 +310,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Assignment service: Enforces exclusivity
     - Conflict detection: Different rules per assignment type
   - **Database schema:**
+
     ```sql
     CREATE TYPE assignment_type AS ENUM ('BAY', 'MOBILE_UNIT', 'UNASSIGNED');
     
@@ -316,7 +333,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     CREATE INDEX idx_assignment_bay ON appointment_assignment(bay_id, assigned_at) WHERE bay_id IS NOT NULL;
     CREATE INDEX idx_assignment_mobile ON appointment_assignment(mobile_unit_id, assigned_at) WHERE mobile_unit_id IS NOT NULL;
     ```
+
   - **Assignment logic:**
+
     ```java
     @Transactional
     public Assignment assignToBay(UUID appointmentId, UUID bayId, UUID mechanicId) {
@@ -351,9 +370,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         return assignmentRepo.save(assignment);
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify exclusivity constraint, no dual assignments
   - **Query example:**
+
     ```sql
     -- Find assignments violating exclusivity (should be zero)
     SELECT id, appointment_id, assignment_type, bay_id, mobile_unit_id
@@ -362,6 +383,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
        OR (assignment_type = 'MOBILE_UNIT' AND (mobile_unit_id IS NULL OR bay_id IS NOT NULL))
        OR (assignment_type = 'UNASSIGNED' AND (bay_id IS NOT NULL OR mobile_unit_id IS NOT NULL));
     ```
+
   - **Expected outcome:** Zero violations
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -370,6 +392,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Deploy CHECK constraint
     4. Update assignment UI for exclusive selection
   - **Migration:**
+
     ```sql
     -- Infer assignment type from existing data
     UPDATE appointment_assignment
@@ -380,6 +403,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     END
     WHERE assignment_type IS NULL;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain
   - **Policy:** Assignment type must match work order service type
@@ -388,107 +412,84 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 ### DECISION-SHOPMGMT-004 — Reschedule Policy with Count Limits
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-004)
-- **Decision:** Appointments can be rescheduled up to 3 times without manager approval. 4th+ reschedule requires manager approval. Reschedule count resets on work order conversion. Policy enforced server-side.
+- **Decision:** Appointments can be rescheduled up to 2 times without approval. 3rd+ reschedule requires `APPROVE_RESCHEDULE` permission and a non-empty approvalReason (permission-only gating; no separate approval workflow in the initial version). Policy is enforced server-side.
 - **Alternatives considered:**
-  - **Option A (Chosen):** Count-based limits with approval workflow
-    - Pros: Discourages serial rescheduling, balances flexibility and control
-    - Cons: Arbitrary threshold
-  - **Option B:** No reschedule limits
+  - **Option A (Chosen):** Count-based limits with permission-only approval gating
+    - Pros: Simple implementation, enforceable policy, auditable
+    - Cons: Lacks multi-step manager workflow
+  - **Option B:** Count-based limits with explicit approval workflow (pending/approve)
+    - Pros: Stronger separation of duties
+    - Cons: More complex UX and data model
+  - **Option C:** No reschedule limits
     - Pros: Maximum flexibility
     - Cons: Abused by chronic reschedulers, poor resource utilization
-  - **Option C:** Hard limit (no rescheduling after 3)
+  - **Option D:** Hard limit (no rescheduling after N)
     - Pros: Strictest control
     - Cons: Inflexible for legitimate needs
 - **Reasoning and evidence:**
   - Excessive rescheduling wastes scheduling resources
-  - 3 reschedules balances customer service and operational efficiency
-  - Manager approval for exceptions ensures accountability
-  - Estimate-to-work-order conversion is new commitment (reset count)
+  - 2 reschedules balances customer service and operational efficiency
+  - Permission-gated approval for exceptions ensures accountability without workflow complexity
   - Industry pattern: policies use thresholds with escalation
 - **Architectural implications:**
   - **Components affected:**
     - Appointment service: Tracks reschedule count
-    - Reschedule API: Enforces limits and approval workflow
-  - **Database schema:**
+    - Reschedule API: Enforces limits and permission-only approval gating
+  - **Database schema (minimum):**
+
     ```sql
     ALTER TABLE appointment
     ADD COLUMN reschedule_count INTEGER NOT NULL DEFAULT 0;
-    
-    CREATE TABLE reschedule_request (
-      id UUID PRIMARY KEY,
-      appointment_id UUID NOT NULL REFERENCES appointment(id),
-      original_start TIMESTAMPTZ NOT NULL,
-      original_end TIMESTAMPTZ NOT NULL,
-      new_start TIMESTAMPTZ NOT NULL,
-      new_end TIMESTAMPTZ NOT NULL,
-      reschedule_reason TEXT,
-      requested_by UUID NOT NULL,
-      requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      requires_approval BOOLEAN NOT NULL,
-      approved_by UUID,
-      approved_at TIMESTAMPTZ,
-      status VARCHAR(20) NOT NULL -- PENDING, APPROVED, REJECTED, APPLIED
-    );
     ```
-  - **Reschedule logic:**
+
+  - **Reschedule logic (permission-only gating):**
+
     ```java
     @Transactional
-    public RescheduleResponse requestReschedule(RescheduleRequest request) {
+    public RescheduleResponse reschedule(RescheduleRequest request) {
         Appointment appointment = appointmentRepo.findById(request.getAppointmentId())
             .orElseThrow(() -> new NotFoundException("Appointment not found"));
         
         int currentCount = appointment.getRescheduleCount();
-        boolean requiresApproval = currentCount >= 3;
-        
-        RescheduleRequest reschedule = new RescheduleRequest();
-        reschedule.setAppointmentId(appointment.getId());
-        reschedule.setOriginalStart(appointment.getScheduledStartDatetime());
-        reschedule.setOriginalEnd(appointment.getScheduledEndDatetime());
-        reschedule.setNewStart(request.getNewStart());
-        reschedule.setNewEnd(request.getNewEnd());
-        reschedule.setRescheduleReason(request.getReason());
-        reschedule.setRequestedBy(currentUser.getId());
-        reschedule.setRequiresApproval(requiresApproval);
-        
-        if (requiresApproval) {
-            reschedule.setStatus("PENDING");
-            rescheduleRepo.save(reschedule);
-            notificationService.notifyManager(reschedule);
-            
-            return new RescheduleResponse("PENDING_APPROVAL", reschedule.getId());
-        } else {
-            // Auto-approve and apply
-            reschedule.setStatus("APPROVED");
-            reschedule.setApprovedBy(currentUser.getId());
-            reschedule.setApprovedAt(Instant.now());
-            rescheduleRepo.save(reschedule);
-            
-            applyReschedule(appointment, reschedule);
-            
-            return new RescheduleResponse("RESCHEDULED", appointment.getId());
+        boolean requiresApproval = currentCount >= 2;
+
+        if (requiresApproval && !currentUser.hasPermission("APPROVE_RESCHEDULE")) {
+            throw new PolicyException("RESCHEDULE_APPROVAL_REQUIRED");
         }
-    }
-    
-    private void applyReschedule(Appointment appointment, RescheduleRequest reschedule) {
-        appointment.setScheduledStartDatetime(reschedule.getNewStart());
-        appointment.setScheduledEndDatetime(reschedule.getNewEnd());
+
+        if (requiresApproval && (request.getApprovalReason() == null || request.getApprovalReason().trim().isEmpty())) {
+            throw new ValidationException("approvalReason is required");
+        }
+
+        appointment.setScheduledStartDatetime(request.getNewStart());
+        appointment.setScheduledEndDatetime(request.getNewEnd());
         appointment.setRescheduleCount(appointment.getRescheduleCount() + 1);
         appointmentRepo.save(appointment);
+
+        auditService.recordReschedule(appointment.getId(), currentUser.getId(), request.getApprovalReason());
+
+        return new RescheduleResponse("RESCHEDULED", appointment.getId());
     }
     ```
+
 - **Auditor-facing explanation:**
-  - **What to inspect:** Verify count enforcement, approvals for 4+ reschedules
+  - **What to inspect:** Verify count enforcement, approvals for 3+ reschedules
   - **Query example:**
+
     ```sql
-    -- Find appointments exceeding reschedule limit without approval
-    SELECT a.id, a.reschedule_count, rr.status, rr.approved_by
+    -- Find appointments exceeding reschedule limit without recorded approval
+    -- NOTE: audit table name is illustrative; use the platform audit store.
+    SELECT a.id, a.reschedule_count
     FROM appointment a
-    JOIN reschedule_request rr ON rr.appointment_id = a.id
-    WHERE a.reschedule_count > 3
-      AND rr.requires_approval = true
-      AND rr.approved_by IS NULL
-      AND rr.status = 'APPLIED'; -- should be zero
+    WHERE a.reschedule_count > 2
+      AND NOT EXISTS (
+        SELECT 1
+        FROM appointment_audit_event e
+        WHERE e.appointment_id = a.id
+          AND e.action = 'RESCHEDULE_APPROVED'
+      );
     ```
+
   - **Expected outcome:** Zero unapproved reschedules exceeding limit
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -497,6 +498,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Deploy limit enforcement
     4. Train staff on approval process
   - **Backfill:**
+
     ```sql
     WITH reschedule_counts AS (
       SELECT appointment_id, COUNT(*) as count
@@ -508,6 +510,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     FROM reschedule_counts rc
     WHERE a.id = rc.appointment_id;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain with Operations
   - **Policy:** Review reschedule threshold annually
@@ -516,99 +519,86 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 ### DECISION-SHOPMGMT-005 — Assignment Notes Maximum Length
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-005)
-- **Decision:** Assignment notes are limited to 500 characters. Enforced on client and server. Notes are append-only (immutable after creation). New notes create new records with timestamps.
+- **Decision:** Assignment notes are limited to 500 characters and are editable only for authorized roles. Notes edits require optimistic concurrency (version) and a non-empty notesEditReason recorded to audit.
 - **Alternatives considered:**
-  - **Option A (Chosen):** 500 char limit with append-only history
-    - Pros: Prevents abuse, maintains history, manageable storage
-    - Cons: Cannot edit typos
-  - **Option B:** No length limit
+  - **Option A (Chosen):** 500 char limit with mutable current value + audited change history
+    - Pros: Supports corrections, preserves auditability
+    - Cons: Requires concurrency controls
+  - **Option B:** Append-only notes history (no edits)
+    - Pros: Simplest audit model
+    - Cons: Poor UX for corrections
+  - **Option C:** No length limit
     - Pros: Maximum flexibility
     - Cons: Database bloat, performance issues
-  - **Option C:** Mutable notes (single record)
-    - Pros: Clean schema
-    - Cons: Loses edit history, audit gaps
 - **Reasoning and evidence:**
   - Notes are operational communication (brief updates)
   - 500 characters is ~3-4 sentences (sufficient for context)
-  - Append-only preserves conversation history
-  - Edit history important for dispute resolution
+  - Audit history is important for dispute resolution
+  - Optimistic concurrency prevents silent overwrites
   - Industry standard: short notes with history (Jira comments, Slack threads)
 - **Architectural implications:**
   - **Components affected:**
     - Assignment notes service: Validates length
     - Database: Stores note history
-  - **Database schema:**
+  - **Database schema (example):**
+
     ```sql
-    CREATE TABLE assignment_note (
+    ALTER TABLE appointment_assignment
+    ADD COLUMN assignment_notes VARCHAR(500),
+    ADD COLUMN version INTEGER NOT NULL DEFAULT 0;
+
+    CREATE TABLE assignment_note_audit (
       id UUID PRIMARY KEY,
       assignment_id UUID NOT NULL REFERENCES appointment_assignment(id),
-      note_text VARCHAR(500) NOT NULL,
-      created_by UUID NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      -- No updated_at or update logic (immutable)
+      prior_text VARCHAR(500),
+      new_text VARCHAR(500),
+      edit_reason VARCHAR(200) NOT NULL,
+      edited_by UUID NOT NULL,
+      edited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    
-    CREATE INDEX idx_note_assignment ON assignment_note(assignment_id, created_at);
     ```
-  - **Validation:**
+
+  - **Validation (edit path):**
+
     ```java
     @Transactional
-    public AssignmentNote addNote(UUID assignmentId, String noteText, UUID userId) {
-        if (noteText == null || noteText.trim().isEmpty()) {
-            throw new ValidationException("Note text is required");
+    public AppointmentAssignment updateNotes(UUID assignmentId, String noteText, int expectedVersion, String editReason) {
+        if (noteText != null && noteText.length() > 500) {
+            throw new ValidationException("Note text exceeds maximum length of 500 characters");
         }
-        
-        if (noteText.length() > 500) {
-            throw new ValidationException(
-                "Note text exceeds maximum length of 500 characters"
-            );
+        if (editReason == null || editReason.trim().isEmpty()) {
+            throw new ValidationException("notesEditReason is required");
         }
-        
-        AssignmentNote note = new AssignmentNote();
-        note.setAssignmentId(assignmentId);
-        note.setNoteText(noteText.trim());
-        note.setCreatedBy(userId);
-        
-        return noteRepo.save(note);
+
+        AppointmentAssignment assignment = assignmentRepo.findById(assignmentId)
+            .orElseThrow(() -> new NotFoundException("Assignment not found"));
+        if (assignment.getVersion() != expectedVersion) {
+            throw new ConcurrencyException("VERSION_MISMATCH");
+        }
+
+        auditRepo.insert(new AssignmentNoteAudit(assignmentId, assignment.getAssignmentNotes(), noteText, editReason));
+        assignment.setAssignmentNotes(noteText);
+        assignment.setVersion(expectedVersion + 1);
+        return assignmentRepo.save(assignment);
     }
     
-    public List<AssignmentNote> getNotes(UUID assignmentId) {
-        return noteRepo.findByAssignmentId(assignmentId)
-            .stream()
-            .sorted(Comparator.comparing(AssignmentNote::getCreatedAt))
-            .collect(Collectors.toList());
     }
     ```
-  - **Frontend validation:**
-    ```typescript
-    const MAX_NOTE_LENGTH = 500;
-    
-    function validateNote(text: string): string | null {
-      if (!text || text.trim().length === 0) {
-        return "Note text is required";
-      }
-      if (text.length > MAX_NOTE_LENGTH) {
-        return `Note exceeds maximum length of ${MAX_NOTE_LENGTH} characters`;
-      }
-      return null;
-    }
-    
-    <textarea 
-      v-model="noteText"
-      :maxlength="MAX_NOTE_LENGTH"
-      @input="updateCharCount"
-    />
-    <div class="char-count">{{ noteText.length }} / {{ MAX_NOTE_LENGTH }}</div>
-    ```
+
+  - **Frontend validation (edit path):**
+    - Enforce max length 500
+    - Require notesEditReason when saving
 - **Auditor-facing explanation:**
-  - **What to inspect:** Verify all notes within length limit, no updates to existing notes
+  - **What to inspect:** Verify all notes within length limit, edits have audit records, and version increments
   - **Query example:**
+
     ```sql
     -- Find notes exceeding length (should be zero)
-    SELECT id, assignment_id, LENGTH(note_text) as length
-    FROM assignment_note
-    WHERE LENGTH(note_text) > 500;
+    SELECT id, appointment_id, LENGTH(assignment_notes) as length
+    FROM appointment_assignment
+    WHERE assignment_notes IS NOT NULL AND LENGTH(assignment_notes) > 500;
     ```
+
   - **Expected outcome:** Zero violations
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -617,6 +607,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Truncate or split long notes
     4. Deploy validation
   - **Data cleanup:**
+
     ```sql
     -- Find notes exceeding limit
     SELECT id, assignment_id, LENGTH(note_text) as length, note_text
@@ -625,6 +616,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     ORDER BY length DESC;
     -- Manual review and split/truncate as needed
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain
   - **Policy:** Notes should be brief operational updates
@@ -633,7 +625,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 ### DECISION-SHOPMGMT-006 — Near-Real-Time Assignment Update Delivery
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-006)
-- **Decision:** Assignment changes (bay, mechanic, notes) are delivered to active UI clients within 5 seconds via Server-Sent Events (SSE). Fallback to polling (15 second interval) for browsers without SSE support.
+- **Decision:** Assignment changes (bay, mechanic, notes) are delivered to active UI clients within 5 seconds via Server-Sent Events (SSE). Fallback to polling (30 second interval) for browsers without SSE support or when SSE fails.
 - **Alternatives considered:**
   - **Option A (Chosen):** SSE with polling fallback
     - Pros: Near-real-time for modern browsers, reliable fallback, simple server implementation
@@ -656,6 +648,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - SSE endpoint: Streams events to clients
     - Frontend: Subscribes via EventSource or polling
   - **Event schema:**
+
     ```typescript
     interface AssignmentUpdateEvent {
       eventType: 'ASSIGNMENT_UPDATED';
@@ -669,7 +662,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
       updatedBy: string;
     }
     ```
+
   - **SSE endpoint:**
+
     ```java
     @GetMapping(value = "/api/v1/assignments/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamAssignmentUpdates(@RequestParam UUID facilityId) {
@@ -693,7 +688,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         subscriptionService.broadcast(appointment.getFacilityId(), event);
     }
     ```
+
   - **Frontend subscription:**
+
     ```typescript
     // Modern browsers: SSE
     function subscribeToUpdates(facilityId: string) {
@@ -719,12 +716,14 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         const updates = await api.get(`/api/v1/assignments/updates?facilityId=${facilityId}&since=${lastCheck}`);
         updates.forEach(handleAssignmentUpdate);
         lastCheck = Date.now();
-      }, 15000); // 15 seconds
+      }, 30000); // 30 seconds
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify update delivery latency
   - **Monitoring:**
+
     ```sql
     -- Track update delivery latency
     SELECT 
@@ -733,6 +732,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     FROM assignment_update_log
     WHERE created_at >= NOW() - INTERVAL '1 hour';
     ```
+
   - **Expected outcome:** P95 latency < 5 seconds
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -771,6 +771,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Override service: Creates audit records
     - Audit UI: Displays override history
   - **Database schema:**
+
     ```sql
     CREATE TABLE conflict_override_audit (
       id UUID PRIMARY KEY,
@@ -792,7 +793,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     CREATE INDEX idx_override_audit_time ON conflict_override_audit(created_at);
     CREATE INDEX idx_override_audit_user ON conflict_override_audit(overridden_by, created_at);
     ```
+
   - **Audit creation:**
+
     ```java
     @Transactional
     public ConflictOverride createOverride(CreateOverrideRequest request) {
@@ -825,9 +828,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         return override;
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify all overrides audited, audit records immutable
   - **Query example:**
+
     ```sql
     -- Find overrides without audit records
     SELECT co.id, co.conflict_id, co.overridden_by
@@ -846,6 +851,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     ORDER BY override_count DESC
     LIMIT 20;
     ```
+
   - **Expected outcome:** All overrides audited, patterns reviewed
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -854,6 +860,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Backfill audit records for recent overrides
     4. Deploy audit reporting UI
   - **Backfill:**
+
     ```sql
     INSERT INTO conflict_override_audit 
       (id, override_id, conflict_rule_code, conflict_severity, appointment_id, 
@@ -879,6 +886,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         SELECT 1 FROM conflict_override_audit coa WHERE coa.override_id = co.id
       );
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain
   - **Retention:** 2-year minimum, 7-year for compliance
@@ -909,6 +917,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Scheduling service: Validates hours
     - Location service client: Retrieves hours
   - **Hours validation:**
+
     ```java
     public List<Conflict> validateOperatingHours(ScheduleRequest request) {
         List<Conflict> conflicts = new ArrayList<>();
@@ -947,7 +956,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         return conflicts;
     }
     ```
+
   - **Location service client:**
+
     ```java
     @FeignClient(name = "location-service")
     public interface LocationServiceClient {
@@ -958,9 +969,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         );
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify no appointments outside operating hours
   - **Query example:**
+
     ```sql
     -- Find appointments outside operating hours
     SELECT a.id, a.facility_id, a.scheduled_start_datetime,
@@ -971,6 +984,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     WHERE a.scheduled_start_datetime::time < oh.open_time
        OR a.scheduled_end_datetime::time > oh.close_time;
     ```
+
   - **Expected outcome:** Zero violations
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -979,6 +993,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Audit existing appointments
     4. Enable hard constraint
   - **Data cleanup:**
+
     ```sql
     -- Find and cancel appointments outside hours
     UPDATE appointment a
@@ -989,6 +1004,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
       AND (a.scheduled_start_datetime::time < oh.open_time
            OR a.scheduled_end_datetime::time > oh.close_time);
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain with Location domain coordination
   - **Policy:** Operating hours are authoritative from Location
@@ -1020,13 +1036,16 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - People service client: Fetches mechanic details
     - Frontend: Resolves mechanic data for display
   - **Database schema:**
+
     ```sql
     ALTER TABLE appointment_assignment
     ADD COLUMN mechanic_id UUID; -- foreign reference only, no FK constraint
     
     -- No mechanic name/photo columns
     ```
+
   - **Display resolution:**
+
     ```java
     public AssignmentView getAssignmentView(UUID assignmentId) {
         Assignment assignment = assignmentRepo.findById(assignmentId)
@@ -1055,7 +1074,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         return view;
     }
     ```
+
   - **Caching:**
+
     ```java
     @Cacheable(value = "mechanicDetails", key = "#mechanicId")
     public MechanicDetails getMechanic(UUID mechanicId) {
@@ -1063,9 +1084,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     }
     // Cache TTL: 5 minutes (balance freshness and performance)
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify mechanic IDs reference valid People records
   - **Query example:**
+
     ```sql
     -- Find assignments with invalid mechanic IDs (via API check)
     -- Note: No FK constraint, so manual validation needed
@@ -1077,6 +1100,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         SELECT id FROM people_service.mechanic -- cross-service query or API validation
       );
     ```
+
   - **Expected outcome:** Zero invalid references
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -1085,12 +1109,14 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Deploy People service client
     4. Update UI to fetch mechanic details
   - **Data cleanup:**
+
     ```sql
     -- Remove denormalized columns
     ALTER TABLE appointment_assignment
     DROP COLUMN IF EXISTS mechanic_name,
     DROP COLUMN IF EXISTS mechanic_photo_url;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain with People domain SLA dependency
   - **Monitoring:** Alert on People service availability
@@ -1121,6 +1147,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Assignment service: Enforces transitions
     - State machine validator: Defines allowed transitions
   - **Database schema:**
+
     ```sql
     CREATE TYPE assignment_status AS ENUM (
       'UNASSIGNED',
@@ -1134,7 +1161,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     ALTER TABLE appointment_assignment
     ADD COLUMN status assignment_status NOT NULL DEFAULT 'ASSIGNED';
     ```
+
   - **State machine:**
+
     ```java
     private static final Map<AssignmentStatus, Set<AssignmentStatus>> ALLOWED_TRANSITIONS = Map.of(
         AssignmentStatus.UNASSIGNED, Set.of(AssignmentStatus.ASSIGNED, AssignmentStatus.CANCELLED),
@@ -1172,9 +1201,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         return assignment;
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify no invalid transitions, terminal states not changed
   - **Query example:**
+
     ```sql
     -- Find assignments in terminal states with recent updates
     SELECT id, status, updated_at
@@ -1182,6 +1213,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     WHERE status IN ('COMPLETED', 'CANCELLED')
       AND updated_at > created_at + INTERVAL '1 minute'; -- should have only initial update
     ```
+
   - **Expected outcome:** Terminal states immutable
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -1190,6 +1222,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     3. Deploy state machine validation
     4. Monitor for rejected transitions
   - **Backfill:**
+
     ```sql
     -- Infer assignment status from appointment status
     UPDATE appointment_assignment aa
@@ -1202,10 +1235,137 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     FROM appointment a
     WHERE a.id = aa.appointment_id;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain
   - **Policy:** State machine transitions are immutable without architecture review
   - **Documentation:** Document state machine in ops manual
+### DECISION-SHOPMGMT-011 — API Contract Naming + Moqui Exposure Conventions
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-011)
+- **Decision:** Shopmgmt APIs use stable, resource-oriented service names and must publish a contract (request/response/error shape) before UI implementation begins.
+- **Alternatives considered:**
+  - Option A (Chosen): Service families documented per story + consistent namespace
+  - Option B: Ad-hoc service naming per feature
+- **Reasoning and evidence:**
+  - Prevents UI from guessing routes and reduces rework.
+- **Architectural implications:**
+  - Provide a single contract source (OpenAPI or equivalent Moqui service contract docs).
+  - Standardize error schema across create/reschedule/assignment.
+- **Auditor-facing explanation:**
+  - Inspect that contracts exist for each deployed UI screen and that error codes are stable.
+- **Migration & backward-compatibility notes:**
+  - Introduce contract docs before first production release; version contracts if fields change.
+- **Governance & owner recommendations:**
+  - Owner: shopmgmt domain; contract changes require review.
+
+### DECISION-SHOPMGMT-012 — Facility Scoping + Authorization Enforcement
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-012)
+- **Decision:** All writes require explicit facilityId; all reads enforce facility ownership by deriving facilityId from appointmentId and validating access.
+- **Alternatives considered:**
+  - Option A (Chosen): Explicit facilityId for writes + derived for reads
+  - Option B: Implicit facilityId from session for all calls
+- **Reasoning and evidence:**
+  - Avoids cross-facility leakage and reduces reliance on session context.
+- **Architectural implications:**
+  - Enforce deny-by-default checks on appointmentId and facilityId.
+- **Auditor-facing explanation:**
+  - Probe cross-facility access attempts should consistently 403/404 without leaking existence.
+- **Migration & backward-compatibility notes:**
+  - Add facilityId to request schemas for write endpoints before UI rollout.
+- **Governance & owner recommendations:**
+  - Facility scoping changes require security review.
+
+### DECISION-SHOPMGMT-013 — Appointment Status Enum + UI Gating Rules
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-013)
+- **Decision:** Appointment status is backend-authoritative; UI gating is advisory only. Cancelled visibility is permission-gated server-side.
+- **Alternatives considered:**
+  - Option A (Chosen): Backend-owned enum + backend enforcement
+  - Option B: UI hardcodes allowed statuses
+- **Reasoning and evidence:**
+  - Prevents policy drift between UI and backend.
+- **Architectural implications:**
+  - Include status and allowedActions in appointment read models.
+- **Auditor-facing explanation:**
+  - Verify cancelled assignment visibility is restricted and audited.
+- **Migration & backward-compatibility notes:**
+  - Add allowedActions field if missing; preserve legacy status values if already in use.
+- **Governance & owner recommendations:**
+  - Status additions require updating contract docs.
+
+### DECISION-SHOPMGMT-014 — Idempotency Model for Create/Reschedule
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-014)
+- **Decision:** Create/reschedule accept clientRequestId; duplicate keys return the original success result and must not create duplicates.
+- **Alternatives considered:**
+  - Option A (Chosen): Body field clientRequestId with 24h retention
+  - Option B: Header-only idempotency key
+- **Reasoning and evidence:**
+  - Improves resilience to network retries and UI double-submits.
+- **Architectural implications:**
+  - Store idempotency outcomes keyed by (clientRequestId, operation).
+- **Auditor-facing explanation:**
+  - Inspect that duplicate requests do not create duplicate appointments.
+- **Migration & backward-compatibility notes:**
+  - Roll out idempotency checks as additive behavior.
+- **Governance & owner recommendations:**
+  - Monitor idempotency hit rate to detect UX issues.
+
+### DECISION-SHOPMGMT-015 — Timezone Semantics for Scheduling + Display
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-015)
+- **Decision:** Facility timezone is the source of truth; APIs return facilityTimeZoneId and timestamps with offset.
+- **Alternatives considered:**
+  - Option A (Chosen): Facility timezone
+  - Option B: Browser/user timezone
+- **Reasoning and evidence:**
+  - Scheduling is an operational facility concern and must be unambiguous.
+- **Architectural implications:**
+  - Persist timestamps as instants; render in facility timezone.
+- **Auditor-facing explanation:**
+  - Inspect that stored times align with displayed facility-local times.
+- **Migration & backward-compatibility notes:**
+  - Introduce facilityTimeZoneId field before UI date/time picker rollout.
+- **Governance & owner recommendations:**
+  - Timezone changes require explicit review.
+
+### DECISION-SHOPMGMT-016 — Notification Toggles + Partial Success Semantics
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-016)
+- **Decision:** Notification behavior is backend-owned; UI does not send notify toggles in the initial version. If notifications fail/queue, reschedule/create may still be successful and must return a partial outcome summary.
+- **Alternatives considered:**
+  - Option A (Chosen): Backend-owned notification policy
+  - Option B: UI-controlled toggles
+- **Reasoning and evidence:**
+  - Prevents UI from drifting from policy and simplifies future policy changes.
+- **Architectural implications:**
+  - Response schema includes notificationOutcomeSummary when relevant.
+- **Auditor-facing explanation:**
+  - Inspect notification request logs for reschedule events; reconcile with UI partial outcomes.
+- **Migration & backward-compatibility notes:**
+  - Add summary fields without breaking existing clients.
+- **Governance & owner recommendations:**
+  - Notification policy changes require ops review.
+
+### DECISION-SHOPMGMT-017 — Audit Visibility + PII-safe Fields for UI
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-017)
+- **Decision:** Audit endpoints return redacted, permission-gated entries; customer PII and free-text notes are not shown to unauthorized roles.
+- **Alternatives considered:**
+  - Option A (Chosen): Redacted audit read model
+  - Option B: Full raw audit payload exposure
+- **Reasoning and evidence:**
+  - Audit data is valuable but sensitive; least-privilege visibility is required.
+- **Architectural implications:**
+  - Introduce AUDIT_VIEW permission (or equivalent) and redaction rules.
+- **Auditor-facing explanation:**
+  - Inspect that redaction is enforced consistently and access is logged.
+- **Migration & backward-compatibility notes:**
+  - Add audit endpoints as read-only; evolve fields via versioning.
+- **Governance & owner recommendations:**
+  - Security domain reviews redaction changes.
 
 ## End
 

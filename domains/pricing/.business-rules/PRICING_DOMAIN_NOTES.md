@@ -2,530 +2,353 @@
 
 ## Summary
 
-This document provides comprehensive rationale and decision logs for the Pricing domain. Pricing manages MSRP, price books, location overrides, promotions, restrictions, and immutable pricing snapshots. Each decision includes alternatives considered, architectural implications, audit guidance, and governance recommendations.
+This document is the non-normative rationale and decision log for the Pricing domain. It explains why the normative decisions in `AGENT_GUIDE.md` were chosen, what alternatives were considered, and what auditors/architects should inspect to verify correctness. It is intended for architecture review, governance, and long-term maintainability.
 
 ## Completed items
 
-- [x] Documented 10 key pricing decisions
-- [x] Provided alternatives analysis for each decision
-- [x] Included architectural implications with schemas
-- [x] Added auditor-facing SQL queries
-- [x] Defined migration and governance strategies
+- [x] Linked each Decision ID to a detailed rationale
 
 ## Decision details
 
-### DECISION-PRICING-001 — MSRP Temporal Uniqueness Per Product
+### DECISION-PRICING-001 — Money representation and rounding
 
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PRICING-001)
-- **Decision:** Each product can have only one MSRP record active at any point in time. No overlapping effective date ranges are allowed per product. This ensures price determinism and prevents ambiguity in pricing calculations.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Enforce temporal uniqueness with database constraint
-    - Pros: Guarantees data integrity, prevents pricing ambiguity, clear audit trail
-    - Cons: Requires careful date management, cannot support A/B pricing tests
-  - **Option B:** Allow overlaps with precedence rules
-    - Pros: More flexible for promotions
-    - Cons: Ambiguous, complex precedence logic, audit confusion
-  - **Option C:** Latest-wins without validation
-    - Pros: Simplest implementation
-    - Cons: Data quality issues, undetectable errors, compliance risks
-- **Reasoning and evidence:**
-  - MSRP is regulatory-sensitive (advertised pricing must be accurate)
-  - Overlapping MSRPs create ambiguous "correct price" at a point in time
-  - Audit requirements mandate clear price lineage
-  - Deterministic pricing prevents customer disputes
-  - Industry standard: one authoritative price per product per time period
-- **Architectural implications:**
-  - **Components affected:**
-    - MSRP service: Validates date ranges on create/update
-    - Database: Exclusion constraint on (product_id, effective_range)
-    - Pricing engine: Assumes single MSRP per product per date
-  - **Database schema:**
-    ```sql
-    CREATE TABLE product_msrp (
-      id UUID PRIMARY KEY,
-      product_id UUID NOT NULL REFERENCES product(id),
-      msrp_amount DECIMAL(19,4) NOT NULL CHECK (msrp_amount >= 0),
-      currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-      effective_start_date DATE NOT NULL,
-      effective_end_date DATE, -- null = indefinite
-      created_by UUID NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      CHECK (effective_end_date IS NULL OR effective_end_date > effective_start_date)
-    );
-    
-    -- PostgreSQL exclusion constraint for temporal uniqueness
-    CREATE EXTENSION IF NOT EXISTS btree_gist;
-    CREATE UNIQUE INDEX idx_msrp_temporal_unique ON product_msrp
-    USING GIST (product_id WITH =, daterange(effective_start_date, effective_end_date, '[)') WITH &&)
-    WHERE effective_end_date IS NOT NULL;
-    
-    -- Separate unique constraint for open-ended MSRP
-    CREATE UNIQUE INDEX idx_msrp_open_ended ON product_msrp (product_id)
-    WHERE effective_end_date IS NULL;
-    ```
-  - **Validation logic:**
-    ```java
-    @Transactional
-    public ProductMSRP createMSRP(CreateMSRPRequest request) {
-        // Validate no overlaps
-        boolean hasOverlap = msrpRepo.existsOverlap(
-            request.getProductId(),
-            request.getEffectiveStartDate(),
-            request.getEffectiveEndDate()
-        );
-        
-        if (hasOverlap) {
-            throw new ConflictException(
-                "MSRP dates overlap with existing record for product " + request.getProductId()
-            );
-        }
-        
-        ProductMSRP msrp = new ProductMSRP();
-        msrp.setProductId(request.getProductId());
-        msrp.setMsrpAmount(request.getAmount());
-        msrp.setCurrency(request.getCurrency());
-        msrp.setEffectiveStartDate(request.getEffectiveStartDate());
-        msrp.setEffectiveEndDate(request.getEffectiveEndDate());
-        
-        return msrpRepo.save(msrp);
-    }
-    ```
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify no products have overlapping MSRP date ranges
-  - **Query example:**
-    ```sql
-    -- Find products with overlapping MSRP records
-    SELECT m1.product_id, m1.id as msrp1, m2.id as msrp2,
-           m1.effective_start_date as start1, m1.effective_end_date as end1,
-           m2.effective_start_date as start2, m2.effective_end_date as end2
-    FROM product_msrp m1
-    JOIN product_msrp m2 ON m1.product_id = m2.product_id AND m1.id != m2.id
-    WHERE daterange(m1.effective_start_date, m1.effective_end_date, '[)')
-      && daterange(m2.effective_start_date, m2.effective_end_date, '[)');
-    ```
-  - **Expected outcome:** Zero overlapping records
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Audit existing MSRP data for overlaps
-    2. Resolve conflicts (keep most recent or highest priority)
-    3. Deploy exclusion constraint
-    4. Update MSRP management UI with date validation
-  - **Conflict resolution:**
-    ```sql
-    -- Find and report overlaps before migration
-    WITH overlaps AS (
-      SELECT m1.product_id, COUNT(*) as overlap_count
-      FROM product_msrp m1, product_msrp m2
-      WHERE m1.product_id = m2.product_id 
-        AND m1.id < m2.id
-        AND daterange(m1.effective_start_date, m1.effective_end_date, '[)')
-          && daterange(m2.effective_start_date, m2.effective_end_date, '[)')
-      GROUP BY m1.product_id
-    )
-    SELECT * FROM overlaps WHERE overlap_count > 0;
-    ```
-- **Governance & owner recommendations:**
-  - **Owner:** Pricing domain team with Product team coordination
-  - **Policy:** MSRP changes require product owner approval
-  - **Review cadence:** Quarterly MSRP accuracy audit
-  - **Monitoring:** Alert on MSRP gaps (product has no effective MSRP)
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Money values are represented as `{ amount: "<decimal-string>", currencyUomId: "USD" }`; rounding rules are backend-owned and UI must not recompute totals.
+- Alternatives considered:
+ 	- Option A (chosen): Decimal-string + `currencyUomId` (Moqui-aligned)
+ 	- Option B: Integer minor-units (cents)
+- Reasoning and evidence:
+ 	- Avoids floating-point issues and keeps UI display deterministic.
+ 	- Currency code is required to avoid implicit defaults.
+- Architectural implications:
+ 	- All pricing endpoints use the same money DTO.
+ 	- Contract tests validate money shape for quote/snapshot/promotion results.
+- Auditor-facing explanation:
+ 	- Inspect that stored snapshots contain the currency code and that UI never re-derives extended totals.
+- Migration & backward-compatibility notes:
+ 	- If any endpoints currently use `{ amount, currency }`, add a compatibility mapper until clients are updated.
+- Governance & owner recommendations:
+ 	- Pricing owns the money DTO for pricing endpoints; changes require cross-domain review.
 
-### DECISION-PRICING-002 — Price Book Rule Deterministic Precedence
+### DECISION-PRICING-002 — Pricing API base path and versioning
 
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PRICING-002)
-- **Decision:** Price book rules follow deterministic precedence: SKU-specific beats Category-specific beats Global, with priority field as tie-breaker within same specificity. This ensures consistent pricing across all quote requests.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Specificity-based precedence with priority tie-breaker
-    - Pros: Predictable, easy to reason about, industry standard
-    - Cons: Requires careful rule authoring
-  - **Option B:** Priority-only precedence (no specificity)
-    - Pros: Maximum flexibility
-    - Cons: Hard to reason about, error-prone
-  - **Option C:** Latest-created wins
-    - Pros: Simplest to implement
-    - Cons: Unpredictable, cannot express business intent
-- **Reasoning and evidence:**
-  - Pricing must be deterministic (same inputs = same output)
-  - Specificity matches business intent (specific rules should override general)
-  - Priority allows explicit control within same specificity level
-  - Industry standard pattern (most pricing engines use this approach)
-  - Audit requirement: pricing decisions must be reproducible
-- **Architectural implications:**
-  - **Components affected:**
-    - Pricing engine: Evaluates rules in precedence order
-    - Rule management UI: Displays effective precedence
-  - **Rule evaluation:**
-    ```java
-    public PriceQuote calculatePrice(PriceRequest request) {
-        List<PriceBookRule> applicableRules = ruleRepo.findApplicable(
-            request.getProductId(),
-            request.getLocationId(),
-            request.getCustomerTier(),
-            request.getQuoteDate()
-        );
-        
-        // Sort by precedence
-        applicableRules.sort((r1, r2) -> {
-            // 1. Specificity (SKU > CATEGORY > GLOBAL)
-            int spec1 = getSpecificity(r1.getTarget());
-            int spec2 = getSpecificity(r2.getTarget());
-            if (spec1 != spec2) {
-                return Integer.compare(spec2, spec1); // higher spec wins
-            }
-            
-            // 2. Priority within same specificity
-            return Integer.compare(r2.getPriority(), r1.getPriority()); // higher priority wins
-        });
-        
-        // Apply first matching rule
-        PriceBookRule winningRule = applicableRules.stream()
-            .filter(r -> matchesConditions(r, request))
-            .findFirst()
-            .orElse(null);
-        
-        return applyRule(winningRule, request);
-    }
-    
-    private int getSpecificity(RuleTarget target) {
-        return switch (target.getType()) {
-            case SKU -> 3;
-            case CATEGORY -> 2;
-            case GLOBAL -> 1;
-        };
-    }
-    ```
-  - **Database schema:**
-    ```sql
-    CREATE TYPE rule_target_type AS ENUM ('SKU', 'CATEGORY', 'GLOBAL');
-    
-    CREATE TABLE price_book_rule (
-      id UUID PRIMARY KEY,
-      price_book_id UUID NOT NULL REFERENCES price_book(id),
-      target_type rule_target_type NOT NULL,
-      target_id UUID, -- product_id for SKU, category_id for CATEGORY, null for GLOBAL
-      priority INTEGER NOT NULL DEFAULT 100,
-      condition_type VARCHAR(50), -- CUSTOMER_TIER, LOCATION, NONE
-      condition_value VARCHAR(255),
-      pricing_logic JSONB NOT NULL,
-      effective_start_at TIMESTAMPTZ NOT NULL,
-      effective_end_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    
-    CREATE INDEX idx_rule_lookup ON price_book_rule(price_book_id, target_type, target_id, effective_start_at);
-    ```
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify pricing calculations use correct precedence, no ambiguous rule conflicts
-  - **Query example:**
-    ```sql
-    -- Find rules with same specificity and priority (ambiguous)
-    SELECT pb.name, pbr1.id as rule1, pbr2.id as rule2,
-           pbr1.target_type, pbr1.priority
-    FROM price_book_rule pbr1
-    JOIN price_book_rule pbr2 ON 
-      pbr1.price_book_id = pbr2.price_book_id
-      AND pbr1.id < pbr2.id
-      AND pbr1.target_type = pbr2.target_type
-      AND pbr1.priority = pbr2.priority
-      AND pbr1.target_id = pbr2.target_id
-    JOIN price_book pb ON pb.id = pbr1.price_book_id
-    WHERE daterange(pbr1.effective_start_at::date, pbr1.effective_end_at::date, '[)')
-      && daterange(pbr2.effective_start_at::date, pbr2.effective_end_at::date, '[)');
-    ```
-  - **Expected outcome:** Zero ambiguous rule pairs
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Audit existing rules for ambiguity
-    2. Assign priority values to resolve conflicts
-    3. Deploy precedence engine with logging
-    4. Monitor for unexpected price changes
-  - **Testing:** Generate test cases covering all precedence scenarios
-- **Governance & owner recommendations:**
-  - **Owner:** Pricing domain team
-  - **Policy:** Document precedence rules in pricing playbook
-  - **Review cadence:** Monthly audit of rule effectiveness
-  - **Training:** Train pricing analysts on precedence logic
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: All Pricing REST APIs are published under `/pricing/v1/...`.
+- Alternatives considered:
+ 	- Option A (chosen): Dedicated `pricing` namespace
+ 	- Option B: Mixed service paths per feature
+- Reasoning and evidence:
+ 	- Predictable routing for gateway, observability, and client configuration.
+- Architectural implications:
+ 	- Gateway routing and frontend API clients must use the single base path.
+- Auditor-facing explanation:
+ 	- Inspect gateway route configs and service discovery for the `pricing` prefix.
+- Migration & backward-compatibility notes:
+ 	- Provide temporary redirects for legacy `/v1/...` paths if they exist.
+- Governance & owner recommendations:
+ 	- New endpoints require a versioned path and documented contract.
 
-### DECISION-PRICING-003 — Location Price Override Guardrails
+### DECISION-PRICING-003 — Effective dating and timezone semantics
 
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PRICING-003)
-- **Decision:** Location price overrides must pass guardrail validation (minimum margin, maximum discount). Overrides within guardrails activate immediately (ACTIVE). Overrides exceeding guardrails enter PENDING_APPROVAL state requiring manager approval. All validation is server-side.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Guardrails with approval workflow
-    - Pros: Prevents pricing errors, maintains margin targets, audit trail
-    - Cons: Additional approval overhead
-  - **Option B:** No guardrails (trust users)
-    - Pros: Fastest workflow
-    - Cons: Risk of below-cost pricing, margin erosion
-  - **Option C:** Hard limits (reject out-of-bounds)
-    - Pros: Prevents bad prices
-    - Cons: Inflexible, cannot handle legitimate exceptions
-- **Reasoning and evidence:**
-  - Margin protection is critical business requirement
-  - Below-cost pricing causes financial loss
-  - Approval workflow balances control and flexibility
-  - Audit compliance requires approval trails for exceptions
-  - Industry pattern: tiered approval thresholds
-- **Architectural implications:**
-  - **Components affected:**
-    - Override service: Validates against guardrails
-    - Approval service: Manages approval workflow
-    - Database: Stores override state and approval records
-  - **Database schema:**
-    ```sql
-    CREATE TYPE override_status AS ENUM ('PENDING_APPROVAL', 'ACTIVE', 'REJECTED', 'EXPIRED');
-    
-    CREATE TABLE location_price_override (
-      id UUID PRIMARY KEY,
-      location_id UUID NOT NULL REFERENCES location(id),
-      product_id UUID NOT NULL REFERENCES product(id),
-      override_price DECIMAL(19,4) NOT NULL CHECK (override_price >= 0),
-      currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-      status override_status NOT NULL DEFAULT 'PENDING_APPROVAL',
-      requested_by UUID NOT NULL,
-      requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      approved_by UUID,
-      approved_at TIMESTAMPTZ,
-      rejection_reason TEXT,
-      effective_start_date DATE NOT NULL,
-      effective_end_date DATE,
-      margin_percent DECIMAL(5,2), -- computed at submission
-      discount_percent DECIMAL(5,2), -- computed at submission
-      UNIQUE(location_id, product_id, effective_start_date)
-    );
-    
-    CREATE TABLE guardrail_policy (
-      id UUID PRIMARY KEY,
-      name VARCHAR(100) NOT NULL,
-      min_margin_percent DECIMAL(5,2) NOT NULL,
-      max_discount_percent DECIMAL(5,2) NOT NULL,
-      auto_approve_threshold_percent DECIMAL(5,2), -- within this threshold = auto-approve
-      is_active BOOLEAN NOT NULL DEFAULT true
-    );
-    ```
-  - **Validation logic:**
-    ```java
-    @Transactional
-    public LocationPriceOverride submitOverride(SubmitOverrideRequest request) {
-        // Get cost and MSRP
-        BigDecimal cost = inventoryService.getCost(request.getProductId());
-        BigDecimal msrp = msrpService.getMSRP(request.getProductId(), request.getEffectiveStartDate());
-        
-        // Calculate margin and discount
-        BigDecimal margin = request.getOverridePrice().subtract(cost)
-            .divide(request.getOverridePrice(), 4, RoundingMode.HALF_UP);
-        BigDecimal discount = msrp.subtract(request.getOverridePrice())
-            .divide(msrp, 4, RoundingMode.HALF_UP);
-        
-        // Check guardrails
-        GuardrailPolicy policy = guardrailRepo.findActive();
-        boolean withinGuardrails = 
-            margin.compareTo(policy.getMinMarginPercent()) >= 0 &&
-            discount.compareTo(policy.getMaxDiscountPercent()) <= 0;
-        
-        LocationPriceOverride override = new LocationPriceOverride();
-        override.setLocationId(request.getLocationId());
-        override.setProductId(request.getProductId());
-        override.setOverridePrice(request.getOverridePrice());
-        override.setMarginPercent(margin.multiply(BigDecimal.valueOf(100)));
-        override.setDiscountPercent(discount.multiply(BigDecimal.valueOf(100)));
-        override.setRequestedBy(request.getUserId());
-        override.setEffectiveStartDate(request.getEffectiveStartDate());
-        override.setEffectiveEndDate(request.getEffectiveEndDate());
-        
-        if (withinGuardrails) {
-            override.setStatus(OverrideStatus.ACTIVE);
-        } else {
-            override.setStatus(OverrideStatus.PENDING_APPROVAL);
-            // Trigger approval notification
-            approvalService.requestApproval(override);
-        }
-        
-        return overrideRepo.save(override);
-    }
-    ```
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify overrides outside guardrails are approved, active overrides meet guardrails
-  - **Query example:**
-    ```sql
-    -- Find active overrides that violate guardrails (should be zero)
-    SELECT o.id, o.product_id, o.location_id, 
-           o.margin_percent, o.discount_percent, o.status
-    FROM location_price_override o
-    CROSS JOIN guardrail_policy g
-    WHERE o.status = 'ACTIVE'
-      AND g.is_active = true
-      AND (o.margin_percent < g.min_margin_percent 
-           OR o.discount_percent > g.max_discount_percent);
-    
-    -- Find pending overrides older than 7 days
-    SELECT id, product_id, location_id, requested_at,
-           NOW() - requested_at as pending_duration
-    FROM location_price_override
-    WHERE status = 'PENDING_APPROVAL'
-      AND requested_at < NOW() - INTERVAL '7 days';
-    ```
-  - **Expected outcome:** Zero active overrides violating guardrails, pending overrides should resolve within SLA
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Define initial guardrail policy
-    2. Audit existing overrides against policy
-    3. Grandfather existing overrides or request retroactive approval
-    4. Deploy guardrail validation
-  - **Backfill:**
-    ```sql
-    -- Mark existing overrides as ACTIVE (grandfathered)
-    UPDATE location_price_override
-    SET status = 'ACTIVE',
-        approved_by = 'SYSTEM',
-        approved_at = NOW()
-    WHERE status = 'PENDING_APPROVAL'
-      AND requested_at < '2026-01-01'; -- before guardrails deployed
-    ```
-- **Governance & owner recommendations:**
-  - **Owner:** Pricing domain with Finance oversight
-  - **Policy:** Review guardrails quarterly, adjust based on margin targets
-  - **Monitoring:** Alert on approval backlog (>10 pending)
-  - **SLA:** Approve/reject pending overrides within 48 hours
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Effective-dated timestamps are stored in UTC but interpreted in store-local timezone for “as-of” evaluation; timestamp ranges are half-open `[start, end)`.
+- Alternatives considered:
+ 	- Option A (chosen): Store-local evaluation
+ 	- Option B: UTC evaluation everywhere
+- Reasoning and evidence:
+ 	- Store operations are anchored to the store’s calendar; UTC-only leads to off-by-one “day” bugs.
+- Architectural implications:
+ 	- UI must show the store timezone and use date-time pickers for timestamp-effective fields.
+- Auditor-facing explanation:
+ 	- Inspect a rule that starts/ends on a boundary and confirm evaluation matches store-local time.
+- Migration & backward-compatibility notes:
+ 	- If historical records were authored as UTC, keep their meaning by storing original timezone metadata when possible.
+- Governance & owner recommendations:
+ 	- Any change in timezone semantics requires explicit ADR.
 
-### DECISION-PRICING-004 — Promotion Code Uniqueness and Immutability
+### DECISION-PRICING-004 — Price book scope model (location/tier/currency)
 
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PRICING-004)
-- **Decision:** Promotion codes must be globally unique and immutable once created. Codes are case-insensitive for lookup but stored in original case. Deactivated promotions retain their codes forever (cannot be reused).
-- **Alternatives considered:**
-  - **Option A (Chosen):** Unique, immutable codes with case-insensitive lookup
-    - Pros: Clear customer experience, prevents confusion, audit trail intact
-    - Cons: Code namespace can fill up over time
-  - **Option B:** Reusable codes after expiration
-    - Pros: Code namespace reuse
-    - Cons: Customer confusion, audit complexity
-  - **Option C:** Case-sensitive codes
-    - Pros: Larger namespace
-    - Cons: Customer frustration (wrong case = invalid code)
-- **Reasoning and evidence:**
-  - Customers remember promotion codes (e.g., "SUMMER20")
-  - Case-insensitive input improves UX (don't punish caps lock)
-  - Immutable codes support audit and customer service (can reference historical promotions)
-  - Reusing codes creates confusion ("I used SUMMER20 last year, why doesn't it work now?")
-  - Industry standard: promotion codes are stable identifiers
-- **Architectural implications:**
-  - **Components affected:**
-    - Promotion service: Validates code uniqueness
-    - Database: Unique constraint on normalized code
-    - Lookup API: Case-insensitive search
-  - **Database schema:**
-    ```sql
-    CREATE TABLE promotion_offer (
-      id UUID PRIMARY KEY,
-      code VARCHAR(50) NOT NULL, -- original case preserved
-      code_normalized VARCHAR(50) NOT NULL UNIQUE, -- lowercase for uniqueness
-      description TEXT NOT NULL,
-      discount_type VARCHAR(20) NOT NULL, -- PERCENTAGE, FIXED_AMOUNT
-      discount_value DECIMAL(19,4) NOT NULL,
-      valid_from DATE NOT NULL,
-      valid_until DATE NOT NULL,
-      status VARCHAR(20) NOT NULL DEFAULT 'DRAFT', -- DRAFT, ACTIVE, EXPIRED, DEACTIVATED
-      max_uses INTEGER,
-      current_uses INTEGER DEFAULT 0,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      CHECK (valid_until >= valid_from)
-    );
-    
-    CREATE UNIQUE INDEX idx_promo_code_unique ON promotion_offer(LOWER(code));
-    CREATE INDEX idx_promo_lookup ON promotion_offer(code_normalized, status);
-    ```
-  - **Code validation:**
-    ```java
-    @Transactional
-    public PromotionOffer createPromotion(CreatePromotionRequest request) {
-        String normalizedCode = request.getCode().toLowerCase();
-        
-        // Check uniqueness
-        if (promotionRepo.existsByCodeNormalized(normalizedCode)) {
-            throw new ConflictException(
-                "Promotion code '" + request.getCode() + "' already exists"
-            );
-        }
-        
-        PromotionOffer promo = new PromotionOffer();
-        promo.setCode(request.getCode()); // preserve original case
-        promo.setCodeNormalized(normalizedCode);
-        promo.setDescription(request.getDescription());
-        promo.setDiscountType(request.getDiscountType());
-        promo.setDiscountValue(request.getDiscountValue());
-        promo.setValidFrom(request.getValidFrom());
-        promo.setValidUntil(request.getValidUntil());
-        promo.setStatus(PromotionStatus.DRAFT);
-        
-        return promotionRepo.save(promo);
-    }
-    
-    public Optional<PromotionOffer> lookupByCode(String code, LocalDate asOfDate) {
-        String normalized = code.toLowerCase();
-        return promotionRepo.findByCodeNormalizedAndStatus(normalized, "ACTIVE")
-            .filter(p -> !asOfDate.isBefore(p.getValidFrom()) 
-                      && !asOfDate.isAfter(p.getValidUntil()));
-    }
-    ```
-- **Auditor-facing explanation:**
-  - **What to inspect:** Verify no duplicate codes (normalized), all codes are immutable
-  - **Query example:**
-    ```sql
-    -- Find duplicate codes (should be zero)
-    SELECT code_normalized, COUNT(*) as count
-    FROM promotion_offer
-    GROUP BY code_normalized
-    HAVING COUNT(*) > 1;
-    
-    -- Find code reuse (deactivated then reused)
-    SELECT code_normalized, COUNT(DISTINCT id) as use_count,
-           STRING_AGG(status::TEXT, ', ' ORDER BY created_at) as statuses
-    FROM promotion_offer
-    GROUP BY code_normalized
-    HAVING COUNT(DISTINCT id) > 1;
-    ```
-  - **Expected outcome:** Zero duplicates, zero code reuse
-- **Migration & backward-compatibility notes:**
-  - **Steps:**
-    1. Audit existing promotions for duplicate codes
-    2. Normalize existing codes (lowercase)
-    3. Deploy unique constraint
-    4. Update lookup logic to case-insensitive
-  - **Conflict resolution:**
-    ```sql
-    -- Find and resolve duplicate codes before constraint
-    WITH dupes AS (
-      SELECT LOWER(code) as norm_code, COUNT(*) as dupe_count
-      FROM promotion_offer
-      GROUP BY LOWER(code)
-      HAVING COUNT(*) > 1
-    )
-    SELECT po.id, po.code, d.norm_code
-    FROM promotion_offer po
-    JOIN dupes d ON LOWER(po.code) = d.norm_code
-    ORDER BY d.norm_code, po.created_at;
-    -- Manual review and code suffix for duplicates (e.g., SUMMER20_2)
-    ```
-- **Governance & owner recommendations:**
-  - **Owner:** Marketing team with Pricing domain support
-  - **Policy:** Code naming convention (max 20 chars, alphanumeric + hyphen)
-  - **Review cadence:** Quarterly audit of active promotions
-  - **Monitoring:** Alert on high promotion usage (approaching max_uses)
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: A PriceBook has explicit scope fields: `locationId` optional, `customerTierId` optional, and `currencyUomId` required (single-currency per book).
+- Alternatives considered:
+ 	- Option A (chosen): Scope fields on PriceBook
+ 	- Option B: Encode scope entirely as rule conditions
+- Reasoning and evidence:
+ 	- Scoped books reduce complexity for rule authoring and evaluation.
+- Architectural implications:
+ 	- Quote evaluation selects the “most specific” applicable book by scope before evaluating rules.
+- Auditor-facing explanation:
+ 	- Inspect that quotes record which book and scope were used.
+- Migration & backward-compatibility notes:
+ 	- Backfill default (global) book for existing tenants.
+- Governance & owner recommendations:
+ 	- Pricing owns book scope taxonomy.
 
-### DECISION-PRICING-005 — Immutable Pricing Snapshots for Audit
+### DECISION-PRICING-005 — Price book rule condition model (single-dimension)
 
-- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PRICING-005)
-- **Decision:** Every estimate and work order line captures an immutable pricing snapshot at creation time. Snapshots include unit price, cost, MSRP, applied rules, policy version, and source context. Snapshots are write-once, never updated. Used for audit drilldown and pricing reproducibility.
-- **Alternatives considered:**
-  - **Option A (Chosen):** Immutable snapshots with full context
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: A rule may express at most one condition dimension (location OR tier OR none); combined conditions are modeled via scoped books.
+- Alternatives considered:
+ 	- Option A (chosen): Single-dimension rules
+ 	- Option B: Multi-dimensional condition expression in a rule
+- Reasoning and evidence:
+ 	- Keeps UI editors and evaluation deterministic.
+- Architectural implications:
+ 	- Admin UI must not allow authors to create multi-condition rules.
+- Auditor-facing explanation:
+ 	- Inspect a combined scope use-case and confirm it is modeled with scoped book(s).
+- Migration & backward-compatibility notes:
+ 	- For existing multi-condition rules, split into scoped books.
+- Governance & owner recommendations:
+ 	- Changes to this model require a compatibility plan for existing rules.
+
+### DECISION-PRICING-006 — Rule precedence and deterministic tie-breakers
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Rule ordering is deterministic: (1) target specificity (SKU > CATEGORY > GLOBAL), then (2) higher priority, then (3) stable tie-breaker by ruleId ascending.
+- Alternatives considered:
+ 	- Option A (chosen): Stable tie-breaker with ruleId
+ 	- Option B: Latest-updated wins
+- Reasoning and evidence:
+ 	- Stable ordering prevents “random” pricing in presence of authoring mistakes.
+- Architectural implications:
+ 	- Backend must log the winning rule and tie-breaker path.
+- Auditor-facing explanation:
+ 	- Inspect quote breakdown showing evaluated rules and the selected winner.
+- Migration & backward-compatibility notes:
+ 	- Add linting checks to reject ambiguous rules at authoring time.
+- Governance & owner recommendations:
+ 	- Maintain a “rule authoring” playbook for analysts.
+
+### DECISION-PRICING-007 — Promotion code constraints and uniqueness
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Promotion codes are globally unique (case-insensitive) and immutable once created; UI validates length (1–32) and charset `[A-Z0-9_-]`.
+- Alternatives considered:
+ 	- Option A (chosen): Constrained, case-insensitive codes
+ 	- Option B: Free-form codes
+- Reasoning and evidence:
+ 	- Prevents confusing customer experiences and reduces support issues.
+- Architectural implications:
+ 	- Backend provides stable error codes for invalid/duplicate codes.
+- Auditor-facing explanation:
+ 	- Inspect duplicate-code prevention and audit trails for promotion creation.
+- Migration & backward-compatibility notes:
+ 	- Existing codes outside charset remain valid but are not allowed for new creation.
+- Governance & owner recommendations:
+ 	- Marketing owns naming conventions; Pricing enforces constraints.
+
+### DECISION-PRICING-008 — Single promotion per estimate behavior
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: At most one promotion is active on an estimate at a time; applying a new promotion replaces the existing one (backend-authoritative, idempotent by estimate+code).
+- Alternatives considered:
+ 	- Option A (chosen): Replace-by-default
+ 	- Option B: Block when one already applied
+- Reasoning and evidence:
+ 	- Simplifies totals and avoids stacking ambiguity.
+- Architectural implications:
+ 	- Backend returns a single “applied promotion” descriptor and adjustments.
+- Auditor-facing explanation:
+ 	- Inspect estimate pricing history showing replaced promotion.
+- Migration & backward-compatibility notes:
+ 	- If stacking existed, introduce a migration plan and UI messaging.
+- Governance & owner recommendations:
+ 	- Policy changes require approval from Finance/Marketing.
+
+### DECISION-PRICING-009 — Promotion eligibility rule evaluation model
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Eligibility rules evaluate with AND semantics by default; a promotion with zero eligibility rules is eligible for all contexts.
+- Alternatives considered:
+ 	- Option A (chosen): AND + no-rules eligible
+ 	- Option B: OR
+ 	- Option C: No-rules ineligible
+- Reasoning and evidence:
+ 	- AND is conservative when rules exist; no-rules eligible matches “unrestricted promotion” intent.
+- Architectural implications:
+ 	- Backend returns `isEligible` plus `reasonCode` when not eligible.
+- Auditor-facing explanation:
+ 	- Inspect eligibility evaluations and reason codes for denied applications.
+- Migration & backward-compatibility notes:
+ 	- If behavior differs today, mark as `safe_to_defer: true` until confirmed.
+- Governance & owner recommendations:
+ 	- Eligibility logic changes require governance review due to customer-impact.
+
+### DECISION-PRICING-010 — Restriction decisions and override eligibility
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Restriction evaluate returns only: `ALLOW`, `BLOCK`, `ALLOW_WITH_OVERRIDE`; only `ALLOW_WITH_OVERRIDE` is override-eligible.
+- Alternatives considered:
+ 	- Option A (chosen): Override eligibility encoded as a distinct decision
+ 	- Option B: Allow overrides on `BLOCK` with a flag
+- Reasoning and evidence:
+ 	- Prevents bypassing hard safety or compliance restrictions.
+- Architectural implications:
+ 	- UI shows override controls only when decision is `ALLOW_WITH_OVERRIDE`.
+- Auditor-facing explanation:
+ 	- Inspect that overrides exist only for override-eligible decisions.
+- Migration & backward-compatibility notes:
+ 	- Map any legacy “BLOCK but overrideable” flags to `ALLOW_WITH_OVERRIDE`.
+- Governance & owner recommendations:
+ 	- Restriction decision taxonomy is governance-controlled.
+
+### DECISION-PRICING-011 — Override reason codes catalog source
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Override reason codes are fetched from a backend catalog endpoint; UI never hardcodes codes.
+- Alternatives considered:
+ 	- Option A (chosen): Backend catalog endpoint
+ 	- Option B: Frontend static list
+- Reasoning and evidence:
+ 	- Codes change under governance; dynamic fetch reduces release coupling.
+- Architectural implications:
+ 	- Add caching and offline-safe behavior (disable override if catalog cannot load).
+- Auditor-facing explanation:
+ 	- Inspect reason code catalog changes and approval process.
+- Migration & backward-compatibility notes:
+ 	- Provide a default “OTHER” code only if backend explicitly includes it.
+- Governance & owner recommendations:
+ 	- Pricing/Compliance own the catalog.
+
+### DECISION-PRICING-012 — Restriction override request shape and transactionId requirement
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Override requests require `transactionId`, `policyVersion`, selected `ruleId` (when multiple candidates exist), `overrideReasonCode`, and `notes`.
+- Alternatives considered:
+ 	- Option A (chosen): Require transactionId and policyVersion
+ 	- Option B: Allow pre-transaction overrides
+- Reasoning and evidence:
+ 	- Ensures overrides are traceable and not stale.
+- Architectural implications:
+ 	- UI must disable override until a transaction exists; backend returns conflict on policyVersion mismatch.
+- Auditor-facing explanation:
+ 	- Inspect override records linked to transactions and their policy version.
+- Migration & backward-compatibility notes:
+ 	- If existing overrides lack transaction linkage, backfill or mark as legacy.
+- Governance & owner recommendations:
+ 	- Override workflow changes require security domain review.
+
+### DECISION-PRICING-013 — Pricing snapshot contract and UX pattern
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Snapshot drilldown is read-only and opens in a modal/drawer; response includes breakdown sufficient for explainability.
+- Alternatives considered:
+ 	- Option A (chosen): Modal/drawer drilldown
+ 	- Option B: Dedicated route
+- Reasoning and evidence:
+ 	- Preserves editing context and reduces navigation errors.
+- Architectural implications:
+ 	- UI must handle 403/404/5xx explicitly with safe states.
+- Auditor-facing explanation:
+ 	- Inspect snapshot immutability and trace to quote inputs.
+- Migration & backward-compatibility notes:
+ 	- If deep-linking becomes required, add a route later without breaking modal flow.
+- Governance & owner recommendations:
+ 	- Snapshots are compliance-relevant; changes require audit agent review.
+
+### DECISION-PRICING-014 — Snapshot authorization and sensitive-field redaction
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Snapshot view permission is inherited from document access; sensitive fields (e.g., cost) are redacted unless explicit permission exists.
+- Alternatives considered:
+ 	- Option A (chosen): Inherited access + redaction
+ 	- Option B: Dedicated snapshot permission
+- Reasoning and evidence:
+ 	- Prevents authorization drift and minimizes leaks.
+- Architectural implications:
+ 	- Backend must support field-level redaction or omit sensitive fields.
+- Auditor-facing explanation:
+ 	- Inspect that unauthorized roles cannot retrieve cost.
+- Migration & backward-compatibility notes:
+ 	- Introduce a `pricing:cost:view` permission as needed.
+- Governance & owner recommendations:
+ 	- Any new sensitive field must specify a redaction policy.
+
+### DECISION-PRICING-015 — Audit/history contract for pricing admin changes
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Admin-managed entities expose audit history with `changedAt`, `changedBy`, `action`, and a safe diff summary.
+- Alternatives considered:
+ 	- Option A (chosen): Standard audit contract
+ 	- Option B: No audit UI
+- Reasoning and evidence:
+ 	- Pricing changes are dispute-prone; audit visibility is required for support.
+- Architectural implications:
+ 	- UI must render audit entries without assuming optional fields.
+- Auditor-facing explanation:
+ 	- Inspect change history for pricing rules affecting disputed transactions.
+- Migration & backward-compatibility notes:
+ 	- Backfill audit entries where possible; otherwise mark as “history not available”.
+- Governance & owner recommendations:
+ 	- Audit schema changes require governance sign-off.
+
+### DECISION-PRICING-016 — Deactivation mechanism (status vs effectiveEndAt)
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Deactivation is implemented by setting `effectiveEndAt`; status fields are derived for display and filtering.
+- Alternatives considered:
+ 	- Option A (chosen): End-date
+ 	- Option B: `status=INACTIVE`
+- Reasoning and evidence:
+ 	- End-dating is time-travel friendly and reduces ambiguity.
+- Architectural implications:
+ 	- List endpoints filter by “effective as-of” time.
+- Auditor-facing explanation:
+ 	- Inspect that changes create new versions rather than mutating historical rules.
+- Migration & backward-compatibility notes:
+ 	- For legacy status-based records, compute end-date equivalents.
+- Governance & owner recommendations:
+ 	- Effective dating policy changes require ADR.
+
+### DECISION-PRICING-017 — Product lookup contract for pricing admin screens
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Pricing admin screens use Inventory product search to select `productId`, returning at minimum `productId`, `sku`, and `name`.
+- Alternatives considered:
+ 	- Option A (chosen): Use Inventory API
+ 	- Option B: Duplicate product data into Pricing
+- Reasoning and evidence:
+ 	- Prevents data duplication and inconsistent search results.
+- Architectural implications:
+ 	- UI uses a shared product picker component backed by Inventory.
+- Auditor-facing explanation:
+ 	- Inspect that Pricing does not mutate product identity data.
+- Migration & backward-compatibility notes:
+ 	- If no API exists, define one in Inventory rather than building ad-hoc pricing endpoints.
+- Governance & owner recommendations:
+ 	- Inventory owns product identity; changes require Inventory review.
+
+### DECISION-PRICING-018 — MSRP historical immutability and permissions
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID)
+- Decision: Past-effective MSRP records are immutable unless the actor holds `pricing:msrp:manage:historical`; edits must generate an audit event.
+- Alternatives considered:
+ 	- Option A (chosen): Immutable by default + elevated permission
+ 	- Option B: Editable history
+- Reasoning and evidence:
+ 	- Prevents rewriting history and reduces pricing disputes.
+- Architectural implications:
+ 	- UI renders historical records as read-only unless permission present.
+- Auditor-facing explanation:
+ 	- Inspect that historical edits are rare and fully audited.
+- Migration & backward-compatibility notes:
+ 	- Introduce the permission and update roles gradually.
+- Governance & owner recommendations:
+ 	- Compliance review for any historical edit policy change.
+
+## End
+
+End of document.
     - Pros: Complete audit trail, pricing reproducibility, regulatory compliance
     - Cons: Storage overhead, schema complexity
-  - **Option B:** Reference to pricing rules only
-    - Pros: Minimal storage
-    - Cons: Cannot reproduce pricing if rules change, incomplete audit
-  - **Option C:** No snapshots (recompute on demand)
-    - Pros: No storage overhead
-    - Cons: Cannot reproduce historical pricing, audit failure
+
+- **Option B:** Reference to pricing rules only
+  - Pros: Minimal storage
+  - Cons: Cannot reproduce pricing if rules change, incomplete audit
+- **Option C:** No snapshots (recompute on demand)
+  - Pros: No storage overhead
+  - Cons: Cannot reproduce historical pricing, audit failure
 - **Reasoning and evidence:**
   - Regulatory requirement: pricing decisions must be auditable years later
   - Rules/MSRP/overrides may change after quote; need historical pricing
@@ -538,6 +361,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     - Workexec service: Stores snapshot ID on line items
     - Audit UI: Displays snapshot details
   - **Database schema:**
+
     ```sql
     CREATE TABLE pricing_snapshot (
       id UUID PRIMARY KEY,
@@ -562,7 +386,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
     CREATE INDEX idx_snapshot_line ON pricing_snapshot(line_item_id);
     CREATE INDEX idx_snapshot_created ON pricing_snapshot(created_at);
     ```
+
   - **Snapshot creation:**
+
     ```java
     @Transactional
     public PricingSnapshot createSnapshot(PriceQuote quote, UUID lineItemId) {
@@ -588,7 +414,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
         // Note: No update method exists
     }
     ```
+
   - **Audit drilldown:**
+
     ```typescript
     interface PricingSnapshotView {
       id: string;
@@ -611,9 +439,11 @@ This document provides comprehensive rationale and decision logs for the Pricing
       capturedAt: string;
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify snapshots exist for all lines, snapshots are never modified
   - **Query example:**
+
     ```sql
     -- Find line items without snapshots
     SELECT li.id, li.estimate_id, li.work_order_id, li.product_id
@@ -628,6 +458,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     WHERE tablename = 'pricing_snapshot';
     -- Ensure no UPDATE triggers or policies exist
     ```
+
   - **Expected outcome:** All lines have snapshots, zero update operations
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -636,6 +467,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     3. Deploy snapshot creation in pricing engine
     4. Update Workexec to reference snapshot IDs
   - **Backfill strategy:**
+
     ```sql
     -- Create synthetic snapshots for recent lines (90 days)
     INSERT INTO pricing_snapshot 
@@ -657,6 +489,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
       );
     -- Note: Historical snapshots lack rule context (not reproducible)
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Pricing domain with Compliance oversight
   - **Policy:** Retain snapshots for 7 years (regulatory requirement)
@@ -689,6 +522,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     - Override service: Creates override records
     - Pricing API: Returns restriction decisions
   - **Database schema:**
+
     ```sql
     CREATE TABLE restriction_rule (
       id UUID PRIMARY KEY,
@@ -719,7 +553,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
     CREATE INDEX idx_restriction_product ON restriction_rule(product_id, is_active);
     CREATE INDEX idx_override_audit ON restriction_override(created_at, overridden_by);
     ```
+
   - **Evaluation logic:**
+
     ```java
     public RestrictionDecision evaluateRestrictions(
         UUID productId, UUID locationId, String serviceType) {
@@ -768,9 +604,11 @@ This document provides comprehensive rationale and decision logs for the Pricing
         return saved;
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify overrides have manager approval, no orphan overrides
   - **Query example:**
+
     ```sql
     -- Find overrides without manager approval (should be zero)
     SELECT id, product_id, location_id, overridden_by, created_at
@@ -786,6 +624,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     HAVING COUNT(*) > 10 -- flag frequent overriders
     ORDER BY override_count DESC;
     ```
+
   - **Expected outcome:** All overrides approved, monitor frequent overriders
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -794,6 +633,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     3. Deploy evaluation logic in pricing API
     4. Train managers on override process
   - **Initial rules:**
+
     ```sql
     -- Example: Restrict certain products in CA due to emissions
     INSERT INTO restriction_rule 
@@ -808,6 +648,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
        'This product does not meet California emissions standards',
        true);
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Pricing domain with Legal/Compliance oversight
   - **Policy:** Review restriction rules quarterly for accuracy
@@ -839,6 +680,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     - Pricing API: Returns requestId in response
     - Frontend: Tracks latest requestId and ignores stale responses
   - **Request/response:**
+
     ```typescript
     // Request
     interface PriceQuoteRequest {
@@ -860,7 +702,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
       warnings: string[];
     }
     ```
+
   - **Client-side handling:**
+
     ```typescript
     class PricingService {
       private latestRequestId: string | null = null;
@@ -884,7 +728,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
       }
     }
     ```
+
   - **Backend (stateless):**
+
     ```java
     @PostMapping("/pricing/quote")
     public PriceQuoteResponse getQuote(@RequestBody PriceQuoteRequest request) {
@@ -905,9 +751,11 @@ This document provides comprehensive rationale and decision logs for the Pricing
             .build();
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify quote API is stateless, responses include requestId
   - **Monitoring:**
+
     ```sql
     -- Track quote response times (detect slow queries)
     SELECT 
@@ -918,6 +766,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     WHERE endpoint = '/pricing/quote'
       AND created_at >= NOW() - INTERVAL '1 hour';
     ```
+
   - **Expected outcome:** P95 < 500ms, P99 < 1000ms
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -958,6 +807,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     - Quote response: Includes breakdown object
     - UI: Displays breakdown in tooltip or expandable section
   - **Response schema:**
+
     ```typescript
     interface PriceQuoteResponse {
       requestId: string;
@@ -984,7 +834,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
       }>;
     }
     ```
+
   - **Breakdown builder:**
+
     ```java
     public PriceBreakdown buildBreakdown(PriceCalculation calc) {
         PriceBreakdown breakdown = new PriceBreakdown();
@@ -1037,9 +889,11 @@ This document provides comprehensive rationale and decision logs for the Pricing
         return breakdown;
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify breakdowns accurately reflect applied rules
   - **Sample validation:**
+
     ```sql
     -- Verify promotion discounts match promotion definitions
     SELECT ps.id, ps.applied_promotions, po.discount_value
@@ -1048,6 +902,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     JOIN promotion_offer po ON po.id = (promo->>'promotionId')::uuid
     WHERE (promo->>'discountValue')::decimal != po.discount_value;
     ```
+
   - **Expected outcome:** Zero mismatches between snapshot and promotion
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -1087,6 +942,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     - Pricing API: Returns warnings array
     - Frontend: Displays warnings banner
   - **Response schema:**
+
     ```typescript
     interface PriceQuoteResponse {
       requestId: string;
@@ -1109,7 +965,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
       field?: string;
     }
     ```
+
   - **Warning generation:**
+
     ```java
     public PriceQuote calculate(PriceRequest request) {
         List<Warning> warnings = new ArrayList<>();
@@ -1145,7 +1003,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
         return quote;
     }
     ```
+
   - **Frontend handling:**
+
     ```typescript
     async function loadPrice(productId: string, quantity: number) {
       const response = await pricingService.getQuote({
@@ -1164,9 +1024,11 @@ This document provides comprehensive rationale and decision logs for the Pricing
       }
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify warnings are appropriate, not masking errors
   - **Monitoring:**
+
     ```sql
     -- Track warning rates
     SELECT 
@@ -1183,6 +1045,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     GROUP BY warning_code
     ORDER BY occurrence_count DESC;
     ```
+
   - **Expected outcome:** Warning rates < 5%, no unexpected warning codes
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -1223,6 +1086,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     - Pricing engine: Uses current rules for active quotes
     - Audit service: Retrieves and displays snapshots
   - **Reproducibility guarantee:**
+
     ```java
     // For active quote: use current rules
     public PriceQuote getCurrentQuote(PriceRequest request) {
@@ -1257,7 +1121,9 @@ This document provides comprehensive rationale and decision logs for the Pricing
         return true; // snapshot is authoritative
     }
     ```
+
   - **Snapshot completeness:**
+
     ```sql
     -- Verify snapshots have complete context for reproducibility
     SELECT id, product_id, created_at
@@ -1266,9 +1132,11 @@ This document provides comprehensive rationale and decision logs for the Pricing
        OR source_context IS NULL -- missing request context
     LIMIT 100;
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify snapshots exist for all financial transactions, snapshots contain complete context
   - **Query example:**
+
     ```sql
     -- Find invoiced lines without pricing snapshots
     SELECT il.id, il.invoice_id, il.product_id, il.unit_price
@@ -1277,6 +1145,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     WHERE il.invoice_status = 'PAID'
       AND ps.id IS NULL;
     ```
+
   - **Expected outcome:** Zero paid invoice lines without snapshots
 - **Migration & backward-compatibility notes:**
   - **Steps:**
@@ -1285,6 +1154,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
     3. Accept that older transactions may lack complete snapshots
     4. Document snapshot coverage date
   - **Coverage documentation:**
+
     ```sql
     -- Document snapshot coverage
     SELECT 
@@ -1293,6 +1163,7 @@ This document provides comprehensive rationale and decision logs for the Pricing
       COUNT(*) as total_snapshots
     FROM pricing_snapshot;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Pricing domain with Compliance
   - **Policy:** All financial transactions must have pricing snapshots

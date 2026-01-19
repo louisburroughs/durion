@@ -1,345 +1,250 @@
-```markdown
-# AGENT_GUIDE.md — Domain: `positivity`
+# AGENT_GUIDE.md
 
-## Purpose
-`positivity` is the POS-facing orchestration domain. It owns the POS **Order** aggregate and provides:
-- **Order lifecycle orchestration** across downstream domains (notably `workexec` and `billing`) using a **persisted saga** (no distributed transactions).
-- **Read aggregation** for browse/quote experiences by composing authoritative data from Catalog/Pricing/Inventory into a single response with explicit degradation metadata.
+## Summary
 
-This guide is updated to reflect new frontend story requirements for **Product Detail** rendering with **location-scoped pricing and availability signals** and explicit component status handling.
+This document defines the **normative** rules for the `positivity` domain, which owns POS-facing orchestration (notably Order cancellation) and composed read models (notably Product Detail). It reconciles previously open questions and TODOs into explicit, versionable decisions and contracts. The non-normative rationale and alternatives live in `POSITIVITY_DOMAIN_NOTES.md`.
 
----
+## Completed items
+
+- [x] Generated Decision Index
+- [x] Mapped Decision IDs to `POSITIVITY_DOMAIN_NOTES.md`
+- [x] Reconciled todos and clarifications from prior documents
+
+## Decision Index
+
+| Decision ID | Title |
+| --- | --- |
+| DECISION-POSITIVITY-001 | Order cancellation uses persisted saga |
+| DECISION-POSITIVITY-002 | Work cancellation precedes payment reversal |
+| DECISION-POSITIVITY-003 | Cancellation idempotency and deduplication |
+| DECISION-POSITIVITY-004 | Product Detail aggregation with graceful degradation |
+| DECISION-POSITIVITY-005 | `location_id` is required for Product Detail |
+| DECISION-POSITIVITY-006 | Null numeric fields when component status is non-OK |
+| DECISION-POSITIVITY-007 | `generatedAt` / `asOf` / staleness semantics |
+| DECISION-POSITIVITY-008 | Short TTL caching and cache key requirements |
+| DECISION-POSITIVITY-009 | Fail-fast only on Catalog 404 |
+| DECISION-POSITIVITY-010 | Dynamic lead time overrides static lead time |
+| DECISION-POSITIVITY-011 | Status fields are treated as opaque strings (gate on `OK`) |
+| DECISION-POSITIVITY-012 | Currency field rules for pricing |
+| DECISION-POSITIVITY-013 | Permission gating model for Product Detail |
+| DECISION-POSITIVITY-014 | Trace/correlation propagation and response headers |
+| DECISION-POSITIVITY-015 | No per-request events for read degradation (metrics only) |
 
 ## Domain Boundaries
 
-### What `positivity` owns (authoritative)
-- **Order aggregate state** and transitions, including cancellation state machine and persisted saga progress.
-- **Cancellation attempt metadata**: `cancellationReason`, `correlationId`, `cancellationIdempotencyKey`, and failure categorization.
-- **API composition** for product detail views (response shaping, caching policy, and status metadata).
-- **Degradation semantics** for composed reads:
-  - Explicit `pricing.status` / `availability.status`
-  - Null-safe payload rules (e.g., do not emit numeric values when status is not OK)
-  - `generatedAt` and component `asOf` timestamps
+### What `positivity` owns (system of record)
 
-### What `positivity` does *not* own (delegated authority)
-- **Payment state and reversals**: owned by `domain:billing` (void/refund decision and execution).
-- **Work order state and cancellability**: owned by `domain:workexec` (authoritative gating + cancellation).
-- **Product master data**: owned by Product Catalog service.
-- **Pricing**: owned by Pricing service.
-- **Availability/ATP and dynamic lead time**: owned by Inventory/Supply Chain service.
-- **Frontend location selection UX/state**: owned by POS frontend shell/app (but `positivity` must validate `location_id` and enforce authorization).
+- **Order aggregate** state and transitions (including cancellation state machine and saga progress).
+- **Cancellation attempt metadata** (`cancellationReason`, `correlationId`, `cancellationIdempotencyKey`, failure categorization).
+- **POS-facing API composition** for Product Detail (response shaping, caching policy, and explicit degradation metadata).
+- **Degradation semantics** for composed reads (explicit status fields, null-safe payload rules, and timestamps).
 
-### Boundary clarifications from frontend story
-- `positivity` is the **single backend endpoint** for the Product Detail screen: the frontend must not stitch multiple downstream calls.
-- `positivity` must provide **safe defaults** and **explicit status** so the UI can avoid misrepresenting unknown price/stock.
-- `positivity` must treat `location_id` as a required input for location-scoped fields; missing/invalid location must be rejected with `400`.
+### What `positivity` does not own
 
----
+- **Work order cancellability and cancellation** are owned by `workexec`.
+- **Payment reversal execution and void/refund decision** are owned by `billing`.
+- **Product master data** is owned by Catalog.
+- **Pricing** is owned by Pricing.
+- **Availability/ATP and dynamic lead time** are owned by Inventory/Supply Chain.
+- **Frontend UX state** for selecting a location is owned by the POS shell/app; `positivity` validates `location_id` and enforces authorization.
 
 ## Key Entities / Concepts
 
-### Order (POS-owned aggregate)
-Minimum fields implied by stories:
-- `orderId`
-- `status` (includes in-flight + terminal cancellation states)
-- `workOrderId` (nullable)
-- `paymentId` (nullable)
-- `cancellationReason` (string)
-- `correlationId` (trace/correlation)
-- `cancellationIdempotencyKey`
-
-Cancellation-related statuses (examples from story; exact enum TBD):
-- In-flight: `CANCEL_REQUESTED` / `CANCEL_PENDING`, `WORKORDER_CANCELLED`, `PAYMENT_REVERSED`
-- Terminal success: `CANCELLED`
-- Terminal failure: `CANCEL_FAILED_WORKEXEC`, `CANCEL_FAILED_BILLING`, `CANCEL_REQUIRES_MANUAL_REVIEW`
-
-### Cancellation Saga (orchestrated, persisted)
-A deterministic workflow driven by `positivity`:
-1. Persist “cancel requested” state + idempotency key
-2. Cancel work order (if present) via `workexec` (authoritative)
-3. Reverse payment (if present) via `billing` (authoritative)
-4. Finalize order state and emit events/logs/metrics
-
-### ProductDetailView (read model / API response DTO)
-An aggregated view composed from:
-- Catalog (master details + static lead-time hints + substitutions)
-- Pricing (MSRP + location-scoped store price + currency)
-- Inventory (on-hand, ATP, best-effort dynamic lead time)
-
-Frontend story adds concrete expectations for fields and nullability:
-
-**Top-level**
-- `productId: string` (required)
-- `description: string` (required; may be empty)
-- `specifications: Array<{name: string, value: string}>` (required; may be empty)
-- `substitutions: Array<{productId: string, reason: string}>` (required; may be empty)
-- `generatedAt: string (ISO-8601)` (required)
-
-**pricing**
-- `pricing.status: string` (required; expected `OK|UNAVAILABLE|STALE`, exact enum TBD)
-- `pricing.asOf: string (ISO-8601)` (optional; “when applicable”)
-- `pricing.msrp: number|null` (null when not OK)
-- `pricing.storePrice: number|null` (null when not OK)
-- `pricing.currency: string|null` (CLARIFY: required when OK? nullable when not OK)
-
-**availability**
-- `availability.status: string` (required; expected `OK|UNAVAILABLE|STALE`, exact enum TBD)
-- `availability.asOf: string (ISO-8601)` (optional)
-- `availability.onHandQuantity: number|null` (null/omitted when not OK)
-- `availability.availableToPromiseQuantity: number|null` (null/omitted when not OK)
-- `availability.leadTime?: { source?: string, minDays?: number, maxDays?: number, asOf?: string, confidence?: string }`
-
-**Relationship notes**
-- `ProductDetailView` is a **DTO/read model**, not a persisted aggregate in `positivity`.
-- `locationId` is an **input parameter** that scopes pricing/availability; it is not embedded as authoritative state unless explicitly included in response (optional; consider adding for debuggability).
-
----
+| Entity | Description |
+| --- | --- |
+| Order | POS-owned aggregate representing an order and its lifecycle, including cancellation state. |
+| CancellationSaga | Persisted saga/state machine that coordinates cancellation steps across `workexec` and `billing`. |
+| ProductDetailView | POS-facing read DTO composed from Catalog + Pricing + Inventory with explicit component statuses. |
+| PricingComponent | Portion of ProductDetailView containing pricing status and optional numeric fields. |
+| AvailabilityComponent | Portion of ProductDetailView containing availability status, optional quantities, and lead time. |
 
 ## Invariants / Business Rules
 
-### Cancellation (Order)
-- **Authority invariant**: `workexec` is the sole authority for work-order cancellability; `billing` is the sole authority for payment reversal.
-- **Ordering invariant**: cancel **work order first**, then reverse payment (minimizes revenue-loss risk).
-- **No distributed transactions**: use a persisted saga with retries and explicit failure states.
-- **Idempotency**: duplicate cancel requests must not re-run side effects; return current cancellation state.
-- **Auditability**: every attempt (success/failure) must be traceable via correlation + idempotency identifiers.
+### Cancellation
 
-### Product detail aggregation (browse/quote read)
-Rules updated with frontend story specifics:
+- Authority invariant: `workexec` is authoritative for work-order cancellation; `billing` is authoritative for payment reversal. (DECISION-POSITIVITY-001)
+- Ordering invariant: cancel work first, then reverse payment. (DECISION-POSITIVITY-002)
+- No distributed transactions: persisted saga with retries and explicit failure states. (DECISION-POSITIVITY-001)
+- Idempotency: duplicate cancel requests must not re-run side effects; return current cancellation state deterministically. (DECISION-POSITIVITY-003)
 
-- **Input validation**
-  - `productId` must be UUID-shaped; otherwise return `400` (frontend expects to block call, but backend must still validate).
-  - `location_id` is required and must be UUID-shaped; otherwise return `400 Bad Request`.
-  - TODO: confirm whether `location_id` can be omitted for “catalog-only” view. Frontend story treats it as required.
+### Product Detail aggregation
 
-- **Fail-fast only for missing product**
-  - If Catalog says product not found → return `404` and do not synthesize partial response.
+- `location_id` is required for location-scoped fields; missing/invalid is `400`. (DECISION-POSITIVITY-005)
+- Catalog 404 is the only fail-fast condition (`404`); other component failures degrade to `200` with statuses. (DECISION-POSITIVITY-009)
+- When `pricing.status != OK`, all pricing numeric fields are `null` (never `0`). (DECISION-POSITIVITY-006)
+- When `availability.status != OK`, all quantity numeric fields are `null` (never `0`). (DECISION-POSITIVITY-006)
+- Lead time precedence: Inventory dynamic lead time overrides Catalog static hints when both exist. (DECISION-POSITIVITY-010)
+- Cache key must include `productId` and `locationId` to prevent cross-location leakage. (DECISION-POSITIVITY-008)
 
-- **Graceful degradation with explicit status**
-  - Pricing/Inventory failures still return `200` with explicit status metadata and safe defaults:
-    - Pricing unavailable/stale → `pricing.status != OK` and **all numeric price fields must be null** (do not emit `0`).
-    - Inventory unavailable/stale → `availability.status != OK` and **quantity fields must be null/omitted** (do not emit `0`).
-  - UI must never infer “in stock/out of stock” when `availability.status != OK`.
+## Mapping: Decisions → Notes
 
-- **Lead time precedence**
-  - Dynamic lead time from Inventory overrides Catalog static hint when available.
-  - UI renders what it receives; precedence is a backend responsibility.
+| Decision ID | One-line summary | Link to notes |
+| --- | --- | --- |
+| DECISION-POSITIVITY-001 | Persisted saga orchestration for cancellation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-001---order-cancellation-uses-persisted-saga) |
+| DECISION-POSITIVITY-002 | Work first, then payment | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-002---work-cancellation-precedes-payment-reversal) |
+| DECISION-POSITIVITY-003 | Client idempotency key with server dedupe | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-003---cancellation-idempotency-and-deduplication) |
+| DECISION-POSITIVITY-004 | Aggregate endpoint with graceful degradation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-004---product-detail-aggregation-with-graceful-degradation) |
+| DECISION-POSITIVITY-005 | `location_id` required | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-005---location_id-is-required-for-product-detail) |
+| DECISION-POSITIVITY-006 | Null numeric fields when non-OK | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-006---null-numeric-fields-when-component-status-is-non-ok) |
+| DECISION-POSITIVITY-007 | Timestamp + staleness semantics | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-007---generatedat-asof-and-staleness-semantics) |
+| DECISION-POSITIVITY-008 | Short TTL caching | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-008---short-ttl-caching-and-cache-key-requirements) |
+| DECISION-POSITIVITY-009 | Only Catalog miss returns 404 | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-009---fail-fast-only-on-catalog-404) |
+| DECISION-POSITIVITY-010 | Dynamic lead time overrides static | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-010---dynamic-lead-time-overrides-static-lead-time) |
+| DECISION-POSITIVITY-011 | Status fields treated as opaque strings | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-011---status-fields-are-treated-as-opaque-strings) |
+| DECISION-POSITIVITY-012 | Currency rules | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-012---currency-field-rules-for-pricing) |
+| DECISION-POSITIVITY-013 | Permission gating model | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-013---permission-gating-model-for-product-detail) |
+| DECISION-POSITIVITY-014 | Trace/correlation propagation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-014---trace-and-correlation-propagation) |
+| DECISION-POSITIVITY-015 | No read-side events for degradation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-015---no-per-request-events-for-read-degradation) |
 
-- **Staleness semantics**
-  - `STALE` must be treated as “not OK” for UI gating (frontend story disables “known price/stock” claims when status != OK).
-  - TODO: define staleness thresholds and when to emit `STALE` vs `UNAVAILABLE`.
+## Open Questions (from source)
 
-- **Caching**
-  - Short TTLs with staleness metadata (aggregated default 15s; component TTLs per story).
-  - CLARIFY: confirm whether `generatedAt` should reflect cache time or composition time.
+### Q: What is the frontend source of truth for selected `locationId` (global state, route query `location_id`, user default, or selector)?
 
----
+- Answer: The frontend stores the selected location in app-level state (global “location context”), and the Product Detail call always includes it as `location_id` query param.
+- Assumptions:
+  - The POS shell/app already has a notion of “current location/store context”.
+  - Deep links may include `location_id`, but app state remains the primary source of truth.
+- Rationale:
+  - Keeps URL/query contract explicit while avoiding per-screen duplication of location selection logic.
+- Impact:
+  - UI must block Product Detail requests until a location is selected.
+  - Backend cache keys and authorization must use `location_id`.
+- Decision ID: DECISION-POSITIVITY-005
 
-## Events / Integrations
+### Q: What is the standard Moqui ↔ Vue integration pattern for Product Detail?
 
-### Synchronous integrations (explicitly referenced)
-- `workexec`
-  - Advisory pre-check: `GET /api/v1/work-orders/{workOrderId}` → includes `status`, `cancellable`, optional `nonCancellableReason`, `updatedAt/version`
-  - Authoritative command: `POST /api/v1/work-orders/{workOrderId}/cancel` with `orderId`, `requestedBy`, `reasonCode`, `idempotencyKey`
-- `billing`
-  - `POST /api/v1/payments/{paymentId}/reverse` with `orderId`, `reasonCode`, `currency`, `idempotencyKey`, and intent `type: VOID|REFUND` (billing decides final)
-- Catalog / Pricing / Inventory services
-  - Endpoints are not specified here beyond the composed POS endpoint; treat downstream contracts as **TBD** except for the required fields described in Issue #80.
+- Answer: Implement Product Detail as a Moqui-hosted screen that mounts a Vue component, relying on Moqui for auth/session and using the aggregated `positivity` endpoint from the Vue component.
+- Assumptions:
+  - This repo’s UI is primarily served via Moqui screens with embedded Vue/Quasar components.
+- Rationale:
+  - Centralizes authentication and navigation under Moqui while keeping UI logic in Vue.
+- Impact:
+  - Screen routing and guards live in Moqui; component logic lives in Vue.
+- Decision ID: DECISION-POSITIVITY-004
 
-### Integration patterns for ProductDetailView
-- **Fan-out + compose** (recommended):
-  - Fetch Catalog first (or in parallel) to determine existence.
-  - Fetch Pricing and Inventory in parallel with timeouts and circuit breakers.
-  - Compose response with per-component status and timestamps.
-- **Timeout and partial failure behavior**
-  - If Pricing/Inventory times out or errors: set component `status=UNAVAILABLE` (or `STALE` if serving cached component data) and return `200`.
-  - Do not block the entire response unless Catalog is missing or request is invalid/unauthorized.
+### Q: What exact permission/role gate should be enforced for product/location reads, and what is the naming convention?
 
-### Domain events (asynchronous)
-`positivity` emits “canonical events for cancellation progress/final state” for audit/reporting/ops visibility. Event names, schemas, and transport are **TBD**, but must include:
-- `orderId`, `workOrderId` (if any), `paymentId` (if any)
-- `correlationId`, `idempotencyKey`
-- state transition + failure category (if any)
-- timestamps
+- Answer: Use the platform permission naming convention `domain:resource:action`. Product Detail requires `positivity:product_detail:read`, and location scoping is enforced by checking location authorization for the caller.
+- Assumptions:
+  - Permission strings are registered code-first via the Security domain.
+  - Location authorization is evaluated server-side (deny by default).
+- Rationale:
+  - Keeps permissions stable and auditable; avoids embedding UI-only role names in contracts.
+- Impact:
+  - Backend must return `401/403` without partial data.
+  - Frontend route guard should check the same permission if a capability endpoint exists.
+- Decision ID: DECISION-POSITIVITY-013
 
-TODO: decide whether to emit read-side events for ProductDetailView degradation (generally avoid high-cardinality events; prefer metrics).
+### Q: Are `pricing.status` / `availability.status` enums strict (`OK|UNAVAILABLE|STALE`) or should clients treat them as opaque strings and only special-case `OK` vs non-OK?
 
----
+- Answer: Treat status fields as opaque strings; client logic must only special-case `status == "OK"` and treat everything else as “non-OK”.
+- Assumptions:
+  - Additional statuses may be introduced later (e.g., `DEGRADED`, `PARTIAL`).
+- Rationale:
+  - Prevents brittle client parsing and enables safe evolution.
+- Impact:
+  - Frontend must not hardcode a finite enum list beyond `OK` gating.
+- Decision ID: DECISION-POSITIVITY-011
 
-## API Expectations (high-level)
+### Q: What is the project-standard currency formatting utility/component and null-safe display pattern?
 
-### Product details (read aggregation)
-- `GET /api/v1/products/{productId}?location_id={locationId}`
-  - `200 OK` with aggregated `ProductDetailView` and per-component status metadata
-  - `404 Not Found` if product missing in Catalog
-  - `400 Bad Request` for invalid/missing `location_id` (frontend expects “Invalid location selected”)
-  - `401/403` when user lacks permission (frontend expects “You don’t have access” and no partial data)
-  - Must include `generatedAt` and component `asOf` timestamps when applicable
-  - Must not silently null-out pricing/availability without a corresponding status
+- Answer: UI must format money using the project’s i18n/locale number formatting (e.g., Vue i18n `$n` currency formatting). If `storePrice` is `null` or status is non-OK, display a non-numeric fallback (“Price unavailable”) and do not attempt to format.
+- Assumptions:
+  - Vue i18n number formats are configured for currency display.
+- Rationale:
+  - Prevents `null -> 0` coercion and keeps display locale-correct.
+- Impact:
+  - Frontend rendering must never display `0.00` unless backend returned `0.00` with `status == OK`.
+- Decision ID: DECISION-POSITIVITY-012
 
-**Contract details to enforce (backend)**
-- When `pricing.status != OK`:
-  - `msrp=null`, `storePrice=null`
-  - `currency` should be `null` unless there is a strong reason to keep it (CLARIFY).
-- When `availability.status != OK`:
-  - `onHandQuantity=null` and `availableToPromiseQuantity=null` (or omit consistently; pick one and document it).
-- `substitutions` must always be present (empty array if none) to simplify UI.
+### Q: Should `generatedAt` and component `asOf` be visible in the UI by default?
 
-**Concurrency / “latest wins”**
-- Frontend will issue rapid requests on location changes; backend should be safe under concurrency and avoid server-side caching keyed incorrectly (must include `location_id` in cache key).
+- Answer: Not by default. These timestamps must be present in the API response for support/debugging and can be shown in an optional “Details” drawer/tool-tip for privileged users.
+- Assumptions:
+  - Product/UX can decide whether to expose “as-of” messaging later.
+- Rationale:
+  - Avoids cluttering the primary UI while retaining transparency and auditability.
+- Impact:
+  - Frontend should preserve these fields for diagnostics and logging (avoid PII).
+- Decision ID: DECISION-POSITIVITY-007
 
-### Order cancellation (command)
-- Cancel endpoint path/shape is **TBD** (not provided in export).
-- Behavior must match the cancellation saga described in Issue #19:
-  - Requires `orderId` and `cancellationReason` (and maps to downstream `reasonCode`)
-  - Persists in-flight state before calling downstream services
-  - Uses idempotency key and returns deterministic state on duplicates
-  - Stops if `workexec` rejects (e.g., `409 Conflict`) and does not attempt billing reversal
+### Q: Is `pricing.currency` required when `pricing.status == OK`?
 
----
+- Answer: Yes. When `pricing.status == OK`, `pricing.currency` must be a non-empty ISO-4217 code. When status is non-OK, `pricing.currency` is `null`.
+- Assumptions:
+  - Pricing service is authoritative for currency and returns it with prices.
+- Rationale:
+  - Prevents ambiguous formatting and mismatched locale assumptions.
+- Impact:
+  - Backend schema and tests must enforce currency presence when OK.
+- Decision ID: DECISION-POSITIVITY-012
 
-## Security / Authorization assumptions
+### Q: Can `location_id` be omitted for a “catalog-only” Product Detail view?
 
-### Authentication
-- Requests are authenticated (session/JWT/etc per platform convention).
-- For ProductDetailView, do not return partial data on `401/403`. Return the appropriate status code.
+- Answer: No for the Product Detail endpoint. If catalog-only behavior is needed, it should be a separate endpoint/variant with an explicit contract.
+- Assumptions:
+  - Product Detail UI depends on location-scoped availability and pricing.
+- Rationale:
+  - Avoids ambiguous semantics and accidental cross-location leakage.
+- Impact:
+  - Missing/invalid `location_id` is always `400`.
+- Decision ID: DECISION-POSITIVITY-005
 
-### Authorization
-- Product detail read requires permission to read:
-  - product master data
-  - location-scoped pricing
-  - location-scoped availability
-- CLARIFY (blocking): exact permission/role gate and naming convention in this repo.
-  - TODO: document required permission string(s) once confirmed (e.g., `POS_CATALOG_READ`, `POS_LOCATION_READ`, etc.).
+### Q: What are the staleness thresholds and when should the service emit `STALE` vs `UNAVAILABLE`?
 
-### Location scoping
-- Backend must enforce that the caller is authorized for the requested `location_id`.
-  - Do not rely on frontend “selected location” correctness.
-  - Return `403` if user is authenticated but not allowed for that location.
+- Answer: `STALE` is only used when serving cached component data that is older than a configurable threshold; otherwise use `UNAVAILABLE` when data cannot be obtained. Defaults: `staleAfterSeconds=300` and `maxStaleSeconds=3600`.
+- Assumptions:
+  - Thresholds are configuration-backed and can be tuned without contract breakage.
+- Rationale:
+  - Separates “we have older data” from “we have no data”, enabling better UX.
+- Impact:
+  - Requires tests for threshold boundary behavior.
+  - SRE dashboards should track stale vs unavailable rates separately.
+- Decision ID: DECISION-POSITIVITY-007
 
-### Data handling
-- Do not log sensitive payment details; only log identifiers (`paymentId`) and correlation metadata.
-- For ProductDetailView, avoid logging full descriptions/specifications if they can be large; log identifiers and statuses.
+### Q: Should `generatedAt` reflect cache time or composition time?
 
----
+- Answer: `generatedAt` reflects the timestamp of the composed response payload (including when it was cached). Component freshness is indicated via per-component `asOf` and `status`.
+- Assumptions:
+  - Cached responses preserve the original `generatedAt` at the time of composition.
+- Rationale:
+  - Keeps `generatedAt` truthful for cached payloads without conflating it with component times.
+- Impact:
+  - Clients can compare `generatedAt` and `asOf` for troubleshooting.
+- Decision ID: DECISION-POSITIVITY-007
 
-## Observability (logs / metrics / tracing)
+### Q: Should the system emit read-side events for Product Detail degradation?
 
-### Tracing
-- Generate/propagate `correlationId` across:
-  - inbound request → `positivity` → `workexec` / `billing` / Catalog / Pricing / Inventory
-- Ensure correlation is present in logs and outbound headers (exact header keys TBD; use standard trace propagation where available).
-- CLARIFY: frontend trace header propagation standard (if any). If none, backend should still generate a correlation id and return it in response headers for support.
+- Answer: No. Read degradation is tracked via metrics (and optionally structured logs), not per-request events.
+- Assumptions:
+  - Events are reserved for business-significant state changes (cancellation saga, etc.).
+- Rationale:
+  - Avoids high-cardinality event streams and excess costs.
+- Impact:
+  - Add counters/histograms instead of events.
+- Decision ID: DECISION-POSITIVITY-015
 
-### Logs (structured)
-For cancellation:
-- Include: `orderId`, `workOrderId`, `paymentId`, `correlationId`, `idempotencyKey`, current `orderStatus`, failure category, downstream HTTP status (if applicable).
+### Q: What is the standard trace header propagation model from frontend to backend?
 
-For product detail:
-- Include: `productId`, `locationId`, `generatedAt`
-- Component statuses: `pricing.status`, `availability.status`
-- Dependency latency summaries and error categories (timeout vs 5xx vs 4xx)
-- Do **not** log numeric prices/quantities unless needed for debugging and approved (prefer status-only logging).
+- Answer: Use W3C Trace Context (`traceparent`, `tracestate`) when available. If absent, the backend generates a `correlationId` and returns it as `X-Correlation-Id` in responses.
+- Assumptions:
+  - The platform supports standard HTTP header forwarding.
+- Rationale:
+  - Keeps tracing interoperable across services and tools.
+- Impact:
+  - Client/network layer should forward `traceparent` when present.
+  - Backend logs should always include `correlationId`.
+- Decision ID: DECISION-POSITIVITY-014
 
-### Metrics (minimum implied)
-Cancellation:
-- `cancellations.success.count`
-- `cancellations.failure.count` tagged by `reason` (`workexec_denial`, `billing_error`, `timeout`, `manual_review`)
+## Todos Reconciled
 
-Product detail:
-- `product_detail.requests.count` tagged by `http_status`
-- `product_detail.degraded.count` tagged by `component=pricing|availability` and `status=UNAVAILABLE|STALE`
-- Per-dependency latency histograms:
-  - `catalog.latency.ms`, `pricing.latency.ms`, `inventory.latency.ms`
-- Error counters per dependency:
-  - `pricing.errors.count` tagged by `type=timeout|5xx|4xx`
-  - `inventory.errors.count` tagged by `type=timeout|5xx|4xx`
+- Original todo: "confirm whether `location_id` can be omitted for “catalog-only” view" → Resolution: Resolved (no; separate endpoint if needed) | Decision: DECISION-POSITIVITY-005
+- Original todo: "define staleness thresholds and when to emit `STALE` vs `UNAVAILABLE`" → Resolution: Resolved (configurable thresholds with defaults) | Decision: DECISION-POSITIVITY-007
+- Original todo: "confirm whether `generatedAt` should reflect cache time or composition time" → Resolution: Resolved (composition time for payload, preserved across caching) | Decision: DECISION-POSITIVITY-007
+- Original todo: "decide whether to emit read-side events for ProductDetailView degradation" → Resolution: Resolved (metrics only) | Decision: DECISION-POSITIVITY-015
+- Original todo: "document required permission string(s)" → Resolution: Resolved (use `domain:resource:action` convention; `positivity:product_detail:read`) | Decision: DECISION-POSITIVITY-013
+- Original todo: "frontend trace header propagation standard" → Resolution: Resolved (W3C trace context + `X-Correlation-Id`) | Decision: DECISION-POSITIVITY-014
 
----
+## End
 
-## Testing guidance
-
-### Unit tests
-Cancellation state machine:
-- Workexec rejection (`409`) → no billing call; terminal failure state set.
-- Workexec success + billing failure → `CANCEL_FAILED_BILLING` (or manual review) and retry eligibility.
-- Duplicate cancel request → no repeated side effects; returns persisted state.
-
-Product detail aggregation:
-- Catalog not found → `404`
-- Missing/invalid `location_id` → `400`
-- Unauthorized location access → `403`
-- Pricing unavailable → `200` with `pricing.status=UNAVAILABLE` and `msrp/storePrice=null`
-- Inventory unavailable → `200` with `availability.status=UNAVAILABLE` and quantities null/omitted
-- Lead time precedence: inventory dynamic overrides catalog static
-- `substitutions` always present (empty array when none)
-
-### Integration tests (contract + resilience)
-- Stub downstream services to validate:
-  - Idempotency key propagation to `workexec` and `billing`
-  - Correct ordering: `workexec` cancel before `billing` reverse
-  - Timeout handling results in persisted failure state and safe retry behavior
-
-For product detail:
-- Partial outage scenarios return `200` with explicit status metadata (not silent nulls)
-- Cache key includes `location_id` (no cross-location leakage)
-- “STALE” behavior if serving cached component data (TODO once staleness policy is defined)
-
-### Frontend-facing contract tests (recommended)
-- Snapshot/JSON-schema tests for `ProductDetailView`:
-  - Ensure nullability rules match UI expectations (null != 0)
-  - Ensure required arrays are present (specifications/substitutions)
-- Backward/forward compatibility:
-  - UI should treat `pricing.status`/`availability.status` as opaque strings and only special-case `OK` vs not OK (CLARIFY; see Open Questions).
-
-### Data / persistence tests
-- Verify cancellation saga progress is persisted before side effects (crash/restart safety).
-- Verify state transitions are monotonic and deterministic (no “backwards” transitions).
-
----
-
-## Common pitfalls
-- **Reversing payment before work cancellation**: violates ordering invariant and can create revenue-loss/manual-reconciliation scenarios.
-- **Missing idempotency**: retries or duplicate user actions can double-cancel work orders or double-reverse payments.
-- **Silent degradation** in product detail: returning `null` pricing/availability without `status` leads to unsafe downstream actions.
-- **Rendering null as 0**: UI explicitly must not show numeric values when status != OK; backend must not send `0` as a placeholder.
-- **Treating inventory-unavailable as “0”**: must be represented as UNKNOWN, not out-of-stock or in-stock.
-- **Cache key bugs**: caching ProductDetailView without `location_id` in the key can leak pricing/availability across locations.
-- **Not persisting in-flight state** before calling downstream services: makes recovery and retries non-deterministic.
-- **Insufficient correlation**: lack of `correlationId`/`idempotencyKey` in logs/events breaks auditability and support workflows.
-- **Overly strict enum parsing**: frontend story indicates enum values may be TBD; treat status as string and gate on `== "OK"` unless contract is finalized.
-
----
-
-## Open Questions from Frontend Stories
-Consolidated from Issue #80 (blocking unless noted):
-
-1. **Location source of truth (blocking):** How does the frontend obtain the selected `locationId` (global app state, route query, user profile default, or a screen-level selector)? What is the existing convention in this repo?
-   - Impacts: API call construction, cache keying, and authorization checks.
-
-2. **Moqui ↔ Vue integration pattern (blocking):** Should this be implemented as a Moqui screen that hosts a Vue route/component, or as a Vue SPA route calling backend directly (with Moqui providing shell/auth)? Repo convention needed.
-   - Impacts: routing, auth/session propagation, and where to implement retry/latest-wins behavior.
-
-3. **Auth & permission enforcement (blocking):** What permission/role gate should the screen enforce for product/location reads (and what is the existing permission naming pattern)?
-   - Impacts: backend authorization checks and frontend route guards.
-
-4. **Status enum exact values:** Backend suggests `OK|UNAVAILABLE|STALE` but says exact enum TBD—should frontend treat status as opaque string and only special-case `OK` vs “not OK”?
-   - Recommendation (until clarified): treat as opaque string; only `status === "OK"` enables numeric display/“known” claims.
-
-5. **Currency formatting rules:** Are there existing utilities/components for money formatting and null-safe display in this project?
-   - Impacts: UI correctness and consistency; backend should ensure `currency` presence rules are documented.
-
-6. **Timestamp display:** Should the UI display `generatedAt`/`asOf` visibly, or only for debug/details? If visible, where is the standard placement?
-   - Backend must provide timestamps consistently; UI placement is a product decision.
-
----
-
-**TBDs to resolve in implementation**
-- Exact Order cancel REST endpoint(s) and response schema
-- Event names/schemas/transport for cancellation progress/finalization
-- Standard headers for correlation/trace propagation (if not already standardized across the platform)
-- Exact enum values for component `status` (`OK|UNAVAILABLE|STALE`) and cancellation statuses (beyond examples)
-- CLARIFY: `pricing.currency` nullability rules (required when `pricing.status=OK`?)
-- TODO: staleness thresholds and when to emit `STALE` vs `UNAVAILABLE`
-- CLARIFY: whether `location_id` is strictly required for ProductDetailView or if a catalog-only mode exists
-```
+End of document.

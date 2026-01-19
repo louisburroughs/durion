@@ -1,175 +1,403 @@
-# workexec Story Validation Checklist
+# STORY_VALIDATION_CHECKLIST.md
 
-This checklist is intended for engineers and reviewers to validate story implementations within the `workexec` domain. It is updated to incorporate validation needs from new frontend stories (admin substitute rules, priced substitution picker, operational/assignment context, dispatch board dashboard, and event-driven appointment status timeline).
+## Summary
 
----
+This checklist validates implementation of `workexec` stories for correctness, security, auditability, and operational robustness. It incorporates resolved open questions from the prior workexec guide and replaces “blocking unknowns” with explicit default decisions and testable acceptance criteria. Acceptance criteria blocks below match the open questions in `AGENT_GUIDE.md`.
 
-## Scope/Ownership
-- [ ] Confirm the story is correctly labeled `domain:workexec` and does not belong to another domain (e.g., inventory/product admin, shop management, people/timekeeping).
-- [ ] Verify the owning system-of-record for each feature is explicit (e.g., Shopmgr for operational context; Workexec for work order state; People service for availability).
-- [ ] Verify Moqui screen placement and routing follow repo conventions (screen paths, menu taxonomy, URL parameters).
-- [ ] Confirm cross-domain dependencies are documented and coordinated (Shopmgr endpoints, People availability, Workexec events).
-- [ ] Verify out-of-scope behaviors are not accidentally implemented (e.g., no policy authoring in substitution picker; no dispatch mutations on dispatch board; no event emission from frontend unless specified).
+## Completed items
+
+- [x] Updated acceptance criteria for each resolved open question
+
+## Scope / Ownership
+
+- [ ] Confirm story labeled `domain:workexec`
+- [ ] Verify primary actor(s) and permissions
 
 ## Data Model & Validation
-- [ ] Verify all UI forms enforce required fields before submit (client-side) and still handle backend validation errors (server authoritative).
-- [ ] Verify enum fields are validated against the canonical backend values (no frontend-invented enums/casing).
-- [ ] Verify ID fields are validated for presence and basic format (non-empty; no whitespace) without assuming UUID vs numeric unless contract states it.
-- [ ] Verify date/time inputs validate ordering and format (e.g., `effectiveFrom <= effectiveTo`; dispatch board `date` is `YYYY-MM-DD`).
-- [ ] Verify substitute link creation/update validation:
-  - [ ] `partId` required.
-  - [ ] `substitutePartId` required.
-  - [ ] `partId != substitutePartId`.
-  - [ ] `substituteType` required and limited to allowed values.
-  - [ ] `isAutoSuggest` treated as boolean; default behavior matches backend (do not assume defaults if unknown).
-  - [ ] `priority` is integer and within any backend-defined bounds (if provided).
-- [ ] Verify optimistic concurrency fields are present where required:
-  - [ ] SubstituteLink update includes `version`.
-  - [ ] Operational context override includes required concurrency token/version if backend requires it.
-- [ ] Verify “pre-start editability” gating is based on authoritative work order status values returned by backend (not hardcoded guesses).
-- [ ] Verify substitution picker gating:
-  - [ ] Apply is disabled unless a candidate is selected.
-  - [ ] Apply is disabled when price is unavailable unless backend indicates manual price is permitted.
-  - [ ] “Find substitutes” is disabled only when backend provides an explicit eligibility flag; otherwise allow and handle backend rejection.
-- [ ] Verify event-driven appointment timeline storage (if implemented in Moqui entities):
-  - [ ] Timeline entries are append-only (no UI edit/delete).
-  - [ ] `reopenFlag` is monotonic (once true, never cleared).
-  - [ ] Timeline entry uniqueness is enforced by idempotency key (e.g., `sourceEventId` unique per appointment).
+
+- [ ] Validate required inputs and types (IDs are opaque strings)
+- [ ] Verify date/time and timezone semantics for workexec flows
+- [ ] Quantity and rounding rules: quantities must be validated server-side; UI must not assume integer-only unless contract says so
 
 ## API Contract
-- [ ] Verify all frontend calls use the canonical endpoint paths and methods (no guessing; update code/docs once contracts confirmed).
-- [ ] Verify request payloads match backend schema exactly (field names, nesting, casing).
-- [ ] Verify response handling supports both “return updated resource” and “ack + re-fetch” patterns where backend is ambiguous.
-- [ ] Verify list/search screens use pagination and filtering only if backend supports it; otherwise implement “query by partId” UX as designed.
-- [ ] Verify substitute link CRUD behaviors:
-  - [ ] Create uses `POST` and handles `201` with returned `id` and `version`.
-  - [ ] Update uses `PUT` and handles `200` with updated `version`.
-  - [ ] Deactivate uses `DELETE` and treats `200` or `204` as success.
-  - [ ] Query substitutes uses `GET /parts/{partId}/substitutes` with supported query params only.
-- [ ] Verify substitution picker contracts:
-  - [ ] Candidate fetch endpoint supports identifying the target line (work order vs estimate) without leaking internal IDs.
-  - [ ] Apply endpoint returns enough data to refresh UI deterministically (updated line or requires re-fetch).
-- [ ] Verify dispatch board contracts:
-  - [ ] Dispatch board endpoint accepts `locationId` and `date` and returns an `asOf`/timestamp if required for stale detection.
-  - [ ] People availability endpoint contract is correct and merged safely (no assumptions about optional fields).
-- [ ] Verify error handling uses the standard error envelope (field errors, stable error codes, correlationId) once confirmed.
-- [ ] Verify HTTP status handling is consistent and user-visible messaging is mapped for: `400`, `401`, `403`, `404`, `409`, `5xx`.
+
+- [ ] Verify endpoints, pagination, error handling, per-row errors
 
 ## Events & Idempotency
-- [ ] Verify create/submit actions that can be double-submitted are protected:
-  - [ ] If supported, frontend sends `Idempotency-Key` on create operations (e.g., SubstituteLink create, promote/submit actions if present).
-  - [ ] UI disables submit buttons while request is in-flight to reduce duplicates.
-- [ ] Verify optimistic concurrency conflicts (`409`) are handled with a clear “refresh and retry” UX and do not silently overwrite.
-- [ ] Verify event ingestion (appointment status updates) is idempotent:
-  - [ ] Duplicate event deliveries do not create duplicate timeline entries.
-  - [ ] Out-of-order events apply precedence rules (e.g., INVOICED supersedes COMPLETED; CANCELLED terminal except reopen).
-  - [ ] Orphaned events (no mapping) are recorded for ops review and do not create phantom appointments.
-- [ ] Verify event processing is atomic (appointment status update + timeline insert succeed/fail together).
-- [ ] Verify event identifiers used for idempotency are globally unique or a documented composite key is used.
+
+- [ ] UI and services handle retry semantics (reuse idempotency key on retry)
 
 ## Security
-- [ ] Verify all screens/actions require authentication and follow existing session handling patterns.
-- [ ] Verify authorization is enforced for all mutation actions:
-  - [ ] SubstituteLink create/update/deactivate requires appropriate permission/role.
-  - [ ] Operational context override requires privileged permission.
-  - [ ] Assignment context edit requires permission and is also state-gated.
-  - [ ] Substitution apply requires permission; manual price override requires `ENTER_MANUAL_PRICE` (or canonical equivalent).
-  - [ ] Dispatch board view is restricted by role and/or location membership.
-  - [ ] Ops/event failure screens are restricted to admin/ops roles.
-- [ ] Verify the UI does not rely solely on “hide button” for security; backend 403 must be handled safely.
-- [ ] Verify sensitive data is not logged client-side (no raw event payloads, no tokens/links, no signature strokes if present elsewhere).
-- [ ] Verify error messages shown to users do not expose internal stack traces, SQL errors, or upstream service details.
-- [ ] Verify any webhook/consumer endpoint for event ingestion is protected with an approved mechanism (mTLS/JWT/shared secret) and rejects unauthenticated calls.
-- [ ] Verify PII display policy is followed on dashboards (dispatch board, appointment detail): only show allowed customer/person fields per repo policy.
+
+- [ ] Permission gating for sensitive payloads and raw payload redaction
 
 ## Observability
-- [ ] Verify frontend propagates correlation/request IDs if the repo has a standard header (and surfaces correlationId from error payloads when present).
-- [ ] Verify structured logging/telemetry exists for key user actions and failures (without PII):
-  - [ ] SubstituteLink CRUD attempts and outcomes.
-  - [ ] Substitution candidate fetch/apply outcomes.
-  - [ ] Operational context load/override outcomes.
-  - [ ] Dispatch board fetch durations and failure rates.
-- [ ] Verify dispatch board includes “Last updated” (client) and “As of” (server) timestamps when available.
-- [ ] Verify event ingestion processing logs include `eventId`, `eventType`, `workOrderId`, `appointmentId` (if resolved), and failure reason.
-- [ ] Verify metrics/timers exist to validate dispatch board SLA targets (P50/P95/P99) if required by story.
 
-## Performance & Failure Modes
-- [ ] Verify list/detail screens do not block primary content on secondary calls (e.g., work order renders even if operational context fails).
-- [ ] Verify dispatch board polling:
-  - [ ] Poll interval is 30s while screen is active/visible.
-  - [ ] Polling stops on navigation away/unmount to prevent leaks.
-  - [ ] Backoff is applied on repeated failures to avoid request storms.
-- [ ] Verify stale/offline behavior:
-  - [ ] Cached last-success payload remains visible when appropriate.
-  - [ ] “Stale” indicator triggers after defined threshold (e.g., >2 minutes since last success).
-- [ ] Verify substitution picker performance:
-  - [ ] Candidate list renders efficiently for expected sizes (<50).
-  - [ ] Apply action prevents double-click duplicates and shows progress state.
-- [ ] Verify upstream dependency failures degrade gracefully:
-  - [ ] People availability failure does not block dispatch board work order rendering.
-  - [ ] Shopmgr operational context failure does not block work order detail.
-- [ ] Verify concurrency/race handling:
-  - [ ] Assignment/operational context edits fail safely if work starts mid-edit (backend 409/400 handled; UI refreshes).
-  - [ ] Substitution apply fails safely if line changed mid-dialog (backend 409 handled; UI refreshes).
+- [ ] Ensure trace identifiers and audit fields surface in UI and logs
 
-## Testing
-- [ ] Unit tests cover UI validation rules (required fields, self-substitute prevention, date range validation).
-- [ ] Integration tests (or contract tests) validate API request/response shapes for each endpoint used.
-- [ ] Tests cover HTTP error mapping and UX outcomes for `400/401/403/404/409/5xx`.
-- [ ] Tests cover optimistic concurrency flows (stale `version` → 409 → refresh).
-- [ ] Tests cover idempotency behaviors:
-  - [ ] UI prevents double-submit while in-flight.
-  - [ ] Event ingestion duplicate event does not duplicate timeline.
-- [ ] Tests cover dispatch board polling lifecycle (start/stop on mount/unmount; backoff on failures).
-- [ ] Tests cover timezone/currency formatting using backend-provided currency codes and shop/user timezone policy (once defined).
-- [ ] Security tests verify unauthorized users cannot access mutation controls and that 403 is handled without state corruption.
-- [ ] Accessibility checks for dialogs and forms (keyboard navigation, focus trap for substitution picker dialog, ARIA labels for errors).
+## Acceptance Criteria (per resolved question)
 
-## Documentation
-- [ ] Document canonical Moqui screen routes/paths for:
-  - [ ] Work Order detail
-  - [ ] Estimate detail
-  - [ ] Appointment detail
-  - [ ] Reporting → Dispatch Board
-  - [ ] Admin Rules → Substitutes
-- [ ] Document API endpoints used by each screen, including query params, request/response examples, and error envelope.
-- [ ] Document permission/role requirements and how the frontend determines capabilities (session claims vs endpoint).
-- [ ] Document status enum mappings used in UI gating (work order “started” statuses; appointment status mapping table for events).
-- [ ] Document idempotency strategy:
-  - [ ] When frontend sends `Idempotency-Key`
-  - [ ] What keys are used for event ingestion dedupe
-- [ ] Document failure-mode UX (stale data behavior, offline read-only behavior, partial data rendering).
-- [ ] Document any audit fields displayed (created/updated metadata, version, correlationId) and their source.
+### Q: Substitutes domain ownership: Story #109 is labeled `domain:workexec` but is product/parts admin flavored. Should this be `domain:inventory` or a product domain label?
 
----
+- Acceptance: Any SubstituteLink authoring/admin story is labeled `domain:inventory` (or product/catalog) and treated as a dependency by workexec stories.
+- Test Fixtures: A SubstituteLink create screen is documented under inventory/product docs and not under workexec ownership.
+- Example API request/response:
 
-## Open Questions to Resolve
-- [ ] Is `domain:workexec` the correct ownership for substitute relationship admin UI, or should it be inventory/product domain?
-- [ ] What endpoint/screen should be used for part lookup (search by SKU/name) instead of manual ID entry, and what is the response shape?
-- [ ] Is there a `GET /api/v1/substitutes` list/search endpoint with filters/pagination, or must the UI be “query by partId” only?
-- [ ] What is the standard backend error payload schema for 400/409 (field errors, stable error codes, correlationId, existingResourceId on duplicates)?
-- [ ] Should the frontend generate and send `Idempotency-Key` by default for create calls (e.g., SubstituteLink create)?
-- [ ] On SubstituteLink update, are `partId` and `substitutePartId` immutable? If editable, how are uniqueness conflicts handled?
-- [ ] Do backend defaults apply when omitted (`priority=100`, `isAutoSuggest=false`), or must UI always send explicit values?
-- [ ] Is there an API to fetch SubstituteLink audit trail entries for display, or only created/updated metadata?
-- [ ] For priced substitution picker: what are the exact endpoints/payloads for (a) fetching candidates for WO part line, (b) fetching candidates for estimate part line, and (c) applying a substitute?
-- [ ] Is substitution picker in scope for both Estimates and Work Orders, or Work Orders only?
-- [ ] How does the frontend determine “original part is unavailable” (explicit line field vs backend-enforced on apply)?
-- [ ] How does backend signal permission `ENTER_MANUAL_PRICE` (capability flag in payload vs 403 vs separate endpoint)?
-- [ ] Should candidate responses include unavailable candidates with statuses, or only available ones?
-- [ ] For operational context: what are the canonical work order statuses that count as “work started” for edit/override gating?
-- [ ] Are overrides allowed after start for managers, disallowed entirely, or handled via versioned future context (lock-at-start semantics)?
-- [ ] Does operational context override require `actorId` and/or `version` in the request? If yes, what are the exact field names and how does frontend obtain actor identity?
-- [ ] What is the override success response shape (returns updated context vs ack requiring GET) and success status code (200 vs 201)?
-- [ ] What is the definition of “team” (assignedMechanics only vs separate team entity)?
-- [ ] Dispatch board: what is the exact endpoint path and schema for `DispatchBoardView` and `ExceptionIndicator` (including enums and IDs)?
-- [ ] Does dispatch board endpoint already aggregate mechanic availability and bay occupancy, or must frontend call People availability separately and merge?
-- [ ] Are “appointments” separate entities from work orders in the dispatch board payload? If separate, what endpoint supplies them?
-- [ ] What roles/permissions may view Dispatch Board (location membership only vs explicit permission like `DISPATCH_VIEW`)?
-- [ ] Are exception indicators computed entirely by backend, or does frontend compute any (e.g., overdue starts)? If frontend computes, what are the exact rules?
-- [ ] Event ingestion: what is the delivery mechanism in this repo (webhook endpoint, broker consumer, polling job/inbox table)?
-- [ ] Are Appointment, WorkOrderAppointmentMapping, and timeline entities defined in this repo (exact Moqui entity names/fields), or provided by another service?
-- [ ] What auth mechanism protects event ingestion, and which roles can access the ops failure screen?
-- [ ] Should orphaned/invalid events be stored in Moqui DB for review, an external DLQ, or both?
-- [ ] Is `eventId` globally unique and stable across retries? If not, what composite idempotency key should be used?
-- [ ] Does `InvoiceIssued` arrive as a distinct event type or as a status within `WorkorderStatusChanged`, and what fields are present?
+```http
+POST /rest/api/v1/inventory/substitutes
+Idempotency-Key: 11111111-1111-1111-1111-111111111111
+
+201 Created
+```
+
+### Q: Operational context story ownership: Frontend issue labels “Shop Management/user” but backend reference is `domain:workexec` with Shopmgr as SoR. Confirm ownership/label.
+
+- Acceptance: Operational context data is sourced from shopmgr; workexec screens display it read-only unless an override permission is present.
+- Test Fixtures: A work order linked to a shopmgr appointment.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/shopmgr/appointments/APPT-1
+
+200 OK
+```
+
+### Q: Timekeeping / people-adjacent features: Several stories label domain conflicts (user/shop management vs workexec). Confirm what belongs in workexec UI vs people/shopmgr UI.
+
+- Acceptance: No time-entry CRUD is implemented under workexec; dispatch views may show People availability as a read-only signal.
+- Test Fixtures: People availability API returns schedule/availability.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/people/availability?locationId=LOC-1&date=2026-01-19
+
+200 OK
+```
+
+### Q: What are the canonical Moqui screen paths/routes for work order detail, estimate detail, appointment detail, reporting/dispatch screens?
+
+- Acceptance: Navigation uses the existing Moqui workexec and shopmgr screens (work orders/estimates in `durion-workexec`, appointments in `durion-shopmgr`).
+- Test Fixtures: Work order board loads and links to work order edit.
+- Example API request/response:
+
+```http
+GET /webroot/durion-workexec/WorkOrderBoard
+
+200 OK
+```
+
+### Q: Part lookup UX: What endpoint/screen should admin UI use to search/select parts by SKU/name? Provide route(s) + response shape.
+
+- Acceptance: Part selection uses a search/picker with pagination; manual ID entry is not required for normal workflows.
+- Test Fixtures: Search query `brake` returns at least one part.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/product/parts?query=brake&pageIndex=0&pageSize=20
+
+200 OK
+```
+
+### Q: SubstituteLink list/search: Do we have `GET /api/v1/substitutes` with filters/pagination, or must list be “query by partId” only?
+
+- Acceptance: UI defaults to “select part → list substitutes for part”; any global list is paginated and requires filters.
+- Test Fixtures: Substitute list requires `partId` or equivalent filter.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/inventory/parts/P-100/substitutes
+
+200 OK
+```
+
+### Q: Substitution picker endpoints: Exact endpoints and payload schemas for fetching candidates (WO/Estimate) and applying a selected substitute.
+
+- Acceptance: Picker works for both WorkOrder and Estimate targets and returns eligibility + pricing + `canEnterManualPrice`.
+- Test Fixtures: One WorkOrder line and one Estimate line.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/workexec/substitution-candidates?targetType=WORK_ORDER&targetId=WO-1&lineId=LINE-1
+
+200 OK
+```
+
+### Q: Dispatch Board endpoint contract: Confirm exact endpoint path and request/response schema for `DispatchBoardView` and `ExceptionIndicator`.
+
+- Acceptance: Dispatch view is read-only; exception codes are server-provided and stable.
+- Test Fixtures: Board response contains an `asOf` timestamp or UI shows “Last updated”.
+- Example API request/response:
+
+```http
+GET /webroot/durion-workexec/WorkOrderBoard
+
+200 OK
+```
+
+### Q: Aggregation responsibility: Does dispatch board already include mechanic availability and bay occupancy, or must frontend call People availability separately?
+
+- Acceptance: If People availability is separate, UI fetches it in parallel and does not block board rendering on failure.
+- Test Fixtures: People API returns 500 while board returns 200.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/people/availability?locationId=LOC-1&date=2026-01-19
+
+500 Internal Server Error
+```
+
+### Q: Appointments vs Work Orders: Are “appointments” separate entities or represented as work orders with scheduled times? If separate, what endpoint supplies them?
+
+- Acceptance: Appointments remain shopmgr entities; work orders link via `appointmentId`.
+- Test Fixtures: `DurWorkOrder.appointmentId` is populated.
+- Example API request/response:
+
+```json
+{"workOrderId":"WO-1","appointmentId":"APPT-1"}
+```
+
+### Q: Assignment context endpoints: Exact endpoints/services for loading work order detail, updating assignment context, and fetching audit/history.
+
+- Acceptance: Assignment edits are performed through workexec services and are state-gated; audit/history is available via metadata or a dedicated append-only audit log when required.
+- Test Fixtures: Work order status transitions to started while edit is attempted.
+- Example API request/response:
+
+```http
+PUT /rest/api/v1/workexec/workorders/WO-1
+
+409 Conflict
+```
+
+### Q: Operational context override contract: Does override require `version`? What field name? What response shape and success status (200 vs 201)?
+
+- Acceptance: Overrides require manager permission, are audited, and are concurrency-safe (409 on stale version when token exists). Success returns 200 with updated context when possible.
+- Test Fixtures: Two users edit same operational context.
+- Example API request/response:
+
+```http
+POST /rest/api/v1/workexec/workorders/WO-1/operational-context:override
+
+200 OK
+```
+
+### Q: Event ingestion mechanism: How are Workexec events delivered/handled in this Moqui repo (webhook, broker consumer, polling/inbox)?
+
+- Acceptance: Events are persisted to an inbox first and processed asynchronously with DB-level idempotency.
+- Test Fixtures: Duplicate delivery of the same event.
+- Example API request/response:
+
+```http
+POST /rest/api/v1/workexec/events
+
+202 Accepted
+```
+
+### Q: Invoice event semantics: Is `InvoiceIssued` a separate event type or a status within `WorkorderStatusChanged`? What fields are present?
+
+- Acceptance: In Moqui, invoice issuance transitions the work order to `WO_INVOICED`; if an `InvoiceIssued` event exists later, it maps to the same transition without double-applying.
+- Test Fixtures: Creating invoice sets status to invoiced.
+- Example API request/response:
+
+```json
+{"workOrderId":"WO-1","statusId":"WO_INVOICED"}
+```
+
+### Q: Standard error envelope: For 400/409, what is the standard error response format (field errors, message, correlationId, existingResourceId on duplicates)?
+
+- Acceptance: 400/409 errors conform to the standard envelope and include `correlationId`.
+- Test Fixtures: Duplicate create returns 409 with `existingResourceId`.
+- Example API request/response:
+
+```json
+{"code":"DUPLICATE","correlationId":"c-1","existingResourceId":"SUB-1"}
+```
+
+### Q: Idempotency-Key usage: Should frontend generate/send `Idempotency-Key` for create calls by default?
+
+- Acceptance: UI sends `Idempotency-Key` for create/submit actions and reuses it on retry; server returns the same outcome.
+- Test Fixtures: Double-click submit.
+- Example API request/response:
+
+```http
+POST /rest/api/v1/inventory/substitutes
+Idempotency-Key: 22222222-2222-2222-2222-222222222222
+
+201 Created
+```
+
+### Q: Duplicate signaling: For duplicates (e.g., SubstituteLink), does backend return existing resource id? If yes, where?
+
+- Acceptance: Duplicate create returns 409 with `existingResourceId` in the standard error envelope.
+- Test Fixtures: Create same SubstituteLink twice.
+- Example API request/response:
+
+```http
+409 Conflict
+Content-Type: application/json
+
+{"existingResourceId":"SUB-1"}
+```
+
+### Q: Permission signal source: How does frontend determine permission scopes/capabilities (session claims, user context endpoint, embedded in payload)?
+
+- Acceptance: UI relies on a capability signal (user context endpoint or session claims) and backend enforces with 403.
+- Test Fixtures: User without permission attempts override.
+- Example API request/response:
+
+```http
+403 Forbidden
+```
+
+### Q: Manual price override permission: How does backend indicate user has `ENTER_MANUAL_PRICE` and what is expected frontend behavior when pricing is unavailable?
+
+- Acceptance: Picker response includes `canEnterManualPrice`; if false and price is missing, UI blocks apply. Backend also enforces.
+- Test Fixtures: Candidate with `price=null`.
+- Example API request/response:
+
+```json
+{"price":null,"canEnterManualPrice":false}
+```
+
+### Q: Dispatch Board RBAC: Which roles/permissions may view Dispatch Board? Location membership only or explicit permission (e.g., `DISPATCH_VIEW`)?
+
+- Acceptance: Board requires an explicit permission (e.g., `WORKEXEC_DISPATCH_VIEW`) and location membership.
+- Test Fixtures: Unauthorized user loads board.
+- Example API request/response:
+
+```http
+GET /webroot/durion-workexec/WorkOrderBoard
+
+403 Forbidden
+```
+
+### Q: Editability of SubstituteLink key fields: On update, are `partId` and `substitutePartId` immutable or editable? If editable, how handle uniqueness conflicts?
+
+- Acceptance: `partId` and `substitutePartId` are immutable; updates cannot change them; changing either requires new + deactivate old.
+- Test Fixtures: Edit screen disables key fields.
+- Example API request/response:
+
+```http
+PUT /rest/api/v1/inventory/substitutes/SUB-1
+
+200 OK
+```
+
+### Q: Defaults alignment: Does backend default `priority=100` and `isAutoSuggest=false` when omitted?
+
+- Acceptance: Omitting these fields results in `priority=100` and `isAutoSuggest=false` in the created resource.
+- Test Fixtures: Create request omits both fields.
+- Example API request/response:
+
+```json
+{"priority":100,"isAutoSuggest":false}
+```
+
+### Q: Candidate inclusion rules: Should candidate list include only available candidates or both available/unavailable with statuses?
+
+- Acceptance: Default candidate list includes only eligible/available; optional `includeUnavailable=true` includes unavailable with reason codes.
+- Test Fixtures: Candidate unavailable due to no on-hand.
+- Example API request/response:
+
+```json
+{"availabilityStatus":"UNAVAILABLE","reason":"NO_ON_HAND"}
+```
+
+### Q: Eligibility source for substitution: How does frontend determine “original is unavailable”? Is there a line-level field or should backend enforce?
+
+- Acceptance: Backend enforces eligibility; UI may display flags but must not enforce solely client-side.
+- Test Fixtures: Backend rejects apply when not eligible.
+- Example API request/response:
+
+```http
+400 Bad Request
+```
+
+### Q: Override-after-start rule: After work starts, are overrides disallowed, manager-only, or versioned without mutating locked snapshot?
+
+- Acceptance: Manager-only overrides are allowed after start with explicit audit records and without mutating a start snapshot.
+- Test Fixtures: Manager override performed after status is started.
+- Example API request/response:
+
+```http
+POST /rest/api/v1/workexec/workorders/WO-1/operational-context:override
+
+200 OK
+```
+
+### Q: Which statuses count as “work started”: Is `READY_FOR_PICKUP` considered started for lock rules?
+
+- Acceptance: `READY_FOR_PICKUP` is treated as started (post-start); assignment edits are rejected.
+- Test Fixtures: Work order in READY_FOR_PICKUP.
+- Example API request/response:
+
+```http
+PUT /rest/api/v1/workexec/workorders/WO-1
+
+409 Conflict
+```
+
+### Q: “Team” definition: Is team represented by `assignedMechanics[]` only or separate team entity?
+
+- Acceptance: Team is represented by assigned mechanic(s) on the work order; no team entity is required.
+- Test Fixtures: Work order shows one primary mechanic.
+- Example API request/response:
+
+```json
+{"mechanicId":"M-1"}
+```
+
+### Q: Substitute audit trail API: Is there an API to fetch `SubstituteAudit` entries for display? If not, should UI show only created/updated metadata?
+
+- Acceptance: UI shows created/updated metadata; audit endpoint is optional and append-only if implemented.
+- Test Fixtures: Substitute detail view shows `createdDate`/`updatedDate`.
+- Example API request/response:
+
+```http
+GET /rest/api/v1/inventory/substitutes/SUB-1
+
+200 OK
+```
+
+### Q: Assignment/override audit source: Should UI display generic work order transition history, a specific assignment sync log, or both?
+
+- Acceptance: UI can display both transition history and override audit log; if override log is not implemented yet, transitions + metadata are shown.
+- Test Fixtures: Override performed and appears in history.
+- Example API request/response:
+
+```json
+{"events":[{"eventType":"OVERRIDE"}]}
+```
+
+### Q: Event failure handling: Should orphaned/invalid events be stored in DLQ outside Moqui, in Moqui DB for review, or both?
+
+- Acceptance: Failures are persisted for ops review and also emitted to a DLQ/alerting mechanism.
+- Test Fixtures: Orphan event without a mapping.
+- Example API request/response:
+
+```json
+{"status":"FAILED","failureReason":"ORPHAN"}
+```
+
+### Q: Timezone source: Should timestamps display in shop/location timezone or user preference timezone? How does frontend obtain location timezone?
+
+- Acceptance: UI labels the timezone used; timestamps display in user timezone; day-bucket filters use shop timezone when available; safe-to-defer until shop timezone source exists.
+- Test Fixtures: Two users with different timezones view same board day.
+- Example API request/response:
+
+```json
+{"viewDate":"2026-01-19","timezone":"America/Chicago"}
+```
+
+### Q: ID types: Confirm identifier types (uuid vs numeric vs prefixed strings) for `locationId`, `resourceId`, `mechanicId`, `partId`, etc., and whether UI should use searchable pickers.
+
+- Acceptance: UI treats IDs as opaque strings and uses pickers/search; no UUID-only validation.
+- Test Fixtures: Non-UUID IDs work end-to-end.
+- Example API request/response:
+
+```json
+{"workOrderId":"WO-123","appointmentId":"APPT-9","locationId":"BAY-2"}
+```
+
+## End
+
+End of document.
