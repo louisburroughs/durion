@@ -1,231 +1,532 @@
-# AGENT_GUIDE.md — Billing Domain
-
----
+# AGENT_GUIDE.md — Billing Domain (Normative)
 
 ## Purpose
 
-The Billing domain manages the full lifecycle of invoices, billing rules, payments, and related financial documents within the POS system. It is the authoritative source for invoice creation, validation, state transitions, tax calculations, and traceability. Billing ensures accurate, auditable, and compliant financial records that integrate with upstream work execution and downstream accounting services.
+The Billing domain is the authoritative system of record (SoR) for:
+
+- Invoice lifecycle (draft creation, validation, issuance/finalization, state transitions)
+- Invoice composition (lines, totals, taxes/fees breakdown) derived from immutable upstream snapshots
+- Traceability snapshot persisted on invoice (work order, estimate/version, approvals/artifacts references)
+- Billing rules for commercial accounts (PO requirement, terms, delivery preferences, grouping strategy)
+- Checkout enforcement decisions (policy evaluation + override auditing)
+- Billing-orchestrated payments (customer AR payments against invoices; vendor AP payments if implemented in Billing boundary)
+- Receipts (generation, delivery, reprint policy evaluation and audit trail)
+
+This guide is **normative**. It is safe for direct agent input, CI validation, and story execution rules.
+
+**Non-normative companion:** `BILLING_DOMAIN_NOTES.md` (rationale, options, tradeoffs, auditor explanations; forbidden for direct agent execution).
+
+---
+
+## Decision Index (Authoritative)
+
+Decision IDs below correspond 1:1 to sections in `BILLING_DOMAIN_NOTES.md`.
+
+| Decision ID | Title |
+|---|---|
+| BILL-DEC-001 | Canonical Invoice Status Enums and State Machine |
+| BILL-DEC-002 | Draft Invoice Creation Command (Idempotency + Work Order Preconditions) |
+| BILL-DEC-003 | Issuance Gating Model (Blockers + Policy Envelope) |
+| BILL-DEC-004 | Traceability Snapshot Schema (Canonical Field Names + Immutability) |
+| BILL-DEC-005 | Artifact Retrieval Contract (List + Secure Download) |
+| BILL-DEC-006 | BillingRules Concurrency Model (ETag/If-Match) |
+| BILL-DEC-007 | BillingRules Options/Enums Discovery Endpoints |
+| BILL-DEC-008 | Permission Model (Canonical Permission Strings) |
+| BILL-DEC-009 | Checkout PO Capture and Override Workflow Contract |
+| BILL-DEC-010 | Manager/Supervisor Approval Semantics (Re-auth Token) |
+| BILL-DEC-011 | Receipts: Generation, Delivery Statuses, Reprint Policy Evaluation |
+| BILL-DEC-012 | Partial Payments Policy and Receipt Display Rules |
+| BILL-DEC-013 | AP Vendor Payments: Status Enums, Idempotency, Allocation Rules |
+| BILL-DEC-014 | Posting Error Visibility Policy (Sanitization + Role-Targeted Detail) |
+| BILL-DEC-015 | Observability: Correlation/Tracing Standard (W3C Trace Context) |
+| BILL-DEC-016 | Frontend Deep-Link Metadata (No Hardcoded Routes) |
 
 ---
 
 ## Domain Boundaries
 
-- **Owned by Billing:**
-  - Invoice lifecycle management (Draft, Issued, Paid, Void)
-  - Invoice creation from completed Work Orders
-  - Tax calculation and financial totals
-  - Billing Rules configuration per customer account
-  - Payment orchestration and allocation
-  - Receipt generation, delivery, and reprint management
-  - Enforcement of billing policies during checkout (in collaboration with CRM)
+### Owned by Billing (SoR)
 
-- **External Dependencies:**
-  - **Work Execution domain:** Source of truth for Work Order states and BillableScopeSnapshot DTOs
-  - **CRM domain:** Customer account data, billing contact info, and billing rules caching
-  - **Accounting domain:** Consumes billing events for AR and GL posting
-  - **Payment Gateway:** Executes payment authorization, capture, void, and refund
-  - **Receipt Service:** Generates and stores receipt content and delivery status
+- Invoice lifecycle management:
+  - Draft creation from invoice-ready Work Orders (idempotent)
+  - Issuance/finalization (DRAFT → ISSUED) with validation and locking
+  - Post-issuance immutability (no edits; corrections via credit/rebill are separate stories)
+- Invoice composition:
+  - Header, totals, taxes/fees breakdown, and line items derived from immutable snapshots
+  - Embedded immutable TraceabilitySnapshot
+- BillingRules:
+  - Per-account configuration + versioning + audit metadata
+  - Policy evaluation payload for checkout enforcement
+- Checkout enforcement decisions:
+  - PO requirement/format/uniqueness
+  - Override evaluation + audit capture
+- Payments orchestration:
+  - Customer payments against invoices (AR) + receipt generation
+  - AP vendor payment execution if implemented in this domain boundary (with async GL posting acknowledgement)
+- Receipts:
+  - Receipt generation on payment capture
+  - Delivery (print/email) and reprint evaluation
 
-- **Integration Boundaries:**
-  - Billing consumes Work Execution APIs/events for billable snapshots and work order readiness
-  - Billing publishes invoice and payment events for Accounting consumption
-  - Billing manages billing rules and exposes APIs for CRM and Work Execution to consume snapshots
-  - Receipt generation and delivery are coordinated with Payment and POS services
+### Not owned by Billing (integrated)
 
----
-
-## Key Entities / Concepts
-
-- **Invoice:** Financial document representing charges for completed work orders; lifecycle states include Draft, Issued, Paid, and Void.
-- **InvoiceItem:** Line items on an invoice derived from immutable BillableScopeSnapshot line items.
-- **BillableScopeSnapshot:** Immutable snapshot of billable work from Work Execution, including parts, labor, fees, and tax-relevant data.
-- **BillingRules:** Customer-specific billing configuration including PO requirements, payment terms, invoice delivery, and grouping strategies.
-- **PaymentIntent / PaymentRecord:** Represents payment authorization, capture, void, and refund states and metadata.
-- **Receipt:** Customer-facing proof of payment, including printed and emailed versions, with template versioning and audit trail.
-- **Traceability Links:** Immutable references on invoices to originating work orders, estimates, approvals, and billing snapshots for auditability.
+- Work Execution: Work Order state machine, invoiceReady flag, BillableScopeSnapshot generation
+- CRM: Customer account master data, billing contacts/addresses, account classification
+- Accounting: GL posting rules, journal entry creation, AR ledger; consumes Billing events
+- Payment Gateway: authorization/capture/void/refund execution (Billing orchestrates through adapter)
+- Artifact/Document service: physical storage of approval artifacts (Billing references; secure retrieval via contract)
 
 ---
 
-## Invariants / Business Rules
+## Canonical Entities / Concepts (Normative)
 
-- **Invoice Creation:**
-  - Only one primary invoice per Work Order.
-  - Invoice generation allowed only if Work Execution reports `invoiceReady=true`.
-  - BillableScopeSnapshot is immutable and authoritative for invoice line items.
-  - Customer billing data (address, contact method) must be complete before invoice creation.
-  - Taxes are calculated by Billing using current tax rules, not sourced from snapshots.
-  - Traceability links (`workOrderId`, `billableScopeSnapshotId`, `customerAccountId`) are mandatory and immutable.
-  - Idempotency enforced: existing Draft invoices returned; Posted/Paid invoices block regeneration; Voided invoices allow controlled regeneration via privileged endpoint.
+### Invoice (Billing SoR)
 
-- **Invoice Finalization:**
-  - Transition from Draft to Issued only if validations pass (customer data, totals, taxes).
-  - Issued invoices are immutable; corrections require credit notes.
-  - Finalization emits `InvoiceIssued` event for Accounting.
+- `invoiceId` (UUIDv7)
+- `invoiceNumber` (string, assigned at issuance)
+- `workOrderId` (UUIDv7, immutable)
+- `customerAccountId` (UUIDv7, immutable)
+- `billableScopeSnapshotId` (UUIDv7, immutable)
+- `traceability` (TraceabilitySnapshot, immutable)
+- `status` (InvoiceStatus enum; see BILL-DEC-001)
+- Totals & breakdown:
+  - `subtotal`, `taxTotal`, `feeTotal`, `discountTotal`, `grandTotal`, `balanceDue`
+  - `taxBreakdown[]`, `feeBreakdown[]` (optional, but must be consistent when present)
+- `issuedAt`, `issuedByUserId` (set at issuance)
 
-- **Billing Rules:**
-  - Billing domain owns BillingRules persistence and validation.
-  - Rules are versioned and audited.
-  - Work Execution enforces PO requirements using snapshots of BillingRules.
-  - PO requirements are strictly enforced during checkout; overrides require permissions and audit trail.
-  - Payment terms and invoice delivery methods are configured per account.
+### TraceabilitySnapshot (invoice-embedded, immutable) (BILL-DEC-004)
 
-- **Payments:**
-  - Billing orchestrates payment execution with idempotency and state transitions.
-  - Payment gateway interactions are abstracted via adapters.
-  - Payment allocations across bills follow deterministic or explicit instructions.
-  - GL posting is asynchronous and owned by Accounting.
+Canonical field names:
 
-- **Receipts:**
-  - Generated on successful payment capture.
-  - Stored with immutable template version and content.
-  - Delivered via print or email with retry and fallback policies.
-  - Reprints require authorization and are watermarked.
-  - Retained for 7 years with tiered storage.
+- `sourceWorkOrderId` (UUIDv7, required) = `workOrderId`
+- `sourceBillableScopeSnapshotId` (UUIDv7, required) = `billableScopeSnapshotId`
+- `sourceSchemaVersion` (string, required)
+- Estimate reference:
+  - `sourceEstimateId` (UUIDv7, optional)
+  - `sourceEstimateVersionId` (UUIDv7, optional, preferred when present)
+- Approvals/artifacts references:
+  - `sourceApprovalIds[]` (UUIDv7[], optional but may be required by policy)
+  - `artifactRefs[]` (optional; references for secure retrieval)
 
-- **Checkout Enforcement:**
-  - PO requirements enforced per BillingRules during order finalization.
-  - PO format and uniqueness validated.
-  - Overrides require permissions, approval workflows, and audit logging.
-  - Credit limits enforced to prevent order finalization beyond allowed thresholds.
+### BillingRules (per account)
 
----
+- `accountId` (UUIDv7, unique)
+- `isPoRequired` (bool)
+- `paymentTermsId` (UUIDv7/string)
+- `invoiceDeliveryMethod` (enum)
+- `invoiceGroupingStrategy` (enum)
+- Concurrency/audit:
+  - `etag` (string)
+  - `updatedAt`, `updatedByUserId`
 
-## Events / Integrations
+### BillingRuleEvaluation (checkout decision DTO)
 
-- **Inbound:**
-  - Work Execution: BillableScopeSnapshot, Work Order state and readiness flags.
-  - CRM: Customer billing data, account lifecycle events (e.g., AccountCreated).
-  - Payment Gateway: Payment authorization/capture/void/refund responses.
-  - Accounting: Acknowledgements of journal postings.
+- `policyVersion` (string, required)
+- PO policy:
+  - `poRequired` (bool)
+  - `poFormatRegex` (optional)
+  - `poUniquenessScope` (enum)
+- Override policy:
+  - `overrideAllowed` (bool)
+  - `overrideRequiresSecondApprover` (bool)
+  - `overrideReasonCodeRequired` (bool)
+- Credit/terms gating:
+  - `chargeAccountEligible` (bool)
+  - `creditLimitExceeded` (bool, optional)
+- `messages[]` with `{code, severity, text}`
 
-- **Outbound:**
-  - `invoice.draft.created` — emitted on draft invoice creation.
-  - `InvoiceIssued` — emitted on invoice finalization.
-  - `Billing.PaymentSucceeded.v1` — payment success event for Accounting.
-  - Receipt events: `ReceiptGenerated`, `ReceiptPrinted`, `ReceiptEmailed`, `ReceiptReprinted`.
-  - Audit events for billing rules changes, PO overrides, payment reversals.
+### Payments & Receipts
 
----
+- Customer AR payments:
+  - `billingPaymentId` (UUIDv7)
+  - `invoiceId`
+  - `amount`
+  - `status` (gateway/result status)
+- Receipts:
+  - `receiptId` (UUIDv7)
+  - `deliveryStatus` (ReceiptDeliveryStatus; see BILL-DEC-011)
+  - `deliverySuppressed` (bool; see “No Receipt” semantics)
 
-## API Expectations (High-Level)
+### AP Vendor Payments (if implemented in Billing boundary) (BILL-DEC-013)
 
-- **Invoice APIs:**
-  - Create invoice draft from completed Work Order (idempotent).
-  - Retrieve invoice details including traceability links.
-  - Issue/finalize invoice with validations.
-  - Regenerate invoice from voided state via privileged endpoint (TBD).
-
-- **Billing Rules APIs:**
-  - Upsert and retrieve billing rules per account.
-  - Event-driven provisioning on account creation.
-
-- **Payment APIs:**
-  - Initiate payment authorization and capture with idempotency.
-  - Void authorization or refund captured payments with reason codes.
-  - Query payment status and history.
-
-- **Receipt APIs:**
-  - Generate receipt on payment capture event.
-  - Retrieve receipt content and delivery status.
-  - Support receipt reprint with authorization and watermarking.
-
-- **Checkout Enforcement APIs:**
-  - Validate PO requirement and capture PO reference during order finalization.
-  - Support override workflows with multi-approver authentication.
-
-- **Note:** Detailed API endpoints and contracts are TBD.
+- `billId` (UUIDv7)
+- `billingPaymentId` (UUIDv7)
+- `paymentRef` (string, idempotency key)
+- Allocation records:
+  - `{billId, appliedAmount}`
+- Status enums:
+  - `INITIATED`, `GATEWAY_PENDING`, `GATEWAY_FAILED`, `GATEWAY_SUCCEEDED`,
+    `GL_POST_PENDING`, `GL_POSTED`, `GL_POST_FAILED`
 
 ---
 
-## Security / Authorization Assumptions
+## Invariants / Business Rules (Normative)
 
-- All user actions require authentication and authorization.
-- Permissions scoped per role and action, e.g.:
-  - `invoice:create`, `invoice:issue`, `invoice:regenerate`
-  - `billingRules:manage`
-  - `payment:process`, `payment:void`, `payment:refund`
-  - `receipt:generate`, `receipt:reprint`
-  - `override:poRequirement`
-- Sensitive operations (e.g., invoice regeneration, PO overrides, refunds) require elevated permissions and audit logging.
-- Customer data access is restricted by tenant/account boundaries.
-- PCI-DSS compliance enforced for payment data; no PAN or CVV stored.
-- Email addresses encrypted at rest; logs avoid storing sensitive data.
+### Invoice draft creation (BILL-DEC-002)
 
----
+- One primary invoice per Work Order.
+- Allowed only if Work Execution reports:
+  - Work Order is Completed
+  - `invoiceReady=true`
+- Idempotent behavior:
+  - If draft exists for `workOrderId`: return existing draft (200)
+  - If invoice already ISSUED/PAID/VOID: return 409 conflict with deterministic reason code
+- Lines are derived from BillableScopeSnapshot and are not editable in this flow.
+- Billing calculates taxes/fees using current tax rules; do not trust upstream totals.
 
-## Observability (Logs / Metrics / Tracing)
+### Invoice issuance / finalization (BILL-DEC-001, BILL-DEC-003)
 
-- **Logging:**
-  - Structured logs with correlation IDs for all key operations.
-  - Log request receipt, precondition checks, downstream calls, state transitions, errors.
-  - Audit logs for billing rules changes, PO overrides, payment reversals, receipt reprints.
+- Atomic and idempotent per `invoiceId + invoiceVersion`.
+- Preconditions:
+  - Invoice is in `DRAFT`
+  - Required billing data present and consistent with delivery method
+  - Traceability policy satisfied (server-side enforcement)
+- Postconditions:
+  - Invoice becomes immutable (header/lines/totals/traceability)
+  - `invoiceNumber`, `issuedAt`, `issuedByUserId` set
+  - `InvoiceIssued` event emitted exactly once for that `invoiceId + invoiceVersion`
 
-- **Metrics:**
-  - Invoice creation success/failure counts and latency.
-  - Invoice issuance success/failure counts.
-  - Payment execution success/failure and retry counts.
-  - Receipt generation, print/email delivery success/failure rates.
-  - PO override attempts and denials.
-  - Reprint counts and authorization failures.
+### Traceability policy (BILL-DEC-003, BILL-DEC-004)
 
-- **Tracing:**
-  - Distributed tracing across service calls for invoice creation, payment processing, and receipt generation.
-  - Traceability of events from Work Execution through Billing to Accounting.
+- Billing enforces traceability completeness server-side.
+- Frontend must not guess which identifiers are required.
+- Backend provides:
+  - `issuancePolicy` and `issuanceBlockers[]` in invoice detail (preferred)
+  - Structured 422 validation errors on issuance attempt containing the same blocker codes
 
----
+### BillingRules (BILL-DEC-006, BILL-DEC-007)
 
-## Testing Guidance
+- Upsert is idempotent.
+- Concurrency control is ETag/If-Match (BILL-DEC-006).
+- Enum/option lists are sourced from backend discovery endpoints (BILL-DEC-007).
 
-- **Unit Tests:**
-  - Validate business rules and invariants for invoice creation, issuance, and payment workflows.
-  - BillingRules validation and versioning logic.
-  - PO format and uniqueness enforcement.
-  - Payment state transitions and idempotency.
+### Checkout PO capture and override (BILL-DEC-009, BILL-DEC-010)
 
-- **Integration Tests:**
-  - End-to-end invoice draft creation from Work Order with mocked Work Execution responses.
-  - Invoice issuance and event emission.
-  - Payment execution flows with gateway adapter mocks.
-  - Receipt generation and delivery simulation.
-  - PO override workflows with permission checks.
+- PO capture is write-once in the checkout context.
+- Override requires:
+  - explicit permission
+  - reason code (and optional reason notes)
+  - supervisor/manager elevation token (BILL-DEC-010)
+  - optional second approver per policy evaluation
 
-- **Contract Tests:**
-  - Verify Billing’s consumption of Work Execution BillableScopeSnapshot contract.
-  - Verify event payloads for Accounting and Payment domains.
+### Receipts and reprints (BILL-DEC-011)
 
-- **Security Tests:**
-  - Authorization enforcement on all APIs.
-  - Sensitive data masking and encryption verification.
+- Receipt generated on successful capture.
+- Delivery policy evaluated server-side; UI renders `allowedActions[]` and `reprintPolicy` output.
+- “No Receipt” suppresses delivery but does not suppress receipt generation (see BILL-DEC-011).
 
-- **Performance Tests:**
-  - Invoice creation latency under load.
-  - Payment processing throughput.
-  - Receipt generation and email delivery SLA adherence.
+### Partial payments (BILL-DEC-012)
 
----
+- Partial payments are supported unless disabled by account policy.
+- Receipts reflect partial vs paid-in-full and display remaining balance.
 
-## Common Pitfalls
+### AP vendor payments (BILL-DEC-013)
 
-- **Ignoring Idempotency:** Duplicate invoice creation or payment execution can cause financial discrepancies; always enforce idempotency keys and status checks.
+- Execution idempotent by `paymentRef`.
+- Validations:
+  - grossAmount > 0
+  - sum(allocations) ≤ grossAmount
+  - bills must be open/payable
+- GL posting is asynchronous; UI is read-only for GL posting status.
 
-- **Mutable Traceability Links:** Traceability references must be immutable once persisted to ensure auditability.
+### Posting error visibility (BILL-DEC-014)
 
-- **Tax Calculation Delegation:** Do not rely on BillableScopeSnapshot for tax totals; always calculate taxes within Billing using current rules.
-
-- **Incomplete Customer Data:** Invoice creation must fail if billing address or contact method is missing; do not create unusable drafts.
-
-- **Direct DB Coupling to Work Execution:** Billing must consume Work Execution data only via stable API contracts or event projections, never direct DB reads.
-
-- **Insufficient Permission Checks:** Sensitive operations like invoice regeneration, PO overrides, refunds, and receipt reprints require strict authorization and audit trails.
-
-- **Receipt Template Versioning:** Always store and use the original receipt template version for reprints to ensure exact reproduction.
-
-- **Overriding PO Requirements Without Audit:** All overrides must be logged with approver identities and reasons; failure to do so risks compliance violations.
-
-- **Ignoring Payment Gateway Idempotency:** Retry logic must query gateway status to avoid duplicate charges.
-
-- **Not Handling Downstream Failures Gracefully:** Billing operations must rollback or fail cleanly if dependent services (Work Execution, Payment Gateway, Accounting) are unavailable.
+- `postingErrorSummary` for non-admin users is sanitized and non-sensitive.
+- Detailed errors are restricted to finance/admin permissions.
 
 ---
 
-*End of AGENT_GUIDE.md*
+## Canonical Enums and Statuses (Normative)
+
+### InvoiceStatus (BILL-DEC-001)
+
+Backend authoritative:
+
+- `DRAFT`
+- `ISSUED`
+- `PAID`
+- `VOID`
+
+Optional (only if implemented; if not, do not invent in UI):
+
+- `ERROR` (represents issuance/posting pipeline error state, not an editable state)
+
+Frontend must treat any unknown enum as “unknown state” and require refresh/support.
+
+### ReceiptDeliveryStatus (BILL-DEC-011)
+
+- `PENDING`
+- `SENT`
+- `FAILED`
+- `BOUNCED` (email only)
+
+### AP Vendor Payment Status (BILL-DEC-013)
+
+- `INITIATED`
+- `GATEWAY_PENDING`
+- `GATEWAY_FAILED`
+- `GATEWAY_SUCCEEDED`
+- `GL_POST_PENDING`
+- `GL_POSTED`
+- `GL_POST_FAILED`
+
+---
+
+## API Contracts (Normative)
+
+Concrete Moqui service names may vary; the following HTTP semantics and field shapes are normative.
+
+### Invoice
+
+1) Create Draft from Work Order (idempotent)
+
+- `POST /billing/invoices/draft`
+  - Request: `{ "workOrderId": "uuidv7" }`
+  - Response: full invoice snapshot recommended
+  - Errors:
+    - 409 with `{errorCode, message, reasonCode}` when not invoice-ready or already issued
+    - 422 with `{errorCode, message, missingFields[]}` when billing data incomplete
+
+1) Get Invoice Detail
+
+- `GET /billing/invoices/{invoiceId}`
+  - Includes: totals, breakdowns, line items, traceability snapshot, delivery preferences, issuance metadata
+  - Includes: `issuancePolicy` and `issuanceBlockers[]` (BILL-DEC-003)
+
+1) Issue Invoice (command)
+
+- `POST /billing/invoices/{invoiceId}/issue`
+  - Request: `{ "elevationToken": "string?" }` (required only if blockers require manager override)
+  - Errors:
+    - 422 blockers with structured codes
+    - 409 if already issued/paid/void
+
+1) Lookup by Work Order
+
+- `GET /billing/invoices/by-work-order/{workOrderId}` (returns 404 if none)
+
+### BillingRules
+
+- `GET /billing/rules/{accountId}`
+  - 200 returns BillingRules + ETag header
+  - 404 means unconfigured
+- `PUT /billing/rules/{accountId}`
+  - Requires `If-Match: <etag>` when updating; omitting If-Match creates new config if absent
+  - 409 on stale etag
+
+### Discovery / options (BILL-DEC-007)
+
+- `GET /billing/meta/payment-terms`
+- `GET /billing/meta/invoice-delivery-methods`
+- `GET /billing/meta/invoice-grouping-strategies`
+- `GET /billing/meta/po-policies` (optional; if policy varies by tenant/account)
+- `GET /billing/meta/reason-codes?category=PO_OVERRIDE|REPRINT|...`
+
+### Artifact retrieval (BILL-DEC-005)
+
+- List artifacts for invoice context:
+  - `GET /billing/invoices/{invoiceId}/artifacts`
+  - Response: `artifacts[]` with `{artifactRefId, type, createdAt, displayName, contentType, sizeBytes}`
+- Secure download:
+  - Option A (preferred): `POST /billing/artifacts/{artifactRefId}/download-token` → `{downloadToken, expiresAt}`
+    then `GET /billing/artifacts/download?token=...`
+  - Option B: time-limited signed URL returned in list only when requested via `?includeSignedUrls=true` and authorized
+- Never log signed URLs or tokens.
+
+### Checkout PO (BILL-DEC-009)
+
+- `POST /billing/checkout/{checkoutId}/evaluate` → BillingRuleEvaluation
+- `POST /billing/checkout/{checkoutId}/po` (write-once)
+- `POST /billing/checkout/{checkoutId}/po-override`
+  - requires elevation token and reason codes per policy
+
+### AP Vendor Payments (BILL-DEC-013)
+
+- `GET /billing/ap/vendors/{vendorId}/bills?status=OPEN`
+- `POST /billing/ap/payments`
+  - Request includes `{vendorId, grossAmount, currencyUomId, paymentRef, allocations[]?}`
+- `GET /billing/ap/payments/{billingPaymentId}`
+- `GET /billing/ap/payments/by-ref/{paymentRef}` (optional)
+
+### Receipts (BILL-DEC-011)
+
+- `GET /billing/receipts/by-invoice/{invoiceId}`
+- `POST /billing/receipts/{receiptId}/deliver` (channel=PRINT|EMAIL)
+- `POST /billing/receipts/{receiptId}/reprint`
+- Receipt content:
+  - Print: printer-ready plain text (ESC/POS-friendly) or a backend-provided print template output
+  - Email: PDF attachment or HTML body generated server-side
+Frontend must not implement printer-width formatting unless contract explicitly requires it.
+
+---
+
+## Permission Model (Normative) (BILL-DEC-008)
+
+Canonical permission strings:
+
+| Area | Action | Permission |
+|---|---|---|
+| Invoice | View invoice | `billing:invoice:view` |
+| Invoice | Create draft | `billing:invoice:create-draft` |
+| Invoice | Issue | `billing:invoice:issue` |
+| Invoice | Void | `billing:invoice:void` |
+| Traceability | View traceability panel | `billing:traceability:view` |
+| Artifacts | List artifacts | `billing:artifact:list` |
+| Artifacts | Download artifact | `billing:artifact:download` |
+| BillingRules | View | `billing:rules:view` |
+| BillingRules | Manage | `billing:rules:manage` |
+| Checkout PO | Capture PO | `billing:checkout:po:capture` |
+| Checkout PO | Override PO | `billing:checkout:po:override` |
+| Supervisor | Elevation (re-auth) | `billing:auth:elevate` |
+| Receipts | View | `billing:receipt:view` |
+| Receipts | Deliver (print/email) | `billing:receipt:deliver` |
+| Receipts | Reprint | `billing:receipt:reprint` |
+| AP | View bills | `billing:ap:bill:view` |
+| AP | Execute payment | `billing:ap:payment:execute` |
+| AP | View payment detail | `billing:ap:payment:view` |
+| Posting details | View detailed posting errors | `billing:posting-error:detail:view` |
+
+---
+
+## Observability (Normative) (BILL-DEC-015)
+
+Correlation/tracing standard is W3C Trace Context:
+
+- `traceparent` required
+- `tracestate` optional
+
+Logs must include identifiers (non-PII):
+
+- `invoiceId`, `workOrderId`, `accountId`, `billingPaymentId`, `paymentRef` (if permitted), `receiptId`
+Never log: PAN/CVV, full billing address/email, signed URLs, tokens, manager PINs/codes.
+
+---
+
+## Deep Linking (Normative) (BILL-DEC-016)
+
+Billing APIs return link metadata (not routes):
+
+- `{ targetDomain, targetType, targetId }`
+Frontend resolves to routes per domain router and enforces auth on destination.
+
+---
+
+## Open Questions — Resolved (Full Q/A with provenance)
+
+> Questions are restated from the prior AGENT_GUIDE “Open Questions from Frontend Stories” section and answered below. Each answer is now normative and reconciles TODO/CLARIFY items.
+
+### Source: AGENT_GUIDE.md — A) Invoice traceability & issuance gating
+
+**Question A1:** Backend contract (required): What are the exact field names returned for estimate reference: `sourceEstimateId` vs `sourceEstimateVersionId` vs both? Provide the canonical response schema used by the frontend.  
+**Response:** Use both fields with these canonical names inside `traceability`:
+
+- `sourceEstimateId` (optional)
+- `sourceEstimateVersionId` (optional, preferred when present)
+If only one is available upstream, populate the available one; do not rename. (BILL-DEC-004)
+
+**Question A2:** Issuance gating UX: Does the invoice detail payload include an explicit `issuanceBlockers` (or similar) array we should render/interpret, or must the frontend only learn blockers from the issuance attempt (422 response)?  
+**Response:** Invoice detail **must** include `issuancePolicy` and `issuanceBlockers[]` for draft invoices. Issuance attempts returning 422 must include the same blocker codes. UI must not guess. (BILL-DEC-003)
+
+**Question A3:** Permissions: What are the exact permission IDs/roles for viewing traceability panel, issuing invoice, and viewing/downloading approval artifacts?  
+**Response:** Canonical permissions:
+
+- Traceability panel: `billing:traceability:view`
+- Issue invoice: `billing:invoice:issue`
+- Artifacts: `billing:artifact:list` and `billing:artifact:download` (BILL-DEC-008)
+
+**Question A4:** Artifact retrieval API: What service/endpoint returns approval artifacts from invoice context? Input: invoiceId vs approvalIds. Output: signed URL vs separate download endpoint.  
+**Response:** Input is `invoiceId`. Billing exposes:
+
+- `GET /billing/invoices/{invoiceId}/artifacts` for list
+- Secure download via tokenized endpoint (preferred) or short-lived signed URLs when explicitly requested and authorized. (BILL-DEC-005)
+
+**Question A5:** Policy specificity: Which traceability identifiers are policy-required to issue (approval always? estimate version always? configurable per customer/account)? Frontend must not guess.  
+**Response:** Policy is configurable per tenant/account and returned as `issuancePolicy`:
+
+- Always required: `sourceWorkOrderId`, `sourceBillableScopeSnapshotId`, `sourceSchemaVersion`
+- Conditionally required:
+  - `sourceApprovalIds[]` required for consumer/B2C accounts or where “approvalRequired=true”
+  - `sourceEstimateVersionId` required when an estimate exists and policy requires estimate-binding
+Backend returns blockers with codes (e.g., `MISSING_APPROVAL`, `MISSING_ESTIMATE_VERSION`). (BILL-DEC-003, BILL-DEC-004)
+
+**Question A6:** Navigation links: Do screens/routes exist for Work Order, Estimate, Approval record? If not, should identifiers be copy-only?  
+**Response:** Billing returns link metadata only; UI may render links if the route exists. If route does not exist, display identifier with “copy” action only. Do not block issuance on link availability. (BILL-DEC-016)
+
+### Source: AGENT_GUIDE.md — B) Receipt generation, delivery, reprint
+
+**Question B1:** Moqui contract: exact screen paths and services for fetch/create receipt, request email delivery, request reprint, record print outcome.  
+**Response:** Billing exposes receipt capabilities via HTTP endpoints:
+
+- `GET /billing/receipts/by-invoice/{invoiceId}`
+- `POST /billing/receipts/{receiptId}/deliver`
+- `POST /billing/receipts/{receiptId}/reprint`
+Print outcomes are recorded implicitly by deliver/reprint response; no separate endpoint unless required by printer integration. (BILL-DEC-011)
+
+**Question B2:** Partial payments: supported? Should receipt show “PARTIAL PAYMENT” and remaining balance?  
+**Response:** Partial payments are supported unless account policy disables them. Receipt and invoice view must display payment type:
+
+- `PAID_IN_FULL` vs `PARTIAL_PAYMENT`
+and show remaining balance for partial payments. (BILL-DEC-012)
+
+**Question B3:** Failure handling: when email delivery fails, can UI retry? statuses?  
+**Response:** Statuses are `PENDING`, `SENT`, `FAILED`, `BOUNCED`. UI may retry delivery for `FAILED` or `BOUNCED` if policy returns `allowedActions` includes `RETRY_DELIVERY`; otherwise instruct user to update email/address in CRM then retry. (BILL-DEC-011)
+
+**Question B4:** Reprint policy source: backend returns `allowedActions`/policy evaluation?  
+**Response:** Yes. Backend returns:
+
+- `reprintPolicy` (e.g., `remainingReprints`, `windowEndsAt`, `requiresReasonCode`, `requiresElevation`)
+- `allowedActions[]`  
+Frontend must not hardcode thresholds. (BILL-DEC-011)
+
+**Question B5:** Permissions for print/email/reprint and supervisor override?  
+**Response:** Canonical permissions:
+
+- Deliver: `billing:receipt:deliver`
+- Reprint: `billing:receipt:reprint`
+- Elevation: `billing:auth:elevate` (BILL-DEC-008, BILL-DEC-010)
+
+**Question B6:** Printing payload type: plain text vs HTML vs PDF; does frontend format to 40–48 chars?  
+**Response:** Backend provides printer-ready content. Frontend does not format widths unless contract explicitly requires it. Email uses server-generated PDF/HTML. (BILL-DEC-011)
+
+**Question B7:** “No Receipt” behavior: backend state transition or suppress delivery only?  
+**Response:** “No Receipt” means `deliverySuppressed=true` and no delivery attempt is made, but receipt record still exists for audit and later reprint (if allowed). (BILL-DEC-011)
+
+### Source: AGENT_GUIDE.md — C) Invoice retrieval, draft creation, enums, approvals
+
+**Question C1:** Invoice retrieval contract: load by `workOrderId`, `invoiceId`, or both? exact service names/parameter names?  
+**Response:** Both are supported:
+
+- `GET /billing/invoices/{invoiceId}`
+- `GET /billing/invoices/by-work-order/{workOrderId}`  
+Frontend chooses by context: from Work Order use by-work-order, from invoice list use invoiceId. (BILL-DEC-002)
+
+**Question C2:** Draft creation behavior: show “no invoice” only, or call create draft automatically or via button?  
+**Response:** Must be user-initiated via explicit action (button) unless the screen is explicitly an “Invoice Builder” workflow. Backend is idempotent so retries are safe. (BILL-DEC-002)
+
+**Question C3:** Manager approval input semantics: exact “manager approval code” format and rules (code vs re-auth vs token)?  
+**Response:** Use re-auth elevation token, not a stored “manager code”:
+
+- `POST /billing/auth/elevate` with manager credentials (PIN/password/SSO step-up)
+- Returns short-lived `elevationToken` (e.g., 5 minutes, single-use)
+UI never logs or stores raw credentials. (BILL-DEC-010)
+
+**Question C4:** Permission source: session claims vs backend-provided `canFinalize` flags?  
+**Response:** Backend returns both:
+
+- Server-enforced permission checks
+- `allowedActions[]` and computed flags in invoice detail for UX
+UI must not rely on flags for security; backend remains authoritative. (BILL-DEC-008)
+
+**Question C5:** Posting/error display policy: for `postingErrorSummary`, what is safe to show to Service Advisors?  
+**Response:** Service Advisor view shows only sanitized, non-sensitive summaries (codes + generic text). Detailed posting errors are restricted behind `billing:posting-error:detail:view`. No stack traces, no account numbers, no internal system identifiers beyond correlationId. (BILL-DEC-014)
+
+**Question C6:** State naming: exact enum values returned (DRAFT/EDITABLE vs FINALIZED/POSTED/ERROR)?  
+**Response:** InvoiceStatus is:
+
+- `DRAFT`, `ISSUED`, `PAID`, `VOID`  
+Optional: `ERROR` only if implemented. UI must not invent “EDITABLE/FINALIZED/POSTED”; those are UI concepts derived from status:
+- editable if `status==DRAFT`
+- finalized if `status in {ISSUED,PAID,VOID}` (BILL-DEC-001)
+
+---
+
+# End of AGENT_GUIDE.md

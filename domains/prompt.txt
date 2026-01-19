@@ -1,0 +1,14 @@
+You are a domain specific expert in inventory control for the durion enterprise truck service management system.  Reveiw the Open Questions sections in the AGENT_GUIDE and  STORY_VALIDATION_CHECKLIST and answer them to the best of your knowledge restating the questions and giving answers clearly.  Use the answers to reconcile the todos in the AGENT_GUIDE.  The output should be a new AGENT_GUIDE.md, a {domain}_DOMAIN_NOTES.md and a new STORY_VALIDATION_CHECKLIST.md. The AGENT_GUIDE.md should have decision ids that correspond to sections in the {domain}_DOMAIN_NOTES.md.  The uses of the {domain}_DOMAIN_NOTES.md include: 
+
+- Architecture discussions
+- Auditor explanations
+- Future design work
+- Governance review
+
+❌ Forbidden uses:
+
+- Direct agent input
+- CI validation
+- Story execution rules
+
+The {domain}_DOMAIN_NOTES.md document should be intentionally verbose, exploratory, and explanatory.  Produce these three specific documents, with clear delineation, in their complete form for use by agents in answering future functionality, clarifying questions and writing code. 

@@ -1,36 +1,46 @@
 ```markdown
 # STORY_VALIDATION_CHECKLIST.md (domain: positivity)
 
-Checklist for engineers/reviewers to validate story implementations in the **positivity** domain (POS backend). Items are intended to be **actionable and verifiable**.
+Checklist for engineers/reviewers to validate story implementations in the **positivity** domain (POS backend + POS frontend integration points owned by positivity). Items are intended to be **actionable and verifiable**.
 
 ---
 
 ## Scope/Ownership
 
-- [ ] The change is correctly scoped to **positivity** responsibilities (POS orchestration, aggregation, Order aggregate ownership).
+- [ ] The change is correctly scoped to **positivity** responsibilities (POS orchestration, aggregation, Order aggregate ownership, POS-facing read models).
 - [ ] Cross-domain authority boundaries are respected:
   - [ ] **workexec** is authoritative for work-order cancellability and cancellation.
   - [ ] **billing** is authoritative for payment reversal (void/refund decision).
   - [ ] **catalog/pricing/inventory** are authoritative for their respective read models (for product detail aggregation).
-- [ ] Orchestration behavior matches the story’s decision record (e.g., cancel saga ordering: **workexec first, billing second**).
-- [ ] Any new state machine/status values are owned by positivity and documented (no “shadow” states duplicated from other domains).
-- [ ] Integration points (sync APIs, events) are explicitly listed in the PR description and match the story contract.
+- [ ] Product detail UI is **read-only** and does not introduce “price finalization” or checkout/quote commit behavior.
+- [ ] The product detail screen uses the **single aggregated endpoint** (no direct frontend calls to Catalog/Pricing/Inventory services unless explicitly approved).
+- [ ] Location context ownership is clear (where `locationId` comes from) and consistent with repo conventions (route/query vs global state vs selector).
+- [ ] Integration points (Moqui screen, Vue route/component, backend endpoint) are explicitly listed in the PR description and match the story contract.
 
 ---
 
 ## Data Model & Validation
 
 - [ ] Persistence changes (tables/columns/indexes) are present, migrated, and backward compatible where required.
-- [ ] `Order` (or relevant aggregate) includes required fields for the story and they are persisted:
-  - [ ] `status` includes in-flight + terminal cancellation states as needed (e.g., `CANCEL_REQUESTED`, `CANCEL_FAILED_*`, `CANCELLED`).
-  - [ ] `cancellationReason` (or `reasonCode`) stored and validated (length, allowed values if enumerated).
-  - [ ] `workOrderId` and `paymentId` nullable and validated as UUIDs when present.
-  - [ ] `correlationId` stored/propagated (or derivable) for traceability.
-  - [ ] `cancellationIdempotencyKey` stored for idempotent retries.
 - [ ] Input validation is enforced at the API boundary:
-  - [ ] UUID format validation for IDs (`orderId`, `productId`, `locationId`, etc.).
-  - [ ] Required fields enforced (`cancellationReason`, `location_id`, etc.).
-  - [ ] Rejects invalid combinations (e.g., missing `location_id` for product detail view).
+  - [ ] UUID format validation for IDs (`productId`, `locationId`, `orderId`, etc.).
+  - [ ] Required fields enforced (e.g., `location_id` required for product detail).
+  - [ ] Invalid `location_id` returns `400` (not `200` with degraded payload).
+- [ ] Product detail response DTO (`ProductDetailView`) includes required fields and types:
+  - [ ] `productId` is present and matches the requested `{productId}`.
+  - [ ] `description` is present (may be empty string).
+  - [ ] `specifications` is present (may be empty array).
+  - [ ] `generatedAt` is present and ISO-8601 parseable.
+  - [ ] `substitutions` is present (may be empty array) and each item has `productId` (UUID-shaped) and `reason` (string).
+- [ ] Component status modeling is consistent and explicit:
+  - [ ] `pricing.status` is present and non-empty string.
+  - [ ] `availability.status` is present and non-empty string.
+  - [ ] When `pricing.status != OK`, numeric pricing fields (`msrp`, `storePrice`) are `null`/omitted (never `0` as a sentinel).
+  - [ ] When `availability.status != OK`, quantity fields (`onHandQuantity`, `availableToPromiseQuantity`) are `null`/omitted (never `0` as a sentinel).
+  - [ ] `pricing.asOf` / `availability.asOf` are present when applicable and ISO-8601 parseable.
+- [ ] Lead time object handling is safe and null-tolerant:
+  - [ ] If `availability.leadTime` is present, `minDays`/`maxDays` are non-negative integers when present.
+  - [ ] If `availability.leadTime.asOf` is present, it is ISO-8601 parseable.
 - [ ] Domain invariants are enforced in the aggregate/service layer (not only controller-level validation).
 - [ ] State transitions are validated (e.g., cannot move from `CANCELLED` back to active; cannot re-run side effects once terminal).
 
@@ -39,15 +49,16 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 ## API Contract
 
 - [ ] Endpoints match the story specification (paths, methods, query params):
-  - [ ] Cancel flow endpoint(s) accept `orderId` and `cancellationReason` and return deterministic state.
-  - [ ] Product detail endpoint: `GET /api/v1/products/{productId}?location_id={locationId}`.
+  - [ ] Product detail endpoint exists: `GET /api/v1/products/{productId}?location_id={locationId}`.
 - [ ] Response codes match the story’s rules:
+  - [ ] `200` returns `ProductDetailView` (including degraded component statuses when dependencies fail).
   - [ ] `404` when product not found in Catalog (do not synthesize).
-  - [ ] `400` for invalid `location_id`.
-  - [ ] Cancel flow returns a deterministic response for duplicates (idempotent behavior).
+  - [ ] `400` for invalid `location_id` (UUID invalid or not allowed per rules).
+  - [ ] `401/403` when unauthenticated/unauthorized (no partial data).
 - [ ] Response schemas include required metadata:
-  - [ ] Product detail includes `generatedAt` and per-component `status` + `asOf`.
-  - [ ] Degraded responses never silently return `null` without a corresponding `status=UNAVAILABLE|STALE`.
+  - [ ] `generatedAt` is always present on `200`.
+  - [ ] Per-component `status` is always present on `200` (pricing + availability).
+  - [ ] Degraded responses never silently return `null` without a corresponding `status=UNAVAILABLE|STALE` (or non-OK).
 - [ ] Error responses are consistent and actionable (stable error codes/messages; no leaking internals).
 - [ ] API changes are versioned or backward compatible (no breaking changes without a version bump and migration plan).
 
@@ -69,6 +80,7 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 - [ ] Canonical POS/positivity events are emitted for cancellation progress/final state (success and failure).
 - [ ] Events include correlation identifiers (`correlationId`, `orderId`, and idempotency key where appropriate).
 - [ ] Event emission is resilient (e.g., outbox pattern or documented at-least-once behavior) and does not block the main request path without justification.
+- [ ] Product detail read path does not emit high-cardinality events per request unless explicitly required (avoid noisy event streams for read-only UI).
 
 ---
 
@@ -78,6 +90,8 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 - [ ] Authorization is enforced for:
   - [ ] Order cancellation (role/permission check for Store Manager or equivalent).
   - [ ] Product/location reads (location-scoped access where applicable).
+- [ ] Location-scoped access is enforced server-side (do not rely on frontend-provided `location_id` alone):
+  - [ ] Requests for unauthorized locations return `403` (or repo-standard equivalent).
 - [ ] Sensitive identifiers are handled safely:
   - [ ] No payment PAN/PCI data is stored or logged.
   - [ ] Logs do not include secrets/tokens/credentials.
@@ -90,15 +104,16 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 ## Observability
 
 - [ ] Structured logs include key identifiers:
-  - [ ] `orderId`, `workOrderId`, `paymentId` (when present), `productId`, `locationId` (as applicable).
+  - [ ] `productId` and `locationId` for product detail requests.
+  - [ ] `orderId`, `workOrderId`, `paymentId` (when present) for cancellation flows.
   - [ ] `correlationId` and `idempotencyKey` for cancellation flows.
-- [ ] Distributed tracing propagates `correlationId` to Workexec and Billing calls.
+- [ ] Distributed tracing propagates correlation/trace identifiers to downstream calls (Catalog/Pricing/Inventory; Workexec/Billing).
 - [ ] Metrics are added/updated and tagged appropriately:
-  - [ ] Cancellation counters: success/failure with reason tags (`workexec_denial`, `billing_error`, `timeout`, `manual_review`).
   - [ ] Dependency latency metrics for Catalog/Pricing/Inventory and Workexec/Billing.
-  - [ ] Counters for degraded product detail responses (pricing unavailable, inventory unavailable).
-- [ ] Alerts/dashboards are feasible based on emitted metrics (at minimum: failure rate, timeout rate, manual review count).
-- [ ] Failures are categorized consistently (e.g., `CANCEL_FAILED_WORKEXEC`, `CANCEL_FAILED_BILLING`) and visible in logs/metrics.
+  - [ ] Counters for degraded product detail responses by component (`pricing_status`, `availability_status`).
+  - [ ] Counters for product detail errors by HTTP status (`400/401/403/404/5xx`).
+- [ ] Alerts/dashboards are feasible based on emitted metrics (at minimum: failure rate, timeout rate, degraded rate).
+- [ ] Failures are categorized consistently and visible in logs/metrics (e.g., pricing timeout vs inventory timeout vs catalog 404).
 
 ---
 
@@ -108,38 +123,46 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 - [ ] Retry behavior is bounded and safe:
   - [ ] Cancellation reversal retries use backoff and a max attempt limit.
   - [ ] Retries are idempotent and do not duplicate side effects.
-- [ ] Partial failure behavior matches story intent:
-  - [ ] Cancel flow: fail/stop on Workexec rejection; persist failure state on Billing failure; support retry/admin re-trigger.
-  - [ ] Product detail: graceful degradation for Pricing/Inventory failures with explicit status metadata.
+- [ ] Product detail aggregation failure behavior matches story intent:
+  - [ ] Catalog not found yields `404` (no partial rendering).
+  - [ ] Pricing failure yields `200` with `pricing.status != OK` and pricing fields null/omitted.
+  - [ ] Inventory failure yields `200` with `availability.status != OK` and quantity fields null/omitted.
+  - [ ] Both pricing and inventory failures yield `200` with both statuses non-OK and no misleading numeric values.
 - [ ] Caching behavior (for product detail) is implemented as specified:
   - [ ] Aggregated TTL defaults to ~15s (or documented alternative).
   - [ ] Component staleness is represented via `asOf` and `status`.
-  - [ ] Cache keys include all required context (e.g., `locationId`; future pricing context if applicable).
+  - [ ] Cache keys include all required context (at minimum `productId` + `locationId`).
 - [ ] Concurrency is handled:
   - [ ] Concurrent cancel attempts do not corrupt state (optimistic locking/versioning or equivalent).
   - [ ] State transitions are atomic at the aggregate level.
-- [ ] Manual review path exists and is reachable when invariants are violated (e.g., billing reversed without workexec cancel due to unexpected ordering breach).
+- [ ] Frontend “latest request wins” behavior is supported safely:
+  - [ ] Backend responses include enough context to prevent UI mismatch (e.g., response `productId` present; optionally echo `locationId` if contract allows).
+  - [ ] No server-side caching bug causes cross-location data leakage (verify cache key includes `locationId`).
 
 ---
 
 ## Testing
 
 - [ ] Unit tests cover:
-  - [ ] State transitions and invariants for cancellation saga.
-  - [ ] Idempotency behavior (duplicate requests return same state; no duplicate downstream calls).
   - [ ] Product detail aggregation mapping and status metadata behavior.
+  - [ ] Degraded mapping: pricing failure => `pricing.status != OK` and numeric fields null/omitted.
+  - [ ] Degraded mapping: inventory failure => `availability.status != OK` and quantity fields null/omitted.
+  - [ ] Lead time mapping is null-safe and does not throw on missing optional fields.
 - [ ] Integration tests cover:
-  - [ ] Workexec `409` rejection stops saga and prevents billing reversal.
-  - [ ] Billing failure persists `CANCEL_FAILED_BILLING` (or `CANCEL_REQUIRES_MANUAL_REVIEW`) and supports retry.
-  - [ ] Timeouts treated as failures with persisted state and safe retry.
   - [ ] Product not found returns `404` and does not synthesize.
-  - [ ] Pricing unavailable and inventory unavailable each produce `200` with correct `status` and null/omitted fields.
+  - [ ] Invalid `location_id` returns `400`.
+  - [ ] Unauthorized location access returns `403` (or repo-standard equivalent).
+  - [ ] Pricing unavailable produces `200` with correct `pricing.status` and no numeric prices.
+  - [ ] Inventory unavailable produces `200` with correct `availability.status` and no numeric quantities.
+  - [ ] Both unavailable produces `200` with both statuses non-OK and no misleading numeric values.
 - [ ] Contract tests (or schema validation) exist for:
-  - [ ] Workexec GET/POST cancel request/response shapes used.
-  - [ ] Billing reverse request/response shapes used.
-- [ ] Tests assert observability requirements:
-  - [ ] Correlation/idempotency propagation (headers/fields) is present.
-  - [ ] Metrics/log fields are emitted (where test harness supports it).
+  - [ ] `GET /api/v1/products/{productId}?location_id={locationId}` response schema (including `generatedAt`, component `status`, and nullability rules).
+  - [ ] Workexec and Billing request/response shapes used by cancellation flows (if touched).
+- [ ] Frontend tests (where applicable in repo) validate UI-safe behavior:
+  - [ ] UI does not render `null` prices/quantities as `0`.
+  - [ ] UI does not claim “in stock/out of stock” when `availability.status != OK`.
+  - [ ] UI shows “Product not found” on `404` and does not show partial cached data.
+  - [ ] Rapid location changes do not show mismatched location data (latest request wins).
 - [ ] Negative/security tests exist for unauthorized/forbidden access and invalid inputs.
 
 ---
@@ -147,12 +170,25 @@ Checklist for engineers/reviewers to validate story implementations in the **pos
 ## Documentation
 
 - [ ] API documentation updated (OpenAPI/Swagger) with:
-  - [ ] Request/response schemas including status metadata fields.
-  - [ ] Error codes and examples for key failure modes.
-- [ ] State machine/status definitions are documented (including terminal vs in-flight states).
+  - [ ] Request/response schemas including `generatedAt`, component `status`, and `asOf`.
+  - [ ] Explicit nullability/omission rules for pricing and availability numeric fields when status is non-OK.
+  - [ ] Error codes and examples for `400/401/403/404/5xx`.
+- [ ] UI integration notes documented (repo-appropriate place):
+  - [ ] How `locationId` is sourced and propagated (query param vs global state).
+  - [ ] How the product detail screen is routed (Moqui screen vs Vue route) and how auth is enforced.
 - [ ] Runbook notes added for operations:
-  - [ ] How to identify `CANCEL_FAILED_BILLING` / `CANCEL_REQUIRES_MANUAL_REVIEW`.
-  - [ ] How to re-trigger cancellation reversal/admin action safely (idempotent).
-- [ ] Dependency assumptions documented (required downstream availability for cancel; graceful degradation for product detail).
+  - [ ] How to identify elevated degraded rates for pricing/inventory dependencies.
+  - [ ] How to correlate a frontend failure to backend logs/traces using correlation/trace IDs.
 - [ ] Any new configuration (timeouts, TTLs, retry limits) is documented with defaults and rationale.
+
+---
+
+## Open Questions to Resolve
+
+- [ ] What is the frontend **source of truth** for selected `locationId` (global state, route query `location_id`, user default, or screen-level selector), and what is the repo convention?
+- [ ] What is the standard **Moqui ↔ Vue integration pattern** here (Moqui screen hosting Vue vs Vue SPA route with Moqui shell/auth)?
+- [ ] What exact **permission/role gate** should be enforced for product/location reads, and what is the naming convention?
+- [ ] Are `pricing.status` / `availability.status` enums **strict** (`OK|UNAVAILABLE|STALE`) or should clients treat them as opaque strings and only special-case `OK` vs non-OK?
+- [ ] What is the project-standard **currency formatting** utility/component (including null-safe display and ISO-4217 handling)?
+- [ ] Should `generatedAt` and component `asOf` be **visible in the UI** by default, and if so, where is the standard placement/pattern?
 ```

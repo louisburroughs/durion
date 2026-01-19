@@ -1,213 +1,374 @@
-# AGENT_GUIDE.md — Domain: `audit`
+# AGENT_GUIDE.md — Domain: `audit` (Normative)
 
 ## Purpose
-Provide a cross-cutting, **immutable** and **searchable** audit trail for operational and compliance-relevant changes across the POS system. The audit service is the **system of record** for audit entries (storage, query, export, retention), while source domains remain authoritative for operational state.
 
-Primary initial producers/consumers:
-- **Producers:** `workexec` (schedule + mechanic assignment changes), `inventory` (inventory movements + workorder link/unlink).
-- **Consumers:** Shop Managers, Compliance Auditors, Support/Operations, UI/API Gateway.
+Provide a cross-cutting, immutable and searchable audit trail for operational and compliance-relevant changes across the Durion POS system.
 
-## Domain Boundaries
+The audit service is the **system of record** for audit entries (storage, query, export, retention). Source domains remain authoritative for operational state.
+
+This document is **normative** (direct agent input, CI validation, story execution rules may use this).
+
+**Non-normative companion:** `AUDIT_DOMAIN_NOTES.md` (explanations, rationale, tradeoffs, future design work, auditor-facing narrative).
+
+---
+
+## Decision Index (Authoritative)
+
+| Decision ID | Title |
+|---|---|
+| **AUD-SEC-001** | Tenant Isolation and Scoping Rules |
+| **AUD-SEC-002** | Location Scoping and Cross-Location Permission Model |
+| **AUD-SEC-003** | Authorization Model (Roles → Permission Strings) |
+| **AUD-SEC-004** | Raw Payload Handling, Redaction, and Safe Rendering |
+| **AUD-SEC-005** | Query Guardrails (Mandatory Date Range, Indexed Filter Rule, Max Window) |
+| **AUD-SEC-006** | Export Security Model (Async Jobs, Access, Auditing, Digest Manifest) |
+| **AUD-SEC-007** | Identifier Semantics for Search (Product ID vs SKU vs Part Number) |
+| **AUD-SEC-008** | Pricing Evidence Access (Snapshot/Trace), Size Limits, and Pagination |
+| **AUD-SEC-009** | Immutability Proof Fields (Hash Chain / Signature): Display-Only Policy |
+| **AUD-SEC-010** | Event Type Vocabulary and Discovery Endpoint |
+| **AUD-SEC-011** | Deep-Link Metadata Policy (No Hardcoded URLs; Authorization-Safe) |
+| **AUD-SEC-012** | Correlation and Trace Context Standard |
+
+---
+
+## Domain Boundaries (Normative)
+
 ### Audit domain owns
-- **Ingestion** of audit events (asynchronous/event-driven).
-- **Persistence** in append-only/WORM-like manner.
-- **Immutability guarantees** (no update/delete via application APIs).
-- **Query/search** and **export** capabilities.
-- **Retention policy** enforcement (default 7 years; tenant-configurable).
-- **Reason code registry** (managed list / enum-like configuration).
 
-### Audit domain does *not* own
-- Operational truth for schedules, assignments, work orders, appointments, mechanics, inventory movements.
-- Transactional enforcement of “audit must succeed” for operational writes (explicitly **eventual consistency**).
+- Asynchronous ingestion of audit events
+- Persistence in append-only / WORM-like manner
+- Immutability guarantees (no update/delete via application APIs)
+- Query/search and export capabilities
+- Retention enforcement (default minimum 7 years; tenant-configurable)
+- Reason code registry (managed codes + metadata)
+- Audit evidence artifacts required for compliance investigations:
+  - `PricingSnapshot` (immutable evidence)
+  - `PricingRuleTrace` (immutable evidence)
+
+### Audit domain does not own
+
+- Operational truth for schedules, assignments, work orders, appointments, inventory movements
+- Transactional enforcement that “audit must succeed” for operational writes (eventual consistency required)
+- Pricing rule logic/computation behavior (owned by pricing domain)
 
 ### Integration posture (required)
-- **Asynchronous ingestion**. Source domains must not block critical-path transactions on audit availability.
-- **Outbox pattern** in producer domains (e.g., `workexec`) to ensure reliable delivery.
 
-## Key Entities / Concepts
+- Asynchronous ingestion. Producer domains must not block critical-path transactions on audit availability.
+- Outbox pattern in producer domains to ensure durable delivery.
+
+---
+
+## Key Entities / Concepts (Normative)
+
 ### `AuditLog` (stored record)
-Minimum fields (from story requirements):
-- `auditLogId` (UUID/string)
-- `timestamp` (UTC; when change was committed / occurred)
-- `actorId` (user/system identifier)
-- `entityType` (enum/string; e.g., `WORK_ORDER_ASSIGNMENT`, `APPOINTMENT_SCHEDULE`)
-- `entityId` (stable identifier of changed entity)
-- `changeSummary` (JSON/text)
-- `reasonCode` (optional, **managed code**)
-- `reasonNotes` (optional free text)
 
-Additional fields implied by integrations (inventory story / event envelope):
-- `eventId` (idempotency key; unique)
+Minimum fields:
+
+- `auditLogId` (UUIDv7)
+- `eventId` (UUIDv7; dedupe key; globally unique)
 - `schemaVersion`
-- `eventType` (e.g., `ASSIGNMENT_CREATED`, `SCHEDULE_MODIFIED`, inventory movement/link events)
-- `occurredAt` vs `emittedAt` (if provided by envelope)
+- `eventType`
+- `occurredAt` (UTC), `emittedAt` (UTC, optional)
 - `tenantId`
-- `locationId` (required filter)
-- `correlationId`
+- `locationId` (required; see AUD-SEC-002)
+- `actor` (`actorType`, `actorId`, `displayName` optional)
+- `aggregateType`, `aggregateId`
+- `changeSummaryText` (optional)
+- `changePatch` (structured diff; preferred)
+- `reasonCode` (optional; from registry)
+- `reasonNotes` (optional; length-limited)
+
+Additional (allowed) fields:
+
+- `correlationId` (W3C trace correlation; see AUD-SEC-012)
 - `sourceSystem`
-- `actor` (type/id/displayName) if available
-- `aggregate` (type/id) for generalized cross-domain querying
-- `rawPayload` (JSON) and optionally raw envelope
+- `rawPayload` (restricted; see AUD-SEC-004)
+- Optional immutability proof fields: `hash`, `prevHash`, `signature` (display-only; see AUD-SEC-009)
 
-### Reason Code Registry (Audit-owned)
-- Managed/configured list (not hard-coded per change).
-- Namespaced codes (examples from requirements): `workexec:CUSTOMER_REQUEST`, `workexec:MECHANIC_UNAVAILABLE`.
-- Fields: `code`, `displayName`, `description`, `domain`, `isActive`.
+### `PricingSnapshot` (immutable evidence record)
 
-### Change summary formats
-- `changeSummaryText`: human-readable string for UI.
-- `changePatch`: structured diff (preferred **JSON Patch RFC 6902** or equivalent `{field, oldValue, newValue}` list).
-- For create/delete: include full snapshot (create = new snapshot; delete = final snapshot before deletion).
+Minimum:
 
-## Invariants / Business Rules
-- **All** create/update/delete operations for:
-  - work schedules
-  - mechanic-to-work-order assignments  
-  **MUST** be audited (producer responsibility).
-- Audit records are **immutable**:
-  - No update/delete APIs.
-  - Any attempt to modify/delete must be rejected and treated as a security-relevant event.
-- **Eventual consistency**:
-  - Producer transactions must **not** roll back if audit is unavailable.
-  - Reliability is achieved via outbox + retries.
-- **Idempotent ingestion**:
-  - Duplicate deliveries must not create duplicate stored records (dedupe by `eventId`).
-- **Retention**:
-  - Default **7 years** minimum retention.
-  - Tenant/location configurable; cannot delete within retention window.
-  - Post-retention archive/purge workflows supported (implementation details TBD).
-- **Query safety/performance**:
-  - Queries should require bounded time (dateTimeRange strongly recommended as mandatory; default last 90 days if omitted per requirement).
-  - Require at least one indexed filter to avoid unbounded scans.
+- `snapshotId` (UUIDv7)
+- `timestamp` (UTC)
+- `quoteContext` (restricted/redacted; see AUD-SEC-004)
+- `finalPrice` (money)
+- `ruleTraceId` (UUIDv7; optional if embedded trace)
 
-## Events / Integrations
-### Producer → Audit ingestion (required)
-- **Transport:** preferred Kafka for inventory story; for workexec story, integration is via outbox → event bus (Kafka implied; exact bus TBD).
-- **Envelope (minimum, versioned):**
-  - `schemaVersion`, `eventId`, `eventType`, `occurredAt`, `emittedAt`, `sourceSystem`
-  - `tenantId`
-  - `actor` (type/id/displayName)
-  - `correlationId`
-  - `aggregate` (type/id)
-  - `payload` (event-specific fields, including diffs/snapshots and reason code/notes where applicable)
-- **Partitioning:** by `aggregate.id` to preserve per-aggregate ordering (inventory requirement).
+### `PricingRuleTrace` (immutable evidence record)
 
-### Failure handling
-- Consumer retries with backoff.
-- Dead-letter mechanism for:
-  - missing required fields
-  - unknown/incompatible `schemaVersion`
-  - repeated processing failures
-- Alerting on:
-  - ingestion failures
-  - dead-letter volume
-  - backlog/lag thresholds (e.g., >1000 pending or >1 hour latency — threshold values configurable)
+Minimum:
 
-### Deep-linking / drilldown
-Audit records should include enough metadata to navigate back to the authoritative source entity (e.g., movement/workorder in inventory). Exact URL format is TBD; store structured link metadata rather than hard-coded URLs where possible.
+- `ruleTraceId` (UUIDv7)
+- `evaluationSteps[]` (array)
+  - `ruleId` (string)
+  - `status` (`APPLIED|REJECTED|SKIPPED`)
+  - `inputs` (restricted/redacted)
+  - `outputs` (restricted/redacted)
 
-## API Expectations (high-level)
-> Do not assume concrete paths or DTOs here; implementers should align with platform API conventions. Where unspecified, **TBD**.
+---
 
-### Ingestion API (optional)
-- If ingestion is purely event-driven, REST ingestion may be **TBD** / not required.
-- If a REST fallback exists, it must:
-  - accept the standard envelope
-  - enforce idempotency by `eventId`
-  - validate required fields and schemaVersion
+## Security / Authorization Assumptions (Normative)
 
-### Query APIs (required)
-Capabilities:
-- List/search audit records with filters (AND semantics):
-  - `tenantId`
-  - `dateTimeRange` (recommended mandatory)
-  - `workOrderId` (exact)
-  - `appointmentId` (exact)
-  - `mechanicId` (exact)
-  - `actorUserId`
-  - `eventType`
-  - `locationId`
-  - `aggregate.type`, `aggregate.id`
-  - `correlationId`
-- Pagination required; sort default: **reverse chronological**.
-- Detail lookup by `eventId` returning normalized fields + raw payload + schemaVersion.
+### Tenant isolation (AUD-SEC-001)
 
-### Export API (required for inventory story)
-- Export filtered results to **CSV**.
-- Include export metadata and a **SHA-256 digest** manifest over exported content.
-- Signed exports (KMS-backed) explicitly out of MVP scope unless separately required (**TBD**).
+- All audit reads/writes are tenant-scoped and enforced server-side.
+- No cross-tenant search/export is permitted under any role.
 
-### Reason code registry APIs (TBD)
-- Domain owns registry; whether it is managed via API vs config is not fully specified.
-- If API-managed, ensure changes to registry are themselves auditable.
+### Location scoping (AUD-SEC-002)
 
-## Security / Authorization Assumptions
-- All requests/events are scoped by **tenantId**; enforce tenant isolation in storage and queries.
-- Only authorized roles can query/export audit data (e.g., Shop Manager, Compliance, Support).
-- Producers must provide a reliable **actor identity** from the security context.
-- Audit persistence credentials must be **least privilege**:
-  - application role has INSERT + SELECT
-  - no UPDATE/DELETE on audit tables during retention window
-- Attempts to modify/delete audit records must be denied and should generate a security alert signal (log/metric/event).
+- `locationId` is required for `AuditLog` and is enforced server-side.
+- Default UI scope is the user’s current location context.
+- Cross-location search is allowed only with explicit permission and explicit location filters.
 
-## Observability (logs / metrics / tracing)
-### Logging (structured)
-Include at minimum:
-- `eventId`, `correlationId`, `tenantId`, `sourceSystem`, `eventType`, `aggregate.type`, `aggregate.id`
-- On errors: error category (validation/schema/processing), exception class, retry count, DLQ reason.
+### Authorization model (AUD-SEC-003)
 
-Log levels:
-- Successful ingestion: INFO or DEBUG (configurable).
-- Failures to write/persist: ERROR (must trigger alert).
+Do not ship screens without explicit permission mapping. Permissions are action-scoped and least-privilege.
 
-### Metrics
-- Ingestion:
-  - `audit_ingest_success_total`
-  - `audit_ingest_failure_total` (by reason)
-  - `audit_ingest_latency_ms` (p50/p95/p99)
-  - consumer lag / backlog size
-  - DLQ counts
-- Query:
-  - request counts, latency, result sizes
-- Export:
-  - export count, rows exported, export latency, failures
-- Retention:
-  - purge/archive job counts, failures (implementation TBD)
+**Permission strings (normative):**
 
-### Tracing
-- Propagate `correlationId` from producer to audit.
-- Create spans for: consume → validate → persist → ack; include `eventId` as span attribute.
+- Audit search/list: `audit:log:view`
+- Audit detail: `audit:log:view-detail`
+- View raw payload: `audit:payload:view` (restricted)
+- Export audit logs: `audit:export:execute`
+- Download export artifacts: `audit:export:download`
+- View pricing snapshot: `audit:pricing-snapshot:view`
+- View pricing trace: `audit:pricing-trace:view`
+- View immutability proof fields (if present): `audit:proof:view` (display-only)
+- Cross-location search: `audit:scope:cross-location`
+- Admin reason code registry: `audit:reason-code:manage`
 
-## Testing Guidance
-### Unit tests
-- Envelope validation (required fields, schemaVersion handling).
-- Idempotency: same `eventId` ingested twice results in one stored record.
-- Immutability enforcement: update/delete operations rejected (service + repository layer).
-- Reason code validation: reject unknown/inactive codes (if enforced at ingestion time; otherwise TBD).
+**Role guidance (normative mapping):**
 
-### Integration tests (with DB)
-- Persist + query filters:
-  - by `workOrderId`, `appointmentId`, `mechanicId`, `actorUserId`, `locationId`, `eventType`, `correlationId`
-  - date range bounding and defaulting behavior
-- Index coverage sanity (explain plans in CI optional but recommended).
+- Shop Manager: view/search + detail (no raw payload by default)
+- Compliance Auditor: view/search + detail + export + pricing evidence
+- Support/Operations: view/search + detail; raw payload only if explicitly granted
+- Pricing Admin (if needed): pricing evidence view; not necessarily export
 
-### Contract tests (producer ↔ audit)
-- Schema/version compatibility tests for event envelope.
-- Golden payload samples for:
-  - schedule reschedule with reason code + notes + diff
-  - mechanic assignment create/unassign with diff
-  - inventory movement + workorder link/unlink events
+### Raw payload policy (AUD-SEC-004)
 
-### Resilience tests
-- Simulate duplicate deliveries, out-of-order deliveries (ensure per-aggregate ordering assumptions are not required for correctness).
-- Simulate DB outage / transient failures → retries + DLQ routing.
+- Raw payload is **not shown by default**.
+- Raw payload may only be accessed with `audit:payload:view`.
+- Raw payload and quoteContext/inputs/outputs must be safely rendered as **escaped text** (never interpreted as HTML).
+- Redaction is backend-owned; UI must not infer redaction.
 
-## Common Pitfalls
-- **Blocking operational writes on audit**: violates required eventual consistency; use outbox + async ingestion.
-- **Missing/weak idempotency**: duplicates will happen; dedupe by `eventId` is mandatory.
-- **Unbounded queries**: require/strongly enforce date ranges and indexed filters; default to last 90 days if omitted.
-- **Storing only human text**: keep structured diffs (`changePatch`) and raw payload for compliance/replay.
-- **Free-text reason codes**: must be from managed registry; free-text only allowed in `reasonNotes`.
-- **Tenant leakage**: always filter by `tenantId` in queries and exports; never allow cross-tenant access.
-- **Accidental mutability via ORM**: ensure entities are not updated in-place; restrict DB privileges and avoid exposing JPA repositories that allow save/update semantics on existing rows.
-- **Retention implemented as hard delete inside window**: prohibited; only archive/purge after retention and with auditable policy controls (details TBD).
+### Guardrails (AUD-SEC-005)
+
+- Backend enforces: mandatory date range, at least one indexed filter, and maximum date window.
+- UI mirrors enforcement for usability but backend remains authoritative.
+
+### Export security (AUD-SEC-006)
+
+- Exports are async jobs only.
+- Exports are authorized, auditable, tenant-scoped, and non-enumerable across tenants/users.
+- Export includes metadata and SHA-256 digest manifest.
+
+### Correlation and trace (AUD-SEC-012)
+
+- Standard correlation mechanism is W3C Trace Context:
+  - `traceparent` (required)
+  - `tracestate` (optional)
+
+---
+
+## API Expectations (Normative)
+
+> Concrete Moqui service names may vary by implementation; the **capability contract** is normative.
+
+### Query APIs
+
+- `GET /audit/logs/search`
+- `GET /audit/logs/detail?eventId=...`
+
+Search parameters (AND semantics):
+
+- `fromUtc`, `toUtc` (required; see AUD-SEC-005)
+- at least one of:
+  - `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `eventType`, `aggregateId`, `correlationId`, `reasonCode`
+- `locationIds[]` required for cross-location searches (and requires `audit:scope:cross-location`)
+
+### Pricing evidence APIs (AUD-SEC-008)
+
+- `GET /audit/pricing/snapshot?snapshotId=...`
+- `GET /audit/pricing/trace?ruleTraceId=...`
+- If traces are large: support pagination by `pageToken` OR server-side truncation with explicit `isTruncated=true` and `nextPageToken`.
+
+### Export APIs (AUD-SEC-006)
+
+- `POST /audit/export/request`
+- `GET  /audit/export/status?exportId=...`
+- `GET  /audit/export/download?exportId=...`
+
+Export formats:
+
+- CSV required
+- JSON optional (only if explicitly required; not default)
+
+---
+
+## Immutability Proof Fields Policy (AUD-SEC-009)
+
+- If `hash`, `prevHash`, `signature` exist:
+  - UI may display them read-only with `audit:proof:view`.
+  - UI must not claim verification unless verification is implemented server-side and exposed via an explicit field (e.g., `proofVerified=true`).
+- If verification is not implemented, UI must label fields as “provided” not “verified”.
+
+---
+
+## Deep-Linking / Drilldown (AUD-SEC-011)
+
+- Store structured link metadata: `{targetDomain, targetType, targetId}`.
+- UI treats links as optional and hides absent links.
+- Deep links must not bypass authorization; destination screens enforce their own access controls.
+
+---
+
+## Event Type Vocabulary (AUD-SEC-010)
+
+- `eventType` is a controlled vocabulary.
+- UI obtains valid values via:
+  - `GET /audit/meta/eventTypes` (tenant-scoped)
+- UI should not hardcode event types.
+
+---
+
+## Open Questions — Resolved (Full Q/A, with section provenance)
+
+> For each question: the full question is reproduced exactly, followed by a clearly marked response.
+
+### Source: AGENT_GUIDE.md → “Open Questions from Frontend Stories” (issues #105, #125, #86)
+
+#### 1) Backend/Moqui service contracts (blocking)
+
+**Question:** What are the exact Moqui service names and request/response shapes for:
+
+- audit search/list (filters, pagination, sort)
+- audit detail by `eventId`
+- audit export (filters, format, sync vs async)
+- optional search context endpoints (eventType list, location list, reason code display metadata)
+- pricing snapshot retrieval by `snapshotId`
+- pricing rule trace retrieval (embedded in snapshot vs separate by `ruleTraceId`)
+
+**Response:** Use capability endpoints defined in “API Expectations (Normative)” above. Concrete Moqui service names must map to these capability contracts:
+
+- Search: `GET /audit/logs/search`
+- Detail: `GET /audit/logs/detail?eventId=...`
+- Export: `POST /audit/export/request`, `GET /audit/export/status`, `GET /audit/export/download`
+- Meta: `GET /audit/meta/eventTypes`, `GET /audit/meta/reasonCodes`, `GET /audit/meta/locations` (if UI uses dropdowns)
+- Pricing evidence: `GET /audit/pricing/snapshot`, `GET /audit/pricing/trace`
+Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
+
+#### 2) Query guardrails and date range policy (blocking)
+
+**Question:** Must the UI enforce a mandatory date range and “at least one indexed filter”, or does backend enforce defaults (e.g., last 90 days) and guardrails?
+
+**Response:** Backend must enforce guardrails; UI mirrors them. Date range is mandatory and backend rejects missing ranges with 400 + field errors. (AUD-SEC-005)
+
+**Question:** Does backend enforce a maximum date range window per query (e.g., max 90 days), and should UI enforce the same?
+
+**Response:** Yes. Backend enforces max window **90 days** per query by default; tenant policy may lower but not raise without governance approval. UI enforces same for UX. (AUD-SEC-005)
+
+**Question:** Is timezone interpretation for date filters defined (user locale vs UTC input)? **CLARIFY** canonical behavior.
+
+**Response:** Canonical behavior is **UTC inputs/UTC storage** for audit queries (`fromUtc`, `toUtc`). UI may display in user locale but sends UTC. (AUD-SEC-005)
+
+#### 3) Identifier semantics (blocking)
+
+**Question:** Product identifier for search: `productId`, SKU, part number, or multiple? What is the user-facing identifier in POS?
+
+**Response:** Support multiple identifiers. Canonical internal key is `productId` (UUIDv7). UI also supports `sku` and `partNumber` as user-facing search fields; backend normalizes and indexes all three where available. (AUD-SEC-007)
+
+**Question:** Canonical IDs for movement/workorder/product/location/user: what are they and are they always present on `AuditLog` or only via reference entities/indexes?
+
+**Response:** Canonical IDs are UUIDv7 and should be denormalized onto `AuditLog` when applicable (e.g., `workOrderId`, `movementId`, `productId`, `locationId`, `actorId`) to enable indexed search and avoid payload parsing. (AUD-SEC-007, AUD-SEC-002)
+
+#### 4) Location scoping and multi-location behavior (blocking)
+
+**Question:** Is `locationId` implicitly derived from current POS location context, or must it be selectable as a filter?
+
+**Response:** Default is implicit location context, but `locationId` is still a required stored field. Search requires explicit location filter when cross-location permission is used; otherwise backend implicitly scopes to session location. (AUD-SEC-002)
+
+**Question:** Can auditors search across locations? If yes, what permission gates cross-location queries?
+
+**Response:** Yes, with explicit permission `audit:scope:cross-location` and explicit `locationIds[]` filters. (AUD-SEC-002, AUD-SEC-003)
+
+#### 5) Authorization model (blocking)
+
+**Question:** Which roles besides “Auditor” are allowed to access:
+
+- audit search/detail
+- export
+- pricing snapshot/trace screens
+
+**Response:** Normative role guidance:
+
+- Shop Manager: search/detail (no export by default)
+- Compliance Auditor: search/detail/export/pricing evidence
+- Support/Operations: search/detail; raw payload only if explicitly granted
+Export and pricing evidence are separately permissioned. (AUD-SEC-003)
+
+**Question:** Provide role names used in Moqui security groups and/or permission strings to check in Moqui screens/services.
+
+**Response:** Permission strings are authoritative in this guide (AUD-SEC-003). Moqui groups should map to them (e.g., `SEC_AUDIT_VIEW`, `SEC_AUDIT_EXPORT`, `SEC_AUDIT_PAYLOAD_VIEW`, `SEC_AUDIT_CROSS_LOCATION`, `SEC_AUDIT_PRICING_EVIDENCE`).
+
+**Question:** Is field-level redaction required for `payloadJson` / `rawPayload` / `quoteContext` / trace `inputs/outputs`?
+
+**Response:** Yes. Backend must support redaction or restricted-field markings; UI must render what backend returns and must not infer/redact. Raw payload is behind permission and safe-rendered as escaped text. (AUD-SEC-004)
+
+#### 6) Navigation and integration points (needs clarification)
+
+**Question:** Where should “Audit Logs” live in POS navigation (menu structure)?
+
+**Response:** Place under an “Administration / Compliance” section with role-based visibility. Add contextual entry points from Work Order, Appointment, Mechanic, Movement, and Estimate Line when the user has `audit:log:view`. (AUD-SEC-011, AUD-SEC-003)
+
+**Question:** Should there be contextual links from Work Order / Appointment / Mechanic / Movement screens?
+
+**Response:** Yes, contextual links are permitted but must pass only identifiers; destination enforces authorization. (AUD-SEC-011)
+
+**Question:** Workexec integration: which exact Workexec screen/component should add “View Pricing Trace”, and what parameter name holds the snapshot reference (`snapshotId` exactly)?
+
+**Response:** The integration must pass `snapshotId` exactly. It should appear on estimate line detail and invoice/estimate review screens wherever pricing evidence is referenced. (AUD-SEC-008)
+
+**Question:** If drilldown links navigate to Movement/Workorder/Product/Location/User detail screens, what are the route/screen names?
+
+**Response:** Do not hardcode URLs in audit records. Store structured link metadata (`targetDomain/targetType/targetId`) and resolve to routes in the frontend router per domain. (AUD-SEC-011)
+
+#### 7) Pricing rule trace format and size (blocking)
+
+**Question:** For `evaluationSteps`, what fields are guaranteed and what is the maximum expected size?
+
+**Response:** Guaranteed fields: `ruleId`, `status`, and a stable step index; `inputs/outputs` are optional and may be redacted. Maximum: backend supports up to **10,000 steps** but must provide pagination/truncation indicators beyond **1,000 steps** to protect UI and APIs. (AUD-SEC-008)
+
+**Question:** Should UI provide step filtering (applied-only) or is full list always required?
+
+**Response:** UI should support filtering (applied-only, rejected-only) client-side when steps are loaded; backend may optionally support server-side filtering for large traces. (AUD-SEC-008)
+
+**Question:** If traces can be large, is server-side pagination or truncation supported/required? **TODO** define contract.
+
+**Response:** Required. Use either `pageToken` pagination or truncation with `isTruncated` + `nextPageToken`. (AUD-SEC-008)
+
+#### Additional TODO/CLARIFY items in AGENT_GUIDE.md text
+
+**Question:** confirm whether hash-chain/signature fields exist and whether UI must display them.
+
+**Response:** If present, display-only behind `audit:proof:view`. UI must not claim verification unless backend exposes explicit verification result. (AUD-SEC-009)
+
+**Question:** Define whether eventType is controlled vocabulary and how UI obtains it.
+
+**Response:** Controlled vocabulary; UI obtains via `GET /audit/meta/eventTypes`. (AUD-SEC-010)
+
+**Question:** Whether trace is embedded in snapshot response or retrieved separately; if separate, define caching/ETag behavior.
+
+**Response:** Retrieve separately by default (`snapshot` includes `ruleTraceId`). Allow embedding only for small traces. Use ETag caching on both endpoints where feasible; do not cache restricted fields across users without permission parity. (AUD-SEC-008, AUD-SEC-004)
+
+**Question:** CLARIFY sync vs async job model for export.
+
+**Response:** Async only; security and scalability require job-based exports with auditable access and time-bound downloads. (AUD-SEC-006)
+
+**Question:** CLARIFY whether field-level redaction is required.
+
+**Response:** Required. (AUD-SEC-004)
+
+---
+
+# End of AGENT_GUIDE.md

@@ -1,95 +1,202 @@
-# Billing Domain Story Validation Checklist
+# STORY_VALIDATION_CHECKLIST.md — Billing Domain (Updated)
 
-This checklist is intended for engineers and reviewers to validate story implementations within the **billing** domain. It covers key aspects to ensure correctness, security, observability, and maintainability.
+This checklist validates implementations within the Billing domain (billing rules, invoice draft creation, invoice issuance, traceability/artifacts, AP vendor payments, checkout PO enforcement, receipts).
 
 ---
 
-## Scope / Ownership
-- [ ] Confirm the story aligns with **billing domain** ownership boundaries (e.g., invoice lifecycle, billing rules, payment orchestration).
-- [ ] Verify no unauthorized direct access or coupling to upstream domain internal storage (e.g., Work Execution DB).
-- [ ] Ensure domain boundaries and contracts (e.g., BillableScopeSnapshot from Work Execution) are respected.
-- [ ] Confirm story does not overlap or conflict with other domain responsibilities (e.g., accounting owns GL posting).
+## Scope/Ownership
+
+- [ ] Story stays within Billing responsibilities and does not implement Accounting-owned GL logic beyond displaying acknowledgements/status.
+- [ ] UI does not couple to upstream internal storage; all upstream data consumed via stable contracts.
+- [ ] Billing stores traceability references; upstream systems own the records.
+- [ ] Draft invoice creation is Billing-owned and idempotent by workOrderId.
+- [ ] Checkout PO enforcement consumes backend policy evaluation; UI does not hardcode policy thresholds.
+- [ ] AP vendor payment execution is Billing/AP capability; GL posting is downstream/async.
 
 ---
 
 ## Data Model & Validation
-- [ ] Validate all entity schemas conform to domain data requirements (e.g., Invoice, InvoiceItem, BillingRules, Payment, Receipt).
-- [ ] Check immutability constraints on key fields (e.g., `workOrderId`, `billableScopeSnapshotId` on Invoice).
-- [ ] Verify mandatory fields are present and validated (e.g., customer billing address, contact method).
-- [ ] Confirm input DTOs/contracts are validated against expected schema and business rules.
-- [ ] Enforce business rules on data (e.g., PO number format, uniqueness policies, payment terms).
-- [ ] Validate idempotency keys and uniqueness constraints are implemented correctly.
+
+- [ ] InvoiceStatus matches canonical enum set (BILL-DEC-001): `DRAFT`, `ISSUED`, `PAID`, `VOID` (optional `ERROR` only if implemented).
+- [ ] Draft creation validates Work Order completion + `invoiceReady=true`; otherwise deterministic 409 reason codes.
+- [ ] Draft creation returns structured 422 missing fields for billing data completeness.
+- [ ] Traceability snapshot fields are immutable and read-only:
+  - [ ] `sourceWorkOrderId`, `sourceBillableScopeSnapshotId`, `sourceSchemaVersion`
+  - [ ] `sourceEstimateId`, `sourceEstimateVersionId`
+  - [ ] `sourceApprovalIds[]`
+- [ ] Issuance validates state is `DRAFT`; issuance from non-draft returns 409.
+- [ ] Issuance blockers are structured and actionable (422) with stable blocker codes.
+
+BillingRules:
+
+- [ ] GET returns ETag; PUT uses If-Match for updates; 409 on stale etag (BILL-DEC-006).
+- [ ] Options/enums sourced from backend discovery endpoints (BILL-DEC-007).
+
+Checkout PO:
+
+- [ ] PO capture validated server-side; write-once enforced.
+- [ ] Overrides require reason code + elevation token where required (BILL-DEC-009, BILL-DEC-010).
+
+Receipts:
+
+- [ ] Delivery statuses are canonical (BILL-DEC-011).
+- [ ] Reprint policy evaluation returned; no UI hardcoding.
+
+AP vendor payments:
+
+- [ ] Idempotent by `paymentRef`.
+- [ ] Allocation validation enforced and deterministic.
+- [ ] Status enums match canonical set (BILL-DEC-013).
 
 ---
 
 ## API Contract
-- [ ] Confirm API endpoints follow domain ownership and story intent (e.g., `POST /billing/v1/invoices` for invoice creation).
-- [ ] Verify request validation returns appropriate HTTP status codes and error messages:
-  - `409 Conflict` for state conflicts (e.g., invoice already posted).
-  - `422 Unprocessable Entity` for missing or invalid data.
-  - `503 Service Unavailable` for downstream failures.
-- [ ] Ensure idempotency semantics are correctly implemented and documented.
-- [ ] Validate authorization and permission checks are enforced on all APIs.
-- [ ] Confirm APIs do not expose sensitive data or secrets.
+
+- [ ] Contracts exist for:
+  - [ ] Create draft invoice (`POST /billing/invoices/draft`)
+  - [ ] Get invoice detail (`GET /billing/invoices/{invoiceId}`)
+  - [ ] Get invoice by work order (`GET /billing/invoices/by-work-order/{workOrderId}`)
+  - [ ] Issue invoice (`POST /billing/invoices/{invoiceId}/issue`)
+  - [ ] BillingRules GET/PUT with ETag/If-Match
+  - [ ] Discovery endpoints for options/enums
+  - [ ] Artifact list + secure download
+  - [ ] Checkout evaluation + PO capture + PO override
+  - [ ] Receipts view + deliver + reprint
+  - [ ] AP bills list + execute payment + payment detail
+- [ ] HTTP semantics consistent:
+  - [ ] 422 validation failures with structured errors
+  - [ ] 409 state conflicts / stale etag / idempotency conflict
+  - [ ] 403 permission failures
+  - [ ] 404 not found/inaccessible resources
+  - [ ] 503 downstream unavailable
+- [ ] Error response shape is stable enough for UI:
+  - [ ] `errorCode`, `message`, `fieldErrors|missingFields|blockers`, `correlationId`
 
 ---
 
 ## Events & Idempotency
-- [ ] Verify domain events are emitted reliably and exactly once (e.g., `invoice.draft.created`, `InvoiceIssued`).
-- [ ] Confirm event payloads include required fields for traceability and auditing (e.g., `invoiceId`, `workOrderId`, `actorUserId`).
-- [ ] Check idempotency handling for commands that may be retried (e.g., invoice creation, payment execution).
-- [ ] Validate event versioning and schema compatibility for inter-domain contracts.
-- [ ] Ensure downstream consumers (e.g., accounting) can safely process events idempotently.
+
+- [ ] Draft creation idempotent per workOrderId.
+- [ ] Issuance idempotent per invoiceId+version; emits `InvoiceIssued` exactly once.
+- [ ] AP payment idempotent by paymentRef; conflicting payload returns 409.
+- [ ] Checkout finalize is safe against double-submit.
+- [ ] Override actions are protected against duplicate submissions.
+- [ ] Emitted events include: actorUserId, timestamps, tenant scope, correlation.
 
 ---
 
 ## Security
-- [ ] Confirm authentication and authorization are enforced per story requirements (e.g., `invoice:issue` permission).
-- [ ] Verify sensitive data (e.g., email addresses, payment info) is encrypted at rest and masked in logs.
-- [ ] Ensure no secrets or sensitive tokens are stored or logged.
-- [ ] Validate permission checks for sensitive operations (e.g., PO override, receipt reprint).
-- [ ] Confirm audit trails capture user identities and actions for compliance.
-- [ ] Check that APIs and event handlers are resilient to injection and malformed inputs.
+
+- [ ] All endpoints require auth; tenant boundaries enforced server-side.
+- [ ] Authorization enforced server-side for:
+  - [ ] BillingRules view/manage
+  - [ ] create draft invoice
+  - [ ] issue invoice
+  - [ ] traceability panel (if restricted)
+  - [ ] artifact list/download
+  - [ ] AP execute/view
+  - [ ] checkout PO override + second approver
+  - [ ] receipts delivery/reprint
+- [ ] Permissions come from a single source of truth (canonical strings) (BILL-DEC-008).
+- [ ] Artifact downloads protected:
+  - [ ] short-lived tokens or signed URLs
+  - [ ] never logged
+  - [ ] scoped to user and invoice context
+- [ ] Sensitive data not logged:
+  - [ ] emails, addresses, artifacts content, payment instrument secrets, manager credentials
+- [ ] Step-up auth uses elevation token; do not log secrets (BILL-DEC-010).
+- [ ] Posting errors sanitized for frontline roles (BILL-DEC-014).
 
 ---
 
 ## Observability
-- [ ] Confirm structured logging with correlation IDs is implemented for key operations and error paths.
-- [ ] Verify audit events are emitted for critical domain actions (e.g., invoice issuance, payment execution, receipt generation).
-- [ ] Ensure metrics are collected for success/failure counts, latencies, retries, and key business events.
-- [ ] Validate error handling logs meaningful messages with context for troubleshooting.
-- [ ] Confirm alerts or notifications are configured for repeated failures or critical error conditions.
+
+- [ ] W3C Trace Context propagated (traceparent/tracestate) (BILL-DEC-015).
+- [ ] Structured logs include identifiers only; no PII.
+- [ ] Audit events recorded for irreversible actions: issue, override, execute payment, reprint.
 
 ---
 
 ## Performance & Failure Modes
-- [ ] Verify synchronous calls to downstream services (e.g., Work Execution) have timeouts and retries with backoff.
-- [ ] Confirm transactional boundaries ensure atomicity where required (e.g., invoice creation + event emission).
-- [ ] Validate graceful degradation or fallback behavior on downstream unavailability (e.g., return `503`).
-- [ ] Check idempotency prevents duplicate side effects on retries.
-- [ ] Ensure large payloads (e.g., billable scope snapshots) are handled efficiently.
-- [ ] Confirm no blocking or long-running operations in request paths without async handling.
+
+- [ ] Invoice detail supports many lines efficiently.
+- [ ] Artifact list loads asynchronously; does not block invoice detail rendering.
+- [ ] Vendor bills list supports large sets with paging/filtering.
+- [ ] Timeouts and bounded retries; UI preserves form state on retry.
+- [ ] Deterministic handling of 409 conflicts.
 
 ---
 
 ## Testing
-- [ ] Unit tests cover all business rules, validation logic, and error flows.
-- [ ] Integration tests verify API contracts, downstream interactions, and event emissions.
-- [ ] Security tests validate permission enforcement and data protection.
-- [ ] Idempotency tests confirm repeated requests yield consistent results.
-- [ ] Performance/load tests ensure system handles expected volumes without degradation.
-- [ ] Negative tests cover invalid inputs, missing data, and downstream failures.
+
+- [ ] Contract tests pin canonical enums and field names (traceability).
+- [ ] Idempotency tests for draft, issuance, AP payment, overrides.
+- [ ] Security tests for permissions and artifact download scoping.
+- [ ] E2E tests cover draft → review → issue; PO required + override; AP payment + GL status refresh; receipt delivery + reprint.
 
 ---
 
-## Documentation
-- [ ] Update API documentation with request/response schemas, status codes, and error messages.
-- [ ] Document domain events with payload structure and semantics.
-- [ ] Include data model diagrams or descriptions for new or changed entities.
-- [ ] Provide operational runbooks or troubleshooting guides for common failure scenarios.
-- [ ] Document security considerations and permission requirements.
-- [ ] Ensure audit and observability features are described for compliance and monitoring.
+## Open Questions — With Responses (Billing Domain)
+
+> Full questions are restated from the prior checklist “Open Questions to Resolve” section, followed by responses. These responses are now the intended contract for future stories.
+
+### Q1
+
+**Question:** What are the canonical invoice traceability field names: `sourceEstimateId` vs `sourceEstimateVersionId` vs both, and what is the exact invoice detail response schema?  
+**Response:** Use both canonical fields under `traceability`:
+
+- `sourceEstimateId` (optional)
+- `sourceEstimateVersionId` (optional, preferred when present)  
+Invoice detail must include `traceability` and `issuancePolicy/issuanceBlockers` when status is DRAFT.
+
+### Q2
+
+**Question:** Does invoice detail include an explicit `issuanceBlockers[]` array, or must the UI only learn blockers from the issuance attempt (`422`)?  
+**Response:** Yes, invoice detail includes `issuancePolicy` and `issuanceBlockers[]`. Issuance attempt returns 422 with the same blocker codes.
+
+### Q3
+
+**Question:** What are the exact permission IDs/roles for: traceability panel, issue invoice, artifact download, BillingRules view/manage, draft creation, AP payments, PO override, supervisor/second-approver actions?  
+**Response:** Use canonical permission strings from BILL-DEC-008 (AGENT_GUIDE permission table). Supervisor/second-approver uses `billing:auth:elevate` plus the specific action permission (e.g., `billing:checkout:po:override`).
+
+### Q4
+
+**Question:** What is the artifact retrieval contract: endpoint/service names, input is invoiceId vs approvalIds[], output is signed URL vs secure endpoint?  
+**Response:** Input is `invoiceId`. Provide:
+
+- `GET /billing/invoices/{invoiceId}/artifacts` (list)
+- Secure download via tokenized download endpoint (preferred) or short-lived signed URLs when explicitly requested and authorized.
+
+### Q5
+
+**Question:** Which traceability identifiers are policy-required to issue (approval always? estimate version always? configurable per customer/account), and how is policy communicated to the UI?  
+**Response:** Configurable per tenant/account and communicated via `issuancePolicy` + `issuanceBlockers[]`. Always required: work order id, snapshot id, schema version. Conditional: approvals and estimate version based on policy.
+
+### Q6
+
+**Question:** Do routes/screens exist for Work Order, Estimate, Approval record navigation in this frontend? If not, copy-only?  
+**Response:** Billing returns link metadata; UI renders links only if routes exist. Otherwise provide copy-only identifiers.
+
+### Q7
+
+**Question:** What are the canonical Moqui screen paths and service names for invoice detail, create draft, issue invoice, receipts, AP flows?  
+**Response:** Treat HTTP capability endpoints as canonical. Moqui screens must map to them; screen paths are implementation details and must not be embedded into domain contracts.
+
+### Q8
+
+**Question:** Are partial payments supported in POS receipt/payment flows, and what statuses must the UI render (email delivery; GL posting)?  
+**Response:** Partial payments supported unless policy disables. Receipt shows partial vs paid-in-full and remaining balance. Email delivery statuses: `PENDING/SENT/FAILED/BOUNCED`. AP GL posting statuses per BILL-DEC-013.
+
+### Q9
+
+**Question:** What is the exact “manager approval code” semantics and what content is safe to show in `postingErrorSummary` to non-admin users?  
+**Response:** Replace code with step-up auth elevation token (`/billing/auth/elevate`). `postingErrorSummary` for non-admin is sanitized code + generic guidance + correlationId only; detailed diagnostics restricted.
+
+### Q10
+
+**Question:** What are the exact enum values returned for invoice states so UI mapping is consistent and testable?  
+**Response:** `DRAFT`, `ISSUED`, `PAID`, `VOID` (optional `ERROR` only if implemented). UI must derive “editable/finalized” from these enums.
 
 ---
 
-# End of Checklist
+# End of STORY_VALIDATION_CHECKLIST.md

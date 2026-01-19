@@ -1,11 +1,11 @@
 #!/usr/bin/env zsh
 # extract-issues-by-domain.zsh
-# Extracts GitHub issues from durion-positivity-backend grouped by domain label
+# Extracts GitHub issues from durion-moqui-frontend grouped by domain label
 # Creates one text file per domain with aggregated issue bodies and labels
 # Usage: ./extract-issues-by-domain.zsh [output_dir] [state]
 #   state: 'open' (default), 'closed', or 'all'
 
-REPO="${REPO:-louisburroughs/durion-positivity-backend}"
+REPO="${REPO:-louisburroughs/durion-moqui-frontend}"
 OUTPUT_DIR="${1:-.}"
 ISSUE_STATE="${2:-open}"  # Default to 'open' issues only
 
