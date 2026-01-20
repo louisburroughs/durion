@@ -74,6 +74,13 @@ With the Copilot CLI installed and configured:
 python3 fix_issue.py --issue 123 --rebuild-with-copilot
 ```
 
+When `--rebuild-with-copilot` is used, the script now calls the Copilot CLI with:
+
+- `-p @<prompt-file>`: prompt text read from file (recommended to avoid escaping). Falls back to inline prompt when no file is provided.
+- `--agent <path>`: the workspace agent file at `.github/agents/story-authoring.agent.md`
+- `--allow-all-tools`: permits the agent to use all available tools
+- `--add-dir <workspace-root>`: grants the agent access to the repository root so it can read project context
+
 ## Command-Line Options
 
 | Option | Description |

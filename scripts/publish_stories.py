@@ -120,6 +120,19 @@ class GitHubClient:
         resp = self._request("GET", url)
         return resp.json()
 
+    def get_issue_comments(self, owner: str, repo: str, number: int) -> List[Dict[str, Any]]:
+        """Fetch issue comments."""
+        url = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments"
+        resp = self._request("GET", url)
+        data = resp.json()
+        return data if isinstance(data, list) else []
+
+    def create_issue_comment(self, owner: str, repo: str, number: int, body: str) -> Dict[str, Any]:
+        """Create an issue comment."""
+        url = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments"
+        resp = self._request("POST", url, json={"body": body})
+        return resp.json()
+
     def update_issue_body(self, owner: str, repo: str, number: int, body: str) -> Dict[str, Any]:
         """Update issue body."""
         url = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
