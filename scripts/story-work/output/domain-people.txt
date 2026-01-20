@@ -1,0 +1,4425 @@
+════════════════════════════════════════════════════════════════
+DOMAIN: people
+Total Stories: 9
+Generated: dim. 18 janv. 2026 12:03:02 EST
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+ISSUE #122: [FRONTEND] [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/122
+File: ./scripts/story-work/frontend/122/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## 1. Story Header
+
+### Title
+[FRONTEND] [STORY] People/HR: View ingested Timekeeping Entries from ShopMgr work sessions (payroll readiness + approval visibility)
+
+### Primary Persona
+Payroll Clerk
+
+### Business Value
+Payroll Clerks can reliably see finalized work sessions ingested from Shop Management as HR-owned Timekeeping Entries with approval status, enabling payroll preparation and compliance reporting without duplicate entries or unclear ingestion status.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As a** Payroll Clerk  
+- **I want** a People/HR UI to view timekeeping entries that were ingested from ShopMgr work sessions, including their approval status and source identifiers  
+- **So that** I can prepare payroll and audit compliance with confidence that sessions are complete, deduplicated, and tracked.
+
+### In-scope
+- New People-domain UI screens to:
+  - List `TimekeepingEntry` records (including filter/search)
+  - View a `TimekeepingEntry` detail page with source metadata (tenant/source session identifiers) and approval status
+- UI handling of idempotency/duplicate semantics **as visible results** (i.e., duplicates do not appear twice; UI can display unique keys/source IDs)
+- UI error handling for unauthorized and load failures
+- Read-only visibility for payroll review (approval actions may be linked but not implemented unless already supported)
+
+### Out-of-scope
+- Implementing ingestion itself (event subscriber, DLQ handling, mapping) — backend concern
+- HR → ShopMgr “approval feedback” updates
+- Editing or correcting TimekeepingEntries (unless an existing backend UI flow already exists; if it exists, only link to it)
+
+---
+
+## 3. Actors & Stakeholders
+- **Primary actor:** Payroll Clerk
+- **Secondary actors:** Compliance Officer (read-only auditor), HR Administrator (may troubleshoot)
+- **Upstream producer (not an interactive actor in UI):** Shop Management / WorkExec event producer (`WorkSessionCompleted`)
+- **Systems involved:** Moqui frontend + People backend services/entities
+
+---
+
+## 4. Preconditions & Dependencies
+- Backend has People-domain `TimekeepingEntry` persisted from ShopMgr `WorkSessionCompleted` events with:
+  - Idempotency enforced by `(tenantId, sourceSystem, sourceSessionId)` (or equivalent)
+  - Default `approvalStatus = PENDING_APPROVAL` for newly ingested entries
+- Backend provides a **read/list** API or Moqui service accessible to the frontend to:
+  - Query timekeeping entries with paging/filtering
+  - Retrieve a single entry by ID (or by unique key)
+- Authentication is in place; authorization distinguishes payroll clerks from unauthorized users.
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Main navigation: **People → Timekeeping → Ingested Sessions** (label can vary; must be discoverable under People/HR)
+- Deep link route to detail: from list row click
+
+### Screens to create/modify
+1. **New Screen:** `apps/people/screen/timekeeping/TimekeepingEntryList.xml`
+2. **New Screen:** `apps/people/screen/timekeeping/TimekeepingEntryDetail.xml`
+3. **Modify Navigation/Menu:** People app menu to include the list screen entry
+
+### Navigation context
+- From People module home, user can open “Ingested Sessions” list.
+- From list, user can open a detail view for a specific entry.
+- Provide back navigation to list preserving filters (Moqui screen parameters).
+
+### User workflows
+**Happy path:**
+1. Payroll Clerk opens Ingested Sessions list.
+2. Sees paginated list of Timekeeping Entries.
+3. Filters by employee, date range, approval status, and (optionally) location/work order.
+4. Opens an entry to view details: session start/end, source system + session id, and approval status.
+
+**Alternate paths:**
+- No records: show empty state with guidance (e.g., “No ingested sessions found for selected filters.”)
+- Unauthorized: show access denied screen/message.
+- Backend error: show error banner with retry.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- User navigates to list screen.
+- User changes filters or paging.
+- User opens a detail screen.
+
+### UI actions
+- List screen:
+  - Apply filters (without page reload if supported; otherwise submit form)
+  - Click row to navigate to detail
+  - Refresh action to reload results
+- Detail screen:
+  - Display key fields and audit/source identifiers
+  - Provide link back to list
+  - (Optional) If an approval workflow exists elsewhere, show a contextual link “Go to Approval” (not implemented here)
+
+### State changes
+- None in this story (read-only UI). No modifications to `TimekeepingEntry` are performed.
+
+### Service interactions
+- List: call People service to retrieve paged `TimekeepingEntry` results based on filters.
+- Detail: call People service to retrieve a single `TimekeepingEntry` by ID (preferred) or by unique source key.
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+- Filter validation (client-side or screen transition validation):
+  - Date range: start ≤ end; if invalid, block submit and show inline message.
+  - `approvalStatus` must be one of allowed enum values returned/defined by backend.
+- Detail view requires a valid identifier; missing/invalid should show not-found.
+
+### Enable/disable rules
+- If user lacks permission to view timekeeping entries, hide menu entry and block route access.
+- Disable “Apply” while loading to avoid duplicate queries (UI ergonomics).
+
+### Visibility rules
+- Display `approvalStatus` prominently.
+- Display source metadata fields (source system, source session id) for audit traceability.
+- If `associatedWorkOrderId` is absent, show “—” (not an error).
+
+### Error messaging expectations
+- 401/403: “You do not have access to Timekeeping Entries.”
+- 404: “Timekeeping Entry not found.”
+- 409 (if ever returned on query): show “Conflict detected while loading; please refresh.” (do not invent business resolution)
+- 5xx/network: “Unable to load timekeeping entries. Retry.”
+
+---
+
+## 8. Data Requirements
+
+### Entities involved
+- **People domain entity:** `TimekeepingEntry` (system of record for payroll after ingestion)
+
+### Fields (type, required, defaults)
+Minimum fields the UI must support (based on backend story reference #58):
+
+- `timekeepingEntryId` (string/UUID) — **required** (primary key for routing)
+- `tenantId` (string) — required (may be implicit; do not display if considered sensitive; see Open Questions)
+- `sourceSystem` (string; expected `'shopmgr'`) — required
+- `sourceSessionId` (string) — required (immutable; used for dedupe/audit)
+- `employeeId` (string) — required
+- `sessionStartTime` (datetime, timezone-aware) — required
+- `sessionEndTime` (datetime, timezone-aware) — required
+- `approvalStatus` (enum string) — required, default `PENDING_APPROVAL` at creation (ingestion)
+- `associatedWorkOrderId` (string) — optional
+- `locationId` (string) — optional (if available from event mapping)
+
+### Read-only vs editable by state/role
+- All fields are **read-only** in this story.
+- If approval editing exists, it is handled by a separate workflow/story.
+
+### Derived/calculated fields
+- `sessionDuration` (derived) = end - start, displayed in list/detail if backend provides or frontend can compute safely from timestamps.
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Moqui can invoke services directly or via REST; the exact mechanism depends on repo conventions. This story specifies required capabilities; exact service names are an Open Question unless already standardized in the project.
+
+### Load/view calls
+1. **List Timekeeping Entries**
+   - Capability: query with paging + filters
+   - Inputs:
+     - `pageIndex` (int, default 0)
+     - `pageSize` (int, default 25)
+     - `employeeId` (optional)
+     - `approvalStatus` (optional)
+     - `fromDateTime` (optional)
+     - `thruDateTime` (optional)
+     - `locationId` (optional)
+     - `associatedWorkOrderId` (optional)
+   - Outputs:
+     - `items[]` each containing fields listed in Data Requirements (at least id, employeeId, start/end, approvalStatus, sourceSessionId)
+     - `totalCount`
+
+2. **Get Timekeeping Entry Detail**
+   - Inputs: `timekeepingEntryId` (required)
+   - Outputs: full record including source metadata
+
+### Create/update calls
+- none (read-only)
+
+### Submit/transition calls
+- none
+
+### Error handling expectations
+- 401/403 -> route to access denied / show banner
+- 404 -> not found page for detail
+- Validation errors (400) on filters -> show inline error and keep prior results unchanged
+- Timeouts -> show non-blocking error with Retry
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states
+`TimekeepingEntry.approvalStatus` (minimum):
+- `PENDING_APPROVAL`
+- `APPROVED`
+- `REJECTED`
+
+### Role-based transitions
+- Not implemented in this story (visibility only).
+- UI must display current status and (if present) status history/audit timestamps.
+
+### UI behavior per state
+- `PENDING_APPROVAL`: show “Pending approval”
+- `APPROVED`: show “Approved” and treat entry as immutable (read-only)
+- `REJECTED`: show “Rejected”; if rejection reason fields exist, display them (see Open Questions)
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Invalid date range filter: block query and show inline message.
+- Unknown approval status filter: prevent submission (dropdown sourced from enum list if available).
+
+### Concurrency conflicts
+- If record disappears between list and detail (deleted is unlikely; but could be archived): detail load returns 404 -> show Not Found with link back.
+
+### Unauthorized access
+- User without permission:
+  - Menu entry hidden
+  - Direct URL access returns access denied screen
+
+### Empty states
+- No results for filters: show empty state + “Clear filters” action.
+
+---
+
+## 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: View list of ingested timekeeping entries
+**Given** I am authenticated as a Payroll Clerk with permission to view timekeeping entries  
+**When** I navigate to People → Timekeeping → Ingested Sessions  
+**Then** I see a paginated list of Timekeeping Entries  
+**And** each row shows employee identifier, session start time, session end time, approval status, and source session id
+
+### Scenario 2: Filtering by approval status and date range
+**Given** I am on the Ingested Sessions list screen  
+**When** I set Approval Status to `PENDING_APPROVAL` and a valid date range and apply filters  
+**Then** the list refreshes to show only matching entries  
+**And** paging reflects the filtered result set
+
+### Scenario 3: Invalid date range is blocked
+**Given** I am on the Ingested Sessions list screen  
+**When** I enter a from-date that is after the thru-date and apply filters  
+**Then** the UI prevents the query  
+**And** I see an inline validation message indicating the date range is invalid
+
+### Scenario 4: View entry detail
+**Given** I am on the Ingested Sessions list screen  
+**When** I select a Timekeeping Entry  
+**Then** I navigate to a detail screen for that entry  
+**And** I can see approval status and source metadata including `sourceSystem` and `sourceSessionId`
+
+### Scenario 5: Duplicate ingestion does not appear as duplicates in UI
+**Given** the backend has received duplicate `WorkSessionCompleted` deliveries for the same `(tenantId, sessionId)`  
+**When** I view the Ingested Sessions list  
+**Then** I see only one Timekeeping Entry for that source session id  
+**And** there are no duplicate rows representing the same source session
+
+### Scenario 6: Unauthorized user cannot access
+**Given** I am authenticated as a user without permission to view timekeeping entries  
+**When** I attempt to navigate to the Ingested Sessions list URL directly  
+**Then** I see an access denied message  
+**And** no timekeeping entry data is displayed
+
+### Scenario 7: Detail not found
+**Given** I have a bookmarked Timekeeping Entry detail URL for an entry that does not exist  
+**When** I open the URL  
+**Then** I see a “not found” state  
+**And** I can navigate back to the list screen
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- On detail screen, show (if available from backend):
+  - `sourceSystem`
+  - `sourceSessionId`
+  - created timestamp / ingested timestamp
+  - (optional) last updated timestamp
+- If an “ingestion event id” exists, display it as read-only.
+
+### Status history
+- If backend exposes status change history (e.g., approval events), show a simple read-only timeline/table:
+  - status, actor (if allowed), timestamp, reason (if rejected)
+
+### Traceability expectations
+- UI should display the stable source identifiers to allow cross-referencing with ShopMgr session logs.
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** list screen should load first page within 2 seconds on typical broadband for <= 25 items (excluding backend latency outside SLA).
+- **Accessibility:** all controls keyboard accessible; labels for inputs; table has accessible headings.
+- **Responsiveness:** usable on tablet widths; filters collapse appropriately (Quasar patterns).
+- **i18n/timezone:** display session times in the user’s configured timezone; do not alter stored values.
+- **Currency:** not applicable.
+
+---
+
+## 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: Provide empty-state messaging and “Clear filters” action; safe because it does not change domain behavior, only improves usability. (Impacted sections: UX Summary, Alternate / Error Flows)
+- SD-UX-PAGINATION-DEFAULTS: Default paging to `pageSize=25`, `pageIndex=0`; safe UI ergonomics that do not alter business rules. (Impacted sections: Service Contracts, UX Summary)
+- SD-ERR-STD-MAPPING: Map 401/403/404/5xx to standard UI states (access denied/not found/retry); safe because it follows conventional HTTP semantics without inventing policies. (Impacted sections: Business Rules, Alternate / Error Flows, Acceptance Criteria)
+
+---
+
+## 16. Open Questions
+1. What are the **exact Moqui service names** (or REST endpoints) for:
+   - listing `TimekeepingEntry` with filters + paging
+   - fetching `TimekeepingEntry` by `timekeepingEntryId`?
+2. What is the **permission/authorization hook** used in this frontend repo for People screens (e.g., a named permission like `timekeeping:read`), and which roles include Payroll Clerk?
+3. Is `tenantId` considered sensitive in UI? Should it be hidden, shown only to admins, or always shown?
+4. Does `TimekeepingEntry` include **rejection metadata** (reason code, notes) and/or **approval audit history** fields that should be displayed on the detail screen?
+5. Should the list display `employeeId` only, or should it resolve/display employee name (would require People lookup and adds cross-entity UI behavior)?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/122
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/122  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr
+
+**Domain**: user
+
+### Story Description
+
+/kiro  
+# User Story  
+## Narrative  
+As a **Payroll Clerk**, I want HR to receive work sessions from shopmgr so that payroll and compliance reporting can be produced.
+
+## Details
+- HR stores sessions with approval status.
+- Reject/adjust supported.
+
+## Acceptance Criteria
+- Ingest idempotent.
+- Visible for payroll.
+- Approval tracked.
+
+## Integrations
+- Shopmgr→HR WorkSession events/API; optional HR→Shopmgr approval updates.
+
+## Data / Entities
+- TimekeepingEntry (hr domain)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Shop Management
+
+### Frontend Requirements
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════════════════════════════
+ISSUE #136: [FRONTEND] [STORY] Dispatch: Import Mechanic Roster and Skills from HR — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/136
+File: ./scripts/story-work/frontend/136/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+# 1. Story Header
+
+### Title
+[FRONTEND] [STORY] Dispatch: View Imported Mechanic Roster & Skills (HR-synced, Read-only)
+
+### Primary Persona
+Dispatch Manager (and Shop Manager) using the POS/Shop Management UI to select an assignable mechanic.
+
+### Business Value
+Ensures dispatch decisions use the authoritative HR roster (identity/status/home location/skills) and prevents assigning deactivated mechanics, reducing mis-assignments and compliance risk.
+
+---
+
+# 2. Story Intent
+
+### As a / I want / So that
+**As a** Dispatch Manager,  
+**I want** to view the HR-synced mechanic roster including skills and assignment eligibility,  
+**so that** I can confidently pick the right mechanic for work based on current HR status and qualifications.
+
+### In-scope
+- New/updated Moqui UI screens to **list and view** mechanics imported from HR (read model).
+- UI clearly indicates **assignable vs not assignable** based on status (`ACTIVE` assignable; `INACTIVE` not assignable; `ON_LEAVE` shown as not assignable unless backend says otherwise—see Open Questions).
+- UI supports searching/filtering roster (name, status, skill).
+- UI displays skills snapshot (skill code + metadata if provided) per mechanic.
+- UI is **read-only** (no local edits) to respect HR as System of Record.
+- Basic frontend error/empty-state handling consistent with Moqui.
+
+### Out-of-scope
+- Triggering HR sync/import from UI (manual “Sync Now”) unless backend already exposes it (not provided).
+- Editing mechanic profile, skills, or status in this UI.
+- Implementing dispatch assignment workflows themselves (only roster visibility for selection support).
+- Defining/implementing event ingestion or reconciliation jobs (backend responsibility).
+
+---
+
+# 3. Actors & Stakeholders
+- **Dispatch Manager**: primary user consuming roster to choose mechanics.
+- **Shop Manager**: secondary consumer for staffing visibility.
+- **HR Administrator (external system)**: maintains roster/skills in HR; not a UI actor here.
+- **System/Integration**: populates/updates the mechanic read model via events and/or reconciliation.
+- **Security/RBAC**: controls access to roster screens (permission names TBD).
+
+---
+
+# 4. Preconditions & Dependencies
+- Backend (Durion positivity backend) provides an API (or Moqui service facade) to:
+  - query mechanic list with status and home location
+  - view mechanic details including skill snapshot
+- Backend enforces HR as SoR and upsert/idempotency rules; frontend only consumes read model.
+- Authentication exists; user has permission to view roster.
+- Data model includes `personId` (aka `hrPersonId`) as the external key and `status` enum.
+
+Dependency reference: Backend story #72 (domain:people) describes `Mechanic`, `MechanicSkill`, and status semantics.
+
+---
+
+# 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Main nav: **Dispatch → Mechanics (Roster)** (exact menu placement may vary by repo conventions; see Open Questions if nav structure is unknown).
+- Deep link:
+  - List: `/dispatch/mechanics`
+  - Detail: `/dispatch/mechanics/{personId}` (or `{mechanicId}` if that’s the stable UI key—see Open Questions)
+
+### Screens to create/modify
+1. **Screen:** `dispatch/MechanicRoster.xml` (list/search)
+2. **Screen:** `dispatch/MechanicDetail.xml` (detail + skills)
+3. Optional reusable widgets:
+   - `component/MechanicStatusChip.xml` (status badge/assignable indicator)
+
+### Navigation context
+- From roster list, select a row → mechanic detail.
+- From detail, back to list preserving filters (Moqui screen parameters).
+
+### User workflows
+**Happy path (view roster)**
+1. User opens Mechanics (Roster)
+2. System loads mechanics list
+3. User filters by status/skill/search name
+4. User opens a mechanic
+5. System displays detail: identity, status, home location, skills list
+
+**Alternate paths**
+- No mechanics found → empty state with suggestions (clear filters)
+- Mechanic exists but no skills → show “No skills recorded”
+- Mechanic is inactive/on leave → show “Not assignable” state
+
+---
+
+# 6. Functional Behavior
+
+### Triggers
+- Screen load for list and detail routes.
+- User applies filters/search; pagination changes.
+
+### UI actions
+**Roster list**
+- Search by name (first/last or combined)
+- Filter by `status` (multi-select)
+- Filter by `skillCode` (single or multi—see Open Questions)
+- Click mechanic row → navigate to detail
+
+**Mechanic detail**
+- View static fields and skills table/list
+- No edit actions
+
+### State changes
+- None in domain data (read-only screens).
+- UI state includes filter parameters, current page, sort.
+
+### Service interactions (Moqui)
+- Use Moqui `transition` with `service-call` (or `entity-find` if the frontend reads Moqui entities directly; depends on architecture—see Open Questions).
+- List query service: fetch paged roster
+- Detail query service: fetch a mechanic + skills by key
+
+---
+
+# 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+- Route param must include mechanic identifier (personId or mechanicId).
+- Reject/handle invalid identifiers:
+  - If not found → show 404-style “Mechanic not found”
+  - If malformed → show validation error and return to list
+
+### Enable/disable rules
+- “Assignable” indicator:
+  - `status=ACTIVE` → assignable = true
+  - `status=INACTIVE` → assignable = false
+  - `status=ON_LEAVE` → display as non-assignable by default **only if backend provides an explicit `assignable` boolean; otherwise treat as “not assignable” requires clarification**.
+- UI must not show “Edit” or “Deactivate” actions (HR SoR).
+
+### Visibility rules
+- If user lacks permission: do not render screen; show unauthorized error page.
+
+### Error messaging expectations
+- Network/service error → show non-technical message (“Unable to load mechanics. Try again.”) and log details.
+- 403 → “You don’t have access to view mechanics roster.”
+- 409/ordering/idempotency errors are backend-side and should not appear in UI for read-only flows; treat as generic load failure if received.
+
+---
+
+# 8. Data Requirements
+
+### Entities involved (frontend view model)
+From backend story (read model):
+- `Mechanic`
+- `MechanicSkill`
+
+Frontend should expect fields (names may vary; map in service contract):
+
+**Mechanic**
+- `mechanicId` (UUID) *(optional for UI keying)*
+- `personId` (string; required; external key, “HR Person ID”) *(required)*
+- `firstName` (string; required)
+- `lastName` (string; required)
+- `status` enum: `ACTIVE | INACTIVE | ON_LEAVE` *(required)*
+- `hireDate` (date; optional)
+- `terminationDate` (date; optional)
+- `homeLocationId` or `locationId` (string; optional unless required by dispatch)
+- `lastSyncedAt` (timestamp; optional, display-only)
+- `version` (int) or `lastEffectiveAt` (timestamp; optional, display-only)
+
+**MechanicSkill**
+- `skillCode` (string; required)
+- `proficiencyLevel` (string/int; optional)
+- `certifiedDate` (date; optional)
+- `expirationDate` (date; optional)
+
+### Required, defaults
+- No frontend defaults for domain fields.
+- Filters default:
+  - status filter default = `ACTIVE` only (safe UX default; does not change data)
+
+### Read-only vs editable
+- All fields are read-only in UI.
+
+### Derived/calculated fields
+- `displayName` = `${firstName} ${lastName}` (UI-only)
+- `assignable` derived from status unless backend provides explicit `assignable`
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+> Note: Exact service names/endpoints are not provided; this section specifies required contracts. If the repo uses Moqui REST or service calls, implement accordingly.
+
+### Load/view calls
+
+1) **List mechanics (paged)**
+- **Operation:** `GET /api/mechanics`
+- **Query params:**
+  - `q` (string; optional) name search
+  - `status` (repeatable or comma-separated; optional)
+  - `skillCode` (optional)
+  - `locationId` (optional)
+  - `page` (int; default 1)
+  - `pageSize` (int; default 25)
+  - `sort` (string; e.g., `lastName,firstName`)
+- **Response 200:**
+```json
+{
+  "data": [
+    {
+      "personId": "HR123",
+      "mechanicId": "uuid-optional",
+      "firstName": "Sam",
+      "lastName": "Lee",
+      "status": "ACTIVE",
+      "homeLocationId": "LOC1",
+      "lastSyncedAt": "2026-01-01T10:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 25,
+  "total": 123
+}
+```
+
+2) **Mechanic detail**
+- **Operation:** `GET /api/mechanics/{personId}` (or `{mechanicId}`)
+- **Response 200:**
+```json
+{
+  "personId": "HR123",
+  "firstName": "Sam",
+  "lastName": "Lee",
+  "status": "ACTIVE",
+  "homeLocationId": "LOC1",
+  "hireDate": "2023-05-01",
+  "terminationDate": null,
+  "version": 17,
+  "lastSyncedAt": "2026-01-01T10:00:00Z",
+  "skills": [
+    { "skillCode": "BRAKES", "proficiencyLevel": "2", "certifiedDate": "2024-02-01", "expirationDate": null }
+  ]
+}
+```
+
+### Create/update calls
+- None (read-only).
+
+### Submit/transition calls
+- None.
+
+### Error handling expectations
+- `401` → redirect to login per app convention.
+- `403` → show unauthorized screen.
+- `404` (detail) → show “Mechanic not found” with link back to roster.
+- `5xx` → show generic load failure; allow retry.
+- Frontend should surface backend `errorCode`/`message` if present but avoid showing raw stack traces.
+
+---
+
+# 10. State Model & Transitions
+
+### Allowed states (Mechanic.status)
+- `ACTIVE`
+- `INACTIVE`
+- `ON_LEAVE`
+
+### Role-based transitions
+- None in UI (no transitions or edits).
+
+### UI behavior per state
+- `ACTIVE`: shown as assignable
+- `INACTIVE`: shown as not assignable; included only if filter includes INACTIVE
+- `ON_LEAVE`: shown as not assignable (unless backend provides `assignable=true`—see Open Questions)
+
+---
+
+# 11. Alternate / Error Flows
+
+### Validation failures
+- Invalid route param → show error and redirect to roster with message.
+
+### Concurrency conflicts
+- Not applicable (read-only). If backend returns 409 unexpectedly, treat as load failure.
+
+### Unauthorized access
+- If user lacks permission:
+  - list screen: show unauthorized
+  - detail screen: show unauthorized (do not leak existence of personId)
+
+### Empty states
+- No results after filters → show empty list and “Clear filters” action.
+- Mechanic has zero skills → show “No skills recorded from HR.”
+
+---
+
+# 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: View active mechanic roster
+Given I am an authenticated user with permission to view mechanics roster  
+When I navigate to the Mechanics (Roster) screen  
+Then I see a paginated list of mechanics including name, HR Person ID, status, and home location (if available)  
+And by default only ACTIVE mechanics are shown
+
+### Scenario 2: Filter mechanics by status
+Given I am on the Mechanics (Roster) screen  
+When I set the status filter to include INACTIVE  
+Then the list includes mechanics with status INACTIVE  
+And each INACTIVE mechanic is clearly indicated as not assignable
+
+### Scenario 3: Search mechanics by name
+Given I am on the Mechanics (Roster) screen  
+When I search for "Lee"  
+Then the list updates to show only mechanics whose name matches "Lee"  
+And the current search term is preserved when I paginate
+
+### Scenario 4: View mechanic detail including skills
+Given I am on the Mechanics (Roster) screen  
+When I open a mechanic detail page  
+Then I see the mechanic’s name, HR Person ID, status, and last synced timestamp (if provided)  
+And I see a list of skill tags/certifications (if any) with their attributes
+
+### Scenario 5: Mechanic not found
+Given I am an authenticated user with permission to view mechanics roster  
+When I navigate to a mechanic detail URL for a non-existent identifier  
+Then I see a “Mechanic not found” message  
+And I am offered a link to return to the roster screen
+
+### Scenario 6: Unauthorized access is blocked
+Given I am authenticated but do not have permission to view mechanics roster  
+When I navigate to the Mechanics (Roster) screen  
+Then I see an unauthorized/access denied screen  
+And no mechanic roster data is displayed
+
+### Scenario 7: Service failure shows retryable error
+Given I am on the Mechanics (Roster) screen  
+When the mechanics list service returns a server error  
+Then I see a non-technical error message  
+And I can retry loading the list
+
+---
+
+# 13. Audit & Observability
+
+### User-visible audit data
+- Display-only fields when available:
+  - `lastSyncedAt`
+  - `version` or `lastEffectiveAt`
+
+### Status history
+- Not required unless backend exposes history endpoint (not provided). If backend provides it later, add a “Status/Sync History” panel in a separate story.
+
+### Traceability expectations
+- Frontend logs (console/app logging) should include correlation/request ID if provided in headers.
+- UI should not expose raw payloads that include unnecessary PII.
+
+---
+
+# 14. Non-Functional UI Requirements
+- **Performance:** list loads within 2s for first page under normal conditions; pagination should not refetch unchanged filters unnecessarily.
+- **Accessibility:** roster table and filters keyboard navigable; status indicators include text (not color-only).
+- **Responsiveness:** usable on tablet width; filters collapse into a drawer/stack as needed (implementation detail).
+- **i18n/timezone:** timestamps rendered in user’s locale/timezone per app conventions; no currency.
+
+---
+
+# 15. Applied Safe Defaults
+- **SD-UX-01 (Empty States):** Provide standard empty-state messaging and “Clear filters” action; safe because it affects only UI ergonomics. *(Impacted: UX Summary, Error Flows)*
+- **SD-UX-02 (Pagination Defaults):** Default `pageSize=25` and preserve filters in query params; safe because it does not change domain behavior. *(Impacted: UX Summary, Service Contracts, Acceptance Criteria)*
+- **SD-ERR-01 (Generic Load Error Handling):** Map 401/403/404/5xx to standard UI messages; safe because it follows HTTP semantics without altering policies. *(Impacted: Service Contracts, Error Flows, AC)*
+
+---
+
+# 16. Open Questions
+1. What is the **actual Moqui integration pattern** in this repo for Vue/Quasar screens: does the frontend call **Moqui REST endpoints**, **Moqui services**, or a separate backend gateway? Provide existing example endpoints/service names to align implementation.
+2. What is the **stable identifier** for routing: should mechanic detail route by `personId` (HR key) or `mechanicId` (local UUID)?
+3. What are the **authorization permissions/roles** required to view the roster and detail screens (exact permission strings / role names)?
+4. For `ON_LEAVE` mechanics: should they be treated as **not assignable**, or does dispatch allow assignment with warning? (Domain rule not explicitly stated for UI.)
+5. Should roster filtering by skill support **multi-select** and should it match by **skillCode only** or also proficiency/certification status?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Dispatch: Import Mechanic Roster and Skills from HR — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/136
+
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Dispatch: Import Mechanic Roster and Skills from HR
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/136
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Dispatch: Import Mechanic Roster and Skills from HR
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **System**, I want shopmgr to sync mechanic roster, roles, skills, and home location from durion-hr so that dispatch can assign the right mechanic.
+
+## Details
+- Ingest mechanic identities, roles, skill tags, location affiliations.
+- Track active/assignable status.
+
+## Acceptance Criteria
+- Mechanics present with hrPersonId.
+- Deactivated mechanics not assignable.
+- Sync idempotent.
+
+## Integrations
+- HR→Shopmgr roster API or MechanicUpserted events.
+
+## Data / Entities
+- MechanicProfile, SkillTag, LocationAffiliation
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Shop Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+════════════════════════════════════════════════════════════════
+ISSUE #144: [FRONTEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/144
+File: ./scripts/story-work/frontend/144/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+# 1. Story Header
+
+## Title
+[FRONTEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report
+
+## Primary Persona
+Manager
+
+## Business Value
+Enable managers to identify attendance vs productive job-time discrepancies by technician/day/location, so they can investigate gaps, overhead, and anomalies using a consistent threshold policy.
+
+---
+
+# 2. Story Intent
+
+## As a / I want / So that
+- **As a** Manager  
+- **I want** a report that compares technicians’ total attendance time (clocked time) to total job time (approved productive labor) by day and location  
+- **So that** I can quickly find and investigate significant discrepancies.
+
+## In-scope
+- A Moqui + Vue/Quasar screen to run and view the report.
+- Filters: startDate, endDate, timezone, optional locationId, optional technicianIds, flaggedOnly.
+- Tabular results at granularity: technician + location + local day.
+- Exception flagging based on threshold returned by People report response (`thresholdApplied`).
+- Empty/error states and proper handling of upstream failures (People domain failing due to WorkExec non-2xx).
+
+## Out-of-scope
+- Configuring threshold policies (TimekeepingPolicy CRUD).
+- Implementing backend report logic or WorkExec integration.
+- Row drill-down into underlying time entries, job labor lines, or reconciliation details (optional future enhancement).
+- Export/CSV unless already a project standard (not specified).
+
+---
+
+# 3. Actors & Stakeholders
+- **Manager (primary user):** runs report for permitted locations/technicians; investigates flagged rows.
+- **Technician (subject):** appears in results; no direct interaction.
+- **People domain service (backend SoR for attendance + threshold policy):** serves report endpoint.
+- **Work Execution domain service (backend SoR for job time totals):** indirectly affects report availability; failures bubble up.
+
+---
+
+# 4. Preconditions & Dependencies
+
+## Preconditions
+- User is authenticated.
+- User has authorization to view report for selected scope (location/technicians); backend enforces scope and may return 403.
+
+## Dependencies
+- People domain endpoint exists and is reachable:
+  - `GET /api/people/reports/attendance-jobtime-discrepancy`
+- Backend returns rows with:
+  - `technicianId, technicianName, locationId, reportDate, totalAttendanceHours, totalJobHours, discrepancyHours, isFlagged, thresholdApplied`
+- Backend error taxonomy may include upstream WorkExec failures mapped to non-2xx; frontend must surface clearly.
+
+---
+
+# 5. UX Summary (Moqui-Oriented)
+
+## Entry points
+- Main navigation: Reports → Timekeeping / People Reports → **Attendance vs Job Time Discrepancy** (exact menu placement may follow existing project nav patterns).
+
+## Screens to create/modify
+- **New screen**: `apps/pos/screens/reports/attendanceJobtimeDiscrepancy.xml` (name/path indicative; align to repo conventions).
+  - Includes a filter form and results section.
+- **Optional**: Add route/menu entry screen in reports index (only if project uses a reports landing page).
+
+## Navigation context
+- URL route should be stable and bookmarkable.
+- Query parameters should reflect current filter state to support shareable links (if consistent with project patterns).
+
+## User workflows
+
+### Happy path
+1. Manager opens the report screen.
+2. Selects `startDate`, `endDate`, and `timezone`.
+3. Optionally selects `locationId`, `technicianIds`, and toggles `flaggedOnly`.
+4. Clicks **Run Report**.
+5. Sees a table of results with attendance hours, job hours, discrepancy hours, threshold applied, and flagged indicator.
+
+### Alternate paths
+- Manager toggles **Flagged only** to focus on exceptions.
+- Manager narrows to a single location or a subset of technicians.
+- Manager runs with a range that returns no rows → sees empty state guidance.
+
+---
+
+# 6. Functional Behavior
+
+## Triggers
+- Screen load:
+  - Initialize filter defaults (see Applied Safe Defaults).
+- User clicks **Run Report** (primary trigger).
+- User changes filters and re-runs.
+
+## UI actions
+- Validate required fields prior to requesting report.
+- Call backend endpoint with query params.
+- Render results in a table; allow basic client-side sorting by date/technician/location and flagged (safe UI ergonomics).
+- Provide a clear visual indicator for `isFlagged=true`.
+
+## State changes (frontend)
+- `idle` → `loading` → `loaded` or `error`
+- Preserve last successful results when a subsequent run errors (so the user can still view prior output), but show error banner.
+
+## Service interactions
+- Single request per run to People report endpoint.
+- Do not call WorkExec from frontend (backend handles integration).
+
+---
+
+# 7. Business Rules (Translated to UI Behavior)
+
+## Validation
+- Require:
+  - `startDate` (YYYY-MM-DD)
+  - `endDate` (YYYY-MM-DD)
+  - `timezone` (IANA TZ string)
+- Validate:
+  - `startDate <= endDate`; otherwise block submit with inline error.
+- `technicianIds` is optional list; if UI uses multi-select, send as repeated query param or comma-separated based on backend expectation (**Open Question**; see below).
+
+## Enable/disable rules
+- Disable **Run Report** while loading.
+- Disable technician/location pickers only if required by UX constraints; otherwise keep enabled.
+
+## Visibility rules
+- Results section visible only after first run (or show an initial “Run report to see results” state).
+- Show `thresholdApplied` per row (minutes) alongside discrepancy (hours) to aid interpretation.
+
+## Error messaging expectations
+- 400: show “Invalid request” + field-level hints if provided.
+- 403: show “Not authorized for selected scope.”
+- 503/500: show “Report unavailable right now. Try again.”
+- If backend surfaces WorkExec error codes (e.g., `WORKEXEC_UNAVAILABLE`), show a specific message: “Job time system unavailable; report cannot be generated.”
+
+---
+
+# 8. Data Requirements
+
+## Entities involved (frontend perspective)
+- No direct entity CRUD. Read-only report view.
+- Data originates from People domain report aggregation.
+
+## Fields (type, required, defaults)
+
+### Request (query params)
+- `startDate` (string `YYYY-MM-DD`, required)
+- `endDate` (string `YYYY-MM-DD`, required, inclusive)
+- `timezone` (string IANA TZ, required)
+- `locationId` (string/int depending on system, optional)
+- `technicianIds` (list<UUID>, optional)
+- `flaggedOnly` (boolean, optional, default false)
+
+### Response row (read-only)
+- `technicianId` (UUID/string, required)
+- `technicianName` (string, required)
+- `locationId` (string/int, required)
+- `reportDate` (string `YYYY-MM-DD`, required)
+- `totalAttendanceHours` (number decimal, required)
+- `totalJobHours` (number decimal, required)
+- `discrepancyHours` (number decimal, required; can be negative)
+- `isFlagged` (boolean, required)
+- `thresholdApplied` (int minutes, required)
+
+## Derived/calculated fields (frontend)
+- None required; display values as provided.
+- Optional UI-only derived formatting:
+  - Display discrepancy with sign (e.g., `-1.50`).
+  - Optional “Flag reason” tooltip: `abs(discrepancyHours)*60 > thresholdApplied` (do not recompute flag; rely on backend `isFlagged`).
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+## Load/view calls
+- `GET /api/people/reports/attendance-jobtime-discrepancy`
+
+### Query serialization
+- Must send:
+  - `startDate`, `endDate`, `timezone`
+- May send:
+  - `locationId`
+  - `technicianIds`
+  - `flaggedOnly`
+
+**Note:** precise encoding for `technicianIds` must match backend implementation (see Open Questions).
+
+## Create/update calls
+- None.
+
+## Submit/transition calls
+- None.
+
+## Error handling expectations
+- Treat any non-2xx as failure for the run:
+  - Show error banner/message.
+  - Keep prior results (if any).
+- If backend returns structured error payload:
+  - Display human-friendly message and include correlationId/requestId when present (for support).
+
+---
+
+# 10. State Model & Transitions
+
+## Allowed states (frontend view state)
+- `idle`: screen loaded, no results yet.
+- `loading`: request in flight.
+- `loaded`: results rendered (may be empty).
+- `error`: last request failed.
+
+## Role-based transitions
+- If user lacks permission, backend returns 403; frontend transitions to `error` with authorization messaging.
+- No frontend-side role inference or permission matrix (do not hide entry purely client-side unless project already provides an auth capability map).
+
+## UI behavior per state
+- `idle`: show filter form + helper text; results hidden or empty placeholder.
+- `loading`: show spinner/progress; disable Run button.
+- `loaded`: show table; show “No results” empty state if zero rows.
+- `error`: show error banner; allow user to adjust filters and retry.
+
+---
+
+# 11. Alternate / Error Flows
+
+## Validation failures (client-side)
+- Missing required fields: show inline validation, do not call API.
+- startDate > endDate: inline error on date range.
+
+## Backend validation failures (400)
+- Show error banner; if response indicates which param invalid, attach hint near field.
+
+## Concurrency conflicts
+- Not applicable (read-only).
+
+## Unauthorized access (403)
+- Show explicit message that scope is forbidden; do not silently drop selected scope values.
+
+## Empty states
+- No rows returned:
+  - Show “No discrepancies found for the selected period/scope.”
+  - If `flaggedOnly=true`, message should mention that only flagged rows are included.
+
+## Upstream dependency failure (WorkExec issues surfaced by People endpoint)
+- If response contains recognizable code (e.g., `WORKEXEC_UNAVAILABLE`):
+  - Show “Job time system unavailable; report cannot be generated. Try again later.”
+- Otherwise generic 5xx/503 handling.
+
+---
+
+# 12. Acceptance Criteria
+
+## Scenario 1: Run report successfully with required filters
+**Given** I am an authenticated Manager  
+**And** I can access the Attendance vs Job Time Discrepancy report screen  
+**When** I enter a valid `startDate`, `endDate`, and `timezone`  
+**And** I click Run Report  
+**Then** the UI sends a GET request to `/api/people/reports/attendance-jobtime-discrepancy` with those parameters  
+**And** I see a results table grouped by technician, location, and day (one row per combination) showing attendance hours, job hours, discrepancy hours, and flagged status.
+
+## Scenario 2: Flagged rows are clearly indicated
+**Given** the report response includes a row with `isFlagged=true`  
+**When** the results are displayed  
+**Then** the UI clearly marks that row as flagged  
+**And** the row displays `thresholdApplied` so I can understand the applied threshold.
+
+## Scenario 3: Filter to flaggedOnly
+**Given** I have selected valid dates and timezone  
+**When** I set `flaggedOnly=true` and run the report  
+**Then** the UI includes `flaggedOnly=true` in the request  
+**And** the results show only rows returned by the server  
+**And** if zero rows are returned, I see an empty-state message indicating no flagged discrepancies for the selected scope.
+
+## Scenario 4: Client-side validation prevents invalid date ranges
+**Given** I am on the report screen  
+**When** I set `startDate` later than `endDate`  
+**And** I click Run Report  
+**Then** the UI prevents the request from being sent  
+**And** I see an inline error indicating the start date must be on or before the end date.
+
+## Scenario 5: Unauthorized scope shows explicit error
+**Given** I am authenticated but not authorized for a selected location or technician scope  
+**When** I run the report for that forbidden scope  
+**And** the backend responds with 403  
+**Then** the UI shows an authorization error message  
+**And** the UI does not silently remove or alter my selected filters.
+
+## Scenario 6: Backend unavailable or WorkExec-related failure bubbles to UI
+**Given** I am on the report screen with valid filters  
+**When** I run the report  
+**And** the backend responds with 503 or an error indicating job-time dependency is unavailable  
+**Then** the UI shows a non-technical error message that the report is unavailable  
+**And** I can retry after the error without reloading the page.
+
+---
+
+# 13. Audit & Observability
+
+## User-visible audit data
+- Not required to display audit logs in UI for v1.
+- If backend returns a `requestId`/`correlationId`, show it in an expandable “Details” area of the error banner to assist support.
+
+## Status history
+- Not applicable for read-only report.
+
+## Traceability expectations
+- Frontend should log (client-side) report runs at INFO level (if project has client logging):
+  - timestamp, user id (if available client-side), startDate/endDate/timezone, locationId presence, technicianIds count, flaggedOnly
+  - Do **not** log technician names or any PII beyond IDs if avoidable.
+
+---
+
+# 14. Non-Functional UI Requirements
+
+## Performance
+- Report should render up to typical manager-scale volumes (assume hundreds of rows) without UI freezing.
+- Use virtual scroll for table if project standard; otherwise paginate (safe default).
+
+## Accessibility
+- All form controls labeled.
+- Table supports keyboard navigation and screen-reader friendly headers.
+- Error messages announced (ARIA live region) if using Quasar notifications/banners.
+
+## Responsiveness
+- Filters usable on tablet-sized screens.
+- Table should allow horizontal scrolling on small screens.
+
+## i18n/timezone/currency
+- Timezone is explicitly selectable/required; must accept IANA TZ.
+- Hours displayed as decimal with 2 decimals as provided by backend; no currency.
+
+---
+
+# 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: Provide a clear “no results” state after a successful run with zero rows; safe because it’s purely presentational and does not change domain behavior. Impacted sections: UX Summary, Alternate / Error Flows, Acceptance Criteria.
+- SD-UX-PAGINATION: If result set is large, default to paginated table (or virtual scroll if standard) to prevent rendering slowness; safe because it is UI ergonomics only. Impacted sections: Non-Functional UI Requirements, UX Summary.
+
+---
+
+# 16. Open Questions
+1. What is the expected query parameter encoding for `technicianIds` on `/api/people/reports/attendance-jobtime-discrepancy` (repeated params vs comma-separated vs JSON array string)?
+2. Should the report screen enforce a maximum date range (e.g., 31/90 days) to prevent heavy queries, or is this strictly server-controlled?
+3. Do we have an existing standardized timezone picker/list in this frontend (and default timezone behavior), or must this screen introduce one?
+4. Is there an established reports navigation location/route convention in `durion-moqui-frontend` (exact screen path and menu link), or should we add it under a generic Reports section?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/144
+
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/144
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Integration: Attendance vs Job Time Discrepancy Report
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Manager**, I want **a report comparing attendance time to job time** so that **I can identify gaps, overhead, and anomalies**.
+
+## Details
+- Summarize by technician/day/location.
+- Flag differences above a configurable threshold.
+
+## Acceptance Criteria
+- Report shows clocked hours vs job timer total.
+- Flags exceptions.
+
+## Integration Points (workexec)
+- Optional: correlate with labor lines for reconciliation.
+
+## Data / Entities
+- TimeEntry
+- JobLink
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+════════════════════════════════════════════════════════════════
+ISSUE #147: [FRONTEND] [STORY] Timekeeping: Manager Approves/Rejects Time Entries — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/147
+File: ./scripts/story-work/frontend/147/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+STOP: Clarification required before finalization
+
+---
+
+# 1. Story Header
+
+## Title
+**[FRONTEND] Timekeeping: Manager Approves/Rejects Time Entries (Period-Atomic)**
+
+## Primary Persona
+**Manager** (authorized to approve time for direct reports)
+
+## Business Value
+Finalizes employee time for a pay period with an auditable decision record, enabling payroll export and downstream reconciliation while preventing unauthorized or inconsistent edits.
+
+---
+
+# 2. Story Intent
+
+## As a / I want / So that
+- **As a** Manager  
+- **I want** to review an employee’s time entries for a selected pay period and approve or reject them in one atomic action  
+- **So that** time is finalized (approved = locked) or returned for correction (rejected), with a complete audit trail.
+
+## In-Scope
+- Manager UI to:
+  - Select an employee (direct report) and a pay period
+  - View time entries and their statuses for that period
+  - Approve all entries in `PENDING_APPROVAL` for the period (atomic)
+  - Reject all entries in `PENDING_APPROVAL` for the period (atomic) with required reason metadata
+  - View decision history (period-level approvals/rejections)
+- Frontend enforcement of read-only behavior for `APPROVED` entries (no edit controls in this manager view).
+- Correct handling of backend validation errors (`400`), authorization (`403`), conflicts (`409`), and not-found (`404`).
+
+## Out-of-Scope
+- Employee-side time entry editing/resubmission flow after rejection.
+- “Controlled adjustments” workflow UI (TimeEntryAdjustment create/approve).
+- Defining reporting relationships, role inheritance, or permission matrix (must be provided by backend/security).
+- Payroll export UX.
+
+---
+
+# 3. Actors & Stakeholders
+- **Manager (Primary Actor):** reviews and decides for employee/time period.
+- **Employee (Indirect):** impacted by approval (locks) or rejection (returns to draft).
+- **HR/People Ops (Stakeholder):** needs auditable records.
+- **Payroll System (Stakeholder):** consumes approved time (downstream).
+- **Work Execution (Optional Stakeholder):** may consume approved job time for posting.
+
+---
+
+# 4. Preconditions & Dependencies
+- User is authenticated in the frontend session.
+- User has permission `timekeeping:approve` (authorization enforced server-side).
+- Backend provides:
+  - List of employees manager may act on (direct reports / scope filtered)
+  - List of time periods and their status (`OPEN`, `SUBMISSION_CLOSED`, `PAYROLL_CLOSED`)
+  - Ability to fetch time entries for `{employeeId, timePeriodId}`
+  - Action endpoints to approve/reject (period-atomic) and return appropriate status codes and error payloads.
+- Time period gating enforced by backend: decisions require `TimePeriod.status >= SUBMISSION_CLOSED`.
+
+---
+
+# 5. UX Summary (Moqui-Oriented)
+
+## Entry points
+- From Manager menu: **Timekeeping → Approvals**
+- Deep link supported (if routes exist): `/timekeeping/approvals` with optional query params `employeeId`, `timePeriodId`
+
+## Screens to create/modify
+1. **Screen:** `apps/pos/timekeeping/approvals.xml` (new)
+   - Purpose: shell + selection controls + results panel
+2. **Screen (optional child):** `apps/pos/timekeeping/approvalDetail.xml` (optional, can be same screen via subscreen)
+   - Purpose: show entries table + decision buttons + decision history
+3. Common components/forms:
+   - Selection form (employee + pay period)
+   - Entries list table (read-only)
+   - Reject dialog form (reason code + notes)
+
+## Navigation context
+- Breadcrumb: `Timekeeping > Approvals`
+- Back navigation returns to selection state.
+
+## User workflows
+### Happy path: Approve
+1. Manager opens Approvals screen.
+2. Manager selects Employee + Pay Period.
+3. System loads entries; shows statuses and summary.
+4. If eligible, Manager clicks **Approve Period** and confirms.
+5. UI calls approve action; on success refreshes entries and history; shows success message.
+
+### Happy path: Reject
+1. Manager clicks **Reject Period**.
+2. UI opens dialog requiring reason code + notes.
+3. Submit triggers reject action; on success refreshes entries (now `DRAFT`) and history; shows success message.
+
+### Alternate paths
+- Period not eligible (time period still `OPEN`): decision buttons disabled with explanatory message.
+- Mixed statuses (not all `PENDING_APPROVAL`): decision buttons disabled or action returns `409`; UI surfaces blocking entry IDs.
+- Unauthorized: UI shows “Not authorized” and hides action buttons.
+
+---
+
+# 6. Functional Behavior
+
+## Triggers
+- Screen load (initial): load manager-scoped employees and available time periods (or load on demand when selection changes).
+- Selection change: fetch time entries and approval history for `{employeeId,timePeriodId}`.
+- Approve action: submit approve request.
+- Reject action: submit reject request with required metadata.
+
+## UI actions
+- **Select Employee** (picker limited to authorized scope)
+- **Select Pay Period** (picker shows status)
+- **Approve Period** (button + confirm)
+- **Reject Period** (button opens modal)
+- **Refresh** (re-fetch current selection)
+
+## State changes (frontend)
+- Local view state: `loading`, `loaded`, `error`
+- `canDecide` computed based on loaded data (period status + entries all pending) but backend remains source of truth.
+
+## Service interactions
+- `GET` load employees/time periods
+- `GET` load time entries for employee/period
+- `GET` load period decision history (TimePeriodApproval list)
+- `POST` approve period (idempotent)
+- `POST` reject period (idempotent)
+
+---
+
+# 7. Business Rules (Translated to UI Behavior)
+
+## Validation
+- Reject requires:
+  - `rejectionReasonCode` present
+  - `rejectionNotes` non-empty after trim
+  - UI must enforce required fields before submit; still handle backend `400`.
+- Approve/Reject apply to **all** entries in period currently `PENDING_APPROVAL` (no partial selection UI).
+
+## Enable/disable rules
+- Disable Approve/Reject if:
+  - No employee or no pay period selected
+  - Entries not loaded
+  - `TimePeriod.status < SUBMISSION_CLOSED` (show message: “Approval available after submission closes.”)
+  - Any entry status != `PENDING_APPROVAL` (show message: “All entries must be Pending Approval to decide this period.”)
+- Hide or disable decision controls if backend returns `403`.
+
+## Visibility rules
+- Decision history panel visible when a selection is made and history is available; show empty state if none.
+
+## Error messaging expectations
+- `400`: show field-level errors (reject dialog) and keep dialog open.
+- `403`: show non-specific authorization message; do not reveal reporting relationship details.
+- `404`: show “Employee or pay period not found.”
+- `409`: show conflict banner; if response includes blocking `timeEntryIds`, list them and suggest refresh.
+
+---
+
+# 8. Data Requirements
+
+## Entities involved (People domain)
+- `TimeEntry`
+- `TimePeriod`
+- `TimePeriodApproval` (append-only history)
+
+## Fields (type, required, defaults)
+
+### TimeEntry (display)
+- `id` (string/uuid, required, read-only)
+- `employeeId` (string/uuid, required, read-only)
+- `timePeriodId` (string/uuid, required, read-only)
+- `status` (enum: `DRAFT|SUBMITTED|PENDING_APPROVAL|APPROVED`, required, read-only)
+- `clockIn` (datetime, required, read-only)
+- `clockOut` (datetime, optional, read-only)
+- `jobCode` (string, optional, read-only)
+
+### TimePeriod (selection + gating)
+- `id` (string/uuid, required)
+- `status` (enum: `OPEN|SUBMISSION_CLOSED|PAYROLL_CLOSED`, required)
+- (Optional display) period start/end dates (types unknown → needs clarification if not provided)
+
+### TimePeriodApproval (history list)
+- `id` (string/uuid)
+- `employeeId` (string/uuid)
+- `timePeriodId` (string/uuid)
+- `finalStatus` (enum: `APPROVED|REJECTED`)
+- `approvingManagerId` (string/uuid)
+- `rejectionReasonCode` (string, conditional)
+- `rejectionNotes` (string, conditional)
+- `processedAt` (datetime)
+- `policyVersion` (string, optional)
+- `requestId` (string, optional)
+
+## Read-only vs editable by state/role
+- In this manager approval UI, all TimeEntry fields are **read-only**.
+- Reject dialog fields are **editable** only during reject submission.
+
+## Derived/calculated fields (frontend)
+- `entriesSummary.totalCount`
+- `entriesSummary.pendingCount`
+- `entriesSummary.nonPendingIds[]` (from loaded entries)
+- `canApprove/canReject` computed
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+> Moqui integration note: implement calls as Moqui services invoked by screen transitions/actions, or via REST endpoints proxied through Moqui as configured by this project. Exact mechanism requires clarification from repo conventions.
+
+## Load/view calls
+1. **Load manager employees**
+   - Proposed: `GET /api/people/manager/employees` (or Moqui service `People.getDirectReports`)
+   - Returns: list `{employeeId, displayName, employeeNumber?}`
+
+2. **Load time periods**
+   - Proposed: `GET /api/timekeeping/timePeriods?status>=OPEN` (or service `Timekeeping.listTimePeriods`)
+   - Returns: list `{timePeriodId, status, startDate?, endDate?}`
+
+3. **Load time entries for selection**
+   - Proposed: `GET /api/timekeeping/timeEntries?employeeId=&timePeriodId=`
+   - Returns: list of TimeEntry
+
+4. **Load approval history**
+   - Proposed: `GET /api/timekeeping/timePeriodApprovals?employeeId=&timePeriodId=`
+   - Returns: list of TimePeriodApproval (append-only, newest first)
+
+## Create/update calls (actions)
+1. **Approve**
+   - Proposed: `POST /api/timekeeping/timePeriods/{timePeriodId}/employees/{employeeId}/approve`
+   - Body: `{ requestId? }` (idempotency optional)
+   - Success `200 OK`: returns updated entries + new approval record OR a lightweight `{finalStatus, processedAt}` (needs clarification)
+
+2. **Reject**
+   - Proposed: `POST /api/timekeeping/timePeriods/{timePeriodId}/employees/{employeeId}/reject`
+   - Body: `{ rejectionReasonCode, rejectionNotes, requestId? }`
+   - Success `200 OK`: returns updated entries (now `DRAFT`) + new approval record OR lightweight response (needs clarification)
+
+## Error handling expectations
+- `400`: structured field errors (at least for `rejectionReasonCode`, `rejectionNotes`)
+- `403`: forbidden without relationship leakage
+- `404`: missing employee/timePeriod
+- `409`: conflict includes `blockingTimeEntryIds[]` when mixed statuses or concurrency detected
+- Idempotent retry: repeated approve/reject returns `200` with no duplicate side effects
+
+---
+
+# 10. State Model & Transitions
+
+## Allowed states
+### TimeEntry.status (line-level)
+- `DRAFT`
+- `SUBMITTED`
+- `PENDING_APPROVAL`
+- `APPROVED`
+
+### TimePeriod.status (gating)
+- `OPEN`
+- `SUBMISSION_CLOSED`
+- `PAYROLL_CLOSED`
+
+### TimePeriodApproval.finalStatus (history)
+- `APPROVED`
+- `REJECTED`
+
+## Role-based transitions
+- **Manager**:
+  - `PENDING_APPROVAL → APPROVED` (period-atomic)
+  - Reject action records `REJECTED` in history and sets entries back to `DRAFT` (period-atomic)
+- **Employee**: not in scope here (draft/submit transitions outside)
+
+## UI behavior per state
+- If any entries `APPROVED`: show read-only and disable decisions (since not all pending).
+- If period status `OPEN`: show entries (if any) but disable decisions due to gating.
+- If period status `PAYROLL_CLOSED`: decisions should be disabled (approval is already past; backend should enforce).
+
+---
+
+# 11. Alternate / Error Flows
+
+## Validation failures
+- Reject submit missing reason/notes:
+  - UI blocks submit with inline required errors
+  - If backend returns `400`, show returned field messages
+
+## Concurrency conflicts
+- Approve/reject returns `409` due to entry status change:
+  - Show banner “Time entries changed. Please refresh.”
+  - Offer **Refresh** action; after refresh recompute eligibility
+
+## Unauthorized access
+- If load endpoints return `403`:
+  - Show authorization error state
+  - Do not render employee list details beyond generic message
+
+## Empty states
+- No employees returned: show “No employees available for approval.”
+- No time entries for selection: show empty table state and disable decisions.
+- No history: show “No approval decisions recorded for this period.”
+
+---
+
+# 12. Acceptance Criteria
+
+## Scenario 1: Manager views pending entries for an employee and period
+**Given** I am authenticated as a Manager with `timekeeping:approve`  
+**And** I select an employee I am authorized to manage  
+**And** I select a time period  
+**When** the approvals view loads  
+**Then** I see all time entries for that `{employeeId,timePeriodId}`  
+**And** I see each entry’s status  
+**And** I see the period decision history (or an empty-state message)
+
+## Scenario 2: Approve period succeeds (atomic)
+**Given** all time entries for `{employeeId,timePeriodId}` are `PENDING_APPROVAL`  
+**And** the selected `TimePeriod.status` is `SUBMISSION_CLOSED` (or later but not beyond policy)  
+**When** I click “Approve Period” and confirm  
+**Then** the UI calls the approve endpoint once  
+**And** on success the UI refreshes and shows all entries as `APPROVED`  
+**And** the decision history shows a new record with `finalStatus=APPROVED` and my actor identity (as returned/displayed)
+
+## Scenario 3: Reject period requires reason (client-side)
+**Given** I have selected an eligible employee and pay period  
+**When** I click “Reject Period”  
+**Then** I must provide `rejectionReasonCode` and non-empty `rejectionNotes` before I can submit  
+**And** if I attempt to submit without them, I see field-level required messages
+
+## Scenario 4: Reject period succeeds (atomic, returns entries to draft)
+**Given** all time entries for `{employeeId,timePeriodId}` are `PENDING_APPROVAL`  
+**And** the `TimePeriod.status` is `SUBMISSION_CLOSED` (or later but allowed)  
+**When** I submit rejection with a reason code and notes  
+**Then** the UI calls the reject endpoint  
+**And** on success the UI refreshes and shows entries in `DRAFT`  
+**And** the decision history shows a new record with `finalStatus=REJECTED` including the reason metadata
+
+## Scenario 5: Mixed statuses prevent decision (conflict)
+**Given** at least one time entry in the period is not `PENDING_APPROVAL`  
+**When** I attempt to approve or reject  
+**Then** the UI prevents the action OR the API returns `409 Conflict`  
+**And** the UI displays a conflict message  
+**And** if blocking entry IDs are provided, they are shown to the user
+
+## Scenario 6: Unauthorized manager cannot decide
+**Given** I am authenticated but not authorized to approve time for the selected employee  
+**When** I attempt to load or decide on the period  
+**Then** the API returns `403 Forbidden`  
+**And** the UI shows a generic “Not authorized” message  
+**And** does not expose reporting relationship details
+
+---
+
+# 13. Audit & Observability
+
+## User-visible audit data
+- Display in history list (from `TimePeriodApproval`):
+  - `processedAt`
+  - `finalStatus`
+  - `approvingManagerId` rendered as name if provided by API (needs clarification)
+  - For rejection: reason code + notes
+
+## Status history
+- Period-level append-only history shown newest-first.
+- Entries table reflects current `TimeEntry.status` after actions.
+
+## Traceability expectations
+- Frontend includes a generated `requestId` for approve/reject (if supported) to aid idempotency and tracing.
+- Correlation ID propagated via standard headers if project conventions exist (needs clarification from repo).
+
+---
+
+# 14. Non-Functional UI Requirements
+- **Performance:** Initial load and selection change should feel responsive; show loading states for each fetch.
+- **Accessibility:** Reject dialog and tables must be keyboard navigable; validation errors announced to screen readers.
+- **Responsiveness:** Works on tablet; table supports horizontal scroll if needed.
+- **i18n/timezone:** Display datetimes in the user/location timezone as configured by the app (needs clarification on timezone source and formatting conventions).
+
+---
+
+# 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: Provide explicit empty-state messaging for no employees, no entries, no history; qualifies as UI ergonomics and does not affect domain policy. Impacted sections: UX Summary, Error Flows, Acceptance Criteria.
+- SD-UX-LOADING-STATES: Use standard loading indicators and disable action buttons during requests; qualifies as UI ergonomics. Impacted sections: Functional Behavior, Error Flows.
+- SD-ERR-MAP-HTTP: Map HTTP 400/403/404/409 to standardized banners and field errors; qualifies as standard error-handling mapping. Impacted sections: Business Rules, Service Contracts, Error Flows.
+
+---
+
+# 16. Open Questions
+1. **Backend contract specifics:** What are the exact endpoints (or Moqui services) for:
+   - listing manager-authorized employees,
+   - listing time periods,
+   - fetching time entries,
+   - fetching approval history,
+   - approve/reject actions?
+2. **Response payloads:** Do approve/reject endpoints return updated `TimeEntry` rows and `TimePeriodApproval` record(s), or should the frontend re-fetch after a `200`?
+3. **Rejection reason codes:** Is `rejectionReasonCode` a fixed enum/list endpoint-provided, or free text? If fixed, what is the source endpoint and display labels?
+4. **Identity display:** Should the UI display `approvingManagerId` as a human name? If so, does the history endpoint include manager display info, or is there a people lookup service?
+5. **Moqui frontend integration pattern:** In this repo, should Vue/Quasar call backend REST directly, or via Moqui screen actions/transitions that invoke services? Provide the preferred convention for this module.
+6. **Time period display fields:** Are pay period start/end dates available and required in the UI? If yes, confirm field names/types and timezone rules for rendering.
+
+---
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Timekeeping: Manager Approves/Rejects Time Entries — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/147
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Timekeeping: Manager Approves/Rejects Time Entries  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/147  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Timekeeping: Manager Approves/Rejects Time Entries
+
+**Domain**: user
+
+### Story Description
+
+/kiro  
+# User Story
+
+## Narrative  
+As a **Manager**, I want **to approve or reject time entries** so that **time is locked and ready for export and reconciliation**.
+
+## Details  
+- Reject requires reason.  
+- Approved becomes read-only except controlled adjustment.
+
+## Acceptance Criteria  
+- Approve/reject per person per period.  
+- Reason required on rejection.  
+- Audit trail includes actor and changes.
+
+## Integration Points (workexec/shopmgr)  
+- Optional: workexec uses approved job time for labor posting.
+
+## Data / Entities  
+- TimeEntryApproval
+
+## Classification (confirm labels)  
+- Type: Story  
+- Layer: Domain  
+- Domain: People Management
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript  
+- Use Quasar framework for UI components  
+- Integrate with Moqui Framework backend  
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API  
+- TypeScript 5.x  
+- Quasar v2.x  
+- Moqui Framework integration
+
+---  
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════════════════════════════
+ISSUE #148: [FRONTEND] [STORY] Timekeeping: Record Break Start/End  
+File: ./scripts/story-work/frontend/148/after.md
+════════════════════════════════════════════════════════════════
+
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## 1. Story Header
+
+**Title:** [FRONTEND] [STORY] Timekeeping: Record Break Start/End (Mechanic)
+
+**Primary Persona:** Mechanic (authenticated employee user)
+
+**Business Value:** Ensures mechanic timecards accurately reflect worked vs break time, improving payroll accuracy and compliance and reducing manager correction effort.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As a** Mechanic  
+- **I want** to start and end breaks during my workday (with a break type)  
+- **So that** my timecard reflects actual working time and breaks are properly audited
+
+### In-scope
+- Frontend UI to **start a break** (select required `breakType`, optional notes if needed)
+- Frontend UI to **end the current break**
+- Display of current break state (in progress vs none) and recent break entries for the day/timecard
+- Enforcement via UI + backend error handling for:
+  - no overlapping breaks
+  - cannot start/end break without active clock-in session
+  - cannot start when a break already in progress
+  - cannot end when no break is in progress
+- Basic audit visibility (e.g., created/updated timestamps, end reason if returned)
+
+### Out-of-scope
+- Clock-in / clock-out UI (assumed existing elsewhere)
+- Manager approval flows for time entries
+- Editing/deleting historical breaks
+- Cross-domain integrations (explicitly “none required initially” per provided inputs)
+- Payroll calculations
+
+---
+
+## 3. Actors & Stakeholders
+
+- **Mechanic (Primary):** starts/ends breaks.
+- **Shop Manager (Stakeholder):** consumes break data indirectly via timecard review/approvals (not implemented here).
+- **People domain services (System):** validates break rules and persists break TimeEntry/Break records.
+
+---
+
+## 4. Preconditions & Dependencies
+
+### Preconditions
+- User is authenticated.
+- User is a Mechanic (or otherwise permitted to record their own breaks).
+
+### Dependencies
+- Backend endpoints/services must exist to:
+  - Determine whether the mechanic is currently clocked in / has an active session/timecard.
+  - Start a break with `breakType`.
+  - End the current break.
+  - Query today’s breaks (or time entries of type BREAK) to show status/history.
+
+**Note:** Backend story reference (#84) defines behavior, but exact API/service names for Moqui are not provided in the frontend inputs; see Open Questions.
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- From the primary “Timekeeping” area available to mechanics (e.g., “My Day”, “Timecard”, or “Clock” screen).
+- Optional: a persistent action area in the mechanic home/dashboard showing break state.
+
+### Screens to create/modify
+- **Modify**: Mechanic timekeeping screen (existing) to add break controls and break list panel/section.
+- **Create (if missing)**: A focused sub-screen/dialog for “Start Break” (type selection + confirm).
+
+### Navigation context
+- Screen path should live under the mechanic’s timekeeping flow; implement as a Moqui screen with transitions to start/end actions and re-render on success.
+
+### User workflows
+**Happy path — Start break**
+1. Mechanic opens timekeeping screen.
+2. Sees “Start Break” action enabled when eligible.
+3. Chooses `breakType` and confirms.
+4. UI shows break now “In progress” with start time and “End Break” enabled.
+
+**Happy path — End break**
+1. Mechanic clicks “End Break”.
+2. UI confirms (optional) then submits.
+3. UI shows break completed and “Start Break” enabled again.
+
+**Alternate paths**
+- If not clocked in: break actions disabled and guidance shown.
+- If break already in progress: start action disabled; show current break details.
+- If backend rejects due to overlap or state mismatch: show error and refresh break status.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- User clicks **Start Break**
+- User clicks **End Break**
+
+### UI actions
+- **Start Break**
+  - Open a modal/form to select `breakType` (MEAL/REST/OTHER) and submit.
+  - On submit, call start-break service/endpoint.
+- **End Break**
+  - Call end-break service/endpoint for the current user’s active break.
+
+### State changes (frontend view model)
+- `breakStatus`: `NONE` | `IN_PROGRESS`
+- `activeBreak`: object (id, breakType, startTime, etc.) when in progress
+- `breaksToday[]`: list of break entries for display
+
+### Service interactions
+- On screen load: fetch “current timekeeping context” (clocked-in status and active break, plus today’s break list).
+- After start/end success: re-fetch current context (or apply response to state if response includes updated break).
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+- `breakType` is required to start a break.
+- For `breakType = OTHER`, backend reference suggests optional notes; **UI must not enforce notes** unless contract is confirmed (Open Question).
+
+### Enable/disable rules
+- **Start Break** enabled only when:
+  - user is clocked in / has active session
+  - no active break in progress
+- **End Break** enabled only when:
+  - user is clocked in / has active session (if backend requires)
+  - an active break is in progress
+
+### Visibility rules
+- When a break is in progress:
+  - Show active break summary (type, started at, elapsed time if available client-side).
+  - Hide/disable “Start Break”; show “End Break”.
+- When no break is in progress:
+  - Show “Start Break”.
+  - Show today’s completed breaks list (if any) with start/end times and type.
+
+### Error messaging expectations
+Frontend must map backend errors to user-friendly messages:
+- 400 validation: show specific field error (e.g., “Break type is required.”)
+- 409 conflict: show “A break is already in progress” or “Breaks cannot overlap” depending on error code/message
+- 403 forbidden: “You don’t have permission to record breaks.”
+- 404/422 state mismatch: “No active break to end.” (if backend uses these; Open Question)
+- Network/500: generic “Unable to record break right now. Try again.”
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend perspective)
+- **TimeEntry (break)** (from provided inputs)
+- Backend reference indicates a **Break** entity; frontend should treat it as a break-time entry record regardless of underlying entity.
+
+### Fields
+Minimum fields needed for UI:
+- `breakId` (string/UUID) — read-only
+- `breakType` (enum: `MEAL` | `REST` | `OTHER`) — required on start; read-only after create
+- `status` (`IN_PROGRESS` | `COMPLETED`) — read-only
+- `startTime` (timestamp) — read-only
+- `endTime` (timestamp|null) — read-only
+- `endReason` (`MANUAL_ENDED` | `AUTO_ENDED_AT_CLOCKOUT` | null) — read-only (display if present)
+- `notes` (string|null) — editable only at start time *if supported*
+- `createdAt`, `updatedAt`, `createdBy`, `updatedBy` — read-only (audit display optional)
+
+### Read-only vs editable by state/role
+- Mechanic can only:
+  - create a break (start) with `breakType` (+ optional notes)
+  - end the active break
+- Mechanic cannot edit completed breaks or timestamps via UI.
+
+### Derived/calculated fields
+- `elapsedSeconds` for active break: computed client-side from `startTime` and current time for display only (not persisted).
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Moqui implementation may use screen transitions calling services. Exact service names/endpoints are **TBD** pending backend contract alignment.
+
+### Load/view calls
+- **Get current timekeeping state**
+  - Returns: `isClockedIn`, `activeBreak` (nullable), `breaksToday[]`
+  - Used on initial screen render and after mutations.
+
+### Create/update calls
+- **Start break**
+  - Request: `{ breakType, notes? }`
+  - Response: created `break` (recommended) or success flag
+- **End break**
+  - Request: `{ activeBreakId? }` (prefer server-derived by current user; Open Question)
+  - Response: updated break or success flag
+
+### Submit/transition calls (Moqui screens)
+- `transition name="startBreak"` → calls service `…StartBreak` and then redirects back with message
+- `transition name="endBreak"` → calls service `…EndBreak` and then redirects back with message
+
+### Error handling expectations
+- Support structured errors that include:
+  - `errorCode` (e.g., `BREAK_ALREADY_IN_PROGRESS`, `NOT_CLOCKED_IN`, `NO_ACTIVE_BREAK`, `OVERLAPPING_BREAK`)
+  - `message`
+  - `fieldErrors` (for `breakType`)
+If backend does not provide codes, UI falls back to parsing message + HTTP status.
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states (break)
+- `IN_PROGRESS`
+- `COMPLETED`
+
+### Role-based transitions
+- Mechanic:
+  - `NONE` → `IN_PROGRESS` via Start Break
+  - `IN_PROGRESS` → `COMPLETED` via End Break
+- System:
+  - `IN_PROGRESS` → `COMPLETED` via auto-end at clock-out (display-only impact; no UI action here)
+
+### UI behavior per state
+- `IN_PROGRESS`: show “End Break”, show active break details; prevent new start.
+- `COMPLETED`/none active: show “Start Break”; show list/history.
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Missing `breakType` → inline error on selection field; prevent submit.
+- Invalid enum returned/unsupported → show generic error and log.
+
+### Concurrency conflicts
+- Mechanic attempts Start Break but another terminal/session already started one:
+  - Backend returns 409; UI shows conflict message and refreshes context.
+- Mechanic attempts End Break but it was already auto-ended or ended elsewhere:
+  - Backend returns state mismatch; UI shows “No active break” and refreshes context.
+
+### Unauthorized access
+- Backend returns 403:
+  - UI shows permission error and disables break controls.
+
+### Empty states
+- No breaks today:
+  - Show “No breaks recorded today.”
+
+---
+
+## 12. Acceptance Criteria
+
+### Scenario 1: Start break successfully
+**Given** I am authenticated as a Mechanic  
+**And** I am clocked in with an active session/timecard  
+**And** I have no break currently in progress  
+**When** I choose `breakType = MEAL` and submit “Start Break”  
+**Then** the UI shows a success confirmation  
+**And** the UI shows an active break in progress with start time  
+**And** the “Start Break” action is disabled and “End Break” is enabled
+
+### Scenario 2: End break successfully
+**Given** I am authenticated as a Mechanic  
+**And** I am clocked in  
+**And** I have a break in progress  
+**When** I click “End Break”  
+**Then** the UI shows a success confirmation  
+**And** the active break is no longer in progress  
+**And** the completed break appears in today’s break list with an end time
+
+### Scenario 3: Prevent overlapping / duplicate start
+**Given** I am authenticated as a Mechanic  
+**And** I have a break in progress  
+**When** I attempt to start another break  
+**Then** the UI prevents the action (button disabled) **or** the backend rejects it  
+**And** if rejected, the UI displays “A break is already in progress.”  
+**And** no additional break is shown as created
+
+### Scenario 4: Require break type on start
+**Given** I am authenticated as a Mechanic  
+**And** I am clocked in  
+**When** I open “Start Break” and submit without selecting a break type  
+**Then** the UI shows an inline validation error indicating break type is required  
+**And** no start-break request is sent
+
+### Scenario 5: Cannot start break when not clocked in
+**Given** I am authenticated as a Mechanic  
+**And** I am not clocked in (no active session)  
+**When** I view the timekeeping screen  
+**Then** the “Start Break” control is disabled  
+**And** the UI explains I must be clocked in to start a break  
+**And** if I still attempt via direct route/action, the backend error is displayed and no break is created
+
+### Scenario 6: Cannot end break when none is active
+**Given** I am authenticated as a Mechanic  
+**And** I have no active break  
+**When** I attempt to end a break  
+**Then** the UI disables “End Break”  
+**And** if the backend responds with “No active break to end”, the UI displays that message and refreshes
+
+### Scenario 7: Audit visibility (frontend)
+**Given** I have recorded breaks today  
+**When** I view the break list  
+**Then** each entry shows at minimum break type, start time, and end time (if completed)  
+**And** if the backend returns `endReason`, it is displayed for completed breaks
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- Display timestamps for break start/end.
+- Display `endReason` when provided (manual vs auto-ended).
+
+### Status history
+- The break list for the day functions as the status history view.
+- No editing; list is append-only from the mechanic’s perspective.
+
+### Traceability expectations
+- All start/end actions must include correlation/request IDs in network logs (frontend console/logger) and pass through to Moqui via headers if supported by project conventions (Open Question if standardized).
+
+---
+
+## 14. Non-Functional UI Requirements
+
+- **Performance:** Initial load of timekeeping screen (including break state) should complete within 2s on typical store network; subsequent start/end actions should update UI within 500ms after response.
+- **Accessibility:** All controls keyboard accessible; modal has focus trap; labels for break type selection; error text announced via ARIA live region if supported by Quasar patterns.
+- **Responsiveness:** Works on POS terminal resolutions and tablet sizes; actions remain reachable without horizontal scrolling.
+- **i18n/timezone:** Display times in the location/user timezone consistent with the rest of the POS UI (Open Question if app standard is set); store values as server timestamps.
+
+---
+
+## 15. Applied Safe Defaults
+
+- **SD-UX-EMPTY-STATE**
+  - **Assumed:** Show “No breaks recorded today” when list is empty.
+  - **Why safe:** Pure UI ergonomics; does not change domain behavior.
+  - **Impacted sections:** UX Summary, Alternate / Error Flows, Acceptance Criteria.
+- **SD-ERR-HTTP-STATUS-MAP**
+  - **Assumed:** Standard mapping of 400/403/409/500 to inline vs toast errors with refresh-on-conflict.
+  - **Why safe:** Error presentation only; respects backend as source of truth.
+  - **Impacted sections:** Business Rules, Service Contracts, Alternate / Error Flows.
+
+---
+
+## 16. Open Questions
+
+1. **Backend contract (blocking):** What are the exact Moqui service names / REST endpoints and payloads for:
+   - loading current clock-in/break context
+   - starting a break
+   - ending a break
+   Include status codes and error codes.
+2. **Scope (blocking):** Is a break tied to a **Timecard**, **ClockInSession**, or generic **TimeEntry** in the frontend API? Which identifier(s) must the UI pass (if any), or is it fully derived from the authenticated user?
+3. **Notes requirement (blocking):** For `breakType = OTHER`, is `notes` required, optional, or unsupported?
+4. **Timezone standard (blocking):** What timezone should the UI use for displaying break times (user profile timezone vs location timezone vs device)?
+5. **Last-used break type default (non-blocking but important):** Should the UI default `breakType` to last-used (as in backend reference) and if so, does the backend provide last-used, or should the frontend infer from the most recent break?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Timekeeping: Record Break Start/End  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/148  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Timekeeping: Record Break Start/End
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As a **Mechanic**, I want **to record breaks** so that **my timecard reflects actual working time**.
+
+## Details
+- Break segments attached to day/timecard.
+- Prevent overlapping breaks.
+
+## Acceptance Criteria
+- Break start/end supported.
+- No overlapping breaks.
+- Audited.
+
+## Integration Points (workexec/shopmgr)
+- None required initially.
+
+## Data / Entities
+- TimeEntry (break)
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════════════════════════════
+ISSUE #150: [FRONTEND] [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/150
+File: ./scripts/story-work/frontend/150/after.md
+════════════════════════════════════════════════════════════════
+
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## 1. Story Header
+
+### Title
+[FRONTEND] [STORY] People: Assign Person to Location with Primary Flag and Effective Dates
+
+### Primary Persona
+Manager (people/location administrator)
+
+### Business Value
+Ensures accurate, effective-dated employee-to-location eligibility so downstream systems (workexec/shopmgr) can build rosters and enforce staffing eligibility based on a single source of truth.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+**As a** Manager,  
+**I want** to assign an employee (Person) to one or more Locations with effective dates and a primary designation,  
+**so that** operations can reliably determine where the employee is eligible to work and which location is primary at any point in time.
+
+### In-scope
+- Moqui frontend screens to:
+  - View a Person’s location assignments (active + historical).
+  - Create a new `PersonLocationAssignment` (with effective dates and primary flag).
+  - Update an existing assignment (effective dates and primary flag, plus optional reason code if supported).
+  - End an assignment via setting `effectiveEndAt` (no hard delete).
+- UI validation and clear error handling for:
+  - Effective date validity.
+  - Overlap conflicts.
+  - Primary assignment rule feedback (including automatic demotion behavior as reported by backend).
+- Audit visibility (read-only) of assignment change metadata where exposed (created/updated by/at; version).
+
+### Out-of-scope
+- Defining/altering permission matrices or authentication behavior.
+- Implementing backend event emission, saga retries, or downstream integration logic.
+- Location creation/management.
+- Person/employee profile creation/updates beyond selecting an existing Person.
+
+---
+
+## 3. Actors & Stakeholders
+- **Manager (Actor):** Creates/updates/ends assignments for employees.
+- **Employee/Technician (Subject):** The Person being assigned.
+- **Workexec / Shopmgr (Stakeholders):** Consume assignment data; not directly interacted with via UI in this story.
+- **Auditor/HR Admin (Stakeholder):** Needs traceability of changes (audit metadata).
+
+---
+
+## 4. Preconditions & Dependencies
+- User is authenticated.
+- User has permission to manage person location assignments (exact permission string TBD; see Open Questions).
+- Person exists and is selectable/viewable in frontend.
+- Location list is available for selection (source endpoint/screen TBD).
+- Backend provides APIs/services to:
+  - Query assignments by person.
+  - Create assignment.
+  - Update assignment / end assignment.
+  - Enforce overlap + primary constraints and return actionable errors.
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- From People/Employees list: select a Person → “Location Assignments” section/tab.
+- Direct route (deep link): `/people/person/{personId}/locations` (route naming TBD to match repo conventions).
+
+### Screens to create/modify
+1. **Modify existing Person detail screen** (or create if missing):
+   - Add a “Location Assignments” subsection with an embedded list and actions.
+2. **Add/edit assignment dialog/screen**:
+   - Used for create and update flows (same form, mode-driven).
+3. **End assignment confirmation dialog**:
+   - Sets `effectiveEndAt` rather than deleting.
+
+### Navigation context
+- Breadcrumb: People → Person → Location Assignments
+- Back navigation returns to Person detail.
+
+### User workflows
+**Happy path (Create primary assignment)**
+1. Manager opens Person → Location Assignments.
+2. Clicks “Add Assignment”.
+3. Selects Location, enters Role (if required by backend), sets `isPrimary=true`, sets `effectiveStartAt`, optional `effectiveEndAt`.
+4. Saves; UI refreshes list, showing new assignment as active/primary.
+5. If backend demoted an existing primary, UI reflects updated previous assignment end date/primary status after refresh.
+
+**Alternate path (Create non-primary secondary assignment)**
+- Same as above but `isPrimary=false`; primary remains unchanged.
+
+**Alternate path (End assignment)**
+- Manager selects an active assignment → “End Assignment”.
+- Provides end timestamp (default now) and confirms.
+- Assignment shows ended/inactive.
+
+**Alternate path (Update dates / toggle primary)**
+- Manager opens existing assignment → edit → adjusts effective dates or primary flag → save.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- Entering Location Assignments view triggers load of person + assignments.
+- Clicking add/edit/end triggers corresponding form actions and service calls.
+
+### UI actions
+- List actions:
+  - “Add Assignment”
+  - “Edit” (for assignments that are not immutable per backend policy; see Open Questions)
+  - “End” (sets end date)
+  - Filter toggles: Active only / Include historical
+- Form fields (minimum):
+  - Location (required)
+  - Effective start (required)
+  - Effective end (optional)
+  - Primary checkbox (required boolean)
+  - Role (string) **only if required by backend contract** (currently ambiguous; see Open Questions)
+  - Change reason code (optional) **only if backend supports** (ambiguous)
+
+### State changes (frontend)
+- Local form state transitions: pristine → editing → submitting → success/error.
+- On success: invalidate/reload assignment list; show toast/banner “Assignment saved”.
+- On conflict/validation error: show inline field errors and/or a banner.
+
+### Service interactions
+- Load:
+  - Get person summary (name, status) for header/context.
+  - Get assignments for personId with optional filters (active/historical).
+- Mutations:
+  - Create assignment.
+  - Update assignment OR end assignment (update with `effectiveEndAt`) depending on backend.
+- Concurrency:
+  - If optimistic locking/version is required, include `version` on update; handle 409 conflict.
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+- `locationId` required.
+- `effectiveStartAt` required, must be valid ISO-8601 timestamp input.
+- If `effectiveEndAt` provided: must be ≥ `effectiveStartAt`.
+- If backend enforces no overlap for `(personId, locationId, role)`:
+  - On save, handle 409/400 with message “Overlapping assignment exists for this person/location/role during the selected dates.”
+- If backend enforces single primary at a time:
+  - UI allows selecting primary, but must warn that setting primary may demote another primary (do not compute demotion in UI; backend is SoR).
+  - On save success, UI reloads and shows the resulting primary assignment(s).
+
+### Enable/disable rules
+- Disable Save while submitting or when required fields missing.
+- Disable “End” action for already-ended assignments.
+- If backend disallows editing past assignments, UI must hide/disable “Edit” for ended assignments after learning rule (see Open Questions).
+
+### Visibility rules
+- Active assignments shown by default; historical expandable/toggle.
+- Primary indicator shown in list (e.g., “Primary” badge/column).
+
+### Error messaging expectations
+- 400 validation errors: show field-level errors where possible; otherwise show banner with backend message.
+- 403: show “You do not have permission to manage location assignments.”
+- 404 (person not found): show not-found empty state and navigation back.
+- 409 overlap or version conflict: show conflict banner with recommended next step (“Refresh and try again”).
+
+---
+
+## 8. Data Requirements
+
+### Entities involved
+- `Person` (read-only context)
+- `Location` (for selection/display)
+- `PersonLocationAssignment` (create/update/query)
+
+### Fields (type, required, defaults)
+**PersonLocationAssignment (frontend view model)**
+- `assignmentId` (UUID, read-only)
+- `personId` (UUID, required; from route/context)
+- `locationId` (UUID, required, editable)
+- `role` (string, required?) **TBD**
+- `isPrimary` (boolean, required, editable; default false)
+- `effectiveStartAt` (timestamp/ISO-8601 UTC, required, editable; default now in UI only)
+- `effectiveEndAt` (timestamp/ISO-8601 UTC, optional, editable)
+- `changeReasonCode` (string, optional, editable if supported)
+- `version` (integer, read-only on create; required on update if backend uses optimistic locking)
+- `createdAt/createdBy/updatedAt/updatedBy` (read-only display if provided)
+
+### Read-only vs editable by state/role
+- By default (until clarified):
+  - Active assignments: editable dates and primary flag; ending allowed.
+  - Ended assignments: read-only (no edit), but viewable.
+- Role-based editability is permission-gated; exact permissions TBD.
+
+### Derived/calculated fields
+- `isActive` derived in UI for display: based on `effectiveStartAt`, `effectiveEndAt`, and current time (display only; backend remains authoritative).
+- “Primary at time range” is not computed beyond display of `isPrimary` on returned records.
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Note: Backend contract endpoints/services are not provided in the frontend issue; Moqui may expose these as REST, JSON-RPC, or service calls. This story requires confirmation of exact service names/paths.
+
+### Load/view calls
+- `GET /people/person/{personId}` (or Moqui screen/service) → person summary.
+- `GET /people/person/{personId}/location-assignments?activeOnly=true|false` → list assignments.
+- `GET /locations?status=ACTIVE` → location picker dataset.
+
+### Create/update calls
+- Create:
+  - `POST /people/person/{personId}/location-assignments`
+  - Body: `locationId, role?, isPrimary, effectiveStartAt, effectiveEndAt?, changeReasonCode?`
+- Update:
+  - `PUT /people/location-assignments/{assignmentId}` (or POST action)
+  - Body includes fields being updated + `version` if required.
+
+### Submit/transition calls
+- End assignment:
+  - Either a dedicated action `POST /people/location-assignments/{assignmentId}/end` with `effectiveEndAt`
+  - Or standard update with `effectiveEndAt` set.
+
+### Error handling expectations
+- `400` invalid timestamps/required fields → display inline errors.
+- `403` permission denied → show blocking banner, disable mutation actions.
+- `404` not found → show not found state.
+- `409` overlap or optimistic locking conflict → show conflict banner; prompt refresh.
+- Network/timeouts → show retry UI state.
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states (derived from dates)
+Assignments are treated as:
+- **Scheduled**: `effectiveStartAt` in the future
+- **Active**: `effectiveStartAt <= now` and (`effectiveEndAt` is null or `now < effectiveEndAt` per backend rule; backend story contains an inconsistency about inclusive end; see Open Questions)
+- **Ended/Historical**: `effectiveEndAt` in the past
+
+### Role-based transitions
+- Manager (with proper permission) can:
+  - Create scheduled/active assignments.
+  - End active assignments (set end timestamp).
+  - Potentially edit assignments (TBD based on immutability rules).
+- Unauthorized users:
+  - View may be allowed or denied (TBD); mutations denied.
+
+### UI behavior per state
+- Scheduled: show as upcoming; allow edit/end (end means set end before start? should be prevented; validate end >= start).
+- Active: show as active; allow end.
+- Ended: read-only, no end/edit.
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Missing required fields → inline errors, no submit.
+- End before start → inline error on end date.
+- Invalid timestamp format → inline error.
+
+### Concurrency conflicts
+- If backend returns 409 with version mismatch:
+  - UI shows “This assignment was updated by another user. Refresh to see latest.”
+  - Provide “Refresh” button to reload list and reopen edit if needed.
+
+### Unauthorized access
+- If load call returns 403: show “Not authorized” page/state; hide assignments data.
+- If mutation returns 403: show banner; keep view mode.
+
+### Empty states
+- No assignments:
+  - Show “No location assignments yet” with CTA “Add Assignment” (if authorized).
+- No locations available for picker:
+  - Show error/empty “No active locations available” and block save.
+
+---
+
+## 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: View a person’s assignments (empty)
+**Given** I am a Manager with permission to view location assignments  
+**And** a Person exists with no `PersonLocationAssignment` records  
+**When** I open the Person’s “Location Assignments” view  
+**Then** I see an empty state indicating no assignments exist  
+**And** I see an “Add Assignment” action available
+
+### Scenario 2: Create first primary assignment
+**Given** I am a Manager with permission to manage location assignments  
+**And** a Person exists with no current assignments  
+**When** I create a new assignment with a valid `locationId`, valid `effectiveStartAt`, and `isPrimary=true`  
+**Then** the system saves successfully  
+**And** the assignment list refreshes showing the new assignment marked as Primary
+
+### Scenario 3: Create secondary (non-primary) assignment
+**Given** I am a Manager with permission to manage location assignments  
+**And** a Person has an existing active primary assignment  
+**When** I create a second assignment to a different location with `isPrimary=false` and valid dates  
+**Then** the system saves successfully  
+**And** the list shows both assignments  
+**And** the original assignment remains marked as Primary
+
+### Scenario 4: Create new primary triggers backend demotion and UI reflects result
+**Given** I am a Manager with permission to manage location assignments  
+**And** a Person has an existing active primary assignment at Location A  
+**When** I create a new assignment at Location B with `isPrimary=true` and a later `effectiveStartAt`  
+**Then** the system saves successfully  
+**And** after refresh, the list shows Location B assignment as Primary  
+**And** the previously primary assignment is no longer primary and/or has an adjusted end date as returned by backend
+
+### Scenario 5: Overlapping assignment rejected
+**Given** I am a Manager with permission to manage location assignments  
+**And** a Person has an assignment to Location A for role X during a given date range  
+**When** I attempt to create another assignment for the same Location A and role X whose effective dates overlap  
+**Then** the system rejects the save with a conflict/validation error  
+**And** I see an error message indicating overlapping assignments are not allowed  
+**And** no new assignment appears in the list
+
+### Scenario 6: End an assignment
+**Given** I am a Manager with permission to manage location assignments  
+**And** a Person has an active assignment  
+**When** I end the assignment by setting `effectiveEndAt` to now (or a selected timestamp)  
+**Then** the system saves successfully  
+**And** the assignment is shown as ended/historical and is no longer shown in “Active only” view
+
+### Scenario 7: Permission denied on mutation
+**Given** I am authenticated but do not have permission to manage location assignments  
+**When** I attempt to create, edit, or end an assignment  
+**Then** the system denies the action with a 403 response  
+**And** the UI displays a permission error message  
+**And** no changes are applied
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- For each assignment (if provided by backend): display `createdAt`, `createdBy`, `updatedAt`, `updatedBy`, and `version` in a details panel or row expansion.
+
+### Status history
+- Show effective date range history per assignment; allow toggle to include historical.
+
+### Traceability expectations
+- Frontend must pass correlation/request ID headers if supported by existing frontend HTTP client conventions (TBD by repo).
+- On save/end, log client-side info (non-PII): personId, assignmentId, outcome, HTTP status.
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** Assignment list load should render within 1s for up to 200 assignments (paging if more).
+- **Accessibility:** All form inputs labeled; keyboard navigable dialogs; error messages announced to screen readers.
+- **Responsiveness:** Usable on tablet widths; list wraps appropriately.
+- **i18n/timezone:** Display timestamps in the user’s local timezone but submit in ISO-8601 UTC as required by backend; clarify inclusive/exclusive end behavior (see Open Questions).
+
+---
+
+## 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: Provide a standard empty-state message + primary CTA when assignment list is empty; qualifies as safe UI ergonomics. Impacted sections: UX Summary, Acceptance Criteria.
+- SD-UX-PAGING-FILTER: Default “Active only” filter with option to include historical; paging for large lists; safe because it doesn’t change domain logic. Impacted sections: UX Summary, Alternate/Empty states.
+- SD-ERR-MAP-HTTP: Standard mapping of HTTP 400/403/404/409 to inline/banners and retry prompts; safe because it’s generic error handling. Impacted sections: Business Rules, Error Flows, Acceptance Criteria.
+
+---
+
+## 16. Open Questions
+1. **Backend contract (blocking):** What are the exact Moqui service names or REST endpoints for:
+   - listing assignments by person,
+   - creating an assignment,
+   - updating an assignment,
+   - ending an assignment,
+   - listing locations for selection?
+2. **Role field (blocking):** Is `role` required for `PersonLocationAssignment` in the frontend? If yes, what are the allowed values (enum) and how is it selected (free text vs picker)?
+3. **Primary uniqueness scope (blocking):** Is “exactly one primary” enforced per **person overall**, or per **person+role** (backend reference mentions `(personId, role)` in demotion logic)? UI needs to know how to message and how to filter/display primaries.
+4. **Effective end inclusivity (blocking):** Backend text states `effectiveEndAt` is “inclusive” but also defines active as `now < effectiveEndAt`. Which is authoritative for display calculations and messaging?
+5. **Editability/immutability (blocking):** Are assignments editable after creation, or must changes be made by ending and creating a new assignment (as with RoleAssignments)? If editable, which fields are editable?
+6. **Permissions (blocking):** What permission(s) gate view vs manage actions for location assignments in this frontend?
+7. **Change reason code (non-blocking unless required):** Is `changeReasonCode` required/available in UI for create/update/end? If yes, what are valid codes and where do we fetch them?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/150
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/150  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates
+
+**Domain**: user
+
+### Story Description
+
+/kiro  
+# User Story
+
+## Narrative  
+As a **Manager**, I want **to assign employees to one or more locations with a primary designation** so that **workexec and shopmgr can enforce correct staffing eligibility**.
+
+## Details  
+- Multiple active assignments allowed; exactly one primary.  
+- Effective-dated assignments.
+
+## Acceptance Criteria  
+- Can assign/unassign person to locations.  
+- Primary location enforced.  
+- Assignment changes are audited and emitted.
+
+## Integration Points (workexec/shopmgr)  
+- workexec eligible technician list constrained by assignment.  
+- shopmgr roster uses the same assignment source.
+
+## Data / Entities  
+- PersonLocationAssignment
+
+## Classification (confirm labels)  
+- Type: Story  
+- Layer: Domain  
+- Domain: People Management
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript  
+- Use Quasar framework for UI components  
+- Integrate with Moqui Framework backend  
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API  
+- TypeScript 5.x  
+- Quasar v2.x  
+- Moqui Framework integration
+
+---  
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+END FRONTEND STORY (FULL CONTEXT)
+
+════════════════════════════════════════════════════════════════
+ISSUE #152: [FRONTEND] [STORY] Users: Create/Update Employee Profile (pos-people) — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/152
+File: ./scripts/story-work/frontend/152/after.md
+════════════════════════════════════════════════════════════════
+
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## 1. Story Header
+
+### Title
+[FRONTEND] [STORY] People: Create/Update Employee Profile (pos-people)
+
+### Primary Persona
+HR Administrator (HR user)
+
+### Business Value
+Maintain accurate employee profiles (identity, status, contact info) for operational directory use and downstream consistency in work execution and shop management, with auditability and duplicate detection feedback.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+**As an** HR Administrator,  
+**I want** to create and update employee profiles from the POS frontend,  
+**so that** employee identity and employment status are accurate, auditable, and available to downstream systems.
+
+### In-scope
+- Moqui/Vue/Quasar frontend screens to:
+  - Create a new Employee Profile
+  - Edit an existing Employee Profile
+  - View duplicate warnings and conflict errors
+  - Display audit metadata (created/updated timestamps; actor if available)
+- Field-level validation aligned to People domain rules (required fields, date rules, enum constraints)
+- Handling of backend responses: 201/200 success, 400 validation, 403 forbidden, 404 not found, 409 conflict, warnings payload
+
+### Out-of-scope
+- Role assignment, user disable/termination workflows, location assignments
+- Time entry approval, breaks, scheduling/dispatch
+- Implementing downstream consumers (workexec/shopmgr); only ensure data is captured consistently
+- Defining backend entities/services beyond calling existing endpoints/contracts
+
+---
+
+## 3. Actors & Stakeholders
+- **HR Administrator (primary actor):** creates/updates employee profiles.
+- **Store/Operations Managers (stakeholder):** consume accurate employee status/name in rosters (indirect).
+- **Downstream systems (stakeholders):** workexec, shopmgr consume employee identity/status.
+- **Audit/Compliance (stakeholder):** expects traceability of changes.
+
+---
+
+## 4. Preconditions & Dependencies
+- User is authenticated in the POS frontend.
+- User is authorized for employee profile operations:
+  - Create requires `people.employee.create`
+  - Update requires `people.employee.update`
+- Backend provides API endpoints (or Moqui services) consistent with backend story reference:
+  - `POST /employees` create
+  - `PUT /employees/{employeeId}` update
+  - A “get employee” endpoint for edit screen prefill (not specified in inputs; see Open Questions)
+- Backend returns:
+  - `409 Conflict` on high-confidence duplicates
+  - `warnings[]` payload on ambiguous duplicates (soft warning)
+  - Audit fields (createdAt, updatedAt) in response
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Main navigation: People / Employees (exact menu placement TBD)
+- “Create Employee” button from Employees list (list screen itself is not required by this story but may exist; see Open Questions)
+- “Edit” action from an employee view/edit context (e.g., list row action or direct URL)
+
+### Screens to create/modify
+- **New screen**: `apps/pos-people/screen/EmployeeProfileEdit.xml` (create + edit unified)
+  - Mode determined by presence of `employeeId` parameter
+- **(Optional, if missing)**: minimal `EmployeeProfileView.xml` read-only view (only if needed to satisfy navigation; otherwise edit screen can display read-only fields as needed)
+
+### Navigation context
+- URL patterns (Moqui screen paths; exact root depends on repo conventions):
+  - Create: `/pos-people/employee/create`
+  - Edit: `/pos-people/employee/:employeeId/edit`
+- Breadcrumb: People > Employee > (Create | Edit)
+
+### User workflows
+**Happy path (Create)**
+1. HR opens Create Employee.
+2. Enters required fields + optional contact info.
+3. Clicks Save.
+4. UI shows success message and stays on edit screen with new `employeeId` (or routes to view/edit).
+
+**Happy path (Update)**
+1. HR opens Edit for existing employee.
+2. Updates allowed fields.
+3. Clicks Save.
+4. UI shows success message; updated timestamps refresh.
+
+**Alternate path (Soft duplicate warning)**
+- Save succeeds but backend returns `warnings[]`; UI displays non-blocking warning panel and retains saved state.
+
+**Alternate path (Hard duplicate conflict)**
+- Save fails with 409; UI shows blocking banner with conflict details and highlights relevant fields.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- Screen load:
+  - If `employeeId` present: load employee profile for edit.
+  - If absent: initialize empty form with defaults.
+- User action: Save (create/update).
+
+### UI actions
+- Form fields editable per rules (see Data Requirements).
+- Save button:
+  - Disabled while request in-flight.
+  - On click: validate client-side; if valid, call backend.
+- Cancel button:
+  - Navigates back to previous screen or employee list (TBD) without saving; warns on unsaved changes (safe UI default).
+
+### State changes (frontend)
+- `formState`: pristine/dirty tracking
+- `saveState`: idle/loading/success/error
+- `warningsState`: none | present (from backend)
+- On create success: route updates to include new `employeeId`.
+
+### Service interactions (Moqui)
+- Load:
+  - Call a service or REST endpoint to fetch employee profile by `employeeId`.
+- Save:
+  - If create: call create endpoint/service with payload
+  - If update: call update endpoint/service with payload
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+Client-side validations (must mirror backend; backend remains authoritative):
+- Required on create (and required to remain present on update):
+  - `legalName` (non-empty)
+  - `employeeNumber` (non-empty)
+  - `status` (must be one of `ACTIVE | ON_LEAVE | SUSPENDED | TERMINATED`)
+  - `hireDate` (valid date)
+- Date rule:
+  - If `terminationDate` provided, must be **>=** `hireDate`
+- Email normalization expectation:
+  - UI should trim whitespace; convert to lowercase before submit (safe, reversible normalization)
+- Phone normalization expectation:
+  - UI should trim whitespace; do not guess E.164 formatting rules beyond stripping spaces/dashes unless backend provides helper/formatter (see Open Questions)
+
+### Enable/disable rules
+- Save disabled when:
+  - Required fields missing/invalid
+  - Request in-flight
+- Termination date field:
+  - Enabled always, but validated against hire date
+- Status change:
+  - Always editable by authorized HR user (no additional lifecycle restrictions were provided)
+
+### Visibility rules
+- Show warning panel if backend returns `warnings[]` (soft duplicate).
+- Show field-level errors when backend returns 400 with validation details.
+- Show blocking banner on 409 duplicate conflict.
+- Show read-only audit fields when available: createdAt, updatedAt (and createdBy/updatedBy if returned).
+
+### Error messaging expectations
+- 400: “Please correct highlighted fields.” + per-field messages.
+- 409: “Possible duplicate detected. Cannot save with duplicate employee number/email/phone.” (Use backend-provided message if present.)
+- 403: “You don’t have permission to manage employee profiles.”
+- 404 (edit load): “Employee not found.”
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend-facing)
+- **EmployeeProfile** (authoritative in People domain; may map to `Person` + profile internally, but UI treats it as Employee Profile)
+
+### Fields (type, required, defaults)
+**EmployeeProfile**
+- `employeeId`: UUID/string (read-only; required for edit mode)
+- `legalName`: string (required)
+- `preferredName`: string (optional)
+- `employeeNumber`: string (required; unique)
+- `status`: enum (required; default on create TBD—see Open Questions)
+- `hireDate`: date (required)
+- `terminationDate`: date (optional; must be >= hireDate)
+- `contactInfo.primaryEmail`: string/email (optional; unique if provided; UI lowercases)
+- `contactInfo.primaryPhone`: string (optional; unique if provided)
+- `contactInfo.secondaryEmail`: string/email (optional; UI lowercases)
+- `contactInfo.secondaryPhone`: string (optional)
+- `contactInfo.address.*`: strings (optional)
+- `contactInfo.emergencyContact.*`: strings (optional)
+- `createdAt`: timestamp (read-only; display if provided)
+- `updatedAt`: timestamp (read-only; display if provided)
+
+### Read-only vs editable by state/role
+- By role:
+  - Only users with `people.employee.create` can access create route and submit create.
+  - Only users with `people.employee.update` can access edit route and submit update.
+- By status:
+  - No additional UI restrictions provided for editing TERMINATED employees; must not assume policy. (Open Question)
+
+### Derived/calculated fields
+- None required on frontend.
+- Optional display-only “Display Name” = preferredName if present else legalName (safe UI convenience; does not persist).
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Backend reference mentions REST-style endpoints. Moqui frontend may call via XHR to backend REST or via Moqui services; exact integration mechanism depends on repo conventions (Open Question). Below is the required contract behavior.
+
+### Load/view calls
+- **Get Employee Profile**
+  - `GET /employees/{employeeId}` (or Moqui service `people.EmployeeProfile.get`)
+  - Success: 200 with EmployeeProfile payload (fields above)
+  - Errors: 403/404
+
+### Create/update calls
+- **Create**
+  - `POST /employees`
+  - Request body: EmployeeProfile fields excluding `employeeId`, `createdAt`, `updatedAt`
+  - Response: 201 with created profile
+  - May include `warnings: [{ code, matches? }]`
+  - Errors: 400, 403, 409
+- **Update**
+  - `PUT /employees/{employeeId}`
+  - Request body: full modifiable profile fields
+  - Response: 200 with updated profile
+  - May include `warnings[]`
+  - Errors: 400, 403, 404, 409
+
+### Submit/transition calls
+- None (no lifecycle transition endpoints beyond update were provided)
+
+### Error handling expectations
+- 400 returns structured field errors (format TBD; UI must handle both:
+  - Moqui `errorInfo`/`errors` patterns, and/or
+  - REST validation error arrays)
+- 409 includes:
+  - message
+  - optional `possibleDuplicatePersonId` only if authorized (UI should not require it)
+- Warnings are non-blocking and must be displayed after save.
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states (EmployeeProfile.status)
+- `ACTIVE`
+- `ON_LEAVE`
+- `SUSPENDED`
+- `TERMINATED`
+
+### Role-based transitions
+- Not defined beyond “HR can create/update”.
+- UI must allow selecting any enum value unless backend rejects.
+
+### UI behavior per state
+- Display current status prominently (as data, not layout).
+- If status is `TERMINATED` and terminationDate missing, UI should allow entry and validate against hireDate (do not auto-set).
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures (400)
+- Backend returns validation errors.
+- UI maps errors to fields and shows summary banner.
+- Form remains editable; save re-enabled after response.
+
+### Duplicate conflicts (409)
+- UI shows blocking banner with backend message.
+- If backend indicates which field collided (preferred), highlight those fields; otherwise highlight employeeNumber and primaryEmail/primaryPhone.
+
+### Concurrency conflicts
+- Not specified (ETag/versioning not provided). If backend returns 409 for stale update, UI shows generic conflict and prompts reload. (Open Question: do we have row version?)
+
+### Unauthorized access (403)
+- On load or save: show permission error and disable editing; provide navigation away.
+
+### Empty states
+- Create screen: empty form with required-field indicators.
+- Edit screen: while loading, show loading state; if 404, show not-found empty state.
+
+---
+
+## 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: Create employee profile successfully
+**Given** I am authenticated as a user with permission `people.employee.create`  
+**When** I navigate to the Create Employee Profile screen  
+**And** I enter `legalName`, `employeeNumber`, `status`, and `hireDate` with valid values  
+**And** I click Save  
+**Then** the frontend sends a create request to the backend  
+**And** I see a success confirmation  
+**And** the form displays the returned `employeeId` and audit timestamps if provided
+
+### Scenario 2: Update employee profile successfully
+**Given** I am authenticated as a user with permission `people.employee.update`  
+**And** an employee exists with `employeeId = E123`  
+**When** I open the Edit Employee Profile screen for `E123`  
+**And** I change `preferredName`  
+**And** I click Save  
+**Then** the frontend sends an update request for `E123`  
+**And** I see a success confirmation  
+**And** the displayed `updatedAt` value refreshes if provided
+
+### Scenario 3: Block create on high-confidence duplicate (409)
+**Given** I am authenticated as a user with permission `people.employee.create`  
+**And** the backend would detect an existing employee with the same `primaryEmail`  
+**When** I attempt to create an employee profile with that same `primaryEmail`  
+**Then** the save fails  
+**And** I see a blocking duplicate error message  
+**And** no navigation occurs away from the create form
+
+### Scenario 4: Show soft duplicate warning when backend returns warnings
+**Given** I am authenticated as a user with permission `people.employee.create`  
+**And** the backend is configured to return `warnings` for ambiguous duplicates  
+**When** I create an employee profile that triggers an ambiguous duplicate warning  
+**Then** the employee profile is created successfully  
+**And** I see a non-blocking warning panel displaying the warning code(s) returned by the backend
+
+### Scenario 5: Client-side validation prevents submit for missing required fields
+**Given** I am authenticated as a user with permission `people.employee.create`  
+**When** I leave `legalName` empty  
+**Then** the Save action is disabled or shows a validation error on Save  
+**And** no create request is sent until the field is corrected
+
+### Scenario 6: Date validation for termination date
+**Given** I am editing an employee profile  
+**When** I set `terminationDate` to a date earlier than `hireDate`  
+**Then** I see a validation error indicating termination date must be on or after hire date  
+**And** I cannot successfully save until corrected
+
+### Scenario 7: Forbidden access
+**Given** I am authenticated without `people.employee.create`  
+**When** I navigate to the Create Employee Profile screen  
+**Then** I see an access denied message  
+**And** I cannot submit a create request
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- Display (if provided by backend):
+  - `createdAt`, `updatedAt`
+  - (Optional) `createdByUserId`, `updatedByUserId` or names if backend supplies
+
+### Status history
+- Not in scope unless backend provides an endpoint; do not invent.
+
+### Traceability expectations
+- Frontend must propagate correlation/request ID headers if the app convention supports it (e.g., `X-Correlation-Id`) (Open Question).
+- Log (frontend console/logger) non-PII operational events:
+  - screen load success/failure
+  - save attempt/result
+  - duplicate warning received (code only; avoid printing full profile details)
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** edit screen loads within 2s on typical network for a single profile payload; show skeleton/loading indicator.
+- **Accessibility:** all form inputs labeled; validation errors associated to inputs; keyboard navigable; color not sole indicator.
+- **Responsiveness:** usable on tablet-sized screens typical for POS back office.
+- **i18n/timezone:** dates shown in tenant/user locale/timezone if the app supports it; do not assume multi-currency requirements.
+
+---
+
+## 15. Applied Safe Defaults
+- SD-UX-UNSAVED-CHANGES: Warn on navigation away with unsaved form changes; safe because it’s reversible UI behavior and does not affect domain policy; impacts UX Summary, Alternate/Error Flows.
+- SD-UX-LOADING-STATES: Provide loading indicator and disabled Save during requests; safe because it prevents double-submit without changing business rules; impacts UX Summary, Functional Behavior.
+- SD-UX-WARNING-DISPLAY: Display backend `warnings[]` as non-blocking callout after save; safe because it reflects backend-provided data without altering decisions; impacts Business Rules, Alternate/Error Flows, Acceptance Criteria.
+
+---
+
+## 16. Open Questions
+1. **Backend read endpoint:** What is the authoritative endpoint/service to load an employee profile for edit (`GET /employees/{id}` vs Moqui service name)? What is the exact response schema?
+2. **Error payload shape:** What is the standard error response format in this frontend/backoffice stack for 400/409 (field error mapping keys)? Provide an example payload.
+3. **Routing/menu conventions:** What is the correct Moqui screen path/module for `pos-people` (e.g., `/apps/pos-people/...`) and where should the navigation entry live?
+4. **Default status on create:** Should new employees default to `ACTIVE`, `ON_LEAVE`, or require explicit selection (no default)?
+5. **Edit rules for TERMINATED:** Are TERMINATED employees editable (e.g., contact info corrections) or locked except for specific fields? If locked, which fields remain editable and under what permission?
+6. **Phone normalization:** Should the frontend enforce/format E.164, and if so, what library/pattern is standard in this repo? Or is normalization strictly backend-only?
+7. **Optimistic concurrency:** Does the backend require/return a version/etag (e.g., `lastUpdatedStamp`) that must be sent on update to prevent lost updates?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Users: Create/Update Employee Profile (pos-people) — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/152
+
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Users: Create/Update Employee Profile (pos-people)
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/152
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Users: Create/Update Employee Profile (pos-people)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As an **HR user**, I want **to maintain employee profile details** so that **the organization has a reliable directory for operations and compliance**.
+
+## Details
+- Fields: legal name, preferred name, employee number, status, hire/term dates, contact info.
+- Basic duplicate warning based on employee number and email.
+
+## Acceptance Criteria
+- Create/update person with required fields.
+- Duplicate warning presented for likely collisions.
+- All changes audited.
+
+## Integration Points (workexec/shopmgr)
+- workexec displays technician identity consistently.
+- shopmgr shows staff name and status for rosters.
+
+## Data / Entities
+- Person
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+
+BACKEND STORY REFERENCES (FOR REFERENCE ONLY)
+
+----------------------------------------------------------------------------------------------------
+
+Backend matches (extracted from story-work):
+
+
+[1] backend/88/backend.md
+
+    Labels: type:story, domain:people, status:ready-for-dev
+
+
+----------------------------------------------------------------------------------------------------
+
+Backend Story Full Content:
+
+
+
+### BACKEND STORY #1: backend/88/backend.md
+
+------------------------------------------------------------
+
+Title: [BACKEND] [STORY] Users: Create/Update Employee Profile (pos-people)
+URL: https://github.com/louisburroughs/durion-positivity-backend/issues/88
+Labels: type:story, domain:people, status:ready-for-dev
+
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Final)
+
+### Required
+- type:story
+- domain:people
+- status:ready-for-dev
+
+### Recommended
+- agent:people
+- agent:story-authoring
+
+---
+**Rewrite Variant:** crm-pragmatic
+
+---
+
+## Story Intent
+**As an** HR Administrator,
+**I want to** create and maintain comprehensive employee profiles through a system API,
+**so that** employee data is accurate, centralized, and available for operational, compliance, and integrated system needs.
+
+## Actors & Stakeholders
+- **HR Administrator:** The primary user responsible for creating and managing employee data.
+- **System (API Consumer):** Any authorized internal system that needs to create or update employee records.
+- **`workexec` System (Downstream Consumer):** Relies on accurate employee data (especially for technicians) to display user identity.
+- **`shopmgr` System (Downstream Consumer):** Uses employee name and status for workforce management and rosters.
+- **Audit System (Stakeholder):** Subscribes to all data modification events for compliance and traceability.
+
+## Preconditions
+- The calling user or system is authenticated.
+- The calling user or system possesses the necessary permissions (`people.employee.create`, `people.employee.update`) to manage employee profiles.
+
+## Functional Behavior
+
+### 1. Create Employee Profile
+- The system shall provide an API endpoint (e.g., `POST /employees`) to create a new employee profile.
+- The endpoint accepts a payload containing the employee's details as specified in the Data Requirements.
+- Before creation, the system MUST validate that the proposed `employeeNumber` and `primaryEmail` do not already exist for another employee.
+- The system performs duplicate detection checking high-confidence keys (email, phone, externalEmployeeNumber):
+  - If exact match found: return `409 Conflict` with optional `possibleDuplicatePersonId` (only if caller authorized)
+  - If ambiguous match found: create profile and return `200/201` with `warnings: [{ code: "POSSIBLE_DUPLICATE", matches: [...] }]`
+- Upon successful creation, the system returns the full profile of the newly created employee, including a system-generated unique identifier (`employeeId`), and returns an HTTP `201 Created` status.
+- A `EmployeeProfileCreated` event is emitted for auditing purposes.
+
+### 2. Update Employee Profile
+- The system shall provide an API endpoint (e.g., `PUT /employees/{employeeId}`) to update an existing employee profile.
+- The endpoint accepts a payload containing the complete set of modifiable fields.
+- The system MUST validate that the target `employeeId` exists before attempting an update.
+- If the `employeeNumber` or `primaryEmail` are being changed, the system MUST validate their uniqueness against other records (excluding the current employee).
+- The system performs duplicate detection on the new values using the same high-confidence/soft-warning logic as create.
+- Upon successful update, the system returns the full, updated profile and an HTTP `200 OK` status.
+- A `EmployeeProfileUpdated` event is emitted for auditing purposes, including before/after snapshot of changed fields.
+
+### 3. Contact Info Validation (Workflow Gate)
+- **Before activation or assignment to schedules/timekeeping:** The system SHALL require at least one reliable contact method (e.g., `primaryEmail` or `primaryPhone`).
+- This is a **workflow enforcement**, not a persistence constraint (to support progressive onboarding).
+- Downstream services (workexec, shopmgr) should check contact info completeness before assignment operations.
+
+### Alternate / Error Flows
+- **Invalid Data:** If the request payload is missing required fields or contains malformed data (e.g., invalid date format), the API shall return an HTTP `400 Bad Request` response with a clear error message detailing the validation failures.
+- **Duplicate Data on Create (High-Confidence):** If an attempt is made to create a profile with an exact match on email, phone, or employee number that already exists, the API shall return an HTTP `409 Conflict` response.
+- **Duplicate Data on Create (Ambiguous):** If name similarity, partial phone match, or same address is detected, the API shall create the profile and return `200/201 Created` with a warning payload.
+- **Resource Not Found:** If an update is attempted for an `employeeId` that does not exist, the API shall return an HTTP `404 Not Found` response.
+- **Authorization Failure:** If the authenticated actor lacks the required permissions to perform the action, the API shall return an HTTP `403 Forbidden` response.
+
+## Business Rules
+- `employeeNumber` must be unique across all employee profiles.
+- The primary email address in `contactInfo` must be unique across all employee profiles (if provided).
+- `legalName`, `employeeNumber`, `status`, and `hireDate` are mandatory fields for profile creation.
+- A `terminationDate`, if provided, cannot be earlier than the `hireDate`.
+- **Status Lifecycle (Authoritative - NEW):**
+  - `ACTIVE` — employed and eligible for assignment/work
+  - `ON_LEAVE` — employed but temporarily inactive for scheduling/timekeeping
+  - `SUSPENDED` — access/work paused pending action (administrative)
+  - `TERMINATED` — employment ended; historical record retained
+- **Status Rules:**
+  - `ON_LEAVE` and `SUSPENDED` are treated as **not eligible for new assignments** by consuming services.
+  - If you maintain separate User status, keep it aligned with Person status (e.g., User `DISABLED` while Person `SUSPENDED`).
+- **Duplicate Detection Policy (NEW):**
+  - Hard-block (409) for high-confidence matches: exact email, exact phone (E.164), exact externalEmployeeNumber, government ID
+  - Soft warning for ambiguous matches: name similarity, partial phone, same address
+  - Configuration: `duplicatePolicy = STRICT | BALANCED` (default: BALANCED)
+  - Duplicate keys at launch: email, phone, externalEmployeeNumber
+- **Contact Info Requirement (NEW):**
+  - No required fields at persistence level (progressive onboarding)
+  - At least one reliable contact method required **before activation/assignment** (workflow gate, not persistence)
+  - Recommended: primaryEmail, primaryPhone, emergencyContact (for field staff)
+  - Normalization: lowercase emails, E.164 for phones
+
+## Data Requirements
+
+### EmployeeProfile Entity
+| Field           | Type          | Constraints                                       | Description                                       |
+|-----------------|---------------|---------------------------------------------------|---------------------------------------------------|
+| `employeeId`    | UUID          | Primary Key, System-Generated, Not Null           | Unique identifier for the employee profile.       |
+| `legalName`     | String        | Not Null                                          | The employee's full legal name.                   |
+| `preferredName` | String        | Nullable                                          | The name the employee prefers to be called.       |
+| `employeeNumber`| String        | Not Null, Unique                                  | The unique number assigned to the employee.       |
+| `status`        | Enum          | Not Null, `ACTIVE \| ON_LEAVE \| SUSPENDED \| TERMINATED` | The current employment status of the employee. |
+| `hireDate`      | Date          | Not Null                                          | The date the employee was hired.                  |
+| `terminationDate`| Date         | Nullable, >= hireDate                            | The date the employee's employment was terminated.|
+| `contactInfo`   | JSON / Object | Structured (see below)                           | Structured contact information.                   |
+| `createdAt`     | Timestamp     | Not Null, System-Managed                          | Timestamp of when the record was created.         |
+| `updatedAt`     | Timestamp     | Not Null, System-Managed                          | Timestamp of the last update to the record.       |
+
+### ContactInfo Structure (Nested)
+```json
+{
+  "primaryEmail": "string (optional, unique if provided, normalized lowercase)",
+  "primaryPhone": "string (optional, unique if provided, normalized E.164)",
+  "secondaryEmail": "string (optional, normalized lowercase)",
+  "secondaryPhone": "string (optional, normalized E.164)",
+  "address": {
+    "line1": "string (optional)",
+    "line2": "string (optional)",
+    "city": "string (optional)",
+    "region": "string (optional)",
+    "postalCode": "string (optional)",
+    "country": "string (optional)"
+  },
+  "emergencyContact": {
+    "name": "string (optional)",
+    "relationship": "string (optional)",
+    "phone": "string (optional)",
+    "email": "string (optional)"
+  }
+}
+```
+
+## Acceptance Criteria
+
+### AC-1: Successfully Create a New Employee Profile
+**Given** an HR Administrator is authenticated and authorized
+**When** they submit a valid request to the `POST /employees` endpoint with all required fields
+**And** the `employeeNumber` and `primaryEmail` are unique
+**Then** the system shall create a new employee profile
+**And** return an HTTP `201 Created` status with the new profile data
+**And** an `EmployeeProfileCreated` audit event is published.
+
+### AC-2: Successfully Update an Existing Employee Profile
+**Given** an HR Administrator is authenticated and authorized
+**And** an employee profile with ID `E123` exists
+**When** they submit a valid request to `PUT /employees/E123` to change the `preferredName`
+**Then** the system shall update the employee profile
+**And** return an HTTP `200 OK` status with the updated profile data
+**And** an `EmployeeProfileUpdated` audit event is published with before/after snapshot of changed fields.
+
+### AC-3: Fail to Create a Profile with a Duplicate (High-Confidence)
+**Given** an employee profile exists with `primaryEmail` "jane@example.com"
+**And** an HR Administrator is authenticated and authorized
+**When** they submit a request to `POST /employees` with `primaryEmail` "jane@example.com"
+**Then** the system shall reject the request
+**And** return an HTTP `409 Conflict` response with a relevant error message.
+
+### AC-4: Create with Soft Warning on Ambiguous Duplicate
+**Given** an employee profile exists with name "Jane Smith" and phone "+1-555-0100"
+**And** an HR Administrator submits a new profile for "Jane Smythe" with phone "+1-555-0101" (similar but not exact)
+**When** the request is submitted
+**Then** the system shall create the profile
+**And** return `201 Created` with warning payload: `warnings: [{ code: "POSSIBLE_DUPLICATE", matches: [...] }]`
+
+### AC-5: Fail to Create a Profile with Missing Required Fields
+**Given** an HR Administrator is authenticated and authorized
+**When** they submit a request to `POST /employees` that is missing the `legalName`
+**Then** the system shall reject the request
+**And** return an HTTP `400 Bad Request` response detailing the missing field.
+
+### AC-6: Enforce Contact Info Completeness Before Assignment
+**Given** an employee profile exists with no `primaryEmail` or `primaryPhone`
+**When** a downstream service (workexec, shopmgr) attempts to assign this employee to a schedule or work
+**Then** the assignment is rejected with a message: "Employee must have at least one contact method (email or phone) before assignment."
+
+### AC-7: Audit Event Includes Before/After Snapshot
+**Given** an update to employee profile status from `ACTIVE` to `ON_LEAVE`
+**When** the update is successfully completed
+**Then** an `EmployeeProfileUpdated` audit event is published containing:
+- `employeeId`, actor ID, timestamp
+- `beforeState: { status: "ACTIVE", ... }`
+- `afterState: { status: "ON_LEAVE", ... }`
+
+## Audit & Observability
+- **Audit Events:**
+  - `EmployeeProfileCreated`: Triggered on successful creation. Must include the new profile data, actor ID, timestamp, and optional duplicate warning details.
+  - `EmployeeProfileUpdated`: Triggered on successful update. Must include the `employeeId`, actor ID, timestamp, and before/after snapshot of all changed fields.
+  - Include in event: `duplicatePolicy` setting used (STRICT or BALANCED), any warnings returned to caller
+- **Metrics:**
+  - Monitor latency and error rates (4xx/5xx) for the `POST /employees` and `PUT /employees/{employeeId}` endpoints.
+  - `employee.profile.created` (Counter): Incremented on successful creation.
+  - `employee.profile.updated` (Counter): Incremented on successful update.
+  - `employee.profile.duplicate_detected` (Counter): Incremented when duplicate detection triggers (hard-block or soft warning).
+  - `employee.profile.contact_incomplete` (Counter): Incremented when contact completeness workflow gate is triggered.
+- **Logging:**
+  - INFO: Profile creation/update success
+  - WARN: Duplicate detection (soft warning)
+  - ERROR: Profile creation/update failure, validation errors
+
+## Original Story (Unmodified – For Traceability)
+# Issue #88 — [BACKEND] [STORY] Users: Create/Update Employee Profile (pos-people)
+
+[Original story body preserved as provided in previous issue snapshot]
+
+
+------------------------------------------------------------
+
+====================================================================================================
+
+END BACKEND REFERENCES
+
+════════════════════════════════════════════════════════════════
+ISSUE #153: [FRONTEND] [STORY] Access: Assign Roles and Scopes (Global vs Location) — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/153
+File: ./scripts/story-work/frontend/153/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+STOP: Clarification required before finalization
+
+---
+
+## 1. Story Header
+
+### Title
+[FRONTEND] Access: Assign Roles and Scopes (Global vs Location)
+
+### Primary Persona
+Admin (a user authorized to manage other users’ access)
+
+### Business Value
+Enable least-privilege access by granting roles with correct scope (GLOBAL vs LOCATION) and effective dates, with an auditable history that downstream domains can rely on for eligibility and permissions.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As an** Admin  
+- **I want** to view, add, and revoke user role assignments with scope (GLOBAL/LOCATION) and effective dates  
+- **So that** access is correctly constrained per shop location and job function, and changes are traceable.
+
+### In-scope
+- Admin UI to **list** a user’s existing RoleAssignments (active + historical within a reasonable default range).
+- Admin UI to **create** a new RoleAssignment with:
+  - role selection
+  - scopeType selection (GLOBAL or LOCATION)
+  - location selection required when LOCATION scope
+  - effectiveStartDate required
+  - effectiveEndDate optional
+- Admin UI to **revoke/end** an existing assignment via setting effectiveEndDate (no hard delete).
+- Frontend validation reflecting backend business rules (scope/location/date constraints) and rendering backend validation errors.
+- Show audit-relevant metadata available from API (createdAt/updatedAt/changedBy/version/reasonCode if exposed).
+
+### Out-of-scope
+- Defining/maintaining Role metadata (e.g., creating roles, editing allowedScopes).
+- Authentication implementation (login) and authorization enforcement logic beyond UI gating/handling 403.
+- Cross-domain workflows (e.g., mechanic eligibility calculations, scheduling UI); only ensure role assignment data supports them.
+- Event bus implementation; only ensure UI actions trigger backend actions that emit events.
+
+---
+
+## 3. Actors & Stakeholders
+
+### Actors
+- **Admin**: manages user access by assigning/revoking roles and scopes.
+- **System (People service via Moqui)**: system of record for RoleAssignment.
+
+### Stakeholders / Downstream consumers (informational)
+- **Work Execution**: uses `MECHANIC` + LOCATION assignments for technician eligibility.
+- **Shop Management / Scheduling**: uses MANAGER/DISPATCHER scope for permissions.
+- **Audit/Compliance**: relies on immutable audit history of changes.
+
+---
+
+## 4. Preconditions & Dependencies
+
+### Preconditions
+- Admin is authenticated.
+- Target user exists and is identifiable by `userId`.
+- Role catalog exists with `allowedScopes` metadata per role (GLOBAL, LOCATION, or both).
+- Locations exist and are queryable for LOCATION-scoped assignments.
+
+### Frontend Dependencies (blocking if absent)
+- Moqui endpoints/services to:
+  - List roles including `allowedScopes`.
+  - List locations (at least id + name).
+  - List role assignments for a user.
+  - Create role assignment.
+  - End/revoke role assignment by setting `effectiveEndDate`.
+- Permission model/endpoint or response codes to determine whether current user can manage role assignments (at minimum handle 403).
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- From **User Detail** (or Admin Users list): action “Manage Access / Roles”.
+- Direct route (if applicable): `/users/:userId/access` (exact route TBD by repo conventions).
+
+### Screens to create/modify
+- **Screen: UserAccessRoles** (new or extended)
+  - Shows role assignments table + “Add Role Assignment” action
+- **Dialog/Screen: AddRoleAssignment** (modal or sub-screen)
+  - Form to create a new RoleAssignment
+- **Dialog: EndRoleAssignment**
+  - Confirm revoke (set effectiveEndDate) with optional reasonCode/notes if supported
+
+*(Exact file paths and naming must follow durion-moqui-frontend README conventions; if unknown, treat as open question for implementation mapping.)*
+
+### Navigation context
+- Breadcrumb: Users → User Detail → Access / Roles
+- Return to User Detail after save, preserving context.
+
+### User workflows
+
+#### Happy path: create LOCATION scoped assignment
+1. Admin opens Manage Access for a user.
+2. Admin clicks “Add Role Assignment”.
+3. Admin selects role (UI displays allowed scopes).
+4. Admin selects scopeType=LOCATION.
+5. UI requires location selection.
+6. Admin sets effectiveStartDate; optionally effectiveEndDate.
+7. Admin submits; UI shows success and new assignment appears in table.
+
+#### Happy path: create GLOBAL scoped assignment
+Same as above but scopeType=GLOBAL; location field hidden/disabled and must not be sent.
+
+#### Alternate: end/revoke an assignment
+1. Admin clicks “End” on an active assignment.
+2. Admin chooses end date/time (defaults to now).
+3. Submits; assignment becomes inactive; remains visible historically.
+
+#### Alternate: change scope/role
+Because RoleAssignment core fields are immutable, UI guides Admin:
+- End existing assignment + create new assignment.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- Screen load: fetch user role assignments + role catalog (+ locations as needed).
+- Role selection changes: update scope options based on role.allowedScopes.
+- ScopeType changes: toggle location requirement/visibility.
+- Submit create: call create service.
+- Submit end: call update/end service.
+
+### UI actions (deterministic)
+- **Role dropdown**: shows roleName; stores roleId.
+- **Allowed scope hint**: read-only display from role.allowedScopes.
+- **ScopeType radio/select**:
+  - Only values allowed by selected role are selectable.
+  - If role allows only one scope, preselect it and disable toggling.
+- **Location picker**:
+  - Enabled/required only when scopeType=LOCATION.
+  - Disabled/cleared when scopeType=GLOBAL.
+- **EffectiveStartDate picker**: required; date-time in tenant/user timezone.
+- **EffectiveEndDate picker**: optional; must be >= start if present.
+- **Create button**: disabled until required fields valid.
+
+### State changes (frontend)
+- After create/end success: refresh assignments list (source of truth = backend response).
+- Optimistic UI is optional; default is pessimistic (wait for response).
+
+### Service interactions (Moqui)
+- Use Moqui screen transitions or REST calls (depending on project convention) to invoke services:
+  - load lists
+  - create RoleAssignment
+  - end RoleAssignment
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+- RoleAssignment must have:
+  - `roleId` required
+  - `scopeType` required
+  - `effectiveStartDate` required
+  - `effectiveEndDate` optional; if provided must be >= start
+- If `scopeType=LOCATION`:
+  - `locationId` required
+- If `scopeType=GLOBAL`:
+  - `locationId` must be null/omitted (UI must clear and not submit)
+
+### Enable/disable rules
+- ScopeType choices constrained by `role.allowedScopes`.
+- Submit disabled if:
+  - missing required fields
+  - invalid date range
+  - LOCATION scope with missing location
+
+### Visibility rules
+- Location picker visible only for LOCATION scope (or visible but disabled; choose one—see Open Question).
+
+### Error messaging expectations
+- Inline validation messages for required fields and invalid date ranges.
+- Backend errors displayed in a non-technical banner + field-level mapping where possible:
+  - 400 validation → show message and highlight offending field(s) when identifiable
+  - 403 → “You do not have permission to manage roles.”
+  - 404 (user/role/location missing) → show not found and suggest refresh
+  - 409 conflict (if backend uses for duplicates/overlaps) → show conflict message and do not retry automatically
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend perspective)
+- `Role` (metadata): roleId, roleName, allowedScopes
+- `RoleAssignment`: assignmentId, userId, roleId, scopeType, locationId, effectiveStartDate, effectiveEndDate, createdAt, updatedAt, changedBy, version, reasonCode
+- `Location`: locationId, locationName (minimum)
+
+### Fields (type, required, defaults)
+
+#### RoleAssignment create form fields
+- `userId` (UUID/string): required (from route/context; not editable)
+- `roleId` (UUID/string): required
+- `scopeType` (enum: GLOBAL|LOCATION): required; default:
+  - if role.allowedScopes has single value → that value
+  - else no default (force explicit selection) *(safe default not allowed if policy? This is UX-only; acceptable.)*
+- `locationId` (UUID/string): required iff scopeType=LOCATION; default null
+- `effectiveStartDate` (timestamp): required; default = now (tenant timezone) *(safe UX default)*
+- `effectiveEndDate` (timestamp): optional; default null
+- `reasonCode` (string): optional (only if backend supports and provides list; otherwise omit)
+
+### Read-only vs editable by state/role
+- RoleAssignment core fields (roleId, scopeType, locationId, start date) treated as immutable after creation in UI:
+  - UI does not offer “edit role/scope”; only “End assignment” and “Create new”.
+- `effectiveEndDate` editable for ending/revoking.
+
+### Derived/calculated fields
+- “Status” derived in UI:
+  - Active if start <= now and (end is null or end > now)
+  - Future if start > now
+  - Expired if end <= now
+*(Display-only; backend remains source of truth.)*
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Endpoints/service names are not provided in inputs. Below defines **required contracts**; implementation must map to actual Moqui services/transitions.
+
+### Load/view calls
+1. **Get Role catalog**
+   - Request: `GET /api/roles` (placeholder)
+   - Response: list of `{ roleId, roleName, allowedScopes[] }`
+2. **Get Locations**
+   - Request: `GET /api/locations` (placeholder)
+   - Response: list of `{ locationId, locationName }`
+3. **Get RoleAssignments for user**
+   - Request: `GET /api/users/{userId}/role-assignments?includeInactive=true` (placeholder)
+   - Response: list of RoleAssignment DTOs including `version` for optimistic locking if used
+
+### Create/update calls
+4. **Create RoleAssignment**
+   - Request: `POST /api/users/{userId}/role-assignments`
+   - Body:
+     - roleId
+     - scopeType
+     - locationId (only when LOCATION)
+     - effectiveStartDate
+     - effectiveEndDate (optional)
+     - reasonCode (optional)
+   - Response: `201` with created assignment
+
+5. **End/Revoke RoleAssignment**
+   - Request: `POST /api/role-assignments/{assignmentId}/end` or `PUT /api/role-assignments/{assignmentId}`
+   - Body:
+     - effectiveEndDate = selected end time
+     - version (if required)
+     - reasonCode (optional)
+   - Response: `200` with updated assignment
+
+### Submit/transition calls (Moqui screens)
+- If project uses Moqui screen transitions instead of REST:
+  - Define transitions `createRoleAssignment`, `endRoleAssignment` that call services and return to the list screen with message.
+
+### Error handling expectations
+- 400: show backend message; map to fields if `fieldErrors` structure exists (unknown).
+- 403: show permission error and disable create/end actions.
+- 409: show conflict (e.g., invalid overlap or duplicate) and require user correction.
+- 5xx/timeouts: show retry option; do not duplicate-submit (idempotency key if available—unknown).
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states (derived for UI)
+- **FUTURE**: now < effectiveStartDate
+- **ACTIVE**: effectiveStartDate <= now < effectiveEndDate (or end null)
+- **EXPIRED**: effectiveEndDate <= now
+
+### Role-based transitions
+- Admin (authorized) can:
+  - Create new assignment (any state created may be FUTURE or ACTIVE depending on start)
+  - End ACTIVE or FUTURE assignment by setting effectiveEndDate (end must be >= start; may be now or earlier than now only if backend allows backdating—unknown)
+
+### UI behavior per state
+- ACTIVE:
+  - Show “End” action enabled
+- FUTURE:
+  - Show “End” action enabled (ends before it becomes active) *(requires backend support; if not supported, block—see Open Questions)*
+- EXPIRED:
+  - No end action (already ended); view-only
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Attempt submit with LOCATION scope and no location:
+  - UI blocks with inline error; if backend returns 400, show message too.
+- End date before start:
+  - UI blocks; backend 400 handled similarly.
+
+### Concurrency conflicts
+- If backend uses `version` optimistic locking:
+  - On 409/version mismatch: show “This assignment changed since you loaded it. Refresh and try again.”
+  - Refresh list automatically after conflict acknowledgment.
+
+### Unauthorized access
+- If user lacks permission:
+  - On load or action call returning 403:
+    - show not-authorized banner
+    - hide/disable add/end buttons
+    - keep read-only list if allowed by backend; otherwise show access denied screen
+
+### Empty states
+- No role assignments:
+  - Show empty message and CTA “Add Role Assignment” (if authorized).
+- No locations returned (when needed):
+  - Disable submit for LOCATION scope and show “No locations available” with suggestion to contact admin.
+
+---
+
+## 12. Acceptance Criteria
+
+### Scenario 1: View user role assignments
+**Given** I am an authenticated Admin  
+**And** a user exists with `userId`  
+**When** I navigate to the user’s “Access / Roles” screen  
+**Then** I see a list of the user’s role assignments including role, scopeType, location (if applicable), effectiveStartDate, effectiveEndDate, and derived status (Active/Future/Expired)
+
+### Scenario 2: Create a GLOBAL role assignment
+**Given** I am an authenticated Admin  
+**And** a role exists with `allowedScopes` including `GLOBAL`  
+**When** I create a role assignment with `scopeType=GLOBAL` and a valid effectiveStartDate  
+**Then** the UI submits the create request without `locationId`  
+**And** I see a success confirmation  
+**And** the new assignment appears in the list with scopeType GLOBAL and no location
+
+### Scenario 3: Create a LOCATION role assignment
+**Given** I am an authenticated Admin  
+**And** a role exists with `allowedScopes` including `LOCATION`  
+**And** at least one location exists  
+**When** I create a role assignment with `scopeType=LOCATION`, a selected `locationId`, and a valid effectiveStartDate  
+**Then** the UI submits the create request including `locationId`  
+**And** the assignment appears in the list with scopeType LOCATION and the selected location
+
+### Scenario 4: Prevent LOCATION scope without location
+**Given** I am an authenticated Admin  
+**And** I am creating a role assignment  
+**When** I select `scopeType=LOCATION` and do not select a location  
+**Then** the Create action is disabled or shows an inline validation error  
+**And** no request is submitted until a location is selected
+
+### Scenario 5: Enforce role allowedScopes in UI
+**Given** I am an authenticated Admin  
+**And** I select a role whose `allowedScopes` is `[LOCATION]`  
+**When** I view the scopeType control  
+**Then** `GLOBAL` is not selectable  
+**And** if I attempt submission via any means and backend returns `400` “Role X does not allow GLOBAL scope…”  
+**Then** the UI displays that error and keeps me on the form
+
+### Scenario 6: Reject invalid date range
+**Given** I am an authenticated Admin  
+**When** I set effectiveEndDate earlier than effectiveStartDate  
+**Then** the UI shows an inline error  
+**And** the Create action is blocked  
+**And** if submitted and backend returns 400, the error is shown and no assignment is created
+
+### Scenario 7: End an active assignment (soft revoke)
+**Given** I am an authenticated Admin  
+**And** a role assignment is currently ACTIVE  
+**When** I end the assignment with effectiveEndDate = now  
+**Then** the UI submits an end/revoke request  
+**And** the assignment remains visible in the list with an end date set  
+**And** its derived status becomes EXPIRED (or non-active) after refresh
+
+### Scenario 8: Permission denied
+**Given** I am authenticated but not authorized to manage role assignments  
+**When** I open the Access / Roles screen or try to add/end an assignment  
+**Then** the UI shows an authorization error message  
+**And** create/end actions are disabled/hidden  
+**And** no unauthorized changes occur
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- Display (if provided by API):
+  - `createdAt`, `updatedAt`
+  - `changedBy` (as identifier; avoid exposing PII beyond what API returns)
+  - `reasonCode` (if used)
+
+### Status history
+- RoleAssignment history is represented by records with effective dating; UI must not delete entries.
+- For “changes” to immutable fields, UI guides end+create, resulting in a clear historical trail.
+
+### Traceability expectations
+- Frontend should propagate correlation/request ID headers if project convention exists (unknown).
+- Log UI action events (non-PII) per workspace convention: view screen, submit create, submit end, error encountered.
+
+---
+
+## 14. Non-Functional UI Requirements
+
+- **Performance:** initial load should complete with ≤3 network calls (roles, assignments, locations) and render within 2 seconds on typical broadband; locations call may be deferred until LOCATION scope is selected.
+- **Accessibility:** keyboard navigable form controls; proper labels for inputs; error messages associated to fields.
+- **Responsiveness:** usable on tablet widths; dialogs should fit small screens.
+- **i18n/timezone:** dates displayed in tenant/user timezone; store/send timestamps in ISO-8601; currency not applicable.
+
+---
+
+## 15. Applied Safe Defaults
+
+- SD-UX-01 (Lazy load reference data): Locations list may be loaded only when `scopeType=LOCATION` is selected to reduce initial load time; qualifies as safe UX optimization. Impacted sections: UX Summary, Service Contracts, Performance.
+- SD-UX-02 (Default effectiveStartDate=now): Pre-fill effectiveStartDate with current time for convenience; safe because user can change and backend still validates. Impacted sections: Data Requirements, Acceptance Criteria.
+- SD-ERR-01 (Standard HTTP error mapping): Map 400/403/404/409/5xx to banner + field errors when available; safe because it does not alter business logic. Impacted sections: Business Rules, Error Flows, Service Contracts.
+
+---
+
+## 16. Open Questions
+
+1. What are the **actual Moqui service names / REST endpoints** for:
+   - listing Roles (with allowedScopes),
+   - listing Locations,
+   - listing a user’s RoleAssignments,
+   - creating RoleAssignment,
+   - ending RoleAssignment (set effectiveEndDate)?
+2. What is the **required permission** (or set) for viewing vs mutating role assignments in the frontend? (Backend story implies Admin-only, but frontend must know how to gate UI beyond handling 403.)
+3. Does the backend support **ending FUTURE assignments** (effectiveEndDate before start) and/or **backdating** end dates (end < now)? If not, UI must restrict the end-date picker accordingly.
+4. Is there a **reasonCode** requirement for ending/revoking assignments (required/optional), and if required, what are the allowed values?
+5. Does RoleAssignment update/end require an **optimistic locking `version`** field in the request? If yes, confirm the error shape for version conflicts.
+6. Should the role assignments list default to **active only** or **include inactive/history**? (Backend story describes querying active; admin UI often needs history for audit.)
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Access: Assign Roles and Scopes (Global vs Location) — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/153
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Access: Assign Roles and Scopes (Global vs Location)
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/153
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Access: Assign Roles and Scopes (Global vs Location)
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As an **Admin**, I want **to assign roles with optional location scope** so that **users have appropriate access per shop and job function**.
+
+## Details
+- Roles include: OWNER, ADMIN, MANAGER, HR, ACCOUNTING, DISPATCHER, SERVICE_WRITER, MECHANIC, AUDITOR, READ_ONLY.
+- Scope types: GLOBAL or LOCATION.
+- Effective dates supported.
+
+## Acceptance Criteria
+- Role assignment supports scope and effective dates.
+- Permission checks enforced consistently.
+- Changes are audited and versioned.
+
+## Integration Points (workexec/shopmgr)
+- workexec technician eligibility uses MECHANIC + location assignment.
+- shopmgr scheduling permissions depend on MANAGER/DISPATCHER scope.
+
+## Data / Entities
+- RoleAssignment
+- RoleGrant
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+END FRONTEND STORY (FULL CONTEXT)
+
+════════════════════════════════════════════════════════════════
+ISSUE #154: [FRONTEND] [STORY] Users: Disable User (Offboarding) Without Losing History — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/154
+File: ./scripts/story-work/frontend/154/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:people
+- status:draft
+
+### Recommended
+- agent:people-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** crm-pragmatic
+
+STOP: Clarification required before finalization
+
+---
+
+## 1. Story Header
+
+**Title:** Users: Disable User (Offboarding) Without Losing History (Frontend / Moqui)
+
+**Primary Persona:** Admin
+
+**Business Value:** Immediately revoke a user’s system access while preserving historical labor/timekeeping data for audit, reporting, and payroll continuity.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As an** Admin  
+- **I want** to disable (soft-offboard) a user account from the POS UI  
+- **So that** the user cannot authenticate and cannot be selected for future work/schedules, while all historical records remain intact and all forced changes are auditable.
+
+### In-scope
+- Moqui/Vue/Quasar UI flow to initiate **Disable User**
+- Confirmation UI and policy-driven options (as exposed by backend) for handling:
+  - ending active location assignments (optional)
+  - force-stopping active job timers/time entries (initiated by backend orchestration)
+- Display of resulting user/person status and effective timestamp
+- Display of audit/status history (at minimum: show last status change metadata if available)
+- Frontend error handling for: not found, already disabled, forbidden, validation errors, conflict
+- Ensure disabled users are excluded from UI pickers/lists **where this frontend controls those lists** (user search/select screens in this repo)
+
+### Out-of-scope
+- Implementing actual authentication blocking in Security Service (backend/integration responsibility)
+- Implementing saga retry/DLQ operational workflows (not requested in this frontend issue)
+- Defining/altering permission matrix beyond checking a single capability gate for disable action (requires clarification)
+- Termination (`TERMINATED`) workflow (this story sets `DISABLED` only)
+
+---
+
+## 3. Actors & Stakeholders
+- **Admin (actor):** Performs disable action.
+- **People Service (system):** System of record for User/Person status.
+- **Security Service (downstream):** Blocks authentication after disable (event-driven).
+- **Work Execution / Shop Management (downstream):** Stops timers and excludes disabled users from future assignment/scheduling.
+- **Auditors/Operations (stakeholders):** Need traceability of who disabled whom and why.
+
+---
+
+## 4. Preconditions & Dependencies
+- Admin is authenticated in the frontend.
+- Admin has authorization to disable users (permission name/claim **TBD**, see Open Questions).
+- Target user exists and is in `ACTIVE` state at time of action.
+- Backend endpoint(s) exist to:
+  - fetch user detail including `User.status`, `Person.status`, `statusEffectiveAt`, `statusReasonCode` (if used)
+  - execute disable/offboard action with optional assignment handling inputs
+- Frontend has or will add a user detail screen route that can host this action (route **TBD** based on repo conventions).
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- From **User Management list/search**: select a user → open User Detail → click **Disable User**
+- Optional: direct deep link to user detail screen by `userId`
+
+### Screens to create/modify
+1. **User List/Search Screen** (existing or to be created)
+   - Must visually indicate disabled status and exclude disabled users by default in pickers (configurable filter).
+2. **User Detail Screen**
+   - Add **Disable User** action when user is `ACTIVE` and admin is authorized.
+   - Show status, effective timestamp, and reason (if present).
+3. **Disable User Confirmation Dialog / Subscreen**
+   - Confirmation step
+   - Optional policy-driven assignment handling choices (if backend supports/exposes)
+
+### Navigation context
+- `Users` module → `User List` → `User Detail`
+- Post-success: remain on User Detail with updated status OR navigate back to list with toast (choose one; see Open Questions)
+
+### User workflows
+**Happy path**
+1. Admin opens User Detail for an ACTIVE user.
+2. Admin clicks **Disable User**.
+3. UI shows confirmation with summary of effects (access revoked; timers stopped; assignments may end; history retained).
+4. Admin selects optional assignment handling (if enabled).
+5. Admin confirms.
+6. UI shows success message and refreshes user detail showing `DISABLED` and effective timestamp.
+
+**Alternate paths**
+- User already disabled: action hidden or disabled; if attempted, show informational message.
+- Backend returns “downstream steps queued” (if backend exposes): UI shows non-blocking warning/status (requires contract).
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- Admin clicks **Disable User** button on User Detail screen.
+
+### UI actions
+- Open modal dialog:
+  - Requires explicit confirmation (typed confirmation or checkbox) **TBD** (safe default not allowed for destructive confirmation style; see Open Questions).
+  - Collect optional `statusReasonCode` if backend requires/accepts it (currently described as optional).
+  - Collect assignment termination option **only if** backend indicates policy allows alternatives.
+
+### State changes (frontend)
+- On success:
+  - Update local view-model: `user.status=DISABLED`, `person.status=DISABLED`, `statusEffectiveAt=now from backend response`
+  - Disable further editing/actions that require active status (at least hide “Disable User” and show status badge)
+- On failure:
+  - Do not change UI state; show error banner/toast with actionable message.
+
+### Service interactions
+- Load user detail on entry and after successful disable.
+- Call disable action endpoint/service with payload including:
+  - `targetUserId`
+  - optional `statusReasonCode`
+  - optional assignment handling option (enum)
+  - idempotency key (if supported) **TBD**
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+- Must not allow disable if user is already `DISABLED` or `TERMINATED` (UI should prevent; backend remains source of truth).
+- If `statusReasonCode` is required by policy/config, UI must require selection before enabling confirm (TBD).
+- If assignment option `END_ASSIGNMENTS_AT_DATE` is supported, UI must validate date/time is in the future and timezone-aware (TBD).
+- Confirmation must be explicit to avoid accidental disable (exact mechanism TBD).
+
+### Enable/disable rules
+- **Disable User** button visible/enabled only when:
+  - current user has required permission
+  - target user status == `ACTIVE`
+- Assignment handling controls visible only when backend/policy indicates they are applicable (TBD how exposed).
+
+### Visibility rules
+- Disabled users:
+  - should not appear in assignment/schedule pickers in this frontend (where the frontend controls filtering)
+  - should be filterable/searchable in Admin user list with an “Include disabled” toggle/filter (safe default allowed for UI ergonomics)
+
+### Error messaging expectations
+- 403: “You don’t have permission to disable users.”
+- 404: “User not found or no longer available.”
+- 409: If conflict (already disabled / duplicate / policy conflict): show backend message; suggest refresh.
+- 400: Show field-level validation messages (reason code, date).
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend view)
+- `User`
+- `Person`
+- `RoleAssignment` / `PersonLocationAssignment` (only for display/option summary if backend returns)
+- `TimeEntry` (only for display/summary if backend returns)
+- `AuditLog` (read-only display if available)
+
+### Fields
+**User (read-only on this screen except action)**
+- `userId` (string/UUID, required)
+- `username` (string, required)
+- `status` (enum: `ACTIVE` | `DISABLED` | `TERMINATED`, required)
+- `statusEffectiveAt` (datetime, required when status != ACTIVE)
+- `statusReasonCode` (string/enum, optional)
+- `personId` (string/UUID, required)
+
+**Person (read-only)**
+- `personId` (string/UUID)
+- `legalName` (string)
+- `status` (enum: `ACTIVE` | `DISABLED` | `TERMINATED`)
+- `statusEffectiveAt` (datetime)
+- `statusReasonCode` (string/enum, optional)
+
+**Disable action inputs (editable in dialog)**
+- `statusReasonCode` (optional unless policy requires)
+- `assignmentTerminationOption` (enum, optional; see below)
+- `assignmentEndAt` (datetime, required only if option is scheduled end)
+
+**AssignmentTerminationOption** (policy-driven; from backend reference)
+- `END_ASSIGNMENTS_NOW`
+- `END_ASSIGNMENTS_AT_DATE`
+- `LEAVE_ASSIGNMENTS_ACTIVE` (requires elevated permission + policy)
+
+### Derived/calculated fields
+- Display-only “Effective status since” formatted in tenant/location timezone (timezone source TBD).
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> NOTE: Exact endpoint names are not provided in inputs. Moqui developers must map these to actual services/screens once clarified.
+
+### Load/view calls
+- `GET /people/users/{userId}` or Moqui service equivalent `PeopleServices.get#UserDetail`
+  - Response includes User + linked Person + status fields
+
+### Create/update calls (action)
+- `POST /people/users/{userId}/disable` or Moqui service `PeopleServices.disable#User`
+  - Request (proposed):
+    - `userId`
+    - `statusReasonCode` (optional)
+    - `assignmentTerminationOption` (optional)
+    - `assignmentEndAt` (optional)
+    - `idempotencyKey` (optional, if supported)
+  - Response (proposed):
+    - updated `User` + `Person` status fields
+    - optional `downstreamActions`: `{ timersStop: SUCCESS|QUEUED|FAILED, assignmentsEnd: SUCCESS|QUEUED|FAILED }` (TBD)
+
+### Error handling expectations
+- 400 validation errors: return structured field errors; UI maps to form field messages.
+- 403 forbidden: UI shows access denied; action remains unavailable.
+- 404 not found: UI shows not found and offers navigation back.
+- 409 conflict: UI shows conflict message and refresh prompt.
+- 5xx: UI shows generic error and suggests retry; no local state change.
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states (authoritative from People domain)
+- `ACTIVE`
+- `DISABLED` (target of this story)
+- `TERMINATED` (not set by this story)
+
+### Role-based transitions
+- `ACTIVE -> DISABLED`: allowed for Admin with `user.disable` (exact permission token TBD)
+- `DISABLED -> ACTIVE`: not part of story
+- Any transition involving `TERMINATED`: not part of story
+
+### UI behavior per state
+- `ACTIVE`:
+  - Show Disable action (if authorized)
+- `DISABLED`:
+  - Hide/disable Disable action
+  - Show status metadata and reason (if present)
+  - Show informational note: “Access revoked; history retained.”
+- `TERMINATED`:
+  - Hide disable action; show “Terminated” state (read-only)
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Missing required reason/date (if required): prevent confirm; show field error.
+- Invalid scheduled end date: block submit with message.
+
+### Concurrency conflicts
+- If user was disabled by another admin between load and submit:
+  - backend returns 409 or “already disabled”
+  - UI refreshes data and shows “User is already disabled.”
+
+### Unauthorized access
+- User lacks permission:
+  - Disable action not rendered
+  - If deep-linked and action attempted, show 403 error.
+
+### Empty states
+- If user detail fails to load (404):
+  - show empty/not-found screen with link back to Users list.
+
+---
+
+## 12. Acceptance Criteria
+
+### Scenario 1: Admin disables an active user successfully
+**Given** an Admin with disable permission is viewing an ACTIVE user detail page  
+**When** the Admin clicks “Disable User”, confirms the action, and submits  
+**Then** the frontend calls the disable-user service with the target `userId` and any selected options  
+**And** the UI refreshes and displays `User.status = DISABLED` and `Person.status = DISABLED`  
+**And** the UI displays `statusEffectiveAt` from the backend response  
+**And** the “Disable User” action is no longer available for that user.
+
+### Scenario 2: User is already disabled
+**Given** an Admin is viewing a user whose status is `DISABLED`  
+**When** the page renders  
+**Then** the UI does not offer the “Disable User” action  
+**And** the UI shows the disabled status and effective timestamp.
+
+### Scenario 3: Permission denied
+**Given** a signed-in user without the disable permission attempts to disable an ACTIVE user (via UI or direct action trigger)  
+**When** the disable request is made  
+**Then** the frontend displays an “Access Denied” error  
+**And** no status fields in the UI are changed.
+
+### Scenario 4: User not found
+**Given** an Admin navigates to a user detail route for a `userId` that does not exist  
+**When** the frontend loads the user detail  
+**Then** the UI shows a “User not found” empty state  
+**And** provides navigation back to the Users list.
+
+### Scenario 5: Backend validation error for assignment options
+**Given** the backend requires an assignment end date when `END_ASSIGNMENTS_AT_DATE` is selected  
+**When** the Admin selects `END_ASSIGNMENTS_AT_DATE` but does not provide an end date and submits  
+**Then** the backend returns a 400 validation error with field details  
+**And** the frontend shows the error message on the end date field and does not complete the disable flow.
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- On User Detail, show (if provided by backend):
+  - “Disabled by” (actor)
+  - “Disabled at” (`statusEffectiveAt`)
+  - “Reason” (`statusReasonCode`)
+- If audit log list endpoint exists, include a read-only “Recent status changes” section filtered to user/person.
+
+### Status history
+- At minimum, display current status + effective timestamp.
+- If history is available, show chronological list (read-only).
+
+### Traceability expectations
+- Frontend must include a correlation/request ID header if the platform standard supports it (TBD per repo conventions).
+- UI should log (client-side) a structured event “user_disable_initiated” and “user_disable_result” without PII beyond userId (safe logging).
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** User detail load < 2s on typical broadband; disable action returns with loading indicator and prevents double submit.
+- **Accessibility:** Confirmation dialog keyboard navigable; focus trap; buttons labeled; errors announced (aria-live) per Quasar best practices.
+- **Responsiveness:** Works on tablet widths used in shop environment.
+- **i18n/timezone:** Display timestamps in tenant/location timezone and localized format (timezone source TBD). No currency.
+
+---
+
+## 15. Applied Safe Defaults
+- SD-UI-EMPTY-STATE: Provide a standard “Not found / failed to load” empty state with retry/back navigation; safe as UI ergonomics only. (Impacted: UX Summary, Alternate/Error Flows)
+- SD-UI-PREVENT-DOUBLE-SUBMIT: Disable confirm button and show spinner while request in-flight; safe to prevent duplicate actions. (Impacted: Functional Behavior, NFR)
+- SD-UI-LIST-FILTER: In user lists/pickers, default filter excludes DISABLED users with an “Include disabled” toggle; safe ergonomic default and consistent with domain rule to exclude disabled from assignment pickers. (Impacted: UX Summary, Business Rules)
+
+---
+
+## 16. Open Questions
+1. **Backend contract (blocking):** What are the exact Moqui service names and/or REST endpoints for:
+   - loading user detail (User + Person status fields)
+   - performing disable action (payload + response)?
+2. **Permissions (blocking):** What exact permission/role check should the frontend use to show/enable “Disable User”? Is it strictly `user.disable` or something else in this repo?
+3. **Assignment options exposure (blocking):** How does the backend communicate whether `LEAVE_ASSIGNMENTS_ACTIVE` or `END_ASSIGNMENTS_AT_DATE` are allowed (policy + elevated permission)? Is there a “capabilities” field returned to the UI?
+4. **Reason code policy (blocking):** Is `statusReasonCode` required, optional, or conditionally required? If required, what are the allowed values and display labels?
+5. **Confirmation UX (blocking):** What confirmation mechanism is required by product/security policy (simple confirm button vs typed username vs checkbox + reason)?
+6. **Post-success navigation (blocking):** After disabling, should the UI remain on the User Detail page (refreshed) or navigate back to the Users list?
+7. **Timezone source (blocking):** Should `statusEffectiveAt` be displayed in tenant timezone, location timezone, or browser timezone? Where is that configured in the frontend/Moqui context?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Users: Disable User (Offboarding) Without Losing History — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/154
+
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Users: Disable User (Offboarding) Without Losing History
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/154
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Users: Disable User (Offboarding) Without Losing History
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+
+## Narrative
+As an **Admin**, I want **to disable a user account** so that **access is removed while historical labor and timekeeping records remain intact**.
+
+## Details
+- Disable login in pos-security-service.
+- Optionally end active location assignments.
+- Force-stop any active job timers.
+
+## Acceptance Criteria
+- Disabled users cannot authenticate.
+- Person record retained and marked inactive (policy-driven).
+- All forced stops and changes are audited.
+
+## Integration Points (workexec/shopmgr)
+- workexec excludes disabled users from assignment.
+- shopmgr excludes disabled users from future schedules.
+
+## Data / Entities
+- User
+- Person
+- Assignment
+- TimeEntry
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: People Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+

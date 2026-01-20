@@ -1,0 +1,1081 @@
+
+====================================================================================================
+item: frontend/100
+processed_at: 2026-01-17T21:36:45.486500+00:00
+----------------------------------------------------------------------------------------------------
+---
+name: 'Frontend Story Creation Prompt for Moqui (Greenfield Authoring)'
+agent: 'Story Authoring Agent'
+description: 'Create a new frontend GitHub user story that is implementation-ready for the Moqui framework, using domain-enriched structure, label intelligence, and strict completeness rules so the story can be built without follow-up clarification.'
+model: GPT-5 mini (copilot)
+---
+
+# STORY CREATION PROMPT
+## POS Frontend Story Authoring – Moqui-Buildable Mode (With Label Intelligence & Conflict Detection)
+
+You are authoring a **NEW frontend GitHub user story** for the POS system.
+
+You are NOT rewriting an existing story.
+You ARE transforming provided inputs (story description, instructions, business rules) into a **complete, buildable frontend story** suitable for implementation using the **Moqui framework (screens, forms, services, transitions)**.
+
+You are expected to enforce **clarity, precision, completeness, and correct routing metadata**.
+
+---
+
+## ⚠️ CRITICAL REQUIREMENT: Buildability Over Brevity
+
+Your output must be complete enough that:
+- A Moqui developer can implement screens, services, validations, and transitions
+- A tester can write test cases directly from Acceptance Criteria
+- No core behavior is left implied or “assumed”
+
+If something cannot be determined:
+- Surface it explicitly as an **Open Question**
+- Apply appropriate **blocking labels**
+- Do NOT silently guess
+
+---
+
+## 1. Authoritative References (Treat as Truth)
+
+The README at: https://github.com/louisburroughs/durion-moqui-frontend will describe the project and its conventions.
+
+You MUST follow and be consistent with (I you don't have the project in context, look for the information in the prompt before failing):
+
+- `/agents/story-authoring-agent.md`
+- `/agents/domains/*.md`
+- `/agents/assumptions/safe-defaults.md`
+- Moqui framework conventions (screens, forms, transitions, services, entities)
+
+Domain agent contracts are **binding constraints**:
+- Where enrichment is allowed → enrich confidently
+- Where clarification is required → surface Open Questions and STOP if needed
+
+---
+
+## 2. Label Awareness (Critical)
+
+GitHub labels are **executable constraints**, not decoration.
+
+You MUST reason about labels as part of authoring.
+
+### Canonical label families:
+- `type:*`
+- `domain:*` (EXACTLY ONE on stories)
+- `status:*`
+- `blocked:*`
+- `clarification:*`
+- `risk:*`
+- `agent:*`
+
+---
+
+## 3. Label Responsibilities
+
+### 3.1 Detect Required Labels
+
+You MUST determine:
+
+- `type:story` (always required)
+- **Exactly one** `domain:*` label based on primary ownership
+- Appropriate `status:*` for a newly authored story
+- Whether `blocked:*` or `risk:*` labels are required due to uncertainty
+
+---
+
+### 3.2 Safe Label Inference Rules
+
+You ARE ALLOWED to infer labels when:
+- The primary domain is clear from core user value
+- No financial, legal, tax, or security policy is being guessed
+
+You MUST NOT silently resolve:
+- Multi-domain ownership
+- Regulatory, accounting, or security ambiguity
+
+Those require **Open Questions** and blocking labels.
+
+---
+
+## 4. 🏷️ Labels (Proposed) — Output Contract (Non-Negotiable)
+
+At the VERY TOP of your output, include:
+
+```markdown
+## 🏷️ Labels (Proposed)
+````
+
+With the following subsections.
+
+### 4.1 Required Labels
+
+```markdown
+### Required
+- type:story
+- domain:<inferred-domain>
+- status:draft
+```
+
+---
+
+### 4.2 Recommended Labels
+
+```markdown
+### Recommended
+- agent:<primary-domain-agent>
+- agent:story-authoring
+```
+
+---
+
+### 4.3 Blocking / Risk Labels
+
+If applicable:
+
+```markdown
+### Blocking / Risk
+- blocked:clarification
+- blocked:domain-conflict
+- risk:incomplete-requirements
+```
+
+If none apply:
+
+```markdown
+### Blocking / Risk
+- none
+```
+
+---
+
+## 5. Rewrite Variant Selection (MANDATORY)
+
+⚠️ **YOU MUST SPECIFY A REWRITE VARIANT – THIS IS NON-NEGOTIABLE** ⚠️
+
+Select the variant based on the inferred primary domain:
+
+| Domain            | Variant                  |
+| ----------------- | ------------------------ |
+| domain:accounting | accounting-strict        |
+| domain:pricing    | pricing-strict           |
+| domain:security   | security-strict          |
+| domain:inventory  | inventory-flexible       |
+| domain:workexec   | workexec-structured      |
+| domain:crm        | crm-pragmatic            |
+| domain:positivity | integration-conservative |
+| domain:billing    | accounting-strict        |
+| domain:audit      | security-strict          |
+| domain:people     | crm-pragmatic            |
+| domain:location   | inventory-flexible       |
+
+### 5.1 Placement Requirement
+
+Immediately after **Labels (Proposed)**, include:
+
+```markdown
+**Rewrite Variant:** <variant-name>
+```
+
+### 5.2 If Domain Is Unclear
+
+* Select `integration-conservative`
+* Add `blocked:domain-conflict`
+* Still MUST specify a variant
+
+---
+
+## 6. Multi-Domain Conflict Detection (Non-Negotiable)
+
+A story MUST have **exactly one** `domain:*` label.
+
+If conflict signals apply:
+
+* STOP and follow the domain-conflict procedure
+* Add a **Domain Conflict Summary**
+* Apply `blocked:domain-conflict` and `status:needs-review`
+
+Conflict signals include:
+
+* Two systems of record
+* Two competing state machines
+* Ambiguous ownership of calculations or policies
+* Acceptance criteria requiring multiple domains simultaneously
+
+---
+
+## 7. Mandatory Story Structure (Exact Order)
+
+⚠️ **CRITICAL**: Sections must appear in EXACT order.
+
+1. **Story Header**
+
+   * Title
+   * Primary Persona
+   * Business Value
+
+2. **Story Intent**
+
+   * As a / I want / So that
+   * In-scope and out-of-scope
+
+3. **Actors & Stakeholders**
+
+4. **Preconditions & Dependencies**
+
+5. **UX Summary (Moqui-Oriented)**
+
+   * Entry points
+   * Screens to create/modify
+   * Navigation context
+   * User workflows (happy + alternate paths)
+
+6. **Functional Behavior**
+
+   * Triggers
+   * UI actions
+   * State changes
+   * Service interactions
+
+7. **Business Rules (Translated to UI Behavior)**
+
+   * Validation
+   * Enable/disable rules
+   * Visibility rules
+   * Error messaging expectations
+
+8. **Data Requirements**
+
+   * Entities involved
+   * Fields (type, required, defaults)
+   * Read-only vs editable by state/role
+   * Derived/calculated fields
+
+9. **Service Contracts (Frontend Perspective)**
+
+   * Load/view calls
+   * Create/update calls
+   * Submit/transition calls
+   * Error handling expectations
+
+10. **State Model & Transitions**
+
+    * Allowed states
+    * Role-based transitions
+    * UI behavior per state
+
+11. **Alternate / Error Flows**
+
+    * Validation failures
+    * Concurrency conflicts
+    * Unauthorized access
+    * Empty states
+
+12. **Acceptance Criteria**
+
+    * Gherkin (Given / When / Then)
+    * At least one scenario per major flow
+    * Success and failure cases
+
+13. **Audit & Observability**
+
+    * User-visible audit data
+    * Status history
+    * Traceability expectations
+
+14. **Non-Functional UI Requirements**
+
+    * Performance
+    * Accessibility
+    * Responsiveness
+    * i18n/timezone/currency (if applicable)
+
+15. **Open Questions**
+
+    * Only if needed
+    * Explicit, blocking questions
+
+---
+
+## 8. Domain-Enriched Writing Rules
+
+* Describe **behavior**, not visual layout
+* Be explicit about data ownership and validation
+* Assume standard POS and Moqui patterns unless contradicted
+* Prefer determinism over flexibility
+
+---
+
+## 9. Open Questions & Blocking Rules
+
+Create **Open Questions** when:
+
+* Multiple valid behaviors exist
+* Domain policy is unclear
+* Backend contract is undefined
+
+If Open Questions exist:
+
+* Add `blocked:clarification`
+* Add at the VERY TOP:
+
+```
+STOP: Clarification required before finalization
+```
+
+Still produce the best possible structured story.
+
+---
+
+## 10. Provided Inputs
+
+Below this prompt, the user will provide:
+
+```markdown
+# Provided Inputs
+- Story description
+- Story writing instructions
+- Business rules
+- Any constraints or references
+```
+
+You MUST base the story ONLY on these inputs plus authoritative references.
+
+---
+
+## 11. Tone & Perspective
+
+Write as:
+
+* A senior product, domain, and Moqui architect
+* Preparing work for professional developers and testers
+* Optimizing for implementation without guesswork
+
+Be explicit.
+Be structured.
+Be unambiguous.
+
+---
+
+## 12.  Project References
+
+Project references for context can be found in the README.md of the following public repositories:
+
+- Durion Project - https://github.com/louisburroughs/durion.git
+- Durion Frontend - https://github.com/louisburroughs/durion-moqui-frontend.git
+- Durion Backend - https://github.com/louisburroughs/durion-positivity-backend.git
+
+## 🔴 FINAL CHECKLIST – Before Submitting
+
+* [ ] Labels (Proposed) included at top
+* [ ] **Rewrite Variant specified immediately after labels**
+* [ ] Exactly one `domain:*` label
+* [ ] All mandatory sections present in exact order
+* [ ] UI behavior mapped to services and data
+* [ ] Acceptance criteria in Given/When/Then
+* [ ] Open Questions listed if anything is unclear
+
+**If forced to choose:**
+
+> **Buildability and correct routing beats elegance.**
+
+---
+name: Inventory Control Domain Agent
+description: Authoritative agent for inventory control domain with creative authority to author user stories following documented business rules. Final authority on inventory state and ownership.
+tools: ['vscode', 'execute', 'read', 'github/*', 'edit', 'search', 'web', 'agent']
+model: GPT-5.2 (copilot)
+---
+
+# Inventory Control Domain Agent Contract
+
+**Authoritative Agent:** `inventory-domain-agent`
+**Business Rules:** `durion/domains/inventory/.business-rules/`
+
+### Creative Authority
+
+The `inventory-domain-agent` **MAY use imagination** to author user stories within the inventory control domain, provided:
+- All guidance in `durion/domains/inventory/.business-rules/AGENT_GUIDE.md` is followed
+- All validation rules in `durion/domains/inventory/.business-rules/STORY_VALIDATION_CHECKLIST.md` are satisfied
+- If rules or guidelines are **missing or insufficient** for the story being authored, the agent **MUST immediately escalate** to the Story Authoring Agent to open a CLARIFICATION issue with specific questions about the missing guidance
+
+### The Story Authoring Agent MAY
+
+* Describe inventory lifecycle events (receive, reserve, consume)
+* Reference quantities, locations, and statuses conceptually
+* Describe reservations at a high level
+
+### The Story Authoring Agent MUST ASK when not previously defined or unclear about
+
+* Ownership transfers occur
+* Serial vs non-serial handling differs
+* Backorders or substitutions are allowed
+* Inventory valuation method matters
+* Adjustments, shrinkage, or recounts occur
+
+### The Story Authoring Agent MUST NOT
+
+* Assume FIFO/LIFO/average costing
+* Invent allocation or reservation logic
+* Assume physical vs virtual inventory behavior
+* Decide audit or reconciliation rules
+
+### Mandatory Clarification Triggers
+
+* “Who owns inventory at this point?”
+* “Is substitution allowed?”
+* “How is inventory valued?”
+
+
+--- Business Rules: domains/inventory/.business-rules/AGENT_GUIDE.md ---
+
+
+# AGENT_GUIDE.md — Inventory Domain
+
+---
+
+## Purpose
+
+The Inventory domain manages the authoritative data and business logic for inventory items, including product master references, stock quantities, costing, storage locations, and fulfillment-related inventory transactions. It ensures accurate, auditable, and consistent inventory state to support sales, fulfillment, accounting, and operational workflows within the POS ecosystem.
+
+---
+
+## Domain Boundaries
+
+- **Owned Data:** Inventory items, stock quantities, costs (standard, last, average), storage locations, inventory ledger entries, cycle count plans, consumption and return transactions.
+- **Authoritative Logic:** Cost calculations (Weighted Average Cost), stock level adjustments, inventory transactions (consume, return, transfer), storage location hierarchy.
+- **Exclusions:** Product master data (owned by Product domain), accounting calculations (consume cost is authoritative input only), external distributor/manufacturer feed ingestion (integration service responsibility).
+- **Integration:** Consumes product master references, purchase order events, work order data; publishes inventory events for consumption by Accounting, Work Execution, and other downstream systems.
+
+---
+
+## Key Entities / Concepts
+
+- **InventoryItem:** Represents stock-keeping units (SKUs) with associated costs (`standardCost`, `lastCost`, `averageCost`) and quantities.
+- **ItemCostAudit:** Immutable audit log capturing all cost changes with metadata (actor, reason, timestamps).
+- **StorageLocation:** Physical locations within sites (Floor, Shelf, Bin, etc.) organized hierarchically; supports capacity and status management.
+- **InventoryLedger:** Immutable transaction log recording all inventory movements and adjustments.
+- **CycleCountPlan:** Scheduled plans for physical inventory counts by location and zone.
+- **InventoryReturn:** Records of returned items from completed work orders, including reason codes.
+- **WorkorderPartsConsumed Event:** Signals consumption of picked inventory items tied to a work order.
+- **Cost Types:** 
+  - `Standard Cost` (manual, reference only)
+  - `Last Cost` (system-updated on purchase receipt)
+  - `Average Cost` (Weighted Average Cost, authoritative for valuation)
+
+---
+
+## Invariants / Business Rules
+
+- **Cost Management:**
+  - `Standard Cost` is manually updated only by authorized users with audit and reason code.
+  - `Last Cost` and `Average Cost` are system-managed, updated atomically on purchase order receipt events.
+  - Costs are stored with minimum 4 decimal places precision.
+  - Initial cost fields are `null` on new items; zero is disallowed to avoid ambiguity.
+  - Weighted Average Cost formula is strictly enforced and authoritative.
+  - Manual edits to `Last Cost` or `Average Cost` are prohibited.
+- **Inventory Transactions:**
+  - Consumption of picked items is atomic, immutable, and tied to valid work orders.
+  - Returns to stock require reason codes and are only allowed for completed/closed work orders.
+  - Storage location deactivation requires empty location or atomic stock transfer to a valid destination.
+- **Storage Locations:**
+  - Barcodes are unique per site.
+  - Location hierarchy must be acyclic.
+  - Locations have statuses (`Active`, `Inactive`) controlling usage.
+- **Cycle Count Plans:**
+  - Must be associated with one location and at least one zone.
+  - Scheduled dates cannot be in the past.
+  - Once started, plan scope is immutable.
+- **Permissions:**
+  - Manual `Standard Cost` updates require `inventory.cost.standard.update`.
+  - Consumption and return operations require appropriate domain permissions.
+  - Lifecycle state changes on products require product domain permissions.
+- **Error Handling:**
+  - Invalid cost values on purchase receipt reject cost updates.
+  - Transactions involving cost updates and audit logs are atomic.
+  - Unauthorized or invalid manual cost updates are rejected with validation errors.
+
+---
+
+## Events / Integrations
+
+- **Consumed Events:**
+  - `WorkorderPartsConsumed` emitted after successful consumption of picked items.
+  - `Inventory.ItemReturnedToStock` emitted after successful return transactions.
+- **Consumed Inputs:**
+  - `Purchase Order Received` events trigger cost updates (`Last Cost`, `Average Cost`).
+  - Product master references consumed from Product domain.
+  - Workorder states and line items consumed for validation.
+- **Audit Events:**
+  - Cost changes generate `ItemCostAudit` entries.
+  - Storage location changes and cycle count plan lifecycle changes generate audit logs.
+- **Downstream Consumers:**
+  - Accounting domain consumes authoritative cost data.
+  - Work Execution consumes inventory events for job costing and fulfillment.
+  - Reporting and auditing systems consume audit logs and events.
+
+---
+
+## API Expectations (High-Level)
+
+- **Cost Management:**
+  - Endpoints to manually update `Standard Cost` with permission checks and reason code validation.
+  - Event-driven updates for `Last Cost` and `Average Cost` (no manual API).
+- **Inventory Consumption:**
+  - `POST /v1/inventory/consume` to consume picked items against a workorder.
+  - Validation of workorder state, picked status, quantities, and permissions.
+- **Inventory Returns:**
+  - Endpoint to return unused items to stock with mandatory reason codes.
+- **Cycle Count Plans:**
+  - Endpoints to create, update, and query cycle count plans by location and zone.
+- **Storage Locations:**
+  - CRUD endpoints for storage locations with hierarchy management.
+  - Deactivation endpoint requiring stock transfer if non-empty.
+- **Availability Queries:**
+  - Read-only endpoints to expose on-hand and available-to-promise quantities by product and location.
+- **Product Master:**
+  - Product creation, update, lifecycle state management handled by Product domain APIs (Inventory references productId).
+
+> **Note:** Specific API paths and contracts are TBD and must align with domain conventions and frontend requirements.
+
+---
+
+## Security / Authorization Assumptions
+
+- Authentication is enforced via OAuth2/JWT or equivalent.
+- Role-based and permission-based access control:
+  - `inventory.cost.standard.update` required for manual standard cost updates.
+  - Permissions required for consumption, return, and storage location management.
+- Unauthorized attempts result in `403 Forbidden`.
+- Validation errors return `400 Bad Request` with descriptive messages.
+- Audit logs capture actor identity for all changes.
+- Sensitive operations are logged with sufficient context for forensic analysis.
+
+---
+
+## Observability (Logs / Metrics / Tracing)
+
+- **Logging:**
+  - Structured logs for all cost update transactions (success and failure).
+  - Logs for inventory consumption and return transactions with correlation IDs.
+  - Error logs with full stack traces and request context.
+  - Audit trail logs for storage location and cycle count plan changes.
+- **Metrics:**
+  - Counters for cost updates by type and outcome (`inventory.cost.updates.count`).
+  - Counters for manual adjustment rejections (`inventory.cost.manual_adjustments.rejected.count`).
+  - Timers for cost calculation durations (`inventory.cost.calculation.duration.ms`).
+  - Counters for audit log write failures (`inventory.cost.audit.write.failures.count`).
+  - Metrics for consumption success/failure and latency.
+  - Metrics for return transaction success/failure.
+  - Metrics for cycle count plan creations and errors.
+- **Tracing:**
+  - Distributed tracing for API requests and event processing pipelines.
+  - Correlation IDs propagated through event chains for end-to-end visibility.
+
+---
+
+## Testing Guidance
+
+- **Unit Tests:**
+  - Validate cost calculation logic, including WAC formula and edge cases (null initial values, zero cost rejection).
+  - Permission enforcement for manual cost updates.
+  - Validation of input data for consumption, returns, and storage location operations.
+- **Integration Tests:**
+  - End-to-end scenarios for purchase order receipt triggering cost updates and audit log creation.
+  - Consumption of picked items with workorder state validation and ledger entry creation.
+  - Return to stock workflows with reason code enforcement.
+  - Storage location creation, update, deactivation with stock transfer.
+  - Cycle count plan creation and validation of scheduling constraints.
+- **Transactionality:**
+  - Tests ensuring atomicity of cost updates and audit log writes.
+  - Rollback scenarios on audit failure or validation errors.
+- **Security Tests:**
+  - Unauthorized access attempts rejected.
+  - Permission boundary enforcement.
+- **Performance Tests:**
+  - Load testing for availability queries and batch cost update processing.
+- **Error Handling:**
+  - Invalid input scenarios produce appropriate error responses.
+  - Handling of invalid purchase order costs and duplicate updates.
+
+---
+
+## Common Pitfalls
+
+- **Manual edits to system-managed costs:** Attempting to update `Last Cost` or `Average Cost` manually must be prevented; these fields are event-driven only.
+- **Ignoring audit requirements:** All cost changes must be auditable with required metadata; missing audit entries compromise compliance.
+- **Non-atomic updates:** Updating costs and audit logs separately risks inconsistent state; always use transactions.
+- **Incorrect cost precision:** Monetary values must maintain at least 4 decimal places to avoid rounding errors.
+- **Misinterpreting cost ownership:** Inventory domain owns cost data and calculations; accounting domain must not recalculate or override.
+- **Cycle count plan scope changes:** Modifying location or zones after plan start violates business rules.
+- **Storage location hierarchy cycles:** Must be prevented to avoid infinite loops and data corruption.
+- **Returning more items than consumed:** Validation must enforce return quantity limits.
+- **Deactivating non-empty storage locations without transfer:** Must be rejected or handled atomically with stock transfer.
+- **Incorrect ATP calculations:** ATP excludes expected replenishments in v1; including them leads to inaccurate availability.
+- **Unmapped parts in feeds:** Must be tracked and surfaced for operations; ignoring leads to data gaps.
+- **Insufficient logging or metrics:** Leads to poor observability and delayed incident response.
+
+---
+
+# End of AGENT_GUIDE.md
+
+
+--- Business Rules: domains/inventory/.business-rules/STORY_VALIDATION_CHECKLIST.md ---
+
+
+# Inventory Domain Story Validation Checklist
+
+This checklist is designed to help engineers and reviewers validate story implementations within the Inventory domain. It covers key areas to ensure correctness, security, observability, and maintainability.
+
+---
+
+## Scope / Ownership
+- [ ] Verify the story implementation aligns strictly with Inventory domain responsibilities (e.g., cost calculation, inventory state).
+- [ ] Confirm no unauthorized domain logic leakage (e.g., Accounting domain must not recalculate costs).
+- [ ] Ensure all actors and stakeholders relevant to the story are correctly identified and addressed.
+- [ ] Confirm the story scope matches the intended functional behavior without scope creep.
+- [ ] Validate that all preconditions are met or handled gracefully.
+
+---
+
+## Data Model & Validation
+- [ ] Confirm all new or updated entities have correct schema definitions with appropriate data types and constraints.
+- [ ] Validate that monetary values use the required precision (minimum 4 decimal places for costs).
+- [ ] Check that nullable fields are correctly handled (e.g., initial costs set to `null` not zero).
+- [ ] Ensure all required fields (e.g., `reasonCode` for manual standard cost updates) are enforced via validation.
+- [ ] Verify uniqueness and foreign key constraints are implemented as specified.
+- [ ] Confirm audit entities capture all required fields (e.g., old/new values, timestamps, actor info).
+- [ ] Validate input data against business rules (e.g., no negative or zero costs on purchase order receipts).
+
+---
+
+## API Contract
+- [ ] Verify API endpoints follow RESTful conventions and domain naming standards.
+- [ ] Confirm request and response schemas match story requirements, including required fields and error responses.
+- [ ] Validate authorization requirements are enforced on API endpoints (e.g., permission `inventory.cost.standard.update`).
+- [ ] Check that error responses use appropriate HTTP status codes and provide clear, actionable messages.
+- [ ] Ensure idempotency where required (e.g., cost updates on purchase order receipt).
+- [ ] Confirm atomicity of multi-step API operations (e.g., cost update + audit log creation).
+- [ ] Validate that manual updates to system-managed fields (`lastCost`, `averageCost`) are rejected with validation errors.
+
+---
+
+## Events & Idempotency
+- [ ] Confirm all domain events specified (e.g., `WorkorderPartsConsumed`, `Inventory.ItemReturnedToStock`) are emitted with complete and accurate payloads.
+- [ ] Verify event payloads include all required identifiers and metadata for downstream consumers.
+- [ ] Ensure event emission occurs only after successful transaction commit.
+- [ ] Validate idempotency of event processing and API operations to prevent duplicate side effects.
+- [ ] Check that audit log entries are immutable and correctly linked to source transactions or users.
+- [ ] Confirm error handling and rollback behavior on audit log write failures.
+
+---
+
+## Security
+- [ ] Verify all sensitive operations require appropriate permissions and roles.
+- [ ] Confirm manual cost updates require `inventory.cost.standard.update` permission.
+- [ ] Ensure unauthorized attempts to update restricted fields are rejected with proper error codes.
+- [ ] Validate that audit logs capture the identity of the actor (user or system) performing changes.
+- [ ] Confirm no secrets or sensitive data are logged or exposed in API responses or events.
+- [ ] Check that effective date/time handling respects timezone and UTC standards.
+- [ ] Ensure that permission checks are consistent and enforced at all relevant layers (API, service, data).
+
+---
+
+## Observability
+- [ ] Confirm structured logging is implemented for all key operations, including success and failure cases.
+- [ ] Verify logs include sufficient context: user IDs, transaction IDs, timestamps, and error details.
+- [ ] Ensure metrics are emitted for:
+  - Cost updates (success/failure, by cost type and source)
+  - Manual adjustment rejections (by reason)
+  - Calculation durations
+  - Audit write failures
+  - Inventory consumption and returns (success/failure counts, latency)
+- [ ] Check that audit trails are queryable by relevant dimensions (item ID, cost type, date range).
+- [ ] Validate alerting triggers on critical failures or unusual patterns (e.g., high rejection rates).
+
+---
+
+## Performance & Failure Modes
+- [ ] Confirm all multi-step operations (e.g., cost updates + audit log writes) are performed within a single atomic transaction.
+- [ ] Verify rollback behavior on partial failures to maintain data integrity.
+- [ ] Ensure input validation prevents invalid data from triggering expensive processing.
+- [ ] Check that batch operations (e.g., manufacturer part mapping) use efficient APIs and avoid N+1 calls.
+- [ ] Validate that event emission and audit logging do not block or degrade API responsiveness.
+- [ ] Confirm error handling paths log sufficient detail and do not leak sensitive information.
+- [ ] Verify that database indexes support efficient queries for audit and availability lookups.
+
+---
+
+## Testing
+- [ ] Unit tests cover all business rules, including edge cases and error flows.
+- [ ] Integration tests verify end-to-end behavior, including API, database, and event emission.
+- [ ] Security tests confirm unauthorized access is denied and permission checks are enforced.
+- [ ] Performance tests validate acceptable latency for critical operations.
+- [ ] Idempotency tests ensure repeated requests do not cause inconsistent state.
+- [ ] Negative tests confirm invalid inputs are rejected with proper errors.
+- [ ] Transaction rollback scenarios are tested (e.g., audit log failure).
+- [ ] Audit log correctness and immutability are verified.
+
+---
+
+## Documentation
+- [ ] API documentation is complete, including request/response schemas, status codes, and error messages.
+- [ ] Data model changes are documented with field definitions and constraints.
+- [ ] Business rules and domain ownership clarifications are clearly stated.
+- [ ] Security and permission requirements are documented for implementers and users.
+- [ ] Event schemas and usage are documented for downstream consumers.
+- [ ] Observability metrics and logging conventions are described.
+- [ ] Known limitations, out-of-scope items, and open questions are noted.
+- [ ] Acceptance criteria from the story are included or referenced.
+- [ ] Update changelogs or release notes as appropriate.
+
+---
+
+# End of Checklist
+
+
+Story Synopsis:
+
+Title: [FRONTEND] [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/100
+
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/100
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Service Advisor**, I want on-hand/ATP so that we can quote and schedule realistically.
+
+## Details
+- On-hand computed from ledger; ATP = on-hand - allocations + expected receipts (optional).
+- Provide per location and optionally per storage location.
+
+## Acceptance Criteria
+- Availability query returns on-hand and ATP.
+- Consistent UOM handling.
+- SLA suitable for estimate UI.
+
+## Integrations
+- Product/workexec query availability; product may surface ATP to pricing.
+
+## Data / Entities
+- AvailabilityView, AllocationSummary, ExpectedReceiptSummary
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Inventory Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+
+BACKEND STORY REFERENCES (FOR REFERENCE ONLY)
+
+----------------------------------------------------------------------------------------------------
+
+Backend matches (extracted from story-work):
+
+
+[1] backend/36/backend.md
+
+    Labels: type:story, domain:inventory, status:ready-for-dev, agent:story-authoring, agent:inventory
+
+
+----------------------------------------------------------------------------------------------------
+
+Backend Story Full Content:
+
+
+
+### BACKEND STORY #1: backend/36/backend.md
+
+------------------------------------------------------------
+
+Title: [BACKEND] [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage
+URL: https://github.com/louisburroughs/durion-positivity-backend/issues/36
+Labels: type:story, domain:inventory, status:ready-for-dev, agent:story-authoring, agent:inventory
+
+---
+**Rewrite Variant:** inventory-flexible
+**Clarification Applied:** #233 (ATP formula, UOM scope, SLA, definitive ledger event types)
+---
+
+## Story Intent
+**As a** Service Advisor,  
+**I need to** know the real-time on-hand and available-to-promise (ATP) quantities for a specific part at a given location,  
+**so that I can** provide accurate quotes and schedule customer work with confidence.
+
+## Actors & Stakeholders
+- **Primary Actor**: Service Advisor
+- **System Actors**:
+  - Inventory Service (computes and serves availability)
+  - POS UI (consumes availability)
+- **Stakeholders**:
+  - Work Execution (confirms parts availability for scheduled jobs)
+  - Pricing (may use ATP as an input)
+  - Inventory Manager (operational planning and stock control)
+
+## Preconditions
+- An immutable inventory ledger exists and records stock movements with product, location, movement type, and quantity.
+- A system for recording stock allocations (soft reservations for specific work orders/sales) exists and is accessible.
+- Products (SKU + base UOM) are defined in Product domain.
+- A location hierarchy exists (parent locations and optional storage/bin locations).
+
+## Functional Behavior
+The Inventory Service exposes an API endpoint providing on-hand and ATP for a specified product.
+
+1. **Trigger**: Request for availability.
+2. **Input**: `productSku`, `locationId`, optional `storageLocationId`.
+3. **Processing**:
+   - Compute `onHandQuantity` from the inventory ledger (net sum of physical stock movements; see Business Rules).
+   - Query allocation system for `allocatedQuantity` for the same scope.
+   - Compute `availableToPromiseQuantity` using the defined formula.
+   - If only `locationId` is provided, aggregate across all child storage locations.
+   - If `storageLocationId` is provided, scope is narrowed to that storage location.
+4. **Output**: Return an `AvailabilityView` including `onHandQuantity`, `allocatedQuantity`, `availableToPromiseQuantity`, and `unitOfMeasure`.
+
+## Alternate / Error Flows
+- **Product Not Found**: If `productSku` is not found, return `404 Not Found`.
+- **Location Not Found**: If `locationId` / `storageLocationId` is not found, return `404 Not Found`.
+- **No Inventory History**: If product has no ledger entries for the scope, return success with quantities = 0.
+
+## Business Rules
+
+### On-Hand Calculation (Resolved)
+On-hand is the net sum of **physical stock movements** (inbound/outbound) plus count variances. Allocations/reservations are **not** part of on-hand.
+
+**Include in On-Hand (add/subtract by direction)**
+- Inbound (positive):
+  - `GOODS_RECEIPT`
+  - `TRANSFER_IN`
+  - `RETURN_TO_STOCK`
+  - `ADJUSTMENT_IN`
+  - `COUNT_VARIANCE_IN`
+- Outbound (negative):
+  - `GOODS_ISSUE`
+  - `TRANSFER_OUT`
+  - `SCRAP_OUT`
+  - `ADJUSTMENT_OUT`
+  - `COUNT_VARIANCE_OUT`
+
+**Explicitly excluded from On-Hand**
+- `RESERVATION_CREATED`, `RESERVATION_RELEASED`
+- `ALLOCATION_CREATED`, `ALLOCATION_RELEASED`
+- `BACKORDER_CREATED`, `BACKORDER_RESOLVED`
+- `PICK_TASK_CREATED`, `PICK_TASK_COMPLETED` (unless these post one of the physical movement events above)
+
+### ATP Calculation Formula (Resolved)
+**ATP v1:** $\text{ATP} = \text{OnHand} - \text{Allocations}$  
+**Expected receipts are out of scope** for this story.
+
+Optional forward-compatibility: the API may return `expectedReceiptsQty` as nullable, but it MUST NOT be included in ATP.
+
+### Allocation Definition
+An allocation is a soft reservation for a specific purpose (e.g., scheduled work order) that has not yet been physically picked/issued.
+
+### Unit of Measure (UOM) Consistency (Resolved)
+All internal calculations and API responses are in the product’s **base UOM**.
+
+Out of scope: request/response UOM conversions (e.g., case vs each).
+
+### Location Aggregation
+Querying a parent location aggregates all stock within the location across child storage locations.
+
+## Data Requirements
+
+### API Request
+- `productSku` (string, required)
+- `locationId` (UUID, required)
+- `storageLocationId` (UUID, optional)
+
+### API Response (`AvailabilityView`)
+- `productSku` (string)
+- `locationId` (UUID)
+- `storageLocationId` (UUID, nullable)
+- `onHandQuantity` (decimal, base UOM)
+- `allocatedQuantity` (decimal, base UOM)
+- `availableToPromiseQuantity` (decimal, base UOM)
+- `unitOfMeasure` (string; product base UOM)
+
+## Acceptance Criteria
+
+**Scenario 1: Simple On-Hand Calculation**
+- **Given** product `SKU-123` has ledger history at `LOC-A`: `GOODS_RECEIPT +10` and `GOODS_ISSUE -2`
+- **When** availability is requested for `SKU-123` at `LOC-A`
+- **Then** `onHandQuantity = 8`.
+
+**Scenario 2: ATP Calculation with Allocations**
+- **Given** `onHandQuantity = 8` for `SKU-123` at `LOC-A`
+- **And** `allocatedQuantity = 3` at `LOC-A`
+- **When** availability is requested for `SKU-123` at `LOC-A`
+- **Then** `availableToPromiseQuantity = 5`.
+
+**Scenario 3: Aggregate Calculation by Parent Location**
+- **Given** `LOC-WAREHOUSE` contains `BIN-1` and `BIN-2`
+- **And** ledger shows 5 units of `SKU-ABC` in `BIN-1` and 3 units in `BIN-2`
+- **When** availability is requested for `SKU-ABC` at `LOC-WAREHOUSE` (no `storageLocationId`)
+- **Then** `onHandQuantity = 8`.
+
+**Scenario 4: Request for a Non-Existent Product**
+- **Given** product catalog does not contain `SKU-DOES-NOT-EXIST`
+- **When** availability is requested
+- **Then** return `404 Not Found`.
+
+**Scenario 5: Request for a Valid Product with No Inventory**
+- **Given** `SKU-456` exists but has no ledger entries at `LOC-A`
+- **When** availability is requested
+- **Then** return success with `onHandQuantity = 0`, `allocatedQuantity = 0`, `availableToPromiseQuantity = 0`.
+
+## Audit & Observability
+- **Logging**: Log each availability request (`productSku`, `locationId`, optional `storageLocationId`) and resulting quantities. Log lookup/summation errors.
+- **Metrics**:
+  - Timer for endpoint latency.
+  - Counters for success and error responses (4xx/5xx).
+- **Tracing**: Distributed tracing from API gateway through Inventory Service to data stores.
+
+## Performance Requirements (Resolved)
+- Core endpoint (single product, single location, warm cache):
+  - **P95 < 200ms**
+  - P50 < 80ms
+  - P99 < 400ms
+- Measurement is at the service boundary, excluding caller network latency.
+
+## Open Questions
+None.
+
+## Original Story (Unmodified – For Traceability)
+## Backend Implementation for Story
+
+**Original Story**: [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **Service Advisor**, I want on-hand/ATP so that we can quote and schedule realistically.
+
+## Details
+- On-hand computed from ledger; ATP = on-hand - allocations + expected receipts (optional).
+- Provide per location and optionally per storage location.
+
+## Acceptance Criteria
+- Availability query returns on-hand and ATP.
+- Consistent UOM handling.
+- SLA suitable for estimate UI.
+
+## Integrations
+- Product/workexec query availability; product may surface ATP to pricing.
+
+## Data / Entities
+- AvailabilityView, AllocationSummary, ExpectedReceiptSummary
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Inventory Management
+
+
+### Backend Requirements
+
+- Implement Spring Boot microservices
+- Create REST API endpoints
+- Implement business logic and data access
+- Ensure proper security and validation
+
+### Technical Stack
+
+- Spring Boot 3.2.6
+- Java 21
+- Spring Data JPA
+- PostgreSQL/MySQL
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+------------------------------------------------------------
+
+====================================================================================================
+
+END BACKEND REFERENCES
+
+
+Pattern Match Info:
+
+  Matched value: [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage
+
+  Location: /home/louisb/Projects/durion/scripts/story-work/frontend/100/before.md:L6 (match@250)
+
+
+Review and update the issue: produce an implementation-ready rewrite (after.md) following the Story Authoring Agent rules and any appended domain-specific guidance and business rules. Preserve the original before.md content in the Original Story (Unmodified – For Traceability) section at the end. Ensure output contains required section headers.
+
+--- Assumptions / Safe Defaults: agents/assumptions/safe-defaults.md ---
+
+
+**Safe Defaults for Agents and Helper Scripts**
+
+This document records conservative, secure, and recoverable defaults that agent code and helper scripts in this workspace should follow. These defaults are intentionally defensive to reduce risk during automation and to make runs resumable, auditable, and recoverable.
+
+- **Secrets & Credentials**: Never hardcode secrets. Read tokens and keys exclusively from environment variables or a secrets store. Fail fast with a clear error if required credentials are missing.
+
+- **Dry-run First**: Scripts that change external state (GitHub, repos, issue edits, labels, deployments) should support a `--dry-run` mode that shows intended actions without making changes.
+
+- **Explicit Opt-in for Destructive Actions**: Require an explicit flag (e.g., `--force`, `--apply`) to perform destructive or irreversible actions. By default, run in a non-destructive mode.
+
+- **Atomic Writes & Plan Files**: When writing progress or plan files, write to a temp file and atomically rename into place. Keep a single authoritative plan file per long-running operation so interrupted runs can resume deterministically.
+
+- **Locking & Concurrency**: Use a simple lock file (`.lock`) with process PID and timestamp to prevent concurrent runs against the same output directory. Respect existing recent locks unless `--force` is provided.
+
+- **Idempotency & Resume**: Design operations so repeated runs skip already-completed work (check plan/completed entries and existing outputs). Record per-item success/failure with timestamps in the plan file.
+
+- **Rate Limiting & Backoff**: Handle remote API rate limits gracefully (inspect rate headers where available). Implement exponential backoff with jitter on transient network or 429/403-with-zero-remaining responses.
+
+- **Minimal Privilege**: Use the least-privilege token/scopes needed (e.g., repo:issues vs full repo) and document required scopes in README or script header.
+
+- **Safe Logging**: Avoid logging secrets or large PII. Log enough detail to debug (endpoints, issue numbers, error messages) but sanitize tokens and personal data.
+
+- **Validation & Fail-Fast**: Validate inputs and remote resources early (e.g., repository existence, token access) and fail with actionable messages rather than proceeding with partial state.
+
+- **Retry Policy**: For per-item transient failures, retry a small configurable number of times before marking the item `failed` in the plan and continuing to the next item.
+
+- **Clear Exit Codes & Summaries**: Exit 0 for normal completion (even with per-item failures recorded), non-zero for fatal unrecoverable errors. Print a concise JSON summary at the end of runs.
+
+- **Preserve Originals**: When transforming or rewriting artifacts, preserve the original (e.g., keep `before.md` unchanged and write rewritten output to a distinct file) and include traceability metadata (origin URL, timestamps).
+
+- **Documentation**: Document required env vars, expected repo scopes, and plan file schema adjacent to the script (script header or README) so operators can run or resume safely.
+
+Use these defaults as the baseline for new extraction, rewrite, and publish scripts in this workspace.

@@ -1,0 +1,2812 @@
+════════════════════════════════════════════════════════════════
+DOMAIN: location
+Total Stories: 6
+Generated: dim. 18 janv. 2026 12:03:02 EST
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+ISSUE #102: [FRONTEND] [STORY] Topology: Define Default Staging and Quarantine Locations for Receiving — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/102
+File: ./scripts/story-work/frontend/102/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:location
+- status:draft
+
+### Recommended
+- agent:location-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** inventory-flexible
+
+STOP: Clarification required before finalization
+
+---
+
+# 1. Story Header
+
+**Title:** [FRONTEND] [STORY] Configuration: Define Default Staging and Quarantine Storage Locations for a Site
+
+**Primary Persona:** Inventory Manager
+
+**Business Value:** Standardize receiving topology per site by configuring authoritative default storage locations for staging and quarantine, enabling consistent downstream receiving/quality workflows.
+
+---
+
+# 2. Story Intent
+
+## As a / I want / So that
+- **As an** Inventory Manager  
+- **I want** to configure a site’s default **Staging** and **Quarantine** storage locations  
+- **So that** receiving and quality-hold processes can reliably place inventory into the correct initial storage area.
+
+## In-scope
+- A frontend configuration UI (Moqui screen + Vue/Quasar components) to:
+  - View current site default staging/quarantine storage locations
+  - Select/update each default location from eligible storage locations within the site
+  - Validate and submit changes
+- Enforce the business rule that staging and quarantine defaults **must be distinct**
+- Display current configuration and last-updated metadata (if available from backend)
+
+## Out-of-scope
+- Receiving execution behavior (“receiving uses staging by default”) — handled by separate stories
+- Permission model and UI flows for moving inventory **out of** quarantine — separate inventory/security execution stories
+- CRUD for Storage Locations themselves (creation/editing) — separate location/inventory stories depending on SoR
+- Cross-site transfers, hierarchy edits, or barcode scanning flows
+
+---
+
+# 3. Actors & Stakeholders
+
+## Actors
+- **Inventory Manager (primary):** configures defaults per site.
+
+## Stakeholders
+- **Receiving / Work Execution workflows:** consume this configuration downstream.
+- **Audit/Compliance:** expects traceability of configuration changes.
+- **Location Operations:** relies on correct site topology.
+
+---
+
+# 4. Preconditions & Dependencies
+
+## Preconditions
+- User is authenticated in the frontend.
+- The system has:
+  - A **Site** (a Location acting as a site) with a unique `siteId`
+  - **Storage Locations** that belong to a site
+
+## Dependencies
+- Backend capability to:
+  - Retrieve a site’s current default location configuration
+  - List storage locations for a given site (for picker options)
+  - Update the site’s default staging/quarantine storage location IDs
+- Authorization enforcement exists server-side (frontend must handle 401/403)
+- Backend enforces:
+  - storage location belongs to site
+  - staging != quarantine (error code `DEFAULT_LOCATION_ROLE_CONFLICT`)
+
+---
+
+# 5. UX Summary (Moqui-Oriented)
+
+## Entry points
+- From Site/Location administration context:
+  - “Site Details” → “Default Locations” (new sub-screen), or
+  - “Inventory Topology” → select Site → configure defaults
+
+## Screens to create/modify (Moqui)
+- **Create:** `apps/pos/screen/location/SiteDefaults.xml` (name/path illustrative)
+  - A screen for viewing and editing `defaultStagingLocationId` and `defaultQuarantineLocationId`
+- **Modify:** Site details screen/navigation to include link/tab to “Default Locations”
+
+## Navigation context
+- URL pattern (Moqui screen path):  
+  - `/location/siteDefaults?siteId=<id>` (or nested under site detail: `/location/siteDetail?siteId=...#defaults`)
+- Breadcrumb: Locations → Site → Default Locations
+
+## User workflows
+### Happy path
+1. Inventory Manager opens Site Default Locations screen for a site.
+2. Screen loads current defaults and eligible storage locations for that site.
+3. User selects a staging location and a quarantine location (must be different).
+4. User clicks **Save**.
+5. UI shows success confirmation and updated values.
+
+### Alternate paths
+- User selects the same location for both fields → client-side validation blocks Save with clear message.
+- Backend rejects due to role conflict / wrong site → show server validation error inline and preserve user selections.
+- Unauthorized (403) → show permission error and disable editing.
+
+---
+
+# 6. Functional Behavior
+
+## Triggers
+- Navigating to the Site Default Locations screen with `siteId`
+- Clicking **Save** to update defaults
+
+## UI actions
+- Load:
+  - Fetch site info (name/code) for context (if endpoint exists)
+  - Fetch current default IDs for staging/quarantine
+  - Fetch list of storage locations belonging to the site for selection controls
+- Edit:
+  - Two selection controls:
+    - Default Staging Location
+    - Default Quarantine Location
+  - Optional: a “Clear” action is **not allowed** because defaults are required (see Open Questions if backend allows nulls)
+- Save:
+  - Submit update to backend with both IDs
+  - Display success toast/banner
+  - Refresh displayed configuration from backend response (or re-GET)
+
+## State changes (frontend)
+- Local form state:
+  - `selectedDefaultStagingLocationId`
+  - `selectedDefaultQuarantineLocationId`
+  - `isDirty`, `isSaving`
+- No domain state machine in frontend beyond edit/view mode.
+
+## Service interactions (Moqui)
+- Use Moqui `transition` actions to call services for:
+  - Load current configuration + options
+  - Persist update
+
+---
+
+# 7. Business Rules (Translated to UI Behavior)
+
+## Validation
+- **Required fields:** both staging and quarantine must be selected (non-null).
+- **Distinctness:** staging location ID must not equal quarantine location ID.
+- **Belongs-to-site:** frontend filters picker options to locations for the current site; still rely on backend validation.
+
+## Enable/disable rules
+- Save button enabled only when:
+  - both fields selected
+  - staging != quarantine
+  - user has edit permission (or backend indicates editable)
+- During save: disable inputs and show loading state.
+
+## Visibility rules
+- Always show current values (or “Not configured” if backend returns null; see Open Questions because backend story says “exactly one” each)
+- If user lacks permission:
+  - show read-only view of current defaults (if allowed)
+  - show message “You do not have permission to update site defaults.”
+
+## Error messaging expectations
+- `DEFAULT_LOCATION_ROLE_CONFLICT`: “Staging and quarantine locations must be different.”
+- `401`: prompt re-authentication (standard app behavior)
+- `403`: “You do not have permission to update default locations for this site.”
+- `404` site not found: “Site not found or you no longer have access.”
+- Validation `400/422`: surface field-level errors if backend provides them; otherwise show general error banner.
+
+---
+
+# 8. Data Requirements
+
+## Entities involved (frontend perspective)
+- **Site/Location** (SoR: Location domain)
+  - `siteId` (UUID)
+  - `code` (string) (display)
+  - `name` (string) (display)
+  - `defaultStagingLocationId` (UUID)
+  - `defaultQuarantineLocationId` (UUID)
+- **StorageLocation** (SoR: Inventory domain or Location/Inventory shared; unclear in provided inputs)
+  - `storageLocationId` (UUID)
+  - `siteId` (UUID)
+  - `name` (string)
+  - `barcode` (string, optional display)
+  - `status` (ACTIVE/INACTIVE) (for filtering eligibility)
+
+## Fields (type, required, defaults)
+- `defaultStagingLocationId: UUID` (required)
+- `defaultQuarantineLocationId: UUID` (required)
+
+## Read-only vs editable (by state/role)
+- Editable only for users with appropriate permission (exact permission string is not defined for this configuration story; see Open Questions)
+- Read-only for users lacking permission.
+
+## Derived/calculated fields
+- Display label for a storage location: `name` plus optional `barcode` for disambiguation.
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+> Backend API paths are referenced from backend story #38 as examples. Frontend must align to actual implemented endpoints.
+
+## Load/view calls
+1. **Get current site defaults**
+   - `GET /api/v1/sites/{siteId}` (if includes defaults) **OR**
+   - `GET /api/v1/sites/{siteId}/default-locations` (preferred explicit contract)
+   - Response must include:
+     - `defaultStagingLocationId`
+     - `defaultQuarantineLocationId`
+
+2. **List eligible storage locations for site**
+   - `GET /api/v1/sites/{siteId}/storage-locations?status=ACTIVE` (example)
+   - Response list items: `{ storageLocationId, name, barcode?, status }`
+
+## Create/update calls
+- **Update site default locations**
+  - `PUT /api/v1/sites/{siteId}/default-locations`
+  - Request:
+    ```json
+    {
+      "defaultStagingLocationId": "<uuid>",
+      "defaultQuarantineLocationId": "<uuid>"
+    }
+    ```
+  - Success: `200 OK` with updated config (or `204 No Content`)
+
+## Submit/transition calls
+- Moqui `transition` for Save triggers service call that wraps the HTTP call (or direct service if Moqui is SoR).
+
+## Error handling expectations
+- `400/422` with field errors and/or `errorCode`
+- Specific code to map:
+  - `DEFAULT_LOCATION_ROLE_CONFLICT` → field-level error on both selectors
+- `403` forbidden
+- `404` site not found
+
+---
+
+# 10. State Model & Transitions
+
+## Allowed states
+- Screen state only:
+  - `viewing`
+  - `editing` (form dirty)
+  - `saving`
+  - `error`
+
+## Role-based transitions
+- Only permitted users can transition `editing → saving`.
+- Unauthorized users remain `viewing` only.
+
+## UI behavior per state
+- Viewing: show current defaults; show Edit controls enabled if authorized.
+- Editing: show selectors active; Save enabled when valid.
+- Saving: disable inputs, show spinner/progress.
+- Error: show banner; keep form state for correction.
+
+---
+
+# 11. Alternate / Error Flows
+
+## Validation failures
+- Same staging/quarantine selected:
+  - Block Save; show inline message.
+- Missing selection:
+  - Block Save; show required indicator.
+
+## Concurrency conflicts
+- If backend uses optimistic locking and returns `409 Conflict`:
+  - Show message: “This configuration was updated by someone else. Reload and try again.”
+  - Provide “Reload” action.
+
+## Unauthorized access
+- `401`: route to login per app standard, then return to same screen.
+- `403`: show read-only with permission warning; do not allow save.
+
+## Empty states
+- No active storage locations returned:
+  - Show empty state: “No active storage locations exist for this site. Create one before configuring defaults.”
+  - Provide navigation link to storage locations list (if available).
+
+---
+
+# 12. Acceptance Criteria
+
+## Scenario 1: View current defaults
+**Given** I am an authenticated user  
+**And** Site “WH-1” exists  
+**When** I navigate to the Site Default Locations screen for “WH-1”  
+**Then** I see the current Default Staging Location and Default Quarantine Location displayed  
+**And** I see selection controls populated with storage locations that belong to “WH-1”.
+
+## Scenario 2: Update defaults successfully
+**Given** I am authenticated as an Inventory Manager (authorized to update site defaults)  
+**And** Site “WH-1” has storage locations “STAGING-A” and “QUARANTINE-B”  
+**When** I set Default Staging Location to “STAGING-A”  
+**And** I set Default Quarantine Location to “QUARANTINE-B”  
+**And** I click Save  
+**Then** the frontend sends `PUT /api/v1/sites/{siteId}/default-locations` with both IDs  
+**And** I see a success confirmation  
+**And** reloading the screen shows the saved defaults.
+
+## Scenario 3: Client-side reject duplicate role assignment
+**Given** I am authorized to update site defaults  
+**And** “COMMON-AREA” is a storage location in site “WH-1”  
+**When** I select “COMMON-AREA” for both staging and quarantine  
+**Then** the Save action is disabled (or blocked)  
+**And** I see an inline validation message stating the locations must be distinct  
+**And** no update request is sent.
+
+## Scenario 4: Server-side reject duplicate role assignment (defense in depth)
+**Given** I am authorized to update site defaults  
+**And** I submit an update where staging and quarantine IDs are the same (via any client manipulation)  
+**When** the backend responds with `400` and error code `DEFAULT_LOCATION_ROLE_CONFLICT`  
+**Then** the frontend shows an inline error on the selectors  
+**And** the message states staging and quarantine must be distinct.
+
+## Scenario 5: Reject unauthorized update
+**Given** I am an authenticated user without permission to update site defaults  
+**When** I attempt to Save changes to default staging/quarantine locations  
+**Then** the backend responds with `403 Forbidden`  
+**And** the frontend displays a permission error  
+**And** the configuration remains unchanged in the UI after reload.
+
+## Scenario 6: Reject selecting a storage location from another site
+**Given** I am authorized to update site defaults  
+**And** storage location “STAGING-X” belongs to site “WH-2”  
+**When** I attempt to set “STAGING-X” as the default staging location for site “WH-1”  
+**Then** the backend responds with `400` or `422` indicating the storage location does not belong to the site  
+**And** the frontend displays the error and preserves my current selections for correction.
+
+---
+
+# 13. Audit & Observability
+
+## User-visible audit data
+- Display (if available from backend):
+  - “Last updated at”
+  - “Last updated by”
+- If not available, omit without guessing.
+
+## Status history
+- Not applicable as a state machine; configuration history is backend/audit-driven.
+
+## Traceability expectations
+- Frontend logs (console/logger) should include:
+  - siteId
+  - correlation/request ID if exposed by HTTP layer
+  - outcome (success/failure) without leaking sensitive data
+
+---
+
+# 14. Non-Functional UI Requirements
+
+- **Performance:** initial load should complete with at most 2 network calls (defaults + storage locations). Avoid N+1.
+- **Accessibility:** selectors and validation messages must be screen-reader accessible; keyboard navigation supported.
+- **Responsiveness:** usable on tablet widths; avoid overflow in long location names.
+- **i18n:** all labels/messages use translation keys (no hardcoded strings).
+- **Timezone:** display timestamps in site timezone only if backend provides timezone context; otherwise use user’s locale (see Open Questions).
+
+---
+
+# 15. Applied Safe Defaults
+
+- **SD-UI-EMPTY-STATE-001**: Provide a standard empty state when no eligible storage locations exist; qualifies as safe UI ergonomics. Impacted sections: UX Summary, Alternate / Error Flows.
+- **SD-UI-LOADING-STATE-001**: Disable inputs and show loading indicator during save/load to prevent double-submit; safe UX ergonomics. Impacted sections: Functional Behavior, State Model.
+- **SD-ERR-MAP-001**: Map common HTTP statuses (401/403/404/409/422) to standard UI banners and inline errors when field-level info is present; safe because it does not alter domain policy. Impacted sections: Business Rules, Error Flows, Acceptance Criteria.
+
+---
+
+# 16. Open Questions
+
+1. **Domain label conflict:** This story configures *site default locations* (Location domain) but uses *storage locations* (Inventory domain). Confirm the frontend story should be owned by **domain:location** (configuration SoR) and not domain:inventory. If not, specify the correct single domain label.
+2. **Backend endpoints:** What are the exact API endpoints and response shapes for:
+   - fetching current defaults
+   - listing storage locations for a site
+   - updating defaults  
+   The backend story provides examples but not final contracts.
+3. **Authorization:** What permission(s) gate updating site default locations (e.g., `location:manage`, `inventory:topology.manage`)? Frontend needs to know whether to:
+   - hide/disable Save preemptively, or
+   - allow attempt and rely on 403 only.
+4. **Null handling:** Backend rules say each site MUST have exactly one staging and one quarantine default. Can existing sites have nulls during rollout/migration? If yes, how should UI behave (require setting both before leaving screen? block other workflows?).
+5. **Eligibility filtering:** Should inactive storage locations be selectable for defaults? (Location domain guide mentions statuses for locations/bays; inventory guide mentions location deactivation constraints, but not picker rules.)
+6. **Audit metadata:** Does the backend expose `updatedAt`/`updatedBy` for this configuration so the frontend can display it?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Topology: Define Default Staging and Quarantine Locations for Receiving — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/102
+
+Labels: frontend, story-implementation, user
+
+### Story Description
+
+/kiro  
+# User Story  
+## Narrative  
+As an **Inventory Manager**, I want default receiving staging and quarantine locations so that receiving workflows are consistent.
+
+## Details  
+- Each site can define staging and quarantine locations.  
+- Quarantine requires approval to move into available stock.
+
+## Acceptance Criteria  
+- Staging/quarantine configured per location.  
+- Receiving uses staging by default.  
+- Quarantine moves require permission.
+
+## Integrations  
+- Distributor receiving may land in staging; quality hold uses quarantine.
+
+## Data / Entities  
+- ReceivingPolicy, StorageLocationRef, PermissionCheck
+
+## Classification (confirm labels)  
+- Type: Story  
+- Layer: Domain  
+- Domain: Inventory Management
+
+### Frontend Requirements
+- Implement Vue.js 3 components with TypeScript  
+- Use Quasar framework for UI components  
+- Integrate with Moqui Framework backend  
+- Ensure responsive design and accessibility
+
+════════════════════════════════════════════════════════════════
+ISSUE #117: [FRONTEND] [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope  
+File: ./scripts/story-work/frontend/117/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:location
+- status:draft
+
+### Recommended
+- agent:location-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** inventory-flexible
+
+STOP: Clarification required before finalization
+
+---
+
+## 1. Story Header
+
+### Title
+[FRONTEND] [STORY] Pricing Scope Admin: View Sync’d Locations & Sync Logs (durion-hr → Location Replica)
+
+### Primary Persona
+System Administrator / Pricing Administrator (user in POS backoffice UI)
+
+### Business Value
+Provide a UI to verify which locations exist locally (synced from `durion-hr`) and their active/inactive status, plus the latest sync outcomes, so admins can confidently scope pricing overrides to valid locations and quickly diagnose sync issues.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As a** System Administrator / Pricing Admin  
+- **I want** to view the locally synced location roster (id, name, status, optional region/tags) and the most recent sync run logs  
+- **So that** I can confirm pricing scope uses valid locations and I can troubleshoot sync failures without backend access.
+
+### In-scope
+- New/updated Moqui screens to:
+  - List/search/filter the locally stored synced locations (replica) used for pricing scope validation.
+  - View a location detail page (read-only) including status and metadata (region/tags if available).
+  - View sync logs (list + detail).
+- UI handling for empty/error states and unauthorized access.
+- Moqui service interactions to load locations and sync logs.
+
+### Out-of-scope
+- Implementing the actual sync job from `durion-hr` (backend story #53).
+- Creating/updating locations from the UI (source-of-truth is `durion-hr`).
+- Enforcing pricing override creation rules in UI flows unrelated to this roster (those belong to pricing UI stories).
+- Building/altering pricing override screens (only display roster/log visibility here).
+
+---
+
+## 3. Actors & Stakeholders
+- **Primary Actor:** System Administrator / Pricing Admin (backoffice user)
+- **Secondary Actor:** Support/Operations (reads logs for troubleshooting)
+- **System Stakeholders:** Location domain service (backend), Pricing domain consumers
+- **Auditors:** Need traceability of sync outcomes (read-only)
+
+---
+
+## 4. Preconditions & Dependencies
+- Backend provides endpoints/services to:
+  - List and retrieve local synced `Location` records (replica).
+  - List and retrieve `SyncLog` records for location sync runs.
+- AuthN/AuthZ is enforced (via security domain / gateway); UI must handle 401/403.
+- Data model exists in Moqui entities (or is accessible via REST) for:
+  - `Location` replica with `locationId`, `name`, `status`, optional `region`, `tags`, timestamps.
+  - `SyncLog` with run status and counts.
+
+**Dependency Reference:** Backend issue `durion-positivity-backend#53` (domain:location) defines required fields and behaviors.
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Backoffice navigation: **Location Management** (or **Admin → Integrations → Location Sync**), plus a cross-link from **Pricing** area (“Choose location from roster”).
+
+### Screens to create/modify
+1. **`apps/pos/screen/location/LocationList.xml`** (new)
+   - List of synced locations with filters.
+2. **`apps/pos/screen/location/LocationDetail.xml`** (new)
+   - Read-only detail view for one location.
+3. **`apps/pos/screen/location/LocationSyncLogList.xml`** (new)
+   - List sync logs.
+4. **`apps/pos/screen/location/LocationSyncLogDetail.xml`** (new)
+   - Sync log details including counts and notes.
+5. Add menu entries in the app nav (existing menu screen component).
+
+### Navigation context
+- Routes under a consistent prefix, e.g.:
+  - `/location/locations` (list)
+  - `/location/locations/:locationId` (detail)
+  - `/location/sync-logs` (list)
+  - `/location/sync-logs/:syncId` (detail)
+
+### User workflows
+- **Happy path (verify roster):**
+  1. User opens Locations list.
+  2. Filters by status = ACTIVE.
+  3. Opens a location detail to confirm `locationId`, name, status.
+- **Happy path (check sync health):**
+  1. User opens Sync Logs list.
+  2. Sees latest run status SUCCESS/PARTIAL_FAILURE/FAILURE.
+  3. Opens log to see counts and notes.
+- **Alternate paths:**
+  - No locations exist yet → empty state with link to Sync Logs.
+  - Latest sync failed → prominent warning banner linking to latest failure log.
+  - Unauthorized → show access denied screen.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- Screen load triggers data fetch for lists and details.
+- User interactions (filters, pagination, selecting a record) trigger refresh or navigation.
+
+### UI actions
+- Locations list:
+  - Filter by `status` (ACTIVE/INACTIVE/ALL).
+  - Search by `locationId` and/or `name` (case-insensitive).
+  - Sort by `name` (default) and optionally `updatedAt`.
+  - Paginate.
+- Location detail:
+  - Display read-only fields and timestamps.
+  - Link to “View Sync Logs” (global, not per-location unless backend supports).
+- Sync log list:
+  - Filter by run status (SUCCESS/PARTIAL_FAILURE/FAILURE/ALL).
+  - Sort by `syncStartedAt` desc (default).
+  - Paginate.
+- Sync log detail:
+  - Display counts, status, timestamps, notes.
+
+### State changes
+- None in this frontend story (read-only UI). No create/update/deactivate actions.
+
+### Service interactions
+- Calls to Moqui services (or REST resources proxied by Moqui) for:
+  - `Location` list and detail
+  - `SyncLog` list and detail
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+- Locations are **replicated from `durion-hr`** and **not editable** in POS UI.
+  - UI must render location fields read-only and omit edit actions.
+- Location `status` determines eligibility for pricing scoping:
+  - UI must clearly show `status` and allow filtering by it.
+  - If `status != ACTIVE`, UI should display “Inactive (not eligible for new pricing overrides)” helper text (informational only; enforcement is elsewhere).
+- Sync is idempotent:
+  - UI must not imply manual rerun unless such a backend action exists (not in scope).
+- If a location is missing from feed, it becomes INACTIVE:
+  - UI should not delete/hide it by default; it should appear when status filter includes INACTIVE/ALL.
+
+**Error messaging expectations**
+- Validation errors are not expected (read-only), but API errors must be surfaced:
+  - “Unable to load locations. Try again.” with technical details hidden behind expandable section if available in standard app pattern.
+- Unauthorized:
+  - 401 → redirect to login (if app supports)
+  - 403 → show “Access denied: location management permission required.”
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend-facing)
+- `Location` (replica)
+- `SyncLog` (sync run record)
+
+### Fields
+
+#### Location (replica)
+- `locationId` (String; required; display; read-only)
+- `name` (String; required; display; read-only)
+- `status` (Enum/String; required; display; read-only; values include at least ACTIVE/INACTIVE)
+- `region` (String; optional; display if present; read-only)
+- `tags` (List<String> or comma-separated String; optional; display if present; read-only)
+- `createdAt` (Timestamp; display optional; read-only)
+- `updatedAt` (Timestamp; display optional; read-only)
+
+#### SyncLog
+- `syncId` (UUID/String; required; display; read-only)
+- `syncStartedAt` (Timestamp; required; display; read-only)
+- `syncFinishedAt` (Timestamp; optional if running; display; read-only)
+- `status` (Enum/String: SUCCESS, PARTIAL_FAILURE, FAILURE; required)
+- `recordsProcessed` (Integer; required)
+- `recordsCreated` (Integer; required)
+- `recordsUpdated` (Integer; required)
+- `recordsSkipped` (Integer; required)
+- `notes` (Text; optional)
+
+### Read-only vs editable by state/role
+- All fields in this story are **read-only** for all roles.
+
+### Derived/calculated fields (UI-only)
+- “Duration” = `syncFinishedAt - syncStartedAt` (only if both present).
+- “Last sync status” badge on Locations list header (derived from most recent SyncLog if loaded).
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Backend API contract details are noted as TBD in domain guide; frontend must integrate via Moqui services/resources. The exact service names/endpoints require confirmation.
+
+### Load/view calls
+
+**Locations list**
+- Input:
+  - `status` = ACTIVE|INACTIVE|ALL (default ACTIVE or ALL—see Open Question)
+  - `search` (optional)
+  - `pageIndex`, `pageSize`
+  - `sortBy`, `sortOrder`
+- Output:
+  - `items: Location[]`
+  - `totalCount`
+
+**Location detail**
+- Input: `locationId`
+- Output: `Location`
+
+**SyncLog list**
+- Input:
+  - `status` filter optional
+  - `pageIndex`, `pageSize`
+- Output:
+  - `items: SyncLog[]`
+  - `totalCount`
+
+**SyncLog detail**
+- Input: `syncId`
+- Output: `SyncLog`
+
+### Create/update calls
+- None.
+
+### Submit/transition calls
+- None.
+
+### Error handling expectations
+- Network/5xx: show inline error state with retry.
+- 404 on detail: show “Not found” and link back to list.
+- 409 (optimistic locking) not expected in read-only flows.
+- 401/403: handle per app standard (login/forbidden).
+
+---
+
+## 10. State Model & Transitions
+
+### Location states
+- `ACTIVE`
+- `INACTIVE`
+- (Potentially other backend statuses; UI must display unknown statuses as raw value with neutral styling)
+
+### Allowed transitions
+- Not performed by UI; transitions occur via sync.
+
+### Role-based transitions
+- None (read-only).
+
+### UI behavior per state
+- ACTIVE: normal display.
+- INACTIVE: visually mark as inactive; show helper text “Not eligible for new pricing overrides.”
+- Unknown: show as “<STATUS_VALUE>” without assumptions.
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- None expected (no input forms).
+
+### Concurrency conflicts
+- If list refresh returns different data mid-session, just re-render (no optimistic locking needed).
+
+### Unauthorized access
+- 401: redirect to login (if available); otherwise show session expired.
+- 403: access denied page; do not display partial data.
+
+### Empty states
+- Locations list empty:
+  - Show message: “No synced locations found.”
+  - Suggest checking Sync Logs.
+- Sync logs empty:
+  - Show message: “No sync runs recorded yet.”
+
+### Backend unavailable
+- Display error banner and retry action.
+
+---
+
+## 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: View ACTIVE locations
+Given I am an authenticated user with permission to view locations  
+When I navigate to the Locations list screen  
+Then I see a list of synced locations with fields locationId, name, and status  
+And I can filter the list to show only status "ACTIVE"  
+And locations with status "INACTIVE" are not shown when the ACTIVE filter is applied
+
+### Scenario 2: View INACTIVE locations with eligibility note
+Given I am viewing the Locations list with status filter set to "INACTIVE"  
+When the list loads  
+Then each location row shows status "INACTIVE"  
+And the UI displays an informational note that INACTIVE locations are not eligible for new pricing overrides
+
+### Scenario 3: View location detail
+Given I am on the Locations list  
+When I select a location with locationId "loc-1"  
+Then I am navigated to the Location detail screen for "loc-1"  
+And I see locationId, name, status, and any available region/tags as read-only fields
+
+### Scenario 4: View sync logs list and latest status
+Given I am an authenticated user with permission to view sync logs  
+When I navigate to the Location Sync Logs list screen  
+Then I see sync runs sorted by syncStartedAt descending  
+And each entry shows status and record counts (processed/created/updated/skipped)
+
+### Scenario 5: View sync log detail
+Given I am on the Sync Logs list  
+When I open a sync log entry  
+Then I see syncStartedAt, syncFinishedAt, status, counts, and notes (if present)
+
+### Scenario 6: Handle backend failure
+Given the backend service is unavailable  
+When I load the Locations list screen  
+Then I see an error state indicating locations could not be loaded  
+And I can retry the request from the UI
+
+### Scenario 7: Unauthorized access
+Given I am not authenticated or lack required permission  
+When I navigate to the Locations list or Sync Logs screens  
+Then I am blocked from viewing the data  
+And I see either a login prompt (401) or an access denied message (403)
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- Display `updatedAt` on location detail (and optionally in list) to show recency of sync.
+- Display `syncStartedAt`/`syncFinishedAt` and `status` for each sync run.
+
+### Status history
+- Out of scope to build per-location status history unless backend provides it.
+- Sync log detail provides run-level history.
+
+### Traceability expectations
+- Include `syncId` in SyncLog detail.
+- If backend returns correlation/request IDs in headers, UI should log them to console/debug log per app standard (no secrets).
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** Lists must support pagination; initial load should not fetch all records without pagination.
+- **Accessibility:** All interactive elements keyboard accessible; status conveyed via text not color alone.
+- **Responsiveness:** Works on desktop/tablet widths (admin screens).
+- **i18n/timezone:** Display timestamps in user’s locale/timezone as per app standard; do not invent location timezone conversions.
+
+---
+
+## 15. Applied Safe Defaults
+- SD-UI-EMPTY-STATE: Added standard empty-state messaging and navigation links; qualifies as safe UX ergonomics; impacts UX Summary, Error Flows.
+- SD-UI-PAGINATION: Use pagination for list screens with default page size; safe for large datasets and non-domain; impacts UX Summary, Service Contracts.
+- SD-ERR-RETRY: Provide retry action for transient load failures; safe error-handling pattern; impacts Error Flows, Acceptance Criteria.
+
+---
+
+## 16. Open Questions
+1. **Backend contract:** What are the exact Moqui service names or REST endpoints for:
+   - listing locations, retrieving a location by `locationId`
+   - listing sync logs, retrieving a log by `syncId`?
+2. **Permissions:** What permission(s)/roles gate access to these screens (e.g., `location:manage` vs read-only `location:view`)? Should pricing admins without location-manage be allowed read-only access?
+3. **Default filter:** On Locations list, should default status filter be `ACTIVE` or `ALL`?
+4. **Tags type:** Are `tags` delivered as an array, a CSV string, or another structure? Any max length/count constraints?
+5. **Region semantics:** Is `region` a free-text field or a controlled vocabulary? Should it be filterable?
+6. **Menu placement:** Where in the POS frontend navigation should these screens live (Admin, Location Management, Pricing)?  
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/117  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As a **System**, I want to sync location identifiers from durion-hr so that store pricing can be scoped to valid locations.
+
+## Details
+- Import locationId, name, status.
+- Optional region/tags.
+
+## Acceptance Criteria
+- Locations present in product domain.
+- Deactivated locations cannot receive new overrides.
+- Sync idempotent.
+
+## Integrations
+- HR → Product location roster API/events.
+
+## Data / Entities
+- LocationRef, SyncLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Product / Parts Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---  
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════════════════════════════
+ISSUE #140: [FRONTEND] [STORY] Locations: Create Mobile Units and Coverage Rules — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/140
+File: ./scripts/story-work/frontend/140/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:location
+- status:draft
+
+### Recommended
+- agent:location-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** inventory-flexible
+
+STOP: Clarification required before finalization
+
+---
+
+## 1. Story Header
+
+**Title:** [FRONTEND] Locations: Create & Manage Mobile Units, Coverage Rules, and Travel Buffer Policies
+
+**Primary Persona:** Shop Administrator (Admin)
+
+**Business Value:** Enables configuration of mobile service resources (capabilities, base location, coverage, travel buffer policy, max daily jobs) so scheduling/work execution can select eligible **ACTIVE** mobile units and apply travel buffers reliably.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As a** Shop Administrator  
+- **I want** to create and manage Mobile Units, define their capabilities and coverage rules, and configure Travel Buffer Policies  
+- **So that** mobile appointments can be scheduled with correct eligibility filtering and travel buffer behavior, and out-of-service units are not schedulable.
+
+### In-Scope
+- Frontend screens and flows to:
+  - Create, view, and update **Mobile Units**
+  - Assign **capability IDs** (validated by Service Catalog via backend)
+  - Define **coverage rules** that link Mobile Units to **Service Areas** with priority and effective windows
+  - Create and view **Travel Buffer Policies** (FIXED_MINUTES, DISTANCE_TIER)
+- UI validation aligned to backend rules (immutability, required fields, tier validation shape, etc.)
+- Moqui screen/form/service wiring needed to call backend endpoints and manage transitions
+- Basic audit visibility (created/updated timestamps; status history if available via API)
+
+### Out-of-Scope
+- Computing travel distance (caller/workexec owns distance computation per backend reference)
+- Scheduling availability computation (workexec owns)
+- HR “TravelTimeApproved” event emission (explicitly out of scope per backend reference)
+- Authorization model design (security domain); frontend will respect backend 401/403 responses and hide actions if permissions are available in session context (if not, show read-only + errors)
+
+---
+
+## 3. Actors & Stakeholders
+- **Shop Administrator (Admin):** configures mobile units, coverage, and policies.
+- **Scheduler / Work Execution user/system:** consumes mobile unit eligibility for scheduling (not configured here, but depends on correct configuration).
+- **Service Catalog domain/system:** authoritative source for capabilities; backend validates IDs.
+- **Security/Access Control stakeholders:** define who can manage mobile units/policies.
+
+---
+
+## 4. Preconditions & Dependencies
+- User is authenticated.
+- Backend location APIs exist and are reachable (see Service Contracts).
+- Base Locations exist in Location system (baseLocationId is required and must exist).
+- Capability ID lookup/validation depends on Service Catalog availability (backend may return 503 if unavailable).
+- Service Areas exist (or must be created elsewhere). This frontend story includes coverage rule linking to Service Areas, but **Service Area CRUD UI is not specified in provided inputs** (see Open Questions).
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Left nav / admin menu: **Locations → Mobile Units**
+- (Optional) Locations → Travel Buffer Policies
+- (Optional) Locations → Service Areas (only if included/confirmed; otherwise linking picker only)
+
+### Screens to create/modify (Moqui)
+1. **`/locations/mobile-units`** (list)
+   - Search/filter (status, base location)
+   - Row actions: View/Edit
+   - Primary action: Create Mobile Unit
+2. **`/locations/mobile-units/create`** (create form)
+3. **`/locations/mobile-units/:mobileUnitId`** (detail)
+   - Read-only summary + editable sections
+4. **`/locations/mobile-units/:mobileUnitId/edit`** (edit form; may be same as detail with edit mode)
+5. **`/locations/mobile-units/:mobileUnitId/coverage`** (coverage rules management)
+6. **`/locations/travel-buffer-policies`** (list)
+7. **`/locations/travel-buffer-policies/create`** (create form)
+8. **`/locations/travel-buffer-policies/:travelBufferPolicyId`** (detail)
+
+> Moqui implementation note: these can be implemented as a screen tree under `component://.../screen/locations/MobileUnits.xml` etc., using subscreens for list/create/detail/coverage.
+
+### Navigation context
+- Breadcrumbs: Locations > Mobile Units > {Unit Name}
+- Return-to-list after create/update.
+
+### User workflows
+**Happy path: Create Mobile Unit**
+1. Admin opens Mobile Units list → Create.
+2. Enters name, selects base location, sets status (default ACTIVE), max daily jobs.
+3. Selects capability IDs (multi-select).
+4. Selects travel buffer policy (required when status ACTIVE).
+5. Saves → redirected to detail page.
+
+**Alternate: Configure coverage**
+1. From unit detail, navigate to Coverage tab/page.
+2. Add one or more coverage rules linking to Service Areas, set priority and effective dates.
+3. Save changes atomically (replace set) to avoid partial config.
+
+**Alternate: Create travel buffer policy**
+1. Open Travel Buffer Policies → Create.
+2. Choose type FIXED_MINUTES or DISTANCE_TIER.
+3. Enter configuration; validate tiers.
+4. Save and reuse in Mobile Unit form.
+
+**Alternate: Out-of-service blocks scheduling**
+- Admin sets status OUT_OF_SERVICE; UI communicates that unit is not schedulable (informational).
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- User opens list/detail/create screens.
+- User submits create/update forms.
+- User adds/edits/removes coverage rules.
+- User creates a travel buffer policy.
+
+### UI actions
+- **List:** fetch paged list; filter by status/base location.
+- **Create Mobile Unit:** client-side validation then POST.
+- **Edit Mobile Unit:** PATCH (preferred) or PUT depending on backend; do not allow editing immutable fields (code immutability applies to Location.code; MobileUnit has no immutable field specified besides IDs).
+- **Coverage management:** edit a grid of rules; submit as a single “replace coverage rules” action if backend supports it (per backend story requirement for atomic replacement).
+- **Policy creation:** dynamic form based on type; validate tier constraints client-side before submit.
+
+### State changes (frontend-observed)
+- MobileUnit.status changes among ACTIVE / INACTIVE / OUT_OF_SERVICE.
+- Coverage rules effective windows change eligibility at time T (informational; eligibility query is separate endpoint).
+
+### Service interactions (high-level)
+- Load base locations list for selection.
+- Load capabilities list for selection (endpoint TBD; may be via backend aggregator).
+- Load service areas list for selection.
+- CRUD Mobile Units.
+- CRUD/Read Travel Buffer Policies.
+- Manage coverage rules per mobile unit.
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation
+Mobile Unit:
+- `name` required; show inline error if empty.
+- `baseLocationId` required; must be a valid selection.
+- `maxDailyJobs` required integer, `>= 0`.
+- `status` required enum: `ACTIVE | INACTIVE | OUT_OF_SERVICE`.
+- `travelBufferPolicyId`:
+  - Required when `status = ACTIVE` (enforce in UI).
+  - Optional/disabled when status is not ACTIVE (UI should allow blank).
+- Capabilities:
+  - UI allows selecting multiple capability IDs.
+  - If backend returns `400` unknown capability IDs, show error and keep user selections.
+
+Coverage Rule:
+- Must select `serviceAreaId`.
+- `priority` integer; lower = higher priority (display helper text).
+- Effective window:
+  - If both provided, enforce `effectiveEndAt > effectiveStartAt`.
+  - Allow null start (immediate) and/or null end (indefinite).
+
+Travel Buffer Policy:
+- `name` required.
+- `policyType` required: FIXED_MINUTES or DISTANCE_TIER.
+- For `FIXED_MINUTES`: require `bufferMinutes >= 0` (exact config key TBD).
+- For `DISTANCE_TIER`:
+  - At least one tier required.
+  - Each tier has `bufferMinutes >= 0`.
+  - `maxDistance` must be strictly increasing for non-null values.
+  - Must include a catch-all tier with `maxDistance = null`.
+  - `unit` default “KM” (per backend reference) but must not be guessed if backend expects different; see Open Questions.
+
+### Enable/disable rules
+- Disable “Save” until required fields are valid.
+- In Mobile Unit form:
+  - Travel buffer policy selector enabled + required only when status ACTIVE.
+- In tier editor:
+  - Prevent adding multiple catch-all tiers.
+  - Enforce numeric-only distance inputs (where applicable).
+
+### Visibility rules
+- Show Coverage management only after Mobile Unit is created (needs mobileUnitId).
+- Show an informational banner when status is OUT_OF_SERVICE: “Not schedulable while out of service.”
+
+### Error messaging expectations
+Map backend errors:
+- `400 Bad Request`: show field-level errors when possible; otherwise show summary “Validation error”.
+- `401/403`: show “You do not have permission” and disable edit actions.
+- `409 Conflict`: show “A Mobile Unit with this name already exists for the selected base location.”
+- `503 Service Unavailable` (capability validation dependency down): show “Service Catalog unavailable; please retry.”
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend view models)
+- **MobileUnit**
+  - `mobileUnitId` (UUID, read-only)
+  - `name` (string, required)
+  - `status` (enum, required)
+  - `baseLocationId` (Long, required)
+  - `travelBufferPolicyId` (UUID, required when ACTIVE)
+  - `maxDailyJobs` (int, required, >=0)
+  - `capabilityIds[]` (string/UUID IDs, required? optional; backend allows empty not specified)
+  - `createdAt`, `updatedAt` (timestamps, read-only)
+- **ServiceArea** (for picker)
+  - `serviceAreaId` (UUID)
+  - `name` (string)
+  - `countryCode` (string)
+- **MobileUnitCoverageRule**
+  - `coverageRuleId` (UUID, read-only if editing existing; may be generated by backend)
+  - `serviceAreaId` (UUID, required)
+  - `priority` (int, required)
+  - `effectiveStartAt` (timestamp, nullable)
+  - `effectiveEndAt` (timestamp, nullable)
+- **TravelBufferPolicy**
+  - `travelBufferPolicyId` (UUID, read-only)
+  - `name` (string, required)
+  - `policyType` (enum, required)
+  - `policyConfiguration` (JSON; edited via typed UI)
+
+### Read-only vs editable by state/role
+- If user lacks `location.mobile-unit.manage`, all forms are read-only; list/detail still viewable if backend allows.
+- `mobileUnitId`, timestamps are always read-only.
+
+### Derived/calculated fields
+- “Schedulable” indicator derived in UI: `status === ACTIVE` (and optionally “has travel buffer policy + coverage rules”, but backend eligibility logic is separate; do not over-assert).
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Note: Backend reference provides high-level endpoints but states “detailed API contracts TBD”. This creates blocking clarification needs for exact payloads, list endpoints, and coverage replacement semantics.
+
+### Load/view calls
+- `GET /v1/mobile-units` (list; query params TBD: status, baseLocationId, paging)
+- `GET /v1/mobile-units/{mobileUnitId}` (detail)
+- `GET /v1/locations?status=...` (for base location picker) OR existing Moqui location screen service (TBD)
+- `GET /v1/service-areas` (for service area picker; endpoint not specified in backend excerpt)
+- Capabilities lookup:
+  - `GET /v1/capabilities` OR service-catalog proxy endpoint (TBD)
+
+### Create/update calls
+- `POST /v1/mobile-units`
+- `PATCH /v1/mobile-units/{mobileUnitId}` (preferred)
+- Coverage rules:
+  - Either `PUT /v1/mobile-units/{mobileUnitId}/coverage-rules:replace`
+  - Or `POST/PATCH` per rule under `/v1/locations/{locationId}/...` (not specified)
+  - Must be atomic replacement per backend reference.
+- Travel buffer policies:
+  - `POST /v1/travel-buffer-policies`
+  - `GET /v1/travel-buffer-policies/{id}`
+  - (Optional) `GET /v1/travel-buffer-policies` for picker/list (not specified but implied)
+
+### Submit/transition calls
+- Status update is via PATCH on mobile unit:
+  - Set `status = OUT_OF_SERVICE` or `INACTIVE` etc.
+
+### Error handling expectations
+- Parse JSON error responses into:
+  - fieldErrors map (if provided)
+  - general message
+  - correlationId (if included)
+- Show toast/banner for non-field errors; keep user input intact on failures.
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states (Mobile Unit)
+- `ACTIVE`
+- `INACTIVE`
+- `OUT_OF_SERVICE`
+
+### Role-based transitions
+- Users with `location.mobile-unit.manage` can transition between any states (backend excerpt implies status lifecycle controlled via status; no other constraints specified).
+
+### UI behavior per state
+- ACTIVE:
+  - Requires travel buffer policy selection.
+  - Show “Schedulable” indicator.
+- INACTIVE / OUT_OF_SERVICE:
+  - Travel buffer policy becomes optional; UI may allow clearing.
+  - Show “Not schedulable” banner.
+  - Coverage editing remains allowed (no rule forbids), but consider warning: “Changes won’t affect scheduling until ACTIVE.”
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Missing required fields: block submit; show inline messages.
+- Invalid effective window (end <= start): block submit on coverage rule editor.
+
+### Concurrency conflicts
+- If backend uses optimistic locking/versioning and returns `409 Conflict` or `412 Precondition Failed` on stale update:
+  - Show “This record was updated by someone else. Reload to continue.”
+  - Provide reload action; preserve local edits if feasible (draft state).
+
+### Unauthorized access
+- On `401`: redirect to login (per app convention).
+- On `403`: show not authorized; disable create/edit buttons; keep user on view mode.
+
+### Empty states
+- No mobile units: show empty state with “Create Mobile Unit”.
+- No travel buffer policies: show empty picker state with “Create Policy”.
+- No service areas: block coverage creation and show link/instructions (destination TBD).
+
+---
+
+## 12. Acceptance Criteria
+
+### Scenario 1: Create Mobile Unit (Happy Path)
+**Given** I am authenticated and authorized with permission `location.mobile-unit.manage`  
+**And** at least one base location exists  
+**And** at least one travel buffer policy exists  
+**When** I navigate to Locations → Mobile Units → Create  
+**And** I enter a unique name, select a base location, set status to ACTIVE, set max daily jobs to a non-negative integer, select a travel buffer policy, and optionally select capability IDs  
+**And** I click Save  
+**Then** the system creates the Mobile Unit via the backend  
+**And** I am redirected to the Mobile Unit detail screen  
+**And** I see the persisted values including the generated `mobileUnitId`.
+
+### Scenario 2: Enforce travel buffer policy required when ACTIVE
+**Given** I am creating or editing a Mobile Unit  
+**When** I set status to ACTIVE  
+**Then** the Travel Buffer Policy field becomes required  
+**And** Save is disabled (or submit shows an inline error) until a policy is selected.
+
+### Scenario 3: Duplicate Mobile Unit name returns conflict
+**Given** a Mobile Unit named “Mobile Van 1” already exists for the selected base location  
+**When** I submit a new Mobile Unit with name “Mobile Van 1” and the same base location  
+**Then** I see an error message indicating the name is already in use  
+**And** the form remains populated for correction.
+
+### Scenario 4: Configure coverage rules atomically
+**Given** a Mobile Unit exists  
+**When** I open the Coverage page and add/update/remove coverage rules (service area, priority, effective window)  
+**And** I click Save Coverage  
+**Then** the frontend submits the coverage set in a single atomic request (replace semantics)  
+**And** on success I see the updated rules list exactly as saved.
+
+### Scenario 5: Reject invalid effective window in UI
+**Given** I am editing a coverage rule  
+**When** I set `effectiveEndAt` to a time that is less than or equal to `effectiveStartAt`  
+**Then** I see an inline validation error  
+**And** I cannot save coverage until corrected.
+
+### Scenario 6: Create DISTANCE_TIER travel buffer policy
+**Given** I am authorized with `location.mobile-unit.manage`  
+**When** I create a Travel Buffer Policy with type DISTANCE_TIER  
+**And** I enter tiers with strictly increasing `maxDistance` values and include a catch-all tier with `maxDistance = null`  
+**Then** the policy is created successfully  
+**And** viewing the policy shows the same tier configuration.
+
+### Scenario 7: Reject invalid DISTANCE_TIER tier configuration
+**Given** I am creating a DISTANCE_TIER policy  
+**When** I attempt to save tiers that are not strictly increasing or omit the catch-all tier  
+**Then** the UI blocks submission with clear validation messages  
+**Or** if submitted and backend returns 400, the UI shows the backend validation error and keeps the entered tiers for correction.
+
+### Scenario 8: OUT_OF_SERVICE messaging and effect
+**Given** a Mobile Unit exists  
+**When** I set its status to OUT_OF_SERVICE and save  
+**Then** the detail screen indicates the unit is not schedulable while OUT_OF_SERVICE.
+
+---
+
+## 13. Audit & Observability
+- Display on detail screens (if returned by API): `createdAt`, `updatedAt`, `updatedBy` (if available).
+- Include `X-Correlation-Id` on frontend requests if the app already supports it; otherwise surface backend-provided correlation ID in error dialogs when present.
+- Log (frontend console / app logger) key actions at INFO level: create/update mobile unit, save coverage, create policy (no PII beyond names/IDs).
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** Lists should load within 2s on typical broadband for up to 50 items/page; use pagination.
+- **Accessibility:** All form inputs labeled; keyboard navigable; validation messages announced via ARIA live region (Quasar support).
+- **Responsiveness:** Usable on tablet widths (admin may use tablet on shop floor).
+- **i18n/timezone:** Effective date/time fields must clearly indicate timezone context; do not assume conversion rules (see Open Questions). Display times in location timezone if provided; otherwise user/session timezone.
+
+---
+
+## 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: Provide standard empty-state messaging and primary CTA on list screens; qualifies as safe UI ergonomics; impacts UX Summary, Error/Empty Flows.
+- SD-UX-PAGINATION: Default server-side pagination for list views (page size 25); qualifies as safe UI ergonomics for large datasets; impacts UX Summary, Service Contracts.
+- SD-ERR-HTTP-MAP: Standard mapping of HTTP 400/401/403/409/503 to inline vs banner errors; qualifies as safe because it does not change domain policy; impacts Business Rules, Error Flows.
+
+---
+
+## 16. Open Questions
+1. **Service Area management scope:** Does the frontend need **CRUD screens for Service Areas** (postal-code sets), or only a picker to link existing Service Areas to coverage rules? If CRUD is required, confirm endpoints and required fields.
+2. **Coverage rules API contract:** What are the exact endpoints and payloads for creating/updating coverage rules, and what is the **atomic replacement** mechanism (single “replace” endpoint vs batch semantics)?
+3. **Capabilities lookup endpoint:** What endpoint should the frontend call to list valid capability IDs/names for selection (service-catalog directly, or a location-service proxy)? Provide response shape.
+4. **Mobile unit list endpoint + filters:** Confirm `GET /v1/mobile-units` exists and supports filtering by `status` and `baseLocationId`, plus pagination parameters and response envelope shape.
+5. **Travel buffer policy configuration schema (FIXED_MINUTES):** What is the exact `policyConfiguration` JSON shape for FIXED_MINUTES (key names/types)?
+6. **DISTANCE_TIER unit handling:** Is `unit` always `"KM"` in stored config, or can UI allow MI entry? Backend states MI may be provided as input for tier selection (caller side), but for **policy config** it shows `unit: "KM"`. Confirm what UI should send/store.
+7. **Timezone display rule for coverage effective windows:** Should effectiveStartAt/effectiveEndAt be entered/displayed in the **base location timezone**, the **user/session timezone**, or as UTC with offsets? (Location domain contract forbids assuming timezone conversion rules.)
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Locations: Create Mobile Units and Coverage Rules — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/140
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Locations: Create Mobile Units and Coverage Rules  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/140  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Locations: Create Mobile Units and Coverage Rules
+
+**Domain**: user
+
+### Story Description
+
+/kiro  
+# User Story  
+## Narrative  
+As an **Admin**, I want to define mobile units with service capabilities and coverage so that mobile appointments can be scheduled with travel buffers.
+
+## Details  
+- Mobile unit attributes: capabilities, base location, service area tags, travel buffer policy, max daily jobs.
+
+## Acceptance Criteria  
+- Mobile unit created and assignable.  
+- Coverage/buffers configurable.  
+- Out-of-service blocks scheduling.
+
+## Integrations  
+- HR receives travel time.  
+- Workexec stores mobileUnitId context for mobile workorders.
+
+## Data / Entities  
+- Resource(MobileUnit), CoverageRule, TravelBufferPolicy
+
+## Classification (confirm labels)  
+- Type: Story  
+- Layer: Domain  
+- Domain: Shop Management
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript  
+- Use Quasar framework for UI components  
+- Integrate with Moqui Framework backend  
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API  
+- TypeScript 5.x  
+- Quasar v2.x  
+- Moqui Framework integration
+
+---  
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════════════════════════════
+ISSUE #141: [FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/141
+File: ./scripts/story-work/frontend/141/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:location
+- status:draft
+
+### Recommended
+- agent:location-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- risk:incomplete-requirements
+
+**Rewrite Variant:** inventory-flexible
+
+---
+
+# 1. Story Header
+
+## Title
+[FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity
+
+## Primary Persona
+Shop Administrator (Admin)
+
+## Business Value
+Enables accurate scheduling/dispatch by allowing admins to define each service bay’s operational status, capacity, and constraint references (supported services + required skills), reducing mis-assignments and improving throughput.
+
+---
+
+# 2. Story Intent
+
+## As a / I want / So that
+**As a** Shop Administrator  
+**I want** to create a service bay under a location with bay type, status, capacity, and constraint references  
+**So that** scheduler/dispatch can select an appropriate ACTIVE bay that meets service/skill requirements.
+
+## In-Scope
+- Admin UI to **create** a Bay under a selected Location.
+- Capture and validate Bay fields: `name`, `bayType`, `status`, `capacity.maxConcurrentVehicles`, `supportedServiceIds[]`, `requiredSkillRequirements[]`.
+- Basic admin UI to confirm the created bay exists (post-create view/return to list).
+- Error handling for validation and conflict responses (`400`, `401`, `403`, `404`, `409`).
+- Moqui screens/forms/transitions wired to backend endpoints described in backend story #77.
+
+## Out-of-Scope
+- Implementing scheduling/dispatch assignment logic (consumer responsibility).
+- Enforcing “out-of-service blocks assignments” beyond surfacing/storing status and ensuring list filtering supports `status=ACTIVE`.
+- Creating/updating other location resources (mobile units, service areas, travel buffer policies).
+- Advanced bay editing flows (PATCH/update) unless already present; this story focuses on **create** plus immediate confirmation.
+
+---
+
+# 3. Actors & Stakeholders
+- **Shop Administrator (Primary user)**: Creates and configures bays for a location.
+- **Scheduler/Dispatch (Downstream consumer)**: Reads bays filtered by status and constraints for assignment decisions.
+- **Work Execution (Downstream consumer)**: Displays bay context (read-only usage of bay metadata).
+- **Security/Authorization system**: Determines whether the user can manage bays (frontend must handle forbidden/unauthenticated responses).
+
+---
+
+# 4. Preconditions & Dependencies
+- A `Location` already exists and is navigable in the frontend.
+- User is authenticated.
+- Backend endpoints available (per backend story reference):
+  - `POST /locations/{locationId}/bays`
+  - `GET /locations/{locationId}/bays`
+  - `GET /locations/{locationId}/bays/{bayId}`
+- Dependency for constraint picking UX:
+  - Service Catalog list/search endpoint(s) for services (authoritative IDs) **must exist**.
+  - People/Skills list/search endpoint(s) for skills (authoritative IDs) **must exist**.
+  - If these do not exist in the frontend today, the story will surface Open Questions and/or create follow-on stories (see Open Questions).
+
+---
+
+# 5. UX Summary (Moqui-Oriented)
+
+## Entry points
+- From Location detail screen: “Bays” section/tab → “Create Bay” action.
+- Optional: From Location list → select location → navigate to Location detail → Bays.
+
+## Screens to create/modify
+1. **Modify**: `LocationDetail` screen to include navigation to Bays list (if not already present).
+2. **Create**: `LocationBays` screen (list context for a location) with an action to create a bay.
+3. **Create**: `BayCreate` screen/form under a location context.
+4. **Create/Modify**: `BayDetail` screen (or reuse existing) to display the created bay after submission.
+
+> Moqui screen path suggestion (adjust to repo conventions):  
+`apps/pos/screen/location/LocationDetail.xml`  
+`apps/pos/screen/location/bay/BayList.xml`  
+`apps/pos/screen/location/bay/BayCreate.xml`  
+`apps/pos/screen/location/bay/BayDetail.xml`
+
+## Navigation context
+- All bay screens are scoped under a selected location: `locationId` is required in the URL and screen context.
+- Breadcrumb: Locations → {Location Name} → Bays → Create Bay
+
+## User workflows
+### Happy path
+1. Admin navigates to a Location’s Bays.
+2. Admin clicks “Create Bay”.
+3. Admin enters:
+   - Name
+   - Bay Type (enum)
+   - Status (default ACTIVE)
+   - Capacity (max concurrent vehicles)
+   - Supported Services (multi-select IDs)
+   - Required Skills (multi-row: skillId + optional minLevel)
+4. Admin submits.
+5. App shows success and routes to Bay Detail (preferred) or back to Bay List with the new bay visible.
+
+### Alternate paths
+- Admin cancels → returns to Bay List without changes.
+- Admin submits with missing/invalid data → inline errors + form remains editable.
+- Duplicate name conflict → error shown on name field and as global form error.
+
+---
+
+# 6. Functional Behavior
+
+## Triggers
+- User presses “Create Bay” submit action on the create form.
+
+## UI actions
+- Load screen context:
+  - Ensure `locationId` exists; if missing, show not-found/invalid route state.
+  - Optionally load location summary (name/code) for page context.
+- In-form actions:
+  - Add/remove supported services selections.
+  - Add/remove required skill requirement rows.
+  - Change status between `ACTIVE` and `OUT_OF_SERVICE`.
+- Submit action:
+  - Client-side validation (required fields, numeric bounds).
+  - Call backend create endpoint.
+  - On success: navigate to Bay Detail or return to list.
+
+## State changes (frontend)
+- Form state: `dirty/clean`, `submitting`, `submitError`.
+- After success: clear transient form state; persist created bay ID in route.
+
+## Service interactions (Moqui)
+- Use Moqui `service-call` / `rest` integration (per project conventions) to call backend endpoints.
+- Map backend validation errors to field-level messages where possible.
+
+---
+
+# 7. Business Rules (Translated to UI Behavior)
+
+## Validation
+- **Required fields on create**:
+  - `name` (non-empty, trimmed)
+  - `bayType` (must be one of allowed enum values)
+  - `status` (default `ACTIVE`)
+  - `capacity.maxConcurrentVehicles` (required; integer; must be >= 1)
+- **Name uniqueness** is enforced server-side per location:
+  - If backend returns `409 Conflict`, show:  
+    - Field error on `name`: “Bay name must be unique within this location.”
+    - Global error summary: “A bay with this name already exists in this location.”
+- **Constraint references must be IDs** (no free text):
+  - `supportedServiceIds[]` values must come from service catalog picker (IDs).
+  - `requiredSkillRequirements[].skillId` values must come from skills picker (IDs).
+  - If backend returns `400` with invalid IDs, show which selections are invalid and allow user to remove/fix.
+
+## Enable/disable rules
+- Disable submit while:
+  - Submitting request
+  - Required fields invalid
+- `code` immutability does not apply (Bay has no code field here); no UI for immutable bay identifiers.
+
+## Visibility rules
+- Always show status selector; default to ACTIVE.
+- Only show `minLevel` input when a `skillId` is selected for a row.
+
+## Error messaging expectations
+- Form-level error banner for general errors (network, 500, unexpected payload).
+- Field-level error messages for validation issues.
+- Preserve user-entered data on error.
+
+---
+
+# 8. Data Requirements
+
+## Entities involved (frontend perspective)
+- **Location** (read context): `locationId`, display name/code.
+- **Bay** (create payload; returned resource).
+- **Bay constraint relationships**:
+  - Supported services (service IDs)
+  - Skill requirements (skill IDs + optional minLevel)
+
+## Fields (type, required, defaults)
+
+### Bay (Create)
+- `locationId` (UUID, required) — from route context; not user-editable.
+- `name` (string, required)
+  - Trim whitespace before submit.
+- `bayType` (enum, required) — allowed values (from backend story):
+  - `GENERAL_SERVICE`
+  - `ALIGNMENT`
+  - `TIRE_SERVICE`
+  - `HEAVY_DUTY`
+  - `INSPECTION`
+  - `WASH_DETAIL`
+- `status` (enum, required; default `ACTIVE`)
+  - `ACTIVE`
+  - `OUT_OF_SERVICE`
+- `capacity` (object, required)
+  - `maxConcurrentVehicles` (integer, required, >= 1)
+
+### Constraints (Create)
+- `supportedServiceIds` (array of IDs/UUIDs/strings, optional; default empty)
+- `requiredSkillRequirements` (array, optional; default empty)
+  - item: `{ skillId: <id>, minLevel?: number }`
+  - `minLevel` optional; if present must be integer >= 1 (exact bounds unknown → validate as positive integer client-side, enforce server response handling)
+
+## Read-only vs editable by state/role
+- Create screen: all above fields editable.
+- `locationId` is read-only and derived from navigation context.
+- Authorization is enforced by backend; frontend must handle forbidden.
+
+## Derived/calculated fields
+- None required beyond trimming and basic normalization of `name` for client-side checks.
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+> Note: Backend story gives REST endpoints. Moqui frontend will call these (direct REST or via Moqui service façade per repo conventions).
+
+## Load/view calls
+- **Location context (optional but recommended)**  
+  `GET /v1/locations/{locationId}`  
+  Purpose: display location name in header/breadcrumb and validate location exists.  
+  If not available in frontend today, fallback to showing `locationId` only and rely on create endpoint 404 handling.
+
+- **Post-create confirm**  
+  `GET /v1/locations/{locationId}/bays/{bayId}`  
+  Purpose: show created bay details after redirect.
+
+- **List bays (for return-to-list flow)**  
+  `GET /v1/locations/{locationId}/bays?status=ALL` (or omit status)  
+  Supports optional filters: `status`, `bayType`.
+
+## Create/update calls
+- **Create bay**  
+  `POST /v1/locations/{locationId}/bays`  
+  Request body (minimum):
+  ```json
+  {
+    "name": "Alignment Rack 1",
+    "bayType": "ALIGNMENT",
+    "status": "ACTIVE",
+    "capacity": { "maxConcurrentVehicles": 1 },
+    "supportedServiceIds": ["svc-..."],
+    "requiredSkillRequirements": [{ "skillId": "skill-...", "minLevel": 2 }]
+  }
+  ```
+  Response: `201 Created` with full bay payload including `bayId`.
+
+## Submit/transition calls
+- None (no separate workflow state machine beyond status enum).
+
+## Error handling expectations
+- `400 Bad Request`: show field errors; if response includes invalid IDs, highlight invalid selections.
+- `401 Unauthorized`: route to login (or show auth required) per app convention.
+- `403 Forbidden`: show “You do not have permission to manage bays for this location.”
+- `404 Not Found`: show location not found (if on create) or bay not found (if redirect failed).
+- `409 Conflict`: duplicate bay name; show name field error as above.
+- Network/5xx: show retryable global error; preserve form state.
+
+---
+
+# 10. State Model & Transitions
+
+## Allowed states (Bay.status)
+- `ACTIVE`
+- `OUT_OF_SERVICE`
+
+## Role-based transitions
+- Shop Administrator can set status on create.
+- (Editing status later is out-of-scope here but UI should not prevent future support.)
+
+## UI behavior per state
+- If status is `OUT_OF_SERVICE`, UI should display advisory text: “Out-of-service bays are excluded from availability queries.”
+- No additional conditional validation based on status in v1.
+
+---
+
+# 11. Alternate / Error Flows
+
+## Validation failures (client-side)
+- Missing name → block submit; message “Name is required.”
+- Missing bayType → block submit; message “Bay type is required.”
+- Capacity not integer or < 1 → block submit; message “Max concurrent vehicles must be a whole number ≥ 1.”
+
+## Validation failures (server-side)
+- Unknown/invalid service IDs or skill IDs → show which items invalid; allow user to remove and resubmit.
+- Unknown locationId → show not found state and provide link back to Locations list.
+
+## Concurrency conflicts
+- If backend uses optimistic locking for updates, not applicable to create.  
+- If duplicate name created concurrently: handle `409` on submit.
+
+## Unauthorized access
+- `401`: redirect to login; after login return to create page if app supports returnUrl.
+- `403`: show forbidden screen; do not show form fields.
+
+## Empty states
+- If service/skill pickers have no available options (due to missing integration or empty catalogs), show empty-state help text and allow creating bay without constraints (constraints optional).
+
+---
+
+# 12. Acceptance Criteria
+
+### Scenario 1: Admin creates a bay under a location (happy path)
+**Given** I am authenticated as a Shop Administrator  
+**And** a Location exists with id `<locationId>`  
+**When** I open “Create Bay” for `<locationId>`  
+**And** I enter a unique name, select a bay type, keep status as ACTIVE, and set capacity maxConcurrentVehicles to 1  
+**And** I submit the form  
+**Then** the system creates the bay via `POST /locations/<locationId>/bays`  
+**And** I see a success outcome  
+**And** I am navigated to the created bay detail (or the bay list) showing the new bay.
+
+### Scenario 2: Duplicate bay name is rejected within the same location
+**Given** a bay named “Alignment Rack 1” already exists under `<locationId>`  
+**When** I attempt to create another bay under `<locationId>` with name “Alignment Rack 1”  
+**Then** the backend responds with `409 Conflict`  
+**And** the UI shows a field error on the Name input indicating the name must be unique within this location  
+**And** my other form inputs remain intact for correction.
+
+### Scenario 3: Create bay with constraints (services + skills) persists and is queryable
+**Given** I am on the Create Bay form for `<locationId>`  
+**And** I select supported services `[S1, S2]` and required skills `[{skillId: K1, minLevel: 2}]`  
+**When** I submit the form  
+**Then** the create request includes `supportedServiceIds` and `requiredSkillRequirements`  
+**And** on the Bay Detail screen (via `GET /locations/<locationId>/bays/<bayId>`), the constraints and capacity are displayed.
+
+### Scenario 4: Out-of-service status is stored and communicated
+**Given** I am creating a bay under `<locationId>`  
+**When** I set status to `OUT_OF_SERVICE` and submit successfully  
+**Then** the created bay detail shows status `OUT_OF_SERVICE`  
+**And** the UI displays an advisory that out-of-service bays are excluded from availability queries.
+
+### Scenario 5: Unknown constraint references return validation errors
+**Given** I attempt to create a bay under `<locationId>`  
+**When** I submit `supportedServiceIds` or `requiredSkillRequirements.skillId` values that do not exist  
+**Then** the backend responds with `400 Bad Request`  
+**And** the UI shows a validation error indicating which IDs/selections are invalid  
+**And** I can remove/fix the invalid selections and resubmit.
+
+### Scenario 6: Unauthorized users cannot access create bay
+**Given** I am not authenticated  
+**When** I navigate to the Create Bay URL for `<locationId>`  
+**Then** I am prompted to authenticate (or redirected to login).
+
+**Given** I am authenticated but lack permission to manage bays  
+**When** I navigate to the Create Bay URL for `<locationId>`  
+**Then** the backend responds `403 Forbidden` (on attempted load/submit as applicable)  
+**And** the UI shows an access denied state.
+
+---
+
+# 13. Audit & Observability
+
+## User-visible audit data
+- On Bay Detail (post-create), show read-only metadata if provided by backend:
+  - `createdAt`, `updatedAt`
+  - (Optional) `createdBy` if available
+
+## Status history
+- Not required for v1 UI unless backend exposes it; do not invent history.
+
+## Traceability expectations
+- Frontend should log (console or app logger per conventions) a structured event on create attempt/success/failure:
+  - locationId, bay name, bayType, status, correlation/request ID if available.
+- Ensure correlation ID from backend responses is surfaced in error UI (if the app has a standard “Error reference id” pattern).
+
+---
+
+# 14. Non-Functional UI Requirements
+- **Performance**: Create form should render quickly; pickers must handle large service/skill lists via search/autocomplete if available.
+- **Accessibility**: All form inputs labeled; validation errors announced (ARIA); keyboard navigable.
+- **Responsiveness**: Usable on tablet; form sections stack vertically on narrow screens.
+- **i18n/timezone/currency**: Not applicable (no monetary values; timezone not involved).
+
+---
+
+# 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: If service/skills catalogs are empty/unavailable, show an empty-state message and allow proceeding without constraints (constraints are optional). Qualifies as safe because it does not change domain policy—only UI ergonomics. Impacted sections: UX Summary, Alternate / Error Flows.
+- SD-ERR-STANDARD-MAP: Standard mapping of HTTP 400/401/403/404/409/5xx to inline vs global errors and preserving form state. Qualifies as safe because it is generic error handling without altering business rules. Impacted sections: Service Contracts, Alternate / Error Flows, Acceptance Criteria.
+
+---
+
+# 16. Open Questions
+1. What are the **actual endpoints** (and response schemas) available for **Service Catalog** and **Skills** lookup to power the supported services and required skills pickers (search, pagination, ID/displayName fields)?
+2. In the backend API, are `supportedServiceIds` and `skillId` values **UUIDs** or **string codes**? The frontend needs type expectations to validate and display selections correctly.
+3. Does the backend return a **standard error payload** (fieldErrors structure, invalidIds list, correlationId) that the frontend should map to field-level errors? If so, provide an example.
+4. Confirm frontend route/screen conventions in this repo for location subresources: should URLs be `/locations/:locationId/bays/new` and `/locations/:locationId/bays/:bayId` or another pattern?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity — URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/141
+
+====================================================================================================
+
+FRONTEND STORY (FULL CONTEXT)
+
+====================================================================================================
+
+Title: [FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/141
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Locations: Create Bays with Constraints and Capacity
+
+**Domain**: user
+
+### Story Description
+
+/kiro
+# User Story
+## Narrative
+As an **Admin**, I want to define bays with constraints (lift/equipment) so that scheduler assigns the right work to the right bay.
+
+## Details
+- Bay attributes: type (lift/alignment), supported services, capacity, required skills, status (active/out-of-service).
+
+## Acceptance Criteria
+- Bay created under a location.
+- Out-of-service blocks assignments.
+- Constraints queryable.
+
+## Integrations
+- Dispatch validates assignments against bay constraints.
+- Workexec displays bay context during execution.
+
+## Data / Entities
+- Resource(Bay), ResourceConstraint, ResourceStatus
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Shop Management
+
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+====================================================================================================
+
+════════════════════════════════════════════════════════════════
+ISSUE #142: [FRONTEND] [STORY] Locations: Create and Maintain Shop Locations  
+File: ./scripts/story-work/frontend/142/after.md
+════════════════════════════════════════════════════════════════
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:location
+- status:draft
+
+### Recommended
+- agent:location-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- risk:incomplete-requirements
+
+**Rewrite Variant:** inventory-flexible
+
+---
+
+## 1. Story Header
+
+### Title
+[FRONTEND] [STORY] Locations: Create and Maintain Shop Locations
+
+### Primary Persona
+Admin (Location Manager)
+
+### Business Value
+Ensure scheduling, appointments, and downstream operational rules use accurate per-site location metadata (address, timezone, operating hours, holiday closures, and buffers), with auditable changes.
+
+---
+
+## 2. Story Intent
+
+### As a / I want / So that
+- **As an** Admin  
+- **I want** to create, view, edit, and deactivate shop locations (including address, timezone, operating hours, holiday closures, and optional buffer overrides)  
+- **So that** systems that schedule and execute work can apply correct per-site rules and context.
+
+### In-scope
+- Moqui/Vue/Quasar UI to:
+  - List locations with status filtering (ACTIVE default).
+  - Create a location (status defaults to ACTIVE).
+  - View a location’s details.
+  - Edit location details with validation feedback.
+  - Soft-deactivate a location (ACTIVE → INACTIVE).
+  - Display audit/status metadata (created/updated/version; and if exposed, audit events).
+- Frontend integration with Moqui backend endpoints for Locations CRUD and status update.
+- Client-side validation that mirrors backend constraints (without replacing server validation).
+
+### Out-of-scope
+- Enforcing cross-domain rules (e.g., preventing staffing assignments to inactive locations, workexec behaviors).
+- Distance/travel time computations.
+- Any location hierarchy behaviors beyond selecting an optional parent (no cascading rules invented).
+- Sync/import flows from external authoritative sources (SyncLog).
+
+---
+
+## 3. Actors & Stakeholders
+- **Admin (Primary user):** creates/updates/deactivates locations.
+- **Ops Manager / Scheduler (Consumer stakeholder):** relies on accurate timezone/hours/closures and buffers.
+- **Downstream systems (Consumers):** Work Execution, HR availability (read-only consumers; not implemented here).
+- **Auditor / Compliance stakeholder:** expects traceable change history.
+
+---
+
+## 4. Preconditions & Dependencies
+- Admin is authenticated in the frontend session.
+- Admin has authorization to manage locations (permission name enforced by backend/security domain; frontend should gracefully handle 403).
+- Backend APIs exist (per reference backend story #78):
+  - `POST /locations`
+  - `GET /locations/{locationId}`
+  - `GET /locations?status=ACTIVE|INACTIVE|ALL` (default ACTIVE)
+  - `PUT /locations/{locationId}`
+  - `PATCH /locations/{locationId}` (used for deactivation via `{status:"INACTIVE"}`)
+- Backend returns structured error responses for validation and conflicts:
+  - 400 with `code` such as `INVALID_TIMEZONE`, `INVALID_OPERATING_HOURS`
+  - 409 with `LOCATION_NAME_TAKEN`, `OPTIMISTIC_LOCK_FAILED`
+- Location resource includes `version` for optimistic locking.
+- UI routes/screen tree exists for admin configuration area (exact route path TBD by repo conventions).
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Admin navigation: **Administration → Locations** (or equivalent admin menu).
+- Deep links:
+  - Locations list
+  - Location create
+  - Location detail/edit
+
+### Screens to create/modify (Moqui screens + Vue components)
+Create/extend a Moqui screen set (names illustrative; align with repo conventions):
+- `LocationList` screen
+- `LocationCreate` screen
+- `LocationDetailEdit` screen (view + edit in one, or separate view/edit screens)
+
+Each screen should render Vue 3 + Quasar components and use Moqui transitions/actions for service calls.
+
+### Navigation context
+- Breadcrumbs: Admin → Locations → (Create | {Location Name})
+- After create: navigate to detail screen for newly created location.
+- After deactivate: remain on detail screen with status shown as INACTIVE; provide link back to list.
+
+### User workflows
+**Happy paths**
+1. List → Create → Save → View details
+2. List → Select location → Edit → Save → View updated values
+3. Detail → Deactivate → Confirm → Status becomes INACTIVE
+
+**Alternate paths**
+- Attempt to save with invalid timezone/hours → show field-level errors and preserve entered data.
+- Attempt to rename to a duplicate name → show conflict error tied to name field.
+- Concurrent update causes optimistic lock failure → prompt user to reload latest and re-apply changes.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- Entering list screen triggers load of locations (default `status=ACTIVE`).
+- Entering detail screen triggers load of selected location by `locationId`.
+- Create/Save/Deactivate triggers API calls and UI state updates.
+
+### UI actions
+**Locations list**
+- Status filter control: `ACTIVE | INACTIVE | ALL` (default ACTIVE).
+- Table/list rows show at minimum: Name, Status, Timezone, UpdatedAt (if available).
+- Row click navigates to detail.
+
+**Create location**
+- Form fields (see Data Requirements).
+- Save action disabled while request in-flight.
+- On success: show success notification and route to detail.
+
+**Edit location**
+- Load existing values into form.
+- `code` is immutable per domain rules; if present in resource, show read-only (or omit if not part of resource).
+- Save calls PUT for full resource update (preferred for simplicity) including `version`.
+
+**Deactivate**
+- Button visible/enabled only when status is ACTIVE.
+- Confirmation dialog required.
+- Calls PATCH `{status:"INACTIVE", version:<current>}` (include version to avoid lost updates).
+- On success: update UI status and disable editing controls as appropriate (see state behavior).
+
+### State changes
+- `status` transitions only: ACTIVE → INACTIVE (no reactivation implied).
+- `version` increments on successful update (frontend stores latest returned resource).
+
+### Service interactions
+- List: GET locations with status filter.
+- Detail: GET location by id.
+- Create: POST location payload.
+- Update: PUT location payload with `locationId` and `version`.
+- Deactivate: PATCH location status with `version`.
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation (client-side mirrors server rules)
+- **Name**
+  - Required, trimmed.
+  - UI should trim leading/trailing whitespace before submit.
+  - Uniqueness enforced by backend; on `LOCATION_NAME_TAKEN`, show inline error on name.
+- **Timezone**
+  - Required.
+  - Input must be an IANA timezone ID; UI should provide:
+    - A searchable select list of common IANA zones (preferred) OR free-text with validation hint.
+  - On backend `INVALID_TIMEZONE`, show inline error on timezone.
+- **Operating hours**
+  - Local times (`HH:mm`) in the location timezone.
+  - Closed days are represented by omitting that day from the list.
+  - No duplicate day entries.
+  - No overnight ranges; must satisfy `open < close`.
+  - On backend `INVALID_OPERATING_HOURS`, show error associated to operating hours editor with specifics if provided.
+- **Holiday closures**
+  - Array of `{date: YYYY-MM-DD, reason?}`.
+  - No duplicate dates; UI should prevent duplicates client-side.
+- **Buffers**
+  - `checkInBufferMinutes`, `cleanupBufferMinutes` are nullable integers, `>= 0`.
+  - UI should allow blank (meaning “use global default”) and non-negative integer entry.
+  - If user enters negative or non-integer, show inline validation error.
+
+### Enable/disable rules
+- Disable Save while network request in-flight.
+- If location status is INACTIVE:
+  - Deactivate button hidden/disabled.
+  - Editing is **read-only** by default (see Open Questions; backend story doesn’t state if edits to INACTIVE are allowed—treat as read-only until clarified).
+
+### Visibility rules
+- Show status badge (ACTIVE/INACTIVE) prominently in detail header.
+- Show created/updated timestamps and version (read-only metadata) if returned.
+
+### Error messaging expectations
+- For 400: show field-level errors where `field` is provided; otherwise show form-level banner with error `message`.
+- For 409:
+  - `LOCATION_NAME_TAKEN`: inline on name.
+  - `OPTIMISTIC_LOCK_FAILED`: modal/banner explaining someone else updated it; offer Reload.
+
+---
+
+## 8. Data Requirements
+
+### Entities involved (frontend-consumed resources)
+- **Location** (primary)
+- **OperatingHours** (embedded array or separate resource; treat as embedded per backend story JSONB)
+- **AuditLog/Audit events** (read-only display if API exists; otherwise show metadata available on Location)
+
+### Fields (type, required, defaults)
+
+**Location (create/edit)**
+- `locationId` (UUID, read-only; required for edit)
+- `name` (string, required)
+- `status` (enum: `ACTIVE|INACTIVE`, read-only except via deactivate action; defaults ACTIVE on create)
+- `address` (object, required)
+  - **Open question**: exact schema. At minimum UI should collect standard postal address fields (see Open Questions).
+- `timezone` (string, required; IANA)
+- `operatingHours` (array, required; empty allowed)
+  - Entry shape: `{ dayOfWeek: MON|TUE|WED|THU|FRI|SAT|SUN, open: "HH:mm", close: "HH:mm" }`
+- `holidayClosures` (array, optional/nullable)
+  - Entry shape: `{ date: "YYYY-MM-DD", reason?: string }`
+- `checkInBufferMinutes` (integer, nullable, >=0)
+- `cleanupBufferMinutes` (integer, nullable, >=0)
+- `version` (integer/long, required for updates; read-only display but included in update payload)
+- `createdAt` (timestamp, read-only)
+- `updatedAt` (timestamp, read-only)
+
+### Read-only vs editable by state/role
+- Role: Admin can create and edit ACTIVE locations.
+- `code` (if exists): read-only always (immutable).
+- INACTIVE locations: read-only in UI until clarified (no reactivation, no edits assumed).
+
+### Derived/calculated fields
+- Display-only “Effective buffers” are **not** calculated in frontend (global defaults not provided in this story); show “Uses global default” when buffer override is null.
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Note: Implement via Moqui transitions/actions calling backend endpoints. Exact service names depend on repo conventions; define them in-screen as `service-call`/`rest-call` style as appropriate.
+
+### Load/view calls
+- **List**
+  - `GET /locations?status=<ACTIVE|INACTIVE|ALL>`
+  - Success: 200 with array of Location summaries or full resources.
+- **Detail**
+  - `GET /locations/{locationId}`
+  - Success: 200 with full Location
+  - 404: show “Location not found” and link back to list.
+
+### Create/update calls
+- **Create**
+  - `POST /locations`
+  - Request body includes: name, address, timezone, operatingHours, holidayClosures (optional), buffers (nullable)
+  - Success: 201 with created Location (including `locationId`, `version`, status)
+- **Update**
+  - `PUT /locations/{locationId}` (full update)
+  - Request body includes full Location editable fields plus `version`
+  - Success: 200 with updated Location (preferred) or no body (if no body, refetch)
+
+### Submit/transition calls
+- **Deactivate**
+  - `PATCH /locations/{locationId}` with `{ status: "INACTIVE", version: <current> }`
+  - Success: 200 with updated Location (preferred) or no body (refetch)
+
+### Error handling expectations (UI mapping)
+- 400: render validation errors; preserve form state.
+- 403: show “Not authorized to manage locations” and disable editing actions.
+- 404: detail screen not found state.
+- 409:
+  - name taken → mark name invalid
+  - optimistic lock → offer reload; if user accepts, refetch and show diff notice (minimal: “Your changes were not saved”).
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states
+- `ACTIVE`
+- `INACTIVE`
+
+### Role-based transitions
+- Admin can transition:
+  - ACTIVE → INACTIVE (via Deactivate action)
+- No other transitions defined in inputs.
+
+### UI behavior per state
+- **ACTIVE**
+  - All editable fields enabled.
+  - Deactivate action enabled.
+- **INACTIVE**
+  - Fields displayed read-only.
+  - Deactivate action hidden/disabled.
+  - List default filter excludes INACTIVE; user must choose INACTIVE/ALL to see it.
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Timezone invalid: show timezone field error, no navigation.
+- Operating hours invalid (duplicate day, close <= open, overnight): show operating hours editor error.
+- Buffers invalid: show numeric input error.
+
+### Concurrency conflicts
+- On `OPTIMISTIC_LOCK_FAILED`:
+  - Show blocking banner/modal: “This location was updated by another user.”
+  - Actions: **Reload** (refetch) and **Cancel** (stay on form, changes retained but not submittable until reload).
+  - After reload, form resets to latest server state.
+
+### Unauthorized access
+- If GET list/detail returns 403: show access denied state.
+- If create/update/deactivate returns 403: show toast/banner and keep user on page.
+
+### Empty states
+- List with no results for filter: show “No locations found” and CTA to create (if authorized).
+
+---
+
+## 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: List active locations by default
+**Given** I am an authenticated Admin  
+**When** I open the Locations list screen  
+**Then** the UI requests `GET /locations?status=ACTIVE` (or omits status if backend defaults to ACTIVE)  
+**And** only ACTIVE locations are shown  
+**And** I can change the status filter to INACTIVE or ALL and see matching results.
+
+### Scenario 2: Create location (happy path)
+**Given** I am an authenticated Admin with permission to manage locations  
+**When** I navigate to Create Location  
+**And** I enter a name, a valid address, a valid IANA timezone, and valid operating hours  
+**And** I click Save  
+**Then** the UI sends `POST /locations` with the entered data  
+**And** I see a success confirmation  
+**And** I am navigated to the new location detail screen showing `status=ACTIVE`.
+
+### Scenario 3: Update location (happy path)
+**Given** I am viewing an existing ACTIVE location  
+**When** I edit the timezone and operating hours with valid values  
+**And** I click Save  
+**Then** the UI sends `PUT /locations/{locationId}` including the current `version`  
+**And** the UI displays the updated values from the response (or after refetch).
+
+### Scenario 4: Deactivate location (soft deactivate)
+**Given** I am viewing an ACTIVE location  
+**When** I click Deactivate and confirm  
+**Then** the UI sends `PATCH /locations/{locationId}` with `{status:"INACTIVE", version:<current>}`  
+**And** the UI shows the location status as INACTIVE  
+**And** the Deactivate action is no longer available  
+**And** the location is not shown in the list when the filter is ACTIVE.
+
+### Scenario 5: Reject invalid timezone
+**Given** I am creating or editing a location  
+**When** I enter a timezone that the backend rejects  
+**And** I click Save  
+**Then** the backend responds `400` with code `INVALID_TIMEZONE`  
+**And** the UI displays an inline error on the timezone field  
+**And** no navigation occurs.
+
+### Scenario 6: Reject invalid operating hours
+**Given** I am creating or editing a location  
+**When** I configure operating hours with a duplicate day or with `close <= open` or an overnight range  
+**And** I click Save  
+**Then** the backend responds `400` with code `INVALID_OPERATING_HOURS`  
+**And** the UI displays an error on the operating hours editor  
+**And** my inputs remain visible for correction.
+
+### Scenario 7: Reject duplicate location name
+**Given** a location already exists with the name "Downtown Auto Repair"  
+**When** I create or rename another location to "  downtown auto repair  "  
+**Then** the backend responds `409` with code `LOCATION_NAME_TAKEN`  
+**And** the UI displays an inline error on the name field indicating the name is already in use.
+
+### Scenario 8: Optimistic lock conflict on update
+**Given** I loaded a location for editing  
+**And** another user updates the same location before I save  
+**When** I click Save with my stale version  
+**Then** the backend responds `409` with code `OPTIMISTIC_LOCK_FAILED`  
+**And** the UI informs me the record changed  
+**And** offers a Reload action that refreshes the form with the latest server values.
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- Display read-only metadata on detail screen:
+  - `createdAt`, `updatedAt`, `status`, `version`
+- If an audit endpoint exists in Moqui conventions, add an “Audit” tab/section that lists audit events for this location (event type, actor, timestamp, summary).  
+  - If not available, do not block implementation; show only available metadata.
+
+### Status history
+- Minimum: show current status and updated timestamp.
+- If audit events are accessible: show `LOCATION_CREATED`, `LOCATION_UPDATED`, `LOCATION_DEACTIVATED` entries.
+
+### Traceability expectations
+- All create/update/deactivate UI actions should log (frontend) a debug-level trace (non-PII) with correlation ID if available from backend headers, and include locationId on success.
+
+---
+
+## 14. Non-Functional UI Requirements
+- **Performance:** list loads within 2s for up to 200 locations; use pagination if backend supports it (otherwise render all).
+- **Accessibility:** keyboard navigable forms, labeled inputs, error text associated to fields; confirmation dialogs focus-trapped.
+- **Responsiveness:** usable on tablet widths; forms stack vertically on narrow screens.
+- **i18n/timezone/currency:** timezone selection uses IANA IDs; date entry for holiday closures is `YYYY-MM-DD` and treated as date-only (no timezone conversion in UI).
+
+---
+
+## 15. Applied Safe Defaults
+- **SD-UX-EMPTY-STATE**
+  - **Assumed:** Provide empty-state messaging and CTA on list screens when no locations match filter.
+  - **Why safe:** UI-only ergonomics; does not change domain behavior or policy.
+  - **Impacted sections:** UX Summary, Alternate / Error Flows, Acceptance Criteria.
+- **SD-ERR-STD-MAPPING**
+  - **Assumed:** Standard mapping of HTTP 400/403/404/409 to inline/form errors and banners based on `{code,message,field}` when present.
+  - **Why safe:** Error-handling glue consistent with backend contract; no business logic inferred.
+  - **Impacted sections:** Business Rules, Service Contracts, Alternate / Error Flows.
+
+---
+
+## 16. Open Questions
+1. **Address schema:** What exact `address` object fields does the backend expect/return (e.g., line1/line2/city/region/postalCode/countryCode)? Are any fields required beyond a single line?
+2. **Operating hours representation:** Confirm the exact payload shape for `operatingHours` (day enum values, property names) and whether an empty list is allowed vs required.
+3. **Holiday closures constraints:** Is `holidayClosures` nullable vs empty array preferred, and is `reason` length/format constrained?
+4. **Editing INACTIVE locations:** Should INACTIVE locations be editable (aside from status), or read-only in UI? Backend rules don’t explicitly forbid edits.
+5. **Audit UI endpoint:** Is there an API/screen pattern in this Moqui frontend for fetching and displaying audit events per entity (Location)? If yes, what endpoint and shape?
+6. **Routing conventions:** What are the canonical route/screen paths for admin maintenance screens in this repo (e.g., `/admin/locations`, `/locations`), and required menu placement?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Locations: Create and Maintain Shop Locations  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/142  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Locations: Create and Maintain Shop Locations
+
+**Domain**: user
+
+### Story Description
+
+/kiro  
+# User Story  
+## Narrative  
+As an **Admin**, I want to create/edit shop locations with address, hours, and timezone so that appointments and scheduling rules are correct per site.
+
+## Details
+- Store location name/address/timezone/operating hours/holiday closures.
+- Defaults: check-in and cleanup buffers.
+
+## Acceptance Criteria
+- Create/update/deactivate location.
+- Hours/timezone validated.
+- Changes audited.
+
+## Integrations
+- Workexec stores locationId on Estimate/WO/Invoice context.
+- HR availability can be filtered by location affiliation.
+
+## Data / Entities
+- Location, OperatingHours, AuditLog
+
+## Classification (confirm labels)
+- Type: Story
+- Layer: Domain
+- Domain: Shop Management
+
+### Frontend Requirements
+- Implement Vue.js 3 components with TypeScript
+- Use Quasar framework for UI components
+- Integrate with Moqui Framework backend
+- Ensure responsive design and accessibility
+
+### Technical Stack
+- Vue.js 3 with Composition API
+- TypeScript 5.x
+- Quasar v2.x
+- Moqui Framework integration
+
+---
+*This issue was automatically created by the Durion Workspace Agent*
+
+════════════════════════════════════════════════════════════════
+ISSUE #151: [FRONTEND] [STORY] Location: Create/Update Location (pos-location) Including Timezone  
+File: ./scripts/story-work/frontend/151/after.md
+════════════════════════════════════════════════════════════════
+
+STOP: Clarification required before finalization
+
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:location
+- status:draft
+
+### Recommended
+- agent:location-domain-agent
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** inventory-flexible
+
+---
+
+## 1. Story Header
+
+**Title**  
+[FRONTEND] Location: Create/Update Location (pos-location) Including Timezone
+
+**Primary Persona**  
+Admin (location administrator)
+
+**Business Value**  
+Admins can create and maintain accurate location metadata (including timezone) so downstream systems (staffing, scheduling, timekeeping, work execution) can anchor activity to the correct site context.
+
+---
+
+## 2. Story Intent
+
+**As a** Admin  
+**I want** to create and update Locations (code, name, address, timezone, status, optional parent)  
+**So that** the organization has an authoritative, up-to-date catalog of sites with correct timezone context.
+
+### In-scope
+- Frontend screens and flows to:
+  - Create a new Location.
+  - View an existing Location.
+  - Edit/update an existing Location.
+  - Soft-deactivate/reactivate a Location via `status` update (ACTIVE/INACTIVE), if supported by backend.
+- Client-side validation aligned to known domain rules:
+  - `code` immutable after creation.
+  - `name` unique (case-insensitive, trimmed) (validated via backend; UI should surface conflicts).
+  - `timezone` must be a valid IANA timezone identifier (UI should provide selection / validation).
+  - Optional `parentLocationId` must reference an existing Location (UI selection).
+- Error handling and feedback for typical backend errors (400/401/403/404/409).
+
+### Out-of-scope (explicit)
+- Enforcing “Inactive locations prevent new staffing assignments” in staffing/scheduling/workorder creation flows (belongs to consuming domains like People/Workexec per location domain guidance).
+- Defining hierarchy cascade behavior (e.g., parent INACTIVE cascades to children) unless explicitly confirmed.
+- Sync/import workflows (SyncLog) and external authoritative system ingestion.
+- Managing Bays, Mobile Units, Service Areas, Travel Buffer Policies, site default storage locations (separate stories).
+
+---
+
+## 3. Actors & Stakeholders
+
+- **Admin (primary user):** Creates/updates location records.
+- **Location Domain Service (system of record):** Persists and validates Location data; returns errors for constraint violations.
+- **Downstream consumers (stakeholders):** People/Scheduling/Workexec systems consuming `locationId`, `status`, and `timezone`.
+
+---
+
+## 4. Preconditions & Dependencies
+
+### Preconditions
+- User is authenticated.
+- User has permission to manage locations (permission name TBD; domain guidance suggests `location:manage`).
+
+### Dependencies
+- Backend endpoints for Location CRUD exist and are reachable from Moqui frontend (exact paths/payloads TBD; see Open Questions).
+- A timezone reference source for IANA identifiers is available to the UI (either backend-provided list or frontend static list).
+- Ability to query Locations for parent selection (list/search endpoint).
+
+---
+
+## 5. UX Summary (Moqui-Oriented)
+
+### Entry points
+- Main navigation: Admin → Locations (or equivalent admin menu).
+- Direct route: `/locations` list; `/locations/new`; `/locations/:locationId`.
+
+### Screens to create/modify (Moqui)
+1. **LocationList** (new or extend)
+   - List Locations with filters (status).
+   - Actions: “Create Location”, “View/Edit”.
+
+2. **LocationDetail** (new or extend)
+   - Read-only summary + “Edit” action.
+
+3. **LocationForm** (create/edit)
+   - Create mode: enter code, name, address, timezone, status (optional), parent (optional).
+   - Edit mode: code read-only; allow updating name/address/timezone/status/parent.
+   - Save/Cancel actions.
+
+### Navigation context
+- Breadcrumb: Admin → Locations → (New | {Location Name})
+- After create: navigate to detail page for new location.
+- After update: remain on detail page, showing updated values.
+
+### User workflows
+**Happy path: Create**
+1. Admin opens Locations list.
+2. Clicks “Create Location”.
+3. Completes required fields and saves.
+4. Sees success message and lands on Location detail.
+
+**Happy path: Update**
+1. Admin opens a Location.
+2. Clicks “Edit”.
+3. Updates allowed fields; saves.
+4. Sees updated values and success message.
+
+**Alternate paths**
+- Attempt to change code on edit: code is disabled/read-only; no submission of changed code.
+- Duplicate code/name: backend 409 surfaced inline.
+- Invalid timezone: blocked client-side where possible; otherwise backend 400 surfaced.
+
+---
+
+## 6. Functional Behavior
+
+### Triggers
+- User navigates to create/edit screen.
+- User submits form.
+- User changes status to INACTIVE (soft-deactivation) or ACTIVE (reactivation), if allowed.
+
+### UI actions
+- Load list of Locations (for list screen and parent selector).
+- Load Location details by `locationId` for detail/edit.
+- Submit create/update to backend.
+- Display field-level errors when provided; otherwise show banner/toast.
+
+### State changes (frontend)
+- Form state: pristine/dirty, submitting, submit success/failure.
+- Optimistic locking: if backend indicates version conflict, show “data changed” prompt (see Error Flows).
+
+### Service interactions (Moqui)
+- Moqui screen actions call services (either REST client service-calls or Moqui service facade) to:
+  - `createLocation`
+  - `updateLocation`
+  - `getLocation`
+  - `listLocations` (for list and parent selector)
+
+(Exact service names/endpoints TBD; see Service Contracts.)
+
+---
+
+## 7. Business Rules (Translated to UI Behavior)
+
+### Validation (client-side where safe; authoritative on server)
+- **code**
+  - Create: required, non-empty; UI should prevent leading/trailing spaces (trim on submit).
+  - Edit: displayed read-only; not editable.
+  - Duplicate: if backend returns conflict, show “Code already exists” on code field.
+
+- **name**
+  - Required, non-empty; trim on submit.
+  - Duplicate name (case-insensitive): backend conflict surfaced as field error on name.
+
+- **timezone**
+  - Required.
+  - Must be valid IANA identifier:
+    - UI should use a controlled select/autocomplete of IANA timezones when possible.
+    - If free text is allowed, validate format loosely client-side, but rely on backend for full validation.
+
+- **status**
+  - Enum: `ACTIVE` or `INACTIVE`.
+  - Default on create: assume backend defaults to `ACTIVE` unless clarified; UI should either:
+    - set `ACTIVE` explicitly, or
+    - leave unset and show `ACTIVE` as selected default (blocking question; see Open Questions).
+
+- **parentLocationId**
+  - Optional.
+  - Must be an existing Location. UI must provide search/select from Locations.
+  - UI must prevent selecting itself as parent (on edit).
+
+### Enable/disable rules
+- Save button disabled until required fields valid and form dirty (edit mode) or valid (create).
+- Code input disabled in edit mode.
+
+### Visibility rules
+- Parent selector visible in both create and edit.
+- Status selector visible in both create and edit (unless backend disallows setting status on create; clarify).
+
+### Error messaging expectations
+- 400 validation: show field-level messages when backend provides field mapping; otherwise show banner with message.
+- 409 conflict: show specific message for code/name duplicates.
+- 403: show “You don’t have permission to manage locations.”
+- 404 on edit/detail: show not-found screen with link back to list.
+
+---
+
+## 8. Data Requirements
+
+### Entities involved
+- **Location** (system of record in location domain)
+
+### Fields (frontend model)
+| Field | Type | Required | Default | Editable? |
+|---|---|---:|---|---|
+| locationId | UUID/string | server | n/a | read-only |
+| code | string | yes (create) | none | create only (immutable) |
+| name | string | yes | none | editable |
+| address | object | no/yes (TBD) | none | editable |
+| timezone | string | yes | none | editable |
+| status | enum(ACTIVE, INACTIVE) | yes (server) | ACTIVE (assumed) | editable (TBD if allowed on create) |
+| parentLocationId | UUID/string | no | null | editable |
+| createdAt | timestamp | server | n/a | read-only |
+| updatedAt | timestamp | server | n/a | read-only |
+| (optional) version | number/string | TBD | n/a | hidden read-only (for optimistic locking) |
+
+### Address structure (blocking: undefined)
+- Provided input only says “address” without schema. UI must not invent structure without contract.
+- Options:
+  1) Treat as a single free-text field.
+  2) Use structured fields (street, city, region, postalCode, countryCode).
+Requires clarification (see Open Questions).
+
+### Read-only vs editable by state/role
+- By default: editable for Admin with location manage permission.
+- No additional role matrix defined in inputs; permission details are blocking.
+
+### Derived/calculated fields
+- None in this story.
+
+---
+
+## 9. Service Contracts (Frontend Perspective)
+
+> Backend API details are “TBD” per domain guide; therefore the frontend must align to whichever of the following is actually implemented. This story is blocked until endpoint paths/payloads are confirmed.
+
+### Load/view calls
+- **List Locations**
+  - Intended: `GET /v1/locations?status=ACTIVE|INACTIVE|ALL`
+  - Used by: LocationList, parent selector.
+  - Response: array of Locations (at least `locationId`, `code`, `name`, `status`).
+
+- **Get Location by ID**
+  - Intended: `GET /v1/locations/{locationId}`
+  - Used by: LocationDetail, LocationForm(edit).
+
+### Create/update calls
+- **Create Location**
+  - Intended: `POST /v1/locations`
+  - Request includes: `code`, `name`, `timezone`, optionally `address`, `status?`, `parentLocationId?`
+  - Response: created Location.
+
+- **Update Location (full or partial)**
+  - Intended: `PUT /v1/locations/{locationId}` (full update) or `PATCH` (partial)
+  - UI should send only editable fields; must never attempt to change `code`.
+
+### Submit/transition calls
+- Status change is treated as update (PATCH or PUT).
+
+### Error handling expectations (HTTP)
+- 400: validation errors (timezone invalid, missing required fields).
+- 401: not authenticated.
+- 403: not authorized.
+- 404: location not found.
+- 409: duplicate `code` or `name` conflict.
+- 409/412: optimistic locking/version conflict (TBD).
+
+---
+
+## 10. State Model & Transitions
+
+### Allowed states
+- `ACTIVE`
+- `INACTIVE`
+
+### Allowed transitions
+- `ACTIVE → INACTIVE` (soft-deactivation)
+- `INACTIVE → ACTIVE` (reactivation) (not explicitly stated but implied by status enum; needs confirmation)
+
+### Role-based transitions
+- Only Admins with location management permission can change status.
+
+### UI behavior per state
+- In list: show status.
+- In detail: show status and last updated timestamp.
+- In edit: allow status selection unless backend forbids.
+
+---
+
+## 11. Alternate / Error Flows
+
+### Validation failures
+- Missing name/code/timezone on create: prevent submit; show inline errors.
+- Invalid timezone: prevent submit if using select; if free text, allow submit but surface backend error.
+
+### Concurrency conflicts
+- If backend indicates stale update (version conflict):
+  - Show blocking dialog: “This location was updated by someone else. Reload to continue.”
+  - Provide actions: Reload (discard local changes) / Cancel.
+
+### Unauthorized access
+- If 403 on any load/save: show permission error page/message and link back to home/list.
+
+### Empty states
+- LocationList with no locations: show empty state + “Create Location”.
+- Parent selector when no locations exist: show “No parent locations available” and allow clearing.
+
+---
+
+## 12. Acceptance Criteria (Gherkin)
+
+### Scenario 1: Create location (success)
+**Given** I am an authenticated Admin with permission to manage locations  
+**And** I am on the “Create Location” screen  
+**When** I enter a unique `code`, a `name`, select a valid IANA `timezone`, and submit  
+**Then** the system creates the location with `status` = `ACTIVE` (default)  
+**And** I am navigated to the Location detail screen for the new location  
+**And** I see a success confirmation
+
+### Scenario 2: Update location fields (success)
+**Given** I am an authenticated Admin with permission to manage locations  
+**And** an existing Location exists  
+**When** I open the Location edit screen  
+**Then** the `code` field is displayed as read-only  
+**When** I change the `name` and `timezone` and submit  
+**Then** the updated values are displayed on the Location detail screen
+
+### Scenario 3: Attempt to modify immutable code (prevented)
+**Given** I am editing an existing Location  
+**Then** I cannot edit the `code` field  
+**And** the update request does not include any changed `code` value
+
+### Scenario 4: Duplicate code on create (conflict)
+**Given** a Location already exists with `code` = "MAIN-WH"  
+**When** I attempt to create a new Location with `code` = "MAIN-WH"  
+**Then** the save fails  
+**And** I see a field-level error indicating the code already exists  
+**And** no new Location is created
+
+### Scenario 5: Invalid timezone (validation error)
+**Given** I am on the create/edit Location screen  
+**When** I submit a Location with an invalid `timezone` value  
+**Then** the save fails  
+**And** I see an error message on the timezone field (or form banner) indicating the timezone is invalid
+
+### Scenario 6: Set location to inactive (success)
+**Given** I am an authenticated Admin with permission to manage locations  
+**And** an existing Location is `ACTIVE`  
+**When** I edit the Location and set `status` to `INACTIVE` and submit  
+**Then** the Location detail shows `status` = `INACTIVE`
+
+### Scenario 7: Not authorized (forbidden)
+**Given** I am authenticated but do not have permission to manage locations  
+**When** I attempt to open the create/edit Location screen or submit changes  
+**Then** I receive a forbidden error  
+**And** the UI shows an authorization error message and does not persist changes
+
+---
+
+## 13. Audit & Observability
+
+### User-visible audit data
+- Display `createdAt` and `updatedAt` (if provided by backend) on the detail screen.
+
+### Status history
+- Not in scope unless backend provides an explicit status history endpoint/entity.
+
+### Traceability expectations
+- Frontend should log (client-side) key actions at INFO level (route entered, create submitted, update submitted) without PII beyond location identifiers.
+- Correlation/request ID: if backend returns a correlation ID header, surface it in error details (developer console/log only).
+
+---
+
+## 14. Non-Functional UI Requirements
+
+- **Performance:** Location list loads within 2 seconds for typical dataset sizes; parent selector supports search if list is large (exact threshold not specified).
+- **Accessibility:** All form fields labeled; validation errors announced; keyboard navigable.
+- **Responsiveness:** Usable on tablet and desktop; forms adapt to narrow viewports.
+- **i18n/timezone/currency:** Timezone selection must use IANA identifiers; display can be localized, but stored value must be the canonical IANA string.
+
+---
+
+## 15. Applied Safe Defaults
+
+- SD-UX-EMPTY-STATE: Provide standard empty state for list/selector; safe because it does not change domain behavior, only presentation. (Impacted: UX Summary, Alternate/Empty states)
+- SD-UX-FORM-SUBMIT-GUARD: Disable submit while invalid/submitting to prevent duplicates; safe because it avoids accidental repeated requests. (Impacted: Functional Behavior, Error Flows)
+
+---
+
+## 16. Open Questions
+
+1. **Backend contract (blocking):** What are the exact Moqui-accessible service names or REST endpoints, request/response payloads, and error formats for Location create/update/get/list? (The domain guide lists high-level endpoints but says detailed schemas are TBD.)
+2. **Address schema (blocking):** Is `address` a structured object (street/city/region/postal/country) or a free-text string, and what fields are required?
+3. **Permissions (blocking):** What permission(s)/roles gate create/update/status-change for locations in the frontend (e.g., `location:manage`), and how does the frontend check them?
+4. **Status on create (blocking):** Can Admin set `status` during creation, or is it always defaulted to `ACTIVE` and only changeable after creation?
+5. **Reactivation (needs confirmation):** Is `INACTIVE → ACTIVE` allowed, or is deactivation permanent?
+6. **Parent hierarchy constraints (needs confirmation):** Are there constraints beyond “must reference existing” (e.g., preventing cycles, max depth), and should UI enforce any of them?
+7. **Timezone source (blocking):** Should the UI use a backend-provided list of allowed IANA timezones, or ship a static list in the frontend?
+
+---
+
+## Original Story (Unmodified – For Traceability)
+
+Title: [FRONTEND] [STORY] Location: Create/Update Location (pos-location) Including Timezone  
+URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/151  
+Labels: frontend, story-implementation, user
+
+## Frontend Implementation for Story
+
+**Original Story**: [STORY] Location: Create/Update Location (pos-location) Including Timezone
+
+**Domain**: user
+
+### Story Description
+
+/kiro  
+# User Story
+
+## Narrative  
+As an **Admin**, I want **to create and update locations** so that **staffing, scheduling, and timekeeping are anchored to the correct site and timezone**.
+
+## Details  
+- Location fields: code, name, address, timezone, status, optional parent.
+
+## Acceptance Criteria  
+- Location can be created/updated.  
+- Inactive locations prevent new staffing assignments.
+
+## Integration Points (workexec/shopmgr)  
+- shopmgr schedules are tied to locationId.  
+- workexec workorders reference a service location.
+
+## Data / Entities  
+- Location
+
+## Classification (confirm labels)  
+- Type: Story  
+- Layer: Domain  
+- Domain: People Management
+
+### Frontend Requirements
+
+- Implement Vue.js 3 components with TypeScript  
+- Use Quasar framework for UI components  
+- Integrate with Moqui Framework backend  
+- Ensure responsive design and accessibility
+
+### Technical Stack
+
+- Vue.js 3 with Composition API  
+- TypeScript 5.x  
+- Quasar v2.x  
+- Moqui Framework integration
+
+---  
+*This issue was automatically created by the Durion Workspace Agent*
+
