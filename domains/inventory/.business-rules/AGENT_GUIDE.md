@@ -4,12 +4,12 @@
 
 This guide defines the normative business rules and frontend-facing contracts for the Inventory domain in Durion.
 It standardizes decision identifiers as `DECISION-INVENTORY-###`, resolves all previously listed open questions, and aligns the Story Validation Checklist with these decisions.
-Use this document for implementation and CI validation; use `INVENTORY_DOMAIN_NOTES.md` for rationale and audit-facing explanations.
+Use this document for implementation and CI validation; use `DOMAIN_NOTES.md` for rationale and audit-facing explanations.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `INVENTORY_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original `AGENT_GUIDE.md`
 
 ## Decision Index
@@ -80,22 +80,22 @@ Use this document for implementation and CI validation; use `INVENTORY_DOMAIN_NO
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-INVENTORY-001 | Stable site/bin model: `locationId` + `storageLocationId`. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-001---canonical-location-model) |
-| DECISION-INVENTORY-002 | Vue calls Moqui proxy, not backend directly. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-002---moqui-proxy-integration-pattern) |
-| DECISION-INVENTORY-003 | Plain JSON + deterministic errors + cursor paging. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-003---plain-json-and-error-schema) |
-| DECISION-INVENTORY-004 | Availability contract + deep-linking + success-with-zeros. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-004---availability-contract-and-deep-linking) |
-| DECISION-INVENTORY-005 | Ledger contract: OR-location semantics + immutability. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-005---ledger-contract-and-pagination) |
-| DECISION-INVENTORY-006 | Adjustments are create-only and post immediately in v1. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-006---adjustments-v1-scope) |
-| DECISION-INVENTORY-007 | StorageLocation CRUD + destination-required deactivation. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-007---storagelocation-crud-and-deactivation) |
-| DECISION-INVENTORY-008 | HR sync read models + manual sync trigger. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-008---hr-sync-contracts-and-sync-now) |
-| DECISION-INVENTORY-009 | Block inactive/pending locations for new movements. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-009---inactivepending-location-blocking) |
-| DECISION-INVENTORY-010 | Canonical permission strings for UI gating. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-010---permission-naming-convention) |
-| DECISION-INVENTORY-011 | Treat quantities/payloads as sensitive; no logging. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-011---sensitive-data-and-logging) |
-| DECISION-INVENTORY-012 | Use `X-Correlation-Id` + consistent 401/403 behavior. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-012---correlation-id-and-auth-ui-behavior) |
-| DECISION-INVENTORY-013 | Feed ops read models and allowed updates. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-013---availability-feed-ops-ownership) |
-| DECISION-INVENTORY-014 | Deep-link param names are canonical and stable. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-014---deep-link-parameter-names) |
-| DECISION-INVENTORY-015 | JSON fields render safely; no XSS; no localStorage persistence. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-015---json-field-safe-rendering) |
-| DECISION-INVENTORY-016 | Allocations are surfaced by inventory services; frontend never calls reservation services for ATP. | [INVENTORY_DOMAIN_NOTES.md](INVENTORY_DOMAIN_NOTES.md#decision-inventory-016---allocationreservation-and-atp) |
+| DECISION-INVENTORY-001 | Stable site/bin model: `locationId` + `storageLocationId`. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-001---canonical-location-model) |
+| DECISION-INVENTORY-002 | Vue calls Moqui proxy, not backend directly. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-002---moqui-proxy-integration-pattern) |
+| DECISION-INVENTORY-003 | Plain JSON + deterministic errors + cursor paging. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-003---plain-json-and-error-schema) |
+| DECISION-INVENTORY-004 | Availability contract + deep-linking + success-with-zeros. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-004---availability-contract-and-deep-linking) |
+| DECISION-INVENTORY-005 | Ledger contract: OR-location semantics + immutability. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-005---ledger-contract-and-pagination) |
+| DECISION-INVENTORY-006 | Adjustments are create-only and post immediately in v1. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-006---adjustments-v1-scope) |
+| DECISION-INVENTORY-007 | StorageLocation CRUD + destination-required deactivation. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-007---storagelocation-crud-and-deactivation) |
+| DECISION-INVENTORY-008 | HR sync read models + manual sync trigger. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-008---hr-sync-contracts-and-sync-now) |
+| DECISION-INVENTORY-009 | Block inactive/pending locations for new movements. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-009---inactivepending-location-blocking) |
+| DECISION-INVENTORY-010 | Canonical permission strings for UI gating. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-010---permission-naming-convention) |
+| DECISION-INVENTORY-011 | Treat quantities/payloads as sensitive; no logging. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-011---sensitive-data-and-logging) |
+| DECISION-INVENTORY-012 | Use `X-Correlation-Id` + consistent 401/403 behavior. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-012---correlation-id-and-auth-ui-behavior) |
+| DECISION-INVENTORY-013 | Feed ops read models and allowed updates. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-013---availability-feed-ops-ownership) |
+| DECISION-INVENTORY-014 | Deep-link param names are canonical and stable. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-014---deep-link-parameter-names) |
+| DECISION-INVENTORY-015 | JSON fields render safely; no XSS; no localStorage persistence. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-015---json-field-safe-rendering) |
+| DECISION-INVENTORY-016 | Allocations are surfaced by inventory services; frontend never calls reservation services for ATP. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-016---allocationreservation-and-atp) |
 
 ## Open Questions (from source)
 

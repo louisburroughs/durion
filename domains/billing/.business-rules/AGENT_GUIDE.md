@@ -3,12 +3,12 @@
 ## Summary
 
 This guide defines the Billing domain’s normative business rules and system-of-record boundaries for invoice lifecycle, BillingRules, checkout enforcement, receipts, and billing-orchestrated payments.
-Decision IDs in the index are authoritative and map 1:1 to rationale sections in `BILLING_DOMAIN_NOTES.md`.
+Decision IDs in the index are authoritative and map 1:1 to rationale sections in `DOMAIN_NOTES.md`.
 
 ## Completed items
 
 - [x] Generated/maintained Decision Index
-- [x] Mapped Decision IDs to `BILLING_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Preserved resolved open questions and contract guidance
 
 ## Purpose
@@ -25,13 +25,13 @@ The Billing domain is the authoritative system of record (SoR) for:
 
 This guide is **normative**. It is safe for direct agent input, CI validation, and story execution rules.
 
-**Non-normative companion:** `BILLING_DOMAIN_NOTES.md` (rationale, options, tradeoffs, auditor explanations; forbidden for direct agent execution).
+**Non-normative companion:** `DOMAIN_NOTES.md` (rationale, options, tradeoffs, auditor explanations; forbidden for direct agent execution).
 
 ---
 
 ## Decision Index (Authoritative)
 
-Decision IDs below correspond 1:1 to sections in `BILLING_DOMAIN_NOTES.md`.
+Decision IDs below correspond 1:1 to sections in `DOMAIN_NOTES.md`.
 
 | Decision ID | Title |
 |---|---|
@@ -58,22 +58,22 @@ Decision IDs below correspond 1:1 to sections in `BILLING_DOMAIN_NOTES.md`.
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| BILL-DEC-001 | Canonical invoice status enums/state machine | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-001--canonical-invoice-status-enums-and-state-machine) |
-| BILL-DEC-002 | Idempotent draft creation gated by Workexec readiness | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-002--draft-invoice-creation-command-idempotency--work-order-preconditions) |
-| BILL-DEC-003 | Issuance gating with blockers + policy envelope | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-003--issuance-gating-model-blockers--policy-envelope) |
-| BILL-DEC-004 | Immutable traceability snapshot schema | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-004--traceability-snapshot-schema-canonical-field-names--immutability) |
-| BILL-DEC-005 | Artifact retrieval list + secure download contract | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-005--artifact-retrieval-contract-list--secure-download) |
-| BILL-DEC-006 | BillingRules concurrency via ETag/If-Match | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-006--billingrules-concurrency-model-etagif-match) |
-| BILL-DEC-007 | Discovery endpoints for options/enums | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-007--billingrules-optionsenums-discovery-endpoints) |
-| BILL-DEC-008 | Canonical permission strings, least-privilege model | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-008--permission-model-canonical-permission-strings) |
-| BILL-DEC-009 | PO capture + override workflow contract | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-009--checkout-po-capture-and-override-workflow-contract) |
-| BILL-DEC-010 | Step-up auth via elevation token (no shared codes) | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-010--managersupervisor-approval-semantics-re-auth-token) |
-| BILL-DEC-011 | Receipts generation/delivery/reprint policy evaluation | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-011--receipts-generation-delivery-statuses-reprint-policy-evaluation) |
-| BILL-DEC-012 | Partial payments policy and receipt display rules | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-012--partial-payments-policy-and-receipt-display-rules) |
-| BILL-DEC-013 | AP vendor payment semantics (if in boundary) | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-013--ap-vendor-payments-status-enums-idempotency-allocation-rules) |
-| BILL-DEC-014 | Posting error visibility and sanitization policy | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-014--posting-error-visibility-policy-sanitization--role-targeted-detail) |
-| BILL-DEC-015 | W3C Trace Context correlation/tracing standard | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-015--observability-correlationtracing-standard-w3c-trace-context) |
-| BILL-DEC-016 | Deep-link metadata (no hardcoded routes) | [BILLING_DOMAIN_NOTES.md](BILLING_DOMAIN_NOTES.md#bill-dec-016--frontend-deep-link-metadata-no-hardcoded-routes) |
+| BILL-DEC-001 | Canonical invoice status enums/state machine | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-001--canonical-invoice-status-enums-and-state-machine) |
+| BILL-DEC-002 | Idempotent draft creation gated by Workexec readiness | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-002--draft-invoice-creation-command-idempotency--work-order-preconditions) |
+| BILL-DEC-003 | Issuance gating with blockers + policy envelope | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-003--issuance-gating-model-blockers--policy-envelope) |
+| BILL-DEC-004 | Immutable traceability snapshot schema | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-004--traceability-snapshot-schema-canonical-field-names--immutability) |
+| BILL-DEC-005 | Artifact retrieval list + secure download contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-005--artifact-retrieval-contract-list--secure-download) |
+| BILL-DEC-006 | BillingRules concurrency via ETag/If-Match | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-006--billingrules-concurrency-model-etagif-match) |
+| BILL-DEC-007 | Discovery endpoints for options/enums | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-007--billingrules-optionsenums-discovery-endpoints) |
+| BILL-DEC-008 | Canonical permission strings, least-privilege model | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-008--permission-model-canonical-permission-strings) |
+| BILL-DEC-009 | PO capture + override workflow contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-009--checkout-po-capture-and-override-workflow-contract) |
+| BILL-DEC-010 | Step-up auth via elevation token (no shared codes) | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-010--managersupervisor-approval-semantics-re-auth-token) |
+| BILL-DEC-011 | Receipts generation/delivery/reprint policy evaluation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-011--receipts-generation-delivery-statuses-reprint-policy-evaluation) |
+| BILL-DEC-012 | Partial payments policy and receipt display rules | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-012--partial-payments-policy-and-receipt-display-rules) |
+| BILL-DEC-013 | AP vendor payment semantics (if in boundary) | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-013--ap-vendor-payments-status-enums-idempotency-allocation-rules) |
+| BILL-DEC-014 | Posting error visibility and sanitization policy | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-014--posting-error-visibility-policy-sanitization--role-targeted-detail) |
+| BILL-DEC-015 | W3C Trace Context correlation/tracing standard | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-015--observability-correlationtracing-standard-w3c-trace-context) |
+| BILL-DEC-016 | Deep-link metadata (no hardcoded routes) | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-016--frontend-deep-link-metadata-no-hardcoded-routes) |
 
 ## Domain Boundaries
 

@@ -3,12 +3,12 @@
 ## Summary
 
 This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export.
-It is authoritative for permission gating, guardrails, and capability contracts; rationale and auditor narrative live in `AUDIT_DOMAIN_NOTES.md`.
+It is authoritative for permission gating, guardrails, and capability contracts; rationale and auditor narrative live in `DOMAIN_NOTES.md`.
 
 ## Completed items
 
 - [x] Generated/maintained Decision Index
-- [x] Mapped Decision IDs to `AUDIT_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled open questions into normative answers
 
 ## Purpose
@@ -19,7 +19,7 @@ The audit service is the **system of record** for audit entries (storage, query,
 
 This document is **normative** (direct agent input, CI validation, story execution rules may use this).
 
-**Non-normative companion:** `AUDIT_DOMAIN_NOTES.md` (explanations, rationale, tradeoffs, future design work, auditor-facing narrative).
+**Non-normative companion:** `DOMAIN_NOTES.md` (explanations, rationale, tradeoffs, future design work, auditor-facing narrative).
 
 ---
 
@@ -44,18 +44,18 @@ This document is **normative** (direct agent input, CI validation, story executi
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| AUD-SEC-001 | Enforce tenant isolation for all reads/writes | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-001---tenant-isolation-and-scoping-rules) |
-| AUD-SEC-002 | Require and enforce location scoping; gated cross-location | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-002---location-scoping-and-cross-location-permission-model) |
-| AUD-SEC-003 | Least-privilege permissions and role guidance | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-003---authorization-model-roles-%E2%86%92-permission-strings) |
-| AUD-SEC-004 | Restrict, redact, and safely render raw payloads | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-004---raw-payload-handling-redaction-and-safe-rendering) |
-| AUD-SEC-005 | Guardrails: date range required, indexed filters, max window | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-005---query-guardrails) |
-| AUD-SEC-006 | Async export jobs with auditing + digest manifest | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-006---export-security-model) |
-| AUD-SEC-007 | Support multiple identifier semantics; backend normalization | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-007---identifier-semantics-for-search) |
-| AUD-SEC-008 | Pricing evidence access with size limits and pagination | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-008---pricing-evidence-access-size-limits-pagination) |
-| AUD-SEC-009 | Proof fields display-only unless verification is explicit | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-009---immutability-proof-fields-hash-chain--signature) |
-| AUD-SEC-010 | Controlled eventType vocabulary via discovery endpoint | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-010---event-type-vocabulary) |
-| AUD-SEC-011 | Deep-link metadata only; no hardcoded URLs | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-011---deep-link-metadata-policy) |
-| AUD-SEC-012 | Use W3C Trace Context for correlation | [AUDIT_DOMAIN_NOTES.md](AUDIT_DOMAIN_NOTES.md#decision-aud-sec-012---correlation-and-trace-context-standard) |
+| AUD-SEC-001 | Enforce tenant isolation for all reads/writes | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-001---tenant-isolation-and-scoping-rules) |
+| AUD-SEC-002 | Require and enforce location scoping; gated cross-location | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-002---location-scoping-and-cross-location-permission-model) |
+| AUD-SEC-003 | Least-privilege permissions and role guidance | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-003---authorization-model-roles-%E2%86%92-permission-strings) |
+| AUD-SEC-004 | Restrict, redact, and safely render raw payloads | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-004---raw-payload-handling-redaction-and-safe-rendering) |
+| AUD-SEC-005 | Guardrails: date range required, indexed filters, max window | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-005---query-guardrails) |
+| AUD-SEC-006 | Async export jobs with auditing + digest manifest | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-006---export-security-model) |
+| AUD-SEC-007 | Support multiple identifier semantics; backend normalization | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-007---identifier-semantics-for-search) |
+| AUD-SEC-008 | Pricing evidence access with size limits and pagination | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-008---pricing-evidence-access-size-limits-pagination) |
+| AUD-SEC-009 | Proof fields display-only unless verification is explicit | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-009---immutability-proof-fields-hash-chain--signature) |
+| AUD-SEC-010 | Controlled eventType vocabulary via discovery endpoint | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-010---event-type-vocabulary) |
+| AUD-SEC-011 | Deep-link metadata only; no hardcoded URLs | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-011---deep-link-metadata-policy) |
+| AUD-SEC-012 | Use W3C Trace Context for correlation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-012---correlation-and-trace-context-standard) |
 
 ---
 

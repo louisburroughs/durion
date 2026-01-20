@@ -2,12 +2,12 @@
 
 ## Summary
 
-This document is the normative agent guide for the CRM domain: system-of-record boundaries, invariants, and integration rules for CRM UI and services. It resolves prior CLARIFY/TODO items by making conservative, explicit decisions with stable IDs and links to detailed rationale in `CRM_DOMAIN_NOTES.md`. Where upstream contracts are not yet finalized, it adopts safe defaults and calls out what is safe-to-defer.
+This document is the normative agent guide for the CRM domain: system-of-record boundaries, invariants, and integration rules for CRM UI and services. It resolves prior CLARIFY/TODO items by making conservative, explicit decisions with stable IDs and links to detailed rationale in `DOMAIN_NOTES.md`. Where upstream contracts are not yet finalized, it adopts safe defaults and calls out what is safe-to-defer.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `CRM_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -97,21 +97,21 @@ This document is the normative agent guide for the CRM domain: system-of-record 
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-INVENTORY-001 | Canonical ID strategy for CRM routes/contracts | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-001--canonical-identifiers-partyid) |
-| DECISION-INVENTORY-002 | Roles owned by CRM; primary auto-demotion; billing contact rule | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-002--contact-roles-ownership--primary-policy--billing-contact-rule) |
-| DECISION-INVENTORY-003 | Phone validation/normalization; contact kind immutability | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-003--contact-point-validation-phone--kind-immutability) |
-| DECISION-INVENTORY-004 | Snapshot proxy; correlation and logging/masking | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-004--crm-snapshot-proxy--correlationlogging-policy) |
-| DECISION-INVENTORY-005 | ProcessingLog/Suspense contracts and identifiers | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-005--processinglogsuspense-contracts--identifiers) |
-| DECISION-INVENTORY-006 | Payload/details visibility and redaction | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-006--payloaddetails-visibility--redactionmasking) |
-| DECISION-INVENTORY-007 | Permission keys and environment restrictions | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-007--permissions--environment-restrictions) |
-| DECISION-INVENTORY-008 | Correlation semantics and filter semantics | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-008--correlation-semantics--filter-semantics) |
-| DECISION-INVENTORY-009 | Operator actions and retry metadata | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-009--operator-actions--retry-metadata) |
-| DECISION-INVENTORY-010 | Promotion redemption model/access/limits | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-010--promotion-redemption-model-access--limits-visibility) |
-| DECISION-INVENTORY-011 | VehicleUpdated conflict policy and required fields | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-011--vehicleupdated-conflict-policy--required-fields) |
-| DECISION-INVENTORY-012 | Vehicle care preferences schema/enums/locking/audit | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-012--vehicle-care-preferences-schema-enums-locking-audit) |
-| DECISION-INVENTORY-013 | Vehicle lookup/search defaults and handoff | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-013--vehicle-lookupsearch-defaults--handoff) |
-| DECISION-INVENTORY-014 | Party merge policy and alias behavior | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-014--party-merge-policy--alias-behavior) |
-| DECISION-INVENTORY-015 | Commercial account creation and duplicate detection | [CRM_DOMAIN_NOTES.md](CRM_DOMAIN_NOTES.md#decision-inventory-015--commercial-account-creation--duplicate-detection) |
+| DECISION-INVENTORY-001 | Canonical ID strategy for CRM routes/contracts | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-001--canonical-identifiers-partyid) |
+| DECISION-INVENTORY-002 | Roles owned by CRM; primary auto-demotion; billing contact rule | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-002--contact-roles-ownership--primary-policy--billing-contact-rule) |
+| DECISION-INVENTORY-003 | Phone validation/normalization; contact kind immutability | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-003--contact-point-validation-phone--kind-immutability) |
+| DECISION-INVENTORY-004 | Snapshot proxy; correlation and logging/masking | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-004--crm-snapshot-proxy--correlationlogging-policy) |
+| DECISION-INVENTORY-005 | ProcessingLog/Suspense contracts and identifiers | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-005--processinglogsuspense-contracts--identifiers) |
+| DECISION-INVENTORY-006 | Payload/details visibility and redaction | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-006--payloaddetails-visibility--redactionmasking) |
+| DECISION-INVENTORY-007 | Permission keys and environment restrictions | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-007--permissions--environment-restrictions) |
+| DECISION-INVENTORY-008 | Correlation semantics and filter semantics | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-008--correlation-semantics--filter-semantics) |
+| DECISION-INVENTORY-009 | Operator actions and retry metadata | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-009--operator-actions--retry-metadata) |
+| DECISION-INVENTORY-010 | Promotion redemption model/access/limits | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-010--promotion-redemption-model-access--limits-visibility) |
+| DECISION-INVENTORY-011 | VehicleUpdated conflict policy and required fields | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-011--vehicleupdated-conflict-policy--required-fields) |
+| DECISION-INVENTORY-012 | Vehicle care preferences schema/enums/locking/audit | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-012--vehicle-care-preferences-schema-enums-locking-audit) |
+| DECISION-INVENTORY-013 | Vehicle lookup/search defaults and handoff | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-013--vehicle-lookupsearch-defaults--handoff) |
+| DECISION-INVENTORY-014 | Party merge policy and alias behavior | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-014--party-merge-policy--alias-behavior) |
+| DECISION-INVENTORY-015 | Commercial account creation and duplicate detection | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-015--commercial-account-creation--duplicate-detection) |
 
 ## Open Questions (from source)
 

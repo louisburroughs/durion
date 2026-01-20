@@ -8,7 +8,7 @@ The Accounting domain is responsible for authoritative financial calculations, i
 
 This guide is written for engineers and agents implementing Moqui services/screens and integrations for the Accounting domain. This document is **normative**.
 
-**Non-normative companion:** `ACCOUNTING_DOMAIN_NOTES.md` (design rationale, options, rejected alternatives).
+**Non-normative companion:** [DOMAIN_NOTES.md](domains/accounting/.business-rules/DOMAIN_NOTES.md) (design rationale, options, rejected alternatives).
 
 ---
 

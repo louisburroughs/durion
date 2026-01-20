@@ -2,12 +2,12 @@
 
 ## Summary
 
-This guide defines the Order domain’s **normative** rules for order cancellation orchestration in the Durion POS platform. It resolves the prior “open questions” into safe defaults so frontend (Moqui/Quasar) work can proceed without inventing policy. Decisions are indexed and cross-referenced to `ORDER_DOMAIN_NOTES.md` for non-normative rationale.
+This guide defines the Order domain’s **normative** rules for order cancellation orchestration in the Durion POS platform. It resolves the prior “open questions” into safe defaults so frontend (Moqui/Quasar) work can proceed without inventing policy. Decisions are indexed and cross-referenced to `DOMAIN_NOTES.md` for non-normative rationale.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `ORDER_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -69,21 +69,21 @@ This guide defines the Order domain’s **normative** rules for order cancellati
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-ORDER-001 | Order domain orchestrates cancellation | [ORDER_DOMAIN_NOTES.md](#decision-order-001---order-domain-as-cancellation-orchestrator) |
-| DECISION-ORDER-002 | Work blocks cancellation in irreversible states | [ORDER_DOMAIN_NOTES.md](#decision-order-002---work-status-blocking-rules-for-cancellation) |
-| DECISION-ORDER-003 | Void if unsettled; refund-required if settled | [ORDER_DOMAIN_NOTES.md](#decision-order-003---payment-settlement-handling-in-cancellation) |
-| DECISION-ORDER-004 | Cancellation audit is immutable | [ORDER_DOMAIN_NOTES.md](#decision-order-004---cancellation-audit-record-immutability) |
-| DECISION-ORDER-005 | Idempotency for repeat cancels | [ORDER_DOMAIN_NOTES.md](#decision-order-005---idempotent-cancellation-semantics) |
-| DECISION-ORDER-006 | Canonical reason list and governance | [ORDER_DOMAIN_NOTES.md](#decision-order-006---cancellation-reason-taxonomy) |
-| DECISION-ORDER-007 | Timeout/failure handling policy | [ORDER_DOMAIN_NOTES.md](#decision-order-007---cancellation-orchestration-timeout-and-failure-handling) |
-| DECISION-ORDER-008 | Comments max length (2000) | [ORDER_DOMAIN_NOTES.md](#decision-order-008---cancellation-comments-maximum-length) |
-| DECISION-ORDER-009 | Concurrency returns 409 | [ORDER_DOMAIN_NOTES.md](#decision-order-009---concurrency-control-with-409-conflict-response) |
-| DECISION-ORDER-010 | Permission model for cancellation | [ORDER_DOMAIN_NOTES.md](#decision-order-010---authorization-and-permission-model-for-cancellation) |
-| DECISION-ORDER-011 | Canonical story label is domain:order | [ORDER_DOMAIN_NOTES.md](#decision-order-011---canonical-domain-label-and-ownership-for-cancellation-ui) |
-| DECISION-ORDER-012 | Safe-default Moqui contract conventions | [ORDER_DOMAIN_NOTES.md](#decision-order-012---ui-to-moqui-service-contract-conventions-safe-defaults) |
-| DECISION-ORDER-013 | Canonical cancellation status enum | [ORDER_DOMAIN_NOTES.md](#decision-order-013---canonical-order-cancellation-status-enum-contract) |
-| DECISION-ORDER-014 | Permission exposure pattern to UI | [ORDER_DOMAIN_NOTES.md](#decision-order-014---frontend-permission-exposure-pattern-safe-default) |
-| DECISION-ORDER-015 | Correlation IDs/admin details policy | [ORDER_DOMAIN_NOTES.md](#decision-order-015---correlation-ids-and-admin-only-details-visibility) |
+| DECISION-ORDER-001 | Order domain orchestrates cancellation | [DOMAIN_NOTES.md](#decision-order-001---order-domain-as-cancellation-orchestrator) |
+| DECISION-ORDER-002 | Work blocks cancellation in irreversible states | [DOMAIN_NOTES.md](#decision-order-002---work-status-blocking-rules-for-cancellation) |
+| DECISION-ORDER-003 | Void if unsettled; refund-required if settled | [DOMAIN_NOTES.md](#decision-order-003---payment-settlement-handling-in-cancellation) |
+| DECISION-ORDER-004 | Cancellation audit is immutable | [DOMAIN_NOTES.md](#decision-order-004---cancellation-audit-record-immutability) |
+| DECISION-ORDER-005 | Idempotency for repeat cancels | [DOMAIN_NOTES.md](#decision-order-005---idempotent-cancellation-semantics) |
+| DECISION-ORDER-006 | Canonical reason list and governance | [DOMAIN_NOTES.md](#decision-order-006---cancellation-reason-taxonomy) |
+| DECISION-ORDER-007 | Timeout/failure handling policy | [DOMAIN_NOTES.md](#decision-order-007---cancellation-orchestration-timeout-and-failure-handling) |
+| DECISION-ORDER-008 | Comments max length (2000) | [DOMAIN_NOTES.md](#decision-order-008---cancellation-comments-maximum-length) |
+| DECISION-ORDER-009 | Concurrency returns 409 | [DOMAIN_NOTES.md](#decision-order-009---concurrency-control-with-409-conflict-response) |
+| DECISION-ORDER-010 | Permission model for cancellation | [DOMAIN_NOTES.md](#decision-order-010---authorization-and-permission-model-for-cancellation) |
+| DECISION-ORDER-011 | Canonical story label is domain:order | [DOMAIN_NOTES.md](#decision-order-011---canonical-domain-label-and-ownership-for-cancellation-ui) |
+| DECISION-ORDER-012 | Safe-default Moqui contract conventions | [DOMAIN_NOTES.md](#decision-order-012---ui-to-moqui-service-contract-conventions-safe-defaults) |
+| DECISION-ORDER-013 | Canonical cancellation status enum | [DOMAIN_NOTES.md](#decision-order-013---canonical-order-cancellation-status-enum-contract) |
+| DECISION-ORDER-014 | Permission exposure pattern to UI | [DOMAIN_NOTES.md](#decision-order-014---frontend-permission-exposure-pattern-safe-default) |
+| DECISION-ORDER-015 | Correlation IDs/admin details policy | [DOMAIN_NOTES.md](#decision-order-015---correlation-ids-and-admin-only-details-visibility) |
 
 ## Open Questions (from source)
 

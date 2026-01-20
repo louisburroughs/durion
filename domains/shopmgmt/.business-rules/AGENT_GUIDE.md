@@ -107,7 +107,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to SHOPMGMT_DOMAIN_NOTES.md
+- [x] Mapped Decision IDs to DOMAIN_NOTES.md
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -192,23 +192,23 @@ and defines what must be treated as backend-authoritative vs UI hints.
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-SHOPMGMT-001 | Appointment is created from a single immutable source. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-002 | Conflicts are classified HARD vs SOFT. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-003 | Exactly one assignment type applies at a time. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-004 | Reschedule limits and minimum notice are enforced. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-005 | Notes length and update semantics are defined. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-006 | Assignment updates are near-real-time with fallback. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-007 | Overrides require audit artifacts. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-008 | Operating-hours enforcement policy is explicit. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-009 | Mechanic identity is a foreign reference. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-010 | Assignment status transitions are constrained. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-011 | Contract naming patterns are standardized. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-012 | Facility scoping is deny-by-default. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-013 | Status enums and UI gating are defined. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-014 | Create/reschedule are idempotent by requestId. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-015 | Facility timezone is source of truth. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-016 | Notification toggles are backend-owned. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
-| DECISION-SHOPMGMT-017 | Audit UI is permission-gated and redacted. | [SHOPMGMT_DOMAIN_NOTES.md](SHOPMGMT_DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-001 | Appointment is created from a single immutable source. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-002 | Conflicts are classified HARD vs SOFT. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-003 | Exactly one assignment type applies at a time. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-004 | Reschedule limits and minimum notice are enforced. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-005 | Notes length and update semantics are defined. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-006 | Assignment updates are near-real-time with fallback. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-007 | Overrides require audit artifacts. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-008 | Operating-hours enforcement policy is explicit. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-009 | Mechanic identity is a foreign reference. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-010 | Assignment status transitions are constrained. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-011 | Contract naming patterns are standardized. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-012 | Facility scoping is deny-by-default. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-013 | Status enums and UI gating are defined. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-014 | Create/reschedule are idempotent by requestId. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-015 | Facility timezone is source of truth. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-016 | Notification toggles are backend-owned. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-017 | Audit UI is permission-gated and redacted. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 
 ## Open Questions (from source)
 

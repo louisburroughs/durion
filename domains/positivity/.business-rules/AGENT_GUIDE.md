@@ -2,12 +2,12 @@
 
 ## Summary
 
-This document defines the **normative** rules for the `positivity` domain, which owns POS-facing orchestration (notably Order cancellation) and composed read models (notably Product Detail). It reconciles previously open questions and TODOs into explicit, versionable decisions and contracts. The non-normative rationale and alternatives live in `POSITIVITY_DOMAIN_NOTES.md`.
+This document defines the **normative** rules for the `positivity` domain, which owns POS-facing orchestration (notably Order cancellation) and composed read models (notably Product Detail). It reconciles previously open questions and TODOs into explicit, versionable decisions and contracts. The non-normative rationale and alternatives live in `DOMAIN_NOTES.md`.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `POSITIVITY_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos and clarifications from prior documents
 
 ## Decision Index
@@ -80,21 +80,21 @@ This document defines the **normative** rules for the `positivity` domain, which
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-POSITIVITY-001 | Persisted saga orchestration for cancellation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-001---order-cancellation-uses-persisted-saga) |
-| DECISION-POSITIVITY-002 | Work first, then payment | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-002---work-cancellation-precedes-payment-reversal) |
-| DECISION-POSITIVITY-003 | Client idempotency key with server dedupe | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-003---cancellation-idempotency-and-deduplication) |
-| DECISION-POSITIVITY-004 | Aggregate endpoint with graceful degradation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-004---product-detail-aggregation-with-graceful-degradation) |
-| DECISION-POSITIVITY-005 | `location_id` required | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-005---location_id-is-required-for-product-detail) |
-| DECISION-POSITIVITY-006 | Null numeric fields when non-OK | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-006---null-numeric-fields-when-component-status-is-non-ok) |
-| DECISION-POSITIVITY-007 | Timestamp + staleness semantics | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-007---generatedat-asof-and-staleness-semantics) |
-| DECISION-POSITIVITY-008 | Short TTL caching | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-008---short-ttl-caching-and-cache-key-requirements) |
-| DECISION-POSITIVITY-009 | Only Catalog miss returns 404 | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-009---fail-fast-only-on-catalog-404) |
-| DECISION-POSITIVITY-010 | Dynamic lead time overrides static | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-010---dynamic-lead-time-overrides-static-lead-time) |
-| DECISION-POSITIVITY-011 | Status fields treated as opaque strings | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-011---status-fields-are-treated-as-opaque-strings) |
-| DECISION-POSITIVITY-012 | Currency rules | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-012---currency-field-rules-for-pricing) |
-| DECISION-POSITIVITY-013 | Permission gating model | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-013---permission-gating-model-for-product-detail) |
-| DECISION-POSITIVITY-014 | Trace/correlation propagation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-014---trace-and-correlation-propagation) |
-| DECISION-POSITIVITY-015 | No read-side events for degradation | [POSITIVITY_DOMAIN_NOTES.md](POSITIVITY_DOMAIN_NOTES.md#decision-positivity-015---no-per-request-events-for-read-degradation) |
+| DECISION-POSITIVITY-001 | Persisted saga orchestration for cancellation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-001---order-cancellation-uses-persisted-saga) |
+| DECISION-POSITIVITY-002 | Work first, then payment | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-002---work-cancellation-precedes-payment-reversal) |
+| DECISION-POSITIVITY-003 | Client idempotency key with server dedupe | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-003---cancellation-idempotency-and-deduplication) |
+| DECISION-POSITIVITY-004 | Aggregate endpoint with graceful degradation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-004---product-detail-aggregation-with-graceful-degradation) |
+| DECISION-POSITIVITY-005 | `location_id` required | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-005---location_id-is-required-for-product-detail) |
+| DECISION-POSITIVITY-006 | Null numeric fields when non-OK | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-006---null-numeric-fields-when-component-status-is-non-ok) |
+| DECISION-POSITIVITY-007 | Timestamp + staleness semantics | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-007---generatedat-asof-and-staleness-semantics) |
+| DECISION-POSITIVITY-008 | Short TTL caching | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-008---short-ttl-caching-and-cache-key-requirements) |
+| DECISION-POSITIVITY-009 | Only Catalog miss returns 404 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-009---fail-fast-only-on-catalog-404) |
+| DECISION-POSITIVITY-010 | Dynamic lead time overrides static | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-010---dynamic-lead-time-overrides-static-lead-time) |
+| DECISION-POSITIVITY-011 | Status fields treated as opaque strings | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-011---status-fields-are-treated-as-opaque-strings) |
+| DECISION-POSITIVITY-012 | Currency rules | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-012---currency-field-rules-for-pricing) |
+| DECISION-POSITIVITY-013 | Permission gating model | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-013---permission-gating-model-for-product-detail) |
+| DECISION-POSITIVITY-014 | Trace/correlation propagation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-014---trace-and-correlation-propagation) |
+| DECISION-POSITIVITY-015 | No read-side events for degradation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-positivity-015---no-per-request-events-for-read-degradation) |
 
 ## Open Questions (from source)
 

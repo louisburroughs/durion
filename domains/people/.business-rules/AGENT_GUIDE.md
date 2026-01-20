@@ -2,12 +2,12 @@
 
 ## Summary
 
-This guide defines the People domain’s **normative** business rules for identity/lifecycle, roles and assignments, and timekeeping-oriented People workflows (breaks, approvals, payroll timekeeping ingestion). It resolves the prior open questions into safe defaults that keep UI and backend behavior deterministic without inventing cross-domain policy. Each decision is indexed and cross-referenced to `PEOPLE_DOMAIN_NOTES.md`.
+This guide defines the People domain’s **normative** business rules for identity/lifecycle, roles and assignments, and timekeeping-oriented People workflows (breaks, approvals, payroll timekeeping ingestion). It resolves the prior open questions into safe defaults that keep UI and backend behavior deterministic without inventing cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NOTES.md`.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `PEOPLE_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -85,32 +85,32 @@ This guide defines the People domain’s **normative** business rules for identi
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-PEOPLE-001 | User lifecycle model | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-001---user-lifecycle-states-and-soft-offboarding) |
-| DECISION-PEOPLE-002 | Disable saga + DLQ | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-002---user-disable-workflow-with-saga-pattern) |
-| DECISION-PEOPLE-003 | Role scope model | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-003---role-assignment-scopes-global-vs-location) |
-| DECISION-PEOPLE-004 | Primary assignment semantics | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-004---person-location-assignment-primary-flag-semantics) |
-| DECISION-PEOPLE-005 | Idempotent ingestion | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-005---timekeeping-entry-ingestion-and-deduplication) |
-| DECISION-PEOPLE-006 | Period-atomic approvals | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-006---time-period-approval-atomicity) |
-| DECISION-PEOPLE-007 | Break types + auto-end | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-007---break-type-enumeration-and-auto-end-flag) |
-| DECISION-PEOPLE-008 | Employee profile conflicts | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-008---employee-profile-conflict-handling-409-vs-warnings) |
-| DECISION-PEOPLE-009 | Mechanic roster read model | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-009---mechanic-roster-as-read-model-synced-from-hr) |
-| DECISION-PEOPLE-010 | Approval authorization | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-010---time-entry-approval-authorization) |
-| DECISION-PEOPLE-011 | Roster storage ownership | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-011---mechanic-roster-storage-ownership) |
-| DECISION-PEOPLE-012 | Person↔User cardinality | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-012---person-user-cardinality-and-identifiers) |
-| DECISION-PEOPLE-013 | Permission naming + capability exposure | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-013---permission-naming-and-ui-capability-exposure) |
-| DECISION-PEOPLE-014 | Effective dating semantics | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-014---assignment-effective-dating-semantics-exclusive-end) |
-| DECISION-PEOPLE-015 | UI timezone standard | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-015---timezone-display-standard-for-people-uis) |
-| DECISION-PEOPLE-016 | Break notes for OTHER | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-016---break-notes-requirement-for-other) |
-| DECISION-PEOPLE-017 | Optimistic concurrency | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-017---optimistic-concurrency-default-lastupdatedstamp) |
-| DECISION-PEOPLE-018 | Error schema | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-018---error-response-schema-400409) |
-| DECISION-PEOPLE-019 | tenantId visibility | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-019---tenantid-ui-visibility-policy) |
-| DECISION-PEOPLE-020 | technicianIds encoding | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-020---technicianids-query-encoding-and-report-range) |
-| DECISION-PEOPLE-021 | REST API conventions | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-021---people-rest-api-conventions-paths-paging-shapes) |
-| DECISION-PEOPLE-022 | Break contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-022---break-api-contract-and-identity-derivation) |
-| DECISION-PEOPLE-023 | Assignment contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-023---person-location-assignment-api-contract-and-reason-codes) |
-| DECISION-PEOPLE-024 | Disable user contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-024---disable-user-api-contract-and-ux-defaults) |
-| DECISION-PEOPLE-025 | Employee profile defaults | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-025---employee-profile-defaults-and-terminated-edit-rules) |
-| DECISION-PEOPLE-026 | Role assignment contract | [PEOPLE_DOMAIN_NOTES.md](PEOPLE_DOMAIN_NOTES.md#decision-people-026---role-assignment-api-contract-dating-and-history-defaults) |
+| DECISION-PEOPLE-001 | User lifecycle model | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-001---user-lifecycle-states-and-soft-offboarding) |
+| DECISION-PEOPLE-002 | Disable saga + DLQ | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-002---user-disable-workflow-with-saga-pattern) |
+| DECISION-PEOPLE-003 | Role scope model | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-003---role-assignment-scopes-global-vs-location) |
+| DECISION-PEOPLE-004 | Primary assignment semantics | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-004---person-location-assignment-primary-flag-semantics) |
+| DECISION-PEOPLE-005 | Idempotent ingestion | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-005---timekeeping-entry-ingestion-and-deduplication) |
+| DECISION-PEOPLE-006 | Period-atomic approvals | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-006---time-period-approval-atomicity) |
+| DECISION-PEOPLE-007 | Break types + auto-end | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-007---break-type-enumeration-and-auto-end-flag) |
+| DECISION-PEOPLE-008 | Employee profile conflicts | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-008---employee-profile-conflict-handling-409-vs-warnings) |
+| DECISION-PEOPLE-009 | Mechanic roster read model | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-009---mechanic-roster-as-read-model-synced-from-hr) |
+| DECISION-PEOPLE-010 | Approval authorization | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-010---time-entry-approval-authorization) |
+| DECISION-PEOPLE-011 | Roster storage ownership | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-011---mechanic-roster-storage-ownership) |
+| DECISION-PEOPLE-012 | Person↔User cardinality | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-012---person-user-cardinality-and-identifiers) |
+| DECISION-PEOPLE-013 | Permission naming + capability exposure | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-013---permission-naming-and-ui-capability-exposure) |
+| DECISION-PEOPLE-014 | Effective dating semantics | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-014---assignment-effective-dating-semantics-exclusive-end) |
+| DECISION-PEOPLE-015 | UI timezone standard | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-015---timezone-display-standard-for-people-uis) |
+| DECISION-PEOPLE-016 | Break notes for OTHER | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-016---break-notes-requirement-for-other) |
+| DECISION-PEOPLE-017 | Optimistic concurrency | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-017---optimistic-concurrency-default-lastupdatedstamp) |
+| DECISION-PEOPLE-018 | Error schema | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-018---error-response-schema-400409) |
+| DECISION-PEOPLE-019 | tenantId visibility | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-019---tenantid-ui-visibility-policy) |
+| DECISION-PEOPLE-020 | technicianIds encoding | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-020---technicianids-query-encoding-and-report-range) |
+| DECISION-PEOPLE-021 | REST API conventions | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-021---people-rest-api-conventions-paths-paging-shapes) |
+| DECISION-PEOPLE-022 | Break contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-022---break-api-contract-and-identity-derivation) |
+| DECISION-PEOPLE-023 | Assignment contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-023---person-location-assignment-api-contract-and-reason-codes) |
+| DECISION-PEOPLE-024 | Disable user contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-024---disable-user-api-contract-and-ux-defaults) |
+| DECISION-PEOPLE-025 | Employee profile defaults | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-025---employee-profile-defaults-and-terminated-edit-rules) |
+| DECISION-PEOPLE-026 | Role assignment contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-026---role-assignment-api-contract-dating-and-history-defaults) |
 
 ## Open Questions (from source)
 

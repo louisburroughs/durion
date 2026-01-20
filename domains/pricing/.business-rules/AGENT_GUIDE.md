@@ -8,7 +8,7 @@ This document is the normative guide for the Pricing domain. It defines system-o
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `PRICING_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -85,24 +85,24 @@ These are the normative API contract expectations until backend contracts diverg
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-PRICING-001 | Money uses decimal-string + `currencyUomId`; rounding is backend-owned | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-001--money-representation-and-rounding) |
-| DECISION-PRICING-002 | All pricing endpoints live under `/pricing/v1` | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-002--pricing-api-base-path-and-versioning) |
-| DECISION-PRICING-003 | Effective-dated timestamps are interpreted in store-local timezone | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-003--effective-dating-and-timezone-semantics) |
-| DECISION-PRICING-004 | Price books are explicitly scoped and single-currency | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-004--price-book-scope-model-locationtiercurrency) |
-| DECISION-PRICING-005 | Rules support one condition dimension; combine via scoped books | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-005--price-book-rule-condition-model-single-dimension) |
-| DECISION-PRICING-006 | Deterministic ordering: specificity → priority → stable tie-breaker | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-006--rule-precedence-and-deterministic-tie-breakers) |
-| DECISION-PRICING-007 | Promo codes are unique, case-insensitive lookup, constrained charset | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-007--promotion-code-constraints-and-uniqueness) |
-| DECISION-PRICING-008 | One promotion active per estimate; apply is replace-by-default | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-008--single-promotion-per-estimate-behavior) |
-| DECISION-PRICING-009 | Eligibility rules default to AND; no rules means eligible | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-009--promotion-eligibility-rule-evaluation-model) |
-| DECISION-PRICING-010 | Override is only for `ALLOW_WITH_OVERRIDE` decisions | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-010--restriction-decisions-and-override-eligibility) |
-| DECISION-PRICING-011 | Override reason codes are fetched from backend catalog endpoint | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-011--override-reason-codes-catalog-source) |
-| DECISION-PRICING-012 | Override requires `transactionId` and `policyVersion`; optional rule selection | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-012--restriction-override-request-shape-and-transactionid-requirement) |
-| DECISION-PRICING-013 | Snapshot drilldown opens as read-only modal/drawer | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-013--pricing-snapshot-contract-and-ux-pattern) |
-| DECISION-PRICING-014 | Snapshot access is inherited; sensitive fields are redacted | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-014--snapshot-authorization-and-sensitive-field-redaction) |
-| DECISION-PRICING-015 | Admin entities expose audit/history via a standard contract | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-015--audithistory-contract-for-pricing-admin-changes) |
-| DECISION-PRICING-016 | Prefer `effectiveEndAt` for deactivation; status is derived | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-016--deactivation-mechanism-status-vs-effectiveendat) |
-| DECISION-PRICING-017 | Admin uses Inventory product search API for product selection | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-017--product-lookup-contract-for-pricing-admin-screens) |
-| DECISION-PRICING-018 | Past MSRP records are immutable unless special permission present | [PRICING_DOMAIN_NOTES.md](PRICING_DOMAIN_NOTES.md#decision-pricing-018--msrp-historical-immutability-and-permissions) |
+| DECISION-PRICING-001 | Money uses decimal-string + `currencyUomId`; rounding is backend-owned | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-001--money-representation-and-rounding) |
+| DECISION-PRICING-002 | All pricing endpoints live under `/pricing/v1` | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-002--pricing-api-base-path-and-versioning) |
+| DECISION-PRICING-003 | Effective-dated timestamps are interpreted in store-local timezone | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-003--effective-dating-and-timezone-semantics) |
+| DECISION-PRICING-004 | Price books are explicitly scoped and single-currency | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-004--price-book-scope-model-locationtiercurrency) |
+| DECISION-PRICING-005 | Rules support one condition dimension; combine via scoped books | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-005--price-book-rule-condition-model-single-dimension) |
+| DECISION-PRICING-006 | Deterministic ordering: specificity → priority → stable tie-breaker | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-006--rule-precedence-and-deterministic-tie-breakers) |
+| DECISION-PRICING-007 | Promo codes are unique, case-insensitive lookup, constrained charset | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-007--promotion-code-constraints-and-uniqueness) |
+| DECISION-PRICING-008 | One promotion active per estimate; apply is replace-by-default | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-008--single-promotion-per-estimate-behavior) |
+| DECISION-PRICING-009 | Eligibility rules default to AND; no rules means eligible | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-009--promotion-eligibility-rule-evaluation-model) |
+| DECISION-PRICING-010 | Override is only for `ALLOW_WITH_OVERRIDE` decisions | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-010--restriction-decisions-and-override-eligibility) |
+| DECISION-PRICING-011 | Override reason codes are fetched from backend catalog endpoint | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-011--override-reason-codes-catalog-source) |
+| DECISION-PRICING-012 | Override requires `transactionId` and `policyVersion`; optional rule selection | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-012--restriction-override-request-shape-and-transactionid-requirement) |
+| DECISION-PRICING-013 | Snapshot drilldown opens as read-only modal/drawer | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-013--pricing-snapshot-contract-and-ux-pattern) |
+| DECISION-PRICING-014 | Snapshot access is inherited; sensitive fields are redacted | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-014--snapshot-authorization-and-sensitive-field-redaction) |
+| DECISION-PRICING-015 | Admin entities expose audit/history via a standard contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-015--audithistory-contract-for-pricing-admin-changes) |
+| DECISION-PRICING-016 | Prefer `effectiveEndAt` for deactivation; status is derived | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-016--deactivation-mechanism-status-vs-effectiveendat) |
+| DECISION-PRICING-017 | Admin uses Inventory product search API for product selection | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-017--product-lookup-contract-for-pricing-admin-screens) |
+| DECISION-PRICING-018 | Past MSRP records are immutable unless special permission present | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-018--msrp-historical-immutability-and-permissions) |
 
 ## Open Questions (from source)
 

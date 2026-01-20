@@ -7,7 +7,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `WORKEXEC_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -72,22 +72,22 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-INVENTORY-001 | SubstituteLink authoring is not workexec SoR | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-001---substitutelink-ownership-boundary) |
-| DECISION-INVENTORY-002 | Use existing `durion-workexec` and `durion-shopmgr` screens | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-002---canonical-moqui-screensroutes) |
-| DECISION-INVENTORY-003 | IDs are opaque strings | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-003---identifier-handling-opaque-ids) |
-| DECISION-INVENTORY-004 | Started means `WO_IN_PROGRESS` or later | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-004---work-order-status-taxonomy-and-work-started) |
-| DECISION-INVENTORY-005 | Operational context is shopmgr SoR; overrides audited | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-005---assignment-vs-operational-context-sor--audit) |
-| DECISION-INVENTORY-006 | SubstituteLink keys immutable; soft deactivate | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-006---substitutelink-update-semantics-and-defaults) |
-| DECISION-INVENTORY-007 | Picker supports WO + Estimate; backend enforces eligibility | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-007---substitution-picker-scope--eligibility-source) |
-| DECISION-INVENTORY-008 | Part selection via search/picker | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-008---part-lookup-ux-contract) |
-| DECISION-INVENTORY-009 | Board is read-only; aggregate where feasible | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-009---dispatch-board-contract--aggregation-behavior) |
-| DECISION-INVENTORY-010 | Appointments are separate shopmgr entities | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-010---appointments-vs-work-orders-sor--link) |
-| DECISION-INVENTORY-011 | Standard error envelope with correlationId | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-011---standard-error-envelope--duplicate-signaling) |
-| DECISION-INVENTORY-012 | UI sends `Idempotency-Key` for create/submit | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-012---idempotency-key-usage-for-ui-mutations) |
-| DECISION-INVENTORY-013 | Capability signal drives UI gating; backend authoritative | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-013---capabilitypermission-signaling--manual-price-gating) |
-| DECISION-INVENTORY-014 | Audit metadata by default; optional audit endpoints | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-014---audit-visibility-strategy-substitutes--overrides) |
-| DECISION-INVENTORY-015 | Inbox + async processing; DLQ + ops view | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-015---event-ingestion-mechanism--failure-handling) |
-| DECISION-INVENTORY-016 | Display user TZ; bucket by shop TZ | [WORKEXEC_DOMAIN_NOTES.md](#decision-inventory-016---timezone-semantics-for-shop-ux) |
+| DECISION-INVENTORY-001 | SubstituteLink authoring is not workexec SoR | [DOMAIN_NOTES.md](#decision-inventory-001---substitutelink-ownership-boundary) |
+| DECISION-INVENTORY-002 | Use existing `durion-workexec` and `durion-shopmgr` screens | [DOMAIN_NOTES.md](#decision-inventory-002---canonical-moqui-screensroutes) |
+| DECISION-INVENTORY-003 | IDs are opaque strings | [DOMAIN_NOTES.md](#decision-inventory-003---identifier-handling-opaque-ids) |
+| DECISION-INVENTORY-004 | Started means `WO_IN_PROGRESS` or later | [DOMAIN_NOTES.md](#decision-inventory-004---work-order-status-taxonomy-and-work-started) |
+| DECISION-INVENTORY-005 | Operational context is shopmgr SoR; overrides audited | [DOMAIN_NOTES.md](#decision-inventory-005---assignment-vs-operational-context-sor--audit) |
+| DECISION-INVENTORY-006 | SubstituteLink keys immutable; soft deactivate | [DOMAIN_NOTES.md](#decision-inventory-006---substitutelink-update-semantics-and-defaults) |
+| DECISION-INVENTORY-007 | Picker supports WO + Estimate; backend enforces eligibility | [DOMAIN_NOTES.md](#decision-inventory-007---substitution-picker-scope--eligibility-source) |
+| DECISION-INVENTORY-008 | Part selection via search/picker | [DOMAIN_NOTES.md](#decision-inventory-008---part-lookup-ux-contract) |
+| DECISION-INVENTORY-009 | Board is read-only; aggregate where feasible | [DOMAIN_NOTES.md](#decision-inventory-009---dispatch-board-contract--aggregation-behavior) |
+| DECISION-INVENTORY-010 | Appointments are separate shopmgr entities | [DOMAIN_NOTES.md](#decision-inventory-010---appointments-vs-work-orders-sor--link) |
+| DECISION-INVENTORY-011 | Standard error envelope with correlationId | [DOMAIN_NOTES.md](#decision-inventory-011---standard-error-envelope--duplicate-signaling) |
+| DECISION-INVENTORY-012 | UI sends `Idempotency-Key` for create/submit | [DOMAIN_NOTES.md](#decision-inventory-012---idempotency-key-usage-for-ui-mutations) |
+| DECISION-INVENTORY-013 | Capability signal drives UI gating; backend authoritative | [DOMAIN_NOTES.md](#decision-inventory-013---capabilitypermission-signaling--manual-price-gating) |
+| DECISION-INVENTORY-014 | Audit metadata by default; optional audit endpoints | [DOMAIN_NOTES.md](#decision-inventory-014---audit-visibility-strategy-substitutes--overrides) |
+| DECISION-INVENTORY-015 | Inbox + async processing; DLQ + ops view | [DOMAIN_NOTES.md](#decision-inventory-015---event-ingestion-mechanism--failure-handling) |
+| DECISION-INVENTORY-016 | Display user TZ; bucket by shop TZ | [DOMAIN_NOTES.md](#decision-inventory-016---timezone-semantics-for-shop-ux) |
 
 ## Open Questions (from source)
 

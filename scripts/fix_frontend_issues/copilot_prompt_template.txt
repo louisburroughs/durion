@@ -1,0 +1,28 @@
+Agent instructions to Copilot:
+
+Use the provided canonical business rules snippets to rewrite the provided GitHub issue body so that all open questions are resolved.
+
+Inputs (JSON):
+- issue_title: string
+- original_body: string (Markdown)
+- business_rules_snippet: object (decisionId or heading -> {file, snippet})
+- domain: string
+- agent_reference: string
+
+Template for Copilot:
+"""
+You are an agent. Use the BUSINESS_RULES_SNIPPET to resolve every open question in ISSUE_BODY.
+
+Rules:
+- For each resolved question include a one-line rationale and a reference to the decision id or filename (e.g., DECISION-INVENTORY-001 or WORKEXEC_DOMAIN_NOTES.md).
+- Preserve the rest of the issue body and only replace the open question blocks.
+- If you cannot find an authoritative answer, leave a short ACTION REQUIRED placeholder.
+
+Output: The updated Markdown issue body only.
+"""
+
+Example fields (replace placeholders before sending):
+- ISSUE_TITLE: {issue_title}
+- AGENT_REF: {agent_reference}
+
+Return plain Markdown body.

@@ -2,12 +2,12 @@
 
 ## Summary
 
-The Location domain is the system of record for shop Locations and their Location-owned sub-resources (Bays, Mobile Units, Coverage Rules, Travel Buffer Policies). This update resolves previously open questions with safe, implementable defaults and marks any remaining contract/permission unknowns as explicitly safe-to-defer decisions. It also normalizes decision traceability by mapping each Decision ID to a detailed rationale in `LOCATION_DOMAIN_NOTES.md`.
+The Location domain is the system of record for shop Locations and their Location-owned sub-resources (Bays, Mobile Units, Coverage Rules, Travel Buffer Policies). This update resolves previously open questions with safe, implementable defaults and marks any remaining contract/permission unknowns as explicitly safe-to-defer decisions. It also normalizes decision traceability by mapping each Decision ID to a detailed rationale in `DOMAIN_NOTES.md`.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `LOCATION_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -83,30 +83,30 @@ The Location domain is the system of record for shop Locations and their Locatio
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-LOCATION-001 | Code cannot change after create | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-001---location-code-immutability) |
-| DECISION-LOCATION-002 | Name unique with normalization | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-002---location-name-uniqueness-with-normalization) |
-| DECISION-LOCATION-003 | Backend validates IANA tz + provides list | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-003---timezone-validation-and-allowed-list) |
-| DECISION-LOCATION-004 | Operating hours rules + payload shape | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-004---operating-hours-representation-and-validation) |
-| DECISION-LOCATION-005 | Holiday closures rules + null vs empty | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-005---holiday-closures-representation-and-validation) |
-| DECISION-LOCATION-006 | REST/API convention for Location services | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-006---api-contract-convention-moqui-rest-pattern) |
-| DECISION-LOCATION-007 | Permission split and action gating | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-007---permission-gating-model-view-vs-manage) |
-| DECISION-LOCATION-008 | Default list filter behaviors | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-008---default-status-filtering-for-lists) |
-| DECISION-LOCATION-009 | Tags and region are display-safe fields | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-009---synced-tags-and-region-semantics) |
-| DECISION-LOCATION-010 | Navigation placement guidance | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-010---navigation-placement-rules) |
-| DECISION-LOCATION-011 | Service Area is picker-only by default | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-011---service-area-scope-picker-only-default) |
-| DECISION-LOCATION-012 | Lookups come from authoritative domains | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-012---capabilitiesserviceskills-lookup-contract) |
-| DECISION-LOCATION-013 | Mobile unit list filters/envelope default | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-013---mobile-unit-list-contract-defaults) |
-| DECISION-LOCATION-014 | Coverage rules use atomic replace | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-014---coverage-rules-atomic-replace) |
-| DECISION-LOCATION-015 | Policy types and schema rules | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-015---travel-buffer-policy-schemas) |
-| DECISION-LOCATION-016 | Store distances as KM only for v1 | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-016---distance-tier-unit-handling) |
-| DECISION-LOCATION-017 | Effective windows use UTC instants | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-017---coverage-effective-window-timezone-semantics) |
-| DECISION-LOCATION-018 | Address remains backend-schema-driven | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-018---address-schema-strategy) |
-| DECISION-LOCATION-019 | INACTIVE is editable except status-only fields; reactivation allowed | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-019---inactive-editability-and-reactivation) |
-| DECISION-LOCATION-020 | Audit view is event-based when available | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-020---audit-ui-endpointpattern) |
-| DECISION-LOCATION-021 | Parent constraints: no self-parent; cycle prevention server-side | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-021---parent-hierarchy-constraints) |
-| DECISION-LOCATION-022 | Status defaults to ACTIVE on create | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-022---status-on-create) |
-| DECISION-LOCATION-023 | Site defaults are nullable during rollout | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-023---site-defaults-nullability-during-rollout) |
-| DECISION-LOCATION-024 | Default pickers show ACTIVE storage locations only | [LOCATION_DOMAIN_NOTES.md](LOCATION_DOMAIN_NOTES.md#decision-location-024---storage-location-eligibility-for-site-defaults) |
+| DECISION-LOCATION-001 | Code cannot change after create | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-001---location-code-immutability) |
+| DECISION-LOCATION-002 | Name unique with normalization | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-002---location-name-uniqueness-with-normalization) |
+| DECISION-LOCATION-003 | Backend validates IANA tz + provides list | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-003---timezone-validation-and-allowed-list) |
+| DECISION-LOCATION-004 | Operating hours rules + payload shape | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-004---operating-hours-representation-and-validation) |
+| DECISION-LOCATION-005 | Holiday closures rules + null vs empty | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-005---holiday-closures-representation-and-validation) |
+| DECISION-LOCATION-006 | REST/API convention for Location services | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-006---api-contract-convention-moqui-rest-pattern) |
+| DECISION-LOCATION-007 | Permission split and action gating | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-007---permission-gating-model-view-vs-manage) |
+| DECISION-LOCATION-008 | Default list filter behaviors | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-008---default-status-filtering-for-lists) |
+| DECISION-LOCATION-009 | Tags and region are display-safe fields | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-009---synced-tags-and-region-semantics) |
+| DECISION-LOCATION-010 | Navigation placement guidance | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-010---navigation-placement-rules) |
+| DECISION-LOCATION-011 | Service Area is picker-only by default | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-011---service-area-scope-picker-only-default) |
+| DECISION-LOCATION-012 | Lookups come from authoritative domains | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-012---capabilitiesserviceskills-lookup-contract) |
+| DECISION-LOCATION-013 | Mobile unit list filters/envelope default | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-013---mobile-unit-list-contract-defaults) |
+| DECISION-LOCATION-014 | Coverage rules use atomic replace | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-014---coverage-rules-atomic-replace) |
+| DECISION-LOCATION-015 | Policy types and schema rules | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-015---travel-buffer-policy-schemas) |
+| DECISION-LOCATION-016 | Store distances as KM only for v1 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-016---distance-tier-unit-handling) |
+| DECISION-LOCATION-017 | Effective windows use UTC instants | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-017---coverage-effective-window-timezone-semantics) |
+| DECISION-LOCATION-018 | Address remains backend-schema-driven | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-018---address-schema-strategy) |
+| DECISION-LOCATION-019 | INACTIVE is editable except status-only fields; reactivation allowed | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-019---inactive-editability-and-reactivation) |
+| DECISION-LOCATION-020 | Audit view is event-based when available | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-020---audit-ui-endpointpattern) |
+| DECISION-LOCATION-021 | Parent constraints: no self-parent; cycle prevention server-side | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-021---parent-hierarchy-constraints) |
+| DECISION-LOCATION-022 | Status defaults to ACTIVE on create | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-022---status-on-create) |
+| DECISION-LOCATION-023 | Site defaults are nullable during rollout | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-023---site-defaults-nullability-during-rollout) |
+| DECISION-LOCATION-024 | Default pickers show ACTIVE storage locations only | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-024---storage-location-eligibility-for-site-defaults) |
 
 ## Open Questions (from source)
 

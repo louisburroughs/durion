@@ -2,12 +2,12 @@
 
 ## Summary
 
-This guide defines the normative, implementation-ready business rules for the `security` domain: RBAC (roles, permissions, assignments), authorization decisions, and user provisioning orchestration. It resolves the prior “CLARIFY/TODO” items into explicit decisions so frontend and backend teams can implement admin screens and APIs without guessing. A non-normative rationale companion exists in `SECURITY_DOMAIN_NOTES.md`.
+This guide defines the normative, implementation-ready business rules for the `security` domain: RBAC (roles, permissions, assignments), authorization decisions, and user provisioning orchestration. It resolves the prior “CLARIFY/TODO” items into explicit decisions so frontend and backend teams can implement admin screens and APIs without guessing. A non-normative rationale companion exists in `DOMAIN_NOTES.md`.
 
 ## Completed items
 
 - [x] Generated Decision Index
-- [x] Mapped Decision IDs to `SECURITY_DOMAIN_NOTES.md`
+- [x] Mapped Decision IDs to `DOMAIN_NOTES.md`
 - [x] Reconciled todos from original AGENT_GUIDE
 
 ## Decision Index
@@ -93,21 +93,21 @@ This guide defines the normative, implementation-ready business rules for the `s
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| DECISION-INVENTORY-001 | Missing grant implies deny | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-001--deny-by-default-authorization) |
-| DECISION-INVENTORY-002 | `domain:resource:action` snake_case keys are immutable | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-002--permission-key-format-and-immutability) |
-| DECISION-INVENTORY-003 | Role names are normalized and unique (case-insensitive) | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-003--role-name-normalization-and-uniqueness) |
-| DECISION-INVENTORY-004 | Role rename requires recreate/migrate | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-004--role-name-immutability-rename-by-recreate) |
-| DECISION-INVENTORY-005 | Idempotent grant/revoke + optional replace-set | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-005--rbac-mutation-semantics-grantrevoke--replace-set) |
-| DECISION-INVENTORY-006 | Permission registry is code-first; UI read-only | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-006--permission-registry-is-code-first-ui-read-only) |
-| DECISION-INVENTORY-007 | Assignment model supports effective dating; UI deferred | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-007--principal-role-assignments-effective-dating-ui-deferred) |
-| DECISION-INVENTORY-008 | Tenant-scoped RBAC; no location-scoped RBAC in v1 | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-008--tenant-scoping-no-location-scoped-rbac-in-v1) |
-| DECISION-INVENTORY-009 | Provisioning identity key is IdP subject; email must match Person | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-009--provisioning-identity-key-idp-subject-and-email-match) |
-| DECISION-INVENTORY-010 | Initial roles optional; use roleId | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-010--provisioning-initial-roles-optional-roleid-identifiers) |
-| DECISION-INVENTORY-011 | Outbox event + link-status visibility | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-011--provisioning-linking-via-outbox-event-link-status-visibility) |
-| DECISION-INVENTORY-012 | RBAC audit in security; financial exceptions in audit domain | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-012--audit-ownership-split-rbac-vs-financial-exceptions) |
-| DECISION-INVENTORY-013 | Raw payload redaction; gated full payload | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-013--audit-payload-redaction-and-permission-gating) |
-| DECISION-INVENTORY-014 | Approvals are workflow-owned, not security-owned | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-014--approvals-are-not-security-owned-security-only-gates) |
-| DECISION-INVENTORY-015 | Canonical error envelope + status semantics | [SECURITY_DOMAIN_NOTES.md](SECURITY_DOMAIN_NOTES.md#decision-inventory-015--canonical-rest-error-envelope-and-status-codes) |
+| DECISION-INVENTORY-001 | Missing grant implies deny | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-001--deny-by-default-authorization) |
+| DECISION-INVENTORY-002 | `domain:resource:action` snake_case keys are immutable | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-002--permission-key-format-and-immutability) |
+| DECISION-INVENTORY-003 | Role names are normalized and unique (case-insensitive) | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-003--role-name-normalization-and-uniqueness) |
+| DECISION-INVENTORY-004 | Role rename requires recreate/migrate | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-004--role-name-immutability-rename-by-recreate) |
+| DECISION-INVENTORY-005 | Idempotent grant/revoke + optional replace-set | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-005--rbac-mutation-semantics-grantrevoke--replace-set) |
+| DECISION-INVENTORY-006 | Permission registry is code-first; UI read-only | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-006--permission-registry-is-code-first-ui-read-only) |
+| DECISION-INVENTORY-007 | Assignment model supports effective dating; UI deferred | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-007--principal-role-assignments-effective-dating-ui-deferred) |
+| DECISION-INVENTORY-008 | Tenant-scoped RBAC; no location-scoped RBAC in v1 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-008--tenant-scoping-no-location-scoped-rbac-in-v1) |
+| DECISION-INVENTORY-009 | Provisioning identity key is IdP subject; email must match Person | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-009--provisioning-identity-key-idp-subject-and-email-match) |
+| DECISION-INVENTORY-010 | Initial roles optional; use roleId | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-010--provisioning-initial-roles-optional-roleid-identifiers) |
+| DECISION-INVENTORY-011 | Outbox event + link-status visibility | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-011--provisioning-linking-via-outbox-event-link-status-visibility) |
+| DECISION-INVENTORY-012 | RBAC audit in security; financial exceptions in audit domain | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-012--audit-ownership-split-rbac-vs-financial-exceptions) |
+| DECISION-INVENTORY-013 | Raw payload redaction; gated full payload | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-013--audit-payload-redaction-and-permission-gating) |
+| DECISION-INVENTORY-014 | Approvals are workflow-owned, not security-owned | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-014--approvals-are-not-security-owned-security-only-gates) |
+| DECISION-INVENTORY-015 | Canonical error envelope + status semantics | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-015--canonical-rest-error-envelope-and-status-codes) |
 
 ## Open Questions (from source)
 
