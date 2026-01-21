@@ -1,1274 +1,876 @@
 ════════════════════════════════════════
-ISSUE #87: [BACKEND] [STORY] Location: Create/Update Location (pos-location) Including Timezone
-LABELS: type:story,domain:location,status:needs-review,status:ready-for-dev
+ISSUE #141: [FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity
+LABELS: type:story,status:draft,blocked:clarification,risk:incomplete-requirements,domain:location,agent:story-authoring,agent:location-domain-agent
 BODY:
-STOP: Conflicting domain guidance detected
-STOP: Clarification required before finalization
-## 🏷️ Labels (Proposed)
-### Required
-- type:story
-- status:needs-review
-- blocked:domain-conflict
-- blocked:clarification
+## Title
+[FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity
 
-### Recommended
-- agent:location
-- agent:people
-- agent:story-authoring
+## Primary Persona
+Shop Administrator (Admin)
 
-### Blocking / Risk
-- blocked:domain-conflict
-- blocked:clarification
-
-**Rewrite Variant:** integration-conservative
-
----
-## ⚠️ Domain Conflict Summary
-- **Candidate Primary Domains:** `domain:location`, `domain:people`
-- **Why conflict was detected:** The story's primary action (Create/Update Location) belongs to the `domain:location`. However, a key acceptance criterion ("Inactive locations prevent new staffing assignments") defines enforcement logic that belongs to a consuming domain, such as `domain:people` or a scheduling service. This couples the implementation and testing of two distinct domains into a single story.
-- **What must be decided:**
-    1. Which domain is responsible for the full scope of this story as written?
-    2. Should the cross-domain enforcement rule be defined in a separate story owned by the consuming domain (e.g., `domain:people`)?
-- **Recommended split:** Yes. This story should be split.
-    1. **Story 1 (domain:location):** Focus exclusively on the CRUD (Create, Read, Update, Delete) operations for the `Location` entity, including managing its `status` field.
-    2. **Story 2 (domain:people/workexec):** Focus on the business logic of *consuming* location data, including how to handle `INACTIVE` locations when creating staffing assignments or work orders.
+## Business Value
+Enables accurate scheduling/dispatch by allowing admins to define each service bay’s operational status, capacity, and constraint references (supported services + required skills), reducing mis-assignments and improving throughput.
 
 ---
 
-## Story Intent
-As an Admin, I need to create and manage the lifecycle of business locations, so that dependent systems like scheduling, staffing, and timekeeping have an accurate, authoritative source for site-specific context, particularly timezones and operational status.
+# 2. Story Intent
 
-## Actors & Stakeholders
-- **Admin:** A user with permissions to create and manage business locations.
-- **System (Location Service):** The microservice responsible for owning and managing the `Location` entity as the system of record.
-- **Stakeholders (People Service, Work Execution Service):** Downstream systems that consume location data to perform their functions (e.g., scheduling staff, assigning work orders). These systems rely on the accuracy and status of location data.
+## As a / I want / So that
+**As a** Shop Administrator  
+**I want** to create a service bay under a location with bay type, status, capacity, and constraint references  
+**So that** scheduler/dispatch can select an appropriate ACTIVE bay that meets service/skill requirements.
 
-## Preconditions
-- The Admin user is authenticated and authorized with `location:manage` permissions.
-- The system's infrastructure (database, service runtime) is operational.
+## In-Scope
+- Admin UI to **create** a Bay under a selected Location.
+- Capture and validate Bay fields: `name`, `bayType`, `status`, `capacity.maxConcurrentVehicles`, `supportedServiceIds[]`, `requiredSkillRequirements[]`.
+- Enforce Bay name uniqueness within a Location (server-side) and map conflict errors to the Name field. (Decision rationale: LOCATION_DOMAIN_NOTES “Bay Name Uniqueness Within Location”; uniqueness is per location, trim whitespace before submit.)
+- Basic admin UI to confirm the created bay exists (post-create view/return to list).
+- Error handling for validation and conflict responses (`400`, `401`, `403`, `404`, `409`) and generic `5xx`.
+- Moqui screens/forms/transitions wired to backend endpoints using the Location REST convention prefix `/rest/api/v1/location/...` (Decision rationale: DECISION-LOCATION-006).
 
-## Functional Behavior
-### 1. Create a New Location
-- **Trigger:** An Admin submits a `POST` request to the `/v1/locations` endpoint with valid location data.
-- **Behavior:**
-    - The system validates the request payload against the data requirements.
-    - It verifies that the provided `code` is unique across all locations.
-    - It ensures the `timezone` is a valid IANA Time Zone Database name (e.g., "America/New_York").
-    - If a `parentLocationId` is provided, it validates that the parent location exists.
-    - The system persists a new `Location` record in the database with a default status of `ACTIVE`.
-    - It returns a `201 Created` response containing the full representation of the newly created location, including the system-generated `locationId`.
-- **Outcome:** A new location is created and available for use by other systems.
-
-### 2. Update an Existing Location
-- **Trigger:** An Admin submits a `PUT` request to the `/v1/locations/{locationId}` endpoint with valid location data.
-- **Behavior:**
-    - The system locates the existing location by its `locationId`.
-    - It validates the request payload. The `code` field cannot be changed after creation.
-    - The system updates the specified fields (e.g., `name`, `address`, `timezone`, `status`, `parentLocationId`) for the location.
-    - It returns a `200 OK` response with the full, updated representation of the location.
-- **Outcome:** An existing location's attributes are updated. Changing the status to `INACTIVE` signals to consuming systems that it should not be used for new operational activities.
-
-## Alternate / Error Flows
-- **Invalid Data:** If required fields are missing or data formats are incorrect (e.g., invalid timezone string), the system rejects the request with a `400 Bad Request` and a descriptive error message.
-- **Duplicate Location Code:** If an attempt is made to create a location with a `code` that already exists, the system rejects the request with a `409 Conflict`.
-- **Location Not Found:** If an update request is made for a `locationId` that does not exist, the system returns a `404 Not Found`.
-- **Unauthorized Access:** If the user lacks the required permissions, the system returns a `403 Forbidden`.
-
-## Business Rules
-- A `Location.code` must be unique and is immutable after creation.
-- A `Location.timezone` must be a valid IANA Time Zone Database name.
-- The `parentLocationId`, if provided, must reference the `locationId` of an existing Location.
-- **[CONFLICT]** The business rule "Inactive locations prevent new staffing assignments" is a cross-domain concern. The `Location Service` is responsible for setting the `status`, but the enforcement of this rule belongs in the consuming service (e.g., `People Service`).
-
-## Data Requirements
-### `Location` Entity
-| Field              | Type                | Constraints                                     | Description                                                    |
-| ------------------ | ------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
-| `locationId`       | UUID                | Primary Key, Not Null                           | Unique system-generated identifier for the location.           |
-| `code`             | String              | Not Null, Unique, Immutable                     | A user-defined, human-readable unique code for the location.   |
-| `name`             | String              | Not Null                                        | The display name of the location.                              |
-| `address`          | JSONB / Object      | -                                               | Structured address data (street, city, state, postal code).    |
-| `timezone`         | String              | Not Null, IANA Format                           | The IANA timezone name (e.g., "Europe/London").                |
-| `status`           | Enum (`ACTIVE`, `INACTIVE`) | Not Null, Default: `ACTIVE`               | The operational status of the location.                        |
-| `parentLocationId` | UUID                | Nullable, Foreign Key -> `Location.locationId`  | The ID of the parent location, for hierarchical structures.    |
-| `createdAt`        | Timestamp           | Not Null                                        | Timestamp of when the record was created.                      |
-| `updatedAt`        | Timestamp           | Not Null                                        | Timestamp of when the record was last updated.                 |
-
-## Acceptance Criteria
-### Scope: `domain:location` (Recommended for this Story)
-1.  **Given** an authorized Admin
-    **When** they submit a `POST` request to `/v1/locations` with a valid name, a unique code, and a valid timezone
-    **Then** the system shall create a new location, assign it a unique `locationId`, set its `status` to `ACTIVE`, and return a `201 Created` response with the new location's data.
-
-2.  **Given** an existing location with `locationId` "loc-123"
-    **When** an authorized Admin submits a `PUT` request to `/v1/locations/loc-123` to change the `status` to `INACTIVE`
-    **Then** the system shall update the location's status to `INACTIVE` and return a `200 OK` response with the updated location data.
-
-3.  **Given** a location with the code "MAIN-WH" already exists
-    **When** an authorized Admin submits a `POST` request to create a new location with the code "MAIN-WH"
-    **Then** the system shall reject the request and return a `409 Conflict` error.
-
-4.  **When** an authorized Admin submits a request to update a location with a non-existent `locationId` "loc-999"
-    **Then** the system shall return a `404 Not Found` error.
-
-### Scope: Cross-Domain Enforcement (Requires Clarification & Likely a Separate Story)
-5.  **Given** a location with `status` = `INACTIVE`
-    **When** a user in the scheduling system attempts to create a new staff assignment for that location
-    **Then** the scheduling system shall reject the request with an error indicating the location is not active.
-
-## Audit & Observability
-- **Audit Logs:** All create and update operations on locations must be logged, capturing the `adminId`, `locationId`, the changes made (diff), and a timestamp.
-- **Domain Events:**
-    - On successful location creation, the system shall emit a `pos.location.v1.LocationCreated` event.
-    - On successful location update, the system shall emit a `pos.location.v1.LocationUpdated` event. This event must clearly indicate if the `status` changed.
-
-## Open Questions
-1.  **Domain Ownership & Story Splitting:** This story mixes responsibilities. Should this story be narrowed to *only* the `domain:location` CRUD functionality? (Recommendation: Yes). If so, a new story must be created for `domain:people` to handle the enforcement logic described in AC #5.
-2.  **Enforcement of Inactive Rule:** Where exactly should the business rule "Inactive locations prevent new staffing assignments" be enforced? In the `Location Service` itself, or in the consuming `People`/`Scheduling` service? (The standard microservice pattern suggests the consuming service is responsible for this validation).
-3.  **Parent Location Hierarchy:** What are the business rules for the `parentLocationId` hierarchy? Is there a maximum depth? Does changing a parent's status to `INACTIVE` automatically cascade to its children, or is that a separate business process?
-4.  **Default Status:** Does creating a new location always default its status to `ACTIVE`, or should the `status` be an optional field in the creation payload?
+## Out-of-Scope
+- Implementing scheduling/dispatch assignment logic (consumer responsibility).
+- Enforcing “out-of-service blocks assignments” beyond surfacing/storing status and ensuring list filtering supports `status=ACTIVE`.
+- Creating/updating other location resources (mobile units, service areas, travel buffer policies).
+- Advanced bay editing flows (PATCH/update) unless already present; this story focuses on **create** plus immediate confirmation.
+- Defining/owning Service Catalog or Skills data (pickers are read-only lookups; authoritative domains own the data). (Decision rationale: DECISION-LOCATION-012.)
 
 ---
-## Original Story (Unmodified – For Traceability)
-# Issue #87 — [BACKEND] [STORY] Location: Create/Update Location (pos-location) Including Timezone
 
-## Current Labels
-- backend
-- story-implementation
-- user
-
-## Current Body
-## Backend Implementation for Story
-
-**Original Story**: [STORY] Location: Create/Update Location (pos-location) Including Timezone
-
-**Domain**: user
-
-### Story Description
-
-/kiro
-# User Story
-
-## Narrative
-As an **Admin**, I want **to create and update locations** so that **staffing, scheduling, and timekeeping are anchored to the correct site and timezone**.
-
-## Details
-- Location fields: code, name, address, timezone, status, optional parent.
-
-## Acceptance Criteria
-- Location can be created/updated.
-- Inactive locations prevent new staffing assignments.
-
-## Integration Points (workexec/shopmgr)
-- shopmgr schedules are tied to locationId.
-- workexec workorders reference a service location.
-
-## Data / Entities
-- Location
-
-## Classification (confirm labels)
-- Type: Story
-- Layer: Domain
-- Domain: People Management
-
-
-### Backend Requirements
-
-- Implement Spring Boot microservices
-- Create REST API endpoints
-- Implement business logic and data access
-- Ensure proper security and validation
-
-### Technical Stack
-
-- Spring Boot 3.2.6
-- Java 21
-- Spring Data JPA
-- PostgreSQL/MySQL
+# 3. Actors & Stakeholders
+- **Shop Administrator (Primary user)**: Creates and configures bays for a location.
+- **Scheduler/Dispatch (Downstream consumer)**: Reads bays filtered by status and constraints for assignment decisions.
+- **Work Execution (Downstream consumer)**: Displays bay context (read-only usage of bay metadata).
+- **Security/Authorization system**: Determines whether the user can manage bays (frontend must handle forbidden/unauthenticated responses).
+- **Service Catalog domain (external stakeholder)**: Provides authoritative service IDs/names for supported services picker (read-only).
+- **People/Skills domain (external stakeholder)**: Provides authoritative skill IDs/names for required skills picker (read-only).
 
 ---
-*This issue was automatically created by the Durion Workspace Agent*
 
-════════════════════════════════════════
-ISSUE #78: [BACKEND] [STORY] Locations: Create and Maintain Shop Locations
-LABELS: type:story,domain:location,status:ready-for-dev,agent:story-authoring,agent:location
-BODY:
-**Rewrite Variant:** inventory-flexible
-
-## Story Intent
-**As an** Admin,
-**I want to** create, manage, and deactivate shop locations, including their addresses, operating hours, timezones, holiday closures, and appointment buffers,
-**so that** customer-facing systems and internal operations (like scheduling and work execution) have an accurate and authoritative source of location information.
-
-## Actors & Stakeholders
-- **Admin**: Manages shop location data.
-- **System**: POS backend service responsible for validation, persistence, and auditing.
-- **Work Execution System (Consumer)**: References `locationId` on Estimates/Work Orders/Invoices and must validate location status.
-- **HR System (Consumer)**: Filters staff availability/scheduling by location affiliation.
-
-## Preconditions
-- The Admin is authenticated and authorized for location management.
-- The system supports validating IANA time zone IDs.
-- Global default buffer configuration exists (system-wide defaults), with per-location overrides supported.
-
-## Functional Behavior
-
-### API Endpoints (Contract)
-- `POST /locations`
-  - Creates a new `Location` with `status=ACTIVE`
-  - Returns `201 Created` with the full resource payload
-- `GET /locations/{locationId}`
-  - Returns `200 OK` with the full resource payload (including `status`)
-  - Returns `404 Not Found` if the location does not exist
-- `GET /locations?status=ACTIVE|INACTIVE|ALL` (default `ACTIVE`)
-  - Returns a list of locations; by default only ACTIVE locations are returned
-- `PUT /locations/{locationId}`
-  - Full update (idempotent)
-  - Returns `200 OK`
-- `PATCH /locations/{locationId}`
-  - Partial update
-  - Returns `200 OK`
-  - Used for soft-deactivation by setting `{ "status": "INACTIVE" }` (preferred over a dedicated `/deactivate` endpoint)
-
-### 1. Create a New Shop Location
-- The Admin submits location details.
-- The System validates all provided data.
-- If valid, the System persists the record as `ACTIVE` and generates a unique `locationId`.
-
-### 2. Update an Existing Shop Location
-- The Admin submits a full (`PUT`) or partial (`PATCH`) update.
-- The System validates the update.
-- If valid, the System persists the updated record.
-
-### 3. Deactivate a Shop Location (Soft Deactivate)
-- The Admin requests deactivation via `PATCH /locations/{locationId}` with `{ "status": "INACTIVE" }`.
-- The System enforces the allowed transition `ACTIVE -> INACTIVE`.
-- The location remains readable but is excluded from the active-only list by default.
-
-## Alternate / Error Flows
-- **Validation Failure**: Return `400 Bad Request` with a structured error containing `code`, `message`, and `field` where applicable.
-  - Example codes: `INVALID_TIMEZONE`, `INVALID_OPERATING_HOURS`
-- **Permission Denied**: Return `403 Forbidden`.
-- **Not Found**: Return `404 Not Found` when `{locationId}` does not exist.
-- **Name Uniqueness Conflict**: Return `409 Conflict` with code `LOCATION_NAME_TAKEN`.
-- **Optimistic Lock Failure**: Return `409 Conflict` with code `OPTIMISTIC_LOCK_FAILED` for stale updates.
-
-## Business Rules
-- **Uniqueness**: `name` is unique across all locations regardless of status.
-- **Normalization for uniqueness**: uniqueness is case-insensitive and trimmed.
-  - `normalizedName = lower(trim(name))`
-  - Unique constraint/index enforced on `normalized_name`.
-- **Timezone**: `timezone` must be a valid IANA time zone ID (validated with `ZoneId.of(timezone)`).
-- **Operating Hours**:
-  - Hours are local times (`HH:mm`) in the location’s timezone.
-  - Closed days are represented by *omitting* that day from `operatingHours`.
-  - No duplicate day entries.
-  - Overnight ranges (e.g., `22:00–02:00`) are not supported in v1.
-  - For each day entry: `open < close` (strict).
-- **Holiday Closures**:
-  - Stored as `[{ date: "YYYY-MM-DD", reason?: string }]`.
-  - No duplicate `date` entries per location.
-- **Status**:
-  - No hard deletes.
-  - Allowed deactivation transition: `ACTIVE -> INACTIVE`.
-- **Buffers**:
-  - `checkInBufferMinutes` and `cleanupBufferMinutes` are integer minutes, `>= 0`.
-  - Fields are nullable per-location overrides; effective values fall back to global defaults when null.
-
-## Data Requirements
-The `Location` resource contains:
-
-| Field Name | Data Type | Description | Constraints |
-|---|---|---|---|
-| `locationId` | UUID | System-generated identifier | PK, not null |
-| `name` | String | Display name | not null |
-| `normalizedName` | String | Normalized name for uniqueness | not null, unique |
-| `status` | Enum | Location status | not null (`ACTIVE`, `INACTIVE`) |
-| `address` | JSONB / Object | Structured address | not null |
-| `timezone` | String | IANA timezone ID | not null |
-| `operatingHours` | JSONB / Array | Weekly hours entries | not null (empty list allowed) |
-| `holidayClosures` | JSONB / Array | Date-only closures | nullable |
-| `checkInBufferMinutes` | Integer | Per-location override | nullable, `>= 0` |
-| `cleanupBufferMinutes` | Integer | Per-location override | nullable, `>= 0` |
-| `version` | Integer/Long | Optimistic lock version | not null |
-| `createdAt` | Timestamp | Created timestamp | not null |
-| `updatedAt` | Timestamp | Updated timestamp | not null |
-
-## Acceptance Criteria
-
-### Scenario 1: Create Location (Happy Path)
-- Given I am an authenticated Admin with permission to manage locations
-- When I call `POST /locations` with valid name, address, timezone, and operating hours
-- Then the system returns `201 Created` and the created location is `ACTIVE`
-
-### Scenario 2: Update Location (Happy Path)
-- Given an existing location
-- When I call `PUT /locations/{locationId}` or `PATCH /locations/{locationId}` with valid updates
-- Then the system returns `200 OK` and the stored data reflects the update
-
-### Scenario 3: Deactivate Location
-- Given an existing `ACTIVE` location
-- When I call `PATCH /locations/{locationId}` with `{ "status": "INACTIVE" }`
-- Then the system returns `200 OK` and the location is excluded from `GET /locations` default results
-
-### Scenario 4: Reject Invalid Operating Hours
-- Given I am an authenticated Admin with permission to manage locations
-- When I submit operating hours where `close <= open`, duplicate days, or overnight hours
-- Then the system returns `400 Bad Request` with code `INVALID_OPERATING_HOURS`
-
-### Scenario 5: Reject Duplicate Name
-- Given an existing location named "Downtown Auto Repair"
-- When I create or rename another location to "  downtown auto repair  "
-- Then the system returns `409 Conflict` with code `LOCATION_NAME_TAKEN`
-
-### Scenario 6: Optimistic Lock Prevents Lost Update
-- Given two clients load the same location version
-- When one client updates the location and the other submits a stale update
-- Then the stale update is rejected with `409 Conflict` and code `OPTIMISTIC_LOCK_FAILED`
-
-### Scenario 7: Buffers Applied Correctly (Consumer Rule)
-- Given a location has effective buffers of 10 minutes check-in and 10 minutes cleanup
-- When an appointment is scheduled at 09:00 for 2 hours
-- Then the effective resource occupancy is from 08:50 to 11:10
-
-## Audit & Observability
-- Emit an audit event for:
-  - `LOCATION_CREATED`
-  - `LOCATION_UPDATED`
-  - `LOCATION_DEACTIVATED`
-- Audit payload includes: `eventType`, `locationId`, `actorUserId`, `occurredAt`, and `before`/`after` (diff preferred; full snapshots acceptable).
-- Expose metrics counters for locations created/updated/deactivated.
-
-## Open Questions (if any)
-- None.
-
-## Resolved Questions
-
-From Clarification Issue #261, the following answers were incorporated:
-
-### RQ1: Buffer Specifics (Definitions, Data Type, Scope)
-
-**Business Definitions**:
-- **Check-in buffer**: A fixed time window **before the scheduled service start** reserved for customer arrival, vehicle intake, paperwork, and pre-service checks.
-- **Cleanup buffer**: A fixed time window **after the scheduled service end** reserved for bay cleanup, tool reset, paperwork close-out, and vehicle staging.
-
-**Data Type**: Buffers are durations in minutes (integers, `>= 0`)
-
-**Scope & Override Model**: System-wide defaults with per-location nullable overrides
-
-## Original Story (Unmodified – For Traceability)
-# Issue #78 — [BACKEND] [STORY] Locations: Create and Maintain Shop Locations
-
-## Current Labels
-- backend
-- story-implementation
-- user
-
-## Current Body
-## Backend Implementation for Story
-
-**Original Story**: [STORY] Locations: Create and Maintain Shop Locations
-
-**Domain**: user
-
-### Story Description
-
-/kiro
-# User Story
-## Narrative
-As an **Admin**, I want to create/edit shop locations with address, hours, and timezone so that appointments and scheduling rules are correct per site.
-
-## Details
-- Store location name/address/timezone/operating hours/holiday closures.
-- Defaults: check-in and cleanup buffers.
-
-## Acceptance Criteria
-- Create/update/deactivate location.
-- Hours/timezone validated.
-- Changes audited.
-
-## Integrations
-- Workexec stores locationId on Estimate/WO/Invoice context.
-- HR availability can be filtered by location affiliation.
-
-## Data / Entities
-- Location, OperatingHours, AuditLog
-
-## Classification (confirm labels)
-- Type: Story
-- Layer: Domain
-- Domain: Shop Management
-
-
-### Backend Requirements
-
-- Implement Spring Boot microservices
-- Create REST API endpoints
-- Implement business logic and data access
-- Ensure proper security and validation
-
-### Technical Stack
-
-- Spring Boot 3.2.6
-- Java 21
-- Spring Data JPA
-- PostgreSQL/MySQL
+# 4. Preconditions & Dependencies
+- A `Location` already exists and is navigable in the frontend.
+- User is authenticated.
+- User has permission to manage location resources:
+  - Read-only access: `location:view`
+  - Mutations (create bay): `location:manage` (Decision rationale: DECISION-LOCATION-007 permission split).
+- Backend endpoints available (paths are normalized to Location REST convention; exact route names may differ but must be documented in the implementing PR per DECISION-LOCATION-006):
+  - Create Bay: `POST /rest/api/v1/location/locations/{locationId}/bays`
+  - List Bays: `GET /rest/api/v1/location/locations/{locationId}/bays`
+  - View Bay: `GET /rest/api/v1/location/locations/{locationId}/bays/{bayId}`
+- Dependency for constraint picking UX (blocking until confirmed):
+  - Service Catalog list/search endpoint(s) for services (authoritative IDs) **must exist**.
+  - People/Skills list/search endpoint(s) for skills (authoritative IDs) **must exist**.
+- Error contract dependency (blocking until confirmed):
+  - Backend must provide a stable error payload shape (field errors and error codes) or the frontend must implement a generic fallback mapping.
 
 ---
-*This issue was automatically created by the Durion Workspace Agent*
 
-════════════════════════════════════════
-ISSUE #77: [BACKEND] [STORY] Locations: Create Bays with Constraints and Capacity
-LABELS: type:story,domain:location,status:ready-for-dev,agent:story-authoring,agent:location
-BODY:
-**Rewrite Variant:** inventory-flexible
+# 5. UX Summary (Moqui-Oriented)
 
-## Story Intent
-**As a** Shop Administrator,
-**I want to** define and manage service bays within a location, including their capabilities, constraints, capacity, and operational status,
-**so that** scheduling and dispatch can assign work to an appropriate and available bay and avoid incorrect assignments.
+## Entry points
+- From Location detail screen: “Bays” section/tab → “Create Bay” action.
+- Optional: From Location list → select location → navigate to Location detail → Bays.
 
-## Actors & Stakeholders
-- **Shop Administrator**: Configures bays and maintains bay status/constraints.
-- **Scheduler/Dispatch (Consumer)**: Queries bays (and constraints) to select suitable bays for jobs.
-- **Service Advisor / Shop Manager**: Uses accurate bay configuration to manage throughput and customer expectations.
-- **Technician**: Relies on the assigned bay having the required equipment/capabilities.
+## Screens to create/modify
+1. **Modify**: Location detail screen to include navigation to Bays list (if not already present).
+2. **Create/Modify**: Location Bays list screen (scoped to a location) with an action to create a bay.
+3. **Create**: Bay Create screen/form under a location context.
+4. **Create/Modify**: Bay Detail screen (or reuse existing) to display the created bay after submission.
 
-## Preconditions
-- Parent `Location` exists.
-- Shop Administrator is authenticated and authorized to manage bays for the target location.
-- Service Catalog domain and People/Skills domain provide authoritative IDs for services/capabilities and skills.
+> Moqui screen path suggestion (adjust to repo conventions):  
+`apps/pos/screen/location/LocationDetail.xml`  
+`apps/pos/screen/location/bay/BayList.xml`  
+`apps/pos/screen/location/bay/BayCreate.xml`  
+`apps/pos/screen/location/bay/BayDetail.xml`
 
-## Functional Behavior
+## Navigation context
+- All bay screens are scoped under a selected location: `locationId` is required in the URL and screen context.
+- Breadcrumb: Locations → {Location Name} → Bays → Create Bay
+- Navigation placement: under Admin / Location Management (Decision rationale: DECISION-LOCATION-010).
 
-### API Endpoints (Contract)
-- `POST /locations/{locationId}/bays`
-  - Create a new bay under the location.
-  - Returns `201 Created` with the full bay payload.
-- `GET /locations/{locationId}/bays`
-  - List bays for admin use.
-  - Supports filters: `status` (e.g., `ACTIVE`, `OUT_OF_SERVICE`), `bayType`.
-- `GET /locations/{locationId}/bays?status=ACTIVE`
-  - Scheduler/dispatch query shape: returns only ACTIVE bays.
-- `GET /locations/{locationId}/bays/{bayId}`
-  - Get bay details including constraints/capacity.
-- `PATCH /locations/{locationId}/bays/{bayId}`
-  - Update mutable fields (see Business Rules).
+## User workflows (happy + alternate paths)
 
-### Create Bay
-- The Shop Administrator submits required bay details and optional constraints.
-- The System validates:
-  - Required fields are present.
-  - Location exists.
-  - Constraint references (service IDs / skill IDs) exist in their authoritative domains.
-- If valid, the System persists the Bay and its constraint relationships.
+### Happy path
+1. Admin navigates to a Location’s Bays.
+2. Admin clicks “Create Bay”.
+3. Admin enters:
+   - Name
+   - Bay Type (enum)
+   - Status (default ACTIVE)
+   - Capacity (max concurrent vehicles)
+   - Supported Services (multi-select IDs; optional)
+   - Required Skills (multi-row: skillId + optional minLevel; optional)
+4. Admin submits.
+5. App shows success and routes to Bay Detail (preferred) or back to Bay List with the new bay visible.
 
-### Update Bay
-- The Shop Administrator submits a partial update.
-- The System validates updates and persists changes.
-
-### Availability Semantics
-- A bay with `status=OUT_OF_SERVICE` is not considered available for new work assignments.
-- Scheduler/dispatch must filter for available bays using `status=ACTIVE`.
-
-## Alternate / Error Flows
-- **Duplicate Bay Name in Location**: creating or renaming a bay to a name that already exists within the same location is rejected with `409 Conflict`.
-- **Invalid Location**: creating/updating a bay under a non-existent location returns `404 Not Found`.
-- **Missing/Invalid Fields**: validation failures return `400 Bad Request` with field-level errors.
-- **Unknown Constraint References**: if any referenced `supportedServiceIds` or `skillId` values do not exist, return `400 Bad Request` including the invalid IDs.
-- **Unauthorized**: not authenticated → `401`; authenticated but not authorized → `403`.
-
-## Business Rules
-- **Name uniqueness**: bay `name` must be unique within its parent `Location` (case-insensitive recommended).
-- **Status**:
-  - `ACTIVE` or `OUT_OF_SERVICE`.
-  - `OUT_OF_SERVICE` bays must be excluded from availability queries.
-- **Bay type**: fixed enum in v1 (see Resolved Questions).
-- **Constraints are references (no free-text)**:
-  - `supportedServiceIds[]` reference Service Catalog domain entities.
-  - `requiredSkillRequirements[]` reference People/Skills domain entities (`{ skillId, minLevel? }`).
-- **Capacity**:
-  - Stored as a structured object with required `maxConcurrentVehicles` and optional physical constraints.
-  - Only `maxConcurrentVehicles` is enforced in v1; other fields are stored for future/advisory use.
-- **Mutability**:
-  - Mutable: `name`, `status`, `bayType`, `capacity`, `supportedServiceIds`, `requiredSkillRequirements`.
-  - Immutable: `bayId`, `locationId`, `createdAt`.
-
-## Data Requirements
-
-### Bay
-| Field | Type | Constraints |
-| --- | --- | --- |
-| `bayId` | UUID | PK |
-| `locationId` | UUID | not null (FK to Location) |
-| `name` | String | not null, unique per `locationId` (case-insensitive recommended) |
-| `bayType` | Enum | not null |
-| `status` | Enum | not null (`ACTIVE`, `OUT_OF_SERVICE`), default `ACTIVE` |
-| `capacity` | JSON / JSONB | must include `maxConcurrentVehicles` |
-| `createdAt` | Timestamp | not null |
-| `updatedAt` | Timestamp | not null |
-
-### Constraint relationships
-- `bay_service_capability(bay_id, service_id)`
-- `bay_skill_requirement(bay_id, skill_id, min_level)`
-
-## Acceptance Criteria
-
-### Scenario 1: Create Bay (Happy Path)
-- Given a location exists and I am authorized to manage bays
-- When I call `POST /locations/{locationId}/bays` with a valid name, bayType, status, and capacity
-- Then the system returns `201 Created` and the bay is associated with the location
-
-### Scenario 2: Reject Duplicate Bay Name Within Location
-- Given a bay named "Alignment Rack 1" exists under the location
-- When I create or rename another bay under that same location to "Alignment Rack 1"
-- Then the system returns `409 Conflict`
-
-### Scenario 3: OUT_OF_SERVICE Bays Are Not Returned For Availability
-- Given a bay has `status=OUT_OF_SERVICE`
-- When Scheduler calls `GET /locations/{locationId}/bays?status=ACTIVE`
-- Then the response does not include that bay
-
-### Scenario 4: Constraints Are Returned Via API
-- Given a bay is configured with `supportedServiceIds` and `requiredSkillRequirements`
-- When I call `GET /locations/{locationId}/bays/{bayId}`
-- Then the response includes the constraints and capacity
-
-### Scenario 5: Reject Unknown Service/Skill References
-- Given I submit `supportedServiceIds` or `skillId` values that do not exist
-- When I create/update a bay
-- Then the system returns `400 Bad Request` including which IDs were invalid
-
-## Audit & Observability
-- Audit create/update/status change for Bay resources and include: `bayId`, `locationId`, action, timestamp, actor identity, and before/after (diff preferred).
-- Metrics:
-  - Bay count per location (gauge or derivable at scrape time)
-  - Bay count by status (`ACTIVE`, `OUT_OF_SERVICE`)
-- Standard HTTP metrics for latency, error rate, and request volume.
-
-## Open Questions (if any)
-- None.
-
-## Resolved Questions
-
-From Clarification Issue #260, the following answers were incorporated:
-
-### RQ1: Source of Truth for Constraints
-Constraints are foreign-key references (authoritative IDs from Service Catalog and People/Skills domains), not free-text.
-
-### RQ2: Capacity Structure
-`capacity` is a structured object; `maxConcurrentVehicles` is required and enforced in v1.
-
-### RQ3: Bay Type Enum
-Fixed enum in v1:
-- `GENERAL_SERVICE`
-- `ALIGNMENT`
-- `TIRE_SERVICE`
-- `HEAVY_DUTY`
-- `INSPECTION`
-- `WASH_DETAIL`
-
-## Original Story (Unmodified – For Traceability)
-# Issue #77 — [BACKEND] [STORY] Locations: Create Bays with Constraints and Capacity
-
-## Current Labels
-- backend
-- story-implementation
-- user
-
-## Current Body
-## Backend Implementation for Story
-
-**Original Story**: [STORY] Locations: Create Bays with Constraints and Capacity
-
-**Domain**: user
-
-### Story Description
-
-/kiro
-# User Story
-## Narrative
-As an **Admin**, I want to define bays with constraints (lift/equipment) so that scheduler assigns the right work to the right bay.
-
-## Details
-- Bay attributes: type (lift/alignment), supported services, capacity, required skills, status (active/out-of-service).
-
-## Acceptance Criteria
-- Bay created under a location.
-- Out-of-service blocks assignments.
-- Constraints queryable.
-
-## Integrations
-- Dispatch validates assignments against bay constraints.
-- Workexec displays bay context during execution.
-
-## Data / Entities
-- Resource(Bay), ResourceConstraint, ResourceStatus
-
-## Classification (confirm labels)
-- Type: Story
-- Layer: Domain
-- Domain: Shop Management
-
-
-### Backend Requirements
-
-- Implement Spring Boot microservices
-- Create REST API endpoints
-- Implement business logic and data access
-- Ensure proper security and validation
-
-### Technical Stack
-
-- Spring Boot 3.2.6
-- Java 21
-- Spring Data JPA
-- PostgreSQL/MySQL
+### Alternate paths
+- Admin cancels → returns to Bay List without changes.
+- Admin submits with missing/invalid data → inline errors + form remains editable.
+- Duplicate name conflict → error shown on name field and as global form error.
+- Service/skills lookup temporarily unavailable → show retryable error for the picker; allow saving without constraints (constraints are optional) unless backend requires at least one constraint (not indicated by current rules).
 
 ---
-*This issue was automatically created by the Durion Workspace Agent*
 
-════════════════════════════════════════
-ISSUE #76: [BACKEND] [STORY] Locations: Create Mobile Units and Coverage Rules
-LABELS: type:story,domain:location,status:ready-for-dev
-BODY:
-**Rewrite Variant:** inventory-flexible  
-**Status:** Ready-for-dev (clarification #404 applied)
+# 6. Functional Behavior
 
-## Story Intent
-As a **Shop Administrator**, I need to configure Mobile Service Units as distinct operational resources (capabilities, geographic coverage, and travel buffer policies), so that the Work Execution system can accurately schedule mobile appointments and account for travel logistics.
+## Triggers
+- User presses “Create Bay” submit action on the create form.
 
-## Actors & Stakeholders
-- **Shop Administrator**: configures mobile units, coverage, and policies.
-- **Work Execution System (`workexec` domain)**: consumes mobile unit eligibility + policy data for scheduling.
-- **Product/Service Catalog (`product/service-catalog` domain)**: authoritative source of `ServiceCapability`.
+## UI actions
+- Load screen context:
+  - Ensure `locationId` exists; if missing, show not-found/invalid route state.
+  - Load location summary (name/code) for page context when endpoint exists; otherwise show `locationId` only.
+- In-form actions:
+  - Add/remove supported services selections (multi-select).
+  - Add/remove required skill requirement rows.
+  - Change status between `ACTIVE` and `OUT_OF_SERVICE`.
+- Submit action:
+  - Client-side validation (required fields, numeric bounds, trimming).
+  - Call backend create endpoint.
+  - On success: navigate to Bay Detail (preferred) or return to list.
 
-## Preconditions
-- Caller is authenticated and authorized.
-- A base location exists in the Location system (`pos-location`), referenced by `baseLocationId`.
-- Service Catalog is reachable for capability validation.
+## State changes
+- Form state: `dirty/clean`, `submitting`, `submitError`.
+- After success: clear transient form state; persist created `bayId` in route.
 
-## Functional Behavior
-1) **Manage Mobile Units**
-- Create, view, and update Mobile Units.
-- Status lifecycle is controlled via status (no hard delete in v1).
+## Service interactions (Moqui)
+- Use Moqui screen `transition` with `service-call` (or REST call mechanism used by the repo) to call backend endpoints.
+- Include `locationId` from screen parameters in the REST path.
+- Map backend validation errors to field-level messages where possible; otherwise show a global error with a request/correlation ID if provided.
 
-2) **Assign Capabilities**
-- Mobile Units reference capabilities by ID only.
-- On create/update, the service validates capability IDs against Service Catalog.
+---
 
-3) **Define Coverage**
-- Coverage is defined by linking Mobile Units to one or more Service Areas.
-- Coverage rules support priority and effective date ranges.
-- Coverage replacement should be atomic to avoid partial/inconsistent config.
+# 7. Business Rules (Translated to UI Behavior)
 
-4) **Define Service Areas**
-- Service Areas are defined as **postal-code sets** (no polygons/geofencing in v1).
+## Validation
+- **Required fields on create**:
+  - `name` (non-empty, trimmed)
+  - `bayType` (must be one of allowed enum values)
+  - `status` (default `ACTIVE`)
+  - `capacity.maxConcurrentVehicles` (required; integer; must be `>= 1`)
+- **Bay name uniqueness within a Location**:
+  - Trim whitespace before submit.
+  - If backend returns `409 Conflict` with code `BAY_NAME_TAKEN_IN_LOCATION` (as documented in LOCATION_DOMAIN_NOTES), show:
+    - Field error on `name`: “Bay name must be unique within this location.”
+    - Global error summary: “A bay with this name already exists in this location.”
+  - Case sensitivity: treat as backend-defined; do not implement client-side case-folding uniqueness checks (Decision rationale: notes specify case-sensitive uniqueness after trimming; UI should not diverge).
+- **Constraint references must be IDs** (no free text):
+  - `supportedServiceIds[]` values must come from a service picker backed by an authoritative lookup API.
+  - `requiredSkillRequirements[].skillId` values must come from a skills picker backed by an authoritative lookup API.
+  - If backend returns `400` with invalid IDs, show which selections are invalid and allow user to remove/fix.
+- **Skill min level**:
+  - If `minLevel` is provided, validate as integer `>= 1`.
+  - If omitted, do not send the field (avoid implying a default).
 
-5) **Define Travel Buffer Policies**
-- Support policy types:
-  - `FIXED_MINUTES`
-  - `DISTANCE_TIER`
+## Enable/disable rules
+- Disable submit while:
+  - Submitting request
+  - Required fields invalid
+- Disable “Create Bay” action and hide mutation controls if the user lacks `location:manage` (or if backend returns 403 on attempted action).
 
-For `DISTANCE_TIER`:
-- Policy configuration stores **numeric distance tiers** (not a discrete class).
-- Tier selection input is provided by the caller as `estimatedDistanceKm` (preferred) or `estimatedDistanceMi` (allowed, normalized internally to km).
-- Location service stores/validates/returns the configuration; it does **not** compute distance for v1.
+## Visibility rules
+- Always show status selector; default to ACTIVE.
+- Only show `minLevel` input when a `skillId` is selected for a row.
 
-6) **Eligibility Query for Scheduling**
-- Provide an eligibility query by postal code and timestamp:
-  - Finds ServiceArea(s) containing the postal code.
-  - Returns **ACTIVE** Mobile Units with an effective coverage rule at the timestamp.
-  - Does not compute calendar availability (workexec owns that).
+## Error messaging expectations
+- Form-level error banner for general errors (network, 500, unexpected payload).
+- Field-level error messages for validation issues.
+- Preserve user-entered data on error.
 
-## Alternate / Error Flows
-- **Invalid base location**: reject if `baseLocationId` does not exist (`400 Bad Request`).
-- **Missing required fields**: reject with `400 Bad Request`.
-- **Duplicate name (within scope)**: reject with `409 Conflict`.
-- **Unknown capability IDs**: reject with `400 Bad Request`.
-- **Service catalog unavailable during validation**: reject with `503 Service Unavailable`.
-- **Invalid effective window**: reject if `effectiveEndAt <= effectiveStartAt` (`400 Bad Request`).
-- **Invalid DISTANCE_TIER configuration**: reject with `400 Bad Request` (see rules below).
+---
 
-## Business Rules
-- A Mobile Unit is schedulable only when `status = ACTIVE`.
-- A Mobile Unit must be associated with exactly one base location.
-- `maxDailyJobs` is a hard constraint for scheduling.
-- `INACTIVE` and `OUT_OF_SERVICE` units are not schedulable.
-- Service capabilities are **structured entities** owned by Service Catalog (not free-text tags).
-- Service areas are **postal-code sets** (not polygons/geofencing) in v1.
-- For v1, authorization is location-scoped (see “Data Requirements / scoping” and “Security”).
+# 8. Data Requirements
 
-`DISTANCE_TIER` rules:
-- Tiers are ordered by ascending `maxDistance` (null means catch-all/infinity).
-- Tier selection chooses the **first** tier where `distanceKm <= maxDistance`; otherwise falls through to the `maxDistance=null` tier (required).
-- Validation: `bufferMinutes >= 0`; `maxDistance` must be strictly increasing where not null; at least one tier must exist; the catch-all tier must exist.
+## Entities involved
+- **Location** (read context): `locationId`, display name/code.
+- **Bay** (create payload; returned resource).
+- **Service** (lookup only; external SoR): used to populate supported services picker.
+- **Skill** (lookup only; external SoR): used to populate required skills picker.
 
-Ownership rule:
-- Location service is the system of record for the **policy configuration**.
-- The caller (workexec/scheduling) is responsible for supplying the operational distance input used to apply the policy.
+## Fields (type, required, defaults)
 
-## Data Requirements
-### Identifier + scoping conventions (confirmed from repo)
-- The existing Location API in this repo (`pos-location`) uses `Location.id` as `Long`.
-- No `orgId/tenantId` convention was found in backend code; authorization/scoping patterns in `pos-security-service` use `locationId`.
+### Bay (Create)
+- `locationId` (opaque ID, required) — from route context; not user-editable.
+- `name` (string, required)
+  - Trim whitespace before submit.
+- `bayType` (enum, required) — allowed values must be sourced from backend contract; until confirmed, UI must treat the list as a backend-provided enum or configuration.
+  - If a static list is used initially, it must match backend exactly and be documented in the implementing PR.
+- `status` (enum, required; default `ACTIVE`)
+  - Allowed values: `ACTIVE`, `OUT_OF_SERVICE` (per checklist).
+- `capacity` (object, required)
+  - `maxConcurrentVehicles` (integer, required, `>= 1`)
 
-### Entities
-- **MobileUnit**
-  - `mobileUnitId`: UUID (PK)
-  - `name`: string (required)
-  - `status`: enum (`ACTIVE`, `INACTIVE`, `OUT_OF_SERVICE`) (required)
-  - `baseLocationId`: Long (required; references `pos-location` Location)
-  - `travelBufferPolicyId`: UUID (required when `ACTIVE`, optional otherwise)
-  - `maxDailyJobs`: integer (required, >= 0)
+### Constraints (Create)
+- `supportedServiceIds` (array of opaque IDs, optional; default empty array)
+- `requiredSkillRequirements` (array, optional; default empty array)
+  - item:
+    - `skillId` (opaque ID, required if row exists)
+    - `minLevel` (integer, optional; if present `>= 1`)
+
+## Read-only vs editable by state/role
+- Create screen: all above fields editable when authorized.
+- `locationId` is read-only and derived from navigation context.
+- Authorization is enforced by backend; frontend must handle forbidden.
+
+## Derived/calculated fields
+- Trimmed `name` before submit.
+- No other derived fields.
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+> Contract convention: use `/rest/api/v1/location/...` for Location domain endpoints (DECISION-LOCATION-006). Exact endpoint names and response envelopes must be confirmed and documented in the implementing PR.
+
+## Load/view calls
+- **Location context (recommended)**  
+  `GET /rest/api/v1/location/locations/{locationId}`  
+  Purpose: display location name in header/breadcrumb and validate location exists.  
+  Fallback: if not available, show `locationId` and rely on create endpoint 404 handling.
+
+- **Post-create confirm**  
+  `GET /rest/api/v1/location/locations/{locationId}/bays/{bayId}`  
+  Purpose: show created bay details after redirect.
+
+- **List bays (for return-to-list flow)**  
+  `GET /rest/api/v1/location/locations/{locationId}/bays?status=ALL&pageIndex=0&pageSize=25`  
+  Purpose: show list and confirm new bay appears.  
+  Note: pagination/envelope must follow platform conventions (items + totalCount) but is not yet confirmed for Bays.
+
+- **Service lookup (blocking until confirmed)**  
+  `GET /rest/api/v1/<catalog-or-product-domain>/services?q=<query>&pageIndex=0&pageSize=25`  
+  Purpose: populate supported services picker.
+
+- **Skills lookup (blocking until confirmed)**  
+  `GET /rest/api/v1/<people-domain>/skills?q=<query>&pageIndex=0&pageSize=25`  
+  Purpose: populate required skills picker.
+
+## Create/update calls
+- **Create bay**  
+  `POST /rest/api/v1/location/locations/{locationId}/bays`  
+  Request body (minimum):
+  ```json
+  {
+    "name": "Alignment Rack 1",
+    "bayType": "ALIGNMENT",
+    "status": "ACTIVE",
+    "capacity": { "maxConcurrentVehicles": 1 },
+    "supportedServiceIds": ["svc-..."],
+    "requiredSkillRequirements": [{ "skillId": "skill-...", "minLevel": 2 }]
+  }
+  ```
+  Response: `201 Created` with full bay payload including `bayId` (field name must be confirmed).
+
+## Submit/transition calls
+- None (no separate workflow state machine beyond status enum).
+
+## Error handling expectations
+- `400 Bad Request`: show field errors; if response includes invalid IDs, highlight invalid selections.
+- `401 Unauthorized`: route to login (or show auth required) per app convention.
+- `403 Forbidden`: show “You do not have permission to manage bays for this location.”
+- `404 Not Found`: show location not found (if on create) or bay not found (if redirect failed).
+- `409 Conflict`: duplicate bay name; map to name field. Prefer backend error code `BAY_NAME_TAKEN_IN_LOCATION` when present.
+- `409 OPTIMISTIC_LOCK_FAILED`: not expected for create; if received, show “This record was updated by someone else. Please reload.” (generic fallback).
+- Network/5xx: show retryable global error; preserve form state.
+- Correlation/request ID: if backend provides a request ID header or field, display it in the error banner as “Reference ID”.
+
+---
+
+# 10. State Model & Transitions
+
+## Allowed states (Bay.status)
+- `ACTIVE`
+- `OUT_OF_SERVICE`
+
+## Role-based transitions
+- Shop Administrator with `location:manage` can set status on create.
+
+## UI behavior per state
+- If status is `OUT_OF_SERVICE`, UI displays advisory text: “Out-of-service bays are excluded from availability queries.”
+- No additional conditional validation based on status in v1.
+
+---
+
+# 11. Alternate / Error Flows
+
+## Validation failures (client-side)
+- Missing name → block submit; message “Name is required.”
+- Missing bayType → block submit; message “Bay type is required.”
+- Capacity not integer or `< 1` → block submit; message “Max concurrent vehicles must be a whole number ≥ 1.”
+- Skill row with no `skillId` → block submit and highlight the row.
+
+## Validation failures (server-side)
+- Duplicate bay name within location → `409` mapped to Name field.
+- Invalid service IDs or skill IDs → `400` mapped to picker selections; allow remove and resubmit.
+- Unknown locationId → `404` show not found state and provide link back to Locations list.
+
+## Concurrency conflicts
+- Create is not versioned; only handle `409` duplicate name.
+- If backend returns `OPTIMISTIC_LOCK_FAILED` unexpectedly, treat as retryable with reload guidance.
+
+## Unauthorized access
+- `401`: redirect to login; after login return to create page if app supports returnUrl.
+- `403`: show forbidden screen; do not show form fields; disable/hide create actions in navigation when permission is known.
+
+## Empty states
+- If service/skill pickers have no available options (empty catalog), show empty-state help text and allow creating bay without constraints (constraints optional).
+- If lookup endpoints are unavailable (e.g., 503), show retry UI for the picker; do not block saving unless the user has already selected values that cannot be validated server-side (server remains authoritative).
+
+---
+
+# 12. Acceptance Criteria
+
+### Scenario 1: Admin creates a bay under a location (happy path)
+**Given** I am authenticated as a Shop Administrator with `location:manage`  
+**And** a Location exists with id `<locationId>`  
+**When** I open “Create Bay” for `<locationId>`  
+**And** I enter a unique name, select a bay type, keep status as ACTIVE, and set capacity maxConcurrentVehicles to 1  
+**And** I submit the form  
+**Then** the system creates the bay via `POST /rest/api/v1/location/locations/<locationId>/bays`  
+**And** I am navigated to the created bay detail (or the bay list) showing the new bay.
+
+### Scenario 2: Duplicate bay name is rejected within the same location
+**Given** a bay named “Alignment Rack 1” already exists under `<locationId>`  
+**When** I attempt to create another bay under `<locationId>` with name “Alignment Rack 1”  
+**Then** the backend responds with `409 Conflict`  
+**And** the UI shows a field error on the Name input indicating the name must be unique within this location  
+**And** my other form inputs remain intact for correction.
+
+### Scenario 3: Create bay with constraints (services + skills) persists and is queryable
+**Given** I am on the Create Bay form for `<locationId>`  
+**And** the Services lookup endpoint returns selectable services including IDs `S1` and `S2`  
+**And** the Skills lookup endpoint returns selectable skills including ID `K1`  
+**When** I select supported services `[S1, S2]` and required skills `[{skillId: K1, minLevel: 2}]`  
+**And** I submit the form  
+**Then** the create request includes `supportedServiceIds` and `requiredSkillRequirements`  
+**And** on the Bay Detail screen (via `GET /rest/api/v1/location/locations/<locationId>/bays/<bayId>`), the constraints and capacity are displayed.
+
+### Scenario 4: Out-of-service status is stored and communicated
+**Given** I am creating a bay under `<locationId>`  
+**When** I set status to `OUT_OF_SERVICE` and submit successfully  
+**Then** the created bay detail shows status `OUT_OF_SERVICE`  
+**And** the UI displays an advisory that out-of-service bays are excluded from availability queries.
+
+### Scenario 5: Unknown constraint references return validation errors
+**Given** I attempt to create a bay under `<locationId>`  
+**When** I submit `supportedServiceIds` or `requiredSkillRequirements.skillId` values that do not exist  
+**Then** the backend responds with `400 Bad Request`  
+**And** the UI shows a validation error indicating which IDs/selections are invalid  
+**And** I can remove/fix the invalid selections and resubmit.
+
+### Scenario 6: Unauthorized users cannot access create bay
+**Given** I am not authenticated  
+**When** I navigate to the Create Bay URL for `<locationId>`  
+**Then** I am prompted to authenticate (or redirected to login).
+
+**Given** I am authenticated but lack `location:manage`  
+**When** I navigate to the Create Bay URL for `<locationId>`  
+**Then** the UI does not allow submission  
+**And** if I attempt to submit (or the UI calls the create endpoint), the backend responds `403 Forbidden`  
+**And** the UI shows an access denied state.
+
+### Scenario 7: Bay name is trimmed before submission
+**Given** I am creating a bay under `<locationId>`  
+**When** I enter the name `"  Bay 1  "` and submit  
+**Then** the request body sends `"Bay 1"` as the name  
+**And** the created bay displays name `"Bay 1"`.
+
+---
+
+# 13. Audit & Observability
+
+## User-visible audit data
+- On Bay Detail (post-create), show read-only metadata if provided by backend:
   - `createdAt`, `updatedAt`
+  - `createdBy` (optional)
+  - `version` (optional; if present, display as read-only)
 
-- **MobileUnitCapability** (join table)
-  - `mobileUnitId`, `capabilityId`
+## Status history
+- Not required for v1 UI unless backend exposes it; do not invent history.
 
-- **ServiceArea**
-  - `serviceAreaId`: UUID (PK)
-  - `name`: string (required)
-  - `countryCode`: ISO 3166-1 alpha-2 (required)
-  - `postalCodes[]`: strings (normalize into child table preferred)
-  - `cities[]`: optional display-only
+## Traceability expectations
+- Frontend logs a structured event on create attempt/success/failure (using the app’s standard logger):
+  - `locationId`, `bayName`, `bayType`, `status`, and `bayId` on success
+  - Include correlation/request ID if provided by backend (header or response field)
+- Do not log full payloads containing potentially sensitive data beyond IDs and names.
 
-- **MobileUnitCoverageRule**
-  - `coverageRuleId`: UUID (PK)
-  - `mobileUnitId`: UUID (FK)
-  - `serviceAreaId`: UUID (FK)
-  - `priority`: integer (lower = higher priority)
-  - `effectiveStartAt`: timestamp (nullable = immediate)
-  - `effectiveEndAt`: timestamp (nullable = indefinite)
+---
 
-- **TravelBufferPolicy**
-  - `travelBufferPolicyId`: UUID (PK)
-  - `name`: string (required)
-  - `policyType`: enum (`FIXED_MINUTES`, `DISTANCE_TIER`) (required)
-  - `policyConfiguration`: JSONB (required; validated by type)
+# 14. Non-Functional UI Requirements
+- **Performance**: Create form renders quickly; pickers must support search/autocomplete and pagination if the lookup endpoints are large.
+- **Accessibility**: All form inputs labeled; validation errors announced (ARIA); keyboard navigable; error summary links to fields.
+- **Responsiveness**: Usable on tablet; form sections stack vertically on narrow screens.
+- **i18n/timezone/currency**: Not applicable (no monetary values; timezone not involved).
 
-`DISTANCE_TIER` policyConfiguration shape (stored in `pos-location`):
+---
 
-```json
-{
-  "unit": "KM",
-  "tiers": [
-    { "maxDistance": 5,  "bufferMinutes": 10 },
-    { "maxDistance": 15, "bufferMinutes": 20 },
-    { "maxDistance": 30, "bufferMinutes": 35 },
-    { "maxDistance": null, "bufferMinutes": 50 }
-  ]
-}
-```
+# 15. Applied Safe Defaults
+- SD-UX-EMPTY-STATE: If service/skills catalogs are empty/unavailable, show an empty-state message and allow proceeding without constraints (constraints are optional). Qualifies as safe because it does not change domain policy—only UI ergonomics. Impacted sections: UX Summary, Alternate / Error Flows, Acceptance Criteria.
+- SD-ERR-STANDARD-MAP: Standard mapping of HTTP 400/401/403/404/409/5xx to inline vs global errors and preserving form state. Qualifies as safe because it is generic error handling without altering business rules. Impacted sections: Service Contracts, Alternate / Error Flows, Acceptance Criteria.
 
-## Acceptance Criteria
-### Scenario 1: Successful Mobile Unit Creation
-- Given I am authenticated with `location.mobile-unit.manage`
-- And a base location with ID `1` exists
-- When I `POST /v1/mobile-units` with a valid payload including `name`, `baseLocationId`, `maxDailyJobs`, and valid capability IDs
-- Then the API returns `201 Created`
-- And the response contains a `mobileUnitId`
-- And the Mobile Unit is persisted.
+---
 
-### Scenario 2: Prevent Duplicate Name Within Base Location
-- Given a Mobile Unit named `Mobile Van 1` already exists for `baseLocationId = 1`
-- When I create another Mobile Unit with the same name for `baseLocationId = 1`
-- Then the API returns `409 Conflict`.
-
-### Scenario 3: Eligibility Query Returns ACTIVE Covered Units
-- Given a ServiceArea exists containing postal code `12345` in country `US`
-- And Mobile Unit `A` is `ACTIVE` and has an effective coverage rule for that ServiceArea at time `T`
-- When workexec calls `GET /v1/mobile-units:eligible?postalCode=12345&countryCode=US&at=T`
-- Then the response includes Mobile Unit `A`
-- And results are ordered by `priority` ascending.
-
-### Scenario 4: Create and Read a DISTANCE_TIER Travel Buffer Policy
-- Given I am authenticated with `location.mobile-unit.manage`
-- When I `POST /v1/travel-buffer-policies` with `policyType = DISTANCE_TIER` and a valid tier configuration (including a catch-all tier)
-- Then the API returns `201 Created`
-- And `GET /v1/travel-buffer-policies/{id}` returns the same tier configuration.
-
-### Scenario 5: Reject Invalid DISTANCE_TIER Configuration
-- Given I am authenticated with `location.mobile-unit.manage`
-- When I `POST /v1/travel-buffer-policies` with `policyType = DISTANCE_TIER` and tiers that are not strictly increasing by `maxDistance` (or missing the catch-all tier)
-- Then the API returns `400 Bad Request`.
-
-### Scenario 6: Out-of-Scope (TravelTimeApproved Event)
-- The `TravelTimeApproved` event contract is defined in “Resolved Questions” for cross-domain integration.
-- Emitting that event is owned by the travel-capture/approval workflow (workexec/timekeeping), not by this story’s location configuration APIs.
-
-## Audit & Observability
-- Emit audit events for create/update/status-change on Mobile Units, coverage replacement, and travel buffer policy create/update.
-- Include `X-Correlation-Id` on logs (generate if missing).
-- Metrics: `mobile_units.total` partitioned by status.
-
-## Resolved Questions
-From clarification #259:
-
-### RQ1: Travel Buffer Policy (Initial Types)
-**Decision:** Support `FIXED_MINUTES` and `DISTANCE_TIER` in v1. No third-party traffic/mapping integration required.
-
-### RQ2: Service Capabilities (Authoritative Source & Model)
-**Decision:** Capabilities are structured and owned by Service Catalog; location stores only capability IDs.
-
-### RQ3: Service Areas (Definition, Storage, Query)
-**Decision:** Service areas use ZIP/postal-code sets in v1 (no polygons/geofencing).
-
-### RQ4: HR Integration Contract (Travel Time Exchange)
-**Decision:** Event-driven push to HR on approval; topic `timekeeping.travel.approved.v1`. (Contract preserved for downstream alignment; emission not in scope of this story.)
-
-From clarification #404:
-
-### RQ5: DISTANCE_TIER TravelBufferPolicy distance input + ownership
-**Decision:** Tier selection uses a **numeric distance** input (`estimatedDistanceKm` preferred; `estimatedDistanceMi` allowed, normalized internally), supplied by the **caller (workexec/scheduling)**.
-
-**System-of-record split (v1):**
-- Location service stores/validates/returns policy configuration (tiers).
-- Caller computes/provides operational distance input and applies policy when scheduling.
-
-## Original Story (Unmodified – For Traceability)
-# Issue #76 — [BACKEND] [STORY] Locations: Create Mobile Units and Coverage Rules
-
-## Current Labels
-- backend
-- story-implementation
-- user
-
-## Current Body
-## Backend Implementation for Story
-
-**Original Story**: [STORY] Locations: Create Mobile Units and Coverage Rules
-
-**Domain**: user
-
-### Story Description
-
-/kiro
-# User Story
-## Narrative
-As an **Admin**, I want to define mobile units with service capabilities and coverage so that mobile appointments can be scheduled with travel buffers.
-## Details
-- Mobile unit attributes: capabilities, base location, service area tags, travel buffer policy, max daily jobs.
-
-## Acceptance Criteria
-- Mobile unit created and assignable.
-- Coverage/buffers configurable.
-- Out-of-service blocks scheduling.
-
-## Integrations
-- HR receives travel time.
-- Workexec stores mobileUnitId context for mobile workorders.
-
-## Data / Entities
-- Resource(MobileUnit), CoverageRule, TravelBufferPolicy
-
-## Classification (confirm labels)
-- Type: Story
-- Layer: Domain
-- Domain: Shop Management
-
-
-### Backend Requirements
-
-- Implement Spring Boot microservices
-- Create REST API endpoints
-- Implement business logic and data access
-- Ensure proper security and validation
+# 16. Open Questions
+1. What are the **actual lookup endpoints** (paths) and **response envelopes** for:
+   - Services (for `supportedServiceIds[]`)
+   - Skills (for `requiredSkillRequirements[].skillId`)
+   Including required query params for search/pagination and the fields for `{id, displayName}`.
+2. What is the **ID type** for `supportedServiceIds` and `skillId` (UUID vs string code)? Frontend must treat IDs as opaque, but needs to know validation/display expectations and example values.
+3. What is the **Bay API response shape** for create and view?
+   - Confirm the identifier field name (`bayId` vs `id`) and whether the response includes `capacity` and constraints.
+4. What is the **standard error payload** for validation and conflicts?
+   - Confirm whether errors include `code`, `message`, `fieldErrors[]`, and a correlation/request ID, and provide an example for `BAY_NAME_TAKEN_IN_LOCATION`.
+5. Confirm the frontend route/screen conventions in this repo for location subresources:
+   - Should URLs be `/locations/:locationId/bays/new` and `/locations/:locationId/bays/:bayId`, or another pattern aligned to existing Moqui screens?
 
 ════════════════════════════════════════
-ISSUE #53: [BACKEND] [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope
-LABELS: type:story,domain:location,status:ready-for-dev
+ISSUE #139: [FRONTEND] [STORY] Scheduling: Create Appointment with CRM Customer and Vehicle
+LABELS: type:story,status:draft,blocked:clarification,risk:incomplete-requirements,domain:location,agent:story-authoring,agent:location-domain-agent
 BODY:
-## Story Intent
-Ensure pricing rules and other business logic are applied only to valid, active business locations by synchronizing a local representation of location data from the authoritative `durion-hr` system.
+## Title
+[FRONTEND] [STORY] Scheduling: Create Appointment with CRM Customer and Vehicle (Moqui Screens)
 
-## Actors & Stakeholders
-- **Primary Actor:** `System (Location Service)` — executes synchronization and maintains the local location store.
-- **Data Source:** `durion-hr System` — authoritative source of truth for company location data.
-- **Key Consumer:** `Pricing Service` — validates and scopes pricing overrides using synchronized location data.
-- **Stakeholder:** `System Administrators` — monitor sync health.
+## Primary Persona
+Service Advisor
+
+## Business Value
+Enable service advisors to schedule work with verified customer/vehicle context from CRM and persist an immutable snapshot for accurate downstream execution, billing context, and auditability.
+
+---
+
+# 2. Story Intent
+
+## As a / I want / So that
+- **As a** Service Advisor  
+- **I want** to create a new appointment by selecting an existing CRM customer and one of their vehicles, then specifying requested services and a scheduled time window  
+- **So that** the shop has reliable, validated context for future work and communications, even if CRM data changes later.
+
+## In-Scope
+- Frontend flow to **create** an Appointment in `SCHEDULED` status (draft creation is out of scope per backend reference).
+- CRM-backed lookup/selection of:
+  - `crmCustomerId`
+  - `crmVehicleId` (validated association)
+- Capture and submit appointment details:
+  - time window (`startAt`, `endAt`)
+  - requested service(s)
+  - notes (optional)
+- Display creation success and navigate to the created appointment detail view (or confirmation state).
+- Moqui screen/form implementation consistent with project conventions.
+
+## Out-of-Scope
+- Appointment rescheduling/cancellation flows.
+- Editing an appointment after creation.
+- Draft appointment creation.
+- Notification delivery mechanics for `AppointmentCreated` (backend responsibility).
+- Defining permissions/roles beyond enforcing “must be authorized” error handling.
+- Catalog-backed service selection (IDs/codes) unless an existing picker is already available and explicitly wired by backend contract.
+
+---
+
+# 3. Actors & Stakeholders
+- **Primary Actor:** Service Advisor (frontend user)
+- **Systems of Record (SoR):**
+  - **Shop Management (shopmgr)**: SoR for Appointment entity authoring/scheduling and operational schedule truth (per workexec domain guide DECISION-INVENTORY-010; appointments are shopmgr entities).
+  - **CRM**: SoR for customer/vehicle identity and association.
+- **Consumers/Stakeholders:** Work execution (workexec) consumes appointment linkage via `appointmentId`; billing, analytics/reporting consume appointment context indirectly.
+
+---
+
+# 4. Preconditions & Dependencies
 
 ## Preconditions
-1. Network path and credentials for the Location Service to access `durion-hr` API/event stream are securely configured.
-2. Data contract (API schema or event structure) for location data from `durion-hr` is defined and available.
-3. Local database schema for `Location` and `SyncLog` entities is deployed.
+- User is authenticated in the POS frontend and has access to Scheduling features.
+- CRM lookup endpoints are reachable.
+- Shop management appointment create endpoint is reachable.
 
-## Functional Behavior
-A recurring or event-driven process synchronizes location data from `durion-hr`.
-1. **Trigger:** Sync starts via schedule (e.g., nightly) or by subscribing to location change events.
-2. **Extraction:** Fetch all relevant location records from `durion-hr`.
-3. **Transformation & Loading:** For each source record:
-   - Use `locationId` to find an existing local `Location` record.
-   - **If local exists:** Update fields (`name`, `status`, `region`, `tags`) from source.
-   - **If local missing:** Create a new `Location` record with source data.
-4. **Missing from feed:** If a previously known location is absent from the source feed, set the local record to `INACTIVE` indefinitely (no hard delete) to preserve referential integrity and signal ineligibility for pricing scope.
-5. **Logging:** Log outcome (success/failure) and counts (created/updated/skipped) into `SyncLog`.
-6. **Idempotency:** Running the sync with unchanged source data does not create duplicates or unintended changes.
-
-## Alternate / Error Flows
-- **Source System Unavailable:** If `durion-hr` is unreachable, log the failure, alert administrators after configurable consecutive failures, and leave local data unchanged.
-- **Invalid Data Received:** If a record is missing required fields (`locationId`, `status`) or malformed, skip it, log the error with `locationId`, and continue.
-
-## Business Rules
-- `durion-hr` is the source of truth for location identity and status; local data is a replica.
-- No hard deletes on local `Location` records; historical references must remain intact.
-- If a location is absent from the `durion-hr` feed, mark the local record `INACTIVE` indefinitely (do not delete).
-- A location with status `INACTIVE` (or any non-`ACTIVE` status) is invalid for new pricing overrides.
-- Existing pricing overrides for a location that becomes `INACTIVE` must be disabled so they cannot be applied.
-
-## Data Requirements
-### `Location` Entity
-- `locationId` (String, PK)
-- `name` (String)
-- `status` (Enum: `ACTIVE`, `INACTIVE`, etc.)
-- `region` (String, Nullable)
-- `tags` (List, Nullable)
-- `createdAt` (Timestamp)
-- `updatedAt` (Timestamp)
-
-### `SyncLog` Entity
-- `syncId` (UUID, PK)
-- `syncStartedAt` (Timestamp)
-- `syncFinishedAt` (Timestamp)
-- `status` (Enum: `SUCCESS`, `PARTIAL_FAILURE`, `FAILURE`)
-- `recordsProcessed` (Integer)
-- `recordsCreated` (Integer)
-- `recordsUpdated` (Integer)
-- `recordsSkipped` (Integer)
-- `notes` (Text, Nullable)
-
-## Acceptance Criteria
-**AC1: Sync new and existing locations**
-- Given `durion-hr` has Location A (`id:"loc-1"`, `name:"Main St"`, `status:"ACTIVE"`) not in local DB and Location B (`id:"loc-2"`, `name:"Old Name"`, `status:"ACTIVE"`) already local
-- And source data for Location B is now (`id:"loc-2"`, `name:"Central Hub"`, `status:"INACTIVE"`)
-- When the sync runs successfully
-- Then local DB contains Location A with `status:"ACTIVE"`
-- And local Location B is updated to `name:"Central Hub"`, `status:"INACTIVE"`
-
-**AC2: Idempotent sync**
-- Given a successful sync completed and source data unchanged
-- When sync runs again
-- Then `updatedAt` remains unchanged for existing records
-- And `SyncLog` reports 0 created / 0 updated
-
-**AC3: New overrides rejected for INACTIVE locations**
-- Given a local location `id:"loc-deactivated"` has `status:"INACTIVE"`
-- When an external system attempts to create a price override for `loc-deactivated`
-- Then the request is rejected because the location is not valid for new overrides
-
-**AC4: Sync failure handled**
-- Given `durion-hr` is unreachable
-- When sync runs
-- Then no local location data changes
-- And a `SyncLog` entry is recorded with `status:"FAILURE"` and connection error details
-
-**AC5: Missing-from-feed locations become INACTIVE**
-- Given a local location `id:"loc-3"` exists from prior syncs
-- And the current `durion-hr` feed no longer contains `loc-3`
-- When sync processes the feed
-- Then the local `loc-3` record is set to `status:"INACTIVE"` and retained (no deletion)
-
-**AC6: Existing overrides disabled when location becomes INACTIVE**
-- Given a location `id:"loc-override"` has active price overrides
-- And `loc-override` is synchronized with `status:"INACTIVE"` (either explicitly from source or due to missing-from-feed handling)
-- When sync completes
-- Then all price overrides linked to `loc-override` are disabled so they cannot be applied until the location returns to `ACTIVE`
-
-## Audit & Observability
-- **Logging:** Log sync start/completion/outcome at `INFO`; record-level errors at `WARN`/`ERROR` with `locationId`.
-- **Metrics:**
-  - `location_sync_duration_seconds`
-  - `location_sync_total_runs` (counter with status tag)
-  - `locations_processed_total` (counter)
-- **Alerting:** Alert when sync fails for 3 consecutive runs.
-
-## Open Questions
-- None. Clarification #244 resolved prior questions.
-
----
-## Original Story (Unmodified – For Traceability)
-# Issue #53 — [BACKEND] [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope
-
-## Current Labels
-- backend
-- story-implementation
-- user
-
-## Current Body
-## Backend Implementation for Story
-
-**Original Story**: [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope
-
-**Domain**: user
-
-### Story Description
-
-/kiro
-# User Story
-## Narrative
-As a **System**, I want to sync location identifiers from durion-hr so that store pricing can be scoped to valid locations.
-
-## Details
-- Import locationId, name, status.
-- Optional region/tags.
-
-## Acceptance Criteria
-- Locations present in product domain.
-- Deactivated locations cannot receive new overrides.
-- Sync idempotent.
-
-## Integrations
-- HR → Product location roster API/events.
-
-## Data / Entities
-- LocationRef, SyncLog
-
-## Classification (confirm labels)
-- Type: Story
-- Layer: Domain
-- Domain: Product / Parts Management
-
-
-### Backend Requirements
-
-- Implement Spring Boot microservices
-- Create REST API endpoints
-- Implement business logic and data access
-- Ensure proper security and validation
-
-### Technical Stack
-
-- Spring Boot 3.2.6
-- Java 21
-- Spring Data JPA
-- PostgreSQL/MySQL
-
----
-*This issue was automatically created by the Durion Workspace Agent*
-
-════════════════════════════════════════
-ISSUE #38: [BACKEND] [STORY] Configuration: Define Default Staging and Quarantine Storage Locations for a Site
-LABELS: type:story,domain:inventory,domain:location,status:ready-for-dev
-BODY:
-# [BACKEND] [STORY] Configuration: Define Default Staging and Quarantine Storage Locations for a Site
-
-## 🏷️ Labels (Applied)
-
-### Required
-- type:story
-- status:ready-for-dev
-- domain:location
-- domain:inventory
-
-### Recommended
-- agent:story-authoring
+## Dependencies
+- Must use canonical Moqui appointment screen in `durion-shopmgr` (DECISION-INVENTORY-002).
+- Requires CRM customer search + customer vehicle list endpoints (paths and DTOs not provided in this issue).
+- Requires appointment create endpoint (path and DTO not provided in this issue).
+- Timezone semantics must be consistent with shop UX (DECISION-INVENTORY-016), but the source of shop timezone is not confirmed for this repo.
 
 ---
 
-## ✅ Clarification Resolutions Applied
+# 5. UX Summary (Moqui-Oriented)
 
-**Clarification Issue**: #235
-**Resolved Date**: 2026-01-12
-**Resolved By**: @louisburroughs
+## Entry points
+- Global navigation: `Scheduling → Appointments → Create` (menu item under shop management).
+- Optional contextual entry: from a Customer detail context (only if already exists in the app; otherwise omit).
 
-### Resolution Summary
+## Screens to create/modify
+### Screens to Create/Modify (Canonical)
+- **Modify / implement**: `durion-shopmgr/AppointmentEdit.xml`
+  - Add a “Create Appointment” mode (new record) if not already supported.
+  - Embed CRM customer/vehicle pickers and requested services/time window fields.
+- **Use existing**: `durion-shopmgr/AppointmentEdit.xml` as the post-create detail view (same screen, now with `appointmentId`).
 
-1. **Story Split Confirmed**: This story now focuses ONLY on configuration. A separate story for receiving workflow execution has been created (see Related Stories below).
+> Decision rationale: Canonical appointment screens live in shopmgr, not workexec (DECISION-INVENTORY-002, DECISION-INVENTORY-010). This story must extend shopmgr screens rather than creating new workexec-owned routes.
 
-2. **Uniqueness Rule Confirmed**: A `StorageLocation` cannot be designated as both default Staging and default Quarantine. This is enforced via validation.
+## Navigation context
+- Breadcrumb: `Scheduling / Appointments / Create`
+- After successful creation: redirect to `durion-shopmgr/AppointmentEdit?appointmentId=<id>` (or the canonical parameter name used by the screen).
 
-3. **Permission Model Confirmed**: Permission definition and enforcement for quarantine moves is out of scope for this story and belongs to `domain:security` and `domain:inventory` execution stories.
+## User workflows (happy + alternate paths)
+
+### Happy path
+1. Service Advisor opens **Create Appointment**.
+2. Searches and selects **CRM Customer**.
+3. Selects **CRM Vehicle** (filtered by selected customer).
+4. Adds **one or more requested services** (free-text descriptions).
+5. Sets **startAt** and **endAt**.
+6. Optionally adds notes.
+7. Submits; sees success; navigates to appointment detail.
+
+### Alternate paths
+- User changes customer after selecting a vehicle → vehicle selection is cleared and must be reselected.
+- CRM returns no results → show empty state and guidance.
+- Submit blocked due to validation errors (missing fields, invalid time range).
+- CRM temporarily unavailable during search → show non-blocking warning; allow retry.
+- Create fails due to CRM validation errors (customer/vehicle not found or mismatch) → show blocking error; keep entered data.
+
+---
+
+# 6. Functional Behavior
+
+## Triggers
+- User navigates to create appointment screen.
+- User types in customer search input (debounced).
+- User selects customer → triggers vehicle list load.
+- User submits create form.
+
+## UI actions
+- **Customer lookup**
+  - Search input with debounce.
+  - Results list with select action.
+  - On select: set `crmCustomerId` and show a read-only preview (display fields from CRM response).
+- **Vehicle selection**
+  - Disabled until customer selected.
+  - Loads vehicles for selected customer.
+  - On select: set `crmVehicleId` and show a read-only preview.
+- **Requested services**
+  - Add/remove rows.
+  - Each row requires `description` (free text).
+- **Date/time**
+  - `startAt` and `endAt` required.
+  - UI displays timezone label for entered times (see timezone rules).
+- **Notes**
+  - Optional free text.
+
+## State changes
+- Local form state: `idle → editing → submitting → success|error`
+- No client-side draft persistence beyond in-memory form state.
+
+## Service interactions
+- CRM customer search (endpoint TBD).
+- CRM vehicles-by-customer list (endpoint TBD).
+- Appointment create (endpoint TBD).
+- On success: navigate to appointment detail screen with returned `appointmentId`.
 
 ---
 
-## Story Intent
+# 7. Business Rules (Translated to UI Behavior)
 
-As an **Inventory Manager**, I want to configure default staging and quarantine storage locations for each site, so that all receiving workflows are standardized, consistent, and adhere to inventory handling policies.
+## Validation
+Client-side (pre-submit):
+- `crmCustomerId` required (opaque string; do not validate UUID format).
+- `crmVehicleId` required (opaque string; do not validate UUID format).
+- At least 1 requested service row required.
+- Each requested service row requires non-empty `description` (trimmed).
+- `startAt` and `endAt` required.
+- `endAt` must be strictly after `startAt`.
+- Notes optional.
 
-## Actors & Stakeholders
+Server-side (authoritative):
+- Customer existence validation.
+- Vehicle existence validation.
+- Vehicle belongs to customer validation.
+- Appointment is created in `SCHEDULED` status (no draft creation in this story).
 
-- **Primary Actor:**
-  - **Inventory Manager:** Responsible for configuring and maintaining the operational topology and policies of a warehouse or site.
+Decision rationale:
+- IDs must be treated as opaque strings (DECISION-INVENTORY-003).
+- Backend is authoritative for association validation; UI only prevents obvious missing inputs.
 
-- **Secondary Actors & Stakeholders:**
-  - **System:** The POS/WMS system that must persist and expose the configured defaults.
-  - **`domain:workexec`:** A key stakeholder and consumer of this configuration (consuming story: see Related Stories).
-  - **`domain:audit`:** Requires events to be published when these critical site configurations are modified.
+## Enable/disable rules
+- Vehicle selector disabled until customer selected.
+- Submit disabled while submitting or while client-side validation fails.
 
-## Preconditions
+## Visibility rules
+- Show selected customer preview after selection.
+- Show selected vehicle preview after selection.
+- Show inline field errors after blur or on submit attempt.
 
-1. The system has a concept of a `Site` or `Location` which represents a distinct physical or logical facility (e.g., a warehouse).
-2. The system has a concept of a `StorageLocation` which represents a specific place within a `Site` where inventory can be held (e.g., a bin, a rack, or an area).
-3. An authentication and authorization system is in place, capable of granting permissions to the `Inventory Manager` role to modify `Site` configurations.
-
-## Functional Behavior
-
-This story focuses **exclusively** on the **configuration** of the default locations. The consumption of these settings by receiving or other processes is handled in separate stories.
-
-1. **Trigger:** An authorized `Inventory Manager` uses an API to update the default location settings for a specific `Site`.
-
-2. **Behavior:**
-   - The manager provides the unique identifier for a `Site`.
-   - The manager provides the unique identifier of an existing `StorageLocation` to be designated as the **Default Staging Location**.
-   - The manager provides the unique identifier of an existing `StorageLocation` to be designated as the **Default Quarantine Location**.
-
-3. **Outcome:**
-   - The system validates that both provided `StorageLocation` identifiers are:
-     - Valid
-     - Distinct (not the same location)
-     - Belong to the specified `Site`
-   - The system persists these two references against the `Site`'s configuration.
-   - The system emits a `SiteDefaultsUpdated` event with the old and new values for auditing purposes.
-
-## Alternate / Error Flows
-
-1. **Unauthorized Access:** If the user does not have the required permissions to modify the `Site` configuration, the system rejects the request with a `403 Forbidden` error.
-
-2. **Invalid `Site` ID:** If the specified `Site` does not exist, the system rejects the request with a `404 Not Found` error.
-
-3. **Invalid `StorageLocation` ID:** If either the staging or quarantine `StorageLocation` ID does not exist or does not belong to the specified `Site`, the system rejects the request with a `400 Bad Request` or `422 Unprocessable Entity` validation error.
-
-4. **Duplicate Location Assignment (Business Rule Violation):** If the same `StorageLocation` ID is provided for both staging and quarantine roles, the system rejects the request with a `400 Bad Request` validation error with error code `DEFAULT_LOCATION_ROLE_CONFLICT`.
-
-## Business Rules
-
-1. Each `Site` MUST be configurable with exactly one `Default Staging Location`.
-2. Each `Site` MUST be configurable with exactly one `Default Quarantine Location`.
-3. **The `Default Staging Location` and `Default Quarantine Location` for a single `Site` MUST be two distinct `StorageLocation`s.** (Enforced to prevent operational ambiguity and ensure physical/procedural separation.)
-4. Inventory placed in a `Quarantine Location` is considered non-available stock. The permission model for moving items **out of** quarantine (e.g., `inventory.move.from_quarantine`) is defined and enforced by separate security and inventory execution stories. This story only marks the location as quarantine.
-
-## Data Requirements
-
-- The `Site` (or `Location`) entity/resource requires two new fields, both of which are references to a `StorageLocation`:
-  - `defaultStagingLocationId: UUID`
-  - `defaultQuarantineLocationId: UUID`
-
-- An API endpoint must be created or updated to manage these settings:
-  - **Example:** `PUT /api/v1/sites/{siteId}/default-locations`
-  - **Example Payload:**
-    ```json
-    {
-      "defaultStagingLocationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-      "defaultQuarantineLocationId": "6ec0bd7f-11c0-43da-975e-2a8ad9ebae0b"
-    }
-    ```
-
-## Acceptance Criteria
-
-### AC1: Configure Defaults Successfully
-- **Given** I am an authenticated `Inventory Manager`
-- **And** Site "WH-1" exists with Storage Locations "STAGING-A" and "QUARANTINE-B"
-- **When** I submit a request to set "STAGING-A" as the default staging location and "QUARANTINE-B" as the default quarantine location for "WH-1"
-- **Then** the system returns a `200 OK` success response
-- **And** a subsequent GET request for the configuration of "WH-1" shows the correct IDs for the default locations.
-
-### AC2: Reject Invalid Storage Location
-- **Given** I am an authenticated `Inventory Manager`
-- **And** Site "WH-1" exists
-- **When** I submit a request to set a non-existent Storage Location "FAKE-ID" as the default staging location
-- **Then** the system returns a client error response (e.g., `400 Bad Request` or `422 Unprocessable Entity`) with a descriptive error message.
-
-### AC3: Reject Duplicate Role Assignment (Business Rule Enforcement)
-- **Given** I am an authenticated `Inventory Manager`
-- **And** Site "WH-1" exists with Storage Location "COMMON-AREA"
-- **When** I submit a request to set "COMMON-AREA" as both the default staging and default quarantine location
-- **Then** the system returns a `400 Bad Request` validation error with error code `DEFAULT_LOCATION_ROLE_CONFLICT`
-- **And** the error message states that the locations must be distinct.
-
-### AC4: Reject Unauthorized Request
-- **Given** I am an authenticated user without `Inventory Manager` permissions
-- **When** I attempt to update the default locations for Site "WH-1"
-- **Then** the system returns a `403 Forbidden` error.
-
-### AC5: Validate Storage Location Belongs to Site
-- **Given** I am an authenticated `Inventory Manager`
-- **And** Site "WH-1" exists
-- **And** Storage Location "STAGING-X" belongs to Site "WH-2" (different site)
-- **When** I submit a request to set "STAGING-X" as the default staging location for "WH-1"
-- **Then** the system returns a `400 Bad Request` or `422 Unprocessable Entity` error
-- **And** the error message indicates the storage location does not belong to the specified site.
-
-## Audit & Observability
-
-- **Event Emission:** A `SiteDefaultsUpdated` event MUST be emitted to a message bus (e.g., Kafka, RabbitMQ) upon any successful change.
-
-- **Event Payload:** The event should include:
-  - `siteId`
-  - `updatedByUserId`
-  - `timestamp`
-  - Previous values: `previousDefaultStagingLocationId`, `previousDefaultQuarantineLocationId`
-  - New values: `newDefaultStagingLocationId`, `newDefaultQuarantineLocationId`
-
-- **Logging:** A structured log entry at the `INFO` level should be created, capturing the user, site, and changes made for traceability.
-
-## Related Stories
-
-### Dependency (This Story Must Be Completed First)
-This story is a prerequisite for:
-
-- **[NEW STORY]**: "[BACKEND] [STORY] Receiving: Use Site-Default Staging Location"
-  - Domain: `domain:workexec`
-  - Description: Receiving workflow consumes the site-default staging and quarantine locations configured in this story.
-
-## Original Story (Unmodified – For Traceability)
-
-# Issue #38 — [BACKEND] [STORY] Topology: Define Default Staging and Quarantine Locations for Receiving
-
-## Current Labels
-- backend
-- story-implementation
-- user
-
-## Current Body
-## Backend Implementation for Story
-
-**Original Story**: [STORY] Topology: Define Default Staging and Quarantine Locations for Receiving
-
-**Domain**: user
-
-### Story Description
-
-/kiro
-# User Story
-## Narrative
-As an **Inventory Manager**, I want default receiving staging and quarantine locations so that receiving workflows are consistent.
-
-## Details
-- Each site can define staging and quarantine locations.
-- Quarantine requires approval to move into available stock.
-
-## Acceptance Criteria
-- Staging/quarantine configured per location.
-- Receiving uses staging by default.
-- Quarantine moves require permission.
-
-## Integrations
-- Distributor receiving may land in staging; quality hold uses quarantine.
-
-## Data / Entities
-- ReceivingPolicy, StorageLocationRef, PermissionCheck
-
-## Classification (confirm labels)
-- Type: Story
-- Layer: Domain
-- Domain: Inventory Management
-
-
-### Backend Requirements
-
-- Implement Spring Boot microservices
-- Create REST API endpoints
-- Implement business logic and data access
-- Ensure proper security and validation
-
-### Technical Stack
-
-- Spring Boot 3.2.6
-- Java 21
-- Spring Data JPA
-- PostgreSQL/MySQL
+## Error messaging expectations
+Use standard error envelope parsing when available (DECISION-INVENTORY-011). Map known error codes:
+- `CUSTOMER_NOT_FOUND` (404): “Selected customer no longer exists in CRM. Please re-search and select again.”
+- `VEHICLE_NOT_FOUND` (404): “Selected vehicle no longer exists in CRM. Please re-select a vehicle.”
+- `VEHICLE_CUSTOMER_MISMATCH` (409): “That vehicle is not associated with the selected customer. Please choose a different vehicle.”
+- `403`: “You don’t have permission to create appointments.”
+- `503` (CRM unavailable): “CRM is temporarily unavailable. Try again later.”
+- Unknown errors: show generic banner with `correlationId` if present.
 
 ---
-*This issue was automatically created by the Durion Workspace Agent*
 
+# 8. Data Requirements
+
+## Entities involved
+- `durion.shopmgr.DurShopAppointment` (appointment create target; shopmgr SoR)
+- Appointment requested services line items (entity name TBD; may be embedded or separate)
+- CRM Customer (read-only lookup DTO)
+- CRM Vehicle (read-only lookup DTO)
+
+## Fields (type, required, defaults)
+
+### Appointment (Create Request)
+| Field | Type | Required | Default | Notes |
+|---|---|---:|---|---|
+| crmCustomerId | id (opaque string) | yes | none | Selected from CRM |
+| crmVehicleId | id (opaque string) | yes | none | Must belong to customer (server-validated) |
+| startAt | datetime (ISO-8601) | yes | none | Send with offset or UTC per API contract (Open Question) |
+| endAt | datetime (ISO-8601) | yes | none | Must be after startAt |
+| notes | string | no | empty | Free text |
+| serviceRequests | array | yes | none | At least 1 item |
+
+### AppointmentServiceRequest (Create Request)
+| Field | Type | Required | Default | Notes |
+|---|---|---:|---|---|
+| description | string | yes | none | Free text |
+
+## Read-only vs editable
+- CRM preview fields are read-only.
+- All create fields editable until submit.
+
+## Derived/calculated fields
+- Optional UI-only `durationMinutes` derived from start/end for display; do not send unless API requires.
+
+---
+
+# 9. Service Contracts (Frontend Perspective)
+
+> Exact REST paths and DTOs are not provided in this issue; Moqui may implement via screen transitions/services rather than REST. This story requires explicit contracts to be confirmed.
+
+## Load/view calls
+
+1) **Search CRM Customers**
+- Method: `GET`
+- Endpoint: **TBD**
+- Query params: `query` (string), pagination (`pageIndex`, `pageSize`) if supported
+- Response (minimum):
+  ```json
+  {
+    "data": [
+      { "crmCustomerId": "CUST-1", "displayName": "Jane Doe", "phone": "..." }
+    ],
+    "pageIndex": 0,
+    "pageSize": 20,
+    "totalCount": 1
+  }
+  ```
+
+2) **List Vehicles for CRM Customer**
+- Method: `GET`
+- Endpoint: **TBD**
+- Params: `crmCustomerId`
+- Response (minimum):
+  ```json
+  {
+    "data": [
+      { "crmVehicleId": "VEH-1", "year": 2020, "make": "Toyota", "model": "Camry", "vin": "..." }
+    ]
+  }
+  ```
+
+## Create/update calls
+
+1) **Create Appointment**
+- Method: `POST`
+- Endpoint: **TBD**
+- Headers:
+  - `Idempotency-Key`: required for create/submit operations (DECISION-INVENTORY-012)
+- Request body (minimum):
+  ```json
+  {
+    "crmCustomerId": "CUST-1",
+    "crmVehicleId": "VEH-1",
+    "startAt": "2026-01-18T15:00:00Z",
+    "endAt": "2026-01-18T16:00:00Z",
+    "notes": "Optional notes",
+    "serviceRequests": [
+      { "description": "Oil change" }
+    ]
+  }
+  ```
+- Success: `201 Created`
+  ```json
+  { "appointmentId": "APPT-1" }
+  ```
+
+## Submit/transition calls
+- None beyond create; created appointment is `SCHEDULED`.
+
+## Error handling expectations
+- Errors normalized to standard envelope when possible:
+  ```json
+  {
+    "code": "VEHICLE_CUSTOMER_MISMATCH",
+    "message": "…",
+    "correlationId": "c-123",
+    "fieldErrors": [{ "field": "crmVehicleId", "message": "…" }]
+  }
+  ```
+- `409` duplicates: if appointment create can duplicate (not specified), backend should return `existingResourceId` (DECISION-INVENTORY-011). UI should offer “Open existing” if present.
+
+---
+
+# 10. State Model & Transitions
+
+## Allowed states
+- Appointment initial state on create: `SCHEDULED` (only state relevant to this story).
+
+## Role-based transitions
+- Not in scope. Only creation is in scope; authorization enforced by backend and reflected in UI gating if capability signal exists.
+
+## UI behavior per state
+- After create, appointment detail shows `statusId = SCHEDULED` as read-only.
+
+---
+
+# 11. Alternate / Error Flows
+
+## Validation failures (client-side)
+- Missing customer/vehicle/services/times → inline errors; prevent submit.
+- `endAt <= startAt` → inline error; prevent submit.
+
+## Backend validation failures (400/404/409)
+- Show banner + field errors if provided.
+- For `CUSTOMER_NOT_FOUND` or `VEHICLE_NOT_FOUND`: clear the invalid selection(s) and require re-selection; keep other form inputs.
+
+## Concurrency conflicts
+- Not expected for create. If backend returns `409` due to scheduling conflict, show conflict banner and keep data (Open Question: define code and UX).
+
+## Unauthorized access
+- `401`: redirect to login.
+- `403`: show access denied; disable submit.
+
+## Empty states
+- No customers found → show empty state and guidance.
+- No vehicles for customer → show empty state; allow changing customer.
+
+---
+
+# 12. Acceptance Criteria
+
+## Scenario 1: Create Scheduled Appointment (Happy Path)
+**Given** CRM is available  
+**And** the Service Advisor is authenticated and authorized to create appointments  
+**And** a CRM customer exists  
+**And** a CRM vehicle exists and is associated with that customer  
+**When** the user selects the customer and vehicle  
+**And** enters at least one requested service description  
+**And** enters a valid start and end time  
+**And** submits the form  
+**Then** the system sends a create request containing `crmCustomerId`, `crmVehicleId`, `startAt`, `endAt`, and `serviceRequests[]`  
+**And** includes an `Idempotency-Key` header  
+**And** receives `201 Created` with an `appointmentId`  
+**And** navigates to the canonical appointment detail screen for that `appointmentId`  
+**And** the appointment status displayed is `SCHEDULED`.
+
+## Scenario 2: Vehicle Not Associated with Customer
+**Given** CRM is available  
+**And** the user selected a customer  
+**When** the user submits the create form  
+**And** the backend returns `409 Conflict` with error code `VEHICLE_CUSTOMER_MISMATCH`  
+**Then** the UI shows a blocking error message explaining the mismatch  
+**And** the appointment is not created  
+**And** the user remains on the create form with previously entered fields intact.
+
+## Scenario 3: CRM Unavailable During Create
+**Given** CRM is unavailable  
+**When** the user submits the create form  
+**And** the backend returns `503 Service Unavailable`  
+**Then** the UI shows “CRM is temporarily unavailable. Try again later.”  
+**And** the appointment is not created  
+**And** the form data remains intact for retry.
+
+## Scenario 4: Customer Not Found
+**Given** CRM is available  
+**When** the user submits with a `crmCustomerId` that no longer exists  
+**And** the backend returns `404` with error code `CUSTOMER_NOT_FOUND`  
+**Then** the UI shows an error instructing the user to re-search/select a customer  
+**And** clears the selected customer and vehicle fields  
+**And** keeps the entered time window, notes, and service request descriptions intact.
+
+## Scenario 5: Client-side Validation Prevents Submit
+**Given** the Create Appointment screen is open  
+**When** the user has not selected a customer or vehicle  
+**Or** has not added any requested services  
+**Or** the end time is not after start time  
+**Then** the UI prevents submission and shows inline validation errors  
+**And** no create API call is made.
+
+## Scenario 6: Double-submit Does Not Create Duplicate (Idempotency)
+**Given** the user has completed the form with valid inputs  
+**When** the user submits  
+**And** the network times out and the user retries submission  
+**And** the UI reuses the same `Idempotency-Key` for the retry  
+**Then** the backend returns the same outcome (same `appointmentId` or a deterministic duplicate response)  
+**And** the UI navigates to the created appointment without creating a second appointment.
+
+---
+
+# 13. Audit & Observability
+
+## User-visible audit data
+- On appointment detail screen, display if available:
+  - `createdDate` / `createdAt`
+  - `createdByUserId` or display name
+- If not available, show only appointment identifiers and status.
+
+## Status history
+- Not required for creation-only story.
+
+## Traceability expectations
+- Include `Idempotency-Key` on create.
+- Capture and display `correlationId` from error envelope in the error banner for support.
+
+---
+
+# 14. Non-Functional UI Requirements
+
+## Performance
+- Customer search input debounced (250–400ms).
+- Vehicle list loaded once per customer selection; cache in-memory for the session.
+
+## Accessibility
+- All form controls have labels.
+- Errors are programmatically associated with inputs.
+- Keyboard navigation supported for search results and selection.
+
+## Responsiveness
+- Usable on tablet-width layouts.
+
+## i18n/timezone/currency
+- Display timestamps in user timezone and label the timezone used (DECISION-INVENTORY-016).
+- Date-bucket semantics are not applicable here; for entered start/end, UI must be explicit about timezone and send ISO-8601 per API contract (Open Question).
+
+---
+
+# 15. Applied Safe Defaults
+- **SD-UX-SEARCH-DEBOUNCE**: Debounce CRM search input by ~300ms to reduce calls; safe UI ergonomics choice. Impacted sections: UX Summary, Functional Behavior, Non-Functional.
+- **SD-UX-EMPTY-STATES**: Provide explicit empty-state messages for no results; safe UI ergonomics choice. Impacted sections: UX Summary, Alternate / Error Flows.
+- **SD-ERR-STANDARD-BANNER**: Use standard error banner + inline field errors when available; safe mapping of backend errors to UX without changing business rules. Impacted sections: Business Rules, Error Flows, Acceptance Criteria.
+
+---
+
+# 16. Open Questions
+
+1. **Domain/ownership confirmation (blocking):** This story creates and authors Appointments, which per DECISION-INVENTORY-010 are shopmgr SoR. Should this story be labeled `domain:shopmgmt` instead of `domain:workexec`/`domain:location`? Provide the correct single `domain:*` label for scheduling/appointments in this repo.
+2. **Canonical screen route (blocking):** Confirm the exact Moqui screen path and parameter name for appointment create/detail (e.g., `/webroot/durion-shopmgr/AppointmentEdit` and `appointmentId`), and whether create is “new record” mode of the same screen.
+3. **API contract (blocking):** What are the exact endpoints (or Moqui services invoked by transitions) for:
+   - CRM customer search
+   - CRM vehicles-by-customer list
+   - Appointment create
+   Include request/response DTOs and error codes.
+4. **Timezone contract (blocking):** For `startAt`/`endAt`, must the UI send UTC (`Z`) or local offset? If local offset is allowed, what timezone should be used (user vs shop)? How does the frontend obtain shop timezone (if required)?
+5. **Requested services structure (blocking):** Are requested services free-text only, or must they reference catalog service IDs/codes? If IDs are required, provide the lookup endpoint/picker contract.
+6. **Scheduling conflicts (non-blocking unless required by backend):** Does appointment create validate overlaps and return a specific conflict code? If yes, provide the code and required UX (suggest alternate times vs simple error).
 

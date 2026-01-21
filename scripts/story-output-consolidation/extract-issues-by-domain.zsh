@@ -26,6 +26,7 @@ fi
 echo "✓ Authenticated to GitHub" >&2
 echo "Fetching domain labels from $REPO..." >&2
 echo "Filtering issues by state: $ISSUE_STATE" >&2
+echo "Additional filter: blocked:clarification label" >&2
 
 # First, get all domain labels (one per line)
 domain_labels=$(gh api repos/"$REPO"/labels --paginate --jq '.[] | select(.name | startswith("domain:")) | .name' | sed 's/domain://')
@@ -50,11 +51,12 @@ while IFS= read -r domain; do
   
   echo "[$counter/$domain_count] Processing domain:$domain..." >&2
   
-  # Get issues for this domain (no pager, filtered by state)
+  # Get issues for this domain (no pager, filtered by state and blocked:clarification label)
   gh issue list \
     --repo "$REPO" \
     --state "$ISSUE_STATE" \
     --label "domain:$domain" \
+    --label "blocked:clarification" \
     --limit 1000 \
     --json number,title,labels,body \
     --jq '.[] | "════════════════════════════════════════\nISSUE #\(.number): \(.title)\nLABELS: \(.labels | map(.name) | join(","))\nBODY:\n\(.body // "")\n"' \
@@ -72,6 +74,7 @@ summary_file="$OUTPUT_DIR/DOMAINS_SUMMARY.txt"
   echo "===================="
   echo "Repository: $REPO"
   echo "Issue State: $ISSUE_STATE"
+  echo "Filter: blocked:clarification label"
   echo "Generated: $(date)"
   echo ""
   
