@@ -375,16 +375,10 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
         output_file = 'fixed.md'
         full_prompt_text = build_copilot_prompt(workspace_root, prompt_path, domain, body, after.stem, output_file)
 
-        # Write prompt to a temp file to avoid command-line length limits
-        import tempfile
-        prompt_temp_file = after.parent / '.copilot_prompt_temp.txt'
-        prompt_temp_file.write_text(full_prompt_text, encoding='utf-8')
-        prompt_arg = f"@{prompt_temp_file}"
-        
-        # Set working directory to issue directory so copilot writes there
+        # Pass prompt via stdin instead of file to avoid Copilot trying to read file via git
         issue_dir = after.parent
 
-        def call_copilot_cli(prompt_file_ref: str, agent_name: str, model: str, work_dir: Path) -> bool:
+        def call_copilot_cli(prompt_text: str, agent_name: str, model: str, work_dir: Path) -> bool:
             logger = logging.getLogger(__name__)
             copilot_exe = shutil.which('copilot')
             if not copilot_exe:
@@ -393,31 +387,17 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
                 return False
 
             # Build command for agent run with agent common name
-            # Use --log-level all to capture thinking process
-            # Restrict to only file operations and safe read-only shell commands
-            # Set working directory to issue directory so output files go there
+            # Pass prompt via stdin instead of file to avoid Copilot trying to read file via git
             cmd = [
                 copilot_exe,
-                '--prompt', prompt_file_ref,
+                '--prompt', '-',  # Read prompt from stdin
                 '--agent', agent_name,
                 '--model', model,
                 '--add-dir', str(work_dir),  # Issue directory where output should be written
                 '--add-dir', str(workspace_root),  # Workspace root for reading business rules
-                '--available-tools', 'read_file', 'create_file', 'replace_string_in_file', 
-                'multi_replace_string_in_file', 'list_dir', 'grep_search', 'file_search', 'semantic_search',
-                # Allow safe read-only shell commands
-                '--allow-tool', 'shell(grep:*)',
-                '--allow-tool', 'shell(find:*)',
-                '--allow-tool', 'shell(cat:*)',
-                '--allow-tool', 'shell(head:*)',
-                '--allow-tool', 'shell(tail:*)',
-                '--allow-tool', 'shell(wc:*)',
-                '--allow-tool', 'shell(ls:*)',
-                '--allow-tool', 'shell(pwd:*)',
-                '--allow-tool', 'shell(git log:*)',
-                '--allow-tool', 'shell(git show:*)',
-                '--allow-tool', 'shell(git diff:*)',
-                '--allow-tool', 'shell(git status:*)',
+                '--available-tools', 'create_file',  # Only create_file needed; content is embedded in prompt
+                '--allow-tool', 'write',
+                '--allow-tool', 'edit',
                 '--log-level', 'all',
             ]
             
@@ -426,20 +406,29 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
             logger.info(f'Model: {model}')
             logger.info(f'Working directory: {work_dir}')
             logger.info(f'Workspace root: {workspace_root}')
-            logger.info(f'Prompt file: {prompt_file_ref}')
+            logger.info(f'Prompt delivery: stdin (no file reference)')
             logger.info(f'Expected output file: {work_dir / output_file}')
-            logger.info(f'Full command: {" ".join(cmd)}')
-            logger.debug(f'Prompt length: {len(full_prompt_text)} characters')
+            logger.info(f'Full command: {" ".join(cmd)} < prompt_stdin')
+            logger.debug(f'Prompt length: {len(prompt_text)} characters')
             
             # Create a thinking log file
             thinking_log = after.parent / 'copilot_thinking.log'
             
             try:
-                logger.info('Executing copilot CLI with thinking output...')
-                proc = subprocess.run(cmd, text=True, capture_output=True, timeout=1200)
+                logger.info('Executing copilot CLI with thinking output via stdin...')
+                # Pass prompt via stdin to avoid Copilot trying to read file via git
+                proc = subprocess.run(cmd, text=True, input=prompt_text, capture_output=True, timeout=1200, cwd=str(work_dir))
                 logger.info(f'Copilot CLI exit code: {proc.returncode}')
                 
                 print('Copilot CLI exit code:', proc.returncode)
+                
+                # Log stderr FIRST to debug why nothing happened
+                if proc.stderr:
+                    logger.warning(f'Copilot stderr:\n{proc.stderr}')
+                    print('Copilot stderr:\n', proc.stderr, file=sys.stderr)
+                else:
+                    logger.info('Copilot stderr: (empty)')
+                    print('Copilot stderr: (empty)', file=sys.stderr)
                 
                 # Process and log stdout (contains thinking + response)
                 if proc.stdout:
@@ -529,17 +518,16 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
             logger.debug(f'DRY RUN prompt length: {len(full_prompt_text)} characters')
             logger.debug(f'DRY RUN agent name: {agent_name}')
             logger.debug(f'DRY RUN model: {args.model}')
-            logger.debug(f'DRY RUN prompt file: {prompt_temp_file}')
             print('DRY RUN: would run copilot CLI')
-            print(f'DRY RUN: Prompt written to {prompt_temp_file} ({len(full_prompt_text)} chars)')
+            print(f'DRY RUN: Prompt via stdin ({len(full_prompt_text)} chars)')
             print('DRY RUN: would use agent:', agent_name)
             print('DRY RUN: would use model:', args.model)
             print('\nDRY RUN: First 500 chars of prompt:')
             print(full_prompt_text[:500])
             print('\n... [truncated] ...')
         else:
-            logger.info(f'Calling copilot CLI with prompt file: {prompt_arg} and model: {args.model}')
-            copilot_success = call_copilot_cli(prompt_arg, agent_name, args.model, issue_dir)
+            logger.info(f'Calling copilot CLI with prompt via stdin and model: {args.model}')
+            copilot_success = call_copilot_cli(full_prompt_text, agent_name, args.model, issue_dir)
             
             if not copilot_success:
                 logger.error('Copilot CLI failed or did not complete successfully')
@@ -682,85 +670,48 @@ def _load_business_rules_files(root_repo: Path, domain: str) -> list:
 
 
 def build_copilot_prompt(root_repo: Path, prompt_file: Path, domain: str, issue_body: str, issue_title: str = None, output_file: str = 'fixed.md') -> str:
-    """Build a comprehensive prompt string matching story_update.py structure.
+    """Build a minimal, direct prompt that leaves no ambiguity.
     
     Args:
         root_repo: Path to workspace root (durion/)
-        prompt_file: Path to the main prompt instructions file
+        prompt_file: Path to the main prompt instructions file (ignored; we build minimal prompt)
         domain: Domain name (e.g., 'inventory', 'order')
         issue_body: The full body of the issue to be updated
         issue_title: Optional issue title
         output_file: Name of output file (default: 'fixed.md')
     
     Returns:
-        Formatted prompt string with all sections clearly marked
+        Minimal prompt string with zero ambiguity
     """
     parts = []
     
-    # 1. Main Prompt Instructions
-    parts.append("="*100)
-    parts.append("MAIN PROMPT INSTRUCTIONS")
-    parts.append("="*100)
-    if prompt_file.exists():
-        parts.append(load_text_file(prompt_file))
-    else:
-        parts.append("Review and rewrite the issue body resolving open questions using the canonical business rules.")
+    # MINIMAL, DIRECT TASK
+    parts.append("TASK: Review and update the story below. Resolve all open questions. Write to fixed.md.")
     parts.append("")
     
-    # 2. Business Rules for Domain
+    # Business rules for domain (brief)
     br_files = _load_business_rules_files(root_repo, domain)
     if br_files:
-        parts.append("="*100)
-        parts.append(f"BUSINESS RULES FOR DOMAIN: {domain}")
-        parts.append("="*100)
-        for br_file in br_files:
-            parts.append(f"\n--- {br_file.name} ---")
+        parts.append("BUSINESS RULES:")
+        for br_file in br_files[:1]:  # Only first file to keep it brief
             try:
-                parts.append(load_text_file(br_file))
-            except Exception as e:
-                parts.append(f"[Error loading {br_file.name}: {e}]")
+                parts.append(load_text_file(br_file)[:500])  # First 500 chars only
+            except Exception:
+                pass
         parts.append("")
     
-    # 3. Issue Content
-    parts.append("="*100)
-    parts.append("ISSUE TO BE UPDATED")
-    parts.append("="*100)
-    if issue_title:
-        parts.append(f"Title: {issue_title}")
-        parts.append("")
+    # Story content
+    parts.append("STORY:")
     parts.append(issue_body)
-    parts.append("="*100)
     parts.append("")
     
-    # 4. Final Instructions
-    parts.append("-"*100)
-    parts.append("TASK:")
-    parts.append("-"*100)
-    parts.append(
-        f"Review and update the included issue and only this issue for the '{domain}' domain. Resolve any open questions in this issue using "
-        "the business rules provided. Produce an implementation-ready rewrite following all guidance. "
-        "Ensure output contains required section headers and labels as specified in the prompt instructions."
-    )
-    parts.append("")
-    parts.append("-"*100)
-    parts.append("OUTPUT REQUIREMENTS (CRITICAL):")
-    parts.append("-"*100)
-    parts.append("DO NOT create Durion-Processing.md or follow the thought logging workflow.")
-    parts.append("DO NOT create any planning or tracking files.")
-    parts.append("")
-    parts.append("Use create_file tool to write the output.")
-    parts.append("")
-    parts.append(f"YOU MUST:")
-    parts.append(f"1. Use read_file tool to read: after.md")
-    parts.append(f"2. Process and update the issue according to the instructions above")
-    parts.append(f"3. Use create_file tool to write ONLY the final updated story content to: {output_file}")
-    parts.append("")
-    parts.append(f"The output file {output_file} should contain:")
-    parts.append("- The complete, updated issue body with all sections")
-    parts.append("- Resolved open questions (using business rules)")
-    parts.append("- Proper labels and structure as specified in the prompt")
-    parts.append("")
-    parts.append("WRITE THE FILE NOW. Do not defer to another workflow.")
+    # CRITICAL: Explicit output instruction
+    parts.append("OUTPUT INSTRUCTION:")
+    parts.append("Use create_file tool to write the updated story to ./fixed.md")
+    parts.append("Do not ask questions. Do not output to stdout. Write to fixed.md only.")
+    parts.append("Execute now.")
+    
+    return "\n".join(parts)
     parts.append("")
     
     return "\n".join(parts)
@@ -779,7 +730,7 @@ def main():
     parser.add_argument('--agent-ref', default='agent://copilot', help='Agent reference for Copilot')
     parser.add_argument('--rebuild-with-copilot', action='store_true', help='Run the Copilot CLI to rebuild the issue using the Copilot agent')
     parser.add_argument('--prompt-file', help='Path to prompt file for Copilot CLI (used with --rebuild-with-copilot)')
-    parser.add_argument('--model', default='gpt-5.2', help='Model to use for Copilot CLI (default: gpt-5.2)')
+    parser.add_argument('--model', default='gpt-5-mini', help='Model to use for Copilot CLI (default: gpt-5.2)')
     parser.add_argument('--update-github', action='store_true', help='Update issue body and labels in GitHub (requires GITHUB_TOKEN env var)')
     parser.add_argument('--owner', help='GitHub repo owner (required with --update-github)')
     parser.add_argument('--repo', help='GitHub repo name (required with --update-github)')

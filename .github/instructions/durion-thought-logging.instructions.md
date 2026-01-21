@@ -7,6 +7,7 @@ description: 'See process the agent is following where you can edit this to resh
 # Durion Process tracking Instructions
 
 **ABSOLUTE MANDATORY RULES:**
+- Exit these instructions when given the command "EXIT DURION PROCESSING INSTRUCTIONS"
 - You must review these instructions in full before executing any steps to understand the full instructions guidelines.
 - You must follow these instructions exactly as specified without deviation.
 - Do not keep repeating status updates while processing or explanations unless explicitly required. This is bad and will flood Copilot session context.
