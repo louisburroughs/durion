@@ -1,5 +1,5 @@
 #Ignore working files
-#story-work/
+story-work/
 
 .venv/
 __pycache__/

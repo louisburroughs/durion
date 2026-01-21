@@ -289,3 +289,22 @@ Usage by model:
 2026-01-20 18:49:12,413 [INFO] Copilot CLI completed with exit code 0
 2026-01-20 18:49:12,413 [WARNING] Output file not found at expected location or alternates
 2026-01-20 18:49:12,413 [ERROR] Copilot completed but output file not found: /home/louisb/Projects/durion/scripts/story-work/frontend/66/fixed.md
+2026-01-21 08:17:54,077 [INFO] === Processing issue: ../story-work/frontend/66/after.md ===
+2026-01-21 08:17:54,078 [DEBUG] Domain arg: None
+2026-01-21 08:17:54,078 [DEBUG] Issue number: 66
+2026-01-21 08:17:54,078 [DEBUG] Args: {'domain': None, 'after_md': None, 'issue': None, 'issues': None, 'issue_range': '66-70', 'issue_dir': '../story-work/frontend', 'dry_run': False, 'prompt_file': None, 'model': 'gpt-5.2', 'update_github': True, 'owner': 'louisburroughs', 'repo': 'durion-moqui-frontend'}
+2026-01-21 08:17:54,079 [INFO] Domain: security
+2026-01-21 08:17:54,079 [DEBUG] Workspace root: /home/louisb/Projects/durion
+2026-01-21 08:17:54,079 [DEBUG] Trying default prompt: /home/louisb/Projects/durion/.github/prompts/story-frontend-rewrite.prompt.md
+2026-01-21 08:17:54,080 [DEBUG] Full prompt length: 83707 characters
+2026-01-21 08:17:54,081 [INFO] Calling OpenAI API with model: gpt-5.2
+2026-01-21 08:17:54,081 [INFO] Calling OpenAI API with model gpt-5.2
+2026-01-21 08:19:08,652 [INFO] OpenAI response received: 22441 characters
+2026-01-21 08:19:08,653 [INFO] Wrote ../story-work/frontend/66/fixed.md
+2026-01-21 08:19:08,654 [INFO] Updating GitHub issue #66 with 0 labels
+2026-01-21 08:19:08,654 [DEBUG] Labels source: original (after.md) - Labels: []
+2026-01-21 08:19:08,664 [DEBUG] Starting new HTTPS connection (1): api.github.com:443
+2026-01-21 08:19:10,027 [DEBUG] https://api.github.com:443 "PATCH /repos/louisburroughs/durion-moqui-frontend/issues/66 HTTP/1.1" 200 None
+2026-01-21 08:19:10,031 [INFO] Updated GitHub issue louisburroughs/durion-moqui-frontend#66
+2026-01-21 08:19:10,608 [DEBUG] https://api.github.com:443 "POST /repos/louisburroughs/durion-moqui-frontend/issues/66/comments HTTP/1.1" 201 2084
+2026-01-21 08:19:10,611 [INFO] Added update comment to louisburroughs/durion-moqui-frontend#66

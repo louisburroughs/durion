@@ -224,3 +224,54 @@ Usage by model:
     gpt-5.2              1.1m input, 34.5k output, 1.0m cache read (Est. 1 Premium request)
 
 2026-01-20 16:06:56,997 [INFO] Copilot CLI completed with exit code 0
+2026-01-21 07:48:26,634 [INFO] === Processing issue: ../story-work/frontend/65/after.md ===
+2026-01-21 07:48:26,635 [DEBUG] Domain arg: None
+2026-01-21 07:48:26,635 [DEBUG] Issue number: 65
+2026-01-21 07:48:26,636 [DEBUG] Args: {'domain': None, 'after_md': None, 'issue': '65', 'issues': None, 'issue_range': None, 'issue_dir': '../story-work/frontend', 'dry_run': False, 'prompt_file': None, 'model': 'gpt-4o-mini', 'update_github': True, 'owner': 'louisburroughs', 'repo': 'durion-moqui-frontend'}
+2026-01-21 07:48:26,637 [INFO] Domain: security
+2026-01-21 07:48:26,637 [WARNING] Prompt file not found: None; using default
+2026-01-21 07:48:26,637 [WARNING] Prompt file does not exist: ../.github/prompts/story-frontend-rewrite.prompt.md
+2026-01-21 07:53:01,987 [INFO] === Processing issue: ../story-work/frontend/65/after.md ===
+2026-01-21 07:53:01,987 [DEBUG] Domain arg: None
+2026-01-21 07:53:01,987 [DEBUG] Issue number: 65
+2026-01-21 07:53:01,987 [DEBUG] Args: {'domain': None, 'after_md': None, 'issue': '65', 'issues': None, 'issue_range': None, 'issue_dir': '../story-work/frontend', 'dry_run': False, 'prompt_file': None, 'model': 'gpt-4o-mini', 'update_github': True, 'owner': 'louisburroughs', 'repo': 'durion-moqui-frontend'}
+2026-01-21 07:53:01,988 [INFO] Domain: security
+2026-01-21 07:53:01,988 [DEBUG] Workspace root: /home/louisb/Projects/durion
+2026-01-21 07:53:01,988 [DEBUG] Trying default prompt: /home/louisb/Projects/durion/.github/prompts/story-frontend-rewrite.prompt.md
+2026-01-21 07:53:01,990 [DEBUG] Full prompt length: 73278 characters
+2026-01-21 07:53:01,990 [INFO] Calling OpenAI API with model: gpt-4o-mini
+2026-01-21 07:53:01,990 [INFO] Calling OpenAI API with model gpt-4o-mini
+2026-01-21 07:54:23,213 [INFO] OpenAI response received: 16251 characters
+2026-01-21 07:54:23,216 [INFO] Wrote ../story-work/frontend/65/fixed.md
+2026-01-21 07:54:23,216 [INFO] Updating GitHub issue #65 with 0 labels
+2026-01-21 07:54:23,220 [DEBUG] Starting new HTTPS connection (1): api.github.com:443
+2026-01-21 07:54:24,223 [DEBUG] https://api.github.com:443 "PATCH /repos/louisburroughs/durion-moqui-frontend/issues/65 HTTP/1.1" 200 None
+2026-01-21 07:54:24,227 [INFO] Updated GitHub issue louisburroughs/durion-moqui-frontend#65
+2026-01-21 08:04:53,587 [INFO] === Processing issue: ../story-work/frontend/65/after.md ===
+2026-01-21 08:04:53,587 [DEBUG] Domain arg: None
+2026-01-21 08:04:53,587 [DEBUG] Issue number: 65
+2026-01-21 08:04:53,587 [DEBUG] Args: {'domain': None, 'after_md': None, 'issue': '65', 'issues': None, 'issue_range': None, 'issue_dir': '../story-work/frontend', 'dry_run': False, 'prompt_file': None, 'model': 'gpt-5.2', 'update_github': True, 'owner': 'louisburroughs', 'repo': 'durion-moqui-frontend'}
+2026-01-21 08:04:53,588 [INFO] Domain: security
+2026-01-21 08:04:53,588 [DEBUG] Workspace root: /home/louisb/Projects/durion
+2026-01-21 08:04:53,588 [DEBUG] Trying default prompt: /home/louisb/Projects/durion/.github/prompts/story-frontend-rewrite.prompt.md
+2026-01-21 08:04:53,590 [DEBUG] Full prompt length: 82816 characters
+2026-01-21 08:04:53,590 [INFO] Calling OpenAI API with model: gpt-5.2
+2026-01-21 08:04:53,590 [INFO] Calling OpenAI API with model gpt-5.2
+2026-01-21 08:04:55,222 [ERROR] OpenAI API failed: OpenAI API error (400): Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.
+2026-01-21 08:06:40,997 [INFO] === Processing issue: ../story-work/frontend/65/after.md ===
+2026-01-21 08:06:40,997 [DEBUG] Domain arg: None
+2026-01-21 08:06:40,998 [DEBUG] Issue number: 65
+2026-01-21 08:06:40,998 [DEBUG] Args: {'domain': None, 'after_md': None, 'issue': '65', 'issues': None, 'issue_range': None, 'issue_dir': '../story-work/frontend', 'dry_run': False, 'prompt_file': None, 'model': 'gpt-5.2', 'update_github': True, 'owner': 'louisburroughs', 'repo': 'durion-moqui-frontend'}
+2026-01-21 08:06:40,998 [INFO] Domain: security
+2026-01-21 08:06:40,999 [DEBUG] Workspace root: /home/louisb/Projects/durion
+2026-01-21 08:06:40,999 [DEBUG] Trying default prompt: /home/louisb/Projects/durion/.github/prompts/story-frontend-rewrite.prompt.md
+2026-01-21 08:06:41,000 [DEBUG] Full prompt length: 82816 characters
+2026-01-21 08:06:41,000 [INFO] Calling OpenAI API with model: gpt-5.2
+2026-01-21 08:06:41,000 [INFO] Calling OpenAI API with model gpt-5.2
+2026-01-21 08:07:46,225 [INFO] OpenAI response received: 21388 characters
+2026-01-21 08:07:46,226 [INFO] Wrote ../story-work/frontend/65/fixed.md
+2026-01-21 08:07:46,227 [INFO] Updating GitHub issue #65 with 0 labels
+2026-01-21 08:07:46,227 [DEBUG] Labels source: original (after.md) - Labels: []
+2026-01-21 08:07:46,232 [DEBUG] Starting new HTTPS connection (1): api.github.com:443
+2026-01-21 08:07:47,319 [DEBUG] https://api.github.com:443 "PATCH /repos/louisburroughs/durion-moqui-frontend/issues/65 HTTP/1.1" 200 None
+2026-01-21 08:07:47,319 [INFO] Updated GitHub issue louisburroughs/durion-moqui-frontend#65

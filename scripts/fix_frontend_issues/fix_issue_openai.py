@@ -26,7 +26,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Import reusable functions from publish_stories
@@ -64,7 +64,7 @@ def _http_post_json(url: str, headers: dict, payload: dict, timeout_s: int = 60)
         raise RuntimeError(f"HTTP error: {e}")
 
 
-def call_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
+def call_openai(prompt: str, model: str = "gpt-5.2") -> str:
     """Call OpenAI API to process prompt. Returns model response text."""
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
@@ -95,7 +95,7 @@ def call_openai(prompt: str, model: str = "gpt-4o-mini") -> str:
             }
         ],
         "temperature": 0.3,
-        "max_tokens": 8000,
+        "max_completion_tokens": 12000,
     }
     
     logging.info(f"Calling OpenAI API with model {model}")
@@ -161,6 +161,20 @@ def extract_domain_from_required_section(body: str):
     return None
 
 
+def get_workspace_root() -> Path:
+    """Get workspace root directory relative to HOME.
+    
+    Returns Path to durion workspace root (typically ~/Projects/durion).
+    Can be overridden with DURION_WORKSPACE_ROOT environment variable.
+    """
+    env_root = os.getenv('DURION_WORKSPACE_ROOT')
+    if env_root:
+        return Path(env_root).resolve()
+    
+    # Default: ~/Projects/durion
+    return Path.home() / 'Projects' / 'durion'
+
+
 def parse_frontmatter_labels(text: str):
     """Parse YAML frontmatter and extract labels."""
     m = re.match(r'^---\s*\n(.*?)\n---\s*\n', text, flags=re.S)
@@ -179,6 +193,41 @@ def parse_frontmatter_labels(text: str):
     
     body = text[m.end():]
     return labels, body
+
+
+def parse_markdown_labels(text: str):
+    """Parse labels from markdown '## 🏷️ Labels (Proposed)' section.
+    
+    Returns list of labels found in Required, Recommended, and Blocking/Risk sections.
+    Returns empty list if no labels section found.
+    """
+    # Find the Labels section
+    labels_section = re.search(
+        r'##\s*🏷️\s*Labels\s*\(Proposed\)\s*\n(.*?)(?=\n##\s|\Z)',
+        text,
+        re.DOTALL | re.IGNORECASE
+    )
+    
+    if not labels_section:
+        return []
+    
+    section_content = labels_section.group(1)
+    labels = []
+    
+    # Extract labels from list items (lines starting with - after ###)
+    for line in section_content.splitlines():
+        line = line.strip()
+        # Skip section headers and empty lines
+        if line.startswith('###') or line.startswith('**') or not line:
+            continue
+        # Extract label from list item
+        if line.startswith('-'):
+            label = line.lstrip('-').strip()
+            # Skip non-label lines (e.g., "none")
+            if label and ':' in label and label.lower() != 'none':
+                labels.append(label)
+    
+    return labels
 
 
 def find_open_questions(body: str):
@@ -273,6 +322,19 @@ def build_full_prompt(root_repo: Path, prompt_file: Path, domain: str,
     parts.append("=" * 100)
     parts.append("")
     
+    # 3.5. Story Authoring Agent Guidance
+    story_authoring_agent_path = root_repo / '.github' / 'agents' / 'story-authoring.agent.md'
+    if story_authoring_agent_path.exists():
+        parts.append("=" * 100)
+        parts.append("STORY AUTHORING GUIDANCE")
+        parts.append("=" * 100)
+        try:
+            story_authoring_content = load_text_file(story_authoring_agent_path)
+            parts.append(story_authoring_content)
+        except Exception as e:
+            parts.append(f"[Error loading story-authoring.agent.md: {e}]")
+        parts.append("")
+    
     # 4. Final Instructions
     parts.append("-" * 100)
     parts.append("TASK:")
@@ -298,9 +360,60 @@ def build_full_prompt(root_repo: Path, prompt_file: Path, domain: str,
     return "\n".join(parts)
 
 
+def ensure_labels_exist(client: GitHubClient, owner: str, repo: str, labels: list) -> dict:
+    """Ensure repository labels exist, creating missing ones with default colors.
+    
+    Returns dict mapping label names to their creation status (True=created, False=existed, None=error).
+    """
+    if not labels:
+        return {}
+    
+    # Default label colors by prefix
+    label_colors = {
+        'type:': '0075ca',      # blue
+        'domain:': '7057ff',    # purple
+        'status:': 'fbca04',    # yellow
+        'agent:': 'bfdadc',     # light blue
+        'blocked:': 'd73a4a',   # red
+        'risk:': 'e99695',      # light red
+        'priority:': 'ff6347',  # tomato
+    }
+    
+    results = {}
+    for label in labels:
+        try:
+            # Try to get existing label
+            url = f"https://api.github.com/repos/{owner}/{repo}/labels/{label}"
+            resp = client._request("GET", url)
+            if resp.status_code == 200:
+                results[label] = False  # Already exists
+                continue
+        except Exception:
+            pass  # Label doesn't exist, will create it
+        
+        # Determine color based on prefix
+        color = 'cccccc'  # default gray
+        for prefix, prefix_color in label_colors.items():
+            if label.startswith(prefix):
+                color = prefix_color
+                break
+        
+        # Create label
+        try:
+            url = f"https://api.github.com/repos/{owner}/{repo}/labels"
+            client._request("POST", url, json={"name": label, "color": color})
+            logging.info(f"Created repository label: {label}")
+            results[label] = True
+        except Exception as e:
+            logging.warning(f"Failed to create label '{label}': {e}")
+            results[label] = None
+    
+    return results
+
+
 def update_github_issue(owner: str, repo: str, issue_number: int, 
-                       new_body: str, labels: list = None) -> bool:
-    """Update GitHub issue with new body and labels."""
+                       new_body: str, labels: list = None, model: str = None) -> bool:
+    """Update GitHub issue with new body and labels, and add a summary comment."""
     if not GITHUB_AVAILABLE or not GitHubClient:
         logging.warning('GitHub client not available; skipping GitHub update')
         return False
@@ -321,18 +434,57 @@ def update_github_issue(owner: str, repo: str, issue_number: int,
         logging.info(f'Updated GitHub issue {owner}/{repo}#{issue_number}')
         
         # Update labels if provided
-        if labels:
-            # Split into required/recommended/blocking (simple categorization)
-            required = [l for l in labels if l.startswith('domain:') or l.startswith('status:')]
-            blocking = [l for l in labels if l.startswith('blocked:')]
-            recommended = [l for l in labels if l not in required and l not in blocking]
+        label_summary = ""
+        if labels is not None:  # Allow empty list to clear all labels
+            # Ensure all labels exist in repository first
+            label_creation_results = ensure_labels_exist(client, owner, repo, labels)
+            created_labels = [l for l, created in label_creation_results.items() if created]
+            if created_labels:
+                logging.info(f"Created {len(created_labels)} new repository labels: {created_labels}")
             
+            # Get current labels to track what's being removed
+            current_labels = client.get_issue_labels(owner, repo, issue_number)
+            labels_to_remove = [l for l in current_labels if l not in labels]
+            labels_to_add = [l for l in labels if l not in current_labels]
+            
+            # Replace all labels (GitHub API supports setting labels directly)
             try:
-                apply_labels(client, owner, repo, issue_number, required, recommended, blocking, 
-                           include_recommended=True)
-                logging.info(f'Updated labels for {owner}/{repo}#{issue_number}: {labels}')
+                url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/labels"
+                client._request("PUT", url, json={"labels": labels})
+                
+                logging.info(f'Updated labels for {owner}/{repo}#{issue_number}')
+                if labels_to_add:
+                    logging.info(f'  Added: {labels_to_add}')
+                if labels_to_remove:
+                    logging.info(f'  Removed: {labels_to_remove}')
+                
+                label_summary = f"\n- **Labels Updated:** {', '.join(f'`{l}`' for l in sorted(labels)) if labels else 'all cleared'}"
+                if created_labels:
+                    label_summary += f" (created {len(created_labels)} new labels)"
+                if labels_to_remove:
+                    label_summary += f"\n- **Labels Removed:** {', '.join(f'`{l}`' for l in sorted(labels_to_remove))}"
             except Exception as e:
-                logging.warning(f'Failed to apply labels: {e}')
+                logging.warning(f'Failed to update labels: {e}')
+                label_summary = "\n- **Labels:** Update failed"
+        
+        # Add summary comment
+        model_info = f" using {model}" if model else ""
+        comment_body = f"""## 🤖 Story Updated by AI Agent
+
+This issue has been automatically processed and updated{model_info}.
+
+**Updates Applied:**
+- ✅ Issue body refined and updated{label_summary}
+- 📝 Open questions resolved using domain business rules
+- 🎯 Story brought to implementation-ready state
+
+_Generated on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC_"""
+        
+        try:
+            client.create_issue_comment(owner, repo, issue_number, comment_body)
+            logging.info(f'Added update comment to {owner}/{repo}#{issue_number}')
+        except Exception as e:
+            logging.warning(f'Failed to add comment: {e}')
         
         return True
     except Exception as e:
@@ -366,7 +518,10 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
     text = after.read_text(encoding='utf-8')
     labels, body = parse_frontmatter_labels(text)
     if labels is None:
-        labels = []
+        # Try parsing markdown labels section as fallback
+        labels = parse_markdown_labels(text)
+        body = text
+    logger.debug(f'Parsed {len(labels)} labels from after.md: {labels}')
     
     # Determine domain: CLI arg takes precedence, then ### Required section, then labels
     domain = domain_arg
@@ -381,14 +536,22 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
     logger.info(f'Domain: {domain}')
     
     # Build prompt
-    workspace_root = after.parent.parent.parent.parent  # ../../../.. from issue dir
+    workspace_root = get_workspace_root()
+    logger.debug(f'Workspace root: {workspace_root}')
+    
     prompt_path = Path(args.prompt_file).resolve() if args.prompt_file else None
     
     if not prompt_path or not prompt_path.exists():
-        logger.warning(f'Prompt file not found: {prompt_path}; using default')
-        prompt_path = workspace_root / '.github' / 'prompts' / 'story-frontend-rewrite.prompt.md'
+        # Default prompt location relative to workspace root
+        default_prompt = workspace_root / '.github' / 'prompts' / 'story-frontend-rewrite.prompt.md'
+        logger.debug(f'Trying default prompt: {default_prompt}')
+        if default_prompt.exists():
+            prompt_path = default_prompt
+        else:
+            logger.warning(f'Default prompt file not found: {default_prompt}')
+            prompt_path = None
     
-    if not prompt_path.exists():
+    if prompt_path and not prompt_path.exists():
         logger.warning(f'Prompt file does not exist: {prompt_path}')
         prompt_path = None
     
@@ -426,15 +589,31 @@ def process_one(after: Path, domain_arg: str, args, issue_number: int = None) ->
             logger.error('--owner and --repo required for --update-github')
             return 10
         else:
-            # Parse labels from response
+            # Parse labels from response - try YAML frontmatter first, then markdown section
             resp_labels, _ = parse_frontmatter_labels(response_body)
+            
+            if resp_labels is None:
+                # Try markdown labels section
+                resp_labels = parse_markdown_labels(response_body)
+                logger.debug(f'Parsed {len(resp_labels)} labels from fixed.md markdown section: {resp_labels}')
+            else:
+                logger.debug(f'Parsed {len(resp_labels)} labels from fixed.md YAML frontmatter: {resp_labels}')
+            
+            # Use response labels if found (even if empty list)
+            # Fall back to original labels only if no labels found in response
             if resp_labels:
                 labels_out = list(sorted(set(resp_labels)))
-            else:
+                labels_source = "response (fixed.md)"
+            elif labels:
                 labels_out = list(sorted(set(labels)))
+                labels_source = "original (after.md)"
+            else:
+                labels_out = []
+                labels_source = "none found"
             
             logger.info(f'Updating GitHub issue #{issue_number} with {len(labels_out)} labels')
-            update_github_issue(args.owner, args.repo, issue_number, response_body, labels_out)
+            logger.debug(f'Labels source: {labels_source} - Labels: {labels_out}')
+            update_github_issue(args.owner, args.repo, issue_number, response_body, labels_out, args.model)
     
     return 0
 
@@ -451,7 +630,7 @@ def main():
     parser.add_argument('--dry-run', action='store_true', 
                        help='Do not write files or call external APIs')
     parser.add_argument('--prompt-file', help='Path to prompt file')
-    parser.add_argument('--model', default='gpt-4o-mini', help='OpenAI model to use')
+    parser.add_argument('--model', default='gpt-5.2', help='OpenAI model to use')
     parser.add_argument('--update-github', action='store_true', 
                        help='Update issue body and labels in GitHub')
     parser.add_argument('--owner', help='GitHub repo owner')

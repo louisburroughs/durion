@@ -1,599 +1,439 @@
+STOP: Clarification required before finalization
+
 ---
+name: "Security: Audit Trail UI for Financial Exceptions (Price Overrides, Refunds, Cancellations)"
 labels:
   - type:story
   - domain:security
-  - domain:audit
-  - status:ready-for-implementation
+  - status:draft
   - agent:security-domain
-  - agent:audit-domain
   - agent:story-authoring
+  - blocked:clarification
+  - risk:incomplete-requirements
 ---
 
-# Security: Audit Trail for Price Overrides, Refunds, and Cancellations (Frontend, Moqui Screens)
+## 🏷️ Labels (Proposed)
+
+### Required
+- type:story
+- domain:security
+- status:draft
+
+### Recommended
+- agent:security-domain
+- agent:story-authoring
+
+### Blocking / Risk
+- blocked:clarification
+- risk:incomplete-requirements
+
+**Rewrite Variant:** security-strict
+
+---
 
 ## 1. Story Header
 
-**Title**: Security: Audit Trail for Price Overrides, Refunds, and Cancellations (Frontend, Moqui Screens)
+**Title**: Security: Gate & Surface Financial Exception Audit Trail (Price Overrides, Refunds, Cancellations) — Frontend (Moqui Screens)
 
-**Primary Persona**: Compliance Auditor (secondary: Shop Manager; Security/Compliance Admin)
+**Primary Persona**: Auditor (secondary: Store Manager; Compliance/Security Reviewer)
 
-**Business Value**: Financial exceptions (price overrides, refunds, cancellations) are explainable, traceable, and reviewable with immutable audit evidence for investigations, internal controls, compliance, and dispute resolution.
+**Business Value**: Financial exceptions are explainable and reviewable with consistent access control, correlation IDs, and export capability, enabling investigations and internal controls without exposing sensitive payloads.
 
 ---
 
 ## 2. Story Intent
 
 ### As a / I want / So that
-- **As a Compliance Auditor**, I want a centralized, append-only audit trail for price overrides, refunds, and cancellations, so that I can explain financial exceptions with who/when/why and supporting references for investigations and compliance.
+- **As an Auditor**, I want to search, view, and export an append-only audit trail of financial exceptions (price overrides, refunds, cancellations), so that I can investigate who/when/why with traceable references.
 
 ### In-scope
 - Moqui **screens + navigation** to:
-  - Search/filter audit entries (with mandatory date range and indexed filters per AUD-SEC-005)
-  - Drill down from an **order and/or invoice** to related audit entries
-  - View audit entry details including actor, timestamp, reason, and payment/accounting references
-  - Export audit entries report (async job per AUD-SEC-006)
-  - View pricing snapshot and rule trace evidence (per AUD-SEC-008)
+  - Search/filter financial exception audit entries (read-only)
+  - Drill down from **Order** and/or **Invoice** detail screens into audit entries filtered by that record
+  - View audit entry details (read-only) including actor, timestamp, reason, and references
+  - Export audit entries (CSV by default; asynchronous export is preferred but depends on backend)
 - UI enforcement of **append-only** behavior (no edit/delete actions exposed)
-- Authorization-gated access per AUD-SEC-003
-- Location scoping per AUD-SEC-002
-- Tenant isolation per AUD-SEC-001
+- Permission-gated access (deny-by-default) using Security-owned permission keys for audit viewing/export
+- Canonical error handling using the Security error envelope (`code`, `message`, `correlationId`, optional `fieldErrors[]`, optional `details`) per DECISION-INVENTORY-015
 
 ### Out-of-scope
-- Backend persistence, entity schema, or write-side generation of audit entries
-- Business logic that determines *when* an audit entry is created
-- Backend audit ingestion, immutability guarantees, or retention policies
+- Write-side generation of financial exception audit entries (owned by the relevant business domains; exposed via `audit` domain read model) (**DECISION-INVENTORY-012**)
+- Approval workflows/state transitions related to exceptions (owned by workflow domain; security only gates access) (**DECISION-INVENTORY-014**)
+- Creating/editing permissions in UI (permission registry is code-first; UI read-only) (**DECISION-INVENTORY-006**)
+- Principal-role assignment UI (explicitly deferred in v1) (**DECISION-INVENTORY-007**)
 
 ---
 
 ## 3. Actors & Stakeholders
-- **Compliance Auditor**: Primary consumer; searches, filters, exports, reviews drilldowns, views pricing evidence. Requires `audit:log:view`, `audit:log:view-detail`, `audit:export:execute`, `audit:export:download`, `audit:pricing-snapshot:view`, `audit:pricing-trace:view`.
-- **Shop Manager**: Investigates exceptions; view/search + detail (no export by default, no raw payload by default).
-- **Security/Compliance Admin**: Defines access policies/roles, retention, export restrictions; manages reason code registry (`audit:reason-code:manage`).
-- **Support/Operations**: View/search + detail; raw payload only if explicitly granted (`audit:payload:view`).
+- **Auditor**: Primary consumer; searches, filters, exports, reviews drilldowns.
+- **Store Manager**: Investigates exceptions for a store/day/cashier; may export if permitted.
+- **Security/Compliance Admin**: Assigns roles/permissions externally; ensures least-privilege and export restrictions.
+- **Audit Domain Owner**: Owns financial exception audit read model and export behavior (backend).
+- **Accounting/Billing Stakeholders**: Need references (order/invoice/payment identifiers) to reconcile and investigate.
 
 ---
 
 ## 4. Preconditions & Dependencies
-- Moqui frontend app running with authenticated user context
-- Backend provides (per audit domain "API Expectations (Normative)"):
-  - `GET /audit/logs/search` (paging/sorting/filtering with mandatory date range and indexed filters)
-  - `GET /audit/logs/detail?eventId=...`
-  - Export: `POST /audit/export/request`, `GET /audit/export/status`, `GET /audit/export/download`
-  - Meta: `GET /audit/meta/eventTypes`, `GET /audit/meta/reasonCodes`, `GET /audit/meta/locations`
-  - Pricing evidence: `GET /audit/pricing/snapshot?snapshotId=...`, `GET /audit/pricing/trace?ruleTraceId=...`
-- Authorization/permissions available in session per AUD-SEC-003
-- Entities per audit domain: `AuditLog`, `PricingSnapshot`, `PricingRuleTrace`
-- Tenant isolation enforced server-side per AUD-SEC-001
-- Location scoping enforced server-side per AUD-SEC-002
+- Authenticated user context is available in the Moqui frontend.
+- Authorization is **deny-by-default**; UI must not show audit data without explicit permission grants (**DECISION-INVENTORY-001**, **DECISION-INVENTORY-002**).
+- Backend dependencies:
+  - **Audit domain** provides financial exception audit read APIs (list/detail/export) under `/api/v1/audit/exceptions/*` (exact endpoints must be confirmed; see Open Questions) (**DECISION-INVENTORY-012**).
+  - **Security domain** provides permission gating and canonical error envelope semantics (**DECISION-INVENTORY-015**).
+- Cross-screen drilldown dependencies:
+  - Order Detail and Invoice Detail screens exist and can accept navigation parameters (e.g., `orderId`, `invoiceId`) to link out to audit trail.
+- Tenant scoping:
+  - All queries are tenant-scoped via trusted auth context; UI must not accept tenantId as user input (**DECISION-INVENTORY-008**).
 
 ---
 
 ## 5. UX Summary (Moqui-Oriented)
 
 ### Entry points
-- Main navigation: **Administration/Compliance → Audit Trail** (role-based visibility per AUD-SEC-003 with `audit:log:view`)
-- Contextual drilldowns (per AUD-SEC-011):
-  - From **Order Detail**, **Invoice Detail**, **Work Order Detail**, **Appointment Detail**, **Mechanic Detail**, **Inventory Movement Detail**, **Estimate Line Detail** screens: "View Audit Trail" (pre-filter to relevant ID)
+- Main navigation: **Security → Audit Trail (Financial Exceptions)** (name may be “Audit Trail” but must be clearly scoped to financial exceptions to avoid confusion with security-owned RBAC audit).
+- Contextual drilldowns:
+  - From **Order Detail**: “View Financial Exception Audit”
+  - From **Invoice Detail**: “View Financial Exception Audit”
 
 ### Screens to create/modify
-1. **New**: `apps/pos/screen/audit/AuditTrail.xml` - Search/list view with filters + results table + export action
-2. **New**: `apps/pos/screen/audit/AuditTrailDetail.xml` - Detail view for single audit entry (read-only)
-3. **New**: `apps/pos/screen/audit/PricingSnapshot.xml` - Read-only pricing snapshot evidence (per AUD-SEC-008)
-4. **New**: `apps/pos/screen/audit/PricingTrace.xml` - Read-only pricing rule trace evidence (per AUD-SEC-008)
-5. **New**: `apps/pos/screen/audit/ExportStatus.xml` - Async export job status and download link (per AUD-SEC-006)
-6. **Modify**: `OrderDetail`, `InvoiceDetail`, `WorkOrderDetail`, `AppointmentDetail`, `MechanicDetail`, `MovementDetail`, `EstimateLineDetail` screens to add audit trail drilldown links
+1. **New Screen**: `apps/pos/screen/security/FinancialExceptionAudit.xml`
+   - Search/list view with filters + results + export action (read-only)
+2. **New Screen**: `apps/pos/screen/security/FinancialExceptionAuditDetail.xml`
+   - Detail view for a single audit entry (read-only)
+3. **Modify Screen**: Order detail screen (existing path TBD) to add transition/link to `FinancialExceptionAudit` filtered by `orderId`
+4. **Modify Screen**: Invoice detail screen (existing path TBD) to add transition/link to `FinancialExceptionAudit` filtered by `invoiceId`
+
+> Note: Although the data is owned by the `audit` domain, the UI entry point is placed under Security navigation because access is security-gated and auditor-facing. Backend ownership remains `audit` (**DECISION-INVENTORY-012**).
 
 ### Navigation context
-- Audit Trail list supports deep links with query params:
-  - **Required**: `fromUtc`, `toUtc` (mandatory per AUD-SEC-005; max 90 days)
-  - **At least one indexed filter required** per AUD-SEC-005: `eventType`, `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `aggregateId`, `correlationId`, `reasonCode`
-  - **Optional** (if user has `audit:scope:cross-location`): `locationIds[]`
-- Detail screen accessible by `eventId` (UUIDv7 per audit domain)
-- Pricing snapshot accessible by `snapshotId` (UUIDv7)
-- Pricing trace accessible by `ruleTraceId` (UUIDv7)
+- List screen supports deep links with query params (all optional):
+  - `orderId`, `invoiceId`, `eventType`, `dateFrom`, `dateTo`, `actorUserId`, `locationId`, `terminalId`
+- Detail screen accessible by `auditEntryId` (exact field name depends on backend; see Open Questions)
 
-### User workflows
-**Happy path (Compliance Auditor search → drilldown → export → pricing evidence)**
-1. Auditor opens Administration/Compliance → Audit Trail
-2. Applies mandatory date range (max 90 days per AUD-SEC-005) and at least one indexed filter
-3. Opens a result row to view detail
-4. From detail, views pricing snapshot and rule trace if present (per AUD-SEC-008)
-5. From detail, navigates to referenced order/invoice/payment (authorization-gated per AUD-SEC-011)
-6. Returns to list and exports results matching current filters (async job per AUD-SEC-006)
-7. Downloads export artifact when job completes
+### User workflows (happy + alternate)
+**Happy path (Auditor search → detail → export)**
+1. Auditor opens Security → Audit Trail (Financial Exceptions).
+2. Auditor sets filters (date range, event type, actor, location) and runs search.
+3. Auditor opens a row to view detail.
+4. Auditor follows reference links to order/invoice if permitted.
+5. Auditor exports the filtered result set (if permitted).
 
 **Alternate paths**
 - Deep link from Order Detail → Audit Trail pre-filtered to that order
-- Empty results: show "No audit entries match filters" with "Clear filters" action
-- Unauthorized user: show "Not authorized" and block access (per AUD-SEC-003)
-- Date range exceeds 90 days: show inline error (per AUD-SEC-005)
-- No indexed filter: show inline error (per AUD-SEC-005)
+- Empty results: show “No audit entries match your filters”
+- Unauthorized: show “Not authorized” without leaking whether entries exist
 
 ---
 
 ## 6. Functional Behavior
 
 ### Triggers
-- Screen load of Audit Trail list (initial query with mandatory date range and indexed filter)
-- Filter change + "Search" action (re-query)
-- Row click "View details" (load detail by `eventId`)
-- "Export" action (POST export request → poll status → download per AUD-SEC-006)
-- "View Snapshot" link (load pricing snapshot by `snapshotId` per AUD-SEC-008)
-- "View Trace" link (load pricing trace by `ruleTraceId` per AUD-SEC-008)
+- Screen load of list: perform an initial query only if user has view permission; otherwise show unauthorized.
+- User clicks “Search”: query with current filters.
+- User clicks a row “View details”: load detail by id.
+- User clicks “Export”: request export for current filters (permission required).
 
 ### UI actions
-- **Filters** (per AUD-SEC-005 and audit domain):
-  - **Mandatory**: `fromUtc`, `toUtc` (date range; max 90 days)
-  - **At least one indexed filter required**: `eventType` (dropdown from `GET /audit/meta/eventTypes`), `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `aggregateId`, `correlationId`, `reasonCode`
-  - **Optional** (if user has `audit:scope:cross-location`): `locationIds[]` (multiselect from `GET /audit/meta/locations`)
-- **Results table**: Sort by `occurredAt` desc by default; pagination controls; columns: event type, timestamp (user timezone), actor, reason summary, order/invoice/payment refs, location
-- **Detail view**: Immutable fields displayed; reference links to related records (per AUD-SEC-011); pricing snapshot/trace links if present (per AUD-SEC-008); immutability proof fields if present and user has `audit:proof:view` (per AUD-SEC-009); raw payload only if user has `audit:payload:view` and rendered as escaped text (per AUD-SEC-004)
-- **Export**: CSV format (per AUD-SEC-006); async job with status polling and download link
+- Filters (must align to backend-supported fields; see Data Requirements/Open Questions):
+  - Date range (`dateFrom`, `dateTo`)
+  - Event type (enum)
+  - Actor (user id or display name search if supported)
+  - Order/Invoice identifiers
+  - Location/Terminal (if supported)
+- Results table:
+  - Default sort: most recent first
+  - Pagination controls
+  - Columns (minimum): event type, timestamp, actor, reason summary, references (order/invoice/payment)
+- Detail view:
+  - Read-only fields
+  - Reference links (order/invoice/payment) shown only when identifiers exist and user has access to the target screen
 
-### Service interactions (per audit domain API Expectations)
-- `GET /audit/logs/search` (list query)
-- `GET /audit/logs/detail?eventId=...` (detail)
-- `POST /audit/export/request` (export request)
-- `GET /audit/export/status?exportId=...` (export status)
-- `GET /audit/export/download?exportId=...` (export download)
-- `GET /audit/meta/eventTypes` (event type dropdown)
-- `GET /audit/meta/reasonCodes` (reason code display metadata)
-- `GET /audit/meta/locations` (location dropdown for cross-location search)
-- `GET /audit/pricing/snapshot?snapshotId=...` (pricing snapshot)
-- `GET /audit/pricing/trace?ruleTraceId=...` (pricing rule trace)
+### State changes (frontend)
+- No mutation of audit entries.
+- Local UI state only: filters, paging, loading/error states, export-in-progress state.
+
+### Service interactions (frontend → backend)
+- `GET /api/v1/audit/exceptions` (list)
+- `GET /api/v1/audit/exceptions/{auditEntryId}` (detail)
+- `POST /api/v1/audit/exceptions/export` (export) or `GET .../export` depending on backend
+- Optional: order/invoice screen navigation uses existing screens; no additional fetch required beyond what those screens already do.
 
 ---
 
 ## 7. Business Rules (Translated to UI Behavior)
 
-### Validation (per AUD-SEC-005)
-- Date range:
-  - `fromUtc` and `toUtc` are **required**
-  - `fromUtc <= toUtc`
-  - `toUtc - fromUtc <= 90 days`
-  - UI displays in user timezone but sends UTC to backend
-- At least one indexed filter is **required**: `eventType`, `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `aggregateId`, `correlationId`, `reasonCode`
-- `eventType` must be from controlled vocabulary (`GET /audit/meta/eventTypes` per AUD-SEC-010)
-- Cross-location search requires explicit `locationIds[]` and `audit:scope:cross-location` permission (per AUD-SEC-002)
+### Validation
+- Date range validation:
+  - If both provided, enforce `dateFrom <= dateTo`; otherwise block search and show inline error.
+  - If only one boundary provided, allow open-ended range.
+- Event type validation:
+  - UI must only allow selecting event types returned by backend (preferred) or a fixed list if backend does not provide a registry (requires clarification).
+- No “required filter” rule is imposed by UI unless backend enforces it (performance policy is backend-owned; if backend returns a validation error, surface it).
 
-### Enable/disable rules (per AUD-SEC-003, AUD-SEC-005)
-- **Export button**: Enabled only if user has `audit:export:execute` AND results loaded AND export not already in progress
-- **Pricing snapshot/trace links**: Visible only if `snapshotId`/`ruleTraceId` present AND user has `audit:pricing-snapshot:view`/`audit:pricing-trace:view`
-- **Raw payload section**: Visible only if user has `audit:payload:view` (per AUD-SEC-004)
-- **Immutability proof fields**: Visible only if fields present AND user has `audit:proof:view` (per AUD-SEC-009); label as "Provided" not "Verified" unless backend provides `proofVerified=true`
-- **Cross-location filter**: Visible only if user has `audit:scope:cross-location` (per AUD-SEC-002)
+### Enable/disable rules
+- Export button:
+  - Disabled if user lacks export permission.
+  - Disabled while export request is in progress.
+  - Disabled if there are no results loaded (to avoid exporting “unknown” set); if backend supports exporting without prior search, this can be relaxed (clarification).
+- “View details”:
+  - Enabled only when the row has a resolvable `auditEntryId`.
 
-### Visibility rules (per AUD-SEC-001, AUD-SEC-002, AUD-SEC-003)
-- Screens visible only to authorized roles/permissions per AUD-SEC-003
-- All data is tenant-scoped (per AUD-SEC-001); no cross-tenant search/export
-- Default location scope is user's current location (per AUD-SEC-002)
-- Payment reference fields shown only if present
-- Reason display: show `reasonCode` + `reasonNotes` if present; map `reasonCode` to display name via `GET /audit/meta/reasonCodes`
+### Visibility rules
+- Route/menu visibility:
+  - Show Security → Audit Trail only if user has `security:audit_entry:view` (or equivalent) (**DECISION-INVENTORY-002**).
+- Sensitive fields:
+  - Do not display raw payload by default; show curated fields only (**DECISION-INVENTORY-013**).
+  - If backend provides a gated “raw payload” field, only render it when user has explicit permission (permission key must be defined; see Open Questions).
 
-### Error messaging expectations (per AUD-SEC-004, AUD-SEC-005)
-- Query failure: show non-technical message + correlation id if available
-- Unauthorized: show "You do not have access to Audit Trail" (per AUD-SEC-003)
-- Date range validation failure: show "Date range is required and maximum 90 days" (per AUD-SEC-005)
-- Missing indexed filter: show "At least one filter required (e.g., event type, work order, actor)" (per AUD-SEC-005)
-- Cross-location denied: show "Cross-location search requires additional permission" (per AUD-SEC-002)
-- Export failure: show error and keep current filters intact
-- For 401: redirect to login
-- For 403: show unauthorized screen per AUD-SEC-003
-- For 5xx: show generic failure with correlation id, allow retry
+### Error messaging expectations
+- All API errors:
+  - Display a user-friendly message plus `correlationId` when present (**DECISION-INVENTORY-015**).
+- 401/403:
+  - Show unauthorized screen/message; do not show partial data.
+- Validation errors:
+  - Map `fieldErrors[]` to inline field messages when provided.
 
 ---
 
 ## 8. Data Requirements
 
-### Entities involved (per audit domain)
-- **AuditLog**: append-only audit events (normative entity)
-- **PricingSnapshot**: immutable pricing evidence (normative entity per AUD-SEC-008)
-- **PricingRuleTrace**: immutable pricing rule trace evidence (normative entity per AUD-SEC-008)
+### Entities involved (ownership)
+- **Audit domain read model**: Financial exception audit entries (system of record for query/export) (**DECISION-INVENTORY-012**).
+- **Security domain**: Permissions and authorization gating; does not own financial exception audit content (**DECISION-INVENTORY-012**, **DECISION-INVENTORY-002**).
 
-### Key Fields (per audit domain)
+### Fields (type, required, defaults)
+**Audit Entry Summary (list) — required minimum**
+- `auditEntryId` (string/UUID, required) — primary key for drilldown
+- `eventType` (string/enum, required) — e.g., `PRICE_OVERRIDE|REFUND|CANCELLATION` (exact codes must be confirmed)
+- `eventTs` (datetime, required) — ISO-8601; display in user timezone
+- `actorUserId` (string, required)
+- `actorDisplayName` (string, optional)
+- `reasonText` (string, optional unless backend requires; see Open Questions)
+- References (all optional):
+  - `orderId`
+  - `invoiceId`
+  - `paymentId` and/or `paymentRef`
+  - `locationId`
+  - `terminalId`
+- Optional financial context (if provided by audit domain):
+  - `amount` (decimal)
+  - `currencyUomId` (string)
 
-**AuditLog**
-- `auditLogId` (UUIDv7, required) — internal PK
-- `eventId` (UUIDv7, required) — dedupe key; used for drilldown
-- `schemaVersion` (string, required)
-- `eventType` (string, required) — from controlled vocabulary
-- `occurredAt` (datetime w/ timezone, required) — display in user timezone
-- `emittedAt` (datetime w/ timezone, optional)
-- `tenantId` (UUIDv7, required) — enforced server-side (per AUD-SEC-001)
-- `locationId` (UUIDv7, required) — display as location name (per AUD-SEC-002)
-- `actor` (object, required): `actorType`, `actorId`, `displayName` (optional)
-- `aggregateType` (string, required)
-- `aggregateId` (string, required)
-- `changeSummaryText` (string, optional)
-- `changePatch` (structured diff, optional)
-- `reasonCode` (string, optional)
-- `reasonNotes` (string, optional)
-- `correlationId` (string, optional) — W3C trace correlation (per AUD-SEC-012)
-- `sourceSystem` (string, optional)
-- `rawPayload` (string/json, optional) — only if user has `audit:payload:view`; render as escaped text (per AUD-SEC-004)
-- Optional immutability proof fields (per AUD-SEC-009): `hash`, `prevHash`, `signature` (display-only if user has `audit:proof:view`)
-
-**PricingSnapshot** (per AUD-SEC-008)
-- `snapshotId` (UUIDv7, required)
-- `timestamp` (datetime w/ timezone, required)
-- `quoteContext` (object, restricted/redacted per AUD-SEC-004)
-- `finalPrice` (money, required)
-- `ruleTraceId` (UUIDv7, optional)
-
-**PricingRuleTrace** (per AUD-SEC-008)
-- `ruleTraceId` (UUIDv7, required)
-- `evaluationSteps[]` (array, required): `ruleId`, `status` (APPLIED|REJECTED|SKIPPED), `inputs` (restricted/redacted), `outputs` (restricted/redacted)
-- If paginated: support `pageToken`, `nextPageToken`, `isTruncated`
+**Audit Entry Detail (detail) — required minimum**
+- All summary fields plus:
+  - `createdByUserId` (if distinct from actor)
+  - `detailsSummary` (string, optional; curated)
+  - `redactionReason` (string, optional; when details are withheld) (**DECISION-INVENTORY-013**)
+  - `rawPayload` (json/string, optional; only if gated and redacted) (**DECISION-INVENTORY-013**)
 
 **Defaults**
-- Default sort: `occurredAt desc`
-- Default date range: **none** (mandatory per AUD-SEC-005)
-- Default location scope: user's current location (implicit per AUD-SEC-002)
+- Default sort: `eventTs desc`
+- Default date range: none (do not assume a policy threshold)
+
+### Read-only vs editable by state/role
+- All fields are read-only.
+- No edit/delete UI actions exist.
+
+### Derived/calculated fields
+- `reasonSummary`: derived client-side by truncating `reasonText` to a safe length for table display.
+- `referenceSummary`: derived by preferring internal IDs for navigation and showing external refs if provided.
 
 ---
 
 ## 9. Service Contracts (Frontend Perspective)
 
-> Concrete Moqui service names must map to these capability contracts per audit domain "API Expectations (Normative)".
+> Financial exception audit is owned by `audit` domain; security provides permission gating and error envelope expectations. Exact audit endpoints must be confirmed (blocking).
 
 ### Load/view calls
-1. **List query**: `GET /audit/logs/search` (or Moqui service `search#AuditLogs`)
-   - **Required inputs**: `fromUtc`, `toUtc` (ISO 8601 UTC, max 90-day window per AUD-SEC-005)
-   - **At least one indexed filter required** per AUD-SEC-005: `eventType`, `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `aggregateId`, `correlationId`, `reasonCode`
-   - **Optional** (for cross-location search per AUD-SEC-002): `locationIds[]` (requires `audit:scope:cross-location`)
-   - **Pagination**: `pageIndex` (int, default 1), `pageSize` (int, default per app convention)
-   - **Sort**: `orderBy` (string, default `-occurredAt`)
-   - **Output**: `items[]` (AuditLog summary), `totalCount` (int), `pageInfo`
-   - **Security**: enforces tenant isolation (AUD-SEC-001), location scoping (AUD-SEC-002), date range/filter guardrails (AUD-SEC-005)
+1. **List query**
+   - Method/Path (proposed): `GET /api/v1/audit/exceptions`
+   - Query params:
+     - `eventType?`, `dateFrom?`, `dateTo?`, `actorUserId?`, `orderId?`, `invoiceId?`, `paymentRef?`, `locationId?`, `terminalId?`
+     - Pagination: `pageIndex` (int), `pageSize` (int)
+     - Sorting: `orderBy` (string; default `-eventTs`) or `sort=-eventTs` (must match backend)
+   - Response:
+     ```json
+     {
+       "items": [ { "auditEntryId": "...", "eventType": "...", "eventTs": "...", "actorUserId": "...", "reasonText": "...", "orderId": "..."} ],
+       "pageIndex": 0,
+       "pageSize": 25,
+       "totalCount": 123
+     }
+     ```
 
-2. **Detail fetch**: `GET /audit/logs/detail?eventId=...` (or Moqui service `get#AuditLogDetail`)
-   - **Inputs**: `eventId` (UUIDv7, required)
-   - **Output**: full AuditLog record
-   - **Security**: enforces tenant isolation (AUD-SEC-001), permission check (`audit:log:view-detail`)
-
-3. **Meta: Event types**: `GET /audit/meta/eventTypes` (or Moqui service `list#EventTypes`)
-   - **Inputs**: none (tenant-scoped per AUD-SEC-001)
-   - **Output**: `eventTypes[]` (code, displayName)
-
-4. **Meta: Reason codes**: `GET /audit/meta/reasonCodes` (or Moqui service `list#ReasonCodes`)
-   - **Inputs**: none (tenant-scoped per AUD-SEC-001)
-   - **Output**: `reasonCodes[]` (code, displayName, description)
-
-5. **Meta: Locations**: `GET /audit/meta/locations` (or Moqui service `list#Locations`)
-   - **Inputs**: none (tenant-scoped per AUD-SEC-001)
-   - **Output**: `locations[]` (locationId, displayName)
-
-6. **Pricing snapshot**: `GET /audit/pricing/snapshot?snapshotId=...` (or Moqui service `get#PricingSnapshot`)
-   - **Inputs**: `snapshotId` (UUIDv7, required)
-   - **Output**: full PricingSnapshot record per AUD-SEC-008
-   - **Security**: permission check (`audit:pricing-snapshot:view`), redaction per AUD-SEC-004
-
-7. **Pricing rule trace**: `GET /audit/pricing/trace?ruleTraceId=...` (or Moqui service `get#PricingRuleTrace`)
-   - **Inputs**: `ruleTraceId` (UUIDv7, required), `pageToken` (string, optional for pagination)
-   - **Output**: PricingRuleTrace record with `evaluationSteps[]` per AUD-SEC-008; if paginated: `nextPageToken`, `isTruncated`
-   - **Security**: permission check (`audit:pricing-trace:view`), redaction per AUD-SEC-004
+2. **Detail fetch**
+   - Method/Path (proposed): `GET /api/v1/audit/exceptions/{auditEntryId}`
+   - Response: audit entry detail (curated by default)
 
 ### Create/update calls
-- None (append-only; UI provides no mutations per audit domain)
+- None (append-only; UI provides no mutations)
 
 ### Submit/transition calls
-1. **Export request**: `POST /audit/export/request` (or Moqui service `request#AuditExport`)
-   - **Inputs**: same filters as list query (per AUD-SEC-006): `fromUtc`, `toUtc` (required), at least one indexed filter (required), `format` (string, default `CSV`)
-   - **Output**: `exportId` (UUIDv7), `statusUrl` (URL to poll status)
-   - **Security**: permission check (`audit:export:execute`), audits export request per AUD-SEC-006
+1. **Export**
+   - Method/Path (proposed): `POST /api/v1/audit/exceptions/export`
+   - Body: same filter object as list query + `format` (default `CSV`)
+   - Response options (backend-dependent):
+     - **Async**: `{ "exportJobId": "...", "status": "QUEUED", "correlationId": "..." }`
+     - **Sync**: file stream with `Content-Disposition` filename
+   - UI must support both patterns if backend indicates via response headers/body (blocking clarification).
 
-2. **Export status**: `GET /audit/export/status?exportId=...` (or Moqui service `get#ExportStatus`)
-   - **Inputs**: `exportId` (UUIDv7, required)
-   - **Output**: `status` (PENDING|PROCESSING|COMPLETED|FAILED), `progress` (0-100, optional), `downloadUrl` (string, only if status=COMPLETED), `error` (string, only if status=FAILED)
-   - **Security**: permission check (`audit:export:download`), non-enumerable per AUD-SEC-006
-
-3. **Export download**: `GET /audit/export/download?exportId=...` (or Moqui service `download#AuditExport`)
-   - **Inputs**: `exportId` (UUIDv7, required)
-   - **Output**: file download stream (CSV per AUD-SEC-006) with SHA-256 digest manifest
-   - **Security**: permission check (`audit:export:download`)
+### Error handling expectations
+- Canonical error envelope for non-2xx:
+  ```json
+  {
+    "code": "FORBIDDEN|VALIDATION_FAILED|NOT_FOUND|...",
+    "message": "…",
+    "correlationId": "…",
+    "fieldErrors": [{"field":"dateFrom","message":"must be <= dateTo"}],
+    "details": {}
+  }
+  ```
+- 403 must be treated as “no access” (deny-by-default) and must not leak data existence (**DECISION-INVENTORY-001**, **DECISION-INVENTORY-015**).
 
 ---
 
 ## 10. State Model & Transitions
 
 ### Allowed states
-- Audit entries: immutable (no UI-managed state per audit domain)
-- Export jobs: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED` (per AUD-SEC-006)
+- Audit entries are immutable; no UI-managed lifecycle.
 
-### Role-based transitions (per AUD-SEC-003)
-- **Route access control**:
-  - `AuditTrail` requires `audit:log:view`
-  - `AuditTrailDetail` requires `audit:log:view-detail`
-  - `PricingSnapshot` requires `audit:pricing-snapshot:view`
-  - `PricingTrace` requires `audit:pricing-trace:view`
-  - Export requires `audit:export:execute` and `audit:export:download`
-  - Raw payload section requires `audit:payload:view`
-  - Immutability proof fields require `audit:proof:view`
-  - Cross-location search requires `audit:scope:cross-location`
-- Drilldown transitions (per AUD-SEC-011): From audit entry → Order/Invoice/Payment/WorkOrder/Appointment/Mechanic/Movement/EstimateLine Detail only if user has access (destination screens enforce their own access controls)
+### Role-based transitions
+- Route access control (minimum Security-owned permission keys):
+  - View list/detail: `security:audit_entry:view`
+  - Export: `security:audit_entry:export`
+- Drilldown transitions:
+  - From audit entry → Order/Invoice screens only if user has access to those screens (enforced by those screens’ own permission checks).
 
 ### UI behavior per state
-- Loading: show progress indicator, disable export/search until initial load completes
-- Loaded: show results + paging
-- Error: show error panel with retry
-- Empty: show empty state with "Clear filters" action
-- Export pending/processing: show progress indicator, disable export button
-- Export completed: show download link
-- Export failed: show error message and retry button
+- Loading: show loading indicator; disable actions until response.
+- Loaded: show results and pagination.
+- Empty: show empty state with “Clear filters”.
+- Error: show error panel including `correlationId` and a “Retry” action.
 
 ---
 
 ## 11. Alternate / Error Flows
 
-1. **Validation failure (date range invalid or missing indexed filter)**: Prevent search; show inline error on date inputs or filter section. Backend also rejects with 400 + field errors (per AUD-SEC-005).
-2. **Date range exceeds 90 days**: Show inline error "Maximum date range is 90 days" (per AUD-SEC-005). Backend also rejects with 400.
-3. **Cross-location search without permission**: Hide cross-location filter if user lacks `audit:scope:cross-location` (per AUD-SEC-002). If user tries to bypass (e.g., URL hack), backend rejects with 403.
-4. **Concurrency conflicts**: Not applicable (read-only), except: Audit entry referenced order/invoice/workOrder missing/deleted: show "Referenced record not found" when navigating (per AUD-SEC-011).
-5. **Unauthorized access**: If user lacks permission: Block route and show unauthorized message per AUD-SEC-003; do not leak existence of audit entries.
-6. **Empty states**: No entries found: show empty message and retain filters; provide "Clear filters" action.
-7. **Export too large / restricted**: If backend returns "too many rows" or "export restricted" (per AUD-SEC-006): Show actionable error ("Narrow date range and try again" / "You do not have export permission").
-8. **Pricing trace pagination**: If trace is large and backend returns `isTruncated=true` (per AUD-SEC-008): Show "Page 1 of N" with next/prev buttons using `pageToken`/`nextPageToken`.
-9. **Raw payload access denied**: If user lacks `audit:payload:view` (per AUD-SEC-004): Hide raw payload section entirely; if user tries to bypass, backend rejects with 403.
-10. **Immutability proof fields not verified**: If backend does not provide `proofVerified=true` (per AUD-SEC-009): Label fields as "Provided" not "Verified".
+1. **Validation failure (client-side date range)**
+   - User enters `dateFrom > dateTo`
+   - UI blocks search and shows inline error on date fields.
+
+2. **Validation failure (server-side)**
+   - Backend returns `400 VALIDATION_FAILED` with `fieldErrors[]`
+   - UI maps field errors to inputs; shows `correlationId`.
+
+3. **Unauthorized access**
+   - Backend returns `401/403`
+   - UI shows unauthorized message and does not render results table.
+
+4. **Not found (detail)**
+   - Backend returns `404 NOT_FOUND`
+   - UI shows “Audit entry not found” with correlationId and a link back to list.
+
+5. **Referenced record missing**
+   - User clicks a reference link (order/invoice) and target screen returns not found/forbidden
+   - UI shows a non-blocking message: “Referenced record is not available.”
+
+6. **Export failure**
+   - Backend returns `403 FORBIDDEN`: show “You do not have export permission.”
+   - Backend returns `413/422` (too large / constraints): show “Narrow your filters and try again.”
+   - Backend returns `5xx`: show generic failure with correlationId; allow retry without losing filters.
 
 ---
 
 ## 12. Acceptance Criteria
 
-### Scenario 1: Compliance Auditor views audit trail list with mandatory date range and indexed filter
-**Given** I am authenticated as a Compliance Auditor with `audit:log:view`  
-**When** I navigate to Administration/Compliance → Audit Trail  
-**Then** I see a search form requiring a date range (max 90 days) and at least one indexed filter  
-**And** when I provide valid filters and search  
-**Then** I see a paginated list of audit entries sorted by most recent first  
-**And** each entry shows event type, timestamp (user timezone), actor, reason summary, and any available refs  
-**And** I see location scope indicator showing my current location
+### Scenario 1: Authorized user views financial exception audit list
+**Given** I am authenticated and have permission `security:audit_entry:view`  
+**When** I navigate to Security → Audit Trail (Financial Exceptions)  
+**Then** the system requests the audit list from the audit service with pagination  
+**And** I see a paginated list sorted by most recent first  
+**And** each row shows event type, timestamp, actor, and available references  
+**And** no edit/delete actions are present
 
-### Scenario 2: Filter by order drilldown
-**Given** I am viewing an Order Detail page for order `O-123` and have `audit:log:view`  
-**When** I click "View Audit Trail"  
-**Then** I am taken to the Audit Trail screen with `orderId=O-123` pre-filled and a valid date range (e.g., last 90 days)  
-**And** all matching audit entries are displayed (or an empty state if none)
+### Scenario 2: Unauthorized user is blocked (deny-by-default)
+**Given** I am authenticated and do not have permission `security:audit_entry:view`  
+**When** I navigate to Security → Audit Trail (Financial Exceptions)  
+**Then** I see an unauthorized message  
+**And** the UI does not display any audit data  
+**And** if an API call is attempted and returns 403, the UI displays the error with `correlationId`
 
-### Scenario 3: View audit entry detail with pricing evidence
-**Given** I am on the Audit Trail list and there is an entry with `eventId=A-1` for a price override  
-**And** I have `audit:log:view-detail` and `audit:pricing-snapshot:view`  
+### Scenario 3: Drilldown from Order Detail to filtered audit list
+**Given** I am viewing Order Detail for order `O-123`  
+**And** I have permission `security:audit_entry:view`  
+**When** I click “View Financial Exception Audit”  
+**Then** I am navigated to the audit list with `orderId=O-123` applied  
+**And** the list query includes `orderId=O-123`  
+**And** I see matching entries or an empty state
+
+### Scenario 4: View audit entry detail (curated fields only by default)
+**Given** I am on the audit list and an entry exists with id `A-1`  
 **When** I open the audit entry detail for `A-1`  
-**Then** I see read-only fields including actor, timestamp, reason, correlation id  
-**And** I see pricing snapshot link (if `snapshotId` present)  
-**When** I click "View Snapshot"  
-**Then** I see the pricing snapshot detail screen with timestamp, final price, and redacted quote context  
-**And** I see pricing rule trace link (if `ruleTraceId` present)  
-**When** I click "View Trace"  
-**Then** I see the pricing rule trace detail screen with evaluation steps, rule IDs, statuses, and redacted inputs/outputs
+**Then** the UI loads detail from the audit service  
+**And** I see read-only fields including actor, timestamp, event type, reason, and references  
+**And** I do not see raw payload content unless I have an explicit permission and the backend provides it redacted
 
-### Scenario 4: Append-only enforcement in UI
-**Given** I am on the Audit Trail list or detail screen  
-**Then** there are no UI actions to edit or delete an audit entry  
-**And** direct URL attempts to any edit route for audit entries are not available (route does not exist or is denied)
+### Scenario 5: Export is permission-gated and preserves filters on failure
+**Given** I have permission `security:audit_entry:view`  
+**And** I do not have permission `security:audit_entry:export`  
+**When** I view the audit list  
+**Then** the Export action is not shown or is disabled  
+**And** if I attempt export via direct URL/action and receive 403, I see “not permitted” with correlationId
 
-### Scenario 5: Export report (async job)
-**Given** I have loaded audit trail results with filters applied and have `audit:export:execute` and `audit:export:download`  
+**Given** I have permissions `security:audit_entry:view` and `security:audit_entry:export`  
+**And** I have applied filters and loaded results  
 **When** I click Export  
-**Then** an export job is requested and I see a status indicator  
-**And** I can poll export status until it completes  
-**And** when status is COMPLETED, I receive a download link  
-**When** I click download  
-**Then** I receive a CSV file matching the current filters with SHA-256 digest manifest  
-**And** if export fails, I see an error message and can retry without losing filters
+**Then** the export request uses the current filters  
+**And** I receive a downloadable CSV (or an export job id if async)  
+**And** if export fails, my filters remain unchanged and I can retry
 
-### Scenario 6: Unauthorized user blocked
-**Given** I am authenticated without `audit:log:view`  
-**When** I navigate to Administration/Compliance → Audit Trail  
-**Then** I am shown an unauthorized message per AUD-SEC-003  
-**And** no audit data is displayed
-
-### Scenario 7: Cross-location search with permission
-**Given** I am authenticated with `audit:scope:cross-location`  
-**When** I navigate to Audit Trail and select multiple locations from the location filter  
-**And** I provide a valid date range and at least one indexed filter and search  
-**Then** I see audit entries from all selected locations  
-**And** each entry shows its location
-
-### Scenario 8: Cross-location search without permission
-**Given** I am authenticated without `audit:scope:cross-location`  
-**Then** I do not see a cross-location filter in the UI  
-**And** my search is implicitly scoped to my current location per AUD-SEC-002
-
-### Scenario 9: Date range validation
-**Given** I am on the Audit Trail screen  
-**When** I provide a date range exceeding 90 days  
-**Then** I see an inline error "Maximum date range is 90 days" per AUD-SEC-005  
-**And** the search is prevented
-
-### Scenario 10: Missing indexed filter validation
-**Given** I am on the Audit Trail screen  
-**When** I provide a date range but no indexed filter  
-**Then** I see an inline error "At least one filter required (e.g., event type, work order, actor)" per AUD-SEC-005  
-**And** the search is prevented
-
-### Scenario 11: Immutability proof fields display
-**Given** I am viewing an audit entry detail for `eventId=A-1` and the backend provides `hash`, `prevHash`, `signature` fields and I have `audit:proof:view`  
-**Then** I see immutability proof fields labeled as "Provided" (not "Verified") per AUD-SEC-009  
-**And** if backend provides `proofVerified=true`, label changes to "Verified"
-
-### Scenario 12: Raw payload restricted access
-**Given** I am viewing an audit entry detail for `eventId=A-1` and I do not have `audit:payload:view`  
-**Then** I do not see a raw payload section per AUD-SEC-004  
-**And** if I have `audit:payload:view`  
-**Then** I see raw payload rendered as escaped text (never interpreted as HTML)
+### Scenario 6: Canonical error envelope is surfaced
+**Given** the backend returns an error envelope with `code`, `message`, and `correlationId`  
+**When** any list/detail/export request fails  
+**Then** the UI displays a non-technical message and includes the `correlationId` for support
 
 ---
 
 ## 13. Audit & Observability
 
-### User-visible audit data (per audit domain)
-- Display `actor`, `occurredAt`, `reasonCode`, `reasonNotes`, and references on detail view
-- Display "Created at" as the audit timestamp (immutable)
-- Display correlation id (`correlationId`) if present per AUD-SEC-012
-- Display location name (derived from `locationId`) per AUD-SEC-002
+### User-visible audit data
+- Display curated audit fields (actor, timestamp, event type, reason, references).
+- Display `correlationId` on error states.
 
 ### Status history
-- Not applicable for audit entries (immutable)
-- Export jobs have status history: PENDING → PROCESSING → COMPLETED/FAILED (per AUD-SEC-006)
+- Not applicable for immutable audit entries; any workflow status belongs to the owning domain (out of scope).
 
-### Traceability expectations (per AUD-SEC-006, AUD-SEC-012)
-- Export includes same identifiers shown in UI (`eventId`, `orderId`, `invoiceId`, `paymentRef`, `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `correlationId`)
-- UI logs client-side route/view events per workspace convention (screen viewed, export attempted, filters applied), without including sensitive payloads
-- Correlation id (`correlationId`) displayed for tracing across systems per AUD-SEC-012
+### Traceability expectations
+- UI must preserve and surface `correlationId` from backend errors (**DECISION-INVENTORY-015**).
+- UI must not log or display sensitive raw payload unless explicitly permitted and redacted (**DECISION-INVENTORY-013**).
 
 ---
 
 ## 14. Non-Functional UI Requirements
-- **Performance**: List queries must be paginated per audit domain; avoid loading entire dataset. Mandatory date range and indexed filter reduce result set size per AUD-SEC-005.
-- **Accessibility**: All controls keyboard accessible; table and filter controls have labels; export action reachable without mouse.
-- **Responsiveness**: Works on tablet widths typical for POS back office; table columns may collapse into stacked rows.
-- **i18n/timezone/currency** (per AUD-SEC-005, audit domain): Timestamps displayed in user's timezone (source timezone is UTC); amounts formatted with currency symbol if `currencyUomId` provided; localized date/time pickers for date range inputs.
-- **Security** (per AUD-SEC-001, AUD-SEC-002, AUD-SEC-003, AUD-SEC-004): Tenant isolation enforced server-side; location scoping enforced server-side; authorization checks per permission strings; raw payload and redacted fields rendered as escaped text (never interpreted as HTML).
+- **Performance**: Must use server-side pagination; no client-side full dataset loads.
+- **Accessibility**: Keyboard navigable filters and table; labels for inputs; export action accessible.
+- **Responsiveness**: Usable on typical back-office tablet widths; table may adapt to stacked layout.
+- **i18n/timezone/currency**:
+  - Display timestamps in user timezone; show ISO source if provided.
+  - Format amounts only when `currencyUomId` is provided; do not infer currency.
 
 ---
 
 ## 15. Applied Safe Defaults
-- SD-UX-EMPTY-STATE: Provide standard empty-state message and "Clear filters" action; qualifies as UI ergonomics only.
-- SD-UX-PAGINATION: Use paginated list with default page size per app convention; safe as non-domain UX.
-- SD-ERR-STANDARD-MAPPING: Map 401/403/5xx to standard unauthorized/generic error UI; safe as generic error handling.
+- SD-UX-EMPTY-STATE: Standard empty-state message and “Clear filters”; safe UI ergonomics; impacts UX Summary, Alternate/Error Flows.
+- SD-UX-PAGINATION: Paginated list with default page size per app convention; safe non-domain UX; impacts Functional Behavior, Service Contracts.
+- SD-ERR-STANDARD-MAPPING: Standard handling for 401/403/5xx with correlationId display; safe generic error mapping consistent with DECISION-INVENTORY-015; impacts Business Rules, Error Flows, Acceptance Criteria.
 
 ---
 
-## 16. Open Questions — RESOLVED via Audit Domain Business Rules
+## 16. Open Questions
 
-All open questions from the original draft have been resolved by consulting the audit domain business rules (`durion/domains/audit/.business-rules/AGENT_GUIDE.md`):
-
-1. **Backend contract**: ✅ Resolved. See "Service Contracts" section, which maps to audit domain "API Expectations (Normative)".
-2. **Entity schema**: ✅ Resolved. `AuditLog`, `PricingSnapshot`, `PricingRuleTrace` are normative entities per audit domain "Key Entities / Concepts".
-3. **Event types**: ✅ Resolved. Controlled vocabulary from `GET /audit/meta/eventTypes` per AUD-SEC-010.
-4. **Authorization**: ✅ Resolved. Permission strings and role guidance per AUD-SEC-003; cross-location permission per AUD-SEC-002.
-5. **Export format & delivery**: ✅ Resolved. CSV required, async jobs per AUD-SEC-006.
-6. **Reference linking**: ✅ Resolved. Use UUIDv7 identifiers denormalized onto `AuditLog` per AUD-SEC-007; deep-link metadata per AUD-SEC-011.
-7. **Sensitive payload visibility**: ✅ Resolved. Raw payload restricted to `audit:payload:view`, redacted fields per AUD-SEC-004.
-8. **Date range/filter guardrails**: ✅ Resolved. Mandatory date range (max 90 days) + at least one indexed filter per AUD-SEC-005.
-9. **Location scoping**: ✅ Resolved. Default to user's current location; cross-location search requires explicit permission and filters per AUD-SEC-002.
-10. **Tenant isolation**: ✅ Resolved. Enforced server-side for all reads/writes per AUD-SEC-001.
-11. **Immutability proof fields**: ✅ Resolved. Display-only with `audit:proof:view`; label as "Provided" not "Verified" unless backend confirms per AUD-SEC-009.
-12. **Pricing evidence access**: ✅ Resolved. Separate permissions (`audit:pricing-snapshot:view`, `audit:pricing-trace:view`), size limits, pagination per AUD-SEC-008.
-13. **Correlation/trace context**: ✅ Resolved. W3C Trace Context standard per AUD-SEC-012.
-
-**No STOP phrase**: All clarifications resolved via domain business rules. Story is ready for implementation.
-
----
-
-## 17. Original Story (For Traceability)
-
-Title: [FRONTEND] [STORY] Security: Audit Trail for Price Overrides, Refunds, and Cancellations  
-URL: https://github.com/louisburroughs/durion-moqui-frontend/issues/65  
-Labels: frontend, story-implementation, payment  
-
-### Story Description (Original)
-As an **Auditor**, I want an audit trail so that financial exceptions are explainable.
-- Record who/when/why for overrides/refunds/cancels
-- Exportable report
-- Audit entries append-only
-- Drilldown by order/invoice
-- Payment refs included
-
-**Note**: No backend matches found in original story. Backend contracts have been defined in this rewrite per audit domain business rules.
-
----
-
-## 18. Implementation Notes for Developers
-
-### Moqui Screen Structure Recommendations
-- Use Moqui `form-list` for audit trail list with server-side pagination
-- Use Moqui `form-single` for detail views (read-only)
-- Use Moqui `transition` for all service calls
-- Use Moqui `conditional-field` for permission-gated fields (raw payload, proof fields, cross-location filter)
-- Use Moqui `parameter` for deep-link query params
-- Use Moqui `actions` to enforce permission checks before rendering
-
-### Permission Checks in Moqui
-```xml
-<screen>
-  <actions>
-    <if condition="!ec.user.hasPermission('audit:log:view')">
-      <return error="true" message="You do not have access to Audit Trail"/>
-    </if>
-  </actions>
-  <!-- screen content -->
-</screen>
-```
-
-### Export Job Polling Pattern
-1. POST `/audit/export/request` → get `exportId`
-2. Poll `GET /audit/export/status?exportId=...` every 2-5 seconds
-3. When `status=COMPLETED`, show download link
-4. GET `/audit/export/download?exportId=...` for file
-
----
-
-## 19. Testing Guidance
-
-### Unit Tests
-- Service contract validation: verify mandatory date range, indexed filter, max 90-day window
-- Permission checks: verify screens/transitions enforce correct permissions
-- Data transformations: verify timezone display, currency formatting, reason code mapping
-
-### Integration Tests
-- Search with various filter combinations
-- Deep-link from Order/Invoice/Work Order to Audit Trail
-- Export job: request → poll → download
-- Pricing evidence drilldown: snapshot → trace
-- Authorization: unauthorized user blocked, authorized user succeeds
-
-### End-to-End Tests
-- Compliance Auditor workflow: navigate → search → detail → pricing evidence → export
-- Shop Manager workflow: navigate → search → detail (no export)
-- Cross-location search with permission
-- Date range validation error handling
-- Empty state display
-
----
-
-## 20. Domain Agent Attribution
-
-This story was authored by the **Story Authoring Agent** in consultation with:
-- **Security Domain Agent** (for authorization model per AUD-SEC-003)
-- **Audit Domain Agent** (for all audit-specific business rules per `durion/domains/audit/.business-rules/AGENT_GUIDE.md`)
-
-All open questions were resolved by referencing normative business rules in the audit domain. No clarification issues were required.
-
----
-
-## 21. Handoff Summary
-
-**Story Status**: ✅ Ready for Implementation
-
-**Required Permissions** (per AUD-SEC-003):
-- `audit:log:view`, `audit:log:view-detail`
-- `audit:export:execute`, `audit:export:download`
-- `audit:pricing-snapshot:view`, `audit:pricing-trace:view`
-- `audit:payload:view` (restricted)
-- `audit:proof:view` (display-only)
-- `audit:scope:cross-location` (for cross-location search)
-
-**Backend Contracts Required** (per audit domain):
-- `GET /audit/logs/search`, `GET /audit/logs/detail`
-- `POST /audit/export/request`, `GET /audit/export/status`, `GET /audit/export/download`
-- `GET /audit/meta/eventTypes`, `GET /audit/meta/reasonCodes`, `GET /audit/meta/locations`
-- `GET /audit/pricing/snapshot`, `GET /audit/pricing/trace`
-
-**Screens to Create**:
-- `apps/pos/screen/audit/AuditTrail.xml`
-- `apps/pos/screen/audit/AuditTrailDetail.xml`
-- `apps/pos/screen/audit/PricingSnapshot.xml`
-- `apps/pos/screen/audit/PricingTrace.xml`
-- `apps/pos/screen/audit/ExportStatus.xml`
-
-**Screens to Modify** (add audit trail drilldown link):
-- `OrderDetail.xml`, `InvoiceDetail.xml`, `WorkOrderDetail.xml`, `AppointmentDetail.xml`, `MechanicDetail.xml`, `MovementDetail.xml`, `EstimateLineDetail.xml`
-
-**Files Created for Story #65**:
-- `/home/n541342/IdeaProjects/durion/.story-work/65/FINAL_STORY.md` (this file)
-
----
-
-**End of Story**
+1. **Domain ownership / label conflict**: Financial exception audit is explicitly owned by the `audit` domain read model (**DECISION-INVENTORY-012**). Should this story be relabeled to `domain:audit` (recommended), with Security only providing permission gating? If not, what is the rationale for keeping `domain:security` as primary owner?
+2. **Audit API contracts** (blocking): What are the exact endpoints, query params, and response schemas for:
+   - list: `/api/v1/audit/exceptions`
+   - detail: `/api/v1/audit/exceptions/{id}`
+   - export: sync vs async, path, and response type?
+3. **Event type codes** (blocking): What are the canonical `eventType` values for price overrides/refunds/cancellations, and are there subtypes (partial refund, void, line-item override)?
+4. **Reason requirements** (blocking): Is `reasonText` required for all exception types? Are there `reasonCode` enumerations that must be used?
+5. **Sensitive payload policy** (blocking): Is there a permission-gated “raw payload” view? If yes, what is the permission key and what redaction rules apply (**DECISION-INVENTORY-013**)?
+6. **Export behavior** (blocking): Must export be asynchronous with job status and later download (preferred), or is synchronous CSV acceptable? If async, what is the job status endpoint and retention?
+7. **Reference linking rules** (blocking): Which identifiers are authoritative for navigation (orderId vs external order number; invoiceId vs invoice number; paymentId vs processor ref), and which screens exist for each?
