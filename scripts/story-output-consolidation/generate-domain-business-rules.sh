@@ -103,10 +103,14 @@ declare -A DOMAIN_TO_MODULE=(
   [people]="pos-people"
   [positivity]="pos-agent-framework"
   [pricing]="pos-price"
+  [catalog]="pos-catalog"
   [product]="pos-catalog"
   [security]="pos-security-service"
   [shopmgmt]="pos-shop-manager"
   [workexec]="pos-work-order"
+  [mcp]="pos-mcp-server"
+  [ui]="pos-image"
+  [ui-mobile]="pos-image"
 )
 
 module_for_domain() {
