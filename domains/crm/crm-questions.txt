@@ -1,0 +1,174 @@
+# CRM Domain - Open Questions for Backend Clarification
+
+This document consolidates all open questions from the CRM domain story specifications that require backend/architecture decisions before frontend implementation can proceed.
+
+---
+
+## Issue #176: [FRONTEND] [STORY] Party: Create Commercial Account
+**Title:** Party: Create Commercial Account
+
+### Open Questions
+
+1. **Permissions (blocking):** What is the exact permission key (or keys) required to access and submit "Create Commercial Account"? (DECISION-INVENTORY-007 requires explicit permissions and fail-closed; role mapping is owned by Security.)
+
+2. **Billing terms contract (blocking):** What is the exact Moqui service/REST endpoint to list billing terms, and what are the fields/ID type (`billingTermsId` type, display label fields)? (DECISION-INVENTORY-015 notes Billing-owned reference data; wiring is safe-to-defer but contract is required to implement.)
+
+3. **Duplicate-check contract (blocking):** Confirm the backend contract for duplicate detection:
+   - Is there a dedicated duplicate-check endpoint (preferred), or does create return `409 DUPLICATE_CANDIDATES` with candidates?
+   - What fields are required for matching (legalName only vs also phone/email/taxId/external identifiers)?
+   - What is the candidate DTO shape (fields available for display and matchReason)?
+
+4. **External identifiers schema (blocking):** What is the allowed structure for `externalIdentifiers` (fixed set vs key/value list), and what validations apply?
+
+5. **Post-create navigation route (blocking):** What is the canonical Party/Account view route in this frontend (pattern and screen name)? If none exists, should this story include creating a minimal `PartyView` screen, or is confirmation-only acceptable for MVP?
+
+---
+
+## Issue #173: [FRONTEND] [STORY] Party: Search and Merge Duplicate Parties (Basic)
+**Title:** Party: Search and Merge Duplicate Parties (Basic)
+
+### Open Questions
+
+1. **Backend contract (blocking):** What are the exact Moqui service names/endpoints and DTO schemas for:
+   - Party search (filters, pagination, returned summary fields)
+   - Party merge command (required fields; response payload including mergeAuditId and redirect/alias fields)
+
+2. **Permissions (blocking):** What is the exact permission key for party merge (e.g., `crm.party.merge`) and should the UI hide the entry point or show an access-denied screen when missing? (Backend must enforce either way per DECISION-INVENTORY-007.)
+
+3. **Justification storage (blocking):** Does the merge command require `justification` and is it stored in MergeAudit? If required, confirm min/max length and whether it is visible in audit views.
+
+4. **Search matching rules (non-blocking if backend already exists):** Are name/email/phone searches exact, prefix, or contains? Any minimum lengths (especially for phone/email) to prevent expensive queries?
+
+5. **Merged exclusion (non-blocking):** Does search always exclude merged parties, or is there a supported `includeMerged` toggle for Admin-only troubleshooting?
+
+---
+
+## Issue #172: [FRONTEND] [STORY] Contacts: Maintain Contact Roles and Primary Flags
+**Title:** Contacts: Maintain Contact Roles and Primary Flags (Billing / Approver / Driver)
+
+### Open Questions
+
+1. **[BLOCKER] Backend contract finalization:** What are the exact Moqui service names (or REST endpoints) and DTO shapes for:
+   - Loading account contacts + role assignments + `invoiceDeliveryMethod`
+   - Updating a contact's roles and primary flags
+   Include required params, returned fields, and error payload schema (`errorCode`, `message`, `fieldErrors`).
+
+2. **[BLOCKER] Permission keys:** What permission(s) gate:
+   - Viewing role assignments
+   - Updating role assignments
+   (DECISION-INVENTORY-007 requires explicit permissions; exact keys/role mapping is not provided here.)
+
+3. **[BLOCKER] Role code source:** Are role codes strictly limited to `BILLING|APPROVER|DRIVER` for MVP, or must the UI load an allowed role list from backend (with display labels and ordering)?
+
+4. **Billing EMAIL rule data dependency:** For enforcing "billing contact with primary email required", will the load DTO include `hasPrimaryEmail` per contact (preferred), or must UI infer from contact points (which may expose PII)?
+
+---
+
+## Issue #171: [FRONTEND] [STORY] Contacts: Store Communication Preferences and Consent Flags
+**Title:** Contacts: Manage Communication Preferences & Consent Flags (Per Person)
+
+### Open Questions
+
+1. **Backend contract (blocking):** What are the exact Moqui service names and/or REST endpoints for:
+   - load communication preferences by `partyId`
+   - upsert (create/update) communication preferences by `partyId`
+   Include request/response DTO field names, required fields, and error payload shape (`errorCode`, `message`, `fieldErrors`).
+
+2. **Missing record semantics (blocking):** When a party exists but has no preferences yet, does the backend return:
+   - `404` with a specific `errorCode` (preferred), or
+   - `200` with an empty/null payload?
+
+3. **updateSource handling (blocking):** Is `updateSource` required on write? If yes, should:
+   - the frontend send a constant value (what exact value?), or
+   - Moqui/backend infer it from the authenticated client/app context?
+
+4. **Consent model (blocking):** Are consent flags stored only on the communication preferences DTO, or is there a separate `ConsentRecord` entity/DTO the UI must manage? If separate, define how they relate and which service(s) write them.
+
+5. **Permissions (blocking):** What are the explicit permission keys for:
+   - viewing communication preferences
+   - editing communication preferences
+   Confirm whether view is allowed when edit is denied (DECISION-INVENTORY-007 requires explicit permissions and fail-closed).
+
+6. **Optimistic locking (blocking):** Is optimistic locking required for this record? If yes, what field is used (`version`, `lastUpdatedStamp`, ETag), and what is the expected 409 response payload (e.g., `currentVersion`) and UI resolution flow?
+
+---
+
+## Issue #169: [FRONTEND] [STORY] Vehicle: Create Vehicle Record with VIN and Description
+**Title:** CRM Vehicle: Create Vehicle Record (VIN, Unit #, Description, Optional Plate)
+
+### Open Questions
+
+1. **VIN uniqueness scope (blocking):** Is VIN uniqueness **global** across all vehicles or **scoped** (e.g., per party/account/location)? What `errorCode` is returned on duplicate (e.g., `DUPLICATE_VIN`) and does it ever include a safe reference to an existing `vehicleId`?
+
+2. **Association-at-create (blocking):** Does create-vehicle require a `partyId` (canonical CRM identifier per DECISION-INVENTORY-001) or any account/customer context? If yes, is it required or optional, and what is the expected behavior when omitted?
+
+3. **Moqui service/API contract (blocking):** What are the exact Moqui service names or REST endpoints for:
+   - create vehicle
+   - load vehicle by `vehicleId`
+   Include request/response DTO fields and the standard error payload shape (`errorCode`, `message`, `fieldErrors`).
+
+4. **Authorization model (blocking):** What permission key(s) gate vehicle creation and vehicle view? (Recommend a dedicated permission per DECISION-INVENTORY-007, e.g., `crm.vehicles.create` and `crm.vehicles.read`, but exact keys must match Security mapping.)
+
+5. **License plate structure (clarification):** Is license plate stored as a single string only, or does backend require plate + region (state/province/country)? If region is required, provide field names and validation rules.
+
+---
+
+## Summary Statistics
+
+- **Total Issues with Open Questions:** 5
+- **Total Open Questions:** 26
+- **Blocking Questions:** ~24
+- **Non-blocking/Clarification Questions:** ~2
+
+## Cross-Cutting Themes
+
+### Permissions (DECISION-INVENTORY-007)
+Every story references the need for explicit permission keys with fail-closed enforcement. This requires coordination with Security domain to:
+- Define CRM-specific permission keys (e.g., `crm.party.create`, `crm.party.merge`, `crm.contacts.edit`, `crm.vehicles.create`)
+- Map permissions to roles
+- Ensure backend enforces permissions at service/entity level
+
+### Backend Contract Gaps
+All stories blocked on missing Moqui service/REST endpoint specifications:
+- Request/response DTO schemas
+- Error payload structures (`errorCode`, `message`, `fieldErrors`)
+- Pagination parameters
+- Standard field naming conventions (e.g., `partyId` vs `accountId`)
+
+### External Dependencies
+- **Issue #176:** Requires Billing domain API for billing terms lookup (DECISION-INVENTORY-015)
+- **Issue #172:** Requires contact point data structure for email validation
+- **Issue #169:** May require integration with Vehicle Fitment domain for VIN decode
+
+### Consistency Patterns Needed
+1. **Duplicate detection:** Need consistent approach across entities (Party, Vehicle)
+2. **Error responses:** Need standardized error codes and detail structures
+3. **Optimistic locking:** Clarify when/how to use versioning/ETags
+4. **Navigation patterns:** Need canonical view routes for created entities
+
+## Next Steps
+
+1. **Priority 1 - Permissions Mapping (Blocking All Stories):**
+   - Security domain to define CRM permission taxonomy
+   - Document permission → role mappings
+   - Provide permission keys to Story Authoring Agent
+
+2. **Priority 2 - Backend Contract Definition (Blocking All Stories):**
+   - CRM backend to document Moqui service interfaces or REST API contracts
+   - Standardize DTO field naming conventions
+   - Define error response schemas with stable error codes
+
+3. **Priority 3 - Cross-Domain Integration Contracts:**
+   - Billing domain: billing terms API contract
+   - Contact domain: contact point data structure and validation rules
+   - Vehicle Fitment: VIN decode integration (if applicable)
+
+4. **Priority 4 - UI/UX Patterns:**
+   - Define canonical navigation patterns for entity views
+   - Standardize duplicate detection UX flows
+   - Document optimistic locking conflict resolution patterns
+
+5. **Documentation:**
+   - Create CRM Backend Contract Reference document
+   - Update CRM domain guide with permission model
+   - Document standard error codes and handling patterns

@@ -7,6 +7,7 @@ An Architecture Decision Record (ADR) is a document that captures an important a
 ## When to Create an ADR
 
 Create an ADR when making decisions about:
+
 - System architecture and design patterns
 - Technology choices (frameworks, databases, services)
 - API contracts and data models
@@ -35,6 +36,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | Number | Title                                      | Status   | Date       |
 |--------|--------------------------------------------|----------|------------|
 | 0001   | Inventory Ledger ATP Computation           | ACCEPTED | 2026-01-12 |
+| 0002   | CRM Domain Permission Taxonomy             | ACCEPTED | 2026-01-23 |
 
 ## Superseding ADRs
 
@@ -43,6 +45,7 @@ When a decision is superseded, update the old ADR's status to "SUPERSEDED BY ADR
 ## Contributing
 
 When adding a new ADR:
+
 1. Copy an existing ADR as a template
 2. Use the next sequential number
 3. Fill in all required sections

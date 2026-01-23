@@ -1,4 +1,8 @@
-# Inventory Adjustment Permissions
+# Permission Taxonomy Reference
+
+This document provides domain-specific examples of permission taxonomies. Domains should follow the pattern established here and in the [CRM Domain Permission Taxonomy](../../crm/CRM_PERMISSION_TAXONOMY.md).
+
+## Inventory Adjustment Permissions
 
 This document describes the permission-based authorization model for inventory adjustments, as defined in the clarification for issue #37.
 
@@ -159,3 +163,8 @@ Permissions follow the format: `domain:resource:action`
 - Security Service: `pos-security-service`
 - Permission Registry: `PermissionRegistryService`
 - Role Management: `RoleManagementService`
+
+## Related Domain Taxonomies
+
+- **CRM Domain:** [CRM_PERMISSION_TAXONOMY.md](../../crm/CRM_PERMISSION_TAXONOMY.md) (ADR 0002)
+- **Architecture Decision:** [ADR 0002 - CRM Domain Permission Taxonomy](../../../docs/adr/0002-crm-permission-taxonomy.md)

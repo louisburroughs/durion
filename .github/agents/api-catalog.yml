@@ -555,7 +555,7 @@ domains:
     display_name: people & hr
     endpoints:
       - method: GET
-        path: /v1/people/reports/attendance-jobtime-discrepancy
+        path: /v1/people/reports/attendanceJobtimeDiscrepancy
         version: v1
         operationId: getAttendanceDiscrepancyReport
         action: reporting endpoint.
@@ -591,12 +591,100 @@ domains:
         action: end break.
 
       - method: GET
+        path: /v1/people
+        version: v1
+        operationId: getAllPeople
+        action: retrieve a list of all people.
+
+      - method: GET
+        path: /v1/people/{personId}
+        version: v1
+        operationId: getPersonById
+        action: retrieve a person by their unique ID.
+
+      - method: POST
+        path: /v1/people
+        version: v1
+        operationId: createPerson
+        action: add a new person to the system.
+
+      - method: PUT
+        path: /v1/people/{personId}
+        version: v1
+        operationId: updatePerson
+        action: update the details of an existing person.
+
+      - method: DELETE
+        path: /v1/people/{personId}
+        version: v1
+        operationId: deletePerson
+        action: delete a person by their unique ID.
+
+  - name: location
+    endpoints:
+      - method: GET
+        path: /v1/locations
+        version: v1
+        operationId: getAllLocations
+        action: retrieve a list of all locations.
+
+      - method: GET
+        path: /v1/locations/{locationId}
+        version: v1
+        operationId: getLocationById
+        action: retrieve a location by its unique ID.
+
+      - method: POST
+        path: /v1/locations
+        version: v1
+        operationId: createLocation
+        action: add a new location to the system.
+
+      - method: PUT
+        path: /v1/locations/{locationId}
+        version: v1
+        operationId: updateLocation
+        action: update the details of an existing location.
+
+      - method: DELETE
+        path: /v1/locations/{locationId}
+        version: v1
+        operationId: deleteLocation
+        action: delete a location by its unique ID.
+
+      - method: POST
+        path: /v1/locations/{childId}/parents/{parentId}
+        version: v1
+        operationId: addParent
+        query:
+          parentType: required
+        action: add a parent relationship to a location.
+
+      - method: GET
+        path: /v1/locations/parents
+        version: v1
+        operationId: getAllParents
+        action: retrieve all parent relationships for locations.
+
+      - method: GET
+        path: /v1/locations/{locationId}/responsible-person
+        version: v1
+        operationId: getResponsiblePerson
+        action: retrieve the person responsible for a given location.
+
+      - method: GET
         paths:
           - /v1/locations/bays
           - /v1/locations/{locationId}/bays/{bayId}
         version: v1
         operationId: getBays
         action: list bays (and optionally bay detail); support bays sub-resources.
+
+      - method: POST
+        path: /v1/locations/{locationId}/bays
+        version: v1
+        operationId: createBays
+        action: create bay; support bays sub-resources.
 
       - method: PUT
         path: /v1/locations/bays
@@ -610,12 +698,6 @@ domains:
         operationId: removeBay
         action: delete bay; support bays sub-resources.
 
-      - method: POST
-        path: /v1/locations/{locationId}/bays
-        version: v1
-        operationId: createBays
-        action: create bay; support bays sub-resources.
-
       - method: GET
         paths:
           - /v1/locations/mobileUnit
@@ -623,6 +705,12 @@ domains:
         version: v1
         operationId: getMobileUnits
         action: list mobile units (and optionally mobile unit detail); support mobileUnit sub-resources.
+
+      - method: POST
+        path: /v1/locations/{locationId}/mobileUnit
+        version: v1
+        operationId: createMobileUnit
+        action: create mobile unit; validate baseLocationId and capabilities.
 
       - method: PUT
         path: /v1/locations/mobileUnit
@@ -635,12 +723,6 @@ domains:
         version: v1
         operationId: removeMobileUnit
         action: delete mobile unit; support mobileUnit sub-resources.
-
-      - method: POST
-        path: /v1/locations/{locationId}/mobileUnit
-        version: v1
-        operationId: createMobileUnit
-        action: create mobile unit; validate baseLocationId and capabilities.
 
   - name: crm
     endpoints:
@@ -810,40 +892,256 @@ domains:
 
   - name: security
     endpoints:
-      - method: GET
-        path: /v1/users/permissions/{id}
+      # JWT/Auth endpoints
+      - method: POST
+        path: /v1/auth/login
         version: v1
-        action: get a user's permissions by id
-
-      - method: GET
-        path: /v1/users/permissions
-        version: v1
-        query:
-          domain: '{doamin}'
-        action: query a user's permissions by domain
+        operationId: generateToken
+        action: authenticate with username and password to receive a JWT token.
 
       - method: POST
-        path: /v1/users/permissons
+        path: /v1/auth/token-pair
         version: v1
-        operationId: provisionUser
-        action: admin user provisioning endpoint.
+        operationId: generateTokenPair
+        action: generate access and refresh token pair for a subject.
 
       - method: POST
-        path: /v1/users/permissions
+        path: /v1/auth/refresh
+        version: v1
+        operationId: refreshAccessToken
+        action: refresh access token using a valid refresh token.
+
+      - method: GET
+        path: /v1/auth/validate
+        version: v1
+        operationId: validateToken
+        action: validate a JWT token and return its validity status.
+
+      - method: DELETE
+        path: /v1/auth/delete
+        version: v1
+        operationId: deleteToken
+        action: delete/revoke a JWT token.
+
+      - method: GET
+        path: /v1/auth/roles
+        version: v1
+        operationId: getRolesFromToken
+        action: extract roles from a JWT token.
+
+      - method: GET
+        path: /v1/auth/subject
+        version: v1
+        operationId: getSubjectFromToken
+        action: extract subject/username from a JWT token.
+
+      # Permission endpoints
+      - method: POST
+        path: /v1/permissions/register
         version: internal
-        operationId: registerPermission
-        action: implement idempotent permission upsert; include validation and audit logging.
+        operationId: registerPermissions
+        action: services register their available permissions; idempotent permission upsert with validation and audit logging.
+
+      - method: GET
+        path: /v1/permissions
+        version: v1
+        operationId: getAllPermissions
+        action: get all registered permissions; requires ADMIN role.
+
+      - method: GET
+        path: /v1/permissions/domain/{domain}
+        version: v1
+        operationId: getPermissionsByDomain
+        action: get all permissions for a specific domain/service; requires ADMIN or MANAGER role.
+
+      - method: GET
+        path: /v1/permissions/validate/{permissionName}
+        version: v1
+        operationId: validatePermissionName
+        action: validate permission name format (domain:resource:action).
+
+      - method: GET
+        path: /v1/permissions/exists/{permissionName}
+        version: v1
+        operationId: permissionExists
+        action: check if a permission is registered in the system.
+
+      # Role endpoints
+      - method: POST
+        path: /v1/roles
+        version: v1
+        operationId: createRole
+        action: create a new role with name and description; requires ADMIN role.
+
+      - method: GET
+        path: /v1/roles
+        version: v1
+        operationId: getAllRoles
+        action: get all roles in the system; requires ADMIN or MANAGER role.
+
+      - method: GET
+        path: /v1/roles/{name}
+        version: v1
+        operationId: getRoleByName
+        action: get a specific role by its name; requires ADMIN or MANAGER role.
+
+      - method: PUT
+        path: /v1/roles/permissions
+        version: v1
+        operationId: updateRolePermissions
+        action: assign a set of permissions to a role; requires ADMIN role.
+
+      - method: POST
+        path: /v1/roles/assignments
+        version: v1
+        operationId: createRoleAssignment
+        action: assign a role to a user with optional scope and effective dates; requires ADMIN or MANAGER role.
+
+      - method: GET
+        path: /v1/roles/assignments/user/{userId}
+        version: v1
+        operationId: getUserRoleAssignments
+        action: get all effective role assignments for a user; requires ADMIN or MANAGER role.
+
+      - method: DELETE
+        path: /v1/roles/assignments/{assignmentId}
+        version: v1
+        operationId: revokeRoleAssignment
+        action: revoke a role assignment by setting its end date; requires ADMIN or MANAGER role.
+
+      - method: GET
+        path: /v1/roles/permissions/user/{userId}
+        version: v1
+        operationId: getUserPermissions
+        action: get all permissions for a user from their role assignments; requires ADMIN or MANAGER role.
+
+      - method: GET
+        path: /v1/roles/check-permission
+        version: v1
+        operationId: checkUserPermission
+        query:
+          userId: required
+          permission: required
+          locationId: optional
+        action: check if a user has a specific permission for a location.
+
+      # User endpoints
+      - method: POST
+        path: /v1/users
+        version: v1
+        operationId: createUser
+        action: create a new user with username, password, and roles.
+
+      - method: POST
+        path: /v1/users/login
+        version: v1
+        operationId: userLogin
+        action: authenticate a user and return a JWT token.
+
+      - method: GET
+        path: /v1/users
+        version: v1
+        operationId: getAllUsers
+        action: retrieve a list of all users.
+
+      - method: GET
+        path: /v1/users/{id}
+        version: v1
+        operationId: getUserById
+        action: retrieve a user by their unique ID.
+
+      - method: PUT
+        path: /v1/users/{id}
+        version: v1
+        operationId: updateUser
+        action: update the details of an existing user.
+
+      - method: DELETE
+        path: /v1/users/{id}
+        version: v1
+        operationId: deleteUser
+        action: delete a user by their unique ID.
+
+      - method: PUT
+        path: /v1/users/{username}/roles
+        version: v1
+        operationId: assignRolesToUser
+        action: assign roles to a user by username.
 
   - name: shopmgmt
     endpoints:
       - method: GET
-        path: /v1/shopmgmt/{locationId}/schedules/view
+        path: /v1/shop-manager/{locationId}/technicians/{personId}/person
+        version: v1
+        operationId: getTechnicianPerson
+        action: retrieve the person details for a technician; validates technician belongs to specified shop.
+
+      - method: GET
+        path: /v1/shop-manager/{locationId}/services/{serviceId}/details
+        version: v1
+        operationId: getShopServiceDetails
+        action: retrieve the details of a shop service; validates service belongs to specified shop.
+
+      - method: GET
+        path: /v1/shop-manager/{locationId}/schedules/view
         version: v1
         operationId: viewSchedules
         action: read-only schedule view used by UI; support filters.
 
       - method: GET
-        path: /v1/shopmgmt/{locationId}/workorders/{workorderId}/operationalContext
+        path: /v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext
         version: v1
         operationId: viewOpenWorkordersByShop
         action: read-only operational context view used by UI; support filters.
+
+      - method: GET
+        paths:
+          - /v1/shop-manager/bays
+          - /v1/shop-manager/{locationId}/bays/{bayId}
+        version: v1
+        operationId: getBays
+        action: list bays (and optionally bay detail); support bays sub-resources.
+
+      - method: POST
+        path: /v1/shop-manager/{locationId}/bays
+        version: v1
+        operationId: createBays
+        action: create bay; support bays sub-resources.
+
+      - method: PUT
+        path: /v1/shop-manager/bays
+        version: v1
+        operationId: manageBays
+        action: create/update bays; support bays sub-resources.
+
+      - method: DELETE
+        path: /v1/shop-manager/{locationId}/bays/{bayId}
+        version: v1
+        operationId: removeBay
+        action: delete bay; support bays sub-resources.
+
+      - method: GET
+        paths:
+          - /v1/shop-manager/mobileUnit
+          - /v1/shop-manager/{locationId}/mobileUnit/{bayId}
+        version: v1
+        operationId: getMobileUnits
+        action: list mobile units (and optionally mobile unit detail); support mobileUnit sub-resources.
+
+      - method: POST
+        path: /v1/shop-manager/{locationId}/mobileUnit
+        version: v1
+        operationId: createMobileUnit
+        action: create mobile unit; validate baseLocationId and capabilities.
+
+      - method: PUT
+        path: /v1/shop-manager/mobileUnit
+        version: v1
+        operationId: manageMobileUnits
+        action: create/update mobile units; support mobileUnit sub-resources.
+
+      - method: DELETE
+        path: /v1/shop-manager/{locationId}/mobileUnit/{bayId}
+        version: v1
+        operationId: removeMobileUnit
+        action: delete mobile unit; support mobileUnit sub-resources.

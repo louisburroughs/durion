@@ -1,0 +1,267 @@
+# Accounting Domain - Open Questions for Backend Clarification
+
+This document consolidates all open questions from the accounting domain story specifications that require backend/architecture decisions before frontend implementation can proceed.
+
+---
+
+## Issue #207: [FRONTEND] [STORY] Events: Receive Events via Queue and/or Service Endpoint
+**Title:** Accounting Events Ingestion (Ops Tool): Submit Canonical Event to Sync Ingestion Endpoint + View Acknowledgement
+
+### Open Questions
+
+1. What is the exact backend endpoint path for **sync event submission** (e.g., `POST /accounting/ingestion/submitSync` vs another path), and what is the exact success response schema (fields and meanings)?
+
+2. What permissions gate this submit tool?
+   - Screen view permission token (new or reuse `accounting:events:view`?) (**Decision AD-013 requires explicit mapping**)
+   - Submit/ingest permission token (story currently references `SCOPE_accounting:events:ingest`, but this scope is not defined in the Accounting domain guide)
+
+3. Does the backend accept `payload` as any valid JSON value, or must it be a JSON object? If object-only, confirm errorCode returned when not an object.
+
+---
+
+## Issue #204: [FRONTEND] [STORY] CoA: Create and Maintain Chart of Accounts
+**Title:** CoA: Create and Maintain Chart of Accounts (GL Accounts)
+
+### Open Questions
+
+1. **Backend contract (blocking):** What are the exact Moqui services and/or REST endpoints for GLAccount list/detail/create/update/deactivate, including request/response field names (e.g., `glAccountId` vs `accountId`) and pagination/sort parameters?
+
+2. **Permissions (blocking, AD-013):** What are the explicit permission tokens for:
+   - viewing CoA list/detail
+   - creating/updating/deactivating GL accounts
+   (Replace the placeholder "TBD" and ensure Moqui artifact authz is configured accordingly.)
+
+3. **Deactivation policy (blocking):** What specific conditions block deactivation (e.g., non-zero balance, referenced by mappings, used in posted journal entries), and what stable `errorCode` values should the UI expect and display?
+
+4. **Editing inactive accounts (blocking):** Are name/description edits allowed after an account becomes inactive, or must inactive accounts be immutable?
+
+5. **Status filtering (blocking):** Does the list endpoint support server-side filtering by derived status (Active/Inactive/NotYetActive), or should the UI only display derived badges without a status filter?
+
+6. **Optimistic locking (blocking):** Does GLAccount use ETag/version for concurrency? If yes, what request header/field is required and what response code is returned on conflict (409 vs 412), and does the response include the latest entity?
+
+---
+
+## Issue #205: [FRONTEND] [STORY] Mapping: Configure GL Posting Taxonomy
+**Title:** Mapping: Configure GL Posting Taxonomy (Posting Category, Mapping Key, GL Mapping)
+
+### Open Questions
+
+1. **Backend service contracts (blocking):** What are the exact Moqui service names and/or REST endpoints (paths) for Posting Category, Mapping Key, and GL Mapping list/detail/create/update/deactivate, plus GL Account lookup? Provide request/response field names and error shapes (including 409 overlap details).
+
+2. **Permissions (blocking):** What are the exact permission tokens for:
+   - viewing posting configuration screens (read-only)
+   - managing posting configuration (create/update/deactivate)
+   - auditor read-only access (if distinct)
+   (Accounting domain guide defines permissions for exports/payments/refunds/ingestion/apply-payment, but not for posting configuration.)
+
+3. **Dimensions schema (blocking):** What is the authoritative list and data types for GL mapping "dimensions" (e.g., businessUnitId, locationId, departmentId, costCenterId), and are they required/optional per posting category? Are they references to entities (with lookups) or freeform strings/enums?
+
+4. **Immutability/versioning policy (blocking):** Are Posting Categories and Mapping Keys editable in place, or append-only/versioned? Are GL mappings strictly append-only (create new effective-dated rows only), and are existing rows ever editable?
+
+5. **Overlap handling policy (non-blocking if backend rejects overlaps):** Confirm that overlap is always rejected (409) and that the system will not auto-end-date prior mappings. If auto-end-dating exists, specify the exact behavior and UI requirements.
+
+6. **Resolution test endpoint (non-blocking):** Is there a supported backend endpoint to resolve `mappingKey + transactionDate → postingCategory + glAccount + dimensions` for validation/testing? If yes, provide contract and permissions so the optional "Resolution Test" screen can be implemented.
+
+---
+
+## Issue #202: [FRONTEND] [STORY] Mapping: Configure EventType → Posting Rule Set
+**Title:** Mapping: Configure EventType → Posting Rule Set
+
+### Open Questions
+
+1. **Backend endpoint family for Posting Rule Sets (blocking):** What are the exact REST endpoints and request/response schemas for list/detail/versionDetail/create/createVersion/publish/archive? The Accounting domain guide defines endpoint families for exports/payments/refunds/ingestion, but not posting rule sets.
+
+2. **Permissions (blocking):** What are the exact permission tokens for:
+   - viewing posting rule sets
+   - creating/upversioning
+   - publishing
+   - archiving
+   (Accounting domain guide provides permissions for other capabilities only; do not invent new tokens.)
+
+3. **EventType source (blocking):** What is the authoritative endpoint/service to retrieve recognized `EventType` values (and optional descriptions/schema versions)? Is it shared with ingestion event types or a separate catalog?
+
+4. **Rules editor format & schema (blocking):** Is `rulesDefinition` edited as raw JSON only, or is there a structured editor? Provide the JSON schema (or a link) so the UI can validate and render meaningful errors without guessing.
+
+5. **Version creation semantics (blocking):** When creating a new version, does the API require `baseVersion` explicitly, or does it auto-increment from latest? What is the expected 409 conflict behavior for concurrent version creation (errorCode/details shape)?
+
+6. **Archiving policy (blocking):** Are archived versions eligible as a base for "Create New Version"? Is un-archive allowed? Is archiving restricted to PUBLISHED only?
+
+7. **List view optimization (non-blocking but high impact):** Does backend provide a flattened "latest version summary" per rule set, or must frontend fetch versions per rule set? If not provided, confirm acceptable performance approach.
+
+8. **Validation detail payload shape (blocking):** For unbalanced rule sets, what exact structure is returned in `details` (e.g., per condition: debitTotal, creditTotal, failing rule IDs)? Provide a sample error response for UI rendering.
+
+---
+
+## Issue #201: [FRONTEND] [STORY] GL: Build Balanced Journal Entry from Event
+**Title:** GL: Build Balanced Journal Entry from Event
+
+### Open Questions
+
+1. **Backend API/service contract (blocking):** What are the exact Moqui services (names, input params, output fields) to:
+   - search/list Journal Entries
+   - load Journal Entry detail (including lines)
+   - (optional) load JE audit/status history?
+
+2. **Permissions (blocking):** What are the exact permission strings/roles for viewing GL journal entries in the frontend (e.g., `gl.je.view`, `accounting.je.view`)?
+
+3. **Entity/field naming (blocking):** Are the canonical fields named `sourceEventId` vs `eventId`, and `mappingRuleVersionId` vs something else? What are the exact dimension fields available on JE lines?
+
+4. **Rounding/scale for UI balance check (blocking):** Should the UI compare debits/credits using:
+   - exact decimal equality as provided by backend, or
+   - currency-scale rounding before comparison (and what scale per currency)?
+
+5. **Failure policy visibility (clarification):** The requirement mentions "Mapping failures route to suspense or rejection per policy." Should the frontend expose a view of:
+   - failed events / quarantined items / DLQ references,
+   - or is that handled in another admin tool/story?
+
+---
+
+## Issue #206: [FRONTEND] [STORY] AP: View Vendor Bill with Traceability
+**Title:** AP: View Vendor Bill with Traceability
+
+### Open Questions
+
+1. **Backend API contracts (blocking):** What are the exact Moqui service names / REST endpoints and request/response schemas for:
+   - listing Vendor Bills
+   - Vendor Bill detail (including line items)
+   - traceability fields (PO/receipt/source event identifiers)
+   - ingestion visibility fields (processingStatus/idempotencyOutcome/errorCode/errorMessage) and whether they are embedded on the bill or linked via `ingestionId` (**Decision AD-007**)
+   - posting references (journalEntryId/ledgerTransactionId) (**Decision AD-011**)
+
+2. **Permissions (blocking, AD-013):** What are the explicit permission tokens for:
+   - viewing Vendor Bills list/detail (e.g., `accounting:ap-bill:view` or similar)
+   - viewing linked Journal Entry detail (if a JE screen exists)
+   - viewing source event payload summary vs raw payload (raw must use `accounting:events:view-payload`; confirm summary access policy) (**Decision AD-009**, **Decision AD-013**)
+
+3. **Origin event taxonomy (blocking):** What are the canonical upstream event types that can create a Vendor Bill in Accounting (e.g., `GoodsReceivedEvent`, `VendorInvoiceReceivedEvent`, other)? Provide the exact `sourceEventType` strings the UI should display (no inference).
+
+4. **Vendor Bill status enum (blocking):** What are the canonical Vendor Bill `status` values and their meanings for AP review? (UI will render any string, but filters and default tabs require known values.)
+
+5. **Journal Entry navigation (non-blocking but recommended):** Is there an existing Moqui screen route to view a Journal Entry by `journalEntryId`? If yes, provide the route and required permission. If no, this story will display the ID only (no link).
+
+---
+
+## Issue #195: [FRONTEND] [STORY] Adjustments: Create Manual Journal Entry with Controls
+**Title:** Adjustments: Create Manual Journal Entry with Controls
+
+### Open Questions
+
+1. **Backend/Moqui contract (blocking):** What are the exact Moqui service names and REST endpoints for:
+   - reason code list for manual JE (`type=MANUAL_JE` or equivalent)
+   - GL account search (including pagination params and returned fields)
+   - create+post manual JE (atomic command)
+   - JE retrieval by id (detail view)?
+
+2. **Permissions (blocking):** What are the authoritative permission tokens for:
+   - viewing manual JE screens (create/view)
+   - posting manual JEs (mutation)?
+   (The provided Accounting domain guide does not define adjustment/JE permissions; must be added or referenced.)
+
+3. **Reason code source/scope (blocking):** Is `reasonCode` sourced from an Accounting-owned entity, and is it scoped by business unit/legal entity? Must the UI filter by business unit?
+
+4. **Currency context (blocking):** What currency applies to manual JEs (legal entity/base currency), and what scale/rounding rules should the UI enforce for amount inputs? (UI must not assume.)
+
+5. **Line amount payload shape (blocking):** Does backend require both `debitAmount` and `creditAmount` fields always present (with `"0.00"`), or does it accept omission/null for the unused side?
+
+6. **Error code taxonomy (blocking):** What exact `errorCode` values will backend return for:
+   - unbalanced
+   - period closed
+   - invalid/inactive account
+   - missing required fields
+   - permission denied
+   - immutable/posted conflict
+   And does `details` support per-line errors (and how are lines identified: index vs lineId)?
+
+7. **Draft vs post (non-blocking but impacts UX):** Is there a backend-supported `DRAFT` JE state and "Save Draft" endpoint planned? If yes, should this story include it or remain create+post only?
+
+8. **Idempotency (blocking):** Does the create+post endpoint support an idempotency key to prevent double-posting on retry/timeouts? If yes, what is the field/header name and expected behavior on duplicate submissions?
+
+---
+
+## Issue #187: [FRONTEND] [STORY] Reconciliation: Support Bank/Cash Reconciliation Matching
+**Title:** Reconciliation: Support Bank/Cash Reconciliation Matching
+
+### Open Questions
+
+1. **Permissions/authorization (blocking):** What are the exact permission tokens for reconciliation:
+   - view list/detail
+   - create reconciliation
+   - import statement lines
+   - create statement line
+   - match/unmatch
+   - create adjustment
+   - finalize
+   - view/download report
+   (Accounting domain guide defines permissions for exports/payments/refunds/ingestion/apply-payment, but not reconciliation.)
+
+2. **Backend endpoints & schemas (blocking):** Confirm the reconciliation endpoint family and request/response schemas (list/detail/statementLines/systemTransactions/match/unmatch/adjustments/finalize/report/audit). The story currently proposes `/accounting/reconciliation/*` as placeholders.
+
+3. **Import formats & parsing rules (blocking):** Which statement formats are supported (CSV/OFX/BAI2)? If CSV:
+   - required columns
+   - date format(s)
+   - amount model (signed vs debit/credit columns)
+   - header row handling
+   - encoding rules
+
+4. **Statement line amount model (blocking):** Does backend represent statement line amounts as:
+   - signed `amount` (negative for debit), or
+   - `amount` + `direction` (`DEBIT`/`CREDIT`)?
+   This affects manual entry validation and display.
+
+5. **Matching cardinality & partials (blocking):** Are matches:
+   - strictly 1-to-1, or
+   - many system transactions → one statement line allowed, and if so must amounts sum exactly?
+   - one system transaction → many statement lines allowed?
+   - partial matching/splits allowed?
+   UI must enforce selection rules consistent with backend.
+
+6. **Closing/ending balance inputs (blocking):** Is `statementClosingBalance` required at create time or before finalize? Is it editable in DRAFT? Is `openingBalance` derived or user-entered?
+
+7. **Adjustment types & defaults (non-blocking unless required by backend):** Does backend provide `adjustmentType` enums and default GL accounts per type, or is GL account always manually selected?
+
+8. **Report contract (blocking):** Is the reconciliation report:
+   - downloadable file (PDF/CSV), with filename/content-type rules, or
+   - rendered screen?
+   What minimum contents are required (header balances, matched items, adjustments, audit summary)?
+
+9. **Reconcilable system transactions contract (blocking):** What is the authoritative source and filtering logic for "reconcilable system transactions" for a bank/cash account? What fields are guaranteed (date, amount, reference, counterparty)?
+
+10. **Currency handling (blocking):** Is reconciliation single-currency per bank account? Will backend return `currencyUomId` on reconciliation and statement lines for formatting and validation?
+
+---
+
+## Issue #208: [FRONTEND] [STORY] Accounting: Ingest WorkCompleted Event
+**Title:** Accounting: Ingest WorkCompleted Event
+
+### Open Questions
+
+1. **Backend contract for ingestion records:** What are the exact API endpoints/service names, request parameters, and response field names for listing and fetching `WorkCompleted` ingestion records?
+
+2. **Status model:** What are the authoritative `processingStatus` values for ingestion records (including "duplicate" and "retry queued/processing")?
+
+3. **Retry policy:** Which statuses/errors are retry-eligible (e.g., `wip_reconciliation_failed`, `workorder_not_found`) and which are not (e.g., `SCHEMA_VALIDATION_FAILED`, `INGESTION_DUPLICATE_CONFLICT`)?
+
+4. **Authorization:** What permission(s)/scope(s) gate access to (a) viewing ingestion screens and (b) initiating a retry? (e.g., `SCOPE_accounting:events:ingest` is mentioned for service-to-service; what is the human/operator permission?)
+
+5. **Operator reason/audit requirement:** Must the UI collect a mandatory "retry reason" comment for audit? If yes, what are constraints (min/max length) and where is it stored?
+
+6. **Payload access controls:** Is the full event payload always safe to display to ops users, or must some fields be masked/redacted?
+
+7. **Moqui navigation conventions:** What is the expected screen root/module path and menu placement in `durion-moqui-frontend` for accounting event ingestion UIs?
+
+---
+
+## Summary Statistics
+
+- **Total Issues with Open Questions:** 9
+- **Total Open Questions:** 62
+- **Blocking Questions:** ~55
+- **Non-blocking Questions:** ~7
+
+## Next Steps
+
+1. Review and prioritize questions by impact on implementation timeline
+2. Schedule architecture review sessions for cross-cutting concerns (permissions, error codes, entity naming)
+3. Document decisions in ADRs where appropriate (especially for dimensions schema, posting rule schemas, reconciliation matching rules)
+4. Update accounting domain guide with clarified contracts and permissions
+5. Communicate finalized decisions back to Story Authoring Agent for story updates
