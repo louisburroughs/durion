@@ -53,6 +53,8 @@ This document is the normative agent guide for the CRM domain: system-of-record 
 | Entity | Description |
 | --- | --- |
 | Party | Canonical customer identifier; subtype is Person or Organization/Account. |
+| Customer | Person-party representing an individual customer; each family member is a distinct customer with its own `partyId`. |
+| Contact | Person-party that represents an organization-party; linked via `PartyRelationship` (e.g., BILLING/APPROVER/DRIVER) and must exist for every organization-party. |
 | ContactPoint | Email/phone contact points for a party; supports primary per kind. |
 | PartyRelationship | Relationship between parties with role codes (BILLING/APPROVER/DRIVER). |
 | Vehicle | CRM-owned vehicle record. |
@@ -62,6 +64,12 @@ This document is the normative agent guide for the CRM domain: system-of-record 
 | PromotionRedemption | CRM record of a promotion redemption event (idempotent). |
 | ProcessingLog | Operational read model for inbound event processing outcomes. |
 | SuspenseItem | Operational read model for unprocessable events requiring triage. |
+
+## Customer vs Party vs Contact
+
+- Customer: A Customer is always a Person party that transacts directly with the service provider. Each individual in a household is its own Customer (separate `partyId`). A Customer can own multiple vehicles and typically has a single primary address on record.
+- Party (Organization): A Party can be an organization/company that does business with the service provider. Organization-parties can be structured hierarchically (parent/child parties) and act as the account container for related contacts and vehicles.
+- Contact: A Contact is a Person party that represents an organization-party. Contacts are connected to the organization via `PartyRelationship` with role codes (e.g., BILLING/APPROVER/DRIVER). Every organization-party must have at least one active Contact before it is considered usable.
 
 ## Invariants / Business Rules
 
@@ -92,6 +100,10 @@ This document is the normative agent guide for the CRM domain: system-of-record 
 
 - Vehicle care preferences
   - Fixed schema, optimistic locking, and audit history are required. (DECISION-INVENTORY-012)
+  
+- Customer/Party/Contact guardrails
+  - Every organization-party must maintain at least one active Contact linked via `PartyRelationship`.
+  - Customers are Person parties; each individual (including within the same family) is modeled separately with its own `partyId`.
 
 ## Mapping: Decisions → Notes
 

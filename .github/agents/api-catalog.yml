@@ -812,6 +812,105 @@ domains:
         operationId: getVehiclesForCustomer
         action: return vehicle details; support include=owner.
 
+      # Commercial/Party Account Management (Issue #176)
+      - method: POST
+        path: /v1/crm/parties
+        version: v1
+        operationId: createCommercialAccount
+        action: >-
+          create a new commercial account (party) with legalName, displayName, taxId, billingTermsId, partyType, 
+          and externalIdentifiers; auto-generates partyNumber; enforces at least one contact; returns 201 with party details.
+        permissions:
+          - crm:party:create
+
+      - method: GET
+        path: /v1/crm/parties/{partyId}
+        version: v1
+        operationId: getParty
+        action: >-
+          retrieve party details by partyId; returns partyType, legalName, displayName, taxId, status, 
+          billingTermsId, createdAt, modifiedAt timestamps.
+        permissions:
+          - crm:party:view
+
+      # Party Search and Merge (Issue #173)
+      - method: POST
+        path: /v1/crm/parties/search
+        version: v1
+        operationId: searchParties
+        action: >-
+          search parties with filters (name, email, phone, taxId, partyType, status); 
+          uses contains matching for name fields; returns paginated results with summary (partyId, legalName, displayName, partyType, status, createdAt).
+        permissions:
+          - crm:party:view
+        notes: >-
+          Current implementation uses in-memory filtering; production should use database-level filtering with Specification or QueryDSL for performance.
+
+      - method: POST
+        path: /v1/crm/parties/{partyId}/merge
+        version: v1
+        operationId: mergeParties
+        action: >-
+          merge duplicate parties; requires losingPartyId and justification in request body; 
+          migrates contacts, external identifiers, and vehicle VINs from losing party to survivor; 
+          marks losing party status as MERGED; returns survivorPartyId, losingPartyId, and status.
+        permissions:
+          - crm:party:merge
+
+      # Contacts and Roles Management (Issue #172)
+      - method: GET
+        path: /v1/crm/parties/{partyId}/contacts
+        version: v1
+        operationId: getContactsWithRoles
+        action: >-
+          load account contacts with contactId, contactName, email, phone, hasPrimaryEmail flag; 
+          returns list of contacts for the party with roles (currently empty array; deferred to future ContactRole entity).
+        permissions:
+          - crm:party:view
+
+      - method: PUT
+        path: /v1/crm/parties/{partyId}/contacts/{contactId}/roles
+        version: v1
+        operationId: updateContactRoles
+        action: >-
+          update contact role assignments (BILLING|APPROVER|DRIVER); validates contact belongs to party; 
+          returns success status (role persistence deferred to future ContactRole entity).
+        permissions:
+          - crm:contact:role:assign
+
+      # Communication Preferences (Issue #171)
+      - method: GET
+        path: /v1/crm/parties/{partyId}/communicationPreferences
+        version: v1
+        operationId: getCommunicationPreferences
+        action: >-
+          load communication preferences by partyId; returns default values (emailPreference, smsPreference, phonePreference set to NOT_APPLICABLE); 
+          preference persistence deferred to future CommunicationPreference entity.
+        permissions:
+          - crm:contact:preference:view
+
+      - method: POST
+        path: /v1/crm/parties/{partyId}/communicationPreferences
+        version: v1
+        operationId: upsertCommunicationPreferences
+        action: >-
+          create or update communication preferences by partyId; validates request body is present; 
+          returns success status (preference persistence deferred to future CommunicationPreference entity).
+        permissions:
+          - crm:contact:preference:edit
+
+      # Vehicle Management (Issue #169)
+      - method: POST
+        path: /v1/crm/parties/{partyId}/vehicles
+        version: v1
+        operationId: createVehicleForParty
+        action: >-
+          create vehicle record with vinNumber (required), unitNumber, description, licensePlate for a party; 
+          validates VIN not already associated with party; adds VIN to party's vehicleVins set; 
+          returns partyId, vinNumber, and success status; returns 409 CONFLICT if VIN already exists for party.
+        permissions:
+          - crm:vehicle:create
+
   - name: accounting-finance
     display_name: accounting & finance
     endpoints:

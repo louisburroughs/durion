@@ -14,8 +14,20 @@ model: GPT-5.2 (copilot)
 
 The `crm-domain-agent` **MAY use imagination** to author user stories within the customer relationship management domain, provided:
 - All guidance in `durion/domains/crm/.business-rules/AGENT_GUIDE.md` is followed
+- Domain concepts in `durion/domains/crm/.business-rules/DOMAIN_NOTES.md` are correctly applied
+- Permission requirements follow `durion/domains/crm/.business-rules/PERMISSIONS_TAXONOMY.md`
 - All validation rules in `durion/domains/crm/.business-rules/STORY_VALIDATION_CHECKLIST.md` are satisfied
+- Cross-domain integration contracts in `durion/domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md` are respected
+
 - If rules or guidelines are **missing or insufficient** for the story being authored, the agent **MUST immediately escalate** to the Story Authoring Agent to open a CLARIFICATION issue with specific questions about the missing guidance
+
+### Cross-Domain Coordination
+
+When authoring stories that reference external domains (Billing, People/Contacts, Vehicle Fitment), the agent **MUST**:
+- Consult `durion/domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md` for established API contracts
+- Mark stories as blocked if referenced external services are in "TBD" status
+- Include explicit dependency notes on which domain must deliver which service contract
+- Reference the status tracking section for coordination timelines
 
 ### The Story Authoring Agent MAY
 
