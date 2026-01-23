@@ -1,0 +1,82 @@
+name: api-naming-policy
+version: "1.0"
+description: |
+  Policy rules for API Architect and API Builder agents to enforce naming,
+  versioning, deprecation, and OpenAPI generation conventions for Durion.
+
+rules:
+  - id: path-versioning
+    description: "Canonical endpoints MUST use path-based major versioning at the start of the path (e.g. /v1/...)."
+    severity: error
+    check: "path starts with /v{major}/ OR resource is marked legacy with Deprecated: true and canonicalPath"
+    pattern: "^/v[0-9]+/.*"
+    fixSuggestion: "Move endpoint to /v{major}/...; if preserving old path, mark Deprecated: true and add canonicalPath."
+
+  - id: no-api-prefix
+    description: "Canonical internal endpoints SHOULD NOT include a top-level `api` segment. Use only when gateway public contract requires it."
+    severity: warning
+    check: "path must not start with /api/ unless metadata.legacy == true"
+    pattern: "^(?!/api/).*$"
+    fixSuggestion: "Remove /api prefix from canonical path or add Deprecated: true and canonicalPath pointing to /v{major}/..."
+
+  - id: domain-grouping
+    description: "Prefer domain segmentation: /v1/{domain}/{resource} for discoverability and gateway routing." 
+    severity: info
+    fixSuggestion: "Add domain segment if resource is cross-cutting; otherwise keep resource under appropriate domain."
+
+  - id: path-format
+    description: "Path segments MUST be lowercase and use no underscores; prefer concatenated resource names (workorders) or kebab-case when needed."
+    severity: error
+    pattern: '^[a-z0-9\-/\{\}:\.]+$'
+    fixSuggestion: "Normalize to lowercase and replace underscores with hyphens or remove hyphen if canonical single-word resource (workorders)."
+
+  - id: pluralization
+    description: "Collection resource names MUST be plural. Identifier path parameters MUST be singular named `{resource}Id`."
+    severity: warning
+    fixSuggestion: "Rename path to /{resources}/{resourceId}. Example: /workorders/{workorderId}."
+
+  - id: http-semantics
+    description: "HTTP methods MUST follow semantics: GET=read, POST=create/command, PUT=replace, PATCH=partial update, DELETE=remove. Document idempotency." 
+    severity: error
+    fixSuggestion: "Use POST for commands/state changes and document expected idempotency behavior in the OpenAPI."
+
+  - id: operationId-format
+    description: "operationId MUST be camelCase, verb-first, unique per service (e.g., getWorkorder, createEstimate)."
+    severity: error
+    pattern: "^[a-z][A-Za-z0-9]+$"
+    fixSuggestion: "Rename operationId to verbResource form (getWorkorder)."
+
+  - id: dto-naming
+    description: "Schemas/DTOs SHOULD use Resource{Action}Request / Resource{Action}Response or ResourceDetailResponse naming conventions."
+    severity: warning
+    pattern: ".*(Request|Response|Detail)$"
+    fixSuggestion: "Rename DTOs to follow convention, e.g., WorkorderCreateRequest, WorkorderDetailResponse."
+
+  - id: deprecation-metadata
+    description: "Legacy or deprecated paths MUST include `Deprecated: true` and `canonicalPath` metadata and, where known, `deprecationDate`/`removalDate`."
+    severity: error
+    fixSuggestion: "Annotate legacy entries in the spec with Deprecated: true and canonicalPath pointing to the /v{major}/ path."
+
+  - id: discovery-version-metadata
+    description: "Services SHOULD register `version` in Eureka instance metadata (e.g., version: v1) to support version-aware instance selection."
+    severity: warning
+    fixSuggestion: "Set eureka.instance.metadataMap.version in application.yml."
+
+  - id: openapi-deprecation
+    description: "OpenAPI generated output MUST mark deprecated operations using `deprecated: true` OR vendor extension `x-deprecated: true`."
+    severity: warning
+    fixSuggestion: "Set operation.deprecated=true in OpenAPI output and include `x-canonicalPath` if applicable."
+
+validation:
+  openapi:
+    requireExamples: true
+    requireServers: true
+
+examples:
+  path: /v1/workorders/{workorderId}
+  operationId: getWorkorder
+  dto: WorkorderDetailResponse
+
+usage:
+  - "API Architect agents: validate draft specs against this policy before finalizing."
+  - "API Builder agents: produce OpenAPI that conforms to rules; add `Deprecated: true` for legacy mappings."

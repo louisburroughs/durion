@@ -8,7 +8,7 @@ The Accounting domain is responsible for authoritative financial calculations, i
 
 This guide is written for engineers and agents implementing Moqui services/screens and integrations for the Accounting domain. This document is **normative**.
 
-**Non-normative companion:** [DOMAIN_NOTES.md](domains/accounting/.business-rules/DOMAIN_NOTES.md) (design rationale, options, rejected alternatives).
+**Non-normative companion:** [DOMAIN_NOTES.md](DOMAIN_NOTES.md) (design rationale, options, rejected alternatives).
 
 ---
 
@@ -63,6 +63,7 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - **Billing lifecycle**: invoice issuance/finalization is owned by Billing domain; Accounting consumes `InvoiceIssued` events and exposes ingestion status.
 - **Payment capture/clearing**: payment authorization/capture/settlement is owned by Payment domain; Accounting consumes `PaymentReceived` and provides AR application workflows.
 - **Work execution**: work order completion events and operational state are owned by Work Execution; Accounting consumes events and posts.
+- **AP payment execution**: executing vendor payments is owned by Payment/Treasury domain(s). Accounting may own AP bill accounting state and scheduling intent **only if** explicitly defined by backend contracts. **TODO/CLARIFY:** confirm system-of-record for AP Bills workflow (`DRAFT → APPROVED → SCHEDULED`) from consolidated AP stories.
 
 ### Integration points (expanded)
 
@@ -73,13 +74,14 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - **Event Bus / Message Broker**: canonical accounting event ingestion.
 - **General Ledger / Ledger subsystem**: posting and balances (internal or external).
 - **Schema repository**: canonical event contracts (“Durion Accounting Event Contract v1”).
+- **Purchasing/Receiving domain (AP upstream)**: emits receiving/vendor invoice events; Accounting may ingest and create AP Vendor Bill read models. **TODO/CLARIFY:** confirm canonical event types and ownership.
 
 ---
 
 ## Key Entities / Concepts
 
 | Entity | Description |
-|---|---|
+| --- | --- |
 | **Invoice** | Billing document with financial totals, status, and audit snapshots. |
 | **InvoiceItem** | Line items on an invoice, including pricing and taxability attributes. |
 | **CalculationSnapshot** | Immutable record of tax/fee calculation details for audit and traceability. |
@@ -99,6 +101,9 @@ This guide is written for engineers and agents implementing Moqui services/scree
 | **RefundTransaction** | Accounting-side read-only record of refund issuance and linkage to original transaction. |
 | **AccountingEventIngestionRecord** | Persisted ingestion outcome for canonical events (status, idempotency outcome, errors, posting references). |
 | **ExportRequest / ExportAuditEvent** | Audit record for user-initiated exports (e.g., approved time export), including parameters and outcome. |
+| **VendorBill (AP read model)** | Read-only AP bill created from upstream Purchasing/Receiving events; includes traceability, ingestion visibility, and posting references. **TODO/CLARIFY:** confirm entity name and whether Accounting is SoR. |
+| **PostingRuleSetVersion** | Versioned rule definition with lifecycle state (DRAFT/PUBLISHED/ARCHIVED) used to generate journal entries. **TODO/CLARIFY:** confirm backend model and naming. |
+| **MappingKey** | Producer-facing key that deterministically resolves to a PostingCategory (many keys → one category; one key → exactly one category). **TODO/CLARIFY:** confirm backend model and naming. |
 
 ### Relationships (actionable)
 
@@ -109,6 +114,12 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - `ReceivablePayment (0..1) -> (0..1) CustomerCredit` (created on overpayment; policy-driven) (**Decision AD-003**)
 - `AccountingEventIngestionRecord (0..1) -> (0..1) JournalEntry` (posting reference) (**Decision AD-011**)
 - `RefundTransaction (0..1) -> (0..1) ReceivablePayment` and optionally `Invoice` (linkage is event-derived) (**Decision AD-001**)
+- `PostingCategory (1) <- (N) MappingKey` (many keys map to one category; each key maps to exactly one category) **TODO/CLARIFY:** confirm cardinality is enforced by backend.
+- `PostingCategory (1) -> (N) GLMapping` (effective-dated, non-overlapping)
+- `PostingRuleSet (1) -> (N) PostingRuleSetVersion` (versioned lifecycle)
+- `JournalEntry (N) -> (1) PostingRuleSetVersion` (traceability: JE references exact ruleset+version used) **TODO/CLARIFY:** confirm reference field name.
+- `VendorBill (0..1) -> (0..1) AccountingEventIngestionRecord` (via `ingestionId` or embedded ingestion fields) (**Decision AD-007**) **TODO/CLARIFY:** confirm linkage model.
+- `VendorBill (0..1) -> (0..1) JournalEntry` (posting reference) (**Decision AD-011**) **TODO/CLARIFY:** confirm.
 
 ---
 
@@ -170,6 +181,26 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - GL mappings are effective-dated and non-overlapping.
 - Posting rule sets must produce balanced journal entries; published versions immutable.
 - Posting allowed only in open accounting periods; posting is atomic (**Decision AD-012**).
+
+### Posting configuration invariants (from consolidated stories; backend-enforced)
+
+- **Posting Categories**
+  - `categoryCode` must be unique.
+  - Categories are deactivated (no hard delete) and remain visible for audit/history.
+  - **TODO/CLARIFY:** whether categories are editable in place or versioned/append-only.
+- **Mapping Keys**
+  - `mappingKey` must be unique system-wide.
+  - Each mapping key resolves deterministically to exactly one posting category.
+  - **TODO/CLARIFY:** whether mapping keys can be re-pointed to a different category and whether that is audited/versioned.
+- **GL Mappings**
+  - For a given posting category, effective date ranges must not overlap.
+  - Creating a new mapping for an INACTIVE category must be rejected.
+  - **TODO/CLARIFY:** whether the system ever auto-end-dates a prior mapping when a new one is created (default assumption: reject overlaps).
+- **Posting Rule Sets**
+  - Versions have lifecycle states: `DRAFT`, `PUBLISHED`, `ARCHIVED`.
+  - Publishing must be blocked if rules do not balance or references are invalid.
+  - Published versions are immutable; changes require creating a new version.
+  - **TODO/CLARIFY:** whether archived versions can be used as a base for new versions.
 
 ---
 
@@ -235,12 +266,62 @@ This guide is written for engineers and agents implementing Moqui services/scree
   - error code/message and quarantine/DLQ markers
 - Retry/reprocess is an async job if enabled.
 
+### Event Ingestion Submit (Sync) — diagnostic tool (new; operator workflow)
+
+- Purpose: allow authorized operators to submit a canonical event envelope to a **synchronous ingestion endpoint** and view deterministic acknowledgement/errors.
+- This tool is **not** a replacement for ingestion monitoring; it is a producer validation/diagnostic UI.
+- Must:
+  - validate JSON syntax client-side
+  - validate UUIDv7 for identifiers when provided (**Decision AD-006**)
+  - propagate W3C trace headers (**Decision AD-008**)
+  - enforce payload visibility policy (**Decision AD-009**)
+- **TODO/CLARIFY:** exact endpoint path and response schema (see Open Questions section).
+
+### Posting Configuration (CoA, Posting Categories, Mapping Keys, GL Mappings, Posting Rule Sets) — configuration workflows (new; finance/admin)
+
+- Chart of Accounts:
+  - create GL account (code/name/type/effective dates)
+  - update limited fields (name/description)
+  - deactivate via effective end date (policy-controlled)
+  - **TODO/CLARIFY:** endpoint family + permissions + deactivation policy details.
+- Posting Categories / Mapping Keys / GL Mappings:
+  - create categories and keys
+  - link keys → category (deterministic)
+  - create effective-dated GL mappings (non-overlapping)
+  - view mapping history
+  - **TODO/CLARIFY:** endpoint family + dimensions schema + immutability/versioning policy.
+- Posting Rule Sets:
+  - create ruleset version 1 (DRAFT)
+  - create new version from base
+  - publish (server validates balance)
+  - archive
+  - **TODO/CLARIFY:** endpoint family + EventType catalog + rulesDefinition schema.
+
+### General Ledger: Journal Entry Review (Draft JE list/detail) — read-only workflow (new; GL ops)
+
+- List/search draft journal entries by status/date/eventId/source module/currency.
+- Detail view shows:
+  - header traceability (eventId/source refs/rule version)
+  - lines with account/category/dimensions and debit/credit
+  - UI-computed balance per currency (defensive check)
+- **TODO/CLARIFY:** endpoint family + permissions + rounding/scale comparison rule.
+
+### Accounts Payable: Vendor Bill Review (read-only) — AP ops (new; AP)
+
+- List/search vendor bills created from upstream events.
+- Detail shows:
+  - bill header + lines + totals
+  - traceability to source event and PO/receipt refs
+  - ingestion visibility fields (processingStatus/idempotencyOutcome/errors) (**Decision AD-007**)
+  - posting references (journalEntryId primary) (**Decision AD-011**)
+- **TODO/CLARIFY:** endpoint family + permissions + status enums + origin event taxonomy.
+
 ---
 
 ## Events / Integrations
 
 | Event Name | Source Domain | Description | Consumer Domain(s) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `InvoiceAdjusted` | Accounting | Emitted on authorized invoice adjustment. | Accounting ingestion monitor, downstream systems |
 | `CreditMemoIssued` | Accounting | Emitted when a credit memo is created/issued. | Accounting ingestion monitor, downstream systems |
 | `InvoiceIssued` | Billing | Emitted when invoice is finalized and issued. | Accounting ingestion + AR systems |
@@ -248,6 +329,10 @@ This guide is written for engineers and agents implementing Moqui services/scree
 | `RefundIssued` | Payment / External | Emitted when a refund is issued. | Accounting refund visibility + ops UI |
 | CanonicalAccountingEvent | Various | Standardized financial event envelope. | Accounting ingestion service |
 | Export audit events | Accounting | Records export requests/outcomes (e.g., timekeeping export). | Auditors/Compliance |
+| `Accounting.PaymentScheduled.v1` | Accounting (assumed) | Emitted when an AP bill is scheduled for payment. | Payment/Treasury domain(s) |
+| Purchasing/Receiving → AP events | Purchasing/Receiving | Upstream events that may create Vendor Bills in Accounting. | Accounting AP ingestion |
+
+> **TODO/CLARIFY:** AP-related event names and ownership are not confirmed in the normative guide; do not implement or hardcode until backend contract is confirmed.
 
 ### Integration patterns (actionable) (**Decision AD-007**)
 
@@ -260,6 +345,11 @@ This guide is written for engineers and agents implementing Moqui services/scree
   - Provide `journalEntryId` (primary) and optionally `ledgerTransactionId` (**Decision AD-011**).
 - **Retry**:
   - Retry is async job semantics with `jobId` + status endpoint (**Decision AD-014**).
+- **Synchronous ingestion submit (diagnostic)**:
+  - Must return a deterministic acknowledgement that includes at minimum `eventId` and `receivedAt`.
+  - Must surface idempotency outcomes (NEW / DUPLICATE_IGNORED / DUPLICATE_CONFLICT) when applicable.
+  - Must not echo raw payload unless explicitly permitted and required; prefer `payloadSummary` (**Decision AD-009**).
+  - **TODO/CLARIFY:** exact endpoint and response contract.
 
 ---
 
@@ -306,6 +396,25 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - `GET  /accounting/ingestion/detail?ingestionId=...`
 - `POST /accounting/ingestion/retry` (optional; async) (**Decision AD-014**)
 
+#### Ingestion submit (sync diagnostic tool) (new; **TBD**)
+
+- **TODO/CLARIFY:** define exact path and schema for synchronous ingestion submission used by the operator submit tool.
+  - Candidate paths (non-normative examples): `POST /accounting/ingestion/submitSync`, `POST /accounting/ingestion/submit`
+  - This guide does **not** authorize implementing any candidate until confirmed.
+
+#### Chart of Accounts / Posting Configuration / Posting Rules / GL / AP (new; **TBD**)
+
+The consolidated stories require additional endpoint families that are **not yet defined** in this normative guide:
+
+- CoA (GLAccount): list/detail/create/update/deactivate (**TODO/CLARIFY**)
+- Posting Categories / Mapping Keys / GL Mappings: list/detail/create/update/deactivate + history (**TODO/CLARIFY**)
+- Posting Rule Sets: list/detail/versionDetail/create/createVersion/publish/archive + EventType catalog (**TODO/CLARIFY**)
+- Journal Entries: list/detail (+ optional audit/history) (**TODO/CLARIFY**)
+- AP Vendor Bills: list/detail (+ optional payload detail) (**TODO/CLARIFY**)
+- AP Bill approve/schedule: commands + audit/history (**TODO/CLARIFY**)
+
+> Until these are defined, frontend and Moqui agents must treat these capabilities as **blocked** and must not invent endpoints or permission tokens.
+
 ---
 
 ## Security / Authorization Assumptions (**Decision AD-013**)
@@ -344,6 +453,16 @@ This guide is written for engineers and agents implementing Moqui services/scree
   - view raw payload JSON: `accounting:events:view-payload` (**Decision AD-009**)
   - retry/reprocess: `accounting:events:retry` (**Decision AD-014**)
 
+**New (from consolidated stories; permissions not yet defined):**
+
+- Event ingestion submit (sync diagnostic tool):
+  - **TODO/CLARIFY:** define explicit permission tokens for:
+    - viewing the submit screen
+    - submitting events to the sync ingestion endpoint
+  - Do **not** reuse `accounting:events:view` or `accounting:events:retry` without explicit governance approval; submit is a producer-facing capability with higher risk.
+- CoA / Posting configuration / Posting rule sets / Journal entries / AP:
+  - **TODO/CLARIFY:** permission tokens are not defined in this guide; do not ship screens until added.
+
 ### Audit requirements (actionable)
 
 - Any mutation (apply payment, assign customer, retry ingestion, export request) must record:
@@ -355,6 +474,7 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - Justification required:
   - customer assignment: mandatory (>= 10 chars) (**Decision AD-004**)
   - ingestion retry: mandatory (>= 10 chars) for human-initiated retries
+  - **TODO/CLARIFY:** whether event ingestion submit requires a reason/comment for audit (recommended for operator tooling).
 
 ---
 
@@ -368,12 +488,22 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - Include key identifiers in logs and traces:
   - `eventId`, `invoiceId`, `paymentId`, `refundId`, `applicationRequestId`, `exportId`, `ingestionId`.
 
+**New identifiers from consolidated stories (when implemented):**
+
+- `glAccountId`, `postingCategoryId`, `mappingKeyId`, `glMappingId`, `postingRuleSetId`, `postingRuleSetVersion`, `journalEntryId`, `vendorBillId`/`billId`.
+
 ### Logging guidance (backend + Moqui screens)
 
 - **Never log** raw payload bodies (payment source payload, event payloads, export file contents).
 - Log structured fields:
   - operation name, userId, identifiers, status, latency, errorCode.
 - For list screens, log only filter metadata (avoid logging free-text that may contain PII).
+
+#### Event ingestion submit tool (sync)
+
+- Must not log the submitted payload JSON.
+- Log only:
+  - `eventId` (if provided/returned), `eventType`, `sourceModule`, `schemaVersion`, `httpStatus`, `errorCode`, `idempotencyOutcome` (if returned), `traceparent`.
 
 ### Metrics (expanded)
 
@@ -400,12 +530,35 @@ Add/ensure metrics for:
   - `accounting_refund_queries_total{status}`
   - `accounting_refund_unresolved_reference_total`
 
+**New (from consolidated stories; implement when endpoints exist):**
+
+- **Sync ingestion submit tool**
+  - `accounting_ingestion_submit_sync_requests_total{eventType,httpStatus}`
+  - `accounting_ingestion_submit_sync_outcomes_total{idempotencyOutcome,processingStatus}`
+  - `accounting_ingestion_submit_sync_latency_ms`
+- **CoA / posting configuration**
+  - `accounting_coa_create_total{status}`
+  - `accounting_coa_deactivate_total{status}`
+  - `accounting_posting_category_mutations_total{action,status}`
+  - `accounting_gl_mapping_create_total{status}`
+  - `accounting_gl_mapping_overlap_conflicts_total`
+  - `accounting_posting_rules_publish_total{status}`
+  - `accounting_posting_rules_publish_validation_failures_total{code}`
+- **Journal entry review**
+  - `accounting_journal_entry_list_queries_total`
+  - `accounting_journal_entry_detail_queries_total`
+- **AP vendor bill review**
+  - `accounting_ap_vendor_bill_list_queries_total`
+  - `accounting_ap_vendor_bill_quarantined_views_total`
+
 ### Traces
 
 - Ensure spans for:
   - export request → async job → download
   - apply payment command → invoice updates → credit creation
   - ingestion record detail fetch → journal entry fetch (if UI chains calls)
+  - **new:** ingestion submit tool → sync ingestion endpoint call (include `eventType` and `httpStatus` attributes)
+  - **new:** posting rules publish → validation → publish result (if UI triggers publish)
 
 ---
 
@@ -419,6 +572,9 @@ Add/ensure metrics for:
   - UUIDv7 format validation for identifiers (**Decision AD-006**)
 - Permission gating:
   - ensure UI hides restricted payload sections and actions when permission absent.
+- **New:** JSON syntax validation for:
+  - ingestion submit payload
+  - posting rule set `rulesDefinition` (if edited as JSON)
 
 ### Integration tests (API + UI)
 
@@ -443,18 +599,43 @@ Add/ensure metrics for:
   - unresolved reference banner when original transaction missing
   - conflict/quarantine banner when backend indicates duplicate conflict
 
+**New (from consolidated stories; implement when contracts exist):**
+
+- **Sync ingestion submit tool**
+  - 2xx ack renders copyable identifiers
+  - replay/idempotent outcome renders correctly (based on backend fields)
+  - 409 duplicate conflict renders safe guidance
+  - 401/403 does not leak existence; no payload echo shown without permission
+  - payload not logged (assert via log capture)
+- **Posting rule sets**
+  - publish success transitions DRAFT → PUBLISHED
+  - publish failure returns validation details and remains DRAFT
+  - create new version preserves prior version immutability
+- **GL mappings**
+  - overlap conflict returns 409 and displays conflicting range details (from backend)
+- **Journal entry review**
+  - balance-by-currency computed check matches backend-provided totals (if any)
+  - invalid eventId filter blocked client-side
+- **AP vendor bill review**
+  - quarantined/conflict banners shown when ingestion fields indicate
+  - raw payload gated by permission
+
 ### Contract tests
 
 - Canonical event schema adherence for ingestion records:
   - ensure backend returns stable field names for `processingStatus`, `idempotencyOutcome`, timestamps, posting references.
 - Error response schema:
   - standardize and test `{errorCode, message, details}` including per-row errors for allocations.
+- **New:** sync ingestion submit response contract:
+  - ack must include `eventId` and `receivedAt` at minimum
+  - error responses must use canonical error shape
 
 ### Security tests
 
 - Verify 403 behavior does not leak existence of records.
 - Verify raw payload access is restricted and audited.
 - Verify exports do not leak PII in UI logs or error messages.
+- **New:** verify ingestion submit tool does not persist payload (no local storage, no server logs, no caching).
 
 ---
 
@@ -469,6 +650,7 @@ Add/ensure metrics for:
 - **Ingestion visibility claims**: UI must display what ingestion records contain; do not imply completeness beyond persisted ingestion outcomes. (**Decision AD-007**)
 - **Overlapping GL mappings**: Overlapping effective dates cause ambiguous posting resolutions.
 - **Ignoring accounting period status**: Posting/applying actions may be blocked by closed periods; ensure error codes are surfaced and handled. (**Decision AD-012**)
+- **Operator tooling risk**: A sync ingestion submit UI can be misused to inject events. Do not ship without explicit permissions, audit, and environment restrictions (**Decision AD-013**, **Decision AD-009**). **TODO/CLARIFY:** confirm whether this tool is allowed in production environments.
 
 ---
 
@@ -514,7 +696,7 @@ Canonical shape:
     "invoiceId-<UUID>": "INSUFFICIENT_BALANCE"
   }
 }
-````
+```
 
 Rules:
 
@@ -778,6 +960,150 @@ Retry is async only:
 
 **Response:**
 UI blocks non-UUID identifiers for fields that are UUIDv7 (`eventId`, `invoiceId`, `paymentId`, `refundId`, `ingestionId`, `applicationRequestId`, `exportId`). (**Decision AD-006**)
+
+---
+
+### G) New Open Questions from Consolidated Stories (Unresolved)
+
+> These are newly consolidated and remain **unresolved**. They are listed here to block unsafe implementation and prevent agents from inventing contracts/permissions.
+
+#### G1. **(blocking)** What is the exact backend endpoint path for **sync event submission** (e.g., `POST /accounting/ingestion/submitSync` vs another path), and what is the exact success response schema (fields and meanings)?
+
+**Response:**  
+TODO/CLARIFY. Not defined in this normative guide yet.
+
+#### G2. **(blocking)** What permissions gate this submit tool?
+
+- Screen view permission token (new or reuse `accounting:events:view`?) (**Decision AD-013 requires explicit mapping**)  
+- Submit/ingest permission token (story currently references `SCOPE_accounting:events:ingest`, but this scope is not defined in the Accounting domain guide)
+
+**Response:**  
+TODO/CLARIFY. Must be explicitly added to **Permission mapping (normative)** before shipping.
+
+#### G3. **(blocking)** Does the backend accept `payload` as any valid JSON value, or must it be a JSON object? If object-only, confirm errorCode returned when not an object
+
+**Response:**  
+TODO/CLARIFY. UI must not assume; implement client-side validation only after contract is confirmed.
+
+#### G4. **(blocking)** CoA (GLAccount) backend contract: exact endpoints/services, field names, pagination/sort parameters
+
+**Response:**  
+TODO/CLARIFY. Not defined in this guide.
+
+#### G5. **(blocking)** CoA permissions: explicit tokens for view vs manage (create/update/deactivate)
+
+**Response:**  
+TODO/CLARIFY. Must be added per **Decision AD-013**.
+
+#### G6. **(blocking)** CoA deactivation policy: what conditions block deactivation and what stable `errorCode` values should UI expect?
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G7. **(blocking)** CoA editing inactive accounts: are name/description edits allowed after inactive?
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G8. **(blocking)** CoA list status filtering: server-side support for Active/Inactive/NotYetActive?
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G9. **(blocking)** CoA optimistic locking: ETag/version semantics and conflict response code (409 vs 412)
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G10. **(blocking)** Posting Categories / Mapping Keys / GL Mappings backend contracts: endpoints, schemas, and 409 overlap error details
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G11. **(blocking)** Posting configuration permissions: explicit tokens for view vs manage; auditor read-only access (if distinct)
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G12. **(blocking)** Dimensions schema for GL mappings: authoritative list, types, required/optional rules, and lookup sources
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G13. **(blocking)** Immutability/versioning policy for Posting Categories and Mapping Keys; append-only vs editable-in-place; GL mapping editability
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G14. **(non-blocking unless backend supports auto-end-dating)** Confirm overlap handling policy: always reject overlaps (409) vs auto-end-date prior mapping
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G15. **(non-blocking)** Resolution test endpoint: `mappingKey + transactionDate → postingCategory + glAccount + dimensions` contract and permissions
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G16. **(blocking)** Posting Rule Sets endpoint family: list/detail/versionDetail/create/createVersion/publish/archive
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G17. **(blocking)** Posting Rule Sets permissions: view/create/publish/archive tokens
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G18. **(blocking)** EventType source: authoritative endpoint/service to retrieve recognized EventType values
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G19. **(blocking)** Rules editor schema: is `rulesDefinition` raw JSON only; provide JSON schema and publish validation detail payload shape
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G20. **(blocking)** Journal Entry review endpoints/services and permissions; field naming (`eventId` vs `sourceEventId`, `mappingRuleVersionId` naming) and dimensions fields
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G21. **(blocking)** Rounding/scale for UI balance check: exact decimal equality vs currency-scale rounding and scale per currency
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G22. **(clarification)** Failure policy visibility: should frontend expose failed events/quarantine/DLQ references beyond ingestion monitoring?
+
+**Response:**  
+CLARIFY. Default is: use ingestion monitoring screens only (**Decision AD-007**) unless a separate failure view is explicitly defined.
+
+#### G23. **(blocking)** AP Vendor Bills endpoints/services, schemas, and whether ingestion visibility is embedded vs linked via `ingestionId`
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G24. **(blocking)** AP Vendor Bills permissions: view bills; view linked journal entry; payload summary vs raw payload policy
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G25. **(blocking)** AP origin event taxonomy: canonical upstream event types that create Vendor Bills
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G26. **(blocking)** AP Vendor Bill status enum: canonical values and meanings (for filters/default tabs)
+
+**Response:**  
+TODO/CLARIFY.
+
+#### G27. **(blocking)** AP Bills workflow system-of-record and contracts for approve/schedule commands and emitted scheduling event
+
+**Response:**  
+TODO/CLARIFY.
 
 ---
 

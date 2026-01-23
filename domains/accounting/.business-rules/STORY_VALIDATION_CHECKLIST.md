@@ -11,6 +11,7 @@ This checklist is intended for engineers and reviewers to validate story impleme
 - [ ] Confirm cross-domain data is treated as read-only unless an explicit contract exists (e.g., People/Timekeeping time entries, CRM customer lookup).
 - [ ] Verify the UI does not infer accounting policy (posting rules, GL impacts, tax policy) beyond what backend explicitly returns.
 - [ ] Confirm navigation routes/screen paths follow repo conventions and are placed under the correct Accounting menu area (e.g., Accounting → Integrations/Event Ingestion, Accounting → Receivables).
+- [ ] Verify new configuration/admin capabilities (CoA, Posting Categories/Keys/Mappings, Posting Rule Sets) are explicitly confirmed as Accounting-owned and not implemented under `domain:inventory`/`domain:general` placeholders.
 
 ---
 
@@ -40,6 +41,36 @@ This checklist is intended for engineers and reviewers to validate story impleme
 - [ ] Verify payload display fields are treated as untrusted content:
   - [ ] Render JSON safely (no HTML injection).
   - [ ] Truncate/virtualize very large payloads to avoid UI lockups.
+- [ ] Verify UUIDv7 validation is enforced for all identifiers confirmed as UUIDv7 (e.g., `eventId`, `correlationId` if UUID, `refundId`, `paymentId`, `invoiceId`, `ingestionId`, `journalEntryId`, `ledgerTransactionId`, `glAccountId`, `postingCategoryId`, `mappingKeyId`, `glMappingId`, `postingRuleSetId`, `billId`).
+- [ ] Verify Event Ingestion Submit (sync tool) form validation:
+  - [ ] Required fields are non-empty after trimming: `specVersion`, `eventType`, `sourceModule`, `eventTimestamp`, `schemaVersion`, `payload`.
+  - [ ] `eventTimestamp` is ISO-8601 parseable (and UI sends a stable ISO string per contract).
+  - [ ] `payload` is syntactically valid JSON before submit.
+  - [ ] If backend requires `payload` to be a JSON object, UI blocks non-object JSON values once confirmed.
+- [ ] Verify CoA (GL Account) validation:
+  - [ ] `accountCode` and `accountName` are trimmed and non-empty on create.
+  - [ ] `accountType` is constrained to allowed enum values (ASSET/LIABILITY/EQUITY/REVENUE/EXPENSE) from backend/canonical list.
+  - [ ] Effective dating validation: if `activeThru` provided, enforce `activeThru > activeFrom` client-side.
+  - [ ] Deactivate effective date is required and validated as a datetime per backend contract.
+- [ ] Verify Posting Categories / Mapping Keys / GL Mappings validation:
+  - [ ] Posting Category code is trimmed and non-empty; uniqueness violations are surfaced from backend.
+  - [ ] Mapping Key is trimmed and non-empty; uniqueness violations are surfaced from backend.
+  - [ ] Mapping Key → Posting Category association enforces deterministic 1:1 (each key links to exactly one category) per backend contract.
+  - [ ] GL Mapping effective dates enforce `effectiveEndDate >= effectiveStartDate` client-side.
+  - [ ] UI prevents creating GL mappings for INACTIVE categories when status is provided by backend.
+- [ ] Verify Posting Rule Set validation:
+  - [ ] `eventType` selection is required for new rule set creation and comes from an authoritative backend list (no hardcoded event types).
+  - [ ] `rulesDefinition` is syntactically valid JSON before save/publish when edited as JSON text.
+  - [ ] UI does not claim a rule set is “balanced” unless backend returns a validation result; any UI messaging reflects backend validation outcome only.
+- [ ] Verify Journal Entry (draft JE review) filter validation:
+  - [ ] `eventId` filter blocks invalid UUIDv7 and does not call backend.
+  - [ ] Date range filter blocks invalid ranges and does not call backend.
+- [ ] Verify Journal Entry balance-by-currency computation:
+  - [ ] Totals are grouped by `currencyUomId`.
+  - [ ] Comparison uses backend-confirmed rounding/scale rules (no floating point; decimal compare).
+- [ ] Verify AP Vendor Bill list/detail validation:
+  - [ ] UUIDv7 validation blocks invalid `billId`, `vendorId`, `purchaseOrderId`, `receiptId`, `sourceEventId/eventId`, `ingestionId` inputs/route params.
+  - [ ] Bill date range filter blocks invalid ranges and does not call backend.
 
 ---
 
@@ -58,6 +89,16 @@ This checklist is intended for engineers and reviewers to validate story impleme
   - [ ] Binary stream download vs `downloadUrl` handling is correct.
   - [ ] Content-Type and filename handling are correct and safe.
 - [ ] Verify filters use the correct timestamp basis per backend contract (occurredAt vs receivedAt) and the UI labels it accurately.
+- [ ] Verify Event Ingestion Submit (sync tool) uses the exact backend endpoint path and schema (no placeholder paths in merged code).
+- [ ] Verify canonical error shape `{ errorCode, message, details? }` is supported end-to-end:
+  - [ ] UI renders `errorCode` and `message` without exposing sensitive internals.
+  - [ ] If `details` includes field keys, UI maps them to the correct form fields (and ignores unknown keys safely).
+- [ ] Verify CoA endpoints and field names match backend contract (e.g., `glAccountId` vs `accountId`) and UI does not assume naming.
+- [ ] Verify Posting Categories/Keys/Mappings endpoints and overlap-conflict error details are rendered as provided (conflicting IDs/date ranges), without UI inference.
+- [ ] Verify Posting Rule Set endpoints support version addressing (`postingRuleSetId` + `version`) and UI uses backend-provided version/status (no client-side version math unless contract says so).
+- [ ] Verify EventType catalog endpoint is used for Posting Rule Set creation and is cached/loaded per contract (no hardcoded list).
+- [ ] Verify Journal Entry list/detail endpoints return all fields required for traceability (eventId/source refs/rule version) and UI handles missing optional fields with explicit “Not available” messaging.
+- [ ] Verify AP Vendor Bill list/detail endpoints return posting references and ingestion visibility fields per contract, and UI does not fabricate them when absent.
 
 ---
 
@@ -79,6 +120,15 @@ This checklist is intended for engineers and reviewers to validate story impleme
   - [ ] Visible only for retry-eligible statuses.
   - [ ] Protected by explicit permission checks.
   - [ ] Safe against repeated clicks (disable while in flight).
+- [ ] Verify Event Ingestion Submit (sync tool) supports idempotent replay testing:
+  - [ ] UI clearly displays backend-provided `idempotencyOutcome` (if returned) and does not infer replay from client state.
+  - [ ] UI handles 409 duplicate conflict with deterministic guidance (change `eventId` or revert payload) and preserves the entered envelope for retry.
+- [ ] Verify configuration mutation screens (CoA, Posting Categories/Keys/Mappings, Posting Rule Sets) prevent double-submit:
+  - [ ] Create/update/deactivate/publish/archive buttons disable while in flight.
+  - [ ] On timeout, UI provides a safe retry path and does not show success unless backend confirms.
+- [ ] Verify optimistic locking/concurrency behavior is implemented when backend supports it (ETag/version):
+  - [ ] UI sends required version/ETag on update/deactivate/publish/archive when specified.
+  - [ ] UI handles 409/412 by prompting reload and discarding stale edits safely.
 
 ---
 
@@ -99,6 +149,16 @@ This checklist is intended for engineers and reviewers to validate story impleme
   - [ ] Download URLs (if used) are same-origin or explicitly allowed and do not expose tokens in UI logs.
   - [ ] UI does not embed untrusted URLs without validation.
 - [ ] Verify unauthorized users cannot infer existence of refunds/payments/events by probing IDs (consistent 403/404 behavior per policy).
+- [ ] Verify Event Ingestion Submit (sync tool) is deny-by-default:
+  - [ ] Screen view permission is explicit and enforced by Moqui artifact authz.
+  - [ ] Submit action permission is explicit and enforced (separate from view).
+  - [ ] Backend 401/403 responses are handled without revealing whether an `eventId` exists.
+- [ ] Verify configuration screens (CoA, Posting Categories/Keys/Mappings, Posting Rule Sets) enforce least privilege:
+  - [ ] View vs manage permissions are distinct (if defined) and enforced at screen + action level.
+  - [ ] Read-only roles (Auditor) cannot access create/edit/deactivate/publish/archive transitions even via crafted requests.
+- [ ] Verify JSON editors/viewers (payload, rulesDefinition) do not enable script execution:
+  - [ ] Render as text/code with escaping; no HTML rendering of JSON content.
+  - [ ] Do not persist sensitive JSON in localStorage/sessionStorage unless explicitly approved; prefer in-memory only.
 
 ---
 
@@ -111,6 +171,17 @@ This checklist is intended for engineers and reviewers to validate story impleme
 - [ ] Verify Moqui server logs (for screen transitions/service calls) include key identifiers (paymentId, invoiceId, eventId, ingestionId, exportId) and do not include full payload bodies.
 - [ ] Verify correlation/trace header propagation is implemented if the project has a standard (header name and behavior confirmed).
 - [ ] Verify audit/history views (when provided by backend) display immutable audit records (who/when/parameters/outcome) and do not allow edits.
+- [ ] Verify W3C Trace Context propagation is implemented on all outbound calls:
+  - [ ] `traceparent` is propagated unchanged when present.
+  - [ ] `traceparent` is generated only if absent (per project standard).
+  - [ ] `tracestate` is propagated when present.
+- [ ] Verify Event Ingestion Submit (sync tool) displays copyable support identifiers:
+  - [ ] `eventId` (submitted and/or returned), `correlationId` (if present), `receivedAt` (if returned), `traceparent` used, `httpStatus`, `errorCode` (if any).
+- [ ] Verify configuration mutation screens surface support details on failure:
+  - [ ] CoA: `glAccountId`, attempted action (create/update/deactivate), `errorCode`, request timestamp.
+  - [ ] Posting config: `postingCategoryId`/`mappingKeyId`/`glMappingId`, `errorCode`, conflict IDs/date ranges when provided.
+  - [ ] Posting Rule Sets: `postingRuleSetId`, `version`, action (publish/archive/createVersion), `errorCode`, request timestamp.
+- [ ] Verify client-side telemetry (if present) does not include raw payloads (`payload`, `rulesDefinition`) and includes only identifiers + error codes.
 
 ---
 
@@ -130,6 +201,17 @@ This checklist is intended for engineers and reviewers to validate story impleme
 - [ ] Verify empty-result handling is correct and auditable:
   - [ ] Export with 0 records still produces a downloadable artifact and UI indicates 0 exported.
   - [ ] List screens show clear empty states with “clear filters”.
+- [ ] Verify Event Ingestion Submit (sync tool) failure modes:
+  - [ ] Network timeout/5xx preserves entered envelope and payload for retry.
+  - [ ] UI shows in-flight state within ~250ms of submit and prevents double-submit.
+  - [ ] UI does not freeze when rendering large response metadata; raw payload echoes are gated and truncated.
+- [ ] Verify Posting Rule Set list performance:
+  - [ ] UI does not N+1 fetch versions per rule set unless backend contract explicitly requires it and performance is acceptable.
+- [ ] Verify Journal Entry detail rendering handles large line counts:
+  - [ ] Lines table uses virtualization or pagination when line counts are large (per UI framework capability).
+  - [ ] Balance computation is efficient and does not block the main thread for large datasets.
+- [ ] Verify configuration screens handle conflict/reload safely:
+  - [ ] On 409/412, UI offers reload and clearly indicates edits may be lost; no silent overwrite.
 
 ---
 
@@ -155,6 +237,32 @@ This checklist is intended for engineers and reviewers to validate story impleme
 - [ ] Add accessibility checks for tables/forms:
   - [ ] Keyboard navigation for allocation table and filters.
   - [ ] Error messages announced (aria-live) and not color-only.
+- [ ] Add tests for Event Ingestion Submit (sync tool):
+  - [ ] Required field validation blocks submit.
+  - [ ] Invalid UUIDv7 `eventId` blocks submit.
+  - [ ] Invalid JSON payload blocks submit.
+  - [ ] 409 conflict renders guidance and preserves inputs.
+  - [ ] 401/403 renders access denied without existence leakage.
+  - [ ] `traceparent` propagation/generation behavior is correct.
+- [ ] Add tests for CoA screens:
+  - [ ] Create validation (required fields, enum constraint).
+  - [ ] Effective dating validation (`activeThru > activeFrom`).
+  - [ ] Duplicate code error maps to `accountCode` field.
+  - [ ] 409/412 conflict prompts reload and prevents stale overwrite.
+- [ ] Add tests for Posting Categories/Keys/Mappings:
+  - [ ] Non-overlap conflict (409) renders backend-provided conflict details.
+  - [ ] INACTIVE category blocks “New GL Mapping” in UI when status provided.
+- [ ] Add tests for Posting Rule Sets:
+  - [ ] rulesDefinition JSON validation blocks save when invalid.
+  - [ ] Publish failure renders backend validation details and keeps status DRAFT.
+  - [ ] Publish/archive buttons are hidden/disabled based on status + permissions.
+- [ ] Add tests for Journal Entry balance-by-currency:
+  - [ ] Totals computed per currency and compared using configured scale rules.
+  - [ ] Missing mapping rule reference shows “Missing mapping reference” warning.
+- [ ] Add tests for AP Vendor Bill screens:
+  - [ ] UUIDv7 validation blocks invalid deep links/filters.
+  - [ ] Quarantine/conflict ingestion banner renders when `processingStatus=QUARANTINED` or `idempotencyOutcome=DUPLICATE_CONFLICT`.
+  - [ ] Posting reference link behavior uses `journalEntryId` as primary when present.
 
 ---
 
@@ -174,6 +282,27 @@ This checklist is intended for engineers and reviewers to validate story impleme
   - [ ] Output formats and empty dataset behavior.
   - [ ] Skipped-entry reporting behavior (counts vs downloadable report).
 - [ ] Document operational runbook links for common failure codes shown in UI (e.g., schema validation failed, duplicate conflict, currency mismatch).
+- [ ] Document Event Ingestion Submit (sync tool):
+  - [ ] Endpoint path, request envelope fields, and success/error response schema.
+  - [ ] Permission tokens for view vs submit vs payload-view.
+  - [ ] Trace header behavior (`traceparent`/`tracestate`) and what identifiers to provide to support.
+- [ ] Document CoA (GL Account) capability:
+  - [ ] Endpoint family, field names, and concurrency control mechanism (ETag/version).
+  - [ ] Deactivation policy constraints and stable `errorCode` taxonomy.
+- [ ] Document Posting Categories/Keys/Mappings:
+  - [ ] Endpoint family and effective-dating non-overlap rule.
+  - [ ] Dimensions schema (types, required/optional, lookup sources).
+  - [ ] Immutability/versioning policy (in-place edit vs versioned).
+- [ ] Document Posting Rule Sets:
+  - [ ] Endpoint family, version semantics, and status lifecycle (DRAFT/PUBLISHED/ARCHIVED).
+  - [ ] EventType catalog source endpoint and caching strategy.
+  - [ ] Publish validation error `details` shape (sample payload) for UI rendering.
+- [ ] Document Journal Entry review screens:
+  - [ ] Field naming conventions (`eventId` vs `sourceEventId`, `mappingRuleVersionId`).
+  - [ ] Balance check rounding/scale rules per currency.
+- [ ] Document AP Vendor Bills:
+  - [ ] Endpoint family, status enums, and origin event type taxonomy.
+  - [ ] Posting reference navigation route for `journalEntryId` (if available) and required permission.
 
 ---
 
@@ -420,6 +549,84 @@ The system uses **W3C Trace Context**:
 - `tracestate` (optional)
 
 Frontend must propagate these headers unchanged on all backend calls.
+
+---
+
+## 14. What is the exact backend endpoint path and response schema for Event Ingestion Submit (sync tool)?
+
+- [ ] Confirm the exact `POST` path under `/accounting/*` for sync event submission.
+- [ ] Confirm the success response fields (e.g., `eventId`, `receivedAt`, `processingStatus/status`, `idempotencyOutcome`, `payloadSummary`).
+- [ ] Confirm the error response uses `{ errorCode, message, details? }` and whether `eventId` may be present on errors.
+
+---
+
+## 15. What permissions gate the Event Ingestion Submit (sync tool)?
+
+- [ ] Confirm the screen view permission token (new token vs reuse `accounting:events:view`).
+- [ ] Confirm the submit/ingest permission token for human users (do not reuse undefined `SCOPE_accounting:events:ingest` unless it is formally defined).
+- [ ] Confirm whether payload viewing uses existing `accounting:events:view-payload` only, and whether payload summary is visible to `accounting:events:view` users.
+
+---
+
+## 16. Does the ingestion sync endpoint accept `payload` as any JSON value or object-only?
+
+- [ ] Confirm whether `payload` must be a JSON object.
+- [ ] If object-only, confirm the backend `errorCode` and `details` shape returned for non-object payloads so UI can map errors correctly.
+
+---
+
+## 17. What are the backend contracts and permissions for CoA (GLAccount) maintenance?
+
+- [ ] Confirm endpoints/services for list/detail/create/update/deactivate and exact field names (`glAccountId` vs `accountId`, etc.).
+- [ ] Confirm explicit permission tokens for view vs manage (create/update/deactivate).
+- [ ] Confirm deactivation policy constraints and stable `errorCode` values for UI display.
+- [ ] Confirm whether inactive accounts are editable (name/description) or immutable.
+- [ ] Confirm whether list supports server-side filtering by derived status (Active/Inactive/NotYetActive).
+- [ ] Confirm optimistic locking mechanism (ETag/version), required request fields/headers, and conflict status code (409 vs 412).
+
+---
+
+## 18. What are the backend contracts, permissions, and dimension schema for Posting Categories / Mapping Keys / GL Mappings?
+
+- [ ] Confirm endpoints/services for Posting Category CRUD/deactivate, Mapping Key CRUD/linking, GL Mapping create/history, and GL Account lookup.
+- [ ] Confirm explicit permission tokens for view vs manage posting configuration.
+- [ ] Confirm dimensions schema (names, types, required/optional, lookup sources) and whether dimensions are validated server-side with field-level `details`.
+- [ ] Confirm immutability/versioning policy (in-place edit vs versioned/append-only) for categories, keys, and mappings.
+- [ ] Confirm overlap handling policy (always reject with 409 vs auto-end-date prior mapping) and the conflict `details` payload shape.
+- [ ] Confirm whether a mapping resolution test endpoint exists (`mappingKey + transactionDate → postingCategory + glAccount + dimensions`) and its permissions.
+
+---
+
+## 19. What are the backend contracts, permissions, and validation detail shape for Posting Rule Sets?
+
+- [ ] Confirm endpoints/services for list/detail/versionDetail/create/createVersion/publish/archive and their schemas.
+- [ ] Confirm explicit permission tokens for view/create/upversion/publish/archive.
+- [ ] Confirm authoritative EventType catalog endpoint/service and whether it is shared with ingestion event types.
+- [ ] Confirm `rulesDefinition` format (raw JSON vs structured editor) and provide JSON schema/link for validation.
+- [ ] Confirm version creation semantics (`baseVersion` required vs auto-increment) and 409 conflict behavior for concurrent version creation.
+- [ ] Confirm archiving policy (eligible base versions, un-archive allowed, restrictions).
+- [ ] Confirm list optimization contract (latest version summary available vs requiring per-rule-set version fetch).
+- [ ] Confirm publish validation failure `details` structure (sample payload) for UI rendering.
+
+---
+
+## 20. What are the backend contracts and rounding/scale rules for Journal Entry review?
+
+- [ ] Confirm endpoints/services for JE list/search and JE detail (including lines) and exact field names (`eventId` vs `sourceEventId`, `mappingRuleVersionId` naming).
+- [ ] Confirm permission token(s) for viewing journal entries.
+- [ ] Confirm rounding/scale rules for balance-by-currency comparison (exact vs currency-scale rounding, and scale per currency).
+- [ ] Confirm whether mapping failures/quarantine/DLQ visibility is handled via ingestion monitoring screens or a separate failure view.
+
+---
+
+## 21. What are the backend contracts, permissions, and enums for AP Vendor Bills?
+
+- [ ] Confirm endpoints/services for listing Vendor Bills and loading detail (including line items).
+- [ ] Confirm whether ingestion visibility fields are embedded on the bill or linked via `ingestionId` and the exact schema.
+- [ ] Confirm posting reference fields and whether `journalEntryId` is always the primary reference when present.
+- [ ] Confirm explicit permission tokens for viewing Vendor Bills and for linking to Journal Entry detail (if link exists).
+- [ ] Confirm canonical upstream origin event type strings that can create Vendor Bills (no inference).
+- [ ] Confirm Vendor Bill status enum values for filtering/default tabs.
 
 ---
 
