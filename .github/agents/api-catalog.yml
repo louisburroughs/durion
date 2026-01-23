@@ -1,0 +1,849 @@
+schema_version: 1
+kind: backend-api-spec
+source:
+  markdown_path: scripts/story-work/ENDPOINT_API_SPEC.md
+  title: Backend API Specification (Normalized, Grouped by Domain)
+  generated_at: 2026-01-23
+
+domains:
+  - name: inventory
+    endpoints:
+      - method: GET
+        path: /v1/inventory/availability/{productId}
+        version: v1
+        operationId: queryInventoryAvailability
+        action: >-
+          return availability per productId or wildcard; support productId query param.
+
+      - method: POST
+        path: /v1/inventory/availability/{productId}
+        version: v1
+        operationId: updateInventoryAvailability
+        action: >-
+          update availability per productId (or wildcard); support productId query param.
+
+      - method: GET
+        path: /v1/inventory/sites/{siteId}/defaultLocations
+        version: v1
+        operationId: getSiteDefaultLocations
+        action: return configured default locations for a site.
+
+      - method: PUT
+        path: /v1/inventory/sites/{siteId}/defaultLocations
+        version: v1
+        operationId: putSiteDefaultLocations
+        action: replace default locations; validate permissions.
+
+      - method: POST
+        path: /v1/inventory/pickingLists/{id}/confirm
+        version: v1
+        operationId: confirmPickingList
+        action: confirm pick and commit consumption.
+
+      # Cycle Count (implemented legacy paths start with /api; canonicalized here)
+      - method: POST
+        path: /v1/inventory/cycleCount/submit
+        version: v1
+        operationId: submitCycleCount
+        legacyPath: /api/inventory/cycleCount/submit
+        action: >-
+          record count for cycle count task; computes variance and updates task status.
+
+      - method: POST
+        path: /v1/inventory/cycleCount/recount
+        version: v1
+        operationId: submitCycleCountRecount
+        legacyPath: /api/inventory/cycleCount/recount
+        action: >-
+          record recount with permission validation; enforce max 2 recounts (3 total counts).
+
+      - method: GET
+        path: /v1/inventory/cycleCount/tasks/{taskId}
+        version: v1
+        operationId: getCycleCountTask
+        legacyPath: /api/inventory/cycleCount/task/{taskId}
+        action: retrieve cycle count task details.
+
+      - method: GET
+        path: /v1/inventory/cycleCount/tasks/{taskId}/history
+        version: v1
+        operationId: listCycleCountTaskHistory
+        legacyPath: /api/inventory/cycleCount/task/{taskId}/history
+        action: list count entries (original + recounts) for a task ordered by sequence.
+
+      - method: GET
+        path: /v1/inventory/cycleCount/auditors/{auditorId}/tasks
+        version: v1
+        operationId: listCycleCountTasksByAuditor
+        legacyPath: /api/inventory/cycleCount/auditor/{auditorId}/tasks
+        action: list cycle count tasks assigned to an auditor.
+
+      # Cycle Count Adjustments (implemented legacy paths include /api prefix)
+      - method: POST
+        path: /v1/inventory/cycleCountAdjustments
+        version: v1
+        operationId: createCycleCountAdjustment
+        legacyPath: /api/v1/inventory/cycleCountAdjustments
+        action: >-
+          create adjustment from a cycle count; auto-approve if below thresholds else PENDING_APPROVAL.
+
+      - method: POST
+        path: /v1/inventory/cycleCountAdjustments/{adjustmentId}/approve
+        version: v1
+        operationId: approveCycleCountAdjustment
+        legacyPath: /api/v1/inventory/cycleCountAdjustments/{adjustmentId}/approve
+        action: approve pending adjustment and post to inventory ledger; requires approval permission.
+
+      - method: POST
+        path: /v1/inventory/cycleCountAdjustments/{adjustmentId}/reject
+        version: v1
+        operationId: rejectCycleCountAdjustment
+        legacyPath: /api/v1/inventory/cycleCountAdjustments/{adjustmentId}/reject
+        action: reject pending adjustment with reason; requires approval permission.
+
+      - method: GET
+        path: /v1/inventory/cycleCountAdjustments/{adjustmentId}
+        version: v1
+        operationId: getCycleCountAdjustment
+        legacyPath: /api/v1/inventory/cycleCountAdjustments/{adjustmentId}
+        action: retrieve cycle count adjustment details.
+
+      - method: GET
+        path: /v1/inventory/cycleCountAdjustments
+        version: v1
+        operationId: listCycleCountAdjustments
+        legacyPath: /api/v1/inventory/cycleCountAdjustments
+        query:
+          status: PENDING_APPROVAL|APPROVED|REJECTED
+        action: list adjustments, optionally filtered by status (defaults to PENDING_APPROVAL).
+
+      - method: GET
+        path: /v1/inventory/cycleCountAdjustments/pending
+        version: v1
+        operationId: listPendingCycleCountAdjustments
+        legacyPath: /api/v1/inventory/cycleCountAdjustments/pending
+        action: list adjustments awaiting approval.
+
+      - method: GET
+        path: /v1/inventory/cycleCountAdjustments/pending/count
+        version: v1
+        operationId: countPendingCycleCountAdjustments
+        legacyPath: /api/v1/inventory/cycleCountAdjustments/pending/count
+        action: return count of adjustments awaiting approval.
+
+  - name: price
+    endpoints:
+      - method: POST
+        path: /v1/price/normalize
+        version: v1
+        operationId: normalizePricing
+        action: canonicalize currency/rounding rules for amounts; idempotent.
+
+      - method: POST
+        path: /v1/price/restrictions:evaluate
+        version: v1
+        operationId: evaluateRestrictions
+        action: synchronous pricing restriction evaluation; low-latency path.
+
+      - method: POST
+        path: /v1/price/restrictions:override
+        version: v1
+        operationId: overrideRestrictions
+        action: accept override with audit and permission checks.
+
+  - name: products
+    endpoints:
+      - method: GET
+        path: /v1/products/{productId}
+        version: v1
+        operationId: getProduct
+        action: retrieve product by productId.
+
+      - method: GET
+        path: /v1/products/name/{name}
+        version: v1
+        operationId: listProductsByName
+        action: list products matching name.
+
+      - method: GET
+        path: /v1/products/product/{productId}
+        version: v1
+        operationId: getProductDetailView
+        query:
+          location_id: required
+        action: >-
+          retrieve product details with pricing and availability (graceful degradation); requires location_id.
+
+      - method: GET
+        path: /v1/products/service/{serviceId}
+        version: v1
+        operationId: getService
+        action: retrieve service by serviceId.
+
+      - method: GET
+        path: /v1/products/service/name/{name}
+        version: v1
+        operationId: listServicesByName
+        action: list services matching name.
+
+      - method: GET
+        path: /v1/products/noninventory/{productId}
+        version: v1
+        operationId: getNoninventoryProduct
+        action: retrieve non-inventory product by productId.
+
+      - method: GET
+        path: /v1/products/noninventory/name/{name}
+        version: v1
+        operationId: listNoninventoryProductsByName
+        action: list non-inventory products matching name.
+
+      - method: GET
+        path: /v1/products/catalog/{catalogId}
+        version: v1
+        operationId: getCatalog
+        action: retrieve catalog by catalogId.
+
+      - method: GET
+        path: /v1/products/catalog/name/{name}
+        version: v1
+        operationId: listCatalogsByName
+        action: list catalogs matching name.
+
+      - method: POST
+        path: /v1/products/{type}
+        version: v1
+        operationId: createCatalogItem
+        action: create a catalog item by type (product|service|noninventory).
+
+      - method: PUT
+        path: /v1/products/{type}/{catalogId}
+        version: v1
+        operationId: updateCatalogItem
+        action: update a catalog item by type and catalogId.
+
+      - method: DELETE
+        path: /v1/products/{type}/{catalogId}
+        version: v1
+        operationId: deleteCatalogItem
+        action: delete a catalog item by type and catalogId.
+
+      - method: POST
+        path: /v1/products/catalog
+        version: v1
+        operationId: createCatalog
+        action: create a catalog.
+
+      - method: PUT
+        path: /v1/products/catalog/{catalogId}
+        version: v1
+        operationId: updateCatalog
+        action: update a catalog by catalogId.
+
+      - method: DELETE
+        path: /v1/products/catalog/{catalogId}
+        version: v1
+        operationId: deleteCatalog
+        action: delete a catalog by catalogId.
+
+      - method: GET
+        path: /v1/products/substitutes/{productId}
+        version: v1
+        operationId: getPartSubstitutes
+        action: return list of substitute parts for a given productId.
+
+  - name: workexec
+    endpoints:
+      - method: GET
+        path: /v1/workexec/jobTimeTotals
+        version: v1
+        operationId: getJobTimeTotals
+        action: reporting endpoint for job time totals.
+
+      - method: POST
+        path: /v1/workexec/laborPerformed
+        version: v1
+        operationId: postLaborPerformed
+        action: record labor performed events; idempotency and audit required.
+
+      - method: GET
+        path: /v1/workexec/timeEntries/timer/active
+        version: v1
+        operationId: getActiveTimer
+        action: return active timer for current user.
+
+      - method: POST
+        path: /v1/workexec/timeEntries/timer/start
+        version: v1
+        operationId: startTimer
+        action: start timer; enforce single active timer per user.
+
+      - method: POST
+        path: /v1/workexec/timeEntries/timer/stop
+        version: v1
+        operationId: stopTimer
+        action: stop timer and persist entry.
+
+      - method: POST
+        path: /v1/workexec/workorders/{id}:start
+        version: v1
+        operationId: startWorkorder
+        action: start workorder operational flow; requires role check.
+
+      - method: POST
+        path: /v1/workexec/workorders/{workorderId}/operational-context:override
+        version: v1
+        operationId: overrideOperationalContext
+        action: privileged endpoint to override operational context; audit & RBAC required.
+
+      - method: GET
+        path: /v1/workexec/wip/{workorderId}
+        version: v1
+        operationId: getWip
+        action: return work-in-progress view for a workorder.
+
+      - method: GET
+        path: /v1/workexec/wip
+        version: v1
+        operationId: queryWip
+        action: list WIP by locationId and status filters.
+
+      - method: GET
+        path: /v1/workexec/dashboard/today
+        version: v1
+        operationId: getDayViewForLocation
+        query:
+          groupBy: MECHANIC|BAY
+        action: >-
+          Build a view of the current work status for each bay, mobile unit and mechanic.
+
+      # Approval Configurations (pos-work-order)
+      - method: GET
+        path: /v1/workexec
+        version: v1
+        operationId: listApprovalConfigurations
+        action: list approval configurations.
+
+      - method: GET
+        path: /v1/workexec/approvalConfigurations/{approvalId}
+        version: v1
+        operationId: getApprovalConfiguration
+        action: retrieve approval configuration by approvalId.
+
+      - method: GET
+        path: /v1/workexec/approvalConfigurations/applicable
+        version: v1
+        operationId: getApplicableApprovalConfiguration
+        query:
+          locationId: optional
+          customerId: optional
+        action: get most specific approval configuration for locationId/customerId.
+
+      - method: POST
+        path: /v1/workexec/approvalConfigurations
+        version: v1
+        operationId: createApprovalConfiguration
+        action: create approval configuration.
+
+      - method: PUT
+        path: /v1/workexec/approvalConfigurations/{approvalId}
+        version: v1
+        operationId: updateApprovalConfiguration
+        action: update approval configuration by approvalId.
+
+      - method: DELETE
+        path: /v1/workexec/approvalConfigurations/{approvalId}
+        version: v1
+        operationId: deleteApprovalConfiguration
+        action: delete approval configuration by approvalId.
+
+      # Work Orders (pos-work-order)
+      - method: GET
+        path: /v1/workorders
+        version: v1
+        operationId: listWorkorders
+        action: retrieve a list of all work orders.
+
+      - method: POST
+        path: /v1/workorders
+        version: v1
+        operationId: createWorkorder
+        action: create a new work order.
+
+      - method: GET
+        path: /v1/workorders/{workorderId}
+        version: v1
+        operationId: getWorkorder
+        action: retrieve a work order by its unique ID.
+
+      - method: DELETE
+        path: /v1/workorders/{workorderId}
+        version: v1
+        operationId: deleteWorkorder
+        action: delete a work order by its unique ID.
+
+      - method: POST
+        path: /v1/workorders/{workorderId}/start
+        version: v1
+        operationId: startWorkorderById
+        action: start work on a work order (transition to WORK_IN_PROGRESS).
+
+      - method: POST
+        path: /v1/workorders/{workorderId}/complete
+        version: v1
+        operationId: completeWorkorderById
+        action: complete a work order (transition to COMPLETED; emits WorkCompleted event).
+
+      - method: GET
+        path: /v1/workorders/{workorderId}/transitions
+        version: v1
+        operationId: listWorkorderTransitions
+        action: retrieve the state transition history for a work order.
+
+      - method: GET
+        path: /v1/workorders/{workorderId}/snapshots
+        version: v1
+        operationId: listWorkorderSnapshots
+        action: retrieve the snapshot history for a work order.
+
+      - method: POST
+        path: /v1/workorders/{workorderId}/approval
+        version: v1
+        operationId: approveWorkorder
+        action: >
+          approve work order with customer signature capture; validate customer ID matches work order;
+          accept base64-encoded signature image, signer name, and optional notes; transition from DRAFT to APPROVED.
+
+      - method: POST
+        path: /v1/workorders/{workorderId}/cancel
+        version: v1
+        operationId: cancelWorkorder
+        action: authoritative cancel command; validate cancellable state and emit events.
+
+      - method: POST
+        path: /v1/workorders/{workorderId}/approvals
+        version: v1
+        operationId: createWorkorderApproval
+        action: >-
+          submit approval signature payload; enforce required fields and signature validation.
+
+      - method: POST
+        path: /v1/workorders/estimates
+        version: v1
+        operationId: createEstimate
+        action: create a new estimate in DRAFT status for a customer and vehicle.
+
+      - method: GET
+        path: /v1/workorders/estimates/{estimateId}
+        version: v1
+        operationId: getEstimate
+        action: retrieve an estimate by its unique ID.
+
+      - method: POST
+        path: /v1/workorders/estimates/{estimateId}/approval
+        version: v1
+        operationId: approveEstimate
+        action: >
+          approve estimate with customer signature capture; validate customer ID matches estimate;
+          accept base64-encoded signature image, signer name, and optional notes.
+
+      - method: GET
+        path: /v1/workorders/estimates
+        version: v1
+        operationId: queryEstimates
+        action: retrieve a list of all estimates.
+
+      - method: GET
+        path: /v1/workorders/estimates/customer/{customerId}
+        version: v1
+        operationId: listEstimatesByCustomer
+        action: retrieve all estimates for a specific customer.
+
+      - method: GET
+        path: /v1/workorders/estimates/shop/{locationId}
+        version: v1
+        operationId: listEstimatesByShop
+        action: retrieve all estimates for a specific shop.
+
+      - method: GET
+        path: /v1/workorders/estimates/location/{locationId}
+        version: v1
+        operationId: listEstimatesByLocation
+        action: retrieve all estimates for a specific location.
+
+      - method: POST
+        path: /v1/workorders/estimates/{estimateId}/decline
+        version: v1
+        operationId: declineEstimate
+        action: transition an estimate to declined state.
+
+      - method: POST
+        path: /v1/workorders/estimates/{estimateId}/reopen
+        version: v1
+        operationId: reopenEstimate
+        action: transition a declined estimate back to DRAFT state.
+
+      - method: DELETE
+        path: /v1/workorders/estimates/{estimateId}
+        version: v1
+        operationId: deleteEstimate
+        action: delete an estimate by its unique ID.
+
+      - method: POST
+        path: /v1/workorders/{workorderId}/suggestSubstitutes
+        version: v1
+        operationId: suggestPartSubstitutions
+        action: >-
+          WorkExec uses GET /v1/products/substitutes/{productId} internally to build suggestions.
+
+      # Change Requests (pos-work-order)
+      - method: POST
+        path: /v1/workorders/{workorderId}/changeRequests
+        version: v1
+        operationId: createChangeRequest
+        action: create a change request for a work order.
+
+      - method: GET
+        path: /v1/workorders/{workorderId}/changeRequests
+        version: v1
+        operationId: listChangeRequestsByWorkorder
+        action: list change requests for a work order.
+
+      - method: GET
+        path: /v1/workorders/changeRequests/{changeId}
+        version: v1
+        operationId: getChangeRequest
+        action: retrieve change request details by changeId.
+
+      - method: POST
+        path: /v1/workorders/changeRequests/{changeId}/approve
+        version: v1
+        operationId: approveChangeRequest
+        action: approve change request; approval note required.
+
+      - method: POST
+        path: /v1/workorders/changeRequests/{changeId}/decline
+        version: v1
+        operationId: declineChangeRequest
+        action: decline change request; approval note required.
+
+      - method: POST
+        path: /v1/workorders/changeRequests/{changeId}/acknowledgeDenial
+        version: v1
+        operationId: acknowledgeChangeRequestDenial
+        action: record customer denial acknowledgment for declined emergency/safety items.
+
+      - method: POST
+        path: /v1/workorders/changeRequests/{changeId}/emergency-override
+        version: v1
+        operationId: applyEmergencyOverride
+        action: apply emergency override to approve a change request with exception reason.
+
+      - method: GET
+        path: /v1/workorders/{workorderId}/canClose
+        version: v1
+        operationId: canCloseWorkorder
+        action: return whether work order can be closed (denial acknowledgments complete).
+
+      - method: GET
+        path: /v1/workorders/{workorderId}/status
+        version: legacy
+        operationId: getWorkOrderStatus
+        action: alias to /v1/workorders/{workorderId} status field; consider migration.
+
+  - name: people-hr
+    display_name: people & hr
+    endpoints:
+      - method: GET
+        path: /v1/people/reports/attendance-jobtime-discrepancy
+        version: v1
+        operationId: getAttendanceDiscrepancyReport
+        action: reporting endpoint.
+
+      - method: GET
+        path: /v1/people/availability
+        version: v1
+        operationId: getPeopleAvailability
+        action: return availability; support locationId and date filters.
+
+      - method: POST
+        path: /v1/people/workSessions/start
+        version: v1
+        operationId: startWorkSession
+        action: create/start a work session.
+
+      - method: POST
+        path: /v1/people/workSessions/stop
+        version: v1
+        operationId: stopWorkSession
+        action: stop session.
+
+      - method: POST
+        path: /v1/people/workSessions/{id}/breaks/start
+        version: v1
+        operationId: startWorkSessionBreak
+        action: start break within session.
+
+      - method: POST
+        path: /v1/people/workSessions/{id}/breaks/stop
+        version: v1
+        operationId: stopWorkSessionBreak
+        action: end break.
+
+      - method: GET
+        paths:
+          - /v1/locations/bays
+          - /v1/locations/{locationId}/bays/{bayId}
+        version: v1
+        operationId: getBays
+        action: list bays (and optionally bay detail); support bays sub-resources.
+
+      - method: PUT
+        path: /v1/locations/bays
+        version: v1
+        operationId: manageBays
+        action: create/update bays; support bays sub-resources.
+
+      - method: DELETE
+        path: /v1/locations/{locationId}/bays/{bayId}
+        version: v1
+        operationId: removeBay
+        action: delete bay; support bays sub-resources.
+
+      - method: POST
+        path: /v1/locations/{locationId}/bays
+        version: v1
+        operationId: createBays
+        action: create bay; support bays sub-resources.
+
+      - method: GET
+        paths:
+          - /v1/locations/mobileUnit
+          - /v1/locations/{locationId}/mobileUnit/{bayId}
+        version: v1
+        operationId: getMobileUnits
+        action: list mobile units (and optionally mobile unit detail); support mobileUnit sub-resources.
+
+      - method: PUT
+        path: /v1/locations/mobileUnit
+        version: v1
+        operationId: manageMobileUnits
+        action: create/update mobile units; support mobileUnit sub-resources.
+
+      - method: DELETE
+        path: /v1/locations/{locationId}/mobileUnit/{bayId}
+        version: v1
+        operationId: removeMobileUnit
+        action: delete mobile unit; support mobileUnit sub-resources.
+
+      - method: POST
+        path: /v1/locations/{locationId}/mobileUnit
+        version: v1
+        operationId: createMobileUnit
+        action: create mobile unit; validate baseLocationId and capabilities.
+
+  - name: crm
+    endpoints:
+      - method: GET
+        path: /v1/crm
+        version: v1
+        operationId: listCustomers
+        action: retrieve a list of all customers.
+
+      - method: GET
+        path: /v1/crm/{id}
+        version: v1
+        operationId: getCustomer
+        action: retrieve a customer by id.
+
+      - method: POST
+        path: /v1/crm
+        version: v1
+        operationId: createCustomer
+        action: create a new customer.
+
+      - method: PUT
+        path: /v1/crm/{id}
+        version: v1
+        operationId: updateCustomer
+        action: update an existing customer by id.
+
+      - method: DELETE
+        path: /v1/crm/{id}
+        version: v1
+        operationId: deleteCustomer
+        action: delete a customer by id.
+
+      - method: GET
+        path: /v1/crm/accounts/{accountId}/tier
+        version: v1
+        operationId: getAccountTier
+        action: return account tier.
+
+      - method: POST
+        path: /v1/crm/accounts/tierResolve
+        version: v1
+        operationId: resolveAccountTiers
+        action: batch resolve tiers.
+
+      - method: POST
+        path: /v1/crm/{customerId}/vehicles
+        version: v1
+        operationId: createVehicles
+        action: create vehicle(s) for customerId.
+
+      - method: PUT
+        path: /v1/crm/{customerId}/vehicles
+        version: v1
+        operationId: updateVehicles
+        action: update vehicle(s) for customerId.
+
+      - method: DELETE
+        path: /v1/crm/{customerId}/vehicles/{vehicleId}
+        version: v1
+        operationId: deleteVehicle
+        action: delete vehicle for customerId.
+
+      - method: PUT
+        path: /v1/crm/{customerId}/vehicles/{vehicleId}/transfer
+        version: v1
+        operationId: transferVehicles
+        action: >-
+          Transfer vehicle from one customerId to another customerId (details in body: VehicleTransferObject).
+
+      - method: GET
+        path: /v1/crm/vehicles/{vehicleId}
+        version: v1
+        operationId: getVehicle
+        action: return vehicle details; support include=owner.
+
+      - method: GET
+        path: /v1/crm/vehicles
+        version: v1
+        operationId: getAllVehiclesFiltered
+        query_example: make=XXXX, model=XXXX, year=XXXX, sortField=XXX, sortOrder=ASC
+        action: return vehicle details; support include=owner.
+
+      - method: GET
+        path: /v1/crm/{customerId}/vehicles/{vehicleId}
+        version: v1
+        operationId: getVehiclesForCustomer
+        action: return vehicle details; support include=owner.
+
+  - name: accounting-finance
+    display_name: accounting & finance
+    endpoints:
+      - method: GET
+        path: /v1/accounting/traceability/{journalEntryId}
+        version: v1
+        operationId: getJournalTraceability
+        action: optional future public traceability endpoint (mentioned as v2 candidate).
+
+      - method: POST
+        path: /v1/accounting/payments/{paymentId}/applications
+        version: v1
+        operationId: applyPaymentApplications
+        action: >-
+          apply payment to invoices; idempotencyKey in request body; emit payment.applied.
+
+      - method: GET
+        path: /v1/accounting/invoice/{invoiceId}/status
+        version: v1
+        operationId: getInvoicePaymentStatus
+        action: return current payment status of an invoice.
+
+      - method: GET
+        path: /v1/accounting/payments/{paymentId}/status
+        version: v1
+        operationId: getPaymentStatus
+        action: return settlement/clearing status.
+
+      - method: POST
+        path: /v1/accounting/payments/{paymentId}/void
+        version: v1
+        operationId: voidPayment
+        action: void payment; record audit and emit events.
+
+      - method: POST
+        path: /v1/accounting/payments/{paymentId}/reverse
+        version: v1
+        operationId: reversePayment
+        action: perform payment reversal; create reversal audit and emit events.
+
+      - method: POST
+        path: /v1/accounting/glAccounts
+        version: v1
+        operationId: createGlAccount
+        action: create GL account.
+
+      - method: GET
+        path: /v1/accounting/glAccounts/{accountId}
+        version: v1
+        operationId: getGlAccount
+        action: get/patch/deactivate GL account; validate accounting rules.
+
+      - method: PUT
+        path: /v1/accounting/glAccounts/{accountId}
+        version: v1
+        operationId: manageGlAccount
+        action: update/deactivate GL account; validate accounting rules.
+
+      - method: POST
+        path: /v1/accounting/glAccounts
+        version: v1
+        operationId: createGlAccount
+        action: create GL account.
+
+  - name: invoice
+    endpoints:
+      - method: POST
+        path: /v1/invoice/invoices
+        version: v1
+        operationId: regenerateInvoiceFromWorkorder
+        action: privileged regenerate operation; require reasonCode and audit.
+
+      - method: GET
+        path: /v1/invoice/rules/{customerId}
+        version: v1
+        operationId: getBillingRules
+        action: return account billing rules; cacheable; authorize by account scope.
+
+  - name: security
+    endpoints:
+      - method: GET
+        path: /v1/users/permissions/{id}
+        version: v1
+        action: get a user's permissions by id
+
+      - method: GET
+        path: /v1/users/permissions
+        version: v1
+        query:
+          domain: '{doamin}'
+        action: query a user's permissions by domain
+
+      - method: POST
+        path: /v1/users/permissons
+        version: v1
+        operationId: provisionUser
+        action: admin user provisioning endpoint.
+
+      - method: POST
+        path: /v1/users/permissions
+        version: internal
+        operationId: registerPermission
+        action: implement idempotent permission upsert; include validation and audit logging.
+
+  - name: shopmgmt
+    endpoints:
+      - method: GET
+        path: /v1/shopmgmt/{locationId}/schedules/view
+        version: v1
+        operationId: viewSchedules
+        action: read-only schedule view used by UI; support filters.
+
+      - method: GET
+        path: /v1/shopmgmt/{locationId}/workorders/{workorderId}/operationalContext
+        version: v1
+        operationId: viewOpenWorkordersByShop
+        action: read-only operational context view used by UI; support filters.

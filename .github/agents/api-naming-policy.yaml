@@ -25,10 +25,17 @@ rules:
     fixSuggestion: "Add domain segment if resource is cross-cutting; otherwise keep resource under appropriate domain."
 
   - id: path-format
-    description: "Path segments MUST be lowercase and use no underscores; prefer concatenated resource names (workorders) or kebab-case when needed."
+    description: "Path segments MUST be lowerCamelCase or lowercase and use no underscores; prefer concatenated resource names (workorders) and avoid dashes when possible."
     severity: error
-    pattern: '^[a-z0-9\-/\{\}:\.]+$'
-    fixSuggestion: "Normalize to lowercase and replace underscores with hyphens or remove hyphen if canonical single-word resource (workorders)."
+    pattern: '^[a-zA-Z0-9\-/\{\}:\.]+$'
+    fixSuggestion: "Normalize to lowerCamelCase (or lowercase) and remove underscores; avoid dashes unless required for backwards compatibility."
+
+  - id: prefer-camelcase-over-dashes
+    description: "Prefer lowerCamelCase over dashes (-) in path segments (e.g., /cycleCount over /cycle-count)."
+    severity: warning
+    check: "path SHOULD NOT contain '-' in path segments unless required for backwards compatibility"
+    pattern: '^(?!.*-).*$'
+    fixSuggestion: "Replace dashed segments with lowerCamelCase (e.g., cycle-count-adjustments -> cycleCountAdjustments) or mark as legacy/deprecated when keeping a dashed path."
 
   - id: pluralization
     description: "Collection resource names MUST be plural. Identifier path parameters MUST be singular named `{resource}Id`."

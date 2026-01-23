@@ -20,6 +20,7 @@ description: 'See process the agent is following where you can edit this to resh
 
 # Phase 1: Initialization
 
+- Delete existing file `Durion-Processing.md` in workspace root if it exists
 - Create file `Durion-Processing.md` in workspace root
 - Populate `Durion-Processing.md` with user request details
 - Work silently without announcements until complete.
