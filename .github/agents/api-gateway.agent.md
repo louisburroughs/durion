@@ -127,10 +127,10 @@ When answering:
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for cross-service design trade-offs, quality gates, and review-ready changes.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for cross-service design trade-offs, quality gates, and review-ready changes.
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify gateway filters/routes and remove duplication safely.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for contract and integration testing strategy in the POS backend.
-- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for implementing concrete gateway features end-to-end.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for implementing concrete gateway features end-to-end.
 - [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Cloud Gateway/WebFlux best practices and modern Spring idioms.
 - [Netflix Eureka Server Expert](./netflix-eureka.agent.md) — Consult to align discovery locator behavior, instance metadata, and registry health with routing.
 - [API Architect Agent](./api-architect.agent.md) — Consult to keep gateway behavior consistent with API contracts, versioning, and error model.

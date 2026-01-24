@@ -1,7 +1,7 @@
 # ADR-CRM-003: Optimistic Locking Conflict Resolution
 
-**Status:** PENDING DECISION  
-**Date:** 2026-01-23  
+**Status:** ACCEPTED  
+**Date:** 2026-01-24  
 **Deciders:** Frontend Lead, Backend Lead, UX Designer, Database Administrator  
 **Affected Issues:** #171 (Communication Preferences)
 
@@ -32,53 +32,104 @@ Implement **optimistic locking with a version field** and provide a **conflict r
 **Proposed:**
 
 - **Field Name:** `version` (incremental integer)
-- **Initial Value:** `1` when entity created
-- **Increment Rule:** Backend increments on every update (1 → 2 → 3)
-- **Included in Requests:** Frontend sends `version` with every PUT/PATCH/upsert request
+- **Timestamp Field:** `lastUpdatedAt` (UTC timestamp tracking last modification)
+- **Initial Value:** `version=1`, `lastUpdatedAt=creationTime` when entity created
+- **Increment Rule:** Backend increments version on every update (1 → 2 → 3); updates timestamp
+- **Included in Requests:** Frontend sends `version` with every PUT/PATCH request
 - **Validation Rule:** Backend rejects if `submittedVersion ≠ currentVersion`
 - **Scope:** Applied to **communication preferences** initially; consider extending to other mutable entities
+
+**Entity Annotations (JPA + Spring Data + Lombok):**
+
+```java
+import jakarta.persistence.*;
+import org.springframework.data.annotation.LastModifiedDate;
+import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import java.time.Instant;
+
+@Entity
+@Table(name = "crm_communication_preferences")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CommunicationPreferences {
+    
+    @Id
+    private String partyId;
+    
+    @Column(nullable = false)
+    private String emailPreference;  // OPT_IN, OPT_OUT
+    
+    @Column(nullable = false)
+    private String smsPreference;    // OPT_IN, OPT_OUT
+    
+    // Optimistic Locking Fields
+    @Version  // Spring Data JPA annotation: auto-incremented on each update
+    @Column(nullable = false)
+    private Long version;
+    
+    @LastModifiedDate  // Spring Data annotation: auto-updated on save
+    @Column(nullable = false, updatable = false)
+    private Instant lastUpdatedAt;
+    
+    @Column(name = "last_updated_by", length = 100)
+    private String lastUpdatedBy;  // userId of who made the change
+}
+```
 
 **Backend Behavior:**
 
 ```java
-// Pseudocode: Update communication preferences
 @PutMapping("/v1/crm/parties/{partyId}/communication-preferences")
 public ResponseEntity<?> updateComms(
     @PathVariable String partyId,
     @RequestBody CommsPreferencesRequest request  // includes version
 ) {
-    CommsPreferences current = repo.findByPartyId(partyId);
+    Optional<CommunicationPreferences> existing = repo.findByPartyId(partyId);
     
-    if (request.version != current.version) {
-        // Version mismatch: optimistic lock conflict
+    if (existing.isEmpty()) {
+        return ResponseEntity.notFound().build();
+    }
+    
+    CommunicationPreferences current = existing.get();
+    
+    // Check version (optimistic lock)
+    if (!request.version.equals(current.version)) {
         return ResponseEntity.status(409)
             .body(ConflictResponse.builder()
                 .errorCode("OPTIMISTIC_LOCK_CONFLICT")
                 .message("Record updated by another user")
                 .currentVersion(current.version)
                 .submittedVersion(request.version)
-                .currentData(current)  // User can see what changed
+                .currentData(current)
+                .lastUpdatedAt(current.lastUpdatedAt)
+                .lastUpdatedBy(current.lastUpdatedBy)
                 .build()
             );
     }
     
-    // Update and increment version
+    // Update fields
     current.setEmailPreference(request.emailPreference);
-    current.setVersion(current.getVersion() + 1);
+    current.setSmsPreference(request.smsPreference);
+    current.setLastUpdatedBy(getCurrentUserId());  // Captured from security context
+    
+    // @Version auto-increments; @LastModifiedDate auto-updates on save
     repo.save(current);
     
     return ResponseEntity.ok(current);
 }
 ```
 
-**Decision on version field name:** (`version` / `lastUpdatedStamp` / `eTag`)  
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Use `version` field with Spring Data JPA `@Version` annotation for auto-increment on each update. Include `lastUpdatedAt` (Instant type) with `@LastModifiedDate` annotation for audit trail. Add `lastUpdatedBy` field to track which user made the change. Both timestamp and user are included in 409 conflict response for transparency.
 
 ### 2. Frontend Version Tracking
 
 **Proposed:**
 
 1. **Load communication preferences:**
+
    ```vue
    const comms = await service.getComms(partyId);
    // comms = {
@@ -94,6 +145,7 @@ public ResponseEntity<?> updateComms(
 
 3. **On form submit:**
    - Include `version` in request payload:
+
    ```json
    {
      "emailPreference": "OPT_OUT",
@@ -105,7 +157,7 @@ public ResponseEntity<?> updateComms(
 4. **On 409 Conflict response:**
    - Show **ConflictResolutionModal** with current data vs. user's changes
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Accept proposed frontend version tracking: load version field with preferences, store in component state (hidden from user), include version in request payload on submit, handle 409 conflict response by showing ConflictResolutionModal.
 
 ### 3. Conflict Resolution Modal
 
@@ -113,7 +165,7 @@ public ResponseEntity<?> updateComms(
 
 **Modal Design:**
 
-```
+```txt
 ┌──────────────────────────────────────────────────────┐
 │ ⓧ Save Conflict                                      │
 ├──────────────────────────────────────────────────────┤
@@ -144,7 +196,7 @@ public ResponseEntity<?> updateComms(
 | Field Comparison | Side-by-side: current vs. submitted | Show exactly what conflicts |
 | Action Buttons | 3–4 options | Let user choose resolution strategy |
 
-**Decision on modal design:** ______________________
+**Decision:** ✅ **Resolved** - Accept modal design as-is: title "Save Conflict", message explaining conflict with timestamp and user info, side-by-side field comparison showing current vs. user's change, and action buttons for resolution options.
 
 ### 4. Resolution Options
 
@@ -160,6 +212,7 @@ public ResponseEntity<?> updateComms(
 7. Success: Form clears with banner "Changes saved"
 
 **Smart Merge Logic (Optional):**
+
 ```
 // If user edited emailPreference and server updated smsPreference
 Original:      { emailPreference: OPT_IN, smsPreference: OPT_IN, version: 1 }
@@ -170,8 +223,7 @@ Result Merged: { emailPreference: OPT_OUT, smsPreference: OPT_OUT, version: 2 }
 Banner: "Merged with server changes. Verify and save again."
 ```
 
-**Decision:** Include smart merge? (YES / NO)  
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Include smart merge (YES): preserve user edits where possible on reload, merge non-conflicting fields, and let user review before retrying save.
 
 #### Option 2: "Discard My Changes"
 
@@ -183,7 +235,7 @@ Banner: "Merged with server changes. Verify and save again."
 
 **Use Case:** User is unsure of their edits, prefers server version
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Approve "Discard My Changes": require confirmation, reset form to latest server data, and show message that changes were discarded.
 
 #### Option 3: "Override & Save" (Privileged Only)
 
@@ -199,8 +251,7 @@ Banner: "Merged with server changes. Verify and save again."
 - Log override in audit trail: `action: OVERRIDE_SAVE, by: {userId}, partyId: {id}, oldVersion: {v}, newVersion: {v+1}`
 - May be disabled entirely for MVP (not recommended)
 
-**Decision:** Include override option? (YES / NO / ADMIN_ONLY)  
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Approve ADMIN_ONLY override: keep option restricted to privileged roles, require warning + confirmation checkbox, and log override in audit trail.
 
 #### Option 4: "Cancel"
 
@@ -210,7 +261,7 @@ Banner: "Merged with server changes. Verify and save again."
 3. Form retains user's edits (nothing is lost)
 4. User can edit and retry, or abandon
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Approve
 
 ### 5. Special Conflict Scenarios
 
@@ -219,6 +270,7 @@ Banner: "Merged with server changes. Verify and save again."
 **Context:** User tries to update entity that was deleted by another user.
 
 **Backend Response:**
+
 ```json
 {
   "errorCode": "ENTITY_NOT_FOUND",
@@ -232,13 +284,14 @@ Banner: "Merged with server changes. Verify and save again."
 - Offer: "Go Back to {PartyView}" or "Cancel"
 - Do NOT offer "Create New"
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Accept handling: surface delete notice modal, offer "Go Back" or "Cancel", and block recreate to avoid accidental duplicate creation after a concurrent delete.
 
 #### Scenario B: Version Gap (Highly Concurrent)
 
 **Context:** User submits version 2, but server is at version 5 (gap indicates high concurrency or sync issues).
 
 **Backend Response:**
+
 ```json
 {
   "errorCode": "OPTIMISTIC_LOCK_CONFLICT",
@@ -254,7 +307,7 @@ Banner: "Merged with server changes. Verify and save again."
 - Offer: "Reload & Retry" (smart merge may not work)
 - Suggest: "If conflicts persist, contact an administrator"
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Accept handling: warn about high-concurrency version gap, reload latest data, allow retry (smart merge likely skipped), and prompt escalation if conflicts persist.
 
 #### Scenario C: Simultaneous Delete + Update
 
@@ -265,7 +318,7 @@ Banner: "Merged with server changes. Verify and save again."
 - User B's delete succeeds
 - Show User A: "This record was deleted. Changes could not be saved."
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Accept handling: delete wins; inform updating user the record was deleted and no changes were saved, prompting them to exit or navigate back.
 
 ### 6. Retry Limit & Backoff
 
@@ -275,7 +328,7 @@ Banner: "Merged with server changes. Verify and save again."
 - **Backoff Strategy:** Exponential (0s, 1s, 2s) to avoid thundering herd
 - **After Limit:** Show message: "Could not save after 3 attempts. Please contact support or try again later."
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Accept retry policy: up to 3 attempts with exponential backoff (0s, 1s, 2s); after limit, surface message to contact support or try later.
 
 ---
 
@@ -358,6 +411,7 @@ Banner: "Merged with server changes. Verify and save again."
 - Add retry logic with backoff
 
 ### Database Migration
+
 ```sql
 ALTER TABLE communication_preferences 
 ADD COLUMN version INT NOT NULL DEFAULT 1;
@@ -386,12 +440,12 @@ CREATE INDEX idx_comms_version ON communication_preferences(party_id, version);
 
 ## Approval Checklist
 
-- [ ] Backend Lead signs off on version field strategy and 409 response format
-- [ ] Frontend Lead confirms conflict modal design and resolution logic
-- [ ] UX Designer reviews "Reload & Retry" vs "Discard" terminology
-- [ ] Database Administrator approves schema changes and indexes
-- [ ] Audit/Compliance confirms override logging and retention policy
-- [ ] QA signs off on test scenarios (delete, version gap, retry limit)
+- [X] Backend Lead signs off on version field strategy and 409 response format
+- [X] Frontend Lead confirms conflict modal design and resolution logic
+- [X] UX Designer reviews "Reload & Retry" vs "Discard" terminology
+- [X] Database Administrator approves schema changes and indexes
+- [X] Audit/Compliance confirms override logging and retention policy
+- [X] QA signs off on test scenarios (delete, version gap, retry limit)
 
 ---
 
@@ -404,8 +458,8 @@ CREATE INDEX idx_comms_version ON communication_preferences(party_id, version);
 
 ## Related Decisions
 
-- [ADR-CRM-001: Navigation Patterns](ADR-CRM-001-Navigation-Patterns.md)
-- [ADR-CRM-002: Duplicate Detection](ADR-CRM-002-Duplicate-Detection.md)
+- 0003-crm-navigation-patterns.adr.md
+- 0004-crm-duplicate-detection.adr.md
 - [Backend Contract Guide](../domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md)
 
 ---

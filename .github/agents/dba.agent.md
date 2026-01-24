@@ -202,18 +202,18 @@ Page<Product> productPage = productRepository.findAll(PageRequest.of(0, 100));
 ## Integration with Other Agents
 
 - **Coordinate with `architecture.agent.md`** for domain boundary validation and entity ownership.
-- **Guide `software-engineer.agent.md`** on schema design, indexing, and JPA entity best practices.
+**Guide `primary-software-engineer.agent.md`** on schema design, indexing, and JPA entity best practices.
 - **Coordinate with `api-architect.agent.md`** for query optimization in service endpoints.
 - **Work with `springboot.agent.md`** to ensure optimal Spring Data JPA configuration.
 - **Coordinate with `dev-deploy.agent.md`** for database migration strategies and Docker setup.
-- **Review all schema changes** from `software-engineer.agent.md` before approval.
+**Review all schema changes** from `primary-software-engineer.agent.md` before approval.
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for trade-offs and system-level impacts of schema and data lifecycle changes.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for trade-offs and system-level impacts of schema and data lifecycle changes.
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify schema/data access changes without breaking behavior.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for database-related integration test strategy (POS backend).
-- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for executing migration and schema changes in working code.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for executing migration and schema changes in working code.
 - [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Data/JPA configuration that affects migration and runtime DB behavior.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult for PostgreSQL-specific tuning and operational best practices.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when DB constraints affect exposed APIs and edge behavior.

@@ -85,5 +85,5 @@ If your recommendation establishes a durable performance standard (baseline SLOs
 - [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for framework-level performance patterns and modern Spring idioms.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult for query plans, indexing, and DB-level bottlenecks.
 - [SRE Agent](./sre.agent.md) — Consult for production telemetry, dashboards, and incident correlations.
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for pragmatic trade-offs and safe refactor boundaries.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for pragmatic trade-offs and safe refactor boundaries.
 - [Debugging Specialist Agent](./debug.agent.md) — Consult when performance issues overlap with correctness bugs or complex runtime behavior.

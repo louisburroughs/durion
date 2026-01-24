@@ -16,6 +16,31 @@ Create an ADR when making decisions about:
 - Integration patterns between services
 - Data storage and retrieval strategies
 
+## ADR Naming Convention
+
+All ADR files follow this naming format:
+
+```
+NNNN-domain-title.adr.md
+```
+
+- **NNNN**: Sequential number, zero-padded to 4 digits (e.g., `0001`, `0002`, `0043`)
+- **domain**: Component or architectural area (e.g., `crm`, `api`, `db`, `inventory`, `gateway`)
+- **title**: Hyphenated slug describing the decision (e.g., `optimistic-locking`, `cache-strategy`)
+
+### Examples
+
+- `0001-inventory-atp-computation.adr.md` — Inventory ATP calculation strategy
+- `0005-crm-optimistic-locking.adr.md` — CRM concurrent edit conflict resolution
+- `0010-api-versioning-strategy.adr.md` — REST API versioning approach
+
+### Numbering
+
+- ADRs are numbered sequentially starting from `0001`
+- When creating a new ADR, use the next available number
+- Do **not** skip numbers; gaps make the sequence harder to track
+- If an ADR is deleted or archived, do not reuse its number
+
 ## ADR Format
 
 Each ADR should include:
@@ -27,16 +52,23 @@ Each ADR should include:
 5. **Consequences**: Positive and negative outcomes of the decision, including mitigations
 6. **References**: Links to issues, pull requests, and related documentation
 
+### Using the Template
+
+A standard ADR template is available at [`TEMPLATE.adr.md`](./TEMPLATE.adr.md). Copy it and fill in your decision details to ensure consistency across all ADRs.
+
 ## ADR Numbering
 
 ADRs are numbered sequentially starting from 0001. When creating a new ADR, use the next available number.
 
 ## Current ADRs
 
-| Number | Title                                      | Status   | Date       |
-|--------|--------------------------------------------|----------|------------|
-| 0001   | Inventory Ledger ATP Computation           | ACCEPTED | 2026-01-12 |
-| 0002   | CRM Domain Permission Taxonomy             | ACCEPTED | 2026-01-23 |
+| Number | Title                                      | Status            | Date       |
+|--------|--------------------------------------------|-------------------|------------|
+| 0001   | Inventory Ledger ATP Computation           | ACCEPTED          | 2026-01-12 |
+| 0002   | CRM Domain Permission Taxonomy             | ACCEPTED          | 2026-01-23 |
+| 0003   | CRM Navigation Patterns                    | ACCEPTED          | 2026-01-24 |
+| 0004   | Duplicate Detection UX Strategy            | ACCEPTED          | 2026-01-24 |
+| 0005   | Optimistic Locking Conflict Resolution     | ACCEPTED          | 2026-01-24 |
 
 ## Superseding ADRs
 
@@ -46,8 +78,13 @@ When a decision is superseded, update the old ADR's status to "SUPERSEDED BY ADR
 
 When adding a new ADR:
 
-1. Copy an existing ADR as a template
-2. Use the next sequential number
-3. Fill in all required sections
-4. Update this README with the new entry in the table above
-5. Submit as part of your pull request
+1. Use the naming convention: `NNNN-domain-title.adr.md` (see [ADR Naming Convention](#adr-naming-convention))
+2. Copy [`TEMPLATE.adr.md`](./TEMPLATE.adr.md) as your starting point
+3. Use the next sequential number (check the Current ADRs table below)
+4. Fill in all required sections (Title, Status, Date, Deciders, Context, Decision, Consequences, References)
+5. **Decision Format:** Use subsections with ✅ **Resolved** markers to document each sub-decision clearly
+   - Example: `**Decision:** ✅ **Resolved** - Use proposed approach. [Brief justification and notes].`
+   - This makes it easy for reviewers to scan which decisions are finalized
+6. Update the Current ADRs table in this README with your new entry
+7. Ensure the file name matches the ADR number and domain—agents will validate this during review
+8. Submit as part of your pull request

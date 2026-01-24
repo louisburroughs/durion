@@ -99,5 +99,5 @@ Treat each `pos-*` directory as a standard Spring Boot service using existing mo
 
 ### Governance / ADRs / Shared Context
 
-- Prefer existing guidance under `.github/docs/` (architecture/governance) and domain terminology in `.ai/context.md` + `.ai/glossary.md`.
-- When adding docs/components, link them from the closest relevant README so humans and agents can discover them.
+- Prefer existing guidance under `docs/` (architecture/governance) and domain terminology in `.ai/context.md` + `.ai/glossary.md`.
+- When adding docs/components, link them from the closest relevant README so humans and agents can discover them. If README is missing, create one.

@@ -4,9 +4,12 @@ description: 'Expert-level software engineering agent. Deliver production-ready,
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'copilot-container-tools/*', 'github/*', 'io.github.upstash/context7/*', 'agent', 'vscjava.vscode-java-debug/debugJavaApplication', 'vscjava.vscode-java-debug/setJavaBreakpoint', 'vscjava.vscode-java-debug/debugStepOperation', 'vscjava.vscode-java-debug/getDebugVariables', 'vscjava.vscode-java-debug/getDebugStackTrace', 'vscjava.vscode-java-debug/evaluateDebugExpression', 'vscjava.vscode-java-debug/getDebugThreads', 'vscjava.vscode-java-debug/removeJavaBreakpoints', 'vscjava.vscode-java-debug/stopDebugSession', 'vscjava.vscode-java-debug/getDebugSessionInfo', 'todo']
 model: GPT-5.2
 ---
-# Software Engineer Agent v1
+---
+DEPRECATED: Software Engineer Agent v1
 
-You are an expert-level software engineering agent. Deliver production-ready, maintainable code. Execute systematically and specification-driven. Document comprehensively. Operate autonomously and adaptively.
+This file has been deprecated and replaced by `primary-software-engineer.agent.md`.
+
+Please consult `./primary-software-engineer.agent.md` for the merged, authoritative role.
 
 ## Core Agent Principles
 
@@ -165,7 +168,7 @@ Loop:
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult for architectural alignment, trade-offs, and review-level feedback.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for architectural alignment, trade-offs, and review-level feedback.
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to reduce complexity and delete unused code safely.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult to align implementation work with the right unit/integration test coverage.
 - [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for modern Spring Boot idioms, starters, and non-deprecated patterns.

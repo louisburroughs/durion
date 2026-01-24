@@ -11,6 +11,7 @@ Repositories in this workspace
 Quick links
 
 - Root agent guide: `AGENTS.md`
+- Architecture Decision Records: `docs/adr/README.md`
 - Observability architecture: `docs/architecture/observability/OBSERVABILITY.md`
 - SRE runbook: `.github/agents/sre.agent.md`
 

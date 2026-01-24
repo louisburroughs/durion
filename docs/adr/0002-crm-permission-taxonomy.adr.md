@@ -1,6 +1,6 @@
 # ADR 0002: CRM Domain Permission Taxonomy and Authorization Model
 
-**Status:** ACCEPTED  
+**Status:** ACCEPTED  - 2026-01-23 
 **Date:** 2026-01-23  
 **Author:** CRM Domain + Security Domain Collaboration  
 **Affected Components:** pos-crm-service, durion-moqui-frontend, pos-security-service  

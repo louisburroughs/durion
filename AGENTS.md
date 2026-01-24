@@ -141,7 +141,7 @@ cd durion-positivity-backend
 Agent docs live under `.github/agents/` in this repo. Key agent docs and runbooks:
 
 - `.github/agents/sre.agent.md` — SRE/Observability guidance (instrumentation, telemetry contract)
-- `.github/agents/principal-software-engineer.agent.md` — Principal-level guidance
+- `.github/agents/primary-software-engineer.agent.md` — Primary software engineer guidance
 - `.github/agents/dev-deploy.agent.md` — Deployment/CI/CD guidance
 - `.github/agents/api.agent.md` — REST API guidance
 - `.github/agents/moqui-developer.agent.md` — Moqui-specific developer guidance

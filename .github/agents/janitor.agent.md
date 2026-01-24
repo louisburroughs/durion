@@ -92,9 +92,8 @@ Apply the "subtract to add value" principle - every deletion makes the codebase 
 
 ## Related Agents
 
-- [Principal Software Engineer Agent](./principal-software-engineer.agent.md) — Consult to validate refactoring direction and avoid deleting critical behavior.
+- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult to validate refactoring direction and avoid deleting critical behavior.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult to ensure deletions/refactors remain covered by the right tests.
-- [Software Engineer Agent v1](./software-engineer.agent.md) — Consult for executing refactors with working code changes.
 - [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult when refactors touch Spring idioms, configuration, or framework-sensitive behavior.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult when deletions/refactors affect DB schemas, queries, or indexes.
 - [Database Administrator Agent](./dba.agent.md) — Consult for migration/backups/restore and data lifecycle implications.

@@ -1,6 +1,6 @@
 # ADR-CRM-001: CRM Navigation Patterns
 
-**Status:** PENDING DECISION  
+**Status:** ACCEPTED - 2026-01-24 
 **Date:** 2026-01-23  
 **Deciders:** Frontend Lead, UX Designer, Product Manager  
 **Affected Issues:** #176, #173, #172, #169
@@ -41,13 +41,13 @@ GET /crm/parties/{partyId}/communication      → Communication preferences (tab
 GET /crm/accounts/{accountId}                 → (if "account" term preferred)
 ```
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Use `/crm/parties/{partyId}` format (proposed). Update legacy services to redirect from `/crm/accounts/` for backward compatibility.
 
 ### 2. Screen Layout: PartyView
 
 **PartyView** is the canonical single-page view for a party. Layout:
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │ [Back] Party: Acme Corp                         │
 ├─────────────────────────────────────────────────┤
@@ -62,12 +62,13 @@ GET /crm/accounts/{accountId}                 → (if "account" term preferred)
 ```
 
 **Contacts within PartyView:**
+
 - Display as **table with inline edit** (click row → modal)
 - Columns: Name, Email, Phone, Roles, Primary flags
 - Action buttons per row: Edit, Delete
 - Bulk actions: Assign role to multiple
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Display contacts as **table with inline edit** (click row → modal). Provides familiar spreadsheet UX for bulk operations.
 
 ### 3. Post-Create Navigation
 
@@ -85,7 +86,7 @@ GET /crm/accounts/{accountId}                 → (if "account" term preferred)
 2. Offer: "Continue to full view" or "Add another party"
 3. Requires backend to return more metadata
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Use proposed redirect flow: user completes form → backend returns `partyId` → frontend redirects to `/crm/parties/{partyId}` with success banner and CTA to add contacts.
 
 ### 4. Breadcrumb Strategy
 
@@ -101,7 +102,7 @@ Home > CRM > Vehicles > Tesla Model 3
 - Show entity name (not just ID)
 - Don't exceed 4 levels
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Use proposed breadcrumb hierarchy with clickable links and entity names. Max 4 levels to avoid URL bloat.
 
 ### 5. Back Button Behavior
 
@@ -113,7 +114,7 @@ Home > CRM > Vehicles > Tesla Model 3
 **Alternative:**
 - Always return to parent entity, ignore browser history
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Use browser history (`-1`) for PartyView back button. For embedded modals, close modal and stay on PartyView. For standalone pages, return to previous search state or list.
 
 ### 6. Unsaved Changes Protection
 
@@ -122,7 +123,7 @@ Home > CRM > Vehicles > Tesla Model 3
 - Only for forms/modals, not for read-only views
 - Persist form state to session storage for recovery
 
-**Decision:** ______________________
+**Decision:** ✅ **Resolved** - Show unsaved changes warning before navigation. Persist form state to session storage for recovery. Only apply to forms/modals, not read-only views.
 
 ---
 
@@ -137,7 +138,7 @@ GET /crm/vehicles/{vehicleId}
 **Pros:** Simpler, parallel entities independent  
 **Cons:** Loses hierarchical context (which party owns this contact?); poor UX for viewing related data
 
-### Alternative B: Deep Nesting (Multiple Levels)
+### Alternative B: Deep Nesting (Multiple Levels)  --> MY PREFERENCE
 ```
 GET /crm/parties/{partyId}/contacts/{contactId}/communication-preferences
 ```
@@ -227,11 +228,11 @@ GET /crm/parties/{partyId}/contacts/{contactId}/communication-preferences
 
 ## Approval Checklist
 
-- [ ] Frontend Lead signs off on route pattern
-- [ ] UX Designer confirms screen layout and interaction model
-- [ ] Product Manager aligns with user expectations
-- [ ] Backend team confirms post-create response format (`partyId` included)
-- [ ] Accessibility audit for breadcrumbs and keyboard navigation
+- [X] Frontend Lead signs off on route pattern
+- [X] UX Designer confirms screen layout and interaction model
+- [X] Product Manager aligns with user expectations
+- [X] Backend team confirms post-create response format (`partyId` included)
+- [-] Accessibility audit for breadcrumbs and keyboard navigation -> Will accomplish later after prototype
 
 ---
 
@@ -244,8 +245,8 @@ GET /crm/parties/{partyId}/contacts/{contactId}/communication-preferences
 
 ## Related Decisions
 
-- ADR-CRM-002: Duplicate Detection UX Strategy
-- ADR-CRM-003: Optimistic Locking Conflict Resolution
+- 0004-crm-duplicate-detection.adr.md: Duplicate Detection UX Strategy
+- 0005-crm-optimistic-locking.adr.md: Optimistic Locking Conflict Resolution
 - [Backend Contract Guide](BACKEND_CONTRACT_GUIDE.md)
 
 ---

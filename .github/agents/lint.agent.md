@@ -302,7 +302,7 @@ Use these as examples when linting new components or features.
   - [Chief Architect - POS Agent Framework](./architecture.agent.md)
   - [Senior Cloud Architect](./cloud-arch.agent.md)
 - **Work with implementation agents** to remediate issues quickly and safely:
-  - [Software Engineer Agent v1](./software-engineer.agent.md)
+  - [Primary Software Engineer Agent](./primary-software-engineer.agent.md)
   - [Universal Janitor Agent](./janitor.agent.md)
 - **Work with testing guidance** when linting changes might alter behavior or require coverage:
   - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md)

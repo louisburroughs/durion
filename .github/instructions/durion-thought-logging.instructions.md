@@ -20,7 +20,7 @@ description: 'See process the agent is following where you can edit this to resh
 
 # Phase 1: Initialization
 
-- Delete existing file `Durion-Processing.md` in workspace root if it exists
+- Delete existing file `Durion-Processing.md` in workspace root if it is marked as complete. If not marked complete, ask if you should append to it or start a new one.
 - Create file `Durion-Processing.md` in workspace root
 - Populate `Durion-Processing.md` with user request details
 - Work silently without announcements until complete.
@@ -53,6 +53,7 @@ description: 'See process the agent is following where you can edit this to resh
 - Execute only when ALL actions complete
 - Inform user: "Added final summary to `Durion-Processing.md`."
 - Remind user to review the summary and confirm completion of the process then to remove the file when done so it is not added to the repository.
+- Mark the process as complete in the file.
 
 **ENFORCEMENT RULES:**
 - NEVER write "# Phase X" headers in responses

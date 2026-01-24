@@ -971,8 +971,7 @@ generate.prompt.md → Generated Code File
 
 **For Backend (Java/Spring Boot) - durion-positivity-backend:**
 - **Relevant Agents:**
-  - [Principal Software Engineer Agent](../agents/principal-software-engineer.agent.md) - Provides principal-level guidance.
-  - [Software Engineer Agent v1](../agents/software-engineer.agent.md) - For expert-level implementation.
+  - [Primary Software Engineer Agent](../agents/primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
   - [Universal Janitor Agent](../agents/janitor.agent.md) - For code cleanup and tech debt.
   - [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md) - For QA and test development.
   - [Spring Boot 3.x Strategic Advisor](../agents/springboot.agent.md) - For Spring Boot best practices.
@@ -996,7 +995,7 @@ generate.prompt.md → Generated Code File
 
 **For Frontend (Vue/TypeScript + Groovy Services) - durion-moqui-frontend:**
 - **Relevant Agents:**
-  - [Principal Software Engineer Agent](../agents/principal-software-engineer.agent.md) - Provides principal-level guidance.
+  - [Primary Software Engineer Agent](../agents/primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
   - [moquiDeveloper-agent](.github/agents/moquiDeveloper-agent.md) - Moqui Framework & Groovy service patterns
   - [Vue Agent](.github/agents/vue-agent.md) - Vue 3 Composition API patterns
   - [TypeScript Agent](.github/agents/typescript-agent.md) - Type safety and TS best practices
