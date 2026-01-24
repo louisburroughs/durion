@@ -146,29 +146,31 @@ All stories blocked on missing Moqui service/REST endpoint specifications:
 3. **Optimistic locking:** Clarify when/how to use versioning/ETags
 4. **Navigation patterns:** Need canonical view routes for created entities
 
-## Next Steps
+## Next Steps (with current resolution status)
 
 1. **Priority 1 - Permissions Mapping (Blocking All Stories):**
-   - Security domain to define CRM permission taxonomy
-   - Document permission → role mappings
-   - Provide permission keys to Story Authoring Agent
+   - ✅ CRM permission taxonomy defined in [domains/crm/.business-rules/PERMISSION_TAXONOMY.md](domains/crm/.business-rules/PERMISSION_TAXONOMY.md) (status PROPOSED, aligns with DECISION-INVENTORY-007).
+   - ✅ Backend permission enforcement implemented in `pos-customer` service: [durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md](../../durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md)
+     - Spring Security @PreAuthorize annotations on all CRM endpoints
+     - CrmSecurityConfig.java enables method-level security
+     - CrmPermissionInitializer.java auto-registers 27 permissions with pos-security-service
+     - Type-safe CrmPermissionRegistry constants prevent typos
+   - ⏳ Pending: Complete permission coverage for all remaining CRM endpoints (contact roles, vehicle mgmt, integration monitoring)
 
 2. **Priority 2 - Backend Contract Definition (Blocking All Stories):**
-   - CRM backend to document Moqui service interfaces or REST API contracts
-   - Standardize DTO field naming conventions
-   - Define error response schemas with stable error codes
+   - ✅ Field conventions, error schema, and DTO standards in [domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md](domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md).
+   - ⏳ Pending per story: concrete service/REST contracts (party create/search/merge, contact roles, comm preferences, vehicle create) with request/response DTOs and error codes.
 
 3. **Priority 3 - Cross-Domain Integration Contracts:**
-   - Billing domain: billing terms API contract
-   - Contact domain: contact point data structure and validation rules
-   - Vehicle Fitment: VIN decode integration (if applicable)
+   - ✅ Billing terms lookup contract drafted in [domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md](domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md) (list/get billing terms).
+   - ⏳ Pending: People/Contact data contract finalization (contact points, invoiceDeliveryMethod payload) and Vehicle Fitment VIN decode (future/optional).
 
 4. **Priority 4 - UI/UX Patterns:**
-   - Define canonical navigation patterns for entity views
-   - Standardize duplicate detection UX flows
-   - Document optimistic locking conflict resolution patterns
+   - ✅ Navigation patterns in [docs/adr/0003-crm-navigation-patterns.adr.md](docs/adr/0003-crm-navigation-patterns.adr.md).
+   - ✅ Duplicate detection UX in [docs/adr/0004-crm-duplicate-detection.adr.md](docs/adr/0004-crm-duplicate-detection.adr.md).
+   - ✅ Optimistic locking/conflict resolution in [docs/adr/0005-crm-optimistic-locking.adr.md](docs/adr/0005-crm-optimistic-locking.adr.md) (status still PENDING DECISION overall).
+   - ⏳ Pending: Apply patterns to specific service contracts once endpoints are finalized.
 
 5. **Documentation:**
-   - Create CRM Backend Contract Reference document
-   - Update CRM domain guide with permission model
-   - Document standard error codes and handling patterns
+   - ✅ Contract/style baselines exist (see guides above); permission model documented in [domains/crm/.business-rules/PERMISSION_TAXONOMY.md](domains/crm/.business-rules/PERMISSION_TAXONOMY.md).
+   - ⏳ Pending: CRM Backend Contract Reference with per-endpoint request/response/error tables; standard error codes per service.
