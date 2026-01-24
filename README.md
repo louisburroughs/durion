@@ -96,6 +96,7 @@ Further reading & tools
 - Workspace AGENTS.md: `AGENTS.md`
 - Per-repo AGENTS.md: `durion-moqui-frontend/AGENTS.md`, `durion-positivity-backend/AGENTS.md`
 - Agent docs: `.github/agents/`
+- CRM permissions and Moqui service wrappers: see [Durion-CRM-PermissionImplementation.md](Durion-CRM-PermissionImplementation.md) and [CrmRestServices.xml](durion-moqui-frontend/runtime/component/durion-positivity/service/CrmRestServices.xml) for required permissions on CRM endpoints.
 
 If you'd like, I can run the main build/test commands to validate the instructions or create CI snippets for common workflows.
 <parameter name="filePath">/home/n541342/IdeaProjects/durion/README.md

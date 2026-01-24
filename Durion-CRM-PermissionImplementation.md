@@ -23,12 +23,14 @@ Successfully implemented backend permission checks for the CRM domain using Spri
 | [CrmPermissionRegistry.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/security/CrmPermissionRegistry.java) | Permission constants (27 permissions) | ✅ Complete |
 | [CrmPermissionInitializer.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/config/CrmPermissionInitializer.java) | Startup registration with Security Domain | ✅ Complete |
 
-### Files Modified (2)
+### Files Modified (4)
 
 | File | Changes | Status |
 |------|---------|--------|
 | [CustomerController.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/controller/CustomerController.java) | Added `@PreAuthorize` to 5 endpoints | ✅ Complete |
 | [CrmAccountsController.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/controller/CrmAccountsController.java) | Added `@PreAuthorize` to 2 endpoints | ✅ Complete |
+| [CrmVehiclesController.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/controller/CrmVehiclesController.java) | Added `@PreAuthorize` to 7 vehicle endpoints (create, update, delete, transfer, view, list, get-for-customer) | ✅ Complete |
+| [CrmExceptionHandler.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/config/CrmExceptionHandler.java) | Centralized 403 handler via `@ControllerAdvice` | ✅ Complete |
 
 ### Documentation Created (1)
 
@@ -57,8 +59,8 @@ GET     /v1/crm/accounts/{accountId}/tier     → getAccountTier()       → crm
 POST    /v1/crm/accounts/tierResolve          → resolveAccountTiers()  → crm:party:view
 ```
 
-**Total Protected Endpoints:** 7
-**Total Permissions Used:** 4 distinct permissions (VIEW, CREATE, EDIT, DEACTIVATE)
+**Total Protected Endpoints:** 14
+**Total Permissions Used:** 7 distinct permissions (PARTY_VIEW, PARTY_CREATE, PARTY_EDIT, PARTY_DEACTIVATE, VEHICLE_CREATE, VEHICLE_EDIT, VEHICLE_DEACTIVATE, VEHICLE_VIEW, VEHICLE_SEARCH, VEHICLE_PARTY_ASSOC_EDIT)
 
 ---
 
@@ -95,6 +97,18 @@ SecurityFilterChain (authentication)
 hasAuthority() check against JWT authorities
     ↓
 Endpoint execution or 403 Forbidden response
+
+### Centralized 403 Handling
+All `AccessDeniedException` cases are handled by a centralized `@ControllerAdvice` in `CrmExceptionHandler`, returning a structured payload:
+
+```
+{
+  "errorCode": "FORBIDDEN",
+  "message": "Permission denied",
+  "path": "/v1/crm/...",
+  "timestamp": "2026-01-24T...Z"
+}
+```
 ```
 
 ---
@@ -141,6 +155,8 @@ Endpoint execution or 403 Forbidden response
 - [x] Both methods have @PreAuthorize annotations
 - [x] CrmSecurityConfig enables method security: `@EnableMethodSecurity(prePostEnabled = true)`
 - [x] CrmSecurityConfig requires authentication for `/v1/crm/**`
+- [x] CrmVehiclesController protected with vehicle-related permissions
+- [x] Centralized 403 handler present and compiles without servlet API
 
 ### ⏳ Runtime Testing (Next Phase)
 - [ ] Verify permissions register on pos-customer startup
@@ -220,7 +236,7 @@ If Security Domain is unreachable:
 ### Current Limitations
 1. **Account Tier Endpoints:** Return 501 NOT_IMPLEMENTED (stub)
 2. **Service-Layer Security:** Only controller-level checks implemented
-3. **Error Handling:** Generic 403 Forbidden; could return more detailed error info
+3. **Error Handling:** 403 Forbidden standardized via `CrmExceptionHandler`; consider additional error codes for fine-grained diagnostics
 4. **Logging:** Only framework logging; no custom audit trail
 5. **Monitoring:** No metrics for permission check frequency/failures
 
@@ -261,6 +277,7 @@ If needed to rollback this implementation:
 - **Approval Document:** [APPROVAL_SUBMISSION.md](/durion/domains/crm/APPROVAL_SUBMISSION.md)
 - **Implementation Guide:** [PRIORITY_1_COMPLETION.md](/durion/domains/crm/PRIORITY_1_COMPLETION.md)
 - **Backend Docs:** [CRM_PERMISSION_IMPLEMENTATION.md](/durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md)
+ - **Moqui CRM Services:** [CrmRestServices.xml](/durion-moqui-frontend/runtime/component/durion-positivity/service/CrmRestServices.xml) — descriptions updated to reflect permission requirements for vehicle endpoints
 
 ---
 

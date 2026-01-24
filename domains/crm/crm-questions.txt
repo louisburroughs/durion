@@ -10,17 +10,22 @@ This document consolidates all open questions from the CRM domain story specific
 ### Open Questions
 
 1. **Permissions (blocking):** What is the exact permission key (or keys) required to access and submit "Create Commercial Account"? (DECISION-INVENTORY-007 requires explicit permissions and fail-closed; role mapping is owned by Security.)
+   - **Status:** Backend service documents `PARTY_CREATE` permission in description; awaiting Security domain mapping.
 
 2. **Billing terms contract (blocking):** What is the exact Moqui service/REST endpoint to list billing terms, and what are the fields/ID type (`billingTermsId` type, display label fields)? (DECISION-INVENTORY-015 notes Billing-owned reference data; wiring is safe-to-defer but contract is required to implement.)
+   - **Status:** Pending Billing domain API contract definition.
 
 3. **Duplicate-check contract (blocking):** Confirm the backend contract for duplicate detection:
    - Is there a dedicated duplicate-check endpoint (preferred), or does create return `409 DUPLICATE_CANDIDATES` with candidates?
    - What fields are required for matching (legalName only vs also phone/email/taxId/external identifiers)?
    - What is the candidate DTO shape (fields available for display and matchReason)?
+   - **Status:** Backend `createCommercialAccount` service (REST: POST /v1/crm/parties) exists; duplicate detection contract not yet specified in available service mapping.
 
 4. **External identifiers schema (blocking):** What is the allowed structure for `externalIdentifiers` (fixed set vs key/value list), and what validations apply?
+   - **Status:** Not yet specified in backend contract.
 
 5. **Post-create navigation route (blocking):** What is the canonical Party/Account view route in this frontend (pattern and screen name)? If none exists, should this story include creating a minimal `PartyView` screen, or is confirmation-only acceptable for MVP?
+   - **Status:** Backend `getParty` service (REST: GET /v1/crm/parties/{partyId}) exists; frontend route/screen pattern pending frontend architecture decision.
 
 ---
 
@@ -32,14 +37,19 @@ This document consolidates all open questions from the CRM domain story specific
 1. **Backend contract (blocking):** What are the exact Moqui service names/endpoints and DTO schemas for:
    - Party search (filters, pagination, returned summary fields)
    - Party merge command (required fields; response payload including mergeAuditId and redirect/alias fields)
+   - **Status:** Backend services exist: `searchParties` (POST /v1/crm/parties/search) and `mergeParties` (POST /v1/crm/parties/{partyId}/merge). Contracts documented in CrmRestServices.xml; response DTOs pending detailed specification.
 
 2. **Permissions (blocking):** What is the exact permission key for party merge (e.g., `crm.party.merge`) and should the UI hide the entry point or show an access-denied screen when missing? (Backend must enforce either way per DECISION-INVENTORY-007.)
+   - **Status:** Backend service documents `PARTY_VIEW` (search) and `PARTY_MERGE` (merge) permissions in descriptions; awaiting Security domain role mapping.
 
 3. **Justification storage (blocking):** Does the merge command require `justification` and is it stored in MergeAudit? If required, confirm min/max length and whether it is visible in audit views.
+   - **Status:** Backend service does not explicitly document justification field; requires backend implementation clarification.
 
 4. **Search matching rules (non-blocking if backend already exists):** Are name/email/phone searches exact, prefix, or contains? Any minimum lengths (especially for phone/email) to prevent expensive queries?
+   - **Status:** Backend exists; search rules implementation pending backend documentation.
 
 5. **Merged exclusion (non-blocking):** Does search always exclude merged parties, or is there a supported `includeMerged` toggle for Admin-only troubleshooting?
+   - **Status:** Not specified in backend service contract; safe-to-defer for MVP.
 
 ---
 
@@ -52,15 +62,19 @@ This document consolidates all open questions from the CRM domain story specific
    - Loading account contacts + role assignments + `invoiceDeliveryMethod`
    - Updating a contact's roles and primary flags
    Include required params, returned fields, and error payload schema (`errorCode`, `message`, `fieldErrors`).
+   - **Status:** Backend services exist: `getContactsWithRoles` (GET /v1/crm/parties/{partyId}/contacts) and `updateContactRoles` (PUT /v1/crm/parties/{partyId}/contacts/{contactId}/roles). **Note:** Backend currently returns success but does not persist roles; role persistence awaiting ContactRole entity implementation.
 
 2. **[BLOCKER] Permission keys:** What permission(s) gate:
    - Viewing role assignments
    - Updating role assignments
    (DECISION-INVENTORY-007 requires explicit permissions; exact keys/role mapping is not provided here.)
+   - **Status:** Backend service documents `PARTY_VIEW` (get contacts) and `CONTACT_ROLE_ASSIGN` (update roles) permissions; awaiting Security domain role mapping.
 
 3. **[BLOCKER] Role code source:** Are role codes strictly limited to `BILLING|APPROVER|DRIVER` for MVP, or must the UI load an allowed role list from backend (with display labels and ordering)?
+   - **Status:** Not yet specified; pending backend role list contract definition.
 
 4. **Billing EMAIL rule data dependency:** For enforcing "billing contact with primary email required", will the load DTO include `hasPrimaryEmail` per contact (preferred), or must UI infer from contact points (which may expose PII)?
+   - **Status:** Backend getContactsWithRoles describes contacts list with `hasPrimaryEmail` flag; confirm field availability in actual response.
 
 ---
 
@@ -73,23 +87,29 @@ This document consolidates all open questions from the CRM domain story specific
    - load communication preferences by `partyId`
    - upsert (create/update) communication preferences by `partyId`
    Include request/response DTO field names, required fields, and error payload shape (`errorCode`, `message`, `fieldErrors`).
+   - **Status:** Backend services exist: `getCommunicationPreferences` (GET /v1/crm/parties/{partyId}/communicationPreferences) and `upsertCommunicationPreferences` (POST /v1/crm/parties/{partyId}/communicationPreferences). **Note:** Backend currently returns defaults and does not persist preferences; persistence awaiting CommunicationPreference entity implementation.
 
 2. **Missing record semantics (blocking):** When a party exists but has no preferences yet, does the backend return:
    - `404` with a specific `errorCode` (preferred), or
    - `200` with an empty/null payload?
+   - **Status:** Backend service documents `404` for missing party; semantics for missing preferences pending clarification.
 
 3. **updateSource handling (blocking):** Is `updateSource` required on write? If yes, should:
    - the frontend send a constant value (what exact value?), or
    - Moqui/backend infer it from the authenticated client/app context?
+   - **Status:** Not specified in backend contract; pending backend clarification.
 
 4. **Consent model (blocking):** Are consent flags stored only on the communication preferences DTO, or is there a separate `ConsentRecord` entity/DTO the UI must manage? If separate, define how they relate and which service(s) write them.
+   - **Status:** Not specified; pending backend consent model definition.
 
 5. **Permissions (blocking):** What are the explicit permission keys for:
    - viewing communication preferences
    - editing communication preferences
    Confirm whether view is allowed when edit is denied (DECISION-INVENTORY-007 requires explicit permissions and fail-closed).
+   - **Status:** Backend service documents `CONTACT_PREFERENCE_VIEW` (get) and `CONTACT_PREFERENCE_EDIT` (upsert) permissions; awaiting Security domain role mapping.
 
 6. **Optimistic locking (blocking):** Is optimistic locking required for this record? If yes, what field is used (`version`, `lastUpdatedStamp`, ETag), and what is the expected 409 response payload (e.g., `currentVersion`) and UI resolution flow?
+   - **Status:** Not specified in backend contract; pending backend clarification.
 
 ---
 
@@ -99,17 +119,22 @@ This document consolidates all open questions from the CRM domain story specific
 ### Open Questions
 
 1. **VIN uniqueness scope (blocking):** Is VIN uniqueness **global** across all vehicles or **scoped** (e.g., per party/account/location)? What `errorCode` is returned on duplicate (e.g., `DUPLICATE_VIN`) and does it ever include a safe reference to an existing `vehicleId`?
+   - **Status:** Backend enforces VIN uniqueness **per party** (returns 409 Conflict on duplicate); error message includes duplication notice; safe reference to existing vehicleId pending backend response schema confirmation.
 
 2. **Association-at-create (blocking):** Does create-vehicle require a `partyId` (canonical CRM identifier per DECISION-INVENTORY-001) or any account/customer context? If yes, is it required or optional, and what is the expected behavior when omitted?
+   - **Status:** Backend `createVehicleForParty` service (POST /v1/crm/parties/{partyId}/vehicles) **requires** partyId in URL path; returns 404 if party not found.
 
 3. **Moqui service/API contract (blocking):** What are the exact Moqui service names or REST endpoints for:
    - create vehicle
    - load vehicle by `vehicleId`
    Include request/response DTO fields and the standard error payload shape (`errorCode`, `message`, `fieldErrors`).
+   - **Status:** Backend service exists: `createVehicleForParty` (POST /v1/crm/parties/{partyId}/vehicles) maps partyId/vin/nickname to vehicle creation; read/update/delete/transfer/list endpoints stubbed (501 NOT_IMPLEMENTED) with warnings noted.
 
 4. **Authorization model (blocking):** What permission key(s) gate vehicle creation and vehicle view? (Recommend a dedicated permission per DECISION-INVENTORY-007, e.g., `crm.vehicles.create` and `crm.vehicles.read`, but exact keys must match Security mapping.)
+   - **Status:** Backend `createVehicleForParty` service documents `VEHICLE_CREATE` permission; awaiting Security domain role mapping.
 
 5. **License plate structure (clarification):** Is license plate stored as a single string only, or does backend require plate + region (state/province/country)? If region is required, provide field names and validation rules.
+   - **Status:** Not specified in available backend contract; pending backend documentation.
 
 ---
 
@@ -151,19 +176,27 @@ All stories blocked on missing Moqui service/REST endpoint specifications:
 1. **Priority 1 - Permissions Mapping (Blocking All Stories):**
    - ✅ CRM permission taxonomy defined in [domains/crm/.business-rules/PERMISSION_TAXONOMY.md](domains/crm/.business-rules/PERMISSION_TAXONOMY.md) (status PROPOSED, aligns with DECISION-INVENTORY-007).
    - ✅ Backend permission enforcement implemented in `pos-customer` service: [durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md](../../durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md)
-     - Spring Security @PreAuthorize annotations on all CRM endpoints
-     - CrmSecurityConfig.java enables method-level security
-     - CrmPermissionInitializer.java auto-registers 27 permissions with pos-security-service
-     - Type-safe CrmPermissionRegistry constants prevent typos
-   - ⏳ Pending: Complete permission coverage for all remaining CRM endpoints (contact roles, vehicle mgmt, integration monitoring)
+     - CrmSecurityConfig.java: Spring Security configured with `@EnableMethodSecurity(prePostEnabled=true)`, stateless JWT-based sessions, /v1/crm/** requires authentication
+     - CrmPermissionInitializer.java: Automatic permission registration on startup (posts to pos-security-service /v1/permissions/register, non-blocking on failure)
+     - CustomerController & CrmAccountsController: @PreAuthorize annotations applied with type-safe CrmPermissionRegistry constants (PARTY_VIEW, PARTY_CREATE, PARTY_EDIT, PARTY_DEACTIVATE)
+   - ✅ Frontend service mappings defined: durion-crm (inline local services) and durion-positivity (REST wrappers with JWT forwarding) in `durion-moqui-frontend/runtime/component/*/service/`
+   - ⏳ Pending: Security domain role assignments (map permission keys to specific roles/users); permission checks on remaining CRM endpoints (contacts, vehicles, communication preferences, account tiers); centralized error handling for 403 responses
 
 2. **Priority 2 - Backend Contract Definition (Blocking All Stories):**
    - ✅ Field conventions, error schema, and DTO standards in [domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md](domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md).
-   - ⏳ Pending per story: concrete service/REST contracts (party create/search/merge, contact roles, comm preferences, vehicle create) with request/response DTOs and error codes.
+   - ✅ Service mappings discovered (party create/get/search/merge, contacts/roles, comm prefs, vehicle create): all have REST endpoints defined and documented in CrmRestServices.xml with permission annotations in service descriptions
+   - ✅ Permission enforcement confirmed: CrmSecurityConfig stateless authentication required for /v1/crm/** paths; CustomerController & CrmAccountsController methods protected with @PreAuthorize
+   - ✅ Permission registration infrastructure confirmed: CrmPermissionInitializer auto-registers permissions on startup; non-blocking if pos-security-service unavailable (logs warning)
+   - ⏳ Pending per story: concrete DTO schemas (field names, types, required fields) and detailed error response payloads; partial implementations noted (ContactRole and CommunicationPreference persistence awaiting entity creation); 501 NOT_IMPLEMENTED endpoints for batch vehicle ops, account tier, advanced lookups
 
 3. **Priority 3 - Cross-Domain Integration Contracts:**
    - ✅ Billing terms lookup contract drafted in [domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md](domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md) (list/get billing terms).
    - ⏳ Pending: People/Contact data contract finalization (contact points, invoiceDeliveryMethod payload) and Vehicle Fitment VIN decode (future/optional).
+
+4. **Priority 4 - Frontend Implementation Readiness:**
+   - ✅ Backend REST endpoints mapped to Moqui wrapper services (CrmRestServices.xml in durion-positivity component).
+   - ✅ Permission annotations documented in service descriptions.
+   - ⏳ Pending: Frontend route/screen patterns and PartyView screen implementation decision (MVP-only confirmation vs. full entity view).
 
 4. **Priority 4 - UI/UX Patterns:**
    - ✅ Navigation patterns in [docs/adr/0003-crm-navigation-patterns.adr.md](docs/adr/0003-crm-navigation-patterns.adr.md).
