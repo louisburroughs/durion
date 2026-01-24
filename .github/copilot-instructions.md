@@ -7,14 +7,17 @@ These instructions guide AI coding agents working across the Durion platform rep
 ### Big Picture
 
 - The Durion platform is split into:
-  - **Frontend Platform (Moqui)**: Moqui Framework application with business components under `runtime/component/` and framework core under `framework/`.
-  - **POS Backend (Spring Boot)**: Java 21 / Spring Boot microservice suite under `pos-*` directories.
-- Both codebases follow **domain/module boundaries**:
+  - **Frontend Platform (Moqui)**: Moqui Framework application with business components under `runtime/component/` and framework core under `framework/`. Project and repository name is `durion-moqui-frontend`.
+  - **POS Backend (Spring Boot)**: Java 21 / Spring Boot microservice suite under `pos-*` directories. Project and repository name is `durion-positivity-backend`.
+- The two codebases interact via REST APIs; the Moqui frontend consumes services exposed by the POS backend.
+- Both codebases follow **durion/domains/{domain}/.business-rules/*.md** for shared business logic and rules expressed in natural language.:
   - Keep changes scoped to the owning component/service.
-  - Mirror patterns already present in the target module/component.
+  - Mirror patterns already present in the target module or component.
 - Prefer existing architecture decisions and guidance:
-  - POS backend: `docs/` and module-level `docs/`.
-  - Moqui frontend: `.github/docs/` (architecture/governance/ADRs) and `.ai/context.md` + `.ai/glossary.md`.
+  - See `durion/docs/` for architecture/governance ADRs, design and governance docs and overall project docs.
+  - See `durion/domains/{domain}/.business-rules/` for domain specific business and configuration rules.
+  - POS backend: `durion-positivity-backend/docs/` and module level `docs/`.
+  - Moqui frontend: `durion-moqui-frontend/docs/` and component level `docs/`.
 
 ### Security (Applies Everywhere)
 
@@ -28,6 +31,14 @@ These instructions guide AI coding agents working across the Durion platform rep
 
 - When adding/changing externally visible behavior (API routes, events, service names, configs), update the closest relevant README/doc.
 - Keep naming and behavior consistent with the domain vocabulary and existing contracts.
+
+### **⚠️ Naming Conventions – MANDATORY**
+
+- **`workorder` MUST be written as ONE WORD** (not "work order" or "Work Order").
+  - Use in all contexts: code identifiers, comments, documentation, API descriptions, logs.
+  - Examples: `workorder`, `Workorder`, `WORKORDER`, `workorderId`, `workorderStatus`.
+  - Fix existing instances of "work order" / "Work Order" / "WorkOrder" / "workOrder" (two words or camel case) whenever you encounter them in code or comments.
+  - This is a **strongly enforced convention** across all projects in this workspace.
 
 ## POS Backend – durion-positivity-backend
 
@@ -43,7 +54,7 @@ Treat each `pos-*` directory as a standard Spring Boot service using existing mo
 - `controller/` – REST endpoints (keep controllers thin)
 - `service/` – business logic orchestration
 - `repository/` – Spring Data JPA data access
-- `model/` / `entity/` – JPA entities and domain types
+- `entity/` – JPA entities and domain types
 - `config/` – Spring configuration (security, DB, messaging)
 
 ### Builds, Tests, and Running

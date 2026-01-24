@@ -1,7 +1,7 @@
 ---
 name: 'Localization Guidelines for Markdown'
 description: 'Guidelines for localizing markdown documents'
-applyTo: '**/*.md'
+applyTo: '**/*.stop.md'
 ---
 
 # Guidance for Localization

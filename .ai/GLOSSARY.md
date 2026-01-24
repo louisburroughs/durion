@@ -88,7 +88,7 @@
 - Inventory (POS): Stock levels and movements for products and vehicle-specific items.
 - Pricing: Rules, discounts, and calculations used to price products and services.
 - Order Lifecycle: Stages from quote → order → fulfillment → invoicing → settlement.
-- Work Order: Job record detailing tasks, parts, labor, and status within shop operations.
+- Workorder: Job record detailing tasks, parts, labor, and status within shop operations.
 - Shop Manager: Module for operational workflows in service shops (appointments, bays, technicians, tasks).
 - People Domain: Non-auth user/party domain (profiles, roles, associations) distinct from security service.
 - Security Service: Authentication/authorization microservice providing tokens, roles, and policy enforcement.
