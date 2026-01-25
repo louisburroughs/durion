@@ -81,6 +81,20 @@ All endpoints use permission constants from `CrmPermissionRegistry`:
 `CrmPermissionInitializer` registers all 27 CRM permissions at service startup:
 
 1. Builds registration payload with all permissions
+## Role Mappings
+
+Business roles are mapped to concrete CRM permissions via a centralized mapping in the backend. The mapping enables tokens carrying roles (CSR, Fleet Manager, Admin) to be expanded to the fine-grained `crm:*:*` authorities used by `@PreAuthorize`.
+
+- Source: [CrmRolePermissionMapping.java](../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/security/CrmRolePermissionMapping.java)
+
+| Role | Permissions (summary) |
+|------|------------------------|
+| CSR | Party view/search; Contact view/create/edit; Contact role view/assign; Comm preference view/edit; Vehicle view/search; Vehicle-party association view; Processing log view; Suspense view |
+| Fleet Manager | CSR set plus: Party edit; Vehicle create/edit; Vehicle-party association create/edit; Vehicle preferences view/edit |
+| Admin | All CRM permissions (party, contact, vehicle, integration) |
+
+Note: Admin includes high-risk operations like `crm:party:deactivate` and `crm:party:merge`. Fleet Manager excludes deactivate/merge.
+
 2. POSTs to `pos-security-service:/v1/permissions/register`
 3. Handles failures gracefully (logs warning, continues startup)
 4. Enables type-safe permission usage immediately after startup

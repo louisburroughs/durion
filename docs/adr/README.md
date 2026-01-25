@@ -69,6 +69,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0003   | CRM Navigation Patterns                    | ACCEPTED          | 2026-01-24 |
 | 0004   | Duplicate Detection UX Strategy            | ACCEPTED          | 2026-01-24 |
 | 0005   | Optimistic Locking Conflict Resolution     | ACCEPTED          | 2026-01-24 |
+| 0006   | WorkExec Domain Ownership Boundaries       | ACCEPTED          | 2026-01-25 |
 
 ## Superseding ADRs
 
