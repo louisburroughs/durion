@@ -96,6 +96,101 @@ All accounting-relevant business events are captured in this registry. External 
 | **inventory.stockReceived** | Inventory Service | Purchase order receipt posted | {purchaseOrderId, vendorId, lineItems: [{productId, quantity, unitCost, dimensions}]} | Inventory accrual (debit Inventory, credit AP) | 🟨 Coordination needed |
 | **inventory.inventoryAdjustment** | Inventory Service | Inventory count adjustment | {adjustmentId, productId, quantityDelta, adjustmentReason} | Inventory variance (debit/credit Inventory, credit/debit COGS or misc) | 🟨 Coordination needed |
 
+#### WorkExec Domain Events (Issue #183)
+| Event Type | Source | Trigger | Payload | Posting Pattern | Status |
+|------------|--------|---------|---------|-----------------|--------|
+| **workexec.workCompleted** | WorkExec Service | Workorder marked COMPLETED | {workorderId, customerId, vehicleId, laborCost, partsCost, totalCost, completedAt, completedBy, approvedBy, dimensions} | Labor/Parts COGS + Vendor Bill creation (if applicable) | ✅ Defined |
+
+**WorkCompleted Event Schema (Issue #183):**
+
+```json
+{
+  "eventId": "AE-workcompleted-uuid-12345",
+  "eventType": "workexec.workCompleted",
+  "sourceSystem": "workexec-service",
+  "organizationId": "org-001",
+  "transactionDate": "2026-01-24",
+  "payload": {
+    "workorderId": "WO-12345",
+    "workorderNumber": "WO-2026-001",
+    "customerId": "C-customer-67890",
+    "customerName": "ACME Corporation",
+    "vehicleId": "V-vehicle-11111",
+    "vehicleVin": "1HGBH41JXMN109186",
+    "laborCost": "250.00",
+    "partsCost": "150.00",
+    "totalCost": "400.00",
+    "completedAt": "2026-01-24T16:00:00Z",
+    "completedBy": "tech123",
+    "approvedBy": "manager456",
+    "dimensions": {
+      "businessUnitId": "BU-001",
+      "locationId": "LOC-123",
+      "departmentId": "DEPT-SERVICE",
+      "costCenterId": "CC-SVC-TECH1"
+    },
+    "lineItems": [
+      {
+        "lineNumber": 1,
+        "type": "LABOR",
+        "description": "Engine repair - 2.5 hours",
+        "quantity": "2.5",
+        "unitCost": "100.00",
+        "totalCost": "250.00",
+        "mappingKey": "LABOR-REPAIR"
+      },
+      {
+        "lineNumber": 2,
+        "type": "PARTS",
+        "description": "Oil filter replacement",
+        "partId": "P-filter-001",
+        "quantity": "1",
+        "unitCost": "150.00",
+        "totalCost": "150.00",
+        "vendorId": "V-vendor-67890",
+        "mappingKey": "PARTS-FILTER"
+      }
+    ]
+  },
+  "metadata": {
+    "sourceEventId": "workexec:evt:202601:wo-12345",
+    "idempotencyKey": "WO-12345:completed:attempt-1",
+    "correlationId": "order-001",
+    "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+  }
+}
+```
+
+**Required Fields:**
+- `eventId`: UUIDv7 globally unique identifier (per AD-006)
+- `eventType`: "workexec.workCompleted"
+- `workorderId`: FK to WorkExec workorder
+- `transactionDate`: LocalDate of completion
+- `payload.laborCost`, `payload.partsCost`, `payload.totalCost`: BigDecimal monetary amounts
+- `payload.lineItems`: Array of line items with type (LABOR/PARTS), mappingKey, costs
+- `metadata.idempotencyKey`: Unique key for deduplication
+- `metadata.traceId`: W3C Trace Context for correlation (per AD-008)
+
+**Processing Flow:**
+1. WorkExec service emits `workexec.workCompleted` event
+2. Accounting service ingests event (status = RECEIVED)
+3. Accounting service validates payload schema
+4. Accounting service resolves GL mappings per `mappingKey` + `dimensions`
+5. Accounting service creates Journal Entry (COGS) for labor + parts
+6. If `vendorId` present on parts line: create Vendor Bill (Issue #194)
+7. Mark event as PROCESSED; link to journalEntryId + vendorBillId
+
+**Error Scenarios:**
+- Missing `mappingKey`: Event fails with `MAPPING_KEY_NOT_FOUND`
+- Invalid `vendorId`: Event fails with `VENDOR_NOT_FOUND`
+- Unbalanced costs: Event fails with `UNBALANCED_COSTS`
+- Duplicate `eventId`: 409 Conflict with idempotency outcome
+
+**Retry Policy:**
+- Auto-retry: max 3 attempts with exponential backoff
+- Manual retry: requires `accounting:workcompleted_events:retry` permission
+- Suspend: manual suspension via `accounting:workcompleted_events:suspend`
+
 #### Organization Domain Events
 | Event Type | Source | Trigger | Payload | Posting Pattern | Status |
 |------------|--------|---------|---------|-----------------|--------|

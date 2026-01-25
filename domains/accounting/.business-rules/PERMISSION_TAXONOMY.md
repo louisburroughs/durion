@@ -883,6 +883,403 @@ public void testAccountantCanPostJE() {
 
 ---
 
+---
+
+### 7. Posting Categories and Mapping Keys (Issue #203)
+
+**Resource:** `posting_config`  
+**System of Record:** Accounting (posting category taxonomy and mapping key registry)  
+**Related Decisions:** GL mappings effective-dated; overlap detection; dimension schema enforcement
+
+```yaml
+  # Posting Configuration Management
+  - key: accounting:posting_config:view
+    description: View posting categories, mapping keys, and GL mappings
+    risk_level: LOW
+    use_cases:
+      - View posting category hierarchy and metadata
+      - View mapping keys per category with 1:1 link
+      - View GL mappings with effective dates and dimension values
+      - Search by category code, mapping key, GL account
+    required_for_stories:
+      - Issue #203: Categories: Define Posting Categories and Mapping Keys
+
+  - key: accounting:posting_config:manage
+    description: Create and update posting configuration (categories, keys, mappings)
+    risk_level: MEDIUM
+    use_cases:
+      - Create posting categories with unique codes
+      - Create mapping keys with 1:1 link to categories
+      - Create GL mappings with effective dates and dimensions
+      - Validate overlap detection (409 on conflict)
+      - End-date categories and keys (deactivate)
+    required_for_stories:
+      - Issue #203: Categories: Define Posting Categories and Mapping Keys
+
+  - key: accounting:posting_config:test_resolution
+    description: Test mapping resolution for validation
+    risk_level: LOW
+    use_cases:
+      - Submit test queries (mappingKey + transactionDate)
+      - View resolved postingCategory, glAccount, dimensions
+      - Troubleshoot mapping gaps before go-live
+    required_for_stories:
+      - Issue #203: Optional resolution test endpoint
+```
+
+---
+
+### 8. Vendor Bill Management (Issue #194)
+
+**Resource:** `vendor_bill`  
+**System of Record:** Accounting (AP lifecycle from event to payment)  
+**Related Decisions:** Status-driven workflow; traceability to origin events and posting references
+
+```yaml
+  # Vendor Bill Operations
+  - key: accounting:vendor_bill:view
+    description: View vendor bills and traceability
+    risk_level: LOW
+    use_cases:
+      - View vendor bill list with status filters
+      - View vendor bill details with line items
+      - View traceability (origin event → vendor bill → JE → payments)
+      - View vendor information (People domain integration)
+    required_for_stories:
+      - Issue #194: AP: Create Vendor Bill from Event
+
+  - key: accounting:vendor_bill:create
+    description: Create vendor bills from events
+    risk_level: MEDIUM
+    use_cases:
+      - Create vendor bill from origin event (WorkCompleted, PurchaseOrder, etc.)
+      - Set bill amount, due date, vendor reference
+      - Validate vendor exists (People domain)
+      - Create in PENDING_REVIEW status
+    required_for_stories:
+      - Issue #194: AP: Create Vendor Bill from Event
+
+  - key: accounting:vendor_bill:edit
+    description: Edit vendor bills in PENDING_REVIEW status
+    risk_level: MEDIUM
+    use_cases:
+      - Update bill amount, due date, notes (before approval)
+      - Cannot edit after approval (immutable)
+      - Validate status transition rules
+    required_for_stories:
+      - Issue #194: AP: Create Vendor Bill from Event
+
+  - key: accounting:vendor_bill:approve
+    description: Approve vendor bills for payment
+    risk_level: HIGH
+    use_cases:
+      - Transition bill from PENDING_REVIEW → APPROVED
+      - Require approval justification/notes
+      - Generate audit trail entry
+      - Trigger payment workflow (if integrated)
+    required_for_stories:
+      - Issue #194: AP: Create Vendor Bill from Event
+
+  - key: accounting:vendor_bill:reject
+    description: Reject vendor bills
+    risk_level: MEDIUM
+    use_cases:
+      - Transition bill from PENDING_REVIEW → REJECTED
+      - Require rejection reason/justification
+      - Generate audit trail entry
+      - Prevent payment processing
+    required_for_stories:
+      - Issue #194: AP: Create Vendor Bill from Event
+```
+
+---
+
+### 9. AP Approval and Payment Scheduling (Issue #193)
+
+**Resource:** `ap_payment`  
+**System of Record:** Accounting (payment workflow and scheduling)  
+**Related Decisions:** Approval threshold policies; payment method constraints; audit trail requirements
+
+```yaml
+  # AP Payment Workflow
+  - key: accounting:ap_payment:view
+    description: View payment schedules and approval queues
+    risk_level: LOW
+    use_cases:
+      - View bills awaiting approval with amount thresholds
+      - View scheduled payments by date range
+      - View payment history for vendor
+      - View approval audit trail
+    required_for_stories:
+      - Issue #193: AP: Approve and Schedule Payments
+
+  - key: accounting:ap_payment:approve_under_threshold
+    description: Approve payments under threshold (e.g., $10,000)
+    risk_level: MEDIUM
+    use_cases:
+      - Approve vendor bills under organization threshold
+      - Add approval notes and justification
+      - Single-approver sufficient
+      - Generate audit trail entry
+    required_for_stories:
+      - Issue #193: AP: Approve and Schedule Payments
+
+  - key: accounting:ap_payment:approve_over_threshold
+    description: Approve payments over threshold (requires higher authority)
+    risk_level: HIGH
+    use_cases:
+      - Approve vendor bills over organization threshold
+      - May require dual approval (if policy)
+      - Add approval notes and justification
+      - Generate audit trail entry with approver details
+    required_for_stories:
+      - Issue #193: AP: Approve and Schedule Payments
+
+  - key: accounting:ap_payment:schedule
+    description: Schedule approved payments
+    risk_level: HIGH
+    use_cases:
+      - Set payment date and method (ACH, Check, Wire)
+      - Link to bank account for payment processing
+      - Generate payment batch for export
+      - Cannot schedule unapproved bills
+    required_for_stories:
+      - Issue #193: AP: Approve and Schedule Payments
+
+  - key: accounting:ap_payment:cancel
+    description: Cancel scheduled payments
+    risk_level: HIGH
+    use_cases:
+      - Cancel payment before execution
+      - Require cancellation reason/justification
+      - Revert bill to APPROVED status
+      - Generate audit trail entry
+    required_for_stories:
+      - Issue #193: AP: Approve and Schedule Payments
+```
+
+---
+
+### 10. Manual Journal Entry (Issue #190)
+
+**Resource:** `manual_je`  
+**System of Record:** Accounting (manual GL adjustments with controls)  
+**Related Decisions:** Balance validation; reason codes required; draft vs post workflow
+
+```yaml
+  # Manual Journal Entry Operations
+  - key: accounting:manual_je:view
+    description: View manual journal entries
+    risk_level: LOW
+    use_cases:
+      - View manual JE list with filters (date range, status, reason)
+      - View JE details with all lines
+      - View audit trail (who created, who posted)
+      - Distinguish manual from event-driven JEs
+    required_for_stories:
+      - Issue #190: GL: Manual Journal Entry with Controls
+
+  - key: accounting:manual_je:create_draft
+    description: Create manual journal entries in DRAFT state
+    risk_level: MEDIUM
+    use_cases:
+      - Create JE with description and reason code
+      - Add JE lines (account, debit, credit, dimensions)
+      - Validate balance (sum debits == sum credits)
+      - Save in DRAFT state (editable)
+    required_for_stories:
+      - Issue #190: GL: Manual Journal Entry with Controls
+
+  - key: accounting:manual_je:edit_draft
+    description: Edit manual journal entries in DRAFT state
+    risk_level: MEDIUM
+    use_cases:
+      - Modify JE lines, amounts, dimensions
+      - Update reason code and description
+      - Revalidate balance after changes
+      - Cannot edit after posting (immutable)
+    required_for_stories:
+      - Issue #190: GL: Manual Journal Entry with Controls
+
+  - key: accounting:manual_je:post
+    description: Post manual journal entries to GL
+    risk_level: HIGH
+    use_cases:
+      - Validate balance (sum debits == sum credits)
+      - Transition from DRAFT → POSTED (immutable)
+      - Update GL account balances
+      - Generate audit trail entry with justification
+    required_for_stories:
+      - Issue #190: GL: Manual Journal Entry with Controls
+
+  - key: accounting:manual_je:reverse
+    description: Reverse posted manual journal entries
+    risk_level: HIGH
+    use_cases:
+      - Create reversing JE with justification
+      - Link original JE ↔ reversing JE
+      - Post reversing JE to GL
+      - Audit trail for reversal reasons
+    required_for_stories:
+      - Issue #190: GL: Manual Journal Entry with Controls
+
+  - key: accounting:manual_je:delete_draft
+    description: Delete manual journal entries in DRAFT state
+    risk_level: MEDIUM
+    use_cases:
+      - Delete draft JE before posting
+      - Require deletion reason/justification
+      - Cannot delete posted JEs (use reverse instead)
+      - Generate audit trail entry
+    required_for_stories:
+      - Issue #190: GL: Manual Journal Entry with Controls
+```
+
+---
+
+### 11. Bank and Cash Reconciliation (Issue #187)
+
+**Resource:** `reconciliation`  
+**System of Record:** Accounting (bank/cash statement matching and adjustments)  
+**Related Decisions:** Import format standards; matching cardinality; adjustment posting
+
+```yaml
+  # Reconciliation Operations
+  - key: accounting:reconciliation:view
+    description: View reconciliation sessions and status
+    risk_level: LOW
+    use_cases:
+      - View reconciliation list by account and period
+      - View reconciliation details (matched, unmatched, adjustments)
+      - View statement import history
+      - View reconciliation audit trail
+    required_for_stories:
+      - Issue #187: Reconciliation: Bank and Cash Reconciliation
+
+  - key: accounting:reconciliation:import_statement
+    description: Import bank/cash statements
+    risk_level: MEDIUM
+    use_cases:
+      - Upload statement files (CSV, OFX, QBO formats)
+      - Parse statement lines with date, amount, description
+      - Validate import format and data quality
+      - Create reconciliation session
+    required_for_stories:
+      - Issue #187: Reconciliation: Bank and Cash Reconciliation
+
+  - key: accounting:reconciliation:match
+    description: Match transactions to GL entries
+    risk_level: MEDIUM
+    use_cases:
+      - Auto-match by amount, date, reference
+      - Manual match statement lines to GL transactions
+      - Many-to-many matching support (if policy)
+      - Mark matches as confirmed
+    required_for_stories:
+      - Issue #187: Reconciliation: Bank and Cash Reconciliation
+
+  - key: accounting:reconciliation:create_adjustment
+    description: Create reconciliation adjustments
+    risk_level: HIGH
+    use_cases:
+      - Create adjustment JE for unmatched items
+      - Select adjustment type (bank fee, interest, error correction)
+      - Link adjustment to reconciliation session
+      - Post adjustment to GL
+    required_for_stories:
+      - Issue #187: Reconciliation: Bank and Cash Reconciliation
+
+  - key: accounting:reconciliation:finalize
+    description: Finalize reconciliation session
+    risk_level: HIGH
+    use_cases:
+      - Validate all items matched or adjusted
+      - Lock reconciliation (immutable)
+      - Update account balances
+      - Generate reconciliation report
+    required_for_stories:
+      - Issue #187: Reconciliation: Bank and Cash Reconciliation
+
+  - key: accounting:reconciliation:reopen
+    description: Reopen finalized reconciliation
+    risk_level: HIGH
+    use_cases:
+      - Reopen locked reconciliation for corrections
+      - Require justification and authorization
+      - Reverse finalization effects
+      - Generate audit trail entry
+    required_for_stories:
+      - Issue #187: Reconciliation: Bank and Cash Reconciliation (optional)
+```
+
+---
+
+### 12. WorkCompleted Event Ingestion (Issue #183)
+
+**Resource:** `workcompleted_events`  
+**System of Record:** Accounting (WorkExec domain event ingestion and processing)  
+**Related Decisions:** Retry policies; status model; operator reason capture; payload visibility
+
+```yaml
+  # WorkCompleted Event Operations
+  - key: accounting:workcompleted_events:view
+    description: View WorkCompleted event ingestion status
+    risk_level: LOW
+    use_cases:
+      - View event list with filters (status, date range, workorderId)
+      - View event details including payload (if authorized per AD-009)
+      - View processing status (RECEIVED, PROCESSED, FAILED, SUSPENDED)
+      - View linked JEs and vendor bills
+    required_for_stories:
+      - Issue #183: Events: WorkCompleted Event Ingestion
+
+  - key: accounting:workcompleted_events:submit
+    description: Submit WorkCompleted events
+    risk_level: MEDIUM
+    use_cases:
+      - Submit canonical WorkCompleted event
+      - Validate payload structure per event schema
+      - Receive acknowledgement (eventId, status, sequenceNumber)
+      - Detect duplicate event IDs (409 on conflict)
+    required_for_stories:
+      - Issue #183: Events: WorkCompleted Event Ingestion
+
+  - key: accounting:workcompleted_events:retry
+    description: Retry failed WorkCompleted event processing
+    risk_level: MEDIUM
+    use_cases:
+      - Retry JE generation for failed events
+      - View retry history and outcomes (attempt count, last error)
+      - Escalate to suspense if retries exhausted
+      - Require operator reason for manual retry
+    required_for_stories:
+      - Issue #183: Events: WorkCompleted Event Ingestion
+
+  - key: accounting:workcompleted_events:suspend
+    description: Manually suspend WorkCompleted events
+    risk_level: MEDIUM
+    use_cases:
+      - Suspend event processing for investigation
+      - Require suspension reason/justification
+      - Prevent auto-retry during suspension
+      - Generate audit trail entry
+    required_for_stories:
+      - Issue #183: Events: WorkCompleted Event Ingestion
+
+  - key: accounting:workcompleted_events:view_payload
+    description: View raw WorkCompleted event payload
+    risk_level: MEDIUM
+    use_cases:
+      - Access raw JSON payload for troubleshooting
+      - Permission-gated per AD-009 (Payload Visibility)
+      - View sensitive financial data (labor costs, part costs)
+      - Audit access to payload
+    required_for_stories:
+      - Issue #183: Events: WorkCompleted Event Ingestion
+```
+
+---
+
 ## Future Enhancements
 
 ### Phase 2 Permissions (Deferred)
@@ -948,4 +1345,46 @@ public void testAccountantCanPostJE() {
 - `accounting:events:view`
 - `accounting:events:retry`
 
-**Total Accounting Permissions:** 26
+### Posting Configuration (3 permissions - Issue #203)
+- `accounting:posting_config:view`
+- `accounting:posting_config:manage`
+- `accounting:posting_config:test_resolution`
+
+### Vendor Bill Management (5 permissions - Issue #194)
+- `accounting:vendor_bill:view`
+- `accounting:vendor_bill:create`
+- `accounting:vendor_bill:edit`
+- `accounting:vendor_bill:approve`
+- `accounting:vendor_bill:reject`
+
+### AP Payment Workflow (5 permissions - Issue #193)
+- `accounting:ap_payment:view`
+- `accounting:ap_payment:approve_under_threshold`
+- `accounting:ap_payment:approve_over_threshold`
+- `accounting:ap_payment:schedule`
+- `accounting:ap_payment:cancel`
+
+### Manual Journal Entry (6 permissions - Issue #190)
+- `accounting:manual_je:view`
+- `accounting:manual_je:create_draft`
+- `accounting:manual_je:edit_draft`
+- `accounting:manual_je:post`
+- `accounting:manual_je:reverse`
+- `accounting:manual_je:delete_draft`
+
+### Bank/Cash Reconciliation (6 permissions - Issue #187)
+- `accounting:reconciliation:view`
+- `accounting:reconciliation:import_statement`
+- `accounting:reconciliation:match`
+- `accounting:reconciliation:create_adjustment`
+- `accounting:reconciliation:finalize`
+- `accounting:reconciliation:reopen`
+
+### WorkCompleted Event Ingestion (5 permissions - Issue #183)
+- `accounting:workcompleted_events:view`
+- `accounting:workcompleted_events:submit`
+- `accounting:workcompleted_events:retry`
+- `accounting:workcompleted_events:suspend`
+- `accounting:workcompleted_events:view_payload`
+
+**Total Accounting Permissions:** 64

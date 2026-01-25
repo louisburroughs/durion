@@ -1209,6 +1209,581 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 
 ---
 
+### PostingCategory (Issue #203)
+
+**Endpoints:**
+- `GET /v1/accounting/posting-categories` — List categories
+- `GET /v1/accounting/posting-categories/{postingCategoryId}` — Get category details
+- `POST /v1/accounting/posting-categories` — Create category
+- `PUT /v1/accounting/posting-categories/{postingCategoryId}` — Update category
+- `POST /v1/accounting/posting-categories/{postingCategoryId}/deactivate` — Deactivate category
+
+**PostingCategory DTO:**
+
+```json
+{
+  "postingCategoryId": "PC-uuid-12345",
+  "categoryCode": "VEH-SALE-CASH",
+  "categoryName": "Vehicle Sale - Cash",
+  "description": "Cash sales of vehicles",
+  "isActive": true,
+  "createdAt": "2026-01-01T00:00:00Z",
+  "createdBy": "user123",
+  "modifiedAt": "2026-01-24T14:30:00Z",
+  "modifiedBy": "user456"
+}
+```
+
+**Required Fields (Create):**
+- `categoryCode` (unique, max 50 chars, alphanumeric + hyphens)
+- `categoryName` (max 100 chars)
+
+**Optional Fields:**
+- `description` (max 500 chars)
+
+**Validation:**
+- Category code must be unique across all categories
+- Cannot deactivate if active GL mappings exist
+
+---
+
+### MappingKey (Issue #203)
+
+**Endpoints:**
+- `GET /v1/accounting/mapping-keys?postingCategoryId={id}` — List keys for category
+- `GET /v1/accounting/mapping-keys/{mappingKeyId}` — Get key details
+- `POST /v1/accounting/mapping-keys` — Create mapping key
+- `PUT /v1/accounting/mapping-keys/{mappingKeyId}` — Update mapping key
+- `POST /v1/accounting/mapping-keys/{mappingKeyId}/deactivate` — Deactivate key
+
+**MappingKey DTO:**
+
+```json
+{
+  "mappingKeyId": "MK-uuid-12345",
+  "keyCode": "VEHICLE-SALE-CASH",
+  "keyName": "Vehicle Cash Sale",
+  "postingCategoryId": "PC-uuid-67890",
+  "description": "Producer-facing key for cash vehicle sales",
+  "isActive": true,
+  "createdAt": "2026-01-01T00:00:00Z",
+  "createdBy": "user123",
+  "modifiedAt": "2026-01-24T14:30:00Z",
+  "modifiedBy": "user456"
+}
+```
+
+**Required Fields (Create):**
+- `keyCode` (unique, max 50 chars)
+- `keyName` (max 100 chars)
+- `postingCategoryId` (FK to PostingCategory)
+
+**Optional Fields:**
+- `description` (max 500 chars)
+
+**Validation:**
+- Key code must be unique across all mapping keys
+- Must link to exactly one posting category (1:1 relationship)
+- Cannot deactivate if active GL mappings exist
+
+---
+
+### GLMapping (Issue #203)
+
+**Endpoints:**
+- `GET /v1/accounting/gl-mappings?postingCategoryId={id}&mappingKeyId={id}` — List mappings
+- `GET /v1/accounting/gl-mappings/{glMappingId}` — Get mapping details
+- `POST /v1/accounting/gl-mappings` — Create GL mapping
+- `POST /v1/accounting/gl-mappings/resolve` — Test resolution endpoint
+
+**GLMapping DTO:**
+
+```json
+{
+  "glMappingId": "GM-uuid-12345",
+  "postingCategoryId": "PC-uuid-67890",
+  "mappingKeyId": "MK-uuid-11111",
+  "glAccountId": "GL-uuid-22222",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": "2026-12-31",
+  "dimensions": {
+    "businessUnitId": "BU-001",
+    "locationId": "LOC-123",
+    "departmentId": null,
+    "costCenterId": null
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "createdBy": "user123"
+}
+```
+
+**Required Fields (Create):**
+- `postingCategoryId` (FK to PostingCategory)
+- `mappingKeyId` (FK to MappingKey)
+- `glAccountId` (FK to GLAccount)
+- `effectiveFrom` (LocalDate)
+
+**Optional Fields:**
+- `effectiveTo` (LocalDate, null = no end date)
+- `dimensions` (Map<String, String>)
+
+**Immutability:**
+- GL mappings are **never edited** (append-only)
+- Create new effective-dated row for changes
+- System validates no overlap for same (postingCategoryId, mappingKeyId)
+
+**Overlap Detection (409 Conflict):**
+
+```json
+{
+  "errorCode": "MAPPING_OVERLAP",
+  "message": "GL mapping overlaps with existing mapping",
+  "details": {
+    "postingCategoryId": "PC-uuid-67890",
+    "mappingKeyId": "MK-uuid-11111",
+    "conflictingMappings": [
+      {
+        "glMappingId": "GM-existing",
+        "effectiveFrom": "2026-01-01",
+        "effectiveTo": "2026-12-31",
+        "glAccountId": "GL-1000"
+      }
+    ]
+  }
+}
+```
+
+**Resolution Test Endpoint:**
+
+```
+POST /v1/accounting/gl-mappings/resolve
+{
+  "mappingKeyId": "MK-uuid-11111",
+  "transactionDate": "2026-03-15"
+}
+
+Response:
+{
+  "postingCategoryId": "PC-uuid-67890",
+  "glAccountId": "GL-uuid-22222",
+  "glAccountCode": "1000-000",
+  "glAccountName": "Cash - Operating",
+  "dimensions": {
+    "businessUnitId": "BU-001",
+    "locationId": "LOC-123"
+  },
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": "2026-12-31"
+}
+```
+
+---
+
+### VendorBill (Issue #194)
+
+**Endpoints:**
+- `GET /v1/accounting/vendor-bills` — List with status filter
+- `GET /v1/accounting/vendor-bills/{vendorBillId}` — Get details with traceability
+- `POST /v1/accounting/vendor-bills` — Create vendor bill from event
+- `PUT /v1/accounting/vendor-bills/{vendorBillId}` — Update bill (PENDING_REVIEW only)
+- `POST /v1/accounting/vendor-bills/{vendorBillId}/approve` — Approve bill
+- `POST /v1/accounting/vendor-bills/{vendorBillId}/reject` — Reject bill
+
+**VendorBill DTO:**
+
+```json
+{
+  "vendorBillId": "VB-uuid-12345",
+  "vendorId": "V-vendor-67890",
+  "vendorName": "ACME Parts Supplier",
+  "billNumber": "BILL-2026-001",
+  "billDate": "2026-01-20",
+  "dueDate": "2026-02-19",
+  "totalAmount": "1500.00",
+  "currency": "USD",
+  "status": "PENDING_REVIEW",
+  "originEventId": "AE-event-11111",
+  "originEventType": "WorkCompletedEvent",
+  "originEventDescription": "Workorder WO-12345 completed",
+  "journalEntryId": null,
+  "paymentTransactionId": null,
+  "notes": "Parts replacement for workorder",
+  "createdAt": "2026-01-20T10:00:00Z",
+  "createdBy": "system",
+  "approvedAt": null,
+  "approvedBy": null,
+  "approvalJustification": null,
+  "rejectedAt": null,
+  "rejectedBy": null,
+  "rejectionReason": null
+}
+```
+
+**Required Fields (Create):**
+- `vendorId` (FK to People domain vendor entity)
+- `billNumber` (unique per vendor)
+- `billDate` (LocalDate)
+- `dueDate` (LocalDate)
+- `totalAmount` (BigDecimal)
+- `originEventId` (FK to AccountingEvent)
+- `originEventType` (enum: WorkCompletedEvent, PurchaseOrderEvent, etc.)
+
+**Optional Fields:**
+- `currency` (defaults to "USD")
+- `notes` (max 1000 chars)
+
+**Status Transitions:**
+- `PENDING_REVIEW` → `APPROVED` (requires `accounting:vendor_bill:approve`)
+- `PENDING_REVIEW` → `REJECTED` (requires `accounting:vendor_bill:reject`)
+- `APPROVED` → `PAID` (requires `accounting:ap_payment:schedule` + external payment)
+
+**Immutability:**
+- Cannot edit bill after approval (status != PENDING_REVIEW)
+- Approval and rejection require justification
+
+**Traceability:**
+- `originEventId` → Source accounting event (WorkCompleted, PurchaseOrder, etc.)
+- `journalEntryId` → JE created from event (if posted)
+- `paymentTransactionId` → Payment record (if paid)
+
+---
+
+### APPayment (Issue #193)
+
+**Endpoints:**
+- `GET /v1/accounting/ap-payments` — List payments with status filter
+- `GET /v1/accounting/ap-payments?status=PENDING_APPROVAL` — Approval queue
+- `POST /v1/accounting/ap-payments/approve` — Approve payment
+- `POST /v1/accounting/ap-payments/schedule` — Schedule approved payment
+- `POST /v1/accounting/ap-payments/{paymentId}/cancel` — Cancel scheduled payment
+
+**APPayment DTO:**
+
+```json
+{
+  "paymentId": "AP-uuid-12345",
+  "vendorBillId": "VB-uuid-67890",
+  "vendorId": "V-vendor-11111",
+  "vendorName": "ACME Parts Supplier",
+  "amount": "1500.00",
+  "currency": "USD",
+  "status": "SCHEDULED",
+  "paymentMethod": "ACH",
+  "paymentDate": "2026-02-19",
+  "bankAccountId": "BA-account-22222",
+  "approvalLevel": "UNDER_THRESHOLD",
+  "approvalThreshold": "10000.00",
+  "approvedAt": "2026-01-24T15:00:00Z",
+  "approvedBy": "user123",
+  "approvalJustification": "Verified goods received and pricing correct",
+  "scheduledAt": "2026-01-24T16:00:00Z",
+  "scheduledBy": "user456",
+  "cancelledAt": null,
+  "cancelledBy": null,
+  "cancellationReason": null,
+  "paymentTransactionId": null,
+  "createdAt": "2026-01-20T10:00:00Z",
+  "createdBy": "system"
+}
+```
+
+**Required Fields (Approve):**
+- `vendorBillId` (FK to VendorBill)
+- `approvalJustification` (max 1000 chars)
+
+**Required Fields (Schedule):**
+- `paymentMethod` (enum: ACH, CHECK, WIRE)
+- `paymentDate` (LocalDate)
+- `bankAccountId` (FK to bank account)
+
+**Status Transitions:**
+- `PENDING_APPROVAL` → `APPROVED` (requires approval permission based on amount)
+- `APPROVED` → `SCHEDULED` (requires `accounting:ap_payment:schedule`)
+- `SCHEDULED` → `PAID` (external payment processing)
+- `SCHEDULED` → `CANCELLED` (requires `accounting:ap_payment:cancel`)
+
+**Approval Threshold Logic:**
+- `amount < threshold`: Requires `accounting:ap_payment:approve_under_threshold`
+- `amount >= threshold`: Requires `accounting:ap_payment:approve_over_threshold`
+- Threshold configurable per organization (default $10,000)
+- May require dual approval for over-threshold (policy-driven)
+
+---
+
+### ManualJournalEntry (Issue #190)
+
+**Endpoints:**
+- `GET /v1/accounting/manual-journal-entries` — List manual JEs
+- `GET /v1/accounting/manual-journal-entries/{jeId}` — Get manual JE details
+- `POST /v1/accounting/manual-journal-entries` — Create manual JE (DRAFT)
+- `PUT /v1/accounting/manual-journal-entries/{jeId}` — Update manual JE (DRAFT only)
+- `POST /v1/accounting/manual-journal-entries/{jeId}/post` — Post to GL
+- `POST /v1/accounting/manual-journal-entries/{jeId}/reverse` — Reverse posted JE
+- `DELETE /v1/accounting/manual-journal-entries/{jeId}` — Delete draft JE
+
+**ManualJournalEntry DTO:**
+
+```json
+{
+  "journalEntryId": "JE-manual-12345",
+  "entryType": "MANUAL",
+  "status": "DRAFT",
+  "transactionDate": "2026-01-24",
+  "description": "Correcting entry for period-end accrual",
+  "reasonCode": "ACCRUAL_ADJUSTMENT",
+  "justification": "Accrue vendor bill received after period close",
+  "lines": [
+    {
+      "lineId": "JEL-line-11111",
+      "lineNumber": 1,
+      "glAccountId": "GL-5000",
+      "accountCode": "5000-000",
+      "accountName": "Expense - Parts",
+      "debitAmount": "500.00",
+      "creditAmount": "0.00",
+      "description": "Parts expense accrual",
+      "dimensions": {
+        "businessUnitId": "BU-001",
+        "departmentId": "DEPT-123"
+      }
+    },
+    {
+      "lineId": "JEL-line-22222",
+      "lineNumber": 2,
+      "glAccountId": "GL-2000",
+      "accountCode": "2000-000",
+      "accountName": "Accrued Liabilities",
+      "debitAmount": "0.00",
+      "creditAmount": "500.00",
+      "description": "Accrued parts liability",
+      "dimensions": {
+        "businessUnitId": "BU-001",
+        "departmentId": "DEPT-123"
+      }
+    }
+  ],
+  "totalDebits": "500.00",
+  "totalCredits": "500.00",
+  "isBalanced": true,
+  "reversalJournalEntryId": null,
+  "reversedByJournalEntryId": null,
+  "createdAt": "2026-01-24T14:00:00Z",
+  "createdBy": "user123",
+  "postedAt": null,
+  "postedBy": null
+}
+```
+
+**Required Fields (Create Draft):**
+- `transactionDate` (LocalDate)
+- `description` (max 500 chars)
+- `reasonCode` (enum: ACCRUAL_ADJUSTMENT, ERROR_CORRECTION, RECLASSIFICATION, etc.)
+- `lines` (array, min 2 lines)
+
+**Required Fields (Post):**
+- `justification` (max 1000 chars, required for HIGH-risk operation)
+
+**Validation:**
+- Balance check: `sum(debits) - sum(credits)` must be within ±0.0001
+- Cannot post unbalanced JE (returns 422)
+- Cannot edit/delete after posting (immutable)
+
+**Reason Codes (Enum):**
+- `ACCRUAL_ADJUSTMENT` — Period-end accruals
+- `ERROR_CORRECTION` — Fix prior posting errors
+- `RECLASSIFICATION` — Move amounts between accounts
+- `DEPRECIATION` — Monthly depreciation
+- `OTHER` — Other manual adjustments (requires detailed justification)
+
+---
+
+### Reconciliation (Issue #187)
+
+**Endpoints:**
+- `GET /v1/accounting/reconciliations` — List reconciliation sessions
+- `GET /v1/accounting/reconciliations/{reconciliationId}` — Get reconciliation details
+- `POST /v1/accounting/reconciliations` — Create reconciliation session
+- `POST /v1/accounting/reconciliations/{id}/import-statement` — Import bank statement
+- `POST /v1/accounting/reconciliations/{id}/match` — Match transactions
+- `POST /v1/accounting/reconciliations/{id}/create-adjustment` — Create adjustment JE
+- `POST /v1/accounting/reconciliations/{id}/finalize` — Finalize reconciliation
+- `POST /v1/accounting/reconciliations/{id}/reopen` — Reopen reconciliation
+
+**Reconciliation DTO:**
+
+```json
+{
+  "reconciliationId": "REC-uuid-12345",
+  "glAccountId": "GL-1000",
+  "accountCode": "1000-000",
+  "accountName": "Cash - Operating",
+  "periodStartDate": "2026-01-01",
+  "periodEndDate": "2026-01-31",
+  "statementDate": "2026-01-31",
+  "statementEndingBalance": "25000.00",
+  "glEndingBalance": "24500.00",
+  "difference": "500.00",
+  "status": "IN_PROGRESS",
+  "statementLines": [
+    {
+      "lineId": "SL-line-11111",
+      "lineNumber": 1,
+      "transactionDate": "2026-01-15",
+      "description": "ACH Credit - Customer Payment",
+      "amount": "5000.00",
+      "referenceNumber": "ACH-123456",
+      "matchedGLTransactionIds": ["GLT-trans-11111"],
+      "matchStatus": "MATCHED"
+    },
+    {
+      "lineId": "SL-line-22222",
+      "lineNumber": 2,
+      "transactionDate": "2026-01-20",
+      "description": "Bank Fee",
+      "amount": "-15.00",
+      "referenceNumber": "FEE-789",
+      "matchedGLTransactionIds": [],
+      "matchStatus": "UNMATCHED"
+    }
+  ],
+  "glTransactions": [
+    {
+      "glTransactionId": "GLT-trans-11111",
+      "journalEntryId": "JE-je-67890",
+      "transactionDate": "2026-01-15",
+      "description": "Customer Payment - Invoice INV-001",
+      "amount": "5000.00",
+      "matchedStatementLineIds": ["SL-line-11111"],
+      "matchStatus": "MATCHED"
+    }
+  ],
+  "adjustments": [],
+  "createdAt": "2026-02-01T09:00:00Z",
+  "createdBy": "user123",
+  "finalizedAt": null,
+  "finalizedBy": null
+}
+```
+
+**Required Fields (Create Session):**
+- `glAccountId` (FK to GLAccount, must be bank/cash account)
+- `periodStartDate` (LocalDate)
+- `periodEndDate` (LocalDate)
+- `statementDate` (LocalDate, typically same as periodEndDate)
+- `statementEndingBalance` (BigDecimal from bank statement)
+
+**Import Statement:**
+- Supported formats: CSV, OFX, QBO
+- Parses: date, description, amount, reference number
+- Creates `statementLines` array
+
+**Matching:**
+- Auto-match: by amount + date (within tolerance)
+- Manual match: many-to-many support (if policy allows)
+- Unmatched items → require adjustment or explanation
+
+**Adjustments:**
+- Create adjustment JE for unmatched items
+- Adjustment types: BANK_FEE, INTEREST_INCOME, ERROR_CORRECTION, NSF, etc.
+- Link adjustment JE to reconciliation session
+
+**Finalization:**
+- Validates: all items matched or adjusted
+- Validates: reconciled balance matches statement balance
+- Locks reconciliation (status = FINALIZED, immutable)
+- Updates GL account balances
+
+**Reopen:**
+- Requires HIGH-risk permission
+- Requires justification
+- Reverses finalization effects
+- Status = IN_PROGRESS (editable)
+
+---
+
+### WorkCompletedEvent (Issue #183)
+
+**Endpoints:**
+- `POST /v1/accounting/events/workcompleted` — Submit WorkCompleted event
+- `GET /v1/accounting/events/workcompleted` — List WorkCompleted events
+- `GET /v1/accounting/events/workcompleted/{eventId}` — Get event details
+- `POST /v1/accounting/events/workcompleted/{eventId}/retry` — Retry processing
+- `POST /v1/accounting/events/workcompleted/{eventId}/suspend` — Suspend event
+- `GET /v1/accounting/events/workcompleted/{eventId}/payload` — View raw payload
+
+**WorkCompletedEvent DTO:**
+
+```json
+{
+  "eventId": "AE-workcompleted-12345",
+  "eventType": "WorkCompletedEvent",
+  "workorderId": "WO-12345",
+  "completedAt": "2026-01-24T16:00:00Z",
+  "transactionDate": "2026-01-24",
+  "payload": {
+    "workorderId": "WO-12345",
+    "customerId": "C-customer-67890",
+    "vehicleId": "V-vehicle-11111",
+    "laborCost": "250.00",
+    "partsCost": "150.00",
+    "totalCost": "400.00",
+    "completedBy": "tech123",
+    "approvedBy": "manager456"
+  },
+  "status": "PROCESSED",
+  "processingStatus": "SUCCESS",
+  "idempotencyOutcome": "PROCESSED_NEW",
+  "receivedAt": "2026-01-24T16:00:05Z",
+  "processedAt": "2026-01-24T16:00:10Z",
+  "journalEntryId": "JE-je-67890",
+  "vendorBillId": "VB-bill-11111",
+  "retryCount": 0,
+  "lastRetryAt": null,
+  "suspendedAt": null,
+  "suspendedBy": null,
+  "suspensionReason": null,
+  "errorMessage": null,
+  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+  "createdAt": "2026-01-24T16:00:05Z",
+  "createdBy": "workexec-service"
+}
+```
+
+**Required Fields (Submit):**
+- `eventId` (UUIDv7, client-generated per AD-006)
+- `eventType` = "WorkCompletedEvent"
+- `workorderId` (FK to WorkExec workorder)
+- `transactionDate` (LocalDate)
+- `payload` (JSON object with labor/parts costs)
+
+**Status Model:**
+- `RECEIVED` → Event ingested, awaiting processing
+- `PROCESSING` → JE generation in progress
+- `PROCESSED` → Success, JE created
+- `FAILED` → Processing error, retry eligible
+- `SUSPENDED` → Manually suspended for investigation
+
+**Idempotency:**
+- Duplicate `eventId` submission → 409 Conflict
+- Returns `idempotencyOutcome`: PROCESSED_NEW, DUPLICATE_IGNORED, RETRY_SUCCESS
+
+**Retry Policy:**
+- Auto-retry: max 3 attempts with exponential backoff
+- Manual retry: requires `accounting:workcompleted_events:retry`
+- Retry history tracked: `retryCount`, `lastRetryAt`
+- After max retries → escalate to suspense or manual review
+
+**Payload Visibility:**
+- Raw payload access gated by `accounting:workcompleted_events:view_payload` (per AD-009)
+- Sensitive data: labor costs, part costs, customer details
+- Audit access to payload
+
+**Operator Reason:**
+- Manual retry/suspend requires `operatorReason` (max 500 chars)
+- Tracks human intervention justification
+
+---
+
 ## Examples
 
 ### Example 1: Create GL Account

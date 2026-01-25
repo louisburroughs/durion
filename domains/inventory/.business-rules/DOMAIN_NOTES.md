@@ -5,6 +5,7 @@
 This document records the rationale, tradeoffs, and audit guidance behind the Inventory domain’s normative rules in `AGENT_GUIDE.md`.
 It is intentionally non-normative and may include alternatives that are not implemented.
 Use this for architecture review, governance discussions, and auditor support; do not treat it as executable policy.
+For concrete API and payload contracts, see `BACKEND_CONTRACT_GUIDE.md`.
 
 ## Completed items
 

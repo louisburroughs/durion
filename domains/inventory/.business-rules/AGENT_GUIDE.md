@@ -5,6 +5,7 @@
 This guide defines the normative business rules and frontend-facing contracts for the Inventory domain in Durion.
 It standardizes decision identifiers as `DECISION-INVENTORY-###`, resolves all previously listed open questions, and aligns the Story Validation Checklist with these decisions.
 Use this document for implementation and CI validation; use `DOMAIN_NOTES.md` for rationale and audit-facing explanations.
+For API contract details, see `BACKEND_CONTRACT_GUIDE.md`.
 
 ## Completed items
 
