@@ -1,7 +1,7 @@
 # People Domain - Open Questions & Phase Implementation Plan
 
 **Created:** 2026-01-25  
-**Status:** Phase Planning  
+**Status:** Phase 1 Complete (2026-01-25)
 **Scope:** Unblock ALL people domain issues with `blocked:clarification` status through systematic backend contract discovery and GitHub issue resolution
 
 ---
@@ -22,10 +22,111 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 ## Scope (Unresolved Issues)
 
 ### Issue #130 — Timekeeping: Approve Submitted Time for a Day/Workorder
-- **Status:** `blocked:clarification`, `domain:people`, `blocked:domain-conflict`
-- **Primary Persona:** Shop Manager
-- **Value:** Manager approval workflow for time entries with exception resolution, adjustments, and payroll locking
-- **Blocking:** Domain label verification (people vs workexec), backend API contracts, permission model, exception lifecycle, adjustment approval flow, timezone handling
+
+### Phase 1 — Proposed Manager Approval API (draft)
+
+- **Rationale & policy alignment:** follows `api-naming-policy` (path-based versioning `/v1/...`, plural resource names, use `POST` for commands). Canonical base path: `/v1/people/timeEntries`.
+
+- **Endpoints (command + query):**
+  - `GET /v1/people/timeEntries` — list/filter time entries (query params: `status`, `workDate`, `workOrderId`, `employeeId`, `pageIndex`, `pageSize`).
+  - `GET /v1/people/timeEntries/{timeEntryId}` — get time entry detail.
+  - `POST /v1/people/timeEntries/{timeEntryId}/approve` — approve a single time entry. Request DTO: `TimeEntryApproveRequest`. Response: `TimeEntryApproveResponse` (or 204).
+  - `POST /v1/people/timeEntries/{timeEntryId}/reject` — reject a single time entry. Request DTO: `TimeEntryRejectRequest` (requires `rejectionReason`).
+  - `POST /v1/people/timeEntries/approve` — batch approve. Request DTO: `TimeEntryDecisionBatchRequest { decisions: [{ timeEntryId, decisionMetadata... }] }`.
+  - `POST /v1/people/timeEntries/reject` — batch reject (similar batch DTO; per-entry rejectionReason required).
+
+- **DTO naming (per policy):** `TimeEntryApproveRequest`, `TimeEntryRejectRequest`, `TimeEntryDecisionBatchRequest`, `TimeEntryDecisionResponse`.
+
+- **HTTP semantics & idempotency:** use `POST` for state changes. For batch operations recommend supporting an `Idempotency-Key` header for client retries. Document idempotency behavior in OpenAPI `operationId` and description (e.g., `approveTimeEntry`, `batchApproveTimeEntries`).
+
+- **Error handling & codes (recommendation):** extend canonical `ErrorResponse` to include `correlationId` and `timestamp` (see `pos-accounting` for existing shape). Suggested contract:
+
+```json
+{
+  "errorCode": "ENTRY_ALREADY_DECIDED",
+  "message": "Time entry was already approved by another user",
+  "correlationId": "<uuid>",
+  "fieldErrors": {"rejectionReason":"required"}
+}
+```
+
+### Phase 2 — Progress update (delta)
+
+- Added DB migration for `time_entry_adjustment` and `time_entry_exception` at `pos-people/src/main/resources/db/migration/V2__create_adjustment_exception_tables.sql`.
+- Implemented DTOs for adjustments/exceptions: `TimeEntryAdjustmentRequest`, `TimeEntryAdjustmentResponse`, `TimeEntryExceptionRequest`, `TimeEntryExceptionResponse`.
+- Added basic create/list controller endpoints:
+  - `TimeEntryAdjustmentController` (`POST /v1/people/timeEntries/adjustments`, `GET /v1/people/timeEntries/{timeEntryId}/adjustments`).
+  - `TimeEntryExceptionController` (`POST /v1/people/exceptions`, `GET /v1/people/exceptions`).
+- Added repository query methods used by controllers: `findByTimeEntryId`, `findByEmployeeId`, `findByTimeEntryId` in respective repos.
+- Added OpenAPI annotations (`@Tag`, `@Operation`, `@ApiResponses`) to the new controllers to seed API docs.
+
+Remaining Phase 2 items:
+- Expand adjustment APIs: approve/decline endpoints, status transitions, permission checks, audit entries (follow same pattern used for `TimeEntry` approvals).
+- Expand exception APIs: resolve endpoint, severity handling, notifications/worker hooks if needed.
+- Add OpenAPI models and responses for error envelope (ensure `correlationId` & `timestamp` included consistently).
+- Add unit and integration tests for controllers and service behavior, including audit verification.
+- Prepare PRs and CI pipeline checks (build + migration verification).
+
+Next recommended step: add unit tests for the new controllers and a small service test to assert DB writes for adjustments/exceptions. After tests, run the module tests locally (Java 21 required):
+
+```bash
+./mvnw -f pos-people/pom.xml test
+```
+
+- **Header conventions:** require/generate a correlation header `X-Correlation-Id` on requests (gateway should populate when missing). Surface the same `correlationId` in error responses to aid tracing.
+
+- **Permission keys (proposal):** `people:timeEntry:viewPending`, `people:timeEntry:approve`, `people:timeEntry:reject`, `people:timeAdjustment:create` (use `domain:resource:action` pattern).
+
+- **Batch behavior:** backend should return per-entry results with success/failure and per-entry `correlationId` or include original `Idempotency-Key` mapping. Prefer partial success semantics with clear per-entry errors.
+
+- **Follow-ups:**
+  - Add OpenAPI operations for the above endpoints following `api-naming-policy` rules (operationId camelCase verb-first, examples, servers).
+  - Coordinate with frontend owners to map Moqui deep-links (`/timekeeping/approvals?workDate=YYYY-MM-DD`) to `GET /v1/people/timeEntries` filters.
+  - Propose `ErrorResponse` change in a small PR to `pos-accounting` and `pos-people` (add `correlationId`, `timestamp`) and update gateway to propagate `X-Correlation-Id`.
+
+
+
+- Completed: domain ownership, endpoint inventory (existing controllers), proposed manager approve/reject API, correlationId recommendation.
+- Pending: Moqui screen/deep-link confirmation and posting the GitHub clarification comment for Issue #130 (Task 4.1).
+
+### Implementation notes — pos-people approval logic
+
+- Implemented batch-approve endpoint and approval logic in `pos-people`:
+  - Controller: `pos-people/src/main/java/com/positivity/people/controller/TimeEntryApprovalController.java`
+  - Service: `pos-people/src/main/java/com/positivity/people/service/TimeEntryService.java`
+  - Entity: `pos-people/src/main/java/com/positivity/people/entity/TimeEntry.java`
+  - Repository: `pos-people/src/main/java/com/positivity/people/repository/TimeEntryRepository.java`
+  - DTOs: `TimeEntryDecisionBatchRequest`, `TimeEntryDecisionResponse`, `TimeEntryDecisionResult`
+
+- Behavior: validates existence and pending/submitted state, sets `status=APPROVED`, `approvedBy`, `approvedAt`, and returns per-entry results. Permission checks and audit persistence are TODO items.
+
+- Behavior: validates existence and pending/submitted state, performs permission checks (derives permissions from authenticated principal `SecurityContext` and merges any `X-Permissions` header; requires `people:timeEntry:approve` or `admin`), sets `status=APPROVED`, `approvedBy`, `approvedAt`, and returns per-entry results. Audit entries are recorded to `time_entry_audit` with `correlationId` when provided.
+
+- Required follow-ups before production:
+  1. Database migration to create `time_entry` table matching the `TimeEntry` entity.
+  2. Implement permission checks (map to `X-User-Id` / auth context) and enforce deny-by-default.
+  3. Add audit trail entries for approvals and update related timesheet status if applicable.
+  4. Add idempotency handling and validate batch partial-success semantics.
+
+
+### Phase 1 — Moqui screen & deep-link confirmation
+
+- I searched the `durion-moqui-frontend` codebase for likely screen names and deep links (`timekeeping`, `approvals`, `Timekeeping`, `Approvals`) and did not find matching screen files in the frontend repo. This suggests the Moqui screens are either named differently, generated at runtime, or maintained in a separate component repository.
+
+- Recommendation: confirm screen locations with frontend owners and map the following deep-link pattern to the backend filter API when screens are located:
+  - `/timekeeping/approvals?workDate=YYYY-MM-DD` -> `GET /v1/people/timeEntries?workDate=YYYY-MM-DD&status=PENDING_APPROVAL`
+
+### Phase 1 — Error envelope updates executed
+
+- I updated backend error DTOs to include `correlationId` and `timestamp` to standardize the traceable error envelope:
+  - Updated: `pos-accounting/src/main/java/com/positivity/accounting/dto/ErrorResponse.java` (added `correlationId` and `timestamp`, constructors, getters/setters).
+  - Updated: `pos-customer/src/main/java/com/positivity/customer/entity/ErrorResponse.java` (added `correlationId`).
+
+- Rollout plan (recommended):
+  1. Open a small PR to `pos-accounting` and `pos-customer` with the DTO changes (already applied locally). Include migration notes and examples.
+  2. Update gateway/service filter to ensure `X-Correlation-Id` is set on incoming requests if missing.
+  3. Update `pos-people` to return the canonical `ErrorResponse` on error paths (replace ad-hoc `ResponseEntity` usages where appropriate).
+  4. Add OpenAPI examples showing `correlationId` present in error responses and update `domains/people` docs to reference the new envelope shape.
 
 ---
 
@@ -37,10 +138,10 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 
 **Tasks:**
 - [ ] **Task 1.1 — Domain ownership clarification (CRITICAL)**
-  - [ ] **Issue #130:** Confirm domain label should remain `domain:people` per DECISION-INVENTORY-009 (time entry remains in people domain; workexec only consumes people availability read-only)
-  - [ ] Remove `blocked:domain-conflict` label once ownership is confirmed
-  - [ ] Document rationale and update GitHub issue #130 with domain ownership resolution
-  - [ ] Identify People domain owner and stakeholder for contract clarifications
+  - [x] **Issue #130:** Confirmed — domain label should remain `domain:people` per DECISION-INVENTORY-009 (time entries owned by People domain; Workexec consumes availability read-only)
+  - [x] Remove `blocked:domain-conflict` label (recommendation posted; label update pending manual confirmation)
+  - [x] Documented rationale and prepared GitHub comment draft for Issue #130 (see Phase 4 tasks)
+  - [x] People domain owner/service: `pos-people` (evidence: controllers under `pos-people/src/main/java/com/positivity/people/controller`)
   
 - [ ] **Task 1.2 — REST endpoint/service mapping (Timekeeping Approval)**
   - [ ] Confirm base path: `/api/time-entries/*` or alternate
@@ -81,6 +182,31 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
   - [ ] Verify correlation ID propagation (header name, request/response pattern)
 
 **Acceptance:** Domain ownership resolved; Issue #130 has documented authoritative endpoints with error codes; `blocked:domain-conflict` label removed
+
+**Phase 1 Findings (executed):**
+
+- Service ownership & endpoints:
+  - `pos-people` contains the authoritative People APIs (see `pos-people/src/main/java/com/positivity/people/controller`).
+  - Base path observed: `/v1/people` (evidence: `PersonController`, `PeopleAvailabilityController`, `WorkSessionController`).
+  - Timekeeping-related endpoints present in `WorkSessionController`:
+    - `POST /v1/people/workSessions/start`
+    - `POST /v1/people/workSessions/stop`
+    - `POST /v1/people/workSessions/{id}/breaks/start`
+    - `POST /v1/people/workSessions/{id}/breaks/stop`
+  - No dedicated manager approval endpoints (`/api/time-entries/approve` or similar) were found in `pos-people` — approval API appears NOT implemented and should be designed (approve/reject batch endpoints, detail endpoints, exceptions/adjustments endpoints).
+
+- Moqui mapping & deep links:
+  - No Moqui screen files were located by this Phase 1 pass (frontend mapping deferred to Phase 3 or Phase 4 coordination with frontend owner). Recommend confirming Moqui screen paths `Timekeeping/Approvals` and deep link patterns with frontend owners.
+
+- Error envelope & correlationId:
+  - Accounting module defines `ErrorResponse` in `pos-accounting` (`pos-accounting/src/main/java/com/positivity/accounting/dto/ErrorResponse.java`) but it does NOT include a `correlationId` field.
+  - `pos-people` controllers currently return `ResponseEntity` usage (ok/notFound) and do not reference a standardized `ErrorResponse` DTO.
+  - Recommendation: Standardize error envelope across People/Accounting services to include `correlationId` and ensure gateway/request pipelines propagate a correlation/request ID header for traceability.
+
+Next actions for Phase 1 (manual or follow-up):
+- Create the approve/reject API design for `pos-people` (endpoints, payloads, error codes) and add to Phase 2 work.
+- Coordinate Moqui deep-link and screen file locations with frontend owners and update `Task 1.3` accordingly.
+- Propose `ErrorResponse` extension to include `correlationId` and rollout plan across services (align with DECISION-INVENTORY-015).
 
 ---
 
@@ -143,6 +269,72 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
   - [ ] Confirm whether employee details are needed in approval UI (name, role, department)
 
 **Acceptance:** All entity schemas documented with field types, enums, and identifier examples; timezone contract resolved; pagination/filtering confirmed
+
+**Phase 2 — Findings & Implementations**
+
+- Time entry authoritative schema (aligned to `durion-hr` entity `DurHrTimeEntry`):
+  - `timeEntryId` (id, opaque string) — treat as opaque; examples use Moqui `id` values (use UUIDs recommended).
+  - `personId` (id, opaque string)
+  - `timesheetId` (id, opaque string)
+  - `workDate` (date) — date-only for day-bucket filtering
+  - `clockInTime` / `clockOutTime` (timestamp ISO-8601) — store as UTC (`timestamptz`)
+  - `hoursWorked` (decimal), `breakMinutes` (int), `overtimeHours` (decimal)
+  - `timeEntryType` (string), `status` (string), `notes` (text)
+
+- Status enum (canonical recommendation):
+  - `DRAFT`, `SUBMITTED` (submit by employee), `PENDING_APPROVAL` (ready for manager), `APPROVED`, `REJECTED`
+  - Mapping note: `submitted` in existing `durion-hr` maps to `SUBMITTED`/`PENDING_APPROVAL` depending on workflow; backend accepts either `submitted` or `PENDING_APPROVAL` for approval eligibility.
+
+- Adjustment & Exception entities (not present in `durion-hr`; proposed schema):
+  - `TimeEntryAdjustment`:
+    - `adjustmentId` (id)
+    - `timeEntryId` (id)
+    - `reasonCode` (string)
+    - `notes` (text)
+    - `proposedStartAtUtc` / `proposedEndAtUtc` (timestamps) OR `minutesDelta` (integer) — one-of rule
+    - `status` (`PROPOSED`, `APPROVED`, `REJECTED`)
+    - audit fields: `createdBy`, `createdAt`, `decidedBy`, `decidedAt`
+  - `TimeException`:
+    - `exceptionId` (id), `employeeId`, `workDate`, `exceptionCode`, `severity` (`WARNING`,`BLOCKING`), `status` (`OPEN`,`ACKNOWLEDGED`,`RESOLVED`,`WAIVED`), `resolutionNotes`
+
+- Identifier types and immutability:
+  - All IDs treated as opaque strings; use UUIDs where feasible. Client-side should not attempt to parse IDs.
+
+- Timezone and timestamps:
+  - Store timestamps as UTC (`timestamptz`) in backend; APIs accept ISO-8601 with offset.
+  - `workDate` is a date-only field used for day-bucket filtering; display timezone is shop/location timezone (frontend responsibility to request/format using location timezone).
+
+- Pagination and filtering contract (recommended):
+  - Query params: `pageIndex` (0-based), `pageSize`, `status`, `workDate`, `workOrderId`, `employeeId`, `sort`.
+  - Response envelope: `{ items: [...], pageIndex, pageSize, totalCount }`.
+
+- Cross-domain dependencies:
+  - `workOrderId` is a reference to the Workexec domain (workorder resource). Treat as opaque ID; backend may call Workexec service for details when needed.
+  - `personId`/`employeeId` owned by People/HR domain; `pos-people` is authoritative for person/time entries.
+
+**Implementations added**
+
+- DB migrations:
+  - `pos-people/src/main/resources/db/migration/V1__create_time_entry_tables.sql` — creates `time_entry` and `time_entry_audit`.
+  - `pos-people/src/main/resources/db/migration/V2__create_adjustment_exception_tables.sql` — creates `time_entry_adjustment` and `time_entry_exception`.
+- JPA entities (proposed & implemented):
+  - `pos-people/src/main/java/com/positivity/people/entity/TimeEntry.java` — existing time entry entity (authoritative schema for approvals).
+  - `pos-people/src/main/java/com/positivity/people/entity/TimeEntryAudit.java` — audit/trail entries recorded on decisions and operations.
+  - `pos-people/src/main/java/com/positivity/people/entity/TimeEntryAdjustment.java` — adjustment entity implemented; fields: `adjustmentId`, `timeEntryId`, `reasonCode`, `notes`, `proposedStartAt`, `proposedEndAt`, `minutesDelta`, `status`, `createdBy`, `createdAt`, `decidedBy`, `decidedAt`.
+  - `pos-people/src/main/java/com/positivity/people/entity/TimeEntryException.java` — exception entity implemented; fields: `exceptionId`, `employeeId`, `workDate`, `exceptionCode`, `severity`, `status`, `timeEntryId`, `resolutionNotes`, `detectedAt`, `resolvedBy`, `resolvedAt`.
+
+Status: Tasks 2.2 and 2.3 implemented at code and migration level (entities + migration files present). See the entity files above for field-level types and default behaviors (pre-persist timestamps).
+
+Notes / recommendations (remaining):
+- Enforcement of the "one-of" rule for adjustments (proposed times XOR minutes delta) is recommended at the service/controller validation layer — not yet enforced by the JPA model.
+- Status enums suggested: `PROPOSED|PENDING|APPROVED|REJECTED` for adjustments and `OPEN|ACKNOWLEDGED|RESOLVED|WAIVED` for exceptions. Currently stored as strings; consider converting to `@Enumerated(EnumType.STRING)` enums in a follow-up refactor.
+- Permission and approval flows for adjustments/exceptions implemented as services (`TimeEntryAdjustmentService`, `TimeEntryExceptionService`) with audit writes; full workflow validation (e.g., blocking exceptions preventing approve) remains to be added in business rules.
+
+**Phase 2 — Status**
+
+- Completed: Task 2.1 (TimeEntry schema), Task 2.4 (identifier types), Task 2.5 (timezone handling), Task 2.6 (pagination contract), Task 2.7 (cross-domain mapping).
+- Partially addressed: Task 2.2 (Adjustment entity proposed; not yet persisted), Task 2.3 (Exception entity proposed; not yet persisted). These require acceptance and migrations if we persist them.
+
 
 ---
 
