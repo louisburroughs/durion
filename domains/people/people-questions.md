@@ -332,8 +332,22 @@ Notes / recommendations (remaining):
 
 **Phase 2 — Status**
 
-- Completed: Task 2.1 (TimeEntry schema), Task 2.4 (identifier types), Task 2.5 (timezone handling), Task 2.6 (pagination contract), Task 2.7 (cross-domain mapping).
-- Partially addressed: Task 2.2 (Adjustment entity proposed; not yet persisted), Task 2.3 (Exception entity proposed; not yet persisted). These require acceptance and migrations if we persist them.
+- Completed: Task 2.1 (TimeEntry schema), Task 2.2 (Adjustment entity), Task 2.3 (Exception entity), Task 2.4 (identifier types), Task 2.5 (timezone handling), Task 2.6 (pagination contract), Task 2.7 (cross-domain mapping).
+
+Additional Phase 2 updates:
+- Added DB migrations for adjustments/exceptions and implemented `TimeEntryAdjustment` and `TimeEntryException` JPA entities.
+- Implemented controllers (`TimeEntryAdjustmentController`, `TimeEntryExceptionController`) and services (`TimeEntryAdjustmentService`, `TimeEntryExceptionService`) with basic create/list/approve/resolve flows and audit writes.
+- Added unit tests for services and basic controller tests under `pos-people/src/test/java`.
+- Converted status/severity fields to enums persisted as strings (`TimeEntryStatus`, `AdjustmentStatus`, `ExceptionStatus`, `ExceptionSeverity`) to enforce canonical values.
+
+Notes / outstanding small work:
+- The adjustment "one-of" validation (proposedStartAt/proposedEndAt XOR minutesDelta) should be enforced in controller/service validation (recommended follow-up).
+- Integration tests and OpenAPI model examples referencing the enums and error envelope are recommended before opening PRs targeting main branches.
+- Local test runs require Java 21 (Maven enforcer). Run module tests with Java 21:
+
+```bash
+./mvnw -f pos-people/pom.xml test
+```
 
 
 ---
