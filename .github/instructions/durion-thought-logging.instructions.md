@@ -8,7 +8,6 @@ description: 'See process the agent is following where you can edit this to resh
 
 **ABSOLUTE MANDATORY RULES:**
 - Exit these instructions when given the command "EXIT DURION PROCESSING INSTRUCTIONS"
-- Use only in Agent mode
 - You must review these instructions in full before executing any steps to understand the full instructions guidelines.
 - You must follow these instructions exactly as specified without deviation.
 - Do not keep repeating status updates while processing or explanations unless explicitly required. This is bad and will flood Copilot session context.
@@ -21,7 +20,7 @@ description: 'See process the agent is following where you can edit this to resh
 
 # Phase 1: Initialization
 
-- Delete existing file `Durion-Processing.md` in workspace root if it is marked as complete. If not marked complete, ask if you should append to it or start a new one.
+- Delete existing file `Durion-Processing.md` in workspace root if it is marked as complete. If not marked complete, check if the question or demand is relevant to the contents of the file.  If the contents are stale, delete without asking.  If there is a doubt if this is a continuation, ask if you should append to it or start a new one.
 - Create file `Durion-Processing.md` in workspace root
 - Populate `Durion-Processing.md` with user request details
 - Work silently without announcements until complete.

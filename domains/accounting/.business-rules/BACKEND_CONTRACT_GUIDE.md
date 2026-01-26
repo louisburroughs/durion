@@ -569,16 +569,19 @@ GET /v1/accounting/gl-accounts?pageNumber=1&pageSize=20&sortBy=accountCode&sortO
 Entity-specific filters:
 
 **GLAccount:**
+
 - `accountType`: Filter by account type (ASSET, LIABILITY, etc.)
 - `search`: Search by account code or name (contains)
 
 **JournalEntry:**
+
 - `status`: Filter by status (DRAFT, POSTED, REVERSED)
 - `transactionDateFrom`: Filter by transaction date (>= date)
 - `transactionDateTo`: Filter by transaction date (<= date)
 - `sourceEventId`: Filter by source event
 
 **VendorBill:**
+
 - `status`: Filter by status (PENDING_REVIEW, APPROVED, etc.)
 - `vendorId`: Filter by vendor
 
@@ -844,6 +847,7 @@ JSON representation:
 High-risk operations **MUST** include `justification` field:
 
 **Operations requiring justification:**
+
 - Post journal entry (`accounting:je:post`)
 - Reverse journal entry (`accounting:je:reverse`)
 - Approve vendor bill (`accounting:ap:approve`)
@@ -902,6 +906,7 @@ public class AccountingAuditLog {
 ### GLAccount
 
 **Endpoints:**
+
 - `GET /v1/accounting/gl-accounts` — List with pagination
 - `GET /v1/accounting/gl-accounts/{glAccountId}` — Get details
 - `POST /v1/accounting/gl-accounts` — Create account
@@ -928,17 +933,20 @@ public class AccountingAuditLog {
 ```
 
 **Required Fields (Create):**
+
 - `accountCode` (unique, max 20 chars)
 - `accountName` (max 100 chars)
 - `accountType` (enum)
 
 **Optional Fields:**
+
 - `description`
 - `parentAccountId` (FK to parent account)
 - `activationDate` (defaults to today)
 - `deactivationDate` (defaults to null)
 
 **Derived Status:**
+
 - `ACTIVE`: `activationDate <= today < deactivationDate` (or null)
 - `INACTIVE`: `deactivationDate <= today`
 - `NOT_YET_ACTIVE`: `activationDate > today`
@@ -948,6 +956,7 @@ public class AccountingAuditLog {
 ### PostingCategory, MappingKey, GLMapping
 
 **Endpoints:**
+
 - `GET /v1/accounting/posting-categories` — List categories
 - `POST /v1/accounting/posting-categories` — Create category
 - `GET /v1/accounting/mapping-keys?postingCategoryId={id}` — List keys for category
@@ -1003,6 +1012,7 @@ public class AccountingAuditLog {
 ### PostingRuleSet & PostingRuleVersion
 
 **Endpoints:**
+
 - `GET /v1/accounting/posting-rule-sets` — List rule sets with latest version summary
 - `GET /v1/accounting/posting-rule-sets/{postingRuleSetId}` — Get rule set with all versions
 - `POST /v1/accounting/posting-rule-sets` — Create rule set (creates v1 in DRAFT)
@@ -1062,6 +1072,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ### JournalEntry & JournalEntryLine
 
 **Endpoints:**
+
 - `GET /v1/accounting/journal-entries` — List with filters
 - `GET /v1/accounting/journal-entries/{journalEntryId}` — Get details with lines
 - `POST /v1/accounting/journal-entries/build` — Build JE from source event
@@ -1131,6 +1142,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ### VendorBill
 
 **Endpoints:**
+
 - `GET /v1/accounting/vendor-bills` — List with status filter
 - `GET /v1/accounting/vendor-bills/{vendorBillId}` — Get details with traceability
 - `POST /v1/accounting/vendor-bills/{vendorBillId}/approve` — Approve bill
@@ -1161,6 +1173,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ```
 
 **Traceability:**
+
 - `originEventId` → Source accounting event
 - `journalEntryId` → JE created from event
 - `paymentTransactionId` → Payment (if paid)
@@ -1170,6 +1183,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ### AccountingEvent
 
 **Endpoints:**
+
 - `POST /v1/accounting/events/submitSync` — Submit event (sync ingestion)
 - `GET /v1/accounting/events/{eventId}` — Get event details
 - `GET /v1/accounting/events` — List events with filters
@@ -1212,6 +1226,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ### PostingCategory (Issue #203)
 
 **Endpoints:**
+
 - `GET /v1/accounting/posting-categories` — List categories
 - `GET /v1/accounting/posting-categories/{postingCategoryId}` — Get category details
 - `POST /v1/accounting/posting-categories` — Create category
@@ -1235,13 +1250,16 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ```
 
 **Required Fields (Create):**
+
 - `categoryCode` (unique, max 50 chars, alphanumeric + hyphens)
 - `categoryName` (max 100 chars)
 
 **Optional Fields:**
+
 - `description` (max 500 chars)
 
 **Validation:**
+
 - Category code must be unique across all categories
 - Cannot deactivate if active GL mappings exist
 
@@ -1250,6 +1268,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ### MappingKey (Issue #203)
 
 **Endpoints:**
+
 - `GET /v1/accounting/mapping-keys?postingCategoryId={id}` — List keys for category
 - `GET /v1/accounting/mapping-keys/{mappingKeyId}` — Get key details
 - `POST /v1/accounting/mapping-keys` — Create mapping key
@@ -1274,14 +1293,17 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ```
 
 **Required Fields (Create):**
+
 - `keyCode` (unique, max 50 chars)
 - `keyName` (max 100 chars)
 - `postingCategoryId` (FK to PostingCategory)
 
 **Optional Fields:**
+
 - `description` (max 500 chars)
 
 **Validation:**
+
 - Key code must be unique across all mapping keys
 - Must link to exactly one posting category (1:1 relationship)
 - Cannot deactivate if active GL mappings exist
@@ -1291,6 +1313,7 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ### GLMapping (Issue #203)
 
 **Endpoints:**
+
 - `GET /v1/accounting/gl-mappings?postingCategoryId={id}&mappingKeyId={id}` — List mappings
 - `GET /v1/accounting/gl-mappings/{glMappingId}` — Get mapping details
 - `POST /v1/accounting/gl-mappings` — Create GL mapping
@@ -1318,16 +1341,19 @@ Backend validates that sum(debits) == sum(credits) per condition. Returns 422 wi
 ```
 
 **Required Fields (Create):**
+
 - `postingCategoryId` (FK to PostingCategory)
 - `mappingKeyId` (FK to MappingKey)
 - `glAccountId` (FK to GLAccount)
 - `effectiveFrom` (LocalDate)
 
 **Optional Fields:**
+
 - `effectiveTo` (LocalDate, null = no end date)
 - `dimensions` (Map<String, String>)
 
 **Immutability:**
+
 - GL mappings are **never edited** (append-only)
 - Create new effective-dated row for changes
 - System validates no overlap for same (postingCategoryId, mappingKeyId)
@@ -1382,6 +1408,7 @@ Response:
 ### VendorBill (Issue #194)
 
 **Endpoints:**
+
 - `GET /v1/accounting/vendor-bills` — List with status filter
 - `GET /v1/accounting/vendor-bills/{vendorBillId}` — Get details with traceability
 - `POST /v1/accounting/vendor-bills` — Create vendor bill from event
@@ -1420,6 +1447,7 @@ Response:
 ```
 
 **Required Fields (Create):**
+
 - `vendorId` (FK to People domain vendor entity)
 - `billNumber` (unique per vendor)
 - `billDate` (LocalDate)
@@ -1429,19 +1457,23 @@ Response:
 - `originEventType` (enum: WorkCompletedEvent, PurchaseOrderEvent, etc.)
 
 **Optional Fields:**
+
 - `currency` (defaults to "USD")
 - `notes` (max 1000 chars)
 
 **Status Transitions:**
+
 - `PENDING_REVIEW` → `APPROVED` (requires `accounting:vendor_bill:approve`)
 - `PENDING_REVIEW` → `REJECTED` (requires `accounting:vendor_bill:reject`)
 - `APPROVED` → `PAID` (requires `accounting:ap_payment:schedule` + external payment)
 
 **Immutability:**
+
 - Cannot edit bill after approval (status != PENDING_REVIEW)
 - Approval and rejection require justification
 
 **Traceability:**
+
 - `originEventId` → Source accounting event (WorkCompleted, PurchaseOrder, etc.)
 - `journalEntryId` → JE created from event (if posted)
 - `paymentTransactionId` → Payment record (if paid)
@@ -1451,6 +1483,7 @@ Response:
 ### APPayment (Issue #193)
 
 **Endpoints:**
+
 - `GET /v1/accounting/ap-payments` — List payments with status filter
 - `GET /v1/accounting/ap-payments?status=PENDING_APPROVAL` — Approval queue
 - `POST /v1/accounting/ap-payments/approve` — Approve payment
@@ -1488,21 +1521,25 @@ Response:
 ```
 
 **Required Fields (Approve):**
+
 - `vendorBillId` (FK to VendorBill)
 - `approvalJustification` (max 1000 chars)
 
 **Required Fields (Schedule):**
+
 - `paymentMethod` (enum: ACH, CHECK, WIRE)
 - `paymentDate` (LocalDate)
 - `bankAccountId` (FK to bank account)
 
 **Status Transitions:**
+
 - `PENDING_APPROVAL` → `APPROVED` (requires approval permission based on amount)
 - `APPROVED` → `SCHEDULED` (requires `accounting:ap_payment:schedule`)
 - `SCHEDULED` → `PAID` (external payment processing)
 - `SCHEDULED` → `CANCELLED` (requires `accounting:ap_payment:cancel`)
 
 **Approval Threshold Logic:**
+
 - `amount < threshold`: Requires `accounting:ap_payment:approve_under_threshold`
 - `amount >= threshold`: Requires `accounting:ap_payment:approve_over_threshold`
 - Threshold configurable per organization (default $10,000)
@@ -1513,6 +1550,7 @@ Response:
 ### ManualJournalEntry (Issue #190)
 
 **Endpoints:**
+
 - `GET /v1/accounting/manual-journal-entries` — List manual JEs
 - `GET /v1/accounting/manual-journal-entries/{jeId}` — Get manual JE details
 - `POST /v1/accounting/manual-journal-entries` — Create manual JE (DRAFT)
@@ -1575,20 +1613,24 @@ Response:
 ```
 
 **Required Fields (Create Draft):**
+
 - `transactionDate` (LocalDate)
 - `description` (max 500 chars)
 - `reasonCode` (enum: ACCRUAL_ADJUSTMENT, ERROR_CORRECTION, RECLASSIFICATION, etc.)
 - `lines` (array, min 2 lines)
 
 **Required Fields (Post):**
+
 - `justification` (max 1000 chars, required for HIGH-risk operation)
 
 **Validation:**
+
 - Balance check: `sum(debits) - sum(credits)` must be within ±0.0001
 - Cannot post unbalanced JE (returns 422)
 - Cannot edit/delete after posting (immutable)
 
 **Reason Codes (Enum):**
+
 - `ACCRUAL_ADJUSTMENT` — Period-end accruals
 - `ERROR_CORRECTION` — Fix prior posting errors
 - `RECLASSIFICATION` — Move amounts between accounts
@@ -1600,6 +1642,7 @@ Response:
 ### Reconciliation (Issue #187)
 
 **Endpoints:**
+
 - `GET /v1/accounting/reconciliations` — List reconciliation sessions
 - `GET /v1/accounting/reconciliations/{reconciliationId}` — Get reconciliation details
 - `POST /v1/accounting/reconciliations` — Create reconciliation session
@@ -1666,6 +1709,7 @@ Response:
 ```
 
 **Required Fields (Create Session):**
+
 - `glAccountId` (FK to GLAccount, must be bank/cash account)
 - `periodStartDate` (LocalDate)
 - `periodEndDate` (LocalDate)
@@ -1673,27 +1717,32 @@ Response:
 - `statementEndingBalance` (BigDecimal from bank statement)
 
 **Import Statement:**
+
 - Supported formats: CSV, OFX, QBO
 - Parses: date, description, amount, reference number
 - Creates `statementLines` array
 
 **Matching:**
+
 - Auto-match: by amount + date (within tolerance)
 - Manual match: many-to-many support (if policy allows)
 - Unmatched items → require adjustment or explanation
 
 **Adjustments:**
+
 - Create adjustment JE for unmatched items
 - Adjustment types: BANK_FEE, INTEREST_INCOME, ERROR_CORRECTION, NSF, etc.
 - Link adjustment JE to reconciliation session
 
 **Finalization:**
+
 - Validates: all items matched or adjusted
 - Validates: reconciled balance matches statement balance
 - Locks reconciliation (status = FINALIZED, immutable)
 - Updates GL account balances
 
 **Reopen:**
+
 - Requires HIGH-risk permission
 - Requires justification
 - Reverses finalization effects
@@ -1704,6 +1753,7 @@ Response:
 ### WorkCompletedEvent (Issue #183)
 
 **Endpoints:**
+
 - `POST /v1/accounting/events/workcompleted` — Submit WorkCompleted event
 - `GET /v1/accounting/events/workcompleted` — List WorkCompleted events
 - `GET /v1/accounting/events/workcompleted/{eventId}` — Get event details
@@ -1750,6 +1800,7 @@ Response:
 ```
 
 **Required Fields (Submit):**
+
 - `eventId` (UUIDv7, client-generated per AD-006)
 - `eventType` = "WorkCompletedEvent"
 - `workorderId` (FK to WorkExec workorder)
@@ -1757,6 +1808,7 @@ Response:
 - `payload` (JSON object with labor/parts costs)
 
 **Status Model:**
+
 - `RECEIVED` → Event ingested, awaiting processing
 - `PROCESSING` → JE generation in progress
 - `PROCESSED` → Success, JE created
@@ -1764,21 +1816,25 @@ Response:
 - `SUSPENDED` → Manually suspended for investigation
 
 **Idempotency:**
+
 - Duplicate `eventId` submission → 409 Conflict
 - Returns `idempotencyOutcome`: PROCESSED_NEW, DUPLICATE_IGNORED, RETRY_SUCCESS
 
 **Retry Policy:**
+
 - Auto-retry: max 3 attempts with exponential backoff
 - Manual retry: requires `accounting:workcompleted_events:retry`
 - Retry history tracked: `retryCount`, `lastRetryAt`
 - After max retries → escalate to suspense or manual review
 
 **Payload Visibility:**
+
 - Raw payload access gated by `accounting:workcompleted_events:view_payload` (per AD-009)
 - Sensitive data: labor costs, part costs, customer details
 - Audit access to payload
 
 **Operator Reason:**
+
 - Manual retry/suspend requires `operatorReason` (max 500 chars)
 - Tracks human intervention justification
 
