@@ -43,7 +43,7 @@ idempotency, and timezone handling.
 ## Observability
 
 - [ ] Ensure trace identifiers and audit fields surface in UI and logs (no PII)
-- [ ] UI sends X-Request-Id and avoids logging free-text fields
+- [ ] UI sends X-Correlation-Id and avoids logging free-text fields
 
 ## Acceptance Criteria (per resolved question)
 

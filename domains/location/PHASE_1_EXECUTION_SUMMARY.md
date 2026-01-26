@@ -85,7 +85,7 @@ Phase 1 research executed on 2026-01-25. All five contract confirmation tasks co
 Content-Type: application/json
 Authorization: Bearer <token>
 Idempotency-Key: <uuid>  (for mutations; DECISION-INVENTORY-012)
-X-Request-Id: <uuid>     (for traceability; optional client-side; server generates correlationId)
+X-Correlation-Id: <uuid>     (for traceability; optional client-side; server generates correlationId)
 ```
 
 **Standard Success Response (200/201/204):**

@@ -454,13 +454,13 @@ and defines what must be treated as backend-authoritative vs UI hints.
 
 ### Q: What is the standard correlation/request header?
 
-- Answer: Use X-Request-Id as the client-generated correlation header and propagate it end-to-end.
+- Answer: Use X-Correlation-Id as the client-generated correlation header and propagate it end-to-end.
 - Assumptions:
   - A gateway/service mesh preserves the header.
 - Rationale:
   - Enables tracing and log correlation without PII.
 - Impact:
-  - UI: set X-Request-Id on calls.
+  - UI: set X-Correlation-Id on calls.
 - Decision ID: DECISION-SHOPMGMT-011
 
 ### Q: What are the UI route conventions for Estimate Detail, Work Order Detail, and Appointment screens?

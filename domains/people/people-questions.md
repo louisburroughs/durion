@@ -472,7 +472,7 @@ Notes / outstanding small work:
 
 - [ ] **Task 3.8 — Idempotency and retry patterns**
   - [ ] Confirm whether approve/reject operations are idempotent (backend requirement)
-  - [ ] If idempotency required, confirm header name (e.g., `Idempotency-Key`, `X-Request-ID`)
+  - [ ] If idempotency required, confirm header name (e.g., `Idempotency-Key`, `X-Correlation-Id`)
   - [ ] Confirm whether UI should generate idempotency keys or rely on backend de-duplication
   - [ ] Confirm retry behavior: should UI allow immediate retry on 5xx or require manual refresh?
 
@@ -645,7 +645,7 @@ Notes / outstanding small work:
 87. If batch, are all entries validated together or individually? (partial success vs all-or-nothing)
 88. If batch, does backend return per-entry errors or single error for entire batch?
 89. Are approve/reject operations idempotent? (backend requirement)
-90. If idempotency required, what is the header name? (`Idempotency-Key`, `X-Request-ID`?)
+90. If idempotency required, what is the header name? (`Idempotency-Key`, `X-Correlation-Id`?)
 91. Should UI generate idempotency keys or rely on backend de-duplication?
 
 **Section 11: Cross-Domain Dependencies**

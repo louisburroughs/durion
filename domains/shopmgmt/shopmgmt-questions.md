@@ -81,7 +81,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
     - [ ] `VALIDATION_ERROR` with `fieldErrors[]`
   - [ ] Document permission error codes (403):
     - [ ] `FORBIDDEN` (access denied without leaking cross-facility existence per DECISION-SHOPMGMT-012)
-  - [ ] Verify correlation ID propagation (header name: `X-Request-Id` per DECISION-SHOPMGMT-011)
+  - [ ] Verify correlation ID propagation (header name: `X-Correlation-Id` per DECISION-SHOPMGMT-011)
 
 **Acceptance:** Domain boundaries documented; Issue #76 has documented authoritative endpoints/services with error codes; Moqui screen paths confirmed
 
@@ -233,7 +233,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
     - [ ] 422 (eligibility/policy) → blocking message with `errorCode` and `correlationId`
     - [ ] 5xx → generic failure with `correlationId` and retry option
   - [ ] Confirm `correlationId` is surfaced in all error banners (user-visible)
-  - [ ] Confirm `X-Request-Id` header propagation per DECISION-SHOPMGMT-011
+  - [ ] Confirm `X-Correlation-Id` header propagation per DECISION-SHOPMGMT-011
   - [ ] Confirm free-text `overrideReason` must NOT be logged client-side per DECISION-SHOPMGMT-017
 
 - [ ] **Task 3.8 — Accessibility and responsiveness**
@@ -293,7 +293,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
     - [ ] Idempotency: `clientRequestId` required; retry with same ID per DECISION-SHOPMGMT-014
     - [ ] Facility scoping: `facilityId` required for writes per DECISION-SHOPMGMT-012; confirm if required for reads
     - [ ] PII/sensitive data: do not log `overrideReason` client-side; `serviceSummary` must be PII-safe per DECISION-SHOPMGMT-017
-    - [ ] Correlation: `X-Request-Id` header per DECISION-SHOPMGMT-011
+    - [ ] Correlation: `X-Correlation-Id` header per DECISION-SHOPMGMT-011
     - [ ] DECISION references: DECISION-SHOPMGMT-001, -002, -007, -008, -009, -011, -012, -013, -014, -015, -016, -017
     - [ ] Any remaining open questions with requested owner/domain
   - [ ] Update label: remove `blocked:clarification` when clarifications complete
@@ -435,7 +435,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
 59. What is the error code for not found? (Proposed: `NOT_FOUND` with 404; must not leak cross-facility existence per DECISION-SHOPMGMT-012)
 60. What is the error code for policy/eligibility failures? (422 with `errorCode`: `ESTIMATE_NOT_ELIGIBLE`, `WORK_ORDER_NOT_ELIGIBLE`, `OUTSIDE_OPERATING_HOURS`)
 61. What is the standard error envelope structure? (`{ errorCode, message, correlationId, fieldErrors?, details? }`)
-62. What is the correlation ID header name? (Confirmed: `X-Request-Id` per DECISION-SHOPMGMT-011)
+62. What is the correlation ID header name? (Confirmed: `X-Correlation-Id` per DECISION-SHOPMGMT-011)
 
 **Section 10: Timezone & Timestamp Handling**
 63. What is the timestamp format? (Confirmed: ISO-8601 with offset per DECISION-SHOPMGMT-015)
@@ -464,7 +464,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
 80. What is the notification domain integration point? (Shopmgmt returns outcome summary; Notification owns delivery per DECISION-SHOPMGMT-016)
 
 **Section 14: Observability & Telemetry**
-81. What is the correlation ID header name? (Confirmed: `X-Request-Id` per DECISION-SHOPMGMT-011)
+81. What is the correlation ID header name? (Confirmed: `X-Correlation-Id` per DECISION-SHOPMGMT-011)
 82. What telemetry events should be recorded? (Non-PII):
    - [ ] `screen_opened` (sourceType, sourceId, facilityId)
    - [ ] `create_submitted` (clientRequestId)
@@ -492,7 +492,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
 - **DECISION-SHOPMGMT-007**: SOFT conflicts overridable with permission + reason; always audited
 - **DECISION-SHOPMGMT-008**: Location owns operating hours; shopmgmt enforces via HARD conflicts
 - **DECISION-SHOPMGMT-009**: People owns mechanic profile SoR; shopmgmt may expose derived fields; UI must not require People calls
-- **DECISION-SHOPMGMT-011**: Submit-time conflict detection (409 on submit); suggested alternatives optional; correlation via `X-Request-Id`
+- **DECISION-SHOPMGMT-011**: Submit-time conflict detection (409 on submit); suggested alternatives optional; correlation via `X-Correlation-Id`
 - **DECISION-SHOPMGMT-012**: All write requests include `facilityId` explicitly; 403/404 must not leak cross-facility existence
 - **DECISION-SHOPMGMT-013**: Appointment status is opaque; source eligibility rules (Estimate: APPROVED/QUOTED; Work Order: NOT COMPLETED/CANCELLED)
 - **DECISION-SHOPMGMT-014**: Idempotent create submission using `clientRequestId`; retry with same ID
@@ -506,7 +506,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
 - Timestamp format: ISO-8601 with offset per DECISION-SHOPMGMT-015
 - Idempotency key: `clientRequestId` (header or body) per DECISION-SHOPMGMT-014
 - Conflict response: `{ errorCode: "SCHEDULING_CONFLICT", conflicts[], suggestedAlternatives[] }`
-- Correlation header: `X-Request-Id` per DECISION-SHOPMGMT-011
+- Correlation header: `X-Correlation-Id` per DECISION-SHOPMGMT-011
 
 ### Permission Taxonomy (Examples)
 **Shop Management Domain:**
