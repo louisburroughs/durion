@@ -1,0 +1,20 @@
+{
+  "issue_number": 204,
+  "issue_title": "[FRONTEND] [STORY] CoA: Create and Maintain Chart of Accounts",
+  "domain": "accounting",
+  "shortname": "frontend-story-coa-create-and-maintain-chart-of-ac",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:30:07.945465Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/204",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

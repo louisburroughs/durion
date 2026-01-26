@@ -1,0 +1,20 @@
+{
+  "issue_number": 144,
+  "issue_title": "[FRONTEND] [STORY] Integration: Attendance vs Job Time Discrepancy Report",
+  "domain": "people",
+  "shortname": "frontend-story-integration-attendance-vs-job-time",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:12:07.578086Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/144",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:people-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

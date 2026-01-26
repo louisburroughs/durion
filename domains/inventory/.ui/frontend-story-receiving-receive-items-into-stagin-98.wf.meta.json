@@ -1,0 +1,20 @@
+{
+  "issue_number": 98,
+  "issue_title": "[FRONTEND] [STORY] Receiving: Receive Items into Staging (Generate Ledger Entries)",
+  "domain": "inventory",
+  "shortname": "frontend-story-receiving-receive-items-into-stagin",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:28:39.238616Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/98",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

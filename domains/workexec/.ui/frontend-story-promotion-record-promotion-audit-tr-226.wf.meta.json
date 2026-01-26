@@ -1,0 +1,19 @@
+{
+  "issue_number": 226,
+  "issue_title": "[FRONTEND] [STORY] Promotion: Record Promotion Audit Trail",
+  "domain": "workexec",
+  "shortname": "frontend-story-promotion-record-promotion-audit-tr",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:21:20.817572Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/226",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

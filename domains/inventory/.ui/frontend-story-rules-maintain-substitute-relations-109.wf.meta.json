@@ -1,0 +1,20 @@
+{
+  "issue_number": 109,
+  "issue_title": "[FRONTEND] [STORY] Rules: Maintain Substitute Relationships and Equivalency Types",
+  "domain": "inventory",
+  "shortname": "frontend-story-rules-maintain-substitute-relations",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:24:34.167177Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/109",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

@@ -1,0 +1,4 @@
+issue_number,domain,shortname,file_path,status,reviewer,notes
+261,inventory,frontend-story-cost-maintain-standard-last-average,../../domains/inventory/.ui/staging/frontend-story-cost-maintain-standard-last-average-261.wf.md,pending,,
+243,inventory,frontend-story-fulfillment-issue-consume-picked-it,../../domains/inventory/.ui/staging/frontend-story-fulfillment-issue-consume-picked-it-243.wf.md,pending,,
+242,inventory,frontend-story-fulfillment-return-unused-items-to,../../domains/inventory/.ui/staging/frontend-story-fulfillment-return-unused-items-to-242.wf.md,pending,,

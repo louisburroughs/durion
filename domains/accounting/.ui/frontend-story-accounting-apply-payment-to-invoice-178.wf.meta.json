@@ -1,0 +1,19 @@
+{
+  "issue_number": 178,
+  "issue_title": "[FRONTEND] [STORY] Accounting: Apply Payment to Invoice",
+  "domain": "accounting",
+  "shortname": "frontend-story-accounting-apply-payment-to-invoice",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:00:34.746228Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/178",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

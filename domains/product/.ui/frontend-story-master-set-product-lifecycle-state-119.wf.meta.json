@@ -1,0 +1,20 @@
+{
+  "issue_number": 119,
+  "issue_title": "[FRONTEND] [STORY] Master: Set Product Lifecycle State (Active/Discontinued) with Effective Dates",
+  "domain": "product",
+  "shortname": "frontend-story-master-set-product-lifecycle-state",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:20:56.780044Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/119",
+  "labels": [
+    "domain:product",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

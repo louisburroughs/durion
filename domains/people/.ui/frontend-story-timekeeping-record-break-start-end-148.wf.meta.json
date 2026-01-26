@@ -1,0 +1,21 @@
+{
+  "issue_number": 148,
+  "issue_title": "[FRONTEND] [STORY] Timekeeping: Record Break Start/End",
+  "domain": "people",
+  "shortname": "frontend-story-timekeeping-record-break-start-end",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:10:47.509620Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/148",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:people-domain-agent",
+    "risk:integration-contract",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

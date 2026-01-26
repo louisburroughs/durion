@@ -1,0 +1,22 @@
+{
+  "issue_number": 65,
+  "issue_title": "[FRONTEND] [STORY] Security: Audit Trail for Price Overrides, Refunds, and Cancellations",
+  "domain": "security",
+  "shortname": "frontend-story-security-audit-trail-for-price-over",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:41:06.807099Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/65",
+  "labels": [
+    "frontend",
+    "payment",
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:audit",
+    "status:needs-review",
+    "analysis:in-progress",
+    "phase:data-contracts"
+  ],
+  "summarized": false
+}

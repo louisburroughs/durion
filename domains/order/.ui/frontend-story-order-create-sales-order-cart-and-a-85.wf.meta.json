@@ -1,0 +1,20 @@
+{
+  "issue_number": 85,
+  "issue_title": "[FRONTEND] [STORY] Order: Create Sales Order Cart and Add Items",
+  "domain": "order",
+  "shortname": "frontend-story-order-create-sales-order-cart-and-a",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:33:51.135527Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/85",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:order",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

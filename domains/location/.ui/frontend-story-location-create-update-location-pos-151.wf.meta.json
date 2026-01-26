@@ -1,0 +1,20 @@
+{
+  "issue_number": 151,
+  "issue_title": "[FRONTEND] [STORY] Location: Create/Update Location (pos-location) Including Timezone",
+  "domain": "location",
+  "shortname": "frontend-story-location-create-update-location-pos",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:09:46.883033Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/151",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:location",
+    "agent:story-authoring",
+    "agent:location-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

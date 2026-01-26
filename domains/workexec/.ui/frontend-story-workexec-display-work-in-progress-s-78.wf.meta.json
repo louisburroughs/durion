@@ -1,0 +1,20 @@
+{
+  "issue_number": 78,
+  "issue_title": "[FRONTEND] [STORY] Workexec: Display Work In Progress Status for Active Workorders",
+  "domain": "workexec",
+  "shortname": "frontend-story-workexec-display-work-in-progress-s",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:36:21.333957Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/78",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

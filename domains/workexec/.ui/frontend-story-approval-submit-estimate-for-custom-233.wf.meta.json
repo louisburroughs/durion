@@ -1,0 +1,20 @@
+{
+  "issue_number": 233,
+  "issue_title": "[FRONTEND] [STORY] Approval: Submit Estimate for Customer Approval",
+  "domain": "workexec",
+  "shortname": "frontend-story-approval-submit-estimate-for-custom",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:19:09.452356Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/233",
+  "labels": [
+    "domain:workexec",
+    "frontend",
+    "status:ready-to-implement",
+    "user",
+    "type:story",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

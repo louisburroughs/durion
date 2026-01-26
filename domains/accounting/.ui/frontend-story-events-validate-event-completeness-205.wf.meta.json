@@ -1,0 +1,20 @@
+{
+  "issue_number": 205,
+  "issue_title": "[FRONTEND] [STORY] Events: Validate Event Completeness and Integrity",
+  "domain": "accounting",
+  "shortname": "frontend-story-events-validate-event-completeness",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:29:38.859765Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/205",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

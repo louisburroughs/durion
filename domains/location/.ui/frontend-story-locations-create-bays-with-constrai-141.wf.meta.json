@@ -1,0 +1,22 @@
+{
+  "issue_number": 141,
+  "issue_title": "[FRONTEND] [STORY] Locations: Create Bays with Constraints and Capacity",
+  "domain": "location",
+  "shortname": "frontend-story-locations-create-bays-with-constrai",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:13:02.692700Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/141",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:location",
+    "agent:story-authoring",
+    "agent:location-domain-agent",
+    "status:needs-review",
+    "phase:contract-discovery",
+    "analysis:in-progress"
+  ],
+  "summarized": false
+}

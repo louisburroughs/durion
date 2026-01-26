@@ -1,0 +1,20 @@
+{
+  "issue_number": 176,
+  "issue_title": "[FRONTEND] [STORY] Party: Create Commercial Account",
+  "domain": "crm",
+  "shortname": "frontend-story-party-create-commercial-account",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:01:20.918971Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/176",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:crm",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

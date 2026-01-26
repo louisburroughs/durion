@@ -1,0 +1,20 @@
+{
+  "issue_number": 133,
+  "issue_title": "[FRONTEND] [STORY] Dispatch: Override Conflict with Manager Permission",
+  "domain": "shopmgmt",
+  "shortname": "frontend-story-dispatch-override-conflict-with-man",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:15:46.275478Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/133",
+  "labels": [
+    "domain:shopmgmt",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

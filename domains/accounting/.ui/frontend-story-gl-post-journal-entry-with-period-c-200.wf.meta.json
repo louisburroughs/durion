@@ -1,0 +1,20 @@
+{
+  "issue_number": 200,
+  "issue_title": "[FRONTEND] [STORY] GL: Post Journal Entry with Period Controls and Atomicity",
+  "domain": "accounting",
+  "shortname": "frontend-story-gl-post-journal-entry-with-period-c",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:33:56.647737Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/200",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

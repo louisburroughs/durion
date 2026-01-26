@@ -1,0 +1,21 @@
+{
+  "issue_number": 201,
+  "issue_title": "[FRONTEND] [STORY] GL: Build Balanced Journal Entry from Event",
+  "domain": "accounting",
+  "shortname": "frontend-story-gl-build-balanced-journal-entry-fro",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:31:18.949363Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/201",
+  "labels": [
+    "domain:accounting",
+    "frontend",
+    "status:ready-to-implement",
+    "general",
+    "type:story",
+    "risk:incomplete-requirements",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

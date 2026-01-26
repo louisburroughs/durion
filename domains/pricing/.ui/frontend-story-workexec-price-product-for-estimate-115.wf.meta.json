@@ -1,0 +1,19 @@
+{
+  "issue_number": 115,
+  "issue_title": "[FRONTEND] [STORY] Workexec: Price Product for Estimate Line (Location + Customer Tier)",
+  "domain": "pricing",
+  "shortname": "frontend-story-workexec-price-product-for-estimate",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:22:25.220000Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/115",
+  "labels": [
+    "frontend",
+    "user",
+    "type:story",
+    "domain:pricing",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

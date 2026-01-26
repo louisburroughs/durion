@@ -1,0 +1,20 @@
+{
+  "issue_number": 117,
+  "issue_title": "[FRONTEND] [STORY] StorePrice: Sync Locations from durion-hr for Pricing Scope",
+  "domain": "location",
+  "shortname": "frontend-story-storeprice-sync-locations-from-duri",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:21:46.563083Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/117",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:location",
+    "agent:story-authoring",
+    "agent:location-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

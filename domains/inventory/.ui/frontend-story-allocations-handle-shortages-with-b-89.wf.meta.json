@@ -1,0 +1,20 @@
+{
+  "issue_number": 89,
+  "issue_title": "[FRONTEND] [STORY] Allocations: Handle Shortages with Backorder or Substitution Suggestion",
+  "domain": "inventory",
+  "shortname": "frontend-story-allocations-handle-shortages-with-b",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:32:16.518367Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/89",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

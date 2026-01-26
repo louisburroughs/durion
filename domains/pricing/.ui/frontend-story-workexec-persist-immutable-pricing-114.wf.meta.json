@@ -1,0 +1,20 @@
+{
+  "issue_number": 114,
+  "issue_title": "[FRONTEND] [STORY] Workexec: Persist Immutable Pricing Snapshot for Estimate/WO Line",
+  "domain": "pricing",
+  "shortname": "frontend-story-workexec-persist-immutable-pricing",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:22:42.794762Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/114",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

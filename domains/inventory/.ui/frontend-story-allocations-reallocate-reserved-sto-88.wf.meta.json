@@ -1,0 +1,20 @@
+{
+  "issue_number": 88,
+  "issue_title": "[FRONTEND] [STORY] Allocations: Reallocate Reserved Stock When Schedule Changes",
+  "domain": "inventory",
+  "shortname": "frontend-story-allocations-reallocate-reserved-sto",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:32:32.690528Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/88",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

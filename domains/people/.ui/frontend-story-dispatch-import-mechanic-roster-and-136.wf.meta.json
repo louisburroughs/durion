@@ -1,0 +1,21 @@
+{
+  "issue_number": 136,
+  "issue_title": "[FRONTEND] [STORY] Dispatch: Import Mechanic Roster and Skills from HR",
+  "domain": "people",
+  "shortname": "frontend-story-dispatch-import-mechanic-roster-and",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:14:50.406368Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/136",
+  "labels": [
+    "frontend",
+    "status:ready-to-implement",
+    "user",
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

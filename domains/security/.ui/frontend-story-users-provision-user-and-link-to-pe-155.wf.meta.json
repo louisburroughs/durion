@@ -1,0 +1,19 @@
+{
+  "issue_number": 155,
+  "issue_title": "[FRONTEND] [STORY] Users: Provision User and Link to Person",
+  "domain": "security",
+  "shortname": "frontend-story-users-provision-user-and-link-to-pe",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:08:31.534187Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/155",
+  "labels": [
+    "type:story",
+    "domain:security",
+    "agent:story-authoring",
+    "agent:security-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

@@ -1,0 +1,21 @@
+{
+  "issue_number": 71,
+  "issue_title": "[FRONTEND] [STORY] Payment: Print/Email Receipt and Store Reference",
+  "domain": "accounting",
+  "shortname": "frontend-story-payment-print-email-receipt-and-sto",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:38:57.310360Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/71",
+  "labels": [
+    "frontend",
+    "payment",
+    "type:story",
+    "domain:billing",
+    "agent:story-authoring",
+    "agent:billing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

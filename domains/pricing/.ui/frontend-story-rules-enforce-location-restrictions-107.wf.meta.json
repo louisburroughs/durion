@@ -1,0 +1,19 @@
+{
+  "issue_number": 107,
+  "issue_title": "[FRONTEND] [STORY] Rules: Enforce Location Restrictions and Service Rules for Products",
+  "domain": "pricing",
+  "shortname": "frontend-story-rules-enforce-location-restrictions",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:25:20.470609Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/107",
+  "labels": [
+    "type:story",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

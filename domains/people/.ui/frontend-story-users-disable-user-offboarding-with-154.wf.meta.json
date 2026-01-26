@@ -1,0 +1,20 @@
+{
+  "issue_number": 154,
+  "issue_title": "[FRONTEND] [STORY] Users: Disable User (Offboarding) Without Losing History",
+  "domain": "people",
+  "shortname": "frontend-story-users-disable-user-offboarding-with",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:08:47.289102Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/154",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:people-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

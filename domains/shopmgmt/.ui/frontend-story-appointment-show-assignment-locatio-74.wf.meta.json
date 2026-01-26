@@ -1,0 +1,22 @@
+{
+  "issue_number": 74,
+  "issue_title": "[FRONTEND] [STORY] Appointment: Show Assignment (Location/Bay/Mobile + Mechanic)",
+  "domain": "shopmgmt",
+  "shortname": "frontend-story-appointment-show-assignment-locatio",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:37:45.420549Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/74",
+  "labels": [
+    "domain:shopmgmt",
+    "frontend",
+    "user",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:shopmgmt-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

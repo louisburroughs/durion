@@ -1,0 +1,19 @@
+{
+  "issue_number": 168,
+  "issue_title": "[FRONTEND] [STORY] Vehicle: Associate Vehicles to Account and/or Individual",
+  "domain": "crm",
+  "shortname": "frontend-story-vehicle-associate-vehicles-to-accou",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:04:15.433449Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/168",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

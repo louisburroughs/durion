@@ -1,0 +1,19 @@
+{
+  "issue_number": 103,
+  "issue_title": "[FRONTEND] [STORY] Topology: Create Storage Locations (Floor/Shelf/Bin/Cage/Truck) and Hierarchy",
+  "domain": "inventory",
+  "shortname": "frontend-story-topology-create-storage-locations-f",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:26:52.314002Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/103",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

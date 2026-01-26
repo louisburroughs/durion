@@ -1,0 +1,20 @@
+{
+  "issue_number": 244,
+  "issue_title": "[FRONTEND] [STORY] Fulfillment: Mechanic Executes Picking (Scan + Confirm)",
+  "domain": "workexec",
+  "shortname": "frontend-story-fulfillment-mechanic-executes-picki",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:15:35.641130Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/244",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

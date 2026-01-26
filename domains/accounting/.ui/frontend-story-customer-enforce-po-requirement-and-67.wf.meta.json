@@ -1,0 +1,19 @@
+{
+  "issue_number": 67,
+  "issue_title": "[FRONTEND] [STORY] Customer: Enforce PO Requirement and Billing Rules During Checkout",
+  "domain": "accounting",
+  "shortname": "frontend-story-customer-enforce-po-requirement-and",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:40:15.782108Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/67",
+  "labels": [
+    "frontend",
+    "payment",
+    "type:story",
+    "domain:billing",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

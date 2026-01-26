@@ -1,0 +1,20 @@
+{
+  "issue_number": 70,
+  "issue_title": "[FRONTEND] [STORY] Accounting: Update Invoice Payment Status from Payment Outcomes",
+  "domain": "accounting",
+  "shortname": "frontend-story-accounting-update-invoice-payment-s",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:39:11.854869Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/70",
+  "labels": [
+    "domain:accounting",
+    "frontend",
+    "status:ready-to-implement",
+    "payment",
+    "type:story",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

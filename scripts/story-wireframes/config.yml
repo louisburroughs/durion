@@ -1,0 +1,50 @@
+# Repository to fetch issues from
+repo: louisburroughs/durion-moqui-frontend
+
+# Label to domain mapping
+label_domain_mapping:
+  domain:shopmgmt: shopmgmt
+  domain:crm: crm
+  domain:accounting: accounting
+  domain:inventory: inventory
+  domain:order: order
+  domain:billing: accounting
+  domain:audit: security
+  domain:security: security
+  domain:product: product
+  domain:workexec: workexec
+  domain:location: location
+  domain:people: people
+  domain:pricing: pricing
+  # fallback for unmapped labels
+  default: general
+
+# Summarizer parameters
+summarizer:
+  chunk_max_chars: 3500
+  overlap_chars: 200
+  map_sentences: 3
+  reduce_sentences: 6
+  max_total_chars: 2000
+
+# OpenAI parameters
+openai:
+  model: gpt-5.2
+  temperature: 0.3
+  max_completion_tokens: 12000
+
+# Local list of processed issue numbers to skip on reruns
+processed_list: processed_issues.txt
+
+# Retry parameters
+retry:
+  max_attempts: 5
+  base_delay: 1.0
+  max_delay: 60.0
+  jitter: true
+
+# Output parameters
+output:
+  base_dir: ../../domains
+  staging: true
+  staging_dir: staging

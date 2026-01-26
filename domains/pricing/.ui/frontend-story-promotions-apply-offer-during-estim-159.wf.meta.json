@@ -1,0 +1,20 @@
+{
+  "issue_number": 159,
+  "issue_title": "[FRONTEND] [STORY] Promotions: Apply Offer During Estimate Pricing",
+  "domain": "pricing",
+  "shortname": "frontend-story-promotions-apply-offer-during-estim",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:07:12.250758Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/159",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

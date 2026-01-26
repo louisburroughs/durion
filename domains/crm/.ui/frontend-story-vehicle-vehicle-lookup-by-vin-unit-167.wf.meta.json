@@ -1,0 +1,20 @@
+{
+  "issue_number": 167,
+  "issue_title": "[FRONTEND] [STORY] Vehicle: Vehicle Lookup by VIN/Unit/Plate",
+  "domain": "crm",
+  "shortname": "frontend-story-vehicle-vehicle-lookup-by-vin-unit",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:04:32.530510Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/167",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

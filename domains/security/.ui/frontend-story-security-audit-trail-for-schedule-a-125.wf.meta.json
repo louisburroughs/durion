@@ -1,0 +1,19 @@
+{
+  "issue_number": 125,
+  "issue_title": "[FRONTEND] [STORY] Security: Audit Trail for Schedule and Assignment Changes",
+  "domain": "security",
+  "shortname": "frontend-story-security-audit-trail-for-schedule-a",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:18:47.763858Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/125",
+  "labels": [
+    "type:story",
+    "domain:audit",
+    "agent:story-authoring",
+    "agent:audit-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

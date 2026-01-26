@@ -1,0 +1,19 @@
+{
+  "issue_number": 211,
+  "issue_title": "[FRONTEND] [STORY] Invoicing: Preserve Traceability Links (Estimate/Approval/Workorder)",
+  "domain": "accounting",
+  "shortname": "frontend-story-invoicing-preserve-traceability-lin",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:27:16.111926Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/211",
+  "labels": [
+    "type:story",
+    "domain:billing",
+    "agent:story-authoring",
+    "agent:billing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

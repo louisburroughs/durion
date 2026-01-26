@@ -1,0 +1,20 @@
+{
+  "issue_number": 261,
+  "issue_title": "[FRONTEND] [STORY] Cost: Maintain Standard/Last/Average Cost with Audit",
+  "domain": "inventory",
+  "shortname": "frontend-story-cost-maintain-standard-last-average",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:14:25.054592Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/261",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

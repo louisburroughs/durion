@@ -1,0 +1,20 @@
+{
+  "issue_number": 82,
+  "issue_title": "[FRONTEND] [STORY] Order: Cancel Order with Controlled Void Logic",
+  "domain": "order",
+  "shortname": "frontend-story-order-cancel-order-with-controlled",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:34:52.658145Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/82",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:order",
+    "agent:story-authoring",
+    "agent:order-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

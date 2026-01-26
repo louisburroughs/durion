@@ -1,0 +1,22 @@
+{
+  "issue_number": 66,
+  "issue_title": "[FRONTEND] [STORY] Security: Define POS Roles and Permission Matrix",
+  "domain": "security",
+  "shortname": "frontend-story-security-define-pos-roles-and-permi",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:40:42.142776Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/66",
+  "labels": [
+    "frontend",
+    "user",
+    "type:story",
+    "domain:security",
+    "risk:incomplete-requirements",
+    "status:needs-review",
+    "analysis:in-progress",
+    "phase:data-contracts"
+  ],
+  "summarized": false
+}

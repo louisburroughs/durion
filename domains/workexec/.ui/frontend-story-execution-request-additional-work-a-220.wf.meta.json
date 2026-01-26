@@ -1,0 +1,19 @@
+{
+  "issue_number": 220,
+  "issue_title": "[FRONTEND] [STORY] Execution: Request Additional Work and Flag for Approval",
+  "domain": "workexec",
+  "shortname": "frontend-story-execution-request-additional-work-a",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:23:34.510027Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/220",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

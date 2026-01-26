@@ -1,0 +1,6 @@
+issue_number,domain,shortname,file_path,status,reviewer,notes
+271,workexec,frontend-story-approval-capture-digital-customer-a,../../domains/workexec/.ui/staging/frontend-story-approval-capture-digital-customer-a-271.wf.md,pending,,
+270,workexec,frontend-story-approval-capture-in-person-customer,../../domains/workexec/.ui/staging/frontend-story-approval-capture-in-person-customer-270.wf.md,pending,,
+269,workexec,frontend-story-approval-record-partial-approval,../../domains/workexec/.ui/staging/frontend-story-approval-record-partial-approval-269.wf.md,pending,,
+268,workexec,frontend-approval-handle-approval-expiration,../../domains/workexec/.ui/staging/frontend-approval-handle-approval-expiration-268.wf.md,pending,,
+244,workexec,frontend-story-fulfillment-mechanic-executes-picki,../../domains/workexec/.ui/staging/frontend-story-fulfillment-mechanic-executes-picki-244.wf.md,pending,,

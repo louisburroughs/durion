@@ -1,0 +1,20 @@
+{
+  "issue_number": 260,
+  "issue_title": "[FRONTEND] [STORY] Cost: Store Supplier/Vendor Cost Tiers (Optional)",
+  "domain": "pricing",
+  "shortname": "frontend-story-cost-store-supplier-vendor-cost-tie",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:14:46.830907Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/260",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

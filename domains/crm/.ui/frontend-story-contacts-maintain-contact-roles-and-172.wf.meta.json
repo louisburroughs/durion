@@ -1,0 +1,20 @@
+{
+  "issue_number": 172,
+  "issue_title": "[FRONTEND] [STORY] Contacts: Maintain Contact Roles and Primary Flags",
+  "domain": "crm",
+  "shortname": "frontend-story-contacts-maintain-contact-roles-and",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:02:56.884535Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/172",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:crm",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

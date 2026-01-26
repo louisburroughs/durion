@@ -1,0 +1,20 @@
+{
+  "issue_number": 150,
+  "issue_title": "[FRONTEND] [STORY] Location: Assign Person to Location with Primary Flag and Effective Dates",
+  "domain": "people",
+  "shortname": "frontend-story-location-assign-person-to-location",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:10:05.093961Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/150",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:people-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

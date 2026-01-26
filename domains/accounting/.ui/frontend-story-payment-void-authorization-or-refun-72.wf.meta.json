@@ -1,0 +1,21 @@
+{
+  "issue_number": 72,
+  "issue_title": "[FRONTEND] [STORY] Payment: Void Authorization or Refund Captured Payment",
+  "domain": "accounting",
+  "shortname": "frontend-story-payment-void-authorization-or-refun",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:38:30.888559Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/72",
+  "labels": [
+    "frontend",
+    "payment",
+    "type:story",
+    "domain:billing",
+    "agent:story-authoring",
+    "agent:billing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

@@ -1,0 +1,20 @@
+{
+  "issue_number": 164,
+  "issue_title": "[FRONTEND] [STORY] Billing: Define Account Billing Rules",
+  "domain": "accounting",
+  "shortname": "frontend-story-billing-define-account-billing-rule",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:05:37.239687Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/164",
+  "labels": [
+    "frontend",
+    "payment",
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:billing",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

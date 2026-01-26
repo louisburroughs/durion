@@ -1,0 +1,21 @@
+{
+  "issue_number": 183,
+  "issue_title": "[FRONTEND] [STORY] Accounting: Ingest WorkCompleted Event",
+  "domain": "accounting",
+  "shortname": "frontend-story-accounting-ingest-workcompleted-eve",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:41:00.828570Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/183",
+  "labels": [
+    "domain:accounting",
+    "frontend",
+    "status:ready-to-implement",
+    "user",
+    "type:story",
+    "risk:incomplete-requirements",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

@@ -1,0 +1,20 @@
+{
+  "issue_number": 214,
+  "issue_title": "[FRONTEND] [STORY] Completion: Reopen Completed Workorder (Controlled)",
+  "domain": "workexec",
+  "shortname": "frontend-story-completion-reopen-completed-workord",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:25:53.906344Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/214",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

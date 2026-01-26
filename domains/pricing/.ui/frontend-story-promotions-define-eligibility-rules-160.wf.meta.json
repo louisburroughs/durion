@@ -1,0 +1,20 @@
+{
+  "issue_number": 160,
+  "issue_title": "[FRONTEND] [STORY] Promotions: Define Eligibility Rules (Account/Vehicle)",
+  "domain": "pricing",
+  "shortname": "frontend-story-promotions-define-eligibility-rules",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:06:56.704260Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/160",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

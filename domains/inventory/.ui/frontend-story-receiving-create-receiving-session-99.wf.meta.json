@@ -1,0 +1,20 @@
+{
+  "issue_number": 99,
+  "issue_title": "[FRONTEND] [STORY] Receiving: Create Receiving Session from PO/ASN",
+  "domain": "inventory",
+  "shortname": "frontend-story-receiving-create-receiving-session",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:28:13.783587Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/99",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

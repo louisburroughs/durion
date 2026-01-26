@@ -1,0 +1,20 @@
+{
+  "issue_number": 193,
+  "issue_title": "[FRONTEND] [STORY] AP: Approve and Schedule Payments with Controls",
+  "domain": "accounting",
+  "shortname": "frontend-story-ap-approve-and-schedule-payments-wi",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:36:44.011124Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/193",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

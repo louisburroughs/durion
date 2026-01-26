@@ -1,0 +1,20 @@
+{
+  "issue_number": 134,
+  "issue_title": "[FRONTEND] [STORY] Dispatch: Assign Mechanic and Resource (Bay/Mobile) to Appointment",
+  "domain": "workexec",
+  "shortname": "frontend-story-dispatch-assign-mechanic-and-resour",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:15:26.858881Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/134",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

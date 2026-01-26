@@ -1,0 +1,20 @@
+{
+  "issue_number": 93,
+  "issue_title": "[FRONTEND] [STORY] Fulfillment: Reserve/Allocate Stock to Workorder Lines",
+  "domain": "inventory",
+  "shortname": "frontend-story-fulfillment-reserve-allocate-stock",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:30:47.418705Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/93",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

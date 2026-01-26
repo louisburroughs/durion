@@ -1,0 +1,20 @@
+{
+  "issue_number": 210,
+  "issue_title": "[FRONTEND] [STORY] Invoicing: Support Authorized Invoice Adjustments",
+  "domain": "accounting",
+  "shortname": "frontend-story-invoicing-support-authorized-invoic",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:27:43.962794Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/210",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

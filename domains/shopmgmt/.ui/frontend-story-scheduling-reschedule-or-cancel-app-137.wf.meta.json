@@ -1,0 +1,20 @@
+{
+  "issue_number": 137,
+  "issue_title": "[FRONTEND] [STORY] Scheduling: Reschedule or Cancel Appointment with Audit",
+  "domain": "shopmgmt",
+  "shortname": "frontend-story-scheduling-reschedule-or-cancel-app",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:14:30.937032Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/137",
+  "labels": [
+    "domain:shopmgmt",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

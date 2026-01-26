@@ -1,0 +1,20 @@
+{
+  "issue_number": 69,
+  "issue_title": "[FRONTEND] [STORY] Accounting: Reconcile POS Status with Accounting Authoritative Status",
+  "domain": "accounting",
+  "shortname": "frontend-story-accounting-reconcile-pos-status-wit",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:39:33.355361Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/69",
+  "labels": [
+    "domain:accounting",
+    "frontend",
+    "status:ready-to-implement",
+    "user",
+    "type:story",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

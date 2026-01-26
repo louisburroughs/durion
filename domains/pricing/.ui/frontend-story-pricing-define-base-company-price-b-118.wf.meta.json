@@ -1,0 +1,20 @@
+{
+  "issue_number": 118,
+  "issue_title": "[FRONTEND] [STORY] Pricing: Define Base Company Price Book Rules",
+  "domain": "pricing",
+  "shortname": "frontend-story-pricing-define-base-company-price-b",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:21:28.584738Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/118",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

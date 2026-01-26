@@ -1,0 +1,20 @@
+{
+  "issue_number": 131,
+  "issue_title": "[FRONTEND] [STORY] Timekeeping: Capture Mobile Travel Time Separately",
+  "domain": "people",
+  "shortname": "frontend-story-timekeeping-capture-mobile-travel-t",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:16:30.130223Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/131",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

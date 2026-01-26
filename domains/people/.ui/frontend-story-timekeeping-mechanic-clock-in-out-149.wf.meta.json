@@ -1,0 +1,20 @@
+{
+  "issue_number": 149,
+  "issue_title": "[FRONTEND] [STORY] Timekeeping: Mechanic Clock In/Out",
+  "domain": "people",
+  "shortname": "frontend-story-timekeeping-mechanic-clock-in-out",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:10:30.763771Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/149",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

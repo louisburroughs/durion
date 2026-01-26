@@ -1,0 +1,20 @@
+{
+  "issue_number": 158,
+  "issue_title": "[FRONTEND] [STORY] Promotions: Record Promotion Redemption from Invoicing",
+  "domain": "crm",
+  "shortname": "frontend-story-promotions-record-promotion-redempt",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:07:28.900151Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/158",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

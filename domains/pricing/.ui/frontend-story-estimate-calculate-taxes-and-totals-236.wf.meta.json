@@ -1,0 +1,22 @@
+{
+  "issue_number": 236,
+  "issue_title": "[FRONTEND] [STORY] Estimate: Calculate Taxes and Totals on Estimate",
+  "domain": "pricing",
+  "shortname": "frontend-story-estimate-calculate-taxes-and-totals",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:18:07.338637Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/236",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing",
+    "status:needs-review",
+    "analysis:in-progress",
+    "phase:data-contracts"
+  ],
+  "summarized": false
+}

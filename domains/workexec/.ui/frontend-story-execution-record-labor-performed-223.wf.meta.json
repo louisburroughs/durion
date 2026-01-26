@@ -1,0 +1,19 @@
+{
+  "issue_number": 223,
+  "issue_title": "[FRONTEND] [STORY] Execution: Record Labor Performed",
+  "domain": "workexec",
+  "shortname": "frontend-story-execution-record-labor-performed",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:22:21.357670Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/223",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

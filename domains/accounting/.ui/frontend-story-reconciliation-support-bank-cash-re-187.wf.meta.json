@@ -1,0 +1,20 @@
+{
+  "issue_number": 187,
+  "issue_title": "[FRONTEND] [STORY] Reconciliation: Support Bank/Cash Reconciliation Matching",
+  "domain": "accounting",
+  "shortname": "frontend-story-reconciliation-support-bank-cash-re",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:39:24.778630Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/187",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

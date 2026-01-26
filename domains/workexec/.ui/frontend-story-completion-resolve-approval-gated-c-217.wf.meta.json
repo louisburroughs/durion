@@ -1,0 +1,20 @@
+{
+  "issue_number": 217,
+  "issue_title": "[FRONTEND] [STORY] Completion: Resolve Approval-Gated Change Requests",
+  "domain": "workexec",
+  "shortname": "frontend-story-completion-resolve-approval-gated-c",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:24:30.626371Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/217",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "risk:integration-contract",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

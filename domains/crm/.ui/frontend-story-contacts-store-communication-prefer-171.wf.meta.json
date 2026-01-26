@@ -1,0 +1,20 @@
+{
+  "issue_number": 171,
+  "issue_title": "[FRONTEND] [STORY] Contacts: Store Communication Preferences and Consent Flags",
+  "domain": "crm",
+  "shortname": "frontend-story-contacts-store-communication-prefer",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:03:22.257750Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/171",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

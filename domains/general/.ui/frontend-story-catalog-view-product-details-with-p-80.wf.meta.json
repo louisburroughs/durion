@@ -1,0 +1,19 @@
+{
+  "issue_number": 80,
+  "issue_title": "[FRONTEND] [STORY] Catalog: View Product Details with Price and Availability Signals",
+  "domain": "general",
+  "shortname": "frontend-story-catalog-view-product-details-with-p",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:35:38.366554Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/80",
+  "labels": [
+    "domain:positivity",
+    "type:story",
+    "agent:story-authoring",
+    "agent:positivity-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

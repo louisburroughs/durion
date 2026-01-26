@@ -1,0 +1,19 @@
+{
+  "issue_number": 179,
+  "issue_title": "[FRONTEND] [STORY] Accounting: Ingest PaymentReceived Event",
+  "domain": "accounting",
+  "shortname": "frontend-story-accounting-ingest-paymentreceived-e",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:00:08.744397Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/179",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

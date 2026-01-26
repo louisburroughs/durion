@@ -1,0 +1,20 @@
+{
+  "issue_number": 124,
+  "issue_title": "[FRONTEND] [STORY] Reporting: Daily Dispatch Board Dashboard",
+  "domain": "workexec",
+  "shortname": "frontend-story-reporting-daily-dispatch-board-dash",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:19:09.016610Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/124",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

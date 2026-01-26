@@ -1,0 +1,19 @@
+{
+  "issue_number": 100,
+  "issue_title": "[FRONTEND] [STORY] Ledger: Compute On-hand and Available-to-Promise by Location/Storage",
+  "domain": "inventory",
+  "shortname": "frontend-story-ledger-compute-on-hand-and-availabl",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:27:56.958880Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/100",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

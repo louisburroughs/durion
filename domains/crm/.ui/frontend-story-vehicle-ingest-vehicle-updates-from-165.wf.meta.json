@@ -1,0 +1,20 @@
+{
+  "issue_number": 165,
+  "issue_title": "[FRONTEND] [STORY] Vehicle: Ingest Vehicle Updates from Workorder Execution",
+  "domain": "crm",
+  "shortname": "frontend-story-vehicle-ingest-vehicle-updates-from",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:05:20.922774Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/165",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

@@ -1,0 +1,19 @@
+{
+  "issue_number": 106,
+  "issue_title": "[FRONTEND] [STORY] Security: Define Roles and Permission Matrix for Product/Pricing",
+  "domain": "security",
+  "shortname": "frontend-story-security-define-roles-and-permissio",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:25:47.690517Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/106",
+  "labels": [
+    "type:story",
+    "domain:security",
+    "agent:story-authoring",
+    "agent:security-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

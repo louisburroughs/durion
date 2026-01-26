@@ -1,0 +1,20 @@
+{
+  "issue_number": 259,
+  "issue_title": "[FRONTEND] [STORY] Pricing: Maintain MSRP per Product with Effective Dates",
+  "domain": "pricing",
+  "shortname": "frontend-story-pricing-maintain-msrp-per-product-w",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:15:08.931993Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/259",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

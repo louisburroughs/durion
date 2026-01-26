@@ -1,0 +1,19 @@
+{
+  "issue_number": 122,
+  "issue_title": "[FRONTEND] [STORY] CrossDomain: HR Ingests Work Sessions from Shopmgr",
+  "domain": "people",
+  "shortname": "frontend-story-crossdomain-hr-ingests-work-session",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:19:54.370186Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/122",
+  "labels": [
+    "type:story",
+    "domain:people",
+    "agent:story-authoring",
+    "agent:people-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

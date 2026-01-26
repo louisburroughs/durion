@@ -1,0 +1,20 @@
+{
+  "issue_number": 203,
+  "issue_title": "[FRONTEND] [STORY] Categories: Define Posting Categories and Mapping Keys",
+  "domain": "accounting",
+  "shortname": "frontend-story-categories-define-posting-categorie",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:30:34.743656Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/203",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

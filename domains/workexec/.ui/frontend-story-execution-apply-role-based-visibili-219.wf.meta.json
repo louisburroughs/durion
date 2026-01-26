@@ -1,0 +1,19 @@
+{
+  "issue_number": 219,
+  "issue_title": "[FRONTEND] [STORY] Execution: Apply Role-Based Visibility in Execution UI",
+  "domain": "workexec",
+  "shortname": "frontend-story-execution-apply-role-based-visibili",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:23:52.366334Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/219",
+  "labels": [
+    "domain:workexec",
+    "type:story",
+    "agent:story-authoring",
+    "agent:workexec-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

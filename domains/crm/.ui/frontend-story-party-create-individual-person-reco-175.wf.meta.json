@@ -1,0 +1,19 @@
+{
+  "issue_number": 175,
+  "issue_title": "[FRONTEND] [STORY] Party: Create Individual Person Record",
+  "domain": "crm",
+  "shortname": "frontend-story-party-create-individual-person-reco",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:01:44.385576Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/175",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

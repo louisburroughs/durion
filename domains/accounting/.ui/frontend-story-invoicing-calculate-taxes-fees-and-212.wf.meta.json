@@ -1,0 +1,19 @@
+{
+  "issue_number": 212,
+  "issue_title": "[FRONTEND] [STORY] Invoicing: Calculate Taxes, Fees, and Totals on Invoice",
+  "domain": "accounting",
+  "shortname": "frontend-story-invoicing-calculate-taxes-fees-and",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:26:49.805579Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/212",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

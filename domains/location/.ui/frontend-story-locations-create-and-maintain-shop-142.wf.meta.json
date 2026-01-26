@@ -1,0 +1,20 @@
+{
+  "issue_number": 142,
+  "issue_title": "[FRONTEND] [STORY] Locations: Create and Maintain Shop Locations",
+  "domain": "location",
+  "shortname": "frontend-story-locations-create-and-maintain-shop",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:12:47.516747Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/142",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:location",
+    "agent:story-authoring",
+    "agent:location-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

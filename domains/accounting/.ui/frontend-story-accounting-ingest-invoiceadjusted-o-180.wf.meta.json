@@ -1,0 +1,19 @@
+{
+  "issue_number": 180,
+  "issue_title": "[FRONTEND] [STORY] Accounting: Ingest InvoiceAdjusted or CreditMemo Event",
+  "domain": "accounting",
+  "shortname": "frontend-story-accounting-ingest-invoiceadjusted-o",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:59:46.205955Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/180",
+  "labels": [
+    "domain:accounting",
+    "type:story",
+    "agent:story-authoring",
+    "agent:accounting-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

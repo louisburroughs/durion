@@ -1,0 +1,20 @@
+{
+  "issue_number": 242,
+  "issue_title": "[FRONTEND] [STORY] Fulfillment: Return Unused Items to Stock with Reason",
+  "domain": "inventory",
+  "shortname": "frontend-story-fulfillment-return-unused-items-to",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T03:16:23.032645Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/242",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "risk:incomplete-requirements",
+    "agent:story-authoring",
+    "agent:inventory-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

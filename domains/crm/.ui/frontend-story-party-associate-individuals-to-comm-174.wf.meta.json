@@ -1,0 +1,19 @@
+{
+  "issue_number": 174,
+  "issue_title": "[FRONTEND] [STORY] Party: Associate Individuals to Commercial Account",
+  "domain": "crm",
+  "shortname": "frontend-story-party-associate-individuals-to-comm",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:02:09.570291Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/174",
+  "labels": [
+    "domain:crm",
+    "type:story",
+    "agent:story-authoring",
+    "agent:crm-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}

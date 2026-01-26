@@ -1,0 +1,20 @@
+{
+  "issue_number": 116,
+  "issue_title": "[FRONTEND] [STORY] StorePrice: Set Location Store Price Override within Guardrails",
+  "domain": "pricing",
+  "shortname": "frontend-story-storeprice-set-location-store-price",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-01-26T04:22:08.160079Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/116",
+  "labels": [
+    "type:story",
+    "risk:incomplete-requirements",
+    "domain:pricing",
+    "agent:story-authoring",
+    "agent:pricing-domain-agent",
+    "status:needs-review"
+  ],
+  "summarized": false
+}
