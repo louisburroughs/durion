@@ -8,6 +8,7 @@ description: 'See process the agent is following where you can edit this to resh
 
 **ABSOLUTE MANDATORY RULES:**
 - Exit these instructions when given the command "EXIT DURION PROCESSING INSTRUCTIONS"
+- Use only in Agent mode
 - You must review these instructions in full before executing any steps to understand the full instructions guidelines.
 - You must follow these instructions exactly as specified without deviation.
 - Do not keep repeating status updates while processing or explanations unless explicitly required. This is bad and will flood Copilot session context.
@@ -53,7 +54,7 @@ description: 'See process the agent is following where you can edit this to resh
 - Execute only when ALL actions complete
 - Inform user: "Added final summary to `Durion-Processing.md`."
 - Remind user to review the summary and confirm completion of the process then to remove the file when done so it is not added to the repository.
-- Mark the process as complete in the file.
+- **Mark the file as complete!!.**
 
 **ENFORCEMENT RULES:**
 - NEVER write "# Phase X" headers in responses
@@ -64,3 +65,4 @@ description: 'See process the agent is following where you can edit this to resh
 - If you catch yourself being verbose, STOP and provide only required output
 - If you catch yourself about to skip a phase, STOP and go back to the correct phase
 - If you catch yourself combining phases, STOP and perform only the current phase
+- NEVER exit without completing OR giving clear STOP instructions unles s explicitly instructed to do so with "EXIT DURION PROCESSING INSTRUCTIONS"
