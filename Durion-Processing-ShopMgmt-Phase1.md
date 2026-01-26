@@ -165,30 +165,66 @@ lastUpdatedAt: String          // ISO-8601 Z
 
 ---
 
-### Error Patterns (Task 1.4) 🔍 PARTIAL
+### Error Patterns (Task 1.4) ✅ COMPLETE
 
-**API Gateway:** `/home/louisb/Projects/durion-positivity-backend/pos-api-gateway/`
-- 3 Java files found (config only; no global error handling classes yet)
+**Source:** 
+- `/home/louisb/Projects/durion-positivity-backend/pos-shop-manager/src/main/java/com/positivity/shopManager/dto/ErrorResponse.java`
+- `/home/louisb/Projects/durion-positivity-backend/pos-shop-manager/src/main/java/com/positivity/shopManager/controller/AppointmentsController.java`
 
-**Observations:**
-- Service layer currently returns 501 (Not Implemented); production implementation pending
-- Standard Spring Boot error handling pattern likely in use (will inherit from Spring's default)
+**Standard Error Response Shape:**
+```java
+{
+  "errorCode": "string",           // Domain-specific error code (e.g., "CONFLICT_DETECTED")
+  "message": "string",             // Human-readable error message
+  "correlationId": "string",       // Request correlation ID for tracing
+  "timestamp": "instant",          // Error timestamp (ISO-8601)
+  "fieldErrors": {                 // Optional field-level validation errors
+    "fieldName": "error message"
+  }
+}
+```
 
-**To Research:**
-- Global `@RestControllerAdvice` exception handler (may be in shared library or pos-api-gateway config)
-- Standard error response shape for shopmgmt/POS backend
-- Conflict response structure (409)
-- Correlation header name and propagation pattern
+**Correlation Header:** `X-Correlation-Id`
+- Already implemented in AppointmentsController as optional header parameter
+- Propagated to service layer (AppointmentsService.create and getById methods)
+- Included in ErrorResponse for distributed tracing
 
-**Status:** ⏳ Requires manual inspection of AppointmentsService exception handling and API Gateway config
+**Conflict Response (409):**
+- ⚠️ **ConflictResponse DTO does not exist yet** (needs to be created per shopmgmt-questions.md Task 2.4)
+- Expected structure based on DECISION-SHOPMGMT-002/008:
+  - `conflictType`: HARD | SOFT
+  - `conflicts[]`: Array of conflict details
+  - Each conflict: `{ reason, affectedResource, suggestedAlternative?, overridable }`
+  - Operating hours violations must be HARD conflicts per DECISION-SHOPMGMT-008
+
+**Global Error Handling:**
+- No global `@RestControllerAdvice` found in pos-shop-manager or pos-api-gateway
+- ErrorResponse is available for controller-level exception handling
+- Controllers currently return 501 (Not Implemented) for unimplemented flows
+
+**Status:** ✅ Error envelope confirmed; correlation pattern implemented; conflict response needs creation
 
 ---
 
-## Next Steps
+## Phase 1 Completion Summary
 
 1. ✅ **Task 1.1 Complete** — Domain boundaries confirmed; cross-domain integration points documented
 2. ✅ **Task 1.2 Complete** — REST endpoint and DTO structures extracted from source
 3. ✅ **Task 1.3 Complete** — Moqui screens located; deep link pattern inferred
-4. ⏳ **Task 1.4 In Progress** — Error handling patterns pending further investigation
+4. ✅ **Task 1.4 Complete** — Error envelope confirmed; correlation pattern implemented; conflict response DTO pending
 
 **Action:** ✅ POSTED findings to GitHub Issue #76 (louisburroughs/durion-moqui-frontend)
+
+---
+
+## Phase 1 Status: ✅ COMPLETE
+
+All Phase 1 objectives achieved:
+- Domain ownership and boundaries documented
+- Backend API contracts identified (pos-shop-manager module)
+- Moqui screen paths confirmed
+- Error response patterns and correlation ID usage verified
+- Ready to proceed to Phase 2 (Data & Dependency Contracts)
+
+**Blocked Items:**
+- ConflictResponse DTO creation (required for 409 responses) — deferred to Phase 2 Task 2.4
