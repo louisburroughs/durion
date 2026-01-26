@@ -1,9 +1,3 @@
----
-name: 'Java Inner Class Use Rules'
-description: 'Guidelines for using inner classes in Java'
-applyTo: '**/*.java'
----
-
 # Inner Classes Usage Rule
 
 ## Rule: Avoid Inner Classes for Public APIs
