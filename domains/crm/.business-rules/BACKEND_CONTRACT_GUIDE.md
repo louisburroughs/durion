@@ -1,14 +1,17 @@
-# CRM Backend Contract Guide
+# Customer Relationship Management (CRM) Backend Contract Guide
 
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-23
+**Last Updated:** 2026-01-27  
+**OpenAPI Source:** `pos-customer/target/openapi.json`
 
 ---
 
 ## Overview
 
-This guide standardizes field naming conventions, data types, and payload structures for the CRM domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
+This guide standardizes field naming conventions, data types, payload structures, and error codes for the Customer Relationship Management (CRM) domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
+
+This guide is generated from the OpenAPI specification and follows the standards established across all Durion platform domains.
 
 ---
 
@@ -19,11 +22,12 @@ This guide standardizes field naming conventions, data types, and payload struct
 3. [Enum Value Conventions](#enum-value-conventions)
 4. [Identifier Naming](#identifier-naming)
 5. [Timestamp Conventions](#timestamp-conventions)
-6. [Boolean Field Naming](#boolean-field-naming)
-7. [Collection & Pagination](#collection--pagination)
-8. [Error Response Format](#error-response-format)
-9. [Nested DTO Structures](#nested-dto-structures)
-10. [Examples](#examples)
+6. [Collection & Pagination](#collection--pagination)
+7. [Error Response Format](#error-response-format)
+8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
+9. [API Endpoints](#api-endpoints)
+10. [Entity-Specific Contracts](#entity-specific-contracts)
+11. [Examples](#examples)
 
 ---
 
@@ -35,10 +39,10 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 
 ```json
 {
-  "partyId": "P-12345",
-  "legalName": "Acme Corporation",
-  "billingTermsId": "BT-30",
-  "createdAt": "2026-01-23T14:30:00Z"
+  "id": "abc-123",
+  "createdAt": "2026-01-27T14:30:00Z",
+  "updatedAt": "2026-01-27T15:45:30Z",
+  "status": "ACTIVE"
 }
 ```
 
@@ -47,6 +51,7 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 - Aligns with JSON/JavaScript convention
 - Matches Java property naming after Jackson deserialization
 - Consistent with REST API best practices (RFC 7231)
+- Consistent across all Durion platform domains
 
 ---
 
@@ -54,25 +59,27 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 
 ### String Fields
 
-Use `string` type for unstructured text:
+Use `string` type for:
 
-- Names (legal, display, contact)
-- Identifiers (partyId, vehicleId, etc.)
-- Codes (roleCode, statusCode, errorCode)
-- Free-form descriptions
+- Names and descriptions
+- Codes and identifiers
+- Free-form text
+- Enum values (serialized as strings)
 
 ```java
-private String legalName;
+private String id;
+private String name;
 private String description;
-private String errorCode;
+private String status;
 ```
 
 ### Numeric Fields
 
 Use `Integer` or `Long` for:
 
-- Counts, page numbers, total results
-- IDs that are numeric (if not using UUID strings)
+- Counts (page numbers, total results)
+- Version numbers
+- Sequence numbers
 
 ```java
 private Integer pageNumber;
@@ -80,72 +87,61 @@ private Integer pageSize;
 private Long totalCount;
 ```
 
+### Boolean Fields
+
+Use `boolean` for true/false flags:
+
+```java
+private boolean isActive;
+private boolean isPrimary;
+private boolean hasPermission;
+```
+
 ### UUID/ID Fields
 
 Use `String` for all primary and foreign key IDs:
 
 ```java
-private String partyId;        // UUID or encoded ID
-private String vehicleId;      // UUID or encoded ID
-private String contactId;      // UUID or encoded ID
-private String billingTermsId; // Foreign key to Billing domain
+private String id;
+private String parentId;
+private String referenceId;
 ```
 
 ### Instant/Timestamp Fields
 
-Use `Instant` in Java; serialize to ISO 8601 in JSON:
+Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
 
 ```java
 @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
 private Instant createdAt;
-
-private Instant modifiedAt;
+private Instant updatedAt;
 ```
 
 JSON representation:
 
 ```json
 {
-  "createdAt": "2026-01-23T14:30:00Z",
-  "modifiedAt": "2026-01-23T15:45:30Z"
+  "createdAt": "2026-01-27T14:30:00Z",
+  "updatedAt": "2026-01-27T15:45:30Z"
 }
 ```
 
-### Boolean Fields
+### LocalDate Fields
 
-Use `Boolean` (object, nullable) or `boolean` (primitive, non-null):
+Use `LocalDate` for date-only fields (no time component):
 
 ```java
-private Boolean isPrimary;           // nullable: true, false, null
-private Boolean hasPrimaryEmail;    // nullable: indicates unknown state
-private boolean isActive = true;    // default true, never null
+@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+private LocalDate effectiveFrom;
+private LocalDate effectiveTo;
 ```
 
 JSON representation:
 
 ```json
 {
-  "isPrimary": true,
-  "hasPrimaryEmail": false,
-  "isActive": true
-}
-```
-
-### Map/Dictionary Fields
-
-Use `Map<String, Object>` or typed maps for flexible data:
-
-```java
-private Map<String, String> externalIdentifiers;  // system-specific IDs
-private Map<String, Boolean> consentFlags;        // consent tracking
-private Map<String, String> fieldErrors;          // validation errors
-
-// Usage in JSON
-{
-  "externalIdentifiers": {
-    "erp_customer_id": "CUST-001",
-    "crm_legacy_id": "OLD-456"
-  }
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": "2026-12-31"
 }
 ```
 
@@ -153,506 +149,973 @@ private Map<String, String> fieldErrors;          // validation errors
 
 ## Enum Value Conventions
 
-### Standard Pattern: UPPER_CASE_WITH_UNDERSCORES
+### Standard Pattern: UPPER_SNAKE_CASE
 
-All enum values **MUST** use `UPPER_CASE_WITH_UNDERSCORES`:
+All enum values **MUST** use `UPPER_SNAKE_CASE`:
 
 ```java
-public enum PartyStatus {
+public enum Status {
     ACTIVE,
-    PENDING,
-    SUSPENDED,
-    INACTIVE
-}
-
-public enum PreferenceType {
-    OPT_IN,
-    OPT_OUT,
-    NOT_APPLICABLE
-}
-
-public enum RoleCode {
-    BILLING,
-    APPROVER,
-    DRIVER
+    INACTIVE,
+    PENDING_APPROVAL,
+    ARCHIVED
 }
 ```
 
-JSON representation:
+### Enums in this Domain
 
-```json
-{
-  "status": "ACTIVE",
-  "emailPreference": "OPT_IN",
-  "roleCode": "BILLING"
-}
-```
+No enums defined in OpenAPI spec. Standard enum conventions apply:
 
-### Multi-word Enum Values
-
-Separate words with underscores, no spaces:
-
-```
-✅ CORRECT:   WORK_IN_PROGRESS
-❌ WRONG:     WORK IN PROGRESS
-❌ WRONG:     WorkInProgress
-```
+- Use UPPER_SNAKE_CASE
+- Document all possible values
+- Avoid numeric codes
 
 ---
 
 ## Identifier Naming
 
-### Pattern: `{ResourceName}Id`
+### Standard Pattern
 
-All identifier fields **MUST** follow the pattern `{resourceName}Id`:
+- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `orderId`)
+- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`)
+- Composite identifiers: use structured object, not concatenated string
 
-| Resource | ID Field | Example |
-|----------|----------|---------|
-| Party | `partyId` | "P-uuid-12345" |
-| Vehicle | `vehicleId` | "V-uuid-67890" |
-| Contact | `contactId` | "C-uuid-11111" |
-| Role Assignment | `roleAssignmentId` | "RA-uuid-22222" |
-| Merge Audit | `mergeAuditId` | "MA-uuid-33333" |
+### Examples
 
-### Foreign Key Identifiers
-
-Foreign keys **MUST** use the full resource name:
-
-```java
-// ✅ CORRECT
-private String billingTermsId;      // Foreign key to Billing domain
-private String partyId;             // Parent party reference
-private String contactId;           // Contact reference
-
-// ❌ WRONG
-private String billingTerms;        // Missing "Id" suffix
-private String party;               // Ambiguous
-private String contact;             // Ambiguous
+```json
+{
+  "id": "abc-123",
+  "customerId": "cust-456",
+  "orderId": "ord-789"
+}
 ```
 
 ---
 
 ## Timestamp Conventions
 
-### Field Naming
+### Standard Pattern: ISO 8601 UTC
 
-Use descriptive past-tense names:
+All timestamps **MUST** be:
 
-| Field | Meaning | Required |
-|-------|---------|----------|
-| `createdAt` | When record was created | Always |
-| `modifiedAt` | When record was last modified | Always |
-| `updatedAt` | Last update timestamp (alias for modifiedAt) | Optional |
-| `mergedAt` | When merge was completed | If merged |
-| `completedAt` | When operation completed | If applicable |
-
-### Format: ISO 8601 (RFC 3339)
-
-Always use UTC timezone (`Z` suffix):
+- Serialized in ISO 8601 format with UTC timezone (`Z` suffix)
+- Stored as `Instant` in Java
+- Include millisecond precision when available
 
 ```json
 {
-  "createdAt": "2026-01-23T14:30:00Z",
-  "modifiedAt": "2026-01-23T15:45:30.123Z",
-  "completedAt": "2026-01-23T16:00:00Z"
+  "createdAt": "2026-01-27T14:30:00.123Z",
+  "updatedAt": "2026-01-27T15:45:30.456Z"
 }
 ```
 
-### Java Serialization
+### Common Timestamp Fields
 
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, 
-            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", 
-            timezone = "UTC")
-private Instant createdAt;
-```
-
-### Precision
-
-Include milliseconds when tracking high-precision timestamps (e.g., optimistic locking, audit trails):
-
-```json
-{
-  "createdAt": "2026-01-23T14:30:00.000Z",
-  "updatedAt": "2026-01-23T14:30:01.234Z"
-}
-```
-
----
-
-## Boolean Field Naming
-
-### Standard Prefixes
-
-| Prefix | Meaning | Example | Nullable |
-|--------|---------|---------|----------|
-| `is*` | State check | `isActive`, `isPrimary`, `isApproved` | Boolean (nullable) |
-| `has*` | Possession check | `hasPrimaryEmail`, `hasConsentRecord` | Boolean (nullable) |
-| `can*` | Capability check | `canMerge`, `canDelete` | Boolean (nullable) |
-
-### Examples
-
-```json
-{
-  "isPrimary": true,
-  "isActive": true,
-  "hasPrimaryEmail": false,
-  "hasConsentRecord": null,
-  "canMerge": true,
-  "canDelete": false
-}
-```
-
-### Java Representation
-
-```java
-private Boolean isPrimary;              // nullable: true/false/null
-private Boolean hasPrimaryEmail;       // nullable: indicates if checked
-private Boolean isActive = true;       // default true
-private boolean canMerge;              // primitive: never null, default false
-```
-
-### Avoid Negation
-
-Never use negative boolean names:
-
-```
-✅ CORRECT:  isActive          (true = active)
-❌ WRONG:    isInactive        (confusing double-negative)
-```
+- `createdAt`: When the entity was created
+- `updatedAt`: When the entity was last updated
+- `deletedAt`: When the entity was soft-deleted (if applicable)
+- `effectiveFrom`: Start date for effective dating
+- `effectiveTo`: End date for effective dating
 
 ---
 
 ## Collection & Pagination
 
-### List/Array Fields
-
-Use plural names for collections:
+### Standard Pagination Request
 
 ```json
 {
-  "results": [
-    { "partyId": "P-1", "legalName": "Acme" },
-    { "partyId": "P-2", "legalName": "Beta Corp" }
-  ],
-  "contacts": [
-    { "contactId": "C-1", "name": "John" }
-  ],
-  "roles": [
-    { "roleCode": "BILLING", "isPrimary": true }
-  ]
+  "pageNumber": 0,
+  "pageSize": 20,
+  "sortField": "createdAt",
+  "sortOrder": "DESC"
 }
 ```
 
-### Pagination Fields
-
-Standard pagination structure:
-
-```java
-private List<PartySummary> results;     // Result items
-private Integer pageNumber;             // 1-indexed (default 1)
-private Integer pageSize;               // Items per page (default 20)
-private Integer totalCount;             // Total matching records
-private Boolean hasMore;                // true if more pages available
-```
-
-JSON:
+### Standard Pagination Response
 
 ```json
 {
   "results": [...],
-  "pageNumber": 1,
-  "pageSize": 20,
   "totalCount": 150,
-  "hasMore": true
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalPages": 8
 }
 ```
 
-### Sorting Fields
+### Guidelines
 
-```java
-private String sortField;    // Field name (e.g., "legalName", "createdAt")
-private String sortOrder;    // "ASC" or "DESC"
-```
+- Use zero-based page numbering
+- Default page size: 20 items
+- Maximum page size: 100 items
+- Include total count for client-side pagination controls
 
 ---
 
 ## Error Response Format
 
-### Standard Error DTO
+### Standard Error Response
 
-```java
-@Data
-@Builder
-public class ErrorResponse {
-    private String errorCode;              // Stable error code
-    private String message;                // Human-readable message
-    private Long timestamp;                // Unix timestamp
-    private Map<String, String> fieldErrors; // Field-level errors
-    private Map<String, Object> context;   // Additional context
-}
-```
-
-### Error Code Naming Convention
-
-Use `UPPER_CASE_WITH_UNDERSCORES`:
-
-| Error Code | Meaning | HTTP Status |
-| ------------ | --------- | ------------ |
-| `DUPLICATE_PARTY` | Party with same attributes already exists | 409 Conflict |
-| `INVALID_BILLING_TERMS` | Billing terms ID not found | 400 Bad Request |
-| `MISSING_REQUIRED_FIELD` | Required field is null/empty | 400 Bad Request |
-| `PERMISSION_DENIED` | User lacks required permission | 403 Forbidden |
-| `OPTIMISTIC_LOCK_CONFLICT` | Version mismatch (concurrent update) | 409 Conflict |
-| `DUPLICATE_VIN` | Vehicle with same VIN exists | 409 Conflict |
-| `INVALID_ROLE_CODE` | Role code not recognized | 400 Bad Request |
-
-### Example Error Response
+All error responses **MUST** follow this format:
 
 ```json
 {
-  "errorCode": "DUPLICATE_PARTY",
-  "message": "A party with legal name 'Acme Corp' already exists",
-  "timestamp": 1706020200000,
-  "fieldErrors": {
-    "legalName": "Duplicate legal name",
-    "taxId": "Duplicate tax ID"
-  },
-  "context": {
-    "duplicateCandidates": [
-      {
-        "partyId": "P-existing-123",
-        "legalName": "Acme Corp",
-        "matchReason": "Exact legal name match"
-      }
-    ]
-  }
-}
-```
-
----
-
-## Nested DTO Structures
-
-### Organization
-
-Nested DTOs should be defined as:
-
-1. **Inner classes** if tightly coupled (used only by parent DTO)
-2. **Separate files** if reusable across multiple endpoints
-
-### Naming Pattern
-
-Nested classes should describe their relationship or role:
-
-```java
-// ✅ CORRECT: Inner class (tightly coupled)
-public class SearchPartiesResponse {
-    @Data
-    public static class PartySummary {
-        private String partyId;
-        private String legalName;
-    }
-    
-    private List<PartySummary> results;
-}
-
-// ✅ CORRECT: Separate reusable class
-public class ContactWithRoles {
-    private String contactId;
-    private String contactName;
-    private List<AssignedRole> roles;
-}
-
-public class AssignedRole {
-    private String roleCode;
-    private String roleLabel;
-    private Boolean isPrimary;
-}
-```
-
-### Avoid Generic Wrapper Names
-
-```
-✅ CORRECT:   PartySummary, ContactWithRoles, DuplicateCandidate
-❌ WRONG:     PartyDto, ContactDto, Result, Item
-```
-
----
-
-## Examples
-
-### Complete Party Create Request
-
-```json
-{
-  "legalName": "Acme Corporation",
-  "displayName": "Acme",
-  "taxId": "12-3456789",
-  "partyType": "ORGANIZATION",
-  "billingTermsId": "BT-NET30",
-  "externalIdentifiers": {
-    "erp_customer_id": "CUST-001",
-    "crm_legacy_id": "OLD-12345"
-  },
-  "email": "contact@acme.com",
-  "phone": "+1-555-0123"
-}
-```
-
-### Complete Search Response
-
-```json
-{
-  "results": [
+  "code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "correlationId": "abc-123-def-456",
+  "timestamp": "2026-01-27T14:30:00Z",
+  "fieldErrors": [
     {
-      "partyId": "P-uuid-001",
-      "legalName": "Acme Corporation",
-      "displayName": "Acme",
-      "partyType": "ORGANIZATION",
-      "status": "ACTIVE",
-      "createdAt": "2026-01-15T10:00:00Z"
-    },
-    {
-      "partyId": "P-uuid-002",
-      "legalName": "Beta Inc.",
-      "displayName": "Beta",
-      "partyType": "ORGANIZATION",
-      "status": "PENDING",
-      "createdAt": "2026-01-20T14:30:00Z"
-    }
-  ],
-  "pageNumber": 1,
-  "pageSize": 20,
-  "totalCount": 2,
-  "hasMore": false
-}
-```
-
-### Contact with Roles Response
-
-```json
-{
-  "partyId": "P-uuid-001",
-  "contacts": [
-    {
-      "contactId": "C-uuid-101",
-      "contactName": "John Doe",
-      "email": "john@acme.com",
-      "phone": "+1-555-0100",
-      "hasPrimaryEmail": true,
-      "invoiceDeliveryMethod": "EMAIL",
-      "roles": [
-        {
-          "roleCode": "BILLING",
-          "roleLabel": "Billing Contact",
-          "isPrimary": true
-        },
-        {
-          "roleCode": "APPROVER",
-          "roleLabel": "Approver",
-          "isPrimary": false
-        }
-      ]
+      "field": "email",
+      "message": "Invalid email format",
+      "rejectedValue": "invalid-email"
     }
   ]
 }
 ```
 
-### Error Response Example
+### Standard HTTP Status Codes
+
+- `200 OK`: Successful GET, PUT, PATCH
+- `201 Created`: Successful POST
+- `204 No Content`: Successful DELETE
+- `400 Bad Request`: Validation error
+- `401 Unauthorized`: Authentication required
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Resource not found
+- `409 Conflict`: Business rule violation
+- `422 Unprocessable Entity`: Semantic validation error
+- `500 Internal Server Error`: Unexpected server error
+- `501 Not Implemented`: Endpoint not yet implemented
+
+---
+
+## Correlation ID & Request Tracking
+
+### X-Correlation-Id Header
+
+All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
+
+```http
+GET /v1/crm/entities/123
+X-Correlation-Id: abc-123-def-456
+```
+
+### Response Headers
+
+All API responses **MUST** echo the correlation ID:
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: abc-123-def-456
+```
+
+### Error Responses
+
+All error responses **MUST** include the correlation ID in the body:
 
 ```json
 {
-  "errorCode": "OPTIMISTIC_LOCK_CONFLICT",
-  "message": "Concurrent update detected. Please reload and try again.",
-  "timestamp": 1706020200000,
-  "context": {
-    "currentVersion": "v3",
-    "submittedVersion": "v2"
-  }
+  "code": "NOT_FOUND",
+  "message": "Entity not found",
+  "correlationId": "abc-123-def-456"
+}
+```
+
+**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
+
+---
+
+## API Endpoints
+
+### Endpoint Summary
+
+This domain exposes **27** REST API endpoints:
+
+| Method | Path | Summary |
+|--------|------|---------|
+| GET | `/v1/crm` | Get all customers |
+| POST | `/v1/crm` | Create a new customer |
+| POST | `/v1/crm/accounts/parties` | Create commercial account |
+| POST | `/v1/crm/accounts/parties/search` | Search parties |
+| GET | `/v1/crm/accounts/parties/{partyId}` | Get party details |
+| GET | `/v1/crm/accounts/parties/{partyId}/communicationPreferences` | Get communication preferences |
+| POST | `/v1/crm/accounts/parties/{partyId}/communicationPreferences` | Create or update communication preferences |
+| GET | `/v1/crm/accounts/parties/{partyId}/contacts` | Get contacts with roles |
+| PUT | `/v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles` | Update contact roles |
+| POST | `/v1/crm/accounts/parties/{partyId}/merge` | Merge parties |
+| POST | `/v1/crm/accounts/parties/{partyId}/vehicles` | Create vehicle for party |
+| POST | `/v1/crm/accounts/tierResolve` | Resolve account tier |
+| GET | `/v1/crm/accounts/{accountId}/tier` | Get account tier |
+| GET | `/v1/crm/parties/{partyId}/communicationPreferences` | Get communication preferences |
+| POST | `/v1/crm/parties/{partyId}/communicationPreferences` | Create or update communication preferences |
+| GET | `/v1/crm/parties/{partyId}/contacts` | Get contacts with roles |
+| PUT | `/v1/crm/parties/{partyId}/contacts/{contactId}/roles` | Update contact roles |
+| GET | `/v1/crm/vehicles` | Search vehicles |
+| GET | `/v1/crm/vehicles/{vehicleId}` | Get vehicle by ID |
+| POST | `/v1/crm/{customerId}/vehicles` | Create vehicle |
+| PUT | `/v1/crm/{customerId}/vehicles` | Update vehicle |
+| DELETE | `/v1/crm/{customerId}/vehicles/{vehicleId}` | Delete vehicle |
+| GET | `/v1/crm/{customerId}/vehicles/{vehicleId}` | Get vehicle for customer |
+| PUT | `/v1/crm/{customerId}/vehicles/{vehicleId}/transfer` | Transfer vehicle |
+| DELETE | `/v1/crm/{id}` | Delete a customer |
+| GET | `/v1/crm/{id}` | Get customer by ID |
+| PUT | `/v1/crm/{id}` | Update an existing customer |
+
+### Endpoint Details
+
+#### GET /v1/crm
+
+**Summary:** Get all customers
+
+**Description:** Retrieve a list of all customers.
+
+**Operation ID:** `getAllCustomers`
+
+**Responses:**
+
+- `200`: List of customers returned successfully.
+
+
+---
+
+#### POST /v1/crm
+
+**Summary:** Create a new customer
+
+**Description:** Add a new customer to the system.
+
+**Operation ID:** `createCustomer`
+
+**Responses:**
+
+- `200`: Customer created successfully.
+
+
+---
+
+#### POST /v1/crm/accounts/parties
+
+**Summary:** Create commercial account
+
+**Description:** Create a new commercial party/account in the CRM system
+
+**Operation ID:** `createCommercialAccount`
+
+**Responses:**
+
+- `201`: Account created successfully
+- `400`: Invalid request
+- `403`: Forbidden - insufficient permissions
+
+
+---
+
+#### POST /v1/crm/accounts/parties/search
+
+**Summary:** Search parties
+
+**Description:** Search for parties based on various criteria
+
+**Operation ID:** `searchParties`
+
+**Responses:**
+
+- `200`: Search results returned
+- `400`: Invalid search criteria
+- `403`: Forbidden - insufficient permissions
+
+
+---
+
+#### GET /v1/crm/accounts/parties/{partyId}
+
+**Summary:** Get party details
+
+**Description:** Retrieve details for a specific party by ID
+
+**Operation ID:** `getParty`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `200`: Party details retrieved successfully
+- `403`: Forbidden - insufficient permissions
+- `404`: Party not found
+
+
+---
+
+#### GET /v1/crm/accounts/parties/{partyId}/communicationPreferences
+
+**Summary:** Get communication preferences
+
+**Description:** Retrieve communication preferences and consent flags for a party
+
+**Operation ID:** `getCommunicationPreferences_1`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `200`: Preferences retrieved successfully
+- `403`: Forbidden - insufficient permissions
+- `404`: Party not found
+
+
+---
+
+#### POST /v1/crm/accounts/parties/{partyId}/communicationPreferences
+
+**Summary:** Create or update communication preferences
+
+**Description:** Set or update communication preferences and consent flags for a party
+
+**Operation ID:** `upsertCommunicationPreferences_1`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `200`: Preferences updated successfully
+- `400`: Invalid preference data
+- `403`: Forbidden - insufficient permissions
+- `404`: Party not found
+
+
+---
+
+#### GET /v1/crm/accounts/parties/{partyId}/contacts
+
+**Summary:** Get contacts with roles
+
+**Description:** Retrieve all contacts for a party including their role assignments
+
+**Operation ID:** `getContactsWithRoles_1`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `200`: Contacts retrieved successfully
+- `403`: Forbidden - insufficient permissions
+- `404`: Party not found
+
+
+---
+
+#### PUT /v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
+
+**Summary:** Update contact roles
+
+**Description:** Assign or update role assignments for a specific contact within a party
+
+**Operation ID:** `updateContactRoles_1`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+- `contactId` (path, Required, string): Contact ID
+
+**Responses:**
+
+- `200`: Roles updated successfully
+- `400`: Invalid role assignment
+- `403`: Forbidden - insufficient permissions
+- `404`: Party or contact not found
+
+
+---
+
+#### POST /v1/crm/accounts/parties/{partyId}/merge
+
+**Summary:** Merge parties
+
+**Description:** Merge multiple parties into a single party record
+
+**Operation ID:** `mergeParties`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Target party ID
+
+**Responses:**
+
+- `200`: Parties merged successfully
+- `400`: Invalid merge request
+- `403`: Forbidden - insufficient permissions
+- `404`: Party not found
+
+
+---
+
+#### POST /v1/crm/accounts/parties/{partyId}/vehicles
+
+**Summary:** Create vehicle for party
+
+**Description:** Associate a new vehicle with a party/customer
+
+**Operation ID:** `createVehicleForParty`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `201`: Vehicle created successfully
+- `400`: Invalid vehicle data
+- `403`: Forbidden - insufficient permissions
+- `404`: Party not found
+
+
+---
+
+#### POST /v1/crm/accounts/tierResolve
+
+**Summary:** Resolve account tier
+
+**Description:** Resolve or compute the account tier based on business rules (stub endpoint)
+
+**Operation ID:** `resolveAccountTier`
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### GET /v1/crm/accounts/{accountId}/tier
+
+**Summary:** Get account tier
+
+**Description:** Retrieve the tier level for a specific account (stub endpoint)
+
+**Operation ID:** `getAccountTier`
+
+**Parameters:**
+
+- `accountId` (path, Required, string): Account ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### GET /v1/crm/parties/{partyId}/communicationPreferences
+
+**Summary:** Get communication preferences
+
+**Description:** Retrieve communication preferences and consent flags for a party (stub endpoint)
+
+**Operation ID:** `getCommunicationPreferences`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### POST /v1/crm/parties/{partyId}/communicationPreferences
+
+**Summary:** Create or update communication preferences
+
+**Description:** Set or update communication preferences and consent flags for a party (stub endpoint)
+
+**Operation ID:** `upsertCommunicationPreferences`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### GET /v1/crm/parties/{partyId}/contacts
+
+**Summary:** Get contacts with roles
+
+**Description:** Retrieve all contact points for a party with their role assignments (stub endpoint)
+
+**Operation ID:** `getContactsWithRoles`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### PUT /v1/crm/parties/{partyId}/contacts/{contactId}/roles
+
+**Summary:** Update contact roles
+
+**Description:** Assign or update role assignments for a specific contact within a party (stub endpoint)
+
+**Operation ID:** `updateContactRoles`
+
+**Parameters:**
+
+- `partyId` (path, Required, string): Party ID
+- `contactId` (path, Required, string): Contact ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### GET /v1/crm/vehicles
+
+**Summary:** Search vehicles
+
+**Description:** Search and filter vehicles across all customers (stub endpoint)
+
+**Operation ID:** `getAllVehiclesFiltered`
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### GET /v1/crm/vehicles/{vehicleId}
+
+**Summary:** Get vehicle by ID
+
+**Description:** Retrieve vehicle details by vehicle ID (stub endpoint)
+
+**Operation ID:** `getVehicle`
+
+**Parameters:**
+
+- `vehicleId` (path, Required, string): Vehicle ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### POST /v1/crm/{customerId}/vehicles
+
+**Summary:** Create vehicle
+
+**Description:** Create a new vehicle for a customer (stub endpoint)
+
+**Operation ID:** `createVehicles`
+
+**Parameters:**
+
+- `customerId` (path, Required, string): Customer ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### PUT /v1/crm/{customerId}/vehicles
+
+**Summary:** Update vehicle
+
+**Description:** Update vehicle information for a customer (stub endpoint)
+
+**Operation ID:** `updateVehicles`
+
+**Parameters:**
+
+- `customerId` (path, Required, string): Customer ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### DELETE /v1/crm/{customerId}/vehicles/{vehicleId}
+
+**Summary:** Delete vehicle
+
+**Description:** Delete or deactivate a vehicle for a customer (stub endpoint)
+
+**Operation ID:** `deleteVehicle`
+
+**Parameters:**
+
+- `customerId` (path, Required, string): Customer ID
+- `vehicleId` (path, Required, string): Vehicle ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### GET /v1/crm/{customerId}/vehicles/{vehicleId}
+
+**Summary:** Get vehicle for customer
+
+**Description:** Retrieve a specific vehicle for a given customer (stub endpoint)
+
+**Operation ID:** `getVehiclesForCustomer`
+
+**Parameters:**
+
+- `customerId` (path, Required, string): Customer ID
+- `vehicleId` (path, Required, string): Vehicle ID
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### PUT /v1/crm/{customerId}/vehicles/{vehicleId}/transfer
+
+**Summary:** Transfer vehicle
+
+**Description:** Transfer vehicle ownership between customers (stub endpoint)
+
+**Operation ID:** `transferVehicles`
+
+**Parameters:**
+
+- `customerId` (path, Required, string): Source customer ID
+- `vehicleId` (path, Required, string): Vehicle ID to transfer
+
+**Responses:**
+
+- `403`: Forbidden - insufficient permissions
+- `501`: Not implemented
+
+
+---
+
+#### DELETE /v1/crm/{id}
+
+**Summary:** Delete a customer
+
+**Description:** Delete a customer by their unique ID.
+
+**Operation ID:** `deleteCustomer`
+
+**Parameters:**
+
+- `id` (path, Required, integer): ID of the customer to delete
+
+**Responses:**
+
+- `204`: Customer deleted successfully.
+- `404`: Customer not found.
+
+
+---
+
+#### GET /v1/crm/{id}
+
+**Summary:** Get customer by ID
+
+**Description:** Retrieve a customer by their unique ID.
+
+**Operation ID:** `getCustomerById`
+
+**Parameters:**
+
+- `id` (path, Required, integer): ID of the customer to retrieve
+
+**Responses:**
+
+- `200`: Customer found and returned.
+- `404`: Customer not found.
+
+
+---
+
+#### PUT /v1/crm/{id}
+
+**Summary:** Update an existing customer
+
+**Description:** Update the details of an existing customer.
+
+**Operation ID:** `updateCustomer`
+
+**Parameters:**
+
+- `id` (path, Required, integer): ID of the customer to update
+
+**Responses:**
+
+- `200`: Customer updated successfully.
+- `404`: Customer not found.
+
+
+
+---
+
+## Entity-Specific Contracts
+
+### AbstractCustomer
+
+Customer object to be created
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `customerNumber` | string | No | Unique customer number |
+| `email` | string | No | Email address of the customer |
+| `firstName` | string | Yes | First name of the customer |
+| `id` | integer (int64) | No | Unique identifier of the customer |
+| `lastName` | string | Yes | Last name of the customer |
+| `phoneNumber` | string | No | Phone number of the customer |
+| `primaryAddress` | string | No | Primary address label or identifier for the customer |
+| `vehicleVins` | array | No | List of vehicle VINs associated with the customer |
+
+
+### AssignedRole
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `isPrimary` | boolean | No |  |
+| `roleCode` | string | No |  |
+| `roleLabel` | string | No |  |
+
+
+### ContactWithRoles
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `contactId` | string | No |  |
+| `contactName` | string | No |  |
+| `email` | string | No |  |
+| `hasPrimaryEmail` | boolean | No |  |
+| `invoiceDeliveryMethod` | string | No |  |
+| `phone` | string | No |  |
+| `roles` | array | No |  |
+
+
+### CreateCommercialAccountRequest
+
+Commercial account creation request
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `billingTermsId` | string | No |  |
+| `displayName` | string | No |  |
+| `email` | string | No |  |
+| `externalIdentifiers` | object | No |  |
+| `legalName` | string | No |  |
+| `partyType` | string | No |  |
+| `phone` | string | No |  |
+| `taxId` | string | No |  |
+
+
+### CreateCommercialAccountResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `createdAt` | string (date-time) | No |  |
+| `duplicateCandidates` | array | No |  |
+| `legalName` | string | No |  |
+| `partyId` | string | No |  |
+| `status` | string | No |  |
+
+
+### CreateVehicleForPartyRequest
+
+Vehicle creation request
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `description` | string | No |  |
+| `licensePlate` | string | No |  |
+| `licensePlateRegion` | string | No |  |
+| `unitNumber` | string | No |  |
+| `vinNumber` | string | No |  |
+
+
+### CreateVehicleForPartyResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `createdAt` | string | No |  |
+| `description` | string | No |  |
+| `licensePlate` | string | No |  |
+| `partyId` | string | No |  |
+| `status` | string | No |  |
+| `unitNumber` | string | No |  |
+| `vehicleId` | string | No |  |
+| `vinNumber` | string | No |  |
+
+
+### DuplicateCandidate
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `legalName` | string | No |  |
+| `matchReason` | string | No |  |
+| `partyId` | string | No |  |
+
+
+### GetCommunicationPreferencesResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `consentFlags` | object | No |  |
+| `emailPreference` | string | No |  |
+| `marketingPreference` | string | No |  |
+| `partyId` | string | No |  |
+| `phonePreference` | string | No |  |
+| `preferencesNote` | string | No |  |
+| `smsPreference` | string | No |  |
+| `updateSource` | string | No |  |
+| `updatedAt` | string | No |  |
+| `version` | string | No |  |
+
+
+### GetContactsWithRolesResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `contacts` | array | No |  |
+| `partyId` | string | No |  |
+
+
+*Additional schemas omitted for brevity. See OpenAPI spec for complete list.*
+
+---
+
+## Examples
+
+### Example Request/Response Pairs
+
+#### Example: Create Request
+
+```http
+POST /v1/crm/{customerId}/vehicles
+Content-Type: application/json
+X-Correlation-Id: abc-123-def-456
+
+{
+  "name": "Example",
+  "description": "Example description",
+  "status": "ACTIVE"
+}
+```
+
+**Response:**
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: abc-123-def-456
+
+{
+  "id": "new-id-123",
+  "name": "Example",
+  "description": "Example description",
+  "status": "ACTIVE",
+  "createdAt": "2026-01-27T14:30:00Z"
+}
+```
+
+#### Example: Retrieve Request
+
+```http
+GET /v1/crm/{id}
+X-Correlation-Id: abc-123-def-456
+```
+
+**Response:**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: abc-123-def-456
+
+{
+  "id": "existing-id-456",
+  "name": "Example",
+  "status": "ACTIVE",
+  "createdAt": "2026-01-27T14:00:00Z",
+  "updatedAt": "2026-01-27T14:30:00Z"
 }
 ```
 
 ---
 
-## Cross-Cutting Standards
+## Summary
 
-### Null Handling
+This guide establishes standardized contracts for the Customer Relationship Management (CRM) domain:
 
-- **Nullable fields** (Optional in Java): Use `@JsonInclude(JsonInclude.Include.NON_NULL)` at DTO level to omit null values
-- **Required fields**: Never null, always present in response
-
-```java
-@Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class CreatePartyRequest {
-    private String legalName;              // Required, never null
-    private String displayName;            // Optional, omit if null
-    private Map<String, String> externalIdentifiers; // Optional
-}
-```
-
-### Version Field (Optimistic Locking)
-
-Field name is TBD per blocking questions; use consistently once decided:
-
-```
-Candidates: version, lastUpdatedStamp, eTag, or __v
-Decision needed from backend architecture.
-
-Suggested: Use "version" (simple, clear)
-```
-
-### Versioning the API
-
-All endpoints should support API versioning:
-
-```
-✅ /v1/crm/parties              (v1)
-✅ /v2/crm/parties              (v2, if incompatible change)
-❌ /crm/parties                 (no version - breaks compatibility)
-```
-
----
-
-## Validation & Constraints
-
-### Field Length Limits (TBD by backend)
-
-Document in service/repository layer:
-
-```java
-// Example constraints to define
-@Length(min = 1, max = 255)
-private String legalName;
-
-@Length(min = 50, max = 5000)
-private String justification;
-
-@Length(min = 17, max = 17)
-private String vinNumber;
-```
-
-### Email & Phone Formatting
-
-Use standard libraries (Apache Commons Email, E.164 for phone):
-
-```java
-@Email
-private String email;
-
-// Phone stored as E.164: +1-555-0123
-private String phone;
-```
-
----
-
-## Related Documents
-
-- [CRM Domain Notes](./DOMAIN_NOTES.md)
-- [CRM Permissions Taxonomy](./PERMISSIONS_TAXONOMY.md)
-- [CRM Domain Agent Guide](../../.github/agents/domains/crm-domain.agent.md)
-- [API Catalog](../../.github/agents/api-catalog.yml)
+- **Field Naming**: camelCase for all JSON fields
+- **Enum Values**: UPPER_SNAKE_CASE for all enums
+- **Timestamps**: ISO 8601 UTC format
+- **Identifiers**: String-based UUIDs
+- **Pagination**: Zero-based with standard response format
+- **Error Handling**: Consistent error response structure with correlation IDs
 
 ---
 
@@ -660,4 +1123,19 @@ private String phone;
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2026-01-23 | Initial version; field naming conventions, data types, error format |
+| 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
+
+---
+
+## References
+
+- OpenAPI Specification: `pos-customer/target/openapi.json`
+- Domain Agent Guide: `domains/crm/.business-rules/AGENT_GUIDE.md`
+- Cross-Domain Integration: `domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
+- Error Codes: `domains/crm/.business-rules/ERROR_CODES.md`
+- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
+
+---
+
+**Generated:** 2026-01-27 14:27:53 UTC  
+**Tool:** `scripts/generate_backend_contract_guides.py`
