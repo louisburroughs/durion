@@ -2,7 +2,8 @@
 
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-01-27  
+**OpenAPI Source:** `pos-accounting/target/openapi.json`
 
 ---
 
@@ -10,7 +11,7 @@
 
 This guide standardizes field naming conventions, data types, payload structures, and error codes for the Accounting domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
 
-This guide follows the precedent established by the CRM domain and extends it with accounting-specific requirements: monetary precision, effective dating, versioning, balance validation, and audit trails.
+This guide is generated from the OpenAPI specification and follows the standards established across all Durion platform domains.
 
 ---
 
@@ -18,17 +19,15 @@ This guide follows the precedent established by the CRM domain and extends it wi
 
 1. [JSON Field Naming Conventions](#json-field-naming-conventions)
 2. [Data Types & Formats](#data-types--formats)
-3. [Monetary Amounts & Precision](#monetary-amounts--precision)
-4. [Enum Value Conventions](#enum-value-conventions)
-5. [Identifier Naming](#identifier-naming)
-6. [Timestamp Conventions](#timestamp-conventions)
-7. [Effective Dating & Versioning](#effective-dating--versioning)
-8. [Collection & Pagination](#collection--pagination)
-9. [Error Response Format](#error-response-format)
-10. [Optimistic Locking](#optimistic-locking)
-11. [Audit Trail Requirements](#audit-trail-requirements)
-12. [Entity-Specific Contracts](#entity-specific-contracts)
-13. [Examples](#examples)
+3. [Enum Value Conventions](#enum-value-conventions)
+4. [Identifier Naming](#identifier-naming)
+5. [Timestamp Conventions](#timestamp-conventions)
+6. [Collection & Pagination](#collection--pagination)
+7. [Error Response Format](#error-response-format)
+8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
+9. [API Endpoints](#api-endpoints)
+10. [Entity-Specific Contracts](#entity-specific-contracts)
+11. [Examples](#examples)
 
 ---
 
@@ -40,13 +39,10 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 
 ```json
 {
-  "glAccountId": "GL-12345",
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  "accountType": "ASSET",
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": null,
-  "createdAt": "2026-01-24T14:30:00Z"
+  "id": "abc-123",
+  "createdAt": "2026-01-27T14:30:00Z",
+  "updatedAt": "2026-01-27T15:45:30Z",
+  "status": "ACTIVE"
 }
 ```
 
@@ -55,7 +51,7 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 - Aligns with JSON/JavaScript convention
 - Matches Java property naming after Jackson deserialization
 - Consistent with REST API best practices (RFC 7231)
-- Consistent with CRM domain standards
+- Consistent across all Durion platform domains
 
 ---
 
@@ -65,32 +61,40 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 
 Use `string` type for:
 
-- Names and descriptions (accountName, categoryDescription)
-- Codes (accountCode, eventType, errorCode)
-- Identifiers (glAccountId, journalEntryId)
-- Free-form text (justification, notes, rulesDefinition)
+- Names and descriptions
+- Codes and identifiers
+- Free-form text
+- Enum values (serialized as strings)
 
 ```java
-private String accountCode;
-private String accountName;
-private String eventType;
-private String justification;
+private String id;
+private String name;
+private String description;
+private String status;
 ```
 
 ### Numeric Fields
 
 Use `Integer` or `Long` for:
 
-- Counts (page numbers, total results, line item counts)
-- Version numbers (integer sequences)
+- Counts (page numbers, total results)
+- Version numbers
 - Sequence numbers
 
 ```java
 private Integer pageNumber;
 private Integer pageSize;
 private Long totalCount;
-private Integer versionNumber;
-private Integer lineNumber;
+```
+
+### Boolean Fields
+
+Use `boolean` for true/false flags:
+
+```java
+private boolean isActive;
+private boolean isPrimary;
+private boolean hasPermission;
 ```
 
 ### UUID/ID Fields
@@ -98,11 +102,9 @@ private Integer lineNumber;
 Use `String` for all primary and foreign key IDs:
 
 ```java
-private String glAccountId;          // UUID or encoded ID
-private String journalEntryId;       // UUID or encoded ID
-private String postingRuleSetId;     // UUID or encoded ID
-private String vendorBillId;         // UUID or encoded ID
-private String mappingKeyId;         // UUID or encoded ID
+private String id;
+private String parentId;
+private String referenceId;
 ```
 
 ### Instant/Timestamp Fields
@@ -112,22 +114,19 @@ Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
 ```java
 @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
 private Instant createdAt;
-private Instant modifiedAt;
-private Instant postedAt;
-private Instant approvedAt;
+private Instant updatedAt;
 ```
 
 JSON representation:
 
 ```json
 {
-  "createdAt": "2026-01-24T14:30:00Z",
-  "modifiedAt": "2026-01-24T15:45:30Z",
-  "postedAt": "2026-01-24T16:00:00Z"
+  "createdAt": "2026-01-27T14:30:00Z",
+  "updatedAt": "2026-01-27T15:45:30Z"
 }
 ```
 
-### LocalDate Fields (Effective Dating)
+### LocalDate Fields
 
 Use `LocalDate` for date-only fields (no time component):
 
@@ -135,1269 +134,12 @@ Use `LocalDate` for date-only fields (no time component):
 @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
 private LocalDate effectiveFrom;
 private LocalDate effectiveTo;
-private LocalDate transactionDate;
-private LocalDate activationDate;
 ```
 
 JSON representation:
 
 ```json
 {
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31",
-  "transactionDate": "2026-01-24"
-}
-```
-
-### Boolean Fields
-
-Use `Boolean` (object, nullable) or `boolean` (primitive, non-null):
-
-```java
-private Boolean isActive;            // nullable: true, false, null
-private Boolean isBalanced;          // nullable: indicates unknown state
-private boolean isPosted = false;    // default false, never null
-private boolean isImmutable = false;
-```
-
-JSON representation:
-
-```json
-{
-  "isActive": true,
-  "isBalanced": true,
-  "isPosted": false,
-  "isImmutable": false
-}
-```
-
-### Map/Dictionary Fields
-
-Use `Map<String, Object>` or typed maps for flexible data:
-
-```java
-private Map<String, String> dimensions;           // businessUnitId, locationId, etc.
-private Map<String, String> fieldErrors;          // validation errors
-private Map<String, BigDecimal> accountBalances;  // per-account totals
-private Map<String, Object> metadata;             // extensibility
-
-// Usage in JSON
-{
-  "dimensions": {
-    "businessUnitId": "BU-001",
-    "locationId": "LOC-123",
-    "departmentId": "DEPT-456",
-    "costCenterId": "CC-789"
-  }
-}
-```
-
----
-
-## Monetary Amounts & Precision
-
-### BigDecimal for All Amounts
-
-**CRITICAL:** Always use `BigDecimal` for monetary amounts. Never use `float`, `double`, or `Float`.
-
-```java
-private BigDecimal debitAmount;   // Exact precision
-private BigDecimal creditAmount;  // Exact precision
-private BigDecimal balanceAmount; // Exact precision
-private BigDecimal totalAmount;   // Exact precision
-```
-
-### Precision Rules
-
-- **Internal Precision:** Use `DECIMAL(19, 4)` in database (19 total digits, 4 decimal places)
-- **Display Precision:** Round to 2 decimal places for currency display
-- **Calculation Precision:** Maintain 4 decimal places during calculations
-- **Rounding Mode:** Use `RoundingMode.HALF_UP` for all rounding operations
-
-### JSON Representation
-
-Always serialize `BigDecimal` as string (not number) to preserve precision:
-
-```java
-@JsonSerialize(using = ToStringSerializer.class)
-private BigDecimal debitAmount;
-```
-
-JSON representation:
-
-```json
-{
-  "debitAmount": "1234.5678",
-  "creditAmount": "1234.5678",
-  "balanceAmount": "0.0000"
-}
-```
-
-**Rationale:** JSON numbers lose precision; string representation preserves exact values.
-
-### Balance Validation
-
-Journal entries **MUST** balance to 4 decimal places:
-
-```java
-public boolean isBalanced() {
-    BigDecimal totalDebits = lines.stream()
-        .map(JournalEntryLine::getDebitAmount)
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
-    
-    BigDecimal totalCredits = lines.stream()
-        .map(JournalEntryLine::getCreditAmount)
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
-    
-    BigDecimal difference = totalDebits.subtract(totalCredits).abs();
-    return difference.compareTo(new BigDecimal("0.0001")) < 0;
-}
-```
-
-**Tolerance:** Accept balance within ±0.0001 (1/10,000th of a currency unit).
-
----
-
-## Enum Value Conventions
-
-### Standard Pattern: UPPER_CASE_WITH_UNDERSCORES
-
-All enum values **MUST** use `UPPER_CASE_WITH_UNDERSCORES`:
-
-```java
-public enum AccountType {
-    ASSET,
-    LIABILITY,
-    EQUITY,
-    REVENUE,
-    EXPENSE
-}
-
-public enum JournalEntryStatus {
-    DRAFT,
-    PENDING,
-    POSTED,
-    REVERSED
-}
-
-public enum PostingRuleSetState {
-    DRAFT,
-    PUBLISHED,
-    ARCHIVED
-}
-
-public enum VendorBillStatus {
-    PENDING_REVIEW,
-    APPROVED,
-    REJECTED,
-    PAID,
-    CANCELLED
-}
-
-public enum AccountingEventStatus {
-    RECEIVED,
-    PROCESSING,
-    PROCESSED,
-    FAILED,
-    SUSPENDED
-}
-```
-
-JSON representation:
-
-```json
-{
-  "accountType": "ASSET",
-  "status": "POSTED",
-  "state": "PUBLISHED",
-  "billStatus": "PENDING_REVIEW",
-  "eventStatus": "PROCESSED"
-}
-```
-
-### Accounting-Specific Enums
-
-#### GLAccount Status (Derived)
-
-Status is **derived** from `activationDate` and `deactivationDate`, not stored:
-
-```
-ACTIVE:          activationDate <= today < deactivationDate (or null)
-INACTIVE:        deactivationDate <= today
-NOT_YET_ACTIVE:  activationDate > today
-```
-
-**Note:** Frontend calculates status client-side; backend does not expose a `status` field on GLAccount.
-
-#### Posting Rule Set State Machine
-
-```
-DRAFT → PUBLISHED → ARCHIVED
-  ↓         ↓
-  ├─────────┘
-  └─────────→ (delete if never published)
-```
-
-- **DRAFT:** Editable, not used for JE generation
-- **PUBLISHED:** Immutable, active for JE generation
-- **ARCHIVED:** Immutable, inactive (historical only)
-
----
-
-## Identifier Naming
-
-### Pattern: `{ResourceName}Id`
-
-All identifier fields **MUST** follow the pattern `{resourceName}Id`:
-
-| Resource | ID Field | Example |
-|----------|----------|---------|
-| GLAccount | `glAccountId` | "GL-uuid-12345" |
-| PostingCategory | `postingCategoryId` | "PC-uuid-67890" |
-| MappingKey | `mappingKeyId` | "MK-uuid-11111" |
-| GLMapping | `glMappingId` | "GM-uuid-22222" |
-| PostingRuleSet | `postingRuleSetId` | "PRS-uuid-33333" |
-| PostingRuleVersion | `versionId` | "PRV-uuid-44444" |
-| JournalEntry | `journalEntryId` | "JE-uuid-55555" |
-| JournalEntryLine | `lineId` | "JEL-uuid-66666" |
-| VendorBill | `vendorBillId` | "VB-uuid-77777" |
-| AccountingEvent | `eventId` | "AE-uuid-88888" |
-
-### Foreign Key Identifiers
-
-Foreign keys **MUST** use the full resource name:
-
-```java
-// ✅ CORRECT
-private String glAccountId;          // FK to GLAccount
-private String postingCategoryId;    // FK to PostingCategory
-private String mappingKeyId;         // FK to MappingKey
-private String postingRuleSetId;     // FK to PostingRuleSet
-private String journalEntryId;       // FK to JournalEntry
-private String sourceEventId;        // FK to AccountingEvent
-private String vendorId;             // FK to Vendor (People domain)
-
-// ❌ WRONG
-private String glAccount;            // Missing "Id" suffix
-private String postingCategory;      // Ambiguous
-private String sourceEvent;          // Ambiguous
-```
-
-### Composite Keys (Versioning)
-
-For versioned entities, use composite natural keys:
-
-```java
-// PostingRuleVersion
-private String postingRuleSetId;     // Parent rule set
-private Integer versionNumber;       // Version within set (1, 2, 3, ...)
-private String versionId;            // Synthetic UUID for FK references
-```
-
-**Note:** `versionId` is the primary key for FK references; `(postingRuleSetId, versionNumber)` is a unique constraint.
-
----
-
-## Timestamp Conventions
-
-### Field Naming
-
-Use descriptive past-tense names:
-
-| Field | Meaning | Required |
-|-------|---------|----------|
-| `createdAt` | When record was created | Always |
-| `modifiedAt` | When record was last modified | Always |
-| `postedAt` | When JE was posted to GL | If posted |
-| `approvedAt` | When vendor bill was approved | If approved |
-| `publishedAt` | When posting rule version was published | If published |
-| `archivedAt` | When posting rule version was archived | If archived |
-| `receivedAt` | When accounting event was received | If event |
-| `processedAt` | When accounting event was processed | If processed |
-| `reversedAt` | When JE was reversed | If reversed |
-
-### Format: ISO 8601 (RFC 3339)
-
-Always use UTC timezone (`Z` suffix):
-
-```json
-{
-  "createdAt": "2026-01-24T14:30:00Z",
-  "modifiedAt": "2026-01-24T15:45:30Z",
-  "postedAt": "2026-01-24T16:00:00Z",
-  "approvedAt": null
-}
-```
-
-### Effective Dating Fields
-
-Use `LocalDate` (date-only, no time):
-
-| Field | Meaning | Nullable |
-|-------|---------|----------|
-| `effectiveFrom` | Start date of validity | No |
-| `effectiveTo` | End date of validity (exclusive) | Yes (null = no end date) |
-| `transactionDate` | Business date of transaction | No |
-| `activationDate` | When account becomes active | Yes |
-| `deactivationDate` | When account becomes inactive | Yes |
-
-```json
-{
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": null,
-  "transactionDate": "2026-01-24"
-}
-```
-
-**Semantic:** `effectiveFrom <= transactionDate < effectiveTo` (or effectiveTo is null).
-
----
-
-## Effective Dating & Versioning
-
-### Effective-Dated Entities (GLMapping)
-
-GL mappings are **effective-dated** (not versioned):
-
-- **Create new row** for each change with new effective date range
-- **Immutable:** Once created, mappings are never edited
-- **Overlap detection:** Backend rejects mappings with overlapping date ranges for same (postingCategoryId, mappingKeyId)
-
-```json
-{
-  "glMappingId": "GM-uuid-12345",
-  "postingCategoryId": "PC-001",
-  "mappingKeyId": "MK-001",
-  "glAccountId": "GL-1000",
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-06-30",
-  "dimensions": {
-    "businessUnitId": "BU-001"
-  }
-}
-```
-
-**Query Pattern:** Resolve by `(postingCategoryId, mappingKeyId, transactionDate)` where `effectiveFrom <= transactionDate < effectiveTo`.
-
-### Versioned Entities (PostingRuleSet)
-
-Posting rule sets use **explicit versioning**:
-
-- **Parent entity:** `PostingRuleSet` (metadata: name, eventType)
-- **Child entity:** `PostingRuleVersion` (version number, state, rulesDefinition)
-- **Version numbering:** Sequential integers (1, 2, 3, ...)
-- **Immutability:** PUBLISHED and ARCHIVED versions are immutable
-
-```json
-{
-  "postingRuleSetId": "PRS-uuid-12345",
-  "name": "Vehicle Sale Rules",
-  "eventType": "VehicleSaleEvent",
-  "versions": [
-    {
-      "versionId": "PRV-uuid-11111",
-      "versionNumber": 1,
-      "state": "PUBLISHED",
-      "rulesDefinition": "{...}",
-      "publishedAt": "2026-01-01T00:00:00Z"
-    },
-    {
-      "versionId": "PRV-uuid-22222",
-      "versionNumber": 2,
-      "state": "DRAFT",
-      "rulesDefinition": "{...}",
-      "publishedAt": null
-    }
-  ]
-}
-```
-
-**Create New Version:**
-
-```json
-POST /v1/accounting/posting-rule-sets/{postingRuleSetId}/versions
-{
-  "baseVersionNumber": 1,
-  "rulesDefinition": "{...}"
-}
-```
-
-Response includes new `versionNumber` (auto-incremented).
-
----
-
-## Collection & Pagination
-
-### Paginated List Response
-
-All list endpoints **MUST** return paginated responses:
-
-```json
-{
-  "items": [
-    { "glAccountId": "GL-001", "accountCode": "1000-000" },
-    { "glAccountId": "GL-002", "accountCode": "1000-100" }
-  ],
-  "pagination": {
-    "pageNumber": 1,
-    "pageSize": 20,
-    "totalCount": 150,
-    "totalPages": 8
-  }
-}
-```
-
-### Request Parameters
-
-Standardized query parameters:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `pageNumber` | Integer | 1 | Page number (1-indexed) |
-| `pageSize` | Integer | 20 | Items per page (max 100) |
-| `sortBy` | String | varies | Sort field (e.g., "accountCode") |
-| `sortOrder` | String | "ASC" | Sort direction: ASC or DESC |
-
-**Example:**
-
-```
-GET /v1/accounting/gl-accounts?pageNumber=1&pageSize=20&sortBy=accountCode&sortOrder=ASC
-```
-
-### Filter Parameters
-
-Entity-specific filters:
-
-**GLAccount:**
-
-- `accountType`: Filter by account type (ASSET, LIABILITY, etc.)
-- `search`: Search by account code or name (contains)
-
-**JournalEntry:**
-
-- `status`: Filter by status (DRAFT, POSTED, REVERSED)
-- `transactionDateFrom`: Filter by transaction date (>= date)
-- `transactionDateTo`: Filter by transaction date (<= date)
-- `sourceEventId`: Filter by source event
-
-**VendorBill:**
-
-- `status`: Filter by status (PENDING_REVIEW, APPROVED, etc.)
-- `vendorId`: Filter by vendor
-
----
-
-## Error Response Format
-
-### Standard Error Structure
-
-All errors **MUST** follow this structure:
-
-```json
-{
-  "errorCode": "UNBALANCED_RULES",
-  "message": "Posting rule set validation failed: debits and credits do not balance",
-  "path": "/v1/accounting/posting-rule-sets/PRS-123/versions/2/publish",
-  "timestamp": "2026-01-24T14:30:00Z",
-  "details": {
-    "totalDebits": "1000.00",
-    "totalCredits": "950.00",
-    "difference": "50.00",
-    "conditions": [
-      {
-        "condition": "saleType == 'CASH'",
-        "debits": "500.00",
-        "credits": "500.00",
-        "balanced": true
-      },
-      {
-        "condition": "saleType == 'CREDIT'",
-        "debits": "500.00",
-        "credits": "450.00",
-        "balanced": false
-      }
-    ]
-  },
-  "fieldErrors": null
-}
-```
-
-### Standard Error Codes
-
-#### Chart of Accounts (CoA)
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `DUPLICATE_ACCOUNT_CODE` | 409 | Account code already exists |
-| `ACCOUNT_HAS_BALANCE` | 409 | Cannot deactivate account with non-zero balance |
-| `ACCOUNT_REFERENCED_BY_MAPPINGS` | 409 | Cannot deactivate account referenced by active GL mappings |
-| `ACCOUNT_USED_IN_POSTED_JE` | 409 | Cannot deactivate account used in posted journal entries |
-| `INVALID_ACTIVATION_DATES` | 422 | Activation date must be before deactivation date |
-| `ACCOUNT_NOT_FOUND` | 404 | GL account not found |
-| `ACCOUNT_VERSION_CONFLICT` | 409 | Optimistic lock conflict; account modified by another user |
-
-#### GL Mapping
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `MAPPING_OVERLAP` | 409 | Overlapping effective date range for same category + key |
-| `INVALID_DIMENSION_VALUE` | 422 | Dimension value does not exist or is invalid |
-| `REQUIRED_DIMENSION_MISSING` | 422 | Required dimension not provided for this posting category |
-| `EFFECTIVE_DATE_INVALID` | 422 | effectiveFrom must be before effectiveTo |
-| `MAPPING_NOT_FOUND` | 404 | GL mapping not found |
-| `MAPPING_KEY_NOT_FOUND` | 404 | Mapping key not found |
-| `POSTING_CATEGORY_NOT_FOUND` | 404 | Posting category not found |
-
-#### Posting Rules
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `UNBALANCED_RULES` | 422 | Posting rules do not balance (debits != credits) |
-| `INVALID_RULES_JSON` | 422 | rulesDefinition JSON is malformed or does not match schema |
-| `POSTING_RULE_SET_NOT_FOUND` | 404 | Posting rule set not found |
-| `VERSION_NOT_FOUND` | 404 | Posting rule version not found |
-| `VERSION_ALREADY_PUBLISHED` | 409 | Version already in PUBLISHED state |
-| `VERSION_ALREADY_ARCHIVED` | 409 | Version already in ARCHIVED state |
-| `CANNOT_EDIT_PUBLISHED_VERSION` | 409 | Cannot edit version in PUBLISHED or ARCHIVED state |
-| `BASE_VERSION_NOT_FOUND` | 404 | Base version for creating new version not found |
-| `VERSION_NUMBER_CONFLICT` | 409 | Version number conflict (concurrent version creation) |
-
-#### Journal Entries
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `JE_NOT_BALANCED` | 422 | Journal entry debits and credits do not balance |
-| `JE_ALREADY_POSTED` | 409 | Cannot edit or delete posted journal entry |
-| `JE_NOT_FOUND` | 404 | Journal entry not found |
-| `CANNOT_REVERSE_DRAFT_JE` | 409 | Cannot reverse journal entry in DRAFT status |
-| `CANNOT_REVERSE_ALREADY_REVERSED` | 409 | Cannot reverse journal entry that is already reversed |
-| `MAPPING_RESOLUTION_FAILED` | 422 | Cannot resolve GL mapping for event (no mapping found) |
-| `SOURCE_EVENT_NOT_FOUND` | 404 | Source accounting event not found |
-
-#### Accounts Payable (AP)
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VENDOR_BILL_NOT_FOUND` | 404 | Vendor bill not found |
-| `VENDOR_BILL_ALREADY_APPROVED` | 409 | Cannot approve already-approved bill |
-| `VENDOR_BILL_ALREADY_REJECTED` | 409 | Cannot reject already-rejected bill |
-| `VENDOR_BILL_ALREADY_PAID` | 409 | Cannot modify bill that is already paid |
-| `APPROVAL_JUSTIFICATION_REQUIRED` | 422 | Justification required for approval |
-| `REJECTION_REASON_REQUIRED` | 422 | Reason required for rejection |
-| `VENDOR_NOT_FOUND` | 404 | Vendor not found (People domain integration) |
-
-#### Event Ingestion
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `DUPLICATE_EVENT_ID` | 409 | Event ID already exists |
-| `INVALID_EVENT_TYPE` | 422 | Event type not recognized |
-| `INVALID_PAYLOAD` | 422 | Payload is not valid JSON or does not match schema |
-| `PAYLOAD_MUST_BE_OBJECT` | 422 | Payload must be a JSON object (if policy enforces) |
-| `EVENT_NOT_FOUND` | 404 | Accounting event not found |
-
-### Field Errors
-
-For validation errors, include `fieldErrors` map:
-
-```json
-{
-  "errorCode": "VALIDATION_FAILED",
-  "message": "Request validation failed",
-  "path": "/v1/accounting/gl-accounts",
-  "timestamp": "2026-01-24T14:30:00Z",
-  "details": null,
-  "fieldErrors": {
-    "accountCode": "Account code must be 10 characters or less",
-    "accountType": "Account type must be one of: ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE",
-    "activationDate": "Activation date must be before deactivation date"
-  }
-}
-```
-
----
-
-## Optimistic Locking
-
-### ETag-Based Locking (Recommended)
-
-Use ETag headers for optimistic locking on critical entities:
-
-- **GLAccount** (prevents concurrent edits)
-- **PostingRuleVersion** (DRAFT only; immutable once published)
-- **VendorBill** (prevents concurrent approval/rejection)
-
-**Read (GET):**
-
-```
-GET /v1/accounting/gl-accounts/GL-12345
-
-Response:
-ETag: "33a64df551425fcc55e4d42a148795d9f25f89d4"
-
-{
-  "glAccountId": "GL-12345",
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  ...
-}
-```
-
-**Update (PUT):**
-
-```
-PUT /v1/accounting/gl-accounts/GL-12345
-If-Match: "33a64df551425fcc55e4d42a148795d9f25f89d4"
-
-{
-  "accountName": "Cash - Operating Account",
-  ...
-}
-```
-
-**Success (200):**
-
-```
-ETag: "new-etag-value"
-
-{
-  "glAccountId": "GL-12345",
-  "accountName": "Cash - Operating Account",
-  ...
-}
-```
-
-**Conflict (412):**
-
-```json
-{
-  "errorCode": "ACCOUNT_VERSION_CONFLICT",
-  "message": "Account was modified by another user",
-  "path": "/v1/accounting/gl-accounts/GL-12345",
-  "timestamp": "2026-01-24T14:30:00Z",
-  "details": {
-    "currentVersion": {
-      "glAccountId": "GL-12345",
-      "accountName": "Cash - Main Operating",
-      "modifiedAt": "2026-01-24T14:28:00Z",
-      "modifiedBy": "user456"
-    }
-  }
-}
-```
-
-**Resolution:** Frontend must fetch current version, merge changes, and retry.
-
-### Version Field Alternative
-
-If ETag not feasible, use `version` field (integer):
-
-```json
-{
-  "glAccountId": "GL-12345",
-  "version": 5,
-  ...
-}
-```
-
-Update requires matching version:
-
-```
-PUT /v1/accounting/gl-accounts/GL-12345
-
-{
-  "version": 5,
-  "accountName": "Cash - Operating Account"
-}
-```
-
-Returns 409 if version does not match.
-
----
-
-## Audit Trail Requirements
-
-### Audit Fields (All Entities)
-
-Every entity **MUST** include these audit fields:
-
-```java
-private Instant createdAt;       // When record was created
-private String createdBy;        // User ID who created record
-private Instant modifiedAt;      // When record was last modified
-private String modifiedBy;       // User ID who last modified record
-```
-
-JSON representation:
-
-```json
-{
-  "glAccountId": "GL-12345",
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  "createdAt": "2026-01-01T00:00:00Z",
-  "createdBy": "user123",
-  "modifiedAt": "2026-01-24T14:30:00Z",
-  "modifiedBy": "user456"
-}
-```
-
-### High-Risk Operations (Justification Required)
-
-High-risk operations **MUST** include `justification` field:
-
-**Operations requiring justification:**
-
-- Post journal entry (`accounting:je:post`)
-- Reverse journal entry (`accounting:je:reverse`)
-- Approve vendor bill (`accounting:ap:approve`)
-- Reject vendor bill (`accounting:ap:reject`)
-- Publish posting rule set (`accounting:posting_rules:publish`)
-- Deactivate GL account (`accounting:coa:deactivate`)
-
-**Request:**
-
-```json
-POST /v1/accounting/journal-entries/{journalEntryId}/post
-
-{
-  "justification": "Month-end close for January 2026"
-}
-```
-
-**Validation:** Backend rejects if `justification` is null or empty string:
-
-```json
-{
-  "errorCode": "JUSTIFICATION_REQUIRED",
-  "message": "Justification is required for posting journal entries",
-  "path": "/v1/accounting/journal-entries/JE-12345/post",
-  "timestamp": "2026-01-24T14:30:00Z"
-}
-```
-
-### Audit Log Entry
-
-Backend creates audit log entry for all high-risk operations:
-
-```java
-@Entity
-public class AccountingAuditLog {
-    private String auditLogId;
-    private String entityType;        // "JournalEntry", "VendorBill", etc.
-    private String entityId;          // Entity primary key
-    private String operation;         // "POST", "REVERSE", "APPROVE", etc.
-    private String userId;            // Who performed action
-    private Instant timestamp;        // When action occurred
-    private String justification;     // User-provided reason
-    private String ipAddress;         // Client IP
-    private String traceId;           // W3C trace context
-    private String oldValue;          // Previous state (JSON)
-    private String newValue;          // New state (JSON)
-}
-```
-
-**Retention:** 7 years (financial regulatory compliance).
-
----
-
-## Entity-Specific Contracts
-
-### GLAccount
-
-**Endpoints:**
-
-- `GET /v1/accounting/gl-accounts` — List with pagination
-- `GET /v1/accounting/gl-accounts/{glAccountId}` — Get details
-- `POST /v1/accounting/gl-accounts` — Create account
-- `PUT /v1/accounting/gl-accounts/{glAccountId}` — Update account
-- `DELETE /v1/accounting/gl-accounts/{glAccountId}` — Deactivate account
-
-**DTO Structure:**
-
-```json
-{
-  "glAccountId": "GL-uuid-12345",
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  "accountType": "ASSET",
-  "description": "Main operating cash account",
-  "parentAccountId": null,
-  "activationDate": "2026-01-01",
-  "deactivationDate": null,
-  "createdAt": "2026-01-01T00:00:00Z",
-  "createdBy": "user123",
-  "modifiedAt": "2026-01-24T14:30:00Z",
-  "modifiedBy": "user456"
-}
-```
-
-**Required Fields (Create):**
-
-- `accountCode` (unique, max 20 chars)
-- `accountName` (max 100 chars)
-- `accountType` (enum)
-
-**Optional Fields:**
-
-- `description`
-- `parentAccountId` (FK to parent account)
-- `activationDate` (defaults to today)
-- `deactivationDate` (defaults to null)
-
-**Derived Status:**
-
-- `ACTIVE`: `activationDate <= today < deactivationDate` (or null)
-- `INACTIVE`: `deactivationDate <= today`
-- `NOT_YET_ACTIVE`: `activationDate > today`
-
----
-
-### PostingCategory, MappingKey, GLMapping
-
-**Endpoints:**
-
-- `GET /v1/accounting/posting-categories` — List categories
-- `POST /v1/accounting/posting-categories` — Create category
-- `GET /v1/accounting/mapping-keys?postingCategoryId={id}` — List keys for category
-- `POST /v1/accounting/mapping-keys` — Create mapping key
-- `GET /v1/accounting/gl-mappings?postingCategoryId={id}&mappingKeyId={id}` — List mappings
-- `POST /v1/accounting/gl-mappings` — Create GL mapping
-- `POST /v1/accounting/gl-mappings/resolve` — Test resolution (optional)
-
-**GLMapping DTO:**
-
-```json
-{
-  "glMappingId": "GM-uuid-12345",
-  "postingCategoryId": "PC-001",
-  "mappingKeyId": "MK-001",
-  "glAccountId": "GL-1000",
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": null,
-  "dimensions": {
-    "businessUnitId": "BU-001",
-    "locationId": "LOC-123",
-    "departmentId": null,
-    "costCenterId": null
-  },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "createdBy": "user123"
-}
-```
-
-**Immutability:** Once created, GL mappings are never edited (create new effective-dated row instead).
-
-**Overlap Detection:** Backend returns 409 if effective dates overlap for same (postingCategoryId, mappingKeyId):
-
-```json
-{
-  "errorCode": "MAPPING_OVERLAP",
-  "message": "GL mapping overlaps with existing mapping",
-  "details": {
-    "conflictingMappings": [
-      {
-        "glMappingId": "GM-existing",
-        "effectiveFrom": "2026-01-01",
-        "effectiveTo": "2026-12-31",
-        "glAccountId": "GL-1000"
-      }
-    ]
-  }
-}
-```
-
----
-
-### PostingRuleSet & PostingRuleVersion
-
-**Endpoints:**
-
-- `GET /v1/accounting/posting-rule-sets` — List rule sets with latest version summary
-- `GET /v1/accounting/posting-rule-sets/{postingRuleSetId}` — Get rule set with all versions
-- `POST /v1/accounting/posting-rule-sets` — Create rule set (creates v1 in DRAFT)
-- `GET /v1/accounting/posting-rule-sets/{id}/versions/{versionNumber}` — Get specific version
-- `POST /v1/accounting/posting-rule-sets/{id}/versions` — Create new version
-- `POST /v1/accounting/posting-rule-sets/{id}/versions/{versionNumber}/publish` — Publish version
-- `POST /v1/accounting/posting-rule-sets/{id}/versions/{versionNumber}/archive` — Archive version
-
-**PostingRuleVersion DTO:**
-
-```json
-{
-  "versionId": "PRV-uuid-12345",
-  "postingRuleSetId": "PRS-uuid-67890",
-  "versionNumber": 2,
-  "state": "PUBLISHED",
-  "rulesDefinition": "{\"conditions\":[...]}",
-  "createdAt": "2026-01-20T00:00:00Z",
-  "createdBy": "user123",
-  "publishedAt": "2026-01-24T00:00:00Z",
-  "publishedBy": "user456",
-  "archivedAt": null,
-  "archivedBy": null
-}
-```
-
-**Rules Definition JSON Schema:**
-
-```json
-{
-  "conditions": [
-    {
-      "condition": "saleType == 'CASH'",
-      "lines": [
-        {
-          "accountCode": "1000-000",
-          "debitExpression": "totalAmount",
-          "creditExpression": "0"
-        },
-        {
-          "accountCode": "4000-000",
-          "debitExpression": "0",
-          "creditExpression": "totalAmount"
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Balance Validation on Publish:**
-
-Backend validates that sum(debits) == sum(credits) per condition. Returns 422 with details if unbalanced.
-
----
-
-### JournalEntry & JournalEntryLine
-
-**Endpoints:**
-
-- `GET /v1/accounting/journal-entries` — List with filters
-- `GET /v1/accounting/journal-entries/{journalEntryId}` — Get details with lines
-- `POST /v1/accounting/journal-entries/build` — Build JE from source event
-- `POST /v1/accounting/journal-entries/{journalEntryId}/post` — Post to GL
-- `POST /v1/accounting/journal-entries/{journalEntryId}/reverse` — Create reversing JE
-
-**JournalEntry DTO:**
-
-```json
-{
-  "journalEntryId": "JE-uuid-12345",
-  "status": "POSTED",
-  "transactionDate": "2026-01-24",
-  "description": "Vehicle sale - Invoice INV-001",
-  "sourceEventId": "AE-event-67890",
-  "sourceEventType": "VehicleSaleEvent",
-  "postingRuleSetId": "PRS-rules-11111",
-  "postingRuleVersionId": "PRV-version-22222",
-  "reversalJournalEntryId": null,
-  "reversedByJournalEntryId": null,
-  "lines": [
-    {
-      "lineId": "JEL-line-11111",
-      "lineNumber": 1,
-      "glAccountId": "GL-1000",
-      "accountCode": "1000-000",
-      "accountName": "Cash - Operating",
-      "debitAmount": "5000.00",
-      "creditAmount": "0.00",
-      "description": "Cash received",
-      "dimensions": {
-        "businessUnitId": "BU-001",
-        "locationId": "LOC-123"
-      }
-    },
-    {
-      "lineId": "JEL-line-22222",
-      "lineNumber": 2,
-      "glAccountId": "GL-4000",
-      "accountCode": "4000-000",
-      "accountName": "Revenue - Vehicle Sales",
-      "debitAmount": "0.00",
-      "creditAmount": "5000.00",
-      "description": "Vehicle sale revenue",
-      "dimensions": {
-        "businessUnitId": "BU-001",
-        "locationId": "LOC-123"
-      }
-    }
-  ],
-  "totalDebits": "5000.00",
-  "totalCredits": "5000.00",
-  "isBalanced": true,
-  "createdAt": "2026-01-24T14:00:00Z",
-  "createdBy": "system",
-  "postedAt": "2026-01-24T16:00:00Z",
-  "postedBy": "user789"
-}
-```
-
-**Balance Check:** `totalDebits - totalCredits` must be within ±0.0001.
-
-**Immutability:** Once `status = POSTED`, JE and lines are immutable (cannot edit or delete).
-
----
-
-### VendorBill
-
-**Endpoints:**
-
-- `GET /v1/accounting/vendor-bills` — List with status filter
-- `GET /v1/accounting/vendor-bills/{vendorBillId}` — Get details with traceability
-- `POST /v1/accounting/vendor-bills/{vendorBillId}/approve` — Approve bill
-- `POST /v1/accounting/vendor-bills/{vendorBillId}/reject` — Reject bill
-
-**VendorBill DTO:**
-
-```json
-{
-  "vendorBillId": "VB-uuid-12345",
-  "vendorId": "V-vendor-67890",
-  "vendorName": "ACME Parts Supplier",
-  "billNumber": "BILL-2026-001",
-  "billDate": "2026-01-20",
-  "dueDate": "2026-02-19",
-  "totalAmount": "1500.00",
-  "status": "APPROVED",
-  "originEventId": "AE-event-11111",
-  "originEventType": "GoodsReceivedEvent",
-  "journalEntryId": "JE-je-22222",
-  "paymentTransactionId": null,
-  "createdAt": "2026-01-20T10:00:00Z",
-  "createdBy": "system",
-  "approvedAt": "2026-01-24T15:00:00Z",
-  "approvedBy": "user123",
-  "approvalJustification": "Verified goods received and pricing correct"
-}
-```
-
-**Traceability:**
-
-- `originEventId` → Source accounting event
-- `journalEntryId` → JE created from event
-- `paymentTransactionId` → Payment (if paid)
-
----
-
-### AccountingEvent
-
-**Endpoints:**
-
-- `POST /v1/accounting/events/submitSync` — Submit event (sync ingestion)
-- `GET /v1/accounting/events/{eventId}` — Get event details
-- `GET /v1/accounting/events` — List events with filters
-- `POST /v1/accounting/events/{eventId}/retry` — Retry failed processing
-
-**AccountingEvent DTO:**
-
-```json
-{
-  "eventId": "AE-uuid-12345",
-  "eventType": "VehicleSaleEvent",
-  "transactionDate": "2026-01-24",
-  "payload": {
-    "invoiceId": "INV-001",
-    "saleType": "CASH",
-    "totalAmount": 5000.00,
-    "vehicleId": "V-12345"
-  },
-  "status": "PROCESSED",
-  "receivedAt": "2026-01-24T14:00:00Z",
-  "processedAt": "2026-01-24T14:00:15Z",
-  "journalEntryId": "JE-je-67890",
-  "errorMessage": null
-}
-```
-
-**Submit Response (Acknowledgement):**
-
-```json
-{
-  "eventId": "AE-uuid-12345",
-  "status": "RECEIVED",
-  "receivedAt": "2026-01-24T14:00:00Z",
-  "sequenceNumber": 12345
-}
-```
-
----
-
-### PostingCategory (Issue #203)
-
-**Endpoints:**
-
-- `GET /v1/accounting/posting-categories` — List categories
-- `GET /v1/accounting/posting-categories/{postingCategoryId}` — Get category details
-- `POST /v1/accounting/posting-categories` — Create category
-- `PUT /v1/accounting/posting-categories/{postingCategoryId}` — Update category
-- `POST /v1/accounting/posting-categories/{postingCategoryId}/deactivate` — Deactivate category
-
-**PostingCategory DTO:**
-
-```json
-{
-  "postingCategoryId": "PC-uuid-12345",
-  "categoryCode": "VEH-SALE-CASH",
-  "categoryName": "Vehicle Sale - Cash",
-  "description": "Cash sales of vehicles",
-  "isActive": true,
-  "createdAt": "2026-01-01T00:00:00Z",
-  "createdBy": "user123",
-  "modifiedAt": "2026-01-24T14:30:00Z",
-  "modifiedBy": "user456"
-}
-```
-
-**Required Fields (Create):**
-
-- `categoryCode` (unique, max 50 chars, alphanumeric + hyphens)
-- `categoryName` (max 100 chars)
-
-**Optional Fields:**
-
-- `description` (max 500 chars)
-
-**Validation:**
-
-- Category code must be unique across all categories
-- Cannot deactivate if active GL mappings exist
-
----
-
-### MappingKey (Issue #203)
-
-**Endpoints:**
-
-- `GET /v1/accounting/mapping-keys?postingCategoryId={id}` — List keys for category
-- `GET /v1/accounting/mapping-keys/{mappingKeyId}` — Get key details
-- `POST /v1/accounting/mapping-keys` — Create mapping key
-- `PUT /v1/accounting/mapping-keys/{mappingKeyId}` — Update mapping key
-- `POST /v1/accounting/mapping-keys/{mappingKeyId}/deactivate` — Deactivate key
-
-**MappingKey DTO:**
-
-```json
-{
-  "mappingKeyId": "MK-uuid-12345",
-  "keyCode": "VEHICLE-SALE-CASH",
-  "keyName": "Vehicle Cash Sale",
-  "postingCategoryId": "PC-uuid-67890",
-  "description": "Producer-facing key for cash vehicle sales",
-  "isActive": true,
-  "createdAt": "2026-01-01T00:00:00Z",
-  "createdBy": "user123",
-  "modifiedAt": "2026-01-24T14:30:00Z",
-  "modifiedBy": "user456"
-}
-```
-
-**Required Fields (Create):**
-
-- `keyCode` (unique, max 50 chars)
-- `keyName` (max 100 chars)
-- `postingCategoryId` (FK to PostingCategory)
-
-**Optional Fields:**
-
-- `description` (max 500 chars)
-
-**Validation:**
-
-- Key code must be unique across all mapping keys
-- Must link to exactly one posting category (1:1 relationship)
-- Cannot deactivate if active GL mappings exist
-
----
-
-### GLMapping (Issue #203)
-
-**Endpoints:**
-
-- `GET /v1/accounting/gl-mappings?postingCategoryId={id}&mappingKeyId={id}` — List mappings
-- `GET /v1/accounting/gl-mappings/{glMappingId}` — Get mapping details
-- `POST /v1/accounting/gl-mappings` — Create GL mapping
-- `POST /v1/accounting/gl-mappings/resolve` — Test resolution endpoint
-
-**GLMapping DTO:**
-
-```json
-{
-  "glMappingId": "GM-uuid-12345",
-  "postingCategoryId": "PC-uuid-67890",
-  "mappingKeyId": "MK-uuid-11111",
-  "glAccountId": "GL-uuid-22222",
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31",
-  "dimensions": {
-    "businessUnitId": "BU-001",
-    "locationId": "LOC-123",
-    "departmentId": null,
-    "costCenterId": null
-  },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "createdBy": "user123"
-}
-```
-
-**Required Fields (Create):**
-
-- `postingCategoryId` (FK to PostingCategory)
-- `mappingKeyId` (FK to MappingKey)
-- `glAccountId` (FK to GLAccount)
-- `effectiveFrom` (LocalDate)
-
-**Optional Fields:**
-
-- `effectiveTo` (LocalDate, null = no end date)
-- `dimensions` (Map<String, String>)
-
-**Immutability:**
-
-- GL mappings are **never edited** (append-only)
-- Create new effective-dated row for changes
-- System validates no overlap for same (postingCategoryId, mappingKeyId)
-
-**Overlap Detection (409 Conflict):**
-
-```json
-{
-  "errorCode": "MAPPING_OVERLAP",
-  "message": "GL mapping overlaps with existing mapping",
-  "details": {
-    "postingCategoryId": "PC-uuid-67890",
-    "mappingKeyId": "MK-uuid-11111",
-    "conflictingMappings": [
-      {
-        "glMappingId": "GM-existing",
-        "effectiveFrom": "2026-01-01",
-        "effectiveTo": "2026-12-31",
-        "glAccountId": "GL-1000"
-      }
-    ]
-  }
-}
-```
-
-**Resolution Test Endpoint:**
-
-```
-POST /v1/accounting/gl-mappings/resolve
-{
-  "mappingKeyId": "MK-uuid-11111",
-  "transactionDate": "2026-03-15"
-}
-
-Response:
-{
-  "postingCategoryId": "PC-uuid-67890",
-  "glAccountId": "GL-uuid-22222",
-  "glAccountCode": "1000-000",
-  "glAccountName": "Cash - Operating",
-  "dimensions": {
-    "businessUnitId": "BU-001",
-    "locationId": "LOC-123"
-  },
   "effectiveFrom": "2026-01-01",
   "effectiveTo": "2026-12-31"
 }
@@ -1405,627 +147,1306 @@ Response:
 
 ---
 
-### VendorBill (Issue #194)
+## Enum Value Conventions
 
-**Endpoints:**
+### Standard Pattern: UPPER_SNAKE_CASE
 
-- `GET /v1/accounting/vendor-bills` — List with status filter
-- `GET /v1/accounting/vendor-bills/{vendorBillId}` — Get details with traceability
-- `POST /v1/accounting/vendor-bills` — Create vendor bill from event
-- `PUT /v1/accounting/vendor-bills/{vendorBillId}` — Update bill (PENDING_REVIEW only)
-- `POST /v1/accounting/vendor-bills/{vendorBillId}/approve` — Approve bill
-- `POST /v1/accounting/vendor-bills/{vendorBillId}/reject` — Reject bill
+All enum values **MUST** use `UPPER_SNAKE_CASE`:
 
-**VendorBill DTO:**
-
-```json
-{
-  "vendorBillId": "VB-uuid-12345",
-  "vendorId": "V-vendor-67890",
-  "vendorName": "ACME Parts Supplier",
-  "billNumber": "BILL-2026-001",
-  "billDate": "2026-01-20",
-  "dueDate": "2026-02-19",
-  "totalAmount": "1500.00",
-  "currency": "USD",
-  "status": "PENDING_REVIEW",
-  "originEventId": "AE-event-11111",
-  "originEventType": "WorkCompletedEvent",
-  "originEventDescription": "Workorder WO-12345 completed",
-  "journalEntryId": null,
-  "paymentTransactionId": null,
-  "notes": "Parts replacement for workorder",
-  "createdAt": "2026-01-20T10:00:00Z",
-  "createdBy": "system",
-  "approvedAt": null,
-  "approvedBy": null,
-  "approvalJustification": null,
-  "rejectedAt": null,
-  "rejectedBy": null,
-  "rejectionReason": null
+```java
+public enum Status {
+    ACTIVE,
+    INACTIVE,
+    PENDING_APPROVAL,
+    ARCHIVED
 }
 ```
 
-**Required Fields (Create):**
+### Enums in this Domain
 
-- `vendorId` (FK to People domain vendor entity)
-- `billNumber` (unique per vendor)
-- `billDate` (LocalDate)
-- `dueDate` (LocalDate)
-- `totalAmount` (BigDecimal)
-- `originEventId` (FK to AccountingEvent)
-- `originEventType` (enum: WorkCompletedEvent, PurchaseOrderEvent, etc.)
+#### AuditTrailResponse.accountingIntent
 
-**Optional Fields:**
+- `REVENUE_ADJUSTMENT`
+- `PAYMENT_REVERSAL`
+- `CUSTOMER_CREDIT`
+- `WRITE_OFF`
+- `REVENUE_REVERSAL`
+- `PAYMENT_RECOVERY`
 
-- `currency` (defaults to "USD")
-- `notes` (max 1000 chars)
+#### AuditTrailResponse.accountingStatus
 
-**Status Transitions:**
+- `PENDING_POSTING`
+- `POSTED`
+- `FAILED`
 
-- `PENDING_REVIEW` → `APPROVED` (requires `accounting:vendor_bill:approve`)
-- `PENDING_REVIEW` → `REJECTED` (requires `accounting:vendor_bill:reject`)
-- `APPROVED` → `PAID` (requires `accounting:ap_payment:schedule` + external payment)
+#### AuditTrailResponse.cancellationType
 
-**Immutability:**
+- `ORDER_CANCELLED`
+- `INVOICE_CANCELLED`
 
-- Cannot edit bill after approval (status != PENDING_REVIEW)
-- Approval and rejection require justification
+#### AuditTrailResponse.exceptionType
 
-**Traceability:**
+- `PRICE_OVERRIDE`
+- `REFUND`
+- `CANCELLATION`
 
-- `originEventId` → Source accounting event (WorkCompleted, PurchaseOrder, etc.)
-- `journalEntryId` → JE created from event (if posted)
-- `paymentTransactionId` → Payment record (if paid)
+#### AuditTrailResponse.originalPaymentStatus
+
+- `PENDING`
+- `SETTLED`
+
+#### AuditTrailResponse.policyValidationResult
+
+- `APPROVED`
+- `REJECTED_FORBIDDEN`
+- `REJECTED_THRESHOLD_EXCEEDED`
+
+#### AuditTrailResponse.refundMethod
+
+- `VOID`
+- `CHARGEBACK`
+- `CASH_REFUND`
+- `CREDIT_MEMO`
+
+#### AuditTrailResponse.refundType
+
+- `REVERSAL`
+- `CREDIT_MEMO`
+- `ADJUSTMENT`
+
+#### CancellationRequest.cancellationType
+
+- `ORDER_CANCELLED`
+- `INVOICE_CANCELLED`
+
+#### InvoiceStatusResponse.status
+
+- `PAID`
+- `PARTIALLY_PAID`
+- `UNPAID`
+- `FAILED`
+
+#### RefundRequest.originalPaymentStatus
+
+- `PENDING`
+- `SETTLED`
+
+#### RefundRequest.refundType
+
+- `REVERSAL`
+- `CREDIT_MEMO`
+- `ADJUSTMENT`
 
 ---
 
-### APPayment (Issue #193)
+## Identifier Naming
 
-**Endpoints:**
+### Standard Pattern
 
-- `GET /v1/accounting/ap-payments` — List payments with status filter
-- `GET /v1/accounting/ap-payments?status=PENDING_APPROVAL` — Approval queue
-- `POST /v1/accounting/ap-payments/approve` — Approve payment
-- `POST /v1/accounting/ap-payments/schedule` — Schedule approved payment
-- `POST /v1/accounting/ap-payments/{paymentId}/cancel` — Cancel scheduled payment
+- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `orderId`)
+- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`)
+- Composite identifiers: use structured object, not concatenated string
 
-**APPayment DTO:**
+### Examples
 
 ```json
 {
-  "paymentId": "AP-uuid-12345",
-  "vendorBillId": "VB-uuid-67890",
-  "vendorId": "V-vendor-11111",
-  "vendorName": "ACME Parts Supplier",
-  "amount": "1500.00",
-  "currency": "USD",
-  "status": "SCHEDULED",
-  "paymentMethod": "ACH",
-  "paymentDate": "2026-02-19",
-  "bankAccountId": "BA-account-22222",
-  "approvalLevel": "UNDER_THRESHOLD",
-  "approvalThreshold": "10000.00",
-  "approvedAt": "2026-01-24T15:00:00Z",
-  "approvedBy": "user123",
-  "approvalJustification": "Verified goods received and pricing correct",
-  "scheduledAt": "2026-01-24T16:00:00Z",
-  "scheduledBy": "user456",
-  "cancelledAt": null,
-  "cancelledBy": null,
-  "cancellationReason": null,
-  "paymentTransactionId": null,
-  "createdAt": "2026-01-20T10:00:00Z",
-  "createdBy": "system"
+  "id": "abc-123",
+  "customerId": "cust-456",
+  "orderId": "ord-789"
 }
 ```
 
-**Required Fields (Approve):**
-
-- `vendorBillId` (FK to VendorBill)
-- `approvalJustification` (max 1000 chars)
-
-**Required Fields (Schedule):**
-
-- `paymentMethod` (enum: ACH, CHECK, WIRE)
-- `paymentDate` (LocalDate)
-- `bankAccountId` (FK to bank account)
-
-**Status Transitions:**
-
-- `PENDING_APPROVAL` → `APPROVED` (requires approval permission based on amount)
-- `APPROVED` → `SCHEDULED` (requires `accounting:ap_payment:schedule`)
-- `SCHEDULED` → `PAID` (external payment processing)
-- `SCHEDULED` → `CANCELLED` (requires `accounting:ap_payment:cancel`)
-
-**Approval Threshold Logic:**
-
-- `amount < threshold`: Requires `accounting:ap_payment:approve_under_threshold`
-- `amount >= threshold`: Requires `accounting:ap_payment:approve_over_threshold`
-- Threshold configurable per organization (default $10,000)
-- May require dual approval for over-threshold (policy-driven)
-
 ---
 
-### ManualJournalEntry (Issue #190)
+## Timestamp Conventions
 
-**Endpoints:**
+### Standard Pattern: ISO 8601 UTC
 
-- `GET /v1/accounting/manual-journal-entries` — List manual JEs
-- `GET /v1/accounting/manual-journal-entries/{jeId}` — Get manual JE details
-- `POST /v1/accounting/manual-journal-entries` — Create manual JE (DRAFT)
-- `PUT /v1/accounting/manual-journal-entries/{jeId}` — Update manual JE (DRAFT only)
-- `POST /v1/accounting/manual-journal-entries/{jeId}/post` — Post to GL
-- `POST /v1/accounting/manual-journal-entries/{jeId}/reverse` — Reverse posted JE
-- `DELETE /v1/accounting/manual-journal-entries/{jeId}` — Delete draft JE
+All timestamps **MUST** be:
 
-**ManualJournalEntry DTO:**
+- Serialized in ISO 8601 format with UTC timezone (`Z` suffix)
+- Stored as `Instant` in Java
+- Include millisecond precision when available
 
 ```json
 {
-  "journalEntryId": "JE-manual-12345",
-  "entryType": "MANUAL",
-  "status": "DRAFT",
-  "transactionDate": "2026-01-24",
-  "description": "Correcting entry for period-end accrual",
-  "reasonCode": "ACCRUAL_ADJUSTMENT",
-  "justification": "Accrue vendor bill received after period close",
-  "lines": [
+  "createdAt": "2026-01-27T14:30:00.123Z",
+  "updatedAt": "2026-01-27T15:45:30.456Z"
+}
+```
+
+### Common Timestamp Fields
+
+- `createdAt`: When the entity was created
+- `updatedAt`: When the entity was last updated
+- `deletedAt`: When the entity was soft-deleted (if applicable)
+- `effectiveFrom`: Start date for effective dating
+- `effectiveTo`: End date for effective dating
+
+---
+
+## Collection & Pagination
+
+### Standard Pagination Request
+
+```json
+{
+  "pageNumber": 0,
+  "pageSize": 20,
+  "sortField": "createdAt",
+  "sortOrder": "DESC"
+}
+```
+
+### Standard Pagination Response
+
+```json
+{
+  "results": [...],
+  "totalCount": 150,
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalPages": 8
+}
+```
+
+### Guidelines
+
+- Use zero-based page numbering
+- Default page size: 20 items
+- Maximum page size: 100 items
+- Include total count for client-side pagination controls
+
+---
+
+## Error Response Format
+
+### Standard Error Response
+
+All error responses **MUST** follow this format:
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Invalid request parameters",
+  "correlationId": "abc-123-def-456",
+  "timestamp": "2026-01-27T14:30:00Z",
+  "fieldErrors": [
     {
-      "lineId": "JEL-line-11111",
-      "lineNumber": 1,
-      "glAccountId": "GL-5000",
-      "accountCode": "5000-000",
-      "accountName": "Expense - Parts",
-      "debitAmount": "500.00",
-      "creditAmount": "0.00",
-      "description": "Parts expense accrual",
-      "dimensions": {
-        "businessUnitId": "BU-001",
-        "departmentId": "DEPT-123"
-      }
-    },
-    {
-      "lineId": "JEL-line-22222",
-      "lineNumber": 2,
-      "glAccountId": "GL-2000",
-      "accountCode": "2000-000",
-      "accountName": "Accrued Liabilities",
-      "debitAmount": "0.00",
-      "creditAmount": "500.00",
-      "description": "Accrued parts liability",
-      "dimensions": {
-        "businessUnitId": "BU-001",
-        "departmentId": "DEPT-123"
-      }
+      "field": "email",
+      "message": "Invalid email format",
+      "rejectedValue": "invalid-email"
     }
-  ],
-  "totalDebits": "500.00",
-  "totalCredits": "500.00",
-  "isBalanced": true,
-  "reversalJournalEntryId": null,
-  "reversedByJournalEntryId": null,
-  "createdAt": "2026-01-24T14:00:00Z",
-  "createdBy": "user123",
-  "postedAt": null,
-  "postedBy": null
+  ]
 }
 ```
 
-**Required Fields (Create Draft):**
+### Standard HTTP Status Codes
 
-- `transactionDate` (LocalDate)
-- `description` (max 500 chars)
-- `reasonCode` (enum: ACCRUAL_ADJUSTMENT, ERROR_CORRECTION, RECLASSIFICATION, etc.)
-- `lines` (array, min 2 lines)
-
-**Required Fields (Post):**
-
-- `justification` (max 1000 chars, required for HIGH-risk operation)
-
-**Validation:**
-
-- Balance check: `sum(debits) - sum(credits)` must be within ±0.0001
-- Cannot post unbalanced JE (returns 422)
-- Cannot edit/delete after posting (immutable)
-
-**Reason Codes (Enum):**
-
-- `ACCRUAL_ADJUSTMENT` — Period-end accruals
-- `ERROR_CORRECTION` — Fix prior posting errors
-- `RECLASSIFICATION` — Move amounts between accounts
-- `DEPRECIATION` — Monthly depreciation
-- `OTHER` — Other manual adjustments (requires detailed justification)
+- `200 OK`: Successful GET, PUT, PATCH
+- `201 Created`: Successful POST
+- `204 No Content`: Successful DELETE
+- `400 Bad Request`: Validation error
+- `401 Unauthorized`: Authentication required
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Resource not found
+- `409 Conflict`: Business rule violation
+- `422 Unprocessable Entity`: Semantic validation error
+- `500 Internal Server Error`: Unexpected server error
+- `501 Not Implemented`: Endpoint not yet implemented
 
 ---
 
-### Reconciliation (Issue #187)
+## Correlation ID & Request Tracking
 
-**Endpoints:**
+### X-Correlation-Id Header
 
-- `GET /v1/accounting/reconciliations` — List reconciliation sessions
-- `GET /v1/accounting/reconciliations/{reconciliationId}` — Get reconciliation details
-- `POST /v1/accounting/reconciliations` — Create reconciliation session
-- `POST /v1/accounting/reconciliations/{id}/import-statement` — Import bank statement
-- `POST /v1/accounting/reconciliations/{id}/match` — Match transactions
-- `POST /v1/accounting/reconciliations/{id}/create-adjustment` — Create adjustment JE
-- `POST /v1/accounting/reconciliations/{id}/finalize` — Finalize reconciliation
-- `POST /v1/accounting/reconciliations/{id}/reopen` — Reopen reconciliation
+All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
 
-**Reconciliation DTO:**
+```http
+GET /v1/accounting/entities/123
+X-Correlation-Id: abc-123-def-456
+```
+
+### Response Headers
+
+All API responses **MUST** echo the correlation ID:
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: abc-123-def-456
+```
+
+### Error Responses
+
+All error responses **MUST** include the correlation ID in the body:
 
 ```json
 {
-  "reconciliationId": "REC-uuid-12345",
-  "glAccountId": "GL-1000",
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  "periodStartDate": "2026-01-01",
-  "periodEndDate": "2026-01-31",
-  "statementDate": "2026-01-31",
-  "statementEndingBalance": "25000.00",
-  "glEndingBalance": "24500.00",
-  "difference": "500.00",
-  "status": "IN_PROGRESS",
-  "statementLines": [
-    {
-      "lineId": "SL-line-11111",
-      "lineNumber": 1,
-      "transactionDate": "2026-01-15",
-      "description": "ACH Credit - Customer Payment",
-      "amount": "5000.00",
-      "referenceNumber": "ACH-123456",
-      "matchedGLTransactionIds": ["GLT-trans-11111"],
-      "matchStatus": "MATCHED"
-    },
-    {
-      "lineId": "SL-line-22222",
-      "lineNumber": 2,
-      "transactionDate": "2026-01-20",
-      "description": "Bank Fee",
-      "amount": "-15.00",
-      "referenceNumber": "FEE-789",
-      "matchedGLTransactionIds": [],
-      "matchStatus": "UNMATCHED"
-    }
-  ],
-  "glTransactions": [
-    {
-      "glTransactionId": "GLT-trans-11111",
-      "journalEntryId": "JE-je-67890",
-      "transactionDate": "2026-01-15",
-      "description": "Customer Payment - Invoice INV-001",
-      "amount": "5000.00",
-      "matchedStatementLineIds": ["SL-line-11111"],
-      "matchStatus": "MATCHED"
-    }
-  ],
-  "adjustments": [],
-  "createdAt": "2026-02-01T09:00:00Z",
-  "createdBy": "user123",
-  "finalizedAt": null,
-  "finalizedBy": null
+  "code": "NOT_FOUND",
+  "message": "Entity not found",
+  "correlationId": "abc-123-def-456"
 }
 ```
 
-**Required Fields (Create Session):**
-
-- `glAccountId` (FK to GLAccount, must be bank/cash account)
-- `periodStartDate` (LocalDate)
-- `periodEndDate` (LocalDate)
-- `statementDate` (LocalDate, typically same as periodEndDate)
-- `statementEndingBalance` (BigDecimal from bank statement)
-
-**Import Statement:**
-
-- Supported formats: CSV, OFX, QBO
-- Parses: date, description, amount, reference number
-- Creates `statementLines` array
-
-**Matching:**
-
-- Auto-match: by amount + date (within tolerance)
-- Manual match: many-to-many support (if policy allows)
-- Unmatched items → require adjustment or explanation
-
-**Adjustments:**
-
-- Create adjustment JE for unmatched items
-- Adjustment types: BANK_FEE, INTEREST_INCOME, ERROR_CORRECTION, NSF, etc.
-- Link adjustment JE to reconciliation session
-
-**Finalization:**
-
-- Validates: all items matched or adjusted
-- Validates: reconciled balance matches statement balance
-- Locks reconciliation (status = FINALIZED, immutable)
-- Updates GL account balances
-
-**Reopen:**
-
-- Requires HIGH-risk permission
-- Requires justification
-- Reverses finalization effects
-- Status = IN_PROGRESS (editable)
+**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
 
 ---
 
-### WorkCompletedEvent (Issue #183)
+## API Endpoints
 
-**Endpoints:**
+### Endpoint Summary
 
-- `POST /v1/accounting/events/workcompleted` — Submit WorkCompleted event
-- `GET /v1/accounting/events/workcompleted` — List WorkCompleted events
-- `GET /v1/accounting/events/workcompleted/{eventId}` — Get event details
-- `POST /v1/accounting/events/workcompleted/{eventId}/retry` — Retry processing
-- `POST /v1/accounting/events/workcompleted/{eventId}/suspend` — Suspend event
-- `GET /v1/accounting/events/workcompleted/{eventId}/payload` — View raw payload
+This domain exposes **44** REST API endpoints:
 
-**WorkCompletedEvent DTO:**
+| Method | Path | Summary |
+|--------|------|---------|
+| GET | `/api/audit/actor/{actorId}` |  |
+| POST | `/api/audit/cancellation` |  |
+| GET | `/api/audit/invoice/{invoiceId}` |  |
+| GET | `/api/audit/order/{orderId}` |  |
+| POST | `/api/audit/price-override` |  |
+| GET | `/api/audit/range` |  |
+| POST | `/api/audit/refund` |  |
+| GET | `/api/audit/type/{type}` |  |
+| GET | `/v1/accounting/events` | List events |
+| POST | `/v1/accounting/events` | Submit event |
+| GET | `/v1/accounting/events/{eventId}` | Get event |
+| GET | `/v1/accounting/events/{eventId}/processing-log` | Get event processing log |
+| POST | `/v1/accounting/events/{eventId}/retry` | Retry event processing |
+| GET | `/v1/accounting/gl-accounts` | List GL accounts |
+| POST | `/v1/accounting/gl-accounts` | Create GL account |
+| GET | `/v1/accounting/gl-accounts/{glAccountId}` | Get GL account |
+| PUT | `/v1/accounting/gl-accounts/{glAccountId}` | Update GL account |
+| POST | `/v1/accounting/gl-accounts/{glAccountId}/activate` | Activate GL account |
+| POST | `/v1/accounting/gl-accounts/{glAccountId}/archive` | Archive GL account |
+| GET | `/v1/accounting/gl-accounts/{glAccountId}/balance` | Get GL account balance |
+| POST | `/v1/accounting/gl-accounts/{glAccountId}/deactivate` | Deactivate GL account |
+| POST | `/v1/accounting/glAccounts` | Create GL account (legacy path) |
+| GET | `/v1/accounting/glAccounts/{accountId}` | Get GL account (legacy path) |
+| PUT | `/v1/accounting/glAccounts/{accountId}` | Update GL account (legacy path) |
+| GET | `/v1/accounting/invoice/{invoiceId}/status` | Get invoice status |
+| GET | `/v1/accounting/journal-entries` | List journal entries |
+| POST | `/v1/accounting/journal-entries` | Create journal entry |
+| GET | `/v1/accounting/journal-entries/{journalEntryId}` | Get journal entry |
+| PUT | `/v1/accounting/journal-entries/{journalEntryId}` | Update journal entry |
+| POST | `/v1/accounting/journal-entries/{journalEntryId}/post` | Post journal entry |
+| POST | `/v1/accounting/journal-entries/{journalEntryId}/reverse` | Reverse journal entry |
+| POST | `/v1/accounting/payments/{paymentId}/applications` | Apply payment |
+| POST | `/v1/accounting/payments/{paymentId}/reverse` | Reverse payment |
+| GET | `/v1/accounting/payments/{paymentId}/status` | Get payment status |
+| POST | `/v1/accounting/payments/{paymentId}/void` | Void payment |
+| GET | `/v1/accounting/posting-rules` | List posting rule sets |
+| POST | `/v1/accounting/posting-rules` | Create posting rule set |
+| GET | `/v1/accounting/posting-rules/{postingRuleSetId}` | Get posting rule set |
+| POST | `/v1/accounting/posting-rules/{postingRuleSetId}/archive` | Archive posting rule set |
+| POST | `/v1/accounting/posting-rules/{postingRuleSetId}/publish` | Publish posting rule set |
+| GET | `/v1/accounting/posting-rules/{postingRuleSetId}/versions` | List posting rule versions |
+| GET | `/v1/accounting/traceability/{journalEntryId}` | Get journal traceability |
+| POST | `/v1/invoice/invoices` | Regenerate invoice from workorder |
+| GET | `/v1/invoice/rules/{customerId}` | Get billing rules |
 
-```json
-{
-  "eventId": "AE-workcompleted-12345",
-  "eventType": "WorkCompletedEvent",
-  "workorderId": "WO-12345",
-  "completedAt": "2026-01-24T16:00:00Z",
-  "transactionDate": "2026-01-24",
-  "payload": {
-    "workorderId": "WO-12345",
-    "customerId": "C-customer-67890",
-    "vehicleId": "V-vehicle-11111",
-    "laborCost": "250.00",
-    "partsCost": "150.00",
-    "totalCost": "400.00",
-    "completedBy": "tech123",
-    "approvedBy": "manager456"
-  },
-  "status": "PROCESSED",
-  "processingStatus": "SUCCESS",
-  "idempotencyOutcome": "PROCESSED_NEW",
-  "receivedAt": "2026-01-24T16:00:05Z",
-  "processedAt": "2026-01-24T16:00:10Z",
-  "journalEntryId": "JE-je-67890",
-  "vendorBillId": "VB-bill-11111",
-  "retryCount": 0,
-  "lastRetryAt": null,
-  "suspendedAt": null,
-  "suspendedBy": null,
-  "suspensionReason": null,
-  "errorMessage": null,
-  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-  "createdAt": "2026-01-24T16:00:05Z",
-  "createdBy": "workexec-service"
-}
-```
+### Endpoint Details
 
-**Required Fields (Submit):**
+#### GET /api/audit/actor/{actorId}
 
-- `eventId` (UUIDv7, client-generated per AD-006)
-- `eventType` = "WorkCompletedEvent"
-- `workorderId` (FK to WorkExec workorder)
-- `transactionDate` (LocalDate)
-- `payload` (JSON object with labor/parts costs)
+**Operation ID:** `getByActor`
 
-**Status Model:**
+**Parameters:**
 
-- `RECEIVED` → Event ingested, awaiting processing
-- `PROCESSING` → JE generation in progress
-- `PROCESSED` → Success, JE created
-- `FAILED` → Processing error, retry eligible
-- `SUSPENDED` → Manually suspended for investigation
+- `actorId` (path, Required, string): 
+- `startDate` (query, Required, string): 
+- `endDate` (query, Required, string): 
 
-**Idempotency:**
+**Responses:**
 
-- Duplicate `eventId` submission → 409 Conflict
-- Returns `idempotencyOutcome`: PROCESSED_NEW, DUPLICATE_IGNORED, RETRY_SUCCESS
+- `200`: OK
 
-**Retry Policy:**
 
-- Auto-retry: max 3 attempts with exponential backoff
-- Manual retry: requires `accounting:workcompleted_events:retry`
-- Retry history tracked: `retryCount`, `lastRetryAt`
-- After max retries → escalate to suspense or manual review
+---
 
-**Payload Visibility:**
+#### POST /api/audit/cancellation
 
-- Raw payload access gated by `accounting:workcompleted_events:view_payload` (per AD-009)
-- Sensitive data: labor costs, part costs, customer details
-- Audit access to payload
+**Operation ID:** `recordCancellation`
 
-**Operator Reason:**
+**Responses:**
 
-- Manual retry/suspend requires `operatorReason` (max 500 chars)
-- Tracks human intervention justification
+- `200`: OK
+
+
+---
+
+#### GET /api/audit/invoice/{invoiceId}
+
+**Operation ID:** `getByInvoiceId`
+
+**Parameters:**
+
+- `invoiceId` (path, Required, string): 
+
+**Responses:**
+
+- `200`: OK
+
+
+---
+
+#### GET /api/audit/order/{orderId}
+
+**Operation ID:** `getByOrderId`
+
+**Parameters:**
+
+- `orderId` (path, Required, string): 
+
+**Responses:**
+
+- `200`: OK
+
+
+---
+
+#### POST /api/audit/price-override
+
+**Operation ID:** `recordPriceOverride`
+
+**Responses:**
+
+- `200`: OK
+
+
+---
+
+#### GET /api/audit/range
+
+**Operation ID:** `getByDateRange`
+
+**Parameters:**
+
+- `startDate` (query, Required, string): 
+- `endDate` (query, Required, string): 
+
+**Responses:**
+
+- `200`: OK
+
+
+---
+
+#### POST /api/audit/refund
+
+**Operation ID:** `recordRefund`
+
+**Responses:**
+
+- `200`: OK
+
+
+---
+
+#### GET /api/audit/type/{type}
+
+**Operation ID:** `getByType`
+
+**Parameters:**
+
+- `type` (path, Required, string): 
+- `startDate` (query, Required, string): 
+- `endDate` (query, Required, string): 
+
+**Responses:**
+
+- `200`: OK
+
+
+---
+
+#### GET /v1/accounting/events
+
+**Summary:** List events
+
+**Description:** Retrieve paginated accounting events with optional filters.
+
+**Operation ID:** `listEvents`
+
+**Parameters:**
+
+- `page` (query, Optional, integer): Page index (0-based)
+- `size` (query, Optional, integer): Page size
+- `eventType` (query, Optional, string): Filter by event type
+- `status` (query, Optional, string): Filter by processing status
+
+**Responses:**
+
+- `200`: Events listed
+- `403`: Forbidden
+
+
+---
+
+#### POST /v1/accounting/events
+
+**Summary:** Submit event
+
+**Description:** Submit a new accounting event for processing.
+
+**Operation ID:** `submitEvent`
+
+**Responses:**
+
+- `202`: Event accepted for processing
+- `400`: Invalid request
+
+
+---
+
+#### GET /v1/accounting/events/{eventId}
+
+**Summary:** Get event
+
+**Description:** Retrieve details for an accounting event.
+
+**Operation ID:** `getEvent`
+
+**Parameters:**
+
+- `eventId` (path, Required, string): Event identifier
+
+**Responses:**
+
+- `200`: Event returned
+- `404`: Event not found
+
+
+---
+
+#### GET /v1/accounting/events/{eventId}/processing-log
+
+**Summary:** Get event processing log
+
+**Description:** Retrieve the processing log for an accounting event.
+
+**Operation ID:** `getEventProcessingLog`
+
+**Parameters:**
+
+- `eventId` (path, Required, string): Event identifier
+
+**Responses:**
+
+- `200`: Processing log returned
+- `404`: Event not found
+
+
+---
+
+#### POST /v1/accounting/events/{eventId}/retry
+
+**Summary:** Retry event processing
+
+**Description:** Retry processing for a failed accounting event.
+
+**Operation ID:** `retryEventProcessing`
+
+**Parameters:**
+
+- `eventId` (path, Required, string): Event identifier
+
+**Responses:**
+
+- `202`: Retry scheduled
+- `404`: Event not found
+
+
+---
+
+#### GET /v1/accounting/gl-accounts
+
+**Summary:** List GL accounts
+
+**Description:** Retrieve paginated GL accounts filtered by status and sorted by a field.
+
+**Operation ID:** `listGLAccounts`
+
+**Parameters:**
+
+- `page` (query, Optional, integer): Page index (0-based)
+- `size` (query, Optional, integer): Page size
+- `sort` (query, Optional, string): Sort field
+- `status` (query, Optional, string): Filter by account status
+
+**Responses:**
+
+- `200`: GL accounts listed
+- `403`: Forbidden
+
+
+---
+
+#### POST /v1/accounting/gl-accounts
+
+**Summary:** Create GL account
+
+**Description:** Create a new GL account.
+
+**Operation ID:** `createGLAccount`
+
+**Responses:**
+
+- `201`: GL account created
+- `400`: Invalid request
+
+
+---
+
+#### GET /v1/accounting/gl-accounts/{glAccountId}
+
+**Summary:** Get GL account
+
+**Description:** Retrieve a GL account by identifier.
+
+**Operation ID:** `getGLAccount`
+
+**Parameters:**
+
+- `glAccountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account returned
+- `404`: GL account not found
+
+
+---
+
+#### PUT /v1/accounting/gl-accounts/{glAccountId}
+
+**Summary:** Update GL account
+
+**Description:** Update details for an existing GL account.
+
+**Operation ID:** `updateGLAccount`
+
+**Parameters:**
+
+- `glAccountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account updated
+- `404`: GL account not found
+
+
+---
+
+#### POST /v1/accounting/gl-accounts/{glAccountId}/activate
+
+**Summary:** Activate GL account
+
+**Description:** Mark a GL account as active.
+
+**Operation ID:** `activateGLAccount`
+
+**Parameters:**
+
+- `glAccountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account activated
+- `404`: GL account not found
+
+
+---
+
+#### POST /v1/accounting/gl-accounts/{glAccountId}/archive
+
+**Summary:** Archive GL account
+
+**Description:** Archive a GL account and remove it from active use.
+
+**Operation ID:** `archiveGLAccount`
+
+**Parameters:**
+
+- `glAccountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account archived
+- `404`: GL account not found
+
+
+---
+
+#### GET /v1/accounting/gl-accounts/{glAccountId}/balance
+
+**Summary:** Get GL account balance
+
+**Description:** Retrieve the current balance for a GL account.
+
+**Operation ID:** `getAccountBalance`
+
+**Parameters:**
+
+- `glAccountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: Balance returned
+- `404`: GL account not found
+
+
+---
+
+#### POST /v1/accounting/gl-accounts/{glAccountId}/deactivate
+
+**Summary:** Deactivate GL account
+
+**Description:** Mark a GL account as inactive.
+
+**Operation ID:** `deactivateGLAccount`
+
+**Parameters:**
+
+- `glAccountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account deactivated
+- `404`: GL account not found
+
+
+---
+
+#### POST /v1/accounting/glAccounts
+
+**Summary:** Create GL account (legacy path)
+
+**Description:** Create a GL account via the legacy endpoint.
+
+**Operation ID:** `createGlAccount`
+
+**Responses:**
+
+- `201`: GL account created
+- `400`: Invalid request
+
+
+---
+
+#### GET /v1/accounting/glAccounts/{accountId}
+
+**Summary:** Get GL account (legacy path)
+
+**Description:** Retrieve a GL account by identifier.
+
+**Operation ID:** `getGlAccount`
+
+**Parameters:**
+
+- `accountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account returned
+- `404`: GL account not found
+
+
+---
+
+#### PUT /v1/accounting/glAccounts/{accountId}
+
+**Summary:** Update GL account (legacy path)
+
+**Description:** Update a GL account via the legacy endpoint.
+
+**Operation ID:** `manageGlAccount`
+
+**Parameters:**
+
+- `accountId` (path, Required, string): GL account identifier
+
+**Responses:**
+
+- `200`: GL account updated
+- `404`: GL account not found
+
+
+---
+
+#### GET /v1/accounting/invoice/{invoiceId}/status
+
+**Summary:** Get invoice status
+
+**Description:** Retrieve current payment status for an invoice.
+
+**Operation ID:** `getInvoiceStatus`
+
+**Parameters:**
+
+- `invoiceId` (path, Required, string): Invoice identifier
+
+**Responses:**
+
+- `200`: Invoice status returned
+- `404`: Invoice not found
+- `500`: Error retrieving invoice status
+
+
+---
+
+#### GET /v1/accounting/journal-entries
+
+**Summary:** List journal entries
+
+**Description:** Retrieve paginated journal entries.
+
+**Operation ID:** `listJournalEntries`
+
+**Parameters:**
+
+- `page` (query, Optional, integer): Page index (0-based)
+- `size` (query, Optional, integer): Page size
+- `sort` (query, Optional, string): Sort field
+
+**Responses:**
+
+- `200`: Journal entries listed
+- `403`: Forbidden
+
+
+---
+
+#### POST /v1/accounting/journal-entries
+
+**Summary:** Create journal entry
+
+**Description:** Create a new journal entry.
+
+**Operation ID:** `createJournalEntry`
+
+**Responses:**
+
+- `201`: Journal entry created
+- `400`: Invalid request
+
+
+---
+
+#### GET /v1/accounting/journal-entries/{journalEntryId}
+
+**Summary:** Get journal entry
+
+**Description:** Retrieve a journal entry by identifier.
+
+**Operation ID:** `getJournalEntry`
+
+**Parameters:**
+
+- `journalEntryId` (path, Required, string): Journal entry identifier
+
+**Responses:**
+
+- `200`: Journal entry returned
+- `404`: Journal entry not found
+
+
+---
+
+#### PUT /v1/accounting/journal-entries/{journalEntryId}
+
+**Summary:** Update journal entry
+
+**Description:** Update an existing journal entry.
+
+**Operation ID:** `updateJournalEntry`
+
+**Parameters:**
+
+- `journalEntryId` (path, Required, string): Journal entry identifier
+
+**Responses:**
+
+- `200`: Journal entry updated
+- `404`: Journal entry not found
+
+
+---
+
+#### POST /v1/accounting/journal-entries/{journalEntryId}/post
+
+**Summary:** Post journal entry
+
+**Description:** Post a draft journal entry to the ledger.
+
+**Operation ID:** `postJournalEntry`
+
+**Parameters:**
+
+- `journalEntryId` (path, Required, string): Journal entry identifier
+
+**Responses:**
+
+- `200`: Journal entry posted
+- `404`: Journal entry not found
+
+
+---
+
+#### POST /v1/accounting/journal-entries/{journalEntryId}/reverse
+
+**Summary:** Reverse journal entry
+
+**Description:** Reverse a posted journal entry.
+
+**Operation ID:** `reverseJournalEntry`
+
+**Parameters:**
+
+- `journalEntryId` (path, Required, string): Journal entry identifier
+
+**Responses:**
+
+- `200`: Journal entry reversed
+- `404`: Journal entry not found
+
+
+---
+
+#### POST /v1/accounting/payments/{paymentId}/applications
+
+**Summary:** Apply payment
+
+**Description:** Apply a payment to an invoice and update its status.
+
+**Operation ID:** `applyPayment`
+
+**Parameters:**
+
+- `paymentId` (path, Required, string): Payment identifier
+
+**Responses:**
+
+- `200`: Payment applied
+- `400`: Invalid payment request
+- `500`: Processing error
+
+
+---
+
+#### POST /v1/accounting/payments/{paymentId}/reverse
+
+**Summary:** Reverse payment
+
+**Description:** Reverse a previously applied payment.
+
+**Operation ID:** `reversePayment`
+
+**Parameters:**
+
+- `paymentId` (path, Required, string): Payment identifier
+
+**Responses:**
+
+- `200`: Payment reversed
+- `404`: Payment not found
+
+
+---
+
+#### GET /v1/accounting/payments/{paymentId}/status
+
+**Summary:** Get payment status
+
+**Description:** Retrieve status for an accounts payable payment.
+
+**Operation ID:** `getPaymentStatus`
+
+**Parameters:**
+
+- `paymentId` (path, Required, string): Payment identifier
+
+**Responses:**
+
+- `200`: Payment status returned
+- `404`: Payment not found
+
+
+---
+
+#### POST /v1/accounting/payments/{paymentId}/void
+
+**Summary:** Void payment
+
+**Description:** Void a payment before settlement.
+
+**Operation ID:** `voidPayment`
+
+**Parameters:**
+
+- `paymentId` (path, Required, string): Payment identifier
+
+**Responses:**
+
+- `200`: Payment voided
+- `404`: Payment not found
+
+
+---
+
+#### GET /v1/accounting/posting-rules
+
+**Summary:** List posting rule sets
+
+**Description:** Retrieve paginated posting rule sets.
+
+**Operation ID:** `listPostingRuleSets`
+
+**Parameters:**
+
+- `page` (query, Optional, integer): Page index (0-based)
+- `size` (query, Optional, integer): Page size
+- `sort` (query, Optional, string): Sort field
+
+**Responses:**
+
+- `200`: Posting rule sets listed
+- `403`: Forbidden
+
+
+---
+
+#### POST /v1/accounting/posting-rules
+
+**Summary:** Create posting rule set
+
+**Description:** Create a new posting rule set.
+
+**Operation ID:** `createPostingRuleSet`
+
+**Responses:**
+
+- `201`: Posting rule set created
+- `400`: Invalid request
+
+
+---
+
+#### GET /v1/accounting/posting-rules/{postingRuleSetId}
+
+**Summary:** Get posting rule set
+
+**Description:** Retrieve a posting rule set by identifier.
+
+**Operation ID:** `getPostingRuleSet`
+
+**Parameters:**
+
+- `postingRuleSetId` (path, Required, string): Posting rule set identifier
+
+**Responses:**
+
+- `200`: Posting rule set returned
+- `404`: Posting rule set not found
+
+
+---
+
+#### POST /v1/accounting/posting-rules/{postingRuleSetId}/archive
+
+**Summary:** Archive posting rule set
+
+**Description:** Archive a posting rule set.
+
+**Operation ID:** `archivePostingRuleSet`
+
+**Parameters:**
+
+- `postingRuleSetId` (path, Required, string): Posting rule set identifier
+
+**Responses:**
+
+- `200`: Posting rule set archived
+- `404`: Posting rule set not found
+
+
+---
+
+#### POST /v1/accounting/posting-rules/{postingRuleSetId}/publish
+
+**Summary:** Publish posting rule set
+
+**Description:** Publish a posting rule set version.
+
+**Operation ID:** `publishPostingRuleSet`
+
+**Parameters:**
+
+- `postingRuleSetId` (path, Required, string): Posting rule set identifier
+
+**Responses:**
+
+- `200`: Posting rule set published
+- `404`: Posting rule set not found
+
+
+---
+
+#### GET /v1/accounting/posting-rules/{postingRuleSetId}/versions
+
+**Summary:** List posting rule versions
+
+**Description:** List versions for a posting rule set.
+
+**Operation ID:** `listPostingRuleVersions`
+
+**Parameters:**
+
+- `postingRuleSetId` (path, Required, string): Posting rule set identifier
+- `page` (query, Optional, integer): Page index (0-based)
+- `size` (query, Optional, integer): Page size
+
+**Responses:**
+
+- `200`: Posting rule versions listed
+- `404`: Posting rule set not found
+
+
+---
+
+#### GET /v1/accounting/traceability/{journalEntryId}
+
+**Summary:** Get journal traceability
+
+**Description:** Trace a journal entry across related records.
+
+**Operation ID:** `getJournalTraceability`
+
+**Parameters:**
+
+- `journalEntryId` (path, Required, string): Journal entry identifier
+
+**Responses:**
+
+- `200`: Traceability returned
+- `404`: Journal entry not found
+
+
+---
+
+#### POST /v1/invoice/invoices
+
+**Summary:** Regenerate invoice from workorder
+
+**Description:** Regenerate an invoice from a workorder.
+
+**Operation ID:** `regenerateInvoiceFromWorkorder`
+
+**Responses:**
+
+- `202`: Invoice regeneration accepted
+- `400`: Invalid request
+
+
+---
+
+#### GET /v1/invoice/rules/{customerId}
+
+**Summary:** Get billing rules
+
+**Description:** Retrieve billing rules for a customer.
+
+**Operation ID:** `getBillingRules`
+
+**Parameters:**
+
+- `customerId` (path, Required, string): Customer identifier
+
+**Responses:**
+
+- `200`: Billing rules returned
+- `404`: Customer not found
+
+
+
+---
+
+## Entity-Specific Contracts
+
+### AuditTrailResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `accountingIntent` | string | No |  |
+| `accountingStatus` | string | No |  |
+| `actorId` | string (uuid) | No |  |
+| `actorRole` | string | No |  |
+| `adjustedPrice` | number | No |  |
+| `afterSnapshot` | string | No |  |
+| `auditId` | string (uuid) | No |  |
+| `authorizationLevel` | string | No |  |
+| `beforeSnapshot` | string | No |  |
+| `cancellationType` | string | No |  |
+| `exceptionType` | string | No |  |
+| `expectedAccountingOutcome` | string | No |  |
+| `forbiddenCategoryCode` | string | No |  |
+| `glReversalStatus` | string | No |  |
+| `invoiceId` | string (uuid) | No |  |
+| `lineItemId` | string (uuid) | No |  |
+| `linkedSourceIds` | string | No |  |
+| `orderId` | string (uuid) | No |  |
+| `originalPaymentStatus` | string | No |  |
+| `originalPrice` | number | No |  |
+| `overrideAmountOrPercent` | string | No |  |
+| `partialPaymentInfo` | string | No |  |
+| `paymentId` | string (uuid) | No |  |
+| `policyValidationResult` | string | No |  |
+| `policyVersion` | string | No |  |
+| `reason` | string | No |  |
+| `refundAmount` | number | No |  |
+| `refundMethod` | string | No |  |
+| `refundType` | string | No |  |
+| `sourceDocumentId` | string | No |  |
+| `sourceEventId` | string (uuid) | No |  |
+| `timestamp` | string (date-time) | No |  |
+
+
+### CancellationRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `actorId` | string (uuid) | Yes |  |
+| `actorRole` | string | Yes |  |
+| `afterSnapshot` | string | Yes |  |
+| `beforeSnapshot` | string | Yes |  |
+| `cancellationType` | string | Yes |  |
+| `invoiceId` | string (uuid) | No |  |
+| `orderId` | string (uuid) | No |  |
+| `partialPaymentInfo` | string | No |  |
+| `reason` | string | Yes |  |
+
+
+### InvoiceStatusResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `invoiceId` | string | No |  |
+| `invoiceTotal` | number | No |  |
+| `lastUpdated` | string (date-time) | No |  |
+| `latestTransactionReference` | string | No |  |
+| `remainingBalance` | number | No |  |
+| `status` | string | No |  |
+| `totalPaid` | number | No |  |
+
+
+### PaymentAppliedRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `idempotencyKey` | string | Yes |  |
+| `invoiceId` | string | Yes |  |
+| `invoiceTotal` | number | Yes |  |
+| `paymentAmount` | number | Yes |  |
+| `paymentFailed` | boolean | No |  |
+| `transactionReference` | string | Yes |  |
+
+
+### PriceOverrideRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `actorId` | string (uuid) | Yes |  |
+| `actorRole` | string | Yes |  |
+| `adjustedPrice` | number | Yes |  |
+| `lineItemId` | string (uuid) | Yes |  |
+| `orderId` | string (uuid) | Yes |  |
+| `originalPrice` | number | Yes |  |
+| `reason` | string | Yes |  |
+
+
+### RefundRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `actorId` | string (uuid) | Yes |  |
+| `actorRole` | string | Yes |  |
+| `invoiceId` | string (uuid) | Yes |  |
+| `originalPaymentStatus` | string | Yes |  |
+| `paymentId` | string (uuid) | Yes |  |
+| `reason` | string | Yes |  |
+| `refundAmount` | number | Yes |  |
+| `refundType` | string | Yes |  |
+
+
 
 ---
 
 ## Examples
 
-### Example 1: Create GL Account
+### Example Request/Response Pairs
 
-**Request:**
+#### Example: Create Request
 
-```
-POST /v1/accounting/gl-accounts
-Authorization: Bearer {jwt}
+```http
+POST /v1/invoice/invoices
 Content-Type: application/json
+X-Correlation-Id: abc-123-def-456
 
 {
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  "accountType": "ASSET",
-  "description": "Main operating cash account",
-  "activationDate": "2026-01-01"
+  "name": "Example",
+  "description": "Example description",
+  "status": "ACTIVE"
 }
 ```
 
-**Success Response (201):**
+**Response:**
 
-```
-Location: /v1/accounting/gl-accounts/GL-uuid-12345
-ETag: "etag-value-12345"
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: abc-123-def-456
 
 {
-  "glAccountId": "GL-uuid-12345",
-  "accountCode": "1000-000",
-  "accountName": "Cash - Operating",
-  "accountType": "ASSET",
-  "description": "Main operating cash account",
-  "parentAccountId": null,
-  "activationDate": "2026-01-01",
-  "deactivationDate": null,
-  "createdAt": "2026-01-24T14:30:00Z",
-  "createdBy": "user123",
-  "modifiedAt": "2026-01-24T14:30:00Z",
-  "modifiedBy": "user123"
+  "id": "new-id-123",
+  "name": "Example",
+  "description": "Example description",
+  "status": "ACTIVE",
+  "createdAt": "2026-01-27T14:30:00Z"
 }
 ```
 
-**Error Response (409 Duplicate):**
+#### Example: Retrieve Request
 
-```json
-{
-  "errorCode": "DUPLICATE_ACCOUNT_CODE",
-  "message": "Account code '1000-000' already exists",
-  "path": "/v1/accounting/gl-accounts",
-  "timestamp": "2026-01-24T14:30:00Z",
-  "details": {
-    "existingAccountId": "GL-uuid-existing"
-  }
-}
+```http
+GET /v1/accounting/journal-entries/{journalEntryId}
+X-Correlation-Id: abc-123-def-456
 ```
 
----
+**Response:**
 
-### Example 2: Create GL Mapping with Overlap Detection
-
-**Request:**
-
-```
-POST /v1/accounting/gl-mappings
-Authorization: Bearer {jwt}
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: abc-123-def-456
 
 {
-  "postingCategoryId": "PC-001",
-  "mappingKeyId": "MK-001",
-  "glAccountId": "GL-1000",
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31",
-  "dimensions": {
-    "businessUnitId": "BU-001"
-  }
-}
-```
-
-**Error Response (409 Overlap):**
-
-```json
-{
-  "errorCode": "MAPPING_OVERLAP",
-  "message": "GL mapping overlaps with existing mapping for same category and key",
-  "path": "/v1/accounting/gl-mappings",
-  "timestamp": "2026-01-24T14:30:00Z",
-  "details": {
-    "postingCategoryId": "PC-001",
-    "mappingKeyId": "MK-001",
-    "conflictingMappings": [
-      {
-        "glMappingId": "GM-existing-12345",
-        "effectiveFrom": "2026-01-01",
-        "effectiveTo": "2026-06-30",
-        "glAccountId": "GL-1000"
-      }
-    ]
-  }
-}
-```
-
----
-
-### Example 3: Publish Posting Rule Set Version with Balance Validation
-
-**Request:**
-
-```
-POST /v1/accounting/posting-rule-sets/PRS-12345/versions/2/publish
-Authorization: Bearer {jwt}
-
-{
-  "justification": "Reviewed and approved by Controller - effective for January 2026 transactions"
-}
-```
-
-**Error Response (422 Unbalanced):**
-
-```json
-{
-  "errorCode": "UNBALANCED_RULES",
-  "message": "Posting rule set validation failed: debits and credits do not balance",
-  "path": "/v1/accounting/posting-rule-sets/PRS-12345/versions/2/publish",
-  "timestamp": "2026-01-24T14:30:00Z",
-  "details": {
-    "totalDebits": "1000.00",
-    "totalCredits": "950.00",
-    "difference": "50.00",
-    "conditions": [
-      {
-        "condition": "saleType == 'CASH'",
-        "debits": "500.00",
-        "credits": "500.00",
-        "balanced": true
-      },
-      {
-        "condition": "saleType == 'CREDIT'",
-        "debits": "500.00",
-        "credits": "450.00",
-        "balanced": false,
-        "message": "Condition does not balance: debits 500.00, credits 450.00"
-      }
-    ]
-  }
-}
-```
-
----
-
-### Example 4: Post Journal Entry
-
-**Request:**
-
-```
-POST /v1/accounting/journal-entries/JE-12345/post
-Authorization: Bearer {jwt}
-
-{
-  "justification": "Month-end close for January 2026"
-}
-```
-
-**Success Response (200):**
-
-```json
-{
-  "journalEntryId": "JE-12345",
-  "status": "POSTED",
-  "postedAt": "2026-01-24T16:00:00Z",
-  "postedBy": "user123",
-  "justification": "Month-end close for January 2026"
-}
-```
-
-**Error Response (409 Already Posted):**
-
-```json
-{
-  "errorCode": "JE_ALREADY_POSTED",
-  "message": "Journal entry JE-12345 is already posted and cannot be modified",
-  "path": "/v1/accounting/journal-entries/JE-12345/post",
-  "timestamp": "2026-01-24T16:00:00Z",
-  "details": {
-    "postedAt": "2026-01-24T15:00:00Z",
-    "postedBy": "user456"
-  }
+  "id": "existing-id-456",
+  "name": "Example",
+  "status": "ACTIVE",
+  "createdAt": "2026-01-27T14:00:00Z",
+  "updatedAt": "2026-01-27T14:30:00Z"
 }
 ```
 
@@ -2033,34 +1454,34 @@ Authorization: Bearer {jwt}
 
 ## Summary
 
-This guide establishes comprehensive backend contract standards for the Accounting domain:
+This guide establishes standardized contracts for the Accounting domain:
 
-- ✅ **Consistent naming:** camelCase fields, UPPER_SNAKE enums, `{resource}Id` pattern
-- ✅ **Monetary precision:** BigDecimal with 4 decimal places, string serialization
-- ✅ **Effective dating:** LocalDate for date-only fields, effective range queries
-- ✅ **Versioning:** Explicit version numbering for PostingRuleSet, immutability rules
-- ✅ **Error codes:** Standardized error structure with 26 accounting-specific codes
-- ✅ **Optimistic locking:** ETag-based concurrency control
-- ✅ **Audit trails:** createdAt/By, modifiedAt/By, justification for high-risk operations
-- ✅ **Pagination:** Standard request/response patterns
-- ✅ **Balance validation:** Tolerance of ±0.0001 for journal entries
-- ✅ **Immutability:** Posted JEs, published rule versions, GL mappings
-
-All backend developers and frontend developers **MUST** follow these standards when implementing Accounting domain APIs.
+- **Field Naming**: camelCase for all JSON fields
+- **Enum Values**: UPPER_SNAKE_CASE for all enums
+- **Timestamps**: ISO 8601 UTC format
+- **Identifiers**: String-based UUIDs
+- **Pagination**: Zero-based with standard response format
+- **Error Handling**: Consistent error response structure with correlation IDs
 
 ---
 
 ## Change Log
 
-| Date | Version | Author | Changes |
-|------|---------|--------|---------|
-| 2026-01-24 | 1.0 | Backend Team | Initial accounting backend contract guide |
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
 ---
 
 ## References
 
-- CRM Backend Contract Guide: `domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- Accounting Permission Taxonomy: `domains/accounting/.business-rules/PERMISSION_TAXONOMY.md`
-- Accounting Questions: `domains/accounting/accounting-questions.txt`
-- API Catalog: `.github/agents/api-catalog.yml`
+- OpenAPI Specification: `pos-accounting/target/openapi.json`
+- Domain Agent Guide: `domains/accounting/.business-rules/AGENT_GUIDE.md`
+- Cross-Domain Integration: `domains/accounting/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
+- Error Codes: `domains/accounting/.business-rules/ERROR_CODES.md`
+- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
+
+---
+
+**Generated:** 2026-01-27 14:27:53 UTC  
+**Tool:** `scripts/generate_backend_contract_guides.py`
