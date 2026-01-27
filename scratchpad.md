@@ -115,9 +115,9 @@ Implementation can be incremental: start by requiring link presence; enforce mer
 
 ### Provider behavioral test suite (backend repo)
 
-Create a test module/category like:
+Create a test module/category:
 
-* `ContractBehaviorIT` or `ContractScenariosIT`
+* `ContractBehaviorIT`
 
 Each scenario maps to “Examples” in the guide:
 
