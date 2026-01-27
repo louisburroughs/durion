@@ -48,121 +48,182 @@ Backend MUST return stable codes above; extend with new codes as needed, keeping
 
 ---
 
-## Endpoint Inventory (Phase 1 Draft)
+## Endpoint Inventory (Phase 2 Confirmed from pos-work-order Backend)
 
-The paths follow the WorkExec namespace `GET/POST /api/v1/workexec/...`. Mutations accept `Idempotency-Key`. All request/response DTOs use the standard error envelope on failure.
+The paths follow the WorkExec namespace `GET/POST /v1/workorders/...` (actual backend routing). Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
 
-### Estimates
+### Estimates (Confirmed APIs)
 
-1. **Load Estimate** — `GET /api/v1/workexec/estimates/{estimateId}`
-   - Response: `EstimateDTO { estimateId, status, customerId, locationId, activeVersionId, versionNumber, items[], totals{}, approvalConfig?, approvalStatus?, expiresAt?, lastUpdatedAt, lastUpdatedBy }`
+1. **Get All Estimates** — `GET /v1/workorders/estimates`
+   - Response: `[ EstimateDTO ]`
+   - No pagination in source; returns all estimates
 
-2. **Create Estimate** — `POST /api/v1/workexec/estimates`
-   - Request: `{ customerId, locationId, appointmentId?, notes? }`
-   - Response: `EstimateDTO` (status=DRAFT)
+2. **Get Estimate by ID** — `GET /v1/workorders/estimates/{estimateId}`
+   - Path param: `estimateId` (Long, required)
+   - Response: `EstimateDTO` (200) | 404 if not found
+   - EstimateDTO: `{ id, estimateNumber, status, locationId, vehicleId, customerId, createdByUserId, createdAt, updatedAt, approvedAt, declinedAt, expiresAt, subtotal, taxAmount, total, version }`
 
-3. **Add Catalog Part** — `POST /api/v1/workexec/estimates/{estimateId}/items:add-part`
-   - Request: `{ productId, quantity, unitPrice?, notes?, taxCode? }`
-   - Response: `EstimateDTO` (updated)
+3. **Get Estimates by Customer** — `GET /v1/workorders/estimates/customer/{customerId}`
+   - Path param: `customerId` (Long, required)
+   - Response: `[ EstimateDTO ]`
 
-4. **Add Non-Catalog Part** — `POST /api/v1/workexec/estimates/{estimateId}/items:add-non-catalog-part`
-   - Request: `{ description, quantity, unitPrice, partNumber?, notes?, taxCode? }`
-   - Capability: `allowNonCatalogParts` flag; backend enforces permission
+4. **Get Estimates by Location/Shop** — `GET /v1/workorders/estimates/shop/{locationId}` | `/location/{locationId}`
+   - Path param: `locationId` (Long, required)
+   - Response: `[ EstimateDTO ]`
+   - **Note:** Both `/shop/{locationId}` and `/location/{locationId}` endpoints exist (deprecated `/shop/*`)
 
-5. **Add Labor/Service** — `POST /api/v1/workexec/estimates/{estimateId}/items:add-labor`
-   - Request: `{ serviceId, laborUnits?, unitRate?, pricingModel?, notes?, taxCode? }`
-   - Custom labor: `POST /items:add-custom-labor { description, laborUnits, unitRate, pricingModel, notes?, taxCode? }`
+5. **Create Estimate** — `POST /v1/workorders/estimates`
+   - Request: `CreateEstimateRequest { customerId (Long), vehicleId (Long) }`
+   - Response: `CreateEstimateResponse { id, estimateNumber, status: DRAFT, locationId, createdAt }`
+   - HTTP 200 (success), 400 (validation error), 500 (server error)
+   - System generates unique `estimateNumber` (e.g., EST-2024-1001)
+   - Requires: `X-User-Id` header (defaults to 1 if missing)
 
-6. **Update Item** — `PATCH /api/v1/workexec/estimates/{estimateId}/items/{estimateItemId}`
-   - Request: `{ quantity?, unitPrice?, laborUnits?, unitRate?, notes?, taxCode? }`
-   - Concurrency: `If-Match` or `version` field; 409 on mismatch
+6. **Decline Estimate** — `POST /v1/workorders/estimates/{estimateId}/decline`
+   - Path param: `estimateId` (Long)
+   - Query param: `reason` (String, optional)
+   - Response: `EstimateDTO` (200) | 400/404
+   - State transition: DRAFT → DECLINED
 
-7. **Submit for Approval** — `POST /api/v1/workexec/estimates/{estimateId}:submit-for-approval`
-   - Request: `{ approvalMethod?, consentText?, approvalPayload? }`
-   - Response: `EstimateDTO { status: PENDING_APPROVAL or APPROVED, approvalRequestId?, snapshotId? }`
+7. **Reopen Estimate** — `POST /v1/workorders/estimates/{estimateId}/reopen`
+   - Path param: `estimateId` (Long)
+   - Response: `EstimateDTO` (200) | 400/404
+   - State transition: DECLINED → DRAFT (within expiry window)
+   - Constraint: Cannot reopen if expired
 
-8. **Revise Estimate** — `POST /api/v1/workexec/estimates/{estimateId}/revisions`
-   - Request: `{ revisionReason? }`
-   - Response: `EstimateDTO { activeVersionId, versionNumber, status: DRAFT }`
+8. **Approve Estimate with Signature** — `POST /v1/workorders/estimates/{estimateId}/approval`
+   - Path param: `estimateId` (Long)
+   - Request: `ApproveEstimateRequest { customerId (Long), signatureData (String, base64 PNG), signatureMimeType (String), signerName (String, optional), notes (String, optional) }`
+   - Response: `EstimateDTO { status: APPROVED, approvedAt, approvedBy, signatureData, signerName }` (200) | 400/404
+   - Validation: customerId must match estimate
+   - State transition: DRAFT → APPROVED
 
-9. **Generate Summary Snapshot** — `POST /api/v1/workexec/estimates/{estimateId}/summary-snapshots:generate`
-   - Response: `{ snapshotId, legalTermsSource, legalTermsText, lines[], totals{}, expiresAt? }`
+9. **Delete Estimate** — `DELETE /v1/workorders/estimates/{estimateId}`
+   - Path param: `estimateId` (Long)
+   - Response: 204 No Content (success) | 404 (not found)
 
-10. **Fetch Summary Snapshot** — `GET /api/v1/workexec/estimates/{estimateId}/summary-snapshots/{snapshotId}`
-    - Response: Snapshot DTO (JSON structure + optional rendered artifact link)
+### Estimate Status Enum (Confirmed)
 
-11. **Promote to WorkOrder** — `POST /api/v1/workexec/estimates/{estimateId}:promote`
-    - Request: `{ reason? }`
-    - Response: `{ workOrderId, estimateId, originEstimateId?, warnings?, estimateSnapshot? }`
-    - Errors: `ALREADY_PROMOTED`, `MISSING_TAX_CODE`, `TOTALS_MISMATCH`, `TAX_CODE_NOT_CONFIGURED`
-
-12. **Promotion Audit Query** — `GET /api/v1/workexec/estimates/{estimateId}/promotion-audits`
-    - Response: `[ PromotionAuditDTO ]`
-
-### Approval & Partial Approval
-
-13. **Record Approval with Signature** — `POST /api/v1/workexec/approvals`
-    - Request: `{ estimateId|workOrderId, approvalMethod, customerSignatureData?, approvalPayload?, version? }`
-    - Response: `{ approvalId, status: APPROVED, approvedAt, approvalMethod, snapshotId?, estimate|workOrder dto }`
-
-14. **Record Partial Approval (Work Order Items)** — `POST /api/v1/workexec/workorders/{workOrderId}/approvals:record-partial`
-    - Request: `{ lineDecisions: [ { workOrderItemId, decision: APPROVED|DECLINED, reason?, approvalMethod?, proof? } ], overallNotes?, version? }`
-    - Response: `WorkOrderDTO` (with per-item approvalStatus)
-
-15. **Approval Requirements** — `GET /api/v1/workexec/workorders/{workOrderId}/approvals/requirements`
-    - Response: `{ method, requireSignature, requireReason?, expiresAt?, requireProofForMethods? }`
-
-16. **Handle Expiration / Deny** — `POST /api/v1/workexec/approvals/{approvalId}/deny`
-    - Request: `{ reason }`
-    - Errors: `APPROVAL_EXPIRED`, `INVALID_STATE`
-
-17. **Request New Approval** — `POST /api/v1/workexec/estimates/{estimateId}/approvals:request-new`
-    - Response: `ApprovalRequestDTO { approvalRequestId, status: PENDING, expiresAt? }`
-
-### Work Orders
-
-18. **Load Work Order** — `GET /api/v1/workexec/workorders/{workOrderId}`
-    - Response: `WorkOrderDTO { workOrderId, originEstimateId?, status, items[], totals{}, approvalStatus?, snapshots? }`
-
-19. **List Work Order Items** — `GET /api/v1/workexec/workorders/{workOrderId}/items`
-    - Response: `[ WorkOrderItemDTO ]`
-
-20. **Promotion Audit (Work Order view)** — `GET /api/v1/workexec/workorders/{workOrderId}/promotion-audit`
-    - Response: `PromotionAuditDTO` (most recent)
-
-### Catalog Search (External Dependencies)
-
-21. **Search Services** — `GET /api/v1/product/services/search?query=&category=&pageIndex=&pageSize=`
-    - Response: `{ items[], pageIndex, pageSize, totalCount, hasNextPage }`
-
-22. **Search Parts** — `GET /api/v1/product/parts/search?query=&categoryId=&availability=&pageIndex=&pageSize=`
-    - Response: `{ items[], pageIndex, pageSize, totalCount, hasNextPage }`
+From `EstimateStatus` enum in pos-work-order:
+- `DRAFT` — Initial state, editable
+- `APPROVED` — Customer approved or system auto-approved
+- `DECLINED` — Customer declined
+- `EXPIRED` — Approval window closed (time-based expiration)
+- `PENDING_APPROVAL` — Awaiting customer approval
 
 ---
 
-## DTO Sketches (to align in Phase 2)
+## Work Orders (Confirmed from pos-work-order)
 
-**EstimateDTO**
-- `estimateId`, `status` (DRAFT, APPROVED, DECLINED, EXPIRED) — confirmed from backend
-- `version` (Integer, increments on financial changes)
-- `customerId`, `locationId`, `appointmentId?`
-- `items[]` → `EstimateItemDTO`
-- `totals { subtotal, taxTotal, grandTotal, currencyUomId }`
-- `approvalConfig { method, requireSignature, requireReason, requireAddress?, expiresAt? }`
-- `expiresAt?`, `createdAt`, `updatedAt`, `updatedBy`
+1. **Load Work Order** — `GET /v1/workorders/{workOrderId}`
+   - Path param: `workOrderId` (Long)
+   - Response: `WorkorderDTO { id, shopId, vehicleId, customerId, approvalId, estimateId, status, services[], approvedAt, approvedBy, completedAt, completedBy }`
+   - HTTP 200 (success) | 404 (not found)
 
-**EstimateItemDTO**
-- `estimateItemId`, `itemType` (LABOR, PART, FEE, DISCOUNT)
-- `description`, `quantity`, `unitPrice|unitRate|amount`, `lineTotal`, `taxCode`, `taxAmount`
-- `pricingModel?` (TIME_BASED, FLAT_RATE)
-- `approvalStatus?` (PENDING_APPROVAL, APPROVED, DECLINED)
-- `requiresReview?`, `notes?`
+2. **Get All Work Orders** — `GET /v1/workorders`
+   - Response: `[ WorkorderDTO ]` (all work orders, no pagination)
 
-**WorkOrderDTO**
-- `workOrderId`, `originEstimateId?`, `status` (DRAFT, APPROVED, ASSIGNED, WORK_IN_PROGRESS, AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED, CANCELLED) — confirmed from backend
-- `items[]` → `WorkOrderItemDTO`
-- `totals { subtotal, taxTotal, grandTotal, currencyUomId }`
-- `approvalStatus?`, `snapshots?`
+### Work Order Status Enum (Confirmed)
+
+From `WorkorderStatus` enum in pos-work-order:
+- `DRAFT` — Initial state
+- `APPROVED` — Approved (can transition to ASSIGNED)
+- `ASSIGNED` — Assigned to technician (can transition to WORK_IN_PROGRESS)
+- `WORK_IN_PROGRESS` — Being worked on
+- `AWAITING_PARTS` — Waiting for parts availability
+- `AWAITING_APPROVAL` — Awaiting approval for additional work/changes
+- `READY_FOR_PICKUP` — Work complete, ready for customer pickup
+- `COMPLETED` — Completed and delivered
+- `CANCELLED` — Cancelled
+
+### Work Order Services (Items)
+
+**WorkorderService Entity Fields (Confirmed):**
+- `id` (Long) — Primary key
+- `workOrder` (FK to Workorder)
+- `serviceEntityId` (Long) — Reference to ServiceEntity in pos-catalog
+- `technicianId` (Long) — Reference to Technician
+- `declined` (Boolean, default=false) — Flag: declined by customer during estimate approval
+- `status` (Enum) — WorkorderItemStatus (see below)
+- `changeRequestId` (Long, optional) — Reference to change request that added this item
+- `isEmergencySafety` (Boolean, default=false)
+- `photoEvidenceUrl` (String, optional)
+- `emergencyNotes` (String, optional)
+- `photoNotPossible` (Boolean, default=false)
+- `customerDenialAcknowledged` (Boolean, optional)
+
+**WorkorderItemStatus Enum (Confirmed):**
+- `PENDING_APPROVAL` — Awaiting approval
+- `OPEN` — Available to execute
+- `READY_TO_EXECUTE` — Ready for technician
+- `IN_PROGRESS` — Currently being worked on
+- `COMPLETED` — Work complete
+- `CANCELLED` — Cancelled
+
+### Work Order Parts (Inventory Integration)
+
+**WorkorderPart Entity Fields (Confirmed):**
+- `id` (Long) — Primary key
+- `workorderService` (FK to WorkorderService)
+- `productEntityId` (Long) — Reference to pos-catalog Product
+- `quantity` (BigDecimal) — Quantity used
+- `unitPrice` (BigDecimal) — Price per unit
+- `actualQuantityUsed` (BigDecimal, optional) — Actual qty consumed from inventory
+- `changeRequestId` (Long, optional) — Reference to change request that added this part
+- `status` (Enum) — PartStatus (see below)
+
+**PartStatus Enum (Confirmed):**
+- `PENDING_APPROVAL` — Awaiting approval
+- `OPEN` — Available to consume
+- `READY_TO_EXECUTE` — Ready for use
+- `IN_PROGRESS` — Being used
+- `COMPLETED` — Used/installed
+- `CANCELLED` — Cancelled
+
+**Business Methods (Confirmed):**
+- `canExecute()` — Returns true if status != PENDING_APPROVAL OR (isEmergencySafety && customerDenialAcknowledged != null)
+- `canConsumeInventory()` — Returns true if status != PENDING_APPROVAL
+
+---
+
+## Approval & Customer Signature
+
+**ApproveEstimateRequest (Confirmed from EstimateController):**
+```
+{
+  "customerId": Long (required) — Must match estimate customer
+  "signatureData": String (base64 PNG image)
+  "signatureMimeType": String (e.g., "image/png")
+  "signerName": String (optional)
+  "notes": String (optional)
+}
+```
+
+**Response after Approval:**
+```
+EstimateDTO {
+  "id": Long
+  "estimateNumber": String (e.g., "EST-2024-1001")
+  "status": "APPROVED"
+  "locationId": Long
+  "vehicleId": Long
+  "customerId": Long
+  "approvedAt": ISO 8601 timestamp
+  "approvedBy": Long (user ID)
+  "signatureData": String (base64)
+  "signatureMimeType": String
+  "signerName": String
+  "approvalNotes": String (from request.notes)
+  "subtotal": BigDecimal
+  "taxAmount": BigDecimal
+  "total": BigDecimal
+  "version": Integer
+}
+```
+
+---
+
+## DTO Schemas (Confirmed from pos-work-order)
 
 **WorkOrderItemDTO**
 - `workOrderItemId`, `originEstimateItemId?`
@@ -188,324 +249,68 @@ The paths follow the WorkExec namespace `GET/POST /api/v1/workexec/...`. Mutatio
 
 ---
 
-## Phase 2.1 Validation Results
+## Phase 2 Validation Results (January 27, 2026)
 
 ### Confirmed from Backend Source (durion-positivity-backend/pos-work-order)
 
-- **Estimate Status:** DRAFT, APPROVED, DECLINED, EXPIRED,PENDING_APPROVAL 
-- **WorkOrder Status:** DRAFT, APPROVED, ASSIGNED, WORK_IN_PROGRESS, AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED, CANCELLED
-- **WorkOrderItem Status:** PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED
-- **ApprovalMethod:** CLICK_CONFIRM, SIGNATURE, ELECTRONIC_SIGNATURE, VERBAL_CONFIRMATION
-- **ApprovalRecord ResolutionStatus:** APPROVED, REJECTED, APPROVED_WITH_EXCEPTION
-- **Concurrency:** Uses `version` Integer field in Estimate entity (increments on financial changes); NOT using JPA @Version or If-Match header
-- **EstimateSequence:** Uses JPA @Version for optimistic locking on sequence generation
+**OpenAPI Specification Generated:** Successfully built pos-work-order module with Java 21 and extracted OpenAPI definitions.
 
-### Pending Backend Validation (Not Found in Source)
+**Confirmed Enums:**
+- **EstimateStatus:** DRAFT, APPROVED, DECLINED, EXPIRED, PENDING_APPROVAL
+- **WorkorderStatus:** DRAFT, APPROVED, ASSIGNED, WORK_IN_PROGRESS, AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED, CANCELLED
+- **WorkorderItemStatus:** PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED
+- **PartStatus:** PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED
 
-- Tax code requirements and defaults per item type (no TaxCode entity found in pos-work-order)
-- Legal terms policy endpoint and fields (not found in pos-work-order controllers)
-- Capability/permission flags structure (allowNonCatalogParts, allowCustomLabor, canOverridePrice not found)
-- Item approval statuses: WorkOrderItemStatus is separate from ApprovalRecord.ResolutionStatus
+**Confirmed Endpoints:**
+- Estimate CRUD: GET /v1/workorders/estimates, POST /create, GET /{id}, POST /{id}/approval (signature), POST /{id}/decline, POST /{id}/reopen, DELETE /{id}
+- Estimate Queries: GET /customer/{id}, GET /shop/{id}, GET /location/{id}
+- WorkOrder Retrieval: GET /v1/workorders/{id}, GET /all
+- No explicit item-level mutation endpoints in EstimateController; items managed via parent resource mutations
 
-### Backend Findings Notes
+**Confirmed Signatures:**
+- Estimate approval: Requires customerId, signatureData (base64 PNG), signatureMimeType, signerName (optional), notes (optional)
+- Response includes: approvedAt, approvedBy, signatureData, signatureMimeType, signerName, approvalNotes
 
-- Estimate approval uses `POST /v1/workorders/estimates/{estimateId}/approval` endpoint
-- Approval captures: customerId, signatureData, signatureMimeType, signerName, notes
-- Decline estimate: `POST /v1/workorders/estimates/{estimateId}/decline` with optional reason
-- Reopen estimate: `POST /v1/workorders/estimates/{estimateId}/reopen` (within expiry window)
-- No explicit item-level endpoints found; item mutations likely happen via estimate/workorder mutations
+**Concurrency Model:**
+- Estimate entity has `version` Integer field (business-level versioning, not JPA @Version)
+- Version increments on financial changes (subtotal, taxAmount, total modifications)
+- EstimateSequence uses JPA @Version for optimistic locking (separate concern)
+
+**Architectural Observations:**
+- Workorder references Estimate via estimateId (one-to-many relationship possible)
+- WorkorderService (items) contains reference to ServiceEntity (pos-catalog external)
+- WorkorderPart (parts) contains reference to Product (pos-catalog external)
+- Path pattern: `/v1/workorders/*` (not `/api/v1/workexec/*` as initially assumed)
+
+### Not Found in pos-work-order Source
+
+- **Item-level add/remove endpoints:** No POST /items:add-part, POST /items:add-labor endpoints discovered
+  - Possible: Items added via intermediate service or through change request workflow
+- **Tax configuration:** No TaxCode entity or tax calculation logic in pos-work-order
+  - Likely: Tax handled by accounting/order modules (pos-order, pos-accounting)
+- **Legal terms/snapshot generation:** No summary snapshot or legal terms endpoints
+  - Likely: Handled by separate document generation service
+- **Promotion endpoints:** No explicit promote-to-workorder endpoint
+  - Likely: WorkOrder creation may be independent or handled by workflow service
+- **Approval configuration:** No approval method selection or requirement querying
+  - Likely: Centralized in pos-customer or pos-approval module
+
+### API Routing Clarification
+
+**Actual:** `/v1/workorders/*` (in pos-work-order)  
+**Previously assumed:** `/api/v1/workexec/*`
+
+Frontend should adjust base paths to match actual routing. Controller declares `@RequestMapping("/v1/workorders")`.
 
 ---
 
 ## References
 
-- Accounting Backend Contract Guide
-- CRM Backend Contract Guide
-- WorkExec CUSTOMER_APPROVAL_WORKFLOW
-- WorkExec WORKORDER_STATE_MACHINE
-- DECISION-INVENTORY (auth, error envelope, idempotency, capability signaling)
-
----
-
-## Phase 4.2: Backend Contract Discovery (Additional APIs)
-
-**Date:** 2026-01-25  
-**Scope:** Discovered backend APIs for 18 remaining WorkExec issues, including parts usage, billing finalization, timekeeping (pos-people), scheduling (pos-shop-manager), and sales orders (pos-order)
-
----
-
-### Parts Usage & Inventory Integration (Issue #222)
-
-**Backend Module:** `pos-work-order`  
-**Entity:** `WorkorderPart` (confirmed)  
-**Status:** ✅ ENTITY CONFIRMED, ⏳ API ENDPOINTS PENDING
-
-**Confirmed from Backend Source:**
-- `WorkorderPart` entity exists with fields:
-  - `productEntityId` (reference to pos-catalog)
-  - `nonInventoryProductEntityId` (reference to pos-catalog non-inventory items)
-  - `quantity` (Integer)
-  - `status` (WorkorderItemStatus enum)
-  - `declined` (Boolean) - customer declined during estimate approval
-  - `isEmergencySafety` (Boolean) - emergency/safety item flag
-  - `photoEvidenceUrl` (String) - photo documentation URL
-  - `emergencyNotes` (TEXT) - emergency justification
-  - `photoNotPossible` (Boolean) - flag when photo not captured
-  - `customerDenialAcknowledged` (Boolean) - customer denial for emergency items
-  - `changeRequestId` (Long) - reference to change request that added item
-- Business methods:
-  - `canExecute()` - checks if item can be worked on (not pending approval unless emergency exception)
-  - `canConsumeInventory()` - checks if item can consume inventory (not pending approval)
-
-**Missing API Endpoints (PENDING):**
-- ❌ `POST /v1/workorders/{workorderId}/items/{itemId}/usage:record` - Record parts/fluids usage during work execution
-  - **Suggested Request:** `{ partNumber?, quantityUsed, usedAt, technicianId?, notes?, photoEvidenceUrl? }`
-  - **Suggested Response:** `{ usageRecordId, workorderItemId, inventoryAdjustmentId?, remainingStock?, status }`
-  - **Error Codes:** `INSUFFICIENT_STOCK`, `PART_NOT_FOUND`, `ITEM_NOT_EXECUTABLE`
-- ❌ Integration with `pos-inventory` module for stock checking and adjustment (module structure TBD)
-
-**Cross-Domain Integration:**
-- WorkExec → Inventory: Parts usage events should trigger inventory adjustments
-- Event schema (suggested): `workorder.parts_usage_recorded { workorderId, itemId, partNumber, quantityUsed, timestamp }`
-
----
-
-### Billing Finalization & Invoice-Ready Status (Issue #216)
-
-**Backend Module:** `pos-work-order`  
-**Entity:** `WorkorderSnapshot` (confirmed for billable snapshot capture)  
-**Status:** ⏳ API ENDPOINTS PENDING
-
-**Confirmed from Backend Source:**
-- `WorkorderSnapshot` entity exists with fields:
-  - `workorderId` (Long)
-  - `status` (WorkorderStatus enum)
-  - `capturedAt` (Instant)
-  - `capturedBy` (Long - userId)
-  - `snapshotType` (String - likely "BILLABLE", "COMPLETION", "APPROVAL")
-  - `snapshotData` (TEXT - JSON blob of billable items/totals)
-  - `reason` (TEXT - optional reason for snapshot)
-
-**Missing API Endpoints (PENDING):**
-- ❌ `POST /v1/workorders/{workorderId}:finalize` - Mark work order as billable/invoice-ready
-  - **Suggested Request:** `{ finalizedBy, finalizationNotes?, varianceApproval?, snapshotType: "BILLABLE" }`
-  - **Suggested Response:** `{ workorderId, status: "READY_FOR_INVOICING", snapshotId, billableTotal, invoiceReadyAt }`
-  - **Error Codes:** `FINALIZATION_NOT_ALLOWED`, `VARIANCE_REQUIRES_APPROVAL`, `INCOMPLETE_WORK_ITEMS`
-- ❌ `GET /v1/workorders/{workorderId}/billable-snapshot` - Retrieve billable snapshot for invoicing
-  - **Suggested Response:** `{ snapshotId, capturedAt, billableItems[], totals{}, legalTerms?, varianceApproval? }`
-
-**Business Rules (Inferred):**
-- Finalization should create a `WorkorderSnapshot` with `snapshotType: "BILLABLE"`
-- Variance approval required if actual costs exceed estimate by threshold (TBD from business rules)
-- Snapshot captures point-in-time billable state (items, quantities, prices, taxes)
-
----
-
-### Timekeeping APIs (Issues #149, #146, #145, #131, #132)
-
-**Backend Module:** `pos-people` ✅ (confirmed via Phase 4.1 domain ownership resolution)  
-**Controller:** `WorkSessionController.java` (confirmed)  
-**Status:** ✅ CONTROLLER CONFIRMED, ⏳ IMPLEMENTATION PENDING (TODO stubs)
-
-**Confirmed API Endpoints (Stubs Only):**
-1. ✅ `POST /v1/people/workSessions/start` - Start work session
-   - **Status:** TODO stub exists, implementation pending
-   - **Suggested Request:** `{ personId, locationId, workorderId?, startedAt?, clockInMethod? }`
-   - **Suggested Response:** `{ workSessionId, personId, startedAt, status: "ACTIVE" }`
-
-2. ✅ `POST /v1/people/workSessions/stop` - Stop work session
-   - **Status:** TODO stub exists, implementation pending
-   - **Suggested Request:** `{ workSessionId, stoppedAt?, clockOutMethod?, notes? }`
-   - **Suggested Response:** `{ workSessionId, stoppedAt, duration, status: "COMPLETED" }`
-
-3. ✅ `POST /v1/people/workSessions/{id}/breaks/start` - Start break
-   - **Status:** TODO stub exists, implementation pending
-   - **Suggested Request:** `{ breakType?, startedAt? }`
-   - **Suggested Response:** `{ breakId, workSessionId, startedAt, breakType }`
-
-4. ✅ `POST /v1/people/workSessions/{id}/breaks/stop` - Stop break
-   - **Status:** TODO stub exists, implementation pending
-   - **Suggested Request:** `{ breakId, stoppedAt? }`
-   - **Suggested Response:** `{ breakId, stoppedAt, duration }`
-
-**Missing Endpoints (PENDING):**
-- ❌ `POST /v1/people/timeEntries` - Submit time entry (for manual time entry submission, Issue #145)
-- ❌ `POST /v1/people/timers/start` - Start task timer (Issue #146)
-- ❌ `POST /v1/people/timers/{timerId}/stop` - Stop task timer (Issue #146)
-- ❌ `POST /v1/people/travelTime` - Capture mobile travel time (Issue #131)
-- ❌ `GET /v1/people/workSessions` - List work sessions with filters (date range, person, location)
-- ❌ `GET /v1/people/timeEntries` - List time entries with filters
-
-**Cross-Domain Integration:**
-- WorkExec publishes `work_session.started`, `work_session.completed` events
-- People domain subscribes to these events to create timekeeping entries
-- Accounting domain exports timekeeping data for payroll (confirmed from Accounting business rules)
-
-**Domain Ownership:** `domain:people` (confirmed via DECISION-WORKEXEC-001)
-
----
-
-### Scheduling & Dispatch APIs (Issues #138, #137, #134, #133)
-
-**Backend Module:** `pos-shop-manager` ✅ (confirmed via Phase 4.1 domain ownership resolution)  
-**Controller:** `ScheduleController.java` (confirmed)  
-**Status:** ✅ CONTROLLER CONFIRMED, ⏳ IMPLEMENTATION PENDING (TODO stub)
-
-**Confirmed API Endpoints (Stubs Only):**
-1. ✅ `GET /v1/shop-manager/{locationId}/schedules/view` - View schedules with filters
-   - **Status:** TODO stub exists, implementation pending
-   - **Suggested Query Params:** `?date={date}&technicianId={id}&workorderId={id}&status={status}`
-   - **Suggested Response:** `{ schedules: [ { appointmentId, workorderId, technicianId, scheduledAt, status, bay?, estimatedDuration } ] }`
-
-**Missing Endpoints (PENDING):**
-- ❌ `POST /v1/shop-manager/appointments` - Create appointment from estimate/workorder (Issue #129)
-  - **Suggested Request:** `{ estimateId?, workorderId?, customerId, vehicleId, scheduledAt, estimatedDuration, locationId, services[] }`
-  - **Suggested Response:** `{ appointmentId, status: "SCHEDULED", scheduledAt, assignedTechnician?, bay? }`
-
-- ❌ `PUT /v1/shop-manager/appointments/{appointmentId}/reschedule` - Reschedule work order (Issue #137)
-  - **Suggested Request:** `{ newScheduledAt, reason?, overrideConflict: false }`
-  - **Suggested Response:** `{ appointmentId, previousScheduledAt, newScheduledAt, status, conflicts[]? }`
-  - **Error Codes:** `SCHEDULING_CONFLICT`, `TECHNICIAN_UNAVAILABLE`, `BAY_OCCUPIED`
-
-- ❌ `POST /v1/shop-manager/appointments/{appointmentId}/assign` - Assign mechanic to work order item (Issue #134)
-  - **Suggested Request:** `{ technicianId, workorderItemId?, assignedAt?, notes? }`
-  - **Suggested Response:** `{ assignmentId, appointmentId, technicianId, workorderItemId, assignedAt }`
-
-- ❌ `POST /v1/shop-manager/appointments/{appointmentId}/reschedule:override-conflict` - Override scheduling conflict (Issue #133)
-  - **Suggested Request:** `{ newScheduledAt, overrideReason, conflictIds[] }`
-  - **Suggested Response:** `{ appointmentId, scheduledAt, overrideAuditId, conflicts[] }`
-  - **Capability Flag:** `OVERRIDE_SCHEDULING_CONFLICT` (confirmed from ShopMgmt business rules)
-
-- ❌ `PUT /v1/shop-manager/appointments/{appointmentId}/status` - Update appointment status (Issue #127)
-  - **Suggested Request:** `{ status: "IN_PROGRESS" | "COMPLETED" | "CANCELLED", workorderId?, timestamp?, reason? }`
-  - **Suggested Response:** `{ appointmentId, previousStatus, currentStatus, updatedAt }`
-  - **Event:** Publishes `appointment.status.changed` for WorkExec consumption
-
-**Cross-Domain Integration:**
-- WorkExec publishes `workorder.status_changed` (status: APPROVED) → ShopMgmt enables scheduling workflows
-- ShopMgmt publishes `appointment.scheduled`, `appointment.rescheduled`, `appointment.status_changed` → WorkExec displays scheduling status
-- WorkExec UI may embed ShopMgmt scheduling views (iframe or shared Vue component)
-
-**Domain Ownership:** `domain:shopmgmt` (confirmed via DECISION-WORKEXEC-001)
-
----
-
-### Sales Order Creation from Work Order (Issue #85)
-
-**Backend Module:** `pos-order` (confirmed module exists)  
-**Status:** ⏳ API ENDPOINTS PENDING (no Order-specific controllers found in quick search)
-
-**Missing Endpoints (PENDING):**
-- ❌ `POST /v1/orders/from-workorder` - Create sales order from work order items
-  - **Suggested Request:** `{ workorderId, selectedItemIds[], customerId, paymentTerms?, shippingAddress?, notes? }`
-  - **Suggested Response:** `{ orderId, orderNumber, totalAmount, status: "PENDING_PAYMENT", items[], createdAt }`
-  - **Error Codes:** `WORKORDER_NOT_BILLABLE`, `CUSTOMER_MISMATCH`, `PRICING_UNAVAILABLE`
-
-**Cross-Domain Integration:**
-- WorkExec UI initiates sales order creation → calls `pos-order` APIs with work order item data
-- Order domain creates sales order entity and returns `orderId`
-- WorkExec stores reference to `orderId` in workorder entity (field: `salesOrderId`?)
-- Event: `order.created_from_workorder { orderId, workorderId, totalAmount, createdAt }`
-
-**Domain Ownership:** `domain:order` (confirmed via DECISION-WORKEXEC-001)
-
----
-
-### Estimate Display/Filtering (Issue #79)
-
-**Backend Module:** `pos-work-order`  
-**Controller:** `EstimateController.java` ✅ (confirmed)  
-**Status:** ✅ PARTIAL IMPLEMENTATION CONFIRMED
-
-**Confirmed API Endpoints:**
-1. ✅ `GET /v1/workorders/estimates` - Get all estimates (no filters)
-   - **Status:** Implemented, returns `List<Estimate>`
-   - **Enhancement Needed:** Add query parameters for filtering
-
-2. ✅ `GET /v1/workorders/estimates/{estimateId}` - Get estimate by ID
-   - **Status:** Implemented
-
-3. ✅ `GET /v1/workorders/estimates/customer/{customerId}` - Get estimates by customer
-   - **Status:** Implemented
-
-4. ✅ `GET /v1/workorders/estimates/location/{locationId}` - Get estimates by location
-   - **Status:** Implemented
-
-**Enhancement Needed (PENDING):**
-- ⏳ Add comprehensive filtering to `GET /v1/workorders/estimates`:
-  - **Suggested Query Params:** `?customerId={id}&locationId={id}&status={status}&fromDate={date}&toDate={date}&vehicleId={id}&page={num}&size={num}`
-  - **Response:** `{ estimates: [ EstimateDTO ], totalCount, page, size }`
-- ⏳ Add sorting: `?sortBy=createdAt&sortOrder=desc`
-- ⏳ Add pagination support (currently returns all results)
-
----
-
-### CRM References Display (Issue #157)
-
-**Backend Module:** `pos-crm` (external domain)  
-**Status:** ✅ CONFIRMED (from CRM domain business rules)
-
-**Confirmed API Endpoints (from CRM domain):**
-- ✅ `GET /api/v1/crm/customers/{customerId}` - Get customer details
-  - **Response:** `{ customerId, displayName, email, phone, preferredContact, addresses[], vehicles[] }`
-  - **Usage in WorkExec:** WorkExec screens call this endpoint to display customer details in work order/estimate views
-
-**Cross-Domain Integration:**
-- WorkExec stores `customerId` (opaque ID) in Estimate/Workorder entities
-- WorkExec UI calls CRM API to fetch customer display data (read-only)
-- No write operations from WorkExec to CRM (CRM domain owns customer lifecycle)
-
----
-
-### Role-Based Work Order Visibility (Issue #219)
-
-**Backend Module:** `pos-work-order`  
-**Status:** ⏳ AUTHORIZATION MODEL PENDING
-
-**Security Model (Inferred from Architecture):**
-- Permissions defined in `domain:security` (see `/home/louisb/Projects/durion/domains/security/docs/BASELINE_PERMISSIONS.md`)
-- WorkOrder visibility controlled by:
-  - `workorder:view:own` - see only assigned work orders
-  - `workorder:view:team` - see team/shop work orders
-  - `workorder:view:all` - admin/manager visibility (all work orders)
-
-**Missing Implementation (PENDING):**
-- ❌ Filter work orders by user permissions in `GET /v1/workorders` endpoint
-- ❌ Capability flags to signal visibility scope:
-  - **Suggested Response Fields:** `{ canViewAllWorkorders, canViewTeamWorkorders, canViewOwnWorkorders, scopedLocationIds[] }`
-- ❌ Backend enforcement: filter query results based on user's assigned locations/teams
-
----
-
-### PO# Requirement Before Finalization (Issue #162)
-
-**Backend Module:** `pos-work-order`  
-**Status:** ⏳ BUSINESS RULE ENFORCEMENT PENDING
-
-**Missing Implementation (PENDING):**
-- ❌ `customerPoNumber` field in Workorder entity (not found in backend source)
-- ❌ Validation rule: Check if PO# required for customer before finalizing workorder
-- ❌ Configuration endpoint: `GET /v1/workorders/config/po-requirements` to determine when PO# is mandatory
-  - **Suggested Response:** `{ requiresPoNumber: true, enforceAt: "FINALIZATION" | "APPROVAL" | "CREATION" }`
-- ❌ Finalization endpoint should return `MISSING_CUSTOMER_PO` error if PO# required but not provided
-
-**Capability Flag (Suggested):**
-- `requiresCustomerPo` (boolean) - returned in WorkorderDTO to signal UI to prompt for PO#
-
----
-
-## Phase 4.2 Summary
-
-### Confirmed Implementations ✅
-- WorkorderController endpoints (start, complete, approve, transitions, snapshots)
-- EstimateController endpoints (create, approve, decline, reopen, list by customer/location)
-- WorkSessionController stubs (start/stop session, start/stop break) in pos-people
-- ScheduleController stub (view schedules) in pos-shop-manager
-- WorkorderPart entity with parts usage fields
-- WorkorderSnapshot entity for billable snapshots
-
-### Pending Implementations ⏳
-- Parts usage recording API (#222)
+- [Accounting Backend Contract Guide](/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md)
+- [CRM Backend Contract Guide](/durion/domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md)
+- [WorkExec Business Rules](/durion/domains/workexec/.business-rules/)
+- [DECISION-INVENTORY Governance](/durion/docs/governance/)
+- pos-work-order OpenAPI Specification (generated 2026-01-27)
 - Billing finalization API (#216)
 - Timekeeping implementation (clock in/out, timers, time entries) (#149, #146, #145, #131)
 - Scheduling implementation (create appointment, reschedule, assign, override conflict) (#138, #137, #134, #133, #129, #127)
