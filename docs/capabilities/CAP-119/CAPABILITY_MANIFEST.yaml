@@ -1,0 +1,91 @@
+meta:
+  capability_id: CAP:119
+  capability_name: '[CAP] Location Management & Staffing Assignments'
+  owner_repo: louisburroughs/durion
+  created_utc: '2026-01-28T00:02:30.273074+00:00'
+  last_updated_utc: '2026-01-28T00:02:30.273074+00:00'
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
+  preferred_branch_prefix: cap/
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+  contract_status_markers:
+  - draft
+  - stable-for-ui
+repositories:
+- name: durion-positivity-backend
+  slug: louisburroughs/durion-positivity-backend
+  type: backend
+  notes: ''
+- name: durion-moqui-frontend
+  slug: louisburroughs/durion-moqui-frontend
+  type: frontend-coordination
+  notes: Frontend child issues live here; code changes may land in component repos.
+- name: durion-hr
+  slug: louisburroughs/durion-hr
+  type: frontend-component
+  notes: ''
+stories:
+- parent:
+    repo: louisburroughs/durion
+    issue: 119
+    title: '[CAP] Location Management & Staffing Assignments'
+    domain: people
+    labels:
+    - type:capability
+    - layer:functional
+    - kiro
+    - domain:people
+    - CAP:119
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 86
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 150
+      impacted_component_repos:
+      - louisburroughs/durion-hr
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/people/.ui/frontend-story-location-assign-person-to-location-150.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/people/.ui/frontend-story-location-assign-person-to-location-150.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/people/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/people/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-people/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+execution:
+  agent_rules:
+  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+  - Frontend work starts only when contract status is stable-for-ui.
+  - 'One branch per repo per capability: CAP/119.'
+  definition_of_done:
+  - All PRs merged and required checks green
+  - Contract guide entry updated with examples + behavioral assertions
+  - Provider behavioral contract tests added/updated
+  - Frontend wired to stable contract
