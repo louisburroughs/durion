@@ -455,14 +455,13 @@ This domain exposes **44** REST API endpoints:
 
 **Parameters:**
 
-- `actorId` (path, Required, string): 
-- `startDate` (query, Required, string): 
-- `endDate` (query, Required, string): 
+- `actorId` (path, Required, string):
+- `startDate` (query, Required, string):
+- `endDate` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -474,7 +473,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /api/audit/invoice/{invoiceId}
@@ -483,12 +481,11 @@ This domain exposes **44** REST API endpoints:
 
 **Parameters:**
 
-- `invoiceId` (path, Required, string): 
+- `invoiceId` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -498,12 +495,11 @@ This domain exposes **44** REST API endpoints:
 
 **Parameters:**
 
-- `orderId` (path, Required, string): 
+- `orderId` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -515,7 +511,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /api/audit/range
@@ -524,13 +519,12 @@ This domain exposes **44** REST API endpoints:
 
 **Parameters:**
 
-- `startDate` (query, Required, string): 
-- `endDate` (query, Required, string): 
+- `startDate` (query, Required, string):
+- `endDate` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -542,7 +536,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /api/audit/type/{type}
@@ -551,14 +544,13 @@ This domain exposes **44** REST API endpoints:
 
 **Parameters:**
 
-- `type` (path, Required, string): 
-- `startDate` (query, Required, string): 
-- `endDate` (query, Required, string): 
+- `type` (path, Required, string):
+- `startDate` (query, Required, string):
+- `endDate` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -582,7 +574,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Events listed
 - `403`: Forbidden
 
-
 ---
 
 #### POST /v1/accounting/events
@@ -597,7 +588,6 @@ This domain exposes **44** REST API endpoints:
 
 - `202`: Event accepted for processing
 - `400`: Invalid request
-
 
 ---
 
@@ -618,7 +608,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Event returned
 - `404`: Event not found
 
-
 ---
 
 #### GET /v1/accounting/events/{eventId}/processing-log
@@ -638,7 +627,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Processing log returned
 - `404`: Event not found
 
-
 ---
 
 #### POST /v1/accounting/events/{eventId}/retry
@@ -657,7 +645,6 @@ This domain exposes **44** REST API endpoints:
 
 - `202`: Retry scheduled
 - `404`: Event not found
-
 
 ---
 
@@ -681,7 +668,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: GL accounts listed
 - `403`: Forbidden
 
-
 ---
 
 #### POST /v1/accounting/gl-accounts
@@ -696,7 +682,6 @@ This domain exposes **44** REST API endpoints:
 
 - `201`: GL account created
 - `400`: Invalid request
-
 
 ---
 
@@ -717,7 +702,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: GL account returned
 - `404`: GL account not found
 
-
 ---
 
 #### PUT /v1/accounting/gl-accounts/{glAccountId}
@@ -736,7 +720,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: GL account updated
 - `404`: GL account not found
-
 
 ---
 
@@ -757,7 +740,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: GL account activated
 - `404`: GL account not found
 
-
 ---
 
 #### POST /v1/accounting/gl-accounts/{glAccountId}/archive
@@ -776,7 +758,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: GL account archived
 - `404`: GL account not found
-
 
 ---
 
@@ -797,7 +778,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Balance returned
 - `404`: GL account not found
 
-
 ---
 
 #### POST /v1/accounting/gl-accounts/{glAccountId}/deactivate
@@ -817,7 +797,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: GL account deactivated
 - `404`: GL account not found
 
-
 ---
 
 #### POST /v1/accounting/glAccounts
@@ -832,7 +811,6 @@ This domain exposes **44** REST API endpoints:
 
 - `201`: GL account created
 - `400`: Invalid request
-
 
 ---
 
@@ -853,7 +831,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: GL account returned
 - `404`: GL account not found
 
-
 ---
 
 #### PUT /v1/accounting/glAccounts/{accountId}
@@ -872,7 +849,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: GL account updated
 - `404`: GL account not found
-
 
 ---
 
@@ -893,7 +869,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Invoice status returned
 - `404`: Invoice not found
 - `500`: Error retrieving invoice status
-
 
 ---
 
@@ -916,7 +891,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Journal entries listed
 - `403`: Forbidden
 
-
 ---
 
 #### POST /v1/accounting/journal-entries
@@ -931,7 +905,6 @@ This domain exposes **44** REST API endpoints:
 
 - `201`: Journal entry created
 - `400`: Invalid request
-
 
 ---
 
@@ -952,7 +925,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Journal entry returned
 - `404`: Journal entry not found
 
-
 ---
 
 #### PUT /v1/accounting/journal-entries/{journalEntryId}
@@ -971,7 +943,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: Journal entry updated
 - `404`: Journal entry not found
-
 
 ---
 
@@ -992,7 +963,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Journal entry posted
 - `404`: Journal entry not found
 
-
 ---
 
 #### POST /v1/accounting/journal-entries/{journalEntryId}/reverse
@@ -1011,7 +981,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: Journal entry reversed
 - `404`: Journal entry not found
-
 
 ---
 
@@ -1033,7 +1002,6 @@ This domain exposes **44** REST API endpoints:
 - `400`: Invalid payment request
 - `500`: Processing error
 
-
 ---
 
 #### POST /v1/accounting/payments/{paymentId}/reverse
@@ -1052,7 +1020,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: Payment reversed
 - `404`: Payment not found
-
 
 ---
 
@@ -1073,7 +1040,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Payment status returned
 - `404`: Payment not found
 
-
 ---
 
 #### POST /v1/accounting/payments/{paymentId}/void
@@ -1092,7 +1058,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: Payment voided
 - `404`: Payment not found
-
 
 ---
 
@@ -1115,7 +1080,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Posting rule sets listed
 - `403`: Forbidden
 
-
 ---
 
 #### POST /v1/accounting/posting-rules
@@ -1130,7 +1094,6 @@ This domain exposes **44** REST API endpoints:
 
 - `201`: Posting rule set created
 - `400`: Invalid request
-
 
 ---
 
@@ -1151,7 +1114,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Posting rule set returned
 - `404`: Posting rule set not found
 
-
 ---
 
 #### POST /v1/accounting/posting-rules/{postingRuleSetId}/archive
@@ -1171,7 +1133,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Posting rule set archived
 - `404`: Posting rule set not found
 
-
 ---
 
 #### POST /v1/accounting/posting-rules/{postingRuleSetId}/publish
@@ -1190,7 +1151,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: Posting rule set published
 - `404`: Posting rule set not found
-
 
 ---
 
@@ -1213,7 +1173,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Posting rule versions listed
 - `404`: Posting rule set not found
 
-
 ---
 
 #### GET /v1/accounting/traceability/{journalEntryId}
@@ -1233,7 +1192,6 @@ This domain exposes **44** REST API endpoints:
 - `200`: Traceability returned
 - `404`: Journal entry not found
 
-
 ---
 
 #### POST /v1/invoice/invoices
@@ -1248,7 +1206,6 @@ This domain exposes **44** REST API endpoints:
 
 - `202`: Invoice regeneration accepted
 - `400`: Invalid request
-
 
 ---
 
@@ -1268,8 +1225,6 @@ This domain exposes **44** REST API endpoints:
 
 - `200`: Billing rules returned
 - `404`: Customer not found
-
-
 
 ---
 
@@ -1314,7 +1269,6 @@ This domain exposes **44** REST API endpoints:
 | `sourceEventId` | string (uuid) | No |  |
 | `timestamp` | string (date-time) | No |  |
 
-
 ### CancellationRequest
 
 **Fields:**
@@ -1331,7 +1285,6 @@ This domain exposes **44** REST API endpoints:
 | `partialPaymentInfo` | string | No |  |
 | `reason` | string | Yes |  |
 
-
 ### InvoiceStatusResponse
 
 **Fields:**
@@ -1346,7 +1299,6 @@ This domain exposes **44** REST API endpoints:
 | `status` | string | No |  |
 | `totalPaid` | number | No |  |
 
-
 ### PaymentAppliedRequest
 
 **Fields:**
@@ -1359,7 +1311,6 @@ This domain exposes **44** REST API endpoints:
 | `paymentAmount` | number | Yes |  |
 | `paymentFailed` | boolean | No |  |
 | `transactionReference` | string | Yes |  |
-
 
 ### PriceOverrideRequest
 
@@ -1375,7 +1326,6 @@ This domain exposes **44** REST API endpoints:
 | `originalPrice` | number | Yes |  |
 | `reason` | string | Yes |  |
 
-
 ### RefundRequest
 
 **Fields:**
@@ -1390,8 +1340,6 @@ This domain exposes **44** REST API endpoints:
 | `reason` | string | Yes |  |
 | `refundAmount` | number | Yes |  |
 | `refundType` | string | Yes |  |
-
-
 
 ---
 
