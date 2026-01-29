@@ -1,10 +1,18 @@
+# ADR: 0008 - Inventory/Accounting - Cost Maintenance Architecture - Visual Guide - Clarification Response
+
+**Status:** ✅ Accepted  
+**Date:** 2026-01-13  
+**Context:** Which domain(s) maintain the cost structure for the system?
+**Stakeholders:** Architecture team, Inventory domain owner, Accounting domain owner, Workexec domain owner
+---
+
 # Cost Maintenance Architecture - Visual Guide
 
-## 🏗️ Proposed Architecture: Dual Ownership Pattern
+## 🏗️  Architecture: Dual Ownership Pattern
 
 ### High-Level System Overview
 
-```
+```ascii
 ┌─────────────────────────────────────────────────────────────────┐
 │                         POS System                              │
 │                                                                 │
@@ -344,14 +352,3 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 🚀 Next: Review Decision Guide
-
-See `.story-work/QUICK-DECISION-GUIDE.md` for the 5 questions you need to answer to proceed with implementation.
-
----
-
-*Architecture: Story Authoring Agent*
-*Date: 2026-01-13*
-*Status: Proposed for Review*

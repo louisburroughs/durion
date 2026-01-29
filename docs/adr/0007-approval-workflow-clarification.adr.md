@@ -1,9 +1,13 @@
-# Digital Customer Approval - Clarification Response
+# ADR: 0007 - WorkExec - Digital Customer Approval - Clarification Response
 
-**Issue:** #207 - [BACKEND] [STORY] Approval: Capture Digital Customer Approval  
-**Clarification Date:** 2026-01-08  
-**Domain:** workexec  
-**Type:** workflow clarification
+**Status:** ✅ Accepted  
+**Date:** 2026-01-08  
+**Context:** #207 - [BACKEND] [STORY] Approval: Capture Digital Customer Approval   
+**Stakeholders:** Architecture team, WorkExec domain owner, People domain owner, ShopMgmt domain owner
+---
+
+
+# Digital Customer Approval - Clarification Response
 
 ## Executive Summary
 
