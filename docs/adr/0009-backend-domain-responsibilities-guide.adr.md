@@ -3,7 +3,7 @@
 **Status:** ACCEPTED  
 **Date:** 2026-01-29  
 **Deciders:** Backend Architecture Team, Platform Lead  
-**Affected Issues:** Modularization initiative, Spring Modulith integration
+**Affected Issues:** Modularization initiative, ArchUnit architecture enforcement
 
 ---
 
@@ -15,9 +15,9 @@ The durion-positivity-backend project has grown to include multiple Spring Boot 
 - Establish clear API contracts and boundaries
 - Facilitate independent deployment and scaling
 - Enable teams to work in parallel with minimal coordination
-- Support future refactoring and modularization using Spring Modulith
+- Enforce architectural boundaries using ArchUnit compile-time verification
 
-**Current State**: Services exist but domain boundaries are implicit, leading to potential misalignment and integration issues.
+**Current State**: Services exist but domain boundaries are implicit, leading to potential misalignment and integration issues. ArchUnit testing framework now validates architecture at compile time.
 
 **The Problem**: Without explicit responsibility definitions, developers may incorrectly place business logic, create circular dependencies, or integrate services in unintended ways.
 
@@ -25,14 +25,14 @@ The durion-positivity-backend project has grown to include multiple Spring Boot 
 
 - Growing complexity of the system
 - Need for independent scalability per domain
-- Preparation for Spring Modulith adoption
+- Compile-time architecture validation via ArchUnit
 - Clear documentation for onboarding new team members
 
 ---
 
 ## Decision
 
-Establish and document explicit domain responsibilities for each pos-* module in durion-positivity-backend, using Spring Modulith as the architectural framework to enforce modularity and integration patterns.
+Establish and document explicit domain responsibilities for each pos-* module in durion-positivity-backend, with compile-time architecture enforcement via ArchUnit to validate modularity and integration patterns.
 
 ### 1. Domain Responsibility Matrix
 
@@ -61,25 +61,28 @@ Establish and document explicit domain responsibilities for each pos-* module in
 | pos-security-service | Security | User and role management, authentication token generation and validation, permission enforcement | User, Role, Permission, AuthToken | User identity, authentication, authorization decisions | pos-api-gateway, all other services |
 | pos-api-gateway | API Gateway | Request routing, authentication, rate limiting, service discovery coordination | RouteConfig, AuthToken | API access, security, service routing | All backend services |
 
+### 2. ArchUnit Architecture Enforcement
 
-### 2. Spring Modulith Integration
-
-**Decision:** ✅ **Resolved** - Adopt Spring Modulith to enforce module boundaries and facilitate integration testing.
+**Decision:** ✅ **Resolved** - Use ArchUnit to enforce architecture boundaries and validate module isolation at compile time.
 
 **Implementation Approach:**
 
-- Each pos-* service will eventually be structured as a Spring Modulith module
-- Module APIs defined using `@NamedInterface` and explicit exported classes
-- Internal services package-private to enforce encapsulation
-- Integration tests using Spring Modulith's `@SpringModulithTest` to verify contracts
-- Event channels configured via `ApplicationModuleDetection` for cross-module communication
+- Each pos-* service has `ArchitectureTest.java` with 7 configurable architecture rules
+- Internal packages (`com.positivity.{domain}.internal.*`) strictly isolated from other modules
+- Service layer packages (`com.positivity.{domain}.service.*`) exposed as public API
+- Controllers must access repositories through service layer only
+- Entities must not be used directly by controllers (DTOs required)
+- Repositories accessible only from service/config layers
+- @SpringBootApplication class must be at root package for component scanning
 
 **Benefits:**
 
-- Compiler-enforced module boundaries
+- Compile-time architecture validation (fails build on violations)
+- Prevents tight coupling between modules
+- Enforces layering: Controller → Service → Repository → Entity
 - Automatic cycle detection
 - Clear visibility of public vs. internal APIs
-- Simplified testing of module interactions
+- Test failures prevent deployment of architecture violations
 
 ### 3. Cross-Domain Integration Patterns
 
@@ -147,8 +150,8 @@ Establish and document explicit domain responsibilities for each pos-* module in
 - **Independent Scaling**: Services can be scaled based on actual demand patterns
 - **Reduced Coupling**: Async events prevent tight dependencies
 - **Easier Testing**: Module boundaries enable unit and integration testing without mocking entire services
-- **Preparation for Future Modularization**: Spring Modulith adoption will be straightforward
-- **Onboarding**: New developers have explicit documentation of domain boundaries
+- **Compile-Time Safety**: Architecture violations caught before code is committed
+- **Onboarding**: New developers have explicit documentation of domain boundaries via ArchUnit rules
 - **Performance**: Event-driven patterns allow for batch processing, backpressure handling, and eventual consistency
 
 ### Negative ⚠️
@@ -196,6 +199,7 @@ The term **"Location"** in Durion refers to any managed physical or logical spac
 ### Location Hierarchy Rules
 
 **Hierarchical Constraints:**
+
 - Locations form a tree structure: Organization → Facility → Department → Storage/Bay/Work Areas
 - Mobile Units at a special "Mobile" root node
 - Mailing Addresses are metadata attributes attached to a Location (Except when no physical location exists i.e:PO Box)
@@ -203,6 +207,7 @@ The term **"Location"** in Durion refers to any managed physical or logical spac
 - Locations at the same level must have unique names within their parent
 
 **Examples:**
+
 ```
 Acme Corp (Organization)
 ├── NYC Headquarters (Facility)
@@ -225,18 +230,21 @@ Acme Corp (Organization)
 ### API & Data Model Implications
 
 **pos-location Service Responsibilities:**
+
 - Maintain the complete location hierarchy
 - Provide CRUD operations for all location types
 - Enforce hierarchy constraints and validate parent-child relationships
 - Track location metadata (address, capacity, operational hours, etc.)
 
 **Cross-Service Location References:**
+
 - **pos-inventory**: References locations for stock storage (Storage Locations / Bins)
 - **pos-workorder**: References locations for job assignment and service bays
 - **pos-people**: References locations for employee assignments and time entry tracking
 - All services query pos-location via REST API; no direct DB access
 
 **Data Structure (Proposed):**
+
 ```java
 Location {
   id: UUID,
@@ -278,6 +286,7 @@ Real-world operations often require different organizational hierarchies:
 - **Reporting Hierarchy**: Performance metrics and KPI aggregation
 
 **Common Scenarios:**
+
 - A service bay operationally reports to the Service Manager but its costs roll up to a different profit center
 - A shared warehouse is managed by Facility Ops but costs are split across multiple departments  
 - A mobile technician is assigned to Field Operations (management) but hours are billed to multiple service lines (accounting)
@@ -298,22 +307,26 @@ Real-world operations often require different organizational hierarchies:
 **Implementation:**
 
 **1. Single Location Hierarchy** (unchanged from above)
+
 - Primary parent-child tree: Organization → Facility → Department → Storage/Bay
 - Represents **operational/management hierarchy** by default
 - Enforced as a strict tree (no cycles)
 
 **2. Cost Allocation Model** (new)
+
 - Maps locations to cost centers for accounting rollup
 - Supports many-to-many relationships (one location may split costs across multiple cost centers)
 - Tracks allocation percentage/amount for split scenarios
 
 **3. Reporting Hierarchy** (optional, deferred)
+
 - If needed, can be modeled similarly as a separate hierarchy with its own parent-child relationships
 - Initially defer; address only if operational hierarchy doesn't align with reporting needs
 
 ### Data Models
 
 **CostAllocation (for accounting hierarchy):**
+
 ```java
 CostAllocation {
   id: UUID,
@@ -329,6 +342,7 @@ CostAllocation {
 ```
 
 **Example Cost Split:**
+
 ```
 Warehouse (Location)
 ├── CostAllocation to Service Department Cost Center: 40%
@@ -339,11 +353,13 @@ Warehouse (Location)
 ### Query Patterns
 
 **Get operational parent (management hierarchy):**
+
 ```sql
 SELECT parent FROM Location WHERE id = ?
 ```
 
 **Get cost center allocation (accounting hierarchy):**
+
 ```sql
 SELECT ca.cost_center_id, ca.allocation_percentage 
 FROM CostAllocation ca 
@@ -351,6 +367,7 @@ WHERE ca.location_id = ? AND ca.start_date <= TODAY() AND (ca.end_date IS NULL O
 ```
 
 **Rollup costs by location (accounting hierarchy):**
+
 ```sql
 SELECT l.hierarchy_path, SUM(expense * ca.allocation_percentage) as allocated_cost
 FROM Location l
@@ -378,11 +395,13 @@ GROUP BY l.hierarchy_path
 ### Service Responsibilities
 
 **pos-location** (extended):
+
 - Manage location hierarchy (tree structure)
 - Provide CRUD for CostAllocation records
 - Validate cost allocation constraints (percentages, date ranges, effective periods)
 
 **pos-accounting** (cross-domain integration):
+
 - Define and manage cost centers
 - Query cost allocations via pos-location API
 - Use CostAllocation data for GL posting and expense rollup
@@ -391,7 +410,6 @@ GROUP BY l.hierarchy_path
 ---
 
 ## Implementation Roadmap
-
 
 ### Phase 1: Documentation & Validation (Current)
 
@@ -405,15 +423,9 @@ GROUP BY l.hierarchy_path
 - Generate OpenAPI specs for each service
 - Publish API docs via Swagger UI on each service
 
-### Phase 3: Spring Modulith Integration (Planned Q2)
+### Phase 3: Archunit Integration Tesing (In Progress)
 
-- Add spring-modulith dependency to each service
-- Define module APIs using `@NamedInterface`
-- Configure module detection and validation
-
-### Phase 4: Integration Testing (Planned Q2)
-
-- Create integration tests using `@SpringModulithTest`
+- Create integration tests using `ArchUnit`
 - Validate cross-module event flows
 - Document contract tests
 
@@ -421,7 +433,7 @@ GROUP BY l.hierarchy_path
 
 ## References
 
-- **Spring Modulith Documentation**: [spring.io/projects/spring-modulith](https://spring.io/projects/spring-modulith)
+- **ArchUnit Documentation**: <https://www.archunit.org/>
 - **OWASP API Security**: <https://owasp.org/www-project-api-security/>
 - **Domain-Driven Design**: Eric Evans, "Domain-Driven Design" (DDD principles applied here)
 - **Saga Pattern**: Chris Richardson, Microservices Patterns — "Managing Data Consistency"
