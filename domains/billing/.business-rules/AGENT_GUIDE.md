@@ -59,7 +59,7 @@ Decision IDs below correspond 1:1 to sections in `DOMAIN_NOTES.md`.
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
 | BILL-DEC-001 | Canonical invoice status enums/state machine | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-001--canonical-invoice-status-enums-and-state-machine) |
-| BILL-DEC-002 | Idempotent draft creation gated by Workexec readiness | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-002--draft-invoice-creation-command-idempotency--work-order-preconditions) |
+| BILL-DEC-002 | Idempotent draft creation gated by Workexec readiness | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-002--draft-invoice-creation-command-idempotency--workorder-preconditions) |
 | BILL-DEC-003 | Issuance gating with blockers + policy envelope | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-003--issuance-gating-model-blockers--policy-envelope) |
 | BILL-DEC-004 | Immutable traceability snapshot schema | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-004--traceability-snapshot-schema-canonical-field-names--immutability) |
 | BILL-DEC-005 | Artifact retrieval list + secure download contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#bill-dec-005--artifact-retrieval-contract-list--secure-download) |
@@ -334,7 +334,7 @@ Concrete Moqui service names may vary; the following HTTP semantics and field sh
 
 1) Lookup by Work Order
 
-- `GET /billing/invoices/by-work-order/{workOrderId}` (returns 404 if none)
+- `GET /billing/invoices/by-workorder/{workOrderId}` (returns 404 if none)
 
 ### BillingRules
 
@@ -528,8 +528,8 @@ Frontend must not hardcode thresholds. (BILL-DEC-011)
 **Response:** Both are supported:
 
 - `GET /billing/invoices/{invoiceId}`
-- `GET /billing/invoices/by-work-order/{workOrderId}`  
-Frontend chooses by context: from Work Order use by-work-order, from invoice list use invoiceId. (BILL-DEC-002)
+- `GET /billing/invoices/by-workorder/{workOrderId}`  
+Frontend chooses by context: from Work Order use by-workorder, from invoice list use invoiceId. (BILL-DEC-002)
 
 **Question C2:** Draft creation behavior: show “no invoice” only, or call create draft automatically or via button?  
 **Response:** Must be user-initiated via explicit action (button) unless the screen is explicitly an “Invoice Builder” workflow. Backend is idempotent so retries are safe. (BILL-DEC-002)

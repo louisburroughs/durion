@@ -38,7 +38,7 @@ Provide a read-only Invoice Detail view within Work Execution that can be opened
    1) UI requests invoice by invoiceId.
    2) On 200, render invoice detail as above (no empty state path).
 3. Create Draft Invoice (user-initiated, idempotent):
-   1) User clicks “Create Draft Invoice” (only visible when by-work-order returned 404 and user has permission).
+   1) User clicks “Create Draft Invoice” (only visible when by-workorder returned 404 and user has permission).
    2) UI calls create-draft endpoint with workOrderId.
    3) On 200, navigate/render returned invoice detail and re-load invoice detail from backend (do not mutate locally).
    4) On 409, show deterministic conflict message (e.g., not invoice-ready / already issued/paid/void) and keep empty state.

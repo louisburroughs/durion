@@ -356,7 +356,7 @@ Based on the clarifications, the following priorities are recommended:
 **Versioning:**
 - `POST /api/estimates/{id}/versions` - Create new version
 - `GET /api/estimates/{baseId}/versions` - List all versions
-- `GET /api/work-orders/{id}/transfer-history` - View transfer history
+- `GET /api/workorders/{id}/transfer-history` - View transfer history
 
 ### Event Architecture
 
@@ -411,7 +411,7 @@ Based on the clarifications, the following priorities are recommended:
 
 - **Origin Story:** https://github.com/louisburroughs/durion-positivity-backend/issues/207
 - **Domain:** workexec
-- **Related Modules:** pos-work-order, pos-customer (future)
+- **Related Modules:** pos-workorder, pos-customer (future)
 - **Clarification Request Date:** 2026-01-06
 - **Clarification Response Date:** 2026-01-08
 

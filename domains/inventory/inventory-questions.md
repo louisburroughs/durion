@@ -187,7 +187,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 - **pos-catalog**: Product identifiers and fitment data (Issues #121, #108, #81)
 - **pos-location**: LocationRef and StorageLocation models (all location-related issues)
 - **pos-order**: PO/ASN contracts (Issues #99, #97)
-- **pos-work-order**: Work order state machine and picked items contract (Issues #243, #242, #244, #260)
+- **pos-workorder**: Work order state machine and picked items contract (Issues #243, #242, #244, #260)
 - **pos-price**: Pricing/cost tier structure (Issue #260)
 - **pos-vehicle-fitment**: Vehicle/fitment relationships (Issue #108)
 
@@ -202,7 +202,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 - Complete RBAC-USAGE-EXAMPLES.md reading for permission implementation patterns
 - Research exception hierarchy and error code definitions
 - Examine putaway, repository, and security submodules in pos-inventory
-- Review cross-domain modules (pos-catalog, pos-location, pos-order, pos-work-order, pos-price)
+- Review cross-domain modules (pos-catalog, pos-location, pos-order, pos-workorder, pos-price)
 - Map endpoint contracts to Phase 1 blocking questions systematically
 - Populate "RESOLVED" sections with source links and implementation guidance
 
@@ -220,7 +220,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
   - Decision: Aligns with DECISION-INVENTORY-001 (locationId = site identifier)
   - Issue Resolution: #87 (Roles & Permissions), #96 (Put-away Tasks), all location-dependent issues
 
-**pos-work-order (WorkExecution Domain):**
+**pos-workorder (WorkExecution Domain):**
 - Entity: `Workorder.java` - Core workorder entity
   - Fields: id (Long), shopId (Long), vehicleId (Long), customerId (Long), approvalId (Long), estimateId (Long)
   - Status: Enum WorkorderStatus with 9 states: DRAFT, APPROVED, ASSIGNED, WORK_IN_PROGRESS, AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED, CANCELLED
@@ -269,10 +269,10 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 - Issue Resolution: #244 (Picking), #243 (Consumption), #242 (Return) - state machine validates eligible workorder states
 
 **Domain Ownership Implications:**
-- Issue #260 (Cost Tiers): Owned by pos-price (Pricing domain) or pos-work-order (cost tracking)? Requires governance clarification.
-- Issue #244 (Mechanic Picking): Owned by pos-work-order (WorkExecution) with inventory consumption via pos-inventory? State machine confirms workorder is primary.
-- Issue #243 (Consume Items): Consumption transaction likely crosses pos-inventory (ledger update) + pos-work-order (line status tracking).
-- Issue #242 (Return Items): Return reversal affects pos-inventory (ledger) + pos-work-order (line status).
+- Issue #260 (Cost Tiers): Owned by pos-price (Pricing domain) or pos-workorder (cost tracking)? Requires governance clarification.
+- Issue #244 (Mechanic Picking): Owned by pos-workorder (WorkExecution) with inventory consumption via pos-inventory? State machine confirms workorder is primary.
+- Issue #243 (Consume Items): Consumption transaction likely crosses pos-inventory (ledger update) + pos-workorder (line status tracking).
+- Issue #242 (Return Items): Return reversal affects pos-inventory (ledger) + pos-workorder (line status).
 - Issues #121, #120, #119: Owned by pos-catalog (Product domain), not inventory. Inventory consumes product master but does not create/manage.
 
 ---
@@ -282,12 +282,12 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 **Resolved (With Source Code References):**
 
 ✅ **Issue #260, Question 1 - Domain Ownership Conflict**
-- **Finding:** Issue likely belongs to pos-price (Pricing domain) or pos-work-order (cost tracking) rather than inventory
-- **Source:** pos-work-order contains cost tracking fields; pos-price module exists for pricing tier management
+- **Finding:** Issue likely belongs to pos-price (Pricing domain) or pos-workorder (cost tracking) rather than inventory
+- **Source:** pos-workorder contains cost tracking fields; pos-price module exists for pricing tier management
 - **Recommendation:** Escalate to domain governance; reassign to pricing or workexec domain
 
 ✅ **Issue #244, Question 1 - Domain Ownership Conflict**
-- **Finding:** Issue belongs to pos-work-order (WorkExecution domain); inventory is dependent
+- **Finding:** Issue belongs to pos-workorder (WorkExecution domain); inventory is dependent
 - **Source:** Workorder entity has state machine supporting picking workflow; WorkorderPart has status field
 - **State Machine:** WORK_IN_PROGRESS → AWAITING_PARTS (picking eligible state); canExecute() validates PENDING_APPROVAL guard
 - **Recommendation:** Coordinate with WorkExecution domain for workorder state transitions; inventory handles ledger updates
@@ -332,7 +332,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 - **Blocking Questions:** Backend endpoint contracts for "Receiving Session from PO/ASN" require pos-order API research
 
 ✅ **Issue #97, Question 1 - Cross-dock Receiving to Workorder**
-- **Finding:** Direct-to-workorder receiving connects pos-order (PO) → pos-work-order (destination) via inventory movement
+- **Finding:** Direct-to-workorder receiving connects pos-order (PO) → pos-workorder (destination) via inventory movement
 - **Source:** WorkorderPart.productEntityId references products; Workorder contains status model for picking workflow
 - **Pattern:** Receiving creates inventory ledger entries with workorder reference (per DECISION-INVENTORY-014 deep-linking)
 
@@ -343,7 +343,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 - **Next Step:** Research pos-price controller endpoints and DTO schemas for cost tier CRUD
 
 ⏳ **Issue #244, Questions 2-8 - Picking Task Backend Contracts**
-- **Status:** WorkorderPart entity structure found but picking task endpoint definitions require pos-order or pos-work-order controller research
+- **Status:** WorkorderPart entity structure found but picking task endpoint definitions require pos-order or pos-workorder controller research
 - **Next Step:** Research WorkorderPart-related endpoints and picking task state management
 
 ⏳ **Issue #243, Questions 1-8 - Consumption Transaction Contracts**
@@ -549,7 +549,7 @@ public class InventoryService {
 **Key Discoveries:**
 - 16 pre-made domain decisions (DECISION-INVENTORY-001 through 016) serve as authoritative framework for most Phase 1 questions
 - RBAC framework in pos-security-service provides canonical permission model (colon-separated domain:resource:action)
-- Cross-domain entities mapped: Workorder (pos-work-order), Location (pos-location), CatalogItem (pos-catalog), Pricing (pos-price)
+- Cross-domain entities mapped: Workorder (pos-workorder), Location (pos-location), CatalogItem (pos-catalog), Pricing (pos-price)
 - Workorder state machine supports picking workflow (WORK_IN_PROGRESS → AWAITING_PARTS → COMPLETED) per Issues #244, #243, #242
 - 7 issues flagged as domain conflicts (Issues #260, #244, #243, #242, #121, #120, #119) requiring governance escalation
 - Identifier model confirmed: Long IDs for relational PKs internally; UUIDs likely for REST APIs (per DECISION-INVENTORY-001)

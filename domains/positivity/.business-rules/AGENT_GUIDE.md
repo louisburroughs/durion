@@ -62,7 +62,7 @@ This document defines the **normative** rules for the `positivity` domain, which
 
 ### Cancellation
 
-- Authority invariant: `workexec` is authoritative for work-order cancellation; `billing` is authoritative for payment reversal. (DECISION-POSITIVITY-001)
+- Authority invariant: `workexec` is authoritative for workorder cancellation; `billing` is authoritative for payment reversal. (DECISION-POSITIVITY-001)
 - Ordering invariant: cancel work first, then reverse payment. (DECISION-POSITIVITY-002)
 - No distributed transactions: persisted saga with retries and explicit failure states. (DECISION-POSITIVITY-001)
 - Idempotency: duplicate cancel requests must not re-run side effects; return current cancellation state deterministically. (DECISION-POSITIVITY-003)

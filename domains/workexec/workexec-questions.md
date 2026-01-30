@@ -17,7 +17,7 @@ This document consolidates all open questions from the WorkExec domain story spe
    Provide request/response field names and confirm if these are Moqui services or REST endpoints.
 
 **Acceptance Criteria:**
-- **Resolved:** Backend endpoints confirmed from pos-work-order module
+- **Resolved:** Backend endpoints confirmed from pos-workorder module
   - Load estimate: `GET /v1/workorders/estimates/{estimateId}`
   - Approve estimate: `POST /v1/workorders/estimates/{estimateId}/approval`
   - Response: EstimateDTO with status, version, items, totals, approval timestamps
@@ -317,7 +317,7 @@ Response:
     - Enums and statuses MUST match backend: `ApprovalRecord.ResolutionStatus`, `ApprovalConfiguration.ApprovalMethod`, `WorkorderItemStatus`.
 
 **Backend contract reference:** [BACKEND_CONTRACT_GUIDE.md §Approval & Partial Approval](../.business-rules/BACKEND_CONTRACT_GUIDE.md#approval--partial-approval)
-**Validation status:** CONFIRMED (pos-work-order enums/endpoints); pending only on signature storage format specifics.
+**Validation status:** CONFIRMED (pos-workorder enums/endpoints); pending only on signature storage format specifics.
 
 ## Issue #268: [FRONTEND] [STORY] Estimate/WorkOrder: Handle Approval Expiration
 **Title:** Estimate/WorkOrder: Handle Approval Expiration (Block Actions, Communicate Reason)
@@ -1104,7 +1104,7 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 
 **Resolution Strategy:**
 1. Search `durion-positivity-backend` for existing controllers/services in:
-   - `pos-work-order/`
+   - `pos-workorder/`
    - `pos-inventory/` (parts usage)
    - `pos-order/` (sales orders)
    - `pos-appointment/` (if exists)
@@ -2140,7 +2140,7 @@ Response (200 OK):
 
 **Cross-Domain Note:**
 - Update GitHub issue label from `domain:workexec` to `domain:people` ✅
-- Backend implementation in `pos-people` module (not `pos-work-order`)
+- Backend implementation in `pos-people` module (not `pos-workorder`)
 - WorkExec UI may embed clock in/out UX or link to People domain screens
 
 ---

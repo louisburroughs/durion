@@ -239,7 +239,7 @@ public WorkOrder createWorkOrder(WorkOrder workOrder) {
 - Validates location existence via `shopId`/`locationId`
 - Uses location ID for configuration matching
 
-### pos-work-order
+### pos-workorder
 - Work orders reference estimates via `estimateId`
 - Validates estimate is approved before creating work order
 - Inherits declined items from estimate
@@ -308,7 +308,7 @@ If no configuration exists, the system uses a default in-memory configuration. T
 
 - Issue #206: [BACKEND] [STORY] Approval: Capture In-Person Customer Approval
 - Issue #206 Clarification: This implementation
-- `pos-work-order/README.md`: Overall module documentation
+- `pos-workorder/README.md`: Overall module documentation
 - API Documentation: Available at `/swagger-ui.html` when running
 
 ## Contact

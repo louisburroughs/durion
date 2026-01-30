@@ -125,7 +125,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Validation flow:**
     ```
     1. Order domain receives cancel request
-    2. Query Work Execution: GET /work-orders/{workOrderId}/status
+    2. Query Work Execution: GET /workorders/{workOrderId}/status
     3. If status IN blocking_list → return 400 with WORK_NOT_CANCELLABLE
     4. Else proceed with cancellation orchestration
     ```

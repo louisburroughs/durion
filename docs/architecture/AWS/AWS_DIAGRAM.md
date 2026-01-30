@@ -17,7 +17,7 @@ The diagram illustrates:
    • All Spring Boot modules running as containerized services
    • Auto-scaling configuration for each service
    • Services grouped by data store type:
-     • DynamoDB-backed services: pos-main, catalog, customer, invoice, work-order, price, shop-manager, inquiry, order, accounting, events, event-receiver, image, vehicle-inventory, inventory, security-service, people, location, service-discovery
+     • DynamoDB-backed services: pos-main, catalog, customer, invoice, workorder, price, shop-manager, inquiry, order, accounting, events, event-receiver, image, vehicle-inventory, inventory, security-service, people, location, service-discovery
      • ElastiCache-backed services: vehicle-fitment, vehicle-reference-nhtsa, vehicle-reference-carapi
 
 4. Data Layer

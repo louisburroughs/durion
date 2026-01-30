@@ -48,7 +48,7 @@ Backend MUST return stable codes above; extend with new codes as needed, keeping
 
 ---
 
-## Endpoint Inventory (Phase 2 Confirmed from pos-work-order Backend)
+## Endpoint Inventory (Phase 2 Confirmed from pos-workorder Backend)
 
 The paths follow the WorkExec namespace `GET/POST /v1/workorders/...` (actual backend routing). Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
 
@@ -104,7 +104,7 @@ The paths follow the WorkExec namespace `GET/POST /v1/workorders/...` (actual ba
 
 ### Estimate Status Enum (Confirmed)
 
-From `EstimateStatus` enum in pos-work-order:
+From `EstimateStatus` enum in pos-workorder:
 - `DRAFT` — Initial state, editable
 - `APPROVED` — Customer approved or system auto-approved
 - `DECLINED` — Customer declined
@@ -113,7 +113,7 @@ From `EstimateStatus` enum in pos-work-order:
 
 ---
 
-## Work Orders (Confirmed from pos-work-order)
+## Work Orders (Confirmed from pos-workorder)
 
 1. **Load Work Order** — `GET /v1/workorders/{workOrderId}`
    - Path param: `workOrderId` (Long)
@@ -125,7 +125,7 @@ From `EstimateStatus` enum in pos-work-order:
 
 ### Work Order Status Enum (Confirmed)
 
-From `WorkorderStatus` enum in pos-work-order:
+From `WorkorderStatus` enum in pos-workorder:
 - `DRAFT` — Initial state
 - `APPROVED` — Approved (can transition to ASSIGNED)
 - `ASSIGNED` — Assigned to technician (can transition to WORK_IN_PROGRESS)
@@ -223,7 +223,7 @@ EstimateDTO {
 
 ---
 
-## DTO Schemas (Confirmed from pos-work-order)
+## DTO Schemas (Confirmed from pos-workorder)
 
 **WorkOrderItemDTO**
 - `workOrderItemId`, `originEstimateItemId?`
@@ -251,9 +251,9 @@ EstimateDTO {
 
 ## Phase 2 Validation Results (January 27, 2026)
 
-### Confirmed from Backend Source (durion-positivity-backend/pos-work-order)
+### Confirmed from Backend Source (durion-positivity-backend/pos-workorder)
 
-**OpenAPI Specification Generated:** Successfully built pos-work-order module with Java 21 and extracted OpenAPI definitions.
+**OpenAPI Specification Generated:** Successfully built pos-workorder module with Java 21 and extracted OpenAPI definitions.
 
 **Confirmed Enums:**
 - **EstimateStatus:** DRAFT, APPROVED, DECLINED, EXPIRED, PENDING_APPROVAL
@@ -282,11 +282,11 @@ EstimateDTO {
 - WorkorderPart (parts) contains reference to Product (pos-catalog external)
 - Path pattern: `/v1/workorders/*` (not `/api/v1/workexec/*` as initially assumed)
 
-### Not Found in pos-work-order Source
+### Not Found in pos-workorder Source
 
 - **Item-level add/remove endpoints:** No POST /items:add-part, POST /items:add-labor endpoints discovered
   - Possible: Items added via intermediate service or through change request workflow
-- **Tax configuration:** No TaxCode entity or tax calculation logic in pos-work-order
+- **Tax configuration:** No TaxCode entity or tax calculation logic in pos-workorder
   - Likely: Tax handled by accounting/order modules (pos-order, pos-accounting)
 - **Legal terms/snapshot generation:** No summary snapshot or legal terms endpoints
   - Likely: Handled by separate document generation service
@@ -297,7 +297,7 @@ EstimateDTO {
 
 ### API Routing Clarification
 
-**Actual:** `/v1/workorders/*` (in pos-work-order)  
+**Actual:** `/v1/workorders/*` (in pos-workorder)  
 **Previously assumed:** `/api/v1/workexec/*`
 
 Frontend should adjust base paths to match actual routing. Controller declares `@RequestMapping("/v1/workorders")`.
@@ -310,7 +310,7 @@ Frontend should adjust base paths to match actual routing. Controller declares `
 - [CRM Backend Contract Guide](/durion/domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md)
 - [WorkExec Business Rules](/durion/domains/workexec/.business-rules/)
 - [DECISION-INVENTORY Governance](/durion/docs/governance/)
-- pos-work-order OpenAPI Specification (generated 2026-01-27)
+- pos-workorder OpenAPI Specification (generated 2026-01-27)
 - Billing finalization API (#216)
 - Timekeeping implementation (clock in/out, timers, time entries) (#149, #146, #145, #131)
 - Scheduling implementation (create appointment, reschedule, assign, override conflict) (#138, #137, #134, #133, #129, #127)

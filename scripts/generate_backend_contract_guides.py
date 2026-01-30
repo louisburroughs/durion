@@ -24,7 +24,7 @@ MODULE_TO_DOMAIN = {
     'pos-price': 'pricing',
     'pos-security-service': 'security',
     'pos-shop-manager': 'shopmgmt',
-    'pos-work-order': 'workexec',
+    'pos-workorder': 'workexec',
     'pos-invoice': 'billing',
     'pos-catalog': 'product',
     'pos-event-receiver': 'audit',
@@ -779,7 +779,7 @@ def main():
     print()
     print("Next steps:")
     print("1. Review generated guides for accuracy")
-    print("2. Configure OpenAPI for pos-shop-manager, pos-work-order, pos-invoice")
+    print("2. Configure OpenAPI for pos-shop-manager, pos-workorder, pos-invoice")
     print("3. Generate guides for remaining modules")
     print("4. Cross-reference with domain AGENT_GUIDE.md decisions")
 

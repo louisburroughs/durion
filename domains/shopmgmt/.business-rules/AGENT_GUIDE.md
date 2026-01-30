@@ -245,7 +245,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - Rationale:
   - Prevents scheduling work already finished or void.
 - Impact:
-  - APIs: create-from-work-order returns 422 with code WORK_ORDER_NOT_ELIGIBLE.
+  - APIs: create-from-workorder returns 422 with code WORK_ORDER_NOT_ELIGIBLE.
 - Decision ID: DECISION-SHOPMGMT-013
 
 ### Q: Are HARD conflicts overridable?
