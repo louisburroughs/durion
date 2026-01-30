@@ -120,20 +120,20 @@ public class WorkOrderPart {
 
 ### Change Request Management
 
-- `POST /api/work-orders/{workOrderId}/change-requests` - Create new change request
+- `POST /api/workorders/{workOrderId}/change-requests` - Create new change request
 - `POST /api/change-requests/{id}/approve` - Approve change request
 - `POST /api/change-requests/{id}/decline` - Decline change request
 - `POST /api/change-requests/{id}/acknowledge-denial` - Record customer denial acknowledgment for emergency items
 - `GET /api/change-requests/{id}` - Get change request by ID
-- `GET /api/work-orders/{workOrderId}/change-requests` - List all change requests for a work order
-- `GET /api/work-orders/{workOrderId}/can-close` - Check if work order can be closed
+- `GET /api/workorders/{workOrderId}/change-requests` - List all change requests for a work order
+- `GET /api/workorders/{workOrderId}/can-close` - Check if work order can be closed
 
 ## Business Logic
 
 ### Create Change Request
 
 ```java
-POST /api/work-orders/{workOrderId}/change-requests
+POST /api/workorders/{workOrderId}/change-requests
 {
     "requestedByUserId": 123,
     "description": "Customer reports grinding noise from brakes",
@@ -232,7 +232,7 @@ POST /api/change-requests/{id}/acknowledge-denial
 ### Check if Work Order Can Close
 
 ```java
-GET /api/work-orders/{workOrderId}/can-close
+GET /api/workorders/{workOrderId}/can-close
 ```
 
 **Returns:** `true` if work order can be closed, `false` otherwise
@@ -253,7 +253,7 @@ GET /api/work-orders/{workOrderId}/can-close
 
 2. **Technician creates change request:**
    ```
-   POST /api/work-orders/123/change-requests
+   POST /api/workorders/123/change-requests
    {
        "requestedByUserId": 456,
        "description": "Brake pads worn, need replacement",
@@ -289,7 +289,7 @@ GET /api/work-orders/{workOrderId}/can-close
 
 2. **Technician creates emergency change request:**
    ```
-   POST /api/work-orders/123/change-requests
+   POST /api/workorders/123/change-requests
    {
        "requestedByUserId": 456,
        "description": "SAFETY: Brake pads worn to metal",
@@ -324,7 +324,7 @@ GET /api/work-orders/{workOrderId}/can-close
 
 6. **Attempt to close work order:**
    ```
-   GET /api/work-orders/123/can-close
+   GET /api/workorders/123/can-close
    => Returns true
    ```
    - System allows closure because emergency denial is acknowledged
@@ -447,8 +447,8 @@ Track the following metrics:
 
 - Issue #156: [BACKEND] [STORY] Execution: Request Additional Work and Flag for Approval
 - Issue #322: Clarification issue for story requirements
-- `pos-work-order/CUSTOMER_APPROVAL_WORKFLOW.md`: Estimate approval workflow
-- `pos-work-order/README.md`: Overall module documentation
+- `pos-workorder/CUSTOMER_APPROVAL_WORKFLOW.md`: Estimate approval workflow
+- `pos-workorder/README.md`: Overall module documentation
 - API Documentation: Available at `/swagger-ui.html` when running
 
 ## Contact

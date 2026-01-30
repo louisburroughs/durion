@@ -35,7 +35,7 @@ Pricing Domain (pos-price)
   ├─ Restriction Evaluation → Order (evaluates applicability)
   └─ Promotion Management → Workexec (applies to estimate)
 
-Workexec Domain (pos-work-order)
+Workexec Domain (pos-workorder)
   ├─ Estimate Lifecycle → calls Pricing for totals calculation
   ├─ Snapshot Drilldown UI → fetches from Pricing, displays read-only
   └─ Promotion Application → calls Pricing to apply/validate
@@ -392,7 +392,7 @@ X-Correlation-ID: <same-as-trace-id>
 - Cross-domain coordination map provided
 
 ✅ **Backend Code Artifacts Identified**
-- pos-work-order/EstimateController — Estimate lifecycle (GET/POST /v1/workorders/estimates)
+- pos-workorder/EstimateController — Estimate lifecycle (GET/POST /v1/workorders/estimates)
 - pos-order/PriceOverrideController — Override lifecycle (POST /api/v1/orders/price-overrides + approval)
 - pos-price/PriceRestrictionsController — Placeholder for pricing endpoints (POST /v1/price/restrictions:evaluate, :override)
 - pos-api-gateway/application.yml — Gateway routing configuration (routes by service discovery)

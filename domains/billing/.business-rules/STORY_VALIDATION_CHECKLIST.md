@@ -62,7 +62,7 @@ AP vendor payments:
 - [ ] Contracts exist for:
   - [ ] Create draft invoice (`POST /billing/invoices/draft`)
   - [ ] Get invoice detail (`GET /billing/invoices/{invoiceId}`)
-  - [ ] Get invoice by work order (`GET /billing/invoices/by-work-order/{workOrderId}`)
+  - [ ] Get invoice by work order (`GET /billing/invoices/by-workorder/{workOrderId}`)
   - [ ] Issue invoice (`POST /billing/invoices/{invoiceId}/issue`)
   - [ ] BillingRules GET/PUT with ETag/If-Match
   - [ ] Discovery endpoints for options/enums

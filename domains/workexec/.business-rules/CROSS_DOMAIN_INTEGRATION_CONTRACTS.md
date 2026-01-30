@@ -339,7 +339,7 @@ GET /api/v1/location/approval-policy
 
 - **Owned By:** Location domain (or WorkExec ApprovalConfiguration if location delegates)
 - **Status:** **PENDING – Need Location domain spec or confirm WorkExec owns ApprovalConfiguration as SoR**
-- **Dependencies:** ApprovalConfiguration entity in pos-work-order
+- **Dependencies:** ApprovalConfiguration entity in pos-workorder
 
 ## CRM Domain – Customer and Vehicle Lookup
 

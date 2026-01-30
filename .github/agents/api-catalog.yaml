@@ -317,7 +317,7 @@ domains:
         action: >-
           Build a view of the current work status for each bay, mobile unit and mechanic.
 
-      # Approval Configurations (pos-work-order)
+      # Approval Configurations (pos-workorder)
       - method: GET
         path: /v1/workexec
         version: v1
@@ -357,7 +357,7 @@ domains:
         operationId: deleteApprovalConfiguration
         action: delete approval configuration by approvalId.
 
-      # Work Orders (pos-work-order)
+      # Work Orders (pos-workorder)
       - method: GET
         path: /v1/workorders
         version: v1
@@ -496,7 +496,7 @@ domains:
         action: >-
           WorkExec uses GET /v1/products/substitutes/{productId} internally to build suggestions.
 
-      # Change Requests (pos-work-order)
+      # Change Requests (pos-workorder)
       - method: POST
         path: /v1/workorders/{workorderId}/changeRequests
         version: v1

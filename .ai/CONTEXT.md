@@ -65,7 +65,7 @@ Positivity is organized as a monorepo with Spring Boot microservices supporting:
 - `pos-vehicle-inventory/` — vehicle-level inventory
 - `pos-vehicle-reference-carapi/` — CarAPI integration
 - `pos-vehicle-reference-nhtsa/` — NHTSA integration
-- `pos-work-order/` — work orders/jobs
+- `pos-workorder/` — work orders/jobs
 
 ### Moqui Frontend Platform (durion-moqui-frontend)
 

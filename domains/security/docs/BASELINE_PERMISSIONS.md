@@ -196,7 +196,7 @@ permissions:
 
 ```yaml
 domain: workexec
-serviceName: pos-work-order-service
+serviceName: pos-workorder-service
 version: "1.0"
 
 permissions:

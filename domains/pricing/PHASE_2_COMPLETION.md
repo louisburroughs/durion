@@ -18,7 +18,7 @@ Phase 2 research identified and documented all entity schemas, ID types, and cro
 ### Task 2.1 — Money Representation (DECISION-PRICING-001) ✅
 
 #### Currency Field Name: `currencyUomId`
-- **Authoritative Source:** pos-work-order/Estimate.java, line 30
+- **Authoritative Source:** pos-workorder/Estimate.java, line 30
 - **Field Type:** String
 - **Default Value:** "USD" (typical)
 - **Alignment:** Matches Moqui convention and DECISION-PRICING-001
@@ -131,7 +131,7 @@ const instant = localInput.atZone(zoneId).toInstant();
 - **Representation:** Integer (no UUID)
 - **UI Rule:** Treat as opaque; do NOT parse or validate format
 
-**Source:** pos-work-order/Estimate.java
+**Source:** pos-workorder/Estimate.java
 ```java
 @Id
 @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -180,7 +180,7 @@ private String orderLineId;
 
 - **Type:** `Long` (IDENTITY auto-generated)
 - **Source:** pos-order/ApplyPriceOverrideResponse (overrideId: Long)
-- **Approval ID:** ApprovalRecord.id in pos-work-order module
+- **Approval ID:** ApprovalRecord.id in pos-workorder module
 
 #### UI ID Handling Rule
 ```typescript
@@ -632,9 +632,9 @@ if (!isCacheExpired && cached) {
 - Concurrency control details (transactionId + policyVersion)
 
 ✅ **Backend Code References**
-- pos-work-order/Estimate.java — Estimate entity with currencyUomId, BigDecimal totals
-- pos-work-order/ApprovalRecord.java — Approval audit trail structure
-- pos-work-order/WorkorderSnapshot.java — Snapshot storage pattern
+- pos-workorder/Estimate.java — Estimate entity with currencyUomId, BigDecimal totals
+- pos-workorder/ApprovalRecord.java — Approval audit trail structure
+- pos-workorder/WorkorderSnapshot.java — Snapshot storage pattern
 - pos-order/ApplyPriceOverrideRequest.java — Override request DTO
 - pos-order/ApplyPriceOverrideResponse.java — Override response with status
 - pos-accounting/JournalEntry.java — BigDecimal precision patterns (DECIMAL(19,4))

@@ -123,7 +123,7 @@ This ADR clarifies domain ownership boundaries for features that appear in WorkE
 - Creates conflicting sources of truth (e.g., two timekeeping systems)
 - Breaks existing security permission model (People domain permissions already defined)
 - Duplicates logic across domains (scheduling, timekeeping)
-- Makes it impossible to reuse timekeeping/scheduling features in other contexts (e.g., non-work-order scenarios)
+- Makes it impossible to reuse timekeeping/scheduling features in other contexts (e.g., non-workorder scenarios)
 
 **Verdict:** Rejected. Violates DDD principles and existing architectural decisions.
 
@@ -255,7 +255,7 @@ This ADR clarifies domain ownership boundaries for features that appear in WorkE
   - `pos-people` (timekeeping owner)
   - `pos-shop-manager` (scheduling owner)
   - `pos-order` (order creation owner)
-  - `pos-work-order` (work order lifecycle owner)
+  - `pos-workorder` (work order lifecycle owner)
 
 ---
 

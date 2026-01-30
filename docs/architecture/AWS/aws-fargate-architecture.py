@@ -14,7 +14,7 @@ from diagrams.onprem.client import Client
 
 # Define the microservices
 microservices = [
-    "pos-main", "catalog", "customer", "invoice", "work-order", 
+    "pos-main", "catalog", "customer", "invoice", "workorder", 
     "price", "shop-manager", "inquiry", "order", "accounting", 
     "events", "event-receiver", "image", "vehicle-inventory", 
     "inventory", "security-service", "people", "location", 

@@ -30,11 +30,11 @@ Examples: `workexec:estimate:create`, `workexec:workorder:approve`, `workexec:ap
 
 **Resource:** `estimate`  
 **System of Record:** WorkExec (estimate master)  
-**Related Decisions:** Backend contract confirmed from pos-work-order module
+**Related Decisions:** Backend contract confirmed from pos-workorder module
 
 ```yaml
 domain: workexec
-serviceName: pos-work-order-service
+serviceName: pos-workorder-service
 version: "1.0"
 
 permissions:

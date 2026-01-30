@@ -48,8 +48,8 @@ This document addresses **3 unresolved pricing domain issues** with `blocked:cla
 **Tasks:**
 - [x] **Task 1.1 — Domain ownership verification**
   - [x] Confirm Issue #236 should be `domain:pricing` vs `domain:workexec` (calculation is pricing, screen is workexec)
-    - **Finding:** Pricing owns tax/totals calculation logic and snapshots (DECISION-PRICING-001, -002, -013). Workexec (pos-work-order) owns Estimate entity and screen UI. Calculation is backend service call; UI display is Workexec responsibility.
-    - **Source:** pos-work-order/EstimateController (owns GET/POST estimates); pos-price (owns calculation endpoints)
+    - **Finding:** Pricing owns tax/totals calculation logic and snapshots (DECISION-PRICING-001, -002, -013). Workexec (pos-workorder) owns Estimate entity and screen UI. Calculation is backend service call; UI display is Workexec responsibility.
+    - **Source:** pos-workorder/EstimateController (owns GET/POST estimates); pos-price (owns calculation endpoints)
   - [x] Confirm Issue #84 endpoint ownership (Pricing vs Order/Checkout domain)
     - **Finding:** Price overrides are owned by pos-order module (PriceOverrideController at `/api/v1/orders/price-overrides`). This is cross-domain: Pricing defines override reason codes catalog; Order applies and manages override lifecycle. DECISION-PRICING-011 specifies reason codes are backend catalog endpoint.
     - **Source:** pos-order/PriceOverrideController with permission gates (`PRICE_OVERRIDE_APPLY`, `PRICE_OVERRIDE_APPROVE`, `PRICE_OVERRIDE_REJECT`)

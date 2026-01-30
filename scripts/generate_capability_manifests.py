@@ -38,7 +38,7 @@ TARGET_REPOS = ["durion", "durion-moqui-frontend", "durion-positivity-backend"]
 
 # Domain to backend module mapping
 DOMAIN_TO_BACKEND_MODULE = {
-    'workexec': 'pos-work-order',
+    'workexec': 'pos-workorder',
     'shopmgmt': 'pos-shop-manager',
     'order': 'pos-order',
     'location': 'pos-location',

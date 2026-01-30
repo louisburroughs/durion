@@ -13,7 +13,7 @@ This checklist is used to validate that changes in the `positivity` domain are i
 
 - [ ] The change is correctly scoped to **positivity** responsibilities (POS orchestration, aggregation, Order aggregate ownership, POS-facing read models).
 - [ ] Cross-domain authority boundaries are respected:
-  - [ ] **workexec** is authoritative for work-order cancellability and cancellation.
+  - [ ] **workexec** is authoritative for workorder cancellability and cancellation.
   - [ ] **billing** is authoritative for payment reversal (void/refund decision).
   - [ ] **catalog/pricing/inventory** are authoritative for their respective read models (for product detail aggregation).
 - [ ] Product detail UI is **read-only** and does not introduce “price finalization” or checkout/quote commit behavior.
