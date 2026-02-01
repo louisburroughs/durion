@@ -12,7 +12,17 @@ For each capability issue in the durion repository, this script:
 - Creates CAPABILITY_MANIFEST.yaml in docs/capabilities/<cap-id>/
 
 Usage:
-    python3 generate_capability_manifests.py [--dry-run] [--token TOKEN]
+    # Generate all capabilities
+    python3 generate_capability_manifests.py --token TOKEN
+    
+    # Generate a single capability (issue #275)
+    python3 generate_capability_manifests.py --capability 275 --token TOKEN
+    
+    # Generate a range of capabilities (issues #270 to #280)
+    python3 generate_capability_manifests.py --range 270 280 --token TOKEN
+    
+    # Generate specific capabilities (issues #270, #275, #280)
+    python3 generate_capability_manifests.py --list 270 275 280 --token TOKEN
 
 Auth:
     Provide a GitHub token with `repo` scope via --token or GITHUB_TOKEN.
@@ -409,11 +419,39 @@ class CapabilityManifestGenerator:
         
         return str(manifest_file)
 
-    def run(self) -> None:
-        """Main execution: fetch capabilities and generate manifests."""
+    def filter_issues_by_numbers(self, all_issues: List, issue_numbers: List[int]) -> List:
+        """Filter issues to only those with numbers in the given list."""
+        issue_map = {issue.number: issue for issue in all_issues}
+        filtered = [issue_map[num] for num in issue_numbers if num in issue_map]
+        return filtered
+
+    def filter_issues_by_range(self, all_issues: List, start: int, end: int) -> List:
+        """Filter issues to only those within the given range (inclusive)."""
+        return [issue for issue in all_issues if start <= issue.number <= end]
+
+    def run(self, issue_numbers: Optional[List[int]] = None, issue_range: Optional[Tuple[int, int]] = None) -> None:
+        """Main execution: fetch capabilities and generate manifests.
+        
+        Args:
+            issue_numbers: Optional list of specific issue numbers to process
+            issue_range: Optional tuple (start, end) for range of issue numbers (inclusive)
+        """
         print(f"Fetching capability issues from {OWNER}/{SOURCE_REPO}...")
         capability_issues = self.fetch_capability_issues()
         print(f"Found {len(capability_issues)} capability issues")
+        
+        # Apply filters if specified
+        if issue_numbers:
+            capability_issues = self.filter_issues_by_numbers(capability_issues, issue_numbers)
+            print(f"Filtered to {len(capability_issues)} issue(s) by number: {issue_numbers}")
+        elif issue_range:
+            start, end = issue_range
+            capability_issues = self.filter_issues_by_range(capability_issues, start, end)
+            print(f"Filtered to {len(capability_issues)} issue(s) in range {start}..{end}")
+        
+        if not capability_issues:
+            print("No capability issues to process.")
+            return
         
         for issue in capability_issues:
             try:
@@ -435,10 +473,38 @@ class CapabilityManifestGenerator:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate CAPABILITY_MANIFEST.yaml files")
+    parser = argparse.ArgumentParser(
+        description="Generate CAPABILITY_MANIFEST.yaml files",
+        epilog="""
+Examples:
+  # Generate all capabilities
+  python3 generate_capability_manifests.py --token TOKEN
+  
+  # Generate a single capability (issue #275)
+  python3 generate_capability_manifests.py --capability 275 --token TOKEN
+  
+  # Generate a range of capabilities (issues #270 to #280)
+  python3 generate_capability_manifests.py --range 270 280 --token TOKEN
+  
+  # Generate specific capabilities (issues #270, #275, #280)
+  python3 generate_capability_manifests.py --list 270 275 280 --token TOKEN
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--capability", type=int, help="Generate manifest for a single capability issue number")
+    parser.add_argument("--range", type=int, nargs=2, metavar=("START", "END"), 
+                        help="Generate manifests for issue numbers in range START..END (inclusive)")
+    parser.add_argument("--list", type=int, nargs="+", metavar="ISSUE_NUMBER",
+                        help="Generate manifests for specific issue numbers (space-separated)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
     parser.add_argument("--token", help="GitHub token (or use GITHUB_TOKEN env var)")
     args = parser.parse_args()
+    
+    # Validate argument combinations
+    arg_count = sum([args.capability is not None, args.range is not None, args.list is not None])
+    if arg_count > 1:
+        print("Error: Only one of --capability, --range, or --list can be specified.", file=sys.stderr)
+        sys.exit(1)
     
     token = args.token or os.environ.get("GITHUB_TOKEN")
     if not token:
@@ -450,7 +516,17 @@ def main():
     
     try:
         generator.initialize()
-        generator.run()
+        
+        if args.capability is not None:
+            generator.run(issue_numbers=[args.capability])
+        elif args.range is not None:
+            start, end = args.range
+            generator.run(issue_range=(start, end))
+        elif args.list is not None:
+            generator.run(issue_numbers=args.list)
+        else:
+            generator.run()
+            
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
