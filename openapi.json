@@ -1,0 +1,34 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Positivity API Gateway",
+        "description": "Unified API Gateway for all POS microservices.\n\n**API Versioning**: All requests must include the `X-API-Version` header.\n\n**Available Routes**:\n- `/accounting/**` - General ledger, journal entries, financial operations\n- `/catalog/**` - Product information, categorization, details\n- `/customer/**` - Customer profiles, preferences, history\n- `/event-receiver/**` - Event ingestion and processing\n- `/image/**` - Image storage, retrieval, transformation\n- `/inquiry/**` - Customer inquiries and support tracking\n- `/inventory/**` - Stock management and availability\n- `/invoice/**` - Invoice generation, tracking, management\n- `/location/**` - Store locations, warehouses, branches\n- `/order/**` - Order creation, fulfillment, tracking\n- `/people/**` - Employee management, staff administration\n- `/price/**` - Pricing rules, discounts, cost calculations\n- `/security-service/**` - Authentication, authorization, access control\n- `/shop-manager/**` - Shop operations, scheduling, resources\n- `/vehicle-fitment/**` - Vehicle compatibility, parts installation\n- `/vehicle-inventory/**` - Vehicle stock and availability\n- `/workorder/**` - Service requests, job tracking, assignments\n\n**Example**: `curl -H \"X-API-Version: 1\" http://localhost:8080/inventory/items`",
+        "contact": {
+            "name": "Durion Team",
+            "email": "louis.burroughs@gmail.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "API Gateway - All services routed through this endpoint"
+        }
+    ],
+    "paths": {},
+    "components": {
+        "parameters": {
+            "X-API-Version": {
+                "name": "X-API-Version",
+                "in": "header",
+                "description": "API version number (required)",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "default": "1",
+                    "example": "1"
+                }
+            }
+        }
+    }
+}
