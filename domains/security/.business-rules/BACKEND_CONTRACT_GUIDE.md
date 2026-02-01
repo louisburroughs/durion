@@ -72,9 +72,9 @@ Client → API Gateway → Backend Service
 
 ## Required Request Headers
 
-All API requests **MUST** include these headers when calling through the API Gateway:
+All **protected** API requests (i.e., non-public business endpoints) **MUST** include these headers when calling through the API Gateway. Public endpoints such as `/actuator/**`, `/swagger-ui/**`, `/v3/api-docs/**`, and `/webjars/**` do not require these headers—see [Public vs Protected Endpoints](#public-vs-protected-endpoints) for details.
 
-### X-API-Version (MANDATORY)
+### X-API-Version (MANDATORY for Protected Endpoints)
 
 **Purpose:** API versioning via header instead of path
 
@@ -135,12 +135,13 @@ Gateway rewrites to: `GET /v1/users/123`
 **Validation Flow:**
 
 1. Gateway extracts JWT from `Authorization: Bearer <token>`
-2. Gateway calls `POST /v1/auth/validate?token=<token>`
-3. If valid, gateway fetches authorities: `GET /v1/auth/authorities?token=<token>`
-4. Gateway fetches subject: `GET /v1/auth/subject?token=<token>`
+2. Gateway calls `POST /v1/auth/validate` with `Authorization: Bearer <token>`
+3. If valid, gateway fetches authorities: `GET /v1/auth/authorities` with `Authorization: Bearer <token>`
+4. Gateway fetches subject: `GET /v1/auth/subject` with `Authorization: Bearer <token>`
 5. Gateway injects `X-Authorities` and `X-User` headers
 6. Request forwarded to backend service
 
+> Logging guidance: Gateways and backend services **must not** log raw JWT values. If request URLs, headers, or bodies are logged, they **must** be scrubbed to remove or mask any bearer tokens.
 **Example:**
 
 ```http
@@ -474,7 +475,6 @@ These endpoints bypass JWT authentication at the gateway:
 | `/swagger-ui/**` | Swagger UI for API documentation | No |
 | `/v3/api-docs/**` | OpenAPI specification | No |
 | `/webjars/**` | Swagger UI static assets | No |
-| `/eureka/**` | Service discovery registration | No |
 
 **Example (Health Check):**
 
@@ -1583,7 +1583,7 @@ This guide establishes standardized contracts for the Security & Authentication 
 - **Domain Agent Guide:** `domains/security/.business-rules/AGENT_GUIDE.md`
 - **Cross-Domain Integration:** `domains/security/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - **Error Codes:** `domains/security/.business-rules/ERROR_CODES.md`
-- **Correlation ID Standards:** `X-Correlation-Id-Implementation-Plan.md`
+- **Correlation ID Standards:** [X-Correlation-Id-Implementation-Plan.md](../../docs/architecture/X-Correlation-Id-Implementation-Plan.md)
 
 ---
 
