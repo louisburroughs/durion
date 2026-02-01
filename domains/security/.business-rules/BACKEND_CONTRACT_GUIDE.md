@@ -377,12 +377,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `token` (query, Required, string): 
+- `token` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -392,12 +391,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `token` (query, Required, string): 
+- `token` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -411,14 +409,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `subject` (query, Required, string): 
-- `roles` (query, Optional, array): 
+- `subject` (query, Required, string):
+- `roles` (query, Optional, array):
 
 **Responses:**
 
 - `200`: JWT token issued successfully.
 - `401`: Invalid credentials.
-
 
 ---
 
@@ -428,12 +425,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `refreshToken` (query, Required, string): 
+- `refreshToken` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -443,12 +439,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `token` (query, Required, string): 
+- `token` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -458,12 +453,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `token` (query, Required, string): 
+- `token` (query, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -473,13 +467,12 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `subject` (query, Required, string): 
-- `roles` (query, Optional, array): 
+- `subject` (query, Required, string):
+- `roles` (query, Optional, array):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -493,13 +486,12 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `token` (query, Required, string): 
+- `token` (query, Required, string):
 
 **Responses:**
 
 - `200`: Token is valid.
 - `401`: Token is invalid or expired.
-
 
 ---
 
@@ -515,7 +507,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /v1/permissions/domain/{domain}
@@ -528,12 +519,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `domain` (path, Required, string): 
+- `domain` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -547,12 +537,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `permissionName` (path, Required, string): 
+- `permissionName` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -568,7 +557,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /v1/permissions/validate/{permissionName}
@@ -581,12 +569,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `permissionName` (path, Required, string): 
+- `permissionName` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -602,7 +589,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### POST /v1/roles
@@ -616,7 +602,6 @@ This domain exposes **29** REST API endpoints:
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -632,7 +617,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /v1/roles/assignments/user/{userId}
@@ -645,12 +629,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `userId` (path, Required, integer): 
+- `userId` (path, Required, integer):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -664,12 +647,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `assignmentId` (path, Required, integer): 
+- `assignmentId` (path, Required, integer):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -683,14 +665,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `userId` (query, Required, integer): 
-- `permission` (query, Required, string): 
-- `locationId` (query, Optional, string): 
+- `userId` (query, Required, integer):
+- `permission` (query, Required, string):
+- `locationId` (query, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -706,7 +687,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: OK
 
-
 ---
 
 #### GET /v1/roles/permissions/user/{userId}
@@ -719,12 +699,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `userId` (path, Required, integer): 
+- `userId` (path, Required, integer):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -738,12 +717,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `name` (path, Required, string): 
+- `name` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -759,7 +737,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: List of users returned successfully.
 
-
 ---
 
 #### POST /v1/users
@@ -774,7 +751,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: User created successfully.
 
-
 ---
 
 #### POST /v1/users/login
@@ -788,7 +764,6 @@ This domain exposes **29** REST API endpoints:
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -809,7 +784,6 @@ This domain exposes **29** REST API endpoints:
 - `204`: User deleted successfully.
 - `404`: User not found.
 
-
 ---
 
 #### GET /v1/users/{id}
@@ -828,7 +802,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: User found and returned.
 - `404`: User not found.
-
 
 ---
 
@@ -849,7 +822,6 @@ This domain exposes **29** REST API endpoints:
 - `200`: User updated successfully.
 - `404`: User not found.
 
-
 ---
 
 #### PUT /v1/users/{username}/roles
@@ -858,13 +830,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `username` (path, Required, string): 
+- `username` (path, Required, string):
 
 **Responses:**
 
 - `200`: OK
-
-
 
 ---
 
@@ -886,7 +856,6 @@ This domain exposes **29** REST API endpoints:
 | `resource` | string | No |  |
 | `version` | string | No |  |
 
-
 ### PermissionDefinition
 
 **Fields:**
@@ -895,7 +864,6 @@ This domain exposes **29** REST API endpoints:
 |-------|------|----------|-------------|
 | `description` | string | No |  |
 | `name` | string | No |  |
-
 
 ### PermissionRegistrationRequest
 
@@ -907,7 +875,6 @@ This domain exposes **29** REST API endpoints:
 | `permissions` | array | No |  |
 | `serviceName` | string | No |  |
 | `version` | string | No |  |
-
 
 ### PermissionRegistrationResponse
 
@@ -923,7 +890,6 @@ This domain exposes **29** REST API endpoints:
 | `totalPermissions` | integer (int32) | No |  |
 | `updatedPermissions` | integer (int32) | No |  |
 
-
 ### Role
 
 **Fields:**
@@ -938,7 +904,6 @@ This domain exposes **29** REST API endpoints:
 | `lastModifiedBy` | string | No |  |
 | `name` | string | No |  |
 | `permissions` | array | No |  |
-
 
 ### RoleAssignment
 
@@ -959,7 +924,6 @@ This domain exposes **29** REST API endpoints:
 | `scopeType` | string | No |  |
 | `user` | string | No |  |
 
-
 ### RoleAssignmentRequest
 
 **Fields:**
@@ -973,7 +937,6 @@ This domain exposes **29** REST API endpoints:
 | `scopeType` | string | No |  |
 | `userId` | integer (int64) | No |  |
 
-
 ### RolePermissionsRequest
 
 **Fields:**
@@ -983,7 +946,6 @@ This domain exposes **29** REST API endpoints:
 | `permissionNames` | array | No |  |
 | `roleId` | integer (int64) | No |  |
 
-
 ### TokenPair
 
 **Fields:**
@@ -992,7 +954,6 @@ This domain exposes **29** REST API endpoints:
 |-------|------|----------|-------------|
 | `accessToken` | string | No |  |
 | `refreshToken` | string | No |  |
-
 
 ### User
 
@@ -1006,8 +967,6 @@ Updated user object
 | `password` | string | No |  |
 | `roles` | array | No |  |
 | `username` | string | No |  |
-
-
 
 ---
 
