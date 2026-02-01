@@ -284,3 +284,41 @@ execution:
     - "Provider behavioral contract tests added/updated"
     - "Frontend wired to stable contract"
 
+
+
+
+You are implementing capability [CAP] Login & Token Handling (ADR-0011)
+Parent STORY: durion#275 
+Backend child issue: <repo>#417
+
+Contract guide entry (stable reference):
+  durion repo, domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  Anchor: [describe or link the specific section]
+
+I need you to:
+1. Implement the endpoint/service to match the contract
+2. Add provider behavioral contract tests (ContractBehaviorIT)
+3. Include examples from the contract guide in the tests
+4. Add validation & error handling per the assertions
+5. Include concurrency-safe patterns if needed (idempotency, optimistic locking)
+
+Follow existing pos-* module patterns for:
+  - Controller layer (keep thin, delegate to service)
+  - Service layer (orchestration, business logic)
+  - Repository layer (Spring Data JPA)
+  - Entity/DTO shapes
+
+Module structure:
+  pos-*/src/main/java/com/durion/pos*/controller/
+  pos-*/src/main/java/com/durion/pos*/service/
+  pos-*/src/main/java/com/durion/pos*/repository/
+  pos-*/src/test/java/com/durion/pos*/contract/
+
+Tests: Follow the ContractBehaviorIT pattern:
+  - Happy path (from examples in guide)
+  - Validation errors
+  - Auth/permission errors (if applicable)
+  - Idempotency (if applicable)
+  - Concurrency-safe invariants
+
+Add or update OpenAPI annotations (@Operation, @ApiResponse, etc.) if the module exposes REST.
