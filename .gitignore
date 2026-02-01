@@ -9,3 +9,6 @@
 Durion-Processing.md
 
 ports_defined.txt
+
+.venv/
+venv/

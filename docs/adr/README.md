@@ -74,6 +74,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0008   | Cost maintenance clarification diagram     | ACCEPTED          | 2026-01-13 |
 | 0009   | Backend Domain responsibilities            | ACCEPTED          | 2026-01-29 |
 | 0010   | Frontend Domain responsibilities           | PENDING           | 2026-01-29 |
+| 0011   | API Gateway Security Architecture          | ACCEPTED          | 2026-02-01 |
 
 ## Superseding ADRs
 
