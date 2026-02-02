@@ -7,36 +7,44 @@ model: GPT-5.2
 
 # Frontend Story Fulfillment Prompt
 
-You are implementing capability {capability_label} i.e.:CAP:275
-Parent STORY: [durion#{parent_story_number}](https://github.com/louisburroughs/durion/issues/{parent_story_number})
+You are implementing capability {{capability_label}} i.e.:CAP:275
+Parent CAPABILITY: [durion#{{parent_capability_number}}]({{parent_capability_address}})
+Parent STORY: [durion#{{parent_story_number}}]({{parent_story_address}})
 Frontend child issues:
-- [durion-moqui-frontend#{child_story_number}](https://github.com/louisburroughs/durion-moqui-frontend/issues/{child_story_number})
-- [durion-moqui-frontend#{child_story_number}](https://github.com/louisburroughs/durion-moqui-frontend/issues/{child_story_number})
+- [durion-moqui-frontend#{{child_story_number}}]({{child_story_address_1}})
+- [durion-moqui-frontend#{{child_story_number}}]({{child_story_address_2}})
+- etc.
+Frontend repository: {{owner}}/{{repo_name}}
 
 Contract guide entry (stable-for-ui):
-  durion repo, domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  durion repo, domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md
 
 Backend API endpoint/event is now implemented and available:
-  Backend PR: [link to backend PR](https://github.com/louisburroughs/durion-positivity-backend/pull/{backend_pull_request})
+  Backend PR: [link to backend PR]({{backend_pull_request_address}})
 
-I need you to:
-1. Consume the backend API/event in the frontend
-2. Implement UI screens/pages matching the wireframes
-3. Wire form submissions, validation, and error handling
-4. Add UI tests (Jest) for key user flows
-5. Ensure error handling matches backend error model (shape, codes, messages)
+**Implementation Checklist**
+  1. Read and understand the parent story and capability requirements.
+  2. Read and understand the frontend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
+  3. Create a branch from `main` or 'master' named `cap/CAP{{capability_id}} in the effected repository.
+  5. Validate,Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
+    A. Consume the backend API/event in the frontend
+    B. Implement UI screens/pages matching the wireframes
+    C. Wire form submissions, validation, and error handling
+    D. Add UI tests (Jest) for key user flows
+    E. Ensure error handling matches backend error model (shape, codes, messages)
+  
 
 Architecture & References:
 - See `durion-moqui-frontend/AGENTS.md` for the official frontend tooling and local run/build commands.
 - Consult `docs/architecture/` (workspace root) for frontend architecture guidance and integration patterns.
-- Reference the contract guide at `domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md` for DTO shapes, examples, and invariants.
-- Use the capability manifest at `docs/capabilities/{capability_id}/CAPABILITY_MANIFEST.yaml` for repo lists, wireframes, and coordination details.
+- Reference the contract guide at `domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md` for DTO shapes, examples, and invariants.
+- Use the capability manifest at `docs/capabilities/{{capability_id}}/CAPABILITY_MANIFEST.yaml` for repo lists, wireframes, and coordination details.
 - API bridge reference: `runtime/component/durion-positivity/` inside the Moqui runtime component — prefer this existing bridge for backend calls.
 
 Implementation Patterns & Links:
 - Services: Implement API calls in a services layer (composables or service classes) following the frontend architecture doc and `durion-moqui-frontend/AGENTS.md` guidance.
 - Components: Keep presentation logic inside Vue components; put business logic and state orchestration in services/composables as documented in `docs/architecture/`.
-- Types & Contract Safety: Obtain TypeScript DTOs from the contract guide or OpenAPI spec (if present) in the backend repo. Ensure types mirror the contract examples and validation rules in `domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md`.
+- Types & Contract Safety: Obtain TypeScript DTOs from the contract guide or OpenAPI spec (if present) in the backend repo. Ensure types mirror the contract examples and validation rules in `domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md`.
 - API Bridge Usage: Use `runtime/component/durion-positivity/` for network integration; do not add ad-hoc HTTP clients that duplicate bridge behaviour.
 - Testing: Follow Jest patterns and contract-driven test examples found in `docs/architecture/` and `durion-moqui-frontend/AGENTS.md`; add tests that assert handling of happy path, validation errors, and auth/errors per the contract.
 
@@ -72,7 +80,7 @@ def substitute_prompt(prompt_template, input_json):
     Substitute placeholders in prompt template with values from input JSON.
     
     Args:
-        prompt_template (str): The raw prompt text with {placeholder} markers
+        prompt_template (str): The raw prompt text with {{placeholder}} markers
         input_json (dict): Dictionary with keys matching placeholder names
     
     Returns:
@@ -93,12 +101,12 @@ def substitute_prompt(prompt_template, input_json):
     # Validate all required keys are present
     missing_keys = required_keys - set(input_json.keys())
     if missing_keys:
-        raise ValueError(f"Missing required keys: {missing_keys}")
+        raise ValueError(f"Missing required keys: {{missing_keys}}")
     
-    # Perform substitution: replace {key} with value from input_json
+    # Perform substitution: replace {{key}} with value from input_json
     result = prompt_template
     for key, value in input_json.items():
-        placeholder = "{" + key + "}"
+        placeholder = "{{" + key + "}}"
         result = result.replace(placeholder, str(value))
     
     return result
@@ -122,10 +130,10 @@ function substitutePrompt(promptTemplate, inputJson) {
     throw new Error(`Missing required keys: ${missingKeys.join(", ")}`);
   }
   
-  // Perform substitution: replace {key} with value from inputJson
+  // Perform substitution: replace {{key}} with value from inputJson
   let result = promptTemplate;
   for (const [key, value] of Object.entries(inputJson)) {
-    const placeholder = `{${key}}`;
+    const placeholder = `{{${key}}}`;
     result = result.replaceAll(placeholder, String(value));
   }
   
@@ -139,14 +147,15 @@ function substitutePrompt(promptTemplate, inputJson) {
 3. Verify that `parent_story_number`, `child_story_number`, and `backend_pull_request` are integers.
 4. Verify that `capability_label`, `domain`, and `capability_id` are non-empty strings.
 5. Perform substitution using the algorithm above.
-6. Verify the output contains no remaining `{placeholder}` patterns (use regex: `\{[a-z_]+\}`).
+6. Verify the output contains no remaining `{{placeholder}}` patterns (use regex: `\{{[a-z_]+\}}`).
 7. If any unsubstituted placeholders remain, raise an error and list them.
 
 Output Expectations
 - Produce a short implementation checklist (3–8 bullets) including files changed, services added, and tests created.
 - Produce a list of exact files to modify or create (workspace-relative paths).
 - Provide any TypeScript interfaces/types you added or updated (inline or file references).
-- Keep the response concise; prefer a JSON summary for machine consumption and a short human-readable checklist.
+- Keep responses concise; prefer JSON summaries for machine consumption and short human-readable checklists.
+- Put all implementation details in a markdown document with proper headings and code blocks. Put this document in durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-frontend-implementation.md.
 
 Notes
 - Do not hardcode secrets or API keys. Use environment variables or the existing runtime configuration.

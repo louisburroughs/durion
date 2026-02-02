@@ -7,21 +7,29 @@ model: GPT-5.2
 
 # Backend Story Fulfillment Prompt
 
-You are implementing capability {capability_id}.
-Parent STORY: durion#{parent_story_number}
-Backend child issue: {module}#{child_issue_number}
+Parent CAPABILITY: [durion#{parent_capability_number}]({parent_capability_address})
+Parent STORY: [durion#{parent_story_number}]({parent_story_address})
+Backend child issues:
+- [durion-moqui-backend#{child_story_number}]({child_story_address_1})
+- [durion-moqui-backend#{child_story_number}]({child_story_address_2})
+- etc.
 
 Contract guide entry (stable reference):
   durion repo, domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
   Anchor: [describe or link the specific section]
 
-I need you to:
-1. Implement the endpoint/service to match the contract
-2. Add provider behavioral contract tests (`ContractBehaviorIT`)
-3. Include examples from the contract guide in the tests
-4. Add validation & error handling per the assertions
-5. Include concurrency-safe patterns if needed (idempotency, optimistic locking)
-6. Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
+  **Implementation Checklist**
+  1. Read and understand the parent story and capability requirements.
+  2. Read and understand the backend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
+  3. Create a branch from `main` named `cap/CAP{capability_id}.
+  5. Validate,Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
+    A. Implement the endpoint/service to match the contract
+    B. Add provider behavioral contract tests (`ContractBehaviorIT`)
+    C. Include examples from the contract guide in the tests
+    D. Add validation & error handling per the assertions
+    E. Include concurrency-safe patterns if needed (idempotency, optimistic locking)
+    F. Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
+  6. Create a pull request against `main` with the changes for review.
 
 Architecture & References (REPLACE "Module structure" with authoritative docs):
 - See `durion-positivity-backend/AGENTS.md` for backend repo quick start, build, and run commands.
@@ -99,6 +107,7 @@ Output Expectations
 - List exact workspace-relative file paths to change or create.
 - Provide code snippets for critical pieces: controller signature, service method, repository query, and a sample ContractBehaviorIT test using contract examples.
 - Specify required configuration changes (if any), e.g., event type registration, properties, or feature flags.
+- Put all implementation details in a markdown document with proper headings and code blocks. Put this document in durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-implementation.md.
 
 Notes
 - Do NOT hardcode secrets or credentials; use existing config and environment variables.
