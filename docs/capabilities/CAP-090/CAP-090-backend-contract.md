@@ -61,13 +61,16 @@ No endpoint add/remove delta detected between the current guide’s Endpoint Sum
     "https://github.com/louisburroughs/durion-positivity-backend/issues/106"
   ],
   "updated_files": [
-    "domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md"
+    "domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md",
+    "docs/capabilities/CAP-090/CAP-090-backend-contract.md"
   ],
   "openapi_changes": {
     "added": [],
     "changed": [],
     "removed": []
   },
-  "confidence": 97
+  "confidence": 97,
+  "applied": true,
+  "commit": "b97edab"
 }
 ```
