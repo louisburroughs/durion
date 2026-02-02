@@ -4,6 +4,7 @@
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-02-02  
 **OpenAPI Source:** `pos-customer/target/openapi.json`
+**Status:** Accepted
 
 ---
 
