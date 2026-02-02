@@ -3,7 +3,7 @@ meta:
   capability_name: '[CAP] Contact Management (Roles, Preferences, and Consent)'
   owner_repo: louisburroughs/durion
   created_utc: '2026-02-02T15:11:11.479375+00:00'
-  last_updated_utc: '2026-02-02T15:11:11.479375+00:00'
+  last_updated_utc: '2026-02-02T19:30:00.000000+00:00'
 parent_capability:
   repo: louisburroughs/durion
   issue: 90
@@ -84,11 +84,14 @@ stories:
   pr_links:
     durion_contract_pr: ''
     backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/419'
-    frontend_prs: []
+    frontend_prs:
+    - 'https://github.com/louisburroughs/durion-crm/pull/2'
   merge_order:
   - durion_contract_pr
   - backend_pr
   - frontend_prs
+  status: completed
+  completed_utc: '2026-02-02T19:30:00.000000+00:00'
 - parent_story:
     repo: louisburroughs/durion
     issue: 100
