@@ -44,8 +44,8 @@ Backend API endpoint/event is now implemented and available:
      ```
      
      **Component Repository Paths:** Frontend components are located at `/home/louisb/Projects/{repo-name}` where `{repo-name}` is extracted from the impacted_component_repos slug. For example:
-     - `louisburroughs/durion-crm` → `/home/louisb/Projects/durion-crm`
-     - `louisburroughs/durion-hr` → `/home/louisb/Projects/durion-hr`
+     - `louisburroughs/durion-crm` → `/home/louisb/Projects/durion-moqui-frontend/runtime/component/durion-crm`
+     - `louisburroughs/durion-hr` → `/home/louisb/Projects/durion-moqui-frontend/runtime/component/durion-hr`
      
      **IMPORTANT:** All subsequent code changes MUST be made in these component repositories while on the feature branch. Verify you are on the correct branch before making any file changes:
      ```bash
