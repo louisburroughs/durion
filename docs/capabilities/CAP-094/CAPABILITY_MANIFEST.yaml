@@ -83,7 +83,7 @@ execution:
   agent_rules:
   - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
   - Frontend work starts only when contract status is stable-for-ui.
-  - 'One branch per repo per capability: CAP/094.'
+  - 'One branch per repo per capability: CAP094.'
   definition_of_done:
   - All PRs merged and required checks green
   - Contract guide entry updated with examples + behavioral assertions

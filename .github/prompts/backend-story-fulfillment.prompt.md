@@ -2,34 +2,33 @@
 name: Backend Story Fulfillment
 description: "Guided prompt for implementing backend endpoints/services for a capability story. Implements contract-driven behavior, provider contract tests, validation, and OpenAPI annotations. References backend architecture documents and module conventions."
 agent: "agent"
-model: GPT-5.2
+model: Claude Opus 4.5 (copilot)
 ---
 
 # Backend Story Fulfillment Prompt
 
-Parent CAPABILITY: [durion#{parent_capability_number}]({parent_capability_address})
-Parent STORY: [durion#{parent_story_number}]({parent_story_address})
+You are implementing capability {{capability_label}} i.e.:CAP:275
+Parent CAPABILITY: [durion#{{parent_capability_number}}]({{parent_capability_address}})
+Parent STORY: [durion#{{parent_story_number}}]({{parent_story_address}})
 Backend child issues:
-- [durion-moqui-backend#{child_story_number}]({child_story_address_1})
-- [durion-moqui-backend#{child_story_number}]({child_story_address_2})
-- etc.
+{{backend_child_issues}}
+Backend repository: {{backend_repo}}
 
-Contract guide entry (stable reference):
-  durion repo, domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  Anchor: [describe or link the specific section]
+Contract guide entry (draft):
+  durion repo, domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md
 
   **Implementation Checklist**
   1. Read and understand the parent story and capability requirements.
   2. Read and understand the backend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
-  3. Create a branch from `main` named `cap/CAP{capability_id}.
-  5. Validate,Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
-    A. Implement the endpoint/service to match the contract
-    B. Add provider behavioral contract tests (`ContractBehaviorIT`)
-    C. Include examples from the contract guide in the tests
-    D. Add validation & error handling per the assertions
-    E. Include concurrency-safe patterns if needed (idempotency, optimistic locking)
-    F. Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
-  6. Create a pull request against `main` with the changes for review.
+  3. Create a branch from `main` named `cap/CAP{{capability_id}}`.
+  4. Validate,Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
+    (A). Implement the endpoint/service to match the contract
+    (B). Add provider behavioral contract tests (`ContractBehaviorIT`)
+    (C). Include examples from the contract guide in the tests
+    (D). Add validation & error handling per the assertions
+    (E). Include concurrency-safe patterns if needed (idempotency, optimistic locking)
+    (F). Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
+  5. Create a pull request against `main` with the changes for review.
 
 Architecture & References (REPLACE "Module structure" with authoritative docs):
 - See `durion-positivity-backend/AGENTS.md` for backend repo quick start, build, and run commands.
@@ -62,52 +61,200 @@ Testing Requirements
 
 Substitution & Validation
 
-**Required Input Keys (JSON)**
-- `capability_id` (string) — e.g., "cap:CAP275"
-- `parent_story_number` (integer)
-- `child_issue_number` (integer)
-- `domain` (string)
-- `module` (string) — pos module folder name, e.g., "pos-order"
-- `package_base` (string) — Java package base, e.g., "com.positivity.order"
+**Required Input Structure (CAPABILITY_MANIFEST.yaml)**
+The following fields MUST be present in CAPABILITY_MANIFEST.yaml, or substitution will fail:
+- `meta.capability_id` (string) — e.g., "CAP:094"
+- `meta.owner_repo` (string) — e.g., "louisburroughs/durion"
+- `stories[0].parent.issue` (integer) — parent story number
+- `stories[0].parent.domain` (string) — e.g., "crm", "security", "inventory"
+- `stories[0].children.backend` (object or list) — backend child story/stories. Can be a single object with `issue` field, or a list of objects each with `issue` field
+- `stories[0].contract_guide.path` (string) — path to contract guide
+- `repositories[].type` and `repositories[].slug` — must include "backend" type entry (always durion-positivity-backend)
 
-**Example JSON Input**
-```json
-{
-  "capability_id": "cap:CAP275",
-  "parent_story_number": 276,
-  "child_issue_number": 456,
-  "domain": "security",
-  "module": "pos-order",
-  "package_base": "com.positivity.order"
-}
+**Example CAPABILITY_MANIFEST.yaml Input**
+```yaml
+meta:
+  capability_id: CAP:094
+  capability_name: '[CAP] Workorder Execution Integration (Bidirectional)'
+  owner_repo: louisburroughs/durion
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  preferred_branch_prefix: cap/
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+repositories:
+- name: durion-positivity-backend
+  slug: louisburroughs/durion-positivity-backend
+  type: backend
+stories:
+- parent:
+    repo: louisburroughs/durion
+    issue: 94
+    title: '[CAP] Workorder Execution Integration (Bidirectional)'
+    domain: crm
+    labels:
+    - type:capability
+    - domain:crm
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 92
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    status: draft
 ```
 
 **Substitution Algorithm (Python)**
 ```python
-def substitute_prompt(prompt_template, input_json):
-    required_keys = {"capability_id","parent_story_number","child_issue_number","domain","module","package_base"}
-    missing = required_keys - set(input_json.keys())
-    if missing:
-        raise ValueError(f"Missing keys: {missing}")
+import re
+import yaml
+from typing import Dict, Any, List
+
+def extract_manifest_values(manifest_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract required substitution values from CAPABILITY_MANIFEST.yaml structure.
+    
+    Args:
+        manifest_data (dict): Parsed YAML from CAPABILITY_MANIFEST.yaml
+    
+    Returns:
+        dict: Dictionary with extracted values for template substitution
+    
+    Raises:
+        ValueError: If required fields are missing from manifest
+    """
+    try:
+        capability_id = manifest_data['meta']['capability_id']
+        capability_name = manifest_data['meta']['capability_name']
+        owner_repo = manifest_data['meta']['owner_repo']
+        
+        parent_story = manifest_data['stories'][0]['parent']
+        parent_story_number = parent_story['issue']
+        domain = parent_story['domain']
+        
+        backend_repo = next(
+            r for r in manifest_data['repositories']
+            if r['type'] == 'backend'
+        )['slug']
+        
+        children = manifest_data['stories'][0]['children']
+        
+        # Handle backend as either single object or list of objects
+        backend_data = children['backend']
+        if isinstance(backend_data, dict):
+            # Single backend issue
+            backend_issues = [backend_data]
+        elif isinstance(backend_data, list):
+            # Multiple backend issues
+            backend_issues = backend_data
+        else:
+            raise ValueError("stories[0].children.backend must be dict or list")
+        
+        # Extract issue numbers
+        backend_child_issues = []
+        for backend_issue in backend_issues:
+            issue_number = backend_issue['issue']
+            issue_repo = backend_issue.get('repo', backend_repo)
+            backend_child_issues.append({
+                'issue_number': issue_number,
+                'issue_repo': issue_repo,
+                'issue_url': f"https://github.com/{issue_repo}/issues/{issue_number}"
+            })
+        
+        # Format backend child issues as markdown list
+        backend_issues_markdown = '\n'.join([
+            f"- [{item['issue_repo']}#{item['issue_number']}]({item['issue_url']})"
+            for item in backend_child_issues
+        ])
+        
+        contract_guide = manifest_data['stories'][0]['contract_guide']
+        
+        return {
+            'capability_label': capability_id,
+            'capability_name': capability_name,
+            'owner_repo': owner_repo,
+            'parent_story_number': parent_story_number,
+            'domain': domain,
+            'parent_story_address': f"https://github.com/{owner_repo}/issues/{parent_story_number}",
+            'backend_child_issues': backend_issues_markdown,
+            'contract_path': contract_guide['path'],
+            'contract_status': contract_guide.get('status', 'draft'),
+            'backend_repo': backend_repo,
+            'capability_id': capability_id.lower().replace(':', '_')
+        }
+    except (KeyError, IndexError) as e:
+        raise ValueError(f"Required field missing in CAPABILITY_MANIFEST.yaml: {e}")
+
+
+def substitute_prompt(prompt_template: str, manifest_data: Dict[str, Any]) -> str:
+    """
+    Substitute placeholders in prompt template with values extracted from CAPABILITY_MANIFEST.yaml.
+    
+    Args:
+        prompt_template (str): The raw prompt text with {{placeholder}} markers
+        manifest_data (dict): Parsed CAPABILITY_MANIFEST.yaml data
+    
+    Returns:
+        str: Prompt with all placeholders replaced
+    
+    Raises:
+        ValueError: If required fields are missing or substitution incomplete
+    """
+    # Extract values from manifest
+    values = extract_manifest_values(manifest_data)
+    
+    # Perform substitution: replace {{key}} with value from extracted values
     result = prompt_template
-    for k,v in input_json.items():
-        result = result.replace("{"+k+"}", str(v))
+    for key, value in values.items():
+        placeholder = "{{" + key + "}}"
+        result = result.replace(placeholder, str(value))
+    
+    # Validate no unsubstituted placeholders remain
+    remaining_placeholders = re.findall(r'\{\{([a-z_]+)\}\}', result, re.IGNORECASE)
+    if remaining_placeholders:
+        raise ValueError(f"Unsubstituted placeholders remain: {remaining_placeholders}")
+    
     return result
+
+
+def load_and_substitute(manifest_path: str, prompt_template: str) -> str:
+    """
+    Load CAPABILITY_MANIFEST.yaml and apply substitution to prompt template.
+    
+    Args:
+        manifest_path (str): Path to CAPABILITY_MANIFEST.yaml file
+        prompt_template (str): The raw prompt template text
+    
+    Returns:
+        str: Substituted prompt
+    
+    Raises:
+        FileNotFoundError: If manifest file not found
+        yaml.YAMLError: If manifest YAML parsing fails
+        ValueError: If manifest validation or substitution fails
+    """
+    with open(manifest_path, 'r') as f:
+        manifest_data = yaml.safe_load(f)
+    
+    return substitute_prompt(prompt_template, manifest_data)
 ```
 
 **Validation Steps**
-1. Parse JSON input; ensure valid syntax.
-2. Ensure all required keys are present.
-3. Validate numeric fields are integers.
-4. Validate strings are non-empty.
-5. Perform substitution and verify no `{placeholder}` remains (regex `\{[a-z_]+\}`).
+1. Parse input YAML and verify it is valid YAML syntax.
+2. Check that all required fields (listed above) are present in the YAML.
+3. Verify that `parent_story_number` and backend issue numbers are integers.
+4. Verify that `capability_label`, `domain`, and `capability_id` are non-empty strings.
+5. Perform substitution using the algorithm above.
+7. If any unsubstituted placeholders remain, raise an error and list them.
 
 Output Expectations
 - Provide a concise implementation checklist (3–10 bullets) listing controllers, services, repositories, entities, DTOs, and tests to add/modify.
 - List exact workspace-relative file paths to change or create.
 - Provide code snippets for critical pieces: controller signature, service method, repository query, and a sample ContractBehaviorIT test using contract examples.
 - Specify required configuration changes (if any), e.g., event type registration, properties, or feature flags.
-- Put all implementation details in a markdown document with proper headings and code blocks. Put this document in durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-implementation.md.
+- Put all implementation details in a markdown document with proper headings and code blocks. Put this document in /durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-implementation.md.
 
 Notes
 - Do NOT hardcode secrets or credentials; use existing config and environment variables.
@@ -115,4 +262,4 @@ Notes
 - If contract examples are missing for an edge case, add tests that capture desired behaviour and update the contract guide in `durion`.
 
 ---
-Assume placeholders will be injected from the provided JSON input and validate that all required keys are present before proceeding.
+Assume placeholders will be injected from the CAPABILITY_MANIFEST.yaml and validate that all required fields are present before proceeding.
