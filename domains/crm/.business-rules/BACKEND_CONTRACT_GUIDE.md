@@ -1,8 +1,8 @@
 # Customer Relationship Management (CRM) Backend Contract Guide
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
+**Last Updated:** 2026-02-02  
 **OpenAPI Source:** `pos-customer/target/openapi.json`
 
 ---
@@ -1123,6 +1123,7 @@ This guide establishes standardized contracts for the Customer Relationship Mana
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-02-02 | Add CAP:089 implementation links (capability/stories/backend issues) |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
 ---
@@ -1134,6 +1135,22 @@ This guide establishes standardized contracts for the Customer Relationship Mana
 - Cross-Domain Integration: `domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/crm/.business-rules/ERROR_CODES.md`
 - Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
+
+### Implementation Links (CAP:089)
+
+- Capability manifest: `docs/capabilities/CAP-089/CAPABILITY_MANIFEST.yaml`
+- Parent capability: https://github.com/louisburroughs/durion/issues/89
+- Parent stories:
+  - https://github.com/louisburroughs/durion/issues/95
+  - https://github.com/louisburroughs/durion/issues/96
+  - https://github.com/louisburroughs/durion/issues/97
+  - https://github.com/louisburroughs/durion/issues/98
+- Backend child issues:
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/112
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/111
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/110
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/109
+- OpenAPI snapshot used for this update: `durion-positivity-backend/pos-customer/openapi.json`
 
 ---
 
