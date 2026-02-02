@@ -1,9 +1,9 @@
 # Customer Relationship Management (CRM) Backend Contract Guide
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-02-02  
-**OpenAPI Source:** `pos-customer/target/openapi.json`
+**OpenAPI Source:** `pos-customer/openapi.json`
 **Status:** Accepted
 
 ---
@@ -469,6 +469,31 @@ This domain exposes **27** REST API endpoints:
 - `403`: Forbidden - insufficient permissions
 - `404`: Party not found
 
+**Contract (Response 200):** `GetCommunicationPreferencesResponse`
+
+**Response Schema (JSON Schema, abridged):**
+```json
+{
+  "type": "object",
+  "properties": {
+    "partyId": { "type": "string" },
+    "version": { "type": "string" },
+    "emailPreference": { "type": "string" },
+    "smsPreference": { "type": "string" },
+    "phonePreference": { "type": "string" },
+    "marketingPreference": { "type": "string" },
+    "consentFlags": { "type": "object", "additionalProperties": { "type": "boolean" } },
+    "preferencesNote": { "type": "string" },
+    "updatedAt": { "type": "string" },
+    "updateSource": { "type": "string" }
+  }
+}
+```
+
+**Provider Test Hints (ContractBehaviorIT):**
+- Add tests for: `200`, `403`, `404` per OpenAPI
+- TODO (CAP:090 / backend issue #107): add concrete example payload/expected body assertions once backend behavior is finalized
+
 
 ---
 
@@ -491,6 +516,45 @@ This domain exposes **27** REST API endpoints:
 - `403`: Forbidden - insufficient permissions
 - `404`: Party not found
 
+**Contract (Request Body):** `UpsertCommunicationPreferencesRequest`
+
+**Request Schema (JSON Schema, abridged):**
+```json
+{
+  "type": "object",
+  "properties": {
+    "version": { "type": "string" },
+    "emailPreference": { "type": "string" },
+    "smsPreference": { "type": "string" },
+    "phonePreference": { "type": "string" },
+    "marketingPreference": { "type": "string" },
+    "consentFlags": { "type": "object", "additionalProperties": { "type": "boolean" } },
+    "preferencesNote": { "type": "string" },
+    "updateSource": { "type": "string" }
+  }
+}
+```
+
+**Contract (Response 200):** `UpsertCommunicationPreferencesResponse`
+
+**Response Schema (JSON Schema, abridged):**
+```json
+{
+  "type": "object",
+  "properties": {
+    "partyId": { "type": "string" },
+    "version": { "type": "string" },
+    "operationType": { "type": "string" },
+    "status": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  }
+}
+```
+
+**Provider Test Hints (ContractBehaviorIT):**
+- Add tests for: `200`, `400`, `403`, `404` per OpenAPI
+- TODO (CAP:090 / backend issue #107): define authoritative example(s) and validation rules for “Invalid preference data” → `400`
+
 
 ---
 
@@ -511,6 +575,26 @@ This domain exposes **27** REST API endpoints:
 - `200`: Contacts retrieved successfully
 - `403`: Forbidden - insufficient permissions
 - `404`: Party not found
+
+**Contract (Response 200):** `GetContactsWithRolesResponse`
+
+**Response Schema (JSON Schema, abridged):**
+```json
+{
+  "type": "object",
+  "properties": {
+    "partyId": { "type": "string" },
+    "contacts": {
+      "type": "array",
+      "items": { "$ref": "#/components/schemas/ContactWithRoles" }
+    }
+  }
+}
+```
+
+**Provider Test Hints (ContractBehaviorIT):**
+- Add tests for: `200`, `403`, `404` per OpenAPI
+- TODO (CAP:090 / backend issue #106): define example contact list shapes (incl. multiple contact points)
 
 
 ---
@@ -534,6 +618,42 @@ This domain exposes **27** REST API endpoints:
 - `400`: Invalid role assignment
 - `403`: Forbidden - insufficient permissions
 - `404`: Party or contact not found
+
+**Contract (Request Body):** `UpdateContactRolesRequest`
+
+**Request Schema (JSON Schema, abridged):**
+```json
+{
+  "type": "object",
+  "properties": {
+    "version": { "type": "string" },
+    "roles": {
+      "type": "array",
+      "items": { "$ref": "#/components/schemas/RoleAssignment" }
+    }
+  }
+}
+```
+
+**Contract (Response 200):** `UpdateContactRolesResponse`
+
+**Response Schema (JSON Schema, abridged):**
+```json
+{
+  "type": "object",
+  "properties": {
+    "partyId": { "type": "string" },
+    "contactId": { "type": "string" },
+    "version": { "type": "string" },
+    "status": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  }
+}
+```
+
+**Provider Test Hints (ContractBehaviorIT):**
+- Add tests for: `200`, `400`, `403`, `404` per OpenAPI
+- TODO (CAP:090 / backend issue #108): define valid roleCode set + rules for primary flags and “Invalid role assignment” → `400`
 
 
 ---
@@ -1036,6 +1156,37 @@ Vehicle creation request
 | `version` | string | No |  |
 
 
+### UpsertCommunicationPreferencesRequest
+
+Communication preference upsert request
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `version` | string | No |  |
+| `emailPreference` | string | No |  |
+| `smsPreference` | string | No |  |
+| `phonePreference` | string | No |  |
+| `marketingPreference` | string | No |  |
+| `consentFlags` | object | No | Map of consent flags (`string -> boolean`) |
+| `preferencesNote` | string | No |  |
+| `updateSource` | string | No |  |
+
+
+### UpsertCommunicationPreferencesResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `partyId` | string | No |  |
+| `version` | string | No |  |
+| `operationType` | string | No |  |
+| `status` | string | No |  |
+| `updatedAt` | string | No |  |
+
+
 ### GetContactsWithRolesResponse
 
 **Fields:**
@@ -1044,6 +1195,67 @@ Vehicle creation request
 |-------|------|----------|-------------|
 | `contacts` | array | No |  |
 | `partyId` | string | No |  |
+
+Note: In OpenAPI, `contacts[]` items are `ContactWithRoles`.
+
+
+### ContactWithRoles
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `contactId` | string | No |  |
+| `contactName` | string | No |  |
+| `email` | string | No |  |
+| `phone` | string | No |  |
+| `hasPrimaryEmail` | boolean | No |  |
+| `roles` | array | No | Items are `AssignedRole` |
+| `invoiceDeliveryMethod` | string | No |  |
+
+
+### AssignedRole
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `roleCode` | string | No |  |
+| `roleLabel` | string | No |  |
+| `isPrimary` | boolean | No |  |
+
+
+### UpdateContactRolesRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `version` | string | No |  |
+| `roles` | array | No | Items are `RoleAssignment` |
+
+
+### RoleAssignment
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `roleCode` | string | No |  |
+| `isPrimary` | boolean | No |  |
+
+
+### UpdateContactRolesResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `partyId` | string | No |  |
+| `contactId` | string | No |  |
+| `version` | string | No |  |
+| `status` | string | No |  |
+| `updatedAt` | string | No |  |
 
 
 *Additional schemas omitted for brevity. See OpenAPI spec for complete list.*
@@ -1124,6 +1336,7 @@ This guide establishes standardized contracts for the Customer Relationship Mana
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2 | 2026-02-02 | Add CAP:090 implementation links and enrich contact/communication preference contract details |
 | 1.1 | 2026-02-02 | Add CAP:089 implementation links (capability/stories/backend issues) |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
@@ -1131,7 +1344,7 @@ This guide establishes standardized contracts for the Customer Relationship Mana
 
 ## References
 
-- OpenAPI Specification: `pos-customer/target/openapi.json`
+- OpenAPI Specification: `pos-customer/openapi.json`
 - Domain Agent Guide: `domains/crm/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/crm/.business-rules/ERROR_CODES.md`
@@ -1151,6 +1364,22 @@ This guide establishes standardized contracts for the Customer Relationship Mana
   - https://github.com/louisburroughs/durion-positivity-backend/issues/111
   - https://github.com/louisburroughs/durion-positivity-backend/issues/110
   - https://github.com/louisburroughs/durion-positivity-backend/issues/109
+- OpenAPI snapshot used for this update: `durion-positivity-backend/pos-customer/openapi.json`
+
+---
+
+### Implementation Links (CAP:090)
+
+- Capability manifest: `docs/capabilities/CAP-090/CAPABILITY_MANIFEST.yaml`
+- Parent capability: https://github.com/louisburroughs/durion/issues/90
+- Parent stories:
+  - https://github.com/louisburroughs/durion/issues/99
+  - https://github.com/louisburroughs/durion/issues/100
+  - https://github.com/louisburroughs/durion/issues/101
+- Backend child issues:
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/108
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/107
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/106
 - OpenAPI snapshot used for this update: `durion-positivity-backend/pos-customer/openapi.json`
 
 ---
