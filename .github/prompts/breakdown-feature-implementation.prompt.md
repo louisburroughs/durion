@@ -7,6 +7,30 @@ model: GPT-5 mini (copilot)
 
 # Feature Implementation Plan Prompt
 
+## ⚠️ CRITICAL: COMPLETE THE PLAN FULLY
+
+**YOU MUST PRODUCE A COMPLETE, ACTIONABLE IMPLEMENTATION PLAN.**
+
+**DO NOT STOP WITH:**
+- Partial sections or placeholders
+- "TODO" markers or incomplete diagrams
+- High-level outlines without detailed steps
+
+**YOUR DELIVERABLE MUST INCLUDE:**
+- Complete technical specifications
+- Detailed implementation steps for all components
+- Full Mermaid diagrams (system architecture, sequence, data flow)
+- Concrete testing strategies
+- Risk analysis and mitigation plans
+
+**Only stop if you need:**
+- Critical missing business requirements from stakeholders
+- Access to specific system constraints you cannot infer
+
+Otherwise, **COMPLETE THE ENTIRE PLAN** before finishing.
+
+---
+
 ## Goal
 
 Act as an industry-veteran software engineer responsible for crafting high-touch features for large-scale SaaS companies. Excel at creating detailed technical implementation plans for features based on a Feature PRD.

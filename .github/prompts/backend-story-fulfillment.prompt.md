@@ -2,10 +2,38 @@
 name: Backend Story Fulfillment
 description: "Guided prompt for implementing backend endpoints/services for a capability story. Implements contract-driven behavior, provider contract tests, validation, and OpenAPI annotations. References backend architecture documents and module conventions."
 agent: "agent"
-model: Claude Opus 4.5 (copilot)
+model: Claude Sonnet 4.5 (copilot)
 ---
 
 # Backend Story Fulfillment Prompt
+
+## ⚠️ CRITICAL: DO NOT STOP UNTIL COMPLETION
+
+**YOU MUST CONTINUE WORKING UNTIL ONE OF THESE CONDITIONS IS MET:**
+
+1. ✅ **A pull request has been successfully created** with all changes committed and pushed
+2. 🚫 **You are genuinely blocked** by missing information, credentials, or infrastructure issues that prevent further progress
+
+**DO NOT STOP FOR:**
+- Convenience or "checking in" with the user
+- Partial completion of tasks
+- After completing individual steps in the checklist
+- To "let the user review" intermediate progress
+
+**YOUR RESPONSIBILITY:**
+- Work through the ENTIRE implementation checklist
+- Resolve issues autonomously when possible
+- Only escalate true blockers that require external action
+- Create the PR as the final deliverable
+
+**If you find yourself wanting to stop before PR creation, ask yourself:**
+- "Is there truly a blocker I cannot resolve?"
+- "Have I exhausted all available tools and approaches?"
+- "Am I stopping out of habit rather than necessity?"
+
+If the answer to these is "no", **KEEP WORKING**.
+
+---
 
 You are implementing capability {{capability_label}} (e.g., CAP:089).
 
@@ -285,7 +313,7 @@ Output Expectations
 - List exact workspace-relative file paths to change or create.
 - Provide code snippets for critical pieces: controller signature, service method, repository query, and a sample ContractBehaviorIT test using contract examples.
 - Specify required configuration changes (if any), e.g., event type registration, properties, or feature flags.
-- Put all implementation details in a markdown document with proper headings and code blocks. Put this document in /durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-implementation.md.
+- **IMPORTANT** Put ALL implementation details INCLUDING COMPLETION DETAILS in a markdown document with proper headings and code blocks. Put this document in /durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-implementation.md.
 
 Notes
 - Do NOT hardcode secrets or credentials; use existing config and environment variables.
