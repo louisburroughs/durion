@@ -26,15 +26,39 @@ Contract guide entry (draft):
   **Implementation Checklist**
   1. Read and understand the parent story and capability requirements.
   2. Read and understand the backend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
-  3. Create a branch from `main` named `cap/CAP{{capability_id}}`.
-  4. Validate,Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
+  3. **Create and switch to a feature branch in the backend repository:**
+     ```bash
+     cd /home/louisb/Projects/durion-positivity-backend
+     git fetch origin
+     git checkout main
+     git pull origin main
+     git checkout -b cap/CAP{{capability_id}}
+     ```
+     **IMPORTANT:** All subsequent code changes MUST be made while on this branch. Verify you are on the correct branch before making any file changes:
+     ```bash
+     git branch --show-current  # Should output: cap/CAP{{capability_id}}
+     ```
+  4. Validate, Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
     (A). Implement the endpoint/service to match the contract
     (B). Add provider behavioral contract tests (`ContractBehaviorIT`)
     (C). Include examples from the contract guide in the tests
     (D). Add validation & error handling per the assertions
     (E). Include concurrency-safe patterns if needed (idempotency, optimistic locking)
     (F). Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
-  5. Create a pull request against `main` with the changes for review.
+  5. **Commit changes to the feature branch:**
+     ```bash
+     cd /home/louisb/Projects/durion-positivity-backend
+     git add .
+     git commit -m "feat({{domain}}): implement CAP{{capability_id}} backend services"
+     ```
+  6. **Push the branch and create a pull request:**
+     ```bash
+     git push -u origin cap/CAP{{capability_id}}
+     ```
+     Then create a pull request against `main` using GitHub CLI or the GitHub web interface:
+     ```bash
+     gh pr create --base main --head cap/CAP{{capability_id}} --title "feat({{domain}}): CAP{{capability_id}} backend implementation" --body "Implements backend services for capability {{capability_label}}"
+     ```
 
 Architecture & References (REPLACE "Module structure" with authoritative docs):
 - See `durion-positivity-backend/AGENTS.md` for backend repo quick start, build, and run commands.

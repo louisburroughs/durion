@@ -29,13 +29,52 @@ Backend API endpoint/event is now implemented and available:
 **Implementation Checklist**
   1. Read and understand the parent story and capability requirements.
   2. Read and understand the frontend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
-  3. Create a branch from `main` or 'master' named `cap/CAP{{capability_id}}` in the impacted_component_repos.
-  4. Validate,Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
+  3. **Create and switch to a feature branch in ALL impacted component repositories:**
+     
+     **CRITICAL:** The capability manifest specifies `impacted_component_repos` which lists the actual repositories where code changes will be made. These are typically component repositories like `durion-crm`, NOT the coordination repository `durion-moqui-frontend` (which only tracks issues).
+     
+     For each repository in `impacted_component_repos`:
+     ```bash
+     # Example for durion-crm component
+     cd /home/louisb/Projects/durion-crm
+     git fetch origin
+     git checkout main
+     git pull origin main
+     git checkout -b cap/CAP{{capability_id}}
+     ```
+     
+     **Component Repository Paths:** Frontend components are located at `/home/louisb/Projects/{repo-name}` where `{repo-name}` is extracted from the impacted_component_repos slug. For example:
+     - `louisburroughs/durion-crm` → `/home/louisb/Projects/durion-crm`
+     - `louisburroughs/durion-hr` → `/home/louisb/Projects/durion-hr`
+     
+     **IMPORTANT:** All subsequent code changes MUST be made in these component repositories while on the feature branch. Verify you are on the correct branch before making any file changes:
+     ```bash
+     git branch --show-current  # Should output: cap/CAP{{capability_id}}
+     ```
+  4. Validate, Update or Implement the following in the feature branch of each impacted component repository:  **Check for existing implementations to update first before adding new code**
     (A). Consume the backend API/event in the frontend
     (B). Implement UI screens/pages matching the wireframes
     (C). Wire form submissions, validation, and error handling
     (D). Add UI tests (Jest) for key user flows
     (E). Ensure error handling matches backend error model (shape, codes, messages)
+  5. **Commit changes to the feature branch in each component repository:**
+     ```bash
+     # Repeat for each impacted component repository
+     cd /home/louisb/Projects/durion-crm  # or durion-hr, etc.
+     git add .
+     git commit -m "feat({{domain}}): implement CAP{{capability_id}} frontend UI"
+     ```
+  6. **Push the branch and create a pull request for each component repository:**
+     ```bash
+     # Repeat for each impacted component repository
+     cd /home/louisb/Projects/durion-crm  # or durion-hr, etc.
+     git push -u origin cap/CAP{{capability_id}}
+     
+     # Create PR using GitHub CLI
+     gh pr create --base main --head cap/CAP{{capability_id}} \
+       --title "feat({{domain}}): CAP{{capability_id}} frontend implementation" \
+       --body "Implements frontend UI for capability {{capability_label}} (Issue #{{frontend_issue_number}})"
+     ```
   
 
 Architecture & References:
@@ -43,9 +82,12 @@ Architecture & References:
 - Consult `docs/architecture/` (workspace root) for frontend architecture guidance and integration patterns.
 - Reference the contract guide at `domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md` for DTO shapes, examples, and invariants.
 - Use the capability manifest at `docs/capabilities/{{capability_id}}/CAPABILITY_MANIFEST.yaml` for repo lists, wireframes, and coordination details.
-- API bridge reference: `runtime/component/durion-positivity/` inside the Moqui runtime component — prefer this existing bridge for backend calls.
+- **Component repositories** (e.g., durion-crm, durion-hr) contain the actual screen implementations and business logic
+- **Integration bridge:** The `runtime/component/durion-positivity/` component inside durion-moqui-frontend provides the API bridge to backend services — prefer this existing bridge for backend calls.
 
 Implementation Patterns & Links:
+- **Repository Structure:** Frontend components live in separate git repositories (e.g., `/home/louisb/Projects/durion-crm`) but are mounted into the Moqui runtime at `runtime/component/{component-name}/` during development and deployment.
+- **Screen Location:** Create Moqui XML screens in `{component-repo}/screen/` directory following the path pattern `screen/durion/{domain}/{ScreenName}.xml`
 - Services: Implement API calls in a services layer (composables or service classes) following the frontend architecture doc and `durion-moqui-frontend/AGENTS.md` guidance.
 - Components: Keep presentation logic inside Vue components; put business logic and state orchestration in services/composables as documented in `docs/architecture/`.
 - Types & Contract Safety: Obtain TypeScript DTOs from the contract guide or OpenAPI spec (if present) in the backend repo. Ensure types mirror the contract examples and validation rules in `domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md`.
