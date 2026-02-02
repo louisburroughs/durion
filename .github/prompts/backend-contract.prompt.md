@@ -17,7 +17,7 @@ Deep Think (required before edits)
 Context (inputs — agent will be provided values at runtime)
 - `BACKEND_CONTRACT_GUIDE_PATH` — path to the guide to modify (e.g., `domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`)
 - `OPENAPI_PATH` — path to the current `openapi.json` representing produced endpoints (e.g., `pos-<module>/target/openapi.json`)
-- `CAPABILITY_MANIFEST_PATH` — path to capability manifest (YAML) containing links and child backend issues (e.g., `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`)
+- `CAPABILITY_MANIFEST_PATH` — path to capability manifest (YAML) containing parent capability, parent stories array, and child backend issues (e.g., `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`)
 
 Audience
 - Developers and reviewers who will merge the guide update and run provider contract tests.
@@ -27,8 +27,8 @@ Role
 
 Task (decompose into numbered steps)
 1. Load and parse `CAPABILITY_MANIFEST_PATH`:
-   - Extract `capability_id`, `stories[0].children.backend` (single object or list), `stories[0].contract_guide.path` (should match `BACKEND_CONTRACT_GUIDE_PATH`), and any `pr_links` values for context.
-   - Gather backend child issue URLs (use repo+issue).
+   - Extract `capability_id`, `parent_capability` (for context), `stories[].children.backend` (iterate each story), `stories[].contract_guide.path` (should match `BACKEND_CONTRACT_GUIDE_PATH`), and any `pr_links` values.
+   - Gather all backend child issue URLs from each story in the stories array (use repo+issue).
 2. Load and parse `OPENAPI_PATH` (OpenAPI 3.0+ JSON):
    - Extract paths, methods, request/response schemas, status codes, and examples.
 3. Load the existing `BACKEND_CONTRACT_GUIDE.md`:

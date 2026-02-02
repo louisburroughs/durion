@@ -2,8 +2,19 @@ meta:
   capability_id: CAP:092
   capability_name: '[CAP] Preferences & Billing Rules'
   owner_repo: louisburroughs/durion
-  created_utc: '2026-01-28T00:03:45.638338+00:00'
-  last_updated_utc: '2026-01-28T00:03:45.638338+00:00'
+  created_utc: '2026-02-02T15:52:25.832583+00:00'
+  last_updated_utc: '2026-02-02T15:52:25.832583+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 92
+  title: '[CAP] Preferences & Billing Rules'
+  domain: crm
+  labels:
+  - type:capability
+  - layer:functional
+  - domain:crm
+  - kiro
+  - CAP:092
 coordination:
   github_project_url: https://github.com/users/louisburroughs/projects/1
   status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
@@ -28,16 +39,108 @@ repositories:
   type: frontend-component
   notes: ''
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
-    issue: 92
-    title: '[CAP] Preferences & Billing Rules'
-    domain: crm
+    issue: 107
+    title: '[STORY] Billing: Define Account Billing Rules'
     labels:
-    - type:capability
     - layer:functional
     - domain:crm
     - kiro
+    - type:story
+    - CAP:092
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 100
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 164
+      impacted_component_repos: []
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 108
+    title: '[STORY] Billing: Expose CRM Snapshot (Account + Contacts + Vehicles +
+      Rules)'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:092
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 99
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 163
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-billing-expose-crm-snapshot-account-163.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-billing-expose-crm-snapshot-account-163.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 109
+    title: '[STORY] Billing: Enforce PO Requirement During Estimate Approval'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
     - CAP:092
   children:
     backend:
@@ -45,15 +148,15 @@ stories:
       issue: 98
     frontend:
       repo: louisburroughs/durion-moqui-frontend
-      issue: 99
+      issue: 162
       impacted_component_repos:
-      - louisburroughs/durion-inventory
+      - louisburroughs/durion-workexec
       wireframes:
       - repo: louisburroughs/durion
-        path: domains/inventory/.ui/frontend-story-receiving-create-receiving-session-99.wf.md
+        path: domains/workexec/.ui/frontend-story-billing-enforce-po-requirement-duri-162.wf.md
         type: wireframe
       - repo: louisburroughs/durion
-        path: domains/inventory/.ui/frontend-story-receiving-create-receiving-session-99.wf.meta.json
+        path: domains/workexec/.ui/frontend-story-billing-enforce-po-requirement-duri-162.wf.meta.json
         type: meta
       business_rules:
       - repo: louisburroughs/durion

@@ -2,8 +2,19 @@ meta:
   capability_id: CAP:093
   capability_name: '[CAP] Promotions & Commercial Activity (Lightweight)'
   owner_repo: louisburroughs/durion
-  created_utc: '2026-01-28T00:03:27.623363+00:00'
-  last_updated_utc: '2026-01-28T00:03:27.623363+00:00'
+  created_utc: '2026-02-02T15:52:11.491777+00:00'
+  last_updated_utc: '2026-02-02T15:52:11.491777+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 93
+  title: '[CAP] Promotions & Commercial Activity (Lightweight)'
+  domain: crm
+  labels:
+  - type:capability
+  - layer:functional
+  - domain:crm
+  - kiro
+  - CAP:093
 coordination:
   github_project_url: https://github.com/users/louisburroughs/projects/1
   status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
@@ -28,16 +39,165 @@ repositories:
   type: frontend-component
   notes: ''
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
-    issue: 93
-    title: '[CAP] Promotions & Commercial Activity (Lightweight)'
-    domain: crm
+    issue: 110
+    title: '[STORY] Promotions: Create Promotion Offer (Basic)'
     labels:
-    - type:capability
     - layer:functional
     - domain:crm
     - kiro
+    - type:story
+    - CAP:093
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 97
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 161
+      impacted_component_repos:
+      - louisburroughs/durion-product
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/pricing/.ui/frontend-story-promotions-create-promotion-offer-b-161.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/pricing/.ui/frontend-story-promotions-create-promotion-offer-b-161.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 111
+    title: '[STORY] Promotions: Define Eligibility Rules (Account/Vehicle)'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:093
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 96
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 160
+      impacted_component_repos:
+      - louisburroughs/durion-product
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/pricing/.ui/frontend-story-promotions-define-eligibility-rules-160.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/pricing/.ui/frontend-story-promotions-define-eligibility-rules-160.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 112
+    title: '[STORY] Promotions: Apply Offer During Estimate Pricing'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:093
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 95
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 159
+      impacted_component_repos:
+      - louisburroughs/durion-product
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/pricing/.ui/frontend-story-promotions-apply-offer-during-estim-159.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/pricing/.ui/frontend-story-promotions-apply-offer-during-estim-159.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 113
+    title: '[STORY] Promotions: Record Promotion Redemption from Invoicing'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
     - CAP:093
   children:
     backend:

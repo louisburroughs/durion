@@ -2,8 +2,19 @@ meta:
   capability_id: CAP:089
   capability_name: '[CAP] Party Management (Commercial Accounts & Individuals)'
   owner_repo: louisburroughs/durion
-  created_utc: '2026-01-28T00:04:55.268905+00:00'
-  last_updated_utc: '2026-01-28T00:04:55.268905+00:00'
+  created_utc: '2026-02-02T15:07:11.243088+00:00'
+  last_updated_utc: '2026-02-02T15:07:11.243088+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 89
+  title: '[CAP] Party Management (Commercial Accounts & Individuals)'
+  domain: crm
+  labels:
+  - type:capability
+  - layer:functional
+  - domain:crm
+  - kiro
+  - CAP:089
 coordination:
   github_project_url: https://github.com/users/louisburroughs/projects/1
   status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
@@ -28,16 +39,165 @@ repositories:
   type: frontend-component
   notes: ''
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
-    issue: 89
-    title: '[CAP] Party Management (Commercial Accounts & Individuals)'
-    domain: crm
+    issue: 95
+    title: '[STORY] Party: Create Commercial Account'
     labels:
-    - type:capability
     - layer:functional
     - domain:crm
     - kiro
+    - type:story
+    - CAP:089
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 112
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 176
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-party-create-commercial-account-176.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-party-create-commercial-account-176.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 96
+    title: '[STORY] Party: Create Individual Person Record'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:089
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 111
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 175
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-party-create-individual-person-reco-175.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-party-create-individual-person-reco-175.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 97
+    title: '[STORY] Party: Associate Individuals to Commercial Account'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:089
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 110
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 174
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-party-associate-individuals-to-comm-174.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-party-associate-individuals-to-comm-174.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 98
+    title: '[STORY] Party: Search and Merge Duplicate Parties (Basic)'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
     - CAP:089
   children:
     backend:

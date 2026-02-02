@@ -2,8 +2,19 @@ meta:
   capability_id: CAP:091
   capability_name: '[CAP] Vehicle Registry (VINs, Descriptions, Ownership/Association)'
   owner_repo: louisburroughs/durion
-  created_utc: '2026-01-28T00:04:13.967807+00:00'
-  last_updated_utc: '2026-01-28T00:04:13.967807+00:00'
+  created_utc: '2026-02-02T15:52:46.420925+00:00'
+  last_updated_utc: '2026-02-02T15:52:46.420925+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 91
+  title: '[CAP] Vehicle Registry (VINs, Descriptions, Ownership/Association)'
+  domain: crm
+  labels:
+  - type:capability
+  - layer:functional
+  - domain:crm
+  - kiro
+  - CAP:091
 coordination:
   github_project_url: https://github.com/users/louisburroughs/projects/1
   status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
@@ -28,16 +39,215 @@ repositories:
   type: frontend-component
   notes: ''
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
-    issue: 91
-    title: '[CAP] Vehicle Registry (VINs, Descriptions, Ownership/Association)'
-    domain: crm
+    issue: 102
+    title: '[STORY] Vehicle: Create Vehicle Record with VIN and Description'
     labels:
-    - type:capability
     - layer:functional
     - domain:crm
     - kiro
+    - type:story
+    - CAP:091
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 105
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 169
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-create-vehicle-record-with-169.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-create-vehicle-record-with-169.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 103
+    title: '[STORY] Vehicle: Associate Vehicles to Account and/or Individual'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:091
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 104
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 168
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-associate-vehicles-to-accou-168.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-associate-vehicles-to-accou-168.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 104
+    title: '[STORY] Vehicle: Vehicle Lookup by VIN/Unit/Plate'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:091
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 103
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 167
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-vehicle-lookup-by-vin-unit-167.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-vehicle-lookup-by-vin-unit-167.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 105
+    title: '[STORY] Vehicle: Store Vehicle Care Preferences'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:091
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 102
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 166
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-store-vehicle-care-preferen-166.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-vehicle-store-vehicle-care-preferen-166.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 106
+    title: '[STORY] Vehicle: Ingest Vehicle Updates from Workorder Execution'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
     - CAP:091
   children:
     backend:

@@ -76,20 +76,107 @@ DOMAIN_TO_FRONTEND_COMPONENT = {
 
 
 class CapabilityManifestGenerator:
-    def __init__(self, gh: Github, token: str, dry_run: bool = False):
+    def __init__(self, gh: Github, token: str, dry_run: bool = False, verbose: bool = False):
         self.gh = gh
         self.token = token
         self.dry_run = dry_run
+        self.verbose = verbose
         self.repos: Dict[str, object] = {}  # Cache for repositories
         self.workspace_root = Path(__file__).parent.parent.absolute()
+        # API base URL for REST endpoints not covered by PyGithub
+        self.api_base_url = "https://api.github.com"
+        self.api_headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+
+    def _vprint(self, message: str, indent: int = 0) -> None:
+        """Print message only if verbose mode is enabled."""
+        if self.verbose:
+            prefix = "  " * indent
+            print(f"{prefix}[VERBOSE] {message}")
 
     def initialize(self) -> None:
         try:
             for repo_name in TARGET_REPOS:
                 self.repos[repo_name] = self.gh.get_repo(f"{OWNER}/{repo_name}")
+                self._vprint(f"Initialized repo: {OWNER}/{repo_name}")
             self.durion_repo = self.repos[SOURCE_REPO]
         except GithubException as exc:
             raise RuntimeError(f"Could not access repositories: {exc}")
+
+    def fetch_sub_issues(self, repo_name: str, issue_number: int) -> List[Dict]:
+        """
+        Fetch sub-issues for a given issue using GitHub's sub-issues REST API.
+        GET /repos/{owner}/{repo}/issues/{issue_number}/sub_issues
+        
+        Returns: List of sub-issue dictionaries with full issue data
+        """
+        self._vprint(f"Fetching sub-issues for {repo_name}#{issue_number}")
+        url = f"{self.api_base_url}/repos/{OWNER}/{repo_name}/issues/{issue_number}/sub_issues"
+        
+        all_sub_issues = []
+        page = 1
+        per_page = 100
+        
+        while True:
+            try:
+                response = requests.get(
+                    url,
+                    headers=self.api_headers,
+                    params={"per_page": per_page, "page": page}
+                )
+                
+                if response.status_code == 404:
+                    self._vprint(f"  No sub-issues endpoint or issue not found for {repo_name}#{issue_number}", 1)
+                    return []
+                
+                response.raise_for_status()
+                sub_issues = response.json()
+                
+                if not sub_issues:
+                    break
+                    
+                self._vprint(f"  Page {page}: Found {len(sub_issues)} sub-issues", 1)
+                all_sub_issues.extend(sub_issues)
+                
+                if len(sub_issues) < per_page:
+                    break
+                page += 1
+                
+            except requests.RequestException as e:
+                self._vprint(f"  Error fetching sub-issues: {e}", 1)
+                return []
+        
+        self._vprint(f"  Total sub-issues found: {len(all_sub_issues)}", 1)
+        return all_sub_issues
+
+    def fetch_parent_issue(self, repo_name: str, issue_number: int) -> Optional[Dict]:
+        """
+        Fetch the parent issue for a given issue using GitHub's sub-issues REST API.
+        GET /repos/{owner}/{repo}/issues/{issue_number}/parent
+        
+        Returns: Parent issue dictionary or None if no parent
+        """
+        self._vprint(f"Fetching parent issue for {repo_name}#{issue_number}")
+        url = f"{self.api_base_url}/repos/{OWNER}/{repo_name}/issues/{issue_number}/parent"
+        
+        try:
+            response = requests.get(url, headers=self.api_headers)
+            
+            if response.status_code == 404:
+                self._vprint(f"  No parent issue found for {repo_name}#{issue_number}", 1)
+                return None
+            
+            response.raise_for_status()
+            parent = response.json()
+            self._vprint(f"  Parent issue: #{parent.get('number')} - {parent.get('title')}", 1)
+            return parent
+            
+        except requests.RequestException as e:
+            self._vprint(f"  Error fetching parent issue: {e}", 1)
+            return None
 
     def fetch_capability_issues(self) -> List:
         """Fetch all issues with type:capability label from durion repository."""
@@ -120,23 +207,127 @@ class CapabilityManifestGenerator:
         - Label: "type:story"
         - Label: capability_id (e.g., "CAP:253")
         Returns: List of (repo_name, issue_num, title)
+        
+        NOTE: This is the LEGACY label-based approach. Use fetch_sub_issues() for the 
+        new GitHub sub-issues hierarchy.
         """
+        self._vprint(f"[LEGACY] Searching for stories with labels: type:story, {capability_id}")
         children = []
         
         for repo_name in TARGET_REPOS:
             try:
                 repo = self.repos[repo_name]
+                self._vprint(f"  Searching in {repo_name}...", 1)
                 # Search for issues with both type:story and the capability ID label
                 for issue in repo.get_issues(state="open", labels=["type:story", capability_id]):
                     if issue.pull_request is not None:
                         continue
                     children.append((repo_name, issue.number, issue.title))
+                    self._vprint(f"    Found: #{issue.number} - {issue.title}", 2)
                     if self.dry_run:
                         print(f"    Found child story in {repo_name}: #{issue.number} - {issue.title}")
             except Exception as e:
+                self._vprint(f"    Error searching {repo_name}: {e}", 2)
                 if self.dry_run:
                     print(f"    Error searching {repo_name}: {e}")
         
+        self._vprint(f"  Total label-based children found: {len(children)}", 1)
+        return children
+
+    def find_parent_stories_via_subissues(self, capability_issue) -> List[Dict]:
+        """
+        Find parent stories (sub-issues of the capability issue) using GitHub's sub-issues API.
+        These are the direct children of a capability issue (type:capability).
+        
+        Returns: List of sub-issue dictionaries representing parent stories
+        """
+        self._vprint(f"Finding parent stories for capability #{capability_issue.number}")
+        
+        # Get sub-issues of the capability issue
+        sub_issues = self.fetch_sub_issues(SOURCE_REPO, capability_issue.number)
+        
+        if not sub_issues:
+            self._vprint("  No sub-issues found via API", 1)
+            return []
+        
+        parent_stories = []
+        for si in sub_issues:
+            issue_num = si.get("number")
+            title = si.get("title", "")
+            state = si.get("state", "unknown")
+            labels = [l.get("name", "") for l in si.get("labels", [])]
+            repo_url = si.get("repository_url", "")
+            
+            # Extract repo name from URL: https://api.github.com/repos/{owner}/{repo}
+            repo_name = repo_url.split("/")[-1] if repo_url else SOURCE_REPO
+            
+            self._vprint(f"  Sub-issue #{issue_num}: {title}", 1)
+            self._vprint(f"    State: {state}, Labels: {labels}", 2)
+            self._vprint(f"    Repository: {repo_name}", 2)
+            
+            parent_stories.append({
+                "issue_number": issue_num,
+                "title": title,
+                "state": state,
+                "labels": labels,
+                "repo_name": repo_name,
+                "raw": si
+            })
+        
+        self._vprint(f"  Total parent stories (sub-issues): {len(parent_stories)}", 1)
+        return parent_stories
+
+    def find_story_children_via_subissues(self, parent_story: Dict) -> Dict[str, List[Dict]]:
+        """
+        Find the children of a parent story (backend and frontend issues).
+        These are sub-issues of the parent story.
+        
+        Returns: Dict with 'backend' and 'frontend' lists of child issue info
+        """
+        repo_name = parent_story.get("repo_name", SOURCE_REPO)
+        issue_number = parent_story.get("issue_number")
+        
+        self._vprint(f"Finding children for parent story #{issue_number} in {repo_name}")
+        
+        # Get sub-issues of the parent story
+        sub_issues = self.fetch_sub_issues(repo_name, issue_number)
+        
+        children = {"backend": [], "frontend": []}
+        
+        for si in sub_issues:
+            issue_num = si.get("number")
+            title = si.get("title", "")
+            labels = [l.get("name", "") for l in si.get("labels", [])]
+            repo_url = si.get("repository_url", "")
+            state = si.get("state", "unknown")
+            
+            # Extract repo name from URL
+            child_repo = repo_url.split("/")[-1] if repo_url else ""
+            
+            self._vprint(f"    Child #{issue_num}: {title}", 2)
+            self._vprint(f"      Repository: {child_repo}, State: {state}", 3)
+            self._vprint(f"      Labels: {labels}", 3)
+            
+            child_info = {
+                "issue_number": issue_num,
+                "title": title,
+                "state": state,
+                "labels": labels,
+                "repo_name": child_repo,
+                "raw": si
+            }
+            
+            # Categorize by repository
+            if child_repo == "durion-positivity-backend":
+                children["backend"].append(child_info)
+                self._vprint(f"      -> Categorized as BACKEND", 3)
+            elif child_repo == "durion-moqui-frontend":
+                children["frontend"].append(child_info)
+                self._vprint(f"      -> Categorized as FRONTEND", 3)
+            else:
+                self._vprint(f"      -> Unknown repository, skipping", 3)
+        
+        self._vprint(f"    Backend children: {len(children['backend'])}, Frontend children: {len(children['frontend'])}", 2)
         return children
 
     def get_issue(self, repo_name: str, issue_num: int):
@@ -242,99 +433,247 @@ class CapabilityManifestGenerator:
         }
 
     def generate_manifest(self, capability_issue) -> Dict:
-        """Generate CAPABILITY_MANIFEST data structure for a capability issue."""
+        """Generate CAPABILITY_MANIFEST data structure for a capability issue.
+        
+        Hierarchy:
+        - Capability (parent_capability) - the type:capability issue
+          - Parent Stories (sub-issues of capability) - intermediate level
+            - Backend Child (sub-issue in durion-positivity-backend)
+            - Frontend Child (sub-issue in durion-moqui-frontend)
+        """
         capability_id = self.extract_capability_id(capability_issue)
         if not capability_id:
             raise ValueError(f"Issue #{capability_issue.number} missing cap: label")
         
         domain = self.extract_domain_label(capability_issue)
         
-        # Find child stories by searching for type:story label + capability ID label
-        children = self.find_child_stories_by_labels(capability_id)
+        self._vprint(f"\n{'='*60}")
+        self._vprint(f"CAPABILITY: #{capability_issue.number} - {capability_issue.title}")
+        self._vprint(f"  Capability ID: {capability_id}")
+        self._vprint(f"  Domain: {domain}")
+        self._vprint(f"  Labels: {[l.name for l in capability_issue.labels]}")
+        self._vprint(f"{'='*60}")
         
-        # Categorize children by repository
-        backend_child = None
-        frontend_child = None
-        for repo_name, issue_num, title in children:
-            child_issue = self.get_issue(repo_name, issue_num)
-            if not child_issue:
-                continue
+        # ========== NEW: Use sub-issues API to find parent stories ==========
+        self._vprint("\n--- Finding Parent Stories via Sub-Issues API ---")
+        parent_stories = self.find_parent_stories_via_subissues(capability_issue)
+        
+        # ========== FALLBACK: Also try label-based search for comparison ==========
+        self._vprint("\n--- Finding Stories via Label-Based Search (Legacy) ---")
+        label_based_children = self.find_child_stories_by_labels(capability_id)
+        
+        # Compare and log discrepancies
+        if self.verbose:
+            self._vprint("\n--- Comparing Sub-Issues vs Label-Based Results ---")
+            subissue_nums = {ps.get("issue_number") for ps in parent_stories}
+            label_nums = {num for _, num, _ in label_based_children}
             
-            if repo_name == "durion-positivity-backend":
-                backend_child = {
-                    "repo": f"{OWNER}/{repo_name}",
-                    "issue": issue_num
-                }
-            elif repo_name == "durion-moqui-frontend":
-                child_domain = self.extract_domain_label(child_issue) or domain
-                frontend_child = {
-                    "repo": f"{OWNER}/{repo_name}",
-                    "issue": issue_num,
-                    "impacted_component_repos": [
-                        f"{OWNER}/{comp}" for comp in DOMAIN_TO_FRONTEND_COMPONENT.get(child_domain, [])
-                    ]
+            only_in_subissues = subissue_nums - label_nums
+            only_in_labels = label_nums - subissue_nums
+            in_both = subissue_nums & label_nums
+            
+            self._vprint(f"  Found in sub-issues API only: {only_in_subissues or 'none'}")
+            self._vprint(f"  Found in label search only: {only_in_labels or 'none'}")
+            self._vprint(f"  Found in both: {in_both or 'none'}")
+        
+        # ========== Process each parent story to find its backend/frontend children ==========
+        all_stories = []
+        
+        if parent_stories:
+            self._vprint("\n--- Processing Parent Stories and Their Children ---")
+            for ps in parent_stories:
+                ps_num = ps.get("issue_number")
+                ps_title = ps.get("title")
+                ps_repo = ps.get("repo_name")
+                
+                self._vprint(f"\nParent Story #{ps_num}: {ps_title}")
+                self._vprint(f"  Repository: {ps_repo}")
+                
+                # Find backend/frontend children of this parent story
+                story_children = self.find_story_children_via_subissues(ps)
+                
+                # Build story structure
+                backend_child = None
+                frontend_child = None
+                
+                # Process backend children
+                for bc in story_children.get("backend", []):
+                    if backend_child is None:  # Take first one
+                        backend_child = {
+                            "repo": f"{OWNER}/durion-positivity-backend",
+                            "issue": bc.get("issue_number")
+                        }
+                        self._vprint(f"  Backend Child: #{bc.get('issue_number')} - {bc.get('title')}")
+                
+                # Process frontend children
+                for fc in story_children.get("frontend", []):
+                    if frontend_child is None:  # Take first one
+                        fc_issue_num = fc.get("issue_number")
+                        fc_title = fc.get("title")
+                        child_domain = domain  # Use capability domain
+                        
+                        # Try to get more details from the issue
+                        child_issue = self.get_issue("durion-moqui-frontend", fc_issue_num)
+                        if child_issue:
+                            child_domain = self.extract_domain_label(child_issue) or domain
+                        
+                        frontend_child = {
+                            "repo": f"{OWNER}/durion-moqui-frontend",
+                            "issue": fc_issue_num,
+                            "impacted_component_repos": [
+                                f"{OWNER}/{comp}" for comp in DOMAIN_TO_FRONTEND_COMPONENT.get(child_domain, [])
+                            ]
+                        }
+                        
+                        # Find wireframes
+                        wireframes = self.find_wireframe_files(child_domain, fc_issue_num, fc_title)
+                        if wireframes:
+                            frontend_child["wireframes"] = [
+                                {
+                                    "repo": f"{OWNER}/{SOURCE_REPO}",
+                                    "path": wf["path"],
+                                    "type": wf["type"]
+                                }
+                                for wf in wireframes
+                            ]
+                        
+                        self._vprint(f"  Frontend Child: #{fc_issue_num} - {fc_title}")
+                
+                story = {
+                    "parent_story": {
+                        "repo": f"{OWNER}/{ps_repo}",
+                        "issue": ps_num,
+                        "title": ps_title,
+                        "labels": ps.get("labels", [])
+                    },
+                    "children": {}
                 }
                 
-                # Find wireframes
-                wireframes = self.find_wireframe_files(child_domain, issue_num, title)
-                if wireframes:
-                    frontend_child["wireframes"] = [
-                        {
-                            "repo": f"{OWNER}/{SOURCE_REPO}",
-                            "path": wf["path"],
-                            "type": wf["type"]
-                        }
-                        for wf in wireframes
-                    ]
+                if backend_child:
+                    story["children"]["backend"] = backend_child
+                
+                if frontend_child:
+                    business_rules = self.generate_business_rules_paths(domain)
+                    if business_rules:
+                        frontend_child["business_rules"] = business_rules
+                    story["children"]["frontend"] = frontend_child
+                
+                # Contract guide section
+                if domain:
+                    contract_guide = {
+                        "repo": f"{OWNER}/{SOURCE_REPO}",
+                        "path": f"domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md",
+                        "anchor": "",
+                        "status": "draft"
+                    }
+                    
+                    openapi = self.generate_openapi_path(domain)
+                    if openapi:
+                        contract_guide["openapi"] = openapi
+                    
+                    story["contract_guide"] = contract_guide
+                
+                # PR links section
+                story["pr_links"] = {
+                    "durion_contract_pr": "",
+                    "backend_pr": "",
+                    "frontend_prs": []
+                }
+                
+                story["merge_order"] = [
+                    "durion_contract_pr",
+                    "backend_pr",
+                    "frontend_prs"
+                ]
+                
+                all_stories.append(story)
         
-        # Build stories section
-        story = {
-            "parent": {
-                "repo": f"{OWNER}/{SOURCE_REPO}",
-                "issue": capability_issue.number,
-                "title": capability_issue.title,
-                "domain": domain,
-                "labels": [label.name for label in capability_issue.labels]
-            },
-            "children": {}
-        }
-        
-        if backend_child:
-            story["children"]["backend"] = backend_child
-        
-        if frontend_child:
-            business_rules = self.generate_business_rules_paths(domain)
-            if business_rules:
-                frontend_child["business_rules"] = business_rules
-            story["children"]["frontend"] = frontend_child
-        
-        # Contract guide section
-        if domain:
-            contract_guide = {
-                "repo": f"{OWNER}/{SOURCE_REPO}",
-                "path": f"domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md",
-                "anchor": "",  # To be filled manually
-                "status": "draft"
+        # If no sub-issues found, fall back to legacy label-based approach
+        if not all_stories and label_based_children:
+            self._vprint("\n--- Falling back to label-based stories (no sub-issues found) ---")
+            
+            backend_child = None
+            frontend_child = None
+            
+            for repo_name, issue_num, title in label_based_children:
+                child_issue = self.get_issue(repo_name, issue_num)
+                if not child_issue:
+                    continue
+                
+                if repo_name == "durion-positivity-backend":
+                    backend_child = {
+                        "repo": f"{OWNER}/{repo_name}",
+                        "issue": issue_num
+                    }
+                elif repo_name == "durion-moqui-frontend":
+                    child_domain = self.extract_domain_label(child_issue) or domain
+                    frontend_child = {
+                        "repo": f"{OWNER}/{repo_name}",
+                        "issue": issue_num,
+                        "impacted_component_repos": [
+                            f"{OWNER}/{comp}" for comp in DOMAIN_TO_FRONTEND_COMPONENT.get(child_domain, [])
+                        ]
+                    }
+                    
+                    wireframes = self.find_wireframe_files(child_domain, issue_num, title)
+                    if wireframes:
+                        frontend_child["wireframes"] = [
+                            {
+                                "repo": f"{OWNER}/{SOURCE_REPO}",
+                                "path": wf["path"],
+                                "type": wf["type"]
+                            }
+                            for wf in wireframes
+                        ]
+            
+            # Build legacy single-story structure
+            story = {
+                "parent": {
+                    "repo": f"{OWNER}/{SOURCE_REPO}",
+                    "issue": capability_issue.number,
+                    "title": capability_issue.title,
+                    "domain": domain,
+                    "labels": [label.name for label in capability_issue.labels]
+                },
+                "children": {}
             }
             
-            openapi = self.generate_openapi_path(domain)
-            if openapi:
-                contract_guide["openapi"] = openapi
+            if backend_child:
+                story["children"]["backend"] = backend_child
             
-            story["contract_guide"] = contract_guide
-        
-        # PR links section
-        story["pr_links"] = {
-            "durion_contract_pr": "",
-            "backend_pr": "",
-            "frontend_prs": []
-        }
-        
-        story["merge_order"] = [
-            "durion_contract_pr",
-            "backend_pr",
-            "frontend_prs"
-        ]
+            if frontend_child:
+                business_rules = self.generate_business_rules_paths(domain)
+                if business_rules:
+                    frontend_child["business_rules"] = business_rules
+                story["children"]["frontend"] = frontend_child
+            
+            if domain:
+                contract_guide = {
+                    "repo": f"{OWNER}/{SOURCE_REPO}",
+                    "path": f"domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md",
+                    "anchor": "",
+                    "status": "draft"
+                }
+                
+                openapi = self.generate_openapi_path(domain)
+                if openapi:
+                    contract_guide["openapi"] = openapi
+                
+                story["contract_guide"] = contract_guide
+            
+            story["pr_links"] = {
+                "durion_contract_pr": "",
+                "backend_pr": "",
+                "frontend_prs": []
+            }
+            
+            story["merge_order"] = [
+                "durion_contract_pr",
+                "backend_pr",
+                "frontend_prs"
+            ]
+            
+            all_stories.append(story)
         
         # Build full manifest
         now_utc = datetime.now(timezone.utc).isoformat()
@@ -347,8 +686,15 @@ class CapabilityManifestGenerator:
                 "created_utc": now_utc,
                 "last_updated_utc": now_utc
             },
+            "parent_capability": {
+                "repo": f"{OWNER}/{SOURCE_REPO}",
+                "issue": capability_issue.number,
+                "title": capability_issue.title,
+                "domain": domain,
+                "labels": [label.name for label in capability_issue.labels]
+            },
             "coordination": {
-                "github_project_url": "https://github.com/users/louisburroughs/projects/1",  # To be filled manually
+                "github_project_url": "https://github.com/users/louisburroughs/projects/1",
                 "status_field_name": "status:{Backlog,Ready,In Progress,In Review,Done}",
                 "preferred_branch_prefix": "cap/"
             },
@@ -371,7 +717,7 @@ class CapabilityManifestGenerator:
                     "notes": "Frontend child issues live here; code changes may land in component repos."
                 }
             ],
-            "stories": [story],
+            "stories": all_stories,
             "execution": {
                 "agent_rules": [
                     "Backend changes that affect API/event behavior REQUIRE a durion contract PR.",
@@ -396,6 +742,17 @@ class CapabilityManifestGenerator:
                     "type": "frontend-component",
                     "notes": ""
                 })
+        
+        self._vprint(f"\n--- Manifest Summary ---")
+        self._vprint(f"  Total stories: {len(all_stories)}")
+        for i, s in enumerate(all_stories):
+            ps = s.get("parent_story") or s.get("parent")
+            self._vprint(f"  Story {i+1}: #{ps.get('issue')} - {ps.get('title', 'N/A')}")
+            children = s.get("children", {})
+            if children.get("backend"):
+                self._vprint(f"    Backend: #{children['backend'].get('issue')}")
+            if children.get("frontend"):
+                self._vprint(f"    Frontend: #{children['frontend'].get('issue')}")
         
         return manifest
 
@@ -483,6 +840,9 @@ Examples:
   # Generate a single capability (issue #275)
   python3 generate_capability_manifests.py --capability 275 --token TOKEN
   
+  # Generate a single capability with verbose debug output
+  python3 generate_capability_manifests.py --capability 275 --verbose --token TOKEN
+  
   # Generate a range of capabilities (issues #270 to #280)
   python3 generate_capability_manifests.py --range 270 280 --token TOKEN
   
@@ -497,6 +857,8 @@ Examples:
     parser.add_argument("--list", type=int, nargs="+", metavar="ISSUE_NUMBER",
                         help="Generate manifests for specific issue numbers (space-separated)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
+    parser.add_argument("--verbose", "-v", action="store_true", 
+                        help="Enable verbose debug output showing sub-issue relationships and API calls")
     parser.add_argument("--token", help="GitHub token (or use GITHUB_TOKEN env var)")
     args = parser.parse_args()
     
@@ -512,7 +874,7 @@ Examples:
         sys.exit(1)
     
     gh = Github(token)
-    generator = CapabilityManifestGenerator(gh, token, dry_run=args.dry_run)
+    generator = CapabilityManifestGenerator(gh, token, dry_run=args.dry_run, verbose=args.verbose)
     
     try:
         generator.initialize()
@@ -529,6 +891,9 @@ Examples:
             
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
         sys.exit(1)
 
 
