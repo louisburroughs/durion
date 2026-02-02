@@ -2,8 +2,19 @@ meta:
   capability_id: CAP:090
   capability_name: '[CAP] Contact Management (Roles, Preferences, and Consent)'
   owner_repo: louisburroughs/durion
-  created_utc: '2026-01-28T00:04:31.791109+00:00'
-  last_updated_utc: '2026-01-28T00:04:31.791109+00:00'
+  created_utc: '2026-02-02T15:11:11.479375+00:00'
+  last_updated_utc: '2026-02-02T15:11:11.479375+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 90
+  title: '[CAP] Contact Management (Roles, Preferences, and Consent)'
+  domain: crm
+  labels:
+  - type:capability
+  - layer:functional
+  - domain:crm
+  - kiro
+  - CAP:090
 coordination:
   github_project_url: https://github.com/users/louisburroughs/projects/1
   status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
@@ -28,16 +39,115 @@ repositories:
   type: frontend-component
   notes: ''
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
-    issue: 90
-    title: '[CAP] Contact Management (Roles, Preferences, and Consent)'
-    domain: crm
+    issue: 99
+    title: '[STORY] Contacts: Maintain Contact Roles and Primary Flags'
     labels:
-    - type:capability
     - layer:functional
     - domain:crm
     - kiro
+    - type:story
+    - CAP:090
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 108
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 172
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-contacts-maintain-contact-roles-and-172.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-contacts-maintain-contact-roles-and-172.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 100
+    title: '[STORY] Contacts: Store Communication Preferences and Consent Flags'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
+    - CAP:090
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 107
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 171
+      impacted_component_repos:
+      - louisburroughs/durion-crm
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-contacts-store-communication-prefer-171.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/crm/.ui/frontend-story-contacts-store-communication-prefer-171.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-customer/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 101
+    title: '[STORY] Contacts: Capture Multiple Contact Points'
+    labels:
+    - layer:functional
+    - domain:crm
+    - kiro
+    - type:story
     - CAP:090
   children:
     backend:

@@ -7,12 +7,18 @@ model: Claude Opus 4.5 (copilot)
 
 # Backend Story Fulfillment Prompt
 
-You are implementing capability {{capability_label}} i.e.:CAP:275
-Parent CAPABILITY: [durion#{{parent_capability_number}}]({{parent_capability_address}})
-Parent STORY: [durion#{{parent_story_number}}]({{parent_story_address}})
-Backend child issues:
+You are implementing capability {{capability_label}} (e.g., CAP:089).
+
+**Parent Capability:** [durion#{{parent_capability_number}}]({{parent_capability_url}}) — {{parent_capability_title}}
+
+**Parent Stories (under this capability):**
+{{parent_stories_list}}
+
+**Backend Child Issues for this parent story:**
 {{backend_child_issues}}
-Backend repository: {{backend_repo}}
+
+**Backend Repository (static):**
+louisburroughs/durion-positivity-backend
 
 Contract guide entry (draft):
   durion repo, domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -65,10 +71,11 @@ Substitution & Validation
 The following fields MUST be present in CAPABILITY_MANIFEST.yaml, or substitution will fail:
 - `meta.capability_id` (string) — e.g., "CAP:094"
 - `meta.owner_repo` (string) — e.g., "louisburroughs/durion"
-- `stories[0].parent.issue` (integer) — parent story number
-- `stories[0].parent.domain` (string) — e.g., "crm", "security", "inventory"
-- `stories[0].children.backend` (object or list) — backend child story/stories. Can be a single object with `issue` field, or a list of objects each with `issue` field
-- `stories[0].contract_guide.path` (string) — path to contract guide
+- `parent_capability.issue` (integer) — capability issue number
+- `parent_capability.domain` (string) — e.g., "crm", "security", "inventory"
+- `stories[].parent_story.issue` (integer) — parent story issue number(s)
+- `stories[].children.backend` (object) — backend child issue. Must have `issue` field.
+- `stories[].contract_guide.path` (string) — path to contract guide
 - `repositories[].type` and `repositories[].slug` — must include "backend" type entry (always durion-positivity-backend)
 
 **Example CAPABILITY_MANIFEST.yaml Input**
@@ -88,7 +95,7 @@ repositories:
   slug: louisburroughs/durion-positivity-backend
   type: backend
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
     issue: 94
     title: '[CAP] Workorder Execution Integration (Bidirectional)'

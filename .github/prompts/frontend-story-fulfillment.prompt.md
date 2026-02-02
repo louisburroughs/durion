@@ -7,12 +7,18 @@ model: Claude Sonnet 4.5 (copilot)
 
 # Frontend Story Fulfillment Prompt
 
-You are implementing capability {{capability_label}} i.e.:CAP:275
-Parent CAPABILITY: [durion#{{parent_capability_number}}]({{parent_capability_address}})
-Parent STORY: [durion#{{parent_story_number}}]({{parent_story_address}})
-Frontend child issues:
+You are implementing capability {{capability_label}} (e.g., CAP:089).
+
+**Parent Capability:** [durion#{{parent_capability_number}}]({{parent_capability_url}}) — {{parent_capability_title}}
+
+**Parent Stories (under this capability):**
+{{parent_stories_list}}
+
+**Frontend Child Issues for this parent story:**
 {{frontend_child_issues}}
-Frontend repository: {{frontend_repo}}
+
+**Frontend Impacted Repositories:**
+{{frontend_impacted_repos}}
 
 Contract guide entry (stable-for-ui):
   durion repo, domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -52,22 +58,31 @@ Substitution & Validation
 The following fields MUST be present in CAPABILITY_MANIFEST.yaml, or substitution will fail:
 - `meta.capability_id` (string) — e.g., "CAP:275"
 - `meta.owner_repo` (string) — e.g., "louisburroughs/durion"
-- `stories[0].parent.issue` (integer) — parent story number
-- `stories[0].parent.domain` (string) — e.g., "security"
-- `stories[0].children.frontend` (object or list) — frontend child story/stories. Can be a single object with `issue` field, or a list of objects each with `issue` field
-- `stories[0].children.frontend[].impacted_component_repos` (list) — MUST be complete; may not be empty. Lists all component repos affected by this frontend work.
+- `parent_capability.issue` (integer) — capability issue number
+- `parent_capability.domain` (string) — e.g., "security", "crm"
+- `stories[].parent_story.issue` (integer) — parent story issue number(s)
+- `stories[].children.frontend` (object) — frontend child issue. Must have `issue` field and non-empty `impacted_component_repos` list.
+- `stories[].children.frontend.impacted_component_repos` (list) — MUST be complete; may not be empty. Lists all component repos affected by this frontend work.
 - `stories[0].contract_guide.path` (string) — path to contract guide
 - `repositories[].type` and `repositories[].slug` — must include "backend" and "frontend-coordination" type entries
 
 Optional fields:
-- `stories[0].pr_links.backend_pr` (string or empty) — optional; may be omitted or empty if backend changes are still in progress
+- `stories[].pr_links.backend_pr` (string or empty) — optional; may be omitted or empty if backend changes are still in progress
 
 **Example CAPABILITY_MANIFEST.yaml Input**
 ```yaml
 meta:
-  capability_id: CAP:275
-  capability_name: '[CAP] Login & Token Handling (ADR-0011)'
+  capability_id: CAP:089
+  capability_name: '[CAP] Party Management (Commercial Accounts & Individuals)'
   owner_repo: louisburroughs/durion
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 89
+  title: '[CAP] Party Management (Commercial Accounts & Individuals)'
+  domain: crm
+  labels:
+  - type:capability
+  - domain:crm
 coordination:
   github_project_url: https://github.com/users/louisburroughs/projects/1
   status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
@@ -83,29 +98,23 @@ repositories:
   slug: louisburroughs/durion-moqui-frontend
   type: frontend-coordination
 stories:
-- parent:
+- parent_story:
     repo: louisburroughs/durion
-    issue: 275
-    title: '[CAP] Login & Token Handling (ADR-0011)'
-    domain: security
+    issue: 95
+    title: '[STORY] Party: Create Commercial Account'
     labels:
-    - type:capability
-    - domain:security
-    - status:ready-for-dev
+    - type:story
+    - domain:crm
   children:
-    backend:
-      repo: louisburroughs/durion-positivity-backend
-      issue: 417
     frontend:
-    - repo: louisburroughs/durion-moqui-frontend
-      issue: 280
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 176
       impacted_component_repos:
-      - louisburroughs/durion-positivity
-      business_rules:
-      - repo: louisburroughs/durion
-        path: domains/security/.business-rules/AGENT_GUIDE.md
-      - repo: louisburroughs/durion
-        path: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - louisburroughs/durion-crm
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    status: draft
     - repo: louisburroughs/durion-moqui-frontend
       issue: 281
       impacted_component_repos:
