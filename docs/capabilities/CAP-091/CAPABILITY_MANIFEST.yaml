@@ -76,14 +76,14 @@ stories:
     repo: louisburroughs/durion
     path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-customer/target/openapi.json
       generated: true
   pr_links:
     durion_contract_pr: ''
-    backend_pr: ''
+    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/420'
     frontend_prs: []
   merge_order:
   - durion_contract_pr
