@@ -6,6 +6,12 @@ description: 'See process the agent is following where you can edit this to resh
 
 # Durion Process tracking Instructions
 
+## File Location (MANDATORY)
+
+- `Durion-Processing.md` MUST ONLY exist in the Durion repo root: `~/Projects/durion/Durion-Processing.md`.
+- Do NOT create, modify, or reference `Durion-Processing.md` in any other repo (for example `durion-positivity-backend/` or `durion-moqui-frontend/`).
+- Any instruction below that says "workspace root" MUST be interpreted as the Durion repo root (`~/Projects/durion/`) only.
+
 **ABSOLUTE MANDATORY RULES:**
 - Exit these instructions when given the command "EXIT DURION PROCESSING INSTRUCTIONS"
 - You must review these instructions in full before executing any steps to understand the full instructions guidelines.
@@ -20,9 +26,9 @@ description: 'See process the agent is following where you can edit this to resh
 
 # Phase 1: Initialization
 
-- Delete existing file `Durion-Processing.md` in workspace root if it is marked as complete. If not marked complete, check if the question or demand is relevant to the contents of the file.  If the contents are stale, delete without asking.  If there is a doubt if this is a continuation, ask if you should append to it or start a new one.
-- Create file `Durion-Processing.md` in workspace root
-- Populate `Durion-Processing.md` with user request details
+- Delete existing file `~/Projects/durion/Durion-Processing.md` (Durion repo root) if it is marked as complete. If not marked complete, check if the question or demand is relevant to the contents of the file. If the contents are stale, delete without asking. If there is a doubt if this is a continuation, ask if you should append to it or start a new one.
+- Create file `~/Projects/durion/Durion-Processing.md` (Durion repo root only)
+- Populate `~/Projects/durion/Durion-Processing.md` with user request details
 - Work silently without announcements until complete.
 - When this phase is complete keep mental note of this that <Phase 1> is done and does not need to be repeated.
 
