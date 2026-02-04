@@ -1,10 +1,11 @@
 # Customer Relationship Management (CRM) Backend Contract Guide
 
-**Version:** 1.3  
+**Version:** 2.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-02-03  
-**OpenAPI Source:** `pos-customer/openapi.json`  
-**Additional OpenAPI Source (Vehicle Registry / CAP:091):** `durion-positivity-backend/pos-vehicle-inventory/openapi.json`  
+**Last Updated:** 2026-02-04  
+**OpenAPI Sources:**
+- `durion-positivity-backend/pos-customer/openapi.json`  
+- `durion-positivity-backend/pos-vehicle-inventory/openapi.json` (Vehicle Registry - CAP:091)  
 **Status:** Accepted
 
 ---
@@ -13,7 +14,7 @@
 
 This guide standardizes field naming conventions, data types, payload structures, and error codes for the Customer Relationship Management (CRM) domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
 
-This guide is generated from the OpenAPI specification and follows the standards established across all Durion platform domains.
+This guide is generated from the OpenAPI specifications of the pos-customer and pos-vehicle-inventory modules and follows the standards established across all Durion platform domains.
 
 ---
 
@@ -27,9 +28,14 @@ This guide is generated from the OpenAPI specification and follows the standards
 6. [Collection & Pagination](#collection--pagination)
 7. [Error Response Format](#error-response-format)
 8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
-9. [API Endpoints](#api-endpoints)
-10. [Entity-Specific Contracts](#entity-specific-contracts)
-11. [Examples](#examples)
+9. [API Endpoints Summary](#api-endpoints-summary)
+10. [Customer API Endpoints](#customer-api-endpoints)
+11. [CRM Accounts Endpoints](#crm-accounts-endpoints)
+12. [Vehicle Registry Endpoints (CAP:091)](#vehicle-registry-endpoints-cap091)
+13. [Vehicle Search Endpoints](#vehicle-search-endpoints)
+14. [Vehicle Preferences Endpoints](#vehicle-preferences-endpoints)
+15. [Entity-Specific Contracts](#entity-specific-contracts)
+16. [Examples](#examples)
 
 ---
 
@@ -42,9 +48,10 @@ All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase
 ```json
 {
   "id": "abc-123",
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z",
-  "status": "ACTIVE"
+  "accountId": "acct-456",
+  "firstName": "John",
+  "isActive": true,
+  "createdAt": "2026-01-27T14:30:00Z"
 }
 ```
 
@@ -82,11 +89,13 @@ Use `Integer` or `Long` for:
 - Counts (page numbers, total results)
 - Version numbers
 - Sequence numbers
+- Years
 
 ```java
 private Integer pageNumber;
 private Integer pageSize;
 private Long totalCount;
+private Integer year;
 ```
 
 ### Boolean Fields
@@ -96,17 +105,17 @@ Use `boolean` for true/false flags:
 ```java
 private boolean isActive;
 private boolean isPrimary;
-private boolean hasPermission;
+private boolean manualOverride;
 ```
 
 ### UUID/ID Fields
 
-Use `String` for all primary and foreign key IDs:
+Use `String` with `format: uuid` for all primary and foreign key IDs:
 
 ```java
 private String id;
-private String parentId;
-private String referenceId;
+private String vehicleId;
+private String accountId;
 ```
 
 ### Instant/Timestamp Fields
@@ -128,25 +137,6 @@ JSON representation:
 }
 ```
 
-### LocalDate Fields
-
-Use `LocalDate` for date-only fields (no time component):
-
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-private LocalDate effectiveFrom;
-private LocalDate effectiveTo;
-```
-
-JSON representation:
-
-```json
-{
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31"
-}
-```
-
 ---
 
 ## Enum Value Conventions
@@ -156,21 +146,26 @@ JSON representation:
 All enum values **MUST** use `UPPER_SNAKE_CASE`:
 
 ```java
+public enum AccountTier {
+    STANDARD,
+    BRONZE,
+    SILVER,
+    GOLD,
+    PLATINUM,
+    ENTERPRISE
+}
+
 public enum Status {
     ACTIVE,
     INACTIVE,
-    PENDING_APPROVAL,
     ARCHIVED
 }
 ```
 
 ### Enums in this Domain
 
-No enums defined in OpenAPI spec. Standard enum conventions apply:
-
-- Use UPPER_SNAKE_CASE
-- Document all possible values
-- Avoid numeric codes
+- `AccountTier`: Customer segmentation tier (see [Account Tier Thresholds](#account-tier-thresholds))
+- Status enums follow UPPER_SNAKE_CASE convention
 
 ---
 
@@ -178,8 +173,8 @@ No enums defined in OpenAPI spec. Standard enum conventions apply:
 
 ### Standard Pattern
 
-- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `orderId`)
-- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`)
+- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `vehicleId`, `accountId`)
+- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`, `vehicleId`)
 - Composite identifiers: use structured object, not concatenated string
 
 ### Examples
@@ -187,8 +182,8 @@ No enums defined in OpenAPI spec. Standard enum conventions apply:
 ```json
 {
   "id": "abc-123",
-  "customerId": "cust-456",
-  "orderId": "ord-789"
+  "vehicleId": "vehicle-456",
+  "accountId": "acct-789"
 }
 ```
 
@@ -207,7 +202,8 @@ All timestamps **MUST** be:
 ```json
 {
   "createdAt": "2026-01-27T14:30:00.123Z",
-  "updatedAt": "2026-01-27T15:45:30.456Z"
+  "updatedAt": "2026-01-27T15:45:30.456Z",
+  "tierAssignedAt": "2026-02-01T09:00:00.000Z"
 }
 ```
 
@@ -216,6 +212,7 @@ All timestamps **MUST** be:
 - `createdAt`: When the entity was created
 - `updatedAt`: When the entity was last updated
 - `deletedAt`: When the entity was soft-deleted (if applicable)
+- `tierAssignedAt`: When account tier was last assigned/recalculated
 - `effectiveFrom`: Start date for effective dating
 - `effectiveTo`: End date for effective dating
 
@@ -229,7 +226,7 @@ All timestamps **MUST** be:
 {
   "pageNumber": 0,
   "pageSize": 20,
-  "sortField": "createdAt",
+  "sortBy": "createdAt",
   "sortOrder": "DESC"
 }
 ```
@@ -239,9 +236,9 @@ All timestamps **MUST** be:
 ```json
 {
   "results": [...],
-  "totalCount": 150,
   "pageNumber": 0,
   "pageSize": 20,
+  "totalCount": 150,
   "totalPages": 8
 }
 ```
@@ -264,14 +261,14 @@ All error responses **MUST** follow this format:
 ```json
 {
   "code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "correlationId": "abc-123-def-456",
+  "message": "Request validation failed",
+  "status": 400,
   "timestamp": "2026-01-27T14:30:00Z",
-  "fieldErrors": [
+  "correlationId": "abc-123-def-456",
+  "details": [
     {
-      "field": "email",
-      "message": "Invalid email format",
-      "rejectedValue": "invalid-email"
+      "field": "vin",
+      "message": "VIN format is invalid"
     }
   ]
 }
@@ -280,16 +277,15 @@ All error responses **MUST** follow this format:
 ### Standard HTTP Status Codes
 
 - `200 OK`: Successful GET, PUT, PATCH
-- `201 Created`: Successful POST
+- `201 Created`: Successful POST (creation)
 - `204 No Content`: Successful DELETE
 - `400 Bad Request`: Validation error
 - `401 Unauthorized`: Authentication required
 - `403 Forbidden`: Insufficient permissions
 - `404 Not Found`: Resource not found
-- `409 Conflict`: Business rule violation
+- `409 Conflict`: Business rule violation (e.g., duplicate VIN)
 - `422 Unprocessable Entity`: Semantic validation error
 - `500 Internal Server Error`: Unexpected server error
-- `501 Not Implemented`: Endpoint not yet implemented
 
 ---
 
@@ -300,7 +296,7 @@ All error responses **MUST** follow this format:
 All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
 
 ```http
-GET /v1/crm/entities/123
+GET /v1/crm/accounts/parties/abc-123
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -315,391 +311,307 @@ X-Correlation-Id: abc-123-def-456
 
 ### Error Responses
 
-All error responses **MUST** include the correlation ID in the body:
-
-```json
-{
-  "code": "NOT_FOUND",
-  "message": "Entity not found",
-  "correlationId": "abc-123-def-456"
-}
-```
-
-**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
+All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-## API Endpoints
+## API Endpoints Summary
 
-### Endpoint Summary
+### Module Distribution
 
-This domain exposes **25** CRM REST API endpoints, plus **9** vehicle registry endpoints (CAP:091).
+**pos-customer module:** 8 Customer API endpoints + 8 CRM Accounts endpoints = 16 endpoints
 
-Vehicle-only lookups belong in pos-vehicle-inventory; this CRM domain contract retains customer-vehicle relationship endpoints.
+**pos-vehicle-inventory module:** 20 endpoints distributed across:
+- Vehicle Registry: 5 endpoints
+- Vehicle Search: 2 endpoints
+- Vehicle Preferences: 4 endpoints
+- Vehicle API (Legacy): 9 endpoints
 
-| Method | Path | Summary |
-|--------|------|---------|
-| GET | `/v1/crm` | Get all customers |
-| POST | `/v1/crm` | Create a new customer |
-| POST | `/v1/crm/accounts/parties` | Create commercial account |
-| POST | `/v1/crm/accounts/parties/search` | Search parties |
-| GET | `/v1/crm/accounts/parties/{partyId}` | Get party details |
-| GET | `/v1/crm/accounts/parties/{partyId}/communicationPreferences` | Get communication preferences |
-| POST | `/v1/crm/accounts/parties/{partyId}/communicationPreferences` | Create or update communication preferences |
-| GET | `/v1/crm/accounts/parties/{partyId}/contacts` | Get contacts with roles |
-| PUT | `/v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles` | Update contact roles |
-| POST | `/v1/crm/accounts/parties/{partyId}/merge` | Merge parties |
-| POST | `/v1/crm/accounts/parties/{partyId}/vehicles` | Create vehicle for party |
-| POST | `/v1/crm/accounts/tierResolve` | Resolve account tier |
-| GET | `/v1/crm/accounts/{accountId}/tier` | Get account tier |
-| GET | `/v1/crm/parties/{partyId}/communicationPreferences` | Get communication preferences |
-| POST | `/v1/crm/parties/{partyId}/communicationPreferences` | Create or update communication preferences |
-| GET | `/v1/crm/parties/{partyId}/contacts` | Get contacts with roles |
-| PUT | `/v1/crm/parties/{partyId}/contacts/{contactId}/roles` | Update contact roles |
-| POST | `/v1/crm/{customerId}/vehicles` | Create vehicle |
-| PUT | `/v1/crm/{customerId}/vehicles` | Update vehicle |
-| DELETE | `/v1/crm/{customerId}/vehicles/{vehicleId}` | Delete vehicle |
-| GET | `/v1/crm/{customerId}/vehicles/{vehicleId}` | Get vehicle for customer |
-| PUT | `/v1/crm/{customerId}/vehicles/{vehicleId}/transfer` | Transfer vehicle |
-| DELETE | `/v1/crm/{id}` | Delete a customer |
-| GET | `/v1/crm/{id}` | Get customer by ID |
-| PUT | `/v1/crm/{id}` | Update an existing customer |
+**Total: 36 REST API endpoints**
 
-#### Vehicle Registry Endpoint Summary (CAP:091)
+---
 
-These endpoints are produced by the vehicle inventory service OpenAPI snapshot:
+## Customer API Endpoints
 
-`durion-positivity-backend/pos-vehicle-inventory/openapi.json`
-
-| Method | Path | Summary |
-|--------|------|---------|
-| GET | `/v1/vehicles` | Get all vehicles |
-| POST | `/v1/vehicles` | Create a new vehicle |
-| GET | `/v1/vehicles/{id}` | Get vehicle by ID |
-| PUT | `/v1/vehicles/{id}` | Update vehicle by ID |
-| DELETE | `/v1/vehicles/{id}` | Delete vehicle by ID |
-| GET | `/v1/vehicles/vin/{vin}` | Get vehicle by VIN |
-| PUT | `/v1/vehicles/vin/{vin}` | Update vehicle by VIN |
-| DELETE | `/v1/vehicles/vin/{vin}` | Delete vehicle by VIN |
-| POST | `/v1/vehicles/vin` | Create vehicle by VIN |
-
-### Endpoint Details
-
-#### GET /v1/crm
+### GET /v1/crm
 
 **Summary:** Get all customers
 
-**Description:** Retrieve a list of all customers.
+**Description:** Retrieve a paginated list of all customers
 
-**Operation ID:** `getAllCustomers`
+**Operation ID:** `getCustomers`
+
+**Parameters:** None (pagination/filtering may be added)
 
 **Responses:**
 
-- `200`: List of customers returned successfully.
+- `200`: Customers retrieved successfully
+- `401`: Unauthorized
+- `403`: Forbidden - insufficient permissions
 
+**Contract (Response 200):** Array of `AbstractCustomer`
 
 ---
 
-#### POST /v1/crm
+### POST /v1/crm
 
 **Summary:** Create a new customer
 
-**Description:** Add a new customer to the system.
+**Description:** Add a new customer to the system
 
 **Operation ID:** `createCustomer`
 
+**Request Body:** `AbstractCustomer`
+
 **Responses:**
 
-- `200`: Customer created successfully.
+- `201`: Customer created successfully
+- `400`: Invalid request
+- `401`: Unauthorized
+- `403`: Forbidden - insufficient permissions
 
+**Contract (Response 201):** `AbstractCustomer`
 
 ---
 
-#### POST /v1/crm/accounts/parties
+### GET /v1/crm/{id}
+
+**Summary:** Get customer by ID
+
+**Description:** Retrieve a customer by their unique ID
+
+**Operation ID:** `getCustomerById`
+
+**Parameters:**
+
+- `id` (path, required, string): Customer ID
+
+**Responses:**
+
+- `200`: Customer found
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Customer not found
+
+**Contract (Response 200):** `AbstractCustomer`
+
+---
+
+### PUT /v1/crm/{id}
+
+**Summary:** Update an existing customer
+
+**Description:** Update the details of an existing customer
+
+**Operation ID:** `updateCustomer`
+
+**Parameters:**
+
+- `id` (path, required, string): Customer ID
+
+**Request Body:** `AbstractCustomer`
+
+**Responses:**
+
+- `200`: Customer updated successfully
+- `400`: Invalid request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Customer not found
+
+**Contract (Response 200):** `AbstractCustomer`
+
+---
+
+### DELETE /v1/crm/{id}
+
+**Summary:** Delete a customer
+
+**Description:** Delete a customer by their unique ID (may be soft-delete)
+
+**Operation ID:** `deleteCustomer`
+
+**Parameters:**
+
+- `id` (path, required, string): Customer ID
+
+**Responses:**
+
+- `204`: Customer deleted successfully
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Customer not found
+
+---
+
+## CRM Accounts Endpoints
+
+### POST /v1/crm/accounts/parties
 
 **Summary:** Create commercial account
 
-**Description:** Create a new commercial party/account in the CRM system
+**Description:** Create a new commercial account (party/customer) with detailed information
 
 **Operation ID:** `createCommercialAccount`
+
+**Request Body:** `CreateCommercialAccountRequest`
 
 **Responses:**
 
 - `201`: Account created successfully
 - `400`: Invalid request
+- `401`: Unauthorized
 - `403`: Forbidden - insufficient permissions
 
+**Contract (Response 201):** `CreateCommercialAccountResponse`
 
 ---
 
-#### POST /v1/crm/accounts/parties/search
+### POST /v1/crm/accounts/parties/search
 
 **Summary:** Search parties
 
-**Description:** Search for parties based on various criteria
+**Description:** Search for parties/accounts using various criteria
 
 **Operation ID:** `searchParties`
 
+**Request Body:** `SearchPartiesRequest`
+
 **Responses:**
 
-- `200`: Search results returned
-- `400`: Invalid search criteria
-- `403`: Forbidden - insufficient permissions
+- `200`: Search completed
+- `400`: Invalid search query
+- `401`: Unauthorized
+- `403`: Forbidden
 
+**Contract (Response 200):** `SearchPartiesResponse`
 
 ---
 
-#### GET /v1/crm/accounts/parties/{partyId}
+### GET /v1/crm/accounts/parties/{partyId}
 
 **Summary:** Get party details
 
-**Description:** Retrieve details for a specific party by ID
+**Description:** Retrieve full details for a specific party
 
 **Operation ID:** `getParty`
 
 **Parameters:**
 
-- `partyId` (path, Required, string): Party ID
+- `partyId` (path, required, string): Party ID
 
 **Responses:**
 
-- `200`: Party details retrieved successfully
-- `403`: Forbidden - insufficient permissions
+- `200`: Party found
+- `401`: Unauthorized
+- `403`: Forbidden
 - `404`: Party not found
 
+**Contract (Response 200):** `GetPartyResponse`
 
 ---
 
-#### GET /v1/crm/accounts/parties/{partyId}/communicationPreferences
-
-**Summary:** Get communication preferences
-
-**Description:** Retrieve communication preferences and consent flags for a party
-
-**Operation ID:** `getCommunicationPreferences_1`
-
-**Parameters:**
-
-- `partyId` (path, Required, string): Party ID
-
-**Responses:**
-
-- `200`: Preferences retrieved successfully
-- `403`: Forbidden - insufficient permissions
-- `404`: Party not found
-
-**Contract (Response 200):** `GetCommunicationPreferencesResponse`
-
-**Response Schema (JSON Schema, abridged):**
-```json
-{
-  "type": "object",
-  "properties": {
-    "partyId": { "type": "string" },
-    "version": { "type": "string" },
-    "emailPreference": { "type": "string" },
-    "smsPreference": { "type": "string" },
-    "phonePreference": { "type": "string" },
-    "marketingPreference": { "type": "string" },
-    "consentFlags": { "type": "object", "additionalProperties": { "type": "boolean" } },
-    "preferencesNote": { "type": "string" },
-    "updatedAt": { "type": "string" },
-    "updateSource": { "type": "string" }
-  }
-}
-```
-
-**Provider Test Hints (ContractBehaviorIT):**
-- Add tests for: `200`, `403`, `404` per OpenAPI
-- TODO (CAP:090 / backend issue #107): add concrete example payload/expected body assertions once backend behavior is finalized
-
-
----
-
-#### POST /v1/crm/accounts/parties/{partyId}/communicationPreferences
-
-**Summary:** Create or update communication preferences
-
-**Description:** Set or update communication preferences and consent flags for a party
-
-**Operation ID:** `upsertCommunicationPreferences_1`
-
-**Parameters:**
-
-- `partyId` (path, Required, string): Party ID
-
-**Responses:**
-
-- `200`: Preferences updated successfully
-- `400`: Invalid preference data
-- `403`: Forbidden - insufficient permissions
-- `404`: Party not found
-
-**Contract (Request Body):** `UpsertCommunicationPreferencesRequest`
-
-**Request Schema (JSON Schema, abridged):**
-```json
-{
-  "type": "object",
-  "properties": {
-    "version": { "type": "string" },
-    "emailPreference": { "type": "string" },
-    "smsPreference": { "type": "string" },
-    "phonePreference": { "type": "string" },
-    "marketingPreference": { "type": "string" },
-    "consentFlags": { "type": "object", "additionalProperties": { "type": "boolean" } },
-    "preferencesNote": { "type": "string" },
-    "updateSource": { "type": "string" }
-  }
-}
-```
-
-**Contract (Response 200):** `UpsertCommunicationPreferencesResponse`
-
-**Response Schema (JSON Schema, abridged):**
-```json
-{
-  "type": "object",
-  "properties": {
-    "partyId": { "type": "string" },
-    "version": { "type": "string" },
-    "operationType": { "type": "string" },
-    "status": { "type": "string" },
-    "updatedAt": { "type": "string" }
-  }
-}
-```
-
-**Provider Test Hints (ContractBehaviorIT):**
-- Add tests for: `200`, `400`, `403`, `404` per OpenAPI
-- TODO (CAP:090 / backend issue #107): define authoritative example(s) and validation rules for “Invalid preference data” → `400`
-
-
----
-
-#### GET /v1/crm/accounts/parties/{partyId}/contacts
+### GET /v1/crm/accounts/parties/{partyId}/contacts
 
 **Summary:** Get contacts with roles
 
-**Description:** Retrieve all contacts for a party including their role assignments
+**Description:** Retrieve all contacts for a party with their assigned roles
 
-**Operation ID:** `getContactsWithRoles_1`
+**Operation ID:** `getContactsWithRoles`
 
 **Parameters:**
 
-- `partyId` (path, Required, string): Party ID
+- `partyId` (path, required, string): Party ID
 
 **Responses:**
 
 - `200`: Contacts retrieved successfully
-- `403`: Forbidden - insufficient permissions
+- `401`: Unauthorized
+- `403`: Forbidden
 - `404`: Party not found
 
 **Contract (Response 200):** `GetContactsWithRolesResponse`
 
-**Response Schema (JSON Schema, abridged):**
-```json
-{
-  "type": "object",
-  "properties": {
-    "partyId": { "type": "string" },
-    "contacts": {
-      "type": "array",
-      "items": { "$ref": "#/components/schemas/ContactWithRoles" }
-    }
-  }
-}
-```
-
-**Provider Test Hints (ContractBehaviorIT):**
-- Add tests for: `200`, `403`, `404` per OpenAPI
-- TODO (CAP:090 / backend issue #106): define example contact list shapes (incl. multiple contact points)
-
-
 ---
 
-#### PUT /v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
+### PUT /v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
 
 **Summary:** Update contact roles
 
-**Description:** Assign or update role assignments for a specific contact within a party
+**Description:** Assign or update role assignments for a specific contact
 
-**Operation ID:** `updateContactRoles_1`
+**Operation ID:** `updateContactRoles`
 
 **Parameters:**
 
-- `partyId` (path, Required, string): Party ID
-- `contactId` (path, Required, string): Contact ID
+- `partyId` (path, required, string): Party ID
+- `contactId` (path, required, string): Contact ID
+
+**Request Body:** `UpdateContactRolesRequest`
 
 **Responses:**
 
 - `200`: Roles updated successfully
 - `400`: Invalid role assignment
-- `403`: Forbidden - insufficient permissions
+- `401`: Unauthorized
+- `403`: Forbidden
 - `404`: Party or contact not found
-
-**Contract (Request Body):** `UpdateContactRolesRequest`
-
-**Request Schema (JSON Schema, abridged):**
-```json
-{
-  "type": "object",
-  "properties": {
-    "version": { "type": "string" },
-    "roles": {
-      "type": "array",
-      "items": { "$ref": "#/components/schemas/RoleAssignment" }
-    }
-  }
-}
-```
 
 **Contract (Response 200):** `UpdateContactRolesResponse`
 
-**Response Schema (JSON Schema, abridged):**
-```json
-{
-  "type": "object",
-  "properties": {
-    "partyId": { "type": "string" },
-    "contactId": { "type": "string" },
-    "version": { "type": "string" },
-    "status": { "type": "string" },
-    "updatedAt": { "type": "string" }
-  }
-}
-```
-
-**Provider Test Hints (ContractBehaviorIT):**
-- Add tests for: `200`, `400`, `403`, `404` per OpenAPI
-- TODO (CAP:090 / backend issue #108): define valid roleCode set + rules for primary flags and “Invalid role assignment” → `400`
-
-
 ---
 
-#### POST /v1/crm/accounts/parties/{partyId}/merge
+### GET /v1/crm/accounts/parties/{partyId}/communicationPreferences
 
-**Summary:** Merge parties
+**Summary:** Get communication preferences
 
-**Description:** Merge multiple parties into a single party record
+**Description:** Retrieve communication preferences and consent flags for a party
 
-**Operation ID:** `mergeParties`
+**Operation ID:** `getCommunicationPreferences`
 
 **Parameters:**
 
-- `partyId` (path, Required, string): Target party ID
+- `partyId` (path, required, string): Party ID
 
 **Responses:**
 
-- `200`: Parties merged successfully
-- `400`: Invalid merge request
-- `403`: Forbidden - insufficient permissions
+- `200`: Preferences retrieved
+- `401`: Unauthorized
+- `403`: Forbidden
 - `404`: Party not found
 
+**Contract (Response 200):** `GetCommunicationPreferencesResponse`
 
 ---
 
-#### POST /v1/crm/accounts/parties/{partyId}/vehicles
+### POST /v1/crm/accounts/parties/{partyId}/communicationPreferences
+
+**Summary:** Create or update communication preferences
+
+**Description:** Set or update communication preferences and consent flags for a party
+
+**Operation ID:** `upsertCommunicationPreferences`
+
+**Parameters:**
+
+- `partyId` (path, required, string): Party ID
+
+**Request Body:** `UpsertCommunicationPreferencesRequest`
+
+**Responses:**
+
+- `200`: Preferences updated
+- `201`: Preferences created
+- `400`: Invalid request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Party not found
+
+**Contract (Response 200/201):** `UpsertCommunicationPreferencesResponse`
+
+---
+
+### POST /v1/crm/accounts/parties/{partyId}/vehicles
 
 **Summary:** Create vehicle for party
 
@@ -709,979 +621,879 @@ These endpoints are produced by the vehicle inventory service OpenAPI snapshot:
 
 **Parameters:**
 
-- `partyId` (path, Required, string): Party ID
+- `partyId` (path, required, string): Party ID
+
+**Request Body:** `CreateVehicleForPartyRequest`
 
 **Responses:**
 
 - `201`: Vehicle created successfully
 - `400`: Invalid vehicle data
-- `403`: Forbidden - insufficient permissions
+- `401`: Unauthorized
+- `403`: Forbidden
 - `404`: Party not found
 
+**Contract (Response 201):** `CreateVehicleForPartyResponse`
 
 ---
 
-#### POST /v1/crm/accounts/tierResolve
+### POST /v1/crm/accounts/parties/{partyId}/merge
 
-**Summary:** Resolve account tier
+**Summary:** Merge parties
 
-**Description:** Resolve or compute the account tier based on business rules (stub endpoint)
+**Description:** Merge multiple parties into a single party record
 
-**Operation ID:** `resolveAccountTier`
+**Operation ID:** `mergeParties`
+
+**Parameters:**
+
+- `partyId` (path, required, string): Target party ID
+
+**Request Body:** `MergePartiesRequest`
 
 **Responses:**
 
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
+- `200`: Parties merged successfully
+- `400`: Invalid merge request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Party not found
 
+**Contract (Response 200):** `MergePartiesResponse`
 
 ---
 
-#### GET /v1/crm/accounts/{accountId}/tier
+### GET /v1/crm/accounts/{accountId}/tier
 
 **Summary:** Get account tier
 
-**Description:** Retrieve the tier level for a specific account (stub endpoint)
+**Description:** Retrieve the current tier level for a specific account (Story #102)
 
 **Operation ID:** `getAccountTier`
 
 **Parameters:**
 
-- `accountId` (path, Required, string): Account ID
+- `accountId` (path, required, string): Account ID
 
 **Responses:**
 
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
+- `200`: Tier retrieved
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Account not found
 
+**Contract (Response 200):** `GetAccountTierResponse`
+
+**Behavior Notes:**
+- Returns current tier, assignment date, assigned by user, and manual override flag
+- See [Account Tier Thresholds](#account-tier-thresholds) for business rules
 
 ---
 
-#### GET /v1/crm/parties/{partyId}/communicationPreferences
+### POST /v1/crm/accounts/tierResolve
 
-**Summary:** Get communication preferences
+**Summary:** Resolve account tier
 
-**Description:** Retrieve communication preferences and consent flags for a party (stub endpoint)
+**Description:** Calculate or recalculate the account tier based on business rules (Story #102)
 
-**Operation ID:** `getCommunicationPreferences`
+**Operation ID:** `resolveAccountTier`
 
-**Parameters:**
-
-- `partyId` (path, Required, string): Party ID
+**Request Body:** `ResolveAccountTierRequest`
 
 **Responses:**
 
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
+- `200`: Tier calculation completed
+- `400`: Invalid request
+- `401`: Unauthorized
+- `403`: Forbidden
 
+**Contract (Response 200):** `ResolveAccountTierResponse`
 
----
-
-#### POST /v1/crm/parties/{partyId}/communicationPreferences
-
-**Summary:** Create or update communication preferences
-
-**Description:** Set or update communication preferences and consent flags for a party (stub endpoint)
-
-**Operation ID:** `upsertCommunicationPreferences`
-
-**Parameters:**
-
-- `partyId` (path, Required, string): Party ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
+**Behavior Notes:**
+- Accepts revenue, contract count, account age, and override flags
+- Returns current and recommended tiers with scoring details
+- See [Account Tier Thresholds](#account-tier-thresholds) for calculation rules
 
 ---
 
-#### GET /v1/crm/parties/{partyId}/contacts
+## Vehicle Registry Endpoints (CAP:091)
 
-**Summary:** Get contacts with roles
+All vehicle registry endpoints are in the `pos-vehicle-inventory` module under the **Vehicle Registry** tag.
 
-**Description:** Retrieve all contact points for a party with their role assignments (stub endpoint)
-
-**Operation ID:** `getContactsWithRoles`
-
-**Parameters:**
-
-- `partyId` (path, Required, string): Party ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-#### PUT /v1/crm/parties/{partyId}/contacts/{contactId}/roles
-
-**Summary:** Update contact roles
-
-**Description:** Assign or update role assignments for a specific contact within a party (stub endpoint)
-
-**Operation ID:** `updateContactRoles`
-
-**Parameters:**
-
-- `partyId` (path, Required, string): Party ID
-- `contactId` (path, Required, string): Contact ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-
-
-#### POST /v1/crm/{customerId}/vehicles
-
-**Summary:** Create vehicle
-
-**Description:** Create a new vehicle for a customer (stub endpoint)
-
-**Operation ID:** `createVehicles`
-
-**Parameters:**
-
-- `customerId` (path, Required, string): Customer ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-#### PUT /v1/crm/{customerId}/vehicles
-
-**Summary:** Update vehicle
-
-**Description:** Update vehicle information for a customer (stub endpoint)
-
-**Operation ID:** `updateVehicles`
-
-**Parameters:**
-
-- `customerId` (path, Required, string): Customer ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-#### DELETE /v1/crm/{customerId}/vehicles/{vehicleId}
-
-**Summary:** Delete vehicle
-
-**Description:** Delete or deactivate a vehicle for a customer (stub endpoint)
-
-**Operation ID:** `deleteVehicle`
-
-**Parameters:**
-
-- `customerId` (path, Required, string): Customer ID
-- `vehicleId` (path, Required, string): Vehicle ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-#### GET /v1/crm/{customerId}/vehicles/{vehicleId}
-
-**Summary:** Get vehicle for customer
-
-**Description:** Retrieve a specific vehicle for a given customer (stub endpoint)
-
-**Operation ID:** `getVehiclesForCustomer`
-
-**Parameters:**
-
-- `customerId` (path, Required, string): Customer ID
-- `vehicleId` (path, Required, string): Vehicle ID
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-#### PUT /v1/crm/{customerId}/vehicles/{vehicleId}/transfer
-
-**Summary:** Transfer vehicle
-
-**Description:** Transfer vehicle ownership between customers (stub endpoint)
-
-**Operation ID:** `transferVehicles`
-
-**Parameters:**
-
-- `customerId` (path, Required, string): Source customer ID
-- `vehicleId` (path, Required, string): Vehicle ID to transfer
-
-**Responses:**
-
-- `403`: Forbidden - insufficient permissions
-- `501`: Not implemented
-
-
----
-
-#### DELETE /v1/crm/{id}
-
-**Summary:** Delete a customer
-
-**Description:** Delete a customer by their unique ID.
-
-**Operation ID:** `deleteCustomer`
-
-**Parameters:**
-
-- `id` (path, Required, integer): ID of the customer to delete
-
-**Responses:**
-
-- `204`: Customer deleted successfully.
-- `404`: Customer not found.
-
-
----
-
-#### GET /v1/crm/{id}
-
-**Summary:** Get customer by ID
-
-**Description:** Retrieve a customer by their unique ID.
-
-**Operation ID:** `getCustomerById`
-
-**Parameters:**
-
-- `id` (path, Required, integer): ID of the customer to retrieve
-
-**Responses:**
-
-- `200`: Customer found and returned.
-- `404`: Customer not found.
-
-
----
-
-#### PUT /v1/crm/{id}
-
-**Summary:** Update an existing customer
-
-**Description:** Update the details of an existing customer.
-
-**Operation ID:** `updateCustomer`
-
-**Parameters:**
-
-- `id` (path, Required, integer): ID of the customer to update
-
-**Responses:**
-
-- `200`: Customer updated successfully.
-- `404`: Customer not found.
-
-
-
----
-
-### Vehicle Registry Endpoints (CAP:091)
-
-#### GET /v1/vehicles
-
-**Summary:** Get all vehicles
-
-**Description:** Retrieve a list of all vehicles in the inventory.
-
-**Operation ID:** `getAllVehicles`
-
-**Responses:**
-
-- `200`: List of vehicles returned successfully.
-
-**Response Schema (JSON Schema, abridged):**
-
-```json
-{
-  "type": "array",
-  "items": {
-    "$ref": "#/components/schemas/VehicleEntity"
-  }
-}
-```
-
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `200`
-- TODO (CAP:091): define auth requirements (if any) and error model for `4xx/5xx`
-
----
-
-#### POST /v1/vehicles
+### POST /v1/vehicles
 
 **Summary:** Create a new vehicle
 
-**Description:** Add a new vehicle to the inventory.
+**Description:** Creates a new vehicle record with VIN validation and normalization. VIN must be globally unique across all active vehicles. (Story #105)
 
 **Operation ID:** `createVehicle`
 
-**Request Schema (JSON Schema, abridged):**
-
-```json
-{
-  "$ref": "#/components/schemas/VehicleEntity"
-}
-```
+**Request Body:** `CreateVehicleRequest`
 
 **Responses:**
 
-- `200`: Vehicle created successfully.
+- `201`: Vehicle created successfully
+- `400`: Invalid request - VIN format invalid, missing required fields, or duplicate VIN
+- `409`: Conflict - VIN already exists for another active vehicle
 
-**Provider Test Hints (ContractBehaviorIT):**
+**Contract (Response 201):** `VehicleResponse`
 
-- Add tests for: `200`
-- TODO (CAP:091): define `400` conditions (validation) and error payload shape
+**Required Fields in Request:**
+- `accountId` (UUID)
+- `vin` (string, 17 characters)
+- `unitNumber` (string)
+- `description` (string)
+
+**Optional Fields:**
+- `licensePlate`
+- `licensePlateJurisdiction`
+- `year`
+- `make`
+- `model`
+- `trim`
 
 ---
 
-#### GET /v1/vehicles/{id}
+### GET /v1/vehicles/{vehicleId}
 
 **Summary:** Get vehicle by ID
 
-**Description:** Retrieve a vehicle by its unique ID.
+**Description:** Retrieves a vehicle by its unique UUID. (Story #105)
 
 **Operation ID:** `getVehicle`
 
 **Parameters:**
 
-- `id` (path, Required, integer): ID of the vehicle to retrieve
+- `vehicleId` (path, required, string, format: uuid): Vehicle UUID
 
 **Responses:**
 
-- `200`: Vehicle found and returned.
-- `404`: Vehicle not found.
+- `200`: Vehicle found
+- `404`: Vehicle not found
 
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `200`, `404`
+**Contract (Response 200):** `VehicleResponse`
 
 ---
 
-#### PUT /v1/vehicles/{id}
+### PUT /v1/vehicles/{vehicleId}
 
-**Summary:** Update vehicle by ID
+**Summary:** Update vehicle
 
-**Description:** Update an existing vehicle's details by its ID.
+**Description:** Updates an existing vehicle's details. VIN cannot be changed. (Story #105)
 
 **Operation ID:** `updateVehicle`
 
 **Parameters:**
 
-- `id` (path, Required, integer): ID of the vehicle to update
+- `vehicleId` (path, required, string, format: uuid): Vehicle UUID
 
-**Request Schema (JSON Schema, abridged):**
-
-```json
-{
-  "$ref": "#/components/schemas/VehicleEntity"
-}
-```
+**Request Body:** `CreateVehicleRequest`
 
 **Responses:**
 
-- `200`: Vehicle updated successfully.
-- `404`: Vehicle not found.
+- `200`: Vehicle updated successfully
+- `400`: Invalid request
+- `404`: Vehicle not found
 
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `200`, `404`
+**Contract (Response 200):** `VehicleResponse`
 
 ---
 
-#### DELETE /v1/vehicles/{id}
+### DELETE /v1/vehicles/{vehicleId}
 
-**Summary:** Delete vehicle by ID
+**Summary:** Delete vehicle
 
-**Description:** Delete a vehicle from the inventory by its ID.
+**Description:** Soft-deletes (deactivates) a vehicle. Sets `isActive` to false. (Story #105)
 
 **Operation ID:** `deleteVehicle`
 
 **Parameters:**
 
-- `id` (path, Required, integer): ID of the vehicle to delete
+- `vehicleId` (path, required, string, format: uuid): Vehicle UUID
 
 **Responses:**
 
-- `204`: Vehicle deleted successfully.
-- `404`: Vehicle not found.
-
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `204`, `404`
+- `204`: Vehicle deleted successfully
+- `404`: Vehicle not found
 
 ---
 
-#### GET /v1/vehicles/vin/{vin}
+### GET /v1/vehicles/vin/{vin}
 
 **Summary:** Get vehicle by VIN
 
-**Description:** Retrieve a vehicle by its VIN.
+**Description:** Retrieves a vehicle by its VIN (normalized lookup). (Story #105)
 
-**Operation ID:** `getVehicleByVIN`
-
-**Parameters:**
-
-- `vin` (path, Required, string): VIN of the vehicle to retrieve
-
-**Responses:**
-
-- `200`: Vehicle found and returned.
-- `404`: Vehicle not found.
-
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `200`, `404`
-
----
-
-#### PUT /v1/vehicles/vin/{vin}
-
-**Summary:** Update vehicle by VIN
-
-**Description:** Update an existing vehicle's details by its VIN.
-
-**Operation ID:** `updateVehicleByVIN`
+**Operation ID:** `getVehicleByVin`
 
 **Parameters:**
 
-- `vin` (path, Required, string): VIN of the vehicle to update
-
-**Request Schema (JSON Schema, abridged):**
-
-```json
-{
-  "$ref": "#/components/schemas/VehicleEntity"
-}
-```
+- `vin` (path, required, string): Vehicle VIN (17 characters)
 
 **Responses:**
 
-- `200`: Vehicle updated successfully.
-- `404`: Vehicle not found.
+- `200`: Vehicle found
+- `404`: Vehicle not found
 
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `200`, `404`
+**Contract (Response 200):** `VehicleResponse`
 
 ---
 
-#### DELETE /v1/vehicles/vin/{vin}
+## Vehicle Search Endpoints
 
-**Summary:** Delete vehicle by VIN
+### POST /v1/vehicles/search
 
-**Description:** Delete a vehicle from the inventory by its VIN.
+**Summary:** Search vehicles
 
-**Operation ID:** `deleteVehicleByVIN`
+**Description:** Search for vehicles by VIN, license plate, unit number, or description. Results are ranked by relevance: exact match > prefix match > contains match. (Story #103)
+
+**Operation ID:** `search`
+
+**Request Body:** `SearchVehiclesRequest`
+
+**Responses:**
+
+- `200`: Search results returned
+- `400`: Invalid search query
+
+**Contract (Response 200):** `SearchVehiclesResponse`
+
+**Search Behavior:**
+- Exact matches ranked highest
+- Prefix matches ranked second
+- Contains matches ranked lowest (if `enableContainsMatching` is true)
+- Searches against: VIN, license plate, unit number, description
+- Default limit: 25 results, max 50
+
+---
+
+### GET /v1/vehicles/search
+
+**Summary:** Search vehicles (query parameter)
+
+**Description:** Alternative search endpoint using query parameters. Useful for browser-based queries.
+
+**Operation ID:** `searchByQuery`
 
 **Parameters:**
 
-- `vin` (path, Required, string): VIN of the vehicle to delete
+- `q` (query, required, string): Search query
+- `limit` (query, optional, integer): Result limit (default 25, max 50)
+- `enableContains` (query, optional, boolean): Enable contains matching (default false)
 
 **Responses:**
 
-- `204`: Vehicle deleted successfully.
-- `404`: Vehicle not found.
+- `200`: Search results returned
+- `400`: Invalid search query
 
-**Provider Test Hints (ContractBehaviorIT):**
-
-- Add tests for: `204`, `404`
+**Contract (Response 200):** `SearchVehiclesResponse`
 
 ---
 
-#### POST /v1/vehicles/vin
+## Vehicle Preferences Endpoints
 
-**Summary:** Create vehicle by VIN
+### GET /v1/vehicles/{vehicleId}/preferences
 
-**Description:** Add a new vehicle to the inventory using its VIN.
+**Summary:** Get vehicle care preferences
 
-**Operation ID:** `createVehicleByVIN`
+**Description:** Retrieves the care preferences for a vehicle. Returns 404 if no preferences exist.
 
-**Request Schema (JSON Schema, abridged):**
+**Operation ID:** `getPreferences`
 
-```json
-{
-  "$ref": "#/components/schemas/VehicleEntity"
-}
-```
+**Parameters:**
+
+- `vehicleId` (path, required, string, format: uuid): Vehicle ID
 
 **Responses:**
 
-- `200`: Vehicle created successfully.
+- `200`: Preferences found and returned
+- `404`: No preferences found for this vehicle
 
-**Notes:**
+**Contract (Response 200):** `VehicleCarePreference`
 
-- VIN is supplied in the request body as `vin`.
+---
 
+### PUT /v1/vehicles/{vehicleId}/preferences
+
+**Summary:** Create or update vehicle care preferences
+
+**Description:** Upserts preferences for a vehicle. If preferences exist, replaces them entirely. Use PATCH for partial updates.
+
+**Operation ID:** `upsertPreferences`
+
+**Parameters:**
+
+- `vehicleId` (path, required, string, format: uuid): Vehicle ID
+
+**Request Body:** `PreferencesUpsertDto`
+
+**Responses:**
+
+- `200`: Preferences updated successfully
+- `201`: Preferences created successfully
+- `400`: Invalid preference data
+- `404`: Vehicle not found
+
+**Contract (Response 200/201):** `VehicleCarePreference`
+
+**Request Fields:**
+- `preferences` (object, required): Complete preference map
+- `serviceNotes` (string, optional)
+- `createdByUserId` (string, UUID, optional)
+- `updatedByUserId` (string, UUID, optional)
+
+---
+
+### PATCH /v1/vehicles/{vehicleId}/preferences
+
+**Summary:** Partially update vehicle care preferences
+
+**Description:** Merges provided preference fields into existing preferences without replacing the entire map.
+
+**Operation ID:** `mergePreferences`
+
+**Parameters:**
+
+- `vehicleId` (path, required, string, format: uuid): Vehicle ID
+
+**Request Body:** `PreferencesMergeDto`
+
+**Responses:**
+
+- `200`: Preferences merged successfully
+- `404`: No existing preferences to merge into
+
+**Contract (Response 200):** `VehicleCarePreference`
+
+**Request Fields:**
+- `partialPreferences` (object, required): Partial preference map to merge
+- `updatedByUserId` (string, UUID, optional)
+
+---
+
+### DELETE /v1/vehicles/{vehicleId}/preferences
+
+**Summary:** Delete vehicle care preferences
+
+**Description:** Removes all preferences for a vehicle.
+
+**Operation ID:** `deletePreferences`
+
+**Parameters:**
+
+- `vehicleId` (path, required, string, format: uuid): Vehicle ID
+
+**Responses:**
+
+- `204`: Preferences deleted successfully
+- `404`: No preferences found to delete
 
 ---
 
 ## Entity-Specific Contracts
 
-### AbstractCustomer
-
-Customer object to be created
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `customerNumber` | string | No | Unique customer number |
-| `email` | string | No | Email address of the customer |
-| `firstName` | string | Yes | First name of the customer |
-| `id` | integer (int64) | No | Unique identifier of the customer |
-| `lastName` | string | Yes | Last name of the customer |
-| `phoneNumber` | string | No | Phone number of the customer |
-| `primaryAddress` | string | No | Primary address label or identifier for the customer |
-| `vehicleVins` | array | No | List of vehicle VINs associated with the customer |
-
-
-### AssignedRole
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `isPrimary` | boolean | No |  |
-| `roleCode` | string | No |  |
-| `roleLabel` | string | No |  |
-
-
-### ContactWithRoles
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `contactId` | string | No |  |
-| `contactName` | string | No |  |
-| `email` | string | No |  |
-| `hasPrimaryEmail` | boolean | No |  |
-| `invoiceDeliveryMethod` | string | No |  |
-| `phone` | string | No |  |
-| `roles` | array | No |  |
-
-
-### CreateCommercialAccountRequest
-
-Commercial account creation request
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `billingTermsId` | string | No |  |
-| `displayName` | string | No |  |
-| `email` | string | No |  |
-| `externalIdentifiers` | object | No |  |
-| `legalName` | string | No |  |
-| `partyType` | string | No |  |
-| `phone` | string | No |  |
-| `taxId` | string | No |  |
-
-
-### CreateCommercialAccountResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `createdAt` | string (date-time) | No |  |
-| `duplicateCandidates` | array | No |  |
-| `legalName` | string | No |  |
-| `partyId` | string | No |  |
-| `status` | string | No |  |
-
-
-### CreateVehicleForPartyRequest
-
-Vehicle creation request
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `description` | string | No |  |
-| `licensePlate` | string | No |  |
-| `licensePlateRegion` | string | No |  |
-| `unitNumber` | string | No |  |
-| `vinNumber` | string | No |  |
-
-
-### CreateVehicleForPartyResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `createdAt` | string | No |  |
-| `description` | string | No |  |
-| `licensePlate` | string | No |  |
-| `partyId` | string | No |  |
-| `status` | string | No |  |
-| `unitNumber` | string | No |  |
-| `vehicleId` | string | No |  |
-| `vinNumber` | string | No |  |
-
-
-### DuplicateCandidate
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `legalName` | string | No |  |
-| `matchReason` | string | No |  |
-| `partyId` | string | No |  |
-
-
-### GetCommunicationPreferencesResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `consentFlags` | object | No |  |
-| `emailPreference` | string | No |  |
-| `marketingPreference` | string | No |  |
-| `partyId` | string | No |  |
-| `phonePreference` | string | No |  |
-| `preferencesNote` | string | No |  |
-| `smsPreference` | string | No |  |
-| `updateSource` | string | No |  |
-| `updatedAt` | string | No |  |
-| `version` | string | No |  |
-
-
-### UpsertCommunicationPreferencesRequest
-
-Communication preference upsert request
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `version` | string | No |  |
-| `emailPreference` | string | No |  |
-| `smsPreference` | string | No |  |
-| `phonePreference` | string | No |  |
-| `marketingPreference` | string | No |  |
-| `consentFlags` | object | No | Map of consent flags (`string -> boolean`) |
-| `preferencesNote` | string | No |  |
-| `updateSource` | string | No |  |
-
-
-### UpsertCommunicationPreferencesResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `partyId` | string | No |  |
-| `version` | string | No |  |
-| `operationType` | string | No |  |
-| `status` | string | No |  |
-| `updatedAt` | string | No |  |
-
-
-### GetContactsWithRolesResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `contacts` | array | No |  |
-| `partyId` | string | No |  |
-
-Note: In OpenAPI, `contacts[]` items are `ContactWithRoles`.
-
-
-### ContactWithRoles
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `contactId` | string | No |  |
-| `contactName` | string | No |  |
-| `email` | string | No |  |
-| `phone` | string | No |  |
-| `hasPrimaryEmail` | boolean | No |  |
-| `roles` | array | No | Items are `AssignedRole` |
-| `invoiceDeliveryMethod` | string | No |  |
-
-
-### AssignedRole
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `roleCode` | string | No |  |
-| `roleLabel` | string | No |  |
-| `isPrimary` | boolean | No |  |
-
-
-### UpdateContactRolesRequest
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `version` | string | No |  |
-| `roles` | array | No | Items are `RoleAssignment` |
-
-
-### RoleAssignment
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `roleCode` | string | No |  |
-| `isPrimary` | boolean | No |  |
-
-
-### UpdateContactRolesResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `partyId` | string | No |  |
-| `contactId` | string | No |  |
-| `version` | string | No |  |
-| `status` | string | No |  |
-| `updatedAt` | string | No |  |
-
-
-### VehicleEntity
-
-Vehicle record in the vehicle registry service.
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | integer (int64) | No | Unique identifier for the vehicle |
-| `make` | string | Yes | Vehicle manufacturer (e.g., Toyota, Honda) |
-| `model` | string | Yes | Vehicle model name |
-| `year` | integer | Yes | Manufacturing year of the vehicle |
-| `vin` | string | Yes | Vehicle Identification Number |
-
-**Schema (JSON Schema, abridged):**
-
+### CreateVehicleRequest
+
+**Module:** pos-vehicle-inventory
+
+**Description:** Request DTO for creating a vehicle (CAP:091 Story #105)
+
+**Required Fields:**
+- `accountId` (string, UUID): Account/party ID that owns this vehicle
+- `vin` (string): Vehicle Identification Number (17 characters)
+- `unitNumber` (string): Internal unit number for the vehicle
+- `description` (string): Description of the vehicle
+
+**Optional Fields:**
+- `licensePlate` (string)
+- `licensePlateJurisdiction` (string)
+- `year` (integer)
+- `make` (string)
+- `model` (string)
+- `trim` (string)
+
+**Example:**
 ```json
 {
-  "type": "object",
-  "properties": {
-    "id": {
-      "type": "integer",
-      "format": "int64",
-      "description": "Unique identifier for the vehicle"
-    },
-    "make": {
-      "type": "string",
-      "description": "Vehicle manufacturer (e.g., Toyota, Honda)"
-    },
-    "model": {
-      "type": "string",
-      "description": "Vehicle model name"
-    },
-    "year": {
-      "type": "integer",
-      "description": "Manufacturing year of the vehicle"
-    },
-    "vin": {
-      "type": "string",
-      "description": "Vehicle Identification Number"
-    }
-  },
-  "required": [
-    "make",
-    "model",
-    "year",
-    "vin"
-  ]
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "vin": "1HGCM82633A004352",
+  "unitNumber": "UNIT-001",
+  "description": "2019 Honda Accord Sedan",
+  "licensePlate": "ABC-1234",
+  "licensePlateJurisdiction": "CA",
+  "year": 2019,
+  "make": "Honda",
+  "model": "Accord",
+  "trim": "EX-L"
 }
 ```
 
+---
 
-*Additional schemas omitted for brevity. See OpenAPI spec for complete list.*
+### VehicleResponse
+
+**Module:** pos-vehicle-inventory
+
+**Description:** Response DTO for vehicle operations (CAP:091)
+
+**Fields:**
+- `vehicleId` (string, UUID): Unique vehicle identifier
+- `accountId` (string, UUID): Account/party ID that owns this vehicle
+- `vin` (string): Vehicle Identification Number (original format)
+- `vinNormalized` (string): Normalized VIN (uppercase, no spaces/dashes)
+- `unitNumber` (string): Internal unit number
+- `description` (string): Vehicle description
+- `licensePlate` (string): License plate number
+- `licensePlateJurisdiction` (string): License plate jurisdiction
+- `year` (integer): Manufacturing year
+- `make` (string): Vehicle manufacturer
+- `model` (string): Vehicle model
+- `trim` (string): Vehicle trim level
+- `isActive` (boolean): Whether vehicle is active (not soft-deleted)
+- `createdAt` (string, date-time): Creation timestamp (ISO 8601 UTC)
+- `updatedAt` (string, date-time): Last update timestamp (ISO 8601 UTC)
+- `version` (integer): Optimistic locking version
+
+**Example:**
+```json
+{
+  "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "vin": "1HGCM82633A004352",
+  "vinNormalized": "1HGCM82633A004352",
+  "unitNumber": "UNIT-001",
+  "description": "2019 Honda Accord Sedan",
+  "licensePlate": "ABC-1234",
+  "licensePlateJurisdiction": "CA",
+  "year": 2019,
+  "make": "Honda",
+  "model": "Accord",
+  "trim": "EX-L",
+  "isActive": true,
+  "createdAt": "2026-02-01T10:00:00Z",
+  "updatedAt": "2026-02-04T14:30:00Z",
+  "version": 1
+}
+```
+
+---
+
+### SearchVehiclesRequest
+
+**Module:** pos-vehicle-inventory
+
+**Description:** Request DTO for searching vehicles (CAP:091 Story #103)
+
+**Required Fields:**
+- `query` (string): Search query (VIN, license plate, unit number, or description)
+
+**Optional Fields:**
+- `limit` (integer, default 25): Result limit (max 50)
+- `cursor` (string, nullable): Pagination cursor (reserved for future use)
+- `enableContainsMatching` (boolean, default false): Enable contains matching (strict matching by default)
+
+**Example:**
+```json
+{
+  "query": "1HGCM82633A004352",
+  "limit": 25,
+  "enableContainsMatching": false
+}
+```
+
+---
+
+### SearchVehiclesResponse
+
+**Module:** pos-vehicle-inventory
+
+**Description:** Search results response (CAP:091 Story #103)
+
+**Fields:**
+- `results` (array of `VehicleSummary`): Array of matching vehicle summaries
+- `totalCount` (integer): Total number of results found
+- `hasMore` (boolean): Whether there are more results available
+- `query` (string): Original query string
+
+**Example:**
+```json
+{
+  "results": [
+    {
+      "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+      "vin": "1HGCM82633A004352",
+      "unitNumber": "UNIT-001",
+      "licensePlate": "ABC-1234",
+      "description": "2019 Honda Accord Sedan",
+      "year": 2019,
+      "make": "Honda",
+      "model": "Accord"
+    }
+  ],
+  "totalCount": 1,
+  "hasMore": false,
+  "query": "1HGCM82633A004352"
+}
+```
+
+---
+
+### VehicleCarePreference
+
+**Module:** pos-vehicle-inventory
+
+**Description:** Vehicle care preference entity with flexible JSONB preferences
+
+**Fields:**
+- `id` (string, UUID): Preference record ID
+- `vehicleId` (string, UUID): Associated vehicle ID
+- `preferences` (object): Flexible key-value map of preferences (stored as JSONB)
+- `serviceNotes` (string): General service notes for the vehicle
+- `createdByUserId` (string, UUID): User who created this record
+- `updatedByUserId` (string, UUID): User who last updated this record
+- `createdAt` (string, date-time): Creation timestamp (ISO 8601 UTC)
+- `updatedAt` (string, date-time): Last update timestamp (ISO 8601 UTC)
+
+**Example:**
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+  "preferences": {
+    "maintenanceSchedule": "every_6_months",
+    "preferredServiceCenter": "downtown_honda",
+    "requiresSpecialHandling": true
+  },
+  "serviceNotes": "Vehicle requires synthetic oil only",
+  "createdByUserId": "880e8400-e29b-41d4-a716-446655440003",
+  "updatedByUserId": "880e8400-e29b-41d4-a716-446655440003",
+  "createdAt": "2026-02-01T11:00:00Z",
+  "updatedAt": "2026-02-04T14:30:00Z"
+}
+```
+
+---
+
+### GetAccountTierResponse
+
+**Module:** pos-customer
+
+**Description:** Response DTO for account tier retrieval (Story #102)
+
+**Fields:**
+- `accountId` (string): Account ID
+- `tier` (string, enum): Current tier (STANDARD, BRONZE, SILVER, GOLD, PLATINUM, ENTERPRISE)
+- `tierDisplayName` (string): Human-readable tier name
+- `tierAssignedAt` (string, date-time): When tier was last assigned
+- `tierAssignedBy` (string): User or system that assigned the tier
+- `notes` (string): Optional notes about tier assignment
+- `manualOverride` (boolean): Whether tier was manually overridden
+
+**Example:**
+```json
+{
+  "accountId": "acct-789",
+  "tier": "GOLD",
+  "tierDisplayName": "Gold Tier",
+  "tierAssignedAt": "2026-02-01T09:00:00Z",
+  "tierAssignedBy": "system",
+  "notes": "Automatic tier assignment based on revenue threshold",
+  "manualOverride": false
+}
+```
+
+---
+
+### ResolveAccountTierRequest
+
+**Module:** pos-customer
+
+**Description:** Request DTO for account tier calculation (Story #102)
+
+**Required Fields:**
+- `accountId` (string): Account ID to resolve tier for
+
+**Optional Fields:**
+- `annualRevenue` (decimal): Annual revenue in dollars
+- `activeContractCount` (integer): Number of active contracts
+- `accountAgeMonths` (integer): Age of account in months
+- `applyTier` (boolean, default true): Whether to apply the resolved tier
+- `forceRecalculation` (boolean, default false): Force recalculation even if manual override exists
+
+**Example:**
+```json
+{
+  "accountId": "acct-789",
+  "annualRevenue": 500000.00,
+  "activeContractCount": 5,
+  "accountAgeMonths": 24,
+  "applyTier": true,
+  "forceRecalculation": false
+}
+```
+
+---
+
+### ResolveAccountTierResponse
+
+**Module:** pos-customer
+
+**Description:** Response DTO for account tier calculation result (Story #102)
+
+**Fields:**
+- `currentTier` (string, enum): Current tier before calculation
+- `recommendedTier` (string, enum): Recommended tier based on business rules
+- `tierApplied` (boolean): Whether the recommended tier was applied
+- `manualOverrideActive` (boolean): Whether a manual override is blocking automatic tier assignment
+- `resolutionReason` (string): Explanation of tier calculation
+- `tierScore` (number): Calculated score used for tier determination
+
+**Example:**
+```json
+{
+  "currentTier": "SILVER",
+  "recommendedTier": "GOLD",
+  "tierApplied": true,
+  "manualOverrideActive": false,
+  "resolutionReason": "Annual revenue exceeded $250,000 threshold",
+  "tierScore": 275000.00
+}
+```
+
+---
+
+## Account Tier Thresholds
+
+The following thresholds determine account tier (Story #102):
+
+| Tier | Minimum Annual Revenue | Min. Contracts | Min. Account Age |
+|------|------------------------|----------------|------------------|
+| STANDARD | $0 | 0 | 0 months |
+| BRONZE | $50,000 | N/A | N/A |
+| SILVER | $100,000 | N/A | N/A |
+| GOLD | $250,000 | N/A | N/A |
+| PLATINUM | $500,000 | N/A | N/A |
+| ENTERPRISE | $1,000,000 | N/A | N/A |
+
+**Calculation Rules:**
+- Tier is determined primarily by annual revenue
+- Contract count and account age may influence qualification
+- Manual override flag can lock tier at a specific level
+- Recalculation respects manual overrides unless `forceRecalculation=true`
 
 ---
 
 ## Examples
 
-### Example Request/Response Pairs
+### Example 1: Create a Vehicle
 
-#### Example: Create Request
-
+**Request:**
 ```http
-POST /v1/crm/{customerId}/vehicles
+POST /v1/vehicles HTTP/1.1
+Host: api-gateway.local/api/vehicle-inventory
 Content-Type: application/json
-X-Correlation-Id: abc-123-def-456
+X-Correlation-Id: req-001
 
 {
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE"
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "vin": "1HGCM82633A004352",
+  "unitNumber": "UNIT-001",
+  "description": "2019 Honda Accord Sedan",
+  "licensePlate": "ABC-1234",
+  "licensePlateJurisdiction": "CA",
+  "year": 2019,
+  "make": "Honda",
+  "model": "Accord",
+  "trim": "EX-L"
 }
 ```
 
-**Response:**
-
-```http
-HTTP/1.1 201 Created
-X-Correlation-Id: abc-123-def-456
-
+**Success Response (201):**
+```json
 {
-  "id": "new-id-123",
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:30:00Z"
+  "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
+  "vin": "1HGCM82633A004352",
+  "vinNormalized": "1HGCM82633A004352",
+  "unitNumber": "UNIT-001",
+  "description": "2019 Honda Accord Sedan",
+  "licensePlate": "ABC-1234",
+  "licensePlateJurisdiction": "CA",
+  "year": 2019,
+  "make": "Honda",
+  "model": "Accord",
+  "trim": "EX-L",
+  "isActive": true,
+  "createdAt": "2026-02-04T14:30:00Z",
+  "updatedAt": "2026-02-04T14:30:00Z",
+  "version": 1
 }
 ```
 
-#### Example: Retrieve Request
-
-```http
-GET /v1/crm/{id}
-X-Correlation-Id: abc-123-def-456
-```
-
-**Response:**
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-
+**Error Response (409 - Duplicate VIN):**
+```json
 {
-  "id": "existing-id-456",
-  "name": "Example",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:00:00Z",
-  "updatedAt": "2026-01-27T14:30:00Z"
+  "code": "CONFLICT",
+  "message": "VIN already exists for another active vehicle",
+  "status": 409,
+  "timestamp": "2026-02-04T14:30:00Z",
+  "correlationId": "req-001"
 }
 ```
 
 ---
 
-## Summary
+### Example 2: Search Vehicles
 
-This guide establishes standardized contracts for the Customer Relationship Management (CRM) domain:
+**Request:**
+```http
+POST /v1/vehicles/search HTTP/1.1
+Host: api-gateway.local/api/vehicle-inventory
+Content-Type: application/json
+X-Correlation-Id: req-002
 
-- **Field Naming**: camelCase for all JSON fields
-- **Enum Values**: UPPER_SNAKE_CASE for all enums
-- **Timestamps**: ISO 8601 UTC format
-- **Identifiers**: String-based UUIDs
-- **Pagination**: Zero-based with standard response format
-- **Error Handling**: Consistent error response structure with correlation IDs
+{
+  "query": "Honda",
+  "limit": 10,
+  "enableContainsMatching": true
+}
+```
+
+**Response (200):**
+```json
+{
+  "results": [
+    {
+      "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+      "vin": "1HGCM82633A004352",
+      "unitNumber": "UNIT-001",
+      "licensePlate": "ABC-1234",
+      "description": "2019 Honda Accord Sedan",
+      "year": 2019,
+      "make": "Honda",
+      "model": "Accord"
+    }
+  ],
+  "totalCount": 1,
+  "hasMore": false,
+  "query": "Honda"
+}
+```
 
 ---
 
-## Change Log
+### Example 3: Resolve Account Tier
+
+**Request:**
+```http
+POST /v1/crm/accounts/tierResolve HTTP/1.1
+Host: api-gateway.local/api/customer
+Content-Type: application/json
+X-Correlation-Id: req-003
+
+{
+  "accountId": "acct-789",
+  "annualRevenue": 300000.00,
+  "activeContractCount": 3,
+  "accountAgeMonths": 18,
+  "applyTier": true,
+  "forceRecalculation": false
+}
+```
+
+**Response (200):**
+```json
+{
+  "currentTier": "SILVER",
+  "recommendedTier": "GOLD",
+  "tierApplied": true,
+  "manualOverrideActive": false,
+  "resolutionReason": "Annual revenue exceeded $250,000 threshold with 3 active contracts",
+  "tierScore": 300000.00
+}
+```
+
+---
+
+### Example 4: Vehicle Care Preferences
+
+**Request (PUT - Upsert):**
+```http
+PUT /v1/vehicles/660e8400-e29b-41d4-a716-446655440001/preferences HTTP/1.1
+Host: api-gateway.local/api/vehicle-inventory
+Content-Type: application/json
+X-Correlation-Id: req-004
+
+{
+  "preferences": {
+    "maintenanceSchedule": "every_6_months",
+    "preferredServiceCenter": "downtown_honda",
+    "requiresSpecialHandling": true,
+    "insuranceProvider": "state_farm"
+  },
+  "serviceNotes": "Vehicle requires synthetic oil only",
+  "updatedByUserId": "880e8400-e29b-41d4-a716-446655440003"
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+  "preferences": {
+    "maintenanceSchedule": "every_6_months",
+    "preferredServiceCenter": "downtown_honda",
+    "requiresSpecialHandling": true,
+    "insuranceProvider": "state_farm"
+  },
+  "serviceNotes": "Vehicle requires synthetic oil only",
+  "createdByUserId": "880e8400-e29b-41d4-a716-446655440003",
+  "updatedByUserId": "880e8400-e29b-41d4-a716-446655440003",
+  "createdAt": "2026-02-04T14:35:00Z",
+  "updatedAt": "2026-02-04T14:35:00Z"
+}
+```
+
+**Request (PATCH - Merge):**
+```http
+PATCH /v1/vehicles/660e8400-e29b-41d4-a716-446655440001/preferences HTTP/1.1
+Host: api-gateway.local/api/vehicle-inventory
+Content-Type: application/json
+X-Correlation-Id: req-005
+
+{
+  "partialPreferences": {
+    "maintenanceSchedule": "every_3_months"
+  },
+  "updatedByUserId": "880e8400-e29b-41d4-a716-446655440003"
+}
+```
+
+**Response (200):**
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440002",
+  "vehicleId": "660e8400-e29b-41d4-a716-446655440001",
+  "preferences": {
+    "maintenanceSchedule": "every_3_months",
+    "preferredServiceCenter": "downtown_honda",
+    "requiresSpecialHandling": true,
+    "insuranceProvider": "state_farm"
+  },
+  "serviceNotes": "Vehicle requires synthetic oil only",
+  "createdByUserId": "880e8400-e29b-41d4-a716-446655440003",
+  "updatedByUserId": "880e8400-e29b-41d4-a716-446655440003",
+  "createdAt": "2026-02-04T14:35:00Z",
+  "updatedAt": "2026-02-04T14:40:00Z"
+}
+```
+
+---
+
+## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.3 | 2026-02-03 | Add CAP:091 implementation links and document vehicle registry endpoints (pos-vehicle-inventory OpenAPI) |
-| 1.2 | 2026-02-02 | Add CAP:090 implementation links and enrich contact/communication preference contract details |
-| 1.1 | 2026-02-02 | Add CAP:089 implementation links (capability/stories/backend issues) |
-| 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
-
----
-
-## References
-
-- OpenAPI Specification (CRM): `pos-customer/openapi.json`
-- OpenAPI Specification (Vehicle Registry / CAP:091): `durion-positivity-backend/pos-vehicle-inventory/openapi.json`
-- Domain Agent Guide: `domains/crm/.business-rules/AGENT_GUIDE.md`
-- Cross-Domain Integration: `domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-- Error Codes: `domains/crm/.business-rules/ERROR_CODES.md`
-- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
-
-### Implementation Links (CAP:089)
-
-- Capability manifest: `docs/capabilities/CAP-089/CAPABILITY_MANIFEST.yaml`
-- Parent capability: https://github.com/louisburroughs/durion/issues/89
-- Parent stories:
-  - https://github.com/louisburroughs/durion/issues/95
-  - https://github.com/louisburroughs/durion/issues/96
-  - https://github.com/louisburroughs/durion/issues/97
-  - https://github.com/louisburroughs/durion/issues/98
-- Backend child issues:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/112
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/111
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/110
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/109
-- OpenAPI snapshot used for this update: `durion-positivity-backend/pos-customer/openapi.json`
-
----
-
-### Implementation Links (CAP:090)
-
-- Capability manifest: `docs/capabilities/CAP-090/CAPABILITY_MANIFEST.yaml`
-- Parent capability: https://github.com/louisburroughs/durion/issues/90
-- Parent stories:
-  - https://github.com/louisburroughs/durion/issues/99
-  - https://github.com/louisburroughs/durion/issues/100
-  - https://github.com/louisburroughs/durion/issues/101
-- Backend child issues:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/108
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/107
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/106
-- OpenAPI snapshot used for this update: `durion-positivity-backend/pos-customer/openapi.json`
-
----
-
-### Implementation Links (CAP:091)
-
-- Capability manifest: `docs/capabilities/CAP-091/CAPABILITY_MANIFEST.yaml`
-- Parent capability: https://github.com/louisburroughs/durion/issues/91
-- Parent stories:
-  - https://github.com/louisburroughs/durion/issues/102
-  - https://github.com/louisburroughs/durion/issues/103
-  - https://github.com/louisburroughs/durion/issues/104
-  - https://github.com/louisburroughs/durion/issues/105
-  - https://github.com/louisburroughs/durion/issues/106
-- Backend child issues:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/105
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/104
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/103
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/102
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/101
-- OpenAPI snapshot used for this update: `durion-positivity-backend/pos-vehicle-inventory/openapi.json`
-
----
-
-**Generated:** 2026-01-27 14:27:53 UTC  
-**Tool:** `scripts/generate_backend_contract_guides.py`
+| 2.0 | 2026-02-04 | Updated based on current OpenAPI specs; removed stub endpoints; added complete Vehicle Registry, Search, and Preferences endpoints from CAP:091; added Account Tier implementation details |
+| 1.3 | 2026-02-03 | Previous version with stub endpoints |
