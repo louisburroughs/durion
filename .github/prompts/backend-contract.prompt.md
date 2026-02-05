@@ -32,16 +32,20 @@ Task (decompose into numbered steps)
 1. Load and parse `CAPABILITY_MANIFEST_PATH`:
    - Extract `capability_id`, `parent_capability` (for context), `stories[].children.backend` (iterate each story), `stories[].contract_guide.path` (should match `BACKEND_CONTRACT_GUIDE_PATH`), and any `pr_links` values.
    - Gather all backend child issue URLs from each story in the stories array (use repo+issue).
-2. Load and parse `OPENAPI_PATH` (OpenAPI 3.0+ JSON):
+2. Load and parse `OPENAPI_PATH` (OpenAPI 3.0+ JSON) — **AUTHORITATIVE SOURCE**:
    - Extract paths, methods, request/response schemas, status codes, and examples.
+   - **OpenAPI is the source of truth**: All endpoint definitions, request/response contracts, and status codes MUST be derived from the current OpenAPI spec, not from previous guide versions, manifest definitions, or story documentation.
+   - If OpenAPI conflicts with previously documented paths or manifest-defined API addresses, OpenAPI wins.
 3. Load the existing `BACKEND_CONTRACT_GUIDE.md`:
    - Parse headlines and existing example sections; detect "Endpoints" or "Examples" sections to update.
-4. Compute OpenAPI delta:
-   - If there is a previous OpenAPI snapshot in the guide or known previous spec, detect newly added endpoints, changed schemas, renamed fields, and status-code changes.
-   - **Path transformation**: For each OpenAPI path, transform it to the API Gateway format:
+4. Compute OpenAPI delta and validate gateway compliance:
+   - **OpenAPI is authoritative**: Current OpenAPI spec supersedes any previous snapshot, manifest-defined API addresses, or guide documentation.
+   - If there is a previous OpenAPI snapshot in the guide or known previous spec, detect newly added endpoints, changed schemas, renamed fields, and status-code changes (for historical context only; do not override OpenAPI).
+   - **Path transformation (OpenAPI-first)**: For each endpoint in the current OpenAPI spec, transform it to the API Gateway format:
      - Strip internal service prefixes (e.g., `/api`, `/rest`) and prepend `/v{version}/{domain}`
-     - Example: OpenAPI path `/accounts` becomes `/v1/customer/accounts` (domain inferred from manifest or module context)
-   - Produce a short summary of required contract updates (Added/Changed/Removed), noting which paths were transformed from direct service URLs.
+     - Example: OpenAPI path `/accounts` becomes `/v{version}/customer/accounts` (version from manifest or default to `1`, domain inferred from OpenAPI info or manifest)
+     - **If manifest or stories define conflicting API addresses (e.g., `localhost:8082`, old gateway paths), ignore them and use OpenAPI-derived paths**
+   - Produce a short summary of required contract updates (Added/Changed/Removed), noting which paths were transformed or rectified from previous definitions.
 5. For each backend child issue extracted from the manifest:
    - Add a short link with the issue URL into the "Implementation Links" or "Backlog / Coordination" section.
    - Cross-reference any path refactoring work (old direct-service URLs → API Gateway URLs) to the relevant issues.
@@ -65,7 +69,9 @@ Task (decompose into numbered steps)
    - Run a lightweight verification: ensure inserted YAML/JSON code blocks parse (JSON via json.loads, YAML via safe_load).
    - Ensure all issue links are validly formed URLs.
    - Ensure no secrets are written.
+   - **CRITICAL: Verify OpenAPI compliance**: For each endpoint in the guide, confirm it exists in the current OpenAPI spec and matches the OpenAPI schema (methods, parameters, response types).
    - **CRITICAL: Verify all endpoint paths use the API Gateway format** (`http://localhost:8080/v{version}/{domain}/*`). Reject any paths that use direct service ports or bypass the gateway. Scan the entire guide and flag non-compliant paths as validation failures with remediation.
+   - **Reconciliation check**: If the guide contains endpoints NOT in the current OpenAPI spec (e.g., deprecated or removed endpoints), mark them as deprecated with a note and reference the capability issue for removal timeline.
 9. Output:
    - (A) A short plan summary (3–8 bullets).
    - (B) Exact file edits as a unified diff or as an apply_patch-ready block.
@@ -77,12 +83,14 @@ Task (decompose into numbered steps)
    - After explicit user approval, apply the proposed patch to the workspace using the apply_patch mechanism or `git apply`, create a local commit with message "docs(capability): update backend contract guide for {capability_id}", update the JSON summary with `"applied": true`, and report the commit hash. Do NOT push or open PRs remotely.
 
 Constraints and rules
+- **OpenAPI takes precedence**: The current OpenAPI.json is the authoritative source. Do not use manifest-defined API addresses, story documentation, or previous guide versions to override OpenAPI definitions.
 - Do not invent behavioral assertions. When uncertain, mark items with TODO and reference the backend child issue(s).
 - Do not hardcode secrets or internal tokens.
 - Preserve existing guide structure, style, and README conventions.
-- Keep edits minimal and scoped: add/replace only the sections needed to reflect API changes.
-- When adding DTO examples, prefer JSON Schema snippets and include a TypeScript interface suggestion.
+- Keep edits minimal and scoped: add/replace only the sections needed to reflect OpenAPI-derived API changes.
+- When adding DTO examples, use OpenAPI schema definitions directly; prefer JSON Schema snippets and include a TypeScript interface suggestion.
 - All file paths mentioned must be workspace-relative.
+- If guide contains endpoints derived from manifest API addresses rather than OpenAPI, rectify them to match the current OpenAPI spec.
 
 Output format (must exactly follow)
 - Section 1: Plan — numbered steps (1–6) no more than 8 bullets.
