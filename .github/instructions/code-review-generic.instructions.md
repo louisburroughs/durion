@@ -1,7 +1,7 @@
 ---
-name: 'Generic Code Review Instructions'
 description: 'Generic code review instructions that can be customized for any project using GitHub Copilot'
-applyTo: '**/*.java, **/*.ts, **/*.js, **/*.py, **/*.go, **/*.kt, **/*.rs, **/*.groovy'
+applyTo: '**'
+excludeAgent: ["coding-agent"]
 ---
 
 # Generic Code Review Instructions
@@ -409,41 +409,10 @@ When performing a code review, apply these prompt engineering principles from th
 
 ## Project Context
 
-Durion Platform (Moqui frontend platform + POS Spring Boot backend)
+This is a generic template. Customize this section with your project-specific information:
 
-- **Repositories in this workspace**:
-    - `durion-moqui-frontend`: Moqui Framework application (runtime + UI)
-    - `durion-positivity-backend`: POS backend microservices (`pos-*`)
-    - `durion`: workspace-level docs, governance, and agent coordination
-
-- **Tech Stack**:
-    - Frontend platform runtime: Moqui Framework (Java/Groovy)
-    - Frontend UI: Vue.js 3 + Quasar + TypeScript 5
-    - Backend services: Java 21 + Spring Boot 3.x (microservice suite)
-    - Databases: PostgreSQL (primary), MySQL (supported)
-    - Templating (Moqui): FreeMarker (`.ftl`)
-
-- **Architecture**:
-    - Domain/bounded-context structure across components and services
-    - Moqui component-based backend (`runtime/component/*`) serving UI and APIs
-    - Spring Boot microservices under `pos-*`, typically routed via an API gateway
-    - Cross-repo integration relies on stable REST contracts and consistent RBAC patterns
-
-- **Build & Tooling**:
-    - Moqui: Gradle wrapper (`./gradlew`)
-    - UI tooling: `npm` scripts (dev/build/lint/type-check as configured)
-    - Spring Boot services: Maven wrapper (`./mvnw`) with `-pl <module> -am` module builds
-
-- **Testing**:
-    - Moqui/server-side: Groovy/Spock and/or JUnit (as configured by the repo)
-    - Frontend: Jest for Vue/TypeScript (as configured by the repo)
-    - Spring Boot: JUnit 5 + Spring Boot test slices/integration tests
-
-- **Deployment**:
-    - Containerized deployments; Docker Compose commonly used for local stacks
-    - Production orchestration is environment-specific (Kubernetes/ECS/etc.)
-
-- **Code Style / Conventions**:
-    - Java/Groovy (Moqui): follow Moqui conventions and component boundaries
-    - Java (Spring Boot): thin controllers, business logic in services, consistent error handling
-    - TypeScript/Vue: ESLint + Prettier; Composition API patterns where used
+- **Tech Stack**: [e.g., Java 17, Spring Boot 3.x, PostgreSQL]
+- **Architecture**: [e.g., Hexagonal/Clean Architecture, Microservices]
+- **Build Tool**: [e.g., Gradle, Maven, npm, pip]
+- **Testing**: [e.g., JUnit 5, Jest, pytest]
+- **Code Style**: [e.g., follows Google Style Guide]
