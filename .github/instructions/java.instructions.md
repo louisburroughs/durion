@@ -1,5 +1,4 @@
 ---
-name: 'Java Development Guidelines'
 description: 'Guidelines for building Java base applications'
 applyTo: '**/*.java'
 ---
@@ -8,7 +7,28 @@ applyTo: '**/*.java'
 
 ## General Instructions
 
-- Follow standard Java conventions as outlined in the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html).
+- First, prompt the user if they want to integrate static analysis tools (SonarQube, PMD, Checkstyle) into their project setup.
+  - If yes, document a recommended static-analysis setup. 
+    - Prefer SonarQube/SonarCloud (SonarLint in IDE + `sonar-scanner` in CI).
+    - Create a Sonar project key.
+    - Store the scanner token in CI secrets.
+    - Provide a sample CI job that runs the scanner.
+    - If the team declines Sonar, note this in the project README and continue.
+  - If Sonar is bound to the project:
+    - Use Sonar as the primary source of actionable issues.
+    - Reference Sonar rule keys in remediation guidance.
+  - If Sonar is unavailable:
+    - Perform up to 3 troubleshooting checks:
+      1. Verify project binding and token.
+      2. Ensure SonarScanner runs in CI.
+      3. Confirm SonarLint is installed and configured.
+    - If still failing after 3 attempts:
+      - Enable SpotBugs, PMD, or Checkstyle as CI fallbacks.
+      - Open a short tracker issue documenting the blocker and next steps.
+- If the user declines static analysis tools or wants to proceed without them, continue with implementing the Best practices, bug patterns and code smell prevention guidelines outlined below.
+- Address code smells proactively during development rather than accumulating technical debt.
+- Focus on readability, maintainability, and performance when refactoring identified issues.
+- Use IDE / Code editor reported warnings and suggestions to catch common patterns early in development.
 
 ## Best practices
 
@@ -18,75 +38,6 @@ applyTo: '**/*.java'
 - **Immutability**: Favor immutable objects. Make classes and fields `final` where possible. Use collections from `List.of()`/`Map.of()` for fixed data. Use `Stream.toList()` to create immutable lists.
 - **Streams and Lambdas**: Use the Streams API and lambda expressions for collection processing. Employ method references (e.g., `stream.map(Foo::toBar)`).
 - **Null Handling**: Avoid returning or accepting `null`. Use `Optional<T>` for possibly-absent values and `Objects` utility methods like `equals()` and `requireNonNull()`.
-- **Exception Handling**: Use checked exceptions for recoverable conditions and runtime exceptions for programming errors. Always provide meaningful messages when throwing exceptions.
-- **Dependency Management**: Use Maven or Gradle for managing project dependencies. Keep dependencies up-to-date and avoid unnecessary dependencies.
-- **Logging**: Use a logging framework like SLF4J with Logback or Log4j2. Log at appropriate levels (DEBUG, INFO, WARN, ERROR) and avoid logging sensitive information.
-- **Enums**: Use enums for fixed sets of constants instead of `int` or `String` constants. Enums provide type safety and can have methods and fields.
-
-
-# Java Date/Time Agent Policy (Java 21)
-
-## ✅ Required API
-- **MUST** use `java.time` only (`Instant`, `ZonedDateTime`, `OffsetDateTime`, `LocalDate`, `Duration`, `Period`, `ZoneId`, `Clock`).
-- **MUST NOT** use legacy date/time APIs (`java.util.Date`, `java.util.Calendar`, `java.sql.*`) except at strict integration boundaries (e.g., JDBC).
-
-## 🕒 “Now” and time control
-- **MUST NOT** call `Instant.now()` / `ZonedDateTime.now()` directly in business logic.
-- **MUST** inject `Clock` (or `TimeProvider`) and obtain time via `Instant.now(clock)`.
-
-## 🌍 Time zone rules
-- **MUST** make zone explicit for any local-time computation (`ZoneId` required).
-- **MUST NOT** assume `ZoneId.systemDefault()` unless explicitly documented and intended.
-- **MUST** store / compute canonical timestamps in **UTC** using `Instant`.
-
-## 🧱 Type selection
-- Use **`Instant`** for audit/event timestamps and ordering.
-- Use **`ZonedDateTime`** for user-facing times where DST/zone rules matter.
-- Use **`LocalDate`** for business dates (due date, billing date).
-- **Avoid `LocalDateTime`** unless value is explicitly “floating” and is paired with a `ZoneId` at the boundary.
-
-## 💾 Persistence & serialization
-- **MUST** store timestamps as `Instant` in UTC (or DB `TIMESTAMP WITH TIME ZONE`).
-- **MUST** serialize API timestamps as **RFC3339/ISO-8601** (e.g., `2026-01-26T14:35:12Z`).
-- **MUST** keep timestamp precision consistent (seconds/millis/nanos) across the system.
-
-## ➕ Arithmetic & comparisons
-- **MUST** compare timestamps using `Instant`.
-- **MUST** use `Duration` for elapsed time; `Period` for calendar amounts.
-- **MUST NOT** model calendar days as `Duration.ofHours(24)`; use `LocalDate` + `ZoneId`.
-- Prefer interval semantics **[start, end)** for time ranges.
-
-## 🧾 Formatting/parsing
-- **MUST** use `DateTimeFormatter` (never manual formatting).
-- **MUST** include explicit locale and zone for UI formatting.
-- **MUST** reject ambiguous timestamps during parsing.
-
-## 🧪 Testing
-- **MUST** use `Clock.fixed(...)` or `Clock.offset(...)` in tests.
-- **MUST** include DST boundary tests when logic depends on local time.
-
-## Java 21 Switch Policy
-
-- **MUST** prefer **switch expressions** over switch statements when returning a value:
-  - Use `var result = switch (x) { ... };`
-- **MUST** use **arrow labels (`->`)** (no fall-through) unless fall-through is explicitly required and commented.
-- **MUST** include a `default` branch for non-exhaustive inputs; omit `default` only when switching over a **sealed type** or **complete enum** and all cases are covered.
-- **MUST** use `yield` only inside `{ ... }` blocks of switch expressions when multiple statements are required.
-- **SHOULD** use pattern matching in switch (Java 21) to simplify type checks:
-  - `case Foo f -> ...`
-  - `case null -> ...` when null is a valid input; otherwise fail fast before the switch.
-- **MUST NOT** nest complex logic inside switch arms; delegate to helper methods.
-
-## Java 21 Annotation-First Policy (Reduce Boilerplate)
-
-- **MUST** prefer proven annotation-based libraries/framework features over hand-written boilerplate (getters/setters, builders, mappers, validators), provided they are already approved in the project stack (Lombok is a common example).
-- **MUST NOT** introduce new annotation processors/frameworks without explicit approval (e.g., Lombok/MapStruct) — use only what the repo already uses.
-- **MUST** use annotations for cross-cutting concerns (validation, serialization, DI, transactions, auditing) instead of duplicated code.
-- **MUST** keep behavior explicit: annotations may replace boilerplate, but must not hide core business logic.
-- **MUST** ensure annotations are testable and observable (e.g., validation errors surfaced, JSON fields deterministic).
-- **SHOULD** use `@Override`, `@Nullable/@NotNull`, and validation annotations (`@NotBlank`, `@Size`, etc.) to document intent instead of defensive boilerplate.
-- **MUST** avoid annotation overuse: do not stack annotations that make control flow unclear or debugging difficult.
-
 
 ### Naming Conventions
 
@@ -97,7 +48,6 @@ applyTo: '**/*.java'
   - `lowercase` for package names.
 - Use nouns for classes (`UserService`) and verbs for methods (`getUserById`).
 - Avoid abbreviations and Hungarian notation.
-- Variable and method names should be descriptive and convey intent.
 
 ### Common Bug Patterns
 
@@ -126,6 +76,6 @@ If you run a static analyzer like Sonar or SonarLint — direct Sonar connection
 ## Build and Verification
 
 - After adding or modifying code, verify the project continues to build successfully.
-- If the project uses Maven, run `mvnw clean install`.
+- If the project uses Maven, run `mvn clean install`.
 - If the project uses Gradle, run `./gradlew build` (or `gradlew.bat build` on Windows).
 - Ensure all tests pass as part of the build.
