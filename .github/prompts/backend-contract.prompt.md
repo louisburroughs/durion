@@ -38,17 +38,25 @@ Task (decompose into numbered steps)
    - Parse headlines and existing example sections; detect "Endpoints" or "Examples" sections to update.
 4. Compute OpenAPI delta:
    - If there is a previous OpenAPI snapshot in the guide or known previous spec, detect newly added endpoints, changed schemas, renamed fields, and status-code changes.
-   - Produce a short summary of required contract updates (Added/Changed/Removed).
+   - **Path transformation**: For each OpenAPI path, transform it to the API Gateway format:
+     - Strip internal service prefixes (e.g., `/api`, `/rest`) and prepend `/v{version}/{domain}`
+     - Example: OpenAPI path `/accounts` becomes `/v1/customer/accounts` (domain inferred from manifest or module context)
+   - Produce a short summary of required contract updates (Added/Changed/Removed), noting which paths were transformed from direct service URLs.
 5. For each backend child issue extracted from the manifest:
    - Add a short link with the issue URL into the "Implementation Links" or "Backlog / Coordination" section.
+   - Cross-reference any path refactoring work (old direct-service URLs → API Gateway URLs) to the relevant issues.
 6. Propose concrete content edits to `BACKEND_CONTRACT_GUIDE.md`:
+   - **Path Format Requirement (MANDATORY)**: All endpoint paths MUST use the API Gateway format: `http://localhost:8080/v{version}/{domain}/{resource}`
+     - Example: `POST http://localhost:8080/v1/customer/accounts` (NOT `POST http://localhost:8082/accounts`)
+     - The API Gateway rewrites requests via header `X-API-Version` and routes to internal services
    - For each new/changed endpoint: add or update an "Endpoint" subsection with:
-     - HTTP method and path
+     - HTTP method and **gateway-routed path** (e.g., `/v1/customer/accounts`)
      - Purpose / summary
      - Request schema (concise TypeScript-like or JSON Schema snippet)
      - Response schema and status codes with examples
      - Behavioral assertions (idempotency, auth requirements, error codes)
      - Provider test hints (example requests and expected responses for ContractBehaviorIT)
+   - **Refactor existing paths**: If the guide contains endpoints with direct service URLs (e.g., `localhost:8082`, `localhost:8089`, `/api/...` without `/v1/{domain}` prefix), update them to use the gateway format with the `/v{version}/{domain}/{resource}` pattern
 7. Produce an exact patch/diff that:
    - Modifies `BACKEND_CONTRACT_GUIDE.md` with the suggested content.
    - Leaves other files untouched.
@@ -57,6 +65,7 @@ Task (decompose into numbered steps)
    - Run a lightweight verification: ensure inserted YAML/JSON code blocks parse (JSON via json.loads, YAML via safe_load).
    - Ensure all issue links are validly formed URLs.
    - Ensure no secrets are written.
+   - **CRITICAL: Verify all endpoint paths use the API Gateway format** (`http://localhost:8080/v{version}/{domain}/*`). Reject any paths that use direct service ports or bypass the gateway. Scan the entire guide and flag non-compliant paths as validation failures with remediation.
 9. Output:
    - (A) A short plan summary (3–8 bullets).
    - (B) Exact file edits as a unified diff or as an apply_patch-ready block.
@@ -95,6 +104,10 @@ Examples (placeholders)
   - `BACKEND_CONTRACT_GUIDE_PATH`: `domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`
   - `OPENAPI_PATH`: `pos-accounting/target/openapi.json`
   - `CAPABILITY_MANIFEST_PATH`: `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`
+- Example endpoint path transformations:
+  - **Old (direct service)**: `POST http://localhost:8082/accounts` → **New (gateway)**: `POST http://localhost:8080/v1/customer/accounts`
+  - **Old**: `GET /api/journal-entries` → **New**: `GET /v1/accounting/journal-entries`
+  - All examples in the guide MUST use the new gateway format
 - Example generated JSON Summary:
   {
     "capability_id": "CAP:094",
