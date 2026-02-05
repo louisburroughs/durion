@@ -347,6 +347,10 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 **Authorization:**
 - Scope/permission: `crm.snapshot.read`
+- Caller service ID MUST be allowlisted for snapshot access.
+
+**Validation:**
+- At least one of `partyId` or `vehicleId` MUST be provided.
 
 **Behavior (deterministic resolution):**
 - If `vehicleId` resolves to an active party, use that party.
