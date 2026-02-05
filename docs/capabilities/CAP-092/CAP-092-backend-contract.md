@@ -3,6 +3,8 @@
 **Capability:** CAP:092 — Preferences & Billing Rules
 **Date:** 2026-02-05
 
+**Local commit:** 2849f82
+
 This document records the backend contract documentation changes made for CAP:092.
 
 ---
