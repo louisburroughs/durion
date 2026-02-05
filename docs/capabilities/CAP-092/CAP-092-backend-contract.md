@@ -3,7 +3,10 @@
 **Capability:** CAP:092 — Preferences & Billing Rules
 **Date:** 2026-02-05
 
-**Local commit:** 2849f82
+**Local commits:**
+- Primary patch: 2849f82
+- Traceability update: b159f67
+- CRM snapshot clarification: ccfa55a
 
 This document records the backend contract documentation changes made for CAP:092.
 
