@@ -2,7 +2,7 @@
 
 **Version:** 2.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-02-04  
+**Last Updated:** 2026-02-05  
 **OpenAPI Sources:**
 - `durion-positivity-backend/pos-customer/openapi.json`  
 - `durion-positivity-backend/pos-vehicle-inventory/openapi.json` (Vehicle Registry - CAP:091)  
@@ -331,9 +331,41 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
+## CAP:092 Addendum (Draft) — Billing Rules + CRM Snapshot
+
+This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (pending `pos-invoice` and related gateway routing updates).
+
+### GET http://localhost:8080/v1/crm/snapshot
+
+**Summary:** Return a lightweight CRM snapshot for use by WorkExec and other UIs.
+
+**Source:** CAP:092 backend story defines `GET /v1/crm-snapshot`; API Gateway SHOULD expose it as `GET http://localhost:8080/v1/crm/snapshot`.
+
+**Query params:**
+- `partyId` (string, optional)
+- `vehicleId` (string, optional)
+
+**Authorization:**
+- Scope/permission: `crm.snapshot.read`
+
+**Behavior (deterministic resolution):**
+- If `vehicleId` resolves to an active party, use that party.
+- If `vehicleId` has no active party, return `404` with code `VEHICLE_HAS_NO_ACTIVE_PARTY`.
+- If both `partyId` and `vehicleId` provided, `vehicleId` resolution wins.
+
+### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/billingRules
+
+**Summary:** CRM facade for billing rules.
+
+**Notes:**
+- Implemented in `pos-customer` as a facade; rules are owned by `pos-invoice`.
+- Consumers SHOULD treat the response as authoritative.
+
+---
+
 ## Customer API Endpoints
 
-### GET /v1/crm
+### GET http://localhost:8080/v1/crm
 
 **Summary:** Get all customers
 
@@ -353,7 +385,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### POST /v1/crm
+### POST http://localhost:8080/v1/crm
 
 **Summary:** Create a new customer
 
@@ -374,7 +406,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### GET /v1/crm/{id}
+### GET http://localhost:8080/v1/crm/{id}
 
 **Summary:** Get customer by ID
 
@@ -397,7 +429,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### PUT /v1/crm/{id}
+### PUT http://localhost:8080/v1/crm/{id}
 
 **Summary:** Update an existing customer
 
@@ -423,7 +455,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### DELETE /v1/crm/{id}
+### DELETE http://localhost:8080/v1/crm/{id}
 
 **Summary:** Delete a customer
 
@@ -446,7 +478,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ## CRM Accounts Endpoints
 
-### POST /v1/crm/accounts/parties
+### POST http://localhost:8080/v1/crm/accounts/parties
 
 **Summary:** Create commercial account
 
@@ -467,7 +499,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### POST /v1/crm/accounts/parties/search
+### POST http://localhost:8080/v1/crm/accounts/parties/search
 
 **Summary:** Search parties
 
@@ -488,7 +520,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### GET /v1/crm/accounts/parties/{partyId}
+### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}
 
 **Summary:** Get party details
 
@@ -511,7 +543,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### GET /v1/crm/accounts/parties/{partyId}/contacts
+### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/contacts
 
 **Summary:** Get contacts with roles
 
@@ -534,7 +566,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### PUT /v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
+### PUT http://localhost:8080/v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
 
 **Summary:** Update contact roles
 
@@ -561,7 +593,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### GET /v1/crm/accounts/parties/{partyId}/communicationPreferences
+### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/communicationPreferences
 
 **Summary:** Get communication preferences
 
@@ -584,7 +616,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### POST /v1/crm/accounts/parties/{partyId}/communicationPreferences
+### POST http://localhost:8080/v1/crm/accounts/parties/{partyId}/communicationPreferences
 
 **Summary:** Create or update communication preferences
 
@@ -611,7 +643,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### POST /v1/crm/accounts/parties/{partyId}/vehicles
+### POST http://localhost:8080/v1/crm/accounts/parties/{partyId}/vehicles
 
 **Summary:** Create vehicle for party
 
@@ -637,7 +669,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### POST /v1/crm/accounts/parties/{partyId}/merge
+### POST http://localhost:8080/v1/crm/accounts/parties/{partyId}/merge
 
 **Summary:** Merge parties
 
@@ -663,7 +695,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### GET /v1/crm/accounts/{accountId}/tier
+### GET http://localhost:8080/v1/crm/accounts/{accountId}/tier
 
 **Summary:** Get account tier
 
@@ -690,7 +722,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 ---
 
-### POST /v1/crm/accounts/tierResolve
+### POST http://localhost:8080/v1/crm/accounts/tierResolve
 
 **Summary:** Resolve account tier
 
@@ -720,7 +752,7 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 All vehicle registry endpoints are in the `pos-vehicle-inventory` module under the **Vehicle Registry** tag.
 
-### POST /v1/vehicles
+### POST http://localhost:8080/v1/vehicles
 
 **Summary:** Create a new vehicle
 
@@ -754,7 +786,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### GET /v1/vehicles/{vehicleId}
+### GET http://localhost:8080/v1/vehicles/{vehicleId}
 
 **Summary:** Get vehicle by ID
 
@@ -775,7 +807,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### PUT /v1/vehicles/{vehicleId}
+### PUT http://localhost:8080/v1/vehicles/{vehicleId}
 
 **Summary:** Update vehicle
 
@@ -799,7 +831,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### DELETE /v1/vehicles/{vehicleId}
+### DELETE http://localhost:8080/v1/vehicles/{vehicleId}
 
 **Summary:** Delete vehicle
 
@@ -818,7 +850,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### GET /v1/vehicles/vin/{vin}
+### GET http://localhost:8080/v1/vehicles/vin/{vin}
 
 **Summary:** Get vehicle by VIN
 
@@ -841,7 +873,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ## Vehicle Search Endpoints
 
-### POST /v1/vehicles/search
+### POST http://localhost:8080/v1/vehicles/search
 
 **Summary:** Search vehicles
 
@@ -867,7 +899,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### GET /v1/vehicles/search
+### GET http://localhost:8080/v1/vehicles/search
 
 **Summary:** Search vehicles (query parameter)
 
@@ -892,7 +924,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ## Vehicle Preferences Endpoints
 
-### GET /v1/vehicles/{vehicleId}/preferences
+### GET http://localhost:8080/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Get vehicle care preferences
 
@@ -913,7 +945,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### PUT /v1/vehicles/{vehicleId}/preferences
+### PUT http://localhost:8080/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Create or update vehicle care preferences
 
@@ -944,7 +976,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### PATCH /v1/vehicles/{vehicleId}/preferences
+### PATCH http://localhost:8080/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Partially update vehicle care preferences
 
@@ -971,7 +1003,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### DELETE /v1/vehicles/{vehicleId}/preferences
+### DELETE http://localhost:8080/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Delete vehicle care preferences
 

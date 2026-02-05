@@ -2,7 +2,7 @@
 
 **Version:** 0.1 (Phase 1 draft)
 **Audience:** Backend developers, Frontend developers, API consumers
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-02-05
 
 ---
 
@@ -50,55 +50,61 @@ Backend MUST return stable codes above; extend with new codes as needed, keeping
 
 ## Endpoint Inventory (Phase 2 Confirmed from pos-workorder Backend)
 
-The paths follow the WorkExec namespace `GET/POST /v1/workorders/...` (actual backend routing). Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
+All endpoint examples in this guide use the API Gateway format:
+
+- `http://localhost:8080/v1/workexec/workorders/...`
+
+**Note:** The current `pos-workorder` service routes internally under `/v1/workorders/*`. The API Gateway is expected to map `/v1/workexec/workorders/*` → `/v1/workorders/*`.
+
+Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
 
 ### Estimates (Confirmed APIs)
 
-1. **Get All Estimates** — `GET /v1/workorders/estimates`
+1. **Get All Estimates** — `GET http://localhost:8080/v1/workexec/workorders/estimates`
    - Response: `[ EstimateDTO ]`
    - No pagination in source; returns all estimates
 
-2. **Get Estimate by ID** — `GET /v1/workorders/estimates/{estimateId}`
+2. **Get Estimate by ID** — `GET http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}`
    - Path param: `estimateId` (Long, required)
    - Response: `EstimateDTO` (200) | 404 if not found
    - EstimateDTO: `{ id, estimateNumber, status, locationId, vehicleId, customerId, createdByUserId, createdAt, updatedAt, approvedAt, declinedAt, expiresAt, subtotal, taxAmount, total, version }`
 
-3. **Get Estimates by Customer** — `GET /v1/workorders/estimates/customer/{customerId}`
+3. **Get Estimates by Customer** — `GET http://localhost:8080/v1/workexec/workorders/estimates/customer/{customerId}`
    - Path param: `customerId` (Long, required)
    - Response: `[ EstimateDTO ]`
 
-4. **Get Estimates by Location/Shop** — `GET /v1/workorders/estimates/shop/{locationId}` | `/location/{locationId}`
+4. **Get Estimates by Location/Shop** — `GET http://localhost:8080/v1/workexec/workorders/estimates/shop/{locationId}` | `http://localhost:8080/v1/workexec/workorders/estimates/location/{locationId}`
    - Path param: `locationId` (Long, required)
    - Response: `[ EstimateDTO ]`
    - **Note:** Both `/shop/{locationId}` and `/location/{locationId}` endpoints exist (deprecated `/shop/*`)
 
-5. **Create Estimate** — `POST /v1/workorders/estimates`
+5. **Create Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates`
    - Request: `CreateEstimateRequest { customerId (Long), vehicleId (Long) }`
    - Response: `CreateEstimateResponse { id, estimateNumber, status: DRAFT, locationId, createdAt }`
    - HTTP 200 (success), 400 (validation error), 500 (server error)
    - System generates unique `estimateNumber` (e.g., EST-2024-1001)
    - Requires: `X-User-Id` header (defaults to 1 if missing)
 
-6. **Decline Estimate** — `POST /v1/workorders/estimates/{estimateId}/decline`
+6. **Decline Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/decline`
    - Path param: `estimateId` (Long)
    - Query param: `reason` (String, optional)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DRAFT → DECLINED
 
-7. **Reopen Estimate** — `POST /v1/workorders/estimates/{estimateId}/reopen`
+7. **Reopen Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/reopen`
    - Path param: `estimateId` (Long)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DECLINED → DRAFT (within expiry window)
    - Constraint: Cannot reopen if expired
 
-8. **Approve Estimate with Signature** — `POST /v1/workorders/estimates/{estimateId}/approval`
+8. **Approve Estimate with Signature** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/approval`
    - Path param: `estimateId` (Long)
    - Request: `ApproveEstimateRequest { customerId (Long), signatureData (String, base64 PNG), signatureMimeType (String), signerName (String, optional), notes (String, optional) }`
    - Response: `EstimateDTO { status: APPROVED, approvedAt, approvedBy, signatureData, signerName }` (200) | 400/404
    - Validation: customerId must match estimate
    - State transition: DRAFT → APPROVED
 
-9. **Delete Estimate** — `DELETE /v1/workorders/estimates/{estimateId}`
+9. **Delete Estimate** — `DELETE http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}`
    - Path param: `estimateId` (Long)
    - Response: 204 No Content (success) | 404 (not found)
 
@@ -113,17 +119,17 @@ From `EstimateStatus` enum in pos-workorder:
 
 ---
 
-## Work Orders (Confirmed from pos-workorder)
+## Workorders (Confirmed from pos-workorder)
 
-1. **Load Work Order** — `GET /v1/workorders/{workOrderId}`
-   - Path param: `workOrderId` (Long)
+1. **Load Workorder** — `GET http://localhost:8080/v1/workexec/workorders/{workorderId}`
+   - Path param: `workorderId` (Long)
    - Response: `WorkorderDTO { id, shopId, vehicleId, customerId, approvalId, estimateId, status, services[], approvedAt, approvedBy, completedAt, completedBy }`
    - HTTP 200 (success) | 404 (not found)
 
-2. **Get All Work Orders** — `GET /v1/workorders`
-   - Response: `[ WorkorderDTO ]` (all work orders, no pagination)
+2. **Get All Workorders** — `GET http://localhost:8080/v1/workexec/workorders`
+   - Response: `[ WorkorderDTO ]` (all workorders, no pagination)
 
-### Work Order Status Enum (Confirmed)
+### Workorder Status Enum (Confirmed)
 
 From `WorkorderStatus` enum in pos-workorder:
 - `DRAFT` — Initial state
@@ -136,11 +142,11 @@ From `WorkorderStatus` enum in pos-workorder:
 - `COMPLETED` — Completed and delivered
 - `CANCELLED` — Cancelled
 
-### Work Order Services (Items)
+### Workorder Services (Items)
 
 **WorkorderService Entity Fields (Confirmed):**
 - `id` (Long) — Primary key
-- `workOrder` (FK to Workorder)
+- `workorder` (FK to Workorder)
 - `serviceEntityId` (Long) — Reference to ServiceEntity in pos-catalog
 - `technicianId` (Long) — Reference to Technician
 - `declined` (Boolean, default=false) — Flag: declined by customer during estimate approval
@@ -160,7 +166,7 @@ From `WorkorderStatus` enum in pos-workorder:
 - `COMPLETED` — Work complete
 - `CANCELLED` — Cancelled
 
-### Work Order Parts (Inventory Integration)
+### Workorder Parts (Inventory Integration)
 
 **WorkorderPart Entity Fields (Confirmed):**
 - `id` (Long) — Primary key
@@ -225,15 +231,15 @@ EstimateDTO {
 
 ## DTO Schemas (Confirmed from pos-workorder)
 
-**WorkOrderItemDTO**
-- `workOrderItemId`, `originEstimateItemId?`
+**WorkorderItemDTO**
+- `workorderItemId`, `originEstimateItemId?`
 - `itemType`, `description`, `quantity`, `unitPrice|unitRate|amount`, `lineTotal`, `taxCode`, `taxAmount`
 - `status` (PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED) — confirmed from backend
 - `requiresReview?`, `notes?`
 
 **PromotionAuditDTO**
 - `auditEventId`, `eventTimestamp`, `promotingUserId`
-- `estimateId`, `workOrderId`, `estimateSnapshotId?`, `approvalId?`
+- `estimateId`, `workorderId`, `estimateSnapshotId?`, `approvalId?`
 - `promotionSummary { laborItemCount, partItemCount, feeItemCount, subtotal, taxTotal, grandTotal, currencyUomId }`
 - `correlationId?`
 
@@ -262,9 +268,19 @@ EstimateDTO {
 - **PartStatus:** PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED
 
 **Confirmed Endpoints:**
-- Estimate CRUD: GET /v1/workorders/estimates, POST /create, GET /{id}, POST /{id}/approval (signature), POST /{id}/decline, POST /{id}/reopen, DELETE /{id}
-- Estimate Queries: GET /customer/{id}, GET /shop/{id}, GET /location/{id}
-- WorkOrder Retrieval: GET /v1/workorders/{id}, GET /all
+- Estimate CRUD:
+   - GET http://localhost:8080/v1/workexec/workorders/estimates
+   - POST http://localhost:8080/v1/workexec/workorders/estimates
+   - GET http://localhost:8080/v1/workexec/workorders/estimates/{id}
+   - POST http://localhost:8080/v1/workexec/workorders/estimates/{id}/approval
+   - POST http://localhost:8080/v1/workexec/workorders/estimates/{id}/decline
+   - POST http://localhost:8080/v1/workexec/workorders/estimates/{id}/reopen
+   - DELETE http://localhost:8080/v1/workexec/workorders/estimates/{id}
+- Estimate Queries:
+   - GET http://localhost:8080/v1/workexec/workorders/estimates/customer/{id}
+   - GET http://localhost:8080/v1/workexec/workorders/estimates/shop/{id}
+   - GET http://localhost:8080/v1/workexec/workorders/estimates/location/{id}
+- Workorder Retrieval: GET http://localhost:8080/v1/workexec/workorders/{id}, GET http://localhost:8080/v1/workexec/workorders
 - No explicit item-level mutation endpoints in EstimateController; items managed via parent resource mutations
 
 **Confirmed Signatures:**
@@ -280,7 +296,8 @@ EstimateDTO {
 - Workorder references Estimate via estimateId (one-to-many relationship possible)
 - WorkorderService (items) contains reference to ServiceEntity (pos-catalog external)
 - WorkorderPart (parts) contains reference to Product (pos-catalog external)
-- Path pattern: `/v1/workorders/*` (not `/api/v1/workexec/*` as initially assumed)
+- pos-workorder internal routing: `/v1/workorders/*`
+- API Gateway external routing (docs/examples): `http://localhost:8080/v1/workexec/workorders/*`
 
 ### Not Found in pos-workorder Source
 
@@ -291,16 +308,55 @@ EstimateDTO {
 - **Legal terms/snapshot generation:** No summary snapshot or legal terms endpoints
   - Likely: Handled by separate document generation service
 - **Promotion endpoints:** No explicit promote-to-workorder endpoint
-  - Likely: WorkOrder creation may be independent or handled by workflow service
+   - Likely: Workorder creation may be independent or handled by workflow service
 - **Approval configuration:** No approval method selection or requirement querying
   - Likely: Centralized in pos-customer or pos-approval module
 
 ### API Routing Clarification
 
-**Actual:** `/v1/workorders/*` (in pos-workorder)  
-**Previously assumed:** `/api/v1/workexec/*`
+**pos-workorder internal routing:** `/v1/workorders/*`
+
+**API Gateway external routing (required for docs/examples):** `http://localhost:8080/v1/workexec/workorders/*`
 
 Frontend should adjust base paths to match actual routing. Controller declares `@RequestMapping("/v1/workorders")`.
+
+---
+
+## CAP:092 Addendum (Draft) — PO Requirement Enforcement (Estimate Approval)
+
+When approving an estimate, WorkExec MUST enforce purchase-order requirements based on billing rules.
+
+### Billing rules lookup (via CRM facade)
+
+- `GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/billingRules`
+
+**Call chain (intent):** WorkExec (`pos-workorder`) → CRM (`pos-customer`) → Billing (`pos-invoice`).
+
+### Enforcement behavior
+
+- If `purchaseOrderRequired=true`, the estimate approval request MUST include a PO reference.
+- If billing rules are unavailable (timeout or 5xx), WorkExec MUST fail-safe by requiring a PO reference.
+
+### Suggested request shape (draft)
+
+```json
+{
+   "purchaseOrderReference": {
+      "poNumber": "PO-12345",
+      "attachmentId": "opaque-file-id"
+   }
+}
+```
+
+### Validation (draft)
+
+- `poNumber` required when PO is required.
+- `poNumber` length: 3–64.
+- `poNumber` allowed chars: `^[A-Za-z0-9][A-Za-z0-9._-]*$`.
+
+**Errors:**
+- `MISSING_PO_NUMBER` (400)
+- `INVALID_PO_NUMBER` (400)
 
 ---
 
