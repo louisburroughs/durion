@@ -335,11 +335,11 @@ All error responses **MUST** include the correlation ID in the body and headers.
 
 This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (pending `pos-invoice` and related gateway routing updates).
 
-### GET http://localhost:8080/v1/crm/snapshot
+### GET http://api-gateway.local/customer/v1/crm/snapshot
 
 **Summary:** Return a lightweight CRM snapshot for use by WorkExec and other UIs.
 
-**Source:** CAP:092 backend story defines `GET /v1/crm-snapshot`; API Gateway SHOULD expose it as `GET http://localhost:8080/v1/crm/snapshot`.
+**Source:** CAP:092 backend story defines `GET /v1/crm-snapshot`; API Gateway exposes it as `GET http://api-gateway.local/customer/v1/crm/snapshot`.
 
 **Query params:**
 - `partyId` (string, optional)
@@ -357,7 +357,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 - If `vehicleId` has no active party, return `404` with code `VEHICLE_HAS_NO_ACTIVE_PARTY`.
 - If both `partyId` and `vehicleId` provided, `vehicleId` resolution wins.
 
-### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/billingRules
+### GET http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/billingRules
 
 **Summary:** CRM facade for billing rules.
 
@@ -369,7 +369,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ## Customer API Endpoints
 
-### GET http://localhost:8080/v1/crm
+### GET http://api-gateway.local/customer/v1/crm
 
 **Summary:** Get all customers
 
@@ -389,7 +389,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### POST http://localhost:8080/v1/crm
+### POST http://api-gateway.local/customer/v1/crm
 
 **Summary:** Create a new customer
 
@@ -410,7 +410,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### GET http://localhost:8080/v1/crm/{id}
+### GET http://api-gateway.local/customer/v1/crm/{id}
 
 **Summary:** Get customer by ID
 
@@ -433,7 +433,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### PUT http://localhost:8080/v1/crm/{id}
+### PUT http://api-gateway.local/customer/v1/crm/{id}
 
 **Summary:** Update an existing customer
 
@@ -459,7 +459,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### DELETE http://localhost:8080/v1/crm/{id}
+### DELETE http://api-gateway.local/customer/v1/crm/{id}
 
 **Summary:** Delete a customer
 
@@ -482,7 +482,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ## CRM Accounts Endpoints
 
-### POST http://localhost:8080/v1/crm/accounts/parties
+### POST http://api-gateway.local/customer/v1/crm/accounts/parties
 
 **Summary:** Create commercial account
 
@@ -503,7 +503,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### POST http://localhost:8080/v1/crm/accounts/parties/search
+### POST http://api-gateway.local/customer/v1/crm/accounts/parties/search
 
 **Summary:** Search parties
 
@@ -524,7 +524,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}
+### GET http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}
 
 **Summary:** Get party details
 
@@ -547,7 +547,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/contacts
+### GET http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/contacts
 
 **Summary:** Get contacts with roles
 
@@ -570,7 +570,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### PUT http://localhost:8080/v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
+### PUT http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/contacts/{contactId}/roles
 
 **Summary:** Update contact roles
 
@@ -597,7 +597,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/communicationPreferences
+### GET http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/communicationPreferences
 
 **Summary:** Get communication preferences
 
@@ -620,7 +620,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### POST http://localhost:8080/v1/crm/accounts/parties/{partyId}/communicationPreferences
+### POST http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/communicationPreferences
 
 **Summary:** Create or update communication preferences
 
@@ -647,7 +647,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### POST http://localhost:8080/v1/crm/accounts/parties/{partyId}/vehicles
+### POST http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/vehicles
 
 **Summary:** Create vehicle for party
 
@@ -673,7 +673,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### POST http://localhost:8080/v1/crm/accounts/parties/{partyId}/merge
+### POST http://api-gateway.local/customer/v1/crm/accounts/parties/{partyId}/merge
 
 **Summary:** Merge parties
 
@@ -699,7 +699,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### GET http://localhost:8080/v1/crm/accounts/{accountId}/tier
+### GET http://api-gateway.local/customer/v1/crm/accounts/{accountId}/tier
 
 **Summary:** Get account tier
 
@@ -726,7 +726,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 ---
 
-### POST http://localhost:8080/v1/crm/accounts/tierResolve
+### POST http://api-gateway.local/customer/v1/crm/accounts/tierResolve
 
 **Summary:** Resolve account tier
 
@@ -756,7 +756,7 @@ This addendum documents CAP:092 endpoints that are not yet present in OpenAPI (p
 
 All vehicle registry endpoints are in the `pos-vehicle-inventory` module under the **Vehicle Registry** tag.
 
-### POST http://localhost:8080/v1/vehicles
+### POST http://api-gateway.local/inventory/v1/vehicles
 
 **Summary:** Create a new vehicle
 
@@ -790,7 +790,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### GET http://localhost:8080/v1/vehicles/{vehicleId}
+### GET http://api-gateway.local/inventory/v1/vehicles/{vehicleId}
 
 **Summary:** Get vehicle by ID
 
@@ -811,7 +811,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### PUT http://localhost:8080/v1/vehicles/{vehicleId}
+### PUT http://api-gateway.local/inventory/v1/vehicles/{vehicleId}
 
 **Summary:** Update vehicle
 
@@ -835,7 +835,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### DELETE http://localhost:8080/v1/vehicles/{vehicleId}
+### DELETE http://api-gateway.local/inventory/v1/vehicles/{vehicleId}
 
 **Summary:** Delete vehicle
 
@@ -854,7 +854,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### GET http://localhost:8080/v1/vehicles/vin/{vin}
+### GET http://api-gateway.local/inventory/v1/vehicles/vin/{vin}
 
 **Summary:** Get vehicle by VIN
 
@@ -877,7 +877,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ## Vehicle Search Endpoints
 
-### POST http://localhost:8080/v1/vehicles/search
+### POST http://api-gateway.local/inventory/v1/vehicles/search
 
 **Summary:** Search vehicles
 
@@ -903,7 +903,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### GET http://localhost:8080/v1/vehicles/search
+### GET http://api-gateway.local/inventory/v1/vehicles/search
 
 **Summary:** Search vehicles (query parameter)
 
@@ -928,7 +928,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ## Vehicle Preferences Endpoints
 
-### GET http://localhost:8080/v1/vehicles/{vehicleId}/preferences
+### GET http://api-gateway.local/inventory/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Get vehicle care preferences
 
@@ -949,7 +949,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### PUT http://localhost:8080/v1/vehicles/{vehicleId}/preferences
+### PUT http://api-gateway.local/inventory/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Create or update vehicle care preferences
 
@@ -980,7 +980,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### PATCH http://localhost:8080/v1/vehicles/{vehicleId}/preferences
+### PATCH http://api-gateway.local/inventory/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Partially update vehicle care preferences
 
@@ -1007,7 +1007,7 @@ All vehicle registry endpoints are in the `pos-vehicle-inventory` module under t
 
 ---
 
-### DELETE http://localhost:8080/v1/vehicles/{vehicleId}/preferences
+### DELETE http://api-gateway.local/inventory/v1/vehicles/{vehicleId}/preferences
 
 **Summary:** Delete vehicle care preferences
 
