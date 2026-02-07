@@ -52,59 +52,59 @@ Backend MUST return stable codes above; extend with new codes as needed, keeping
 
 All endpoint examples in this guide use the API Gateway format:
 
-- `http://localhost:8080/v1/workexec/workorders/...`
+- `http://api-gateway.local/workorder/v1/workorders/...`
 
-**Note:** The current `pos-workorder` service routes internally under `/v1/workorders/*`. The API Gateway is expected to map `/v1/workexec/workorders/*` → `/v1/workorders/*`.
+**Note:** The API Gateway routes requests to `pos-workorder` service using the path `/workorder/**` with StripPrefix=1 filter. Incoming requests like `/workorder/v1/workorders/estimates` are forwarded to the service as `/v1/workorders/estimates`.
 
 Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
 
 ### Estimates (Confirmed APIs)
 
-1. **Get All Estimates** — `GET http://localhost:8080/v1/workexec/workorders/estimates`
+1. **Get All Estimates** — `GET http://api-gateway.local/workorder/v1/workorders/estimates`
    - Response: `[ EstimateDTO ]`
    - No pagination in source; returns all estimates
 
-2. **Get Estimate by ID** — `GET http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}`
+2. **Get Estimate by ID** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
    - Path param: `estimateId` (Long, required)
    - Response: `EstimateDTO` (200) | 404 if not found
    - EstimateDTO: `{ id, estimateNumber, status, locationId, vehicleId, customerId, createdByUserId, createdAt, updatedAt, approvedAt, declinedAt, expiresAt, subtotal, taxAmount, total, version }`
 
-3. **Get Estimates by Customer** — `GET http://localhost:8080/v1/workexec/workorders/estimates/customer/{customerId}`
+3. **Get Estimates by Customer** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/customer/{customerId}`
    - Path param: `customerId` (Long, required)
    - Response: `[ EstimateDTO ]`
 
-4. **Get Estimates by Location/Shop** — `GET http://localhost:8080/v1/workexec/workorders/estimates/shop/{locationId}` | `http://localhost:8080/v1/workexec/workorders/estimates/location/{locationId}`
+4. **Get Estimates by Location/Shop** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/shop/{locationId}` | `http://api-gateway.local/workorder/v1/workorders/estimates/location/{locationId}`
    - Path param: `locationId` (Long, required)
    - Response: `[ EstimateDTO ]`
    - **Note:** Both `/shop/{locationId}` and `/location/{locationId}` endpoints exist (deprecated `/shop/*`)
 
-5. **Create Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates`
+5. **Create Estimate** — `POST http://api-gateway.local/workorder/v1/workorders/estimates`
    - Request: `CreateEstimateRequest { customerId (Long), vehicleId (Long) }`
    - Response: `CreateEstimateResponse { id, estimateNumber, status: DRAFT, locationId, createdAt }`
    - HTTP 200 (success), 400 (validation error), 500 (server error)
    - System generates unique `estimateNumber` (e.g., EST-2024-1001)
    - Requires: `X-User-Id` header (defaults to 1 if missing)
 
-6. **Decline Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/decline`
+6. **Decline Estimate** — `POST http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}/decline`
    - Path param: `estimateId` (Long)
    - Query param: `reason` (String, optional)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DRAFT → DECLINED
 
-7. **Reopen Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/reopen`
+7. **Reopen Estimate** — `POST http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}/reopen`
    - Path param: `estimateId` (Long)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DECLINED → DRAFT (within expiry window)
    - Constraint: Cannot reopen if expired
 
-8. **Approve Estimate with Signature** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/approval`
+8. **Approve Estimate with Signature** — `POST http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}/approval`
    - Path param: `estimateId` (Long)
    - Request: `ApproveEstimateRequest { customerId (Long), signatureData (String, base64 PNG), signatureMimeType (String), signerName (String, optional), notes (String, optional) }`
    - Response: `EstimateDTO { status: APPROVED, approvedAt, approvedBy, signatureData, signerName }` (200) | 400/404
    - Validation: customerId must match estimate
    - State transition: DRAFT → APPROVED
 
-9. **Delete Estimate** — `DELETE http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}`
+9. **Delete Estimate** — `DELETE http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
    - Path param: `estimateId` (Long)
    - Response: 204 No Content (success) | 404 (not found)
 
@@ -121,12 +121,12 @@ From `EstimateStatus` enum in pos-workorder:
 
 ## Workorders (Confirmed from pos-workorder)
 
-1. **Load Workorder** — `GET http://localhost:8080/v1/workexec/workorders/{workorderId}`
+1. **Load Workorder** — `GET http://api-gateway.local/workorder/v1/workorders/{workorderId}`
    - Path param: `workorderId` (Long)
    - Response: `WorkorderDTO { id, shopId, vehicleId, customerId, approvalId, estimateId, status, services[], approvedAt, approvedBy, completedAt, completedBy }`
    - HTTP 200 (success) | 404 (not found)
 
-2. **Get All Workorders** — `GET http://localhost:8080/v1/workexec/workorders`
+2. **Get All Workorders** — `GET http://api-gateway.local/workorder/v1/workorders`
    - Response: `[ WorkorderDTO ]` (all workorders, no pagination)
 
 ### Workorder Status Enum (Confirmed)
@@ -269,18 +269,18 @@ EstimateDTO {
 
 **Confirmed Endpoints:**
 - Estimate CRUD:
-   - GET http://localhost:8080/v1/workexec/workorders/estimates
-   - POST http://localhost:8080/v1/workexec/workorders/estimates
-   - GET http://localhost:8080/v1/workexec/workorders/estimates/{id}
-   - POST http://localhost:8080/v1/workexec/workorders/estimates/{id}/approval
-   - POST http://localhost:8080/v1/workexec/workorders/estimates/{id}/decline
-   - POST http://localhost:8080/v1/workexec/workorders/estimates/{id}/reopen
-   - DELETE http://localhost:8080/v1/workexec/workorders/estimates/{id}
+   - GET http://api-gateway.local/workorder/v1/workorders/estimates
+   - POST http://api-gateway.local/workorder/v1/workorders/estimates
+   - GET http://api-gateway.local/workorder/v1/workorders/estimates/{id}
+   - POST http://api-gateway.local/workorder/v1/workorders/estimates/{id}/approval
+   - POST http://api-gateway.local/workorder/v1/workorders/estimates/{id}/decline
+   - POST http://api-gateway.local/workorder/v1/workorders/estimates/{id}/reopen
+   - DELETE http://api-gateway.local/workorder/v1/workorders/estimates/{id}
 - Estimate Queries:
-   - GET http://localhost:8080/v1/workexec/workorders/estimates/customer/{id}
-   - GET http://localhost:8080/v1/workexec/workorders/estimates/shop/{id}
-   - GET http://localhost:8080/v1/workexec/workorders/estimates/location/{id}
-- Workorder Retrieval: GET http://localhost:8080/v1/workexec/workorders/{id}, GET http://localhost:8080/v1/workexec/workorders
+   - GET http://api-gateway.local/workorder/v1/workorders/estimates/customer/{id}
+   - GET http://api-gateway.local/workorder/v1/workorders/estimates/shop/{id}
+   - GET http://api-gateway.local/workorder/v1/workorders/estimates/location/{id}
+- Workorder Retrieval: GET http://api-gateway.local/workorder/v1/workorders/{id}, GET http://api-gateway.local/workorder/v1/workorders
 - No explicit item-level mutation endpoints in EstimateController; items managed via parent resource mutations
 
 **Confirmed Signatures:**
