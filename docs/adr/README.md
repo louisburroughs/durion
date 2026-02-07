@@ -76,6 +76,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0010   | Frontend Domain responsibilities           | PENDING           | 2026-01-29 |
 | 0011   | API Gateway Security Architecture          | ACCEPTED          | 2026-02-01 |
 | 0012   | Vehicle-Party relationship ownwership      | ACCEPTED          | 2026-02-03 |
+| 0013   | UUID v7 Identifier Strategy                | ACCEPTED          | 2026-02-07 |
 
 ## Superseding ADRs
 
