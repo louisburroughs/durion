@@ -3,7 +3,7 @@ meta:
   capability_name: '[CAP] Preferences & Billing Rules'
   owner_repo: louisburroughs/durion
   created_utc: '2026-02-02T15:52:25.832583+00:00'
-  last_updated_utc: '2026-02-02T15:52:25.832583+00:00'
+  last_updated_utc: '2026-02-07T00:00:00+00:00'
 parent_capability:
   repo: louisburroughs/durion
   issue: 92
@@ -76,7 +76,8 @@ stories:
   pr_links:
     durion_contract_pr: ''
     backend_pr: ''
-    frontend_prs: []
+    frontend_prs:
+    - https://github.com/louisburroughs/durion-crm/pull/10
   merge_order:
   - durion_contract_pr
   - backend_pr
@@ -160,24 +161,25 @@ stories:
         type: meta
       business_rules:
       - repo: louisburroughs/durion
-        path: domains/crm/.business-rules/AGENT_GUIDE.md
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-customer/target/openapi.json
+      spec_path: pos-workorder/target/openapi.json
       generated: true
   pr_links:
     durion_contract_pr: ''
     backend_pr: ''
-    frontend_prs: []
+    frontend_prs:
+    - https://github.com/louisburroughs/durion-workexec/pull/1
   merge_order:
   - durion_contract_pr
   - backend_pr
