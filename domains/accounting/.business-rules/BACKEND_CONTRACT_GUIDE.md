@@ -1341,6 +1341,45 @@ This domain exposes **44** REST API endpoints:
 | `refundAmount` | number | Yes |  |
 | `refundType` | string | Yes |  |
 
+### PaymentApplicationRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `applicationRequestId` | string (uuid) | Yes | Idempotency key for payment application |
+| `applications` | array | Yes | List of invoice applications |
+| `applications[].invoiceId` | string (uuid) | Yes | Invoice to apply payment to |
+| `applications[].amountToApply` | number | Yes | Amount to apply to this invoice |
+
+### PaymentApplicationResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `paymentId` | string (uuid) | Yes | Payment identifier |
+| `customerId` | string (uuid) | Yes | Customer identifier |
+| `remainingAmount` | number | Yes | Remaining unapplied payment amount |
+| `totalApplied` | number | Yes | Total amount applied to invoices |
+| `appliedInvoices` | array | Yes | List of applied invoice details |
+| `appliedInvoices[].paymentApplicationId` | string (uuid) | Yes | Application record ID |
+| `appliedInvoices[].invoiceId` | string (uuid) | Yes | Invoice ID |
+| `appliedInvoices[].appliedAmount` | number | Yes | Amount applied |
+| `appliedInvoices[].appliedAt` | string (ISO 8601) | Yes | Application timestamp |
+| `credit` | object | No | Customer credit if overpayment |
+| `credit.creditId` | string (uuid) | Yes | Credit record ID |
+| `credit.amount` | number | Yes | Credit amount |
+| `credit.createdAt` | string (ISO 8601) | Yes | Credit creation timestamp |
+
+### PaymentApplicationReversalRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `reason` | string | Yes | Reason for reversal (min 10 chars, max 500 chars) |
+
 ---
 
 ## Examples
@@ -1395,6 +1434,116 @@ X-Correlation-Id: abc-123-def-456
   "status": "ACTIVE",
   "createdAt": "2026-01-27T14:00:00Z",
   "updatedAt": "2026-01-27T14:30:00Z"
+}
+```
+
+#### Example: Apply Payment to Invoices
+
+**Request:**
+
+```http
+POST /v1/accounting/payments/123e4567-e89b-12d3-a456-426614174000/applications
+Content-Type: application/json
+X-Correlation-Id: payment-app-001
+
+{
+  "applicationRequestId": "550e8400-e29b-41d4-a716-446655440000",
+  "applications": [
+    {
+      "invoiceId": "660e8400-e29b-41d4-a716-446655440000",
+      "amountToApply": 100.00
+    },
+    {
+      "invoiceId": "770e8400-e29b-41d4-a716-446655440000",
+      "amountToApply": 50.00
+    }
+  ]
+}
+```
+
+**Response (200 OK):**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: payment-app-001
+
+{
+  "paymentId": "123e4567-e89b-12d3-a456-426614174000",
+  "customerId": "234e5678-e89b-12d3-a456-426614174000",
+  "remainingAmount": 0.00,
+  "totalApplied": 150.00,
+  "appliedInvoices": [
+    {
+      "paymentApplicationId": "789e0123-e89b-12d3-a456-426614174000",
+      "invoiceId": "660e8400-e29b-41d4-a716-446655440000",
+      "appliedAmount": 100.00,
+      "appliedAt": "2025-01-13T10:30:00Z"
+    },
+    {
+      "paymentApplicationId": "890e1234-e89b-12d3-a456-426614174000",
+      "invoiceId": "770e8400-e29b-41d4-a716-446655440000",
+      "appliedAmount": 50.00,
+      "appliedAt": "2025-01-13T10:30:00Z"
+    }
+  ],
+  "credit": null
+}
+```
+
+**Response (200 OK with overpayment):**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: payment-app-002
+
+{
+  "paymentId": "123e4567-e89b-12d3-a456-426614174000",
+  "customerId": "234e5678-e89b-12d3-a456-426614174000",
+  "remainingAmount": 25.00,
+  "totalApplied": 125.00,
+  "appliedInvoices": [
+    {
+      "paymentApplicationId": "789e0123-e89b-12d3-a456-426614174000",
+      "invoiceId": "660e8400-e29b-41d4-a716-446655440000",
+      "appliedAmount": 125.00,
+      "appliedAt": "2025-01-13T10:30:00Z"
+    }
+  ],
+  "credit": {
+    "creditId": "345e6789-e89b-12d3-a456-426614174000",
+    "amount": 25.00,
+    "createdAt": "2025-01-13T10:30:00Z"
+  }
+}
+```
+
+#### Example: Reverse Payment Application
+
+**Request:**
+
+```http
+POST /v1/accounting/payment-applications/789e0123-e89b-12d3-a456-426614174000/reverse
+Content-Type: application/json
+X-Correlation-Id: reversal-001
+
+{
+  "reason": "Customer disputed charge, refund issued"
+}
+```
+
+**Response (200 OK):**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: reversal-001
+
+{
+  "reversalId": "456e7890-e89b-12d3-a456-426614174000",
+  "paymentApplicationId": "789e0123-e89b-12d3-a456-426614174000",
+  "reversedAmount": 100.00,
+  "reason": "Customer disputed charge, refund issued",
+  "reversedAt": "2025-01-13T11:00:00Z",
+  "reversedBy": "john.doe@example.com"
 }
 ```
 
