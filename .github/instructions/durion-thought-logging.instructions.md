@@ -71,3 +71,34 @@ description: 'See process the agent is following where you can edit this to resh
 - If you catch yourself about to skip a phase, STOP and go back to the correct phase
 - If you catch yourself combining phases, STOP and perform only the current phase
 - NEVER exit without completing OR giving clear STOP instructions unles s explicitly instructed to do so with "EXIT DURION PROCESSING INSTRUCTIONS"
+
+---
+## Copilot Integration Notes (merged)
+
+The following rules are incorporated from the previous Copilot thought-logging instructions to ensure consistent behaviour when agents identify themselves as Copilot or run Copilot-specific processes. These are subordinate to the Durion rules above and are intended to align phrasing and small implementation details while keeping Durion naming and process flow.
+
+**Subordinate Mandatory Rules:**
+- Always review these instructions before executing any steps that affect `Durion-Processing.md`.
+- Follow the same one-phase-at-a-time execution model and do not combine phases in a single response.
+- When asked to produce a plan, record it in `Durion-Processing.md` and track progress there.
+
+**Phase Guidance (copied for clarity):**
+- Phase 1: Create the `Durion-Processing.md` file and populate it with the user's request details.
+- Phase 2: Add a granular action plan with TODO/complete entries in the same file.
+- Phase 3: Execute the action items, marking progress in the file as you go.
+- Phase 4: Add a final summary and mark the file complete; inform the user that the summary was added.
+
+These Copilot notes intentionally do not change the Durion naming or high-level flow; they only provide clarification and preserved behaviours from the previous Copilot instructions.
+
+---
+
+## Quick Reference / Checklist
+
+- `Durion-Processing.md` location: `~/Projects/durion/Durion-Processing.md`
+- Exit command: `EXIT DURION PROCESSING INSTRUCTIONS`
+- Single-phase execution only; do not combine phases
+- Use `Durion-Processing.md` as the single source-of-truth for plan + progress
+
+---
+
+*Merged Copilot content and Durion process naming — Durion naming and rules take precedence.*
