@@ -2,8 +2,8 @@
 
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-accounting/target/openapi.json`
+**Last Updated:** 2026-02-08  
+**OpenAPI Source:** `pos-accounting/openapi.json`
 
 ---
 
@@ -237,6 +237,25 @@ public enum Status {
 - `CREDIT_MEMO`
 - `ADJUSTMENT`
 
+#### CreditMemoResponse.status
+
+- `DRAFT` - Credit Memo created but not yet posted to GL
+- `POSTED` - Credit Memo posted to GL; AR reduced
+- `APPLIED` - Credit Memo applied to customer account or future invoice
+- `VOIDED` - Credit Memo voided/reversed
+
+#### CreateCreditMemoRequest.reasonCode
+
+**Standard Reason Codes:**
+- `RETURNED_GOODS` - Customer returned merchandise
+- `PRICING_ERROR` - Incorrect pricing on original invoice
+- `SERVICE_CREDIT` - Credit for service level issues
+- `BILLING_ERROR` - General billing error correction
+- `DAMAGED_GOODS` - Goods received damaged
+- `GOODWILL_GESTURE` - Customer satisfaction credit
+
+**Note:** Organizations may define additional reason codes. All reason codes must be 1-50 characters, UPPER_SNAKE_CASE format, and documented in accounting policies.
+
 ---
 
 ## Identifier Naming
@@ -365,7 +384,7 @@ All error responses **MUST** follow this format:
 All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
 
 ```http
-GET /v1/accounting/entities/123
+GET http://localhost:8080/v1/accounting/events?page=0&size=10
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -398,58 +417,73 @@ All error responses **MUST** include the correlation ID in the body:
 
 ### Endpoint Summary
 
-This domain exposes **44** REST API endpoints:
+This domain exposes **59** REST API endpoints:
 
 | Method | Path | Summary |
-|--------|------|---------|
-| GET | `/api/audit/actor/{actorId}` |  |
-| POST | `/api/audit/cancellation` |  |
-| GET | `/api/audit/invoice/{invoiceId}` |  |
-| GET | `/api/audit/order/{orderId}` |  |
-| POST | `/api/audit/price-override` |  |
-| GET | `/api/audit/range` |  |
-| POST | `/api/audit/refund` |  |
-| GET | `/api/audit/type/{type}` |  |
-| GET | `/v1/accounting/events` | List events |
-| POST | `/v1/accounting/events` | Submit event |
-| GET | `/v1/accounting/events/{eventId}` | Get event |
-| GET | `/v1/accounting/events/{eventId}/processing-log` | Get event processing log |
-| POST | `/v1/accounting/events/{eventId}/retry` | Retry event processing |
-| GET | `/v1/accounting/gl-accounts` | List GL accounts |
-| POST | `/v1/accounting/gl-accounts` | Create GL account |
-| GET | `/v1/accounting/gl-accounts/{glAccountId}` | Get GL account |
-| PUT | `/v1/accounting/gl-accounts/{glAccountId}` | Update GL account |
-| POST | `/v1/accounting/gl-accounts/{glAccountId}/activate` | Activate GL account |
-| POST | `/v1/accounting/gl-accounts/{glAccountId}/archive` | Archive GL account |
-| GET | `/v1/accounting/gl-accounts/{glAccountId}/balance` | Get GL account balance |
-| POST | `/v1/accounting/gl-accounts/{glAccountId}/deactivate` | Deactivate GL account |
-| POST | `/v1/accounting/glAccounts` | Create GL account (legacy path) |
-| GET | `/v1/accounting/glAccounts/{accountId}` | Get GL account (legacy path) |
-| PUT | `/v1/accounting/glAccounts/{accountId}` | Update GL account (legacy path) |
-| GET | `/v1/accounting/invoice/{invoiceId}/status` | Get invoice status |
-| GET | `/v1/accounting/journal-entries` | List journal entries |
-| POST | `/v1/accounting/journal-entries` | Create journal entry |
-| GET | `/v1/accounting/journal-entries/{journalEntryId}` | Get journal entry |
-| PUT | `/v1/accounting/journal-entries/{journalEntryId}` | Update journal entry |
-| POST | `/v1/accounting/journal-entries/{journalEntryId}/post` | Post journal entry |
-| POST | `/v1/accounting/journal-entries/{journalEntryId}/reverse` | Reverse journal entry |
-| POST | `/v1/accounting/payments/{paymentId}/applications` | Apply payment |
-| POST | `/v1/accounting/payments/{paymentId}/reverse` | Reverse payment |
-| GET | `/v1/accounting/payments/{paymentId}/status` | Get payment status |
-| POST | `/v1/accounting/payments/{paymentId}/void` | Void payment |
-| GET | `/v1/accounting/posting-rules` | List posting rule sets |
-| POST | `/v1/accounting/posting-rules` | Create posting rule set |
-| GET | `/v1/accounting/posting-rules/{postingRuleSetId}` | Get posting rule set |
-| POST | `/v1/accounting/posting-rules/{postingRuleSetId}/archive` | Archive posting rule set |
-| POST | `/v1/accounting/posting-rules/{postingRuleSetId}/publish` | Publish posting rule set |
-| GET | `/v1/accounting/posting-rules/{postingRuleSetId}/versions` | List posting rule versions |
-| GET | `/v1/accounting/traceability/{journalEntryId}` | Get journal traceability |
-| POST | `/v1/invoice/invoices` | Regenerate invoice from workorder |
-| GET | `/v1/invoice/rules/{customerId}` | Get billing rules |
+| ------ | ---- | ------- |
+| GET | `http://localhost:8080/v1/accounting/audit/actor/{actorId}` | Get audit trail by actor |
+| GET | `http://localhost:8080/v1/accounting/audit/invoice/{invoiceId}` | Get audit trail for invoice |
+| GET | `http://localhost:8080/v1/accounting/audit/order/{orderId}` | Get audit trail for order |
+| GET | `http://localhost:8080/v1/accounting/audit/range` | Get audit trail by date range |
+| GET | `http://localhost:8080/v1/accounting/audit/type/{type}` | Get audit trail by exception type |
+| POST | `http://localhost:8080/v1/accounting/audit/cancellation` | Record a cancellation |
+| POST | `http://localhost:8080/v1/accounting/audit/price-override` | Record a price override |
+| POST | `http://localhost:8080/v1/accounting/audit/refund` | Record a refund |
+| GET | `http://localhost:8080/v1/accounting/credit-memos` | List credit memos |
+| POST | `http://localhost:8080/v1/accounting/credit-memos` | Create credit memo |
+| GET | `http://localhost:8080/v1/accounting/credit-memos/{creditMemoId}` | Get credit memo |
+| GET | `http://localhost:8080/v1/accounting/events` | List events |
+| POST | `http://localhost:8080/v1/accounting/events` | Submit event |
+| GET | `http://localhost:8080/v1/accounting/events/{eventId}` | Get event |
+| GET | `http://localhost:8080/v1/accounting/events/{eventId}/processing-log` | Get event processing log |
+| POST | `http://localhost:8080/v1/accounting/events/{eventId}/retry` | Retry event processing |
+| GET | `http://localhost:8080/v1/accounting/gl-accounts` | List GL accounts |
+| POST | `http://localhost:8080/v1/accounting/gl-accounts` | Create GL account |
+| GET | `http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}` | Get GL account |
+| PUT | `http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}` | Update GL account |
+| POST | `http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/activate` | Activate GL account |
+| POST | `http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/archive` | Archive GL account |
+| POST | `http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/deactivate` | Deactivate GL account |
+| GET | `http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/balance` | Get GL account balance |
+| POST | `http://localhost:8080/v1/accounting/glAccounts` | Create GL account (legacy path) |
+| GET | `http://localhost:8080/v1/accounting/glAccounts/{accountId}` | Get GL account (legacy path) |
+| PUT | `http://localhost:8080/v1/accounting/glAccounts/{accountId}` | Update GL account (legacy path) |
+| GET | `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` | Get invoice status |
+| POST | `http://localhost:8080/v1/accounting/invoices/{invoiceId}/pay` | Apply payment (LEGACY) |
+| GET | `http://localhost:8080/v1/accounting/journal-entries` | List journal entries |
+| POST | `http://localhost:8080/v1/accounting/journal-entries` | Create journal entry |
+| GET | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}` | Get journal entry |
+| PUT | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}` | Update journal entry |
+| POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/post` | Post journal entry |
+| POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/reverse` | Reverse journal entry |
+| GET | `http://localhost:8080/v1/accounting/mapping-keys/{mappingKeyId}` | Get mapping key |
+| POST | `http://localhost:8080/v1/accounting/mapping-keys` | Create mapping key |
+| PUT | `http://localhost:8080/v1/accounting/mapping-keys/{mappingKeyId}` | Update mapping key |
+| POST | `http://localhost:8080/v1/accounting/mapping-keys/{mappingKeyId}/deactivate` | Deactivate mapping key |
+| POST | `http://localhost:8080/v1/accounting/payment-applications/{applicationId}/reverse` | Reverse payment application |
+| POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` | Apply payment |
+| POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/reverse` | Reverse payment |
+| GET | `http://localhost:8080/v1/accounting/payments/{paymentId}/status` | Get payment status |
+| POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/void` | Void payment |
+| GET | `http://localhost:8080/v1/accounting/posting-categories` | List posting categories |
+| POST | `http://localhost:8080/v1/accounting/posting-categories` | Create posting category |
+| GET | `http://localhost:8080/v1/accounting/posting-categories/{postingCategoryId}` | Get posting category |
+| PUT | `http://localhost:8080/v1/accounting/posting-categories/{postingCategoryId}` | Update posting category |
+| POST | `http://localhost:8080/v1/accounting/posting-categories/{postingCategoryId}/deactivate` | Deactivate posting category |
+| GET | `http://localhost:8080/v1/accounting/posting-categories/{postingCategoryId}/mapping-keys` | List mapping keys by category |
+| GET | `http://localhost:8080/v1/accounting/posting-rules` | List posting rule sets |
+| POST | `http://localhost:8080/v1/accounting/posting-rules` | Create posting rule set |
+| GET | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}` | Get posting rule set |
+| POST | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/archive` | Archive posting rule set |
+| POST | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/publish` | Publish posting rule set |
+| GET | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/versions` | List posting rule versions |
+| GET | `http://localhost:8080/v1/accounting/traceability/{journalEntryId}` | Get journal traceability |
+| POST | `http://localhost:8080/v1/invoice/invoices` | Regenerate invoice from workorder |
+| GET | `http://localhost:8080/v1/invoice/rules/{customerId}` | Get billing rules |
 
 ### Endpoint Details
 
-#### GET /api/audit/actor/{actorId}
+#### GET <http://localhost:8080/v1/accounting/audit/actor/{actorId}>
 
 **Operation ID:** `getByActor`
 
@@ -461,21 +495,26 @@ This domain exposes **44** REST API endpoints:
 
 **Responses:**
 
-- `200`: OK
+- `200`: Audit entries retrieved successfully
+- `400`: Invalid date range or actor ID
+- `404`: Actor not found
+- `500`: Internal server error
 
 ---
 
-#### POST /api/audit/cancellation
+#### POST <http://localhost:8080/v1/accounting/audit/cancellation>
 
 **Operation ID:** `recordCancellation`
 
 **Responses:**
 
-- `200`: OK
+- `200`: Cancellation recorded successfully
+- `400`: Invalid cancellation request
+- `500`: Internal server error
 
 ---
 
-#### GET /api/audit/invoice/{invoiceId}
+#### GET <http://localhost:8080/v1/accounting/audit/invoice/{invoiceId}>
 
 **Operation ID:** `getByInvoiceId`
 
@@ -485,11 +524,14 @@ This domain exposes **44** REST API endpoints:
 
 **Responses:**
 
-- `200`: OK
+- `200`: Audit entries retrieved successfully
+- `400`: Invalid invoice ID
+- `404`: Invoice not found
+- `500`: Internal server error
 
 ---
 
-#### GET /api/audit/order/{orderId}
+#### GET <http://localhost:8080/v1/accounting/audit/order/{orderId}>
 
 **Operation ID:** `getByOrderId`
 
@@ -499,21 +541,26 @@ This domain exposes **44** REST API endpoints:
 
 **Responses:**
 
-- `200`: OK
+- `200`: Audit entries retrieved successfully
+- `400`: Invalid order ID
+- `404`: Order not found
+- `500`: Internal server error
 
 ---
 
-#### POST /api/audit/price-override
+#### POST <http://localhost:8080/v1/accounting/audit/price-override>
 
 **Operation ID:** `recordPriceOverride`
 
 **Responses:**
 
-- `200`: OK
+- `200`: Price override recorded successfully
+- `400`: Invalid price override request
+- `500`: Internal server error
 
 ---
 
-#### GET /api/audit/range
+#### GET <http://localhost:8080/v1/accounting/audit/range>
 
 **Operation ID:** `getByDateRange`
 
@@ -524,21 +571,25 @@ This domain exposes **44** REST API endpoints:
 
 **Responses:**
 
-- `200`: OK
+- `200`: Audit entries retrieved successfully
+- `400`: Invalid date range
+- `500`: Internal server error
 
 ---
 
-#### POST /api/audit/refund
+#### POST <http://localhost:8080/v1/accounting/audit/refund>
 
 **Operation ID:** `recordRefund`
 
 **Responses:**
 
-- `200`: OK
+- `200`: Refund recorded successfully
+- `400`: Invalid refund request
+- `500`: Internal server error
 
 ---
 
-#### GET /api/audit/type/{type}
+#### GET <http://localhost:8080/v1/accounting/audit/type/{type}>
 
 **Operation ID:** `getByType`
 
@@ -550,11 +601,93 @@ This domain exposes **44** REST API endpoints:
 
 **Responses:**
 
-- `200`: OK
+- `200`: Audit entries retrieved successfully
+- `400`: Invalid exception type or date range
+- `500`: Internal server error
 
 ---
 
-#### GET /v1/accounting/events
+#### GET <http://localhost:8080/v1/accounting/credit-memos>
+
+**Summary:** List credit memos
+
+**Description:** Retrieve paginated credit memos with optional filters.
+
+**Operation ID:** `listCreditMemos`
+
+**Parameters:**
+
+- `page` (query, Optional, integer): Page index (0-based, default: 0)
+- `size` (query, Optional, integer): Page size (default: 20, max: 100)
+- `customerId` (query, Optional, string (uuid)): Filter by customer
+- `originalInvoiceId` (query, Optional, string (uuid)): Filter by original invoice
+- `status` (query, Optional, string): Filter by status (DRAFT, POSTED, APPLIED, VOIDED)
+
+**Responses:**
+
+- `200`: Credit memos listed successfully
+- `400`: Invalid query parameters
+- `403`: Forbidden
+
+---
+
+#### POST <http://localhost:8080/v1/accounting/credit-memos>
+
+**Summary:** Create credit memo
+
+**Description:** Create a new Credit Memo to reverse invoice charges for returned goods, pricing errors, or service credits. The Credit Memo posts offsetting GL entries that debit Revenue/Tax and credit Accounts Receivable.
+
+**Business Rules (CAP-052):**
+- Original invoice must be in FINALIZED status
+- Credit amount cannot exceed invoice outstanding balance
+- Reason code is mandatory for audit trail
+- GL entries must be balanced
+- Prior period adjustments posted to current period with flag
+
+**Operation ID:** `createCreditMemo`
+
+**Request Body (application/json):**
+
+```json
+{
+  "originalInvoiceId": "660e8400-e29b-41d4-a716-446655440000",
+  "creditAmount": 100.00,
+  "reasonCode": "RETURNED_GOODS",
+  "justificationNote": "Customer returned item #12345 - full refund"
+}
+```
+
+**Responses:**
+
+- `201`: Credit memo created successfully
+  - Response includes `creditMemoId`, `totalAmount`, `taxAmountReversed`, `invoiceBalanceAfter`
+- `400`: Invalid request (missing reason code, negative amount)
+- `404`: Original invoice not found
+- `409`: Business rule violation (amount exceeds balance, invoice not finalized)
+- `500`: Internal server error (GL posting failed)
+
+---
+
+#### GET <http://localhost:8080/v1/accounting/credit-memos/{creditMemoId}>
+
+**Summary:** Get credit memo
+
+**Description:** Retrieve details for a specific Credit Memo including GL posting status and traceability to original invoice.
+
+**Operation ID:** `getCreditMemo`
+
+**Parameters:**
+
+- `creditMemoId` (path, Required, string (uuid)): Credit memo identifier
+
+**Responses:**
+
+- `200`: Credit memo returned
+- `404`: Credit memo not found
+
+---
+
+#### GET <http://localhost:8080/v1/accounting/events>
 
 **Summary:** List events
 
@@ -576,7 +709,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/events
+#### POST <http://localhost:8080/v1/accounting/events>
 
 **Summary:** Submit event
 
@@ -591,7 +724,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/events/{eventId}
+#### GET <http://localhost:8080/v1/accounting/events/{eventId}>
 
 **Summary:** Get event
 
@@ -610,7 +743,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/events/{eventId}/processing-log
+#### GET <http://localhost:8080/v1/accounting/events/{eventId}/processing-log>
 
 **Summary:** Get event processing log
 
@@ -629,7 +762,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/events/{eventId}/retry
+#### POST <http://localhost:8080/v1/accounting/events/{eventId}/retry>
 
 **Summary:** Retry event processing
 
@@ -648,7 +781,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/gl-accounts
+#### GET <http://localhost:8080/v1/accounting/gl-accounts>
 
 **Summary:** List GL accounts
 
@@ -670,7 +803,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/gl-accounts
+#### POST <http://localhost:8080/v1/accounting/gl-accounts>
 
 **Summary:** Create GL account
 
@@ -685,7 +818,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/gl-accounts/{glAccountId}
+#### GET <http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}>
 
 **Summary:** Get GL account
 
@@ -704,7 +837,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### PUT /v1/accounting/gl-accounts/{glAccountId}
+#### PUT <http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}>
 
 **Summary:** Update GL account
 
@@ -723,7 +856,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/gl-accounts/{glAccountId}/activate
+#### POST <http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/activate>
 
 **Summary:** Activate GL account
 
@@ -742,7 +875,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/gl-accounts/{glAccountId}/archive
+#### POST <http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/archive>
 
 **Summary:** Archive GL account
 
@@ -761,7 +894,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/gl-accounts/{glAccountId}/balance
+#### GET <http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/balance>
 
 **Summary:** Get GL account balance
 
@@ -780,7 +913,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/gl-accounts/{glAccountId}/deactivate
+#### POST <http://localhost:8080/v1/accounting/gl-accounts/{glAccountId}/deactivate>
 
 **Summary:** Deactivate GL account
 
@@ -799,7 +932,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/glAccounts
+#### POST <http://localhost:8080/v1/accounting/glAccounts>
 
 **Summary:** Create GL account (legacy path)
 
@@ -814,7 +947,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/glAccounts/{accountId}
+#### GET <http://localhost:8080/v1/accounting/glAccounts/{accountId}>
 
 **Summary:** Get GL account (legacy path)
 
@@ -833,7 +966,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### PUT /v1/accounting/glAccounts/{accountId}
+#### PUT <http://localhost:8080/v1/accounting/glAccounts/{accountId}>
 
 **Summary:** Update GL account (legacy path)
 
@@ -852,7 +985,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/invoice/{invoiceId}/status
+#### GET <http://localhost:8080/v1/accounting/invoice/{invoiceId}/status>
 
 **Summary:** Get invoice status
 
@@ -872,7 +1005,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/journal-entries
+#### GET <http://localhost:8080/v1/accounting/journal-entries>
 
 **Summary:** List journal entries
 
@@ -893,7 +1026,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/journal-entries
+#### POST <http://localhost:8080/v1/accounting/journal-entries>
 
 **Summary:** Create journal entry
 
@@ -908,7 +1041,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/journal-entries/{journalEntryId}
+#### GET <http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}>
 
 **Summary:** Get journal entry
 
@@ -927,7 +1060,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### PUT /v1/accounting/journal-entries/{journalEntryId}
+#### PUT <http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}>
 
 **Summary:** Update journal entry
 
@@ -946,7 +1079,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/journal-entries/{journalEntryId}/post
+#### POST <http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/post>
 
 **Summary:** Post journal entry
 
@@ -965,7 +1098,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/journal-entries/{journalEntryId}/reverse
+#### POST <http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/reverse>
 
 **Summary:** Reverse journal entry
 
@@ -984,7 +1117,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/payments/{paymentId}/applications
+#### POST <http://localhost:8080/v1/accounting/payments/{paymentId}/applications>
 
 **Summary:** Apply payment
 
@@ -996,15 +1129,20 @@ This domain exposes **44** REST API endpoints:
 
 - `paymentId` (path, Required, string): Payment identifier
 
+**Request Body:**
+
+- `application/json`: `PaymentApplicationRequest`
+
 **Responses:**
 
-- `200`: Payment applied
-- `400`: Invalid payment request
-- `500`: Processing error
+- `201`: Payment applied successfully (`PaymentApplicationResponse`)
+- `400`: Invalid request or insufficient funds (`PaymentApplicationResponse`)
+- `404`: Payment not found (`PaymentApplicationResponse`)
+- `409`: Currency mismatch or invoice not applicable (`PaymentApplicationResponse`)
 
 ---
 
-#### POST /v1/accounting/payments/{paymentId}/reverse
+#### POST <http://localhost:8080/v1/accounting/payments/{paymentId}/reverse>
 
 **Summary:** Reverse payment
 
@@ -1023,7 +1161,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/payments/{paymentId}/status
+#### GET <http://localhost:8080/v1/accounting/payments/{paymentId}/status>
 
 **Summary:** Get payment status
 
@@ -1042,7 +1180,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/payments/{paymentId}/void
+#### POST <http://localhost:8080/v1/accounting/payments/{paymentId}/void>
 
 **Summary:** Void payment
 
@@ -1061,7 +1199,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/posting-rules
+#### GET <http://localhost:8080/v1/accounting/posting-rules>
 
 **Summary:** List posting rule sets
 
@@ -1082,7 +1220,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/posting-rules
+#### POST <http://localhost:8080/v1/accounting/posting-rules>
 
 **Summary:** Create posting rule set
 
@@ -1097,7 +1235,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/posting-rules/{postingRuleSetId}
+#### GET <http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}>
 
 **Summary:** Get posting rule set
 
@@ -1116,7 +1254,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/posting-rules/{postingRuleSetId}/archive
+#### POST <http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/archive>
 
 **Summary:** Archive posting rule set
 
@@ -1135,7 +1273,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/accounting/posting-rules/{postingRuleSetId}/publish
+#### POST <http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/publish>
 
 **Summary:** Publish posting rule set
 
@@ -1154,7 +1292,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/posting-rules/{postingRuleSetId}/versions
+#### GET <http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/versions>
 
 **Summary:** List posting rule versions
 
@@ -1175,7 +1313,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/accounting/traceability/{journalEntryId}
+#### GET <http://localhost:8080/v1/accounting/traceability/{journalEntryId}>
 
 **Summary:** Get journal traceability
 
@@ -1194,7 +1332,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### POST /v1/invoice/invoices
+#### POST <http://localhost:8080/v1/invoice/invoices>
 
 **Summary:** Regenerate invoice from workorder
 
@@ -1209,7 +1347,7 @@ This domain exposes **44** REST API endpoints:
 
 ---
 
-#### GET /v1/invoice/rules/{customerId}
+#### GET <http://localhost:8080/v1/invoice/rules/{customerId}>
 
 **Summary:** Get billing rules
 
@@ -1235,7 +1373,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `accountingIntent` | string | No |  |
 | `accountingStatus` | string | No |  |
 | `actorId` | string (uuid) | No |  |
@@ -1274,7 +1412,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `actorId` | string (uuid) | Yes |  |
 | `actorRole` | string | Yes |  |
 | `afterSnapshot` | string | Yes |  |
@@ -1285,12 +1423,46 @@ This domain exposes **44** REST API endpoints:
 | `partialPaymentInfo` | string | No |  |
 | `reason` | string | Yes |  |
 
+### CreateCreditMemoRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+| ------- | ------ | ---------- | ------------- |
+| `originalInvoiceId` | string (uuid) | Yes | Invoice to credit (must be finalized) |
+| `creditAmount` | number | Yes | Amount to credit (positive, max 15 digits, 4 decimals) |
+| `reasonCode` | string | Yes | Reason code (1-50 chars, e.g., RETURNED_GOODS, PRICING_ERROR, SERVICE_CREDIT) |
+| `justificationNote` | string | No | Optional justification (max 1000 chars) |
+
+### CreditMemoResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+| ------- | ------ | ---------- | ------------- |
+| `creditMemoId` | string (uuid) | Yes | Credit memo identifier |
+| `originalInvoiceId` | string (uuid) | Yes | Referenced invoice |
+| `customerId` | string (uuid) | Yes | Customer identifier |
+| `creditAmount` | number | Yes | Revenue amount credited |
+| `taxAmountReversed` | number | Yes | Tax amount reversed |
+| `totalAmount` | number | Yes | Total credit (creditAmount + taxAmountReversed) |
+| `reasonCode` | string | Yes | Reason code |
+| `justificationNote` | string | No | Optional justification |
+| `status` | string | Yes | Status (DRAFT, POSTED, APPLIED, VOIDED) |
+| `creationTimestamp` | string (ISO 8601) | Yes | Creation timestamp |
+| `postedTimestamp` | string (ISO 8601) | No | Posted timestamp (if status=POSTED) |
+| `createdByUserId` | string | Yes | User who created the credit memo |
+| `priorPeriodAdjustment` | boolean | Yes | True if CM for closed-period invoice |
+| `originalPeriodId` | string | No | Original invoice's accounting period |
+| `currency` | string | Yes | Currency code (ISO 4217, e.g., USD) |
+| `invoiceBalanceAfter` | number | No | Invoice balance after credit applied |
+
 ### InvoiceStatusResponse
 
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `invoiceId` | string | No |  |
 | `invoiceTotal` | number | No |  |
 | `lastUpdated` | string (date-time) | No |  |
@@ -1304,7 +1476,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `idempotencyKey` | string | Yes |  |
 | `invoiceId` | string | Yes |  |
 | `invoiceTotal` | number | Yes |  |
@@ -1317,7 +1489,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `actorId` | string (uuid) | Yes |  |
 | `actorRole` | string | Yes |  |
 | `adjustedPrice` | number | Yes |  |
@@ -1331,7 +1503,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `actorId` | string (uuid) | Yes |  |
 | `actorRole` | string | Yes |  |
 | `invoiceId` | string (uuid) | Yes |  |
@@ -1346,7 +1518,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `applicationRequestId` | string (uuid) | Yes | Idempotency key for payment application |
 | `applications` | array | Yes | List of invoice applications |
 | `applications[].invoiceId` | string (uuid) | Yes | Invoice to apply payment to |
@@ -1357,7 +1529,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `paymentId` | string (uuid) | Yes | Payment identifier |
 | `customerId` | string (uuid) | Yes | Customer identifier |
 | `remainingAmount` | number | Yes | Remaining unapplied payment amount |
@@ -1377,7 +1549,7 @@ This domain exposes **44** REST API endpoints:
 **Fields:**
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ------- | ------ | ---------- | ------------- |
 | `reason` | string | Yes | Reason for reversal (min 10 chars, max 500 chars) |
 
 ---
@@ -1389,7 +1561,7 @@ This domain exposes **44** REST API endpoints:
 #### Example: Create Request
 
 ```http
-POST /v1/invoice/invoices
+POST http://localhost:8080/v1/invoice/invoices
 Content-Type: application/json
 X-Correlation-Id: abc-123-def-456
 
@@ -1418,7 +1590,7 @@ X-Correlation-Id: abc-123-def-456
 #### Example: Retrieve Request
 
 ```http
-GET /v1/accounting/journal-entries/{journalEntryId}
+GET http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -1442,7 +1614,7 @@ X-Correlation-Id: abc-123-def-456
 **Request:**
 
 ```http
-POST /v1/accounting/payments/123e4567-e89b-12d3-a456-426614174000/applications
+POST http://localhost:8080/v1/accounting/payments/123e4567-e89b-12d3-a456-426614174000/applications
 Content-Type: application/json
 X-Correlation-Id: payment-app-001
 
@@ -1461,10 +1633,10 @@ X-Correlation-Id: payment-app-001
 }
 ```
 
-**Response (200 OK):**
+**Response (201 Created):**
 
 ```http
-HTTP/1.1 200 OK
+HTTP/1.1 201 Created
 X-Correlation-Id: payment-app-001
 
 {
@@ -1490,10 +1662,10 @@ X-Correlation-Id: payment-app-001
 }
 ```
 
-**Response (200 OK with overpayment):**
+**Response (201 Created with overpayment):**
 
 ```http
-HTTP/1.1 200 OK
+HTTP/1.1 201 Created
 X-Correlation-Id: payment-app-002
 
 {
@@ -1522,7 +1694,7 @@ X-Correlation-Id: payment-app-002
 **Request:**
 
 ```http
-POST /v1/accounting/payment-applications/789e0123-e89b-12d3-a456-426614174000/reverse
+POST http://localhost:8080/v1/accounting/payment-applications/789e0123-e89b-12d3-a456-426614174000/reverse
 Content-Type: application/json
 X-Correlation-Id: reversal-001
 
@@ -1531,21 +1703,139 @@ X-Correlation-Id: reversal-001
 }
 ```
 
-**Response (200 OK):**
+**Response (204 No Content):**
 
 ```http
-HTTP/1.1 200 OK
+HTTP/1.1 204 No Content
 X-Correlation-Id: reversal-001
+```
+
+---
+
+#### Example: Create Credit Memo (Full Credit)
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/credit-memos
+Content-Type: application/json
+X-Correlation-Id: credit-memo-001
 
 {
-  "reversalId": "456e7890-e89b-12d3-a456-426614174000",
-  "paymentApplicationId": "789e0123-e89b-12d3-a456-426614174000",
-  "reversedAmount": 100.00,
-  "reason": "Customer disputed charge, refund issued",
-  "reversedAt": "2025-01-13T11:00:00Z",
-  "reversedBy": "john.doe@example.com"
+  "originalInvoiceId": "inv-123e4567-e89b-12d3-a456-426614174000",
+  "creditAmount": 100.00,
+  "reasonCode": "RETURNED_GOODS",
+  "justificationNote": "Customer returned Item #12345, full refund authorized by manager"
 }
 ```
+
+**Response (201 Created):**
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: credit-memo-001
+
+{
+  "creditMemoId": "cm-789e0123-e89b-12d3-a456-426614174000",
+  "originalInvoiceId": "inv-123e4567-e89b-12d3-a456-426614174000",
+  "customerId": "cust-234e5678-e89b-12d3-a456-426614174000",
+  "creditAmount": 100.00,
+  "taxAmountReversed": 10.00,
+  "totalAmount": 110.00,
+  "reasonCode": "RETURNED_GOODS",
+  "justificationNote": "Customer returned Item #12345, full refund authorized by manager",
+  "status": "POSTED",
+  "creationTimestamp": "2026-02-08T14:30:00.123Z",
+  "postedTimestamp": "2026-02-08T14:30:00.123Z",
+  "createdByUserId": "user-456",
+  "priorPeriodAdjustment": false,
+  "originalPeriodId": null,
+  "currency": "USD",
+  "invoiceBalanceAfter": 0.00
+}
+```
+
+**Response (409 Conflict - Amount Exceeds Balance):**
+
+```http
+HTTP/1.1 409 Conflict
+X-Correlation-Id: credit-memo-002
+
+{
+  "code": "CREDIT_AMOUNT_EXCEEDS_BALANCE",
+  "message": "Credit amount $150.00 exceeds invoice outstanding balance $100.00",
+  "correlationId": "credit-memo-002",
+  "timestamp": "2026-02-08T14:30:00Z"
+}
+```
+
+**Response (400 Bad Request - Missing Reason Code):**
+
+```http
+HTTP/1.1 400 Bad Request
+X-Correlation-Id: credit-memo-003
+
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Reason code is required",
+  "correlationId": "credit-memo-003",
+  "timestamp": "2026-02-08T14:30:00Z",
+  "fieldErrors": [
+    {
+      "field": "reasonCode",
+      "message": "Reason code is required",
+      "rejectedValue": null
+    }
+  ]
+}
+```
+
+---
+
+#### Example: Create Credit Memo (Partial Credit, Prior Period)
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/credit-memos
+Content-Type: application/json
+X-Correlation-Id: credit-memo-004
+
+{
+  "originalInvoiceId": "inv-old-2025-q4-invoice",
+  "creditAmount": 50.00,
+  "reasonCode": "PRICING_ERROR",
+  "justificationNote": "Overcharged on service hours, partial credit approved"
+}
+```
+
+**Response (201 Created with Prior Period Adjustment):**
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: credit-memo-004
+
+{
+  "creditMemoId": "cm-890e1234-e89b-12d3-a456-426614174000",
+  "originalInvoiceId": "inv-old-2025-q4-invoice",
+  "customerId": "cust-234e5678-e89b-12d3-a456-426614174000",
+  "creditAmount": 50.00,
+  "taxAmountReversed": 5.00,
+  "totalAmount": 55.00,
+  "reasonCode": "PRICING_ERROR",
+  "justificationNote": "Overcharged on service hours, partial credit approved",
+  "status": "POSTED",
+  "creationTimestamp": "2026-02-08T14:30:00.123Z",
+  "postedTimestamp": "2026-02-08T14:30:00.123Z",
+  "createdByUserId": "user-456",
+  "priorPeriodAdjustment": true,
+  "originalPeriodId": "Q4-2025",
+  "currency": "USD",
+  "invoiceBalanceAfter": 55.00
+}
+```
+
+**Note:** The `priorPeriodAdjustment: true` flag indicates the original invoice was from a closed accounting period (Q4-2025), so the GL entries are posted to the current open period (Q1-2026) but flagged as prior period adjustments for reporting purposes.
 
 ---
 
@@ -1565,14 +1855,32 @@ This guide establishes standardized contracts for the Accounting domain:
 ## Change Log
 
 | Version | Date | Changes |
-|---------|------|---------|
+| --------- | ------ | --------- |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
+| 1.1 | 2026-02-08 | Added Credit Memo endpoints and contracts (CAP-052) |
+
+---
+
+## Implementation Links
+
+### CAP-052: Accounts Receivable (Invoice → Cash Application)
+
+**Parent Issue:** [durion#52](https://github.com/louisburroughs/durion/issues/52)  
+**Backend Implementation:** [durion-positivity-backend#131](https://github.com/louisburroughs/durion-positivity-backend/issues/131)  
+**Frontend Implementation:** [durion-moqui-frontend#195](https://github.com/louisburroughs/durion-moqui-frontend/issues/195)
+
+**Endpoints Added:**
+- `POST /v1/accounting/credit-memos` - Create Credit Memo
+- `GET /v1/accounting/credit-memos` - List Credit Memos
+- `GET /v1/accounting/credit-memos/{creditMemoId}` - Get Credit Memo
+
+**Scope:** Credit Memo creation for AR corrections (returned goods, pricing errors, service credits). Posts reversing GL entries (debit revenue/tax, credit AR). Handles prior period adjustments. Does NOT include cash refund execution (separate Payment capability).
 
 ---
 
 ## References
 
-- OpenAPI Specification: `pos-accounting/target/openapi.json`
+- OpenAPI Specification: `pos-accounting/openapi.json`
 - Domain Agent Guide: `domains/accounting/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/accounting/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/accounting/.business-rules/ERROR_CODES.md`
@@ -1580,5 +1888,5 @@ This guide establishes standardized contracts for the Accounting domain:
 
 ---
 
-**Generated:** 2026-01-27 14:27:53 UTC  
+**Generated:** 2026-02-08 00:00:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
