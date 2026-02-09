@@ -1,8 +1,8 @@
 # Accounting Backend Contract Guide
 
-**Version:** 1.0  
+**Version:** 1.3  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-02-08  
+**Last Updated:** 2026-02-09  
 **OpenAPI Source:** `pos-accounting/openapi.json`
 
 ---
@@ -418,7 +418,7 @@ All error responses **MUST** include the correlation ID in the body:
 
 ### Endpoint Summary
 
-This domain exposes **59** REST API endpoints:
+This domain exposes **63** REST API endpoints:
 
 | Method | Path | Summary |
 | ------ | ---- | ------- |
@@ -478,6 +478,10 @@ This domain exposes **59** REST API endpoints:
 | POST | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/archive` | Archive posting rule set |
 | POST | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/publish` | Publish posting rule set |
 | GET | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/versions` | List posting rule versions |
+| POST | `http://localhost:8080/v1/accounting/ap/payments` | Execute vendor payment |
+| GET | `http://localhost:8080/v1/accounting/ap/payments/{paymentId}` | Get payment details |
+| GET | `http://localhost:8080/v1/accounting/ap/payments/by-ref/{paymentRef}` | Get payment by reference |
+| GET | `http://localhost:8080/v1/accounting/ap/bills` | List eligible vendor bills |
 | GET | `http://localhost:8080/v1/accounting/traceability/{journalEntryId}` | Get journal traceability |
 | POST | `http://localhost:8080/v1/invoice/invoices` | Regenerate invoice from workorder |
 | GET | `http://localhost:8080/v1/invoice/rules/{customerId}` | Get billing rules |
@@ -2282,6 +2286,7 @@ This guide establishes standardized contracts for the Accounting domain:
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 | 1.1 | 2026-02-08 | Added Credit Memo endpoints and contracts (CAP-052) |
 | 1.2 | 2026-02-08 | Added AP Payment endpoints and contracts (CAP-053) |
+| 1.3 | 2026-02-09 | Synced Endpoint Summary with OpenAPI (AP endpoints) + added CAP-054 coordination links |
 
 ---
 
@@ -2325,6 +2330,16 @@ This guide establishes standardized contracts for the Accounting domain:
 - **Unapplied Amount:** `unappliedAmount = grossAmount - sum(allocations)` becomes vendor credit for future bill payments.
 
 ---
+
+### CAP-054: Period Close, Adjustments, and Reporting
+
+**Parent Issue:** [durion#54](https://github.com/louisburroughs/durion/issues/54)  
+**Backend Implementation:** [durion-positivity-backend#125](https://github.com/louisburroughs/durion-positivity-backend/issues/125)  
+**Frontend Implementation:** [durion-moqui-frontend#123](https://github.com/louisburroughs/durion-moqui-frontend/issues/123)
+
+**Contract Note:**
+
+- No CAP-054-specific Accounting OpenAPI paths detected in `pos-accounting/openapi.json` as of 2026-02-09; this section tracks implementation coordination.
 
 ## References
 
