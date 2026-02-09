@@ -247,6 +247,7 @@ public enum Status {
 #### CreateCreditMemoRequest.reasonCode
 
 **Standard Reason Codes:**
+
 - `RETURNED_GOODS` - Customer returned merchandise
 - `PRICING_ERROR` - Incorrect pricing on original invoice
 - `SERVICE_CREDIT` - Credit for service level issues
@@ -638,6 +639,7 @@ This domain exposes **59** REST API endpoints:
 **Description:** Create a new Credit Memo to reverse invoice charges for returned goods, pricing errors, or service credits. The Credit Memo posts offsetting GL entries that debit Revenue/Tax and credit Accounts Receivable.
 
 **Business Rules (CAP-052):**
+
 - Original invoice must be in FINALIZED status
 - Credit amount cannot exceed invoice outstanding balance
 - Reason code is mandatory for audit trail
@@ -2292,6 +2294,7 @@ This guide establishes standardized contracts for the Accounting domain:
 **Frontend Implementation:** [durion-moqui-frontend#195](https://github.com/louisburroughs/durion-moqui-frontend/issues/195)
 
 **Endpoints Added:**
+
 - `POST /v1/accounting/credit-memos` - Create Credit Memo
 - `GET /v1/accounting/credit-memos` - List Credit Memos
 - `GET /v1/accounting/credit-memos/{creditMemoId}` - Get Credit Memo
@@ -2306,6 +2309,7 @@ This guide establishes standardized contracts for the Accounting domain:
 **Backend Implementation:** [durion-positivity-backend#128](https://github.com/louisburroughs/durion-positivity-backend/issues/128)
 
 **Endpoints Added:**
+
 - `POST /v1/accounting/ap/payments` - Execute AP Payment
 - `GET /v1/accounting/ap/payments/{paymentId}` - Get Payment by ID
 - `GET /v1/accounting/ap/payments/by-ref/{paymentRef}` - Get Payment by Reference
@@ -2314,6 +2318,7 @@ This guide establishes standardized contracts for the Accounting domain:
 **Scope:** AP payment execution with gateway integration and asynchronous GL posting. Supports idempotency via `paymentRef` (idempotency key), automatic allocation (oldest due first per BR-4) or explicit allocations, two-phase completion (gateway success = payment complete, GL posted = accounting complete), unapplied remainder tracking as vendor credit.
 
 **Key Patterns:**
+
 - **Idempotency:** Same `paymentRef` + same payload = return existing payment (200 OK). Same `paymentRef` + different payload = 409 Conflict.
 - **Two-Phase Completion:** `status: GATEWAY_SUCCEEDED` (gateway complete, payment confirmed) → async event → `status: GL_POSTED` (accounting complete, GL entries recorded).
 - **Allocation Logic (BR-4):** Empty `allocations[]` triggers automatic allocation (oldest due first, nulls last ordering). Explicit `allocations` validated: non-negative, sum ≤ gross, bills must be APPROVED status.

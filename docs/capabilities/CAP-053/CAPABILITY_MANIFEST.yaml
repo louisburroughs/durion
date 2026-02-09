@@ -58,7 +58,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-accounting/target/openapi.json

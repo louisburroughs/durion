@@ -73,6 +73,7 @@ Contract guide entry (draft):
     (D). Add validation & error handling per the assertions
     (E). Include concurrency-safe patterns if needed (idempotency, optimistic locking)
     (F). Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
+    (G). **OpenAPI source of truth:** Treat `openapi.json` as authoritative for implemented services. Do **not** overwrite or regenerate it without explicit permission; if it needs updates, request approval first.
   5. **Commit changes to the feature branch:**
      ```bash
      cd /home/louisb/Projects/durion-positivity-backend
