@@ -1839,6 +1839,427 @@ X-Correlation-Id: credit-memo-004
 
 ---
 
+---
+
+#### Example: Execute AP Payment with Automatic Allocation
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/ap/payments
+Content-Type: application/json
+X-Correlation-Id: ap-payment-001
+
+{
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "grossAmount": 600.00,
+  "feeAmount": 5.00,
+  "netAmount": 595.00,
+  "currency": "USD",
+  "paymentRef": "pay-789e0123-e89b-12d3-a456-426614174000",
+  "paymentMethod": "ACH",
+  "memo": "Monthly vendor payment - automatic allocation",
+  "allocations": []
+}
+```
+
+**Response (201 Created):**
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: ap-payment-001
+
+{
+  "paymentId": "pay-890e1234-e89b-12d3-a456-426614174000",
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "paymentRef": "pay-789e0123-e89b-12d3-a456-426614174000",
+  "grossAmount": 600.00,
+  "feeAmount": 5.00,
+  "netAmount": 595.00,
+  "unappliedAmount": 0.00,
+  "currency": "USD",
+  "paymentMethod": "ACH",
+  "status": "GATEWAY_SUCCEEDED",
+  "gatewayTransactionId": "gw-txn-12345",
+  "gatewayTimestamp": "2026-02-08T14:30:00.123Z",
+  "glJournalEntryId": null,
+  "glPostedAt": null,
+  "glPostError": null,
+  "memo": "Monthly vendor payment - automatic allocation",
+  "createdAt": "2026-02-08T14:30:00.123Z",
+  "updatedAt": "2026-02-08T14:30:00.123Z",
+  "allocations": [
+    {
+      "allocationId": "alloc-234e5678-e89b-12d3-a456-426614174000",
+      "vendorBillId": "bill-345e6789-e89b-12d3-a456-426614174000",
+      "billNumber": "BILL-001",
+      "appliedAmount": 500.00,
+      "allocationSequence": 0
+    },
+    {
+      "allocationId": "alloc-456e7890-e89b-12d3-a456-426614174000",
+      "vendorBillId": "bill-567e8901-e89b-12d3-a456-426614174000",
+      "billNumber": "BILL-002",
+      "appliedAmount": 100.00,
+      "allocationSequence": 1
+    }
+  ]
+}
+```
+
+**Note:** Empty `allocations` array triggers automatic allocation logic (oldest due first per BR-4). Payment allocates $500 to BILL-001 (oldest due) and $100 to BILL-002, leaving no unapplied amount.
+
+---
+
+#### Example: Execute AP Payment with Explicit Allocations
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/ap/payments
+Content-Type: application/json
+X-Correlation-Id: ap-payment-002
+
+{
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "grossAmount": 400.00,
+  "feeAmount": 5.00,
+  "netAmount": 395.00,
+  "currency": "USD",
+  "paymentRef": "pay-abc12345-e89b-12d3-a456-426614174000",
+  "paymentMethod": "WIRE",
+  "memo": "Payment for BILL-002 only",
+  "allocations": [
+    {
+      "vendorBillId": "bill-567e8901-e89b-12d3-a456-426614174000",
+      "appliedAmount": 300.00
+    }
+  ]
+}
+```
+
+**Response (201 Created with Unapplied Amount):**
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: ap-payment-002
+
+{
+  "paymentId": "pay-def67890-e89b-12d3-a456-426614174000",
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "paymentRef": "pay-abc12345-e89b-12d3-a456-426614174000",
+  "grossAmount": 400.00,
+  "feeAmount": 5.00,
+  "netAmount": 395.00,
+  "unappliedAmount": 100.00,
+  "currency": "USD",
+  "paymentMethod": "WIRE",
+  "status": "GATEWAY_SUCCEEDED",
+  "gatewayTransactionId": "gw-txn-67890",
+  "gatewayTimestamp": "2026-02-08T14:35:00.123Z",
+  "glJournalEntryId": null,
+  "glPostedAt": null,
+  "glPostError": null,
+  "memo": "Payment for BILL-002 only",
+  "createdAt": "2026-02-08T14:35:00.123Z",
+  "updatedAt": "2026-02-08T14:35:00.123Z",
+  "allocations": [
+    {
+      "allocationId": "alloc-678e9012-e89b-12d3-a456-426614174000",
+      "vendorBillId": "bill-567e8901-e89b-12d3-a456-426614174000",
+      "billNumber": "BILL-002",
+      "appliedAmount": 300.00,
+      "allocationSequence": 0
+    }
+  ]
+}
+```
+
+**Note:** Explicit allocation to BILL-002 only ($300) leaves $100 unapplied, which becomes vendor credit.
+
+---
+
+#### Example: Idempotent Payment Execution (Same paymentRef Returns Existing)
+
+**Request (retrying same paymentRef with same payload):**
+
+```http
+POST http://localhost:8080/v1/accounting/ap/payments
+Content-Type: application/json
+X-Correlation-Id: ap-payment-003
+
+{
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "grossAmount": 200.00,
+  "feeAmount": 0.00,
+  "netAmount": 200.00,
+  "currency": "USD",
+  "paymentRef": "pay-idempotent-001",
+  "paymentMethod": "CHECK",
+  "memo": "Idempotency test",
+  "allocations": []
+}
+```
+
+**Response (200 OK - existing payment returned):**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: ap-payment-003
+
+{
+  "paymentId": "pay-existing-12345",
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "paymentRef": "pay-idempotent-001",
+  "grossAmount": 200.00,
+  "feeAmount": 0.00,
+  "netAmount": 200.00,
+  "unappliedAmount": 0.00,
+  "currency": "USD",
+  "paymentMethod": "CHECK",
+  "status": "GATEWAY_SUCCEEDED",
+  "gatewayTransactionId": "gw-txn-existing",
+  "gatewayTimestamp": "2026-02-08T13:00:00.123Z",
+  "glJournalEntryId": null,
+  "glPostedAt": null,
+  "glPostError": null,
+  "memo": "Idempotency test",
+  "createdAt": "2026-02-08T13:00:00.123Z",
+  "updatedAt": "2026-02-08T13:00:00.123Z",
+  "allocations": []
+}
+```
+
+**Note:** Same `paymentRef` with same payload returns existing payment (200 OK). No duplicate payment created.
+
+---
+
+#### Example: Idempotency Conflict (Same paymentRef, Different Payload)
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/ap/payments
+Content-Type: application/json
+X-Correlation-Id: ap-payment-004
+
+{
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "grossAmount": 300.00,
+  "feeAmount": 0.00,
+  "netAmount": 300.00,
+  "currency": "USD",
+  "paymentRef": "pay-idempotent-001",
+  "paymentMethod": "ACH",
+  "memo": "Different payload",
+  "allocations": []
+}
+```
+
+**Response (409 Conflict):**
+
+```http
+HTTP/1.1 409 Conflict
+X-Correlation-Id: ap-payment-004
+
+{
+  "code": "PAYMENT_IDEMPOTENCY_CONFLICT",
+  "message": "Payment with paymentRef 'pay-idempotent-001' already exists with different payload",
+  "correlationId": "ap-payment-004",
+  "timestamp": "2026-02-08T14:40:00Z"
+}
+```
+
+**Note:** Same `paymentRef` with different payload (e.g., different grossAmount) returns 409 Conflict.
+
+---
+
+#### Example: Validation Error (Negative Amount)
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/ap/payments
+Content-Type: application/json
+X-Correlation-Id: ap-payment-005
+
+{
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "grossAmount": -100.00,
+  "feeAmount": 0.00,
+  "netAmount": -100.00,
+  "currency": "USD",
+  "paymentRef": "pay-invalid-001",
+  "paymentMethod": "ACH",
+  "allocations": []
+}
+```
+
+**Response (400 Bad Request):**
+
+```http
+HTTP/1.1 400 Bad Request
+X-Correlation-Id: ap-payment-005
+
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Gross amount must be positive",
+  "correlationId": "ap-payment-005",
+  "timestamp": "2026-02-08T14:45:00Z",
+  "fieldErrors": [
+    {
+      "field": "grossAmount",
+      "message": "must be greater than or equal to 0.01",
+      "rejectedValue": -100.00
+    }
+  ]
+}
+```
+
+---
+
+#### Example: Validation Error (Allocations Exceed Gross Amount)
+
+**Request:**
+
+```http
+POST http://localhost:8080/v1/accounting/ap/payments
+Content-Type: application/json
+X-Correlation-Id: ap-payment-006
+
+{
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "grossAmount": 100.00,
+  "feeAmount": 0.00,
+  "netAmount": 100.00,
+  "currency": "USD",
+  "paymentRef": "pay-invalid-002",
+  "paymentMethod": "WIRE",
+  "allocations": [
+    {
+      "vendorBillId": "bill-123e4567-e89b-12d3-a456-426614174000",
+      "appliedAmount": 600.00
+    }
+  ]
+}
+```
+
+**Response (400 Bad Request):**
+
+```http
+HTTP/1.1 400 Bad Request
+X-Correlation-Id: ap-payment-006
+
+{
+  "code": "ALLOCATION_EXCEEDS_GROSS",
+  "message": "Total allocations ($600.00) exceed gross amount ($100.00)",
+  "correlationId": "ap-payment-006",
+  "timestamp": "2026-02-08T14:50:00Z"
+}
+```
+
+---
+
+#### Example: List Eligible Vendor Bills
+
+**Request:**
+
+```http
+GET http://localhost:8080/v1/accounting/ap/bills?vendorId=vendor-123e4567-e89b-12d3-a456-426614174000
+X-Correlation-Id: ap-bills-001
+```
+
+**Response (200 OK):**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: ap-bills-001
+
+[
+  {
+    "vendorBillId": "bill-345e6789-e89b-12d3-a456-426614174000",
+    "billNumber": "BILL-001",
+    "billDate": "2026-01-10",
+    "dueDate": "2026-01-30",
+    "totalAmount": 500.00,
+    "openAmount": 500.00,
+    "status": "APPROVED",
+    "currency": "USD"
+  },
+  {
+    "vendorBillId": "bill-567e8901-e89b-12d3-a456-426614174000",
+    "billNumber": "BILL-002",
+    "billDate": "2026-02-01",
+    "dueDate": "2026-02-23",
+    "totalAmount": 300.00,
+    "openAmount": 300.00,
+    "status": "APPROVED",
+    "currency": "USD"
+  }
+]
+```
+
+**Note:** Bills are ordered by due date (oldest first, nulls last), then bill date, then bill ID per BR-4.
+
+---
+
+#### Example: Get Payment by ID
+
+**Request:**
+
+```http
+GET http://localhost:8080/v1/accounting/ap/payments/pay-890e1234-e89b-12d3-a456-426614174000
+X-Correlation-Id: ap-get-001
+```
+
+**Response (200 OK):**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: ap-get-001
+
+{
+  "paymentId": "pay-890e1234-e89b-12d3-a456-426614174000",
+  "vendorId": "vendor-123e4567-e89b-12d3-a456-426614174000",
+  "paymentRef": "pay-789e0123-e89b-12d3-a456-426614174000",
+  "grossAmount": 600.00,
+  "feeAmount": 5.00,
+  "netAmount": 595.00,
+  "unappliedAmount": 0.00,
+  "currency": "USD",
+  "paymentMethod": "ACH",
+  "status": "GL_POSTED",
+  "gatewayTransactionId": "gw-txn-12345",
+  "gatewayTimestamp": "2026-02-08T14:30:00.123Z",
+  "glJournalEntryId": "je-001",
+  "glPostedAt": "2026-02-08T14:31:00.456Z",
+  "glPostError": null,
+  "memo": "Monthly vendor payment - automatic allocation",
+  "createdAt": "2026-02-08T14:30:00.123Z",
+  "updatedAt": "2026-02-08T14:31:00.456Z",
+  "allocations": [
+    {
+      "allocationId": "alloc-234e5678-e89b-12d3-a456-426614174000",
+      "vendorBillId": "bill-345e6789-e89b-12d3-a456-426614174000",
+      "billNumber": "BILL-001",
+      "appliedAmount": 500.00,
+      "allocationSequence": 0
+    },
+    {
+      "allocationId": "alloc-456e7890-e89b-12d3-a456-426614174000",
+      "vendorBillId": "bill-567e8901-e89b-12d3-a456-426614174000",
+      "billNumber": "BILL-002",
+      "appliedAmount": 100.00,
+      "allocationSequence": 1
+    }
+  ]
+}
+```
+
+**Note:** Payment is fully posted to GL (`status: GL_POSTED`, `glPostedAt` populated).
+
+---
+
 ## Summary
 
 This guide establishes standardized contracts for the Accounting domain:
@@ -1858,6 +2279,7 @@ This guide establishes standardized contracts for the Accounting domain:
 | --------- | ------ | --------- |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 | 1.1 | 2026-02-08 | Added Credit Memo endpoints and contracts (CAP-052) |
+| 1.2 | 2026-02-08 | Added AP Payment endpoints and contracts (CAP-053) |
 
 ---
 
@@ -1875,6 +2297,27 @@ This guide establishes standardized contracts for the Accounting domain:
 - `GET /v1/accounting/credit-memos/{creditMemoId}` - Get Credit Memo
 
 **Scope:** Credit Memo creation for AR corrections (returned goods, pricing errors, service credits). Posts reversing GL entries (debit revenue/tax, credit AR). Handles prior period adjustments. Does NOT include cash refund execution (separate Payment capability).
+
+---
+
+### CAP-053: Accounts Payable (Bill → Payment)
+
+**Parent Issue:** [durion#53](https://github.com/louisburroughs/durion/issues/53)  
+**Backend Implementation:** [durion-positivity-backend#128](https://github.com/louisburroughs/durion-positivity-backend/issues/128)
+
+**Endpoints Added:**
+- `POST /v1/accounting/ap/payments` - Execute AP Payment
+- `GET /v1/accounting/ap/payments/{paymentId}` - Get Payment by ID
+- `GET /v1/accounting/ap/payments/by-ref/{paymentRef}` - Get Payment by Reference
+- `GET /v1/accounting/ap/bills?vendorId={vendorId}` - List Eligible Vendor Bills
+
+**Scope:** AP payment execution with gateway integration and asynchronous GL posting. Supports idempotency via `paymentRef` (idempotency key), automatic allocation (oldest due first per BR-4) or explicit allocations, two-phase completion (gateway success = payment complete, GL posted = accounting complete), unapplied remainder tracking as vendor credit.
+
+**Key Patterns:**
+- **Idempotency:** Same `paymentRef` + same payload = return existing payment (200 OK). Same `paymentRef` + different payload = 409 Conflict.
+- **Two-Phase Completion:** `status: GATEWAY_SUCCEEDED` (gateway complete, payment confirmed) → async event → `status: GL_POSTED` (accounting complete, GL entries recorded).
+- **Allocation Logic (BR-4):** Empty `allocations[]` triggers automatic allocation (oldest due first, nulls last ordering). Explicit `allocations` validated: non-negative, sum ≤ gross, bills must be APPROVED status.
+- **Unapplied Amount:** `unappliedAmount = grossAmount - sum(allocations)` becomes vendor credit for future bill payments.
 
 ---
 
