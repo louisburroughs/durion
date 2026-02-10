@@ -93,6 +93,7 @@ Constraints and rules
 - When adding DTO examples, use OpenAPI schema definitions directly; prefer JSON Schema snippets and include a TypeScript interface suggestion.
 - All file paths mentioned must be workspace-relative.
 - If guide contains endpoints derived from manifest API addresses rather than OpenAPI, rectify them to match the current OpenAPI spec.
+- Ignore gateway path transformations in the manifest or stories; use OpenAPI paths and transform them to the gateway format as needed. We will update gateway path transformations in the manifest/stories in a future cleanup once all guides are OpenAPI-synced.
 
 Output format (must exactly follow)
 - Section 1: Plan — numbered steps (1–6) no more than 8 bullets.
