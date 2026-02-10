@@ -47,7 +47,7 @@ The goal is consistent, deterministic quality gates per repository, without cros
 The Lint Agent covers the following technologies:
 
 - **Platform repo (`durion/`)**: Markdown, shell scripts (bash/zsh), repo-local agent docs
-- **POS backend (`durion-positivity-backend/`)**: Java 21, Spring Boot 3.x, Maven, YAML, OpenAPI
+- **POS backend (`durion-positivity-backend/`)**: Java 21, Spring Boot 4.0.x, Maven, YAML, OpenAPI
 - **Moqui frontend (`durion-moqui-frontend/`)**: Moqui framework (Java/Groovy/XML), Gradle, JavaScript/TypeScript, Vue, Quasar
 
 Out of scope (for now):

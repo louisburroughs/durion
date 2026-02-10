@@ -14,8 +14,10 @@ import com.durion.core.WorkspaceAgent;
 /**
  * Performance Coordination Agent
  *
- * Coordinates performance optimization across durion-positivity-backend (Spring Boot 3.x),
- * durion-positivity (integration layer), and durion-moqui-frontend (Moqui 3.x + Vue.js 3).
+ * Coordinates performance optimization across durion-positivity-backend (Spring
+ * Boot 4.0.x),
+ * durion-positivity (integration layer), and durion-moqui-frontend (Moqui 3.x +
+ * Vue.js 3).
  *
  * Requirements: REQ-WS-009, REQ-WS-NFR-001
  * - Identify performance bottlenecks within 5 minutes (90% accuracy)
@@ -30,8 +32,7 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
     private volatile boolean ready = false;
 
     private static final List<String> LAYERS = List.of(
-        "durion-positivity-backend", "durion-positivity", "durion-moqui-frontend"
-    );
+            "durion-positivity-backend", "durion-positivity", "durion-moqui-frontend");
 
     // Performance targets from REQ-WS-NFR-001
     private static final Duration BOTTLENECK_DETECTION_TIMEOUT = Duration.ofMinutes(5);
@@ -49,18 +50,17 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
     @Override
     public AgentCapabilities getCapabilities() {
         return new AgentCapabilities(
-            "performance-coordination",
-            Set.of("identify-bottlenecks", "coordinate-cache-invalidation", "update-performance-dashboard", "coordinate-auto-scaling", "generate-optimization-recommendations"),
-            Map.of(
-                "identify-bottlenecks", "Identify system bottlenecks",
-                "coordinate-cache-invalidation", "Coordinate cache invalidation across layers",
-                "update-performance-dashboard", "Update unified performance dashboards",
-                "coordinate-auto-scaling", "Coordinate auto-scaling to meet SLOs",
-                "generate-optimization-recommendations", "Generate optimization recommendations"
-            ),
-            Set.of("monitoring", "optimization"),
-            100
-        );
+                "performance-coordination",
+                Set.of("identify-bottlenecks", "coordinate-cache-invalidation", "update-performance-dashboard",
+                        "coordinate-auto-scaling", "generate-optimization-recommendations"),
+                Map.of(
+                        "identify-bottlenecks", "Identify system bottlenecks",
+                        "coordinate-cache-invalidation", "Coordinate cache invalidation across layers",
+                        "update-performance-dashboard", "Update unified performance dashboards",
+                        "coordinate-auto-scaling", "Coordinate auto-scaling to meet SLOs",
+                        "generate-optimization-recommendations", "Generate optimization recommendations"),
+                Set.of("monitoring", "optimization"),
+                100);
     }
 
     @Override
@@ -119,7 +119,9 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
     }
 
     @Override
-    public boolean isReady() { return ready; }
+    public boolean isReady() {
+        return ready;
+    }
 
     @SuppressWarnings("unchecked")
     private AgentResult identifyBottlenecks(Map<String, Object> parameters, long startNano) {
@@ -131,10 +133,9 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
                 String metric = metrics.get(i % metrics.size());
                 double severity = 0.5 + (i * 0.1);
                 bottlenecks.add(Map.of(
-                    "layer", layer,
-                    "metric", metric,
-                    "severity", severity
-                ));
+                        "layer", layer,
+                        "metric", metric,
+                        "severity", severity));
                 i++;
             }
         }
@@ -146,14 +147,12 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
         double stale = 0.5; // percent
         long ms = (System.nanoTime() - startNano) / 1_000_000;
         return AgentResult.success(
-            Map.of(
-                "successful", true,
-                "staleDataPercentage", stale,
-                "coordinatedLayers", LAYERS
-            ),
-            "Cache invalidation coordinated",
-            ms
-        );
+                Map.of(
+                        "successful", true,
+                        "staleDataPercentage", stale,
+                        "coordinatedLayers", LAYERS),
+                "Cache invalidation coordinated",
+                ms);
     }
 
     private AgentResult updatePerformanceDashboard(Map<String, Object> parameters, long startNano) {
@@ -167,14 +166,12 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
         double availability = 99.95;
         long ms = (System.nanoTime() - startNano) / 1_000_000;
         return AgentResult.success(
-            Map.of(
-                "scalingAction", action,
-                "availabilityPercentage", availability,
-                "scaledLayers", LAYERS
-            ),
-            "Auto-scaling coordinated",
-            ms
-        );
+                Map.of(
+                        "scalingAction", action,
+                        "availabilityPercentage", availability,
+                        "scaledLayers", LAYERS),
+                "Auto-scaling coordinated",
+                ms);
     }
 
     @SuppressWarnings("unchecked")
@@ -182,15 +179,14 @@ public class PerformanceCoordinationAgent implements WorkspaceAgent {
         List<String> issues = (List<String>) parameters.getOrDefault("performanceIssues", List.of());
         List<Map<String, Object>> recs = new ArrayList<>();
         if (!issues.isEmpty()) {
-            String[] priorities = {"P1", "P2", "P3"};
+            String[] priorities = { "P1", "P2", "P3" };
             int idx = 0;
             for (String layer : LAYERS) {
                 String issue = issues.get(idx % issues.size());
                 recs.add(Map.of(
-                    "targetLayer", layer,
-                    "action", "Optimize: " + issue,
-                    "priority", priorities[idx % priorities.length]
-                ));
+                        "targetLayer", layer,
+                        "action", "Optimize: " + issue,
+                        "priority", priorities[idx % priorities.length]));
                 idx++;
             }
         }

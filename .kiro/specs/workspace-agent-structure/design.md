@@ -4,7 +4,7 @@
 
 The Workspace-Level Agent Structure System is a comprehensive framework that coordinates development across the entire Durion ecosystem, including:
 
-- **durion-positivity-backend**: Spring Boot 3.x microservices (Java 21) for business logic, APIs, and data persistence
+- **durion-positivity-backend**: Spring Boot 4.0.x microservices (Java 21) for business logic, APIs, and data persistence
 - **durion-moqui-frontend**: Moqui Framework 3.x (Java 11) with Vue.js 3 frontend for user interfaces and workflows
 
 The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents. **Critically, the workspace agents are responsible for analyzing complete business requirement design documents and intelligently splitting the implementation between the moqui frontend (UI/screens/user interaction) and the durion-positivity-backend (business logic/APIs/data persistence).**
@@ -24,7 +24,7 @@ The workspace agent structure operates as a strategic coordination layer above p
 
 3. **Technology Stack Bridging**: Manage the impedance mismatch between:
    - Java 21 (durion-positivity-backend) ↔ Java 11 (moqui) ↔ Groovy (moqui services)
-   - Spring Boot 3.x ↔ Moqui Framework 3.x patterns
+   - Spring Boot 4.0.x ↔ Moqui Framework 3.x patterns
    - PostgreSQL (durion-positivity-backend) ↔ PostgreSQL/MySQL (moqui) database coordination
    - Docker deployment (both) with different container configurations
 
@@ -99,7 +99,7 @@ graph TB
         WF[Workflow Coordination Agent]
     end
     
-    subgraph "Positivity Backend (Java 21, Spring Boot 3.x)"
+    subgraph "Positivity Backend (Java 21, Spring Boot 4.0.x)"
         POSAPI[Business Logic APIs]
         POSDATA[Data Persistence]
         POSAUTH[Authentication Services]
@@ -218,7 +218,7 @@ WorkspaceAgentHierarchy:
     
   backend_layer:
     durion-positivity-backend:
-      stack: "Java 21, Spring Boot 3.x, PostgreSQL"
+      stack: "Java 21, Spring Boot 4.0.x, PostgreSQL"
       agents:
         - spring_boot_developer_agent
         - api_gateway_agent
@@ -419,7 +419,7 @@ DecomposedRequirements:
 
 - Coordinates feature development between durion-positivity-backend services and moqui frontend based on requirements decomposition
 - Manages backend-frontend dependencies and integration points through durion-positivity component
-- Provides guidance for API versioning and backward compatibility between Spring Boot 3.x and Moqui Framework 3.x
+- Provides guidance for API versioning and backward compatibility between Spring Boot 4.0.x and Moqui Framework 3.x
 - Orchestrates release coordination between Java 21 backend and Java 11 frontend deployments
 - Handles integration testing scenarios that span the full stack (Spock + Jest)
 - Ensures proper use of durion-positivity component as integration layer
@@ -441,7 +441,7 @@ DecomposedRequirements:
 **Capabilities**:
 
 - Defines workspace-wide architectural patterns and principles for both Spring Boot and Moqui frameworks
-- Ensures consistency between Spring Boot 3.x microservices (Java 21, durion-positivity-backend) and Moqui Framework 3.x (Java 11, Groovy, Vue.js 3)
+- Ensures consistency between Spring Boot 4.0.x microservices (Java 21, durion-positivity-backend) and Moqui Framework 3.x (Java 11, Groovy, Vue.js 3)
 - Validates requirements decomposition against established architectural boundaries
 - Manages technology stack decisions and integration patterns through durion-positivity component
 - Provides guidance for system boundaries and layer interactions (presentation vs business logic)
@@ -497,7 +497,7 @@ DecomposedRequirements:
 
 - Defines and maintains OpenAPI 3.0 specifications for durion-positivity-backend REST APIs consumed by durion-positivity component
 - Generates Groovy service interfaces in durion-positivity component from durion-positivity-backend API contracts
-- Manages API versioning strategies ensuring backward compatibility across Spring Boot 3.x (durion-positivity-backend) and Moqui 3.x integration
+- Manages API versioning strategies ensuring backward compatibility across Spring Boot 4.0.x (durion-positivity-backend) and Moqui 3.x integration
 - Coordinates DTO mappings between:
   - Spring Boot JPA entities (durion-positivity-backend)
   - Groovy service DTOs (durion-positivity component)
@@ -945,7 +945,7 @@ CrossProjectIntegrationRegistry:
       type: spring_boot_microservices
       stack:
         language: Java 21
-        framework: Spring Boot 3.x
+        framework: Spring Boot 4.0.x
         database: PostgreSQL
         testing: Spock Framework
       apis: 
@@ -1150,7 +1150,7 @@ After reviewing all properties identified in the prework, several areas of redun
 **Validates: NEW requirement - Requirements decomposition accuracy and architectural boundary enforcement**
 
 **Property 1: Cross-project architectural consistency**
-*For any* architectural decision that affects multiple projects, agents should ensure consistency across Spring Boot 3.x (Java 21), Moqui Framework 3.x (Java 11/Groovy), and Vue.js 3 (TypeScript 5.x) technology stacks while respecting project-specific constraints and JVM version differences
+*For any* architectural decision that affects multiple projects, agents should ensure consistency across Spring Boot 4.0.x (Java 21), Moqui Framework 3.x (Java 11/Groovy), and Vue.js 3 (TypeScript 5.x) technology stacks while respecting project-specific constraints and JVM version differences
 **Validates: Requirements 1.2, 2.3, 6.4**
 
 **Property 2: API contract synchronization**

@@ -96,6 +96,6 @@ If you introduce, change, or standardize any eventing decision (topic naming con
 - [Chief Architect - POS Agent Framework](./architecture.agent.md) — Consult for platform-wide standards and governance-sensitive eventing decisions.
 - [API Architect Agent](./api-architect.agent.md) — Consult for consistency between REST contracts and event contracts (error models, versioning).
 - [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult to coordinate changes that touch both synchronous APIs and async event flows.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring messaging integration patterns and modern Spring idioms.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Consult for Spring messaging integration patterns and modern Spring idioms.
 - [SRE Agent](./sre.agent.md) — Consult for observability, operational runbooks, and incident response around event pipelines.
 - [Database Administrator Agent](./dba.agent.md) — Consult if event publishing depends on DB guarantees (outbox tables, indexes, retention).

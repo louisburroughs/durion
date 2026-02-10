@@ -249,7 +249,7 @@ sum by (status) (orders_processed{component="pos-order"})
 - Frontend test agent (Moqui): [Frontend Testing Agent](../../../durion-moqui-frontend/.github/agents/test.agent.md) — Validate frontend telemetry (Web Vitals/JS errors) in test environments.
 - [Senior Software Engineer - REST API Agent](./api.agent.md) — Instrument REST endpoints with rate/error/duration and consistent attributes.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Ensure trace context propagation and stable route labeling at the edge.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Ensure Spring observability patterns align with modern Boot conventions.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Ensure Spring observability patterns align with modern Boot conventions.
 
 Additional cross-stack coordination:
 - [Accessibility Expert Agent](./accessibility.agent.md) — When frontend failures present as usability/accessibility regressions.

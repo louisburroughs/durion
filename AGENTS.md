@@ -5,7 +5,7 @@
 Durion is a multi-repo platform that includes:
 
 - `durion-moqui-frontend`: Moqui Framework runtime + UI (Vue 3, Quasar, TypeScript 5)
-- `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 3.x)
+- `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 4.0.x)
 - `durion`: workspace-level coordination, governance, project ,and agent docs
 
 This file is a concise, agent-focused guide containing the commands and context agents need to work across frontend and backend.

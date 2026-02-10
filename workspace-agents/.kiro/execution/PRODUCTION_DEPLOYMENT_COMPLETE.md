@@ -55,7 +55,7 @@ The Workspace Agent Framework has been **SUCCESSFULLY PROMOTED TO PRODUCTION** w
 
 ### Cross-Technology Integration
 - **Java 21** ↔ **Java 11** ↔ **Groovy** ↔ **TypeScript**
-- **durion-positivity-backend** (Spring Boot 3.x) ↔ **durion-moqui-frontend** (Moqui Framework 3.x)
+- **durion-positivity-backend** (Spring Boot 4.0.x) ↔ **durion-moqui-frontend** (Moqui Framework 3.x)
 - **Real-time coordination** across technology boundaries
 
 ### Enterprise Features
@@ -74,7 +74,7 @@ The Workspace Agent Framework has been **SUCCESSFULLY PROMOTED TO PRODUCTION** w
 
 ### Technology Stack
 - **Java 21 LTS** - Modern runtime with latest features
-- **Spring Boot 3.x** - Backend microservices framework
+- **Spring Boot 4.0.x** - Backend microservices framework
 - **Moqui Framework 3.x** - Enterprise application framework
 - **Vue.js 3 + TypeScript** - Modern frontend framework
 - **PostgreSQL/MySQL** - Production database support

@@ -14,13 +14,16 @@ import com.durion.core.AgentResult;
 import com.durion.core.WorkspaceAgent;
 
 /**
- * API Contract Agent - Manages API contracts between durion-positivity-backend services
+ * API Contract Agent - Manages API contracts between durion-positivity-backend
+ * services
  * and durion-positivity component consumed by durion-moqui-frontend.
  *
  * Requirements: REQ-WS-005
- * - Manages API contracts between durion-positivity-backend and durion-positivity
+ * - Manages API contracts between durion-positivity-backend and
+ * durion-positivity
  * - Generates Groovy service interfaces from Spring Boot API contracts
- * - Ensures backward compatibility across Spring Boot 3.x and Moqui 3.x integration
+ * - Ensures backward compatibility across Spring Boot 4.0.x and Moqui 3.x
+ * integration
  * - Validates contract testing between REST APIs and Groovy wrappers
  */
 public class ApiContractAgent implements WorkspaceAgent {
@@ -38,17 +41,15 @@ public class ApiContractAgent implements WorkspaceAgent {
     @Override
     public AgentCapabilities getCapabilities() {
         return new AgentCapabilities(
-            "api-contract",
-            Set.of("manage-contracts", "generate-interfaces", "validate-compatibility", "test-contracts"),
-            Map.of(
-                "manage-contracts", "Manage API contracts registry",
-                "generate-interfaces", "Generate Groovy/Moqui wrappers from OpenAPI",
-                "validate-compatibility", "Validate backward compatibility across services",
-                "test-contracts", "Run contract tests between backend and Moqui"
-            ),
-            Set.of("java21", "spring-boot", "moqui"),
-            100
-        );
+                "api-contract",
+                Set.of("manage-contracts", "generate-interfaces", "validate-compatibility", "test-contracts"),
+                Map.of(
+                        "manage-contracts", "Manage API contracts registry",
+                        "generate-interfaces", "Generate Groovy/Moqui wrappers from OpenAPI",
+                        "validate-compatibility", "Validate backward compatibility across services",
+                        "test-contracts", "Run contract tests between backend and Moqui"),
+                Set.of("java21", "spring-boot", "moqui"),
+                100);
     }
 
     @Override
@@ -104,7 +105,9 @@ public class ApiContractAgent implements WorkspaceAgent {
     }
 
     @Override
-    public boolean isReady() { return ready; }
+    public boolean isReady() {
+        return ready;
+    }
 
     private AgentResult manageContracts(Map<String, Object> parameters, long startNano) {
         long durationMs = (System.nanoTime() - startNano) / 1_000_000;

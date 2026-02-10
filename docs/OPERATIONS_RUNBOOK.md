@@ -5,7 +5,7 @@
 This runbook documents operational procedures that span the Durion platform:
 
 - **durion-moqui-frontend** (Moqui Framework, Java 11, Groovy, Vue.js 3, Quasar, TypeScript)
-- **durion-positivity-backend** (Spring Boot 3.x microservices, Java 21)
+- **durion-positivity-backend** (Spring Boot 4.0.x microservices, Java 21)
 
 This runbook is **platform-level**. For repo-local details that may evolve faster, also consult:
 

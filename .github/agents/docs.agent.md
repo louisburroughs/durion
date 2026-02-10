@@ -27,7 +27,7 @@ This workspace contains multiple repositories. Documentation work often needs to
    - Domain rules: `durion/domains/<domain>/.business-rules/`
 
 - **POS Backend (durion-positivity-backend/):**
-   - **Tech Stack:** Java 21, Spring Boot 3.x, PostgreSQL, jqwik (property-based testing)
+   - **Tech Stack:** Java 21, Spring Boot 4.0.x, PostgreSQL, jqwik (property-based testing)
    - **Build System:** Maven (multi-module)
    - **Architecture:** domain-driven `pos-*` modules with service boundaries
    - **Where to read code:** `durion-positivity-backend/pos-*/src/main/java/` and `durion-positivity-backend/pos-*/src/test/java/`

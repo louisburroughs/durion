@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 3.x, Java 21) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer, providing unified guidance for full-stack concerns while delegating project-specific tasks to specialized agents.
+This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 4.0.x, Java 21) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer, providing unified guidance for full-stack concerns while delegating project-specific tasks to specialized agents.
 
 **Key Innovation:** The **Requirements Decomposition Agent** analyzes complete business requirements and intelligently splits implementation between moqui frontend (UI/screens/workflows) and positivity backend (business logic/APIs/data persistence), ensuring proper architectural boundaries and seamless integration through the durion-positivity component.
 

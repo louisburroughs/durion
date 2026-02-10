@@ -171,7 +171,7 @@ Loop:
 - [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for architectural alignment, trade-offs, and review-level feedback.
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to reduce complexity and delete unused code safely.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult to align implementation work with the right unit/integration test coverage.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for modern Spring Boot idioms, starters, and non-deprecated patterns.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Consult for modern Spring Boot idioms, starters, and non-deprecated patterns.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult when persistence choices affect PostgreSQL performance or correctness.
 - [Database Administrator Agent](./dba.agent.md) — Consult for migrations, data lifecycle, and environment concerns.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when changes affect gateway routing, edge concerns, or OpenAPI aggregation.

@@ -7,7 +7,7 @@
 **Repository**: louisburroughs/durion-positivity-backend
 
 **Technology Stack**:
-- Spring Boot 3.2.6
+- Spring Boot 4.0.2
 - Java 21
 - Spring Data JPA
 - PostgreSQL/MySQL

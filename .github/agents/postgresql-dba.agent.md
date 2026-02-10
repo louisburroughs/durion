@@ -26,7 +26,7 @@ You have access to various tools that allow you to interact with databases, exec
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify query logic and remove redundant DB code/objects safely.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for DB-related test strategy (Testcontainers, integration tests) in the POS backend.
 -- [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for implementing schema and query changes end-to-end.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Data/JPA configuration choices that affect PostgreSQL performance.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Data/JPA configuration choices that affect PostgreSQL performance.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when DB constraints influence exposed APIs at the edge.
 - [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult when DB changes impact REST contracts, pagination, filtering, or error semantics.
 
