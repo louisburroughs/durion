@@ -16,10 +16,12 @@ Define CoA, posting categories, and mapping keys used to translate business even
 - [x] DTOs created for Posting Categories and Mapping Keys
 - [x] Services implemented for Posting Categories and Mapping Keys
 - [x] Controllers implemented for Posting Categories and Mapping Keys
-- [ ] Contract behavior tests added
-- [ ] Event types registered
-- [ ] OpenAPI annotations complete (already present on controllers)
+- [x] Contract behavior tests added (GLAccountContractBehaviorIT, PostingCategoryContractBehaviorIT, MappingKeyContractBehaviorIT)
+- [x] Event types registered (AccountingEventTypes and AccountingEventTypeInitializer exist)
+- [x] OpenAPI annotations complete (already present on controllers)
 - [x] Pull request created: https://github.com/louisburroughs/durion-positivity-backend/pull/427
+
+**Implementation Date:** February 10, 2026
 
 ---
 
@@ -34,13 +36,13 @@ Define CoA, posting categories, and mapping keys used to translate business even
 - ✅ Service (stub): `GLAccountService.java`
 
 **Tasks:**
-- [ ] Create DTOs:
+- [x] Create DTOs:
   - `GLAccountCreateRequest`
   - `GLAccountUpdateRequest`
   - `GLAccountResponse`
   - `GLAccountListResponse`
   - `GLAccountBalanceResponse`
-- [ ] Implement `GLAccountService` methods:
+- [x] Implement `GLAccountService` methods:
   - `createGLAccount` - validate account code uniqueness, set activation date
   - `getGLAccount` - retrieve with derived status
   - `updateGLAccount` - validate immutability rules (account code/type locked after first posting)
@@ -49,9 +51,10 @@ Define CoA, posting categories, and mapping keys used to translate business even
   - `deactivateGLAccount` - verify zero balance, set deactivation date
   - `archiveGLAccount` - verify inactive status, set archived date
   - `getAccountBalance` - sum debit/credit lines from journal entries
-- [ ] Wire service into controller
-- [ ] Add validation error handling
-- [ ] Add @EmitEvent annotations (already present)
+  - `validateAccountForPosting` - validate account is active and exists
+- [x] Wire service into controller
+- [x] Add validation error handling
+- [x] Add @EmitEvent annotations (already present)
 
 ### 2. Posting Categories - CRUD Operations
 
@@ -60,26 +63,26 @@ Define CoA, posting categories, and mapping keys used to translate business even
 - ✅ Repository: `PostingCategoryRepository.java`
 
 **Tasks:**
-- [ ] Create DTOs:
-  - `PostingCategoryCreateRequest`
-  - `PostingCategoryUpdateRequest`
+- [x] Create DTOs:
+  - `PostingCategoryCreateRequest` (with @Builder)
+  - `PostingCategoryUpdateRequest` (with @Builder)
   - `PostingCategoryResponse`
   - `PostingCategoryListResponse`
-- [ ] Create `PostingCategoryService`:
+- [x] Create `PostingCategoryService`:
   - `createPostingCategory` - validate name uniqueness
   - `getPostingCategory` - retrieve by ID
   - `updatePostingCategory` - update name/description
   - `listPostingCategories` - pagination, filtering by active status
-  - `deactivatePostingCategory` - check no active mappings reference it
-- [ ] Create `PostingCategoryController`:
+  - `deactivatePostingCategory` - check no active mappings reference it (returns PostingCategoryResponse)
+- [x] Create `PostingCategoryController`:
   - `POST /v1/accounting/posting-categories`
   - `GET /v1/accounting/posting-categories/{id}`
   - `PUT /v1/accounting/posting-categories/{id}`
   - `GET /v1/accounting/posting-categories`
   - `POST /v1/accounting/posting-categories/{id}/deactivate`
-- [ ] Add OpenAPI annotations
-- [ ] Add @EmitEvent annotations
-- [ ] Add security annotations (@PreAuthorize)
+- [x] Add OpenAPI annotations
+- [x] Add @EmitEvent annotations
+- [x] Add security annotations (@PreAuthorize)
 
 ### 3. Mapping Keys - CRUD Operations
 
@@ -88,27 +91,27 @@ Define CoA, posting categories, and mapping keys used to translate business even
 - ✅ Repository: `MappingKeyRepository.java`
 
 **Tasks:**
-- [ ] Create DTOs:
-  - `MappingKeyCreateRequest`
-  - `MappingKeyUpdateRequest`
+- [x] Create DTOs:
+  - `MappingKeyCreateRequest` (with @Builder)
+  - `MappingKeyUpdateRequest` (with @Builder)
   - `MappingKeyResponse`
   - `MappingKeyListResponse`
-- [ ] Create `MappingKeyService`:
+- [x] Create `MappingKeyService`:
   - `createMappingKey` - validate posting category exists, key name unique within category
   - `getMappingKey` - retrieve by ID
   - `updateMappingKey` - update name/description
-  - `listMappingKeysByCategory` - list all keys for a posting category
+  - `listMappingKeysByCategory` - list all keys for a posting category (with 5 params including isActive filter)
   - `linkToCategory` - associate key with category (validate 1:1 deterministic mapping)
-  - `deactivateMappingKey` - check no active mappings reference it
-- [ ] Create `MappingKeyController`:
+  - `deactivateMappingKey` - check no active mappings reference it (returns MappingKeyResponse)
+- [x] Create `MappingKeyController`:
   - `POST /v1/accounting/mapping-keys`
   - `GET /v1/accounting/mapping-keys/{id}`
   - `PUT /v1/accounting/mapping-keys/{id}`
   - `GET /v1/accounting/posting-categories/{categoryId}/mapping-keys`
   - `POST /v1/accounting/mapping-keys/{id}/deactivate`
-- [ ] Add OpenAPI annotations
-- [ ] Add @EmitEvent annotations
-- [ ] Add security annotations
+- [x] Add OpenAPI annotations
+- [x] Add @EmitEvent annotations
+- [x] Add security annotations
 
 ### 4. GL Mappings - Configuration (Existing)
 
@@ -126,7 +129,7 @@ Define CoA, posting categories, and mapping keys used to translate business even
 ### 5. Event Type Registration
 
 **Tasks:**
-- [ ] Create `AccountingEventTypes` registry class with:
+- [x] Create `AccountingEventTypes` registry class with:
   - `ACCOUNTING_GL_ACCOUNT_CREATE`
   - `ACCOUNTING_GL_ACCOUNT_UPDATE`
   - `ACCOUNTING_GL_ACCOUNT_ACTIVATE`
@@ -141,30 +144,33 @@ Define CoA, posting categories, and mapping keys used to translate business even
   - `ACCOUNTING_MAPPING_KEY_UPDATE`
   - `ACCOUNTING_MAPPING_KEY_DEACTIVATE`
   - `ACCOUNTING_MAPPING_KEY_LIST`
-- [ ] Create `AccountingEventTypeInitializer` (ApplicationRunner pattern)
-- [ ] Register event types with performance thresholds:
+- [x] Create `AccountingEventTypeInitializer` (ApplicationRunner pattern)
+- [x] Register event types with performance thresholds:
   - Read operations: `fastRead` preset (p50=50ms, p95=200ms, p99=500ms)
   - Write operations: `write` preset (p50=200ms, p95=1s, p99=3s)
 
 ### 6. Contract Behavior Tests
 
 **Tasks:**
-- [ ] Create `GLAccountContractBehaviorIT`:
+- [x] Create `GLAccountContractBehaviorIT` (20 test cases):
   - Happy path: create, retrieve, update, activate, deactivate, archive
   - Validation: duplicate account code rejected
   - Immutability: account code/type locked after creation
   - Deactivation: requires zero balance
   - Archival: requires inactive status
   - Effective dating: derived status calculation
-- [ ] Create `PostingCategoryContractBehaviorIT`:
+  - Balance queries and posting validation
+- [x] Create `PostingCategoryContractBehaviorIT` (10 test cases):
   - Happy path: create, retrieve, update, deactivate
   - Validation: duplicate name rejected
   - Deactivation blocked if active mappings exist
-- [ ] Create `MappingKeyContractBehaviorIT`:
+  - List with pagination and filtering
+- [x] Create `MappingKeyContractBehaviorIT` (14 test cases):
   - Happy path: create, retrieve, update, link to category
   - Validation: duplicate key name within category rejected
   - Validation: posting category exists
   - Deactivation blocked if active mappings exist
+  - List by category with filters
 - [ ] Create `GLMappingContractBehaviorIT`:
   - Effective dating: overlapping ranges rejected
   - Resolution: deterministic mapping selection
@@ -174,18 +180,18 @@ Define CoA, posting categories, and mapping keys used to translate business even
 ### 7. Error Handling
 
 **Tasks:**
-- [ ] Add custom exceptions:
-  - `GLAccountNotFoundException`
+- [x] Add custom exceptions:
+  - `GLAccountNotFoundException` - HTTP 404
   - `PostingCategoryNotFoundException`
   - `MappingKeyNotFoundException`
-  - `DuplicateAccountCodeException`
+  - `DuplicateAccountCodeException` - HTTP 409
   - `DuplicatePostingCategoryException`
   - `DuplicateMappingKeyException`
-  - `AccountNotZeroBalanceException`
-  - `AccountNotInactiveException`
+  - `AccountNotZeroBalanceException` - HTTP 400
+  - `AccountNotInactiveException` - HTTP 400
   - `ActiveMappingsExistException`
-- [ ] Add global exception handler mapping to standard error response format
-- [ ] Follow error code conventions from `domains/accounting/.business-rules/ERROR_CODES.md`
+- [x] Add global exception handler mapping to standard error response format
+- [x] Follow error code conventions from `domains/accounting/.business-rules/ERROR_CODES.md`
 
 ---
 
@@ -313,14 +319,66 @@ All endpoints must include:
 ## Next Steps
 
 1. ✅ Create feature branch `cap/CAP050`
-2. Create DTOs for all entities
-3. Implement service layer methods
-4. Wire services into controllers
-5. Add event type registration
-6. Create contract behavior tests
-7. Run tests and validate
-8. Commit and push changes
-9. Create pull request
+2. ✅ Create DTOs for all entities
+3. ✅ Implement service layer methods
+4. ✅ Wire services into controllers
+5. ✅ Add event type registration
+6. ✅ Create contract behavior tests
+7. ⏳ Run tests and fix failures (1 test failure in GLAccountContractBehaviorIT.testActivateGLAccount_Success)
+8. ⏳ Complete GLMappingContractBehaviorIT tests
+9. Commit and push changes
+10. Update pull request
+
+---
+
+## Implementation Summary
+
+### Completed Work (February 10, 2026)
+
+**Services Implemented:**
+- `GLAccountService` - Full implementation with 10 methods (400+ lines)
+  - CRUD operations with validation
+  - Lifecycle management (activate, deactivate, archive)
+  - Balance calculations from journal entry lines
+  - Derived status calculation based on effective dates
+  
+- `PostingCategoryService` - Already existed, updated to return response DTOs from lifecycle operations
+- `MappingKeyService` - Already existed, updated to return response DTOs from lifecycle operations
+
+**DTOs Created/Updated:**
+- All GL Account DTOs (Create, Update, Response, List, Balance)
+- Posting Category request DTOs with `@Builder` annotation
+- Mapping Key request DTOs with `@Builder` annotation
+
+**Exception Classes Created:**
+- `GLAccountNotFoundException` (HTTP 404)
+- `DuplicateAccountCodeException` (HTTP 409)
+- `AccountNotZeroBalanceException` (HTTP 400)
+- `AccountNotInactiveException` (HTTP 400)
+
+**Tests Created:**
+- `GLAccountContractBehaviorIT` - 20 test cases
+- `PostingCategoryContractBehaviorIT` - 10 test cases
+- `MappingKeyContractBehaviorIT` - 14 test cases
+- **Total: 44 contract behavior tests**
+
+**Event Types:**
+- `AccountingEventTypes` registry - Already exists with all event type definitions
+- `AccountingEventTypeInitializer` - Already exists with ApplicationRunner pattern
+
+### Known Issues
+
+1. **Test Failure:** `GLAccountContractBehaviorIT.testActivateGLAccount_Success`
+   - **Issue:** Test expects `ACTIVE` status but receives `NOT_YET_ACTIVE`
+   - **Root Cause:** Derived status calculation may have timing issue with activation date
+   - **Status:** Needs investigation and fix
+
+### Pending Work
+
+1. Fix failing test in `GLAccountContractBehaviorIT`
+2. Create `GLMappingContractBehaviorIT` test suite
+3. Run full test suite to verify all 44+ tests pass
+4. Update and finalize pull request
 
 ---
 
