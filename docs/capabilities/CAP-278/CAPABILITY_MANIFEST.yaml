@@ -1,0 +1,245 @@
+meta:
+  capability_id: CAP:278
+  capability_name: "CAP-278: Posting Rule Engine"
+  owner_repo: louisburroughs/durion
+  created_utc: "2026-02-10T17:02:54Z"
+  last_updated_utc: "2026-02-10T17:02:54Z"
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 278
+  title: "CAP-278: Posting Rule Engine"
+  domain: accounting
+  labels:
+    - type:capability
+    - domain:accounting
+    - CAP:278
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  status_field_name: "status:{Backlog,Ready,In Progress,In Review,Done}"
+  preferred_branch_prefix: "cap/"
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+  contract_status_markers:
+    - draft
+    - stable-for-ui
+repositories:
+  - name: durion-positivity-backend
+    slug: louisburroughs/durion-positivity-backend
+    type: backend
+    notes: ""
+  - name: durion-moqui-frontend
+    slug: louisburroughs/durion-moqui-frontend
+    type: frontend-coordination
+    notes: Frontend child issues live here; code changes may land in component repos.
+  - name: durion-accounting
+    slug: louisburroughs/durion-accounting
+    type: frontend-component
+    notes: ""
+stories:
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 279
+      title: "Implement PostingRuleEvaluator core service"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 472
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 280
+      title: "Integrate PostingRuleEvaluator with JournalEntryService (autoPost)"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 477
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 281
+      title: "Add idempotency checks to Posting Rule Engine"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 473
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 282
+      title: "Persist ReprocessingAttemptHistory and Audit Trail for Posting Attempts"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 474
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 283
+      title: "Add metrics and health checks for Posting Rule Engine"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 476
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 284
+      title: "Replace `EventIngestionService.attemptReprocessingLogic()` with Posting Engine call"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 475
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+  - parent_story:
+      repo: louisburroughs/durion
+      issue: 285
+      title: "Integration tests for Posting Rule Engine and reprocessing flow"
+      domain: accounting
+      labels:
+        - type:story
+        - domain:accounting
+        - CAP:278
+    children:
+      backend:
+        repo: louisburroughs/durion-positivity-backend
+        issue: 478
+    contract_guide:
+      repo: louisburroughs/durion
+      path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      anchor: ""
+      status: draft
+      openapi:
+        spec_path: pos-accounting/target/openapi.json
+    pr_links:
+      durion_contract_pr: ""
+      backend_pr: ""
+      frontend_prs: []
+    merge_order:
+      - durion_contract_pr
+      - backend_pr
+      - frontend_prs
+execution:
+  agent_rules:
+    - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+    - Frontend work starts only when contract status is stable-for-ui.
+    - "One branch per repo per capability: CAP/278."
+  definition_of_done:
+    - All PRs merged and required checks green
+    - Contract guide entry updated with examples + behavioral assertions
+    - Provider behavioral contract tests added/updated
+    - Frontend wired to stable contract
