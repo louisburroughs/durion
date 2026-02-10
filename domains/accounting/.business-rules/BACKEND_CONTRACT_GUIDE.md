@@ -1,8 +1,8 @@
 # Accounting Backend Contract Guide
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-02-09  
+**Last Updated:** 2026-02-10  
 **OpenAPI Source:** `durion-positivity-backend/pos-accounting/openapi.json`
 
 ---
@@ -19,6 +19,14 @@ This guide is generated from the OpenAPI specification and follows the standards
 
 - Capability: https://github.com/louisburroughs/durion/issues/55
 - Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/122
+- Capability (CAP-278): https://github.com/louisburroughs/durion/issues/278
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/472
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/473
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/474
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/475
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/476
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/477
+- Backend child issue (CAP-278): https://github.com/louisburroughs/durion-positivity-backend/issues/478
 
 ---
 
@@ -489,13 +497,13 @@ This domain exposes **67** REST API endpoints:
 | GET | `http://localhost:8080/v1/accounting/ap/payments/{paymentId}` | Get payment details |
 | GET | `http://localhost:8080/v1/accounting/ap/payments/by-ref/{paymentRef}` | Get payment by reference |
 | GET | `http://localhost:8080/v1/accounting/ap/bills` | List eligible vendor bills |
-| GET | `http://localhost:8080/api/v1/reports/financial/income-statement` | Generate Income Statement |
-| GET | `http://localhost:8080/api/v1/reports/financial/drilldown/journal-lines/{accountId}` | Drilldown to Journal Lines |
-| GET | `http://localhost:8080/api/v1/reports/financial/drilldown/accounts/{statementLineCode}` | Drilldown to Accounts |
-| GET | `http://localhost:8080/api/v1/reports/financial/balance-sheet` | Generate Balance Sheet |
+| GET | `http://localhost:8080/v1/accounting/reports/financial/income-statement` | Generate Income Statement |
+| GET | `http://localhost:8080/v1/accounting/reports/financial/drilldown/journal-lines/{accountId}` | Drilldown to Journal Lines |
+| GET | `http://localhost:8080/v1/accounting/reports/financial/drilldown/accounts/{statementLineCode}` | Drilldown to Accounts |
+| GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` | Generate Balance Sheet |
 | GET | `http://localhost:8080/v1/accounting/traceability/{journalEntryId}` | Get journal traceability |
-| POST | `http://localhost:8080/v1/invoice/invoices` | Regenerate invoice from workorder |
-| GET | `http://localhost:8080/v1/invoice/rules/{customerId}` | Get billing rules |
+| POST | `http://localhost:8080/v1/accounting/invoice/invoices` | Regenerate invoice from workorder |
+| GET | `http://localhost:8080/v1/accounting/invoice/rules/{customerId}` | Get billing rules |
 
 ### Endpoint Details
 
@@ -1731,7 +1739,7 @@ This domain exposes **67** REST API endpoints:
 
 ---
 
-#### GET <http://localhost:8080/api/v1/reports/financial/income-statement>
+#### GET <http://localhost:8080/v1/accounting/reports/financial/income-statement>
 
 **Summary:** Generate Income Statement
 
@@ -1753,11 +1761,11 @@ This domain exposes **67** REST API endpoints:
 
 **Provider test hint (ContractBehaviorIT):**
 
-- Exercise `GET /api/v1/reports/financial/income-statement` with required parameters populated; assert status codes per OpenAPI.
+- Exercise `GET /v1/accounting/reports/financial/income-statement` with required parameters populated; assert status codes per OpenAPI.
 
 ---
 
-#### GET <http://localhost:8080/api/v1/reports/financial/drilldown/journal-lines/{accountId}>
+#### GET <http://localhost:8080/v1/accounting/reports/financial/drilldown/journal-lines/{accountId}>
 
 **Summary:** Drilldown to Journal Lines
 
@@ -1780,11 +1788,11 @@ This domain exposes **67** REST API endpoints:
 
 **Provider test hint (ContractBehaviorIT):**
 
-- Exercise `GET /api/v1/reports/financial/drilldown/journal-lines/{accountId}` with required parameters populated; assert status codes per OpenAPI.
+- Exercise `GET /v1/accounting/reports/financial/drilldown/journal-lines/{accountId}` with required parameters populated; assert status codes per OpenAPI.
 
 ---
 
-#### GET <http://localhost:8080/api/v1/reports/financial/drilldown/accounts/{statementLineCode}>
+#### GET <http://localhost:8080/v1/accounting/reports/financial/drilldown/accounts/{statementLineCode}>
 
 **Summary:** Drilldown to Accounts
 
@@ -1807,11 +1815,11 @@ This domain exposes **67** REST API endpoints:
 
 **Provider test hint (ContractBehaviorIT):**
 
-- Exercise `GET /api/v1/reports/financial/drilldown/accounts/{statementLineCode}` with required parameters populated; assert status codes per OpenAPI.
+- Exercise `GET /v1/accounting/reports/financial/drilldown/accounts/{statementLineCode}` with required parameters populated; assert status codes per OpenAPI.
 
 ---
 
-#### GET <http://localhost:8080/api/v1/reports/financial/balance-sheet>
+#### GET <http://localhost:8080/v1/accounting/reports/financial/balance-sheet>
 
 **Summary:** Generate Balance Sheet
 
@@ -1832,7 +1840,7 @@ This domain exposes **67** REST API endpoints:
 
 **Provider test hint (ContractBehaviorIT):**
 
-- Exercise `GET /api/v1/reports/financial/balance-sheet` with required parameters populated; assert status codes per OpenAPI.
+- Exercise `GET /v1/accounting/reports/financial/balance-sheet` with required parameters populated; assert status codes per OpenAPI.
 
 ---
 
@@ -1855,7 +1863,7 @@ This domain exposes **67** REST API endpoints:
 
 ---
 
-#### POST <http://localhost:8080/v1/invoice/invoices>
+#### POST <http://localhost:8080/v1/accounting/invoice/invoices>
 
 **Summary:** Regenerate invoice from workorder
 
@@ -1870,7 +1878,7 @@ This domain exposes **67** REST API endpoints:
 
 ---
 
-#### GET <http://localhost:8080/v1/invoice/rules/{customerId}>
+#### GET <http://localhost:8080/v1/accounting/invoice/rules/{customerId}>
 
 **Summary:** Get billing rules
 
@@ -2084,7 +2092,7 @@ This domain exposes **67** REST API endpoints:
 #### Example: Create Request
 
 ```http
-POST http://localhost:8080/v1/invoice/invoices
+POST http://localhost:8080/v1/accounting/invoice/invoices
 Content-Type: application/json
 X-Correlation-Id: abc-123-def-456
 
@@ -2804,6 +2812,7 @@ This guide establishes standardized contracts for the Accounting domain:
 | 1.1 | 2026-02-08 | Added Credit Memo endpoints and contracts (CAP-052) |
 | 1.2 | 2026-02-08 | Added AP Payment endpoints and contracts (CAP-053) |
 | 1.3 | 2026-02-09 | Synced Endpoint Summary with OpenAPI (AP endpoints) + added CAP-054 coordination links |
+| 1.4 | 2026-02-10 | Normalized gateway URL paths (reports + invoice routes) + added CAP-278 coordination links |
 
 ---
 
@@ -2858,6 +2867,25 @@ This guide establishes standardized contracts for the Accounting domain:
 
 - No CAP-054-specific Accounting OpenAPI paths detected in `pos-accounting/openapi.json` as of 2026-02-09; this section tracks implementation coordination.
 
+---
+
+### CAP-278: Posting Rule Engine
+
+**Parent Issue:** [durion#278](https://github.com/louisburroughs/durion/issues/278)  
+**Backend Implementation:**
+
+- [durion-positivity-backend#472](https://github.com/louisburroughs/durion-positivity-backend/issues/472)
+- [durion-positivity-backend#473](https://github.com/louisburroughs/durion-positivity-backend/issues/473)
+- [durion-positivity-backend#474](https://github.com/louisburroughs/durion-positivity-backend/issues/474)
+- [durion-positivity-backend#475](https://github.com/louisburroughs/durion-positivity-backend/issues/475)
+- [durion-positivity-backend#476](https://github.com/louisburroughs/durion-positivity-backend/issues/476)
+- [durion-positivity-backend#477](https://github.com/louisburroughs/durion-positivity-backend/issues/477)
+- [durion-positivity-backend#478](https://github.com/louisburroughs/durion-positivity-backend/issues/478)
+
+**Contract Note:**
+
+- Coordination links only. Any API changes introduced by CAP-278 must be reflected in `pos-accounting/openapi.json` and then synced into this guide.
+
 ## References
 
 - OpenAPI Specification: `pos-accounting/openapi.json`
@@ -2868,5 +2896,5 @@ This guide establishes standardized contracts for the Accounting domain:
 
 ---
 
-**Generated:** 2026-02-08 00:00:00 UTC  
+**Generated:** 2026-02-10 00:00:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
