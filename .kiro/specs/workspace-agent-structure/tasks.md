@@ -2,13 +2,13 @@
 
 ## Overview
 
-This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 3.x, Java 21) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents.
+This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 4.0.x, Java 21) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents.
 
 **Key Innovation:** The **Requirements Decomposition Agent** analyzes complete business requirements and intelligently splits implementation between moqui frontend (UI/screens/workflows) and durion-positivity-backend (business logic/APIs/data persistence), ensuring proper architectural boundaries and seamless integration through the durion-positivity component.
 
 **Technology Stack Bridging:** Manages impedance mismatch between:
 - Java 21 (durion-positivity-backend) ↔ Java 11 (moqui framework) ↔ Groovy (moqui services) ↔ TypeScript 5.x (Vue.js 3 frontend)
-- Spring Boot 3.x patterns ↔ Moqui Framework 3.x patterns
+- Spring Boot 4.0.x patterns ↔ Moqui Framework 3.x patterns
 - PostgreSQL (durion-positivity-backend) ↔ PostgreSQL/MySQL (moqui)
 
 ## Current Status & Immediate Priorities
@@ -97,7 +97,7 @@ This implementation plan creates a workspace-level agent framework for the durio
   - _Code Location:_ `durion/workspace-agents/src/test/java/properties/CrossLayerIntegrationPropertyTest.java`
 
 - [x] 1.5 Implement Workspace Architecture Agent
-  - Enforce consistency across Spring Boot 3.x, Moqui 3.x, Vue.js 3 (100% pattern compliance)
+  - Enforce consistency across Spring Boot 4.0.x, Moqui 3.x, Vue.js 3 (100% pattern compliance)
   - Validate requirements decomposition against architectural boundaries
   - Manage technology stack integration patterns through durion-positivity
   - Prevent dependency conflicts between Java 21, Java 11, Groovy (100% detection)
@@ -155,7 +155,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 - [x] 2.1 Implement API Contract Agent
   - Manages API contracts between durion-positivity-backend services and durion-positivity component consumed by durion-moqui-frontend
   - Generates Groovy service interfaces from durion-positivity-backend API contracts
-  - Manages API versioning strategies ensuring backward compatibility across Spring Boot 3.x and Moqui 3.x integration
+  - Manages API versioning strategies ensuring backward compatibility across Spring Boot 4.0.x and Moqui 3.x integration
   - Ensures contract testing between durion-positivity-backend REST APIs and durion-positivity Groovy wrappers
   - _Requirements: REQ-WS-005_
   - _Code Location:_ `/home/n541342/IdeaProjects/durion/workspace-agents/src/main/java/agents/ApiContractAgent.java`

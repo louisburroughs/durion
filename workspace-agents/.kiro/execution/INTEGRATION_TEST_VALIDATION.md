@@ -112,7 +112,7 @@
 - **Result**: ✅ PASSED - No compatibility issues
 - **Validation**: Serialization and API contracts work correctly
 
-#### Spring Boot 3.x ↔ Moqui 3.x Bridge
+#### Spring Boot 4.0.x ↔ Moqui 3.x Bridge
 - **Test**: Framework pattern coordination
 - **Result**: ✅ PASSED - Consistent patterns enforced
 - **Validation**: REST APIs and Groovy services integrate seamlessly

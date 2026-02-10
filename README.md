@@ -5,7 +5,7 @@ This workspace contains the Durion platform: a Moqui-based frontend/runtime and 
 Repositories in this workspace
 
 - `durion-moqui-frontend` — Moqui runtime + UI (Vue 3, Quasar, TypeScript 5)
-- `durion-positivity-backend` — POS microservices (Java 21, Spring Boot 3.x)
+- `durion-positivity-backend` — POS microservices (Java 21, Spring Boot 4.0.x)
 - `durion` — workspace coordination, agent docs, and governance (this repo)
 
 Quick links

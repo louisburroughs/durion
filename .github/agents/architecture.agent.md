@@ -27,7 +27,7 @@ When you make, change, or recommend an architectural decision (including cross-c
 ## Project Knowledge
 
 ### Technology Stack
-- **Framework:** Spring Boot 3.x with Java 21
+- **Framework:** Spring Boot 4.0.x with Java 21
 - **Build System:** Maven
 - **Agent Framework:** Custom AbstractAgent pattern with builder pattern responses
 - **Data Persistence:** PostgreSQL (primary), in-memory H2 for testing

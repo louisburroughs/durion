@@ -131,7 +131,7 @@ When answering:
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify gateway filters/routes and remove duplication safely.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for contract and integration testing strategy in the POS backend.
 - [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for implementing concrete gateway features end-to-end.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Cloud Gateway/WebFlux best practices and modern Spring idioms.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Cloud Gateway/WebFlux best practices and modern Spring idioms.
 - [Netflix Eureka Server Expert](./netflix-eureka.agent.md) — Consult to align discovery locator behavior, instance metadata, and registry health with routing.
 - [API Architect Agent](./api-architect.agent.md) — Consult to keep gateway behavior consistent with API contracts, versioning, and error model.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult if gateway changes surface DB-driven performance concerns (e.g., downstream query patterns).

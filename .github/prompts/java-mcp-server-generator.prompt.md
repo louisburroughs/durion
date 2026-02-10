@@ -695,7 +695,7 @@ A Model Context Protocol server built with Java and the official MCP Java SDK.
 
 - Java 21 (or later)
 - Maven 3.9+ (for Java 21 support)
-- Spring Boot 3.2.0+ (optional)
+- Spring Boot 4.0.2.0+ (optional)
 
 This project follows the durion-positivity-backend standards and uses Java 21 with virtual threads for reactive programming.
 

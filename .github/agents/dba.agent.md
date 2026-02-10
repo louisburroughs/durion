@@ -214,7 +214,7 @@ Page<Product> productPage = productRepository.findAll(PageRequest.of(0, 100));
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify schema/data access changes without breaking behavior.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for database-related integration test strategy (POS backend).
 - [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for executing migration and schema changes in working code.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Data/JPA configuration that affects migration and runtime DB behavior.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Consult for Spring Data/JPA configuration that affects migration and runtime DB behavior.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult for PostgreSQL-specific tuning and operational best practices.
 - [API Gateway & OpenAPI Architect](./api-gateway.agent.md) — Consult when DB constraints affect exposed APIs and edge behavior.
 - [Senior Software Engineer - REST API Agent](./api.agent.md) — Consult when schema changes require coordinated REST contract adjustments.

@@ -14,7 +14,7 @@
 #### Requirements Decomposition Layer
 - ✅ **Requirements Decomposition Agent**: Parses business requirements, splits frontend/backend (95% accuracy)
 - ✅ **Full-Stack Integration Agent**: Coordinates across durion-positivity-backend ↔ durion-moqui-frontend
-- ✅ **Workspace Architecture Agent**: Enforces consistency across Spring Boot 3.x, Moqui 3.x, Vue.js 3
+- ✅ **Workspace Architecture Agent**: Enforces consistency across Spring Boot 4.0.x, Moqui 3.x, Vue.js 3
 - ✅ **Unified Security Agent**: Ensures identical JWT structure across all layers (100% accuracy)
 - ✅ **Performance Coordination Agent**: Identifies bottlenecks within 5 minutes (90% accuracy)
 
@@ -106,7 +106,7 @@ All 5 correctness properties from the design document validated:
 - **Result**: No compatibility issues detected
 - **Validation**: Serialization and API contracts work correctly
 
-#### Spring Boot 3.x ↔ Moqui 3.x Bridge ✅
+#### Spring Boot 4.0.x ↔ Moqui 3.x Bridge ✅
 - **Test**: Framework pattern coordination
 - **Result**: Consistent patterns enforced across frameworks
 - **Validation**: REST APIs and Groovy services integrate seamlessly

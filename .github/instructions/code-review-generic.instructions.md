@@ -410,7 +410,7 @@ When performing a code review, apply these prompt engineering principles from th
 
 This is a generic template. Customize this section with your project-specific information:
 
-- **Tech Stack**: [e.g., Java 17, Spring Boot 3.x, PostgreSQL]
+- **Tech Stack**: [e.g., Java 17, Spring Boot 4.0.x, PostgreSQL]
 - **Architecture**: [e.g., Hexagonal/Clean Architecture, Microservices]
 - **Build Tool**: [e.g., Gradle, Maven, npm, pip]
 - **Testing**: [e.g., JUnit 5, Jest, pytest]

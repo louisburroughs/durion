@@ -258,7 +258,7 @@ public WorkOrder createWorkOrder(WorkOrder workOrder) {
 ### Build Requirements
 - Java 21 or later
 - Maven 3.8+
-- Spring Boot 3.2.6
+- Spring Boot 4.0.2
 
 ### Test Scenarios
 

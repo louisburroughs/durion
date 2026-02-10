@@ -437,7 +437,7 @@ When creating APIs, document:
 - [Primary Software Engineer Agent](./primary-software-engineer.agent.md) — Consult for contract-level trade-offs, code review readiness, and cross-cutting standards.
 - [Universal Janitor Agent](./janitor.agent.md) — Consult to simplify endpoint flows and remove redundant layers safely.
 - [Backend Testing Agent](../../../durion-positivity-backend/.github/agents/test.agent.md) — Consult for contract and integration testing patterns in the POS backend.
-- [Spring Boot 3.x Strategic Advisor](./springboot.agent.md) — Consult for Spring MVC/WebFlux, modern Jakarta APIs, and Springdoc/OpenAPI patterns.
+- [Spring Boot 4.0.x Strategic Advisor](./springboot.agent.md) — Consult for Spring MVC/WebFlux, modern Jakarta APIs, and Springdoc/OpenAPI patterns.
 - [PostgreSQL Database Administrator](./postgresql-dba.agent.md) — Consult when endpoint work impacts query performance, pagination, or data model fit.
 - [Database Administrator Agent](./dba.agent.md) — Consult for migration strategy, schema lifecycle, and environment parity.
 - [API Architect Agent](./api-architect.agent.md) — Consult for contract standards, versioning, and integration patterns that must align across services.

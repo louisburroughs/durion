@@ -974,7 +974,7 @@ generate.prompt.md → Generated Code File
   - [Primary Software Engineer Agent](../agents/primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
   - [Universal Janitor Agent](../agents/janitor.agent.md) - For code cleanup and tech debt.
   - [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md) - For QA and test development.
-  - [Spring Boot 3.x Strategic Advisor](../agents/springboot.agent.md) - For Spring Boot best practices.
+  - [Spring Boot 4.0.x Strategic Advisor](../agents/springboot.agent.md) - For Spring Boot best practices.
   - [PostgreSQL Database Administrator](../agents/postgresql-dba.agent.md) - For database schema and performance.
   - [Database Administrator Agent](../agents/dba.agent.md) - For general database administration.
   - [API Gateway & OpenAPI Architect](../agents/api-gateway.agent.md) - For gateway and API architecture.
@@ -1026,7 +1026,7 @@ generate.prompt.md → Generated Code File
 for architectural alignment with Moqui Framework patterns.
 
 @implementation-agent Review this generated Java/Spring Boot code 
-for Java 21 and Spring Boot 3.2 best practices.
+for Java 21 and Spring Boot 4.0.2 best practices.
 
 @vue-agent Review this Vue 3 code for Composition API correctness 
 and TypeScript type safety.
