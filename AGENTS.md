@@ -5,7 +5,7 @@
 Durion is a multi-repo platform that includes:
 
 - `durion-moqui-frontend`: Moqui Framework runtime + UI (Vue 3, Quasar, TypeScript 5)
-- `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 4.0.x)
+- `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 4.0.2)
 - `durion`: workspace-level coordination, governance, project ,and agent docs
 
 This file is a concise, agent-focused guide containing the commands and context agents need to work across frontend and backend.
@@ -148,6 +148,40 @@ cd durion-positivity-backend
 
 ---
 
+## Documentation Hierarchy & README.md Files
+
+**MANDATORY: Always check for and consult README.md files in your working directory before making changes.**
+
+Documentation follows a strict hierarchy:
+
+1. **Workspace-level**: `durion/AGENTS.md` (this file) — cross-cutting guidance
+2. **Project-level**: `durion-positivity-backend/AGENTS.md`, `durion-moqui-frontend/AGENTS.md` — project-specific setup and patterns
+3. **Module/Component-level**: `README.md` files in each module directory — module-specific documentation
+
+### README.md Requirements
+
+**Before working in any directory:**
+- Check if a `README.md` exists in that directory
+- Read and follow the guidance in that README.md
+- Consult parent README.md files for context
+
+**When making changes:**
+- Update the local `README.md` when adding new features, changing APIs, or modifying module structure
+- Document new configuration options, environment variables, or setup steps
+- Add examples for new functionality
+- Keep setup instructions current
+
+**README.md locations to check:**
+- Module root: `pos-accounting/README.md`, `pos-order/README.md`, etc.
+- Component root: `runtime/component/durion-*/README.md`
+- Feature directories: Any top-level directory may have a README.md
+
+**If no README.md exists:**
+- Create one when adding significant new functionality
+- Include: purpose, setup, key files, common commands, testing instructions
+
+---
+
 ## Agents & Where to Find Their Docs
 
 Agent docs live under `.github/agents/` in this repo. Key agent docs and runbooks:
@@ -160,7 +194,7 @@ Agent docs live under `.github/agents/` in this repo. Key agent docs and runbook
 - Backend repo test agent: `durion-positivity-backend/.github/agents/test.agent.md`
 - Frontend repo test agent: `durion-moqui-frontend/.github/agents/test.agent.md`
 
-Agents should consult these docs before making cross-cutting changes. When in doubt about observability, consult `.github/agents/sre.agent.md` and `docs/architecture/observability/OBSERVABILITY.md`.
+**Always consult local README.md files first**, then agent docs for cross-cutting concerns. When in doubt about observability, consult `.github/agents/sre.agent.md` and `docs/architecture/observability/OBSERVABILITY.md`.
 
 ---
 
@@ -194,12 +228,15 @@ Logs & traces correlation:
 
 ## Where to Extend
 
-- For monorepo-like per-component agent context, add `AGENTS.md` into subproject roots (e.g., `durion-positivity-backend/AGENTS.md`).
-- Update this file when new developer workflows or CI steps are added.
+- **Module/Component documentation**: Always create or update `README.md` in the module directory when adding new modules or features
+- For monorepo-like per-component agent context, add `AGENTS.md` into subproject roots (e.g., `durion-positivity-backend/AGENTS.md`)
+- **Keep README.md files current**: Update them when changing module structure, APIs, or configuration
+- Update this file when new developer workflows or CI steps are added that affect multiple projects
+
+**Documentation Priority Order:**
+1. Check local `README.md` in your working directory
+2. Check project-level `AGENTS.md` for project-specific patterns
+3. Check workspace-level `AGENTS.md` (this file) for cross-cutting guidance
+4. Check `.github/agents/*.agent.md` for specialized guidance
 
 ---
-
-If you want, I can now:
-
-- run the repository checks to validate commands (build/test), or
-- create per-repo AGENTS.md files with narrower scopes.
