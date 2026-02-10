@@ -150,7 +150,7 @@ cd durion-positivity-backend
 
 ## Documentation Hierarchy & README.md Files
 
-**MANDATORY: Always check for and consult README.md files in your working directory before making changes.**
+**MANDATORY: Always check for and consult README.md files IN YOUR WORKING directory before making changes.**
 
 Documentation follows a strict hierarchy:
 
@@ -234,7 +234,8 @@ Logs & traces correlation:
 - Update this file when new developer workflows or CI steps are added that affect multiple projects
 
 **Documentation Priority Order:**
-1. Check local `README.md` in your working directory
+
+1. Check local `README.md` IN YOUR WORKING FOLDER!
 2. Check project-level `AGENTS.md` for project-specific patterns
 3. Check workspace-level `AGENTS.md` (this file) for cross-cutting guidance
 4. Check `.github/agents/*.agent.md` for specialized guidance

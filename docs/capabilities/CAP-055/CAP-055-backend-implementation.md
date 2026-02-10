@@ -305,7 +305,7 @@ The current implementation includes a **placeholder** for the actual posting log
 4. Post to GL if auto-post is enabled
 5. Return success/failure
 
-**TODO:** Integrate with `JournalEntryService` and posting rule evaluation engine (when available).
+**TODO [CAP-056]:** Integrate with `JournalEntryService` and posting rule evaluation engine. See code TODOs marked with `[CAP-056]` in `EventIngestionService.java`.
 
 ### Retention & Purge
 
@@ -366,7 +366,12 @@ The new event type `ACCOUNTING_EVENT_REPROCESS` is automatically registered on a
 
 1. **Bulk Reprocessing:** Add endpoint to reprocess multiple suspended events by filter (e.g., all events of type X, all events from org Y)
 2. **Retention Job:** Implement scheduled job to purge old PROCESSED/SUSPENDED events
-3. **Posting Rule Integration:** Replace placeholder `attemptReprocessingLogic` with actual posting rule engine
+3. **Posting Rule Integration (CAP-056):** Replace placeholder `attemptReprocessingLogic` with actual posting rule engine
+   - Load active PostingRuleSet for event.organizationId + transactionDate
+   - Evaluate rules against event.payload to determine GL mappings
+   - Generate JournalEntry if rules match
+   - Post to GL if autoPost enabled
+   - See TODOs in `EventIngestionService.java` marked with `[CAP-056]`
 4. **Metrics/Alerting:** Add Prometheus metrics for:
    - Active suspended event count (gauge)
    - Reprocessing attempt rate (counter)
