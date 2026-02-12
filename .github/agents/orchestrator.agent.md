@@ -46,6 +46,51 @@ These are the only agents you can call. Each has a specific role:
 - **Planner** — Creates implementation strategies and technical plans
 - **Coder** — Writes code, fixes bugs, implements logic
 - **Designer** — Creates UI/UX, styling, visual design
+- **Docs** — Technical documentation expert, updates guides and API documentation
+
+## How to Invoke Agents with Prompt Files
+
+When a task requires using a prompt file (e.g., `.github/prompts/backend-contract.prompt.md`):
+
+1. **Read the prompt file** using `readFile` tool to get its full content
+2. **Identify required runtime variables** from the prompt's "Context (inputs)" section (e.g., `BACKEND_CONTRACT_GUIDE_PATH`, `OPENAPI_PATH`, `CAPABILITY_MANIFEST_PATH`)
+3. **Construct the delegation prompt** by combining:
+   - The entire prompt file content
+   - A "Runtime Context" section with actual file paths for each variable:
+     ```
+     ## Runtime Context
+     - BACKEND_CONTRACT_GUIDE_PATH: /home/louisb/Projects/durion/domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
+     - OPENAPI_PATH: /home/louisb/Projects/durion-positivity-backend/pos-{name}/target/openapi.json
+     - CAPABILITY_MANIFEST_PATH: /home/louisb/Projects/durion/docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
+     - AUTOMATED_MODE: true
+     ```
+4. **Call the appropriate agent** (usually Coder) using `runSubagent` with the complete prompt
+
+### Example Invocation
+
+```typescript
+// Step 1: Read prompt file
+const promptContent = await readFile('.github/prompts/backend-contract.prompt.md');
+
+// Step 2: Construct delegation with runtime values
+const delegationPrompt = `
+${promptContent}
+
+## Runtime Context
+- BACKEND_CONTRACT_GUIDE_PATH: domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
+- OPENAPI_PATH: durion-positivity-backend/pos-{name}/target/openapi.json
+- CAPABILITY_MANIFEST_PATH: docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
+- AUTOMATED_MODE: true
+
+Please execute the prompt above with these runtime values.
+`;
+
+// Step 3: Invoke subagent
+runSubagent({
+  description: "Update backend contract guide",
+  prompt: delegationPrompt
+});
+```
 
 ## Execution Model
 
@@ -95,8 +140,9 @@ For this workflow, default to the phases below (even if the Planner plan is mini
 ### Phase 1: Contract guide update (depends on manifest)
 - Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine `BACKEND_CONTRACT_GUIDE_PATH` + `OPENAPI_PATH` per story → Planner
   Files: `docs/capabilities/**/CAPABILITY_MANIFEST.yaml` (read)
-- Task 1.2: Update the contract guide using `.github/prompts/backend-contract.prompt.md` and produce an apply_patch-ready diff → Coder
+- Task 1.2: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables (paths from Task 1.1), and invoke Docs subagent to update the contract guide → Orchestrator delegates to Docs
   Files: `domains/**/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `docs/capabilities/**/CAP-*-backend-contract.md`
+  **Implementation**: Use the "How to Invoke Agents with Prompt Files" pattern above - read prompt file, add Runtime Context section with actual paths, call `runSubagent`
 
 ### Phase 2: Backend implementation (depends on Phase 1)
 - Task 2.1: Execute `.github/prompts/backend-story-fulfillment.prompt.md` for each story, using the manifest + contract guide as inputs → Coder
@@ -214,3 +260,54 @@ When delegating, describe WHAT needs to be done (the outcome), not HOW to do it.
 **Phase 3** — Call Coder to apply theme across components
 
 ### Step 4 — Report completion to user
+
+---
+
+## Example: "Update backend contract for CAP-253"
+
+This demonstrates the Capability → Contract → Backend workflow with prompt file invocation.
+
+### Step 1 — Parse Manifest
+Read `docs/capabilities/CAP-253/CAPABILITY_MANIFEST.yaml` to extract:
+- `stories[0].contract_guide.openapi.spec_path`: `pos-security-service/target/openapi.json`
+- `stories[0].contract_guide.path`: `domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+- Domain: `security`
+
+### Step 2 — Invoke Coder with Backend Contract Prompt
+
+```typescript
+// 1. Read the prompt file
+const promptContent = readFile('.github/prompts/backend-contract.prompt.md');
+
+// 2. Construct delegation with runtime values
+const delegation = `
+${promptContent}
+
+## Runtime Context
+- BACKEND_CONTRACT_GUIDE_PATH: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
+- OPENAPI_PATH: durion-positivity-backend/pos-security-service/target/openapi.json
+- CAPABILITY_MANIFEST_PATH: docs/capabilities/CAP-253/CAPABILITY_MANIFEST.yaml
+- AUTOMATED_MODE: true
+
+Please execute the backend contract guide update following the prompt above.
+`;
+
+// 3. Invoke Docs subagent (expert technical writer)
+runSubagent({
+  description: "Update security backend contract",
+  prompt: delegation
+});
+```
+
+### Step 3 — Verify Output
+The Docs subagent will:
+1. Parse the OpenAPI spec from `pos-security-service/target/openapi.json`
+2. Compare against `BACKEND_CONTRACT_GUIDE.md`
+3. Generate a patch with:
+   - Fixed endpoint: `/v1/auth/delete` → `/v1/auth/revoke`
+   - Updated timestamp
+   - OpenAPI schema alignment
+4. Apply the patch and commit locally
+
+### Step 4 — Report to User
+"✅ Backend contract guide updated for CAP-253. Changes: Fixed /v1/auth/delete → /v1/auth/revoke, synced with OpenAPI spec."
