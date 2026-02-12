@@ -1,0 +1,401 @@
+meta:
+  capability_id: CAP:005
+  capability_name: '[CAP] Execute Workorder (Parts & Labor)'
+  owner_repo: louisburroughs/durion
+  created_utc: '2026-02-12T22:39:04.031489+00:00'
+  last_updated_utc: '2026-02-12T22:39:04.031489+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 5
+  title: '[CAP] Execute Workorder (Parts & Labor)'
+  domain: workexec
+  labels:
+  - layer:business
+  - domain:workexec
+  - type:capability
+  - kiro
+  - CAP:005
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
+  preferred_branch_prefix: cap/
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+  contract_status_markers:
+  - draft
+  - stable-for-ui
+repositories:
+- name: durion-positivity-backend
+  slug: louisburroughs/durion-positivity-backend
+  type: backend
+  notes: ''
+- name: durion-moqui-frontend
+  slug: louisburroughs/durion-moqui-frontend
+  type: frontend-coordination
+  notes: Frontend child issues live here; code changes may land in component repos.
+- name: durion-workexec
+  slug: louisburroughs/durion-workexec
+  type: frontend-component
+  notes: ''
+stories:
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 31
+    title: '[STORY] Execution: Assign Technician to Workorder'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 161
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 225
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-assign-technician-to-work-225.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-assign-technician-to-work-225.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 32
+    title: '[STORY] Execution: Start Workorder and Track Status'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 160
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 224
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-start-workorder-and-track-224.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-start-workorder-and-track-224.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 33
+    title: '[STORY] Execution: Record Labor Performed'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 159
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 223
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-record-labor-performed-223.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-record-labor-performed-223.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 34
+    title: '[STORY] Execution: Issue and Consume Parts'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 158
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 222
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-issue-and-consume-parts-222.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-issue-and-consume-parts-222.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 35
+    title: '[STORY] Execution: Handle Part Substitutions and Returns'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 157
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 221
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-handle-part-substitutions-221.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-handle-part-substitutions-221.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 36
+    title: '[STORY] Execution: Request Additional Work and Flag for Approval'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 156
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 220
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-request-additional-work-a-220.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-request-additional-work-a-220.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 37
+    title: '[STORY] Execution: Apply Role-Based Visibility in Execution UI'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:005
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 155
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 219
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-apply-role-based-visibili-219.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-execution-apply-role-based-visibili-219.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+execution:
+  agent_rules:
+  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+  - Frontend work starts only when contract status is stable-for-ui.
+  - 'One branch per repo per capability: CAP/005.'
+  definition_of_done:
+  - All PRs merged and required checks green
+  - Contract guide entry updated with examples + behavioral assertions
+  - Provider behavioral contract tests added/updated
+  - Frontend wired to stable contract
