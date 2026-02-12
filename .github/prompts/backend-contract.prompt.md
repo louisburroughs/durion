@@ -24,6 +24,9 @@ Context (inputs — agent will be provided values at runtime)
 - `OPENAPI_PATH` — path to the current `openapi.json` representing produced endpoints (e.g., `pos-<module>/target/openapi.json`)
 - `CAPABILITY_MANIFEST_PATH` — path to capability manifest (YAML) containing parent capability, parent stories array, and child backend issues (e.g., `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`)
 
+Optional mode flags
+- `AUTOMATED_MODE` — boolean. If `true`, do not ask for permission to parse/diff; proceed directly through validation and patch generation.
+
 Audience
 - Developers and reviewers who will merge the guide update and run provider contract tests.
 
@@ -34,6 +37,13 @@ Task (decompose into numbered steps)
 1. Load and parse `CAPABILITY_MANIFEST_PATH`:
    - Extract `capability_id`, `parent_capability` (for context), `stories[].children.backend` (iterate each story), `stories[].contract_guide.path` (should match `BACKEND_CONTRACT_GUIDE_PATH`), and any `pr_links` values.
    - Gather all backend child issue URLs from each story in the stories array (use repo+issue).
+   - Prepare a per-story “handoff payload” for `.github/prompts/backend-story-fulfillment.prompt.md`:
+     - capability label/id
+     - parent capability number/url/title (if present)
+     - parent stories list
+     - backend child issues list (markdown)
+     - domain (required)
+     - backend repository slug (required)
 2. Load and parse `OPENAPI_PATH` (OpenAPI 3.0+ JSON) — **AUTHORITATIVE SOURCE**:
    - Extract paths, methods, request/response schemas, status codes, and examples.
    - **OpenAPI is the source of truth**: All endpoint definitions, request/response contracts, and status codes MUST be derived from the current OpenAPI spec, not from previous guide versions, manifest definitions, or story documentation.
@@ -81,6 +91,7 @@ Task (decompose into numbered steps)
    - (D) A machine-readable JSON summary with keys: `capability_id`, `updated_files`, `backend_issues`, `openapi_changes` (with categories added/changed/removed).
    - (E) Confidence score and self-critique summary.
    - (F) Put all implementation details in a markdown document with proper headings and code blocks. Put this document in /durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-contract.md.
+   - (G) Produce a story-fulfillment handoff block that can be pasted into `.github/prompts/backend-story-fulfillment.prompt.md` substitution fields.
 10. Apply patch after review:
    - After explicit user approval, apply the proposed patch to the workspace using the apply_patch mechanism or `git apply`, create a local commit with message "docs(capability): update backend contract guide for {capability_id}", update the JSON summary with `"applied": true`, and report the commit hash. Do NOT push or open PRs remotely.
 
@@ -109,6 +120,18 @@ Output format (must exactly follow)
   }
 - Section 4: Patch — an apply_patch block that modifies `BACKEND_CONTRACT_GUIDE.md` (if no changes required, produce a short note and `confidence: 100`).
 - Section 5: Self-Critique — 1–3 bullets and one-line next steps.
+- Section 6: Story Fulfillment Handoff — one markdown section containing:
+   - `CAPABILITY_MANIFEST_PATH`
+   - `BACKEND_CONTRACT_GUIDE_PATH`
+   - For each story: a compact YAML or JSON block with keys matching the placeholders in `.github/prompts/backend-story-fulfillment.prompt.md`:
+      - `capability_label`
+      - `capability_id`
+      - `domain`
+      - `parent_capability_number`
+      - `parent_capability_url`
+      - `parent_capability_title`
+      - `parent_stories_list`
+      - `backend_child_issues`
 
 Examples (placeholders)
 - Input placeholders:
@@ -146,3 +169,5 @@ Permissions and safety
 Now produce the required outputs for the given inputs interactively:
 - Confirm you understand and list the three input file paths you received.
 - Show the initial Plan (per above), then request permission to run the parsing + diff steps.
+
+If `AUTOMATED_MODE=true`, skip the permission request and proceed directly to validation + patch + handoff output.
