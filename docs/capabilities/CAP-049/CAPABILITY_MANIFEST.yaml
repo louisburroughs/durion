@@ -1,0 +1,651 @@
+meta:
+  capability_id: CAP:049
+  capability_name: '[CAP] Ingest Accounting Events (Cross-Module)'
+  owner_repo: louisburroughs/durion
+  created_utc: '2026-02-12T22:38:04.530499+00:00'
+  last_updated_utc: '2026-02-12T22:38:04.530499+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 49
+  title: '[CAP] Ingest Accounting Events (Cross-Module)'
+  domain: accounting
+  labels:
+  - layer:business
+  - type:capability
+  - domain:accounting
+  - kiro
+  - CAP:049
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
+  preferred_branch_prefix: cap/
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+  contract_status_markers:
+  - draft
+  - stable-for-ui
+repositories:
+- name: durion-positivity-backend
+  slug: louisburroughs/durion-positivity-backend
+  type: backend
+  notes: ''
+- name: durion-moqui-frontend
+  slug: louisburroughs/durion-moqui-frontend
+  type: frontend-coordination
+  notes: Frontend child issues live here; code changes may land in component repos.
+- name: durion-accounting
+  slug: louisburroughs/durion-accounting
+  type: frontend-component
+  notes: ''
+stories:
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 56
+    title: '[STORY] Events: Define Canonical Accounting Event Envelope'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 144
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 208
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-define-canonical-accounting-208.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-define-canonical-accounting-208.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 57
+    title: '[STORY] Events: Receive Events via Queue and/or Service Endpoint'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 143
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 207
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-receive-events-via-queue-and-207.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-receive-events-via-queue-and-207.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 58
+    title: '[STORY] Events: Implement Idempotency and Deduplication'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 142
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 206
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-implement-idempotency-and-de-206.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-implement-idempotency-and-de-206.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 59
+    title: '[STORY] Events: Validate Event Completeness and Integrity'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 141
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 205
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-validate-event-completeness-205.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-events-validate-event-completeness-205.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 87
+    title: '[STORY] Accounting: Handle Refund Issued'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 113
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 177
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-handle-refund-issued-177.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-handle-refund-issued-177.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 85
+    title: '[STORY] Accounting: Ingest PaymentReceived Event'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 115
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 179
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-paymentreceived-e-179.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-paymentreceived-e-179.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 84
+    title: '[STORY] Accounting: Ingest InvoiceAdjusted or CreditMemo Event'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 116
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 180
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-invoiceadjusted-o-180.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-invoiceadjusted-o-180.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 83
+    title: '[STORY] Accounting: Ingest InvoiceIssued Event'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 117
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 181
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-invoiceissued-eve-181.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-invoiceissued-eve-181.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 81
+    title: '[STORY] Accounting: Ingest WorkCompleted Event'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 119
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 183
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-workcompleted-eve-183.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-workcompleted-eve-183.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 80
+    title: '[STORY] Accounting: Ingest InventoryAdjustment Event'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 120
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 184
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-inventoryadjustme-184.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-inventoryadjustme-184.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 79
+    title: '[STORY] Accounting: Ingest InventoryIssued Event'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 121
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 185
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-inventoryissued-e-185.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-ingest-inventoryissued-e-185.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 82
+    title: '[STORY] Accounting: Reverse Completion on Workorder Reopen'
+    labels:
+    - layer:functional
+    - domain:accounting
+    - kiro
+    - type:story
+    - CAP:049
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 118
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 182
+      impacted_component_repos:
+      - louisburroughs/durion-accounting
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-reverse-completion-on-wo-182.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/accounting/.ui/frontend-story-accounting-reverse-completion-on-wo-182.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-accounting/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+execution:
+  agent_rules:
+  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+  - Frontend work starts only when contract status is stable-for-ui.
+  - 'One branch per repo per capability: CAP/049.'
+  definition_of_done:
+  - All PRs merged and required checks green
+  - Contract guide entry updated with examples + behavioral assertions
+  - Provider behavioral contract tests added/updated
+  - Frontend wired to stable contract

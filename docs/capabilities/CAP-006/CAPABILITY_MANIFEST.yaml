@@ -1,0 +1,301 @@
+meta:
+  capability_id: CAP:006
+  capability_name: '[CAP] Complete Workorder'
+  owner_repo: louisburroughs/durion
+  created_utc: '2026-02-12T22:38:40.375505+00:00'
+  last_updated_utc: '2026-02-12T22:38:40.375505+00:00'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 6
+  title: '[CAP] Complete Workorder'
+  domain: workexec
+  labels:
+  - layer:business
+  - domain:workexec
+  - type:capability
+  - kiro
+  - CAP:006
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
+  preferred_branch_prefix: cap/
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+  contract_status_markers:
+  - draft
+  - stable-for-ui
+repositories:
+- name: durion-positivity-backend
+  slug: louisburroughs/durion-positivity-backend
+  type: backend
+  notes: ''
+- name: durion-moqui-frontend
+  slug: louisburroughs/durion-moqui-frontend
+  type: frontend-coordination
+  notes: Frontend child issues live here; code changes may land in component repos.
+- name: durion-workexec
+  slug: louisburroughs/durion-workexec
+  type: frontend-component
+  notes: ''
+stories:
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 38
+    title: '[STORY] Completion: Validate Completion Preconditions'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:006
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 154
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 218
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-validate-completion-prec-218.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-validate-completion-prec-218.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 39
+    title: '[STORY] Completion: Resolve Approval-Gated Change Requests'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:006
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 153
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 217
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-resolve-approval-gated-c-217.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-resolve-approval-gated-c-217.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 40
+    title: '[STORY] Completion: Finalize Billable Scope Snapshot'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:006
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 152
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 216
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-finalize-billable-scope-216.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-finalize-billable-scope-216.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 41
+    title: '[STORY] Completion: Complete Workorder and Record Audit'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:006
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 151
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 215
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-complete-workorder-and-r-215.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-complete-workorder-and-r-215.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 42
+    title: '[STORY] Completion: Reopen Completed Workorder (Controlled)'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - kiro
+    - type:story
+    - CAP:006
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 150
+    frontend:
+      repo: louisburroughs/durion-moqui-frontend
+      issue: 214
+      impacted_component_repos:
+      - louisburroughs/durion-workexec
+      wireframes:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-reopen-completed-workord-214.wf.md
+        type: wireframe
+      - repo: louisburroughs/durion
+        path: domains/workexec/.ui/frontend-story-completion-reopen-completed-workord-214.wf.meta.json
+        type: meta
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-workorder/target/openapi.json
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+execution:
+  agent_rules:
+  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+  - Frontend work starts only when contract status is stable-for-ui.
+  - 'One branch per repo per capability: CAP/006.'
+  definition_of_done:
+  - All PRs merged and required checks green
+  - Contract guide entry updated with examples + behavioral assertions
+  - Provider behavioral contract tests added/updated
+  - Frontend wired to stable contract
