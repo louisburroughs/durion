@@ -6,18 +6,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import com.durion.audit.AuditConfiguration;
-import com.durion.audit.AuditEngine;
-import com.durion.audit.AuditMode;
-import com.durion.audit.AuditResult;
-import com.durion.audit.GitHubIssue;
-import com.durion.audit.MissingIssue;
-import com.durion.audit.StoryMetadata;
 
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
@@ -286,7 +277,7 @@ public class ComprehensiveLoggingTest {
                             "https://github.com/test/repo/issues/" + (storyNumber + 1000),
                             Collections.emptyList());
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void ensureAuditEngineInitialized() {

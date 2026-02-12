@@ -98,7 +98,6 @@ public class StoryDataExtractionTest {
             Assertions.assertThat(extractedStory.getUrl())
                     .withFailMessage("URL mismatch - expected '%s' but got '%s'", storyUrl, extractedStory.getUrl())
                     .isEqualTo(storyUrl);
-           
 
             // And: The clean title should remove [STORY] prefix if present
 
@@ -156,7 +155,6 @@ public class StoryDataExtractionTest {
             Assertions.assertThat(extractedStory.getStoryNumber()).isEqualTo(storyNumber);
             Assertions.assertThat(extractedStory.getTitle().trim()).isEqualTo(storyTitle.trim());
             Assertions.assertThat(extractedStory.getUrl()).isEqualTo(storyUrl);
-           
 
             if (storyTitle.startsWith("[STORY] ")) {
                 Assertions.assertThat(extractedStory.getCleanTitle())
@@ -270,7 +268,7 @@ public class StoryDataExtractionTest {
                 Assertions.assertThat(extractedStory.getStoryNumber()).isEqualTo(originalStory.number);
                 Assertions.assertThat(extractedStory.getTitle()).isEqualTo(originalStory.title);
                 Assertions.assertThat(extractedStory.getUrl()).isEqualTo(originalStory.url);
-                
+
             }
 
         } finally {
@@ -307,7 +305,7 @@ public class StoryDataExtractionTest {
     Arbitrary<java.util.List<StoryData>> storyList() {
         return Arbitraries.integers().between(1, 1000)
                 .list().ofMinSize(2).ofMaxSize(5)
-                .map(numbers -> numbers.stream().distinct().collect(java.util.stream.Collectors.toList()))
+                .map(numbers -> numbers.stream().distinct().collect(.toList())
                 .flatMap(uniqueNumbers -> Combinators.combine(
                         Arbitraries.just(uniqueNumbers),
                         Arbitraries.strings().withCharRange('A', 'z').ofMinLength(10).ofMaxLength(50).list()

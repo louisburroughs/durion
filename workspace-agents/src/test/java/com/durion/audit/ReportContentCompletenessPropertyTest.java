@@ -318,7 +318,7 @@ public class ReportContentCompletenessPropertyTest {
     Arbitrary<List<MissingIssue>> missingIssuesList() {
         return Arbitraries.integers().between(1, 10)
                 .flatMap(size -> Arbitraries.integers().between(1, 1000).list().ofSize(size)
-                        .map(numbers -> numbers.stream().distinct().collect(java.util.stream.Collectors.toList()))
+                        .map(numbers -> numbers.stream().distinct().collect(.toList())
                         .flatMap(uniqueNumbers -> Combinators.combine(
                                 Arbitraries.just(uniqueNumbers),
                                 Arbitraries.strings().withCharRange('A', 'z').ofMinLength(10).ofMaxLength(50).list()

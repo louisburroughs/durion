@@ -2,9 +2,11 @@ package com.durion.audit;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
+
+import com.durion.audit.RepositorySearchAccuracyTest.MockIssue;
+import com.durion.audit.RepositorySearchAccuracyTest.MockRepository;
 
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
@@ -315,10 +317,10 @@ public class RepositorySearchAccuracyTest {
                 public List<Object> scanIssuesWithPattern(String repositoryName, String titlePattern) {
                         return repository.getIssues().stream()
                                         .filter(issue -> issue.getTitle().contains(titlePattern))
-                                        .collect(Collectors.toList())
+                                        .toList()
                                         .stream()
                                         .map(issue -> (Object) issue)
-                                        .collect(Collectors.toList());
+                                        .toList();
                 }
 
                 @Override

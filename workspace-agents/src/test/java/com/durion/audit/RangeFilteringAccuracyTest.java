@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import net.jqwik.api.Assume;
 import net.jqwik.api.ForAll;
@@ -62,7 +61,7 @@ public class RangeFilteringAccuracyTest {
                 // Assert - All stories within range should be included
                 List<Integer> expectedStories = storyNumbers.stream()
                                 .filter(storyNumber -> storyNumber >= rangeStart && storyNumber <= rangeEnd)
-                                .collect(Collectors.toList());
+                                .toList();
 
                 assertEquals(expectedStories.size(), filteredStories.size(),
                                 "Filtered stories count should match expected count");
@@ -204,7 +203,7 @@ public class RangeFilteringAccuracyTest {
                                 rangeStart - 10, rangeStart - 5, rangeStart, rangeStart + 5,
                                 rangeStart + 10, rangeEnd - 5, rangeEnd, rangeEnd + 5, rangeEnd + 10)
                                 .sorted()
-                                .collect(java.util.stream.Collectors.toList());
+                                .collect(.toList();
 
                 // Act
                 List<Integer> filteredStories = filter.filterByStoryRange(orderedStoryNumbers, rangeStart, rangeEnd);
@@ -218,7 +217,7 @@ public class RangeFilteringAccuracyTest {
                 // Assert - Should contain expected stories in order
                 List<Integer> expectedInOrder = orderedStoryNumbers.stream()
                                 .filter(story -> story >= rangeStart && story <= rangeEnd)
-                                .collect(Collectors.toList());
+                                .toList();
 
                 assertEquals(expectedInOrder, filteredStories,
                                 "Filtered stories should match expected stories in same order");

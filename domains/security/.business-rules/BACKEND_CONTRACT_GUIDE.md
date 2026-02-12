@@ -390,7 +390,7 @@ String userHeader = request.getHeader("X-User");
 if (authoritiesHeader != null && userHeader != null) {
     List<GrantedAuthority> authorities = Arrays.stream(authoritiesHeader.split(","))
         .map(SimpleGrantedAuthority::new)
-        .collect(Collectors.toList());
+        .toList();
     
     Authentication auth = new UsernamePasswordAuthenticationToken(
         userHeader, null, authorities);

@@ -219,7 +219,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         // Hard conflicts cannot be overridden
         List<Conflict> hardConflicts = conflicts.stream()
             .filter(c -> c.getSeverity() == ConflictSeverity.HARD)
-            .collect(Collectors.toList());
+            .toList();
         
         if (!hardConflicts.isEmpty()) {
             throw new SchedulingConflictException("Hard conflicts cannot be overridden", hardConflicts);
@@ -228,7 +228,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
         // Soft conflicts require overrides
         List<Conflict> softConflicts = conflicts.stream()
             .filter(c -> c.getSeverity() == ConflictSeverity.SOFT)
-            .collect(Collectors.toList());
+            .toList();
         
         if (!softConflicts.isEmpty() && overrideIds.isEmpty()) {
             throw new SchedulingConflictException("Soft conflicts require manager override", softConflicts);

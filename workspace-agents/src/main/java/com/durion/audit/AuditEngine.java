@@ -193,11 +193,11 @@ public class AuditEngine {
     private Set<Integer> extractStoryNumbers(List<GitHubIssue> issues,
             String expectedPrefix,
             Map<Integer, StoryMetadata> storyMetadata) {
-        return issues.stream()
+        return Set.copyOf(issues.stream()
                 .filter(issue -> issue.getTitle().startsWith(expectedPrefix))
                 .map(issue -> extractStoryNumberFromTitle(issue.getTitle(), expectedPrefix, storyMetadata))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .toList());
     }
 
     /**
