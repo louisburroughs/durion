@@ -505,7 +505,7 @@ protected List<String> extractStringList(Object obj) {
         return ((List<?>) obj).stream()
             .filter(item -> item instanceof String)
             .map(item -> (String) item)
-            .collect(Collectors.toList());
+            .toList();
     }
     return new ArrayList<>();
 }

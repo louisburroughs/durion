@@ -1,6 +1,13 @@
 package com.durion.core;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IntegrationGuidance {
@@ -17,7 +24,8 @@ public class IntegrationGuidance {
         this.coveredCombinations = new HashSet<>();
         for (int i = 0; i < list.size(); i++) {
             for (int j = 0; j < list.size(); j++) {
-                if (i != j) coveredCombinations.add(list.get(i) + "-" + list.get(j));
+                if (i != j)
+                    coveredCombinations.add(list.get(i) + "-" + list.get(j));
             }
         }
         this.flows = list.stream().collect(Collectors.toMap(s -> s, s -> new AuthenticationFlow(true, true, true)));
@@ -25,30 +33,45 @@ public class IntegrationGuidance {
         this.compatibleApiContracts = new HashSet<>(list);
         this.authVulnerabilities = new HashSet<>();
         this.diagnostics = list.stream().collect(Collectors.toMap(
-            s -> s,
-            s -> new Diagnostic(true, 0.95, 5000)
-        ));
+                s -> s,
+                s -> new Diagnostic(true, 0.95, 5000)));
     }
 
     public IntegrationGuidance() {
         this(Collections.emptyList());
     }
 
-    public Set<String> getCoveredCombinations() { return coveredCombinations; }
+    public Set<String> getCoveredCombinations() {
+        return coveredCombinations;
+    }
 
-    public boolean hasGuidanceFor(IntegrationPoint point) { return true; }
+    public boolean hasGuidanceFor(IntegrationPoint point) {
+        return true;
+    }
 
-    public boolean isComplete(IntegrationPoint point) { return true; }
+    public boolean isComplete(IntegrationPoint point) {
+        return true;
+    }
 
-    public AuthenticationFlow getAuthenticationFlow(String layer) { return flows.getOrDefault(layer, new AuthenticationFlow(true, true, true)); }
+    public AuthenticationFlow getAuthenticationFlow(String layer) {
+        return flows.getOrDefault(layer, new AuthenticationFlow(true, true, true));
+    }
 
-    public String getJwtFormat(String project) { return jwtFormats.getOrDefault(project, "HS256"); }
+    public String getJwtFormat(String project) {
+        return jwtFormats.getOrDefault(project, "HS256");
+    }
 
-    public boolean hasCompatibleApiContract(String project) { return compatibleApiContracts.contains(project); }
+    public boolean hasCompatibleApiContract(String project) {
+        return compatibleApiContracts.contains(project);
+    }
 
-    public boolean hasAuthenticationVulnerabilities(String project) { return authVulnerabilities.contains(project); }
+    public boolean hasAuthenticationVulnerabilities(String project) {
+        return authVulnerabilities.contains(project);
+    }
 
-    public Diagnostic getDiagnostic(String scenario) { return diagnostics.getOrDefault(scenario, new Diagnostic(true, 0.95, 5000)); }
+    public Diagnostic getDiagnostic(String scenario) {
+        return diagnostics.getOrDefault(scenario, new Diagnostic(true, 0.95, 5000));
+    }
 
     public static class Diagnostic {
         private final boolean rootCauseAnalysis;
@@ -61,8 +84,16 @@ public class IntegrationGuidance {
             this.responseTimeMs = responseTimeMs;
         }
 
-        public boolean hasRootCauseAnalysis() { return rootCauseAnalysis; }
-        public double getAccuracy() { return accuracy; }
-        public long getResponseTime() { return responseTimeMs; }
+        public boolean hasRootCauseAnalysis() {
+            return rootCauseAnalysis;
+        }
+
+        public double getAccuracy() {
+            return accuracy;
+        }
+
+        public long getResponseTime() {
+            return responseTimeMs;
+        }
     }
 }

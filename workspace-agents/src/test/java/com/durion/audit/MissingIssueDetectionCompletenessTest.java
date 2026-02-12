@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 
@@ -120,19 +119,19 @@ public class MissingIssueDetectionCompletenessTest {
 
                 Set<Integer> expectedMissingFrontend = processedIssues.stream()
                                 .filter(story -> !frontendImplementedSet.contains(story))
-                                .collect(Collectors.toSet());
+                                .toSet();
 
                 Set<Integer> expectedMissingBackend = processedIssues.stream()
                                 .filter(story -> !backendImplementedSet.contains(story))
-                                .collect(Collectors.toSet());
+                                .toSet();
 
                 Set<Integer> actualMissingFrontend = result.getMissingFrontendIssues().stream()
                                 .map(MissingIssue::getStoryNumber)
-                                .collect(Collectors.toSet());
+                                .toSet();
 
                 Set<Integer> actualMissingBackend = result.getMissingBackendIssues().stream()
                                 .map(MissingIssue::getStoryNumber)
-                                .collect(Collectors.toSet());
+                                .toSet();
 
                 // Property: The audit should identify exactly the missing issues
                 assert expectedMissingFrontend.equals(actualMissingFrontend)
@@ -164,10 +163,10 @@ public class MissingIssueDetectionCompletenessTest {
                 Set<Integer> processedSet = new HashSet<>(processedIssues);
                 Set<Integer> missingFrontendSet = result.getMissingFrontendIssues().stream()
                                 .map(MissingIssue::getStoryNumber)
-                                .collect(Collectors.toSet());
+                                .toSet();
                 Set<Integer> missingBackendSet = result.getMissingBackendIssues().stream()
                                 .map(MissingIssue::getStoryNumber)
-                                .collect(Collectors.toSet());
+                                .toSet();
 
                 assert processedSet.equals(missingFrontendSet)
                                 : "All processed issues should be missing from frontend when no implementations exist";
@@ -276,7 +275,7 @@ public class MissingIssueDetectionCompletenessTest {
                                                         Collections.emptyList() // Empty labels list
                                         );
                                 })
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         private void ensureAuditEngineInitialized() {

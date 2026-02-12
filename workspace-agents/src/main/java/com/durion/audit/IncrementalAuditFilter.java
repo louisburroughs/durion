@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Incremental audit filtering for date-based and range-based story filtering.
@@ -52,7 +51,7 @@ public class IncrementalAuditFilter {
                     // TODO: Implement date-based filtering using file modification times
                     return true;
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         logger.logProgress("Date filtering completed", filteredIssues.size(), processedIssues.size());
         logFilteringResults("Date Range", processedIssues.size(), filteredIssues.size(),
@@ -91,7 +90,7 @@ public class IncrementalAuditFilter {
                     // TODO: Implement date-based filtering using file modification times
                     return false;
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         logger.logProgress("Date range filtering completed", filteredIssues.size(), processedIssues.size());
         logFilteringResults("Date Range", processedIssues.size(), filteredIssues.size(),
@@ -116,7 +115,7 @@ public class IncrementalAuditFilter {
 
         List<Integer> filteredIssues = processedIssues.stream()
                 .filter(storyNumber -> storyNumber >= startStoryNumber && storyNumber <= endStoryNumber)
-                .collect(Collectors.toList());
+                .toList();
 
         logger.logProgress("Story range filtering completed", filteredIssues.size(), processedIssues.size());
         logFilteringResults("Story Range", processedIssues.size(), filteredIssues.size(),
@@ -148,7 +147,7 @@ public class IncrementalAuditFilter {
             int resumeStory = resumeFromStory.get();
             filteredIssues = filteredIssues.stream()
                     .filter(storyNumber -> storyNumber <= resumeStory) // Assuming descending order
-                    .collect(Collectors.toList());
+                    .toList();
 
             logger.logProgress("Resuming from story #" + resumeStory, 1, 2);
         }
@@ -167,13 +166,13 @@ public class IncrementalAuditFilter {
                 List<Integer> storiesWithMissingIssues = lastResult.getAllMissingIssues().stream()
                         .map(MissingIssue::getStoryNumber)
                         .distinct()
-                        .collect(Collectors.toList());
+                        .toList();
 
                 // For resumption, focus on stories that had missing issues or weren't checked
                 filteredIssues = filteredIssues.stream()
                         .filter(storyNumber -> storiesWithMissingIssues.contains(storyNumber) ||
                                 !wasStoryInLastAudit(storyNumber, lastResult))
-                        .collect(Collectors.toList());
+                        .toList();
 
                 logger.logProgress("Filtered based on previous audit results", 1, 1);
             }

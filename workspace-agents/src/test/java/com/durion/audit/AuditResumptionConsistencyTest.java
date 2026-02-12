@@ -3,14 +3,12 @@ package com.durion.audit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import net.jqwik.api.Assume;
 import net.jqwik.api.ForAll;
@@ -51,7 +49,7 @@ public class AuditResumptionConsistencyTest {
                 // Sort stories in descending order (typical processing order)
                 List<Integer> sortedStories = storyNumbers.stream()
                                 .sorted((a, b) -> Integer.compare(b, a))
-                                .collect(Collectors.toList());
+                                .toList();
 
                 AuditConfiguration config = AuditConfiguration.builder()
                                 .githubToken("test-token")
@@ -74,7 +72,7 @@ public class AuditResumptionConsistencyTest {
                 // Assert - All applicable stories should be included
                 List<Integer> expectedStories = sortedStories.stream()
                                 .filter(story -> story <= resumeFromStory)
-                                .collect(Collectors.toList());
+                                .toList();
 
                 assertEquals(expectedStories.size(), filteredStories.size(),
                                 "Resumption should include all stories from resume point and earlier");
@@ -109,7 +107,7 @@ public class AuditResumptionConsistencyTest {
                                                 "frontend",
                                                 "test-repo",
                                                 "[FRONTEND] Test Story #" + storyNumber))
-                                .collect(Collectors.toList());
+                                .toList();
 
                 AuditResult previousResult = new AuditResult(
                                 missingFrontendIssues,
@@ -329,7 +327,7 @@ public class AuditResumptionConsistencyTest {
                 // Assert - Should include expected stories in order
                 List<Integer> expectedStories = orderedStories.stream()
                                 .filter(story -> story <= resumeFromStory)
-                                .collect(Collectors.toList());
+                                .toList();
 
                 assertEquals(expectedStories, filteredStories,
                                 "Resumption should preserve original order of applicable stories");
