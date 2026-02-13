@@ -864,7 +864,7 @@ This domain exposes **29** REST API endpoints:
 | Method | Path | Summary |
 |--------|------|---------|
 | GET | `/security/auth/authorities` | Get authorities from token |
-| DELETE | `/security/auth/delete` | Delete/revoke JWT token |
+| DELETE | `/security/auth/revoke` | Delete/revoke JWT token |
 | POST | `/security/auth/login` | Authenticate user and issue JWT |
 | POST | `/security/auth/refresh` | Refresh access token |
 | GET | `/security/auth/roles` | Get roles from token |
