@@ -1,11 +1,12 @@
 # Security & Authentication Backend Contract Guide
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-02-01  
+**Last Updated:** 2026-02-12  
+**Capability:** [CAP-253: Roles, Permissions, and Audit Controls](../../../docs/capabilities/CAP-253/)  
 **OpenAPI Source:** `durion-positivity-backend/pos-security-service/openapi.json`  
 **Architecture:** ADR-0011 Gateway-based Security Architecture  
-**Related Issues:** [durion-positivity-backend#417](https://github.com/louisburroughs/durion-positivity-backend/issues/417), [durion-moqui-frontend#280](https://github.com/louisburroughs/durion-moqui-frontend/issues/280)
+**Related Issues:** [CAP-253](https://github.com/louisburroughs/durion/issues/253), [durion-positivity-backend#1](https://github.com/louisburroughs/durion-positivity-backend/issues/1), [durion-moqui-frontend#65](https://github.com/louisburroughs/durion-moqui-frontend/issues/65), [durion-positivity-backend#417](https://github.com/louisburroughs/durion-positivity-backend/issues/417), [durion-moqui-frontend#280](https://github.com/louisburroughs/durion-moqui-frontend/issues/280)
 
 ---
 
@@ -910,7 +911,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### DELETE /v1/auth/delete
+#### DELETE /security/auth/delete
 
 **Operation ID:** `deleteToken`
 
@@ -924,7 +925,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/auth/login
+#### POST /security/auth/login
 
 **Summary:** Authenticate user and issue JWT
 
@@ -944,7 +945,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/auth/refresh
+#### POST /security/auth/refresh
 
 **Operation ID:** `refreshAccessToken`
 
@@ -958,7 +959,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/auth/roles
+#### GET /security/auth/roles
 
 **Operation ID:** `getRoles`
 
@@ -972,7 +973,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/auth/subject
+#### GET /security/auth/subject
 
 **Operation ID:** `getSubject`
 
@@ -986,7 +987,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/auth/token-pair
+#### POST /security/auth/token-pair
 
 **Operation ID:** `generateTokenPair`
 
@@ -1001,7 +1002,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/auth/validate
+#### GET /security/auth/validate
 
 **Summary:** Validate JWT token
 
@@ -1020,7 +1021,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/permissions
+#### GET /security/permissions
 
 **Summary:** Get all registered permissions
 
@@ -1034,7 +1035,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/permissions/domain/{domain}
+#### GET /security/permissions/domain/{domain}
 
 **Summary:** Get permissions by domain
 
@@ -1052,7 +1053,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/permissions/exists/{permissionName}
+#### GET /security/permissions/exists/{permissionName}
 
 **Summary:** Check if permission exists
 
@@ -1070,7 +1071,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/permissions/register
+#### POST /security/permissions/register
 
 **Summary:** Register permissions from a service
 
@@ -1084,7 +1085,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/permissions/validate/{permissionName}
+#### GET /security/permissions/validate/{permissionName}
 
 **Summary:** Validate permission name format
 
@@ -1102,7 +1103,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/roles
+#### GET /security/roles
 
 **Summary:** Get all roles
 
@@ -1116,7 +1117,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/roles
+#### POST /security/roles
 
 **Summary:** Create a new role
 
@@ -1130,7 +1131,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/roles/assignments
+#### POST /security/roles/assignments
 
 **Summary:** Create role assignment
 
@@ -1144,7 +1145,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/roles/assignments/user/{userId}
+#### GET /security/roles/assignments/user/{userId}
 
 **Summary:** Get user role assignments
 
@@ -1162,7 +1163,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### DELETE /v1/roles/assignments/{assignmentId}
+#### DELETE /security/roles/assignments/{assignmentId}
 
 **Summary:** Revoke role assignment
 
@@ -1180,7 +1181,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/roles/check-permission
+#### GET /security/roles/check-permission
 
 **Summary:** Check user permission
 
@@ -1200,7 +1201,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### PUT /v1/roles/permissions
+#### PUT /security/roles/permissions
 
 **Summary:** Update role permissions
 
@@ -1214,7 +1215,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/roles/permissions/user/{userId}
+#### GET /security/roles/permissions/user/{userId}
 
 **Summary:** Get user permissions
 
@@ -1232,7 +1233,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/roles/{name}
+#### GET /security/roles/{name}
 
 **Summary:** Get role by name
 
@@ -1250,7 +1251,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/users
+#### GET /security/users
 
 **Summary:** Get all users
 
@@ -1264,7 +1265,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/users
+#### POST /security/users
 
 **Summary:** Create a new user
 
@@ -1278,7 +1279,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### POST /v1/users/login
+#### POST /security/users/login
 
 **Summary:** User login
 
@@ -1292,7 +1293,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### DELETE /v1/users/{id}
+#### DELETE /security/users/{id}
 
 **Summary:** Delete a user
 
@@ -1311,7 +1312,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### GET /v1/users/{id}
+#### GET /security/users/{id}
 
 **Summary:** Get user by ID
 
@@ -1330,7 +1331,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### PUT /v1/users/{id}
+#### PUT /security/users/{id}
 
 **Summary:** Update an existing user
 
@@ -1349,7 +1350,7 @@ This domain exposes **29** REST API endpoints:
 
 ---
 
-#### PUT /v1/users/{username}/roles
+#### PUT /security/users/{username}/roles
 
 **Operation ID:** `assignRoles`
 
@@ -1502,7 +1503,8 @@ Updated user object
 #### Example: Create Request
 
 ```http
-POST /v1/users
+POST /security/users
+X-API-Version: 1
 Content-Type: application/json
 X-Correlation-Id: abc-123-def-456
 
@@ -1531,7 +1533,8 @@ X-Correlation-Id: abc-123-def-456
 #### Example: Retrieve Request
 
 ```http
-GET /v1/users/{id}
+GET /security/users/{id}
+X-API-Version: 1
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -1569,6 +1572,7 @@ This guide establishes standardized contracts for the Security & Authentication 
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.1 | 2026-02-12 | Fixed path format inconsistencies in Endpoint Details section; added CAP-253 references; updated for gateway routing compliance |
 | 2.0 | 2026-02-01 | Added ADR-0011 gateway-based security architecture, required headers, authentication flow, public vs protected endpoints |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
@@ -1587,5 +1591,5 @@ This guide establishes standardized contracts for the Security & Authentication 
 
 ---
 
-**Last Updated:** 2026-02-01 14:30:00 UTC  
+**Last Updated:** 2026-02-12 14:30:00 UTC  
 **Maintained By:** Durion Platform Team
