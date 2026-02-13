@@ -54,6 +54,7 @@ These are the only agents you can call. Each has a specific role:
 
 - **Planner** — Creates implementation strategies and technical plans
 - **Coder** — Writes code, fixes bugs, implements logic
+- **Designer** — Creates UI/UX, styling, visual design
 - **Docs** — Technical documentation expert, updates guides and API documentation
 
 ## How to Invoke Agents with Prompt Files
@@ -131,14 +132,14 @@ Output your execution plan like this:
 
 ### Phase 1: [Name]
 - Task 1.1: [description] → Coder
-  Files: pos-order/src/main/java/com/positivity/order/service/OrderProcessingService.java
-- Task 1.2: [description] → Coder
-  Files: pos-inventory/src/main/java/com/positivity/inventory/service/StockCheckService.java
+  Files: src/contexts/ThemeContext.tsx, src/hooks/useTheme.ts
+- Task 1.2: [description] → Designer
+  Files: src/components/ThemeToggle.tsx
 (No file overlap → PARALLEL)
 
 ### Phase 2: [Name] (depends on Phase 1)
 - Task 2.1: [description] → Coder
-  Files: pos-api-gateway/src/main/java/com/positivity/gateway/OrderRouteConfig.java
+  Files: src/App.tsx
 ```
 
 For this workflow, default to the phases below (even if the Planner plan is minimal), because the file scopes are stable and the dependency chain is strict.
@@ -186,6 +187,7 @@ For this workflow, verification must include:
 **RUN SEQUENTIALLY when:**
 - Task B needs output from Task A
 - Tasks might modify the same file
+- Design must be approved before implementation
 
 For this workflow:
 
@@ -209,8 +211,16 @@ Task 2.2 → Coder: "Create the toggle component in src/components/ThemeToggle.t
 If multiple tasks legitimately need to touch the same file (rare), run them **sequentially**:
 
 ```
-Phase 2a: Add OrderContext (modifies OrderApplication.java)
-Phase 2b: Add SecurityConfig (modifies OrderApplication.java)
+Phase 2a: Add theme context (modifies App.tsx to add provider)
+Phase 2b: Add error boundary (modifies App.tsx to add wrapper)
+```
+
+### Strategy 3: Component Boundaries
+For UI work, assign agents to distinct component subtrees:
+
+```
+Designer A: "Design the header section" → Header.tsx, NavMenu.tsx
+Designer B: "Design the sidebar" → Sidebar.tsx, SidebarItem.tsx
 ```
 
 ### Red Flags (Split Into Phases Instead)
@@ -231,30 +241,32 @@ When delegating, describe WHAT needs to be done (the outcome), not HOW to do it.
 - "Fix the bug by wrapping the selector with useShallow"
 - "Add a button that calls handleClick and updates state"
 
-## Example: "Add new Customer and Order APIs"
+## Example: "Add dark mode to the app"
 
 ### Step 1 — Call Planner
-> "Create an implementation plan for adding new Customer and Order APIs"
+> "Create an implementation plan for adding dark mode support to this app"
 
 ### Step 2 — Parse response into phases
 ```
 ## Execution Plan
 
-### Phase 1: Core Implementation (no dependencies)
-- Task 1.1: Implement Customer Service → Coder
-  Files: pos-customer/src/main/java/com/positivity/customer/**
-- Task 1.2: Implement Order Service → Coder
-  Files: pos-order/src/main/java/com/positivity/order/**
-(No file overlap → PARALLEL)
+### Phase 1: Design (no dependencies)
+- Task 1.1: Create dark mode color palette and theme tokens → Designer
+- Task 1.2: Design the toggle UI component → Designer
 
-### Phase 2: Gateway Configuration (depends on Phase 1)
-- Task 2.1: Configure routes in API Gateway → Coder
-  Files: pos-api-gateway/src/main/resources/application.yml
+### Phase 2: Core Implementation (depends on Phase 1 design)
+- Task 2.1: Implement theme context and persistence → Coder
+- Task 2.2: Create the toggle component → Coder
+(These can run in parallel - different files)
+
+### Phase 3: Apply Theme (depends on Phase 2)
+- Task 3.1: Update all components to use theme tokens → Coder
 ```
 
 ### Step 3 — Execute
-**Phase 1** — Call Coder twice in parallel for Customer and Order services
-**Phase 2** — Call Coder to update Gateway
+**Phase 1** — Call Designer for both design tasks (parallel)
+**Phase 2** — Call Coder twice in parallel for context + toggle
+**Phase 3** — Call Coder to apply theme across components
 
 ### Step 4 — Report completion to user
 
