@@ -53,3 +53,17 @@ These coding principles are mandatory:
 10. Process Tracking
 - Do not write to `Durion-Processing.md`.
 - Inform the Planner agent of your status so it can make updates to `Durion-Processing.md`.
+
+11. Sonar Issues (Required)
+- For any code you create or modify, you MUST run/follow Sonar findings for that code and fix issues that are:
+	- **Blocker**
+	- **High**
+	- **Security-related** (e.g., Security Hotspots, Taint Vulnerabilities, or any security rule)
+- If you cannot connect to Sonar (or Sonar tools are unavailable), you MAY still complete the task. In that case:
+	- follow secure coding best practices and address any obvious security problems you notice in the changed code
+	- clearly report that Sonar could not be run and what follow-up is needed (e.g., “rerun Sonar in connected mode”)
+- You SHOULD fix **Medium** issues in that same changed code. If you have made **two** good-faith attempts and the Medium issue remains, you MAY skip it and clearly report:
+	- what you tried
+	- why it remains unresolved
+	- what follow-up is needed
+- You MAY skip **Low** issues unless they are trivial to resolve while you are already in the file.
