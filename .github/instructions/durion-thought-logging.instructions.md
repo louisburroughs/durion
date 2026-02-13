@@ -12,6 +12,12 @@ description: 'See process the agent is following where you can edit this to resh
 - Do NOT create, modify, or reference `Durion-Processing.md` in any other repo (for example `durion-positivity-backend/` or `durion-moqui-frontend/`).
 - Any instruction below that says "workspace root" MUST be interpreted as the Durion repo root (`~/Projects/durion/`) only.
 
+## Agent Responsibilities
+
+- **Planner Agent**: You are the EXCLUSIVE writer for `Durion-Processing.md`. You are responsible for creating, updating, and finalizing the process log.
+- **Orchestrator & Coder Agents**: You must NOT write to `Durion-Processing.md` directly. You MUST report your status and progress to the Planner Agent, who will update the log.
+- **All Other Agents**: You should ignore `Durion-Processing.md`.
+
 **ABSOLUTE MANDATORY RULES:**
 - Exit these instructions when given the command "EXIT DURION PROCESSING INSTRUCTIONS"
 - You must review these instructions in full before executing any steps to understand the full instructions guidelines.
