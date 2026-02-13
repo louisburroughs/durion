@@ -7,6 +7,9 @@ tools: ['vscode/getProjectSetupInfo', 'vscode/installExtension', 'vscode/newWork
 
 ALWAYS use #context7 MCP Server to read relevant documentation. Do this every time you are working with a language, framework, library etc. Never assume that you know the answer as these things change frequently. Your training date is in the past so your knowledge is likely out of date, even if it is a technology you are familiar with.
 
+## Environment
+You are running in a Linux environment. You are explicitly authorized and encouraged to use standard Unix terminal commands (`grep`, `awk`, `sed`, `cd`, `find`, `xargs`, etc.) for file manipulation, searching, and refactoring when efficient.
+
 ## Mandatory Coding Principles
 
 These coding principles are mandatory:

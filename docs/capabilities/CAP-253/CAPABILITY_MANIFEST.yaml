@@ -60,7 +60,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-security-service/target/openapi.json
