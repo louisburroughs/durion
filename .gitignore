@@ -12,3 +12,6 @@ ports_defined.txt
 
 .venv/
 venv/
+
+.vscode/
+.idea/
