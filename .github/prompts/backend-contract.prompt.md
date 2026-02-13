@@ -92,8 +92,8 @@ Task (decompose into numbered steps)
    - (E) Confidence score and self-critique summary.
    - (F) Put all implementation details in a markdown document with proper headings and code blocks. Put this document in /durion/docs/capabilities/CAP-{capability_id}/CAP-{capability_id}-backend-contract.md.
    - (G) Produce a story-fulfillment handoff block that can be pasted into `.github/prompts/backend-story-fulfillment.prompt.md` substitution fields.
-10. Apply patch after review:
-   - After explicit user approval, apply the proposed patch to the workspace using the apply_patch mechanism or `git apply`, create a local commit with message "docs(capability): update backend contract guide for {capability_id}", update the JSON summary with `"applied": true`, and report the commit hash. Do NOT push or open PRs remotely.
+10. Apply patch after self review:
+   - Apply the proposed patch to the workspace using the apply_patch mechanism or `git apply`, create a local commit with message "docs(capability): update backend contract guide for {capability_id}", update the JSON summary with `"applied": true`, and report the commit hash. Do NOT push or open PRs remotely.
 
 Constraints and rules
 - **OpenAPI takes precedence**: The current OpenAPI.json is the AUTHORITATIVE source! Do not use manifest-defined API addresses, story documentation, or previous guide versions to override OpenAPI definitions.
