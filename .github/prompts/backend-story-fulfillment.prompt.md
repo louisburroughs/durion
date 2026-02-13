@@ -35,6 +35,9 @@ If the answer to these is "no", **KEEP WORKING**.
 
 ---
 
+Context (inputs — agent will be provided values at runtime)
+- `OPENAPI_PATH` — path to the authoritative `openapi.json` (e.g., `pos-<module>/target/openapi.json`) which MUST NOT be overwritten.
+
 You are implementing capability {{capability_label}} (e.g., CAP:089).
 
 **Parent Capability:** [durion#{{parent_capability_number}}]({{parent_capability_url}}) — {{parent_capability_title}}
@@ -73,7 +76,11 @@ Contract guide entry (draft):
     (D). Add validation & error handling per the assertions
     (E). Include concurrency-safe patterns if needed (idempotency, optimistic locking)
     (F). Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
-    (G). **OpenAPI source of truth:** Treat `openapi.json` as authoritative for implemented services. Do **not** overwrite or regenerate it without explicit permission; if it needs updates, request approval first. (Ignore incorrect gateway paths for now; we will fix them in a future cleanup.)
+    (G). **OpenAPI source of truth:** Treat the file at `OPENAPI_PATH` (provided in Runtime Context) as the **read-only** authoritative source.
+       - **DO NOT** regenerate this file. Avoid running build commands that might overwrite it (like `clean package`) unless you restore it afterwards.
+       - **DO NOT** edit this file manually.
+       - Use it only to validate that your implementation matches the contract.
+       - If the implementation differs from `openapi.json`, **fix the implementation**.
   5. **Commit changes to the feature branch:**
      ```bash
      cd /home/louisb/Projects/durion-positivity-backend
