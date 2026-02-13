@@ -24,9 +24,6 @@ Context (inputs — agent will be provided values at runtime)
 - `OPENAPI_PATH` — path to the current `openapi.json` representing produced endpoints (e.g., `pos-<module>/target/openapi.json`)
 - `CAPABILITY_MANIFEST_PATH` — path to capability manifest (YAML) containing parent capability, parent stories array, and child backend issues (e.g., `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`)
 
-Optional mode flags
-- `AUTOMATED_MODE` — boolean. If `true`, do not ask for permission to parse/diff; proceed directly through validation and patch generation.
-
 Audience
 - Developers and reviewers who will merge the guide update and run provider contract tests.
 
@@ -170,8 +167,4 @@ Permissions and safety
 - Never create or modify real PRs or push to remote; only suggest patches and checklists.
 - Do not expose secrets or internal-only endpoints.
 
-Now produce the required outputs for the given inputs interactively:
-- Confirm you understand and list the three input file paths you received.
-- Show the initial Plan (per above), then request permission to run the parsing + diff steps.
-
-If `AUTOMATED_MODE=true`, skip the permission request and proceed directly to validation + patch + handoff output.
+Now produce the required outputs for the given inputs. Confirm the three input file paths received, load and validate all inputs, compute the OpenAPI delta, and proceed directly through all steps to produce the complete patch, JSON summary, and handoff documentation. Do not request permission; execute the full workflow immediately.

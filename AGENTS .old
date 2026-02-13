@@ -4,8 +4,9 @@
 
 Durion is a multi-repo platform that includes:
 
+- `durion-moqui-frontend`: Moqui Framework runtime + UI (Vue 3, Quasar, TypeScript 5)
 - `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 4.0.2)
-- `durion`: workspace-level coordination, governance, project, and agent docs
+- `durion`: workspace-level coordination, governance, project ,and agent docs
 
 This file is a concise, agent-focused guide containing the commands and context agents need to work across frontend and backend.
 
@@ -14,7 +15,10 @@ This file is a concise, agent-focused guide containing the commands and context 
 ## Quick Prerequisites
 
 - Java 21+ (for Spring Boot services)
-- Maven (`mvn` or  `./mvnw`)
+- Maven (or use `./mvnw`) for backend
+- Java 11 (for Moqui runtime)
+- Gradle (or `./gradlew`) for Moqui frontend runtime builds
+- Node 18+ / npm (for frontend assets and tooling)
 - Docker + Docker Compose (for local stacks and collector demos)
 
 ---
@@ -26,6 +30,14 @@ Clone and prepare repositories (from workspace root):
 ```bash
 git clone git@github.com:louisburroughs/durion.git
 cd durion
+```
+
+Frontend (Moqui) quick setup:
+
+```bash
+cd durion-moqui-frontend
+npm install            # install UI/tooling deps
+./gradlew build -x test # build runtime and assets
 ```
 
 Backend (Positivity) quick setup:
@@ -40,6 +52,7 @@ cd durion-positivity-backend
 Local stack (compose examples):
 
 ```bash
+# From durion-moqui-frontend (see docker/ for supplied compose files)
 docker-compose -f docker/moqui-postgres-compose.yml up -d
 # Start observability demo (if present in docs/compose)
 # docker-compose -f docs/observability-compose.yml up -d
@@ -49,7 +62,9 @@ docker-compose -f docker/moqui-postgres-compose.yml up -d
 
 ## Development Workflow
 
-- Use `./mvnw -pl <module> -am spring-boot:run` or run the packaged JAR with `java -jar` for a single service.
+- Frontend (Moqui): use `./gradlew` to build the runtime. The runtime `webroot/` serves UI bundles (check `runtime/build/libs/moqui.war`).
+- UI assets and dev scripts: use `npm run dev` / `npm run build` where available in `durion-moqui-frontend`.
+- Backend: use `./mvnw -pl <module> -am spring-boot:run` or run the packaged JAR with `java -jar` for a single service.
 
 Examples:
 
@@ -75,13 +90,20 @@ cd durion-positivity-backend
 ./mvnw -pl pos-order -am test
 ```
 
-# (If present) Module-specific tests are documented in each project's README or AGENTS.md
+- Frontend:
+
+```bash
+cd durion-moqui-frontend
+npm test      # runs Jest or configured test runner
+./gradlew test # Moqui/server-side tests if configured
+```
 
 ---
 
 ## Build & Release
 
 - Backend artifacts: `./mvnw -pl <module> -am clean package`
+- Frontend/runtime: `./gradlew clean build`
 - Ensure `SERVICE_VERSION`/`service.version` is set in CI builds for observability and release tagging.
 
 ---
@@ -94,7 +116,7 @@ SRE agent runbook: `.github/agents/sre.agent.md`
 Guidance for agents:
 
 - Use the OpenTelemetry Collector as the gateway for OTLP from services (gRPC: `otel-collector:4317`, HTTP: `:4318`).
-
+- Frontend: capture Web Vitals, JS errors, network spans, attach `release`/`service.version` and upload sourcemaps for traceability.
 - Backend: prefer OpenTelemetry Java agent for baseline, manual SDK instrumentation for business metrics. Document metrics in `METRICS.md` near each `pos-*` module.
 
 Quick commands/examples:
@@ -110,10 +132,15 @@ docker-compose -f docs/observability-compose.yml up -d
 
 ## Code Style & Quality
 
--- Spring Boot: use Micrometer/OpenTelemetry integration and standard Actuator endpoints (`/actuator/health`).
--- Run linters before committing (follow component README for specific commands):
+- Moqui: follow existing Moqui conventions. Keep controllers thin; place logic in service classes.
+- Spring Boot: use Micrometer/OpenTelemetry integration and standard Actuator endpoints (`/actuator/health`).
+- TypeScript/Vue: ESLint + Prettier; follow Composition API or repo conventions.
+- Run linters before committing:
 
 ```bash
+# Frontend
+cd durion-moqui-frontend
+npm run lint
 # Backend: rely on mvn formatter/lint steps if configured
 cd durion-positivity-backend
 ./mvnw verify
@@ -128,32 +155,28 @@ cd durion-positivity-backend
 Documentation follows a strict hierarchy:
 
 1. **Workspace-level**: `durion/AGENTS.md` (this file) — cross-cutting guidance
-2. **Project-level**: `durion-positivity-backend/AGENTS.md` — project-specific setup and patterns
+2. **Project-level**: `durion-positivity-backend/AGENTS.md`, `durion-moqui-frontend/AGENTS.md` — project-specific setup and patterns
 3. **Module/Component-level**: `README.md` files in each module directory — module-specific documentation
 
 ### README.md Requirements
 
 **Before working in any directory:**
-
 - Check if a `README.md` exists in that directory
 - Read and follow the guidance in that README.md
 - Consult parent README.md files for context
 
 **When making changes:**
-
 - Update the local `README.md` when adding new features, changing APIs, or modifying module structure
 - Document new configuration options, environment variables, or setup steps
 - Add examples for new functionality
 - Keep setup instructions current
 
 **README.md locations to check:**
-
 - Module root: `pos-accounting/README.md`, `pos-order/README.md`, etc.
 - Component root: `runtime/component/durion-*/README.md`
 - Feature directories: Any top-level directory may have a README.md
 
 **If no README.md exists:**
-
 - Create one when adding significant new functionality
 - Include: purpose, setup, key files, common commands, testing instructions
 
@@ -164,10 +187,12 @@ Documentation follows a strict hierarchy:
 Agent docs live under `.github/agents/` in this repo. Key agent docs and runbooks:
 
 - `.github/agents/sre.agent.md` — SRE/Observability guidance (instrumentation, telemetry contract)
-- `.github/agents/coder.agent.md` — Primary software engineer guidance
+- `.github/agents/primary-software-engineer.agent.md` — Primary software engineer guidance
 - `.github/agents/dev-deploy.agent.md` — Deployment/CI/CD guidance
 - `.github/agents/api.agent.md` — REST API guidance
+- `.github/agents/moqui-developer.agent.md` — Moqui-specific developer guidance
 - Backend repo test agent: `durion-positivity-backend/.github/agents/test.agent.md`
+- Frontend repo test agent: `durion-moqui-frontend/.github/agents/test.agent.md`
 
 **Always consult local README.md files first**, then agent docs for cross-cutting concerns. When in doubt about observability, consult `.github/agents/sre.agent.md` and `docs/architecture/observability/OBSERVABILITY.md`.
 
@@ -183,12 +208,14 @@ Agent docs live under `.github/agents/` in this repo. Key agent docs and runbook
 
 ## Debugging & Troubleshooting Tips
 
--- Backend health: hit `http://<host>:<port>/actuator/health` and check logs for DB/connectivity errors.
--- Observability gaps: ensure `SERVICE_VERSION` is set, check OTLP endpoint env vars, and confirm collector is reachable.
+- Frontend blank-screen: confirm `/webroot/` serves bundles, check browser console errors and CSP.
+- Backend health: hit `http://<host>:<port>/actuator/health` and check logs for DB/connectivity errors.
+- Observability gaps: ensure `SERVICE_VERSION` is set, check OTLP endpoint env vars, and confirm collector is reachable.
 
 Logs & traces correlation:
 
--- Ensure trace context (W3C) is propagated through gateway → backend services.
+- Ensure trace context (W3C) is propagated from browser → gateway → backend services.
+- Upload sourcemaps and set frontend `release` tag to make JS stack traces actionable.
 
 ---
 
