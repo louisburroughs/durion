@@ -160,3 +160,11 @@ These coding principles are mandatory:
 - Use `edit/createFile`, `edit/editFiles`, `edit/replaceStringInFile`, or standard Unix commands for all local file operations.
 - GitHub tools are STRICTLY for interacting with remote repositories (PRs, issues, remote file updates when no local access exists).
 - Misusing GitHub tools for local edits bypasses local validation, builds, and history, and is considered a critical failure.
+
+13. Sandboxed Mode (No Write Tools)
+- If you find that file editing tools (`edit/createFile`, etc.) are missing/unavailable:
+  - **Do NOT fail.**
+  - **Do NOT attempt to use GitHub tools** as a fallback.
+  - **Return the File Content**: Output the full content of every file you intended to create/modify.
+  - **Format**: Use clear headers like `### File: /absolutepath/to/file.ext` followed by the code block.
+  - **Instruct**: Tell the Orchestrator/User to write these files to disk.

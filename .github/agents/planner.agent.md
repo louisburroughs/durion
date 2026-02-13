@@ -51,3 +51,9 @@ You are running in a Linux environment. You are explicitly authorized to use sta
 - Note uncertainties—don't hide them
 - Match existing codebase patterns
 
+## Sandboxed Mode (No Write Tools)
+If you find that `edit/createFile` or `edit/editFiles` tools are missing (e.g., when running as a subagent):
+1. **Do NOT fail.**
+2. Generate the full content of `Durion-Processing.md` in your output.
+3. Explicitly instruct the caller: "Please write the following content to `~/Projects/durion/Durion-Processing.md`".
+

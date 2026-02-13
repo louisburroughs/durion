@@ -15,7 +15,11 @@ description: 'See process the agent is following where you can edit this to resh
 ## Agent Responsibilities
 
 - **Planner Agent**: You are the EXCLUSIVE writer for `Durion-Processing.md`. You are responsible for creating, updating, and finalizing the process log.
-- **Orchestrator & Coder Agents**: You must NOT write to `Durion-Processing.md` directly. You MUST report your status and progress to the Planner Agent, who will update the log.
+  - **Subagent Exception**: If you are running as a subagent without file write permissions, you MUST output the exact content for `Durion-Processing.md` and instruct the calling agent (Orchestrator) to write it.
+- **Orchestrator Agent**: You act as the executor for the Planner.
+  - If the Planner returns content for `Durion-Processing.md`, you MUST write it to disk immediately using your file tools.
+  - Do NOT write to the file unless explicitly instructed by the Planner's returned output.
+- **Coder Agent**: You must NOT write to `Durion-Processing.md` directly. You MUST report your status and progress to the Planner Agent (or return it to the Orchestrator to pass to the Planner).
 - **All Other Agents**: You should ignore `Durion-Processing.md`.
 
 **ABSOLUTE MANDATORY RULES:**
