@@ -9,29 +9,32 @@
 
 ## Context
 
-The Durion platform consists of multiple microservices (durion-positivity-backend) and a Moqui-based frontend (durion-moqui-frontend) that must coordinate entity identification across distributed systems. The current identifier strategy is inconsistent—some services use auto-incrementing integers, others use strings, and there's no unified approach to distributed ID generation.
+The Durion platform consists of multiple microservices (durion-positivity-backend) and a frontend that must coordinate entity identification across distributed systems. The current identifier strategy is inconsistent—some services use auto-incrementing integers, others use strings, and there's no unified approach to distributed ID generation.
 
 **Current State:**
+
 - Mixed identifier types across services (Long, String, Integer)
 - Auto-incrementing integers expose record counts and enable enumeration attacks
 - Distributed services require coordination for unique ID generation
 - Frontend-backend identifier serialization is inconsistent
 
 **The Problem:**
+
 - **Security**: Sequential IDs leak information and enable enumeration attacks
 - **Distributed coordination**: Auto-increment requires database coordination, causing bottlenecks
 - **Global uniqueness**: No guarantee of uniqueness when merging data across environments
 - **Serialization complexity**: Different types require different handling across the stack
 
 **Drivers:**
+
 - Microservices architecture requires distributed ID generation without coordination
 - Security best practices demand non-enumerable identifiers
 - Frontend (TypeScript/Vue) and backend (Java/Spring Boot) need consistent serialization
 - Future cloud deployments may require multi-region identifier generation
 
 **Scope:**
+
 - All new entities across pos-* microservices
-- All new Moqui components and entities
 - REST API contracts between frontend and backend
 - Database schemas for new tables
 
@@ -46,6 +49,7 @@ The Durion platform consists of multiple microservices (durion-positivity-backen
 **Chosen:** UUID v7 (Time-Ordered UUID)
 
 **Rationale:**
+
 - **Time-ordered**: Maintains insert performance by reducing index fragmentation (unlike UUID v4)
 - **128-bit global uniqueness**: No coordination needed across services or environments
 - **Security**: Non-enumerable, doesn't leak record counts
@@ -53,6 +57,7 @@ The Durion platform consists of multiple microservices (durion-positivity-backen
 - **RFC 9562 standard**: Well-defined specification with growing library support
 
 **Specification:**
+
 ```
 UUID v7 format: tttttttt-tttt-7xxx-yxxx-xxxxxxxxxxxx
 - t: Unix timestamp (milliseconds)
@@ -65,6 +70,7 @@ UUID v7 format: tttttttt-tttt-7xxx-yxxx-xxxxxxxxxxxx
 **Decision:** ✅ **Resolved** - Use Java `UUID` type with UUID v7 generation library.
 
 **Implementation:**
+
 ```java
 // Entity definition
 @Entity
@@ -89,10 +95,12 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 ```
 
 **Libraries:**
+
 - Primary: `com.github.f4b6a3:uuid-creator` (supports UUID v7)
 - Fallback: `java.util.UUID.randomUUID()` (v4) if v7 unavailable
 
 **Database:**
+
 - PostgreSQL: `UUID` column type (native support)
 - MySQL: `BINARY(16)` or `CHAR(36)` depending on version
 - H2: `UUID` type for testing
@@ -102,6 +110,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 **Decision:** ✅ **Resolved** - Use String representation of UUID in TypeScript/JavaScript. Frontend does not need to generate UUIDs—backend is source of truth for entity IDs.
 
 **Implementation:**
+
 ```typescript
 // Type definition
 interface Order {
@@ -117,6 +126,7 @@ const response = await api.get<Order>(`/api/v1/orders/${orderId}`);
 ```
 
 **Validation:**
+
 ```typescript
 // UUID v7 regex pattern for validation
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -127,6 +137,7 @@ function isValidUUIDv7(id: string): boolean {
 ```
 
 **Rationale:**
+
 - Native `String` type in JavaScript/TypeScript—no conversion needed
 - JSON serialization is automatic and lossless
 - Simple to display, log, and debug
@@ -137,6 +148,7 @@ function isValidUUIDv7(id: string): boolean {
 **Decision:** ✅ **Resolved** - Serialize UUIDs as hyphenated lowercase strings in JSON. Jackson handles conversion automatically.
 
 **Format:**
+
 ```json
 {
   "id": "018e1c9f-6b5a-7890-abcd-1234567890ab",
@@ -146,6 +158,7 @@ function isValidUUIDv7(id: string): boolean {
 ```
 
 **Spring Boot Configuration:**
+
 ```java
 // Jackson automatically serializes UUID as hyphenated string
 // No custom configuration needed—works out of the box
@@ -156,12 +169,14 @@ function isValidUUIDv7(id: string): boolean {
 **Decision:** ✅ **Resolved** - New entities use UUID v7; existing entities remain unchanged unless explicitly migrated. No forced migration—evaluate case-by-case.
 
 **Guidelines:**
+
 - **New services/entities**: Must use UUID v7
 - **Existing entities**: Keep current IDs unless there's a compelling reason to migrate
 - **Foreign keys**: New relationships to legacy entities continue using legacy ID types
 - **Migration triggers**: Security concerns, data merges, or major refactoring
 
 **Migration Pattern (if needed):**
+
 ```sql
 -- Add UUID column
 ALTER TABLE legacy_table ADD COLUMN uuid_id UUID;
@@ -236,15 +251,18 @@ UPDATE legacy_table SET uuid_id = gen_uuid_v7();
 ### Required Components
 
 **Backend (Java/Spring Boot):**
+
 - Library: `com.github.f4b6a3:uuid-creator:5.3.7` (Maven Central)
 - JPA: Native `UUID` type support
 - Jackson: Default UUID serialization (no config needed)
 
 **Frontend (TypeScript/Vue):**
+
 - No library needed—use native `string` type
 - Optional: UUID validation regex for input validation
 
 **Database:**
+
 - PostgreSQL: `UUID` column type (recommended)
 - MySQL 8.0+: `BINARY(16)` with custom functions
 - H2 (testing): `UUID` type
@@ -252,6 +270,7 @@ UPDATE legacy_table SET uuid_id = gen_uuid_v7();
 ### Configuration
 
 **Maven dependency:**
+
 ```xml
 <dependency>
     <groupId>com.github.f4b6a3</groupId>
@@ -261,6 +280,7 @@ UPDATE legacy_table SET uuid_id = gen_uuid_v7();
 ```
 
 **PostgreSQL schema:**
+
 ```sql
 CREATE TABLE orders (
     id UUID PRIMARY KEY,
@@ -276,16 +296,19 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 ### Testing Strategy
 
 **Unit tests:**
+
 - Verify UUID v7 generation produces valid format
 - Verify time-ordering property (newer UUIDs > older UUIDs)
 - Verify uniqueness across concurrent threads
 
 **Integration tests:**
+
 - Test JSON serialization/deserialization
 - Verify frontend receives valid UUID strings
 - Test database persistence and retrieval
 
 **Performance tests:**
+
 - Benchmark insert performance vs auto-increment
 - Measure index fragmentation over time
 - Monitor query performance on UUID foreign keys
@@ -309,18 +332,18 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 
 ## References
 
-- **RFC 9562**: UUID Specification including UUID v7 - https://www.rfc-editor.org/rfc/rfc9562.html
-- **UUID Creator Library**: https://github.com/f4b6a3/uuid-creator
-- **Related ADRs**: 
+- **RFC 9562**: UUID Specification including UUID v7 - <https://www.rfc-editor.org/rfc/rfc9562.html>
+- **UUID Creator Library**: <https://github.com/f4b6a3/uuid-creator>
+- **Related ADRs**:
   - [ADR-0009: Backend Domain Responsibilities](0009-backend-domain-responsibilities.adr.md)
   - [ADR-0010: Frontend Domain Responsibilities](0010-frontend-domain-responsibilities-guide.adr.md)
   - [ADR-0011: API Gateway Security Architecture](0011-api-gateway-security-architecture.adr.md)
-- **Related Documentation**: 
+- **Related Documentation**:
   - [Backend Architecture Guide](../../durion-positivity-backend/docs/ARCHITECTURE_GUIDE.md)
   - [Java Instructions](../../.github/instructions/java.instructions.md)
 - **External Resources**:
-  - PostgreSQL UUID Documentation: https://www.postgresql.org/docs/current/datatype-uuid.html
-  - Jackson UUID Serialization: https://github.com/FasterXML/jackson-databind
+  - PostgreSQL UUID Documentation: <https://www.postgresql.org/docs/current/datatype-uuid.html>
+  - Jackson UUID Serialization: <https://github.com/FasterXML/jackson-databind>
 
 ---
 

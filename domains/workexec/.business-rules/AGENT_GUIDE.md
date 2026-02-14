@@ -15,7 +15,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | Decision ID | Title |
 | --- | --- |
 | DECISION-INVENTORY-001 | SubstituteLink ownership boundary |
-| DECISION-INVENTORY-002 | Canonical Moqui screens/routes |
+| DECISION-INVENTORY-002 | Canonical frontend screens/routes |
 | DECISION-INVENTORY-003 | Identifier handling (opaque IDs) |
 | DECISION-INVENTORY-004 | Workorder status taxonomy and “work started” |
 | DECISION-INVENTORY-005 | Assignment vs operational context (SoR + audit) |
@@ -35,7 +35,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### What Work Execution owns (system of record)
 
-- Workorder execution lifecycle state (`durion.workexec.DurWorkorder.statusId` in Moqui `durion-workexec`)
+- Workorder execution lifecycle state (`durion.workexec.DurWorkorder.statusId` in frontend `durion-workexec`)
 - Execution-time edits that are explicitly WorkExec-owned (execution notes, completion/invoicing transitions) while assignment/scheduling context remains a ShopMgmt source of record per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md)
 - Estimate editing/approval flows implemented in `durion-workexec` screens/services
 - Runtime substitution apply behavior for estimate/workorder line items (including immutable substitution history)
@@ -75,7 +75,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
 | DECISION-INVENTORY-001 | SubstituteLink authoring is not workexec SoR | [DOMAIN_NOTES.md](#decision-inventory-001---substitutelink-ownership-boundary) |
-| DECISION-INVENTORY-002 | Use existing `durion-workexec` and `durion-shopmgr` screens | [DOMAIN_NOTES.md](#decision-inventory-002---canonical-moqui-screensroutes) |
+| DECISION-INVENTORY-002 | Use existing `durion-workexec` and `durion-shopmgr` screens | [DOMAIN_NOTES.md](#decision-inventory-002---canonical-frontend-screensroutes) |
 | DECISION-INVENTORY-003 | IDs are opaque strings | [DOMAIN_NOTES.md](#decision-inventory-003---identifier-handling-opaque-ids) |
 | DECISION-INVENTORY-004 | Started means `WO_IN_PROGRESS` or later | [DOMAIN_NOTES.md](#decision-inventory-004---workorder-status-taxonomy-and-work-started) |
 | DECISION-INVENTORY-005 | Operational context is shopmgr SoR; overrides audited | [DOMAIN_NOTES.md](#decision-inventory-005---assignment-vs-operational-context-sor--audit) |
@@ -126,11 +126,11 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Move any time-entry CRUD story to `domain:people`.
 - Decision ID: DECISION-INVENTORY-009
 
-### Q: What are the canonical Moqui screen paths/routes for workorder detail, estimate detail, appointment detail, reporting/dispatch screens? {#decision-inventory-002---canonical-moqui-screensroutes}
+### Q: What are the canonical frontend screen paths/routes for workorder detail, estimate detail, appointment detail, reporting/dispatch screens? {#decision-inventory-002---canonical-frontend-screensroutes}
 
-- Answer: Use existing Moqui screens under `durion-moqui-frontend` (workexec: `WorkOrderBoard.xml`, `WorkOrderEdit.xml`, `EstimateEdit.xml`; shopmgr: `AppointmentEdit.xml`).
+- Answer: Use existing frontend screens under `durion-frontend` (workexec: `WorkOrderBoard.xml`, `WorkOrderEdit.xml`, `EstimateEdit.xml`; shopmgr: `AppointmentEdit.xml`).
 - Assumptions:
-- Moqui routing exposes these screens via component menus.
+- Frontend routing exposes these screens via component menus.
 - Rationale:
 - Aligns stories with implemented artifacts.
 - Impact:
@@ -205,7 +205,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Q: Assignment context endpoints: Exact endpoints/services for loading workorder detail, updating assignment context, and fetching audit/history {#decision-inventory-014---audit-visibility-strategy-substitutes--overrides}
 
-- Answer: In Moqui today, assignment-like fields live on `DurWorkorder` and are updated by existing workexec services; add an append-only audit entity/service if stories require visible history.
+- Answer: In frontend today, assignment-like fields live on `DurWorkorder` and are updated by existing workexec services; add an append-only audit entity/service if stories require visible history.
 - Assumptions:
 - Existing update service remains the primary mutation path.
 - Rationale:
@@ -225,7 +225,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - safe_to_defer: true until shopmgr provides a version token.
 - Decision ID: DECISION-INVENTORY-005
 
-### Q: Event ingestion mechanism: How are Workexec events delivered/handled in this Moqui repo (webhook, broker consumer, polling/inbox)? {#decision-inventory-015---event-ingestion-mechanism--failure-handling}
+### Q: Event ingestion mechanism: How are Workexec events delivered/handled in this frontend repo (webhook, broker consumer, polling/inbox)? {#decision-inventory-015---event-ingestion-mechanism--failure-handling}
 
 - Answer: Use an inbox pattern (persist first, process async, DB idempotency). Transport may be webhook or broker.
 - Assumptions:
@@ -238,7 +238,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Q: Invoice event semantics: Is `InvoiceIssued` a separate event type or a status within `WorkorderStatusChanged`? What fields are present?
 
-- Answer: In Moqui today, invoicing transitions the workorder to `WO_INVOICED`; treat invoice issuance as a status transition unless a dedicated billing event contract exists.
+- Answer: In frontend today, invoicing transitions the workorder to `WO_INVOICED`; treat invoice issuance as a status transition unless a dedicated billing event contract exists.
 - Assumptions:
 - Billing may later emit `InvoiceIssued`.
 - Rationale:
@@ -255,7 +255,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Rationale:
 - Consistent UX.
 - Impact:
-- Normalize Moqui and backend errors to this envelope.
+- Normalize frontend and backend errors to this envelope.
 - Decision ID: DECISION-INVENTORY-011
 
 ### Q: Idempotency-Key usage: Should frontend generate/send `Idempotency-Key` for create calls by default? {#decision-inventory-012---idempotency-key-usage-for-ui-mutations}
@@ -412,9 +412,9 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Add dedicated audit log if required by stories.
 - Decision ID: DECISION-INVENTORY-014
 
-### Q: Event failure handling: Should orphaned/invalid events be stored in DLQ outside Moqui, in Moqui DB for review, or both?
+### Q: Event failure handling: Should orphaned/invalid events be stored in DLQ outside frontend, in frontend DB for review, or both?
 
-- Answer: Both—persist a failure record in Moqui DB for ops review and emit to an external DLQ for alerting/remediation.
+- Answer: Both—persist a failure record in frontend DB for ops review and emit to an external DLQ for alerting/remediation.
 - Assumptions:
 - Some failures require manual intervention.
 - Rationale:
@@ -447,7 +447,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ## Todos Reconciled
 
-- Original todo: "Confirm canonical start-eligible statuses exposed to frontend." → Resolution: Resolved (use Moqui `WO_CREATED`/`WO_SCHEDULED` as pre-start; started is `WO_IN_PROGRESS` or later).
+- Original todo: "Confirm canonical start-eligible statuses exposed to frontend." → Resolution: Resolved (use frontend `WO_CREATED`/`WO_SCHEDULED` as pre-start; started is `WO_IN_PROGRESS` or later).
 - Original todo: "Whether managers can still override after start and snapshot semantics." → Resolution: Resolved (manager-only override with audit; do not mutate a start snapshot).
 - Original todo: "Confirm event ingestion mechanism and security model." → Resolution: Replace with task: `TASK-WE-001` (choose transport + auth and implement inbox processing).
 - Original todo: "Confirm whether gateways honor `Idempotency-Key`." → Resolution: Resolved (require `Idempotency-Key` support for create/submit; if not supported, add bridge-layer support).
