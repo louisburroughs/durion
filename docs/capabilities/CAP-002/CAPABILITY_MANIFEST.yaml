@@ -75,7 +75,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json
@@ -125,7 +125,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json
@@ -175,7 +175,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json
@@ -225,7 +225,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json
@@ -275,7 +275,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json
@@ -325,7 +325,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json
@@ -353,7 +353,7 @@ stories:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
-    status: draft
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-workorder/target/openapi.json

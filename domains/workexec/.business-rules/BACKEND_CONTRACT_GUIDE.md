@@ -1,8 +1,8 @@
 # WorkExec Backend Contract Guide
 
-**Version:** 0.1 (Phase 1 draft)
+**Version:** 0.2 (Synced with pos-workorder OpenAPI v1)
 **Audience:** Backend developers, Frontend developers, API consumers
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-13
 
 ---
 
@@ -13,6 +13,42 @@ This guide standardizes field naming conventions, data types, payload structures
 **Primary Goal (Phase 1):** Document the authoritative contracts for the endpoints referenced in [workexec-questions.md](../workexec-questions.md) so blocking questions can be resolved in Phase 2.
 
 ---
+
+## Known Limitations (v1 Implementation)
+
+The following capabilities are **required by CAP-002** but **not yet implemented** in pos-workorder v1:
+
+### Item Management
+**Missing Endpoints:**
+- `POST /v1/workorders/estimates/{estimateId}/items` - Add line item (part or labor)
+- `PATCH /v1/workorders/estimates/{estimateId}/items/{itemId}` - Update line item
+- `DELETE /v1/workorders/estimates/{estimateId}/items/{itemId}` - Remove line item
+
+**Impact:** Cannot build estimates incrementally; must create with full item set upfront or use workarounds.
+**Tracking:** Backend issues #173 (parts), #172 (labor), #170 (revision)
+
+### Tax Calculation
+**Missing Endpoint:**
+- `POST /v1/workorders/estimates/{estimateId}/calculate` - Trigger tax recalculation
+
+**Current Behavior:** Tax calculation happens automatically during approval.
+**Tracking:** Backend issue #171
+
+### Summary Generation
+**Missing Endpoints:**
+- `GET /v1/workorders/estimates/{estimateId}/summary` - Customer-facing formatted summary
+- `POST /v1/workorders/estimates/{estimateId}/snapshots` - Create historical snapshot
+
+**Impact:** Cannot generate printable/PDF estimates for customer presentation.
+**Tracking:** Backend issue #169
+
+### Approval Workflow
+**Missing Endpoint:**
+- `POST /v1/workorders/estimates/{estimateId}/submit` - Submit for approval (DRAFT → PENDING_APPROVAL)
+
+**Current Behavior:** Estimates transition directly from DRAFT → APPROVED via approval endpoint.
+**Impact:** No explicit "submit for review" step in workflow.
+
 
 ## Conventions
 
@@ -67,7 +103,52 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
 2. **Get Estimate by ID** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
    - Path param: `estimateId` (Long, required)
    - Response: `EstimateDTO` (200) | 404 if not found
-   - EstimateDTO: `{ id, estimateNumber, status, locationId, vehicleId, customerId, createdByUserId, createdAt, updatedAt, approvedAt, declinedAt, expiresAt, subtotal, taxAmount, total, version }`
+
+   #### EstimateResponse (Current v1 API)
+
+   **Current Implementation Returns:**
+   ```json
+   {
+     "id": "550e8400-e29b-41d4-a716-446655440000",
+     "estimateNumber": "EST-2024-1000",
+     "customerId": "550e8400-e29b-41d4-a716-446655440001",
+     "vehicleId": "550e8400-e29b-41d4-a716-446655440002",
+     "locationId": "550e8400-e29b-41d4-a716-446655440003",
+     "currencyUomId": "USD",
+     "taxRegionId": "550e8400-e29b-41d4-a716-446655440004",
+     "status": "DRAFT",
+     "createdByUserId": "550e8400-e29b-41d4-a716-446655440005",
+     "createdAt": "2024-01-27T10:30:00Z"
+   }
+   ```
+
+   **Field Definitions:**
+   - `id` (String/UUID) - Unique estimate identifier
+   - `estimateNumber` (String) - Human-readable estimate number (e.g., "EST-2024-1000")
+   - `customerId` (String/UUID) - Customer party ID
+   - `vehicleId` (String/UUID) - Vehicle/asset ID
+   - `locationId` (String/UUID) - Shop/facility location ID
+   - `currencyUomId` (String) - Currency code (e.g., "USD")
+   - `taxRegionId` (String/UUID) - Tax jurisdiction ID
+   - `status` (EstimateStatus) - Current lifecycle status
+   - `createdByUserId` (String/UUID) - User who created the estimate
+   - `createdAt` (ISO 8601 UTC) - Creation timestamp
+
+   **Fields Planned for Future Releases:**
+   - `updatedAt` (ISO 8601) - Last modification timestamp
+   - `approvedAt` (ISO 8601) - Approval timestamp
+   - `approvedBy` (UUID) - Approving user ID
+   - `declinedAt` (ISO 8601) - Decline timestamp
+   - `expiresAt` (ISO 8601) - Approval expiration timestamp
+   - `subtotal` (BigDecimal) - Subtotal before tax
+   - `taxAmount` (BigDecimal) - Calculated tax amount
+   - `total` (BigDecimal) - Grand total including tax
+   - `version` (Integer) - Optimistic locking version for concurrency control
+   - `lineItems` (LineItemDTO[]) - Array of estimate line items (parts/labor)
+   - `signatureData` (String) - Base64-encoded signature image (populated after approval)
+   - `signatureMimeType` (String) - Signature MIME type (e.g., "image/png")
+   - `signerName` (String) - Name of person who signed
+   - `approvalNotes` (String) - Notes provided during approval
 
 3. **Get Estimates by Customer** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/customer/{customerId}`
    - Path param: `customerId` (Long, required)
@@ -104,9 +185,13 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
    - Validation: customerId must match estimate
    - State transition: DRAFT → APPROVED
 
-9. **Delete Estimate** — `DELETE http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
-   - Path param: `estimateId` (Long)
-   - Response: 204 No Content (success) | 404 (not found)
+8. **Delete Estimate** — `DELETE http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
+   - Path Parameters:
+     - `estimateId` (UUID, required) - Estimate to delete
+   - Response: 204 No Content (success) | 404 (not found) | 409 (invalid state)
+   - Use Case: Remove draft estimates that are no longer needed
+   - Constraint: Can only delete estimates in `DRAFT` status
+   - Error: Returns `INVALID_STATE` (409) if estimate is not in DRAFT status
 
 ### Estimate Status Enum (Confirmed)
 
@@ -227,6 +312,74 @@ EstimateDTO {
 }
 ```
 
+##### Selective Line Item Approval
+
+The approval request supports **optional selective line item approval/rejection**:
+
+```json
+{
+   "customerId": "550e8400-e29b-41d4-a716-446655440001",
+   "signatureData": "data:image/png;base64,iVBORw0...",
+   "signatureMimeType": "image/png",
+   "signerName": "John Doe",
+   "lineItemApprovals": [
+      {
+         "lineItemId": 123,
+         "approved": true,
+         "notes": "Customer approved oil change"
+      },
+      {
+         "lineItemId": 124,
+         "approved": false,
+         "rejectionReason": "CUSTOMER_DECLINED",
+         "notes": "Customer wants to get tires checked elsewhere"
+      }
+   ]
+}
+```
+
+**Behavior:**
+- If `lineItemApprovals` array is **omitted**, all line items are implicitly approved
+- If `lineItemApprovals` array is **provided**, each line item must have an explicit entry
+- Approved items (`approved: true`) transition to executable status
+- Rejected items (`approved: false`) are flagged and excluded from workorder promotion
+- The `rejectionReason` field uses predefined codes (e.g., `CUSTOMER_DECLINED`, `TOO_EXPENSIVE`, `NOT_NECESSARY`)
+
+##### Purchase Order Enforcement (CAP:092)
+
+For **commercial accounts** with purchase order enforcement enabled:
+
+**Field:** `purchaseOrderNumber` (String, conditionally required)
+
+**Validation Rules:**
+- Required when customer billing rules indicate `purchaseOrderRequired=true`
+- Format: 3-64 characters, pattern `^[A-Za-z0-9][A-Za-z0-9._-]*$`
+- Backend queries billing rules via: `GET /v1/crm/accounts/parties/{partyId}/billingRules`
+
+**Error Codes:**
+- `MISSING_PO_NUMBER` (400) - PO required for this customer but not provided
+- `INVALID_PO_NUMBER` (400) - PO format validation failed
+
+**Request Example with PO:**
+```json
+{
+   "customerId": "550e8400-e29b-41d4-a716-446655440001",
+   "signatureData": "data:image/png;base64,iVBORw0...",
+   "signatureMimeType": "image/png",
+   "signerName": "Fleet Manager",
+   "purchaseOrderNumber": "PO-2024-12345",
+   "notes": "Approved for fleet vehicle maintenance"
+}
+```
+
+**Backend Behavior:**
+1. Backend receives approval request with `purchaseOrderNumber`
+2. Backend calls CRM service to retrieve billing rules for `customerId`
+3. If `billingRules.purchaseOrderRequired === true`:
+    - Validate PO number is present and matches format
+    - Reject with `MISSING_PO_NUMBER` or `INVALID_PO_NUMBER` if validation fails
+4. If validation passes, approval proceeds normally with PO attached to estimate record
+
 ---
 
 ## DTO Schemas (Confirmed from pos-workorder)
@@ -321,42 +474,6 @@ EstimateDTO {
 Frontend should adjust base paths to match actual routing. Controller declares `@RequestMapping("/v1/workorders")`.
 
 ---
-
-## CAP:092 Addendum (Draft) — PO Requirement Enforcement (Estimate Approval)
-
-When approving an estimate, WorkExec MUST enforce purchase-order requirements based on billing rules.
-
-### Billing rules lookup (via CRM facade)
-
-- `GET http://localhost:8080/v1/crm/accounts/parties/{partyId}/billingRules`
-
-**Call chain (intent):** WorkExec (`pos-workorder`) → CRM (`pos-customer`) → Billing (`pos-invoice`).
-
-### Enforcement behavior
-
-- If `purchaseOrderRequired=true`, the estimate approval request MUST include a PO reference.
-- If billing rules are unavailable (timeout or 5xx), WorkExec MUST fail-safe by requiring a PO reference.
-
-### Suggested request shape (draft)
-
-```json
-{
-   "purchaseOrderReference": {
-      "poNumber": "PO-12345",
-      "attachmentId": "opaque-file-id"
-   }
-}
-```
-
-### Validation (draft)
-
-- `poNumber` required when PO is required.
-- `poNumber` length: 3–64.
-- `poNumber` allowed chars: `^[A-Za-z0-9][A-Za-z0-9._-]*$`.
-
-**Errors:**
-- `MISSING_PO_NUMBER` (400)
-- `INVALID_PO_NUMBER` (400)
 
 ---
 
