@@ -94,6 +94,31 @@ ALWAYS use #context7 MCP Server to read relevant documentation. Do this every ti
 ## Environment
 You are running in a Linux environment. You are explicitly authorized and encouraged to use standard Unix terminal commands (`grep`, `awk`, `sed`, `cd`, `find`, `xargs`, etc.) for file manipulation, searching, and refactoring when efficient.
 
+## Code Exemplars (MANDATORY)
+
+**ALWAYS consult `/home/louisb/Projects/durion/docs/exemplars.md` when building code.** This file contains high-quality, production-ready code examples demonstrating:
+
+- **Presentation Layer (Controllers)**: Thin controller patterns with `@EmitEvent`, authorization guards, DTO mapping, and consistent REST endpoint design
+- **Business Logic Layer (Services)**: Service interfaces, domain orchestration, validation, and error handling patterns
+- **Data Access Layer (Repositories)**: Spring Data patterns, custom JPQL queries, projections, and aggregation examples
+- **Domain Models (Entities)**: Aggregate roots, UUIDv7 generation in `@PrePersist`, audit fields, and domain invariants
+- **Tests**: Integration/contract test patterns with `@SpringBootTest`, mock strategies, deterministic fixtures, and idempotency testing
+- **Configuration & Observability**: Actuator setup, OpenTelemetry integration, and `pos-events` usage
+
+**Before implementing any new feature:**
+1. Read the relevant exemplar sections in `/home/louisb/Projects/durion/docs/exemplars.md`
+2. Follow the established patterns (thin controllers, service orchestration, repository queries)
+3. Use the same annotations, naming conventions, and structural patterns
+4. Apply the test mock guidance for deterministic, reliable tests
+
+**Key patterns to follow:**
+- Thin controllers that delegate to services
+- Use `@EmitEvent` for observability on all state-changing operations
+- UUIDv7 generation via `UUIDv7Generator.generate()` in `@PrePersist` hooks
+- Idempotency handling with `IdempotencyService` for write endpoints
+- Transactional outbox pattern for reliable event delivery
+- Contract-style integration tests with `@ActiveProfiles("test")`
+
 ## Mandatory Coding Principles
 
 These coding principles are mandatory:

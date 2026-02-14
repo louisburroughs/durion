@@ -1,8 +1,8 @@
 # WorkExec Backend Contract Guide
 
-**Version:** 0.2 (Synced with pos-workorder OpenAPI v1)
+**Version:** 0.3 (Synced with pos-workorder OpenAPI v1)
 **Audience:** Backend developers, Frontend developers, API consumers
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-02-14
 
 ---
 
@@ -16,38 +16,19 @@ This guide standardizes field naming conventions, data types, payload structures
 
 ## Known Limitations (v1 Implementation)
 
-The following capabilities are **required by CAP-002** but **not yet implemented** in pos-workorder v1:
+The OpenAPI v1 spec produced by `pos-workorder` is the authoritative source for implemented endpoints. Several items previously listed as "missing" are now present in the OpenAPI spec; the guide below reflects that reality. Specific gaps that still require work are noted inline and referenced to backend child issues.
 
 ### Item Management
-**Missing Endpoints:**
-- `POST /v1/workorders/estimates/{estimateId}/items` - Add line item (part or labor)
-- `PATCH /v1/workorders/estimates/{estimateId}/items/{itemId}` - Update line item
-- `DELETE /v1/workorders/estimates/{estimateId}/items/{itemId}` - Remove line item
-
-**Impact:** Cannot build estimates incrementally; must create with full item set upfront or use workarounds.
-**Tracking:** Backend issues #173 (parts), #172 (labor), #170 (revision)
+Status: Endpoints to add estimate items are present in the OpenAPI spec at `/v1/workorders/estimates/{estimateId}/items` (POST). If PATCH/DELETE semantics are required for partial updates or removals, open follow-up backend issues and reference Implementation Links.
 
 ### Tax Calculation
-**Missing Endpoint:**
-- `POST /v1/workorders/estimates/{estimateId}/calculate` - Trigger tax recalculation
+Status: The explicit calculate endpoint (`/v1/workorders/estimates/{estimateId}/calculate`) is present in the OpenAPI spec. Clients can call this endpoint to recalc totals prior to promotion/approval.
 
-**Current Behavior:** Tax calculation happens automatically during approval.
-**Tracking:** Backend issue #171
-
-### Summary Generation
-**Missing Endpoints:**
-- `GET /v1/workorders/estimates/{estimateId}/summary` - Customer-facing formatted summary
-- `POST /v1/workorders/estimates/{estimateId}/snapshots` - Create historical snapshot
-
-**Impact:** Cannot generate printable/PDF estimates for customer presentation.
-**Tracking:** Backend issue #169
+### Summary / Snapshot Generation
+Status: The snapshot endpoint (`/v1/workorders/estimates/{estimateId}/snapshots`) is present. If a dedicated `summary` endpoint is still required for printable/PDF output, track via a follow-up issue.
 
 ### Approval Workflow
-**Missing Endpoint:**
-- `POST /v1/workorders/estimates/{estimateId}/submit` - Submit for approval (DRAFT → PENDING_APPROVAL)
-
-**Current Behavior:** Estimates transition directly from DRAFT → APPROVED via approval endpoint.
-**Impact:** No explicit "submit for review" step in workflow.
+Status: Approval endpoints (estimate approval and workorder approval) exist in the OpenAPI spec (e.g., `/v1/workorders/estimates/{estimateId}/approval`, `/v1/workorders/{workorderId}/approval`). If the UX requires a separate `submit` step (DRAFT → PENDING_APPROVAL) add a child backend issue to track.
 
 
 ## Conventions
@@ -86,11 +67,13 @@ Backend MUST return stable codes above; extend with new codes as needed, keeping
 
 ## Endpoint Inventory (Phase 2 Confirmed from pos-workorder Backend)
 
-All endpoint examples in this guide use the API Gateway format:
+All endpoint examples in this guide MUST use the API Gateway format:
 
-- `http://api-gateway.local/workorder/v1/workorders/...`
+- `http://localhost:8080/v{version}/{domain}/{resource}`
 
-**Note:** The API Gateway routes requests to `pos-workorder` service using the path `/workorder/**` with StripPrefix=1 filter. Incoming requests like `/workorder/v1/workorders/estimates` are forwarded to the service as `/v1/workorders/estimates`.
+Example: `POST http://localhost:8080/v1/workexec/workorders/estimates` (gateway will route to the `pos-workorder` service).
+
+**Note:** The API Gateway rewrites and routes requests based on the `/v{version}/{domain}/...` prefix. Do NOT reference direct-service hostnames or ports (e.g., `localhost:8082`) in this guide; all examples must use the gateway host above.
 
 Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
 
@@ -150,42 +133,42 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
    - `signerName` (String) - Name of person who signed
    - `approvalNotes` (String) - Notes provided during approval
 
-3. **Get Estimates by Customer** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/customer/{customerId}`
+3. **Get Estimates by Customer** — `GET http://localhost:8080/v1/workexec/workorders/estimates/customer/{customerId}`
    - Path param: `customerId` (Long, required)
    - Response: `[ EstimateDTO ]`
 
-4. **Get Estimates by Location/Shop** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/shop/{locationId}` | `http://api-gateway.local/workorder/v1/workorders/estimates/location/{locationId}`
+4. **Get Estimates by Location/Shop** — `GET http://localhost:8080/v1/workexec/workorders/estimates/shop/{locationId}` | `http://localhost:8080/v1/workexec/workorders/estimates/location/{locationId}`
    - Path param: `locationId` (Long, required)
    - Response: `[ EstimateDTO ]`
    - **Note:** Both `/shop/{locationId}` and `/location/{locationId}` endpoints exist (deprecated `/shop/*`)
 
-5. **Create Estimate** — `POST http://api-gateway.local/workorder/v1/workorders/estimates`
+5. **Create Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates`
    - Request: `CreateEstimateRequest { customerId (Long), vehicleId (Long) }`
    - Response: `CreateEstimateResponse { id, estimateNumber, status: DRAFT, locationId, createdAt }`
    - HTTP 200 (success), 400 (validation error), 500 (server error)
    - System generates unique `estimateNumber` (e.g., EST-2024-1001)
    - Requires: `X-User-Id` header (defaults to 1 if missing)
 
-6. **Decline Estimate** — `POST http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}/decline`
+6. **Decline Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/decline`
    - Path param: `estimateId` (Long)
    - Query param: `reason` (String, optional)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DRAFT → DECLINED
 
-7. **Reopen Estimate** — `POST http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}/reopen`
+7. **Reopen Estimate** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/reopen`
    - Path param: `estimateId` (Long)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DECLINED → DRAFT (within expiry window)
    - Constraint: Cannot reopen if expired
 
-8. **Approve Estimate with Signature** — `POST http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}/approval`
+8. **Approve Estimate with Signature** — `POST http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}/approval`
    - Path param: `estimateId` (Long)
    - Request: `ApproveEstimateRequest { customerId (Long), signatureData (String, base64 PNG), signatureMimeType (String), signerName (String, optional), notes (String, optional) }`
    - Response: `EstimateDTO { status: APPROVED, approvedAt, approvedBy, signatureData, signerName }` (200) | 400/404
    - Validation: customerId must match estimate
    - State transition: DRAFT → APPROVED
 
-8. **Delete Estimate** — `DELETE http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
+9. **Delete Estimate** — `DELETE http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}`
    - Path Parameters:
      - `estimateId` (UUID, required) - Estimate to delete
    - Response: 204 No Content (success) | 404 (not found) | 409 (invalid state)
@@ -206,13 +189,26 @@ From `EstimateStatus` enum in pos-workorder:
 
 ## Workorders (Confirmed from pos-workorder)
 
-1. **Load Workorder** — `GET http://api-gateway.local/workorder/v1/workorders/{workorderId}`
+1. **Load Workorder** — `GET http://localhost:8080/v1/workexec/workorders/{workorderId}`
    - Path param: `workorderId` (Long)
    - Response: `WorkorderDTO { id, shopId, vehicleId, customerId, approvalId, estimateId, status, services[], approvedAt, approvedBy, completedAt, completedBy }`
    - HTTP 200 (success) | 404 (not found)
 
-2. **Get All Workorders** — `GET http://api-gateway.local/workorder/v1/workorders`
+2. **Get All Workorders** — `GET http://localhost:8080/v1/workexec/workorders`
    - Response: `[ WorkorderDTO ]` (all workorders, no pagination)
+
+---
+
+## Implementation Links
+
+- Backend child issues referenced by CAP-003 (manifest):
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/168
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/207
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/206
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/205
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/204
+
+Refer to these issues for provider test responsibilities, missing behavior details, or follow-up API changes.
 
 ### Workorder Status Enum (Confirmed)
 
