@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document is the normative guide for the `workexec` (Work Execution) domain. It defines ownership boundaries, canonical concepts, and the required invariants for work order execution, estimate flows, substitutions, dispatch board views, and event-driven appointment updates. It resolves all previously captured open questions and reconciles todos into explicit decisions or tracked tasks.
+This document is the normative guide for the `workexec` (Work Execution) domain. It defines ownership boundaries, canonical concepts, and the required invariants for workorder execution, estimate flows, substitutions, dispatch board views, and event-driven appointment updates. It resolves all previously captured open questions and reconciles todos into explicit decisions or tracked tasks.
 
 ## Completed items
 
@@ -17,13 +17,13 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | DECISION-INVENTORY-001 | SubstituteLink ownership boundary |
 | DECISION-INVENTORY-002 | Canonical Moqui screens/routes |
 | DECISION-INVENTORY-003 | Identifier handling (opaque IDs) |
-| DECISION-INVENTORY-004 | Work order status taxonomy and “work started” |
+| DECISION-INVENTORY-004 | Workorder status taxonomy and “work started” |
 | DECISION-INVENTORY-005 | Assignment vs operational context (SoR + audit) |
 | DECISION-INVENTORY-006 | SubstituteLink update semantics and defaults |
 | DECISION-INVENTORY-007 | Substitution picker scope + eligibility source |
 | DECISION-INVENTORY-008 | Part lookup UX contract |
 | DECISION-INVENTORY-009 | Dispatch board contract + aggregation behavior |
-| DECISION-INVENTORY-010 | Appointments vs work orders (SoR + link) |
+| DECISION-INVENTORY-010 | Appointments vs workorders (SoR + link) |
 | DECISION-INVENTORY-011 | Standard error envelope + duplicate signaling |
 | DECISION-INVENTORY-012 | Idempotency-Key usage for UI mutations |
 | DECISION-INVENTORY-013 | Capability/permission signaling + manual price gating |
@@ -35,10 +35,10 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### What Work Execution owns (system of record)
 
-- Work order execution lifecycle state (`durion.workexec.DurWorkOrder.statusId` in Moqui `durion-workexec`)
-- Execution-time edits that are owned by work execution (assignment-like fields on the work order, execution notes, completion/invoicing transitions)
+- Workorder execution lifecycle state (`durion.workexec.DurWorkorder.statusId` in Moqui `durion-workexec`)
+- Execution-time edits that are explicitly WorkExec-owned (execution notes, completion/invoicing transitions) while assignment/scheduling context remains a ShopMgmt source of record per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md)
 - Estimate editing/approval flows implemented in `durion-workexec` screens/services
-- Runtime substitution apply behavior for estimate/work order line items (including immutable substitution history)
+- Runtime substitution apply behavior for estimate/workorder line items (including immutable substitution history)
 - Execution-facing read models owned by work execution when derived from workexec-owned data
 
 ### What Work Execution does *not* own
@@ -46,6 +46,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Part/product master data and substitute rule authoring (inventory/product domains)
 - Inventory availability/on-hand/reservations (inventory domain)
 - Appointment authoring/scheduling and operational schedule truth (shop management domain)
+- Dispatch board data, mechanic assignments, and reschedule workflows (shop management domain per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md)); WorkExec consumes read-only projections only
 - People directory and availability (people domain)
 - Permission policy definitions (security domain; workexec enforces only)
 
@@ -53,20 +54,21 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 | Entity | Description |
 | --- | --- |
-| `durion.workexec.DurWorkOrder` | Work order execution entity; includes `statusId`, `appointmentId`, `mechanicId`, `bayId` (as implemented today). |
+| `durion.workexec.DurWorkorder` | Workorder execution entity; includes `statusId`, `appointmentId`, `mechanicId`, `bayId` (as implemented today). |
 | Estimate | Quote/estimate concept; edited and approved via `durion-workexec` screens/services. |
 | SubstituteLink | Relationship between `partId` and `substitutePartId` with type/priority/active flags (master-data adjacency). |
-| Substitution history | Append-only record created when a substitute is applied to a work order/estimate line. |
-| Appointment (`durion.shopmgr.DurShopAppointment`) | Shop scheduling entity; work orders may reference via `appointmentId`. |
-| Dispatch board view | Read-only location/date view of work orders and scheduling signals; partial rendering permitted. |
+| Substitution history | Append-only record created when a substitute is applied to a workorder/estimate line. |
+| Appointment (`durion.shopmgr.DurShopAppointment`) | Shop scheduling entity; workorders may reference via `appointmentId`. |
+| Dispatch board view | ShopMgmt-owned read-only projection of scheduling data that WorkExec consumes for execution context (per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md)). |
 
 ## Invariants / Business Rules
 
-- Work order state transitions are authoritative and audited.
+- Workorder state transitions are authoritative and audited.
 - “Work started” gating must be based on authoritative status signals and must prevent mid-work assignment drift.
 - Substitution apply must be eligibility-checked server-side and must produce immutable history.
 - Mutation operations must be safe for double-submit (idempotency) and stale edits (conflict).
-- Dispatch board is read-only in v1; partial failures (People availability) must not block core view.
+- Dispatch board feed is provided by ShopMgmt and is read-only for WorkExec consumers; partial failures (People availability) must not block core view.
+- Identifier generation for new WorkExec-owned entities follows the platform UUID v7 standard per [ADR-0013](../../../docs/adr/0013-platform-uuid-identifier-strategy.adr.md); treat IDs as opaque strings across contracts.
 
 ## Mapping: Decisions → Notes
 
@@ -80,7 +82,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | DECISION-INVENTORY-006 | SubstituteLink keys immutable; soft deactivate | [DOMAIN_NOTES.md](#decision-inventory-006---substitutelink-update-semantics-and-defaults) |
 | DECISION-INVENTORY-007 | Picker supports WO + Estimate; backend enforces eligibility | [DOMAIN_NOTES.md](#decision-inventory-007---substitution-picker-scope--eligibility-source) |
 | DECISION-INVENTORY-008 | Part selection via search/picker | [DOMAIN_NOTES.md](#decision-inventory-008---part-lookup-ux-contract) |
-| DECISION-INVENTORY-009 | Board is read-only; aggregate where feasible | [DOMAIN_NOTES.md](#decision-inventory-009---dispatch-board-contract--aggregation-behavior) |
+| DECISION-INVENTORY-009 | ShopMgmt-owned dispatch feed; WorkExec consumes read-only projections | [DOMAIN_NOTES.md](#decision-inventory-009---dispatch-board-contract--aggregation-behavior) |
 | DECISION-INVENTORY-010 | Appointments are separate shopmgr entities | [DOMAIN_NOTES.md](#decision-inventory-010---appointments-vs-workorders-sor--link) |
 | DECISION-INVENTORY-011 | Standard error envelope with correlationId | [DOMAIN_NOTES.md](#decision-inventory-011---standard-error-envelope--duplicate-signaling) |
 | DECISION-INVENTORY-012 | UI sends `Idempotency-Key` for create/submit | [DOMAIN_NOTES.md](#decision-inventory-012---idempotency-key-usage-for-ui-mutations) |
@@ -91,18 +93,18 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ## Open Questions (from source)
 
-### Q: Substitutes domain ownership: Story #109 is labeled `domain:workexec` but is product/parts admin flavored. Should this be `domain:inventory` or a product domain label?
+### Q: Substitutes domain ownership: Story #109 is labeled `domain:workexec` but is product/parts admin flavored. Should this be `domain:inventory` or a product domain label? {#decision-inventory-001---substitutelink-ownership-boundary}
 
 - Answer: SubstituteLink authoring/admin is not owned by workexec; it should be owned by inventory/product master-data domains. Workexec consumes SubstituteLink for runtime substitution and records substitution history.
 - Assumptions:
-- SubstituteLink is reused beyond work order execution.
+- SubstituteLink is reused beyond workorder execution.
 - Rationale:
 - Keeps SoR boundaries clean.
 - Impact:
 - Relabel story; treat SubstituteLink as a workexec dependency.
 - Decision ID: DECISION-INVENTORY-001
 
-### Q: Operational context story ownership: Frontend issue labels “Shop Management/user” but backend reference is `domain:workexec` with Shopmgr as SoR. Confirm ownership/label.
+### Q: Operational context story ownership: Frontend issue labels “Shop Management/user” but backend reference is `domain:workexec` with Shopmgr as SoR. Confirm ownership/label {#decision-inventory-005---assignment-vs-operational-context-sor--audit}
 
 - Answer: Operational context is shopmgr SoR; workexec owns the execution UI that displays it and gates edits by status/permission.
 - Assumptions:
@@ -113,9 +115,9 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Coordinate contracts across workexec and shopmgr.
 - Decision ID: DECISION-INVENTORY-005
 
-### Q: Timekeeping / people-adjacent features: Several stories label domain conflicts (user/shop management vs workexec). Confirm what belongs in workexec UI vs people/shopmgr UI.
+### Q: Timekeeping / people-adjacent features: Several stories label domain conflicts (user/shop management vs workexec). Confirm what belongs in workexec UI vs people/shopmgr UI {#decision-inventory-009---timekeeping-readonly}
 
-- Answer: Time entry remains in people domain; workexec may consume People availability only as a read-only signal for dispatch views.
+- Answer: Per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md), time entry remains in the People domain; WorkExec may consume People availability only as a read-only signal for dispatch views.
 - Assumptions:
 - People is the SoR for availability/timekeeping.
 - Rationale:
@@ -124,7 +126,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Move any time-entry CRUD story to `domain:people`.
 - Decision ID: DECISION-INVENTORY-009
 
-### Q: What are the canonical Moqui screen paths/routes for work order detail, estimate detail, appointment detail, reporting/dispatch screens?
+### Q: What are the canonical Moqui screen paths/routes for workorder detail, estimate detail, appointment detail, reporting/dispatch screens? {#decision-inventory-002---canonical-moqui-screensroutes}
 
 - Answer: Use existing Moqui screens under `durion-moqui-frontend` (workexec: `WorkOrderBoard.xml`, `WorkOrderEdit.xml`, `EstimateEdit.xml`; shopmgr: `AppointmentEdit.xml`).
 - Assumptions:
@@ -135,7 +137,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Reference these screens in story AC and navigation.
 - Decision ID: DECISION-INVENTORY-002
 
-### Q: Part lookup UX: What endpoint/screen should admin UI use to search/select parts by SKU/name? Provide route(s) + response shape.
+### Q: Part lookup UX: What endpoint/screen should admin UI use to search/select parts by SKU/name? Provide route(s) + response shape {#decision-inventory-008---part-lookup-ux-contract}
 
 - Answer: Use a searchable part/product picker (query + pagination) instead of manual ID entry.
 - Assumptions:
@@ -146,7 +148,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Add/reuse a “Find Part/Product” UI and supporting service.
 - Decision ID: DECISION-INVENTORY-008
 
-### Q: SubstituteLink list/search: Do we have `GET /api/v1/substitutes` with filters/pagination, or must list be “query by partId” only?
+### Q: SubstituteLink list/search: Do we have `GET /api/v1/substitutes` with filters/pagination, or must list be “query by partId” only? {#decision-inventory-006---substitutelink-update-semantics-and-defaults}
 
 - Answer: Default is “query by partId”; a global list is allowed only if paginated and filter-required.
 - Assumptions:
@@ -157,7 +159,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Admin UI starts with selecting a part, then lists substitutes.
 - Decision ID: DECISION-INVENTORY-006
 
-### Q: Substitution picker endpoints: Exact endpoints and payload schemas for fetching candidates (WO/Estimate) and applying a selected substitute.
+### Q: Substitution picker endpoints: Exact endpoints and payload schemas for fetching candidates (WO/Estimate) and applying a selected substitute {#decision-inventory-007---substitution-picker-scope--eligibility-source}
 
 - Answer: Provide a stable picker contract for both WorkOrder and Estimate lines returning eligibility + pricing + permission flags; apply returns enough data to refresh the affected line.
 - Assumptions:
@@ -168,31 +170,31 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Define and version a picker DTO schema.
 - Decision ID: DECISION-INVENTORY-007
 
-### Q: Dispatch Board endpoint contract: Confirm exact endpoint path and request/response schema for `DispatchBoardView` and `ExceptionIndicator`.
+### Q: Dispatch Board endpoint contract: Confirm exact endpoint path and request/response schema for `DispatchBoardView` and `ExceptionIndicator` {#decision-inventory-009---dispatch-board-contract--aggregation-behavior}
 
-- Answer: In Moqui today, dispatch view is implemented by `WorkOrderBoard.xml` over `durion.workexec.DurWorkOrder`. If a REST read model is introduced, it must be read-only, filter-required, and return stable exception codes.
+- Answer: Per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md), ShopMgmt owns the dispatch board projection. WorkExec consumes the existing `WorkOrderBoard.xml` view (or future ShopMgmt REST read model) strictly as a read-only, filter-required feed that surfaces stable exception codes.
 - Assumptions:
-- Board v1 is read-only.
+- Board v1 is read-only and sourced from ShopMgmt.
 - Rationale:
-- Enables progressive enhancement.
+- Enables progressive enhancement without duplicating ShopMgmt scheduling logic.
 - Impact:
-- Contract must define `asOf` and exception enums.
+- Contract must define `asOf` and exception enums while clearly identifying ShopMgmt as the system of record.
 - Decision ID: DECISION-INVENTORY-009
 
 ### Q: Aggregation responsibility: Does dispatch board already include mechanic availability and bay occupancy, or must frontend call People availability separately?
 
-- Answer: Prefer server-side aggregation for SLA; if not available, UI fetches People availability in parallel and renders board even on People failure.
+- Answer: ShopMgmt is responsible for aggregating scheduling signals (mechanic availability, bay occupancy) in the dispatch projection. If supplemental People data is required, WorkExec may fetch it in parallel but must continue rendering the ShopMgmt feed even on auxiliary failures.
 - Assumptions:
-- People availability is secondary.
+- People availability is secondary and sourced outside WorkExec.
 - Rationale:
-- Partial outages must not block dispatch.
+- Partial outages must not block dispatch while respecting ShopMgmt ownership.
 - Impact:
-- UI implements partial rendering + warning state.
+- UI implements partial rendering + warning state without duplicating ShopMgmt aggregation logic.
 - Decision ID: DECISION-INVENTORY-009
 
-### Q: Appointments vs Work Orders: Are “appointments” separate entities or represented as work orders with scheduled times? If separate, what endpoint supplies them?
+### Q: Appointments vs Work Orders: Are “appointments” separate entities or represented as workorders with scheduled times? If separate, what endpoint supplies them? {#decision-inventory-010---appointments-vs-workorders-sor--link}
 
-- Answer: Appointments are separate shopmgr entities; work orders reference via `appointmentId` and appointment details are supplied by shopmgr.
+- Answer: Appointments are separate shopmgr entities; workorders reference via `appointmentId` and appointment details are supplied by shopmgr.
 - Assumptions:
 - Scheduling remains shopmgr-owned.
 - Rationale:
@@ -201,9 +203,9 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Any board join is via `appointmentId`.
 - Decision ID: DECISION-INVENTORY-010
 
-### Q: Assignment context endpoints: Exact endpoints/services for loading work order detail, updating assignment context, and fetching audit/history.
+### Q: Assignment context endpoints: Exact endpoints/services for loading workorder detail, updating assignment context, and fetching audit/history {#decision-inventory-014---audit-visibility-strategy-substitutes--overrides}
 
-- Answer: In Moqui today, assignment-like fields live on `DurWorkOrder` and are updated by existing workexec services; add an append-only audit entity/service if stories require visible history.
+- Answer: In Moqui today, assignment-like fields live on `DurWorkorder` and are updated by existing workexec services; add an append-only audit entity/service if stories require visible history.
 - Assumptions:
 - Existing update service remains the primary mutation path.
 - Rationale:
@@ -223,7 +225,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - safe_to_defer: true until shopmgr provides a version token.
 - Decision ID: DECISION-INVENTORY-005
 
-### Q: Event ingestion mechanism: How are Workexec events delivered/handled in this Moqui repo (webhook, broker consumer, polling/inbox)?
+### Q: Event ingestion mechanism: How are Workexec events delivered/handled in this Moqui repo (webhook, broker consumer, polling/inbox)? {#decision-inventory-015---event-ingestion-mechanism--failure-handling}
 
 - Answer: Use an inbox pattern (persist first, process async, DB idempotency). Transport may be webhook or broker.
 - Assumptions:
@@ -236,7 +238,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Q: Invoice event semantics: Is `InvoiceIssued` a separate event type or a status within `WorkorderStatusChanged`? What fields are present?
 
-- Answer: In Moqui today, invoicing transitions the work order to `WO_INVOICED`; treat invoice issuance as a status transition unless a dedicated billing event contract exists.
+- Answer: In Moqui today, invoicing transitions the workorder to `WO_INVOICED`; treat invoice issuance as a status transition unless a dedicated billing event contract exists.
 - Assumptions:
 - Billing may later emit `InvoiceIssued`.
 - Rationale:
@@ -245,7 +247,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Avoid double-applying if both signals exist.
 - Decision ID: DECISION-INVENTORY-015
 
-### Q: Standard error envelope: For 400/409, what is the standard error response format (field errors, message, correlationId, existingResourceId on duplicates)?
+### Q: Standard error envelope: For 400/409, what is the standard error response format (field errors, message, correlationId, existingResourceId on duplicates)? {#decision-inventory-011---standard-error-envelope--duplicate-signaling}
 
 - Answer: Use a stable JSON envelope with `code`, `message`, `correlationId`, optional `fieldErrors[]`, and optional `existingResourceId` on duplicates.
 - Assumptions:
@@ -256,7 +258,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Normalize Moqui and backend errors to this envelope.
 - Decision ID: DECISION-INVENTORY-011
 
-### Q: Idempotency-Key usage: Should frontend generate/send `Idempotency-Key` for create calls by default?
+### Q: Idempotency-Key usage: Should frontend generate/send `Idempotency-Key` for create calls by default? {#decision-inventory-012---idempotency-key-usage-for-ui-mutations}
 
 - Answer: Yes—UI sends `Idempotency-Key` for create/submit operations and reuses it on retry for the same attempt.
 - Assumptions:
@@ -278,7 +280,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Standardize across create endpoints.
 - Decision ID: DECISION-INVENTORY-011
 
-### Q: Permission signal source: How does frontend determine permission scopes/capabilities (session claims, user context endpoint, embedded in payload)?
+### Q: Permission signal source: How does frontend determine permission scopes/capabilities (session claims, user context endpoint, embedded in payload)? {#decision-inventory-013---capabilitypermission-signaling--manual-price-gating}
 
 - Answer: Prefer a user context/capabilities endpoint (or session claims) returning stable capability flags; backend remains authoritative with 403.
 - Assumptions:
@@ -302,13 +304,13 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Q: Dispatch Board RBAC: Which roles/permissions may view Dispatch Board? Location membership only or explicit permission (e.g., `DISPATCH_VIEW`)?
 
-- Answer: Require an explicit permission (e.g., `WORKEXEC_DISPATCH_VIEW`) and enforce location membership constraints.
+- Answer: Because ShopMgmt owns the board per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md), enforce explicit ShopMgmt-scoped permissions (e.g., `shopmgmt:dispatch:view`) and layer WorkExec location membership checks when embedding the read-only view.
 - Assumptions:
-- Board data is sensitive.
+- Board data is sensitive and cross-domain.
 - Rationale:
-- Least privilege.
+- Least privilege without mis-stating ownership.
 - Impact:
-- Apply permission to screens/endpoints.
+- Apply the ShopMgmt permission to screens/endpoints and honor WorkExec constraints when rendering embeds.
 - Decision ID: DECISION-INVENTORY-013
 
 ### Q: Editability of SubstituteLink key fields: On update, are `partId` and `substitutePartId` immutable or editable? If editable, how handle uniqueness conflicts?
@@ -366,7 +368,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Requires audit trail and snapshot discipline.
 - Decision ID: DECISION-INVENTORY-005
 
-### Q: Which statuses count as “work started”: Is `READY_FOR_PICKUP` considered started for lock rules?
+### Q: Which statuses count as “work started”: Is `READY_FOR_PICKUP` considered started for lock rules? {#decision-inventory-004---workorder-status-taxonomy-and-work-started}
 
 - Answer: Yes—any in-progress-or-later status is considered started; `READY_FOR_PICKUP` is post-start.
 - Assumptions:
@@ -379,9 +381,9 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Q: “Team” definition: Is team represented by `assignedMechanics[]` only or separate team entity?
 
-- Answer: Team is represented as assigned mechanic(s) on the work order; no separate team entity is required for v1.
+- Answer: Team is represented as assigned mechanic(s) on the workorder; no separate team entity is required for v1.
 - Assumptions:
-- Most work orders have one primary mechanic.
+- Most workorders have one primary mechanic.
 - Rationale:
 - Keep model lightweight.
 - Impact:
@@ -399,7 +401,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Add `/substitutes/{id}/audit` only if demanded.
 - Decision ID: DECISION-INVENTORY-014
 
-### Q: Assignment/override audit source: Should UI display generic work order transition history, a specific assignment sync log, or both?
+### Q: Assignment/override audit source: Should UI display generic workorder transition history, a specific assignment sync log, or both?
 
 - Answer: Prefer both when available; otherwise show transitions + metadata until a dedicated audit log exists.
 - Assumptions:
@@ -421,7 +423,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Implement durable failure entity + ops screen.
 - Decision ID: DECISION-INVENTORY-015
 
-### Q: Timezone source: Should timestamps display in shop/location timezone or user preference timezone? How does frontend obtain location timezone?
+### Q: Timezone source: Should timestamps display in shop/location timezone or user preference timezone? How does frontend obtain location timezone? {#decision-inventory-016---timezone-semantics-for-shop-ux}
 
 - Answer: Display timestamps in user timezone; interpret date-bucket filters (dispatch day) in shop timezone when available and label timezone in UI. If shop timezone is not available in location entities, treat as safe_to_defer and use user timezone with explicit labeling.
 - Assumptions:
@@ -432,15 +434,15 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Add timezone source to location/facility model or shop configuration.
 - Decision ID: DECISION-INVENTORY-016
 
-### Q: ID types: Confirm identifier types (uuid vs numeric vs prefixed strings) for `locationId`, `resourceId`, `mechanicId`, `partId`, etc., and whether UI should use searchable pickers.
+### Q: ID types: Confirm identifier types (uuid vs numeric vs prefixed strings) for `locationId`, `resourceId`, `mechanicId`, `partId`, etc., and whether UI should use searchable pickers? {#decision-inventory-003---identifier-handling-opaque-ids}
 
-- Answer: Treat all IDs as opaque strings (`type="id"`) and use pickers/search rather than UUID/numeric assumptions.
+- Answer: Per [ADR-0013](../../../docs/adr/0013-platform-uuid-identifier-strategy.adr.md), all newly created identifiers are UUID v7 values. Treat them as opaque strings (`type="id"`) in UI contracts, rely on backend generation, and use pickers/search rather than imposing client-side UUID validation heuristics.
 - Assumptions:
-- IDs may be generated by different systems.
+- UUID v7 generation happens server-side; legacy entities may still surface historical formats until migrated.
 - Rationale:
-- Avoid invalid client-side validation.
+- Avoid invalid client-side validation while reinforcing the platform UUID v7 strategy.
 - Impact:
-- UI controls must not assume UUID.
+- UI controls must not assume UUID beyond accepting 36-char hyphenated strings; backend remains the source of truth.
 - Decision ID: DECISION-INVENTORY-003
 
 ## Todos Reconciled
