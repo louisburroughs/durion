@@ -11,8 +11,11 @@ model: Claude Sonnet 4.5 (copilot)
 
 **YOU MUST CONTINUE WORKING UNTIL ONE OF THESE CONDITIONS IS MET:**
 
-1. ✅ **A pull request has been successfully created** with all changes committed and pushed
-2. 🚫 **You are genuinely blocked** by missing information, credentials, or infrastructure issues that prevent further progress
+1. ✅ All required story changes are implemented and **committed** on `cap/CAP{{capability_id}}` (push the branch if possible)
+2. 🚫 You are genuinely blocked by missing information, credentials, or infrastructure issues that prevent further progress
+
+**DO NOT CREATE A PULL REQUEST IN THIS STORY PROMPT.**
+Pull requests are created only during **capability completion** (after all child stories/issues under the capability are complete).
 
 **DO NOT STOP FOR:**
 - Convenience or "checking in" with the user
@@ -24,9 +27,10 @@ model: Claude Sonnet 4.5 (copilot)
 - Work through the ENTIRE implementation checklist
 - Resolve issues autonomously when possible
 - Only escalate true blockers that require external action
-- Create the PR as the final deliverable
+- Commit changes to the capability branch
+- Push the capability branch when possible
 
-**If you find yourself wanting to stop before PR creation, ask yourself:**
+**If you find yourself wanting to stop before committing + pushing, ask yourself:**
 - "Is there truly a blocker I cannot resolve?"
 - "Have I exhausted all available tools and approaches?"
 - "Am I stopping out of habit rather than necessity?"
@@ -87,14 +91,12 @@ Contract guide entry (draft):
      git add .
      git commit -m "feat({{domain}}): implement CAP{{capability_id}} backend services"
      ```
-  6. **Push the branch and create a pull request:**
+  6. **Push the branch (DO NOT open a pull request):**
      ```bash
      git push -u origin cap/CAP{{capability_id}}
      ```
-     Then create a pull request against `main` using GitHub CLI or the GitHub web interface:
-     ```bash
-     gh pr create --base main --head cap/CAP{{capability_id}} --title "feat({{domain}}): CAP{{capability_id}} backend implementation" --body "Implements backend services for capability {{capability_label}}"
-     ```
+
+      **Stop after push.** Pull request creation happens at capability completion.
 
 Architecture & References (REPLACE "Module structure" with authoritative docs):
 - See `durion-positivity-backend/AGENTS.md` for backend repo quick start, build, and run commands.
