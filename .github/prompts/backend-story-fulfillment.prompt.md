@@ -61,18 +61,33 @@ Contract guide entry (draft):
   **Implementation Checklist**
   1. Read and understand the parent story and capability requirements.
   2. Read and understand the backend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
-  3. **Create and switch to a feature branch in the backend repository:**
+  3. **Create or checkout the capability feature branch in the backend repository:**
      ```bash
      cd /home/louisb/Projects/durion-positivity-backend
      git fetch origin
      git checkout main
      git pull origin main
-     git checkout -b cap/CAP{{capability_id}}
+     
+     # Try to checkout existing capability branch, or create it if doesn't exist
+     git checkout cap/CAP{{capability_id}} 2>/dev/null || git checkout -b cap/CAP{{capability_id}}
+     
+     # If branch exists remotely but not locally, track it
+     git branch --set-upstream-to=origin/cap/CAP{{capability_id}} cap/CAP{{capability_id}} 2>/dev/null || true
+     
+     # Pull latest changes if branch exists remotely
+     git pull origin cap/CAP{{capability_id}} 2>/dev/null || true
      ```
-     **IMPORTANT:** All subsequent code changes MUST be made while on this branch. Verify you are on the correct branch before making any file changes:
+     **CRITICAL:** This command is idempotent and works whether this is the first story or subsequent story under this capability.
+     
+     **VERIFY BRANCH:** All subsequent code changes MUST be made while on this branch. Verify you are on the correct branch before making any file changes:
      ```bash
-     git branch --show-current  # Should output: cap/CAP{{capability_id}}
+     git branch --show-current  # MUST output: cap/CAP{{capability_id}}
      ```
+     
+     **IF BRANCH CHECKOUT FAILS:** If you cannot checkout or create the branch:
+     - Report the git error immediately
+     - Check for local uncommitted changes: `git status`
+     - DO NOT proceed with implementation until branch is correct
   4. Validate, Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
     (A). Implement the endpoint/service to match the contract
     (B). Add provider behavioral contract tests (`ContractBehaviorIT`)
@@ -93,10 +108,39 @@ Contract guide entry (draft):
      ```
   6. **Push the branch (DO NOT open a pull request):**
      ```bash
+     cd /home/louisb/Projects/durion-positivity-backend
      git push -u origin cap/CAP{{capability_id}}
      ```
+     
+     **VERIFY PUSH SUCCESS:** After pushing, verify the branch exists remotely:
+     ```bash
+     git ls-remote --heads origin cap/CAP{{capability_id}}
+     ```
+     
+     **IF PUSH FAILS:** Report the error with:
+     - Git error message
+     - Output of `git status`
+     - Output of `git log --oneline -5`
 
-      **Stop after push.** Pull request creation happens at capability completion.
+  7. **Confirm completion and stop (DO NOT create pull request):**
+     
+     ✅ **STORY IMPLEMENTATION COMPLETE** when:
+     - All code changes committed to `cap/CAP{{capability_id}}` branch
+     - Branch pushed to remote successfully
+     - Tests passing (run `./mvnw -pl pos-<module> test` to verify)
+     
+     🚫 **STOP HERE.** Do NOT create a pull request. 
+     
+     **Pull request creation happens ONLY when:**
+     - ALL child stories under this capability are complete
+     - A separate "Capability Completion" prompt is invoked
+     - User explicitly requests PR creation
+     
+     Report completion with:
+     - Branch name: `cap/CAP{{capability_id}}`
+     - Commit hash: `git rev-parse HEAD`
+     - Files changed: `git diff --name-only main...cap/CAP{{capability_id}}`
+     - Test results: Pass/fail count
 
 Architecture & References (REPLACE "Module structure" with authoritative docs):
 - See `durion-positivity-backend/AGENTS.md` for backend repo quick start, build, and run commands.
