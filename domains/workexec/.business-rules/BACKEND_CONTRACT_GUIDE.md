@@ -79,12 +79,12 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
 
 ### Estimates (Confirmed APIs)
 
-1. **Get All Estimates** — `GET http://api-gateway.local/workorder/v1/workorders/estimates`
+1. **Get All Estimates** — `GET http://localhost:8080/v1/workexec/workorders/estimates`
    - Response: `[ EstimateDTO ]`
    - No pagination in source; returns all estimates
 
-2. **Get Estimate by ID** — `GET http://api-gateway.local/workorder/v1/workorders/estimates/{estimateId}`
-   - Path param: `estimateId` (Long, required)
+2. **Get Estimate by ID** — `GET http://localhost:8080/v1/workexec/workorders/estimates/{estimateId}`
+   - Path param: `estimateId` (UUID, required)
    - Response: `EstimateDTO` (200) | 404 if not found
 
    #### EstimateResponse (Current v1 API)
@@ -134,11 +134,11 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
    - `approvalNotes` (String) - Notes provided during approval
 
 3. **Get Estimates by Customer** — `GET http://localhost:8080/v1/workexec/workorders/estimates/customer/{customerId}`
-   - Path param: `customerId` (Long, required)
+   - Path param: `customerId` (UUID, required)
    - Response: `[ EstimateDTO ]`
 
 4. **Get Estimates by Location/Shop** — `GET http://localhost:8080/v1/workexec/workorders/estimates/shop/{locationId}` | `http://localhost:8080/v1/workexec/workorders/estimates/location/{locationId}`
-   - Path param: `locationId` (Long, required)
+   - Path param: `locationId` (UUID, required)
    - Response: `[ EstimateDTO ]`
    - **Note:** Both `/shop/{locationId}` and `/location/{locationId}` endpoints exist (deprecated `/shop/*`)
 
@@ -199,16 +199,17 @@ From `EstimateStatus` enum in pos-workorder:
 
 ---
 
-## Implementation Links
+### Implementation Links
 
-- Backend child issues referenced by CAP-003 (manifest):
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/168
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/207
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/206
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/205
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/204
+- Backend child issues referenced by CAP-004 (manifest):
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/167
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/166
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/165
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/164
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/163
+   - https://github.com/louisburroughs/durion-positivity-backend/issues/162
 
-Refer to these issues for provider test responsibilities, missing behavior details, or follow-up API changes.
+Refer to these issues for provider test responsibilities, missing behavior details, or follow-up API changes. Cross-reference these issues when adding provider ContractBehaviorIT tests or when clarifying behavioral TODOs in this guide.
 
 ### Workorder Status Enum (Confirmed)
 
