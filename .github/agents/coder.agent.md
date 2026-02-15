@@ -1,7 +1,7 @@
 ---
 name: Coder
 description: Writes code following mandatory coding principles.
-model: Claude Opus 4.6 (copilot)
+model: GPT-5.3-Codex (copilot)
 tools:
   - 'vscode/getProjectSetupInfo'
   - 'vscode/installExtension'
@@ -166,20 +166,72 @@ These coding principles are mandatory:
 - Do not write to `Durion-Processing.md`.
 - Inform the Planner agent of your status so it can make updates to `Durion-Processing.md`.
 
-### Pull Requests (Capability-Level Only)
+### Branching & Pull Request Strategy
 
-- Do **NOT** create a pull request for each story by default.
-- During story execution, the deliverable is: code + tests implemented, changes committed to the capability branch (e.g., `cap/CAP###`), and pushed when possible.
-- Create pull requests only during **capability completion** (after all child stories/issues for the capability are complete), or when the user explicitly requests a PR.
+**Per-Story Implementation (Backend Story Fulfillment):**
+- **DO** create or checkout the capability branch `cap/CAP###` at the start of EACH story
+- **DO** commit all story changes to the capability branch
+- **DO** push the capability branch after each story completion
+- **DO NOT** create a pull request after individual story completion
+- The branch creation command is idempotent - it works for first story OR subsequent stories under the same capability
 
-11. Sonar Issues (Required)
+**Capability Completion (All Stories Done) - YOU MUST CREATE THE PR:**
+- **CRITICAL:** When running `capability-completion.prompt.md`, you MUST actually CREATE the pull request
+- **DO NOT** just "recommend" or "suggest" creating a PR - you must DO IT
+- **DO NOT** stop with placeholders like "[PR_NUMBER]" - you must get an actual PR number
+- **DO** use `gh pr create` command or `mcp_github_create_pull_request` tool
+- **DO** verify all child stories are complete before creating PR
+- **DO** run final verification tests before creating PR
+- **DO** use comprehensive PR description linking all child issues
+- **DO** exhaust all creation methods (CLI + MCP tool) before giving up
+- **DO** report actual PR number (e.g., #42) in completion report
+
+**PR Creation is NOT Optional:**
+If you execute `capability-completion.prompt.md`, creating the PR is your PRIMARY responsibility. The only acceptable reasons to stop without a PR are:
+- GitHub authentication persistently fails (after retry + refresh)
+- All creation methods fail (gh CLI AND mcp_github tool)
+- Tests are failing (must fix first)
+- Child stories incomplete (must complete first)
+
+**Branch Creation Pattern (from backend-story-fulfillment.prompt.md):**
+```bash
+# This is idempotent - works for first story or subsequent stories
+git checkout cap/CAP{{capability_id}} 2>/dev/null || git checkout -b cap/CAP{{capability_id}}
+git branch --set-upstream-to=origin/cap/CAP{{capability_id}} cap/CAP{{capability_id}} 2>/dev/null || true
+git pull origin cap/CAP{{capability_id}} 2>/dev/null || true
+```
+
+**When to Use Each Prompt:**
+A. **backend-story-fulfillment.prompt.md** → For implementing individual child stories (creates/checks out branch, commits, pushes, NO PR)
+B. **capability-completion.prompt.md** → After ALL child stories done (verifies, tests, **CREATES PR** - not optional)
+
+**Never:**
+- Create PRs during story implementation (unless user explicitly requests)
+- Create separate branches for each child story (all stories share one capability branch)
+- Push directly to main (always use feature branch)
+- Stop capability-completion without creating PR (unless genuine blocker)
+
+11. Sonar Issues (**MANDATORY**)
 - For any code you create or modify, you MUST run/follow Sonar findings for that code and fix issues that are:
 	- **Blocker**
 	- **High**
 	- **Security-related** (e.g., Security Hotspots, Taint Vulnerabilities, or any security rule)
-- If you cannot connect to Sonar (or Sonar tools are unavailable), you MAY still complete the task. In that case:
-	- follow secure coding best practices and address any obvious security problems you notice in the changed code
-	- clearly report that Sonar could not be run and what follow-up is needed (e.g., “rerun Sonar in connected mode”)
+- **If Sonar is unavailable:**
+	- **MUST** attempt to connect to Sonar first using available tools (`sonarsource.sonarlint-vscode/sonarqube_analyzeFile`)
+	- **MUST** report that Sonar is unavailable in your completion summary with:
+		- What you tried (tool names, commands)
+		- Why it failed (error messages, missing credentials, service down)
+		- What follow-up is needed (e.g., "rerun Sonar in connected mode after auth configured")
+	- **MUST** use alternative linters if available:
+		- **Java**: Maven Checkstyle (`mvn checkstyle:check`), SpotBugs (`mvn spotbugs:check`), or Maven verify phase
+		- **JavaScript/TypeScript**: ESLint (`npm run lint` or `eslint .`)
+		- **Python**: Pylint, Flake8, or Ruff
+		- **Other languages**: Use framework-standard linters (go vet, rustfmt --check, etc.)
+	- **MUST** fix issues found by alternative linters using same priority:
+		- Errors and security warnings → **Mandatory**
+		- Style/convention warnings → **Should fix** (2 attempts)
+	- **MUST** follow secure coding best practices from `.github/instructions/security-and-owasp.instructions.md`
+	- You MAY complete the task without Sonar IF you have run alternative linters and reported the gap
 - You SHOULD fix **Medium** issues in that same changed code. If you have made **two** good-faith attempts and the Medium issue remains, you MAY skip it and clearly report:
 	- what you tried
 	- why it remains unresolved
