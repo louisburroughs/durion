@@ -166,6 +166,12 @@ These coding principles are mandatory:
 - Do not write to `Durion-Processing.md`.
 - Inform the Planner agent of your status so it can make updates to `Durion-Processing.md`.
 
+### Pull Requests (Capability-Level Only)
+
+- Do **NOT** create a pull request for each story by default.
+- During story execution, the deliverable is: code + tests implemented, changes committed to the capability branch (e.g., `cap/CAP###`), and pushed when possible.
+- Create pull requests only during **capability completion** (after all child stories/issues for the capability are complete), or when the user explicitly requests a PR.
+
 11. Sonar Issues (Required)
 - For any code you create or modify, you MUST run/follow Sonar findings for that code and fix issues that are:
 	- **Blocker**
