@@ -1,8 +1,8 @@
 # Security & Authentication Backend Contract Guide
 
-**Version:** 2.1  
+**Version:** 2.2  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-02-12  
+**Last Updated:** 2026-02-16  
 **Capability:** [CAP-253: Roles, Permissions, and Audit Controls](../../../docs/capabilities/CAP-253/)  
 **OpenAPI Source:** `durion-positivity-backend/pos-security-service/openapi.json`  
 **Architecture:** ADR-0011 Gateway-based Security Architecture  
@@ -1149,17 +1149,19 @@ This domain exposes **29** REST API endpoints:
 
 **Summary:** Get user role assignments
 
-**Description:** Returns all effective role assignments for a user
+**Description:** Returns currently effective assignments by default. Set includeHistory=true to return all assignments including expired/revoked
 
 **Operation ID:** `getUserRoleAssignments`
 
 **Parameters:**
 
-- `userId` (path, Required, integer):
+- `userId` (path, Required, string (uuid)): User ID
+- `includeHistory` (query, Optional, boolean): Include historical assignments (expired/revoked). Default: false
 
 **Responses:**
 
-- `200`: OK
+- `200`: Role assignments returned successfully
+- `404`: User not found
 
 ---
 
@@ -1167,17 +1169,20 @@ This domain exposes **29** REST API endpoints:
 
 **Summary:** Revoke role assignment
 
-**Description:** Revokes a role assignment by setting its end date
+**Description:** Revokes a role assignment by setting its end date. Defaults to today when endDate is omitted
 
 **Operation ID:** `revokeRoleAssignment`
 
 **Parameters:**
 
-- `assignmentId` (path, Required, integer):
+- `assignmentId` (path, Required, string (uuid)): Role assignment ID
+- `endDate` (query, Optional, string (date)): Effective end date for revocation. Defaults to current date. Format: yyyy-MM-dd
 
 **Responses:**
 
-- `200`: OK
+- `204`: Role assignment revoked
+- `404`: Role assignment not found
+- `400`: Invalid endDate
 
 ---
 
@@ -1191,7 +1196,7 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `userId` (query, Required, integer):
+- `userId` (query, Required, string (uuid)):
 - `permission` (query, Required, string):
 - `locationId` (query, Optional, string):
 
@@ -1572,8 +1577,7 @@ This guide establishes standardized contracts for the Security & Authentication 
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 2.1 | 2026-02-12 | Fixed path format inconsistencies in Endpoint Details section; added CAP-253 references; updated for gateway routing compliance |
-| 2.0 | 2026-02-01 | Added ADR-0011 gateway-based security architecture, required headers, authentication flow, public vs protected endpoints |
+| 2.2 | 2026-02-16 | CAP-118: Added includeHistory parameter to GET assignments endpoint, added endDate parameter to DELETE assignments endpoint, updated UUID types |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
 ---
@@ -1591,5 +1595,5 @@ This guide establishes standardized contracts for the Security & Authentication 
 
 ---
 
-**Last Updated:** 2026-02-12 14:30:00 UTC  
+**Last Updated:** 2026-02-16 14:30:00 UTC  
 **Maintained By:** Durion Platform Team
