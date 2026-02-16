@@ -700,7 +700,7 @@ This domain exposes **25** REST API endpoints:
 
 **Parameters:**
 
-- `personId` (path, Required, integer): ID of the person to delete
+- `personId` (path, Required, string (uuid)): ID of the person to delete
 
 **Responses:**
 
@@ -720,7 +720,7 @@ This domain exposes **25** REST API endpoints:
 
 **Parameters:**
 
-- `personId` (path, Required, integer): ID of the person to retrieve
+- `personId` (path, Required, string (uuid)): ID of the person to retrieve
 
 **Responses:**
 
@@ -740,7 +740,7 @@ This domain exposes **25** REST API endpoints:
 
 **Parameters:**
 
-- `personId` (path, Required, integer): ID of the person to update
+- `personId` (path, Required, string (uuid)): ID of the person to update
 
 **Responses:**
 
@@ -973,15 +973,15 @@ Person object to be created
 
 **Fields:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `firstName` | string | No |  |
-| `id` | integer (int64) | No |  |
-| `lastName` | string | No |  |
-| `phoneNumbers` | array | No |  |
-| `primaryEmail` | string | No |  |
-| `secondaryEmail` | string | No |  |
-| `username` | string | No |  |
+| Field            | Type          | Required | Description |
+|------------------|---------------|----------|-------------|
+| `firstName`      | string        | No       |             |
+| `id`             | string (uuid) | No       |             |
+| `lastName`       | string        | No       |             |
+| `phoneNumbers`   | array         | No       |             |
+| `primaryEmail`   | string        | No       |             |
+| `secondaryEmail` | string        | No       |             |
+| `username`       | string        | No       |             |
 
 
 ### TimeEntryAdjustment
