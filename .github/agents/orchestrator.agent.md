@@ -87,7 +87,7 @@ The user wants the entire workflow to run “in the background”. As orchestrat
 These are the only agents you can call. Each has a specific role:
 
 - **Planner** — Creates implementation strategies and technical plans
-- **Coder** — Writes code, fixes bugs, implements logic
+- **Coder** — Create branch, Writes code, fixes bugs, implements logic, create Pull Requests
 - **Document Agent** — Technical documentation expert, updates guides and API documentation
 
 ## How to Invoke Agents with Prompt Files
@@ -106,7 +106,7 @@ When a task requires using a prompt file (e.g., `.github/prompts/backend-contrac
      - CAPABILITY_MANIFEST_PATH: /home/louisb/Projects/durion/docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
      - AUTOMATED_MODE: true
      ```
-4. **Call the appropriate agent** (usually Coder) using `runSubagent` with the complete prompt
+4. **Call the appropriate agent** (Document Agent) using `runSubagent` with the complete prompt
 
 ### Example Invocation
 
@@ -183,7 +183,7 @@ For this workflow, default to the phases below (even if the Planner plan is mini
 ### Phase 1: Contract guide update (depends on manifest)
 - Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine `BACKEND_CONTRACT_GUIDE_PATH` + `OPENAPI_PATH` per story → Planner
   Files: `docs/capabilities/**/CAPABILITY_MANIFEST.yaml` (read)
-- Task 1.2: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables (paths from Task 1.1), and invoke Docs subagent to update the contract guide → Orchestrator delegates to Docs
+- Task 1.2: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables (paths from Task 1.1), and invoke Document Agent subagent to update the contract guide → Orchestrator delegates to Document Agent
   Files: `domains/**/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `docs/capabilities/**/CAP-*-backend-contract.md`
   **Implementation**: Use the "How to Invoke Agents with Prompt Files" pattern above - read prompt file, add Runtime Context section with actual paths, call `runSubagent`
 
@@ -327,7 +327,7 @@ ${promptContent}
 Please execute the backend contract guide update following the prompt above.
 `;
 
-// 3. Invoke Docs subagent (expert technical writer)
+// 3. Invoke Document Agent subagent (expert technical writer)
 runSubagent({
   description: "Update security backend contract",
   prompt: delegation
@@ -335,7 +335,7 @@ runSubagent({
 ```
 
 ### Step 3 — Verify Output
-The Docs subagent will:
+The Document Agent subagent will:
 1. Parse the OpenAPI spec from `pos-security-service/target/openapi.json`
 2. Compare against `BACKEND_CONTRACT_GUIDE.md`
 3. Generate a patch with:
