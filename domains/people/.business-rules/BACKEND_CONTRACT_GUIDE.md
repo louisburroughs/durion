@@ -344,7 +344,7 @@ All error responses **MUST** include the correlation ID in the body:
 
 ### Endpoint Summary
 
-This domain exposes **21** REST API endpoints:
+This domain exposes **25** REST API endpoints:
 
 | Method | Path | Summary |
 |--------|------|---------|
@@ -369,6 +369,10 @@ This domain exposes **21** REST API endpoints:
 | DELETE | `/v1/people/{personId}` | Delete a person |
 | GET | `/v1/people/{personId}` | Get person by ID |
 | PUT | `/v1/people/{personId}` | Update an existing person |
+| POST | `/v1/people/users/{userId}/link` | Link user to person |
+| DELETE | `/v1/people/users/{userId}/link` | Unlink user from person |
+| GET | `/v1/people/users/{userId}/person` | Get person by user ID |
+| GET | `/v1/people/{personId}/users` | Get users linked to person |
 
 ### Endpoint Details
 
@@ -747,7 +751,211 @@ This domain exposes **21** REST API endpoints:
 
 ---
 
+#### POST /v1/people/users/{userId}/link
+
+**Summary:** Link user to person
+
+**Description:** Create a link between an authentication user and a person record.
+
+**Operation ID:** `linkUserToPerson`
+
+**Parameters:**
+
+- `userId` (path, Required, string): User ID from authentication system
+
+**Request Body:**
+
+- `LinkUserToPersonRequest` (application/json)
+
+**Responses:**
+
+- `201 Created`: Link created successfully. Returns `UserPersonLinkResponse`.
+- `400 Bad Request`: Invalid request (validation error). Returns error body.
+- `404 Not Found`: Person not found. Returns error body.
+- `409 Conflict`: User already linked. Returns `UserPersonLinkResponse` with existing link info.
+
+**Event:** `USER_PERSON_LINK_CREATE` (controller annotated with `@EmitEvent(id = "USER_PERSON_LINK_CREATE", apiVersion = "1")`)
+
+**Example Request:**
+
+```http
+POST /v1/people/users/abc-123/link
+Content-Type: application/json
+X-Correlation-Id: abc-123-def-456
+
+{
+  "userId": "abc-123",
+  "personId": "123e4567-e89b-12d3-a456-426614174000",
+  "linkType": "PRIMARY",
+  "notes": "Linked during onboarding"
+}
+```
+
+**Example 201 Response:**
+
+```http
+HTTP/1.1 201 Created
+X-Correlation-Id: abc-123-def-456
+
+{
+  "linkId": "9f8b7a6c-5d4e-4b2a-8f1e-0a1b2c3d4e5f",
+  "userId": "abc-123",
+  "personId": "123e4567-e89b-12d3-a456-426614174000",
+  "linkType": "PRIMARY",
+  "createdAt": "2026-02-16T12:00:00Z",
+  "createdBy": "system",
+  "notes": "Linked during onboarding"
+}
+```
+
+---
+
+#### DELETE /v1/people/users/{userId}/link
+
+**Summary:** Unlink user from person
+
+**Description:** Remove the link between a user and person.
+
+**Operation ID:** `unlinkUserFromPerson`
+
+**Parameters:**
+
+- `userId` (path, Required, string): User ID
+
+**Responses:**
+
+- `204 No Content`: Link deleted successfully.
+- `404 Not Found`: Link not found.
+
+**Event:** `USER_PERSON_LINK_DELETE` (controller annotated with `@EmitEvent(id = "USER_PERSON_LINK_DELETE", apiVersion = "1")`)
+
+**Example Request:**
+
+```http
+DELETE /v1/people/users/abc-123/link
+X-Correlation-Id: abc-123-def-456
+```
+
+**Example 204 Response:**
+
+```http
+HTTP/1.1 204 No Content
+X-Correlation-Id: abc-123-def-456
+```
+
+---
+
+#### GET /v1/people/users/{userId}/person
+
+**Summary:** Get person by user ID
+
+**Description:** Retrieve the person record linked to a user.
+
+**Operation ID:** `getPersonByUserId`
+
+**Parameters:**
+
+- `userId` (path, Required, string): User ID
+
+**Responses:**
+
+- `200 OK`: Person found. Returns `PersonResponse`.
+- `404 Not Found`: Link or person not found.
+
+**Example Request:**
+
+```http
+GET /v1/people/users/abc-123/person
+X-Correlation-Id: abc-123-def-456
+```
+
+**Example 200 Response:**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: abc-123-def-456
+
+{
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "primaryEmail": "jane.doe@example.com",
+  "phoneNumbers": ["+15551234567"],
+  "username": "jdoe"
+}
+```
+
+---
+
+#### GET /v1/people/{personId}/users
+
+**Summary:** Get users linked to person
+
+**Description:** Retrieve all user IDs linked to a person record.
+
+**Operation ID:** `getUserIdsByPersonId`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+
+**Responses:**
+
+- `200 OK`: User IDs returned (array of strings).
+- `404 Not Found`: Person not found.
+
+**Example Request:**
+
+```http
+GET /v1/people/123e4567-e89b-12d3-a456-426614174000/users
+X-Correlation-Id: abc-123-def-456
+```
+
+**Example 200 Response:**
+
+```http
+HTTP/1.1 200 OK
+X-Correlation-Id: abc-123-def-456
+
+["abc-123", "def-456"]
+```
+
+---
+
 ## Entity-Specific Contracts
+
+### User-Person Linking
+
+Schemas for the User-Person linking endpoints.
+
+#### LinkUserToPersonRequest
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `userId` | string | Yes | Authentication user ID (also present in path) |
+| `personId` | string (uuid) | Yes | Target person ID to link |
+| `linkType` | string | No | Type of link (for example `PRIMARY`, `SECONDARY`) |
+| `notes` | string | No | Free-form notes about the link |
+
+#### UserPersonLinkResponse
+
+**Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `linkId` | string (uuid) | No | Unique ID for the created link |
+| `userId` | string | No | Authentication user ID |
+| `personId` | string (uuid) | No | Linked person ID |
+| `linkType` | string | No | Link type |
+| `createdAt` | string (date-time) | No | Timestamp when link was created |
+| `createdBy` | string | No | Actor who created the link |
+| `notes` | string | No | Notes provided during linking |
+
+#### PersonResponse
+
+See `Person` fields above; `PersonResponse` mirrors the returned Person representation for linking endpoints.
 
 ### Decision
 
