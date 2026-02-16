@@ -1,8 +1,8 @@
 # People & Human Resources Backend Contract Guide
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
+**Last Updated:** 2026-02-16  
 **OpenAPI Source:** `pos-people/target/openapi.json`
 
 ---
@@ -344,7 +344,7 @@ All error responses **MUST** include the correlation ID in the body:
 
 ### Endpoint Summary
 
-This domain exposes **25** REST API endpoints:
+This domain exposes **29** REST API endpoints:
 
 | Method | Path | Summary |
 |--------|------|---------|
@@ -372,6 +372,10 @@ This domain exposes **25** REST API endpoints:
 | POST | `/v1/people/users/{userId}/link` | Link user to person |
 | DELETE | `/v1/people/users/{userId}/link` | Unlink user from person |
 | GET | `/v1/people/users/{userId}/person` | Get person by user ID |
+| GET | `/v1/people/{personId}/access/roles` | List available roles |
+| GET | `/v1/people/{personId}/access/assignments` | Get role assignments for person |
+| POST | `/v1/people/{personId}/access/assignments` | Create role assignment for person |
+| DELETE | `/v1/people/{personId}/access/assignments/{assignmentId}` | Revoke role assignment |
 | GET | `/v1/people/{personId}/users` | Get users linked to person |
 
 ### Endpoint Details
@@ -922,6 +926,95 @@ X-Correlation-Id: abc-123-def-456
 
 ---
 
+#### GET /v1/people/{personId}/access/roles
+
+**Summary:** List available roles
+
+**Description:** Returns all available roles that can be assigned through person-centric access APIs.
+
+**Operation ID:** `getRoles`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+
+**Responses:**
+
+- `200 OK`: Available roles returned.
+
+**Event:** `PEOPLE_ACCESS_ROLES_LIST`
+
+---
+
+#### GET /v1/people/{personId}/access/assignments
+
+**Summary:** Get role assignments for person
+
+**Description:** Returns role assignments for the linked user account behind the person. Use `includeHistory=true` to include expired/revoked assignments.
+
+**Operation ID:** `getAssignments`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+- `includeHistory` (query, Optional, boolean): Include historical assignments (default `false`)
+
+**Responses:**
+
+- `200 OK`: Role assignments returned.
+- `404 Not Found`: Person-to-user link not found.
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
+
+---
+
+#### POST /v1/people/{personId}/access/assignments
+
+**Summary:** Create role assignment for person
+
+**Description:** Creates a new role assignment for the linked user account behind the person.
+
+**Operation ID:** `createAssignment`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+
+**Request Body:** `RoleAssignmentRequest`
+
+**Responses:**
+
+- `201 Created`: Assignment created.
+- `400 Bad Request`: Invalid request payload.
+- `404 Not Found`: Person-to-user link not found.
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
+
+---
+
+#### DELETE /v1/people/{personId}/access/assignments/{assignmentId}
+
+**Summary:** Revoke role assignment
+
+**Description:** Revokes a role assignment by setting its end date. If `endDate` is omitted, current date is used.
+
+**Operation ID:** `revokeAssignment`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+- `assignmentId` (path, Required, string): Role assignment ID
+- `endDate` (query, Optional, string date): Effective revocation date (`yyyy-MM-dd`)
+
+**Responses:**
+
+- `204 No Content`: Assignment revoked.
+- `404 Not Found`: Assignment not found.
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
+
+---
+
 ## Entity-Specific Contracts
 
 ### User-Person Linking
@@ -1160,6 +1253,7 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-02-16 | Added person-centric RBAC facade endpoints under `/v1/people/{personId}/access` (roles list, assignments list, create assignment, revoke assignment) for CAP-118 |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
 ---
@@ -1174,5 +1268,5 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 ---
 
-**Generated:** 2026-01-27 14:27:53 UTC  
+**Generated:** 2026-02-16 19:25:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
