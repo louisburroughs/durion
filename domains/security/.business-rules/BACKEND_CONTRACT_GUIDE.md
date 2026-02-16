@@ -6,7 +6,7 @@
 **Capability:** [CAP-253: Roles, Permissions, and Audit Controls](../../../docs/capabilities/CAP-253/)  
 **OpenAPI Source:** `durion-positivity-backend/pos-security-service/openapi.json`  
 **Architecture:** ADR-0011 Gateway-based Security Architecture  
-**Related Issues:** [CAP-253](https://github.com/louisburroughs/durion/issues/253), [durion-positivity-backend#1](https://github.com/louisburroughs/durion-positivity-backend/issues/1), [durion-moqui-frontend#65](https://github.com/louisburroughs/durion-moqui-frontend/issues/65), [durion-positivity-backend#417](https://github.com/louisburroughs/durion-positivity-backend/issues/417), [durion-moqui-frontend#280](https://github.com/louisburroughs/durion-moqui-frontend/issues/280)
+**Related Issues:** [CAP-253](https://github.com/louisburroughs/durion/issues/253), [CAP-118](https://github.com/louisburroughs/durion/issues/118), [durion-positivity-backend#1](https://github.com/louisburroughs/durion-positivity-backend/issues/1), [durion-positivity-backend#89](https://github.com/louisburroughs/durion-positivity-backend/issues/89), [durion-moqui-frontend#65](https://github.com/louisburroughs/durion-moqui-frontend/issues/65), [durion-positivity-backend#417](https://github.com/louisburroughs/durion-positivity-backend/issues/417), [durion-moqui-frontend#280](https://github.com/louisburroughs/durion-moqui-frontend/issues/280), [durion-positivity-backend#526](https://github.com/louisburroughs/durion-positivity-backend/pull/526)
 
 ---
 
