@@ -1,8 +1,8 @@
 # WorkExec Backend Contract Guide
 
-**Version:** 0.3 (Synced with pos-workorder OpenAPI v1)
+**Version:** 0.4 (Includes CAP-007 invoice contract design)
 **Audience:** Backend developers, Frontend developers, API consumers
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 ---
 
@@ -522,6 +522,202 @@ From `WorkorderStatus` enum in pos-workorder:
 
 - `canExecute()` — Returns true if status != PENDING_APPROVAL OR (isEmergencySafety && customerDenialAcknowledged != null)
 - `canConsumeInventory()` — Returns true if status != PENDING_APPROVAL
+
+---
+
+## Invoice Generation & Management (CAP-007 Stories #43-47)
+<!-- contract-status: design-spec-phase-2 -->
+<!-- anchor: cap-007-invoice-generation -->
+
+This section defines the **design contract** for CAP-007 invoice generation and management APIs. These endpoints are not implemented yet; implementation is scheduled for Phase 3-4.
+
+All paths in this section use API Gateway format:
+
+- `http://localhost:8080/v1/workexec/*`
+
+Routing and ownership model:
+
+- Invoice generation is triggered by workorder APIs and routed to `pos-workorder`.
+- `pos-workorder` may delegate invoice persistence and lifecycle operations to `pos-invoice` internally.
+- This guide documents only the public, gateway-facing contract.
+
+Implementation tracking issues:
+
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/149> (Story 43)
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/148> (Story 44)
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/147> (Story 45)
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/146> (Story 46)
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/145> (Story 47)
+
+### Shared CAP-007 Schemas (Design)
+
+```ts
+type InvoiceStatus = 'DRAFT' | 'ISSUED';
+
+type InvoiceAdjustmentType = 'discount' | 'fee' | 'correction';
+
+type Money = number; // decimal, max 4 fractional digits
+
+interface InvoiceTraceability {
+  workorderId: string;
+  estimateId: string;
+  approvalId: string;
+}
+
+interface InvoiceTotals {
+  subtotal: Money;
+  taxAmount: Money;
+  feesAmount: Money;
+  total: Money;
+  currencyUomId: string;
+}
+
+interface InvoiceAdjustment {
+  adjustmentId: string;
+  type: InvoiceAdjustmentType;
+  amount: Money;
+  reason: string;
+  authorizedBy: string;
+  appliedAt: string; // ISO 8601 UTC
+}
+
+interface InvoiceResponse {
+  invoiceId: string;
+  status: InvoiceStatus;
+  traceability: InvoiceTraceability;
+  totals: InvoiceTotals;
+  adjustments: InvoiceAdjustment[];
+  finalizedBy?: string;
+  finalizedAt?: string; // ISO 8601 UTC
+  issuedAt?: string; // ISO 8601 UTC
+}
+```
+
+### 1. Generate Invoice Draft from Completed Workorder (Story 43/149)
+
+**Endpoint:** `POST http://localhost:8080/v1/workexec/workorders/{workorderId}/generate-invoice`
+
+**Description:** Generate an invoice draft from a completed workorder.
+
+**Path Parameters:**
+
+- `workorderId` (opaque string, required)
+
+**Request Body (optional):**
+
+```ts
+interface GenerateInvoiceRequest {
+  idempotencyKey?: string;
+}
+```
+
+Body may be empty (`{}` or no body). Clients may provide `idempotencyKey` in body for compatibility; gateway/header-based `Idempotency-Key` remains the preferred idempotency mechanism.
+
+**Success Response (200 OK | 201 Created):**
+
+- `InvoiceResponse` with `status: 'DRAFT'`
+- Includes calculated totals (`subtotal`, `taxAmount`, `feesAmount`, `total`)
+- Includes traceability (`workorderId`, `estimateId`, `approvalId`)
+
+**Behavioral Assertions:**
+
+- Allowed only when source workorder is in `COMPLETED` state; otherwise return `INVALID_STATE` (409).
+- Idempotent for the same workorder + idempotency key. Retries return the same `invoiceId` and payload.
+- Caller must be authorized for invoice generation; unauthorized calls return `FORBIDDEN` (403).
+- Tax/fee/total calculation (Story 44) executes in this flow before the response is returned.
+- Traceability links (Story 45) are required in every success response.
+
+**Error Responses:**
+
+- `404 NOT_FOUND` — workorder does not exist
+- `409 INVALID_STATE` — workorder not eligible for invoice generation
+- `400 VALIDATION_ERROR` — invalid idempotency key payload
+- `403 FORBIDDEN` — missing authority
+
+### 2. Add Authorized Adjustment to Invoice Draft (Story 46/146)
+
+**Endpoint:** `POST http://localhost:8080/v1/workexec/invoices/{invoiceId}/adjustments`
+
+**Description:** Apply an authorized adjustment to an invoice draft before finalization.
+
+**Path Parameters:**
+
+- `invoiceId` (opaque string, required)
+
+**Request Body:**
+
+```ts
+interface AddInvoiceAdjustmentRequest {
+  type: 'discount' | 'fee' | 'correction';
+  amount: number;
+  reason: string;
+  authorizedBy: string;
+}
+```
+
+**Success Response (200 OK):**
+
+- `InvoiceResponse` with updated `adjustments` and recalculated `totals`
+
+**Behavioral Assertions:**
+
+- Allowed only when invoice status is `DRAFT`; otherwise return `INVALID_STATE` (409).
+- `authorizedBy` is required and must resolve to a principal with adjustment authority.
+- `reason` must be non-blank.
+- `amount` must be a valid decimal; backend applies sign/semantic rules by adjustment `type`.
+- Recalculates taxes, fees, and total after applying the adjustment.
+
+**Error Responses:**
+
+- `404 NOT_FOUND` — invoice not found
+- `409 INVALID_STATE` — invoice already finalized/issued
+- `400 VALIDATION_ERROR` — invalid `type`, `amount`, `reason`, or `authorizedBy`
+- `403 FORBIDDEN` — caller lacks adjustment authority
+
+### 3. Finalize and Issue Invoice (Story 47/145)
+
+**Endpoint:** `POST http://localhost:8080/v1/workexec/invoices/{invoiceId}/finalize`
+
+**Description:** Finalize an invoice and mark it as issued. No further adjustments are allowed after success.
+
+**Path Parameters:**
+
+- `invoiceId` (opaque string, required)
+
+**Request Body (optional):**
+
+```ts
+interface FinalizeInvoiceRequest {
+  finalizedBy?: string;
+  finalizedAt?: string; // ISO 8601 UTC
+}
+```
+
+Body may be empty (`{}` or no body). If omitted, backend derives finalization actor/timestamp from authenticated principal and server time.
+
+**Success Response (200 OK):**
+
+- `InvoiceResponse` with `status: 'ISSUED'` and `issuedAt`
+
+**Behavioral Assertions:**
+
+- Allowed only when invoice status is `DRAFT`; otherwise return `INVALID_STATE` (409).
+- Finalization is idempotent: retrying finalize on the same already issued invoice returns the same issued invoice representation.
+- Finalized invoices become immutable for adjustments and draft mutations.
+- Caller must be authorized for invoice issuance; unauthorized calls return `FORBIDDEN` (403).
+
+**Error Responses:**
+
+- `404 NOT_FOUND` — invoice not found
+- `409 INVALID_STATE` — invoice cannot be finalized from current status
+- `400 VALIDATION_ERROR` — invalid `finalizedAt` format or invalid request payload
+- `403 FORBIDDEN` — missing authority to finalize
+
+### CAP-007 Notes
+
+- This section is contract design only; endpoint implementation and provider tests are deferred to Phase 3-4.
+- Public API contract remains gateway-facing even when internal service delegation changes.
+- Existing error envelope rules from this guide remain mandatory for all CAP-007 endpoints.
 
 ---
 
