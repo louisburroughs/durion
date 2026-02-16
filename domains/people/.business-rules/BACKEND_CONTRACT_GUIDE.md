@@ -1,35 +1,165 @@
-# People & Human Resources Backend Contract Guide
-
-**Version:** 1.0  
-**Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-people/target/openapi.json`
-
----
+# pos-people Backend Contract Guide
 
 ## Overview
+The People domain provides person management, time tracking, and access control integration.
 
-This guide standardizes field naming conventions, data types, payload structures, and error codes for the People & Human Resources domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
+## Base URL
+- Local: `http://localhost:8086`
+- Via Gateway: `http://localhost:8080/v1/people`
 
-This guide is generated from the OpenAPI specification and follows the standards established across all Durion platform domains.
+## Authentication & Headers
+- Standard headers: X-User-Id, X-Correlation-Id, X-Permissions
+- Authentication via JWT tokens (coordinated through API Gateway)
+
+## Endpoints
+
+### Person Access Control
+
+#### GET /v1/people/{personUuid}/access/roles
+**Purpose:** List available access roles for people (LOCATION and GLOBAL scope roles only)
+
+**Request:**
+- Path Parameters:
+  - `personUuid` (UUID, required): Person identifier
+
+**Response:** 200 OK
+```json
+[
+  {
+    "code": "SHOP_MANAGER",
+    "name": "Shop Manager",
+    "description": "Manage shop operations",
+    "scopeType": "LOCATION",
+    "active": true
+  }
+]
+```
+
+**Event:** `PEOPLE_ACCESS_ROLES_LIST`
 
 ---
 
-## Table of Contents
+#### GET /v1/people/{personUuid}/access/assignments
+**Purpose:** List role assignments for a person
 
-1. [JSON Field Naming Conventions](#json-field-naming-conventions)
-2. [Data Types & Formats](#data-types--formats)
-3. [Enum Value Conventions](#enum-value-conventions)
-4. [Identifier Naming](#identifier-naming)
-5. [Timestamp Conventions](#timestamp-conventions)
-6. [Collection & Pagination](#collection--pagination)
-7. [Error Response Format](#error-response-format)
-8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
-9. [API Endpoints](#api-endpoints)
-10. [Entity-Specific Contracts](#entity-specific-contracts)
-11. [Examples](#examples)
+**Request:**
+- Path Parameters:
+  - `personUuid` (UUID, required): Person identifier
+- Query Parameters:
+  - `includeHistory` (Boolean, optional): Include historical/inactive assignments
+  - `endDate` (LocalDateTime, optional): Filter assignments active at this date
+
+**Response:** 200 OK
+```json
+[
+  {
+    "userId": "user123",
+    "roleCode": "SHOP_MANAGER",
+    "locationId": "uuid-of-location",
+    "startDate": "2026-01-01T00:00:00",
+    "endDate": null,
+    "active": true
+  }
+]
+```
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
 
 ---
+
+#### POST /v1/people/{personUuid}/access/assignments
+**Purpose:** Assign role to person
+
+**Request:**
+- Path Parameters:
+  - `personUuid` (UUID, required): Person identifier
+- Body:
+```json
+{
+  "roleCode": "SHOP_MANAGER",
+  "locationId": "uuid-of-location",
+  "startDate": "2026-02-16T00:00:00",
+  "endDate": null
+}
+```
+
+**Response:** 201 Created
+```json
+{
+  "userId": "user123",
+  "roleCode": "SHOP_MANAGER",
+  "locationId": "uuid-of-location",
+  "startDate": "2026-02-16T00:00:00",
+  "endDate": null,
+  "active": true
+}
+```
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
+
+**Validation:**
+- `roleCode` must be a valid LOCATION or GLOBAL scope role
+- `locationId` required for LOCATION scope roles, must be null for GLOBAL scope
+- Person must have a linked User account (from UserPersonLink)
+
+---
+
+#### DELETE /v1/people/{personUuid}/access/assignments/{roleCode}
+**Purpose:** Revoke role from person
+
+**Request:**
+- Path Parameters:
+  - `personUuid` (UUID, required): Person identifier
+  - `roleCode` (String, required): Role code to revoke
+- Query Parameters:
+  - `endDate` (LocalDateTime, optional): Effective end date (defaults to now)
+
+**Response:** 204 No Content
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
+
+---
+
+## Integration with pos-security-service
+
+The Person Access Control endpoints provide a facade over pos-security-service:
+
+1. **UserPersonTranslationService** translates Person UUIDs to User IDs using the UserPersonLink entity
+2. **SecurityServiceClient** makes REST calls to pos-security-service endpoints
+3. **PeopleAccessControlService** orchestrates the translation and security service calls
+4. **PersonAccessController** exposes person-centric REST endpoints
+
+**Service Dependencies:**
+- pos-security-service must be running and accessible at `${pos.security-service.base-url}` (default: http://localhost:8084)
+
+**Error Handling:**
+- 404 Not Found: Person has no linked User account
+- 400 Bad Request: Invalid role code, scope mismatch, or validation failure
+- Errors from pos-security-service are propagated with appropriate context
+
+## Events
+All endpoints emit events to pos-events service for audit and observability:
+- `PEOPLE_ACCESS_ROLES_LIST` (fastRead preset)
+- `PEOPLE_ACCESS_ASSIGNMENTS_LIST` (fastRead preset)
+- `PEOPLE_ACCESS_ASSIGNMENT_CREATE` (write preset)
+- `PEOPLE_ACCESS_ASSIGNMENT_REVOKE` (write preset)
+
+## Example Workflows
+
+### Assign Shop Manager Role to Person
+1. GET /v1/people/{personUuid}/access/roles - List available roles
+2. POST /v1/people/{personUuid}/access/assignments - Assign SHOP_MANAGER role
+3. GET /v1/people/{personUuid}/access/assignments - Verify assignment
+
+### View Historical Role Assignments
+1. GET /v1/people/{personUuid}/access/assignments?includeHistory=true - Get all assignments including inactive
+
+### Revoke Role Effective Future Date
+1. DELETE /v1/people/{personUuid}/access/assignments/{roleCode}?endDate=2026-12-31T23:59:59 - Schedule future revocation
+
+---
+
+## Legacy Appendix (Auto-Generated Domain Contract)
 
 ## JSON Field Naming Conventions
 
@@ -344,7 +474,7 @@ All error responses **MUST** include the correlation ID in the body:
 
 ### Endpoint Summary
 
-This domain exposes **25** REST API endpoints:
+This domain exposes **29** REST API endpoints:
 
 | Method | Path | Summary |
 |--------|------|---------|
@@ -372,6 +502,10 @@ This domain exposes **25** REST API endpoints:
 | POST | `/v1/people/users/{userId}/link` | Link user to person |
 | DELETE | `/v1/people/users/{userId}/link` | Unlink user from person |
 | GET | `/v1/people/users/{userId}/person` | Get person by user ID |
+| GET | `/v1/people/{personId}/access/roles` | List available roles |
+| GET | `/v1/people/{personId}/access/assignments` | Get role assignments for person |
+| POST | `/v1/people/{personId}/access/assignments` | Create role assignment for person |
+| DELETE | `/v1/people/{personId}/access/assignments/{assignmentId}` | Revoke role assignment |
 | GET | `/v1/people/{personId}/users` | Get users linked to person |
 
 ### Endpoint Details
@@ -700,7 +834,7 @@ This domain exposes **25** REST API endpoints:
 
 **Parameters:**
 
-- `personId` (path, Required, integer): ID of the person to delete
+- `personId` (path, Required, string (uuid)): ID of the person to delete
 
 **Responses:**
 
@@ -720,7 +854,7 @@ This domain exposes **25** REST API endpoints:
 
 **Parameters:**
 
-- `personId` (path, Required, integer): ID of the person to retrieve
+- `personId` (path, Required, string (uuid)): ID of the person to retrieve
 
 **Responses:**
 
@@ -740,7 +874,7 @@ This domain exposes **25** REST API endpoints:
 
 **Parameters:**
 
-- `personId` (path, Required, integer): ID of the person to update
+- `personId` (path, Required, string (uuid)): ID of the person to update
 
 **Responses:**
 
@@ -922,6 +1056,95 @@ X-Correlation-Id: abc-123-def-456
 
 ---
 
+#### GET /v1/people/{personId}/access/roles
+
+**Summary:** List available roles
+
+**Description:** Returns all available roles that can be assigned through person-centric access APIs.
+
+**Operation ID:** `getRoles`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+
+**Responses:**
+
+- `200 OK`: Available roles returned.
+
+**Event:** `PEOPLE_ACCESS_ROLES_LIST`
+
+---
+
+#### GET /v1/people/{personId}/access/assignments
+
+**Summary:** Get role assignments for person
+
+**Description:** Returns role assignments for the linked user account behind the person. Use `includeHistory=true` to include expired/revoked assignments.
+
+**Operation ID:** `getAssignments`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+- `includeHistory` (query, Optional, boolean): Include historical assignments (default `false`)
+
+**Responses:**
+
+- `200 OK`: Role assignments returned.
+- `404 Not Found`: Person-to-user link not found.
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
+
+---
+
+#### POST /v1/people/{personId}/access/assignments
+
+**Summary:** Create role assignment for person
+
+**Description:** Creates a new role assignment for the linked user account behind the person.
+
+**Operation ID:** `createAssignment`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+
+**Request Body:** `RoleAssignmentRequest`
+
+**Responses:**
+
+- `201 Created`: Assignment created.
+- `400 Bad Request`: Invalid request payload.
+- `404 Not Found`: Person-to-user link not found.
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
+
+---
+
+#### DELETE /v1/people/{personId}/access/assignments/{assignmentId}
+
+**Summary:** Revoke role assignment
+
+**Description:** Revokes a role assignment by setting its end date. If `endDate` is omitted, current date is used.
+
+**Operation ID:** `revokeAssignment`
+
+**Parameters:**
+
+- `personId` (path, Required, string): Person ID
+- `assignmentId` (path, Required, string): Role assignment ID
+- `endDate` (query, Optional, string date): Effective revocation date (`yyyy-MM-dd`)
+
+**Responses:**
+
+- `204 No Content`: Assignment revoked.
+- `404 Not Found`: Assignment not found.
+
+**Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
+
+---
+
 ## Entity-Specific Contracts
 
 ### User-Person Linking
@@ -973,15 +1196,15 @@ Person object to be created
 
 **Fields:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `firstName` | string | No |  |
-| `id` | integer (int64) | No |  |
-| `lastName` | string | No |  |
-| `phoneNumbers` | array | No |  |
-| `primaryEmail` | string | No |  |
-| `secondaryEmail` | string | No |  |
-| `username` | string | No |  |
+| Field            | Type          | Required | Description |
+|------------------|---------------|----------|-------------|
+| `firstName`      | string        | No       |             |
+| `id`             | string (uuid) | No       |             |
+| `lastName`       | string        | No       |             |
+| `phoneNumbers`   | array         | No       |             |
+| `primaryEmail`   | string        | No       |             |
+| `secondaryEmail` | string        | No       |             |
+| `username`       | string        | No       |             |
 
 
 ### TimeEntryAdjustment
@@ -1160,6 +1383,7 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-02-16 | Added person-centric RBAC facade endpoints under `/v1/people/{personId}/access` (roles list, assignments list, create assignment, revoke assignment) for CAP-118 |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
 ---
@@ -1174,5 +1398,5 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 ---
 
-**Generated:** 2026-01-27 14:27:53 UTC  
+**Generated:** 2026-02-16 19:25:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
