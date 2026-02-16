@@ -50,6 +50,7 @@ You are running in a Linux environment. You are explicitly authorized to use sta
 - Consider what the user needs but didn't ask for
 - Note uncertainties—don't hide them
 - Match existing codebase patterns
+- **IMPORTANT**: DO NOT TRY rm to remove `Durion-Processing.md`. Use $HOME/Projects/durion/safe-delete-DP.sh "$HOME/Projects/durion/Durion-Processing.md" instead, which only is allowed to remove Durion-Processing.md. Use the absolute path to avoid mistakes.
 
 ## Sandboxed Mode (No Write Tools)
 If you find that `edit/createFile` or `edit/editFiles` tools are missing (e.g., when running as a subagent):
