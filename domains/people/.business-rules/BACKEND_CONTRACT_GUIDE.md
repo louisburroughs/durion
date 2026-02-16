@@ -3,6 +3,14 @@
 ## Overview
 The People domain provides person management, time tracking, and access control integration.
 
+## CAP-118 Traceability
+
+- Capability: `cap:118`
+- Parent story: `durion#118`
+- Backend implementation PR: `louisburroughs/durion-positivity-backend#526`
+- Integration focus: Person-based RBAC facade over pos-security-service role assignment APIs
+
+
 ## Base URL
 - Local: `http://localhost:8086`
 - Via Gateway: `http://localhost:8080/v1/people`
