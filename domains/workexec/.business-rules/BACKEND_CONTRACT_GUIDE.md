@@ -69,11 +69,11 @@ Backend MUST return stable codes above; extend with new codes as needed, keeping
 
 All endpoint examples in this guide MUST use the API Gateway format:
 
-- `http://localhost:8080/workorder/v1/{resource}`
+- `http://localhost:8080/v1/workexec/{resource}`
 
-Example: `POST http://localhost:8080/workorder/v1/estimates` (gateway strips `/workorder` prefix before forwarding to the `pos-workorder` service).
+Example: `POST http://localhost:8080/v1/workexec/estimates`
 
-**Note:** The API Gateway rewrites and routes requests based on the `/workorder/v1/...` prefix. The gateway strips the `/workorder` prefix and forwards `/v1/...` to the pos-workorder service. Do NOT reference direct-service hostnames or ports (e.g., `localhost:8082`) in this guide; all examples must use the gateway host above.
+**Note:** The API Gateway routes requests using the `/v{version}/{domain}/...` prefix. For WorkExec APIs use `http://localhost:8080/v1/workexec/...`. The gateway will forward requests to the `pos-workorder` service; do NOT reference direct-service hostnames or ports (for example `localhost:8082`) in this guide.
 
 Mutations accept `Idempotency-Key` header. All request/response DTOs use standard error envelope on failure.
 
@@ -81,11 +81,11 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
 <!-- contract-status: draft -->
 <!-- anchor: cap-005-estimates -->
 
-1. **Get All Estimates** — `GET http://localhost:8080/workorder/v1/estimates`
+1. **Get All Estimates** — `GET http://localhost:8080/v1/workexec/estimates`
    - Response: `[ EstimateDTO ]`
    - No pagination in source; returns all estimates
 
-2. **Get Estimate by ID** — `GET http://localhost:8080/workorder/v1/estimates/{estimateId}`
+2. **Get Estimate by ID** — `GET http://localhost:8080/v1/workexec/estimates/{estimateId}`
    - Path param: `estimateId` (opaque string, required)
    - Response: `EstimateDTO` (200) | 404 if not found
 
@@ -135,42 +135,42 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
    - `signerName` (String) - Name of person who signed
    - `approvalNotes` (String) - Notes provided during approval
 
-3. **Get Estimates by Customer** — `GET http://localhost:8080/workorder/v1/estimates/customer/{customerId}`
+3. **Get Estimates by Customer** — `GET http://localhost:8080/v1/workexec/estimates/customer/{customerId}`
    - Path param: `customerId` (opaque string, required)
    - Response: `[ EstimateDTO ]`
 
-4. **Get Estimates by Location/Shop** — `GET http://localhost:8080/workorder/v1/estimates/shop/{locationId}` | `http://localhost:8080/workorder/v1/estimates/location/{locationId}`
+4. **Get Estimates by Location/Shop** — `GET http://localhost:8080/v1/workexec/estimates/shop/{locationId}` | `GET http://localhost:8080/v1/workexec/estimates/location/{locationId}`
    - Path param: `locationId` (opaque string, required)
    - Response: `[ EstimateDTO ]`
    - **Note:** Both `/shop/{locationId}` and `/location/{locationId}` endpoints exist (deprecated `/shop/*`)
 
-5. **Create Estimate** — `POST http://localhost:8080/workorder/v1/estimates`
+5. **Create Estimate** — `POST http://localhost:8080/v1/workexec/estimates`
    - Request: `CreateEstimateRequest { customerId (opaque string), vehicleId (opaque string) }`
    - Response: `CreateEstimateResponse { id, estimateNumber, status: DRAFT, locationId, createdAt }`
    - HTTP 200 (success), 400 (validation error), 500 (server error)
    - System generates unique `estimateNumber` (e.g., EST-2024-1001)
    - Requires: `X-User-Id` header (defaults to 1 if missing)
 
-6. **Decline Estimate** — `POST http://localhost:8080/workorder/v1/estimates/{estimateId}/decline`
+6. **Decline Estimate** — `POST http://localhost:8080/v1/workexec/estimates/{estimateId}/decline`
    - Path param: `estimateId` (opaque string)
    - Query param: `reason` (String, optional)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DRAFT → DECLINED
 
-7. **Reopen Estimate** — `POST http://localhost:8080/workorder/v1/estimates/{estimateId}/reopen`
+7. **Reopen Estimate** — `POST http://localhost:8080/v1/workexec/estimates/{estimateId}/reopen`
    - Path param: `estimateId` (opaque string)
    - Response: `EstimateDTO` (200) | 400/404
    - State transition: DECLINED → DRAFT (within expiry window)
    - Constraint: Cannot reopen if expired
 
-8. **Approve Estimate with Signature** — `POST http://localhost:8080/workorder/v1/estimates/{estimateId}/approval`
+8. **Approve Estimate with Signature** — `POST http://localhost:8080/v1/workexec/estimates/{estimateId}/approval`
    - Path param: `estimateId` (opaque string)
    - Request: `ApproveEstimateRequest { customerId (opaque string), signatureData (String, base64 PNG), signatureMimeType (String), signerName (String, optional), notes (String, optional) }`
    - Response: `EstimateDTO { status: APPROVED, approvedAt, approvedBy, signatureData, signerName }` (200) | 400/404
    - Validation: customerId must match estimate
    - State transition: DRAFT → APPROVED
 
-9. **Delete Estimate** — `DELETE http://localhost:8080/workorder/v1/estimates/{estimateId}`
+9. **Delete Estimate** — `DELETE http://localhost:8080/v1/workexec/estimates/{estimateId}`
    - Path Parameters:
      - `estimateId` (opaque string, required) - Estimate to delete
    - Response: 204 No Content (success) | 404 (not found) | 409 (invalid state)
@@ -193,12 +193,12 @@ From `EstimateStatus` enum in pos-workorder:
 <!-- contract-status: draft -->
 <!-- anchor: cap-005-workorders -->
 
-1. **Load Workorder** — `GET http://localhost:8080/workorder/v1/{workorderId}`
+1. **Load Workorder** — `GET http://localhost:8080/v1/workexec/workorders/{workorderId}`
    - Path param: `workorderId` (opaque string)
    - Response: `WorkorderDTO { id, shopId, vehicleId, customerId, approvalId, estimateId, status, services[], approvedAt, approvedBy, completedAt, completedBy }`
    - HTTP 200 (success) | 404 (not found)
 
-2. **Get All Workorders** — `GET http://localhost:8080/workorder/v1`
+2. **Get All Workorders** — `GET http://localhost:8080/v1/workexec/workorders`
    - Response: `[ WorkorderDTO ]` (all workorders, no pagination)
 
 ---
@@ -209,7 +209,7 @@ From `EstimateStatus` enum in pos-workorder:
 
 ### 3. Start Workorder
 
-**Endpoint:** `POST http://localhost:8080/workorder/v1/workorders/{workorderId}/start`
+**Endpoint:** `POST http://localhost:8080/v1/workexec/workorders/{workorderId}/start`
 
 **Description:** Start work on a work order, transitioning it to WORK_IN_PROGRESS status.
 
@@ -281,7 +281,7 @@ From `EstimateStatus` enum in pos-workorder:
 
 ### 4. Get Transition History
 
-**Endpoint:** `GET http://localhost:8080/workorder/v1/workorders/{workorderId}/transitions`
+**Endpoint:** `GET http://localhost:8080/v1/workexec/workorders/{workorderId}/transitions`
 
 **Description:** Retrieve the state transition history for a work order in chronological order (newest first).
 
@@ -337,7 +337,7 @@ From `EstimateStatus` enum in pos-workorder:
 
 ### 5. Get Snapshot History
 
-**Endpoint:** `GET http://localhost:8080/workorder/v1/workorders/{workorderId}/snapshots`
+**Endpoint:** `GET http://localhost:8080/v1/workexec/workorders/{workorderId}/snapshots`
 
 **Description:** Retrieve the snapshot history for a work order.
 
@@ -393,11 +393,14 @@ From `EstimateStatus` enum in pos-workorder:
 
 ### Implementation Links
 
-- Backend child issues referenced by CAP-004 (manifest):
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/167
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/166
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/165
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/164
+- Backend child issues referenced by CAP-006 (manifest):
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/154
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/153
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/152
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/151
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/150
+
+These issues correspond to backend work for the CAP:006 stories listed in the capability manifest. Cross-reference these issues for implementation details, provider tests, and any path refactoring notes.
    - https://github.com/louisburroughs/durion-positivity-backend/issues/163
    - https://github.com/louisburroughs/durion-positivity-backend/issues/162
 
