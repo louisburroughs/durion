@@ -19,17 +19,20 @@ This guide standardizes field naming conventions, data types, payload structures
 The OpenAPI v1 spec produced by `pos-workorder` is the authoritative source for implemented endpoints. Several items previously listed as "missing" are now present in the OpenAPI spec; the guide below reflects that reality. Specific gaps that still require work are noted inline and referenced to backend child issues.
 
 ### Item Management
+
 Status: Endpoints to add estimate items are present in the OpenAPI spec at `/v1/workorders/estimates/{estimateId}/items` (POST). If PATCH/DELETE semantics are required for partial updates or removals, open follow-up backend issues and reference Implementation Links.
 
 ### Tax Calculation
+
 Status: The explicit calculate endpoint (`/v1/workorders/estimates/{estimateId}/calculate`) is present in the OpenAPI spec. Clients can call this endpoint to recalc totals prior to promotion/approval.
 
 ### Summary / Snapshot Generation
+
 Status: The snapshot endpoint (`/v1/workorders/estimates/{estimateId}/snapshots`) is present. If a dedicated `summary` endpoint is still required for printable/PDF output, track via a follow-up issue.
 
 ### Approval Workflow
-Status: Approval endpoints (estimate approval and workorder approval) exist in the OpenAPI spec (e.g., `/v1/workorders/estimates/{estimateId}/approval`, `/v1/workorders/{workorderId}/approval`). If the UX requires a separate `submit` step (DRAFT → PENDING_APPROVAL) add a child backend issue to track.
 
+Status: Approval endpoints (estimate approval and workorder approval) exist in the OpenAPI spec (e.g., `/v1/workorders/estimates/{estimateId}/approval`, `/v1/workorders/{workorderId}/approval`). If the UX requires a separate `submit` step (DRAFT → PENDING_APPROVAL) add a child backend issue to track.
 
 ## Conventions
 
@@ -92,6 +95,7 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
    #### EstimateResponse (Current v1 API)
 
    **Current Implementation Returns:**
+
    ```json
    {
      "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -181,6 +185,7 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
 ### Estimate Status Enum (Confirmed)
 
 From `EstimateStatus` enum in pos-workorder:
+
 - `DRAFT` — Initial state, editable
 - `APPROVED` — Customer approved or system auto-approved
 - `DECLINED` — Customer declined
@@ -214,9 +219,11 @@ From `EstimateStatus` enum in pos-workorder:
 **Description:** Start work on a work order, transitioning it to WORK_IN_PROGRESS status.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order to start
 
 **Request Body:**
+
 ```json
 {
   "userId": "550e8400-e29b-41d4-a716-446655440000",
@@ -225,10 +232,12 @@ From `EstimateStatus` enum in pos-workorder:
 ```
 
 **Request Fields:**
+
 - `userId` (opaque string, optional) — User who is starting the workorder
 - `reason` (String, optional) — Reason for starting the workorder
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -240,6 +249,7 @@ From `EstimateStatus` enum in pos-workorder:
 ```
 
 **Response Fields:**
+
 - `workorderId` (opaque string) — ID of the work order
 - `previousStatus` (String) — Status before transition (APPROVED or ASSIGNED)
 - `currentStatus` (String) — Current status after transition (WORK_IN_PROGRESS)
@@ -249,6 +259,7 @@ From `EstimateStatus` enum in pos-workorder:
 **Error Responses:**
 
 - **400 Bad Request** — Invalid state transition or pending change requests
+
   ```json
   {
     "code": "INVALID_STATE",
@@ -258,6 +269,7 @@ From `EstimateStatus` enum in pos-workorder:
   ```
 
 - **404 Not Found** — Work order not found
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -267,12 +279,14 @@ From `EstimateStatus` enum in pos-workorder:
   ```
 
 **Status Transition Rules:**
+
 - Start is allowed **only** from `APPROVED` or `ASSIGNED` status
 - Target status after start: `WORK_IN_PROGRESS`
 - If change requests exist with status `AWAITING_ADVISOR_REVIEW`, start is rejected with `INVALID_STATE` error
 - State transition is recorded in the transition history (append-only log)
 
 **Business Rules:**
+
 - Users must have `workorder:workorder:start` authority to call this endpoint
 - The transition is logged with the user ID, reason, and timestamp
 - A `WorkorderStateTransition` record is created capturing the from/to status
@@ -286,9 +300,11 @@ From `EstimateStatus` enum in pos-workorder:
 **Description:** Retrieve the state transition history for a work order in chronological order (newest first).
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Success Response (200 OK):**
+
 ```json
 [
   {
@@ -315,6 +331,7 @@ From `EstimateStatus` enum in pos-workorder:
 ```
 
 **Response Fields (Array of WorkorderStateTransitionResponse):**
+
 - `id` (opaque string) — Unique identifier for this transition record
 - `workorderId` (opaque string) — ID of the work order
 - `fromStatus` (String) — The status the work order transitioned FROM
@@ -325,10 +342,12 @@ From `EstimateStatus` enum in pos-workorder:
 - `metadata` (String, optional) — Additional metadata about the transition
 
 **Ordering:**
+
 - Transitions are returned in chronological order with **newest first** (descending by `transitionedAt`)
 - The array is append-only; transitions are never deleted or modified
 
 **Business Rules:**
+
 - Transition history is immutable and append-only
 - Each state change creates exactly one transition record
 - Users must have `workorder:workorder:view` authority to access transition history
@@ -342,9 +361,11 @@ From `EstimateStatus` enum in pos-workorder:
 **Description:** Retrieve the snapshot history for a work order.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Success Response (200 OK):**
+
 ```json
 [
   {
@@ -371,6 +392,7 @@ From `EstimateStatus` enum in pos-workorder:
 ```
 
 **Response Fields (Array of WorkorderSnapshotResponse):**
+
 - `id` (opaque string) — Unique identifier for this snapshot record
 - `workorderId` (opaque string) — ID of the work order
 - `status` (String) — Status of the work order at the time of this snapshot
@@ -381,9 +403,11 @@ From `EstimateStatus` enum in pos-workorder:
 - `reason` (String, optional) — Reason for capturing the snapshot
 
 **Ordering:**
+
 - Snapshots are returned in chronological order with **newest first** (descending by `capturedAt`)
 
 **Business Rules:**
+
 - Snapshots capture the complete state of workorder services and parts at a point in time
 - Automatic snapshots are created on significant workorder state transitions
 - Manual snapshots can be created by users with appropriate permissions
@@ -391,24 +415,47 @@ From `EstimateStatus` enum in pos-workorder:
 
 ---
 
+### OpenAPI Delta Summary (short)
+
+- Added (present in current OpenAPI but not yet documented in detail in this guide):
+  - `/v1/workexec/workorders/{workorderId}/technician` (technician assignment endpoints)
+  - `/v1/workexec/workorders/{workorderId}/labor/{entryId}/adjust` (labor adjustments)
+  - `/v1/workexec/workorders/{workorderId}/services/{serviceId}/labor/start` (start labor session)
+  - `/v1/workexec/workorders/{workorderId}/parts/*` (issue/return/consume/substitute/correct endpoints)
+  - `/v1/workexec/approvalConfigurations/*` (approval configuration CRUD)
+
+- Changed (gateway mapping applied):
+  - OpenAPI paths in `pos-workorder` are transformed to gateway format by prepending the domain `workexec` after the version. Example: OpenAPI `/v1/workorders` → Gateway `http://localhost:8080/v1/workexec/workorders`.
+
+- Removed / Deprecated (documented here for traceability):
+  - None detected in this pass; any guide-only endpoints not present in OpenAPI should be marked deprecated and tracked for removal.
+
 ### Implementation Links
 
-- Backend child issues referenced by CAP-006 (manifest):
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/154
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/153
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/152
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/151
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/150
+- Backend child issues referenced by CAP-007 (manifest):
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/149>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/148>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/147>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/146>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/145>
+
+Cross-reference notes:
+
+- Path refactoring performed: any direct-service or non-gateway examples in this guide must be treated as gateway paths. If a backend child issue implements or references a direct-service URL (e.g., `localhost:8096`), map it to `http://localhost:8080/v1/workexec/...` in frontend wiring and provider tests.
+- For missing DTO detail or ambiguous examples in OpenAPI, add `TODO` comments in the relevant backend issue above so maintainers can enrich OpenAPI examples or component schemas.
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/150>
 
 These issues correspond to backend work for the CAP:006 stories listed in the capability manifest. Cross-reference these issues for implementation details, provider tests, and any path refactoring notes.
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/163
-   - https://github.com/louisburroughs/durion-positivity-backend/issues/162
+
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/163>
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/162>
 
 Refer to these issues for provider test responsibilities, missing behavior details, or follow-up API changes. Cross-reference these issues when adding provider ContractBehaviorIT tests or when clarifying behavioral TODOs in this guide.
 
 ### Workorder Status Enum (Confirmed)
 
 From `WorkorderStatus` enum in pos-workorder:
+
 - `DRAFT` — Initial state
 - `APPROVED` — Approved (can transition to ASSIGNED)
 - `ASSIGNED` — Assigned to technician (can transition to WORK_IN_PROGRESS)
@@ -424,6 +471,7 @@ From `WorkorderStatus` enum in pos-workorder:
 <!-- anchor: cap-005-workorder-items -->
 
 **WorkorderService Entity Fields (Confirmed):**
+
 - `id` (opaque string) — Primary key
 - `workorder` (FK to Workorder)
 - `serviceEntityId` (opaque string) — Reference to ServiceEntity in pos-catalog
@@ -438,6 +486,7 @@ From `WorkorderStatus` enum in pos-workorder:
 - `customerDenialAcknowledged` (Boolean, optional)
 
 **WorkorderItemStatus Enum (Confirmed):**
+
 - `PENDING_APPROVAL` — Awaiting approval
 - `OPEN` — Available to execute
 - `READY_TO_EXECUTE` — Ready for technician
@@ -450,6 +499,7 @@ From `WorkorderStatus` enum in pos-workorder:
 <!-- anchor: cap-005-workorder-parts -->
 
 **WorkorderPart Entity Fields (Confirmed):**
+
 - `id` (opaque string) — Primary key
 - `workorderService` (FK to WorkorderService)
 - `productEntityId` (opaque string) — Reference to pos-catalog Product
@@ -460,6 +510,7 @@ From `WorkorderStatus` enum in pos-workorder:
 - `status` (Enum) — PartStatus (see below)
 
 **PartStatus Enum (Confirmed):**
+
 - `PENDING_APPROVAL` — Awaiting approval
 - `OPEN` — Available to consume
 - `READY_TO_EXECUTE` — Ready for use
@@ -468,6 +519,7 @@ From `WorkorderStatus` enum in pos-workorder:
 - `CANCELLED` — Cancelled
 
 **Business Methods (Confirmed):**
+
 - `canExecute()` — Returns true if status != PENDING_APPROVAL OR (isEmergencySafety && customerDenialAcknowledged != null)
 - `canConsumeInventory()` — Returns true if status != PENDING_APPROVAL
 
@@ -482,16 +534,20 @@ Change requests enable technicians to request authorization for additional work 
 ### Change Request Endpoints
 
 #### 1. Create Change Request
+
 `POST http://localhost:8080/workorder/v1/workorders/{workorderId}/changeRequests`
 
 **Headers:**
+
 - `Idempotency-Key` (optional, but recommended): Client-generated unique string to ensure idempotent creation
 - **Note:** Idempotency implementation is currently NOT present in the controller. Clients should generate unique keys, but the backend does not yet enforce idempotency. Track implementation via follow-up issue.
 
 **Path Parameters:**
+
 - `workorderId` (UUID, required): ID of the work order
 
 **Request Body (CreateChangeRequestDTO):**
+
 ```json
 {
   "requestedByUserId": "550e8400-e29b-41d4-a716-446655440002",
@@ -522,12 +578,14 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Request Body Rules:**
+
 - `description` (required): Must not be blank
 - At least one of `services` or `parts` must be provided with items
 - `isEmergencyException`: If true, emergency documentation (photoEvidenceUrl or photoNotPossible flag + emergencyNotes) is required
 - Items will be created with `status: PENDING_APPROVAL` until approved
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440111",
@@ -547,7 +605,9 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Error Responses:**
+
 - `400 Bad Request` — Missing description, no items provided, or validation failed
+
   ```json
   {
     "code": "VALIDATION_ERROR",
@@ -561,7 +621,9 @@ Change requests enable technicians to request authorization for additional work 
     ]
   }
   ```
+
 - `404 Not Found` — Work order not found
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -569,7 +631,9 @@ Change requests enable technicians to request authorization for additional work 
     "correlationId": "abc124"
   }
   ```
+
 - `409 Conflict` — Work order not in valid state (INVALID_STATE)
+
   ```json
   {
     "code": "INVALID_STATE",
@@ -579,17 +643,21 @@ Change requests enable technicians to request authorization for additional work 
   ```
 
 **Business Rules:**
+
 - Work order must be in `WORK_IN_PROGRESS` status
 - All added items start with `status: PENDING_APPROVAL`
 - Emergency/safety items require photo evidence or explicit acknowledgment that photo is not possible
 
 #### 2. Get Change Requests by Workorder
+
 `GET http://localhost:8080/workorder/v1/workorders/{workorderId}/changeRequests`
 
 **Path Parameters:**
+
 - `workorderId` (UUID, required): ID of the work order
 
 **Success Response (200 OK):**
+
 ```json
 [
   {
@@ -609,12 +677,15 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 #### 3. Get Change Request by ID
+
 `GET http://localhost:8080/workorder/v1/workorders/changeRequests/{changeId}`
 
 **Path Parameters:**
+
 - `changeId` (UUID, required): ID of the change request
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440111",
@@ -629,15 +700,19 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Error Response:**
+
 - `404 Not Found` — Change request not found
 
 #### 4. Approve Change Request
+
 `POST http://localhost:8080/workorder/v1/workorders/changeRequests/{changeId}/approve`
 
 **Path Parameters:**
+
 - `changeId` (UUID, required): ID of the change request to approve
 
 **Request Body (ApproveChangeRequestDTO):**
+
 ```json
 {
   "approvedBy": "550e8400-e29b-41d4-a716-446655440003",
@@ -646,9 +721,11 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Request Body Rules:**
+
 - `approvalNote` (required): Must not be blank; serves as approval artifact
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440111",
@@ -661,7 +738,9 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Error Responses:**
+
 - `400 Bad Request` — Invalid state or missing approval note
+
   ```json
   {
     "code": "INVALID_STATE",
@@ -669,21 +748,26 @@ Change requests enable technicians to request authorization for additional work 
     "correlationId": "abc126"
   }
   ```
+
 - `404 Not Found` — Change request not found
 
 **Business Rules:**
+
 - Change request must be in `AWAITING_ADVISOR_REVIEW` status
 - Approval note is mandatory
 - Items transition from `PENDING_APPROVAL` to `READY_TO_EXECUTE`
 - Creates immutable `ApprovalRecord` for audit trail
 
 #### 5. Decline Change Request
+
 `POST http://localhost:8080/workorder/v1/workorders/changeRequests/{changeId}/decline`
 
 **Path Parameters:**
+
 - `changeId` (UUID, required): ID of the change request to decline
 
 **Request Body (DeclineChangeRequestDTO):**
+
 ```json
 {
   "approvalNote": "Customer declined additional brake rotor service due to budget constraints"
@@ -691,9 +775,11 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Request Body Rules:**
+
 - `approvalNote` (required): Must not be blank; records decline decision
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440111",
@@ -705,21 +791,26 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Error Responses:**
+
 - `400 Bad Request` — Invalid state or missing note
 - `404 Not Found` — Change request not found
 
 **Business Rules:**
+
 - Change request must be in `AWAITING_ADVISOR_REVIEW` status
 - Items transition from `PENDING_APPROVAL` to `CANCELLED` (not billable)
 - If items are emergency/safety, customer denial acknowledgment is required before workorder can be closed
 
 #### 6. Apply Emergency Override
+
 `POST http://localhost:8080/workorder/v1/workorders/changeRequests/{changeId}/emergency-override`
 
 **Path Parameters:**
+
 - `changeId` (UUID, required): ID of the change request
 
 **Request Body (EmergencyOverrideDTO):**
+
 ```json
 {
   "managerId": "550e8400-e29b-41d4-a716-446655440004",
@@ -728,9 +819,11 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Request Body Rules:**
+
 - `exceptionReason` (required): Must not be blank; documents why emergency override is needed
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440111",
@@ -743,22 +836,26 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Error Responses:**
+
 - `400 Bad Request` — Invalid state or missing reason
 - `403 Forbidden` — Insufficient permissions (Manager role required)
 - `404 Not Found` — Change request not found
 
 **Business Rules:**
+
 - Requires `workorder:change_request:emergency_override` permission (Manager role)
 - Items transition from `PENDING_APPROVAL` to `READY_TO_EXECUTE`
 - Creates audit trail with emergency override flag
 
 ### Change Request Status Enum
+
 - `AWAITING_ADVISOR_REVIEW` — Initial state after creation
 - `APPROVED` — Service advisor approved
 - `DECLINED` — Service advisor declined
 - `EMERGENCY_OVERRIDE_APPLIED` — Manager applied emergency override
 
 ### Known Limitations
+
 - **Idempotency:** `Idempotency-Key` header is currently NOT enforced in the controller. Clients should still provide it for future compatibility, but duplicate submissions will create separate change requests. Track implementation via follow-up issue.
 - **Item Details:** The response does not include the list of services/parts; clients must query workorder items separately using `changeRequestId` filter.
 
@@ -769,6 +866,7 @@ Change requests enable technicians to request authorization for additional work 
 <!-- anchor: cap-005-approval-signature -->
 
 **ApproveEstimateRequest (Confirmed from EstimateController):**
+
 ```
 {
   "customerId": opaque string (required) — Must match estimate customer
@@ -780,6 +878,7 @@ Change requests enable technicians to request authorization for additional work 
 ```
 
 **Response after Approval:**
+
 ```
 EstimateDTO {
   "id": opaque string
@@ -830,6 +929,7 @@ The approval request supports **optional selective line item approval/rejection*
 ```
 
 **Behavior:**
+
 - If `lineItemApprovals` array is **omitted**, all line items are implicitly approved
 - If `lineItemApprovals` array is **provided**, each line item must have an explicit entry
 - Approved items (`approved: true`) transition to executable status
@@ -845,15 +945,18 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Field:** `purchaseOrderNumber` (String, conditionally required)
 
 **Validation Rules:**
+
 - Required when customer billing rules indicate `purchaseOrderRequired=true`
 - Format: 3-64 characters, pattern `^[A-Za-z0-9][A-Za-z0-9._-]*$`
 - Backend queries billing rules via: `GET /crm/v1/accounts/parties/{partyId}/billingRules`
 
 **Error Codes:**
+
 - `MISSING_PO_NUMBER` (400) - PO required for this customer but not provided
 - `INVALID_PO_NUMBER` (400) - PO format validation failed
 
 **Request Example with PO:**
+
 ```json
 {
    "customerId": "550e8400-e29b-41d4-a716-446655440001",
@@ -866,6 +969,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Backend Behavior:**
+
 1. Backend receives approval request with `purchaseOrderNumber`
 2. Backend calls CRM service to retrieve billing rules for `customerId`
 3. If `billingRules.purchaseOrderRequired === true`:
@@ -878,22 +982,26 @@ For **commercial accounts** with purchase order enforcement enabled:
 ## DTO Schemas (Confirmed from pos-workorder)
 
 **WorkorderItemDTO**
+
 - `workorderItemId`, `originEstimateItemId?`
 - `itemType`, `description`, `quantity`, `unitPrice|unitRate|amount`, `lineTotal`, `taxCode`, `taxAmount`
 - `status` (PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED) — confirmed from backend
 - `requiresReview?`, `notes?`
 
 **PromotionAuditDTO**
+
 - `auditEventId`, `eventTimestamp`, `promotingUserId`
 - `estimateId`, `workorderId`, `estimateSnapshotId?`, `approvalId?`
 - `promotionSummary { laborItemCount, partItemCount, feeItemCount, subtotal, taxTotal, grandTotal, currencyUomId }`
 - `correlationId?`
 
 **ApprovalRequestDTO**
+
 - `approvalRequestId`, `resolutionStatus` (APPROVED, REJECTED, APPROVED_WITH_EXCEPTION) — confirmed from ApprovalRecord.ResolutionStatus enum
 - `approvalMethod`, `requiresSignature`, `expiresAt?`, `createdAt`, `createdBy`
 
 **Signature Payload (submission)**
+
 - `customerSignatureData { signatureImage (base64 PNG), signatureStrokes? [ { x, y, t } ] }`
 - `approvalPayload { documentDigest?, customerIdentifier? }`
 - `approvalMethod` (CLICK_CONFIRM, SIGNATURE, ELECTRONIC_SIGNATURE, VERBAL_CONFIRMATION) — confirmed from ApprovalConfiguration.ApprovalMethod enum
@@ -912,12 +1020,15 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Assign a technician to a work order. This operation is typically performed by a service advisor or shop manager when allocating work.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key to ensure idempotent assignment
 
 **Request Body:**
+
 ```json
 {
   "technicianId": "550e8400-e29b-41d4-a716-446655440050",
@@ -927,11 +1038,13 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `technicianId` (opaque string, required) — ID of the technician to assign
 - `assignedByUserId` (opaque string, optional) — User ID performing the assignment (defaults from X-User-Id header if not provided)
 - `notes` (String, optional) — Assignment notes or reason
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -946,6 +1059,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `workorderId` (opaque string) — ID of the work order
 - `technicianId` (opaque string) — ID of the assigned technician
 - `technicianName` (String) — Display name of the technician
@@ -958,6 +1072,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **404 Not Found** — Work order or technician not found
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -967,6 +1082,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 - **400 Bad Request** — Invalid state transition
+
   ```json
   {
     "code": "INVALID_STATE",
@@ -976,6 +1092,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 - **403 Forbidden** — Permission denied
+
   ```json
   {
     "code": "FORBIDDEN",
@@ -985,11 +1102,13 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Status Transition Rules:**
+
 - Assignment is allowed from `APPROVED` status
 - Target status after assignment: `ASSIGNED`
 - Reassignment is allowed from any status where technician is already assigned
 
 **Business Rules:**
+
 - Users must have `workorder:workorder:assign-technician` authority
 - Reassignment automatically records the previous technician ID
 - Assignment creates a state transition record with the assignment details
@@ -1003,12 +1122,15 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Reassign a work order to a different technician. Similar to initial assignment but explicitly indicates replacement.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "newTechnicianId": "550e8400-e29b-41d4-a716-446655440051",
@@ -1019,12 +1141,14 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `newTechnicianId` (opaque string, required) — ID of the new technician
 - `reassignedByUserId` (opaque string, optional) — User performing reassignment
 - `reason` (String, optional) — Reason for reassignment
 - `notifyPreviousTechnician` (Boolean, default=false) — Whether to send notification to previous technician
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -1042,6 +1166,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:** Same as assignment endpoint
 
 **Business Rules:**
+
 - Reassignment requires an existing technician assignment
 - Any labor already recorded remains attributed to the original technician
 - Reassignment creates an audit trail entry
@@ -1055,9 +1180,11 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Retrieve the current technician assignment for a work order.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -1081,6 +1208,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `workorderId` (opaque string) — ID of the work order
 - `technicianId` (opaque string) — Current technician ID
 - `technicianName` (String) — Display name of current technician
@@ -1091,6 +1219,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `assignmentHistory` (AssignmentHistoryEntry[]) — Full assignment history
 
 **AssignmentHistoryEntry Fields:**
+
 - `technicianId` (opaque string) — Technician ID for this assignment period
 - `technicianName` (String) — Technician display name
 - `assignedAt` (ISO 8601 UTC) — Assignment timestamp
@@ -1101,6 +1230,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **404 Not Found** — Work order not found or no assignment exists
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -1110,6 +1240,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Returns current assignment if exists
 - Assignment history ordered newest first
 - Users must have `workorder:workorder:view` authority
@@ -1127,13 +1258,16 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Record the start of labor on a specific service item. Creates a labor session that tracks time until explicitly stopped.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `serviceId` (opaque string, required) — ID of the service item being worked on
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "technicianId": "550e8400-e29b-41d4-a716-446655440050",
@@ -1143,11 +1277,13 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `technicianId` (opaque string, required) — ID of technician performing work
 - `startTime` (ISO 8601 UTC, optional) — Labor start time (defaults to request time if not provided)
 - `notes` (String, optional) — Session notes
 
 **Success Response (200 OK):**
+
 ```json
 {
   "laborSessionId": "550e8400-e29b-41d4-a716-446655440100",
@@ -1161,6 +1297,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `laborSessionId` (opaque string) — Unique ID for this labor session
 - `workorderId` (opaque string) — Work order ID
 - `serviceId` (opaque string) — Service item ID
@@ -1172,6 +1309,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **400 Bad Request** — Active session already exists
+
   ```json
   {
     "code": "VALIDATION_ERROR",
@@ -1181,6 +1319,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 - **409 Conflict** — Invalid state
+
   ```json
   {
     "code": "INVALID_STATE",
@@ -1190,6 +1329,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Service item must be in `READY_TO_EXECUTE` or `IN_PROGRESS` status
 - Only one active labor session allowed per service item at a time
 - Technician must match workorder assignment (unless supervisor override)
@@ -1204,13 +1344,16 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Stop an active labor session and record the total time worked.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `serviceId` (opaque string, required) — ID of the service item
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "laborSessionId": "550e8400-e29b-41d4-a716-446655440100",
@@ -1222,6 +1365,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `laborSessionId` (opaque string, required) — ID of the session to stop
 - `stopTime` (ISO 8601 UTC, optional) — Labor stop time (defaults to request time)
 - `actualHours` (BigDecimal, optional) — Actual hours worked (calculated from start/stop if not provided)
@@ -1229,6 +1373,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `notes` (String, optional) — Completion notes
 
 **Success Response (200 OK):**
+
 ```json
 {
   "laborSessionId": "550e8400-e29b-41d4-a716-446655440100",
@@ -1247,6 +1392,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `laborSessionId` (opaque string) — Session ID
 - `workorderId` (opaque string) — Work order ID
 - `serviceId` (opaque string) — Service item ID
@@ -1263,6 +1409,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **404 Not Found** — Session not found or not active
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -1272,6 +1419,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Session must be in `IN_PROGRESS` status
 - Stop time must be after start time
 - If `completionStatus` is `COMPLETED`, service status transitions to `COMPLETED`
@@ -1287,10 +1435,12 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Retrieve all labor sessions for a specific service item, including active and completed sessions.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `serviceId` (opaque string, required) — ID of the service item
 
 **Success Response (200 OK):**
+
 ```json
 {
   "serviceId": "550e8400-e29b-41d4-a716-446655440010",
@@ -1315,6 +1465,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `serviceId` (opaque string) — Service item ID
 - `serviceName` (String) — Service description
 - `estimatedHours` (BigDecimal) — Estimated labor time
@@ -1324,6 +1475,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `activeSessions` (LaborSessionDTO[]) — Currently active sessions
 
 **LaborSessionDTO Fields:**
+
 - `laborSessionId` (opaque string)
 - `technicianId` (opaque string)
 - `technicianName` (String)
@@ -1336,6 +1488,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **404 Not Found** — Service not found
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -1345,6 +1498,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Returns all sessions ordered by start time (newest first)
 - Active sessions show elapsed time but no stop time
 - Users must have `workorder:workorder:view` authority
@@ -1358,11 +1512,13 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Adjust recorded labor hours after session completion (e.g., supervisor correction).
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `serviceId` (opaque string, required) — ID of the service item
 - `sessionId` (opaque string, required) — ID of the labor session to update
 
 **Request Body:**
+
 ```json
 {
   "actualHours": 1.75,
@@ -1372,11 +1528,13 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `actualHours` (BigDecimal, required) — Corrected actual hours
 - `reason` (String, required) — Reason for adjustment
 - `adjustedByUserId` (opaque string, optional) — User making adjustment
 
 **Success Response (200 OK):**
+
 ```json
 {
   "laborSessionId": "550e8400-e29b-41d4-a716-446655440100",
@@ -1392,6 +1550,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **403 Forbidden** — Insufficient authority to adjust
+
   ```json
   {
     "code": "FORBIDDEN",
@@ -1401,6 +1560,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Only users with `workorder:labor:adjust` authority can update hours
 - Session must be in `COMPLETED` status
 - Adjustments are logged in audit trail
@@ -1419,12 +1579,15 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Issue parts from inventory to a work order, reserving them for consumption.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "parts": [
@@ -1449,6 +1612,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `parts` (PartIssueRequest[], required) — Array of parts to issue
   - `partId` (opaque string, required) — Workorder part line item ID
   - `productEntityId` (opaque string, required) — Product/SKU ID from catalog
@@ -1459,6 +1623,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `notes` (String, optional) — Issue notes
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -1489,6 +1654,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `workorderId` (opaque string) — Work order ID
 - `issuedAt` (ISO 8601 UTC) — Issue timestamp
 - `issuedBy` (opaque string) — User who issued parts
@@ -1505,6 +1671,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **409 Conflict** — Insufficient inventory
+
   ```json
   {
     "code": "VALIDATION_ERROR",
@@ -1520,6 +1687,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 - **400 Bad Request** — Invalid quantity or product not found
+
   ```json
   {
     "code": "VALIDATION_ERROR",
@@ -1529,6 +1697,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Parts must exist in workorder part list with `OPEN` status
 - Inventory availability checked before issuance
 - Issued parts reserved/allocated to workorder
@@ -1544,12 +1713,15 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Record actual consumption of parts on a work order. This may differ from authorized/issued quantity.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "parts": [
@@ -1572,6 +1744,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `parts` (PartConsumptionRequest[], required) — Array of parts consumed
   - `partId` (opaque string, required) — Workorder part line item ID
   - `quantityConsumed` (BigDecimal, required) — Actual quantity consumed
@@ -1581,6 +1754,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `notes` (String, optional) — Consumption notes
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -1610,6 +1784,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `workorderId` (opaque string) — Work order ID
 - `consumedAt` (ISO 8601 UTC) — Consumption timestamp
 - `partsConsumed` (PartConsumptionDTO[]) — Details of consumed parts
@@ -1625,6 +1800,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **400 Bad Request** — Consumption exceeds issued quantity
+
   ```json
   {
     "code": "VALIDATION_ERROR",
@@ -1640,6 +1816,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Parts must have been issued before consumption
 - Consumption creates inventory transaction (decreases stock)
 - Over-consumption requires additional authorization (change request)
@@ -1657,12 +1834,15 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Return unused parts to inventory after partial consumption or service completion.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "parts": [
@@ -1680,6 +1860,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `parts` (PartReturnRequest[], required) — Array of parts to return
   - `partId` (opaque string, required) — Workorder part line item ID
   - `quantityToReturn` (BigDecimal, required) — Quantity to return
@@ -1690,6 +1871,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `returnedAt` (ISO 8601 UTC, optional) — Return timestamp
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workorderId": "550e8400-e29b-41d4-a716-446655440001",
@@ -1711,6 +1893,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `workorderId` (opaque string) — Work order ID
 - `returnedAt` (ISO 8601 UTC) — Return timestamp
 - `returnedBy` (opaque string) — User who processed return
@@ -1727,6 +1910,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **400 Bad Request** — Return quantity exceeds unused quantity
+
   ```json
   {
     "code": "VALIDATION_ERROR",
@@ -1742,6 +1926,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Parts must have unused quantity (issued - consumed > 0)
 - Returns increase inventory at specified location
 - Condition code affects inventory status (NEW → available, DAMAGED → quarantine)
@@ -1761,13 +1946,16 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Substitute one part for another during workorder execution. Common when original part unavailable or customer upgrades.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `partId` (opaque string, required) — ID of the original part to substitute
 
 **Headers:**
+
 - `Idempotency-Key` (String, optional but recommended) — Client-generated unique key
 
 **Request Body:**
+
 ```json
 {
   "substituteProductEntityId": "550e8400-e29b-41d4-a716-446655440210",
@@ -1781,6 +1969,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `substituteProductEntityId` (opaque string, required) — Product ID of substitute part
 - `substituteQuantity` (BigDecimal, required) — Quantity of substitute part
 - `reason` (String, required) — Substitution reason code:
@@ -1796,6 +1985,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `requestedByUserId` (opaque string, optional) — User requesting substitution
 
 **Success Response (200 OK):**
+
 ```json
 {
   "substitutionId": "550e8400-e29b-41d4-a716-446655440300",
@@ -1816,6 +2006,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `substitutionId` (opaque string) — Unique substitution request ID
 - `workorderId` (opaque string) — Work order ID
 - `originalPartId` (opaque string) — Original part line item ID
@@ -1834,6 +2025,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Error Responses:**
 
 - **404 Not Found** — Original part not found
+
   ```json
   {
     "code": "NOT_FOUND",
@@ -1843,6 +2035,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 - **409 Conflict** — Substitution not allowed in current state
+
   ```json
   {
     "code": "INVALID_STATE",
@@ -1852,6 +2045,7 @@ For **commercial accounts** with purchase order enforcement enabled:
   ```
 
 **Business Rules:**
+
 - Original part must not be consumed yet
 - Price increases require customer/advisor approval
 - Price decreases may auto-approve (configurable threshold)
@@ -1868,10 +2062,12 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Approve a pending part substitution.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `substitutionId` (opaque string, required) — ID of the substitution request
 
 **Request Body:**
+
 ```json
 {
   "approvedByUserId": "550e8400-e29b-41d4-a716-446655440000",
@@ -1881,11 +2077,13 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `approvedByUserId` (opaque string, optional) — User approving substitution
 - `approvalNotes` (String, optional) — Approval notes
 - `customerConfirmed` (Boolean, default=false) — Whether customer confirmed change
 
 **Success Response (200 OK):**
+
 ```json
 {
   "substitutionId": "550e8400-e29b-41d4-a716-446655440300",
@@ -1899,6 +2097,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `substitutionId` (opaque string) — Substitution ID
 - `status` (String) — APPROVED
 - `approvedAt` (ISO 8601 UTC) — Approval timestamp
@@ -1908,6 +2107,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `message` (String) — Operation result
 
 **Business Rules:**
+
 - User must have `workorder:substitution:approve` authority
 - Approval transitions substitute part from PENDING_APPROVAL to OPEN
 - Original part marked as SUBSTITUTED and cannot be used
@@ -1922,10 +2122,12 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Decline a pending part substitution.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 - `substitutionId` (opaque string, required) — ID of the substitution request
 
 **Request Body:**
+
 ```json
 {
   "declinedByUserId": "550e8400-e29b-41d4-a716-446655440000",
@@ -1934,10 +2136,12 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Request Fields:**
+
 - `declinedByUserId` (opaque string, optional) — User declining substitution
 - `declineReason` (String, required) — Reason for decline
 
 **Success Response (200 OK):**
+
 ```json
 {
   "substitutionId": "550e8400-e29b-41d4-a716-446655440300",
@@ -1951,6 +2155,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields:**
+
 - `substitutionId` (opaque string) — Substitution ID
 - `status` (String) — DECLINED
 - `declinedAt` (ISO 8601 UTC) — Decline timestamp
@@ -1960,6 +2165,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `message` (String) — Operation result
 
 **Business Rules:**
+
 - Declining removes substitute part line item
 - Original part restored to previous status (typically OPEN)
 - No price adjustment applied
@@ -1973,12 +2179,15 @@ For **commercial accounts** with purchase order enforcement enabled:
 **Description:** Retrieve all part substitution requests for a work order.
 
 **Path Parameters:**
+
 - `workorderId` (opaque string, required) — ID of the work order
 
 **Query Parameters:**
+
 - `status` (String, optional) — Filter by status (PENDING_APPROVAL, APPROVED, DECLINED)
 
 **Success Response (200 OK):**
+
 ```json
 [
   {
@@ -2000,6 +2209,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 ```
 
 **Response Fields (Array of SubstitutionHistoryDTO):**
+
 - `substitutionId` (opaque string) — Substitution ID
 - `workorderId` (opaque string) — Work order ID
 - `originalPartId` (opaque string) — Original part ID
@@ -2017,6 +2227,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `declinedBy` (opaque string, optional) — Declining user
 
 **Business Rules:**
+
 - Returns all substitutions ordered by requestedAt (newest first)
 - Filter by status if specified
 - Users must have `workorder:workorder:view` authority
@@ -2059,6 +2270,7 @@ This section documents the authority requirements for each workorder endpoint an
 All workorder-related GET endpoint responses SHOULD include a `capabilities` object with boolean flags indicating what actions the current user can perform. This enables frontend UI gating without redundant permission checks.
 
 **Example Capabilities Object:**
+
 ```json
 {
   "capabilities": {
@@ -2079,6 +2291,7 @@ All workorder-related GET endpoint responses SHOULD include a `capabilities` obj
 ```
 
 **Capability Field Definitions:**
+
 - `canView` (Boolean) — User can view workorder details
 - `canStart` (Boolean) — User can start workorder (status-dependent)
 - `canAssignTechnician` (Boolean) — User can assign/reassign technicians
@@ -2099,6 +2312,7 @@ All workorder-related GET endpoint responses SHOULD include a `capabilities` obj
 **Endpoint:** `GET http://localhost:8080/workorder/v1/workorders/{workorderId}`
 
 **Success Response (200 OK) with Capabilities:**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
@@ -2158,6 +2372,7 @@ All workorder-related GET endpoint responses SHOULD include a `capabilities` obj
 When a user attempts an operation they lack authority for, the backend returns a 403 Forbidden response with the standard error envelope.
 
 **Error Response (403 Forbidden):**
+
 ```json
 {
   "code": "FORBIDDEN",
@@ -2175,6 +2390,7 @@ When a user attempts an operation they lack authority for, the backend returns a
 ```
 
 **Error Fields:**
+
 - `code` (String) — Error code (FORBIDDEN)
 - `message` (String) — Human-readable error message including required authority
 - `correlationId` (String) — Request correlation ID for debugging
@@ -2183,6 +2399,7 @@ When a user attempts an operation they lack authority for, the backend returns a
   - `userAuthorities` (String[], optional) — Authorities the user currently has (for debugging)
 
 **Business Rules:**
+
 - Permission checks performed before operation execution
 - Authorization failures return 403 (not 401)
 - Error messages MUST NOT leak sensitive information about system structure
@@ -2197,37 +2414,42 @@ When a user attempts an operation they lack authority for, the backend returns a
 **OpenAPI Specification Generated:** Successfully built pos-workorder module with Java 21 and extracted OpenAPI definitions.
 
 **Confirmed Enums:**
+
 - **EstimateStatus:** DRAFT, APPROVED, DECLINED, EXPIRED, PENDING_APPROVAL
 - **WorkorderStatus:** DRAFT, APPROVED, ASSIGNED, WORK_IN_PROGRESS, AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED, CANCELLED
 - **WorkorderItemStatus:** PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED
 - **PartStatus:** PENDING_APPROVAL, OPEN, READY_TO_EXECUTE, IN_PROGRESS, COMPLETED, CANCELLED
 
 **Confirmed Endpoints:**
+
 - Estimate CRUD:
-   - GET http://localhost:8080/workorder/v1/estimates
-   - POST http://localhost:8080/workorder/v1/estimates
-   - GET http://localhost:8080/workorder/v1/estimates/{id}
-   - POST http://localhost:8080/workorder/v1/estimates/{id}/approval
-   - POST http://localhost:8080/workorder/v1/estimates/{id}/decline
-   - POST http://localhost:8080/workorder/v1/estimates/{id}/reopen
-   - DELETE http://localhost:8080/workorder/v1/estimates/{id}
+  - GET <http://localhost:8080/workorder/v1/estimates>
+  - POST <http://localhost:8080/workorder/v1/estimates>
+  - GET <http://localhost:8080/workorder/v1/estimates/{id}>
+  - POST <http://localhost:8080/workorder/v1/estimates/{id}/approval>
+  - POST <http://localhost:8080/workorder/v1/estimates/{id}/decline>
+  - POST <http://localhost:8080/workorder/v1/estimates/{id}/reopen>
+  - DELETE <http://localhost:8080/workorder/v1/estimates/{id}>
 - Estimate Queries:
-   - GET http://localhost:8080/workorder/v1/estimates/customer/{id}
-   - GET http://localhost:8080/workorder/v1/estimates/shop/{id}
-   - GET http://localhost:8080/workorder/v1/estimates/location/{id}
-- Workorder Retrieval: GET http://localhost:8080/workorder/v1/{id}, GET http://localhost:8080/workorder/v1
+  - GET <http://localhost:8080/workorder/v1/estimates/customer/{id}>
+  - GET <http://localhost:8080/workorder/v1/estimates/shop/{id}>
+  - GET <http://localhost:8080/workorder/v1/estimates/location/{id}>
+- Workorder Retrieval: GET <http://localhost:8080/workorder/v1/{id}>, GET <http://localhost:8080/workorder/v1>
 - No explicit item-level mutation endpoints in EstimateController; items managed via parent resource mutations
 
 **Confirmed Signatures:**
+
 - Estimate approval: Requires customerId, signatureData (base64 PNG), signatureMimeType, signerName (optional), notes (optional)
 - Response includes: approvedAt, approvedBy, signatureData, signatureMimeType, signerName, approvalNotes
 
 **Concurrency Model:**
+
 - Estimate entity has `version` Integer field (business-level versioning, not JPA @Version)
 - Version increments on financial changes (subtotal, taxAmount, total modifications)
 - EstimateSequence uses JPA @Version for optimistic locking (separate concern)
 
 **Architectural Observations:**
+
 - Workorder references Estimate via estimateId (one-to-many relationship possible)
 - WorkorderService (items) contains reference to ServiceEntity (pos-catalog external)
 - WorkorderPart (parts) contains reference to Product (pos-catalog external)
@@ -2238,12 +2460,14 @@ When a user attempts an operation they lack authority for, the backend returns a
 ### Phase 2 Implementation Notes
 
 **Confirmed in OpenAPI Spec:**
+
 - Item management endpoints exist at `/v1/estimates/{estimateId}/items` (POST)
 - Tax calculation endpoint exists at `/v1/estimates/{estimateId}/calculate`
 - Snapshot endpoint exists at `/v1/estimates/{estimateId}/snapshots`
 - Approval workflow endpoints exist (estimate approval, workorder approval)
 
 **Future Enhancements Tracked via Issues:**
+
 - PATCH/DELETE semantics for estimate items (follow-up)
 - Explicit promote-to-workorder endpoint (may be in workflow service)
 - Approval method configuration (may be centralized in pos-customer)
@@ -2277,6 +2501,7 @@ The gateway strips the `/workorder` prefix and forwards `/v1/*` to the pos-worko
 - PO# requirement enforcement (#162)
 
 ### Cross-Domain Integrations Identified
+
 1. **WorkExec → Inventory:** Parts usage events, stock adjustments
 2. **WorkExec → People:** Work session events, timekeeping entries
 3. **WorkExec → ShopMgmt:** Workorder status events, appointment scheduling
@@ -2285,6 +2510,7 @@ The gateway strips the `/workorder` prefix and forwards `/v1/*` to the pos-worko
 6. **WorkExec → Accounting:** Billable snapshot export, invoicing integration
 
 ### Next Steps (Phase 4.3)
+
 1. Document acceptance criteria for 18 remaining issues using confirmed/pending API contracts
 2. Mark validation status: CONFIRMED (implementation found) vs PENDING (stub/missing) vs BLOCKED (requires cross-domain coordination)
 3. Link each issue acceptance criteria to relevant BACKEND_CONTRACT_GUIDE sections
