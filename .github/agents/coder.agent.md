@@ -211,6 +211,13 @@ B. **capability-completion.prompt.md** → After ALL child stories done (verifie
 - Push directly to main (always use feature branch)
 - Stop capability-completion without creating PR (unless genuine blocker)
 
+**ALWAYS**
+- Create PR at the END of the capability, linking development of all child stories and providing comprehensive documentation
+- Vailidate that PR workflows will pass
+  - durion-positivity-backend/.github/workflows/contract-sync.yml
+  - durion-positivity-backend/.github/workflows/dependency-check.yml
+  - durion-positivity-backend/.github/workflows/pr-checks.yml
+
 11. Sonar Issues (**MANDATORY**)
 - For any code you create or modify, you MUST run/follow Sonar findings for that code and fix issues that are:
 	- **Blocker**
