@@ -78,6 +78,9 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0012   | Vehicle-Party relationship ownwership      | ACCEPTED          | 2026-02-03 |
 | 0013   | UUID v7 Identifier Strategy                | ACCEPTED          | 2026-02-07 |
 | 0014   | Gateway Internal Service Security          | ACCEPTED          | 2026-02-14 |
+| 0015   | Person, Customer, and User Entity Semantics and Relationships | PROPOSED | 2026-02-17 |
+| 0016   | Location Entity Semantics and Definitions  | PROPOSED          | 2026-02-17 |
+| 0015   | Person, Customer, and User Entity Semantics and Relationships | PROPOSED | 2026-02-17 |
 
 ## Superseding ADRs
 
