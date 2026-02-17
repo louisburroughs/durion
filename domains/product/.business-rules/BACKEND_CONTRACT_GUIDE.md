@@ -11,7 +11,7 @@
 This guide defines the Product backend contract for the Product domain, implemented by `pos-catalog`.
 
 Authoritative source for current endpoint inventory is:
-- `/home/louisb/Projects/durion-positivity-backend/pos-catalog/openapi.json`
+- `/home/louisb/Projects/durion-positivity-backend/pos-catalog/target/openapi.json`
 
 ---
 
@@ -29,8 +29,8 @@ Authoritative source for current endpoint inventory is:
 
 ## Implementation Links / Backlog
 
-- Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/55
-- Capability manifest: /docs/capabilities/CAP-165/CAPABILITY_MANIFEST.yaml
+- Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/195
+- Capability manifest: /docs/capabilities/CAP-166/CAPABILITY_MANIFEST.yaml
 
 Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue above.
 
@@ -100,10 +100,8 @@ Mutation endpoints emit events:
    - Gateway URL: `http://localhost:8080/v1/products/catalog/{catalogId}`
   - Response: `204 No Content`, `404` if missing
 
-5. `GET /v1/products/catalog/name/{name}` (`getCatalogByName`)
-   - Purpose: search catalogs by name
-   - Gateway URL: `http://localhost:8080/v1/products/catalog/name/{name}`
-  - Response: `200 OK` + `CatalogEntity[]`
+5. Deprecated: `GET /v1/products/catalog/name/{name}` (`getCatalogByName`)
+  - NOTE: This endpoint is NOT present in the current OpenAPI spec (see authoritative OpenAPI at `/home/louisb/Projects/durion-positivity-backend/pos-catalog/target/openapi.json`). If a catalog-by-name search is required, open the backend child issue to add a supported API and update this guide.
 
 ### Generic item mutation endpoints
 
@@ -127,16 +125,16 @@ Mutation endpoints emit events:
 ### Product/service/non-inventory read endpoints
 
 1. `GET /v1/products/{productId}` (`getProductById`)
-2. `GET /v1/products/name/{name}` (`getProductByName`)
-  - Gateway URL: `http://localhost:8080/v1/products/name/{name}`
+2. Deprecated: `GET /v1/products/name/{name}` (`getProductByName`)
+  - NOTE: Not present in current OpenAPI; mark as deprecated or raise backend issue to re-add.
 3. `GET /v1/products/service/{serviceId}` (`getServiceById`)
   - Gateway URL: `http://localhost:8080/v1/products/service/{serviceId}`
 4. `GET /v1/products/service/name/{name}` (`getServiceByName`)
   - Gateway URL: `http://localhost:8080/v1/products/service/name/{name}`
 5. `GET /v1/products/noninventory/{productId}` (`getNonInventoryProductById`)
   - Gateway URL: `http://localhost:8080/v1/products/noninventory/{productId}`
-6. `GET /v1/products/noninventory/name/{name}` (`getNonInventoryProductByName`)
-  - Gateway URL: `http://localhost:8080/v1/products/noninventory/name/{name}`
+6. Deprecated: `GET /v1/products/noninventory/name/{name}` (`getNonInventoryProductByName`)
+  - NOTE: Not present in current OpenAPI; mark as deprecated or raise backend issue to re-add.
 
  - Responses: `200 OK` when found, `404` for id lookups when missing
 
@@ -219,3 +217,70 @@ From OpenAPI components:
 2. Add explicit idempotency behavior for mutation endpoints (`Idempotency-Key`).
 3. Decide substitutes contract ownership and finalize endpoint semantics.
 4. Consider migration from role-based guards to permission-based guards.
+
+---
+
+## CAP-166: Supplier/Vendor Cost Tiers (Optional)
+
+Status: `draft`
+
+### Endpoints
+
+1. `POST /v1/products/costs/supplier-item`
+   - Purpose: Create supplier-item cost structure with optional quantity tiers
+   - Response: `201 Created` + `SupplierItemCostResponseDto`
+   - Errors:
+     - `400 Bad Request` for invalid tier shape or invalid monetary values
+     - `403 Forbidden` for missing edit authority
+
+2. `GET /v1/products/costs/supplier-item/{supplierId}/{itemId}`
+   - Purpose: Retrieve cost structure for supplier-item combination
+   - Response: `200 OK` + `SupplierItemCostResponseDto`
+   - Errors:
+     - `404 Not Found` when no cost structure exists
+
+3. `PUT /v1/products/costs/supplier-item/{supplierId}/{itemId}`
+   - Purpose: Update currency/base cost/tier list for an existing supplier-item structure
+   - Response: `200 OK` + `SupplierItemCostResponseDto`
+   - Errors:
+     - `400 Bad Request` for invalid tier shape or invalid monetary values
+     - `404 Not Found` when no cost structure exists
+     - `409 Conflict` on optimistic-locking conflict
+
+4. `DELETE /v1/products/costs/supplier-item/{supplierId}/{itemId}`
+   - Purpose: Delete supplier-item cost structure and all tiers
+   - Response: `204 No Content`
+   - Errors:
+     - `404 Not Found` when no cost structure exists
+
+### Validation Rules
+
+- Quantity tiers MUST start at `min_quantity = 1`.
+- Quantity tiers MUST be contiguous and non-overlapping.
+- Only the final tier can have `max_quantity = null`.
+- Final tier MUST have `max_quantity = null`.
+- `unit_cost` must be positive.
+- `base_cost` cannot be negative.
+- `currency_code` must be a 3-letter ISO code.
+
+### Example Request (Create)
+
+```json
+{
+  "supplierId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a535",
+  "itemId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a536",
+  "currencyCode": "USD",
+  "baseCost": 6.25,
+  "tiers": [
+    { "minQuantity": 1, "maxQuantity": 10, "unitCost": 5.00 },
+    { "minQuantity": 11, "maxQuantity": 50, "unitCost": 4.50 },
+    { "minQuantity": 51, "maxQuantity": null, "unitCost": 4.00 }
+  ]
+}
+```
+
+### Error Example (Overlapping Tiers)
+
+```json
+"INVALID_TIER_STRUCTURE: Quantity ranges overlap."
+```
