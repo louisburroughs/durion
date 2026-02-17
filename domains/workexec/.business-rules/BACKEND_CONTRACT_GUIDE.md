@@ -151,7 +151,7 @@ Mutations accept `Idempotency-Key` header. All request/response DTOs use standar
 5. **Create Estimate** — `POST http://localhost:8080/v1/workexec/estimates`
    - Request: `CreateEstimateRequest { customerId (opaque string), vehicleId (opaque string) }`
    - Response: `CreateEstimateResponse { id, estimateNumber, status: DRAFT, locationId, createdAt }`
-   - HTTP 200 (success), 400 (validation error), 500 (server error)
+   - HTTP 201 (success), 400 (validation error), 500 (server error)
    - System generates unique `estimateNumber` (e.g., EST-2024-1001)
    - Requires: `X-User-Id` header (defaults to 1 if missing)
 
@@ -780,7 +780,7 @@ Change requests enable technicians to request authorization for additional work 
 - `isEmergencyException`: If true, emergency documentation (photoEvidenceUrl or photoNotPossible flag + emergencyNotes) is required
 - Items will be created with `status: PENDING_APPROVAL` until approved
 
-**Success Response (200 OK):**
+**Success Response (201 Created):**
 
 ```json
 {
@@ -1239,7 +1239,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `assignedByUserId` (opaque string, optional) — User ID performing the assignment (defaults from X-User-Id header if not provided)
 - `notes` (String, optional) — Assignment notes or reason
 
-**Success Response (200 OK):**
+**Success Response (201 Created):**
 
 ```json
 {
@@ -1478,7 +1478,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `startTime` (ISO 8601 UTC, optional) — Labor start time (defaults to request time if not provided)
 - `notes` (String, optional) — Session notes
 
-**Success Response (200 OK):**
+**Success Response (201 Created):**
 
 ```json
 {
@@ -1818,7 +1818,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `issuedByUserId` (opaque string, optional) — User issuing parts
 - `notes` (String, optional) — Issue notes
 
-**Success Response (200 OK):**
+**Success Response (201 Created):**
 
 ```json
 {
@@ -2180,7 +2180,7 @@ For **commercial accounts** with purchase order enforcement enabled:
 - `requiresApproval` (Boolean, default=true) — Whether substitution requires advisor approval
 - `requestedByUserId` (opaque string, optional) — User requesting substitution
 
-**Success Response (200 OK):**
+**Success Response (201 Created):**
 
 ```json
 {

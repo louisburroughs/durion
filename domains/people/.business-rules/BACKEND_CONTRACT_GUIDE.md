@@ -529,7 +529,7 @@ This domain exposes **29** REST API endpoints:
 
 **Responses:**
 
-- `200`: Person created successfully.
+- `201`: Person created successfully.
 
 
 ---
@@ -579,7 +579,7 @@ This domain exposes **29** REST API endpoints:
 
 **Responses:**
 
-- `200`: Exception created
+- `201`: Exception created
 - `400`: Invalid request
 
 
@@ -665,7 +665,7 @@ This domain exposes **29** REST API endpoints:
 
 **Responses:**
 
-- `200`: Adjustment created
+- `201`: Adjustment created
 - `400`: Invalid request
 
 
@@ -758,7 +758,7 @@ This domain exposes **29** REST API endpoints:
 
 **Responses:**
 
-- `200`: Work session started successfully.
+- `201`: Work session started successfully.
 
 
 ---
@@ -792,7 +792,7 @@ This domain exposes **29** REST API endpoints:
 
 **Responses:**
 
-- `200`: Break started successfully.
+- `201`: Break started successfully.
 - `404`: Work session not found.
 
 
