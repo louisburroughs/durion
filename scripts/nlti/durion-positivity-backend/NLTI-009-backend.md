@@ -1,78 +1,33 @@
-## 🏷️ Labels (Proposed)
-### Required
-- type:story
-- domain:positivity
-- status:draft
+repo: louisburroughs/durion-positivity-backend
+title: "[STORY] NLTI Observability & Operations (Metrics, Tracing, Alerts, Runbooks)"
+labels:
+  - type:story
+  - domain:positivity
+  - status:draft
+  - agent:sre
+  - agent:backend
+  - agent:story-authoring
+---
 
-### Recommended
-- agent:sre
-- agent:backend
-- agent:story-authoring
-- capability:natural-language
+## Story Intent (strengthened)
+Establish a baseline observability contract for NLTI: required metrics, tracing attributes, dashboards and runbooks so the platform can be operated reliably in production.
 
-### Blocking / Risk
-- none
+## Metrics & Traces (required)
+- Metrics: `nlt.request.count`, `nlt.request.latency_ms`, `nlt.planning.latency_ms`, `nlt.execution.latency_ms`, `nlt.error.count`, `nlt.audit.write_failures`.
+- Traces must include `correlationId`, `requestId`, `userId`, `actionId` (when applicable), and `planId`/`executionId` span attributes.
 
-**Rewrite Variant:** integration-conservative
+## Dashboards & Alerts
+- Dashboards should show p50/p95/p99 latency, error rates, top failing actionIds, and audit write failures.
+- Alerts: sustained high error rate, sustained latency regression, audit write failure spike, confirmation gate failures.
 
-## Story Intent
-As the NLTI platform operator, I want standardized metrics, tracing, alerting, and runbooks so that NLTI can be operated reliably in production.
-
-## Actors & Stakeholders
-- **Primary actor:** SRE / Operations.
-- **Secondary:** Developers responding to incidents.
-- **Stakeholders:** Security, product leadership.
-
-## Preconditions
-- CorrelationId exists for all NLTI requests.
-- Logging baseline exists.
-
-## Functional Behavior
-1. **Metrics**
-   - Emit metrics for:
-     - request_count
-     - request_latency_ms
-     - error_rate
-     - planning_latency_ms
-     - execution_latency_ms
-     - tool_call_latency_ms (per actionId)
-2. **Tracing**
-   - Ensure correlationId is present in traces and propagated into downstream calls.
-3. **Dashboards**
-   - Provide dashboards showing:
-     - volume, latency percentiles, error rate
-     - top failing actions
-     - retry counts
-4. **Alerts**
-   - Define alerts for:
-     - high error rate over window
-     - sustained latency increase
-     - audit write failures
-5. **Runbooks**
-   - Document runbooks for top 5 failure modes:
-     - authz outage
-     - downstream tool timeouts
-     - audit storage failure
-     - elevated parsing failures
-     - confirmation gate mismatch
-
-## Alternate / Error Flows
-- Telemetry backend unavailable → degrade gracefully; do not crash NLTI.
-
-## Business Rules
-- Observability must not leak PII or secrets.
-- Alerts must include correlation and actionable links/queries.
-
-## Data Requirements
-- Standard labels/tags: service name, environment, tenantId (if applicable), actionId.
+## Runbooks
+- Provide step-by-step remediation for top failure modes: AuthZ outage, downstream tool timeouts, audit storage failure, planning failures, confirmation gate mismatches.
 
 ## Acceptance Criteria
-- **Given** NLTI traffic, **when** dashboards are viewed, **then** they show volume/latency/error rate.
-- **Given** an error spike, **when** alert thresholds are crossed, **then** an alert fires with relevant context.
-- **Given** a common incident type, **when** runbook is followed, **then** it contains steps to isolate and mitigate.
+- Dashboards and alerts configured and verified in staging.
+- Runbooks written and validated by SRE on tabletop exercises.
 
-## Audit & Observability
-- This story primarily defines observability; also audit changes to alert configs if stored.
+---
 
 ## Original Story (Unmodified – For Traceability)
 ---
@@ -83,7 +38,6 @@ labels:
   - domain:positivity
   - status:draft
   - capability:natural-language
----
 
 ## Story Intent
 As an operator, I want NLTI to be observable and supportable so that failures can be detected quickly and resolved with clear runbooks.
@@ -97,3 +51,4 @@ As an operator, I want NLTI to be observable and supportable so that failures ca
 ## Acceptance Criteria
 - Given NLTI traffic, when observed, then dashboards show request volume, latency, and error rate.
 - Given failure spikes, when thresholds are breached, then alerts fire with actionable context.
+
