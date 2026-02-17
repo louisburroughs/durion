@@ -56,6 +56,7 @@
 ## Notes
 - OpenAPI at `/home/louisb/Projects/durion-positivity-backend/pos-catalog/target/openapi.json` is authoritative; any request/response contract must be derived from it.
 - The guide was updated minimally to correct authoritative references and mark deprecated endpoints.
+- Cross-repo traceability: backend implementation for this contract update is in `louisburroughs/durion-positivity-backend` PR #547.
 
 ---
 *End of CAP:166 backend contract brief.*
