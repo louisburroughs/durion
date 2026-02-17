@@ -4,7 +4,7 @@
 The People domain provides person management, time tracking, and access control integration.
 
 ## Base URL
-- Local (service): `http://localhost:8086`
+- Local (service - OpenAPI authoritative): `http://localhost:8085`
 - Via API Gateway (recommended): `http://localhost:8080/v1/people`
 
 ## Authentication & Headers
@@ -14,7 +14,6 @@ The People domain provides person management, time tracking, and access control 
 ## Endpoints
 
 ### Person Access Control
-
 #### GET /v1/people/{personUuid}/access/roles
 **Purpose:** List available access roles for people (LOCATION and GLOBAL scope roles only)
 
@@ -32,17 +31,15 @@ The People domain provides person management, time tracking, and access control 
     "scopeType": "LOCATION",
     "active": true
   }
-]
 ```
 
 **Event:** `PEOPLE_ACCESS_ROLES_LIST`
 
 ---
-
 #### GET /v1/people/{personUuid}/access/assignments
-**Purpose:** List role assignments for a person
 
 **Request:**
+  - `endDate` (date-time, optional): Filter assignments active at this date (ISO 8601)
 - Path Parameters:
   - `personUuid` (UUID, required): Person identifier
 - Query Parameters:
@@ -60,15 +57,12 @@ The People domain provides person management, time tracking, and access control 
     "endDate": null,
     "active": true
   }
-]
 ```
 
 **Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
 
 ---
-
 #### POST /v1/people/{personUuid}/access/assignments
-**Purpose:** Assign role to person
 
 **Request:**
 - Path Parameters:
@@ -92,28 +86,20 @@ The People domain provides person management, time tracking, and access control 
   "startDate": "2026-02-16T00:00:00",
   "endDate": null,
   "active": true
-}
 ```
 
 **Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
 
 **Validation:**
-- `roleCode` must be a valid LOCATION or GLOBAL scope role
 - `locationId` required for LOCATION scope roles, must be null for GLOBAL scope
 - Person must have a linked User account (from UserPersonLink)
-
 ---
 
-
-#### DELETE /v1/people/{personUuid}/access/assignments/{roleCode}
-**Purpose:** Revoke role from person
 
 **Note (OpenAPI authoritative):** The OpenAPI spec uses `{roleCode}` (role identifier) as the path parameter for revoke operations, not a numeric `assignmentId`. If your client still references an `assignmentId`, map it to the role code or use the backend issue below to coordinate a migration.
 
 **Request:**
 - Path Parameters:
-  - `personUuid` (UUID, required): Person identifier
-  - `roleCode` (String, required): Role code to revoke (e.g., `SHOP_MANAGER`)
 - Query Parameters:
   - `endDate` (date-time, optional): Effective end date (defaults to now)
 
