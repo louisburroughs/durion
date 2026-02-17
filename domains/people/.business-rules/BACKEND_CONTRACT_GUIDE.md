@@ -4,8 +4,8 @@
 The People domain provides person management, time tracking, and access control integration.
 
 ## Base URL
-- Local: `http://localhost:8086`
-- Via Gateway: `http://localhost:8080/v1/people`
+- Local (service): `http://localhost:8086`
+- Via API Gateway (recommended): `http://localhost:8080/v1/people`
 
 ## Authentication & Headers
 - Standard headers: X-User-Id, X-Correlation-Id, X-Permissions
@@ -104,19 +104,27 @@ The People domain provides person management, time tracking, and access control 
 
 ---
 
+
 #### DELETE /v1/people/{personUuid}/access/assignments/{roleCode}
 **Purpose:** Revoke role from person
+
+**Note (OpenAPI authoritative):** The OpenAPI spec uses `{roleCode}` (role identifier) as the path parameter for revoke operations, not a numeric `assignmentId`. If your client still references an `assignmentId`, map it to the role code or use the backend issue below to coordinate a migration.
 
 **Request:**
 - Path Parameters:
   - `personUuid` (UUID, required): Person identifier
-  - `roleCode` (String, required): Role code to revoke
+  - `roleCode` (String, required): Role code to revoke (e.g., `SHOP_MANAGER`)
 - Query Parameters:
-  - `endDate` (LocalDateTime, optional): Effective end date (defaults to now)
+  - `endDate` (date-time, optional): Effective end date (defaults to now)
 
-**Response:** 204 No Content
+**Responses:**
+- `204 No Content`: Role assignment revoked successfully
+- `404 Not Found`: Person or role assignment not found
+- `400 Bad Request`: Invalid request for revoking role assignment
 
 **Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
+
+**Coordination / Backlog:** https://github.com/louisburroughs/durion-positivity-backend/issues/86
 
 ---
 
@@ -913,7 +921,7 @@ This domain exposes **29** REST API endpoints:
 **Example Request:**
 
 ```http
-POST /v1/people/users/abc-123/link
+POST http://localhost:8080/v1/people/users/abc-123/link
 Content-Type: application/json
 X-Correlation-Id: abc-123-def-456
 
@@ -966,7 +974,7 @@ X-Correlation-Id: abc-123-def-456
 **Example Request:**
 
 ```http
-DELETE /v1/people/users/abc-123/link
+DELETE http://localhost:8080/v1/people/users/abc-123/link
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -999,7 +1007,7 @@ X-Correlation-Id: abc-123-def-456
 **Example Request:**
 
 ```http
-GET /v1/people/users/abc-123/person
+GET http://localhost:8080/v1/people/users/abc-123/person
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -1041,7 +1049,7 @@ X-Correlation-Id: abc-123-def-456
 **Example Request:**
 
 ```http
-GET /v1/people/123e4567-e89b-12d3-a456-426614174000/users
+GET http://localhost:8080/v1/people/123e4567-e89b-12d3-a456-426614174000/users
 X-Correlation-Id: abc-123-def-456
 ```
 
@@ -1316,7 +1324,7 @@ Person object to be created
 #### Example: Create Request
 
 ```http
-POST /v1/people
+POST http://localhost:8080/v1/people
 Content-Type: application/json
 X-Correlation-Id: abc-123-def-456
 
@@ -1345,7 +1353,7 @@ X-Correlation-Id: abc-123-def-456
 #### Example: Retrieve Request
 
 ```http
-GET /v1/people/{personId}
+GET http://localhost:8080/v1/people/{personId}
 X-Correlation-Id: abc-123-def-456
 ```
 
