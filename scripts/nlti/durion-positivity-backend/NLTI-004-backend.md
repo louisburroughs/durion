@@ -1,100 +1,37 @@
----
 repo: louisburroughs/durion-positivity-backend
 title: "[STORY] NLTI Planning Engine: Intent → PlanV1 (ordered steps + preconditions)"
 labels:
   - type:story
   - domain:positivity
   - status:draft
-  - capability:natural-language
   - agent:backend
   - agent:architecture
   - agent:story-authoring
 ---
 
-## 🏷️ Labels (Proposed)
-### Required
-- type:story
-- domain:positivity
-- status:draft
+## Story Intent (strengthened)
+Produce a deterministic, versioned `PlanV1` from `IntentV1` that contains ordered steps, explicit preconditions, risk annotations, and user-friendly plan summary text. Planning must be side-effect free and deterministic for identical inputs.
 
-### Recommended
-- agent:backend
-- agent:architecture
-- agent:story-authoring
-- capability:natural-language
-
-### Blocking / Risk
-- none
-
-**Rewrite Variant:** integration-conservative
-
-## Story Intent
-As the NLTI planning subsystem, I want to convert a READY structured intent into a deterministic, versioned execution plan so that users can review intended actions before execution occurs.
-
-## Actors & Stakeholders
-- **Primary actor:** NLTI Planning Engine.
-- **Upstream:** Intent Parser (Capability 02).
-- **Downstream (future):** Execution Orchestrator.
-- **Stakeholders:** Security, domain tool owners.
+## Core Output (PlanV1)
+- `planId`, `correlationId`, `intentId`, `steps[]` (ordered), `preconditions[]`, `riskLevel`, `requiresConfirmation`, `planSummaryText`.
+- Each `step` includes: `stepId`, `actionId`, `description`, `inputs` (resolved values), `expectedOutcome`, `idempotencyKey`.
 
 ## Preconditions
-- Intent status is `READY`.
-- Authorized tool registry is available.
-- No execution occurs in this story.
-
-## Functional Behavior
-1. **Plan Generation**
-   - Input: `IntentV1`
-   - Output: `PlanV1` including:
-     - `planId`
-     - `correlationId`
-     - `steps[]` (ordered)
-     - `preconditions[]`
-     - `riskLevel`
-     - `requiresConfirmation` (boolean)
-2. **Step Structure**
-   Each step MUST include:
-   - `stepId`
-   - `actionId` (from tool registry)
-   - `description`
-   - `inputs` (resolved slots)
-   - `expectedOutcome`
-3. **Precondition Identification**
-   - Identify required data/state:
-     - Required entity existence
-     - Required permissions
-     - Required slot completion
-   - Represent missing preconditions explicitly.
-4. **Confirmation Flagging**
-   - If `riskLevel = HIGH`, set `requiresConfirmation = true`.
-5. **Human Explanation**
-   - Produce `planSummaryText` describing steps in plain language.
-
-## Alternate / Error Flows
-- **Intent not READY:** return error indicating clarification required.
-- **Tool not authorized:** planning fails with NOT_AUTHORIZED.
-- **No matching tool:** return structured planning error.
-
-## Business Rules
-- Planning MUST be deterministic for identical intent inputs.
-- Planning MUST NOT perform side effects.
-- Plan schema MUST be versioned.
-
-## Data Requirements
-- `PlanV1` schema (versioned).
-- `StepV1` schema.
-- Precondition objects with `type`, `status`, `message`.
+- Include entity existence checks, permission checks (requiredPermissions), and slot completion requirements. Represent missing preconditions explicitly with messages and remediation steps.
 
 ## Acceptance Criteria
-- **Given** a READY intent, **when** planning is invoked, **then** a `PlanV1` with ordered steps is returned.
-- **Given** missing required slots, **when** planning is invoked, **then** a structured planning error is returned.
-- **Given** a HIGH risk intent, **when** plan is generated, **then** `requiresConfirmation=true`.
-- **Given** identical input intent, **when** planning occurs twice, **then** resulting steps are equivalent.
+- Given READY intent, planning returns PlanV1 with ordered steps and preconditions.
+- Determinism: repeated planning with same IntentV1 returns semantically-equivalent PlanV1 (ids may be stable-deterministic or canonicalized).
+- If required tool/action not available or unauthorized, return structured planning error (NOT_AUTHORIZED or TOOL_UNAVAILABLE) with correlationId.
 
-## Audit & Observability
-- Log planning invocation with correlationId.
-- Log planId and step count.
-- Emit metric: planning_latency_ms.
+## Test Scenarios
+- Unit: verify step generation for sample intents.
+- Integration: plan generation respects tool registry availability and authorization.
+
+## Observability
+- Emit `nlt.planning.latency_ms`, `nlt.planning.error_count`, and log `planId`, `stepCount`, `riskLevel`.
+
+---
 
 ## Original Story (Unmodified – For Traceability)
 ---
@@ -105,10 +42,10 @@ labels:
   - domain:positivity
   - status:draft
   - capability:natural-language
----
 
 ## Story Intent
-As a Positivity user, I want NLTI to translate my intent into an ordered execution plan with preconditions so that I can understand what will happen before actions are executed.
+As a Positivity user, I want NLTI to translate my intent into an ordered execution
+plan with preconditions so that I can understand what will happen before actions are executed.
 
 ## Actors & Stakeholders
 - Primary: Authenticated Positivity user
@@ -126,4 +63,4 @@ As a Positivity user, I want NLTI to translate my intent into an ordered executi
 ## Acceptance Criteria
 - Given a valid structured intent, when NLTI processes it, then it produces an ordered plan with steps and referenced tool actions.
 - Given missing preconditions, when generating a plan, then the plan indicates what is required before execution.
-- Given a risky intent, when generating a plan, then the plan indicates that confirmation will be required before execution.
+

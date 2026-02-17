@@ -28,74 +28,64 @@ labels:
 **Rewrite Variant:** integration-conservative
 
 ## Story Intent
-As a Positivity NLTI user, I want a stable NLTI backend entrypoint with session and correlation support so that all future NLTI capabilities can rely on consistent request/response envelopes and traceability.
+As a Positivity NLTI user, I want a stable, secure NLTI backend entrypoint that provides session management, correlation IDs, and a stable `v1` request/response envelope so downstream planners, auditors and operators can rely on deterministic signals for traceability, observability and safe delegation to downstream capabilities.
 
 ## Actors & Stakeholders
 - **Primary actor:** Authenticated user (human) interacting via NLTI UI.
 - **System:** NLTI Service (Positivity domain).
-- **Secondary stakeholders:** API Gateway, AuthN/AuthZ components, Observability tooling, Domain services (future tool callers).
+- **Secondary stakeholders:** API Gateway, AuthN/AuthZ components, Observability tooling, Domain services (future tool callers), SRE.
 
 ## Preconditions
-- User is authenticated via existing Positivity AuthN.
+- AuthN authenticates requests and supplies a stable subject identifier.
+- API Gateway forwards inbound headers (or allows NLTI to set them) including `X-Correlation-Id`.
 - NLTI service is reachable via API gateway.
-- A client can provide (or receive) a `sessionId` (client-managed or server-issued) and will include it on subsequent calls.
+- Clients can provide (or receive) a `sessionId` (client-managed or server-issued).
 
-## Functional Behavior
-1. **NLTI Request API**
-   - Expose an NLTI request endpoint (e.g., `POST /nlt/v1/requests`) that accepts:
-     - `prompt` (string, required)
-     - `sessionId` (string, optional on first request)
-     - `context` (object, optional, reserved for future: active tenant/location/user preferences)
-   - The service MUST return a structured response envelope including:
-     - `correlationId` (string, required)
-     - `sessionId` (string, required in response)
-     - `status` (enum: `ok` | `error`)
-     - `message` (human-friendly summary)
-     - `result` (object; may be empty in this story)
-2. **Session Handling**
-   - If `sessionId` is missing, issue a new `sessionId` and return it.
-   - If `sessionId` is present, associate the request with that session.
-   - Do not implement “memory” or personalization beyond session correlation in this story.
-3. **Response Rendering Contract**
-   - Response MUST be stable and versioned (`/v1/`) to support forward additions.
-   - `result` payload MAY contain:
-     - `answerText` (string, optional)
-     - `plan` (object, optional)
-     - `errors` (array, optional)
-4. **Error Contract**
-   - On validation errors (missing prompt), return a structured error envelope with `status=error`, `message`, and a correlationId.
-   - On unexpected errors, return `status=error`, a generic message, and correlationId.
+## Functional Behavior (concise)
+1. NLTI Request API
+   - Expose `POST /nlt/v1/requests` and `GET /nlt/v1/requests/{requestId}` with a stable JSON contract.
+   - Minimal request envelope: `prompt` (string, required for ACTION/QUERY), optional `sessionId`, optional `clientContext` (whitelisted fields only).
+   - Returned envelope (`RequestResponseV1`) must include: `requestId`, `correlationId`, `sessionId`, `status` (`ACCEPTED`|`COMPLETE`|`ERROR`), `meta` (timings, validation issues), and `result` (if available).
 
-## Alternate / Error Flows
-- **Missing `prompt`:** return `status=error` with validation message and correlationId.
-- **Upstream gateway auth failure:** request is rejected before NLTI; NLTI does not process.
-- **Internal exception:** return `status=error` with generic message; do not leak stack traces to clients.
+2. Session Handling
+   - If `sessionId` absent, issue a secure opaque `sessionId` (UUIDv4 or equivalent). Persist only minimal session metadata (creation time, user subject) for correlation.
+   - Session storage is transient for this story (no conversation memory beyond session-scoped metadata).
 
-## Business Rules
-- NLTI shell MUST NOT execute business mutations in this story.
-- NLTI shell MUST NOT bypass authentication/authorization.
-- CorrelationId MUST be returned on every response to support traceability.
+3. Correlation & Tracing
+   - If request includes `X-Correlation-Id`, echo it in the response and propagate it to logs/traces. Otherwise generate a UUIDv4 correlation id.
+   - Start a trace/span for request parsing and validation; attach `correlationId`, `requestId`, `userId` attributes.
 
-## Data Requirements
-- Fields:
-  - `correlationId`: unique per request
-  - `sessionId`: stable within a user’s session
-  - `prompt`: stored only if required by later audit capability; for this story, persistence is not required (may log safely).
-- Minimal logging:
-  - correlationId
-  - sessionId
-  - request timestamp
-  - user identifier (subject) if available
+4. Validation & Response Codes
+   - Synchronous validation failures: 400 with `{status: "error", code: "VALIDATION_ERROR", correlationId, details[]}`.
+   - Authorization errors: 401/403 from gateway upstream.
+   - Long-running requests: return 202 ACCEPTED with `requestStatus: ACCEPTED` and a `requestId` for polling.
 
-## Acceptance Criteria
-- **Given** an authenticated user, **when** they POST a valid NLTI request with `prompt`, **then** the response includes `correlationId`, `sessionId`, and `status=ok`.
-- **Given** a first-time request without `sessionId`, **when** the user POSTs, **then** the service returns a new `sessionId` that can be reused on subsequent calls.
-- **Given** a request with missing/blank `prompt`, **when** the user POSTs, **then** the service returns `status=error` with a correlationId and a validation message.
-- **Given** an internal error, **when** the service fails, **then** the response is `status=error` with correlationId and no sensitive details.
+5. Non-functional
+   - Rate-limit per-session and per-subject to prevent abuse.
+   - Do not persist prompt text beyond what audit policy permits; otherwise store redacted/hash.
 
-## Audit & Observability
-- Log a single structured entry per request including: `correlationId`, `sessionId`, authenticated user id, and outcome (`ok`/`error`).
-- Ensure correlationId is propagated to downstream logs (even though no downstream tool calls occur in this story).
+## Acceptance Criteria (testable)
+- Given an authenticated user POST with valid `prompt`, service returns 200 or 202 with `correlationId`, `sessionId`, `requestId`, and `status`.
+- Given missing `prompt`, service returns 400 with structured validation details and correlationId.
+- Given inbound `X-Correlation-Id`, server echoes same value back and logs it.
+- Given repeated requests with same sessionId, session metadata is reused (no new session issued).
+
+## Security & Privacy
+- Never log raw prompts unless audit policy allows; default to storing hashes or redacted text.
+- Enforce least-privilege for any downstream calls; this story does not perform downstream mutations.
+
+## Observability & Metrics
+- Metrics: `nlt.requests.count`, `nlt.requests.latency_ms`, `nlt.requests.invalid_count` (tag by `status`, `env`).
+- Tracing: span for request ingest + validation with `correlationId` and `requestId` attributes.
+
+## Test Scenarios
+- Unit: envelope validation, session issuance, correlation propagation.
+- Integration: POST/GET flows, error cases (400, 401/403, 500), long-running 202 flows.
+
+## Open Questions / Decisions
+- Should `clientContext` accept freeform JSON or a vetted whitelist? (Recommend whitelist to limit leakage.)
+
+---
 
 ## Original Story (Unmodified – For Traceability)
 ---
@@ -106,7 +96,6 @@ labels:
   - domain:positivity
   - status:draft
   - capability:natural-language
----
 
 ## Story Intent
 As a Positivity user, I want a Natural Language Task Interface entry point where I can type requests and see structured results so I can start accomplishing work through a single conversational interface.

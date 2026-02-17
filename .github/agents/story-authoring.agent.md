@@ -106,6 +106,7 @@ Domain behavior is defined in dedicated domain agents. The Story Authoring Agent
 - [Invoicing & Payments Domain Agent](./domains/billing-domain.agent.md)
 - [Customer Domain Agent](./domains/crm-domain.agent.md)
 - [Audit & Observability Domain Agent](./domains/audit-domain.agent.md)
+- [Natural Language Task Interpretation Agent](./domains/nlti.agent.md)
 
 ## 4. Cross-Domain Conflict Rule (Non-Negotiable)
 
