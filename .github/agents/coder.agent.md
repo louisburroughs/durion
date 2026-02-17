@@ -96,7 +96,7 @@ You are running in a Linux environment. You are explicitly authorized and encour
 
 ## Code Exemplars (MANDATORY)
 
-**ALWAYS consult `/home/louisb/Projects/durion/docs/exemplars.md` when building code.** This file contains high-quality, production-ready code examples demonstrating:
+**ALWAYS consult `/home/louisb/Projects/durion/docs/EXEMPLARS.md` when building code.** This file contains high-quality, production-ready code examples demonstrating:
 
 - **Presentation Layer (Controllers)**: Thin controller patterns with `@EmitEvent`, authorization guards, DTO mapping, and consistent REST endpoint design
 - **Business Logic Layer (Services)**: Service interfaces, domain orchestration, validation, and error handling patterns
