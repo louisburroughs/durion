@@ -94,6 +94,8 @@ ALWAYS use #context7 MCP Server to read relevant documentation. Do this every ti
 ## Environment
 You are running in a Linux environment. You are explicitly authorized and encouraged to use standard Unix terminal commands (`grep`, `awk`, `sed`, `cd`, `find`, `xargs`, etc.) for file manipulation, searching, and refactoring when efficient.
 
+For Java projects, use SDKMAN to discover and activate Java versions before running build/test commands: use `sdk list java` to find available versions, then `sdk env` (or `sdk use java <version>`) to load the correct JDK.
+
 ## Code Exemplars (MANDATORY)
 
 **ALWAYS consult `/home/louisb/Projects/durion/docs/EXEMPLARS.md` when building code.** This file contains high-quality, production-ready code examples demonstrating:
