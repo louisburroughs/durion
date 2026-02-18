@@ -1,6 +1,6 @@
 # Product Backend Contract Guide
 
-**Version:** 0.4 (OpenAPI sync)
+**Version:** v0.5 (OpenAPI sync)
 **Audience:** Backend developers, Frontend developers, API consumers
 **Last Updated:** 2026-02-18
 
@@ -372,6 +372,197 @@ Status: `draft`
 ```
 
 ---
+
+## CAP-166: Cost Management
+
+This section documents the planned backend contract for CAP-166: Cost Management (Acquisition & Cost Models). The endpoints below are greenfield for the backend (`durion-positivity-backend` issues #195 and #196) and are not yet present in `pos-catalog/openapi.json`. The OpenAPI file is authoritative for implemented endpoints; these entries represent the planned contract implementers should add to OpenAPI.
+
+Gateway base URL (MANDATORY format): `http://localhost:8080/v1/products` (append path below)
+
+### Summary (issues)
+- Issue #195 — SupplierItemCost / CostTier (volume-based supplier-item cost tiers)
+- Issue #196 — Item costs: `standardCost`, `lastCost`, `averageCost` with audit trail
+
+### Issue #195 — SupplierItemCost (Cost Tiers)
+
+1) `POST /v1/products/supplier-costs` (gateway: `http://localhost:8080/v1/products/supplier-costs`)
+   - Purpose: Create a `SupplierItemCost` resource that contains an ordered list of `CostTier` entries for a given supplier + item combination.
+   - Request (TypeScript-like):
+     ```ts
+     interface CreateSupplierItemCostRequest {
+       supplierId: string; // uuid
+       itemId: string; // uuid
+       currencyCode: string; // ISO 4217
+       baseCost?: string | null; // decimal string, scale 4
+       tiers: Array<{
+         minQuantity: number; // >=1
+         maxQuantity?: number | null; // nullable for final open tier
+         unitCost: string; // decimal string, > 0
+       }>;
+     }
+     ```
+   - Responses:
+     - `201 Created` + body: `{ id: string, supplierId, itemId, currencyCode, tiers: [...] }`
+     - `400 Bad Request` — validation errors (e.g., negative costs, min>max)
+     - `400 INVALID_TIER_STRUCTURE` — overlapping or non-contiguous tiers (see business rules)
+     - `409 Conflict` — supplier+item cost structure already exists
+     - `403 Forbidden` — insufficient permission
+   - Behavioral assertions:
+     - Only authorized inventory or catalog editors may create supplier costs (guarded by roles/permissions in service).
+     - Validation MUST enforce contiguous, non-overlapping tier ranges starting at `minQuantity=1`.
+     - Final tier MUST allow `maxQuantity=null` to indicate open-ended range.
+   - ContractBehaviorIT hints:
+     - Happy path: POST valid contiguous tiers -> expect `201` and persisted tiers in DB.
+     - Validation tests: overlapping tiers -> expect `400` and error code `INVALID_TIER_STRUCTURE`.
+     - Duplicate tests: POST same supplier+item twice -> expect `409`.
+
+2) `GET /v1/products/supplier-costs/{supplierItemCostId}` (gateway: `http://localhost:8080/v1/products/supplier-costs/{supplierItemCostId}`)
+   - Purpose: Retrieve a `SupplierItemCost` and its `CostTier` list, ordered by `minQuantity`.
+   - Response schema:
+     ```ts
+     interface SupplierItemCostResponse {
+       id: string;
+       supplierId: string;
+       itemId: string;
+       currencyCode: string;
+       baseCost?: string | null;
+       tiers: Array<{ minQuantity: number; maxQuantity?: number | null; unitCost: string }>;
+       createdAt: string; // ISO timestamp
+       updatedAt: string; // ISO timestamp
+     }
+     ```
+   - Responses: `200 OK`, `404 Not Found`, `403 Forbidden`
+   - Behavioral assertions:
+     - Returned `tiers` MUST be ordered ascending by `minQuantity` and include null `maxQuantity` for final tier.
+   - ContractBehaviorIT hints:
+     - Persist a structure, GET it back and assert order and exact values.
+
+3) `PUT /v1/products/supplier-costs/{supplierItemCostId}`
+   - Purpose: Replace/modify an existing cost tier structure for the resource id.
+   - Request: same shape as `CreateSupplierItemCostRequest` (except `supplierId`/`itemId` may be immutable depending on design).
+   - Responses:
+     - `200 OK` + updated resource
+     - `400 INVALID_TIER_STRUCTURE` for overlapping/gaps
+     - `404 Not Found`
+     - `409 Conflict` for concurrent modification if optimistic locking used
+   - Behavioral assertions:
+     - Update MUST enforce the same tier contiguity and positivity rules as create.
+     - If the implementation uses optimistic locking, return `409` on version mismatch.
+
+4) `DELETE /v1/products/supplier-costs/{supplierItemCostId}`
+   - Purpose: Remove an existing tier set and associated tiers.
+   - Responses: `204 No Content`, `404 Not Found`, `403 Forbidden`
+   - Behavioral assertions:
+     - Deletion removes the supplier-item cost structure; if no structure exists, return `404`.
+
+Business rules (from Issue #195):
+- A given `supplierId` + `itemId` combination may have at most one active `SupplierItemCost`.
+- Tiers MUST be contiguous without gaps or overlaps and MUST start at `minQuantity = 1`.
+- Final tier MUST use `maxQuantity = null` to indicate open-ended "and above".
+- All `unitCost` values MUST be positive decimals (> 0).
+- `409 Conflict` on attempts to create a duplicate supplier+item combination.
+- `400 INVALID_TIER_STRUCTURE` on overlapping or non-contiguous tier submissions.
+
+---
+
+### Issue #196 — Item Costs: Standard / Last / Average (with audit)
+
+1) `PUT /v1/products/items/{itemId}/standard-cost` (gateway: `http://localhost:8080/v1/products/items/{itemId}/standard-cost`)
+   - Purpose: Manually set or update the `standardCost` for an inventory item. This is a permissioned operation and requires a `reasonCode` to be recorded for audit.
+   - Request (TypeScript-like):
+     ```ts
+     interface UpdateStandardCostRequest {
+       standardCost: string | null; // decimal string, nullable to unset
+       currencyCode?: string; // optional, if present must match item/supplier currency rules
+       reasonCode: string; // required string explaining change
+       modifiedByUserId?: string; // optional actor id
+     }
+     ```
+   - Responses:
+     - `200 OK` + updated cost representation
+     - `400 Bad Request` when `reasonCode` missing or invalid payload
+     - `403 Forbidden` when caller lacks `inventory.cost.standard.update` permission
+     - `404 Not Found` when `itemId` not found
+   - Behavioral assertions:
+     - This endpoint requires `inventory.cost.standard.update` permission (map to service auth/roles).
+     - `reasonCode` is mandatory — reject requests without it with `400` and descriptive message.
+     - Create an `ItemCostAudit` record for the change (oldValue/newValue/reasonCode/actor/timestamp) in the same transaction as the update.
+   - ContractBehaviorIT hints:
+     - Authorized user with a `reasonCode` updates the `standardCost` -> assert `200` and `ItemCostAudit` record exists.
+     - Missing `reasonCode` -> expect `400` and no DB update.
+     - Unauthorized user -> expect `403`.
+
+2) `GET /v1/products/items/{itemId}/costs` (gateway: `http://localhost:8080/v1/products/items/{itemId}/costs`)
+   - Purpose: Read the current costing trio for an item: `{ standardCost, lastCost, averageCost }`.
+   - Response schema:
+     ```ts
+     interface ItemCostsResponse {
+       itemId: string;
+       standardCost?: string | null;
+       lastCost?: string | null;
+       averageCost?: string | null;
+       currencyCode?: string | null;
+     }
+     ```
+   - Responses: `200 OK`, `404 Not Found`, `403 Forbidden`
+   - Behavioral assertions:
+     - Initial values for a newly created item MUST be `null` (not zero).
+     - `lastCost` and `averageCost` are system-managed and MUST NOT be editable via this endpoint.
+   - ContractBehaviorIT hints:
+     - For new item, GET -> all three costs `null`.
+     - After simulated purchase receipt (unit-tested or via event ingestion), GET -> `lastCost` and `averageCost` updated per WAC formula.
+
+3) `GET /v1/products/items/{itemId}/costs/audit` (gateway: `http://localhost:8080/v1/products/items/{itemId}/costs/audit`)
+   - Purpose: Query the `ItemCostAudit` history for an item.
+   - Query parameters: `fromTimestamp?`, `toTimestamp?`, `costType?` (STANDARD|LAST|AVERAGE), `page`, `size`
+   - Response schema (page):
+     ```ts
+     interface ItemCostAuditEntry {
+       auditId: string;
+       itemId: string;
+       timestamp: string;
+       costTypeChanged: 'STANDARD' | 'LAST' | 'AVERAGE';
+       oldValue?: string | null;
+       newValue?: string | null;
+       changeSourceType: 'MANUAL' | 'PURCHASE_ORDER';
+       changeSourceId?: string | null;
+       actor?: string | null;
+       reasonCode?: string | null; // required for MANUAL standard cost changes
+     }
+     ```
+   - Responses: `200 OK` + paged audit entries, `404 Not Found` (if item missing), `403 Forbidden`
+   - Behavioral assertions:
+     - Audit writes for cost changes MUST be atomic with the cost update; on audit write failure the cost update must roll back (transactional integrity).
+     - `reasonCode` MUST be present for MANUAL `STANDARD` changes and surfaced in the audit record.
+   - ContractBehaviorIT hints:
+     - After a standard-cost manual change, query audit -> expect an entry with `changeSourceType=MANUAL` and provided `reasonCode`.
+     - After a purchase-order receipt (simulate event), audit entries for `LAST` and `AVERAGE` should exist and be linked to the source purchase order id.
+
+Business rules (from Issue #196):
+- `standardCost`: manual-only updates, requires permission `inventory.cost.standard.update` and `reasonCode`.
+- `lastCost`: system-managed only (updated on purchase receipts), manual edits rejected with `400`.
+- `averageCost`: system-managed only (WAC), manual edits rejected with `400`.
+- Initial values for `standardCost`, `lastCost`, and `averageCost` MUST be `null`.
+- WAC formula MUST be implemented exactly as specified:
+  ```
+  NewAverageCost = ((OldQtyOnHand * OldAverageCost) + (ReceivedQty * ReceivedUnitCost)) / (OldQtyOnHand + ReceivedQty)
+  ```
+- Every cost change MUST create an `ItemCostAudit` record; audit writes are part of the same transaction.
+- `403 Forbidden` on unauthorized access.
+
+Error codes & semantics (recommended):
+- `INVALID_TIER_STRUCTURE` -> 400
+- `NOT_FOUND` -> 404
+- `CONFLICT` -> 409
+- `FORBIDDEN` -> 403
+
+---
+
+**Notes for implementers**
+- These endpoints are greenfield relative to current `pos-catalog/openapi.json`. Add OpenAPI `paths` and `components/schemas` for `SupplierItemCost`, `CostTier`, `ItemCostsResponse`, and `ItemCostAuditEntry` when implementing.
+- Ensure controller methods are annotated with `@EmitEvent` where state changes are significant (create/update/delete) per project event auditing guidance.
+- Add ArchUnit tests where applicable to maintain package encapsulation.
+- Add ContractBehaviorIT coverage for the scenarios described above (happy path, validation, authorization, audit transactional semantics).
 
 ## CAP-167: MSRP & Base Pricing Policies
 
