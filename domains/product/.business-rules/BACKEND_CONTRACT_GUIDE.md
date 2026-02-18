@@ -1,6 +1,6 @@
 # Product Backend Contract Guide
 
-**Version:** 0.3 (OpenAPI sync)
+**Version:** 0.4 (OpenAPI sync)
 **Audience:** Backend developers, Frontend developers, API consumers
 **Last Updated:** 2026-02-18
 
@@ -32,6 +32,8 @@ Authoritative source for current endpoint inventory is (OpenAPI authoritative):
 - Backend child issues:
   - https://github.com/louisburroughs/durion-positivity-backend/issues/52
   - https://github.com/louisburroughs/durion-positivity-backend/issues/53
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/54
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/194
 - Capability manifest: /docs/capabilities/CAP-168/CAPABILITY_MANIFEST.yaml
 
 Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue(s) above. Primary capability manifest for this guide: `docs/capabilities/CAP-168/CAPABILITY_MANIFEST.yaml`.
@@ -75,6 +77,13 @@ Mutation endpoints emit events:
 - `CATALOG_ITEM_UPDATE`
 - `CATALOG_CATALOG_CREATE`
 - `CATALOG_CATALOG_UPDATE`
+
+-- CAP-167 event contracts (MSRP & Price Book):
+- `CATALOG_MSRP_CREATE`
+- `CATALOG_MSRP_UPDATE`
+- `CATALOG_PRICE_BOOK_RULE_CREATE`
+- `CATALOG_PRICE_BOOK_RULE_UPDATE`
+- `CATALOG_PRICE_BOOK_RULE_DEACTIVATE`
 
 ---
 
@@ -269,7 +278,9 @@ From OpenAPI components:
 
 ---
 
-## CAP-167: Location Store Price Overrides with Guardrails
+## CAP-167/CAP-168 Combined: Location Pricing (Guardrails & Store Overrides)
+
+> Note: Location store pricing override content was implemented under CAP-168. The CAP-167 scope covers MSRP management and base price book rules documented in the section below.
 
 Status: `draft`
 
@@ -359,6 +370,191 @@ Status: `draft`
 ```json
 "MIN_MARGIN_VIOLATION: Margin below 15% minimum."
 ```
+
+---
+
+## CAP-167: MSRP & Base Pricing Policies
+
+Status: `draft`
+
+### Section 1: MSRP Management Endpoints
+
+All gateway URLs: `http://localhost:8080/v1/products/{productId}/msrp{...}`
+
+1. `POST /v1/products/{productId}/msrp` (gateway: `http://localhost:8080/v1/products/{productId}/msrp`) — create MSRP record
+   - Purpose: Create a time-bound MSRP record for a product.
+   - Request (TypeScript-like):
+     ```ts
+     interface CreateMsrpRequest {
+       amount: string; // decimal as string, scale 4
+       currency: string; // ISO 4217, e.g. "USD"
+       effectiveStartDate: string; // YYYY-MM-DD
+       effectiveEndDate?: string | null; // YYYY-MM-DD or null for open-ended
+       createdByUserId: string;
+     }
+     ```
+   - Responses:
+     - `201 Created` + `ProductMsrpDto`
+     - `400 Bad Request` for invalid dates or payload
+     - `403 Forbidden` for insufficient permissions
+     - `409 Conflict` when temporal overlap detected
+   - Behavioral assertions:
+     - Temporal uniqueness: no overlapping effective ranges for the same `productId` — return `409 Conflict` on overlap.
+     - `effectiveEndDate` may be `null` only for the currently latest record.
+   - ContractBehaviorIT hints: CP-167-MSRP-001 (happy path create), VE-167-MSRP-001 (invalid date logic), VE-167-MSRP-002 (overlap -> 409)
+
+2. `PUT /v1/products/{productId}/msrp/{msrpId}` (gateway: `http://localhost:8080/v1/products/{productId}/msrp/{msrpId}`) — update MSRP record
+   - Purpose: Update an existing MSRP record prior to its `effectiveEndDate` (subject to historical immutability rules below).
+   - Request (TypeScript-like): same as `CreateMsrpRequest` plus optional `version` field for optimistic locking.
+   - Responses:
+     - `200 OK` + `ProductMsrpDto`
+     - `400 Bad Request` for invalid dates
+     - `403 Forbidden` for insufficient permissions
+     - `409 Conflict` for overlap or optimistic locking
+   - Behavioral assertions:
+     - Historical immutability: once `effectiveEndDate` is in the past for a record, implementations SHOULD treat the record as read-only; updates to historic records are disallowed (return `400` or `403` depending on policy).
+   - ContractBehaviorIT hints: CP-167-MSRP-002 (update active msrp), VE-167-MSRP-003 (attempt update historic record -> 4xx)
+
+3. `GET /v1/products/{productId}/msrp/active` (gateway: `http://localhost:8080/v1/products/{productId}/msrp/active`) — get active MSRP
+   - Purpose: Return the effective MSRP for the product as of `?asOf=YYYY-MM-DD` (default `today`).
+   - Responses:
+     - `200 OK` + `ProductMsrpDto`
+     - `404 Not Found` when no active MSRP exists for the requested date
+   - ContractBehaviorIT hints: CP-167-MSRP-003 (retrieve active msrp), VE-167-MSRP-004 (asOf in future with no record -> 404)
+
+4. `GET /v1/products/{productId}/msrp` (gateway: `http://localhost:8080/v1/products/{productId}/msrp`) — list MSRP history
+   - Purpose: Return all MSRP records for audit and history.
+   - Responses: `200 OK` + `ProductMsrpDto[]`
+
+**Entity schema: ProductMSRP (from issue #194)**
+```ts
+interface ProductMsrpDto {
+  msrpId: string; // UUID
+  productId: string; // UUID
+  amount: string; // decimal(19,4) as string
+  currency: string; // ISO 4217
+  effectiveStartDate: string; // YYYY-MM-DD
+  effectiveEndDate?: string | null; // YYYY-MM-DD or null
+  createdAt: string; // ISO 8601
+  updatedAt: string; // ISO 8601
+  updatedBy?: string;
+}
+```
+
+Key behavioral assertions:
+- Temporal uniqueness: implementations MUST prevent overlapping ranges per `productId` (return `409 Conflict`).
+- Forward-only indefinite pricing: only the latest record may have `effectiveEndDate = null`.
+- Historical immutability: records with `effectiveEndDate` in the past are read-only.
+
+### Section 2: Base Price Book Endpoints
+
+All gateway URLs: `http://localhost:8080/v1/products/price-books{...}`
+
+1. `POST /v1/products/price-books` (gateway: `http://localhost:8080/v1/products/price-books`) — create price book
+   - Purpose: Create a PriceBook container describing scope and defaults.
+   - Request (TypeScript-like):
+     ```ts
+     interface PriceBookCreateRequest {
+       name: string;
+       scope: 'COMPANY_DEFAULT' | 'LOCATION' | 'CUSTOMER_TIER';
+       scopeId?: string | null; // optional UUID when scope != COMPANY_DEFAULT
+       isDefault?: boolean;
+       status?: 'ACTIVE' | 'INACTIVE';
+     }
+     ```
+   - Responses: `201 Created` + `PriceBookDto`, `400 Bad Request`, `403 Forbidden`
+   - ContractBehaviorIT hints: CP-167-PB-001 (create default pricebook), VE-167-PB-001 (invalid scopeId)
+
+2. `GET /v1/products/price-books/{priceBookId}` — get price book
+   - Responses: `200 OK` + `PriceBookDto`, `404 Not Found`
+
+3. `PUT /v1/products/price-books/{priceBookId}` — update price book
+   - Responses: `200 OK` + `PriceBookDto`, `400 Bad Request`, `404 Not Found`, `409 Conflict`
+
+4. `POST /v1/products/price-books/{priceBookId}/rules` — add rule
+   - Purpose: Add a `PriceBookRule` to match SKUs, categories, or global rules within a `PriceBook`.
+   - Request (TypeScript-like):
+     ```ts
+     interface PriceBookRuleCreateRequest {
+       targetType: 'SKU' | 'CATEGORY' | 'GLOBAL';
+       targetId?: string | null; // SKU or category id when applicable
+       pricingLogic: any; // JSON describing pricing calculation or override (implementation-specific)
+       conditionType?: 'CUSTOMER_TIER' | 'LOCATION' | 'NONE';
+       conditionValue?: string | null;
+       priority?: number; // higher priority wins when applicable
+       effectiveStartAt: string; // ISO 8601
+       effectiveEndAt?: string | null; // ISO 8601 or null
+     }
+     ```
+   - Responses: `201 Created` + `PriceBookRuleDto`, `400 Bad Request`, `409 Conflict` (conflicting rule)
+   - Behavioral assertions: detect rule conflicts (409), persist audit event on create
+
+5. `PUT /v1/products/price-books/{priceBookId}/rules/{ruleId}` — update rule
+   - Responses: `200 OK` + `PriceBookRuleDto`, `400 Bad Request`, `404 Not Found`, `409 Conflict`
+
+6. `DELETE /v1/products/price-books/{priceBookId}/rules/{ruleId}` — deactivate rule
+   - Purpose: Soft-deactivate rule (set `status` -> `INACTIVE` or `NOT_APPLICABLE_MISSING_BASE` as required)
+   - Responses: `204 No Content`, `404 Not Found`
+
+7. `GET /v1/products/price-books/{priceBookId}/rules` — list rules
+   - Responses: `200 OK` + `PriceBookRuleDto[]`
+
+8. `POST /v1/products/price-books/resolve-price` (gateway: `http://localhost:8080/v1/products/price-books/resolve-price`) — resolve effective price
+   - Purpose: Given product context (productId, locationId?, customerTier?, priceBookId?) return the effective price.
+   - Request (TypeScript-like):
+     ```ts
+     interface ResolvePriceRequest {
+       productId: string;
+       priceBookId?: string | null;
+       locationId?: string | null;
+       customerTier?: string | null;
+       asOf?: string | null; // ISO date when evaluating temporal rules
+     }
+     ```
+   - Responses: `200 OK` + `ResolvePriceResponse` (includes resolvedAmount, currency, sourceRuleId?, fallbackReason?)
+   - Behavioral assertions:
+     - Rule precedence: SKU/product rule > Category rule > Global rule > MSRP fallback.
+     - Deterministic tie-breaking: when multiple rules have equal precedence and priority, implementations MUST apply deterministic tie-breaking (e.g., ruleId lexicographic) and document the tie-breaker in API docs.
+     - Missing base data: when required base data is absent, return a domain-specific state or code; AC defines `NOT_APPLICABLE_MISSING_BASE` status for rule records.
+   - ContractBehaviorIT hints: CP-167-PB-002 (sku rule overrides msrp), VE-167-PB-002 (resolve when missing base -> special status), LC-167-PB-003 (rule lifecycle create/update/deactivate)
+
+**Entity schema: PriceBook**
+```ts
+interface PriceBookDto {
+  priceBookId: string; // UUID
+  name: string;
+  scope: 'COMPANY_DEFAULT' | 'LOCATION' | 'CUSTOMER_TIER';
+  scopeId?: string | null;
+  isDefault: boolean;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+**Entity schema: PriceBookRule**
+```ts
+interface PriceBookRuleDto {
+  ruleId: string; // UUID
+  priceBookId: string; // UUID
+  targetType: 'SKU' | 'CATEGORY' | 'GLOBAL';
+  targetId?: string | null;
+  pricingLogic: any; // JSON blob describing calculation
+  conditionType?: 'CUSTOMER_TIER' | 'LOCATION' | 'NONE';
+  conditionValue?: string | null;
+  priority: number;
+  effectiveStartAt: string; // ISO 8601
+  effectiveEndAt?: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'NOT_APPLICABLE_MISSING_BASE';
+  createdByUserId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+```
+
+Event contract entries (implementation links):
+- https://github.com/louisburroughs/durion-positivity-backend/issues/54
+- https://github.com/louisburroughs/durion-positivity-backend/issues/194
 
 ---
 
