@@ -30,37 +30,62 @@ Global behavior:
 ## 3. Core Color Tokens
 
 ### Blueprint Blues
-- `--durion-blue-800: #1c2e48`
-- `--durion-blue-700: #2b4c78`
-- `--durion-blue-600: #355d92`
-- `--durion-blue-500: #4d76b2`
-- `--durion-blue-400: #668fc2`
-- `--durion-blue-300: #7fa4d1`
-- `--durion-blue-200: #aac4e4`
-- `--durion-blue-100: #d3e3f6`
-- `--durion-blue-50: #f4f8fe`
+
+| Token | Hex | Preview |
+| --- | --- | --- |
+| `--durion-blue-800` | `#1c2e48` | <span style="display:inline-block;width:64px;height:20px;background:#1c2e48;border:1px solid #ccc;"></span> |
+| `--durion-blue-700` | `#2b4c78` | <span style="display:inline-block;width:64px;height:20px;background:#2b4c78;border:1px solid #ccc;"></span> |
+| `--durion-blue-600` | `#355d92` | <span style="display:inline-block;width:64px;height:20px;background:#355d92;border:1px solid #ccc;"></span> |
+| `--durion-blue-500` | `#4d76b2` | <span style="display:inline-block;width:64px;height:20px;background:#4d76b2;border:1px solid #ccc;"></span> |
+| `--durion-blue-400` | `#668fc2` | <span style="display:inline-block;width:64px;height:20px;background:#668fc2;border:1px solid #ccc;"></span> |
+| `--durion-blue-300` | `#7fa4d1` | <span style="display:inline-block;width:64px;height:20px;background:#7fa4d1;border:1px solid #ccc;"></span> |
+| `--durion-blue-200` | `#aac4e4` | <span style="display:inline-block;width:64px;height:20px;background:#aac4e4;border:1px solid #ccc;"></span> |
+| `--durion-blue-100` | `#d3e3f6` | <span style="display:inline-block;width:64px;height:20px;background:#d3e3f6;border:1px solid #ccc;"></span> |
+| `--durion-blue-50` | `#f4f8fe` | <span style="display:inline-block;width:64px;height:20px;background:#f4f8fe;border:1px solid #ccc;"></span> |
 
 ### Graphite
-- `--durion-graphite-800: #333842`
-- `--durion-graphite-700: #444a55`
-- `--durion-graphite-600: #5a616e`
-- `--durion-graphite-500: #727986`
-- `--durion-graphite-200: #d7d9dd`
-- `--durion-graphite-100: #e7e8eb`
+
+| Token | Hex | Preview |
+| --- | --- | --- |
+| `--durion-graphite-800` | `#333842` | <span style="display:inline-block;width:64px;height:20px;background:#333842;border:1px solid #ccc;"></span> |
+| `--durion-graphite-700` | `#444a55` | <span style="display:inline-block;width:64px;height:20px;background:#444a55;border:1px solid #ccc;"></span> |
+| `--durion-graphite-600` | `#5a616e` | <span style="display:inline-block;width:64px;height:20px;background:#5a616e;border:1px solid #ccc;"></span> |
+| `--durion-graphite-500` | `#727986` | <span style="display:inline-block;width:64px;height:20px;background:#727986;border:1px solid #ccc;"></span> |
+| `--durion-graphite-200` | `#d7d9dd` | <span style="display:inline-block;width:64px;height:20px;background:#d7d9dd;border:1px solid #ccc;"></span> |
+| `--durion-graphite-100` | `#e7e8eb` | <span style="display:inline-block;width:64px;height:20px;background:#e7e8eb;border:1px solid #ccc;"></span> |
 
 ### Electric Teal
-- `--durion-teal-600: #158f83`
-- `--durion-teal-500: #1fa497`
-- `--durion-teal-400: #2bbbad`
-- `--durion-teal-300: #55d7cc`
-- `--durion-teal-200: #a4e9e1`
-- `--durion-teal-100: #d7f3f0`
 
-### Neutrals and Functional
-- Greys: `--durion-grey-900`, `--durion-grey-800`, `--durion-grey-700`, `--durion-grey-500`, `--durion-grey-100`
-- Functional: `--functional-error-red`, `--functional-warning`, `--functional-info-blue`, `--functional-success`
+| Token | Hex | Preview |
+| --- | --- | --- |
+| `--durion-teal-600` | `#158f83` | <span style="display:inline-block;width:64px;height:20px;background:#158f83;border:1px solid #ccc;"></span> |
+| `--durion-teal-500` | `#1fa497` | <span style="display:inline-block;width:64px;height:20px;background:#1fa497;border:1px solid #ccc;"></span> |
+| `--durion-teal-400` | `#2bbbad` | <span style="display:inline-block;width:64px;height:20px;background:#2bbbad;border:1px solid #ccc;"></span> |
+| `--durion-teal-300` | `#55d7cc` | <span style="display:inline-block;width:64px;height:20px;background:#55d7cc;border:1px solid #ccc;"></span> |
+| `--durion-teal-200` | `#a4e9e1` | <span style="display:inline-block;width:64px;height:20px;background:#a4e9e1;border:1px solid #ccc;"></span> |
+| `--durion-teal-100` | `#d7f3f0` | <span style="display:inline-block;width:64px;height:20px;background:#d7f3f0;border:1px solid #ccc;"></span> |
+
+### Neutrals
+
+| Token | Hex | Preview |
+| --- | --- | --- |
+| `--durion-grey-900` | `#121213` | <span style="display:inline-block;width:64px;height:20px;background:#121213;border:1px solid #ccc;"></span> |
+| `--durion-grey-800` | `#1f2022` | <span style="display:inline-block;width:64px;height:20px;background:#1f2022;border:1px solid #ccc;"></span> |
+| `--durion-grey-700` | `#3a3a3e` | <span style="display:inline-block;width:64px;height:20px;background:#3a3a3e;border:1px solid #ccc;"></span> |
+| `--durion-grey-500` | `#707078` | <span style="display:inline-block;width:64px;height:20px;background:#707078;border:1px solid #ccc;"></span> |
+| `--durion-grey-100` | `#f2f2f4` | <span style="display:inline-block;width:64px;height:20px;background:#f2f2f4;border:1px solid #ccc;"></span> |
+
+### Functional
+
+| Token | Hex | Preview |
+| --- | --- | --- |
+| `--functional-error-red` | `#c84c47` | <span style="display:inline-block;width:64px;height:20px;background:#c84c47;border:1px solid #ccc;"></span> |
+| `--functional-warning` | `#e6a540` | <span style="display:inline-block;width:64px;height:20px;background:#e6a540;border:1px solid #ccc;"></span> |
+| `--functional-info-blue` | `#355d92` | <span style="display:inline-block;width:64px;height:20px;background:#355d92;border:1px solid #ccc;"></span> |
+| `--functional-success` | `#5bbe72` | <span style="display:inline-block;width:64px;height:20px;background:#5bbe72;border:1px solid #ccc;"></span> |
 
 ### Brand Semantic Tokens
+
 - `--brand-primary: var(--durion-blue-700)`
 - `--brand-primary-soft: var(--durion-blue-50)`
 - `--brand-secondary: var(--durion-graphite-700)`
