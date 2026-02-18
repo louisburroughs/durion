@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 73
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 137
-      impacted_component_repos:
-      - louisburroughs/durion-shopmgr
+      issues: [73, 74,75]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.ui/frontend-story-scheduling-reschedule-or-cancel-app-137.wf.md

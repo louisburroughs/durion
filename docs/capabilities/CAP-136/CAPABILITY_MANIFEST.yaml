@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 76
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 140
-      impacted_component_repos:
-      - louisburroughs/durion-hr
+      issues: [76, 77, 78]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/location/.ui/frontend-story-locations-create-mobile-units-and-c-140.wf.md
