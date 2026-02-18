@@ -38,12 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 52
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 118
-      impacted_component_repos:
-      - louisburroughs/durion-product
+      issues: [54, 194]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-pricing-define-base-company-price-b-118.wf.md
