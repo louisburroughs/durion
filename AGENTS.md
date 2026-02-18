@@ -199,9 +199,125 @@ Logs & traces correlation:
 
 ---
 
+## Command Execution Policy (GitHub + Git)
+
+Use one consistent CLI toolset for SCM and GitHub workflows.
+
+### Allowed Tools
+
+- Git CLI for repo operations: `git ...`
+- GitHub CLI for GitHub operations: `gh ...`
+- Shell text tools for read-only parsing: `rg`, `sed`, `awk`, `cat`
+
+### Tool Preference Rules
+
+- Do not switch to alternate tools if the task can be done with `git`/`gh`.
+- Prefer non-interactive commands.
+- Reuse previously approved command prefixes whenever possible.
+- If a command is blocked, retry with escalation for the same command family instead of changing tools.
+
+### Git Workflow (Required Order)
+
+1. `git status --short`
+2. `git diff -- <files>` (or `git diff --staged`)
+3. `git add <files>` (or `git add -p`)
+4. `git commit -m "<type(scope): summary>"`
+5. `git push`
+
+### Issue Reading Standard
+
+When asked to “read issues like this”, use:
+
+- `gh issue view <number> --json title,body,labels,assignees,state,url`
+- Output format:
+  - `Title`
+  - `Problem`
+  - `Acceptance Criteria`
+  - `Risks/Unknowns`
+  - `Proposed Next Step`
+  - `Link`
+
+For multiple issues:
+
+- `gh issue list --limit <n> --json number,title,labels,state,url`
+- Then `gh issue view` per selected issue.
+
+### Pull Request Creation Standard
+
+Use:
+
+1. `git status --short`
+2. `git diff --staged --name-only`
+3. `gh pr create --base <base> --head <branch> --title "<title>" --body-file <file>`
+
+### Guardrails
+
+- Never use destructive git commands unless explicitly requested (`git reset --hard`, `git checkout --`, force push).
+- Never open browser/UI flows for PR/issues when `gh` can do it.
+- If required context is missing, ask one concise question, then continue with the same toolset.
+
+## File Read/Write Policy
+
+Use a consistent, low-risk workflow for inspecting and editing files.
+
+### Read Rules
+
+- Prefer fast search tools first:
+  - File discovery: `rg --files`
+  - Text search: `rg "<pattern>" <path>`
+- Read only the smallest necessary scope before editing:
+  - Start with targeted files and symbols, not whole-repo scans.
+  - Use focused reads (`sed -n 'start,endp'`, `rg -n`) to inspect relevant regions.
+- Before modifying a file, confirm:
+  - Existing conventions in that module/package
+  - Related tests and architecture constraints
+  - Whether the file is already dirty (`git status --short`)
+- For large files:
+  - Read in chunks
+  - Avoid loading unrelated sections
+
+### Write Rules
+
+- Make minimal, surgical edits that directly satisfy the task.
+- Preserve existing style, package structure, and naming conventions.
+- Do not refactor unrelated code in the same change.
+- Prefer non-destructive edits:
+  - No deleting or moving files unless required by the task.
+  - No destructive git/file commands unless explicitly requested.
+- Keep ASCII by default unless the file already requires Unicode.
+- Add comments only when needed to explain non-obvious logic.
+
+### Safe Edit Workflow (Required Order)
+
+1. Inspect target context (`rg`, `sed`, `cat`)
+2. Edit only required files
+3. Review changes (`git diff -- <files>`)
+4. Validate impacted scope (tests/build/lint for touched module)
+5. Report exactly what changed and why
+
+### Validation Scope
+
+- Run the smallest meaningful validation first:
+  - File/module-level tests before full-suite tests
+- If validation cannot run, state that explicitly and why.
+
+### Patch Hygiene
+
+- One logical change per patch.
+- Keep diffs easy to review:
+  - Avoid whitespace-only churn
+  - Avoid mass reformatting unless requested
+- Include file paths when summarizing changes.
+
+### Write Restrictions
+
+- Never write secrets, tokens, or credentials to files.
+- Never modify lockfiles/generated files unless the task requires it.
+- Never overwrite user-authored unrelated changes.
+
 ## Where to Extend
 
-- **Module/Component documentation**: Always create or update `README.md` in the module directory when adding new modules or features
+- **Module documentation**: Always create or update `README.md` in the module directory when adding new modules or features
 - For monorepo-like per-component agent context, add `AGENTS.md` into subproject roots (e.g., `durion-positivity-backend/AGENTS.md`)
 - **Keep README.md files current**: Update them when changing module structure, APIs, or configuration
 - Update this file when new developer workflows or CI steps are added that affect multiple projects
