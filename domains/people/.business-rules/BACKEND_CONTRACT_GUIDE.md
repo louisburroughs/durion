@@ -15,6 +15,162 @@ The People domain provides person management, time tracking, and access control 
 - Local (service - OpenAPI authoritative): `http://localhost:8085`
 - Via API Gateway (recommended): `http://localhost:8080/v1/people`
 
+## CAP-117: Identity Orchestration (User ↔ Person Linking)
+
+This section defines the backend contract for CAP-117 (Identity Orchestration) covering employee profile CRUD, offboarding/disable flows, and user↔person linking.
+
+All gateway paths use: `http://localhost:8080/v1/people` as the base.
+
+### From Issue #88 — Employee Profile CRUD
+
+- POST `http://localhost:8080/v1/people/employees`
+  - Purpose: Create employee profile.
+  - Request (TypeScript-like):
+    ```ts
+    interface CreateEmployeeRequest {
+      legalName?: string;
+      preferredName?: string;
+      employeeNumber?: string; // unique
+      status?: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
+      hireDate?: string; // yyyy-MM-dd
+      terminationDate?: string; // yyyy-MM-dd
+      contactInfo?: {
+        emails?: string[];
+        phones?: string[];
+      };
+      duplicatePolicy?: 'STRICT' | 'BALANCED';
+    }
+    ```
+  - Responses:
+    - `201 Created`: Employee created. Body: `EmployeeResponse`.
+    - `409 Conflict`: High-confidence duplicate detected (exact match on email/phone/employeeNumber).
+    - `201 Created` with `warnings` array: Ambiguous duplicate detected (BALANCED policy returned with warnings).
+  - Behavior / rules:
+    - Duplicate detection: `STRICT` detects exact email/phone/employeeNumber matches; `BALANCED` applies fuzzy/heuristic checks and may return soft-warnings.
+    - `employeeNumber` when provided must be unique.
+    - Persistence: contactInfo fields optional at DB level but business gating requires ≥1 contact before assignment.
+
+- PUT `http://localhost:8080/v1/people/employees/{employeeId}`
+  - Purpose: Update employee profile.
+  - Request: same shape as `CreateEmployeeRequest`.
+  - Responses:
+    - `200 OK`: Updated `EmployeeResponse`.
+    - `404 Not Found`: `employeeId` not found.
+    - `409 Conflict`: Duplicate detection as above.
+  - Behavior:
+    - Same duplicate detection logic as create.
+
+- GET `http://localhost:8080/v1/people/employees/{employeeId}`
+  - Purpose: Retrieve employee profile.
+  - Responses:
+    - `200 OK`: `EmployeeResponse`.
+    - `404 Not Found` if missing.
+  - Employee `status` enum: `ACTIVE | ON_LEAVE | SUSPENDED | TERMINATED`.
+  - Field constraints:
+    - `terminationDate` must be >= `hireDate` when both present.
+
+EmployeeResponse (TypeScript-like):
+```ts
+interface EmployeeResponse {
+  employeeId: string; // uuid
+  legalName?: string;
+  preferredName?: string;
+  employeeNumber?: string;
+  status: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
+  hireDate?: string; // yyyy-MM-dd
+  terminationDate?: string | null;
+  contactInfo?: { emails?: string[]; phones?: string[] };
+  warnings?: string[];
+  createdAt?: string; // date-time
+  updatedAt?: string; // date-time
+}
+```
+
+ContractBehaviorIT hints (naming):
+- Happy path: `CP-117-001` (create), `CP-117-002` (update), `CP-117-003` (get)
+- Validation errors/VE: `VE-117-001` (terminationDate < hireDate), `VE-117-002` (missing contact when required)
+- Lifecycle/LC: `LC-117-001` (status transitions)
+
+### From Issue #90 — Disable User (Offboarding)
+
+- POST `http://localhost:8080/v1/people/employees/{employeeId}/disable`
+  - Purpose: Disable/offboard an employee's user account and mark associated person/user as DISABLED. Implements a saga-style pattern for downstream coordination.
+  - Request body:
+    ```json
+    {
+      "disableReason": "string (optional)",
+      "assignmentPolicy": "END_ASSIGNMENTS_NOW|END_ASSIGNMENTS_AT_DATE|LEAVE_ASSIGNMENTS_ACTIVE",
+      "assignmentEndDate": "2026-12-31" // optional when END_ASSIGNMENTS_AT_DATE
+    }
+    ```
+  - Responses:
+    - `200 OK`: Action accepted and executed (person+user status set to `DISABLED`), body: operation result.
+    - `400 Bad Request`: If employee already `DISABLED` or `TERMINATED` or invalid payload.
+    - `404 Not Found`: `employeeId` not found.
+  - Behavior / business rules:
+    - Allowed transitions: `ACTIVE -> DISABLED` (reversible via admin restore if supported); `ACTIVE -> TERMINATED` (irreversible).
+    - If already `DISABLED` or `TERMINATED` return `400` with problem details.
+    - Event: immediately emits `user.disabled` (pos-events) with payload indicating `employeeId`, `userId` (if linked), `disableReason`, and `assignmentPolicy`.
+    - Saga: downstream services (security, workexec, payroll) consume `user.disabled` asynchronously and perform their part; retries are handled by consumer logic.
+
+ContractBehaviorIT hints:
+- CP-117-010: disable happy path (verify event emitted)
+- VE-117-010: disabling already DISABLED returns 400
+- LC-117-010: verify status transition rules and irreversibility of TERMINATED
+
+### From Issue #91 — Provision User + Link to Person
+
+- POST `http://localhost:8080/v1/people/user-links`
+  - Purpose: Create a `UserPersonLink` binding between an authentication `userId` and a `personId`. Idempotent.
+  - Request (TypeScript-like):
+    ```ts
+    interface CreateUserLinkRequest {
+      userId: string; // uuid
+      personId: string; // uuid
+    }
+    ```
+  - Responses:
+    - `201 Created`: Link created (body: `UserPersonLinkResponse`).
+    - `200 OK`: Link already exists (idempotent behaviour).
+    - `409 Conflict`: `userId` already linked to a different `personId` (1:1 constraint).
+    - `404 Not Found`: `personId` not found.
+  - Behavior:
+    - This endpoint is administratively callable; the same operation is performed by an event-driven consumer when `UserCreated` / `UserProvisioned` events arrive from the security/provisioning service.
+    - Unique constraint: `userId` -> single `personId`. Attempting to link the same `userId` to another `personId` returns `409`.
+
+- GET `http://localhost:8080/v1/people/user-links/{personId}`
+  - Purpose: Retrieve current `UserPersonLink` for a given `personId`.
+  - Responses:
+    - `200 OK`: `UserPersonLinkResponse` (or empty if not linked).
+    - `404 Not Found`: `personId` not found.
+
+UserPersonLinkResponse (TypeScript-like):
+```ts
+interface UserPersonLinkResponse {
+  linkId: string; // uuid
+  userId: string;
+  personId: string;
+  createdAt?: string; // date-time
+  createdBy?: string;
+}
+```
+
+ContractBehaviorIT hints:
+- CP-117-020: create link happy path (201)
+- CP-117-021: idempotent re-create returns 200
+- VE-117-020: 409 on conflicting userId link
+
+### Events
+- `user.disabled` — emitted by disable endpoint (immediate, write preset)
+- `USER_PERSON_LINK_CREATE` — emitted on successful link creation (existing OpenAPI emits `USER_PERSON_LINK_CREATE` for `/users/{userId}/link` endpoints)
+
+### Test & Naming Guidance
+- Use `CP-117-NNN` for capability happy-path tests, `VE-117-NNN` for validation/edge cases, `LC-117-NNN` for lifecycle transitions.
+- Ensure tests cover idempotency, duplicate detection policies (`STRICT|BALANCED`), assignmentPolicy effects, and event emission (verify event payload shape).
+
+---
+
+
 ## Authentication & Headers
 - Standard headers: X-User-Id, X-Correlation-Id, X-Permissions
 - Authentication via JWT tokens (coordinated through API Gateway)
@@ -1385,6 +1541,7 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2 | 2026-02-18 | Added CAP-117: Identity Orchestration (Employee profile CRUD, disable user/offboarding, user-person linking admin API). |
 | 1.1 | 2026-02-16 | Added person-centric RBAC facade endpoints under `/v1/people/{personId}/access` (roles list, assignments list, create assignment, revoke assignment) for CAP-118 |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
 
