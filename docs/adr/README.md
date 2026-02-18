@@ -81,6 +81,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0015   | Identity Entity Relationships              | PROPOSED          | 2026-02-17 |
 | 0016   | Location Entity Semantics and Definitions  | ACCEPTED          | 2026-02-17 |
 | 0017   | Controller HTTP Response Code Standard     | ACCEPTED          | 2026-02-17 |
+| 0018   | Audit Actor Fields from Security Context   | ACCEPTED          | 2026-02-18 |
 
 ## Superseding ADRs
 

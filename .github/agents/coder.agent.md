@@ -121,6 +121,23 @@ For Java projects, use SDKMAN to discover and activate Java versions before runn
 - Transactional outbox pattern for reliable event delivery
 - Contract-style integration tests with `@ActiveProfiles("test")`
 
+## ADR Compliance (Mandatory)
+
+Before writing or modifying code, you MUST consult applicable ADRs in `/home/louisb/Projects/durion/docs/adr/`.
+
+Required workflow:
+1. Read `/home/louisb/Projects/durion/AGENTS.md` ADR policy section first.
+2. Review `/home/louisb/Projects/durion/docs/adr/README.md` to identify relevant ADRs and latest statuses.
+3. Apply the latest `ACCEPTED` ADRs before implementation.
+4. If code conflicts with ADR, follow ADR and include migration notes in your summary.
+5. If no ADR exists for an architecture-impacting decision, flag the gap and propose a new ADR.
+
+Minimum ADRs for backend coding:
+- `/home/louisb/Projects/durion/docs/adr/0011-api-gateway-security-architecture.adr.md`
+- `/home/louisb/Projects/durion/docs/adr/0014-gateway-internal-service-security.adr.md`
+- `/home/louisb/Projects/durion/docs/adr/0017-api-controller-http-response-codes.adr.md`
+- `/home/louisb/Projects/durion/docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
+
 ## Mandatory Coding Principles
 
 These coding principles are mandatory:
