@@ -1,8 +1,8 @@
 # Product Backend Contract Guide
 
-**Version:** 0.2 (OpenAPI sync)
+**Version:** 0.3 (OpenAPI sync)
 **Audience:** Backend developers, Frontend developers, API consumers
-**Last Updated:** 2026-02-17
+**Last Updated:** 2026-02-18
 
 ---
 
@@ -29,10 +29,12 @@ Authoritative source for current endpoint inventory is (OpenAPI authoritative):
 
 ## Implementation Links / Backlog
 
-- Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/52
-- Capability manifest: /docs/capabilities/CAP-167/CAPABILITY_MANIFEST.yaml
- 
-Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue(s) above. Primary capability manifest for this guide: `docs/capabilities/CAP-168/CAPABILITY_MANIFEST.yaml`. Use backend issue https://github.com/louisburroughs/durion-positivity-backend/issues/52 for implementation coordination (CAP-168 / backend #52).
+- Backend child issues:
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/52
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/53
+- Capability manifest: /docs/capabilities/CAP-168/CAPABILITY_MANIFEST.yaml
+
+Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue(s) above. Primary capability manifest for this guide: `docs/capabilities/CAP-168/CAPABILITY_MANIFEST.yaml`.
 
 ---
 
@@ -359,6 +361,72 @@ Status: `draft`
 ```
 
 ---
+
+## CAP-168: Location Store Pricing (Overrides by Location)
+
+Status: `draft`
+
+This capability extends CAP-167 with additional implementation guidance and test scenarios for location-specific price overrides and guardrail management. The authoritative endpoint definitions and schema shapes come from the Product OpenAPI (pos-catalog/openapi.json).
+
+All gateway URLs use the API Gateway format: `http://localhost:8080/v1/products/pricing/...`.
+
+### Endpoints (CAP-168 scope)
+
+1. `POST /v1/products/pricing/location-overrides` (gateway: `http://localhost:8080/v1/products/pricing/location-overrides`) — `createLocationPriceOverride`
+  - Method: POST
+  - Purpose: Create a location-specific price override and enforce configured guardrails (margin, discount, auto-approval threshold).
+  - Request schema: `LocationPriceOverrideCreateRequestDto` (see CAP-168 backend contract file)
+  - Successful response: `201 Created` + `LocationPriceOverrideResponseDto`
+  - Errors: `400 Bad Request` (guardrail validation failed), `403 Forbidden`
+  - Notes: When discount is within `autoApprovalThresholdPercent` the implementation MAY create `ACTIVE` override; when above threshold but within hard limits the implementation MAY create `PENDING_APPROVAL` and route to approver.
+
+2. `POST /v1/products/pricing/location-overrides/{overrideId}/approve` (gateway: `http://localhost:8080/v1/products/pricing/location-overrides/{overrideId}/approve`) — `approveLocationPriceOverride`
+  - Method: POST
+  - Purpose: Approve a pending override and activate it as effective location price.
+  - Request schema: `LocationPriceOverrideDecisionRequestDto`
+  - Successful response: `200 OK` + `LocationPriceOverrideResponseDto`
+  - Errors: `404 Not Found`, `409 Conflict` (optimistic locking / version mismatch), `400 Bad Request`
+
+3. `POST /v1/products/pricing/location-overrides/{overrideId}/reject` (gateway: `http://localhost:8080/v1/products/pricing/location-overrides/{overrideId}/reject`) — `rejectLocationPriceOverride`
+  - Method: POST
+  - Purpose: Reject a pending override, persist rejection metadata, and mark request as terminal.
+  - Request schema: `LocationPriceOverrideDecisionRequestDto`
+  - Successful response: `200 OK` + `LocationPriceOverrideResponseDto`
+  - Errors: `404 Not Found`, `400 Bad Request`, `409 Conflict`
+
+4. `GET /v1/products/pricing/effective-price/{locationId}/{productId}` (gateway: `http://localhost:8080/v1/products/pricing/effective-price/{locationId}/{productId}`) — `getEffectiveLocationPrice`
+  - Method: GET
+  - Purpose: Resolve the effective price for a given location/product pair. Precedence: `ACTIVE` override preferred, otherwise base price.
+  - Successful response: `200 OK` + `EffectiveLocationPriceResponseDto`
+  - Errors: `404 Not Found` when no pricing context exists
+
+5. `POST /v1/products/pricing/guardrail-policies` (gateway: `http://localhost:8080/v1/products/pricing/guardrail-policies`) — `upsertLocationGuardrailPolicy`
+  - Method: POST
+  - Purpose: Create or update the active guardrail policy used to evaluate location price overrides.
+  - Request schema: `GuardrailPolicyUpsertRequestDto`
+  - Successful response: `200 OK`
+  - Errors: `400 Bad Request`
+
+### Authorization and Roles
+
+Follow the guide's Authorization Contract: Create/update mutation endpoints are expected to require `ROLE_ADMIN` or `ROLE_CATALOG_EDIT`. Read endpoints (like `getEffectiveLocationPrice`) should require `ROLE_ADMIN` or `ROLE_CATALOG_VIEW`.
+
+### Behavioral Assertions (non-exhaustive)
+
+- Guardrail enforcement: implementations MUST validate `minMarginPercent` and `maxDiscountPercent` and return `400 Bad Request` when hard limits are violated (OpenAPI `400` responses). Use standardized error envelope when available.
+- Approval flow: if `autoApprovalThresholdPercent` is exceeded, record override as `PENDING_APPROVAL` and create an approval request; approvers use the approve/reject endpoints to transition state.
+- Optimistic locking: approval/rejection endpoints return `409 Conflict` on version mismatch (schema includes `version` field).
+
+### Test hints (ContractBehaviorIT)
+
+- CP-101 (happy path): create override within auto-approval threshold -> `201 Created` with `status: ACTIVE` or `PENDING_APPROVAL` depending on threshold semantics; `getEffectiveLocationPrice` returns the expected effective price.
+- VE-101 (validation error): create override that violates `minMarginPercent` -> `400 Bad Request` with guardrail error code in response.
+- AUTH-101 (authorization): request without required role -> `403 Forbidden`.
+- ID-101 (idempotency): repeated identical create requests — assert behavior consistent with service idempotency policy (if `Idempotency-Key` is supported return same resource or idempotent response; otherwise expect either creation of distinct overrides or a defined conflict). Document expected chosen behavior in PR.
+- LC-101 (lifecycle): create override that is `PENDING_APPROVAL`, then `POST /approve` -> `200 OK` and `getEffectiveLocationPrice` reflects the activated override.
+
+Refer to the CAP-168 backend contract document for full schema definitions, JSON examples, and ContractBehaviorIT payload hints.
+
 
 ## CAP-166: Supplier/Vendor Cost Tiers (Optional)
 
