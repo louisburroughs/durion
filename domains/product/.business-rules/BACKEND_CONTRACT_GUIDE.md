@@ -31,8 +31,8 @@ Authoritative source for current endpoint inventory is (OpenAPI authoritative):
 
 - Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/52
 - Capability manifest: /docs/capabilities/CAP-167/CAPABILITY_MANIFEST.yaml
-
-Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue(s) above. Prefer the manifest and backend issue referenced here for current coordination (CAP-167 / backend #52).
+ 
+Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue(s) above. Primary capability manifest for this guide: `docs/capabilities/CAP-168/CAPABILITY_MANIFEST.yaml`. Use backend issue https://github.com/louisburroughs/durion-positivity-backend/issues/52 for implementation coordination (CAP-168 / backend #52).
 
 ---
 
@@ -76,80 +76,123 @@ Mutation endpoints emit events:
 
 ---
 
-## Endpoint Inventory (from OpenAPI)
 
-### Catalog endpoints
+## Endpoint Inventory (OpenAPI-sourced)
 
-1. `POST /v1/products/catalog` (`addCatalog`)
-   - Purpose: create catalog
-   - Gateway URL: `http://localhost:8080/v1/products/catalog`
-  - Response: `201 Created` + `CatalogEntity`, `400` for invalid body
+Note: OpenAPI (pos-catalog/openapi.json) is authoritative. All gateway examples below use the API Gateway format `http://localhost:8080{path}` where `{path}` is the OpenAPI path (which includes `/v1/...`).
 
-2. `GET /v1/products/catalog/{catalogId}` (`getCatalogById`)
-   - Purpose: load catalog by id
-   - Gateway URL: `http://localhost:8080/v1/products/catalog/{catalogId}`
-  - Response: `200 OK` + `CatalogEntity`, `404` if missing
+### Catalog endpoints (mapped from OpenAPI)
 
-3. `PUT /v1/products/catalog/{catalogId}` (`updateCatalog`)
-   - Purpose: update catalog
-   - Gateway URL: `http://localhost:8080/v1/products/catalog/{catalogId}`
-  - Response: `200 OK` + `CatalogEntity`, `400` for invalid body, `404` if missing
+- `POST /v1/catalogs` (gateway: `http://localhost:8080/v1/catalogs`) — `addCatalog`
+  - Purpose: create catalog
+  - Responses: `201 Created` + `CatalogDto`, `400 Bad Request`
 
-4. `DELETE /v1/products/catalog/{catalogId}` (`deleteCatalog`)
-   - Purpose: delete catalog
-   - Gateway URL: `http://localhost:8080/v1/products/catalog/{catalogId}`
-  - Response: `204 No Content`, `404` if missing
+- `GET /v1/catalogs/{catalogId}` (gateway: `http://localhost:8080/v1/catalogs/{catalogId}`) — `getCatalogById`
+  - Purpose: retrieve catalog by id
+  - Responses: `200 OK` + `CatalogDto`, `404 Not Found`
 
-5. `GET /v1/products/catalog/name/{name}` (`getCatalogByName`)
-  - Purpose: retrieve catalogs by display name
-  - Gateway URL: `http://localhost:8080/v1/products/catalog/name/{name}`
-  - Response: `200 OK` + `CatalogDto`
+- `PUT /v1/catalogs/{catalogId}` (gateway: `http://localhost:8080/v1/catalogs/{catalogId}`) — `updateCatalog`
+  - Purpose: update catalog
+  - Responses: `200 OK` + `CatalogDto`, `400 Bad Request`, `404 Not Found`
 
-### Generic item mutation endpoints
+- `DELETE /v1/catalogs/{catalogId}` (gateway: `http://localhost:8080/v1/catalogs/{catalogId}`) — `deleteCatalog`
+  - Responses: `204 No Content`, `404 Not Found`
 
-1. `POST /v1/products/{type}` (`addCatalogItem`)
-   - Allowed `type`: `product`, `service`, `noninventory`
-  - Gateway URL: `http://localhost:8080/v1/products/{type}`
-   - Response: `201 Created` for supported type/payload
-   - Errors: `400` for unsupported type or mismatched payload
+- `GET /v1/catalogs/name/{name}` (gateway: `http://localhost:8080/v1/catalogs/name/{name}`) — `getCatalogByName`
+  - Responses: `200 OK` + `CatalogDto`
 
-2. `PUT /v1/products/{type}/{catalogId}` (`updateCatalogItem`)
-   - Allowed `type`: `product`, `service`, `noninventory`
-  - Gateway URL: `http://localhost:8080/v1/products/{type}/{catalogId}`
-   - Response: `200 OK`, `400` for invalid body, `404` if missing
-   - Errors: `400` for unsupported type/payload mismatch
+### Catalog-item endpoints (mapped from OpenAPI)
 
-3. `DELETE /v1/products/{type}/{catalogId}` (`deleteCatalogItem`)
-   - Allowed `type`: `product`, `service`, `noninventory`
-  - Gateway URL: `http://localhost:8080/v1/products/{type}/{catalogId}`
-   - Response: `204 No Content`, `400` for invalid type, `404` if missing
+- `POST /v1/catalog-items/{type}` (gateway: `http://localhost:8080/v1/catalog-items/{type}`) — `addCatalogItem`
+  - Purpose: add a product/service/noninventory item (type path param)
+  - Responses: `201 Created` + `CatalogItemResponseDto`, `400 Bad Request`
 
-### Product/service/non-inventory read endpoints
+- `PUT /v1/catalog-items/{type}/{catalogId}` (gateway: `http://localhost:8080/v1/catalog-items/{type}/{catalogId}`) — `updateCatalogItem`
+  - Responses: `200 OK`, `400 Bad Request`, `404 Not Found`
 
-1. `GET /v1/products/{productId}` (`getProductById`)
-2. `GET /v1/products/name/{name}` (`getProductByName`)
-  - Gateway URL: `http://localhost:8080/v1/products/name/{name}`
-  - Response: `200 OK` + `ProductDto`
-3. `GET /v1/products/service/{serviceId}` (`getServiceById`)
-  - Gateway URL: `http://localhost:8080/v1/products/service/{serviceId}`
-4. `GET /v1/products/service/name/{name}` (`getServiceByName`)
-  - Gateway URL: `http://localhost:8080/v1/products/service/name/{name}`
-5. `GET /v1/products/noninventory/{productId}` (`getNonInventoryProductById`)
-  - Gateway URL: `http://localhost:8080/v1/products/noninventory/{productId}`
-6. `GET /v1/products/noninventory/name/{name}` (`getNonInventoryProductByName`)
-  - Gateway URL: `http://localhost:8080/v1/products/noninventory/name/{name}`
-  - Response: `200 OK` + `NonInventoryProductDto`
+- `DELETE /v1/catalog-items/{type}/{catalogId}` (gateway: `http://localhost:8080/v1/catalog-items/{type}/{catalogId}`) — `deleteCatalogItem`
+  - Responses: `204 No Content`, `400 Bad Request`, `404 Not Found`
 
- - Responses: `200 OK` when found, `404` for id lookups when missing
+### Product / Service / Non-inventory endpoints
 
-### Composed detail and substitutes endpoints
+- `GET /v1/products/{productId}` (gateway: `http://localhost:8080/v1/products/{productId}`) — `getProductById`
+  - Responses: `200 OK` + `ProductDto`, `404 Not Found`
 
-1. `GET /v1/products/product/{productId}` (`getProductDetailView`)
-    - Query param: `location_id` (UUID, required)
-    - Response: `200 OK` + `ProductDetailView`, `400` invalid input, `404` missing product, `500` server error
+- `GET /v1/products/name/{name}` (gateway: `http://localhost:8080/v1/products/name/{name}`) — `getProductByName`
+  - Responses: `200 OK` + `ProductDto`
 
-2. `GET /v1/products/substitutes/{productId}` (`getPartSubstitutes`)
-    - Current behavior: `501 Not Implemented`
+- `GET /v1/products/services/{serviceId}` (gateway: `http://localhost:8080/v1/products/services/{serviceId}`) — `getServiceById`
+  - Responses: `200 OK` + `ServiceDto`, `404 Not Found`
+
+- `GET /v1/products/services/name/{name}` (gateway: `http://localhost:8080/v1/products/services/name/{name}`) — `getServiceByName`
+  - Responses: `200 OK` + `ServiceDto`
+
+- `GET /v1/products/noninventory/{productId}` (gateway: `http://localhost:8080/v1/products/noninventory/{productId}`) — `getNonInventoryProductById`
+  - Responses: `200 OK` + `NonInventoryProductDto`, `404 Not Found`
+
+- `GET /v1/products/noninventory/name/{name}` (gateway: `http://localhost:8080/v1/products/noninventory/name/{name}`) — `getNonInventoryProductByName`
+  - Responses: `200 OK` + `NonInventoryProductDto`
+
+### Composed and product-detail endpoints
+
+- `GET /v1/products/{productId}/detail` (gateway: `http://localhost:8080/v1/products/{productId}/detail`) — `getProductDetailView`
+  - Query parameters: `location_id` (UUID, required)
+  - Responses: `200 OK` + `ProductDetailView` (partial responses allowed), `400 Bad Request`, `404 Not Found`, `500 Server Error`
+
+- `GET /v1/products/{productId}/substitutes` (gateway: `http://localhost:8080/v1/products/{productId}/substitutes`) — `getPartSubstitutes`
+  - Current response: `501 Not Implemented`
+
+### Pricing & location overrides (CAP-168 scope)
+
+- `POST /v1/products/pricing/location-overrides` (gateway: `http://localhost:8080/v1/products/pricing/location-overrides`) — `createLocationPriceOverride`
+  - Purpose: create a location-specific price override; enforces guardrails
+  - Responses: `201 Created` + `LocationPriceOverrideResponseDto`, `400 Bad Request` (guardrail violations), `403 Forbidden`
+
+- `POST /v1/products/pricing/location-overrides/{overrideId}/approve` (gateway: `http://localhost:8080/v1/products/pricing/location-overrides/{overrideId}/approve`) — `approveLocationPriceOverride`
+  - Responses: `200 OK` + `LocationPriceOverrideResponseDto`, `404 Not Found`, `409 Conflict`, `400 Bad Request`
+
+- `POST /v1/products/pricing/location-overrides/{overrideId}/reject` (gateway: `http://localhost:8080/v1/products/pricing/location-overrides/{overrideId}/reject`) — `rejectLocationPriceOverride`
+  - Responses: `200 OK`, `404 Not Found`, `409 Conflict`, `400 Bad Request`
+
+- `GET /v1/products/pricing/effective-price/{locationId}/{productId}` (gateway: `http://localhost:8080/v1/products/pricing/effective-price/{locationId}/{productId}`) — `getEffectiveLocationPrice`
+  - Purpose: resolve effective price (ACTIVE override preferred, otherwise base)
+  - Responses: `200 OK` + `EffectiveLocationPriceResponseDto`, `404 Not Found`
+
+- `POST /v1/products/pricing/guardrail-policies` (gateway: `http://localhost:8080/v1/products/pricing/guardrail-policies`) — `upsertLocationGuardrailPolicy`
+  - Purpose: upsert guardrail policy used by location overrides
+  - Responses: `200 OK`, `400 Bad Request`
+
+### Supplier cost endpoints (mapped)
+
+- `POST /v1/suppliers/costs/items` (gateway: `http://localhost:8080/v1/suppliers/costs/items`) — `createSupplierItemCost`
+  - Responses: `201 Created`, `400 Bad Request`, `403 Forbidden`
+
+- `GET /v1/suppliers/{supplierId}/items/{itemId}/costs` (gateway: `http://localhost:8080/v1/suppliers/{supplierId}/items/{itemId}/costs`) — `getSupplierItemCost`
+  - Responses: `200 OK`, `404 Not Found`
+
+- `PUT /v1/suppliers/{supplierId}/items/{itemId}/costs` (gateway: `http://localhost:8080/v1/suppliers/{supplierId}/items/{itemId}/costs`) — `updateSupplierItemCost`
+  - Responses: `200 OK`, `400 Bad Request`, `404 Not Found`, `409 Conflict`
+
+- `DELETE /v1/suppliers/{supplierId}/items/{itemId}/costs` (gateway: `http://localhost:8080/v1/suppliers/{supplierId}/items/{itemId}/costs`) — `deleteSupplierItemCost`
+  - Responses: `204 No Content`, `404 Not Found`
+
+### Delta summary (high level)
+
+- Changed / renamed paths (guide -> OpenAPI):
+  - `POST /v1/products/catalog` -> `POST /v1/catalogs`
+  - `GET/PUT/DELETE /v1/products/catalog/{catalogId}` -> `/v1/catalogs/{catalogId}`
+  - Catalog-item endpoints moved from `/v1/products/{type}` to `/v1/catalog-items/{type}`
+  - Product detail and substitutes path shapes updated (e.g., `/v1/products/{productId}/detail`, `/v1/products/{productId}/substitutes`)
+  - Service endpoints use `services` segment (`/v1/products/services/...`)
+  - Supplier cost endpoints moved to `/v1/suppliers/...` paths
+
+- Added (present in OpenAPI, missing/renamed in guide):
+  - `/v1/suppliers/{supplierId}/items/{itemId}/costs`
+  - `/v1/products/pricing/location-overrides` and approve/reject endpoints
+
+- Removed: none detected in OpenAPI vs guide; many path names were refactored/renamed.
+
+Any guide endpoint must match the OpenAPI `paths` object; OpenAPI is the source of truth.
 
 ---
 
