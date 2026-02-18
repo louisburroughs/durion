@@ -159,6 +159,28 @@ Documentation follows a strict hierarchy:
 
 ---
 
+## ADR Compliance (Mandatory)
+
+**Before writing or modifying code, agents MUST read applicable ADRs in `docs/adr/`.**
+
+Required workflow:
+
+1. Identify relevant ADRs by scope and date (prioritize latest `ACCEPTED` ADRs).
+2. Confirm implementation approach aligns with those ADRs before coding.
+3. If code and ADR conflict, follow ADR and document required migration changes.
+4. If no ADR covers the decision, proceed conservatively and propose a new ADR when architecture-impacting changes are introduced.
+
+Minimum ADRs to check for backend work:
+
+- `docs/adr/0011-api-gateway-security-architecture.adr.md`
+- `docs/adr/0014-gateway-internal-service-security.adr.md`
+- `docs/adr/0017-api-controller-http-response-codes.adr.md`
+- `docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
+
+This ADR compliance requirement applies to all agents and subagents (including coder/test/deploy/sre).
+
+---
+
 ## Agents & Where to Find Their Docs
 
 Agent docs live under `.github/agents/` in this repo. Key agent docs and runbooks:
