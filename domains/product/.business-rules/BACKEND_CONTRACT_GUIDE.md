@@ -422,7 +422,7 @@ Follow the guide's Authorization Contract: Create/update mutation endpoints are 
 - CP-101 (happy path): create override within auto-approval threshold -> `201 Created` with `status: ACTIVE` or `PENDING_APPROVAL` depending on threshold semantics; `getEffectiveLocationPrice` returns the expected effective price.
 - VE-101 (validation error): create override that violates `minMarginPercent` -> `400 Bad Request` with guardrail error code in response.
 - AUTH-101 (authorization): request without required role -> `403 Forbidden`.
-- ID-101 (idempotency): repeated identical create requests — assert behaviour consistent with service idempotency policy (if `Idempotency-Key` is supported return same resource or idempotent response; otherwise expect either creation of distinct overrides or a defined conflict). Document expected chosen behavior in PR.
+- ID-101 (idempotency): repeated identical create requests — assert behavior consistent with service idempotency policy (if `Idempotency-Key` is supported return same resource or idempotent response; otherwise expect either creation of distinct overrides or a defined conflict). Document expected chosen behavior in PR.
 - LC-101 (lifecycle): create override that is `PENDING_APPROVAL`, then `POST /approve` -> `200 OK` and `getEffectiveLocationPrice` reflects the activated override.
 
 Refer to the CAP-168 backend contract document for full schema definitions, JSON examples, and ContractBehaviorIT payload hints.
