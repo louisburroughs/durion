@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 69
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 133
-      impacted_component_repos:
-      - louisburroughs/durion-shopmgr
+      issues: [69, 70, 71, 72]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.ui/frontend-story-dispatch-override-conflict-with-man-133.wf.md
