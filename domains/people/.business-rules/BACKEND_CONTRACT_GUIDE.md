@@ -161,7 +161,7 @@ ContractBehaviorIT hints:
 - VE-117-020: 409 on conflicting userId link
 
 ### Events
-- `user.disabled` — emitted by disable endpoint (immediate, write preset)
+- `user.disabled` — emitted synchronously on successful user disable, as part of the same write transaction
 - `USER_PERSON_LINK_CREATE` — emitted on successful link creation (existing OpenAPI emits `USER_PERSON_LINK_CREATE` for `/users/{userId}/link` endpoints)
 
 ### Test & Naming Guidance
