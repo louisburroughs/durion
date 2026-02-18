@@ -224,6 +224,99 @@ From OpenAPI components:
 
 ---
 
+## CAP-167: Location Store Price Overrides with Guardrails
+
+Status: `draft`
+
+### CAP-167 Endpoints
+
+1. `POST /v1/products/pricing/guardrail-policies`
+   - Purpose: Create or update the active LOCATION guardrail policy.
+   - Response: `200 OK` + `LocationPriceOverrideResponseDto` (location context only).
+   - Errors:
+     - `400 Bad Request` for invalid policy fields.
+     - `403 Forbidden` when user lacks edit permissions.
+
+2. `POST /v1/products/pricing/location-overrides`
+   - Purpose: Create a location-specific price override and evaluate guardrails.
+   - Response: `201 Created` + `LocationPriceOverrideResponseDto`.
+   - Behavior:
+     - Creates `ACTIVE` override when discount is within auto-approval threshold.
+     - Creates `PENDING_APPROVAL` override and approval request when threshold is exceeded but hard limits pass.
+   - Errors:
+     - `400 Bad Request` for hard guardrail violations (`MIN_MARGIN_VIOLATION`, `MAX_DISCOUNT_EXCEEDED`).
+     - `403 Forbidden` when user lacks edit permissions.
+
+3. `GET /v1/products/pricing/effective-price/{locationId}/{productId}`
+   - Purpose: Resolve effective price for a location/product pair.
+   - Response: `200 OK` + `EffectiveLocationPriceResponseDto`.
+   - Precedence:
+     - ACTIVE override price when present.
+     - Base price when latest override is pending approval.
+   - Errors:
+     - `404 Not Found` when no applicable pricing context exists.
+
+4. `POST /v1/products/pricing/location-overrides/{overrideId}/approve`
+   - Purpose: Approve pending override and activate price.
+   - Response: `200 OK` + `LocationPriceOverrideResponseDto`.
+   - Errors:
+     - `400 Bad Request` for invalid status or request body.
+     - `404 Not Found` when override/approval request is missing.
+     - `409 Conflict` on optimistic locking version mismatch.
+
+5. `POST /v1/products/pricing/location-overrides/{overrideId}/reject`
+   - Purpose: Reject pending override with required reason and notes.
+   - Response: `200 OK` + `LocationPriceOverrideResponseDto`.
+   - Errors:
+     - `400 Bad Request` for invalid rejection payload.
+     - `404 Not Found` when override/approval request is missing.
+     - `409 Conflict` on optimistic locking version mismatch.
+
+### Guardrail Rules
+
+- `min_margin_percent` is a hard limit.
+- `max_discount_percent` is a hard limit.
+- `auto_approval_threshold_percent` is a soft limit for routing to manual approval.
+- Rejected overrides remain persisted with status `REJECTED` and rejection metadata.
+
+### Example Request (Create Override)
+
+```json
+{
+  "locationId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a535",
+  "productId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a536",
+  "basePrice": 100.00,
+  "cost": 50.00,
+  "overridePrice": 88.00,
+  "createdByUserId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a537"
+}
+```
+
+### Example Response (Pending Approval)
+
+```json
+{
+  "overrideId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a538",
+  "locationId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a535",
+  "productId": "0196cf6f-c8dd-7ee0-93e7-f48a5698a536",
+  "basePrice": 100.00,
+  "overridePrice": 88.00,
+  "discountPercent": 12.0000,
+  "marginPercent": 43.1818,
+  "status": "PENDING_APPROVAL",
+  "assignedApproverId": "4b7e0f8e-26f1-3ac8-bde8-e2cb8f8ad7e8",
+  "assignmentStrategy": "LOCATION_SCOPE_PRIMARY_THEN_POOL"
+}
+```
+
+### Example Error (Hard Guardrail Violation)
+
+```json
+"MIN_MARGIN_VIOLATION: Margin below 15% minimum."
+```
+
+---
+
 ## CAP-166: Supplier/Vendor Cost Tiers (Optional)
 
 Status: `draft`
