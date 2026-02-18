@@ -38,12 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 195
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 260
-      impacted_component_repos:
-      - louisburroughs/durion-product
+      issues: [195, 196]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-cost-store-supplier-vendor-cost-tie-260.wf.md

@@ -38,11 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 55
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 119
-      impacted_component_repos: []
+      issues: [55, 56, 57]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/product/.ui/frontend-story-master-set-product-lifecycle-state-119.wf.md
