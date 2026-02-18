@@ -1,6 +1,6 @@
 # Product Backend Contract Guide
 
-**Version:** 0.1 (initialized from `pos-catalog/openapi.json`)
+**Version:** 0.2 (OpenAPI sync)
 **Audience:** Backend developers, Frontend developers, API consumers
 **Last Updated:** 2026-02-17
 
@@ -10,8 +10,8 @@
 
 This guide defines the Product backend contract for the Product domain, implemented by `pos-catalog`.
 
-Authoritative source for current endpoint inventory is:
-- `/home/louisb/Projects/durion-positivity-backend/pos-catalog/target/openapi.json`
+Authoritative source for current endpoint inventory is (OpenAPI authoritative):
+- `/home/louisb/Projects/durion-positivity-backend/pos-catalog/openapi.json`
 
 ---
 
@@ -29,10 +29,10 @@ Authoritative source for current endpoint inventory is:
 
 ## Implementation Links / Backlog
 
-- Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/195
-- Capability manifest: /docs/capabilities/CAP-166/CAPABILITY_MANIFEST.yaml
+- Backend child issue: https://github.com/louisburroughs/durion-positivity-backend/issues/52
+- Capability manifest: /docs/capabilities/CAP-167/CAPABILITY_MANIFEST.yaml
 
-Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue above.
+Cross-reference: any path refactoring or gateway-routing changes should reference the backend issue(s) above. Prefer the manifest and backend issue referenced here for current coordination (CAP-167 / backend #52).
 
 ---
 
@@ -100,8 +100,10 @@ Mutation endpoints emit events:
    - Gateway URL: `http://localhost:8080/v1/products/catalog/{catalogId}`
   - Response: `204 No Content`, `404` if missing
 
-5. Deprecated: `GET /v1/products/catalog/name/{name}` (`getCatalogByName`)
-  - NOTE: This endpoint is NOT present in the current OpenAPI spec (see authoritative OpenAPI at `/home/louisb/Projects/durion-positivity-backend/pos-catalog/target/openapi.json`). If a catalog-by-name search is required, open the backend child issue to add a supported API and update this guide.
+5. `GET /v1/products/catalog/name/{name}` (`getCatalogByName`)
+  - Purpose: retrieve catalogs by display name
+  - Gateway URL: `http://localhost:8080/v1/products/catalog/name/{name}`
+  - Response: `200 OK` + `CatalogDto`
 
 ### Generic item mutation endpoints
 
@@ -125,16 +127,18 @@ Mutation endpoints emit events:
 ### Product/service/non-inventory read endpoints
 
 1. `GET /v1/products/{productId}` (`getProductById`)
-2. Deprecated: `GET /v1/products/name/{name}` (`getProductByName`)
-  - NOTE: Not present in current OpenAPI; mark as deprecated or raise backend issue to re-add.
+2. `GET /v1/products/name/{name}` (`getProductByName`)
+  - Gateway URL: `http://localhost:8080/v1/products/name/{name}`
+  - Response: `200 OK` + `ProductDto`
 3. `GET /v1/products/service/{serviceId}` (`getServiceById`)
   - Gateway URL: `http://localhost:8080/v1/products/service/{serviceId}`
 4. `GET /v1/products/service/name/{name}` (`getServiceByName`)
   - Gateway URL: `http://localhost:8080/v1/products/service/name/{name}`
 5. `GET /v1/products/noninventory/{productId}` (`getNonInventoryProductById`)
   - Gateway URL: `http://localhost:8080/v1/products/noninventory/{productId}`
-6. Deprecated: `GET /v1/products/noninventory/name/{name}` (`getNonInventoryProductByName`)
-  - NOTE: Not present in current OpenAPI; mark as deprecated or raise backend issue to re-add.
+6. `GET /v1/products/noninventory/name/{name}` (`getNonInventoryProductByName`)
+  - Gateway URL: `http://localhost:8080/v1/products/noninventory/name/{name}`
+  - Response: `200 OK` + `NonInventoryProductDto`
 
  - Responses: `200 OK` when found, `404` for id lookups when missing
 

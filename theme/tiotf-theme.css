@@ -1,0 +1,448 @@
+/* ========================================================================= */
+/* TIOTF THEME                                                               */
+/* ========================================================================= */
+
+/* 0. BASE STYLES & FONT IMPORTS (same as Michelin DS) */
+
+@font-face {
+  font-family: 'Michelin Unit Titling';
+  font-style: normal;
+  font-weight: 300;
+  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Light.woff') format('woff');
+}
+@font-face {
+  font-family: 'Michelin Unit Titling';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Regular.woff') format('woff');
+}
+@font-face {
+  font-family: 'Michelin Unit Titling';
+  font-style: normal;
+  font-weight: 600;
+  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-SemiBold.woff') format('woff');
+}
+@font-face {
+  font-family: 'Michelin Unit Titling';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Bold.woff') format('woff');
+}
+@font-face {
+  font-family: 'Michelin Unit Titling';
+  font-style: normal;
+  font-weight: 900;
+  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Black.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  src:
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-regular.woff') format('woff'),
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: italic;
+  font-weight: 400;
+  src:
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-italic.woff') format('woff'),
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 700;
+  src:
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700.woff') format('woff'),
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: italic;
+  font-weight: 700;
+  src:
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700italic.woff') format('woff'),
+    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700italic.ttf') format('truetype');
+}
+
+/* Material icons */
+@font-face {
+  font-family: 'Material Icons Two Tone';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/icons/material-icons-two-tone.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Material Symbols Round';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/icons/material-symbols-round.woff2') format('woff2');
+}
+
+.material-icons-default {
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-icons,
+.material-icons-filled {
+  font-family: 'Material Symbols Round', 'Material Icons Two Tone', monospace;
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Global base */
+
+html,
+body,
+app-root {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+* {
+  font-family: 'Noto Sans', sans-serif;
+}
+
+body {
+  font-family: 'Michelin Unit Titling', 'Noto Sans', sans-serif;
+}
+
+/* ========================================================================= */
+/* 1. TIOTF COLOR TOKENS                                                     */
+/* ========================================================================= */
+
+:root {
+  /* Brand Blues */
+  --tiotf-blue-700: #2f578a;
+  --tiotf-blue-600: #3c6eaf;
+  --tiotf-blue-500: #4a82c6;
+  --tiotf-blue-400: #6897d4;
+  --tiotf-blue-300: #8cb4e5;
+  --tiotf-blue-200: #bcd3f0;
+  --tiotf-blue-100: #d9e6f7;
+  --tiotf-blue-50:  #f2f7fd;
+
+  /* Sage (Inclusion / Calm) */
+  --tiotf-sage-700: #5c7963;
+  --tiotf-sage-600: #6f8e77;
+  --tiotf-sage-500: #84a98c;
+  --tiotf-sage-300: #b8d3bc;
+  --tiotf-sage-200: #c5dec8;
+  --tiotf-sage-100: #cfe4d1;
+  --tiotf-sage-50:  #edf6ef;
+
+  /* Coral (Warmth / Humanity) */
+  --tiotf-coral-600: #b76044;
+  --tiotf-coral-500: #cb6f4f;
+  --tiotf-coral-400: #de8467;
+  --tiotf-coral-300: #eaa189;
+  --tiotf-coral-200: #f3bba9;
+  --tiotf-coral-100: #fbe7e1;
+  --tiotf-coral-50:  #fff5f2;
+
+  /* Neutrals */
+  --tiotf-grey-900: #1f1f1f;
+  --tiotf-grey-800: #2a2a2a;
+  --tiotf-grey-700: #3b3b3b;
+  --tiotf-grey-600: #6b6b6b;
+  --tiotf-grey-500: #8c8c8c;
+  --tiotf-grey-300: #c9c9c9;
+  --tiotf-grey-200: #e0e0e0;
+  --tiotf-grey-100: #f3f3f3;
+  --tiotf-grey-50:  #fafafa;
+
+  /* Functional */
+  --functional-error-red:  #c84c47;
+  --functional-warning:    #e6a540;
+  --functional-info-blue:  #3c6eaf;
+  --functional-success:    #5bbe72;
+
+  /* Status chips (generic names so components are shared) */
+  --status-success-bg: #ceeac6;
+  --status-success-fg: #2e7d32;
+  --status-warn-bg:    #f3c9bc;
+  --status-warn-fg:    #b71c1c;
+  --status-error-bg:   rgba(200, 76, 71, 0.12);
+  --status-error-fg:   #c84c47;
+
+  /* Text */
+  --text-normal:          rgba(0, 0, 0, 0.87);
+  --text-helper:          rgba(0, 0, 0, 0.6);
+  --text-disabled:        rgba(0, 0, 0, 0.38);
+  --text-error:           #c84c47;
+  --text-normal-light:    #ffffff;
+  --text-helper-light:    rgba(255, 255, 255, 0.7);
+  --white-disabled-hover: rgba(255, 255, 255, 0.38);
+
+  /* Brand semantic */
+  --brand-primary:      var(--tiotf-blue-600);
+  --brand-primary-soft: var(--tiotf-blue-50);
+  --brand-secondary:    var(--tiotf-sage-500);
+  --brand-accent:       var(--tiotf-coral-400);
+  --brand-background:   var(--tiotf-grey-50);
+  --brand-surface:      #ffffff;
+
+  /* Dark mode variants */
+  --dark-bg:       #141517;
+  --dark-surface:  #1e1f21;
+  --dark-text:     #f4f4f4;
+  --dark-primary:  #9bc6ff;
+  --dark-primary-strong: #234468;
+  --dark-sage:     #a9c7b0;
+  --dark-coral:    #ffb199;
+}
+
+/* ========================================================================= */
+/* 2. THEME MAPPING FOR TIOTF                                                */
+/* ========================================================================= */
+
+/* Light theme */
+html[data-brand="tiotf"][data-theme="light"] {
+  --primaryA400:  var(--brand-primary);
+  --primaryA300:  var(--tiotf-blue-300);
+  --primaryA100:  var(--tiotf-blue-100);
+  --primary50:    var(--tiotf-blue-50);
+
+  --accentA400:   var(--brand-accent);
+  --accentA700:   var(--tiotf-coral-600);
+  --accentA100:   var(--tiotf-coral-100);
+  --warnA400:     var(--functional-warning);
+
+  --themeBackground: var(--brand-background);
+  --navBackground:   var(--primaryA400);
+  --menuBackground:  #ffffff;
+  --cardBackground:  #ffffff;
+  --subMenuBackground: var(--tiotf-grey-100);
+
+  --currentTextColor:  var(--text-normal);
+  --contrastTextColor: var(--text-normal-light);
+
+  --trackColor:  var(--tiotf-grey-200);
+  --handleColor: var(--primaryA400);
+}
+
+/* Dark theme */
+html[data-brand="tiotf"][data-theme="dark"] {
+  --primaryA400:  var(--dark-primary);
+  --primaryA300:  var(--dark-primary-strong);
+  --primaryA100:  #d2e5ff;
+  --primary50:    #202632;
+
+  --accentA400:   var(--dark-coral);
+  --accentA700:   #ff8f69;
+  --accentA100:   #ffe0d5;
+  --warnA400:     var(--functional-warning);
+
+  --themeBackground: var(--dark-bg);
+  --navBackground:   var(--dark-primary-strong);
+  --menuBackground:  var(--dark-surface);
+  --cardBackground:  var(--dark-surface);
+  --subMenuBackground: #22252b;
+
+  --currentTextColor:  var(--dark-text);
+  --contrastTextColor: #000000;
+
+  --trackColor:  #363636;
+  --handleColor: var(--primaryA100);
+}
+
+/* Apply theme */
+html[data-brand="tiotf"][data-theme] body {
+  background-color: var(--themeBackground);
+  color: var(--currentTextColor);
+}
+
+/* ========================================================================= */
+/* 3. UTILITIES & COMPONENT HOOKS (TIOTF)                                    */
+/* ========================================================================= */
+
+/* Elevation */
+.mic-elevation-1 { box-shadow: 0 4px 8px 0 rgba(102, 102, 102, 0.12); }
+.mic-elevation-2 { box-shadow: 0 8px 16px 0 rgba(102, 102, 102, 0.16); }
+.mic-elevation-3 { box-shadow: 0 16px 32px 0 rgba(102, 102, 102, 0.2); }
+.mic-elevation-4 { box-shadow: 0 32px 64px 0 rgba(102, 102, 102, 0.32); }
+
+.font-michelin-unit-titling      { font-family: 'Michelin Unit Titling'; }
+.font-michelin-unit-titling-bold { font-family: 'Michelin Unit Titling'; font-weight: 700; }
+.font-noto-sans                   { font-family: 'Noto Sans', sans-serif; }
+
+/* Alerts */
+.alert {
+  color: var(--contrastTextColor);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+}
+
+.alert.alert-info {
+  background-color: var(--primaryA400);
+}
+.alert.alert-success {
+  background-color: var(--functional-success);
+}
+.alert.alert-warning {
+  background-color: var(--warnA400);
+  color: var(--currentTextColor);
+}
+.alert.alert-error,
+.alert.alert-critical {
+  background-color: var(--functional-error-red);
+}
+.alert.alert-soft {
+  background-color: var(--accentA100);
+  color: var(--accentA700);
+}
+
+/* Links */
+a {
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--currentTextColor);
+  border-bottom: 2px solid var(--primaryA400);
+  text-decoration: none;
+}
+
+a:hover,
+a:focus {
+  color: var(--primaryA400);
+}
+
+a.accent,
+a.accent p {
+  color: var(--accentA400);
+  border-color: var(--accentA700);
+}
+a.accent:hover,
+a.accent:focus {
+  color: var(--accentA100);
+  border-color: var(--accentA100);
+}
+
+a.white,
+a.white p {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+a.white:hover,
+a.white:focus {
+  color: var(--primaryA100);
+  border-color: var(--primaryA100);
+}
+
+/* Navbar */
+.mic-navbar .mat-toolbar,
+.mic-navbar .toolbar {
+  color: #ffffff;
+  background-color: var(--navBackground);
+}
+
+.mic-navbar.white {
+  background-color: var(--menuBackground);
+  color: var(--currentTextColor);
+}
+.mic-navbar.white .mat-mdc-tab-link:hover,
+.mic-navbar.white .mat-tab-link.mat-tab-label-active {
+  border-color: var(--primaryA400) !important;
+}
+
+/* Sidebar */
+.mic-sidebar .mic-sidebar-item a {
+  color: var(--currentTextColor);
+}
+.mic-sidebar .mic-sidebar-item a:not(.primary):hover {
+  background-color: var(--subMenuBackground);
+}
+.mic-sidebar .mic-sidebar-item a.primary {
+  background-color: var(--primary50);
+  color: var(--primaryA400);
+}
+.mic-sidebar .mic-sidebar-item a.primary:hover {
+  background-color: var(--primaryA300);
+  color: #ffffff;
+}
+
+/* Status chips */
+.mic-status .mat-mdc-chip {
+  background-color: #ffffff;
+  color: var(--primaryA400);
+}
+html[data-brand="tiotf"][data-theme="dark"] .mic-status .mat-mdc-chip {
+  background-color: #53565a;
+}
+
+.mic-status.primary .mat-mdc-chip {
+  background-color: var(--primary50) !important;
+}
+.mic-status.valid .mat-mdc-chip {
+  background-color: var(--status-success-bg) !important;
+  color: var(--status-success-fg) !important;
+}
+.mic-status.warn .mat-mdc-chip {
+  background-color: var(--status-warn-bg) !important;
+  color: var(--status-warn-fg) !important;
+}
+.mic-status.error .mat-mdc-chip {
+  background-color: var(--status-error-bg) !important;
+  color: var(--status-error-fg) !important;
+}
+
+/* Main content */
+mic-main-content,
+.main-content {
+  background-color: var(--themeBackground);
+  color: var(--currentTextColor);
+}
+
+/* Scrollbars */
+.os-scrollbar-track,
+.mic-scroll::-webkit-scrollbar-track {
+  background: var(--trackColor) !important;
+}
+.os-scrollbar-handle,
+.mic-scroll::-webkit-scrollbar-thumb {
+  background: var(--handleColor) !important;
+  border-radius: 5px;
+}
+
+/* Tables */
+table.mat-mdc-table {
+  border: 1px solid transparent;
+}
+table.mat-mdc-table:focus {
+  outline: none;
+  border-color: var(--primaryA400);
+}
+tr.clickable:not(.mat-mdc-header-row):hover td {
+  background-color: var(--primary50) !important;
+}
+
+/* Timelines */
+mic-timeline-entry-dot {
+  background-color: var(--primaryA400);
+}
+mic-timeline-entry-dot.accent {
+  background-color: var(--accentA400);
+}
+.timeline-entry-card {
+  background-color: var(--cardBackground);
+}
