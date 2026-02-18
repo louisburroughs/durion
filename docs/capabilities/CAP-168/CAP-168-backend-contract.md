@@ -8,7 +8,7 @@ last_updated: 2026-02-18
 
 # CAP-168: Location Store Pricing (Overrides by Location) — Backend Contract
 
-Authoritative source: `/home/louisb/Projects/durion-positivity-backend/pos-catalog/openapi.json`
+Authoritative source: `durion-positivity-backend/pos-catalog/openapi.json`
 
 This document consolidates the backend contract for CAP-168. It contains the endpoint contracts (gateway URLs), TypeScript-like schema interfaces derived from OpenAPI, JSON examples, and ContractBehaviorIT test scenario hints.
 
