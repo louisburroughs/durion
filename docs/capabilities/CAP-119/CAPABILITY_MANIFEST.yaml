@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 86
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 150
-      impacted_component_repos:
-      - louisburroughs/durion-hr
+      issues: [86, 87]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/people/.ui/frontend-story-location-assign-person-to-location-150.wf.md

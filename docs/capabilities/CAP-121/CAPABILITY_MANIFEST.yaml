@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 80
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 82
-      impacted_component_repos:
-      - louisburroughs/durion-product
+      issue: [80, 81, 82]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/order/.ui/frontend-story-order-cancel-order-with-controlled-82.wf.md

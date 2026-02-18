@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 88
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 152
-      impacted_component_repos:
-      - louisburroughs/durion-hr
+      issues: [88, 90, 91]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/people/.ui/frontend-story-users-create-update-employee-profil-152.wf.md

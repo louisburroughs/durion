@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 79
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 143
-      impacted_component_repos:
-      - louisburroughs/durion-accounting
+      issues: [79, 83, 84, 85]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/accounting/.ui/frontend-story-timekeeping-export-approved-time-fo-143.wf.md
