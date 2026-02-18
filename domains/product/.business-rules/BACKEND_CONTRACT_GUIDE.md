@@ -1,6 +1,6 @@
 # Product Backend Contract Guide
 
-**Version:** v0.5 (OpenAPI sync)
+**Version:** v0.6 (OpenAPI sync)
 **Audience:** Backend developers, Frontend developers, API consumers
 **Last Updated:** 2026-02-18
 
@@ -631,6 +631,205 @@ interface ProductMsrpDto {
   updatedBy?: string;
 }
 ```
+
+---
+
+## CAP-165: Product Master Data (Parts & Tires)
+
+Status: draft
+
+Gateway base URL (MANDATORY format): `http://localhost:8080/v1/products`
+
+Summary: Product Master Data for parts & tires including core product CRUD, lifecycle management, replacements, search, and UOM conversions. Backend issues: #57 (core product CRUD), #55 (lifecycle state + replacements), #56 (UOM conversions).
+
+Note (OpenAPI authoritative): the current `pos-catalog/openapi.json` includes some lifecycle and replacement paths (e.g., `GET/PUT /v1/products/{productId}/lifecycle` and `POST /v1/products/{productId}/replacements`) but several CAP-165 endpoints are greenfield and must be added to OpenAPI during implementation. Where OpenAPI already defines a path, use OpenAPI as the source-of-truth and extend behavior here only for planned additions.
+
+Endpoints (planned additions / contract):
+
+1) Core Product Record (Issue #57)
+
+- `POST /v1/products` — create product
+  - Gateway URL: `http://localhost:8080/v1/products`
+  - Purpose: create a new product record (parts or tire). Server assigns `id` (UUID).
+  - Request (TypeScript-like):
+    ```ts
+    interface CreateProductRequest {
+      name: string;
+      shortDescription?: string;
+      longDescription?: string;
+      sku: string; // unique, immutable after create
+      manufacturerId?: string | null; // uuid
+      manufacturerPartNumber?: string | null; // MPN
+      type?: 'PART' | 'TIRE' | 'SERVICE' | 'NONINVENTORY';
+      dimensions?: Array<{ unit: string; value: number }>;
+      specifications?: Record<string,string>;
+      createdByUserId: string; // uuid
+    }
+    ```
+  - Responses:
+    - `201 Created` + `ProductDto` (created resource)
+    - `400 Bad Request` for validation errors
+    - `409 Conflict` when SKU already exists OR (manufacturerId + manufacturerPartNumber) pair duplicates existing product
+  - Behavior:
+    - SKU is globally unique and immutable after creation. Attempts to create product with duplicate SKU return 409.
+    - Manufacturer+MPN pair must be unique; server returns 409 on duplicate.
+    - Product defaults to `ACTIVE` on creation unless lifecycle explicitly provided and permitted by policy.
+    - Emits `CATALOG_ITEM_CREATE` / `CATALOG_ITEM_UPDATE` events as appropriate.
+  - ContractBehaviorIT hints: CP-001 (happy path create), VE-001 (validation: missing/invalid sku), CC-001 (concurrent create duplicate SKU -> 409)
+
+- `GET /v1/products/{productId}` — get product by ID
+  - Gateway URL: `http://localhost:8080/v1/products/{productId}`
+  - Purpose: fetch full product representation
+  - Responses: `200 OK` + `ProductDto`, `404 Not Found` if id missing
+  - Auth: read roles (`ROLE_ADMIN` or `ROLE_CATALOG_VIEW`) per guide
+  - Test hints: CP-002 (happy path fetch), VE-002 (invalid UUID), LC-002 (product moved to DISCONTINUED still retrievable)
+
+- `PUT /v1/products/{productId}` — update product
+  - Gateway URL: `http://localhost:8080/v1/products/{productId}`
+  - Purpose: update mutable product fields
+  - Request (TypeScript-like):
+    ```ts
+    interface UpdateProductRequest {
+      name?: string;
+      shortDescription?: string;
+      longDescription?: string;
+      // SKU is immutable; if provided and differs, return 400
+      sku?: string;
+      manufacturerId?: string | null;
+      manufacturerPartNumber?: string | null;
+      dimensions?: Array<{ unit: string; value: number }>;
+      specifications?: Record<string,string>;
+      updatedByUserId: string; // uuid
+      version?: number; // optimistic locking optional
+    }
+    ```
+  - Responses: `200 OK` + `ProductDto`, `400 Bad Request` if attempt to change SKU, `404 Not Found`, `409 Conflict` on optimistic locking or business-rule conflicts (e.g., duplicate MPN+manufacturer)
+  - Behavior:
+    - SKU is immutable: if `sku` present in payload and not equal to stored SKU, return `400 Bad Request` (client error)
+    - Updating manufacturer+mpn pair must enforce uniqueness (409 on conflict)
+    - Idempotency: PUT is idempotent for the same payload + version
+  - Test hints: CP-003 (happy path update), VE-003 (attempt change sku -> 400), CC-002 (optimistic lock -> 409)
+
+- `POST /v1/products/{productId}/status` — change status (ACTIVE/INACTIVE)
+  - Gateway URL: `http://localhost:8080/v1/products/{productId}/status`
+  - Purpose: quick status toggle endpoint for UI convenience (separate from lifecycle which supports DISCONTINUED)
+  - Request:
+    ```ts
+    interface ChangeStatusRequest { status: 'ACTIVE' | 'INACTIVE'; changedBy: string; }
+    ```
+  - Responses: `200 OK` + `ProductDto`, `400 Bad Request`, `404 Not Found`, `403 Forbidden` if missing role
+  - Behavior: emits lifecycle event; treat as a convenience wrapper around lifecycle update (no DISCONTINUED allowed here)
+  - Test hints: CP-004, VE-004 (invalid status)
+
+- `GET /v1/products/search?q=...&sku=...&mpn=...` — keyword + exact search
+  - Gateway URL: `http://localhost:8080/v1/products/search`
+  - Purpose: simple product search supporting full-text `q` and exact `sku` and `mpn` filters
+  - Query params:
+    - `q` (string, optional) — keyword search across name/description/specs
+    - `sku` (string, optional) — exact match
+    - `mpn` (string, optional) — manufacturer part number exact match
+    - `page`, `size`, `sort` optional pagination
+  - Responses: `200 OK` + `Paged<ProductDto>` (page metadata + items), `400 Bad Request` for invalid params
+  - Behavior:
+    - If `sku` provided, return exact match results and ignore `q` full-text (prefer exact filters first)
+    - Search must be stable and paginated
+  - Test hints: CP-005 (keyword hits), VE-005 (invalid page size), ID-001 (search is safe to repeat)
+
+2) Product Lifecycle State (Issue #55)
+
+- `PUT /v1/products/{productId}/lifecycle` — set lifecycle state
+  - Gateway URL: `http://localhost:8080/v1/products/{productId}/lifecycle`
+  - Purpose: set lifecycle state to `ACTIVE` | `INACTIVE` | `DISCONTINUED`
+  - Note: this path exists in OpenAPI; implementers should follow OpenAPI definitions and the business rules below.
+  - Auth: requires `product:lifecycle:update` permission for lifecycle updates; `product:lifecycle:override_discontinued` required to override DISCONTINUED business rule (see rules)
+  - Responses: `200 OK`, `400 Bad Request`, `403 Forbidden`, `404 Not Found`, `409 Conflict` when attempting invalid transitions
+  - Business rules:
+    - Once `DISCONTINUED`, lifecycle is irreversible by normal flows; reactivation requires `product:lifecycle:override_discontinued` permission and will still return `409` unless override permission present and audit metadata supplied.
+  - Test hints: LC-001 (discontinue), LC-003 (attempt reactivate -> 409), VE-006 (invalid state)
+
+- `POST /v1/products/{productId}/replacements` — add replacement product(s)
+  - Gateway URL: `http://localhost:8080/v1/products/{productId}/replacements`
+  - Purpose: add suggested replacement product(s) for discontinued items
+  - Note: path is present in OpenAPI as POST; responses: `201 Created`, `400`, `404` per OpenAPI
+  - Test hints: CP-006, VE-007
+
+- `GET /v1/products/{productId}/replacements` — list replacement products
+  - Gateway URL: `http://localhost:8080/v1/products/{productId}/replacements`
+  - Purpose: list replacement options
+  - Responses: `200 OK` + `ReplacementOption[]`, `404 Not Found`
+  - Test hints: CP-007
+
+3) UOM Conversions (Issue #56)
+
+- `POST /v1/products/uom-conversions` — create UOM conversion
+  - Gateway URL: `http://localhost:8080/v1/products/uom-conversions`
+  - Purpose: create a conversion factor between two units of measure
+  - Request:
+    ```ts
+    interface CreateUomConversionRequest {
+      fromUomId: string; // uuid
+      toUomId: string; // uuid
+      conversionFactor: number; // positive non-zero
+      createdByUserId: string; // uuid
+    }
+    ```
+  - Responses: `201 Created` + `UomConversionDto`, `400 Bad Request` for invalid factor, `409 Conflict` on duplicate from/to pair
+  - Business rules:
+    - `conversionFactor` must be > 0
+    - Duplicate from/to pair is rejected with `409`
+  - Test hints: CP-008, VE-008 (zero/negative factor), CC-003 (duplicate create -> 409)
+
+- `GET /v1/products/uom-conversions` — list all active conversions
+  - Gateway URL: `http://localhost:8080/v1/products/uom-conversions`
+  - Purpose: return all active (isActive=true) conversions
+  - Responses: `200 OK` + `UomConversionDto[]`
+  - Test hints: CP-009
+
+- `GET /v1/products/uom-conversions/{id}` — get specific conversion
+  - Gateway URL: `http://localhost:8080/v1/products/uom-conversions/{id}`
+  - Responses: `200 OK` + `UomConversionDto`, `404 Not Found`
+  - Test hints: CP-010
+
+- `PUT /v1/products/uom-conversions/{id}` — update conversion factor
+  - Gateway URL: `http://localhost:8080/v1/products/uom-conversions/{id}`
+  - Purpose: update only the `conversionFactor` (UOM pair immutable)
+  - Request:
+    ```ts
+    interface UpdateUomConversionRequest { conversionFactor: number; updatedByUserId: string; version?: number }
+    ```
+  - Responses: `200 OK`, `400 Bad Request` if attempt to change UOM ids, `404 Not Found`, `409 Conflict` on optimistic locking
+  - Test hints: CP-011, VE-009
+
+- `DELETE /v1/products/uom-conversions/{id}` — deactivate conversion (soft delete)
+  - Gateway URL: `http://localhost:8080/v1/products/uom-conversions/{id}`
+  - Purpose: soft-delete by setting `isActive=false`; returns `204 No Content` or `200 OK` with updated record
+  - Behavior: conversions are only soft-deleted, never hard-deleted
+  - Test hints: CP-012
+
+Key business rules (summary):
+
+- SKU is globally unique and immutable after creation. Any request attempting to create a duplicate SKU or change an existing SKU must return `409` (create) or `400` (update attempt to change SKU).
+- Manufacturer + MPN pair must be unique across products. Duplicate pair causes `409 Conflict` on create/update.
+- Product defaults to `ACTIVE` on creation.
+- Lifecycle states: `ACTIVE`, `INACTIVE`, `DISCONTINUED`. `DISCONTINUED` is irreversible under normal flows; reactivation requires `product:lifecycle:override_discontinued` permission and explicit audit metadata. Attempts to reactivate without override should return `409`.
+- UOM conversion `conversionFactor` must be positive (>0); duplicate from/to pair is rejected (`409`); conversions are soft-deleted by setting `isActive=false`.
+- Permission: `product:lifecycle:update` required for lifecycle changes; `product:lifecycle:override_discontinued` required to override discontinued irreversible rule.
+
+ContractBehaviorIT naming hints (recommended):
+
+- Happy paths: `CP-###` (e.g., `CP-001` create product, `CP-002` get product)
+- Validation errors: `VE-###` (e.g., `VE-001` create missing SKU, `VE-008` UOM conversion factor invalid)
+- Lifecycle / lifecycle constraints: `LC-###` (e.g., `LC-001` discontinue, `LC-003` attempt reactivate -> 409)
+- Idempotency / concurrency: `ID-###` / `CC-###` as needed
+
+Events emitted (recommended): `CATALOG_ITEM_CREATE`, `CATALOG_ITEM_UPDATE`, `PRODUCT_LIFECYCLE_CHANGE`, `UOM_CONVERSION_CREATE/UPDATE/DEACTIVATE`
+
+Implementation notes for engineers:
+
+- Align OpenAPI with the above planned endpoints: add paths for create/update/search/uom-conversions and status endpoint. Where lifecycle/replacements exist in OpenAPI, rely on OpenAPI definitions and ensure business rules are enforced.
+- Ensure SKU and MPN+Manufacturer uniqueness are enforced at DB constraint level with clear 409 semantics.
+- Use optimistic locking `version` on update endpoints to return 409 on conflict.
+
 
 Key behavioral assertions:
 - Temporal uniqueness: implementations MUST prevent overlapping ranges per `productId` (return `409 Conflict`).

@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 66
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 130
-      impacted_component_repos:
-      - louisburroughs/durion-hr
+      issues: [66, 67, 68]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/people/.ui/frontend-story-timekeeping-approve-submitted-time-130.wf.md
