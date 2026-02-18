@@ -38,12 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 52
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 116
-      impacted_component_repos:
-      - louisburroughs/durion-product
+      issues: [52,53]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-storeprice-set-location-store-price-116.wf.md
