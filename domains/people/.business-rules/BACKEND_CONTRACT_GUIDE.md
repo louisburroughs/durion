@@ -399,6 +399,139 @@ private String referenceId;
 
 Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
 
+## CAP-119: Location Management & Staffing Assignments
+
+This section is for CAP-119 (Location Management & Staffing Assignments). The endpoints below are planned as part of CAP-119 and marked accordingly. The authoritative OpenAPI for existing endpoints did not contain `locations` or the staffing assignment endpoints at the time of writing, therefore these are documented as [PLANNED — to be implemented by CAP-119].
+
+All gateway paths use: `http://localhost:8080/v1/people` as the base (gateway format required).
+
+### Planned Endpoints (CAP-119)
+
+- GET `http://localhost:8080/v1/people/locations`
+  - Purpose: List locations (supports paging/filtering).
+  - Responses: `200 OK` array of `Location` objects.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+- POST `http://localhost:8080/v1/people/locations`
+  - Purpose: Create a new location.
+  - Request: `CreateLocationRequest` (see schema below).
+  - Responses: `201 Created` (`Location`) or `409 Conflict` (duplicate code).
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+- GET `http://localhost:8080/v1/people/locations/{locationId}`
+  - Purpose: Retrieve a single location by id.
+  - Responses: `200 OK` (`Location`) or `404 Not Found`.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+- PUT `http://localhost:8080/v1/people/locations/{locationId}`
+  - Purpose: Update an existing location. `code` is immutable.
+  - Request: `UpdateLocationRequest` (same as `CreateLocationRequest` minus immutable fields).
+  - Responses: `200 OK` (`Location`) or `404 Not Found` or `409 Conflict`.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+- DELETE `http://localhost:8080/v1/people/locations/{locationId}`
+  - Purpose: Delete (or soft-delete) a location. Prefer soft-delete and/or `status=INACTIVE`.
+  - Responses: `204 No Content` or `404 Not Found`.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+### Staffing assignment endpoints (CAP-119)
+
+- GET `http://localhost:8080/v1/people/locations/{locationId}/staff`
+  - Purpose: List staff assignments for a location (active/historical filters supported).
+  - Responses: `200 OK` array of `PersonLocationAssignment` objects.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+- POST `http://localhost:8080/v1/people/locations/{locationId}/staff`
+  - Purpose: Create a `PersonLocationAssignment` linking a `personId` to the `locationId` with role, effective dates, and `isPrimary` flag.
+  - Request: `CreateAssignmentRequest` (see schema below).
+  - Responses: `201 Created` (`PersonLocationAssignment`) or `400/409` validation errors.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+- DELETE `http://localhost:8080/v1/people/locations/{locationId}/staff/{personId}`
+  - Purpose: End or remove an assignment for a person at a location. Prefer `effectiveEndAt` semantics; physical delete is discouraged.
+  - Responses: `204 No Content` or `404 Not Found`.
+  - Status: [PLANNED — to be implemented by CAP-119]
+
+### Schemas (TypeScript-like)
+
+```ts
+interface Location {
+  locationId: string; // uuid
+  code: string; // unique, immutable
+  name: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null;
+  timezone: string; // IANA name (e.g. "America/New_York")
+  status: 'ACTIVE' | 'INACTIVE';
+  parentLocationId?: string | null;
+  createdAt?: string; // date-time
+  updatedAt?: string; // date-time
+}
+
+interface CreateLocationRequest {
+  code: string; // unique
+  name: string;
+  address?: { street?: string; city?: string; state?: string; postalCode?: string; country?: string } | null;
+  timezone: string; // IANA timezone
+  parentLocationId?: string | null;
+}
+
+interface CreateAssignmentRequest {
+  personId: string; // uuid
+  role: string; // e.g., MECHANIC, MANAGER
+  effectiveStartAt: string; // date-time (ISO 8601)
+  effectiveEndAt?: string | null; // date-time or null
+  isPrimary?: boolean; // default: false
+  changeReasonCode?: string | null;
+}
+
+interface PersonLocationAssignment {
+  assignmentId: string; // uuid
+  personId: string; // uuid
+  locationId: string; // uuid
+  role: string;
+  isPrimary: boolean;
+  effectiveStartAt: string; // date-time
+  effectiveEndAt?: string | null;
+  createdAt?: string; // date-time
+  updatedAt?: string; // date-time
+  version?: number; // optimistic locking
+}
+```
+
+### Behavioral Assertions (Contract-level)
+- Location `code` MUST be unique. Creating a location with an existing `code` returns `409 Conflict`.
+- `timezone` MUST be a valid IANA timezone string; invalid values return `400 Bad Request`.
+- `code` is immutable after creation; updates attempting to change `code` return `400`/`409` as appropriate.
+- Creating a new primary assignment (`isPrimary=true`) for a `personId` MUST atomically demote any existing active primary assignment for that person (set its `effectiveEndAt` to new.effectiveStartAt - 1 unit) or fail the entire transaction.
+- Overlapping assignments for the same `(personId, locationId, role)` are NOT allowed and MUST be rejected (`409 Conflict` or `400 Bad Request`).
+- Assignment records are time-bound (`effectiveStartAt`, optional `effectiveEndAt`) and historical records MUST be preserved (no hard deletes of historical data).
+- All state-changing operations MUST produce audit entries and publish a versioned domain event `people.PersonLocationAssignmentChanged.v1` with an event type such as `PersonLocationAssignmentCreated|Updated|Ended`.
+
+### Provider test hints (ContractBehaviorIT naming)
+- Happy path create location: `CP-119-001`
+- Validation errors (invalid timezone / duplicate code): `VE-119-001`, `VE-119-002`
+- Create assignment happy path (primary/non-primary): `CP-119-010`, `CP-119-011`
+- Overlap rejection: `VE-119-010`
+- Automatic primary demotion behavior: `LC-119-001`
+- Assignment history preservation / no hard delete: `LC-119-002`
+
+### Implementation Links
+- Backend implementation issues:
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/86
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/87
+
+### Notes / Coordination
+- The `Location` CRUD story (issue #87) recommends the canonical `Location` service own `status` and related lifecycle. Enforcement of "inactive locations prevent new staffing assignments" is a cross-domain concern; CAP-119 coordinates both sides via the above planned assignment endpoints and acceptance criteria.
+- Events and audit schema MUST be versioned. See `Audit & Observability` section for event envelope guidance used elsewhere in this guide.
+
+---
+
 ```java
 @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
 private Instant createdAt;
