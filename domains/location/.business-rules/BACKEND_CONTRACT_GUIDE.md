@@ -829,3 +829,113 @@ This guide establishes standardized contracts for the Location Management domain
 
 **Generated:** 2026-01-27 14:27:53 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
+
+---
+
+## CAP-119: Location Management — Generated Contract (summary)
+
+This project includes a generated, capability-specific backend contract for CAP-119. The authoritative implementation document is at the repository path:
+
+- `durion/docs/capabilities/CAP-119/CAP-119-location-backend-contract.md`
+
+### Gateway endpoint mappings
+
+All OpenAPI paths are exposed through the API gateway. Use the following gateway URLs (replace path params as appropriate). Each entry is presented as a single request line in the form `METHOD <gateway-url>`:
+
+- `GET  http://localhost:8080/v1/locations`
+- `POST http://localhost:8080/v1/locations`
+- `GET  http://localhost:8080/v1/locations/{locationId}`
+- `PUT  http://localhost:8080/v1/locations/{locationId}`
+- `DELETE http://localhost:8080/v1/locations/{locationId}`
+- `POST http://localhost:8080/v1/locations/{childId}/parents/{parentId}?parentType={parentType}`
+- `GET  http://localhost:8080/v1/locations/parents`
+- `GET  http://localhost:8080/v1/locations/{locationId}/responsible-person`
+- `GET  http://localhost:8080/v1/locations/bays`
+- `PUT  http://localhost:8080/v1/locations/bays`
+- `POST http://localhost:8080/v1/locations/{locationId}/bays`
+- `GET  http://localhost:8080/v1/locations/{locationId}/bays/{bayId}`
+- `DELETE http://localhost:8080/v1/locations/{locationId}/bays/{bayId}`
+- `GET  http://localhost:8080/v1/locations/mobileUnit`
+- `PUT  http://localhost:8080/v1/locations/mobileUnit`
+- `POST http://localhost:8080/v1/locations/{locationId}/mobileUnit`
+- `GET  http://localhost:8080/v1/locations/{locationId}/mobileUnit/{bayId}`
+- `DELETE http://localhost:8080/v1/locations/{locationId}/mobileUnit/{bayId}`
+
+### ADR-0016 Compliance (required)
+This service and its contract follow ADR-0016 decisions. Key points (must be respected by implementers and consumers):
+
+- `Location` is canonical: `pos-location` is the authoritative source for all location data.
+- `LocationType` is a managed entity (not a static enum). Types are runtime-configurable and stored in `pos-location`.
+- `ParentType` enum values: `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`, `SHIPPING`. A single child may have at most one parent per `ParentType`.
+- `ParentType` enum values: `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`, `SHIPPING`. A single child may have at most one parent per `ParentType`.
+
+Note: The current OpenAPI spec (`pos-location/openapi.json`) defines a different set of parent-type values (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `BILLING`). ADR-0016 is authoritative; repository owners should migrate the OpenAPI enum and persistence model to match ADR-0016 or provide a documented mapping layer. See Issue #87 for discussion.
+
+- `GeographicalLocation` is a separate entity holding address and coordinate data; `Location` references it by `geographicalLocationId`.
+- Cross-module integration pattern: other services MUST store only `locationId` and query `pos-location` for details, hierarchy, or address when needed.
+- Location classifications (examples): Geographical, Physical, Storage (bins/racks), Service (bays), Mobile (wreckers/vans).
+- Hierarchy model: self-referencing adjacency list implemented as `Map<ParentType, UUID> parents` (one parent per ParentType key).
+
+
+### Location entity (schema per ADR-0016)
+
+Represented in JSON for API consumers (example):
+
+```json
+{
+  "id": "018e1c9f-6b5a-7890-abcd-1234567890ab",
+  "code": "MAIN-WH",
+  "name": "Main Warehouse",
+  "type": {
+    "id": "2f4d3a2b-...",
+    "name": "Warehouse",
+    "description": "Storage facility"
+  },
+  "parents": {
+    "PHYSICAL": "b3a1...",
+    "ORGANIZATIONAL": "c4f2..."
+  },
+  "geographicalLocationId": "d5e6...",
+  "status": "ACTIVE",
+  "timezone": "America/New_York",
+  "responsiblePersonId": 12345,
+  "createdAt": "2026-02-17T12:00:00Z",
+  "updatedAt": "2026-02-17T12:30:00Z"
+}
+```
+
+Notes:
+
+- `id` is UUIDv7 encoded as a string.
+- `type` references the `LocationType` entity (managed in `pos-location`).
+- `parents` is a JSON object mapping `ParentType` string -> parent `locationId` (UUID). Only one entry allowed per `ParentType` key.
+- Address/coordinate details live in `GeographicalLocation` and are referenced by `geographicalLocationId`.
+
+### Contract behavioral test hints (naming: `CP-119-NNN`)
+
+- `CP-119-001` Create Location: `POST /v1/locations` returns `201` and Location with generated `id`.
+- `CP-119-002` Update Location: `PUT /v1/locations/{locationId}` updates fields and returns `200`; `code` immutable.
+- `CP-119-003` Unique Code: Creating a location with duplicate `code` returns `409 Conflict`.
+- `CP-119-004` ParentType Uniqueness: Adding a parent with a `parentType` already present for a child should either replace or return `409` (implementation choice; document behavior).
+- `CP-119-005` Cross-module reference: Consumers store only `locationId`; verify consumer fetches details by calling `GET /v1/locations/{locationId}` via the gateway.
+
+### Event types (pos-events) — suggested IDs
+
+All write operations MUST emit domain events using pos-events conventions. Suggested event type names:
+
+- `LOCATION_CREATE` (pos.location.v1.LocationCreated)
+- `LOCATION_UPDATE` (pos.location.v1.LocationUpdated)
+- `LOCATION_DELETE` (pos.location.v1.LocationDeleted)
+- `LOCATION_PARENT_ADDED` (pos.location.v1.LocationParentAdded)
+- `BAY_MANAGED` (pos.location.v1.BaysManaged)
+- `BAY_CREATED` (pos.location.v1.BayCreated)
+- `BAY_DELETED` (pos.location.v1.BayDeleted)
+- `MOBILE_UNIT_MANAGED` (pos.location.v1.MobileUnitsManaged)
+- `MOBILE_UNIT_CREATED` (pos.location.v1.MobileUnitCreated)
+- `MOBILE_UNIT_DELETED` (pos.location.v1.MobileUnitDeleted)
+
+Each event should include `eventId` (UUIDv7), `occurredAt` (ISO 8601 UTC), `producer`, `schemaVersion`, and a `payload` containing the resource `id` and change details.
+
+### Links
+
+- Backend issue (implementation / discussion): [Issue #87](https://github.com/louisburroughs/durion-positivity-backend/issues/87)
