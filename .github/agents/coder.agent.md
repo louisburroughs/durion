@@ -162,6 +162,63 @@ These coding principles are mandatory:
 - Use descriptive-but-simple names.
 - Comment only to note invariants, assumptions, or external requirements.
 
+### Documentation and Issue Traceability (Mandatory)
+
+Use these rules to keep documentation consistent while avoiding unnecessary clutter.
+
+1. JavaDoc coverage
+- Add JavaDoc for all production code elements in Java/Kotlin where JavaDoc is supported and meaningful (classes, interfaces, enums, records, public/protected methods, and non-obvious fields).
+- Keep JavaDoc concise and behavior-focused: intent, key inputs/outputs, side effects, and invariants.
+- Do not add placeholder JavaDoc that repeats the symbol name without useful information.
+
+2. Issue number traceability
+- Every change must reference an issue number (for example: `#123`, `CAP-123`, or the team's canonical issue key format).
+- For new classes/types: include the issue reference in class-level JavaDoc.
+- For modifications to existing code: annotate only newly added or materially changed blocks with a short issue-tagged comment.
+- Keep issue comments scoped to the smallest meaningful block and remove them when no longer needed for review traceability.
+
+3. Low-clutter best practices
+- Prefer one issue reference per contiguous change block instead of repeating on every line.
+- Use neutral, review-oriented wording (what/why), not implementation noise.
+- Never wrap unchanged legacy code just to add issue comments.
+
+4. Templates
+
+Class JavaDoc template (new class/type):
+```java
+/**
+ * <One-line purpose of this type>.
+ *
+ * <Optional details: domain constraints, invariants, side effects>.
+ *
+ * Issue: <ISSUE-123>
+ */
+```
+
+Method JavaDoc template:
+```java
+/**
+ * <What this method does and why it exists>.
+ *
+ * @param <name> <meaning/business constraint>
+ * @return <result meaning>
+ * @throws <ExceptionType> <when/why thrown>
+ */
+```
+
+Issue-tagged change block template (existing code):
+```java
+// Issue <ISSUE-123>: <brief reason for this added/changed block>
+<new or modified code>
+```
+
+Multi-line block template (when a larger region is required):
+```java
+// Issue <ISSUE-123> start: <brief reason>
+<new or modified code block>
+// Issue <ISSUE-123> end
+```
+
 5. Logging and Errors
 - Emit detailed, structured logs at key boundaries.
 - Make errors explicit and informative.
