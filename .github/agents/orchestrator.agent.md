@@ -44,7 +44,7 @@ You are a project orchestrator. You break down complex requests into tasks and d
 
 ## Handling Subagent Write Requests (Sandboxed Mode)
 
-Subagents (Planner, Coder) may run in a restricted environment without file write permissions.
+Subagents (Planner, TDD Agent, Coder) may run in a restricted environment without file write permissions.
 - **If a subagent returns file content** (e.g., "Please write this to `Durion-Processing.md`" or "Here is `Service.java`"):
   - **You MUST perform the write** using your `edit/createFile` or `edit/editFiles` tools.
   - Verify the path is correct.
@@ -81,12 +81,23 @@ The user wants the entire workflow to run “in the background”. As orchestrat
 
 - Contract update prompt: `.github/prompts/backend-contract.prompt.md`
 - Backend implementation prompt: `.github/prompts/backend-story-fulfillment.prompt.md`
+- Orchestrator policy prompt: `.github/prompts/orchestrator.prompt.md`
+
+For TDD pilot runs, the orchestrator MUST use Template A (RED phase) and Template B (GREEN phase) from `.github/prompts/orchestrator.prompt.md`.
+
+TDD enforcement source of truth:
+- `durion-positivity-backend/.github/agents/test.agent.md`
+- The orchestrator MUST enforce these exact sections in delegated work:
+  - `TDD authority (team standard)`
+  - `Mandatory TDD workflow (Red → Green → Refactor)`
+  - `Required TDD deliverables per story`
 
 ## Agents
 
 These are the only agents you can call. Each has a specific role:
 
 - **Planner** — Creates implementation strategies and technical plans
+- **TDD Agent (Backend Testing Agent)** — Writes failing tests first and defines objective pass criteria before coding begins
 - **Coder** — Create branch, Writes code, fixes bugs, implements logic, create Pull Requests
 - **Document Agent** — Technical documentation expert, updates guides and API documentation
 
@@ -187,12 +198,24 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   Files: `domains/**/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `docs/capabilities/**/CAP-*-backend-contract.md`
   **Implementation**: Use the "How to Invoke Agents with Prompt Files" pattern above - read prompt file, add Runtime Context section with actual paths, call `runSubagent`
 
-### Phase 2: Backend implementation (depends on Phase 1)
-- Task 2.1: Execute `.github/prompts/backend-story-fulfillment.prompt.md` for each story, using the manifest + contract guide as inputs → Coder
-  Files: `durion-positivity-backend/pos-*/src/**`
+### Phase 2: TDD test-first pilot (depends on Phase 1)
+- Task 2.1: TDD Agent writes tests first for the selected story slice and provides RED evidence (new tests fail for the expected reason before code changes) → TDD Agent
+  Files: `durion-positivity-backend/pos-*/src/test/**`
+  Constraints:
+  - Keep pilot scope small: one story, one module, and preferably service-layer logic.
+  - TDD Agent may only modify `src/test/**` unless explicitly allowed by the user.
+  - Must provide: changed test file list, exact test command, and failing output snippet.
 
-### Phase 3: Build & contract tests (depends on Phase 2)
-- Task 3.1: Run focused backend tests (module tests + provider contract tests) and report results → Coder
+### Phase 3: Backend implementation to GREEN (depends on Phase 2)
+- Task 3.1: Execute `.github/prompts/backend-story-fulfillment.prompt.md` for each story, using the manifest + contract guide + TDD tests as inputs → Coder
+  Files: `durion-positivity-backend/pos-*/src/**`
+  Constraints:
+  - Coder must not weaken or delete TDD-authored assertions.
+  - Coder should primarily modify `src/main/**`; test edits require explicit rationale and orchestrator approval.
+  - Must provide GREEN evidence using the same command family used by TDD Agent.
+
+### Phase 4: Build & contract tests (depends on Phase 3)
+- Task 4.1: Run focused backend tests (module tests + provider contract tests) and report results → Coder
   Files: `durion-positivity-backend/**`
 
 ### Step 3: Execute Each Phase
@@ -212,6 +235,12 @@ For this workflow, verification must include:
 - Contract guide contains only API-gateway-formatted paths (`http://localhost:8080/v{version}/...`).
 - Backend code changes have corresponding provider/behavioral tests where the repo expects them.
 - Backend build/tests for touched modules pass (or failures are clearly reported as blockers).
+- TDD RED→GREEN evidence chain is present for pilot stories:
+  - RED: failing tests created by TDD Agent before implementation.
+  - GREEN: same tests pass after Coder implementation.
+- File-scope guardrails were respected:
+  - TDD Agent changes scoped to `src/test/**`.
+  - Coder did not remove or dilute TDD assertions without explicit justification.
 
 ## Parallelization Rules
 
@@ -227,7 +256,8 @@ For this workflow, verification must include:
 For this workflow:
 
 - Phase 1 → Phase 2 is always sequential (contract defines intent; implementation follows).
-- Within Phase 2, stories can run in parallel only if they touch disjoint backend modules/files.
+- Phase 2 → Phase 3 is always sequential (tests first, then code to satisfy tests).
+- Within Phase 3, stories can run in parallel only if they touch disjoint backend modules/files.
 
 ## File Conflict Prevention
 
