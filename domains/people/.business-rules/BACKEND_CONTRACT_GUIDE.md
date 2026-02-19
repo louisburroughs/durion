@@ -399,139 +399,6 @@ private String referenceId;
 
 Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
 
-## CAP-119: Location Management & Staffing Assignments
-
-This section is for CAP-119 (Location Management & Staffing Assignments). The endpoints below are planned as part of CAP-119 and marked accordingly. The authoritative OpenAPI for existing endpoints did not contain `locations` or the staffing assignment endpoints at the time of writing, therefore these are documented as [PLANNED — to be implemented by CAP-119].
-
-All gateway paths use: `http://localhost:8080/v1/people` as the base (gateway format required).
-
-### Planned Endpoints (CAP-119)
-
-- GET `http://localhost:8080/v1/people/locations`
-  - Purpose: List locations (supports paging/filtering).
-  - Responses: `200 OK` array of `Location` objects.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-- POST `http://localhost:8080/v1/people/locations`
-  - Purpose: Create a new location.
-  - Request: `CreateLocationRequest` (see schema below).
-  - Responses: `201 Created` (`Location`) or `409 Conflict` (duplicate code).
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-- GET `http://localhost:8080/v1/people/locations/{locationId}`
-  - Purpose: Retrieve a single location by id.
-  - Responses: `200 OK` (`Location`) or `404 Not Found`.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-- PUT `http://localhost:8080/v1/people/locations/{locationId}`
-  - Purpose: Update an existing location. `code` is immutable.
-  - Request: `UpdateLocationRequest` (same as `CreateLocationRequest` minus immutable fields).
-  - Responses: `200 OK` (`Location`) or `404 Not Found` or `409 Conflict`.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-- DELETE `http://localhost:8080/v1/people/locations/{locationId}`
-  - Purpose: Delete (or soft-delete) a location. Prefer soft-delete and/or `status=INACTIVE`.
-  - Responses: `204 No Content` or `404 Not Found`.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-### Staffing assignment endpoints (CAP-119)
-
-- GET `http://localhost:8080/v1/people/locations/{locationId}/staff`
-  - Purpose: List staff assignments for a location (active/historical filters supported).
-  - Responses: `200 OK` array of `PersonLocationAssignment` objects.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-- POST `http://localhost:8080/v1/people/locations/{locationId}/staff`
-  - Purpose: Create a `PersonLocationAssignment` linking a `personId` to the `locationId` with role, effective dates, and `isPrimary` flag.
-  - Request: `CreateAssignmentRequest` (see schema below).
-  - Responses: `201 Created` (`PersonLocationAssignment`) or `400/409` validation errors.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-- DELETE `http://localhost:8080/v1/people/locations/{locationId}/staff/{personId}`
-  - Purpose: End or remove an assignment for a person at a location. Prefer `effectiveEndAt` semantics; physical delete is discouraged.
-  - Responses: `204 No Content` or `404 Not Found`.
-  - Status: [PLANNED — to be implemented by CAP-119]
-
-### Schemas (TypeScript-like)
-
-```ts
-interface Location {
-  locationId: string; // uuid
-  code: string; // unique, immutable
-  name: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    postalCode?: string;
-    country?: string;
-  } | null;
-  timezone: string; // IANA name (e.g. "America/New_York")
-  status: 'ACTIVE' | 'INACTIVE';
-  parentLocationId?: string | null;
-  createdAt?: string; // date-time
-  updatedAt?: string; // date-time
-}
-
-interface CreateLocationRequest {
-  code: string; // unique
-  name: string;
-  address?: { street?: string; city?: string; state?: string; postalCode?: string; country?: string } | null;
-  timezone: string; // IANA timezone
-  parentLocationId?: string | null;
-}
-
-interface CreateAssignmentRequest {
-  personId: string; // uuid
-  role: string; // e.g., MECHANIC, MANAGER
-  effectiveStartAt: string; // date-time (ISO 8601)
-  effectiveEndAt?: string | null; // date-time or null
-  isPrimary?: boolean; // default: false
-  changeReasonCode?: string | null;
-}
-
-interface PersonLocationAssignment {
-  assignmentId: string; // uuid
-  personId: string; // uuid
-  locationId: string; // uuid
-  role: string;
-  isPrimary: boolean;
-  effectiveStartAt: string; // date-time
-  effectiveEndAt?: string | null;
-  createdAt?: string; // date-time
-  updatedAt?: string; // date-time
-  version?: number; // optimistic locking
-}
-```
-
-### Behavioral Assertions (Contract-level)
-- Location `code` MUST be unique. Creating a location with an existing `code` returns `409 Conflict`.
-- `timezone` MUST be a valid IANA timezone string; invalid values return `400 Bad Request`.
-- `code` is immutable after creation; updates attempting to change `code` return `400`/`409` as appropriate.
-- Creating a new primary assignment (`isPrimary=true`) for a `personId` MUST atomically demote any existing active primary assignment for that person (set its `effectiveEndAt` to new.effectiveStartAt - 1 unit) or fail the entire transaction.
-- Overlapping assignments for the same `(personId, locationId, role)` are NOT allowed and MUST be rejected (`409 Conflict` or `400 Bad Request`).
-- Assignment records are time-bound (`effectiveStartAt`, optional `effectiveEndAt`) and historical records MUST be preserved (no hard deletes of historical data).
-- All state-changing operations MUST produce audit entries and publish a versioned domain event `people.PersonLocationAssignmentChanged.v1` with an event type such as `PersonLocationAssignmentCreated|Updated|Ended`.
-
-### Provider test hints (ContractBehaviorIT naming)
-- Happy path create location: `CP-119-001`
-- Validation errors (invalid timezone / duplicate code): `VE-119-001`, `VE-119-002`
-- Create assignment happy path (primary/non-primary): `CP-119-010`, `CP-119-011`
-- Overlap rejection: `VE-119-010`
-- Automatic primary demotion behavior: `LC-119-001`
-- Assignment history preservation / no hard delete: `LC-119-002`
-
-### Implementation Links
-- Backend implementation issues:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/86
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/87
-
-### Notes / Coordination
-- The `Location` CRUD story (issue #87) recommends the canonical `Location` service own `status` and related lifecycle. Enforcement of "inactive locations prevent new staffing assignments" is a cross-domain concern; CAP-119 coordinates both sides via the above planned assignment endpoints and acceptance criteria.
-- Events and audit schema MUST be versioned. See `Audit & Observability` section for event envelope guidance used elsewhere in this guide.
-
----
-
 ```java
 @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
 private Instant createdAt;
@@ -1692,3 +1559,96 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 **Generated:** 2026-02-16 19:25:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
+
+## CAP-119: Person-to-Location Staffing Assignments
+
+**Capability:** `CAP:119` — Location Management & Staffing Assignments
+**Backend issue:** [#86](https://github.com/louisburroughs/durion-positivity-backend/issues/86)
+**Last updated:** 2026-02-18
+
+This section documents the person-to-location staffing assignment contract for CAP-119.
+All gateway paths use: `http://localhost:8080/v1/people` as the base.
+
+> **Note:** The pos-people OpenAPI includes role-assignment endpoints under
+> `/v1/people/{personUuid}/access/assignments` (RBAC concern). The staffing
+> endpoints below are a separate, time-bound `PersonLocationAssignment` record
+> used by work-execution and roster services. Endpoints not yet present in the
+> OpenAPI are marked `[PLANNED]`.
+
+### Endpoints (CAP-119)
+
+- `POST http://localhost:8080/v1/people/staffing/assignments` — Create person-to-location assignment `[PLANNED]`
+- `GET http://localhost:8080/v1/people/staffing/assignments?personId={uuid}` — List assignments for a person `[PLANNED]`
+- `GET http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Get assignment by ID `[PLANNED]`
+- `PUT http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Update assignment `[PLANNED]`
+- `DELETE http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — End/remove assignment `[PLANNED]`
+
+### Request Schema — Create Staffing Assignment
+
+```ts
+interface CreateStaffingAssignmentRequest {
+  personId: string;       // UUID of the person
+  locationId: string;     // UUID from pos-location service (must be ACTIVE)
+  role: string;           // e.g. "SHOP_MANAGER", "TECHNICIAN"
+  isPrimary: boolean;     // if true, auto-ends any current primary assignment
+  effectiveFrom: string;  // ISO date "2026-02-18"
+  effectiveTo?: string;   // ISO date, null = open-ended
+}
+```
+
+### Response Schema — StaffingAssignmentResponse
+
+```ts
+interface StaffingAssignmentResponse {
+  assignmentId: string;   // UUID (UUIDv7)
+  personId: string;
+  locationId: string;
+  role: string;
+  isPrimary: boolean;
+  status: 'ACTIVE' | 'ENDED';
+  effectiveFrom: string;
+  effectiveTo?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+```
+
+### Business Rule Behavioral Assertions
+
+- `isPrimary=true` MUST atomically end the current primary assignment for the same person (set existing
+  assignment's `effectiveTo` to the day before the new `effectiveFrom`).
+- Returns `409 Conflict` if an overlapping assignment is detected for the same `personId + locationId + role`
+  within the requested date range.
+- Returns `404 Not Found` if `locationId` is not found in pos-location service.
+- Returns `400 Bad Request` if the location's status is not `ACTIVE`.
+
+### Staffing Assignment Events
+
+- `PEOPLE_STAFFING_ASSIGNMENT_CREATE` (write preset) — emitted on successful creation
+- `PEOPLE_STAFFING_ASSIGNMENT_UPDATE` (write preset) — emitted on update
+- `PEOPLE_STAFFING_ASSIGNMENT_END` (write preset) — emitted when an assignment is ended
+
+### Contract Test Hints (CP-119 naming)
+
+- `CP-119-100`: Create primary assignment — verify previous primary has `effectiveTo` set and status `ENDED`
+- `CP-119-101`: Create non-primary assignment — existing primary is unaffected
+- `VE-119-100`: Overlapping assignment for same person+location+role returns `409`
+- `VE-119-101`: Non-existent `locationId` returns `404`; inactive location returns `400`
+- `LC-119-100`: Assignment lifecycle: ACTIVE → ENDED (via explicit end or superseded by new primary)
+
+### Cross-Service Dependency
+
+- `pos-people` MUST validate `locationId` by calling `GET http://localhost:8080/v1/locations/{locationId}`
+  (via API Gateway, not direct service URL) before creating an assignment, to confirm the location
+  exists and has `status = ACTIVE`.
+- Store only `locationId` in the `PersonLocationAssignment` entity; do NOT replicate location name,
+  type, or address in the people service.
+
+### Notes
+
+- RBAC role assignments (`/v1/people/{personUuid}/access/assignments`) and staffing assignments are
+  separate concerns. RBAC = security permissions; staffing = operational/roster assignments.
+- All writes MUST emit audit entries (old vs new payload) via the pos-events conventions.
+- Refer to [ADR-0016](../../../docs/adr/0016-location-entity-semantics.adr.md) for the location
+  taxonomy. Consuming services query `pos-location` for hierarchy; they do not replicate it.
