@@ -25,6 +25,7 @@ The People domain provides person management, time tracking, and access control 
 | `CAP:117` | `durion#117` | `durion-positivity-backend#88`, `#90`, `#91` | 2026-02-18 | Identity orchestration contract (employee CRUD, offboarding, user-person linking). |
 | `CAP:118` | `durion#118` | `durion-positivity-backend#526` | 2026-02-16 | Person-centric RBAC facade contract under `/v1/people/{personId}/access`. |
 | `CAP:119` | `durion#119` | `durion-positivity-backend#86` | 2026-02-19 | Person-to-location staffing assignment contract and behavioral assertions. |
+| `CAP:120` | `durion#120` | `durion-positivity-backend#79`, `#83`, `#84`, `#85` | 2026-02-19 | Timekeeping contract: clock in/out, breaks, time entry adjustments, batch approvals, exceptions, reports. |
 
 ## Base URL
 
@@ -457,6 +458,324 @@ interface StaffingAssignmentResponse {
 
 - Use `GET /v1/locations/{locationId}/validation` (gateway route) for location existence+active checks.
 - Store only `locationId` in people domain; do not duplicate location profile fields.
+
+## CAP-120: Timekeeping (Clock, Breaks, Approvals, Export)
+
+This section defines the backend contract for CAP-120 covering work session management (clock in/out and breaks), time entry adjustments, batch time entry approvals and rejections, time entry exceptions, attendance discrepancy reporting, and people availability.
+
+All gateway paths use: `http://localhost:8080/v1/people` as the base.
+
+### From Issue #79 — Work Sessions (Clock In/Out & Breaks)
+
+- POST `http://localhost:8080/v1/people/workSessions/start`
+  - Purpose: Start a work session (clock in) for a person.
+  - Responses:
+    - `200 OK`: Work session started successfully.
+  - Behavior:
+    - Creates an active work session for the calling person.
+    - Only one active session per person is allowed at a time.
+
+- POST `http://localhost:8080/v1/people/workSessions/stop`
+  - Purpose: Stop an active work session (clock out).
+  - Responses:
+    - `200 OK`: Work session stopped successfully.
+  - Behavior:
+    - Ends the active session; generates a time entry from the session data.
+
+- POST `http://localhost:8080/v1/people/workSessions/{id}/breaks/start`
+  - Purpose: Start a break within an active work session.
+  - Path param: `id` — work session ID (int64).
+  - Responses:
+    - `200 OK`: Break started successfully.
+    - `404 Not Found`: Work session not found.
+  - Behavior:
+    - Only one active break per session at a time.
+
+- POST `http://localhost:8080/v1/people/workSessions/{id}/breaks/stop`
+  - Purpose: End a break within an active work session.
+  - Path param: `id` — work session ID (int64).
+  - Responses:
+    - `200 OK`: Break stopped successfully.
+    - `404 Not Found`: Work session or break not found.
+
+ContractBehaviorIT hints:
+
+- `CP-120-001`: Clock in (start session); verify session is ACTIVE.
+- `CP-120-002`: Clock out (stop session); verify time entry generated.
+- `CP-120-003`: Start break; verify break is active within session.
+- `CP-120-004`: Stop break; verify break ended and session still active.
+- `VE-120-001`: Clock in when session already active returns error.
+- `VE-120-002`: Start break on non-existent session returns `404`.
+
+### From Issue #83 — Time Entry Adjustments
+
+- POST `http://localhost:8080/v1/people/timeEntries/adjustments`
+  - Purpose: Submit a request to adjust a time entry. Adjustment is PENDING until approved.
+  - Request (TypeScript-like):
+
+    ```ts
+    interface TimeEntryAdjustmentRequest {
+      timeEntryId: string;       // required — time entry to adjust
+      reasonCode: string;        // required — e.g. "MISSED_BREAK"
+      notes?: string;
+      proposedStartAt?: string;  // date-time
+      proposedEndAt?: string;    // date-time
+      minutesDelta?: number;     // positive to add, negative to subtract
+      createdBy?: string;
+    }
+    ```
+
+  - Responses:
+    - `201 Created`: Adjustment created in PENDING state. Body: `TimeEntryAdjustmentResponse`.
+    - `400 Bad Request`: Invalid request payload.
+    - `404 Not Found`: Time entry not found.
+    - `409 Conflict`: Invalid time entry state for adjustment.
+
+- POST `http://localhost:8080/v1/people/timeEntries/adjustments/{adjustmentId}/approve`
+  - Purpose: Approve a pending time entry adjustment. Requires approval permissions.
+  - Path param: `adjustmentId` (uuid).
+  - Headers: `X-Permissions`, `X-User-Id`, `X-Correlation-Id` (optional; injected by gateway).
+  - Responses:
+    - `200 OK`: Adjustment approved.
+    - `403 Forbidden`: Insufficient permissions.
+    - `404 Not Found`: Adjustment not found.
+
+- GET `http://localhost:8080/v1/people/timeEntries/{timeEntryId}/adjustments`
+  - Purpose: List all adjustments for a time entry.
+  - Path param: `timeEntryId` (string).
+  - Responses:
+    - `200 OK`: Array of `TimeEntryAdjustment`.
+
+TimeEntryAdjustmentResponse (TypeScript-like):
+
+```ts
+interface TimeEntryAdjustmentResponse {
+  adjustmentId: string;  // uuid
+  success: boolean;
+  message?: string;
+}
+```
+
+TimeEntryAdjustment (read model, TypeScript-like):
+
+```ts
+interface TimeEntryAdjustment {
+  adjustmentId: string;       // uuid
+  timeEntryId: string;
+  reasonCode: string;
+  notes?: string;
+  proposedStartAt?: string;   // date-time
+  proposedEndAt?: string;     // date-time
+  minutesDelta?: number;
+  status: 'PROPOSED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdBy?: string;
+  createdAt?: string;         // date-time
+  decidedBy?: string;
+  decidedAt?: string;         // date-time
+}
+```
+
+ContractBehaviorIT hints:
+
+- `CP-120-010`: Create adjustment; verify PENDING status returned.
+- `CP-120-011`: Approve adjustment; verify status transitions to APPROVED.
+- `CP-120-012`: List adjustments for time entry; verify result set.
+- `VE-120-010`: Create adjustment with invalid time entry returns `404`.
+- `VE-120-011`: Approve adjustment without permissions returns `403`.
+- `VE-120-012`: Create adjustment on invalid state entry returns `409`.
+
+### From Issue #84 — Batch Time Entry Approvals
+
+- POST `http://localhost:8080/v1/people/timeEntries/approve`
+  - Purpose: Batch approve multiple time entries. pos-people is authoritative for approval execution.
+  - Headers: `X-User-Id`, `X-Permissions`, `X-Correlation-Id` (optional; injected by gateway).
+  - Request (TypeScript-like):
+
+    ```ts
+    interface TimeEntryDecisionBatchRequest {
+      decisions: Decision[];
+    }
+
+    interface Decision {
+      timeEntryId: string;
+      rejectionReason?: string;  // not required for approve
+    }
+    ```
+
+  - Responses:
+    - `200 OK`: Time entries approved successfully.
+    - `400 Bad Request`: Invalid request (decisions required).
+
+- POST `http://localhost:8080/v1/people/timeEntries/reject`
+  - Purpose: Batch reject multiple time entries. `rejectionReason` is required for each decision.
+  - Headers: `X-User-Id`, `X-Permissions`, `X-Correlation-Id` (optional; injected by gateway).
+  - Request: Same `TimeEntryDecisionBatchRequest` shape as approve.
+  - Responses:
+    - `200 OK`: Time entries rejected successfully.
+    - `400 Bad Request`: `rejectionReason` required for all decisions.
+
+  - Behavior / business rules:
+    - Rejection without a `rejectionReason` per decision is rejected with `400`.
+    - Batch operations are atomic: all decisions must be valid for the request to proceed.
+
+ContractBehaviorIT hints:
+
+- `CP-120-020`: Batch approve multiple entries; verify all transition to APPROVED.
+- `CP-120-021`: Batch reject entries with reasons; verify all transition to REJECTED.
+- `VE-120-020`: Reject without `rejectionReason` returns `400`.
+- `VE-120-021`: Approve with empty decisions array returns `400`.
+
+### From Issue #85 — Time Entry Exceptions
+
+- GET `http://localhost:8080/v1/people/exceptions`
+  - Purpose: List all exceptions, optionally filtered by `employeeId`.
+  - Query params: `employeeId` (optional, string).
+  - Responses:
+    - `200 OK`: Array of `TimeEntryException`.
+
+- POST `http://localhost:8080/v1/people/exceptions`
+  - Purpose: Create a new time entry exception record.
+  - Request (TypeScript-like):
+
+    ```ts
+    interface TimeEntryExceptionRequest {
+      employeeId: string;          // required
+      exceptionCode: string;       // required — e.g. "MISSED_CLOCK_OUT"
+      severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      timeEntryId?: string;
+      resolutionNotes?: string;
+      detectedAt?: string;         // date-time
+    }
+    ```
+
+  - Responses:
+    - `200 OK`: Exception created. Body: `TimeEntryExceptionResponse`.
+    - `400 Bad Request`: Invalid request.
+
+- POST `http://localhost:8080/v1/people/exceptions/{exceptionId}/acknowledge`
+  - Purpose: Acknowledge an exception (mark as seen by actor).
+  - Path param: `exceptionId` (uuid).
+  - Headers: `X-User-Id`, `X-Correlation-Id`.
+  - Responses:
+    - `200 OK`: Exception acknowledged.
+
+- POST `http://localhost:8080/v1/people/exceptions/{exceptionId}/resolve`
+  - Purpose: Mark an exception as resolved with optional resolution notes.
+  - Path param: `exceptionId` (uuid).
+  - Headers: `X-User-Id`, `X-Correlation-Id`.
+  - Request body (optional): `{ "resolutionNotes": "string" }`
+  - Responses:
+    - `200 OK`: Exception resolved.
+    - `404 Not Found`: Exception not found.
+
+- POST `http://localhost:8080/v1/people/exceptions/{exceptionId}/waive`
+  - Purpose: Waive an exception. `waiveReason` is required.
+  - Path param: `exceptionId` (uuid).
+  - Headers: `X-User-Id`, `X-Correlation-Id`.
+  - Request body: `{ "waiveReason": "string" }` (required).
+  - Responses:
+    - `200 OK`: Exception waived.
+    - `400 Bad Request`: `waiveReason` not provided.
+    - `404 Not Found`: Exception not found.
+
+TimeEntryExceptionResponse (TypeScript-like):
+
+```ts
+interface TimeEntryExceptionResponse {
+  exceptionId: string;  // uuid
+  success: boolean;
+  message?: string;
+}
+```
+
+TimeEntryException (read model, TypeScript-like):
+
+```ts
+interface TimeEntryException {
+  exceptionId: string;       // uuid
+  employeeId: string;
+  workDate: string;          // date yyyy-MM-dd
+  exceptionCode: string;
+  severity: 'WARNING' | 'BLOCKING';
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'WAIVED';
+  timeEntryId?: string;
+  resolutionNotes?: string;
+  detectedAt?: string;       // date-time
+  resolvedBy?: string;
+  resolvedAt?: string;       // date-time
+}
+```
+
+ContractBehaviorIT hints:
+
+- `CP-120-030`: Create exception; verify OPEN status.
+- `CP-120-031`: Acknowledge exception; verify ACKNOWLEDGED transition.
+- `CP-120-032`: Resolve exception; verify RESOLVED transition.
+- `CP-120-033`: Waive exception with reason; verify WAIVED transition.
+- `CP-120-034`: List exceptions by employeeId; verify filtered result.
+- `VE-120-030`: Waive without `waiveReason` returns `400`.
+- `VE-120-031`: Waive on non-existent exception returns `404`.
+
+### Attendance Discrepancy Report
+
+- GET `http://localhost:8080/v1/people/reports/attendanceJobtimeDiscrepancy`
+  - Purpose: Generate a per-technician, per-location, per-day discrepancy report comparing attendance hours to approved job time totals.
+  - Query params:
+    - `startDate` (date, required) — inclusive start, e.g. `2026-02-01`
+    - `endDate` (date, required) — inclusive end, e.g. `2026-02-07`
+    - `timezone` (string, required) — IANA timezone, e.g. `America/Chicago`
+    - `locationId` (uuid, optional) — filter by location
+    - `technicianIds` (uuid[], optional) — filter by technician IDs
+    - `flaggedOnly` (boolean, optional, default `false`) — return only flagged rows
+  - Headers: `X-User`, `X-Correlation-Id`.
+  - Responses:
+    - `200 OK`: Array of `AttendanceDiscrepancyReportResponse`.
+
+AttendanceDiscrepancyReportResponse (TypeScript-like):
+
+```ts
+interface AttendanceDiscrepancyReportResponse {
+  technicianId: string;
+  technicianName: string;
+  locationId: string;
+  reportDate: string;          // date yyyy-MM-dd
+  totalAttendanceHours: number;
+  totalJobHours: number;
+  discrepancyHours: number;    // attendance - job time
+  isFlagged: boolean;
+  thresholdApplied: number;    // threshold in minutes
+}
+```
+
+### People Availability
+
+- GET `http://localhost:8080/v1/people/availability`
+  - Purpose: Return availability data with optional location and date filters.
+  - Query params:
+    - `locationId` (int64, optional) — filter by location
+    - `date` (date, optional) — filter by date (yyyy-MM-dd)
+  - Responses:
+    - `200 OK`: Availability data returned.
+
+### Events
+
+- `PEOPLE_WORK_SESSION_START` — emitted on successful work session start (clock in)
+- `PEOPLE_WORK_SESSION_STOP` — emitted on successful work session stop (clock out)
+- `PEOPLE_TIME_ENTRY_ADJUSTMENT_CREATE` — emitted on time entry adjustment creation
+- `PEOPLE_TIME_ENTRY_APPROVED` — emitted on batch approval execution
+- `PEOPLE_TIME_ENTRY_REJECTED` — emitted on batch rejection execution
+- `PEOPLE_TIME_ENTRY_EXCEPTION_CREATE` — emitted on exception creation
+
+### Test & Naming Guidance
+
+- Use `CP-120-NNN` for capability happy-path tests, `VE-120-NNN` for validation/edge cases, `LC-120-NNN` for lifecycle transitions.
+- Ensure tests cover:
+  - Work session lifecycle (start → break → stop).
+  - Adjustment PENDING → APPROVED/REJECTED lifecycle.
+  - Batch approval with and without rejection reasons.
+  - Exception state machine: OPEN → ACKNOWLEDGED → RESOLVED/WAIVED.
+  - Discrepancy report with `flaggedOnly=true` filtering.
+  - Waive/resolve actor traceability via `X-User-Id` header.
 
 ---
 
