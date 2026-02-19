@@ -1,3 +1,17 @@
+---
+title: WorkExec Backend Contract Guide
+domain: workexec
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: durion-positivity-backend/pos-workorder/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # WorkExec Backend Contract Guide
 
 **Version:** 0.4 (Includes CAP-007 invoice contract design)
@@ -2716,3 +2730,11 @@ The gateway strips the `/workorder` prefix and forwards `/v1/*` to the pos-worko
 
 **Phase 4.2 Completion Date:** 2026-01-25  
 **Status:** ✅ Backend discovery complete; proceed to Phase 4.3 (Issue Analysis & Acceptance Criteria)
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

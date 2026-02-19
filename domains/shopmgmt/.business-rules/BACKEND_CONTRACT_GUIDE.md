@@ -1,3 +1,17 @@
+---
+title: Shop Management Backend Contract Guide
+domain: shopmgmt
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: pos-shop-manager/target/openapi.json (to be generated)
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Shop Management Backend Contract Guide
 
 **Version:** 1.0  
@@ -1229,3 +1243,11 @@ X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440004
 ---
 
 **End of Guide**
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

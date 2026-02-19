@@ -1,3 +1,17 @@
+---
+title: Order Management Backend Contract Guide
+domain: order
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: pos-order/target/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Order Management Backend Contract Guide
 
 **Version:** 1.0  
@@ -689,3 +703,11 @@ This guide establishes standardized contracts for the Order Management domain:
 
 **Generated:** 2026-01-27 14:27:53 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

@@ -1,3 +1,17 @@
+---
+title: Product Backend Contract Guide
+domain: product
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: durion-positivity-backend/pos-catalog/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Product Backend Contract Guide
 
 **Version:** v0.6 (OpenAPI sync)
@@ -1078,3 +1092,11 @@ Status: `draft`
 ```json
 "INVALID_TIER_STRUCTURE: Quantity ranges overlap."
 ```
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

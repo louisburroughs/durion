@@ -1,17 +1,33 @@
+---
+title: pos-people Backend Contract Guide
+domain: people
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: durion-positivity-backend/pos-people/openapi.json
+traceability:
+  capability_manifest: docs/capabilities/CAP-120/CAPABILITY_MANIFEST.yaml
+last_updated: 2026-02-19
+---
+
 # pos-people Backend Contract Guide
 
 ## Overview
+
 The People domain provides person management, time tracking, and access control integration.
 
-## CAP-118 Traceability
+## Capability Updates
 
-- Capability: `cap:118`
-- Parent story: `durion#118`
-- Backend implementation PR: `louisburroughs/durion-positivity-backend#526`
-- Integration focus: Person-based RBAC facade over pos-security-service role assignment APIs
-
+| Capability | Parent Story | Backend Tracking | Last Updated | Document Update |
+| --- | --- | --- | --- | --- |
+| `CAP:117` | `durion#117` | `durion-positivity-backend#88`, `#90`, `#91` | 2026-02-18 | Identity orchestration contract (employee CRUD, offboarding, user-person linking). |
+| `CAP:118` | `durion#118` | `durion-positivity-backend#526` | 2026-02-16 | Person-centric RBAC facade contract under `/v1/people/{personId}/access`. |
+| `CAP:119` | `durion#119` | `durion-positivity-backend#86` | 2026-02-19 | Person-to-location staffing assignment contract and behavioral assertions. |
 
 ## Base URL
+
 - Local (service - OpenAPI authoritative): `http://localhost:8085`
 - Via API Gateway (recommended): `http://localhost:8080/v1/people`
 
@@ -26,6 +42,7 @@ All gateway paths use: `http://localhost:8080/v1/people` as the base.
 - POST `http://localhost:8080/v1/people/employees`
   - Purpose: Create employee profile.
   - Request (TypeScript-like):
+
     ```ts
     interface CreateEmployeeRequest {
       legalName?: string;
@@ -41,6 +58,7 @@ All gateway paths use: `http://localhost:8080/v1/people` as the base.
       duplicatePolicy?: 'STRICT' | 'BALANCED';
     }
     ```
+
   - Responses:
     - `201 Created`: Employee created. Body: `EmployeeResponse`.
     - `409 Conflict`: High-confidence duplicate detected (exact match on email/phone/employeeNumber).
@@ -70,6 +88,7 @@ All gateway paths use: `http://localhost:8080/v1/people` as the base.
     - `terminationDate` must be >= `hireDate` when both present.
 
 EmployeeResponse (TypeScript-like):
+
 ```ts
 interface EmployeeResponse {
   employeeId: string; // uuid
@@ -87,6 +106,7 @@ interface EmployeeResponse {
 ```
 
 ContractBehaviorIT hints (naming):
+
 - Happy path: `CP-117-001` (create), `CP-117-002` (update), `CP-117-003` (get)
 - Validation errors/VE: `VE-117-001` (terminationDate < hireDate), `VE-117-002` (missing contact when required)
 - Lifecycle/LC: `LC-117-001` (status transitions)
@@ -96,6 +116,7 @@ ContractBehaviorIT hints (naming):
 - POST `http://localhost:8080/v1/people/employees/{employeeId}/disable`
   - Purpose: Disable/offboard an employee's user account and mark associated person/user as DISABLED. Implements a saga-style pattern for downstream coordination.
   - Request body:
+
     ```json
     {
       "disableReason": "string (optional)",
@@ -103,6 +124,7 @@ ContractBehaviorIT hints (naming):
       "assignmentEndDate": "2026-12-31" // optional when END_ASSIGNMENTS_AT_DATE
     }
     ```
+
   - Responses:
     - `200 OK`: Action accepted and executed (person+user status set to `DISABLED`), body: operation result.
     - `400 Bad Request`: If employee already `DISABLED` or `TERMINATED` or invalid payload.
@@ -114,6 +136,7 @@ ContractBehaviorIT hints (naming):
     - Saga: downstream services (security, workexec, payroll) consume `user.disabled` asynchronously and perform their part; retries are handled by consumer logic.
 
 ContractBehaviorIT hints:
+
 - CP-117-010: disable happy path (verify event emitted)
 - VE-117-010: disabling already DISABLED returns 400
 - LC-117-010: verify status transition rules and irreversibility of TERMINATED
@@ -123,12 +146,14 @@ ContractBehaviorIT hints:
 - POST `http://localhost:8080/v1/people/user-links`
   - Purpose: Create a `UserPersonLink` binding between an authentication `userId` and a `personId`. Idempotent.
   - Request (TypeScript-like):
+
     ```ts
     interface CreateUserLinkRequest {
       userId: string; // uuid
       personId: string; // uuid
     }
     ```
+
   - Responses:
     - `201 Created`: Link created (body: `UserPersonLinkResponse`).
     - `200 OK`: Link already exists (idempotent behaviour).
@@ -145,6 +170,7 @@ ContractBehaviorIT hints:
     - `404 Not Found`: `personId` not found.
 
 UserPersonLinkResponse (TypeScript-like):
+
 ```ts
 interface UserPersonLinkResponse {
   linkId: string; // uuid
@@ -156,36 +182,55 @@ interface UserPersonLinkResponse {
 ```
 
 ContractBehaviorIT hints:
+
 - CP-117-020: create link happy path (201)
 - CP-117-021: idempotent re-create returns 200
 - VE-117-020: 409 on conflicting userId link
 
 ### Events
+
 - `user.disabled` — emitted synchronously on successful user disable, as part of the same write transaction
 - `USER_PERSON_LINK_CREATE` — emitted on successful link creation (existing OpenAPI emits `USER_PERSON_LINK_CREATE` for `/users/{userId}/link` endpoints)
 
 ### Test & Naming Guidance
+
 - Use `CP-117-NNN` for capability happy-path tests, `VE-117-NNN` for validation/edge cases, `LC-117-NNN` for lifecycle transitions.
 - Ensure tests cover idempotency, duplicate detection policies (`STRICT|BALANCED`), assignmentPolicy effects, and event emission (verify event payload shape).
 
 ---
 
+## CAP-118: Person-Centric Access Control Facade
 
-## Authentication & Headers
+This section defines the backend contract for CAP-118 person-centric access control endpoints that facade to `pos-security-service`.
+
+### Execution Checklist
+
+- Implement/maintain person-centric role and assignment endpoints under `/v1/people/{personUuid}/access/*`.
+- Validate person-to-user translation before proxying role assignment operations.
+- Enforce location scope validation (`locationId` required for LOCATION roles, null for GLOBAL roles).
+- Emit access events for list/create/revoke operations.
+- Cover happy-path, validation, and lifecycle tests with `CP-118-*`, `VE-118-*`, and `LC-118-*` naming.
+
+### Authentication & Headers
+
 - Standard headers: X-User-Id, X-Correlation-Id, X-Permissions
 - Authentication via JWT tokens (coordinated through API Gateway)
 
-## Endpoints
+### Endpoints
 
-### Person Access Control
+#### Person Access Control
+
 #### GET /v1/people/{personUuid}/access/roles
+
 **Purpose:** List available access roles for people (LOCATION and GLOBAL scope roles only)
 
 **Request:**
+
 - Path Parameters:
   - `personUuid` (UUID, required): Person identifier
 
 **Response:** 200 OK
+
 ```json
 [
   {
@@ -200,10 +245,12 @@ ContractBehaviorIT hints:
 **Event:** `PEOPLE_ACCESS_ROLES_LIST`
 
 ---
+
 #### GET /v1/people/{personUuid}/access/assignments
 
 **Request:**
-  - `endDate` (date-time, optional): Filter assignments active at this date (ISO 8601)
+
+- `endDate` (date-time, optional): Filter assignments active at this date (ISO 8601)
 - Path Parameters:
   - `personUuid` (UUID, required): Person identifier
 - Query Parameters:
@@ -211,6 +258,7 @@ ContractBehaviorIT hints:
   - `endDate` (LocalDateTime, optional): Filter assignments active at this date
 
 **Response:** 200 OK
+
 ```json
 [
   {
@@ -226,12 +274,15 @@ ContractBehaviorIT hints:
 **Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
 
 ---
+
 #### POST /v1/people/{personUuid}/access/assignments
 
 **Request:**
+
 - Path Parameters:
   - `personUuid` (UUID, required): Person identifier
 - Body:
+
 ```json
 {
   "roleCode": "SHOP_MANAGER",
@@ -242,6 +293,7 @@ ContractBehaviorIT hints:
 ```
 
 **Response:** 201 Created
+
 ```json
 {
   "userId": "user123",
@@ -255,30 +307,33 @@ ContractBehaviorIT hints:
 **Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
 
 **Validation:**
+
 - `locationId` required for LOCATION scope roles, must be null for GLOBAL scope
 - Person must have a linked User account (from UserPersonLink)
----
 
+---
 
 **Note (OpenAPI authoritative):** The OpenAPI spec uses `{roleCode}` (role identifier) as the path parameter for revoke operations, not a numeric `assignmentId`. If your client still references an `assignmentId`, map it to the role code or use the backend issue below to coordinate a migration.
 
 **Request:**
+
 - Path Parameters:
 - Query Parameters:
   - `endDate` (date-time, optional): Effective end date (defaults to now)
 
 **Responses:**
+
 - `204 No Content`: Role assignment revoked successfully
 - `404 Not Found`: Person or role assignment not found
 - `400 Bad Request`: Invalid request for revoking role assignment
 
 **Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
 
-**Coordination / Backlog:** https://github.com/louisburroughs/durion-positivity-backend/issues/86
+**Coordination / Backlog:** <https://github.com/louisburroughs/durion-positivity-backend/issues/86>
 
 ---
 
-## Integration with pos-security-service
+### Integration with pos-security-service
 
 The Person Access Control endpoints provide a facade over pos-security-service:
 
@@ -288,32 +343,120 @@ The Person Access Control endpoints provide a facade over pos-security-service:
 4. **PersonAccessController** exposes person-centric REST endpoints
 
 **Service Dependencies:**
-- pos-security-service must be running and accessible at `${pos.security-service.base-url}` (default: http://localhost:8084)
+
+- pos-security-service must be running and accessible at `${pos.security-service.base-url}` (default: <http://localhost:8084>)
 
 **Error Handling:**
+
 - 404 Not Found: Person has no linked User account
 - 400 Bad Request: Invalid role code, scope mismatch, or validation failure
 - Errors from pos-security-service are propagated with appropriate context
 
-## Events
+### Events
+
 All endpoints emit events to pos-events service for audit and observability:
+
 - `PEOPLE_ACCESS_ROLES_LIST` (fastRead preset)
 - `PEOPLE_ACCESS_ASSIGNMENTS_LIST` (fastRead preset)
 - `PEOPLE_ACCESS_ASSIGNMENT_CREATE` (write preset)
 - `PEOPLE_ACCESS_ASSIGNMENT_REVOKE` (write preset)
 
-## Example Workflows
+### Example Workflows
 
-### Assign Shop Manager Role to Person
+#### Assign Shop Manager Role to Person
+
 1. GET /v1/people/{personUuid}/access/roles - List available roles
 2. POST /v1/people/{personUuid}/access/assignments - Assign SHOP_MANAGER role
 3. GET /v1/people/{personUuid}/access/assignments - Verify assignment
 
-### View Historical Role Assignments
+#### View Historical Role Assignments
+
 1. GET /v1/people/{personUuid}/access/assignments?includeHistory=true - Get all assignments including inactive
 
-### Revoke Role Effective Future Date
+#### Revoke Role Effective Future Date
+
 1. DELETE /v1/people/{personUuid}/access/assignments/{roleCode}?endDate=2026-12-31T23:59:59 - Schedule future revocation
+
+---
+
+## CAP-119: Person-to-Location Staffing Assignments
+
+This section defines the backend contract for CAP-119 staffing assignment workflows (`PersonLocationAssignment`) used by roster/work execution.
+
+### Execution Checklist
+
+- Validate `personId` exists and is ACTIVE.
+- Validate `locationId` exists and is ACTIVE via the location validation API.
+- Enforce overlap conflict rules for `(personId, locationId, role, effective window)`.
+- Enforce primary-assignment demotion rules only when windows overlap; clamp demotion dates to valid ranges.
+- Emit staffing assignment events on create/update/end.
+- Cover contract tests using `CP-119-*`, `VE-119-*`, and `LC-119-*` naming.
+
+### Endpoints
+
+- `POST http://localhost:8080/v1/people/staffing/assignments` — Create person-to-location assignment
+- `GET http://localhost:8080/v1/people/staffing/assignments?personId={uuid}` — List assignments for a person
+- `GET http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Get assignment by ID
+- `PUT http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Update assignment
+- `DELETE http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — End assignment
+
+### Request Schema — Create Staffing Assignment
+
+```ts
+interface CreateStaffingAssignmentRequest {
+  personId: string;       // UUID of the person
+  locationId: string;     // UUID from pos-location service (must be ACTIVE)
+  role: string;           // e.g. "SHOP_MANAGER", "TECHNICIAN"
+  isPrimary: boolean;     // if true, may auto-end current overlapping primary
+  effectiveFrom: string;  // ISO date
+  effectiveTo?: string;   // ISO date, null = open-ended
+}
+```
+
+### Response Schema — StaffingAssignmentResponse
+
+```ts
+interface StaffingAssignmentResponse {
+  assignmentId: string;   // UUID (UUIDv7)
+  personId: string;
+  locationId: string;
+  role: string;
+  isPrimary: boolean;
+  status: "ACTIVE" | "ENDED";
+  effectiveFrom: string;
+  effectiveTo?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+```
+
+### Business Rule Behavioral Assertions
+
+- `isPrimary=true` ends an existing primary only when windows overlap.
+- Demoted assignment `effectiveTo` must never be before its `effectiveFrom`.
+- Overlapping assignment for same person+location+role returns `409 Conflict`.
+- Missing/invalid request fields or invalid date window returns `400 Bad Request`.
+- Unknown or inactive person/location returns `4xx` per API contract.
+
+### Staffing Assignment Events
+
+- `PEOPLE_STAFFING_ASSIGNMENT_CREATE`
+- `PEOPLE_STAFFING_ASSIGNMENT_UPDATE`
+- `PEOPLE_STAFFING_ASSIGNMENT_END`
+
+### Contract Test Hints (CP-119 naming)
+
+- `CP-119-100`: Create primary assignment and verify demotion behavior.
+- `CP-119-101`: Create non-primary assignment; existing primary remains unchanged.
+- `VE-119-100`: Overlapping assignment conflict returns `409`.
+- `VE-119-105`: `effectiveTo < effectiveFrom` returns `400`.
+- `LC-119-100`: Assignment transitions ACTIVE -> ENDED.
+
+### Cross-Service Dependency
+
+- Use `GET /v1/locations/{locationId}/validation` (gateway route) for location existence+active checks.
+- Store only `locationId` in people domain; do not duplicate location profile fields.
 
 ---
 
@@ -680,7 +823,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: List of people returned successfully.
 
-
 ---
 
 #### POST /v1/people
@@ -694,7 +836,6 @@ This domain exposes **29** REST API endpoints:
 **Responses:**
 
 - `201`: Person created successfully.
-
 
 ---
 
@@ -715,7 +856,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: Availability data returned successfully.
 
-
 ---
 
 #### GET /v1/people/exceptions
@@ -726,12 +866,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `employeeId` (query, Optional, string): 
+- `employeeId` (query, Optional, string):
 
 **Responses:**
 
 - `200`: List returned
-
 
 ---
 
@@ -746,7 +885,6 @@ This domain exposes **29** REST API endpoints:
 - `201`: Exception created
 - `400`: Invalid request
 
-
 ---
 
 #### POST /v1/people/exceptions/{exceptionId}/acknowledge
@@ -757,14 +895,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `exceptionId` (path, Required, string): 
-- `X-User-Id` (header, Optional, string): 
-- `X-Correlation-Id` (header, Optional, string): 
+- `exceptionId` (path, Required, string):
+- `X-User-Id` (header, Optional, string):
+- `X-Correlation-Id` (header, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -776,14 +913,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `exceptionId` (path, Required, string): 
-- `X-User-Id` (header, Optional, string): 
-- `X-Correlation-Id` (header, Optional, string): 
+- `exceptionId` (path, Required, string):
+- `X-User-Id` (header, Optional, string):
+- `X-Correlation-Id` (header, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -795,14 +931,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `exceptionId` (path, Required, string): 
-- `X-User-Id` (header, Optional, string): 
-- `X-Correlation-Id` (header, Optional, string): 
+- `exceptionId` (path, Required, string):
+- `X-User-Id` (header, Optional, string):
+- `X-Correlation-Id` (header, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -818,7 +953,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: Report generated successfully.
 
-
 ---
 
 #### POST /v1/people/timeEntries/adjustments
@@ -832,7 +966,6 @@ This domain exposes **29** REST API endpoints:
 - `201`: Adjustment created
 - `400`: Invalid request
 
-
 ---
 
 #### POST /v1/people/timeEntries/adjustments/{adjustmentId}/approve
@@ -841,15 +974,14 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `adjustmentId` (path, Required, string): 
-- `X-Permissions` (header, Optional, string): 
-- `X-User-Id` (header, Optional, string): 
-- `X-Correlation-Id` (header, Optional, string): 
+- `adjustmentId` (path, Required, string):
+- `X-Permissions` (header, Optional, string):
+- `X-User-Id` (header, Optional, string):
+- `X-Correlation-Id` (header, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -863,14 +995,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `X-User-Id` (header, Optional, string): 
-- `X-Permissions` (header, Optional, string): 
-- `X-Correlation-Id` (header, Optional, string): 
+- `X-User-Id` (header, Optional, string):
+- `X-Permissions` (header, Optional, string):
+- `X-Correlation-Id` (header, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -884,14 +1015,13 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `X-User-Id` (header, Optional, string): 
-- `X-Permissions` (header, Optional, string): 
-- `X-Correlation-Id` (header, Optional, string): 
+- `X-User-Id` (header, Optional, string):
+- `X-Permissions` (header, Optional, string):
+- `X-Correlation-Id` (header, Optional, string):
 
 **Responses:**
 
 - `200`: OK
-
 
 ---
 
@@ -903,12 +1033,11 @@ This domain exposes **29** REST API endpoints:
 
 **Parameters:**
 
-- `timeEntryId` (path, Required, string): 
+- `timeEntryId` (path, Required, string):
 
 **Responses:**
 
 - `200`: List returned
-
 
 ---
 
@@ -924,7 +1053,6 @@ This domain exposes **29** REST API endpoints:
 
 - `201`: Work session started successfully.
 
-
 ---
 
 #### POST /v1/people/workSessions/stop
@@ -938,7 +1066,6 @@ This domain exposes **29** REST API endpoints:
 **Responses:**
 
 - `200`: Work session stopped successfully.
-
 
 ---
 
@@ -959,7 +1086,6 @@ This domain exposes **29** REST API endpoints:
 - `201`: Break started successfully.
 - `404`: Work session not found.
 
-
 ---
 
 #### POST /v1/people/workSessions/{id}/breaks/stop
@@ -978,7 +1104,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: Break stopped successfully.
 - `404`: Work session or break not found.
-
 
 ---
 
@@ -999,7 +1124,6 @@ This domain exposes **29** REST API endpoints:
 - `204`: Person deleted successfully.
 - `404`: Person not found.
 
-
 ---
 
 #### GET /v1/people/{personId}
@@ -1019,7 +1143,6 @@ This domain exposes **29** REST API endpoints:
 - `200`: Person found and returned.
 - `404`: Person not found.
 
-
 ---
 
 #### PUT /v1/people/{personId}
@@ -1038,8 +1161,6 @@ This domain exposes **29** REST API endpoints:
 
 - `200`: Person updated successfully.
 - `404`: Person not found.
-
-
 
 ---
 
@@ -1347,7 +1468,6 @@ See `Person` fields above; `PersonResponse` mirrors the returned Person represen
 | `rejectionReason` | string | No |  |
 | `timeEntryId` | string | No |  |
 
-
 ### Person
 
 Person object to be created
@@ -1363,7 +1483,6 @@ Person object to be created
 | `primaryEmail`   | string        | No       |             |
 | `secondaryEmail` | string        | No       |             |
 | `username`       | string        | No       |             |
-
 
 ### TimeEntryAdjustment
 
@@ -1384,7 +1503,6 @@ Person object to be created
 | `status` | string | No |  |
 | `timeEntryId` | string | No |  |
 
-
 ### TimeEntryAdjustmentRequest
 
 **Fields:**
@@ -1399,7 +1517,6 @@ Person object to be created
 | `reasonCode` | string | No |  |
 | `timeEntryId` | string | No |  |
 
-
 ### TimeEntryAdjustmentResponse
 
 **Fields:**
@@ -1410,7 +1527,6 @@ Person object to be created
 | `message` | string | No |  |
 | `success` | boolean | No |  |
 
-
 ### TimeEntryDecisionBatchRequest
 
 **Fields:**
@@ -1418,7 +1534,6 @@ Person object to be created
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `decisions` | array | No |  |
-
 
 ### TimeEntryException
 
@@ -1438,7 +1553,6 @@ Person object to be created
 | `timeEntryId` | string | No |  |
 | `workDate` | string (date) | No |  |
 
-
 ### TimeEntryExceptionRequest
 
 **Fields:**
@@ -1452,7 +1566,6 @@ Person object to be created
 | `severity` | string | No |  |
 | `timeEntryId` | string | No |  |
 
-
 ### TimeEntryExceptionResponse
 
 **Fields:**
@@ -1462,8 +1575,6 @@ Person object to be created
 | `exceptionId` | string (uuid) | No |  |
 | `message` | string | No |  |
 | `success` | boolean | No |  |
-
-
 
 ---
 
@@ -1541,6 +1652,7 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.3 | 2026-02-19 | Reorganized guide by top-level capability sections (CAP-117/118/119), added execution checklists, and added a reusable capability contract template. |
 | 1.2 | 2026-02-18 | Added CAP-117: Identity Orchestration (Employee profile CRUD, disable user/offboarding, user-person linking admin API). |
 | 1.1 | 2026-02-16 | Added person-centric RBAC facade endpoints under `/v1/people/{personId}/access` (roles list, assignments list, create assignment, revoke assignment) for CAP-118 |
 | 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
@@ -1560,95 +1672,24 @@ This guide establishes standardized contracts for the People & Human Resources d
 **Generated:** 2026-02-16 19:25:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
 
-## CAP-119: Person-to-Location Staffing Assignments
+## General Notes and References
 
-**Capability:** `CAP:119` — Location Management & Staffing Assignments
-**Backend issue:** [#86](https://github.com/louisburroughs/durion-positivity-backend/issues/86)
-**Last updated:** 2026-02-18
+Use this section for cross-capability notes when ownership is unclear or when a rule spans multiple capabilities.
 
-This section documents the person-to-location staffing assignment contract for CAP-119.
-All gateway paths use: `http://localhost:8080/v1/people` as the base.
+### General Notes
 
-> **Note:** The pos-people OpenAPI includes role-assignment endpoints under
-> `/v1/people/{personUuid}/access/assignments` (RBAC concern). The staffing
-> endpoints below are a separate, time-bound `PersonLocationAssignment` record
-> used by work-execution and roster services. Endpoints not yet present in the
-> OpenAPI are marked `[PLANNED]`.
+- RBAC role assignments (`/v1/people/{personUuid}/access/assignments`) and staffing assignments are separate concerns.
+- All state-changing APIs should emit events through `pos-events`.
+- Keep API Gateway routes as the contract source for consumers.
 
-### Endpoints (CAP-119)
+### Additional References
 
-- `POST http://localhost:8080/v1/people/staffing/assignments` — Create person-to-location assignment `[PLANNED]`
-- `GET http://localhost:8080/v1/people/staffing/assignments?personId={uuid}` — List assignments for a person `[PLANNED]`
-- `GET http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Get assignment by ID `[PLANNED]`
-- `PUT http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Update assignment `[PLANNED]`
-- `DELETE http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — End/remove assignment `[PLANNED]`
+- `docs/capabilities/*/CAPABILITY_MANIFEST.yaml`
+- `domains/people/.business-rules/AGENT_GUIDE.md`
+- `domains/people/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 
-### Request Schema — Create Staffing Assignment
+## Capability Contract Template
 
-```ts
-interface CreateStaffingAssignmentRequest {
-  personId: string;       // UUID of the person
-  locationId: string;     // UUID from pos-location service (must be ACTIVE)
-  role: string;           // e.g. "SHOP_MANAGER", "TECHNICIAN"
-  isPrimary: boolean;     // if true, auto-ends any current primary assignment
-  effectiveFrom: string;  // ISO date "2026-02-18"
-  effectiveTo?: string;   // ISO date, null = open-ended
-}
-```
+Use the shared template in:
 
-### Response Schema — StaffingAssignmentResponse
-
-```ts
-interface StaffingAssignmentResponse {
-  assignmentId: string;   // UUID (UUIDv7)
-  personId: string;
-  locationId: string;
-  role: string;
-  isPrimary: boolean;
-  status: 'ACTIVE' | 'ENDED';
-  effectiveFrom: string;
-  effectiveTo?: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-}
-```
-
-### Business Rule Behavioral Assertions
-
-- `isPrimary=true` MUST atomically end the current primary assignment for the same person (set existing
-  assignment's `effectiveTo` to the day before the new `effectiveFrom`).
-- Returns `409 Conflict` if an overlapping assignment is detected for the same `personId + locationId + role`
-  within the requested date range.
-- Returns `404 Not Found` if `locationId` is not found in pos-location service.
-- Returns `400 Bad Request` if the location's status is not `ACTIVE`.
-
-### Staffing Assignment Events
-
-- `PEOPLE_STAFFING_ASSIGNMENT_CREATE` (write preset) — emitted on successful creation
-- `PEOPLE_STAFFING_ASSIGNMENT_UPDATE` (write preset) — emitted on update
-- `PEOPLE_STAFFING_ASSIGNMENT_END` (write preset) — emitted when an assignment is ended
-
-### Contract Test Hints (CP-119 naming)
-
-- `CP-119-100`: Create primary assignment — verify previous primary has `effectiveTo` set and status `ENDED`
-- `CP-119-101`: Create non-primary assignment — existing primary is unaffected
-- `VE-119-100`: Overlapping assignment for same person+location+role returns `409`
-- `VE-119-101`: Non-existent `locationId` returns `404`; inactive location returns `400`
-- `LC-119-100`: Assignment lifecycle: ACTIVE → ENDED (via explicit end or superseded by new primary)
-
-### Cross-Service Dependency
-
-- `pos-people` MUST validate `locationId` by calling `GET http://localhost:8080/v1/locations/{locationId}`
-  (via API Gateway, not direct service URL) before creating an assignment, to confirm the location
-  exists and has `status = ACTIVE`.
-- Store only `locationId` in the `PersonLocationAssignment` entity; do NOT replicate location name,
-  type, or address in the people service.
-
-### Notes
-
-- RBAC role assignments (`/v1/people/{personUuid}/access/assignments`) and staffing assignments are
-  separate concerns. RBAC = security permissions; staffing = operational/roster assignments.
-- All writes MUST emit audit entries (old vs new payload) via the pos-events conventions.
-- Refer to [ADR-0016](../../../docs/adr/0016-location-entity-semantics.adr.md) for the location
-  taxonomy. Consuming services query `pos-location` for hierarchy; they do not replicate it.
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

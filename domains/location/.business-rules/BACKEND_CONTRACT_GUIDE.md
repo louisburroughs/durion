@@ -1,3 +1,17 @@
+---
+title: Location Management Backend Contract Guide
+domain: location
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: pos-location/target/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Location Management Backend Contract Guide
 
 **Version:** 1.0  
@@ -939,3 +953,11 @@ Each event should include `eventId` (UUIDv7), `occurredAt` (ISO 8601 UTC), `prod
 ### Links
 
 - Backend issue (implementation / discussion): [Issue #87](https://github.com/louisburroughs/durion-positivity-backend/issues/87)
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

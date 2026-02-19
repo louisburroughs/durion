@@ -1,3 +1,19 @@
+---
+title: Customer Relationship Management (CRM) Backend Contract Guide
+domain: crm
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source:
+    - durion-positivity-backend/pos-customer/openapi.json
+    - durion-positivity-backend/pos-vehicle-inventory/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Customer Relationship Management (CRM) Backend Contract Guide
 
 **Version:** 2.0  
@@ -1533,3 +1549,11 @@ X-Correlation-Id: req-005
 |---------|------|---------|
 | 2.0 | 2026-02-04 | Updated based on current OpenAPI specs; removed stub endpoints; added complete Vehicle Registry, Search, and Preferences endpoints from CAP:091; added Account Tier implementation details |
 | 1.3 | 2026-02-03 | Previous version with stub endpoints |
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
