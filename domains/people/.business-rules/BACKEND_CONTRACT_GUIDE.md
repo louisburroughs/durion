@@ -465,11 +465,6 @@ This section defines the backend contract for CAP-120 covering work session mana
 
 All gateway paths use: `http://localhost:8080/v1/people` as the base.
 
-### CAP-120 Traceability
-
-- Capability issue: `durion#120`
-- Backend implementation PR: `https://github.com/louisburroughs/durion-positivity-backend/pull/556`
-
 ### From Issue #79 — Work Sessions (Clock In/Out & Breaks)
 
 - POST `http://localhost:8080/v1/people/workSessions/start`
