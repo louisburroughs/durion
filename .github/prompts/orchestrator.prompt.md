@@ -5,6 +5,10 @@ description: 'This prompt defines orchestration policy for backend implementatio
 ---
 Execute this run in strict compliance with your own instructions, and enforce iterative completion with subagents.
 
+## Global Objective (Non-Negotiable)
+The objective is ALWAYS: create exactly one PR in `durion-positivity-backend` that contains completed in-scope stories and validation evidence.
+All planning and delegation must align to this objective.
+
 ## Core behavior
 Do not fail early for partial work. If a subagent returns incomplete output, send it back with explicit remediation steps and continue until completion.
 Only surface failure if the subagent is truly blocked/stuck (missing dependency, permission, or irrecoverable error).
@@ -75,11 +79,20 @@ Return format:
 
 ### 1) Planner Subagent
 Planner must produce and validate a complete plan that covers the full lifecycle:
-1. Contract update from `openapi.json`
-2. Story implementation sequence
-3. Testing/verification sequence
-4. Branch creation/usage
-5. Single PR creation
+1. Explicitly state the objective above as the end state
+2. Build the plan backward from that end state until Step 1 is reached
+3. Step 1 must be reading source material (manifest, prompts, relevant code/docs)
+4. Convert backward chain into forward executable steps
+5. Contract update from `openapi.json`
+6. Story implementation sequence
+7. Testing/verification sequence
+8. Branch creation/usage
+9. Single PR creation
+10. Emit the plan using exact labels `Step 1:` and `Final Step:`
+
+Hard acceptance rule:
+- If Step 1 is not source-material reading, or if the final step does not include Pull Request creation in `durion-positivity-backend`, the plan is incomplete and MUST be rejected and returned to Planner for remediation.
+- If exact labels `Step 1:` and `Final Step:` are missing, the plan is incomplete and MUST be rejected and returned to Planner for remediation.
 
 If any phase is missing, return Planner to complete the plan (up to 3 loops).
 
