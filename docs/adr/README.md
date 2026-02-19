@@ -83,6 +83,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0017   | Controller HTTP Response Code Standard     | ACCEPTED          | 2026-02-17 |
 | 0018   | Audit Actor Fields from Security Context   | ACCEPTED          | 2026-02-18 |
 | 0019   | Short-Lived Operational State Persistence  | ACCEPTED          | 2026-02-19 |
+| 0020   | Centralized Document Creation              | ACCEPTED          | 2026-02-19 |
 
 ## Superseding ADRs
 
