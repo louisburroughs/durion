@@ -84,11 +84,19 @@ Planner must produce and validate a complete plan that covers the full lifecycle
 If any phase is missing, return Planner to complete the plan (up to 3 loops).
 
 ### 2) Document Agent Subagent
-Document Agent must validate that backend contract documentation was updated using `openapi.json` as source of truth.
+Document Agent must validate that backend contract documentation was updated uniformly using:
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md` (capability section template)
+- `openapi.json` (API source of truth)
+
 Require:
-1. Updated file list
-2. Summary of contract changes
-3. Explicit alignment confirmation against `openapi.json`
+1. Updated file list for all impacted `domains/*/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+2. Frontmatter present and normalized (`title`, `domain`, `doc_type`, `contract`, `traceability`, `last_updated`)
+3. Capability sections structured from the shared template (top-level `CAP-*`, lower-level execution details)
+4. General section included for uncertain ownership (`General Notes and References`)
+5. Summary of contract changes
+6. Explicit alignment confirmation against module `openapi.json`
+7. Template reference present in each guide:
+   - `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
 
 If evidence is incomplete, return Document Agent to finish (up to 3 loops).
 

@@ -1,3 +1,17 @@
+---
+title: Security & Authentication Backend Contract Guide
+domain: security
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: durion-positivity-backend/pos-security-service/openapi.json  
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Security & Authentication Backend Contract Guide
 
 **Version:** 2.2  
@@ -1597,3 +1611,11 @@ This guide establishes standardized contracts for the Security & Authentication 
 
 **Last Updated:** 2026-02-16 14:30:00 UTC  
 **Maintained By:** Durion Platform Team
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

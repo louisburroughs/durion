@@ -1,3 +1,17 @@
+---
+title: Billing Backend Contract Guide
+domain: billing
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: durion-positivity-backend/pos-invoice/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Billing Backend Contract Guide
 
 **Version:** 1.0 (CAP:092 - OpenAPI validated)
@@ -204,3 +218,11 @@ The API Gateway routes billing requests to `pos-invoice` service:
 ## Status
 
 ✅ **Backend discovery complete** — OpenAPI specification validated from pos-invoice service (February 7, 2026)
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`

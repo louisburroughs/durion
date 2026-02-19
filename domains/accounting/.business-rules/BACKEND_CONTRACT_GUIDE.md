@@ -1,3 +1,17 @@
+---
+title: Accounting Backend Contract Guide
+domain: accounting
+doc_type: backend_contract
+contract:
+  status: draft
+  owner_repo: louisburroughs/durion
+  guide_path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  openapi_source: durion-positivity-backend/pos-accounting/openapi.json
+traceability:
+  capability_manifest: docs/capabilities
+last_updated: 2026-02-19
+---
+
 # Accounting Backend Contract Guide
 
 **Version:** 1.4  
@@ -2898,3 +2912,11 @@ This guide establishes standardized contracts for the Accounting domain:
 
 **Generated:** 2026-02-10 00:00:00 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
+
+---
+
+## Capability Contract Template
+
+Use the shared template for capability sections:
+
+- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
