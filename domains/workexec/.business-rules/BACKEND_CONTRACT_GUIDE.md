@@ -16,7 +16,7 @@ last_updated: 2026-02-19
 
 **Version:** 0.4 (Includes CAP-007 invoice contract design)
 **Audience:** Backend developers, Frontend developers, API consumers
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-19
 
 ---
 
@@ -2738,3 +2738,125 @@ The gateway strips the `/workorder` prefix and forwards `/v1/*` to the pos-worko
 Use the shared template for capability sections:
 
 - `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
+
+
+## CAP-121: Job Time Tracking (Workexec Linkage)
+
+
+Short description
+
+Expose gateway-facing endpoints for technician timers, manual labor submission, and job-time reporting used by people/timekeeping systems and shop UIs.
+
+### Execution Checklist
+
+- Confirm timer start/stop endpoints enforce mechanic identity from auth headers only
+- Require `Idempotency-Key` for `POST /v1/workexec/labor-performed` and document idempotent replay behavior
+- Provide job-time totals query for reporting (grouped by technician, location, local date) returning minutes
+
+### Endpoints (Gateway paths)
+
+- `POST http://localhost:8080/v1/workexec/time-entries/timer/start`
+- `POST http://localhost:8080/v1/workexec/time-entries/timer/stop`
+- `GET  http://localhost:8080/v1/workexec/time-entries/timer/active`
+- `POST http://localhost:8080/v1/workexec/labor-performed`
+- `GET  http://localhost:8080/v1/workexec/job-time-totals`
+
+### Request Schemas (from OpenAPI `pos-workorder/openapi.json`)
+
+```ts
+interface WorkexecTimerStartRequest {
+  workorderId: string; // uuid (required)
+  workorderItemId?: string; // uuid (optional)
+  laborCode?: string; // optional labor classification
+}
+```
+
+```ts
+interface LaborQuantity {
+  quantity: number;
+  unit: string;
+}
+
+interface SourceReference {
+  system: string;
+  sourceReferenceId: string;
+}
+
+interface WorkexecLaborPerformedRequest {
+  workorderId: string; // uuid
+  technicianId: string; // uuid
+  performedAt: string; // date-time
+  labor: LaborQuantity;
+  source: SourceReference; // e.g. { system: "people", sourceReferenceId: "<timeEntryId>" }
+}
+```
+
+### Response Schemas & Status Codes
+
+- `POST /v1/workexec/time-entries/timer/start` — 200 OK (empty body or standard envelope). Errors: 409 `TIMER_ALREADY_ACTIVE` for single-timer mode; 403 `FORBIDDEN` for permission failures; 400 `VALIDATION_ERROR` for malformed request.
+- `POST /v1/workexec/time-entries/timer/stop` — 200 OK (stopped/completed timers). Errors: 409 `NO_ACTIVE_TIMER` when none active; 403 `FORBIDDEN`; 400 `VALIDATION_ERROR`.
+- `GET /v1/workexec/time-entries/timer/active` — 200 OK returns active timer entry for authenticated mechanic (empty body in v1 spec; consumers should accept `{}` or a `WorkorderLaborEntryResponse`-like envelope).
+- `POST /v1/workexec/labor-performed` — 201 Created on first successful record; 200 OK + `Idempotency-Replayed:true` when replaying same `Idempotency-Key`. Errors: 409 `CONFLICT` for terminal business conflict; 4xx/5xx per validation and transient errors. Provider should return standard error envelope on failure.
+- `GET /v1/workexec/job-time-totals` — 200 OK returns a grouped totals payload (implementation returns an array/object; current OpenAPI has empty schema — callers should expect a JSON structure grouped by `technicianId + locationId + localDate` with `minutes` integer values).
+
+### Behavioral Assertions (Business Rules)
+
+- Identity & Authorization
+  - `mechanicId` MUST be derived from gateway auth context (headers injected by gateway) and MUST NOT be accepted from request body for timer endpoints.
+  - All endpoints enforce permission checks; missing authority returns `FORBIDDEN` (403).
+
+- Timer Lifecycle (Issue #82)
+  - Single timer mode (default): only one active timer allowed per mechanic. Starting a timer while one is active MUST return `409` with code `TIMER_ALREADY_ACTIVE`.
+  - Stopping when no active timer exists MUST return `409` with code `NO_ACTIVE_TIMER`.
+  - Timer status lifecycle: `ACTIVE` → `COMPLETED` (on explicit stop) or `AUTO_STOPPED` (on abandon).
+  - Auto-stop triggers: mechanic clock-out event, or `maxTimerDurationMinutes` exceeded (default 720 minutes). Abandoned timers MUST generate a `TimeException` of type `ABANDONED_TIMER` and be visible for reconciliation.
+
+- Labor Performed (Issue #81)
+  - `POST /v1/workexec/labor-performed` MUST require `Idempotency-Key` header; the header value SHOULD be the originating `timeEntryId` from the people system.
+  - Successful first submission: `201 Created`.
+  - Idempotent replay: subsequent POSTs with same `Idempotency-Key` MUST return `200 OK` and include `Idempotency-Replayed: true` header (or equivalent indicator). Treat replays as success, not error.
+  - `409 Conflict` represents terminal business conflict (do NOT retry). Transient errors (408, 429, 5xx) MAY be retried by caller.
+  - Recorded `source.system` MUST be `people` and `source.sourceReferenceId` MUST equal the provided `timeEntryId` used as the idempotency key.
+
+- Job Time Totals (Issue #80)
+  - Query parameters: `startDate` (date, required), `endDate` (date, required), `timezone` (string, required), optional `locationId` and optional `technicianIds` array.
+  - Grouping: results MUST be grouped by `technicianId + locationId + localDate` (localDate derived using provided `timezone`).
+  - Units: minutes (integer).
+  - Included records: only approved/finalized labor entries; exclude draft, rejected, in-progress entries.
+  - Error codes: `WORKEXEC_FORBIDDEN` (403), `WORKEXEC_INVALID_REQUEST` (400), `WORKEXEC_UNAVAILABLE` (503), `WORKEXEC_INTERNAL_ERROR` (500).
+
+### Provider Test Hints
+
+- Timer Start/Stop
+  - Test: start timer with authenticated mechanic; assert 200 and new active timer returned; start again -> 409 `TIMER_ALREADY_ACTIVE`.
+  - Test: stop active timer -> 200 and entry status transitions to `COMPLETED` and `hoursWorked` calculated.
+  - Test: stop when none active -> 409 `NO_ACTIVE_TIMER`.
+  - Test: simulate clock-out or system-enforced auto-stop and assert `AUTO_STOPPED` lifecycle and `ABANDONED_TIMER` exception created.
+
+- Labor Performed
+  - Test: POST with `Idempotency-Key=timeEntryId` returns 201 and creates labor record with `source.system=people` and `source.sourceReferenceId=timeEntryId`.
+  - Test: Replay same request with identical `Idempotency-Key` returns 200 with indicator `Idempotency-Replayed: true` and does not create duplicate labor.
+  - Test: POST that triggers business conflict returns 409 and no retry should be attempted by caller.
+
+- Job Time Totals
+  - Test: seed approved labor entries across multiple technicians and locations; call `GET http://localhost:8080/v1/workexec/job-time-totals?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&timezone=...` and assert grouping and minute totals are correct.
+  - Test: confirm excluded entries (draft/in-progress) are not counted.
+
+### Implementation Links (CAP-121)
+
+- Issue #80 (domain:people): Attendance vs Job Time Discrepancy Report — implement and verify `GET /v1/workexec/job-time-totals` ([#80](https://github.com/louisburroughs/durion-positivity-backend/issues/80))
+- Issue #81 (domain:workexec): Submit job time as labor performed — `POST /v1/workexec/labor-performed` ([#81](https://github.com/louisburroughs/durion-positivity-backend/issues/81))
+- Issue #82 (domain:workexec): Start/stop timer against assigned workorder task — timer endpoints ([#82](https://github.com/louisburroughs/durion-positivity-backend/issues/82))
+
+### Dependencies
+
+- People/timekeeping system: supplies `timeEntryId` and should set `Idempotency-Key` when forwarding labor to workexec.
+- Gateway header auth: `X-User-Id` (or gateway auth) must map authenticated mechanic for timer start/stop operations.
+
+### Contract Tests (suggested)
+
+- CP-121-100 Timer start/stop lifecycle
+- CP-121-110 Labor performed idempotency and source attribution
+- CP-121-120 Job time totals aggregation and filtering
+
+<!-- anchor: cap-121 -->
