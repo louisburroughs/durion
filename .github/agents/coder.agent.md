@@ -40,7 +40,6 @@ tools:
   - 'search/textSearch'
   - 'search/usages'
   - 'web/fetch'
-  - 'web/githubRepo'
   - 'github/add_comment_to_pending_review'
   - 'github/add_issue_comment'
   - 'github/assign_copilot_to_issue'
@@ -104,6 +103,10 @@ For Java projects, use SDKMAN to discover and activate Java versions before runn
 - Prefer plain `git ...` commands that start at column 1 for auto-approve regex matching.
 - Do not use shell `if`/`then`/`fi` blocks in normal workflows.
 - For fallback behavior, run a second explicit command after a failure (separate line), not in the same command.
+- Do not write command output to `/tmp` by default.
+- Use a workspace-local temp folder for transient command output: `$WORKSPACE/durion-positivity-backend/.agent-tmp/`.
+- If a command needs redirection, write to `$WORKSPACE/durion-positivity-backend/.agent-tmp/<name>.log`.
+- Prefer setting `TMPDIR=$WORKSPACE/durion-positivity-backend/.agent-tmp` for tools that honor `TMPDIR`.
 
 ## Code Exemplars (MANDATORY)
 
@@ -176,6 +179,16 @@ These coding principles are mandatory:
 ### Documentation and Issue Traceability (Mandatory)
 
 Use these rules to keep documentation consistent while avoiding unnecessary clutter.
+
+0. Already-Implemented Specification Handling
+- If a requested specification/acceptance criterion appears to already be implemented, do not stop at "already done".
+- Perform a targeted standards audit on the existing implementation before closing the item.
+- Verify at minimum:
+  - required JavaDoc/inline documentation quality for touched production code
+  - required annotations and conventions used in this repository (for example nullability annotations like `@NonNull`, event/security annotations, and validation annotations where applicable)
+  - naming, structure, and exemplar/ADR alignment for the implemented behavior
+- If gaps are found, bring the code up to current standards in the same change set and summarize what was remediated.
+- If no gaps are found, explicitly state that the implementation was verified and met standards.
 
 1. JavaDoc coverage
 - Add JavaDoc for all production code elements in Java/Kotlin where JavaDoc is supported and meaningful (classes, interfaces, enums, records, public/protected methods, and non-obvious fields).
