@@ -38,12 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 46
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 110
-      impacted_component_repos:
-      - louisburroughs/durion-inventory
+      issues: [46, 47, 48]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/inventory/.ui/frontend-story-availability-normalize-manufacturer-110.wf.md
