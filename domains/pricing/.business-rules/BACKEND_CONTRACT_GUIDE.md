@@ -9,7 +9,7 @@ contract:
   openapi_source: pos-price/target/openapi.json
 traceability:
   capability_manifest: docs/capabilities
-last_updated: 2026-02-19
+last_updated: 2026-02-20
 ---
 
 # Pricing & Price Management Backend Contract Guide
@@ -369,6 +369,86 @@ This domain exposes **3** REST API endpoints:
 - `500`: Internal server error.
 - `501`: Not yet implemented.
 
+### CAP-169 — Pricing Service for Estimates & Workorders
+
+### New endpoints for CAP-169
+
+**Issue #51 — Price Product for Estimate Line (Location + Customer Tier)**
+
+```
+POST http://localhost:8080/v1/price/quotes
+```
+
+Gateway path format: `http://localhost:8080/v1/price/quotes`
+
+Request:
+```json
+{
+  "productId": "uuid",
+  "quantity": 1,
+  "locationId": "uuid",
+  "customerTierId": "uuid",
+  "effectiveTimestamp": "2026-02-20T10:00:00Z"
+}
+```
+
+Response (200 OK):
+```json
+{
+  "productId": "uuid",
+  "quantity": 1,
+  "msrp": { "amount": 100.00, "currency": "USD" },
+  "unitPrice": { "amount": 85.50, "currency": "USD" },
+  "extendedPrice": { "amount": 171.00, "currency": "USD" },
+  "priceSource": "CALCULATED",
+  "pricingBreakdown": [
+    { "ruleName": "BASE_PRICE", "ruleType": "BASE_PRICE", "adjustment": { "amount": 0, "currency": "USD" }, "resultingValue": { "amount": 100.00, "currency": "USD" } },
+    { "ruleName": "LOCATION_OVERRIDE", "ruleType": "LOCATION_OVERRIDE", "adjustment": { "amount": -5.00, "currency": "USD" }, "resultingValue": { "amount": 95.00, "currency": "USD" } },
+    { "ruleName": "CUSTOMER_TIER_DISCOUNT", "ruleType": "CUSTOMER_TIER", "adjustment": { "amount": -9.50, "currency": "USD" }, "resultingValue": { "amount": 85.50, "currency": "USD" } }
+  ],
+  "warnings": []
+}
+```
+
+Notes:
+- `priceSource` = `CALCULATED` | `MSRP_FALLBACK` (fallback when no rules match)
+- Pricing rule evaluation order (deterministic, non-negotiable): Base MSRP → Location Override → Customer Tier → Banker's Rounding
+- `effectiveTimestamp` optional, defaults to `now()`
+- 404 if productId not found; 400 if quantity <= 0 or required fields missing
+
+Behavioral assertions (provider contract):
+- AC1: productId + locationId + customerTierId with matching rules → 200 + unitPrice = base × location × tier, pricingBreakdown has 3 entries
+- AC2: No matching rules → 200 + priceSource=MSRP_FALLBACK + unitPrice=msrp
+- AC3: non-existent productId → 404
+- AC4: quantity=0 → 400
+
+---
+
+**Issue #50 — Persist Immutable Pricing Snapshot**
+
+```
+GET http://localhost:8080/v1/price/snapshots/{snapshotId}
+```
+
+Response (200 OK):
+```json
+{
+  "snapshotId": "uuid",
+  "createdAt": "2026-02-20T10:00:00Z",
+  "sourceContext": { "workOrderId": "uuid", "lineItemId": "uuid" },
+  "itemIdentifier": "PART-123",
+  "quantity": 1,
+  "prices": { "msrp": 100.00, "finalPrice": 85.50, "currency": "USD" },
+  "appliedRules": [{ "ruleId": "CUSTOMER_TIER_10", "discount": "10%" }],
+  "policyVersion": "policy_v2.1_2026-02-20"
+}
+```
+
+Notes:
+- PricingSnapshot is write-once; no UPDATE/DELETE endpoints
+- Snapshot created internally when a line item is added
+- 404 if snapshotId not found
+- 403 if unauthorized
 
 ---
 

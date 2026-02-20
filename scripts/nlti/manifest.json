@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "path": "nlti/durion/NLTI-001-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Foundation & Shell (Chat panel + session + command router)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-001-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Foundation & Shell: NLTI API envelope + session + correlation"
+    },
+    {
+      "path": "nlti/durion/NLTI-002-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Intent Parsing + Clarification Dialogue"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-002-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Intent Model + Clarification State Machine (parse + slot fill)"
+    },
+    {
+      "path": "nlti/durion/NLTI-003-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Authorized Tool Registry + Discovery"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-003-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] Authorized Tool Registry API (tool descriptors + RBAC filtering)"
+    },
+
+    {
+      "path": "nlti/durion/NLTI-004-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Planning Engine (Goal → Ordered Steps + Preconditions)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-004-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Planning Engine: Intent → PlanV1 (ordered steps + preconditions)"
+    },
+    {
+      "path": "nlti/durion/NLTI-005-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Execution Orchestrator (Safe Step Runner + Idempotency)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-005-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Execution Orchestrator: Step Runner + Idempotency + Partial Failure Handling"
+    },
+    {
+      "path": "nlti/durion/NLTI-006-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Preview Mode + Confirmation for High-Risk Actions"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-006-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Preview + Confirmation Gate (risk-based execution control)"
+    },
+
+    {
+      "path": "nlti/durion/NLTI-007-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Audit & Traceability (Request → Plan → Execution Ledger)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-007-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Audit Trail: Append-only request/plan/execution ledger + query API"
+    },
+    {
+      "path": "nlti/durion/NLTI-008-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Domain Tool Adapters v1 (WorkExec, Accounting, Inventory, CRM)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-008-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Tool Adapters v1: Implement initial domain action set + contracts"
+    },
+    {
+      "path": "nlti/durion/NLTI-009-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Observability & Operations (Metrics, Tracing, Alerts, Runbooks)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-009-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Observability: metrics/tracing/alerts + runbooks for top failure modes"
+    },
+    {
+      "path": "nlti/durion/NLTI-010-high.md",
+      "repo": "louisburroughs/durion",
+      "title": "[STORY] NLTI Guidance Mode (How do I… → Steps + Optional Plan)"
+    },
+    {
+      "path": "nlti/durion-positivity-backend/NLTI-010-backend.md",
+      "repo": "louisburroughs/durion-positivity-backend",
+      "title": "[STORY] NLTI Guidance Mode: “How do I…” answers + Convert-to-Plan"
+    }
+  ]
+}
