@@ -395,7 +395,7 @@ class InvoiceServiceClientIntegrationTest {
 
 1. **Integrate into PaymentApplicationService:**
    - Add TODO #1-5 implementations using InvoiceServiceClient
-   - See `/home/louisb/Projects/durion-positivity-backend/CAP-051-TODOS-AND-INTEGRATION-POINTS.md`
+   - See `$WORKSPACE/durion-positivity-backend/CAP-051-TODOS-AND-INTEGRATION-POINTS.md`
 
 2. **Build and Test:**
 

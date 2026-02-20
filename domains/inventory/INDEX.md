@@ -298,7 +298,7 @@ Before starting Phase 1, confirm you have:
 ## 📚 Complete File Listing
 
 ```
-/home/louisb/Projects/durion/domains/inventory/
+$WORKSPACE/durion/domains/inventory/
 ├── INDEX.md (this file)
 ├── QUICK_REFERENCE.md ................. Quick start guide
 ├── inventory-questions.md ............ Main Phase 3 plan

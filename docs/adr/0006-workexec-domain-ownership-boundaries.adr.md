@@ -27,11 +27,11 @@ This ADR clarifies domain ownership boundaries for features that appear in WorkE
 - **#132** - Track Work Session Start/End
 
 **Rationale:**
-- The **People domain** is the canonical owner of timekeeping data and workflows per existing architecture documented in `/home/louisb/Projects/durion/domains/people/.business-rules/DOMAIN_NOTES.md`.
+- The **People domain** is the canonical owner of timekeeping data and workflows per existing architecture documented in `$WORKSPACE/durion/domains/people/.business-rules/DOMAIN_NOTES.md`.
 - Backend module `pos-people` contains `WorkSessionController.java`, confirming ownership.
 - Timekeeping entries are ingested from `WorkSessionCompleted` events (published by ShopMgmt or WorkExec) and managed by People domain services.
 - Security permissions are defined in `domain:security` as `workexec:time_entry:*` but these are **legacy naming conventions** from before domain boundaries were clarified. Future refactoring should rename these to `people:time_entry:*`.
-- Accounting domain documentation explicitly states: *"Timekeeping: time entry creation/approval state is owned by People/Timekeeping domain. Accounting owns export + export auditing."* (See `/home/louisb/Projects/durion/domains/accounting/.business-rules/AGENT_GUIDE.md`).
+- Accounting domain documentation explicitly states: *"Timekeeping: time entry creation/approval state is owned by People/Timekeeping domain. Accounting owns export + export auditing."* (See `$WORKSPACE/durion/domains/accounting/.business-rules/AGENT_GUIDE.md`).
 
 **Action Items:**
 1. Update GitHub issue labels from `domain:workexec` to `domain:people` for issues #149, #146, #145, #131, #132.
@@ -58,7 +58,7 @@ This ADR clarifies domain ownership boundaries for features that appear in WorkE
 - **#133** - Override Schedule Conflict (duplicate of #137)
 
 **Rationale:**
-- The **ShopMgmt domain** is the canonical owner of appointment scheduling, resource assignment, and dispatch workflows per existing architecture documented in `/home/louisb/Projects/durion/domains/shopmgmt/.business-rules/AGENT_GUIDE.md`.
+- The **ShopMgmt domain** is the canonical owner of appointment scheduling, resource assignment, and dispatch workflows per existing architecture documented in `$WORKSPACE/durion/domains/shopmgmt/.business-rules/AGENT_GUIDE.md`.
 - ShopMgmt domain summary: *"manages appointment scheduling and resource assignment within the modular POS system for automotive service shops"*.
 - Backend module `pos-shop-manager` exists and owns scheduling logic.
 - Scheduling policy enforcement, conflict detection, and override workflows are ShopMgmt responsibilities.
@@ -247,10 +247,10 @@ This ADR clarifies domain ownership boundaries for features that appear in WorkE
 
 ## References
 
-- **People Domain Business Rules:** `/home/louisb/Projects/durion/domains/people/.business-rules/DOMAIN_NOTES.md`
-- **ShopMgmt Domain Business Rules:** `/home/louisb/Projects/durion/domains/shopmgmt/.business-rules/AGENT_GUIDE.md`
-- **Accounting Domain Cross-Domain Guidance:** `/home/louisb/Projects/durion/domains/accounting/.business-rules/AGENT_GUIDE.md`
-- **Security Baseline Permissions:** `/home/louisb/Projects/durion/domains/security/docs/BASELINE_PERMISSIONS.md`
+- **People Domain Business Rules:** `$WORKSPACE/durion/domains/people/.business-rules/DOMAIN_NOTES.md`
+- **ShopMgmt Domain Business Rules:** `$WORKSPACE/durion/domains/shopmgmt/.business-rules/AGENT_GUIDE.md`
+- **Accounting Domain Cross-Domain Guidance:** `$WORKSPACE/durion/domains/accounting/.business-rules/AGENT_GUIDE.md`
+- **Security Baseline Permissions:** `$WORKSPACE/durion/domains/security/docs/BASELINE_PERMISSIONS.md`
 - **Backend Modules:**
   - `pos-people` (timekeeping owner)
   - `pos-shop-manager` (scheduling owner)

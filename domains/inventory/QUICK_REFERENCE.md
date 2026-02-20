@@ -198,7 +198,7 @@ Advanced features and optional items:
 
 ```bash
 # 1. Navigate to inventory domain
-cd /home/louisb/Projects/durion/domains/inventory
+cd $WORKSPACE/durion/domains/inventory
 
 # 2. Open the main planning document
 cat inventory-questions.md

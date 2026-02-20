@@ -309,7 +309,7 @@ BigDecimal taxRate = new BigDecimal("0.0825");
 ## Build Verification
 
 ```bash
-$ cd /home/louisb/Projects/durion-positivity-backend
+$ cd $WORKSPACE/durion-positivity-backend
 $ ./mvnw -pl pos-workorder -am clean compile
 [INFO] BUILD SUCCESS
 [INFO] Total time:  17.599 s

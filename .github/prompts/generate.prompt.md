@@ -1069,9 +1069,9 @@ If issues found:
 
 ### Step 2: Create Feature Branch
 ```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/{issue-number}-{domain}-{description}
+git switch develop
+git pull --ff-only origin develop
+git switch -c feature/{issue-number}-{domain}-{description}
 ```
 
 ### Step 3: Apply Code Files

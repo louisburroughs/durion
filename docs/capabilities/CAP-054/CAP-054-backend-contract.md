@@ -70,7 +70,7 @@
 
 ```diff
 *** Begin Patch
-*** Update File: /home/louisb/Projects/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+*** Update File: $WORKSPACE/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
 @@
 -**Version:** 1.0  
 +**Version:** 1.3  

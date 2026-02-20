@@ -2062,7 +2062,7 @@ gh repo create my-project --public \
 cd my-project
 
 # Set up branches
-git checkout -b develop
+git switch -c develop
 git push -u origin develop
 
 # Create labels
@@ -2100,7 +2100,7 @@ gh repo sync
 
 # Or manual sync
 git fetch upstream
-git checkout main
+git switch main
 git merge upstream/main
 git push origin main
 ```
