@@ -61,11 +61,10 @@ Treat each `pos-*` directory as a standard Spring Boot service using existing mo
   - Build a module: `./mvnw clean compile -pl pos-accounting -am`
   - Run a module: `./mvnw spring-boot:run -pl pos-accounting`
 - Prefer Actuator health checks when diagnosing runtime issues.
-- `pos-agent-framework` tests may require `GITHUB_TOKEN` via Maven settings; never hardcode tokens.
+- Some git calls may require `GITHUB_TOKEN` via Maven settings; never hardcode tokens.
 
 ### Events & Cross-Cutting Concerns
-
-- Prefer extending existing event models (e.g., accounting/audit trail events) rather than inventing ad-hoc messaging.
+- For cross-cutting concerns (security, events, accounting rules, inventory calculations), check relevant ADRs and docs before changing behavior.
 - Before changing cross-cutting behavior (security, event schemas, accounting rules, inventory calculations), check relevant ADRs and docs.
 
 

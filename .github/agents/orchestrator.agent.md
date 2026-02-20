@@ -118,9 +118,9 @@ When a task requires using a prompt file (e.g., `.github/prompts/backend-contrac
    - A "Runtime Context" section with actual file paths for each variable:
      ```
      ## Runtime Context
-     - BACKEND_CONTRACT_GUIDE_PATH: /home/louisb/Projects/durion/domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
-     - OPENAPI_PATH: /home/louisb/Projects/durion-positivity-backend/pos-{name}/target/openapi.json
-     - CAPABILITY_MANIFEST_PATH: /home/louisb/Projects/durion/docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
+     - BACKEND_CONTRACT_GUIDE_PATH: $WORKSPACE/durion/domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
+     - OPENAPI_PATH: $WORKSPACE/durion-positivity-backend/pos-{name}/target/openapi.json
+     - CAPABILITY_MANIFEST_PATH: $WORKSPACE/durion/docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
      - AUTOMATED_MODE: true
      ```
 4. **Call the appropriate agent** (Document Agent) using `runSubagent` with the complete prompt

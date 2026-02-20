@@ -18,7 +18,7 @@ This document outlines the frontend implementation for CAP-089 Party Management,
 4. **Story #98:** Search and Merge Duplicate Parties (Frontend Issue #173)
 
 All implementations will be created in the `durion-crm` component repository at:
-`/home/louisb/Projects/durion-moqui-frontend/runtime/component/durion-crm`
+`$WORKSPACE/durion-moqui-frontend/runtime/component/durion-crm`
 
 ---
 
@@ -507,7 +507,7 @@ Create tests for each screen's key user flows:
 
 ```bash
 # All work in feature branch
-cd /home/louisb/Projects/durion-moqui-frontend/runtime/component/durion-crm
+cd $WORKSPACE/durion-moqui-frontend/runtime/component/durion-crm
 git checkout cap/CAP089
 
 # After each story completion

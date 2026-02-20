@@ -25,7 +25,7 @@ last_updated: 2026-02-19
 This guide defines the Product backend contract for the Product domain, implemented by `pos-catalog`.
 
 Authoritative source for current endpoint inventory is (OpenAPI authoritative):
-- `/home/louisb/Projects/durion-positivity-backend/pos-catalog/openapi.json`
+- `$WORKSPACE/durion-positivity-backend/pos-catalog/openapi.json`
 
 ---
 
@@ -163,6 +163,82 @@ Note: OpenAPI (pos-catalog/openapi.json) is authoritative. All gateway examples 
 - `GET /v1/products/{productId}/detail` (gateway: `http://localhost:8080/v1/products/{productId}/detail`) — `getProductDetailView`
   - Query parameters: `location_id` (UUID, required)
   - Responses: `200 OK` + `ProductDetailView` (partial responses allowed), `400 Bad Request`, `404 Not Found`, `500 Server Error`
+
+### CAP-170 — Availability & Inventory Visibility
+
+- Consolidated product detail endpoint (aggregates availability from `pos-inventory`):
+  - `GET http://localhost:8080/v1/products/{productId}/detail?location_id={locationId}` — returns `ProductDetailView` which includes `availability: AvailabilityInfo`.
+
+- Purpose: Provide location-specific availability and lead-time information as part of the product detail response. The `pos-catalog` service queries `pos-inventory` at request time and performs graceful degradation when inventory is unavailable.
+
+- `ProductDetailView` (excerpt — availability-related fields):
+
+  - `productId`: string (UUID)
+  - `description`: string
+  - `pricing`: `PricingInfo`
+  - `availability`: `AvailabilityInfo`
+  - `generatedAt`: string (date-time)
+  - `confidence`: enum [LOW, MEDIUM, HIGH]
+
+- `AvailabilityInfo` schema (as returned by the product API):
+
+  - `onHandQuantity`: integer (int32) — On-hand quantity at the requested location
+  - `availableToPromiseQuantity`: integer (int32) — Quantity available to promise
+  - `leadTime`: `LeadTimeInfo` — see LeadTimeInfo schema (minDays, maxDays, displayText, source)
+  - `status`: enum { OK, UNAVAILABLE, STALE, ERROR }
+    - `OK` — availability data is fresh and authoritative
+    - `UNAVAILABLE` — inventory indicates zero availability at location
+    - `STALE` — availability data may be out-of-date (e.g., inventory service returned cached/stale values)
+    - `ERROR` — inventory service error or unable to retrieve availability
+  - `asOf`: string (date-time) — timestamp for availability measurement
+  - `confidence`: enum { LOW, MEDIUM, HIGH } — confidence level in availability data
+
+- Implementation notes / links (backend child issues):
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/46 — manufacturer feed normalization (related mapping integration)
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/47 — distributor feed normalization
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/48 — on-hand / ATP exposure from inventory
+
+- Provider test hints (ContractBehaviorIT):
+  - Provider tests should seed inventory rows for the location before calling the product-detail endpoint and assert `availability.onHandQuantity` and `availability.availableToPromiseQuantity` match expectations.
+  - Use the repository's contract test patterns (seed methods + BaseContractIntegrationTest / RestAssured integration helpers) to ensure real DB-backed tests rather than in-memory stubs.
+  - Include tests for graceful degradation: when `pos-inventory` returns an error or times out, the provider should still return `200 OK` with `availability.status` set to `STALE` or `ERROR` and appropriate `confidence` (e.g., LOW).
+
+- Behavioral assertions (must be asserted by provider tests):
+  - When `pos-inventory` is reachable and returns current data, `availability.status` == `OK` and `confidence` in {MEDIUM,HIGH}.
+  - When `pos-inventory` indicates zero stock at location, `availability.status` == `UNAVAILABLE` and `onHandQuantity` == 0.
+  - When `pos-inventory` is unreachable or returns an error, `availability.status` == `ERROR` (or `STALE` if cached fallback used) and `confidence` == `LOW`.
+  - `ProductDetailView` responses must never omit the `availability` field entirely; instead use `status` to communicate degraded data.
+
+- Notes on semantics:
+  - `pos-catalog` is the consolidation owner for `ProductDetailView`. Source-of-truth for availability numeric values is `pos-inventory`.
+  - `availability.leadTime` may be sourced from catalog master data or from inventory/supply-chain feeds; the `leadTime.source` field indicates origin.
+
+---
+
+### Manufacturer Part Mapping (related to Issue #46)
+
+- Endpoint (gateway): `GET http://localhost:8080/v1/products/manufacturerPartMap/resolve`
+  - Purpose: Resolve a manufacturer/distributor part identifier to a normalized product identifier in the catalog (used for matching external feeds to internal products).
+  - Query parameters (suggested): `mpn` (manufacturer part number, string), `manufacturerId` (UUID, optional), `upc` (optional). Implementations MAY accept other lookup keys.
+  - Responses:
+    - `200 OK` — returns mapping object: `{ manufacturerPartNumber, mappedProductId, source, confidence }`
+    - `404 Not Found` — no mapping available
+    - `400 Bad Request` — invalid query parameters
+  - Example response:
+
+```json
+{
+  "manufacturerPartNumber": "MPN-12345",
+  "mappedProductId": "550e8400-e29b-41d4-a716-446655440000",
+  "source": "MANUFACTURER_FEED|DISTRIBUTOR_FEED|MANUAL",
+  "confidence": "HIGH"
+}
+```
+
+- Test and implementation notes:
+  - Provider tests should include cases for exact MPN match, fallback to UPC, and manufacturer-disambiguation behavior.
+  - This endpoint is referenced by CAP-170 Issue #46 and should be implemented alongside feed normalization work.
+
 
 - `GET /v1/products/{productId}/substitutes` (gateway: `http://localhost:8080/v1/products/{productId}/substitutes`) — `getPartSubstitutes`
   - Current response: `501 Not Implemented`

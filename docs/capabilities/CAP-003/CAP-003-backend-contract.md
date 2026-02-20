@@ -75,7 +75,7 @@ Confidence estimates per step:
 The following apply_patch-ready changes were applied to `domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md`:
 
 *** Begin Patch
-*** Update File: /home/louisb/Projects/durion/domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+*** Update File: $WORKSPACE/durion/domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
 @@
 -**Version:** 0.2 (Synced with pos-workorder OpenAPI v1)
 -**Audience:** Backend developers, Frontend developers, API consumers

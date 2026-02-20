@@ -63,21 +63,26 @@ Contract guide entry (draft):
   2. Read and understand the backend child stories and their specific requirements. **READ COMMENTS FOR CLARIFICATION OF ISSUES IN THE STORIES**
   3. **Create or checkout the capability feature branch in the backend repository:**
      ```bash
-     cd /home/louisb/Projects/durion-positivity-backend
+     cd $WORKSPACE/durion-positivity-backend
      git fetch origin
-     git checkout main
-     git pull origin main
-     
-     # Try to checkout existing capability branch, or create it if doesn't exist
-     git checkout cap/CAP{{capability_id}} 2>/dev/null || git checkout -b cap/CAP{{capability_id}}
-     
-     # If branch exists remotely but not locally, track it
-     git branch --set-upstream-to=origin/cap/CAP{{capability_id}} cap/CAP{{capability_id}} 2>/dev/null || true
-     
-     # Pull latest changes if branch exists remotely
-     git pull origin cap/CAP{{capability_id}} 2>/dev/null || true
+     git switch main
+     git pull --ff-only origin main
+
+     # Try existing local capability branch first
+     git switch cap/CAP{{capability_id}}
+     # If previous command fails because local branch does not exist, run:
+     git switch -c cap/CAP{{capability_id}}
+
+     # If remote capability branch exists, run these:
+     git branch --set-upstream-to=origin/cap/CAP{{capability_id}} cap/CAP{{capability_id}}
+     git pull --ff-only origin cap/CAP{{capability_id}}
      ```
      **CRITICAL:** This command is idempotent and works whether this is the first story or subsequent story under this capability.
+     
+     **Auto-approve compatibility rules:**
+     - Run one command per line.
+     - Do not use command chaining (`&&`, `||`, `;`) or shell `if` blocks.
+     - Use fallback as a separate follow-up command only after a failure.
      
      **VERIFY BRANCH:** All subsequent code changes MUST be made while on this branch. Verify you are on the correct branch before making any file changes:
      ```bash
@@ -102,13 +107,13 @@ Contract guide entry (draft):
        - If the implementation differs from `openapi.json`, **fix the implementation**.
   5. **Commit changes to the feature branch:**
      ```bash
-     cd /home/louisb/Projects/durion-positivity-backend
+     cd $WORKSPACE/durion-positivity-backend
      git add .
      git commit -m "feat({{domain}}): implement CAP{{capability_id}} backend services"
      ```
   6. **Push the branch (DO NOT open a pull request):**
      ```bash
-     cd /home/louisb/Projects/durion-positivity-backend
+     cd $WORKSPACE/durion-positivity-backend
      git push -u origin cap/CAP{{capability_id}}
      ```
      

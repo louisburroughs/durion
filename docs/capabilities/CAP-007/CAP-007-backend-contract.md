@@ -18,7 +18,7 @@
 ## Section B — OpenAPI Delta (authoritative)
 
 Notes:
-- Source of truth: `/home/louisb/Projects/durion-positivity-backend/pos-workorder/openapi.json` (`openapi: 3.1.0`, `info.version: v1`).
+- Source of truth: `$WORKSPACE/durion-positivity-backend/pos-workorder/openapi.json` (`openapi: 3.1.0`, `info.version: v1`).
 - Domain inferred from manifest: `workexec`.
 - Gateway format applied to OpenAPI paths by ensuring `http://localhost:8080/v{version}/{domain}/{resource}`.
 

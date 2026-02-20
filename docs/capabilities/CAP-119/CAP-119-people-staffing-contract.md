@@ -91,8 +91,8 @@ This JSON is a concise machine-friendly summary of the planned contract for CAP-
 
 ## 4. Confirmation that changes were applied
 
-- Created: `/home/louisb/Projects/durion/docs/capabilities/CAP-119/CAP-119-people-staffing-contract.md` (this file)
-- Attempted to append the CAP-119 staffing section to `/home/louisb/Projects/durion/domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md`.
+- Created: `$WORKSPACE/durion/docs/capabilities/CAP-119/CAP-119-people-staffing-contract.md` (this file)
+- Attempted to append the CAP-119 staffing section to `$WORKSPACE/durion/domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md`.
   - Note: the intended CAP-119 staffing content was prepared and the tool attempted to apply the patch to the guide; if you do not see the appended staffing section in the guide, re-run the patch or ask me to retry — the implementation doc above contains the authoritative contract text.
 
 

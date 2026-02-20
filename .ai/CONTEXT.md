@@ -4,7 +4,6 @@
 
 Durion is a multi-repository platform for TIOTF/Durion initiatives, composed of:
 
-- **Durion Frontend Platform (Moqui)**: a Moqui Framework application providing ERP-style screens and modern UI (Vue.js + Quasar + TypeScript), organized as Moqui components under `runtime/component/`.
 - **Positivity POS Backend (Spring Boot)**: a Java 21, Spring Boot microservice suite organized as a monorepo with `pos-*` services, coordinated via an API gateway and service discovery.
 - **Supporting tools**: scripts and “workspace agents” used for automation, documentation, and developer workflows.
 
@@ -26,16 +25,6 @@ Durion is a multi-repository platform for TIOTF/Durion initiatives, composed of:
 - Container: Docker Compose for local orchestration
 - Ingress: API Gateway
 - Discovery: Service discovery module
-
-### Moqui Frontend Platform (durion-moqui-frontend)
-
-- Backend runtime: Java 11, Moqui Framework 3.x, Groovy scripting
-- Frontend: Vue.js 3.x, Quasar v2.x, TypeScript 5.x
-- Templating: FreeMarker (`.ftl`)
-- Build: Gradle (`./gradlew`), npm/yarn for frontend tooling
-- Database: PostgreSQL (primary), MySQL (supported)
-- Container: Docker Compose for local development
-- Testing: Spock (backend BDD), Jest (frontend)
 
 ## Repository Structure (high-level)
 
@@ -67,34 +56,6 @@ Positivity is organized as a monorepo with Spring Boot microservices supporting:
 - `pos-vehicle-reference-nhtsa/` — NHTSA integration
 - `pos-workorder/` — work orders/jobs
 
-### Moqui Frontend Platform (durion-moqui-frontend)
-
-- `framework/` — Moqui framework core
-- `runtime/conf/` — runtime configuration
-- `runtime/db/` — database scripts
-- `runtime/lib/` — runtime libraries
-
-Core Moqui components:
-
-- `runtime/component/PopCommerce/` — e-commerce domain
-- `runtime/component/HiveMind/` — project management
-- `runtime/component/mantle-udm/` — Universal Data Model
-- `runtime/component/mantle-usl/` — Universal Service Library
-- `runtime/component/moqui-fop/` — FOP integration
-
-Durion-specific components:
-
-- `runtime/component/durion-accounting/`
-- `runtime/component/durion-common/`
-- `runtime/component/durion-crm/`
-- `runtime/component/durion-demo-data/`
-- `runtime/component/durion-experience/`
-- `runtime/component/durion-inventory/`
-- `runtime/component/durion-positivity/` — integration layer component for connecting to Positivity backend services
-- `runtime/component/durion-product/`
-- `runtime/component/durion-theme/`
-- `runtime/component/durion-workexec/`
-
 Project configuration:
 
 - `docker/` — Docker Compose files
@@ -102,11 +63,9 @@ Project configuration:
 
 ## Operational Notes
 
-- Positivity backend build enforces Java 21; ensure local JDK 21 is active.
-- Moqui runtime requires Java 11; ensure local JDK 11 is active (often managed via `.sdkmanrc`).
+- Positivity backend build enforces Java 21; ensure local JDK 21 is active. (managed via `.sdkmanrc`)
 - Prefer running clients through the API Gateway rather than calling leaf services directly.
 - Use Docker Compose for local end-to-end testing across services.
-- In Moqui, the default runtime directory is created by Gradle tasks and may not be in source control.
 
 ## Security & Compliance
 
@@ -118,10 +77,6 @@ Project configuration:
 ## Development Guidance
 
 - Maintain clear domain boundaries and stable DTO-based API contracts.
-- For Moqui:
-  - Prefer Moqui service/entity/screen definitions (XML) and implement complex logic in Groovy.
-  - Follow Vue 3 Composition API patterns with TypeScript for UI code.
-  - Use the `durion-positivity` component for integration with the Positivity backend.
 - For Positivity backend:
   - Keep controllers thin; put business logic in services.
   - Prefer extending existing event models and shared event infrastructure.
@@ -130,8 +85,6 @@ Project configuration:
 ## Adjacent Projects
 
 - `durion-positivity-backend` — Java 21 Spring Boot microservices backend
-- `durion-moqui-frontend` — Moqui frontend platform
-- `durion/workspace-agents` — scripts and supporting automation tooling
 
 ## Context Management Rules
 
