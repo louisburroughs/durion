@@ -106,6 +106,16 @@ Purpose: identify high-quality, representative code examples for Java backend de
 - When adding entities, mirror the `ProductEntity` approach: add lifecycle metadata, use `@PrePersist` for IDs, and document schema with OpenAPI annotations where DTOs are returned.
 - Add unit tests that mirror the contract tests pattern already present under `pos-catalog/src/test/java/.../contract`.
 
+## API Documentation Annotation Standards
+
+- DTOs: add `@Schema` annotations for request/response DTO objects and important fields so contract metadata is explicit in generated OpenAPI.
+- Controllers: use OpenAPI annotations on endpoints and controllers (for example `@Tag`, `@Operation`, `@ApiResponse`, and `@Parameter`) unless already present and accurate.
+- Do **not** use the `@ApiResponses` wrapper annotation; Sonar flags it as unnecessary in this codebase. Prefer repeatable `@ApiResponse` annotations directly on the endpoint.
+- Keep annotations behavior-focused and synchronized with actual status codes, validation rules, and response shapes.
+- Reuse existing exemplar patterns instead of introducing custom annotation styles:
+  - `CatalogController.java` for controller-level and endpoint-level OpenAPI patterns.
+  - `InventoryAvailabilityResponse.java` for field-level `@Schema` usage.
+
 ---
 
 End of document.

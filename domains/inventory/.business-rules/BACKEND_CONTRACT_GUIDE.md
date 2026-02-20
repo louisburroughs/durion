@@ -730,6 +730,77 @@ This domain exposes **18** REST API endpoints:
 
 ---
 
+### CAP-170 — Availability & Inventory Visibility
+
+This section documents the contract additions for CAP-170 (Availability & Inventory Visibility).
+
+- **Gateway paths (v1 inventory):**
+  - `GET http://localhost:8080/v1/inventory/availability/{productId}`
+  - `POST http://localhost:8080/v1/inventory/availability/{productId}`
+
+- **Notes:**
+  - These endpoints are defined in the `Inventory Availability` tag in the service OpenAPI. The implementation currently contains stubs that may return `501 Not Implemented` for unimplemented behavior. The contract below specifies the expected production behavior for CAP-170.
+  - For CAP-170 the canonical response for the `GET` endpoint is a per-location array (multi-location) of availability objects (see schema section). This is an important contract requirement even though the current OpenAPI artifact includes a single-object schema reference; the contract requires a multi-location array response.
+
+- **Implementation links (backend stories):**
+  - Feed ingestion / manufacturer normalization: https://github.com/louisburroughs/durion-positivity-backend/issues/46
+  - Distributor feed normalization & lead-time policy: https://github.com/louisburroughs/durion-positivity-backend/issues/47
+  - Availability endpoint implementation & behavioral tests: https://github.com/louisburroughs/durion-positivity-backend/issues/48
+
+#### Response Shape (per-location availability)
+
+The `GET` response is a JSON array where each element represents availability for a single location for the requested product. Example element fields (field names normalized to contract):
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `productId` | string (uuid) | Yes | Product identifier |
+| `locationId` | string (uuid) | Yes | Location identifier |
+| `locationName` | string | No | Human readable location name (optional) |
+| `onHandQuantity` | number | Yes | Physical on-hand quantity at this location |
+| `allocatedQuantity` | number | Yes | Quantity currently allocated / reserved (hard commitments) |
+| `availableToPromiseQuantity` | number | Yes | ATP for this location (see ATP formula below) |
+| `uom` | string | Yes | Unit of measure (e.g., `EACH`) |
+| `asOfTimestamp` | string (date-time) | Yes | Timestamp when calculation was performed |
+| `expectedReceiptsQuantity` | number | No | Known expected receipts (not included in v1 ATP calculation) |
+
+The above fields map to the OpenAPI schema `InventoryAvailabilityResponse` properties (`onHandQty`, `allocatedQty`, `atpQty`, etc.). The contract uses the more explicit names above for clarity; implementers MUST accept either the OpenAPI canonical names or the contract names, but responses emitted by the service MUST use the contract field names in the array for multi-location results.
+
+#### ATP Calculation (Available-To-Promise)
+
+ATP is calculated per-location as:
+
+```
+ATP = On-Hand − Active Reservations
+```
+
+Active reservation statuses (counted in `allocatedQuantity` / active reservations): `RESERVED`, `ALLOCATED`, `PICK_ASSIGNED`, `ISSUE_PENDING`.
+
+Statuses that MUST NOT be counted as active reservations: `CANCELLED`, `RELEASED`, `EXPIRED`, `FULFILLED`.
+
+`expectedReceiptsQuantity` is recorded for visibility but is NOT included in the v1 ATP calculation.
+
+#### Behavioral Assertions (Issue #48 acceptance criteria)
+
+Implementations for `GET /v1/inventory/availability/{productId}` MUST satisfy the following:
+
+- When a valid `productId` exists but there is no stock across any locations, return `200 OK` with an empty array `[]` (empty locations list).
+- When `productId` is not found, return `404 Not Found` with the standard error response format defined in this guide.
+- When `productId` is malformed (invalid UUID) or missing, return `400 Bad Request` using the standard error response format.
+- ATP for each location MUST equal `onHandQuantity - sum(active reservations)` where active reservations are those with statuses `RESERVED`, `ALLOCATED`, `PICK_ASSIGNED`, `ISSUE_PENDING`.
+- The endpoint MUST return a per-location array even for single-location products; clients rely on the array shape.
+- The initial API stub may return `501 Not Implemented` (OpenAPI contains `501` responses). That is acceptable during early development, but the contract requires implementation and tests (Issue #48) before the capability is marked `stable-for-ui`.
+
+#### Related non-REST work (Issues #46 and #47)
+
+- Issue #46 implements manufacturer feed ingestion and normalization into `NormalizedAvailability` and `UnmappedManufacturerParts` artifacts; this work feeds the availability calculation pipeline and MUST be referenced by the availability implementation for source-of-truth reconciliation.
+- Issue #47 implements distributor feed normalization (DistributorSkuMap), lead-time normalization policy (versioned), and `shipFrom` region normalization (ISO 3166-2). These are pipeline/adapter stories and do not add REST endpoints, but are required for correct ATP/visibility.
+
+#### Test requirements
+
+- Provider contract tests (backend) MUST include tests that assert the behavioral assertions above (empty array, 404, 400, ATP formula). These tests are tracked in Issue #48.
+- Tests should seed normalized availability data (from the ingestion pipelines) and assert per-location ATP values match the formula.
+
+
 ## Entity-Specific Contracts
 
 ### AdjustmentResponse

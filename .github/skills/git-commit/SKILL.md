@@ -1,8 +1,7 @@
 ---
 name: git-commit
-description: 'Execute git commit with conventional commit message analysis, intelligent staging, and message generation. Use when user asks to commit changes, create a git commit, or mentions "/commit". Supports: (1) Auto-detecting type and scope from changes, (2) Generating conventional commit messages from diff, (3) Interactive commit with optional type/scope/description overrides, (4) Intelligent file staging for logical grouping'
+description: "Execute git commit with conventional commit analysis using safe, auto-approve-friendly commands. Use when user asks to commit changes, create a commit, or mentions '/commit'."
 license: MIT
-allowed-tools: Bash
 ---
 
 # Git Commit with Conventional Commits
@@ -10,6 +9,8 @@ allowed-tools: Bash
 ## Overview
 
 Create standardized, semantic git commits using the Conventional Commits specification. Analyze the actual diff to determine appropriate type, scope, and message.
+
+Primary goal: complete commit workflows using safe commands that are likely to pass terminal auto-approve rules without intervention.
 
 ## Conventional Commit Format
 
@@ -54,13 +55,8 @@ BREAKING CHANGE: `extends` key behavior changed
 ### 1. Analyze Diff
 
 ```bash
-# If files are staged, use staged diff
 git diff --staged
-
-# If nothing staged, use working tree diff
 git diff
-
-# Also check status
 git status --porcelain
 ```
 
@@ -69,15 +65,8 @@ git status --porcelain
 If nothing is staged or you want to group changes differently:
 
 ```bash
-# Stage specific files
 git add path/to/file1 path/to/file2
-
-# Stage by pattern
-git add *.test.*
-git add src/components/*
-
-# Interactive staging
-git add -p
+git add src/module/FileA.java src/module/FileB.java
 ```
 
 **Never commit secrets** (.env, credentials.json, private keys).
@@ -93,19 +82,10 @@ Analyze the diff to determine:
 ### 4. Execute Commit
 
 ```bash
-# Single line
 git commit -m "<type>[scope]: <description>"
-
-# Multi-line with body/footer
-git commit -m "$(cat <<'EOF'
-<type>[scope]: <description>
-
-<optional body>
-
-<optional footer>
-EOF
-)"
 ```
+
+Use one `-m` line by default for reliability with auto-approve.
 
 ## Best Practices
 
@@ -115,10 +95,50 @@ EOF
 - Reference issues: `Closes #123`, `Refs #456`
 - Keep description under 72 characters
 
-## Git Safety Protocol
+## Auto-Approve Compatibility Rules
 
-- NEVER update git config
-- NEVER run destructive commands (--force, hard reset) without explicit request
-- NEVER skip hooks (--no-verify) unless user asks
-- NEVER force push to main/master
-- If commit fails due to hooks, fix and create NEW commit (don't amend)
+Use these rules to minimize manual approval prompts.
+
+### Required Command Style
+
+- Run one command per line.
+- Do not chain commands with `&&`, `||`, or `;`.
+- Do not wrap git actions in `if`, `for`, or subshell scripting.
+- Prefer direct commands over interactive flows.
+- Use `git switch` for branch changes (not `git checkout`).
+
+### Safe Command Set (preferred)
+
+```bash
+git status --porcelain
+git diff
+git diff --staged
+git add path/to/file
+git add path/to/fileA path/to/fileB
+git restore --staged path/to/file
+git commit -m "type(scope): message"
+git log --oneline -n 10
+git show --name-only --oneline HEAD
+git fetch origin
+git pull origin <branch>
+git switch <branch>
+git switch -c <new-branch>
+```
+
+### Blocked by Default
+
+- `git reset --hard`
+- `git clean -fd`
+- `git checkout -- <file>`
+- `git push --force` or `--force-with-lease`
+- `git rebase` (unless explicitly requested)
+- `git commit --amend` (unless explicitly requested)
+- `git commit --no-verify` (unless explicitly requested)
+- Any command that edits global/local git config
+
+## Failure Handling
+
+- If `git commit` fails due to hooks or formatting checks, fix issues and retry normal `git commit`.
+- Do not bypass checks automatically.
+- If branch setup is needed, run each step as separate commands.
+- If a command is denied by policy, propose the minimal safe equivalent command.
