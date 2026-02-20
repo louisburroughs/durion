@@ -191,7 +191,7 @@ All implementations follow the backend contract guides:
 
 1. **Complete pos-customer implementation:**
    ```bash
-   cd /home/louisb/Projects/durion-positivity-backend
+   cd $WORKSPACE/durion-positivity-backend
    git checkout cap/CAP092
    # Implement remaining CRM snapshot service and controller
    ```

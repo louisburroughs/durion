@@ -384,8 +384,8 @@ All endpoints must include:
 
 ## References
 
-- Contract Guide: `/home/louisb/Projects/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- Error Codes: `/home/louisb/Projects/durion/domains/accounting/.business-rules/ERROR_CODES.md`
-- Backend AGENTS.md: `/home/louisb/Projects/durion-positivity-backend/AGENTS.md`
+- Contract Guide: `$WORKSPACE/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+- Error Codes: `$WORKSPACE/durion/domains/accounting/.business-rules/ERROR_CODES.md`
+- Backend AGENTS.md: `$WORKSPACE/durion-positivity-backend/AGENTS.md`
 - Parent Capability Issue: https://github.com/louisburroughs/durion/issues/50
 - Backend Story Issue: https://github.com/louisburroughs/durion-positivity-backend/issues/138

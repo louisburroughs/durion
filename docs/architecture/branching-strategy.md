@@ -5,6 +5,7 @@
 This document defines the branch naming conventions, protection rules, and workflow for all Durion projects (durion-moqui-frontend, durion-positivity-backend, durion, workspace-agents).
 
 The strategy uses **Git Flow** adapted for continuous delivery with the following principles:
+
 - `main` is production-ready code (released or releasing)
 - `develop` is integration branch for features
 - Feature, bugfix, and hotfix branches follow naming conventions
@@ -16,6 +17,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
 ## Branch Types & Naming Conventions
 
 ### 1. Main Branch: `main`
+
 - **Purpose**: Production-ready code, always deployable
 - **Protection Rules**:
   - ✓ Require pull request reviews (min 2 approvals)
@@ -27,6 +29,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
 - **Access**: Only release manager can merge to main
 
 ### 2. Develop Branch: `develop`
+
 - **Purpose**: Integration branch for features, staging for next release
 - **Protection Rules**:
   - ✓ Require pull request reviews (min 1 approval)
@@ -37,6 +40,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
 - **Merge to main**: When preparing a release (via release PR)
 
 ### 3. Feature Branches: `feature/{story-id}-{description}`
+
 - **Format**: `feature/{issue-number}-{kebab-case-description}`
 - **Examples**:
   - `feature/123-add-user-authentication`
@@ -52,6 +56,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
   - Avoid numbers-only descriptions
 
 ### 4. Bugfix Branches: `bugfix/{story-id}-{description}`
+
 - **Format**: `bugfix/{issue-number}-{kebab-case-description}`
 - **Examples**:
   - `bugfix/234-fix-inventory-calculation-edge-case`
@@ -62,6 +67,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
 - **Distinction**: Use `bugfix/` for bugs scheduled for next release; use `hotfix/` for production bugs (see below)
 
 ### 5. Hotfix Branches: `hotfix/{issue-id}-{description}`
+
 - **Format**: `hotfix/{issue-number}-{kebab-case-description}`
 - **Examples**:
   - `hotfix/999-critical-payment-processing-bug`
@@ -75,6 +81,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
 - **Release**: Tag a patch version on `main` (e.g., `v1.2.1`)
 
 ### 6. Release Branches: `release/{version}`
+
 - **Format**: `release/v{major}.{minor}.{patch}-rc{n}` or `release/{version}`
 - **Examples**:
   - `release/v1.2.0-rc1`
@@ -93,6 +100,7 @@ The strategy uses **Git Flow** adapted for continuous delivery with the followin
   7. Merge back to `develop` to sync version bumps
 
 ### 7. Experimental/Spike Branches: `spike/{description}` or `experiment/{description}`
+
 - **Format**: `spike/{kebab-case-description}` or `experiment/{description}`
 - **Examples**:
   - `spike/evaluate-nextjs-migration`
@@ -118,6 +126,7 @@ Follow **Conventional Commits** format:
 ```
 
 ### Type
+
 - `feat`: A new feature
 - `fix`: A bug fix
 - `docs`: Documentation only changes
@@ -129,20 +138,24 @@ Follow **Conventional Commits** format:
 - `chore`: Build process, dependency updates, tooling
 
 ### Scope (Optional but Recommended)
+
 - Component or module being changed (e.g., `inventory`, `auth`, `quasar-dialog`)
 
 ### Subject
+
 - Use imperative mood ("add" not "added" or "adds")
 - Don't capitalize first letter
 - No period at the end
 - Limit to 50 characters
 
 ### Body (Optional)
+
 - Explain what and why, not how
 - Wrap at 72 characters
 - Separate from subject with blank line
 
 ### Footer (Optional)
+
 - Reference GitHub issues: `Closes #123`, `Fixes #456`
 - Note breaking changes: `BREAKING CHANGE: description`
 
@@ -183,13 +196,14 @@ ci: add property-based testing to Maven test phase
 1. **Branch Creation**: Create feature/bugfix/hotfix branch from appropriate source
 2. **Local Work**: Make atomic commits following Conventional Commits format
 3. **Push to Remote**: `git push origin feature/123-description`
-4. **Open PR**: 
+4. **Open PR**:
    - Use PR template (if available in `.github/pull_request_template.md`)
    - Link related issues: "Closes #123"
    - Add labels: `domain:*`, `type:*`, `priority:*`
    - Request reviewers (min 2 for main, min 1 for develop)
 
 ### PR Title Format
+
 - Follow same format as commit messages where possible
 - Link issue in title or description: `#123`
 - Examples:
@@ -197,6 +211,7 @@ ci: add property-based testing to Maven test phase
   - `fix(auth): resolve JWT token expiry bug (fixes #456)`
 
 ### PR Description Template
+
 ```markdown
 ## Description
 Brief summary of changes
@@ -229,12 +244,14 @@ Related to #789
 ### Review Requirements
 
 #### For `develop` branch (min 1 approval)
+
 - Code follows project conventions
 - Tests are adequate
 - No obvious security/performance issues
 - Documentation is updated
 
 #### For `main` branch (min 2 approvals)
+
 - All code quality checks pass
 - Code review from domain expert
 - Release manager approval
@@ -263,9 +280,9 @@ Related to #789
 
 ```bash
 # 1. Create feature branch from develop
-git checkout develop
-git pull origin develop
-git checkout -b feature/123-add-new-feature
+git switch develop
+git pull --ff-only origin develop
+git switch -c feature/123-add-new-feature
 
 # 2. Make commits (follow Conventional Commits)
 git commit -m "feat(inventory): add new item type support"
@@ -283,17 +300,17 @@ git push origin feature/123-add-new-feature
 # 5. Merge after approval (squash merge recommended)
 # Merge via GitHub UI: Squash and Merge
 # Delete branch after merge
-git checkout develop
-git pull origin develop
+git switch develop
+git pull --ff-only origin develop
 ```
 
 ### Hotfix for Production Bug
 
 ```bash
 # 1. Create hotfix branch from main
-git checkout main
-git pull origin main
-git checkout -b hotfix/999-critical-bug-fix
+git switch main
+git pull --ff-only origin main
+git switch -c hotfix/999-critical-bug-fix
 
 # 2. Make targeted fix
 git commit -m "fix(payment): critical payment processing bug"
@@ -305,14 +322,14 @@ git push origin hotfix/999-critical-bug-fix
 # 4. Merge to main after approval
 # GitHub UI: Create merge commit (preserve history)
 # Tag the release
-git checkout main
-git pull origin main
+git switch main
+git pull --ff-only origin main
 git tag v1.2.1
 git push origin v1.2.1
 
 # 5. Also merge to develop to stay in sync
-git checkout develop
-git pull origin develop
+git switch develop
+git pull --ff-only origin develop
 git merge --no-ff main  # Keep merge commit for history
 git push origin develop
 
@@ -324,9 +341,9 @@ git push origin --delete hotfix/999-critical-bug-fix
 
 ```bash
 # 1. Create release branch from develop
-git checkout develop
-git pull origin develop
-git checkout -b release/v1.2.0
+git switch develop
+git pull --ff-only origin develop
+git switch -c release/v1.2.0
 
 # 2. Bump versions
 # Update package.json, build.gradle, pom.xml, etc.
@@ -341,16 +358,16 @@ git push origin release/v1.2.0
 
 # 5. Merge to main (create merge commit)
 # GitHub UI: Create merge commit
-git checkout main
-git pull origin main
+git switch main
+git pull --ff-only origin main
 
 # 6. Tag the release
 git tag v1.2.0
 git push origin v1.2.0
 
 # 7. Merge back to develop (keep version bumps in sync)
-git checkout develop
-git pull origin develop
+git switch develop
+git pull --ff-only origin develop
 git merge --no-ff main
 git push origin develop
 
@@ -409,16 +426,19 @@ allow_deletions: false
 ## Tags & Versioning
 
 ### Version Tag Format
+
 - **Production Release**: `v{major}.{minor}.{patch}` (e.g., `v1.2.3`)
 - **Release Candidate**: `v{major}.{minor}.{patch}-rc{n}` (e.g., `v1.2.0-rc1`)
 - **Development Release**: `v{major}.{minor}.{patch}-dev{n}` (e.g., `v1.3.0-dev5`)
 
 ### Semantic Versioning
+
 - **MAJOR**: Breaking changes to APIs or data contracts
 - **MINOR**: New feature or functionality, backward-compatible
 - **PATCH**: Bug fixes, backward-compatible
 
 ### Tag Creation
+
 ```bash
 # Create and push tag
 git tag v1.2.3
@@ -434,16 +454,20 @@ git push origin v1.2.0-rc1
 ## Common Issues & Resolution
 
 ### Issue: "Your branch has diverged"
+
 **Cause**: Remote branch changed since you last pulled
 **Solution**:
+
 ```bash
 git fetch origin
 git rebase origin/develop  # or main
-git push origin feature/123-description -f  # Force push only on feature branches
+git push origin feature/123-description --force-with-lease  # Force push only on feature branches
 ```
 
 ### Issue: "Cannot merge, conflicts exist"
+
 **Solution**:
+
 ```bash
 git fetch origin
 git merge origin/develop
@@ -454,10 +478,13 @@ git push origin feature/123-description
 ```
 
 ### Issue: "PR title doesn't match Conventional Commits"
+
 **Solution**: Edit PR title in GitHub to match format
 
 ### Issue: "Need to undo a commit already pushed"
+
 **Solution** (for feature branches only):
+
 ```bash
 git revert <commit-hash>  # Safe: creates inverse commit
 git push origin feature/123-description

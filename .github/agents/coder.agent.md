@@ -96,9 +96,18 @@ You are running in a Linux environment. You are explicitly authorized and encour
 
 For Java projects, use SDKMAN to discover and activate Java versions before running build/test commands: use `sdk list java` to find available versions, then `sdk env` (or `sdk use java <version>`) to load the correct JDK.
 
+### Terminal Command Safety (Auto-Approve Compatibility)
+
+- Run one terminal command per line.
+- Do not chain commands with `&&`, `||`, or `;` in normal workflows.
+- Prefer `git switch` for branch changes and `git pull --ff-only` for updates.
+- Prefer plain `git ...` commands that start at column 1 for auto-approve regex matching.
+- Do not use shell `if`/`then`/`fi` blocks in normal workflows.
+- For fallback behavior, run a second explicit command after a failure (separate line), not in the same command.
+
 ## Code Exemplars (MANDATORY)
 
-**ALWAYS consult `/home/louisb/Projects/durion/docs/EXEMPLARS.md` when building code.** This file contains high-quality, production-ready code examples demonstrating:
+**ALWAYS consult `$WORKSPACE/durion/docs/EXEMPLARS.md` when building code.** This file contains high-quality, production-ready code examples demonstrating:
 
 - **Presentation Layer (Controllers)**: Thin controller patterns with `@EmitEvent`, authorization guards, DTO mapping, and consistent REST endpoint design
 - **Business Logic Layer (Services)**: Service interfaces, domain orchestration, validation, and error handling patterns
@@ -108,7 +117,7 @@ For Java projects, use SDKMAN to discover and activate Java versions before runn
 - **Configuration & Observability**: Actuator setup, OpenTelemetry integration, and `pos-events` usage
 
 **Before implementing any new feature:**
-1. Read the relevant exemplar sections in `/home/louisb/Projects/durion/docs/exemplars.md`
+1. Read the relevant exemplar sections in `$WORKSPACE/durion/docs/exemplars.md`
 2. Follow the established patterns (thin controllers, service orchestration, repository queries)
 3. Use the same annotations, naming conventions, and structural patterns
 4. Apply the test mock guidance for deterministic, reliable tests
@@ -123,20 +132,22 @@ For Java projects, use SDKMAN to discover and activate Java versions before runn
 
 ## ADR Compliance (Mandatory)
 
-Before writing or modifying code, you MUST consult applicable ADRs in `/home/louisb/Projects/durion/docs/adr/`.
+Before writing or modifying code, you MUST consult applicable ADRs in `$WORKSPACE/durion/docs/adr/`.
 
 Required workflow:
-1. Read `/home/louisb/Projects/durion/AGENTS.md` ADR policy section first.
-2. Review `/home/louisb/Projects/durion/docs/adr/README.md` to identify relevant ADRs and latest statuses.
+1. Read `$WORKSPACE/durion/AGENTS.md` ADR policy section first.
+2. Review `$WORKSPACE/durion/docs/adr/README.md` to identify relevant ADRs and latest statuses.
 3. Apply the latest `ACCEPTED` ADRs before implementation.
 4. If code conflicts with ADR, follow ADR and include migration notes in your summary.
 5. If no ADR exists for an architecture-impacting decision, flag the gap and propose a new ADR.
 
-Minimum ADRs for backend coding:
-- `/home/louisb/Projects/durion/docs/adr/0011-api-gateway-security-architecture.adr.md`
-- `/home/louisb/Projects/durion/docs/adr/0014-gateway-internal-service-security.adr.md`
-- `/home/louisb/Projects/durion/docs/adr/0017-api-controller-http-response-codes.adr.md`
-- `/home/louisb/Projects/durion/docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
+ADRs for backend coding (mandatory full reference):
+- Read all ADR files under `$WORKSPACE/durion/docs/adr/` before implementation.
+- Produce a concise ADR summary for the task context, including:
+  - accepted ADRs that directly constrain the change
+  - deprecated/superseded ADRs that must not be followed
+  - explicit implementation implications for this story
+- Keep the summary in the agent response so decisions are traceable during coding and review.
 
 ## Mandatory Coding Principles
 
@@ -271,10 +282,14 @@ If you execute `capability-completion.prompt.md`, creating the PR is your PRIMAR
 
 **Branch Creation Pattern (from backend-story-fulfillment.prompt.md):**
 ```bash
-# This is idempotent - works for first story or subsequent stories
-git checkout cap/CAP{{capability_id}} 2>/dev/null || git checkout -b cap/CAP{{capability_id}}
-git branch --set-upstream-to=origin/cap/CAP{{capability_id}} cap/CAP{{capability_id}} 2>/dev/null || true
-git pull origin cap/CAP{{capability_id}} 2>/dev/null || true
+# Auto-approve friendly: plain git commands only, one command per line
+git fetch origin
+git switch cap/CAP{{capability_id}}
+# If previous command fails because branch is missing, run:
+git switch -c cap/CAP{{capability_id}}
+git branch --set-upstream-to=origin/cap/CAP{{capability_id}} cap/CAP{{capability_id}}
+git pull --ff-only origin cap/CAP{{capability_id}}
+
 ```
 
 **When to Use Each Prompt:**

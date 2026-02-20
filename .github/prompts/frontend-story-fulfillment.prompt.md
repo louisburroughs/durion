@@ -64,16 +64,16 @@ Backend API endpoint/event is now implemented and available:
      For each repository in `impacted_component_repos`:
      ```bash
      # Example for durion-crm component
-     cd /home/louisb/Projects/durion-crm
+     cd $WORKSPACE/durion-crm
      git fetch origin
      git checkout main
      git pull origin main
      git checkout -b cap/CAP{{capability_id}}
      ```
      
-     **Component Repository Paths:** Frontend components are located at `/home/louisb/Projects/{repo-name}` where `{repo-name}` is extracted from the impacted_component_repos slug. For example:
-     - `louisburroughs/durion-crm` → `/home/louisb/Projects/durion-moqui-frontend/runtime/component/durion-crm`
-     - `louisburroughs/durion-hr` → `/home/louisb/Projects/durion-moqui-frontend/runtime/component/durion-hr`
+     **Component Repository Paths:** Frontend components are located at `$WORKSPACE/{repo-name}` where `{repo-name}` is extracted from the impacted_component_repos slug. For example:
+     - `louisburroughs/durion-crm` → `$WORKSPACE/durion-moqui-frontend/runtime/component/durion-crm`
+     - `louisburroughs/durion-hr` → `$WORKSPACE/durion-moqui-frontend/runtime/component/durion-hr`
      
      **IMPORTANT:** All subsequent code changes MUST be made in these component repositories while on the feature branch. Verify you are on the correct branch before making any file changes:
      ```bash
@@ -88,14 +88,14 @@ Backend API endpoint/event is now implemented and available:
   5. **Commit changes to the feature branch in each component repository:**
      ```bash
      # Repeat for each impacted component repository
-     cd /home/louisb/Projects/durion-crm  # or durion-hr, etc.
+     cd $WORKSPACE/durion-crm  # or durion-hr, etc.
      git add .
      git commit -m "feat({{domain}}): implement CAP{{capability_id}} frontend UI"
      ```
   6. **Push the branch and create a pull request for each component repository:**
      ```bash
      # Repeat for each impacted component repository
-     cd /home/louisb/Projects/durion-crm  # or durion-hr, etc.
+     cd $WORKSPACE/durion-crm  # or durion-hr, etc.
      git push -u origin cap/CAP{{capability_id}}
      
      # Create PR using GitHub CLI
@@ -114,7 +114,7 @@ Architecture & References:
 - **Integration bridge:** The `runtime/component/durion-positivity/` component inside durion-moqui-frontend provides the API bridge to backend services — prefer this existing bridge for backend calls.
 
 Implementation Patterns & Links:
-- **Repository Structure:** Frontend components live in separate git repositories (e.g., `/home/louisb/Projects/durion-crm`) but are mounted into the Moqui runtime at `runtime/component/{component-name}/` during development and deployment.
+- **Repository Structure:** Frontend components live in separate git repositories (e.g., `$WORKSPACE/durion-crm`) but are mounted into the Moqui runtime at `runtime/component/{component-name}/` during development and deployment.
 - **Screen Location:** Create Moqui XML screens in `{component-repo}/screen/` directory following the path pattern `screen/durion/{domain}/{ScreenName}.xml`
 - Services: Implement API calls in a services layer (composables or service classes) following the frontend architecture doc and `durion-moqui-frontend/AGENTS.md` guidance.
 - Components: Keep presentation logic inside Vue components; put business logic and state orchestration in services/composables as documented in `docs/architecture/`.

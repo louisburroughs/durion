@@ -485,5 +485,5 @@ X-API-Version: 1
 **Confidence:** 98%
 
 To apply the guide updates, the edited file is:
-`/home/louisb/Projects/durion/domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+`$WORKSPACE/durion/domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md`
 

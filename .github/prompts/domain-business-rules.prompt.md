@@ -180,12 +180,12 @@ For each resolved open question, provide a testable acceptance criteria block:
 Additional rules
 - Prefer accounting document structure: Decision Index table, explicit Decision IDs, and separation of normative vs non-normative content.
 - If a question lacks context, pick a safe default, document assumptions, and mark the decision with `safe_to_defer: true` if it should be re-evaluated.
-- File output behavior: The agent must write the three Markdown files to `/home/louisb/Projects/durion/domains/{domain}/.business-rules/`. If files with the same names already exist in that directory, rename/replace them. After writing the files, the agent should send a concise chat confirmation listing the file paths it created/updated (one line per file) and any brief notes (maximum two sentences). The agent must not output the full file contents to the chat console.
+- File output behavior: The agent must write the three Markdown files to `$WORKSPACE/durion/domains/{domain}/.business-rules/`. If files with the same names already exist in that directory, rename/replace them. After writing the files, the agent should send a concise chat confirmation listing the file paths it created/updated (one line per file) and any brief notes (maximum two sentences). The agent must not output the full file contents to the chat console.
 
 
 Output format for the agent run
 
-- Primary behavior: The agent must create or update the three required Markdown files in `/home/louisb/Projects/durion/domains/{domain}/.business-rules/`. If files with the same names already exist, rename and replace them. Do not return the full file contents in the chat. After successfully writing the files, the agent should output only a brief confirmation message in chat listing the file paths written and a short success summary (max two sentences).
+- Primary behavior: The agent must create or update the three required Markdown files in `$WORKSPACE/durion/domains/{domain}/.business-rules/`. If files with the same names already exist, rename and replace them. Do not return the full file contents in the chat. After successfully writing the files, the agent should output only a brief confirmation message in chat listing the file paths written and a short success summary (max two sentences).
 
 - Fallback behavior: If the execution environment prevents writing files to disk, the agent must clearly explain the limitation and only then return the concatenated file contents in the chat as a last resort. When returning content as a fallback, the agent must prefix the concatenation exactly with these markers:
 

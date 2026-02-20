@@ -9,7 +9,7 @@
 ## What Was Created
 
 ### 1. Core Planning Document
-📄 **[/home/louisb/Projects/durion/domains/inventory/inventory-questions.md](inventory/inventory-questions.md)** (27 KB)
+📄 **[$WORKSPACE/durion/domains/inventory/inventory-questions.md](inventory/inventory-questions.md)** (27 KB)
 
 **Purpose:** Comprehensive Phase 3 implementation plan for unblocking all 20 inventory issues
 
@@ -28,7 +28,7 @@
 ---
 
 ### 2. Execution Guide & README
-📄 **[/home/louisb/Projects/durion/domains/inventory/INVENTORY_PLANNING_README.md](inventory/INVENTORY_PLANNING_README.md)** (14 KB)
+📄 **[$WORKSPACE/durion/domains/inventory/INVENTORY_PLANNING_README.md](inventory/INVENTORY_PLANNING_README.md)** (14 KB)
 
 **Purpose:** Quick-start guide for teams executing the Phase 3 plan
 
@@ -46,9 +46,9 @@
 ---
 
 ### 3. Label Update Scripts (Created Earlier)
-✅ **[/home/louisb/Projects/durion/scripts/update-accounting-issue-labels.sh](scripts/update-accounting-issue-labels.sh)** (Bash version)
+✅ **[$WORKSPACE/durion/scripts/update-accounting-issue-labels.sh](scripts/update-accounting-issue-labels.sh)** (Bash version)
 
-✅ **[/home/louisb/Projects/durion/scripts/update-accounting-issue-labels.py](scripts/update-accounting-issue-labels.py)** (Python version)
+✅ **[$WORKSPACE/durion/scripts/update-accounting-issue-labels.py](scripts/update-accounting-issue-labels.py)** (Python version)
 
 **Note:** These are for accounting issues. Similar scripts will be needed for inventory issues once Phase 3 completion decisions are made.
 
@@ -291,7 +291,7 @@ Full details: [link to inventory-questions.md#issue-X]
 ## File Locations
 
 ```
-/home/louisb/Projects/durion/
+$WORKSPACE/durion/
 ├── domains/
 │   └── inventory/
 │       ├── inventory-questions.md ............... 27 KB (Phase 3 Plan)

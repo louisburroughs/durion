@@ -25,7 +25,7 @@ last_updated: 2026-02-19
 This guide defines the Product backend contract for the Product domain, implemented by `pos-catalog`.
 
 Authoritative source for current endpoint inventory is (OpenAPI authoritative):
-- `/home/louisb/Projects/durion-positivity-backend/pos-catalog/openapi.json`
+- `$WORKSPACE/durion-positivity-backend/pos-catalog/openapi.json`
 
 ---
 
