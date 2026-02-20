@@ -262,6 +262,14 @@ Multi-line block template (when a larger region is required):
 - Favor deterministic, testable behavior.
 - Keep tests simple and focused on verifying observable behavior.
 
+### Pre-existing Test Failures Policy
+
+- Pre-existing `ArchitectureTest` failures are **mandatory to fix** when encountered.
+- Do not ignore, defer, or work around `ArchitectureTest` failures; bring them to passing in the same effort.
+- For other pre-existing test failures, use engineering judgment:
+  - fix when reasonably in-scope and low-risk,
+  - otherwise document the failure, impact, and why it is out-of-scope in the handoff/summary.
+
 10. Process Tracking
 - Do not write to `Durion-Processing.md`.
 - Inform the Planner agent of your status so it can make updates to `Durion-Processing.md`.
