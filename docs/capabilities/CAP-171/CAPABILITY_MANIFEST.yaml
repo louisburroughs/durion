@@ -28,7 +28,7 @@ stories:
     repo: louisburroughs/durion
     issue: 171
     title: '[CAP] Substitutions, Fitment Hints, and Commercial Rules'
-    domain: product
+    domains: [vehicle-fitment, pricing, workexec]
     labels:
     - type:capability
     - layer:functional
@@ -38,12 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 43
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 107
-      impacted_component_repos:
-      - louisburroughs/durion-product
+      issues: [43, 44,45]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-rules-enforce-location-restrictions-107.wf.md
