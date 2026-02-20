@@ -9,7 +9,7 @@ contract:
   openapi_source: durion-positivity-backend/pos-workorder/openapi.json
 traceability:
   capability_manifest: docs/capabilities
-last_updated: 2026-02-19
+last_updated: 2026-02-20
 ---
 
 # WorkExec Backend Contract Guide
@@ -734,6 +734,59 @@ Body may be empty (`{}` or no body). If omitted, backend derives finalization ac
 - Existing error envelope rules from this guide remain mandatory for all CAP-007 endpoints.
 
 ---
+
+### CAP-169 — Pricing Service for Estimates & Workorders
+
+**Issue #49 — Handle Substitution Pricing for Part Substitutions**
+
+The `POST /v1/workorders/{workorderId}/parts/substitute` endpoint (already documented) now requires full implementation with pricing integration.
+
+Request (SubstitutePartRequest):
+
+```json
+{
+  "originalPartId": "uuid",
+  "substitutePartId": "uuid",
+  "reason": "SUPPLIER_SUBSTITUTION",
+  "notes": "optional notes"
+}
+```
+
+Response (201 Created — WorkorderPartAdjustmentEventResponse):
+
+```json
+{
+  "adjustmentId": "uuid",
+  "workorderId": "uuid",
+  "lineItemId": "uuid",
+  "originalPartId": "uuid",
+  "substitutePartId": "uuid",
+  "lockedUnitPrice": 50.00,
+  "currency": "USD",
+  "priceLockStatus": "LOCKED",
+  "isSubstituted": true,
+  "substitutionHistoryId": "uuid",
+  "adjustedAt": "2026-02-20T10:00:00Z"
+}
+```
+
+New entities (owned by `domain:workexec`):
+
+- `WorkOrderPartSubstitution`: substitutionId, workOrderId, workOrderLineItemId, originalProductId, originalPartNumberSnapshot, substituteProductId, substitutePartNumberSnapshot, selectedBy, selectedAt, reasonCode, pricingSnapshot (JSONB), status (APPLIED|REVERSED|SUPERSEDED)
+- `WorkOrderLineItem` additions: isSubstituted (boolean), priceLockStatus (UNLOCKED|LOCKED), originalProductId (nullable UUID)
+
+Behavioral assertions for provider contract tests:
+- Scenario 1: Valid workorder + available substitute + pricing available → 201 + `WorkOrderPartSubstitution` record created + line item updated with `priceLockStatus=LOCKED`, `isSubstituted=true`
+- Scenario 2: No substitutes found → API returns empty candidates list (not 404)
+- Scenario 4: Pricing service fails for substitute → substitute shown with `priceStatus=UNAVAILABLE`
+
+Gateway path format: `http://localhost:8080/v1/workexec/workorders/{workorderId}/parts/substitute`
+
+Notes:
+- Price locked at time of selection (`priceLockStatus=LOCKED`)
+- Repricing requires explicit permission `REPRICE_WORKORDER_LINE`
+- Emit domain event `workexec.WorkOrder.PartSubstituted` on success
+- Original part number preserved in `WorkOrderPartSubstitution.originalPartNumberSnapshot`
 
 ## Change Requests (Additional Work Requests)
 <!-- contract-status: stable-for-ui -->

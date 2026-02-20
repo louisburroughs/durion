@@ -25,9 +25,9 @@ The script:
 Usage:
   pip install requests pyyaml
   export GITHUB_TOKEN=...
-  python bulk_create_issues_from_manifest.py nlt-i/manifest.json
-  python bulk_create_issues_from_manifest.py nlt-i/manifest.json --dry-run
-  python bulk_create_issues_from_manifest.py nlt-i/manifest.json --start 5 --limit 3
+  python bulk_create_issues_from_manifest.py nlti/manifest.json
+  python bulk_create_issues_from_manifest.py nlti/manifest.json --dry-run
+  python bulk_create_issues_from_manifest.py nlti/manifest.json --start 5 --limit 3
 """
 
 from __future__ import annotations
