@@ -19,58 +19,10 @@
 - API Contract: Formal specification of request/response formats and behavior for REST endpoints.
 - DTO (Data Transfer Object): Schema for requests/responses between services and clients; defines stable API contracts.
 
-## Moqui Core Terminology (Frontend Platform)
-
-- Moqui Framework: Enterprise application framework for building database-backed business applications with XML entity/service definitions and Groovy scripting.
-- Entity (Moqui): Data model definition in Moqui (XML); represents database tables and relationships.
-- Service (Moqui): Business logic definition in Moqui (XML); can be implemented in Groovy, Java, or script.
-- Screen: UI definition in Moqui (XML); renders web pages using FreeMarker templates and Vue.js components.
-- Component (Moqui): Modular Moqui application package containing entities, services, screens, and resources.
-- Runtime: Directory containing Moqui components, configuration, database, and runtime data.
-- mantle-udm: Universal Data Model; core entity definitions for parties, products, orders, accounting.
-- mantle-usl: Universal Service Library; reusable service patterns and business logic.
-- FreeMarker: Template engine used by Moqui for server-side rendering (.ftl files).
-- Groovy: JVM scripting language used for Moqui service implementations and business logic.
-- Entity Facade: Moqui API for database operations; provides abstraction over JDBC.
-- Service Facade: Moqui API for invoking services; handles transactions, authorization, and execution.
-- Screen Facade: Moqui API for rendering screens and managing UI state.
-
-## Durion Application Components (Moqui)
-
-- durion-accounting: Durion component for financial accounting, GL, AR/AP.
-- durion-common: Shared UI components, styles, utilities, and libraries for Durion.
-- durion-crm: Customer relationship management component for Durion.
-- durion-demo-data: Sample/demo datasets for Durion components.
-- durion-experience: Frontend experience layer (themes, layouts, navigation).
-- durion-inventory: Inventory management component (stock, movements, locations).
-- durion-product: Product master data and catalog management.
-- durion-theme: Theme assets (CSS, images, fonts) and branding configuration.
-- durion-workexec: Work execution and shop operations management.
-- durion-positivity: Moqui component providing integration layer for connecting Durion frontend to the Positivity backend services.
-- durion-positivity-backend: Separate Spring Boot microservices backend repository providing business logic and data persistence (Java 21).
-- durion-positivity Integration: Component bridging Durion frontend with Positivity services via REST.
-- Positivity Backend: Java 21 Spring Boot microservices providing backend business logic.
-
-## Standard Moqui Components
-
-- PopCommerce: E-commerce component (orders, products, pricing, customers).
-- HiveMind: Project management and collaboration component (tasks, wikis, time tracking).
-- MarbleERP: Manufacturing and MRP component (production, BOM, work centers).
-- SimpleScreens: Reusable dashboard and UI component library.
-- moqui-fop: Apache FOP integration for PDF/document rendering.
-
-## Frontend Technology
-
-- Vue.js 3: Progressive JavaScript framework for building user interfaces.
-- Composition API: Vue.js 3 API style for organizing component logic with setup(), ref(), reactive(), and composables.
-- Quasar v2: Vue.js 3 component framework with Material Design for responsive web/mobile applications.
-- TypeScript: Typed superset of JavaScript for type-safe frontend development.
-- Single File Component (SFC): Vue.js component format (.vue files) containing template, script, and style.
-
 ## Testing Frameworks
 
-- Spock Framework: Groovy-based BDD testing framework for Moqui backend services and business logic.
-- Jest: JavaScript testing framework for Vue.js frontend components and TypeScript code.
+<!-- - Spock Framework: Groovy-based BDD testing framework for Moqui backend services and business logic.
+- Jest: JavaScript testing framework for Vue.js frontend components and TypeScript code. -->
 - BDD (Behavior-Driven Development): Testing approach using given-when-then specifications.
 
 ## Domain-Driven Design (DDD)
@@ -109,31 +61,10 @@
 - NHTSA: U.S. National Highway Traffic Safety Administration; provides vehicle reference data.
 - CarAPI: Third-party vehicle data provider used for reference and enrichment.
 
-## Agent Framework Terminology
-
-- Agent: A specialized AI assistant with domain-specific expertise.
-- Agent Response: Guidance provided by agents to developers.
-- Agent Framework: Infrastructure and libraries enabling automation agents to run tasks, integrate with services, and orchestrate workflows.
-- Agent Structure System: Framework of specialized AI agents for Positivity POS development.
-
-### Agent Roles
-
-- Architecture Agent: Core agent providing system-wide architectural guidance and design patterns for microservice boundaries and integration.
-- Implementation Agent: Core agent specializing in Spring Boot microservice development, business logic, and data access patterns.
-- Deployment Agent: Core agent focused on Docker containerization, AWS Fargate deployment, and CI/CD pipeline design.
-- Testing Agent: Core agent providing comprehensive testing strategies including unit, integration, and contract testing.
-- Architectural Governance Agent: Specialized agent enforcing domain-driven design principles, preventing circular dependencies, and managing technical debt.
-- Integration & Gateway Agent: Specialized agent for API Gateway integration, REST API design, OpenAPI specifications, and external service patterns.
-- Security Agent: Specialized agent ensuring comprehensive security across microservices including JWT authentication, OWASP compliance, and secrets management.
-- Observability Agent: Specialized agent for OpenTelemetry instrumentation, Grafana dashboards, Prometheus metrics, and distributed tracing.
-- Documentation Agent: Specialized agent for technical documentation standards, API documentation, and documentation synchronization with code.
-- Business Domain Agent: Specialized agent providing POS-specific domain knowledge, payment processor integration, and business workflow patterns.
-- Pair Programming Navigator Agent: Specialized agent for real-time collaboration, implementation loop detection, and mandatory stop-phrase interruption.
-
 ## Context Management Terminology
 
 - Context Integrity: Validation that all required project information is available before providing guidance or making decisions.
-- Session Context: Temporary working document (`.ai/session.md`) maintaining continuity across multi-step development tasks.
+- Session Context: Temporary working document maintaining continuity across multi-step development tasks.
 - Context Re-anchoring: Process of returning to authoritative project files when context becomes insufficient or contradictory.
 - Stop-Phrase: Mandatory interruption mechanism used by pair programming agents to halt problematic implementation patterns.
 - Loop Detection: Automated identification of repetitive or stalled implementation progress requiring intervention.

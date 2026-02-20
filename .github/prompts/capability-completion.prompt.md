@@ -81,7 +81,7 @@ This prompt is invoked **AFTER** all backend child stories for a capability have
 ### 1. Verify Branch Status
 
 ```bash
-cd /home/louisb/Projects/durion-positivity-backend
+cd $WORKSPACE/durion-positivity-backend
 
 # Confirm you're on the capability branch
 git checkout cap/CAP{{capability_id}}
@@ -108,7 +108,7 @@ echo "✓ Capability branch has $COMMITS_AHEAD commits ahead of main"
 
 **Determine affected modules** (e.g., for workorder domain, test `pos-workorder`):
 ```bash
-cd /home/louisb/Projects/durion-positivity-backend
+cd $WORKSPACE/durion-positivity-backend
 
 # Run tests for affected module(s)
 ./mvnw -pl pos-{{module}} clean test
@@ -132,7 +132,7 @@ echo "$TEST_RESULTS"
 **Gather information for comprehensive PR description:**
 
 ```bash
-cd /home/louisb/Projects/durion-positivity-backend
+cd $WORKSPACE/durion-positivity-backend
 
 # Get commit summary
 git log --oneline main..cap/CAP{{capability_id}}
@@ -238,7 +238,7 @@ This PR implements the complete backend for {{capability_label}} - {{parent_capa
 **STEP 4A: Attempt PR Creation via GitHub CLI**
 
 ```bash
-cd /home/louisb/Projects/durion-positivity-backend
+cd $WORKSPACE/durion-positivity-backend
 
 # Verify gh CLI is available
 if ! command -v gh &> /dev/null; then

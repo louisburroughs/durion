@@ -985,10 +985,10 @@ Response:
 ## References
 
 **Example Documents for Pattern Reference:**
-- CRM Domain: `/home/louisb/Projects/durion/domains/crm/crm-questions.txt`
-- CRM Backend Contracts: `/home/louisb/Projects/durion/domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- Accounting Domain: `/home/louisb/Projects/durion/domains/accounting/accounting-questions.txt`
-- Accounting Phase 3 Report: `/home/louisb/Projects/durion/domains/accounting/.business-rules/PHASE_3_COMPLETION_REPORT.md`
+- CRM Domain: `$WORKSPACE/durion/domains/crm/crm-questions.txt`
+- CRM Backend Contracts: `$WORKSPACE/durion/domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+- Accounting Domain: `$WORKSPACE/durion/domains/accounting/accounting-questions.txt`
+- Accounting Phase 3 Report: `$WORKSPACE/durion/domains/accounting/.business-rules/PHASE_3_COMPLETION_REPORT.md`
 
 **Key Decision References:**
 - DECISION-INVENTORY-001: Deny-by-default authorization
@@ -1001,8 +1001,8 @@ Response:
 - DECISION-INVENTORY-016: Timezone/locale display standards
 
 **Durion Documentation:**
-- Architecture: `/home/louisb/Projects/durion/docs/architecture/`
-- Governance: `/home/louisb/Projects/durion/docs/governance/`
+- Architecture: `$WORKSPACE/durion/docs/architecture/`
+- Governance: `$WORKSPACE/durion/docs/governance/`
 
 ---
 
@@ -1084,7 +1084,7 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 - Are sales orders created from work orders owned by **domain:order** or **domain:workexec**?
 
 **Resolution Required:**
-- Review existing domain taxonomy in `/home/louisb/Projects/durion/domains/`
+- Review existing domain taxonomy in `$WORKSPACE/durion/domains/`
 - Consult AGENT_REGISTRY.md for domain ownership authority
 - Document decision in ADR format
 - Update issue labels accordingly
@@ -1189,7 +1189,7 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 **Timeline:** 0.5 days
 
 **Tasks:**
-1. ✅ Review `/home/louisb/Projects/durion/domains/` directory structure
+1. ✅ Review `$WORKSPACE/durion/domains/` directory structure
 2. ✅ Check AGENT_REGISTRY.md for domain authority assignments
 3. ✅ Document decision for:
    - Timekeeping features (#149, #146, #145, #131, #132) → **domain:people** (confirmed via existing business rules)
@@ -1198,7 +1198,7 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 4. ⏳ Update issue labels in GitHub (deferred to Phase 4.5)
 5. ✅ Document decision in ADR format
 
-**Output:** ✅ `DECISION-WORKEXEC-001.md` (Domain Ownership Boundaries) - See `/home/louisb/Projects/durion/docs/adr/DECISION-WORKEXEC-001-domain-ownership-boundaries.md`
+**Output:** ✅ `DECISION-WORKEXEC-001.md` (Domain Ownership Boundaries) - See `$WORKSPACE/durion/docs/adr/DECISION-WORKEXEC-001-domain-ownership-boundaries.md`
 
 **Key Findings:**
 - **Timekeeping** (5 issues): Owned by `domain:people` per existing business rules; backend module `pos-people` contains `WorkSessionController.java`
@@ -1222,7 +1222,7 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 3. ✅ Mark PENDING items with suggested schemas
 4. ✅ Validate DTOs, enums, error codes
 
-**Output:** ✅ Updated `BACKEND_CONTRACT_GUIDE.md` with Phase 4.2 findings section - See `/home/louisb/Projects/durion/domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md` (lines 227+)
+**Output:** ✅ Updated `BACKEND_CONTRACT_GUIDE.md` with Phase 4.2 findings section - See `$WORKSPACE/durion/domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md` (lines 227+)
 
 **Key Findings:**
 

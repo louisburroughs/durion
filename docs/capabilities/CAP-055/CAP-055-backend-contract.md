@@ -65,7 +65,7 @@
 ## Section 4: Patch
 ```apply_patch
 *** Begin Patch
-*** Update File: /home/louisb/Projects/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+*** Update File: $WORKSPACE/durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
 @@
 -**OpenAPI Source:** `pos-accounting/openapi.json`
 +**OpenAPI Source:** `durion-positivity-backend/pos-accounting/openapi.json`

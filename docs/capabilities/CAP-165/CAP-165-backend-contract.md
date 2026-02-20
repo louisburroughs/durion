@@ -235,7 +235,7 @@ Capability: CAP:165 — Product Master Data (Parts & Tires)
 Source files:
 
 - Capability manifest: /docs/capabilities/CAP-165/CAPABILITY_MANIFEST.yaml
-- OpenAPI (authoritative): /home/louisb/Projects/durion-positivity-backend/pos-catalog/openapi.json
+- OpenAPI (authoritative): $WORKSPACE/durion-positivity-backend/pos-catalog/openapi.json
 - Contract guide updated: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
 
 Backend child issues:

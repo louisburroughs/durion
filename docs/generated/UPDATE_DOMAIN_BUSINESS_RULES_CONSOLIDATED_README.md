@@ -40,7 +40,7 @@ This script:
 ## Usage
 
 ```bash
-cd /home/louisb/Projects/durion/scripts/story-output-consolidation
+cd $WORKSPACE/durion/scripts/story-output-consolidation
 
 # Set your OpenAI API key
 export OPENAI_API_KEY="sk-..."
@@ -181,7 +181,7 @@ Adds configurable delay between API calls (default: 2 seconds) to respect OpenAI
 
 ```bash
 $ export OPENAI_API_KEY="sk-..."
-$ cd /home/louisb/Projects/durion/scripts/story-output-consolidation
+$ cd $WORKSPACE/durion/scripts/story-output-consolidation
 $ ./update-domain-business-rules-consolidated.sh --domain inventory --delay 3
 
 ═══════════════════════════════════════════════════════════════
@@ -256,13 +256,13 @@ This script fits into the larger workflow:
 
 1. **Consolidate stories by domain** (creates `domain-*.txt` files in `story-output-consolidation/output/`)
    ```bash
-   cd /home/louisb/Projects/durion/scripts
+   cd $WORKSPACE/durion/scripts
    ./consolidate-stories-by-domain.sh
    ```
 
 2. **Update business rules** (this script - creates enhanced docs in `story-output-consolidation/output/{domain}/.business-rules/`)
    ```bash
-   cd /home/louisb/Projects/durion/scripts/story-output-consolidation
+   cd $WORKSPACE/durion/scripts/story-output-consolidation
    ./update-domain-business-rules-consolidated.sh
    ```
 
@@ -316,7 +316,7 @@ ls story-output-consolidation/output/domain-*.txt
 
 If missing, run consolidation script first:
 ```bash
-cd /home/louisb/Projects/durion/scripts
+cd $WORKSPACE/durion/scripts
 ./consolidate-stories-by-domain.sh
 ```
 

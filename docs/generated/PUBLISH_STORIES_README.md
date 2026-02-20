@@ -21,7 +21,7 @@ The `publish_stories.py` script:
 **Option 1: Virtual Environment (Recommended)**
 
 ```bash
-cd /home/louisb/Projects/durion
+cd $WORKSPACE/durion
 
 # Create a virtual environment in the scripts directory
 python3 -m venv scripts/.venv
