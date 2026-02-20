@@ -64,7 +64,7 @@ Status: Approval endpoints (estimate approval and workorder approval) exist in t
 ## Error Codes (Authoritative Set)
 
 | Code | Meaning | Typical HTTP |
-|------|---------|--------------|
+| --- | --- | --- |
 | INVALID_STATE | Operation not allowed for current status | 409 |
 | NOT_FOUND | Entity not found | 404 |
 | FORBIDDEN | Permission denied | 403 |
@@ -2739,9 +2739,7 @@ Use the shared template for capability sections:
 
 - `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
 
-
 ## CAP-121: Job Time Tracking (Workexec Linkage)
-
 
 Short description
 
