@@ -32,22 +32,17 @@ stories:
     repo: louisburroughs/durion
     issue: 214
     title: '[CAP] Location & Storage Topology (Shops, Mobile, Floor/Shelf/Bin)'
-    domain: inventory
+    domain: location
     labels:
     - type:capability
     - layer:functional
-    - domain:inventory
+    - domain:location
     - kiro
     - CAP:214
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 38
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 102
-      impacted_component_repos:
-      - louisburroughs/durion-hr
+      issues: [38,39,40]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/location/.ui/frontend-story-topology-define-default-staging-and-102.wf.md
@@ -57,14 +52,14 @@ stories:
         type: meta
       business_rules:
       - repo: louisburroughs/durion
-        path: domains/inventory/.business-rules/AGENT_GUIDE.md
+        path: domains/location/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+        path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/inventory/.business-rules/DOMAIN_NOTES.md
+        path: domains/location/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
