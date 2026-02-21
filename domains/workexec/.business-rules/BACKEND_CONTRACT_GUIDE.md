@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-workorder/openapi.json
+  openapi_source: durion-positivity-backend/pos-workorder/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-20
@@ -2812,7 +2812,7 @@ Expose gateway-facing endpoints for technician timers, manual labor submission, 
 - `POST http://localhost:8080/v1/workexec/labor-performed`
 - `GET  http://localhost:8080/v1/workexec/job-time-totals`
 
-### Request Schemas (from OpenAPI `pos-workorder/openapi.json`)
+### Request Schemas (from OpenAPI `pos-workorder/openapi.yaml`)
 
 ```ts
 interface WorkexecTimerStartRequest {

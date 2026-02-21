@@ -21,7 +21,7 @@ Deep Think (required before edits)
 
 Context (inputs — agent will be provided values at runtime)
 - `BACKEND_CONTRACT_GUIDE_PATH` — path to the guide to modify (e.g., `domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`)
-- `OPENAPI_PATH` — path to the current `openapi.json` representing produced endpoints (e.g., `pos-<module>/target/openapi.json`)
+- `OPENAPI_PATH` — path to the current `openapi.yaml` representing produced endpoints (e.g., `pos-<module>/target/openapi.yaml`)
 - `CAPABILITY_MANIFEST_PATH` — path to capability manifest (YAML) containing parent capability, parent stories array, and child backend issues (e.g., `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`)
 
 Audience
@@ -137,7 +137,7 @@ Output format (must exactly follow)
 Examples (placeholders)
 - Input placeholders:
   - `BACKEND_CONTRACT_GUIDE_PATH`: `domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-  - `OPENAPI_PATH`: `pos-accounting/target/openapi.json`
+  - `OPENAPI_PATH`: `pos-accounting/target/openapi.yaml`
   - `CAPABILITY_MANIFEST_PATH`: `docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml`
 - Example endpoint path transformations:
   - **Old (direct service)**: `POST http://localhost:8082/accounts` → **New (gateway)**: `POST http://localhost:8080/v1/customer/accounts`

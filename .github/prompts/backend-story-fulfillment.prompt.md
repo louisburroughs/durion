@@ -40,7 +40,7 @@ If the answer to these is "no", **KEEP WORKING**.
 ---
 
 Context (inputs — agent will be provided values at runtime)
-- `OPENAPI_PATH` — path to the authoritative `openapi.json` (e.g., `pos-<module>/target/openapi.json`) which MUST NOT be overwritten.
+- `OPENAPI_PATH` — path to the authoritative `openapi.yaml` (e.g., `pos-<module>/target/openapi.yaml`) which MUST NOT be overwritten.
 
 You are implementing capability {{capability_label}} (e.g., CAP:089).
 
@@ -104,7 +104,7 @@ Contract guide entry (draft):
        - **DO NOT** regenerate this file. Avoid running build commands that might overwrite it (like `clean package`) unless you restore it afterwards.
        - **DO NOT** edit this file manually.
        - Use it only to validate that your implementation matches the contract.
-       - If the implementation differs from `openapi.json`, **fix the implementation**.
+       - If the implementation differs from `openapi.yaml`, **fix the implementation**.
   5. **Commit changes to the feature branch:**
      ```bash
      cd $WORKSPACE/durion-positivity-backend

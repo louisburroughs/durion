@@ -39,7 +39,7 @@ grep -l 'springdoc-openapi-maven-plugin' pos-*/pom.xml
 ## Core Command
 
 ```bash
-# Single module — outputs to target/openapi.json by default
+# Single module — outputs to target/openapi.yaml by default
 ./mvnw -pl pos-{module} -am -Plocal clean verify -DskipTests
 
 # The plugin fires during integration-test phase:
@@ -104,14 +104,14 @@ python3 -c "
 import json, sys
 try:
     import yaml
-    data = json.load(open('pos-{module}/target/openapi.json'))
+    data = json.load(open('pos-{module}/target/openapi.yaml'))
     with open('pos-{module}/openapi.yaml', 'w') as f:
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
     print('Converted to YAML')
 except ImportError:
     # PyYAML not available — deliver formatted JSON instead
-    data = json.load(open('pos-{module}/target/openapi.json'))
-    with open('pos-{module}/openapi.json', 'w') as f:
+    data = json.load(open('pos-{module}/target/openapi.yaml'))
+    with open('pos-{module}/openapi.yaml', 'w') as f:
         json.dump(data, f, indent=2)
     print('PyYAML not available; delivered formatted JSON')
 "
@@ -126,7 +126,7 @@ cp pos-{module}/target/openapi.yaml pos-{module}/openapi.yaml
 **If the output is JSON and JSON is preferred**:
 
 ```bash
-python3 -m json.tool pos-{module}/target/openapi.json > pos-{module}/openapi.json
+python3 -m json.tool pos-{module}/target/openapi.yaml > pos-{module}/openapi.yaml
 ```
 
 ### Step 5 — Verify and report

@@ -83,7 +83,7 @@ Planner must produce and validate a complete plan that covers the full lifecycle
 2. Build the plan backward from that end state until Step 1 is reached
 3. Step 1 must be reading source material (manifest, prompts, relevant code/docs)
 4. Convert backward chain into forward executable steps
-5. Contract update from `openapi.json`
+5. Contract update from `openapi.yaml`
 6. Story implementation sequence
 7. Testing/verification sequence
 8. Branch creation/usage
@@ -99,7 +99,7 @@ If any phase is missing, return Planner to complete the plan (up to 3 loops).
 ### 2) Document Agent Subagent
 Document Agent must validate that backend contract documentation was updated uniformly using:
 - `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md` (capability section template)
-- `openapi.json` (API source of truth)
+- `openapi.yaml` (API source of truth)
 
 Require:
 1. Updated file list for all impacted `domains/*/.business-rules/BACKEND_CONTRACT_GUIDE.md`
@@ -107,7 +107,7 @@ Require:
 3. Capability sections structured from the shared template (top-level `CAP-*`, lower-level execution details)
 4. General section included for uncertain ownership (`General Notes and References`)
 5. Summary of contract changes
-6. Explicit alignment confirmation against module `openapi.json`
+6. Explicit alignment confirmation against module `openapi.yaml`
 7. Template reference present in each guide:
    - `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
 

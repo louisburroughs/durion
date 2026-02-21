@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-order/target/openapi.json
+  openapi_source: pos-order/target/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -17,7 +17,7 @@ last_updated: 2026-02-19
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-order/target/openapi.json`
+**OpenAPI Source:** `pos-order/target/openapi.yaml`
 
 ---
 
@@ -693,7 +693,7 @@ This guide establishes standardized contracts for the Order Management domain:
 
 ## References
 
-- OpenAPI Specification: `pos-order/target/openapi.json`
+- OpenAPI Specification: `pos-order/target/openapi.yaml`
 - Domain Agent Guide: `domains/order/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/order/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/order/.business-rules/ERROR_CODES.md`
