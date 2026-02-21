@@ -60,7 +60,7 @@ non-leaky authorization).
       capability flags.
 - [ ] No resource existence leakage via error differences (403/404 handling
       consistent).
-- [ ] `tenantId` is not displayed by default. (Decision ID: DECISION-PEOPLE-019)
+- [ ] `organizationId` is not displayed by default. (Decision ID: DECISION-PEOPLE-019)
 
 ## Observability
 
@@ -103,11 +103,11 @@ non-leaky authorization).
   - [ ] Unauthorized users see access denied without leaking resource
         existence.
 
-### 3) `tenantId` is treated as sensitive
+### 3) `organizationId` is treated as sensitive
 
 - Decision ID: DECISION-PEOPLE-019
 - Verify:
-  - [ ] `tenantId` is not displayed unless explicitly enabled for admin/support.
+  - [ ] `organizationId` is not displayed unless explicitly enabled for admin/support.
 
 ### 4) TimekeepingEntry rejection metadata and approval history are handled
 

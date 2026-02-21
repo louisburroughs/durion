@@ -32,7 +32,7 @@ This guide defines the People domain’s **normative** business rules for identi
 | DECISION-PEOPLE-016 | Break notes requirement for OTHER |
 | DECISION-PEOPLE-017 | Optimistic concurrency default (lastUpdatedStamp) |
 | DECISION-PEOPLE-018 | Error response schema (400/409) |
-| DECISION-PEOPLE-019 | `tenantId` UI visibility policy |
+| DECISION-PEOPLE-019 | `organizationId` UI visibility policy |
 | DECISION-PEOPLE-020 | `technicianIds` query encoding + report range |
 | DECISION-PEOPLE-021 | People REST API conventions (paths, paging, shapes) |
 | DECISION-PEOPLE-022 | Break API contract and identity derivation |
@@ -103,7 +103,7 @@ This guide defines the People domain’s **normative** business rules for identi
 | DECISION-PEOPLE-016 | Break notes for OTHER | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-016---break-notes-requirement-for-other) |
 | DECISION-PEOPLE-017 | Optimistic concurrency | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-017---optimistic-concurrency-default-lastupdatedstamp) |
 | DECISION-PEOPLE-018 | Error schema | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-018---error-response-schema-400409) |
-| DECISION-PEOPLE-019 | tenantId visibility | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-019---tenantid-ui-visibility-policy) |
+| DECISION-PEOPLE-019 | organizationId visibility | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-019---organizationid-ui-visibility-policy) |
 | DECISION-PEOPLE-020 | technicianIds encoding | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-020---technicianids-query-encoding-and-report-range) |
 | DECISION-PEOPLE-021 | REST API conventions | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-021---people-rest-api-conventions-paths-paging-shapes) |
 | DECISION-PEOPLE-022 | Break contract | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-022---break-api-contract-and-identity-derivation) |
@@ -213,11 +213,11 @@ This guide defines the People domain’s **normative** business rules for identi
   - Contract tests should enforce schema stability.
 - Decision ID: DECISION-PEOPLE-018, DECISION-PEOPLE-020
 
-### Q: Is `tenantId` considered sensitive in UI?
+### Q: Is `organizationId` considered sensitive in UI?
 
-- Answer: Treat `tenantId` as sensitive; do not display by default, and only show it to admin/support roles if explicitly approved.
+- Answer: Treat `organizationId` as sensitive; do not display by default, and only show it to admin/support roles if explicitly approved.
 - Assumptions:
-  - Multi-tenant identifiers can leak internal structure.
+  - Organization-scope identifiers can leak internal structure.
 - Rationale:
   - Conservative minimization of internal identifiers.
 - Impact:

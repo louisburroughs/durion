@@ -1,6 +1,6 @@
 # [FRONTEND] [STORY] Security: Define Shop Roles and Permission Matrix
 ## Purpose
-Provide Moqui frontend screens to manage shop roles and their permissions within the authenticated tenant context. Enable admins to list, create, and view roles; edit role descriptions; and grant/revoke permissions using idempotent operations that support retry. Ensure deny-by-default UI gating and robust handling of unauthorized responses (401/403), while exposing a read-only permission registry for discovery and selection.
+Provide Moqui frontend screens to manage shop roles and their permissions within the authenticated organization context. Enable admins to list, create, and view roles; edit role descriptions; and grant/revoke permissions using idempotent operations that support retry. Ensure deny-by-default UI gating and robust handling of unauthorized responses (401/403), while exposing a read-only permission registry for discovery and selection.
 
 ## Components
 - Global navigation/menu with route gating (hide unauthorized items where possible)
@@ -40,7 +40,7 @@ Provide Moqui frontend screens to manage shop roles and their permissions within
   - Loading spinners/skeletons for list/detail pages
 
 ## Layout
-- Top: App header + tenant context implied from auth (no tenant/location inputs) + user menu
+- Top: App header + organization context implied from auth (no organization/location inputs) + user menu
 - Left: Security/Admin navigation (Roles, Permissions) with permission-gated visibility
 - Main (varies by route):
   - Roles List: [Title + Search + Create CTA] above [Paged Roles Table] above [Pagination]
@@ -84,7 +84,7 @@ Provide Moqui frontend screens to manage shop roles and their permissions within
 
 ## Notes
 - Deny-by-default: hide unauthorized routes/menu items where possible, but always handle direct navigation with server-enforced 401/403 responses.
-- Tenant-scoped: UI must not accept tenantId/locationId inputs; derive tenant context from auth/request context only.
+- Organization-scoped: UI must not accept organizationId/locationId inputs; derive context from auth/request context only.
 - Role fields:
   - roleId: required, read-only.
   - roleName: required on create; immutable after create; display read-only on detail/edit.

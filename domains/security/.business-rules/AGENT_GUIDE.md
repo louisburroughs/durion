@@ -100,7 +100,7 @@ This guide defines the normative, implementation-ready business rules for the `s
 | DECISION-INVENTORY-005 | Idempotent grant/revoke + optional replace-set | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-005--rbac-mutation-semantics-grantrevoke--replace-set) |
 | DECISION-INVENTORY-006 | Permission registry is code-first; UI read-only | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-006--permission-registry-is-code-first-ui-read-only) |
 | DECISION-INVENTORY-007 | Assignment model supports effective dating; UI deferred | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-007--principal-role-assignments-effective-dating-ui-deferred) |
-| DECISION-INVENTORY-008 | Tenant-scoped RBAC; no location-scoped RBAC in v1 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-008--tenant-scoping-no-location-scoped-rbac-in-v1) |
+| DECISION-INVENTORY-008 | Organization-scoped RBAC; no location-scoped RBAC in v1 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-008--organization-scoping-no-location-scoped-rbac-in-v1) |
 | DECISION-INVENTORY-009 | Provisioning identity key is IdP subject; email must match Person | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-009--provisioning-identity-key-idp-subject-and-email-match) |
 | DECISION-INVENTORY-010 | Initial roles optional; use roleId | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-010--provisioning-initial-roles-optional-roleid-identifiers) |
 | DECISION-INVENTORY-011 | Outbox event + link-status visibility | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-011--provisioning-linking-via-outbox-event-link-status-visibility) |
@@ -183,22 +183,22 @@ This guide defines the normative, implementation-ready business rules for the `s
   - Database unique index on `roleNameNormalized` (or equivalent); create role returns `409 ROLE_NAME_TAKEN`.
 - Decision ID: DECISION-INVENTORY-003
 
-### Q: Multi-tenant/location scoping — are roles/assignments scoped by tenant/location?
+### Q: Multi-organization/location scoping — are roles/assignments scoped by organization/location?
 
-- Answer: RBAC is tenant-scoped (roles, grants, and assignments belong to a tenant). Location-scoped grants/overrides are out-of-scope for v1.
+- Answer: RBAC is organization-scoped (roles, grants, and assignments belong to an organization). Location-scoped grants/overrides are out-of-scope for v1.
 - Assumptions:
   - Tenant context is derived from trusted auth claims or request context, not user input.
 - Rationale:
   - Tenant isolation is mandatory; location-scoped ABAC requires more explicit policy design.
 - Impact:
-  - API queries/mutations require tenant context; add indexes by tenant.
+  - API queries/mutations require organization context; add indexes by organization.
 - Decision ID: DECISION-INVENTORY-008
 
 ### Q: Location overrides / ABAC — is there any requirement for location-scoped permissions?
 
 - Answer: No, not in v1. Any mention of “location overrides” is deferred until a separate story defines ABAC requirements, policy language, and enforcement model.
 - Assumptions:
-  - All role permissions apply globally within a tenant.
+  - All role permissions apply globally within an organization.
 - Rationale:
   - Prevents accidental policy sprawl and inconsistent enforcement.
 - Impact:

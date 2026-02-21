@@ -30,7 +30,7 @@ We need a stable, non-changing identity claim for audit actor linkage while pres
 **Decision:** ✅ **Resolved** — Use `personId` (string) as the canonical audit actor identifier in token-derived context.
 
 - `personId` is immutable for the person identity lifecycle.
-- Audit actor `id` must resolve from `personId` when present.
+- Audit actor `id` must resolve from `personId`.
 - Username must not be used as the canonical join key for audit history.
 
 ### 2. Display Identity
@@ -55,6 +55,7 @@ We need a stable, non-changing identity claim for audit actor linkage while pres
 - if `personId` is absent, use configured deterministic fallback (`system` for non-user flows, existing principal string for legacy authenticated flows),
 - services must log absence of `personId` at appropriate level for migration visibility,
 - once adoption is complete, `personId` becomes mandatory for user-authenticated tokens.
+- Audit flows MUST fail if `personId` is not present
 
 ### 5. Audit vs Telemetry Boundary
 

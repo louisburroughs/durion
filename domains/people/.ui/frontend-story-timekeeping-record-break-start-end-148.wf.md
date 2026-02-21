@@ -59,6 +59,6 @@ Enable Mechanics to start and end breaks during an active work session so their 
 - UI must rely on server-derived identity and current session; do not send timecard/session identifiers from the client.
 - Enforce “exactly one active break at a time” via UI gating plus backend error handling; always reload break context after start/end or conflict errors.
 - Break fields are read-only in the UI except for start payload: Break Type (required) and Notes (optional; required/prompted when type = OTHER). No editing/deleting of completed breaks; no timestamp edits.
-- “Today’s breaks” list is read-only and should display start/end timestamps, break type, and an auto-ended indicator when applicable; do not display tenantId if present in responses.
+- “Today’s breaks” list is read-only and should display start/end timestamps, break type, and an auto-ended indicator when applicable; do not display organizationId if present in responses.
 - Error handling must surface server message and include an expandable Details area that shows request/correlation id when response headers provide it (store in UI error state).
 - Risk/TODO: backend contract details (exact endpoints/field names) are incomplete; design should accommodate minor schema changes while preserving required behaviors and states.

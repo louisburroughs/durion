@@ -38,7 +38,7 @@ See domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md for section structure
   "occurredAt": "ISO8601",
   "emittedAt": "ISO8601",
   "sourceSystem": "inventory",
-  "tenantId": "string",
+  "organizationId": "string",
   "actor": { "type": "user|system", "id": "string", "displayName": "string" },
   "correlationId": "string",
   "aggregate": { "type": "movement|workorder", "id": "string" },
@@ -50,7 +50,7 @@ See domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md for section structure
   - Inventory services are the authoritative producers for the above topics.
   - Emit events for state changes: MovementCreated, MovementAdjusted, WorkOrderLinked, WorkOrderUnlinked.
   - Populate `actor` fields from the security context as defined in ADR-0018.
-  - Set `sourceSystem` to `inventory` and include `tenantId` where multi-tenancy applies.
+  - Set `sourceSystem` to `inventory` and include `organizationId` where explicit organization scoping applies.
   - Ensure `eventId` uses UUIDv7 for time-ordered idempotency semantics.
   - Partition messages by `aggregate.id` to preserve ordering per aggregate.
 

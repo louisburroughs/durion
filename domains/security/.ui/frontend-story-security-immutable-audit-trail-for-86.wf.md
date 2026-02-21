@@ -67,7 +67,7 @@ Provide a read-only, immutable Audit Log search and detail experience so authori
    3. If record not found (404) on detail, show “Not found or not in scope” and provide back navigation.
 
 ## Notes
-- Guardrails mirrored in UI (backend is source of truth): mandatory UTC date range, max 90 days, and at least one indexed filter beyond date range; tenant may lower max window.
+- Guardrails mirrored in UI (backend is source of truth): mandatory UTC date range, max 90 days, and at least one indexed filter beyond date range; organization policy may lower max window.
 - Permissions gate:
   - List requires `audit:log:view`; detail requires `audit:log:view-detail`.
   - Raw payload requires `audit:payload:view` (hide section entirely without it).

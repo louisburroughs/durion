@@ -80,9 +80,9 @@ Claims:
 - jti: <unique UUID for replay detection>
 
 Optional (if needed):
-- tenantId
 - storeId / locationId
 - sessionId
+- organizationId
 ```
 
 ### 4. Request Flow

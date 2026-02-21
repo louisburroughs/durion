@@ -1274,10 +1274,10 @@ This document provides non-normative, verbose rationale and decision logs for th
 - **Rationale:** Enables consistent UI rendering and testing.
 - **Implications:** If a gateway standard exists, People must map to it consistently.
 
-## DECISION-PEOPLE-019 - tenantId UI visibility policy
+## DECISION-PEOPLE-019 - organizationId UI visibility policy
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-019)
-- **Decision:** Treat `tenantId` as sensitive; hide by default and only show for approved support/admin use cases.
+- **Decision:** Treat `organizationId` as sensitive; hide by default and only show for approved support/admin use cases.
 - **Rationale:** Minimize internal identifier exposure.
 - **Implications:** Use personId/employeeId as primary UI identifiers.
 

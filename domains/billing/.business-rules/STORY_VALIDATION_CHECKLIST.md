@@ -88,13 +88,13 @@ AP vendor payments:
 - [ ] AP payment idempotent by paymentRef; conflicting payload returns 409.
 - [ ] Checkout finalize is safe against double-submit.
 - [ ] Override actions are protected against duplicate submissions.
-- [ ] Emitted events include: actorUserId, timestamps, tenant scope, correlation.
+- [ ] Emitted events include: actorUserId, timestamps, organization scope, correlation.
 
 ---
 
 ## Security
 
-- [ ] All endpoints require auth; tenant boundaries enforced server-side.
+- [ ] All endpoints require auth; organization boundaries enforced server-side.
 - [ ] Authorization enforced server-side for:
   - [ ] BillingRules view/manage
   - [ ] create draft invoice
@@ -177,7 +177,7 @@ Invoice detail must include `traceability` and `issuancePolicy/issuanceBlockers`
 ### Q5
 
 **Question:** Which traceability identifiers are policy-required to issue (approval always? estimate version always? configurable per customer/account), and how is policy communicated to the UI?  
-**Response:** Configurable per tenant/account and communicated via `issuancePolicy` + `issuanceBlockers[]`. Always required: work order id, snapshot id, schema version. Conditional: approvals and estimate version based on policy.
+**Response:** Configurable per organization/account and communicated via `issuancePolicy` + `issuanceBlockers[]`. Always required: work order id, snapshot id, schema version. Conditional: approvals and estimate version based on policy.
 
 ### Q6
 

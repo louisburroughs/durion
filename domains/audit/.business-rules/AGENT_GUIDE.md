@@ -27,7 +27,7 @@ This document is **normative** (direct agent input, CI validation, story executi
 
 | Decision ID | Title |
 |---|---|
-| **AUD-SEC-001** | Tenant Isolation and Scoping Rules |
+| **AUD-SEC-001** | Organization Isolation and Scoping Rules |
 | **AUD-SEC-002** | Location Scoping and Cross-Location Permission Model |
 | **AUD-SEC-003** | Authorization Model (Roles → Permission Strings) |
 | **AUD-SEC-004** | Raw Payload Handling, Redaction, and Safe Rendering |
@@ -44,7 +44,7 @@ This document is **normative** (direct agent input, CI validation, story executi
 
 | Decision ID | One-line summary | Link to notes |
 | --- | --- | --- |
-| AUD-SEC-001 | Enforce tenant isolation for all reads/writes | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-001---tenant-isolation-and-scoping-rules) |
+| AUD-SEC-001 | Enforce organization isolation for all reads/writes | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-001---organization-isolation-and-scoping-rules) |
 | AUD-SEC-002 | Require and enforce location scoping; gated cross-location | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-002---location-scoping-and-cross-location-permission-model) |
 | AUD-SEC-003 | Least-privilege permissions and role guidance | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-003---authorization-model-roles-%E2%86%92-permission-strings) |
 | AUD-SEC-004 | Restrict, redact, and safely render raw payloads | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-004---raw-payload-handling-redaction-and-safe-rendering) |
@@ -67,7 +67,7 @@ This document is **normative** (direct agent input, CI validation, story executi
 - Persistence in append-only / WORM-like manner
 - Immutability guarantees (no update/delete via application APIs)
 - Query/search and export capabilities
-- Retention enforcement (default minimum 7 years; tenant-configurable)
+- Retention enforcement (default minimum 7 years; organization-configurable)
 - Reason code registry (managed codes + metadata)
 - Audit evidence artifacts required for compliance investigations:
   - `PricingSnapshot` (immutable evidence)
@@ -97,7 +97,7 @@ Minimum fields:
 - `schemaVersion`
 - `eventType`
 - `occurredAt` (UTC), `emittedAt` (UTC, optional)
-- `tenantId`
+- `organizationId`
 - `locationId` (required; see AUD-SEC-002)
 - `actor` (`actorType`, `actorId`, `displayName` optional)
 - `aggregateType`, `aggregateId`
@@ -138,10 +138,10 @@ Minimum:
 
 ## Security / Authorization Assumptions (Normative)
 
-### Tenant isolation (AUD-SEC-001)
+### Organization isolation (AUD-SEC-001)
 
-- All audit reads/writes are tenant-scoped and enforced server-side.
-- No cross-tenant search/export is permitted under any role.
+- All audit reads/writes are organization-scoped and enforced server-side.
+- No cross-organization search/export is permitted under any role.
 
 ### Location scoping (AUD-SEC-002)
 
@@ -188,7 +188,7 @@ Do not ship screens without explicit permission mapping. Permissions are action-
 ### Export security (AUD-SEC-006)
 
 - Exports are async jobs only.
-- Exports are authorized, auditable, tenant-scoped, and non-enumerable across tenants/users.
+- Exports are authorized, auditable, organization-scoped, and non-enumerable across organizations/users.
 - Export includes metadata and SHA-256 digest manifest.
 
 ### Correlation and trace (AUD-SEC-012)
@@ -255,7 +255,7 @@ Export formats:
 
 - `eventType` is a controlled vocabulary.
 - UI obtains valid values via:
-  - `GET /audit/meta/eventTypes` (tenant-scoped)
+  - `GET /audit/meta/eventTypes` (organization-scoped)
 - UI should not hardcode event types.
 
 ---
@@ -294,7 +294,7 @@ Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
 
 **Question:** Does backend enforce a maximum date range window per query (e.g., max 90 days), and should UI enforce the same?
 
-**Response:** Yes. Backend enforces max window **90 days** per query by default; tenant policy may lower but not raise without governance approval. UI enforces same for UX. (AUD-SEC-005)
+**Response:** Yes. Backend enforces max window **90 days** per query by default; organization policy may lower but not raise without governance approval. UI enforces same for UX. (AUD-SEC-005)
 
 **Question:** Is timezone interpretation for date filters defined (user locale vs UTC input)? **CLARIFY** canonical behavior.
 

@@ -22,7 +22,7 @@ This checklist validates implementations of Security domain stories (RBAC admin,
 
 - [ ] Enforce uniqueness constraints:
   - [ ] `permissionKey` is unique and immutable.
-  - [ ] `roleNameNormalized` is unique per tenant.
+  - [ ] `roleNameNormalized` is unique per organization.
   - [ ] `(roleId, permissionKey)` unique.
 - [ ] Enforce role name normalization: trim + collapse whitespace + case-insensitive uniqueness.
 - [ ] Reject roleName updates after creation; allow description updates.
@@ -172,11 +172,11 @@ Content-Type: application/json
 {"code": "ROLE_NAME_TAKEN", "message": "Role name already exists", "correlationId": "..."}
 ```
 
-### Q: Multi-tenant/location scoping — are roles/assignments scoped by tenant/location?
+### Q: Multi-organization/location scoping — are roles/assignments scoped by organization/location?
 
-- Acceptance: Requests are scoped to the caller’s tenant context and cannot read or mutate another tenant’s roles.
+- Acceptance: Requests are scoped to the caller’s organization context and cannot read or mutate another organization’s roles.
 - Test Fixtures:
-  - Tenant `t1` role `r1`, tenant `t2` role `r2`.
+  - Organization `o1` role `r1`, organization `o2` role `r2`.
 - Example API request/response:
 
 ```http
@@ -189,7 +189,7 @@ GET /api/v1/security/roles/r2
 
 ### Q: Location overrides / ABAC — is there any requirement for location-scoped permissions?
 
-- Acceptance: RBAC grant endpoints do not accept location scope fields and document that grants are tenant-global.
+- Acceptance: RBAC grant endpoints do not accept location scope fields and document that grants are organization-global.
 - Test Fixtures:
   - Attempt to include `locationId` in grant request.
 - Example API request/response:
