@@ -105,6 +105,7 @@ These are the only agents you can call. Each has a specific role:
 - **Planner** — Creates implementation strategies and technical plans
 - **TDD Agent (Backend Testing Agent)** — Writes failing tests first and defines objective pass criteria before coding begins
 - **Coder** — Create branch, Writes code, fixes bugs, implements logic, create Pull Requests
+- **Test Coverage Agent** — Runs JaCoCo, measures service/utility coverage, and adds tests until the threshold is met
 - **Document Agent** — Technical documentation expert, updates guides and API documentation
 
 ## How to Invoke Agents with Prompt Files
@@ -222,8 +223,14 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - Coder should primarily modify `src/main/**`; test edits require explicit rationale and orchestrator approval.
   - Must provide GREEN evidence using the same command family used by TDD Agent.
 
-### Phase 4: Build & contract tests (depends on Phase 3)
-- Task 4.1: Run focused backend tests (module tests + provider contract tests) and report results → Coder
+### Phase 4: Coverage hardening to threshold (depends on Phase 3 + Planner verification)
+- Task 4.1: Ask Planner to confirm Coder step is marked `completed` in plan state before coverage work begins → Planner
+  Files: `Durion-Processing.md`
+- Task 4.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 65% → Test Coverage Agent
+  Files: `durion-positivity-backend/pos-*/src/test/**`, `durion-positivity-backend/pos-*/target/site/jacoco/**`
+
+### Phase 5: Build & contract tests (depends on Phase 4)
+- Task 5.1: Run focused backend tests (module tests + provider contract tests) and report results → Coder
   Files: `durion-positivity-backend/**`
 
 ### Step 3: Execute Each Phase
@@ -246,9 +253,23 @@ For this workflow, verification must include:
 - TDD RED→GREEN evidence chain is present for pilot stories:
   - RED: failing tests created by TDD Agent before implementation.
   - GREEN: same tests pass after Coder implementation.
+- Coverage hardening evidence is present after Coder + Planner verification:
+  - JaCoCo command(s) executed by Test Coverage Agent
+  - Before/after coverage percentages for service + utility scope
+  - Final threshold reached: >= 65%
 - File-scope guardrails were respected:
   - TDD Agent changes scoped to `src/test/**`.
   - Coder did not remove or dilute TDD assertions without explicit justification.
+  - Test Coverage Agent changes scoped to `src/test/**` unless explicitly approved.
+
+### Step 5: Trigger OpenAPI Generation (final hook)
+After Step 4 succeeds and the single-PR objective is satisfied, the orchestrator MUST start:
+- `durion-positivity-backend/scripts/generate-openapi.sh`
+
+Rules for this step:
+- Launch as a non-blocking/background process.
+- Do not wait for command completion.
+- The orchestrator may exit immediately after confirming the process was started.
 
 ## Parallelization Rules
 
@@ -265,6 +286,8 @@ For this workflow:
 
 - Phase 1 → Phase 2 is always sequential (contract defines intent; implementation follows).
 - Phase 2 → Phase 3 is always sequential (tests first, then code to satisfy tests).
+- Phase 3 → Phase 4 is always sequential (coverage starts only after Planner confirms coder completion).
+- Phase 4 → Phase 5 is always sequential (final verification after coverage hardening).
 - Within Phase 3, stories can run in parallel only if they touch disjoint backend modules/files.
 
 ## File Conflict Prevention
