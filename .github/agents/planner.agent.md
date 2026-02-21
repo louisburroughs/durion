@@ -45,6 +45,17 @@ Build the plan **backward from the objective**, then present it in executable fo
 3. **Reach Step One**: Continue backward until Step 1 is explicit: read and analyze source material (manifest, prompts, relevant code/docs) before any delegation.
 4. **Forward Plan Output**: Convert the backward chain into ordered execution steps (Step 1 first), describing WHAT must happen, not HOW to code it.
 
+## Capability Manifest Path Resolution
+
+- Treat the user-provided `CAPABILITY_MANIFEST.yaml` as authoritative.
+- Derive `BACKEND_CONTRACT_GUIDE_PATH` and `OPENAPI_PATH` from file references in the manifest first.
+- If manifest references are missing or invalid, use standard fallbacks:
+  - Contract guide: `durion/domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+  - OpenAPI: `durion-positivity-backend/<module>/openapi.yaml`
+- If module-root `openapi.yaml` is missing, include a generation step in the plan:
+  - `cd durion-positivity-backend && ./mvnw -pl <module> -am -Plocal integration-test`
+  - Fallback: `cd durion-positivity-backend && scripts/generate-openapi.sh`
+
 ## Output
 
 - Summary (one paragraph)

@@ -24,6 +24,11 @@ Only surface failure if the subagent is truly blocked/stuck (missing dependency,
 2. One backend module at a time
 3. Prefer service-layer changes before controller/integration-heavy stories
 
+## Capability Manifest Authority
+- Assume the user provides the correct `CAPABILITY_MANIFEST.yaml` with relevant references.
+- Resolve `BACKEND_CONTRACT_GUIDE_PATH` and module `openapi.yaml` from file references in the manifest first.
+- Only if references are missing or invalid, fall back to standard locations and generation rules defined below.
+
 TDD policy source of truth:
 - `durion-positivity-backend/.github/agents/test.agent.md`
 - Enforce these sections verbatim during orchestration:
@@ -124,6 +129,20 @@ If any phase is missing, return Planner to complete the plan (up to 3 loops).
 Document Agent must validate that backend contract documentation was updated uniformly using:
 - `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md` (capability section template)
 - `openapi.yaml` (API source of truth)
+
+Before Document Agent work begins, orchestrator MUST resolve paths as:
+1. Use manifest file references for:
+   - `BACKEND_CONTRACT_GUIDE_PATH`
+   - module `openapi.yaml` (`OPENAPI_PATH`)
+2. If `BACKEND_CONTRACT_GUIDE_PATH` is missing in the manifest, fallback to:
+   - `durion/domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+3. Resolve OpenAPI as:
+   - `durion-positivity-backend/<module>/openapi.yaml`
+4. If missing, generate it with:
+   - `cd durion-positivity-backend && ./mvnw -pl <module> -am -Plocal integration-test`
+5. If the module does not support local profile generation, fallback to:
+   - `cd durion-positivity-backend && scripts/generate-openapi.sh`
+Then pass the resolved module-root `openapi.yaml` path to Document Agent.
 
 Require:
 1. Updated file list for all impacted `domains/*/.business-rules/BACKEND_CONTRACT_GUIDE.md`

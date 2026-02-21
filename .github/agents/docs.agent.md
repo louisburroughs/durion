@@ -111,6 +111,17 @@ Write repo-local docs when they are implementation-specific (build steps, module
 
 Since the POS backend uses an **agent-driven architecture**, documentation should cover both agent patterns and domain module functionality.
 
+### OpenAPI source-of-truth resolution (POS backend)
+
+When documenting backend contracts or endpoint behavior:
+1. First locate the module-root spec:
+   - `durion-positivity-backend/<module>/openapi.yaml`
+2. If missing, generate it:
+   - `cd durion-positivity-backend && ./mvnw -pl <module> -am -Plocal integration-test`
+3. If module local profile generation is not available, use:
+   - `cd durion-positivity-backend && scripts/generate-openapi.sh`
+4. Use the resulting module-root `openapi.yaml` as the API source of truth.
+
 ### Documentation Structure for Agent Framework (POS backend)
 
 Create documentation following this structure:
