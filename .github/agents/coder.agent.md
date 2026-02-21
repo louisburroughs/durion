@@ -141,8 +141,12 @@ Required workflow:
 1. Read `$WORKSPACE/durion/AGENTS.md` ADR policy section first.
 2. Review `$WORKSPACE/durion/docs/adr/README.md` to identify relevant ADRs and latest statuses.
 3. Apply the latest `ACCEPTED` ADRs before implementation.
-4. If code conflicts with ADR, follow ADR and include migration notes in your summary.
-5. If no ADR exists for an architecture-impacting decision, flag the gap and propose a new ADR.
+4. If story instructions conflict with an `ACCEPTED` ADR, ADRs take precedence. Implement the ADR-compliant behavior.
+5. When such a conflict exists, include a clear "Planner Note" in your handoff so Orchestrator can send it to Planner for the plan `Open Questions/Notes` section. The note must include:
+   - conflicting story instruction,
+   - governing ADR reference,
+   - chosen ADR-compliant implementation direction.
+6. If no ADR exists for an architecture-impacting decision, flag the gap and propose a new ADR.
 
 ADRs for backend coding (mandatory full reference):
 - Read all ADR files under `$WORKSPACE/durion/docs/adr/` before implementation.
