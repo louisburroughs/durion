@@ -119,5 +119,6 @@ We need a stable, non-changing identity claim for audit actor linkage while pres
 
 - [ADR-0018: Audit Actor Fields from Security Context as Strings](0018-audit-actor-fields-from-security-context.adr.md)
 - [ADR-0014: Gateway Internal Service Security](0014-gateway-internal-service-security.adr.md)
+- [ADR-0022 Remediation Checklist](0022-audit-stable-person-id-remediation-checklist.md)
 - `durion-positivity-backend/pos-security-common/src/main/java/com/positivity/security/common/SecurityContextHelper.java`
 - `durion-positivity-backend/pos-inventory/src/main/java/com/positivity/inventory/internal/event/AuditActorRef.java`
