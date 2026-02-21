@@ -78,10 +78,10 @@ The user wants the entire workflow to run “in the background”. As orchestrat
 
 ### Inputs you must ask for (or discover)
 
-- `CAPABILITY_MANIFEST_PATH` (workspace-relative path)
+- `CAPABILITY_MANIFEST_PATH` (workspace-relative path, provided by user and treated as authoritative)
 - For each story in the manifest:
-  - `BACKEND_CONTRACT_GUIDE_PATH` (workspace-relative path in `durion`)
-  - `OPENAPI_PATH` (workspace-relative path to current OpenAPI JSON for the relevant backend module)
+  - `BACKEND_CONTRACT_GUIDE_PATH` (prefer manifest file reference; fallback to standard location)
+  - `OPENAPI_PATH` (prefer manifest file reference to module-root `openapi.yaml`; fallback to standard location)
 
 ### Canonical prompt files
 
@@ -114,17 +114,27 @@ When a task requires using a prompt file (e.g., `.github/prompts/backend-contrac
 
 1. **Read the prompt file** using `readFile` tool to get its full content
 2. **Identify required runtime variables** from the prompt's "Context (inputs)" section (e.g., `BACKEND_CONTRACT_GUIDE_PATH`, `OPENAPI_PATH`, `CAPABILITY_MANIFEST_PATH`)
-3. **Construct the delegation prompt** by combining:
+3. **Resolve runtime paths from manifest references first**:
+   - `BACKEND_CONTRACT_GUIDE_PATH`: use manifest file reference; if missing, fallback to
+     `durion/domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+   - `OPENAPI_PATH`: use manifest file reference; if missing, check
+     `durion-positivity-backend/<module>/openapi.yaml`
+   - If module-root `openapi.yaml` is missing, generate it:
+     - `cd durion-positivity-backend && ./mvnw -pl <module> -am -Plocal integration-test`
+   - If local profile generation is unavailable for that module, fallback:
+     - `cd durion-positivity-backend && scripts/generate-openapi.sh`
+   - Use the resolved module-root `openapi.yaml` in Runtime Context
+4. **Construct the delegation prompt** by combining:
    - The entire prompt file content
    - A "Runtime Context" section with actual file paths for each variable:
      ```
      ## Runtime Context
      - BACKEND_CONTRACT_GUIDE_PATH: $WORKSPACE/durion/domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
-     - OPENAPI_PATH: $WORKSPACE/durion-positivity-backend/pos-{name}/target/openapi.yaml
+     - OPENAPI_PATH: $WORKSPACE/durion-positivity-backend/pos-{name}/openapi.yaml
      - CAPABILITY_MANIFEST_PATH: $WORKSPACE/durion/docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
      - AUTOMATED_MODE: true
      ```
-4. **Call the appropriate agent** (Document Agent) using `runSubagent` with the complete prompt
+5. **Call the appropriate agent** (Document Agent) using `runSubagent` with the complete prompt
 
 ### Example Invocation
 
@@ -138,7 +148,7 @@ ${promptContent}
 
 ## Runtime Context
 - BACKEND_CONTRACT_GUIDE_PATH: domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
-- OPENAPI_PATH: durion-positivity-backend/pos-{name}/target/openapi.yaml
+- OPENAPI_PATH: durion-positivity-backend/pos-{name}/openapi.yaml
 - CAPABILITY_MANIFEST_PATH: docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
 - AUTOMATED_MODE: true
 
@@ -365,7 +375,7 @@ This demonstrates the Capability → Contract → Backend workflow with prompt f
 
 ### Step 1 — Parse Manifest
 Read `docs/capabilities/CAP-253/CAPABILITY_MANIFEST.yaml` to extract:
-- `stories[0].contract_guide.openapi.spec_path`: `pos-security-service/target/openapi.yaml`
+- `stories[0].contract_guide.openapi.spec_path`: `pos-security-service/openapi.yaml`
 - `stories[0].contract_guide.path`: `domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md`
 - Domain: `security`
 
@@ -381,7 +391,7 @@ ${promptContent}
 
 ## Runtime Context
 - BACKEND_CONTRACT_GUIDE_PATH: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
-- OPENAPI_PATH: durion-positivity-backend/pos-security-service/target/openapi.yaml
+- OPENAPI_PATH: durion-positivity-backend/pos-security-service/openapi.yaml
 - CAPABILITY_MANIFEST_PATH: docs/capabilities/CAP-253/CAPABILITY_MANIFEST.yaml
 - AUTOMATED_MODE: true
 
@@ -397,7 +407,7 @@ runSubagent({
 
 ### Step 3 — Verify Output
 The Document Agent subagent will:
-1. Parse the OpenAPI spec from `pos-security-service/target/openapi.yaml`
+1. Parse the OpenAPI spec from `pos-security-service/openapi.yaml`
 2. Compare against `BACKEND_CONTRACT_GUIDE.md`
 3. Generate a patch with:
    - Fixed endpoint: `/v1/auth/delete` → `/v1/auth/revoke`
