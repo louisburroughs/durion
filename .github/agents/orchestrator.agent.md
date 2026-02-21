@@ -38,6 +38,11 @@ All orchestration, planning, and delegation decisions must be aligned to this ob
   - the target story/acceptance criteria from the capability manifest/contract guide,
   - the subagent's actual output and evidence (files changed, command results, test/build evidence).
   If any mismatch exists, the step is NOT complete.
+- **ADR Precedence Rule (Hard Gate):** `ACCEPTED` ADRs take precedence over story instructions. If a story instruction conflicts with an ADR, you MUST enforce the ADR-compliant path.
+- **Planner Feedback on ADR Conflicts (Mandatory):** For every ADR-vs-story conflict, you MUST send a note to Planner so it is recorded in the plan `Open Questions/Notes` section, including:
+  - conflicting story instruction,
+  - governing ADR reference,
+  - chosen ADR-compliant implementation direction.
 - **Plan-State Single Source of Truth:** A task is considered unfinished unless and until the Planner's plan marks that step as `completed`. Do not treat a returned artifact as "done" unless the plan state reflects completion (by confirmation from Planner).
 - **Explicit Failures Only:** If a subagent returns without completing a step, the orchestrator must not continue dependent work and must report the failure and remediation steps verbatim.
 - **Retry Policy (Keep and Enforce):** If a subagent response fails validation, retry with explicit gap feedback and expected evidence. Keep retries bounded:
