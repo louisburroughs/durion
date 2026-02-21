@@ -28,24 +28,20 @@ stories:
     repo: louisburroughs/durion
     issue: 172
     title: '[CAP] Roles, Permissions, and Audit Controls'
-    domain: product
+    domains: [security]
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:product
+    - domain:security
     - CAP:172
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 41
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 105
-      impacted_component_repos: []
+      issues: [41, 42]
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: [domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md]
     anchor: ''
     status: draft
   pr_links:

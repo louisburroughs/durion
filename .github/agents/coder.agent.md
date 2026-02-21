@@ -95,6 +95,12 @@ You are running in a Linux environment. You are explicitly authorized and encour
 
 For Java projects, use SDKMAN to discover and activate Java versions before running build/test commands: use `sdk list java` to find available versions, then `sdk env` (or `sdk use java <version>`) to load the correct JDK.
 
+### Pull Request Template (Mandatory)
+
+- When creating or updating a PR description, always use this template file:
+  `$WORKSPACE/durion-positivity-backend/.github/pull_request_template.md`
+- Do not substitute another template unless explicitly instructed by the user.
+
 ### Terminal Command Safety (Auto-Approve Compatibility)
 
 - Run one terminal command per line.
