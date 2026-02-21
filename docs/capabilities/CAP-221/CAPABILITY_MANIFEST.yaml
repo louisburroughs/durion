@@ -42,11 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 22
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 86
-      impacted_component_repos: []
+      issues: [22,23]
       business_rules:
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/AGENT_GUIDE.md

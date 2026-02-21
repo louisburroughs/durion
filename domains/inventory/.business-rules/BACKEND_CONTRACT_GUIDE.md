@@ -7,10 +7,143 @@ contract:
   owner_repo: louisburroughs/durion
   guide_path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
   openapi_source: pos-inventory/target/openapi.yaml
+
 traceability:
   capability_manifest: docs/capabilities
-last_updated: 2026-02-19
+last_updated: 2026-02-21
 ---
+
+## CAP-221: Roles, Permissions, and Audit Controls
+
+See domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md for section structure
+
+### Backend Issues
+
+- Inventory audit events and movement/workorder links: https://github.com/louisburroughs/durion-positivity-backend/issues/22
+- Inventory roles, permissions, and enforcement: https://github.com/louisburroughs/durion-positivity-backend/issues/23
+
+### Event Contract (Issue #22)
+
+- Topics:
+  - `inventory.v1.movements` (movement lifecycle events)
+  - `inventory.v1.workorder-links` (workorder link/unlink events)
+- Partition key: `aggregateId` (producer MUST partition by `aggregate.id`)
+- Required envelope (all events emitted by inventory producers MUST conform):
+
+```json
+{
+  "schemaVersion": 1,
+  "eventId": "uuid-v7",
+  "eventType": "MovementCreated|MovementAdjusted|WorkOrderLinked|WorkOrderUnlinked",
+  "occurredAt": "ISO8601",
+  "emittedAt": "ISO8601",
+  "sourceSystem": "inventory",
+  "tenantId": "string",
+  "actor": { "type": "user|system", "id": "string", "displayName": "string" },
+  "correlationId": "string",
+  "aggregate": { "type": "movement|workorder", "id": "string" },
+  "payload": {}
+}
+```
+
+- Producer responsibilities:
+  - Inventory services are the authoritative producers for the above topics.
+  - Emit events for state changes: MovementCreated, MovementAdjusted, WorkOrderLinked, WorkOrderUnlinked.
+  - Populate `actor` fields from the security context as defined in ADR-0018.
+  - Set `sourceSystem` to `inventory` and include `tenantId` where multi-tenancy applies.
+  - Ensure `eventId` uses UUIDv7 for time-ordered idempotency semantics.
+  - Partition messages by `aggregate.id` to preserve ordering per aggregate.
+
+- Idempotency note:
+  - `eventId` SHOULD be stable per operation (generate once per logical operation) so consumers can detect duplicates.
+  - Producers SHOULD design operations to be idempotent on retries; consumer-facing semantics rely on `eventId` + `aggregate.id` for deduplication.
+
+### Permission Matrix (Issue #23)
+
+Permission namespace: `inventory:*`
+
+- Canonical permissions:
+  - Catalog: `inventory:item:view`, `inventory:item:create`, `inventory:item:update`, `inventory:item:archive`
+  - Stock: `inventory:stock:view`, `inventory:stock:adjust`, `inventory:stock:transfer`
+  - Counts: `inventory:count:view`, `inventory:count:initiate`, `inventory:count:submit`, `inventory:count:approve`
+  - Receiving: `inventory:receiving:view`, `inventory:receiving:receive`, `inventory:receiving:reverse`
+  - Locations: `inventory:location:view`, `inventory:location:create`, `inventory:location:update`, `inventory:location:archive`
+  - Reporting: `inventory:report:view`, `inventory:report:export`
+
+- Default roles (seed):
+
+  | Role | Grants (summary) |
+  |------|------------------|
+  | Inventory Viewer | all `*:view` + `inventory:report:view` |
+  | Inventory Clerk | Viewer + `inventory:count:initiate`, `inventory:count:submit`, `inventory:receiving:receive` |
+  | Inventory Manager | Clerk + `inventory:item:create`, `inventory:item:update`, `inventory:item:archive`, `inventory:stock:transfer`, `inventory:report:export` |
+  | Inventory Controller | Viewer + `inventory:count:approve`, `inventory:stock:adjust`, `inventory:receiving:reverse` |
+  | Inventory Admin | all `inventory:*` |
+
+- Enforcement pattern:
+  - All inventory APIs MUST enforce RBAC using the platform security framework (issue #42 dependency).
+  - Server-side enforcement is DENY-BY-DEFAULT: absence of required permission MUST result in `403 Forbidden` with standard error response format.
+  - Permission checks MUST occur before performing state-changing operations and before emitting events.
+
+- Audit events (emit on relevant actions):
+  - `inventory.stock.adjusted`
+  - `inventory.count.approved`
+  - `inventory.receiving.reversed`
+  - `inventory.access.denied` (when a permission check fails; include actor, path, attemptedAction, reason)
+
+### Endpoint Permission Table
+
+Mapping of OpenAPI paths (service-local) to canonical `inventory:*` permissions. Gateway-normalized path shown using `http://localhost:8080/v1/inventory/...`.
+
+| HTTP | Gateway Path | Required Permission |
+|------|--------------|---------------------|
+| GET | `http://localhost:8080/v1/inventory/availability/{productId}` | `inventory:stock:view` |
+| POST | `http://localhost:8080/v1/inventory/availability/{productId}` | `inventory:stock:adjust` |
+| GET | `http://localhost:8080/v1/inventory/sites/{siteId}/defaultLocations` | `inventory:location:view` |
+| PUT | `http://localhost:8080/v1/inventory/sites/{siteId}/defaultLocations` | `inventory:location:update` |
+| POST | `http://localhost:8080/v1/inventory/pickingLists/{id}/confirm` | `inventory:stock:adjust` |
+| GET | `http://localhost:8080/v1/inventory/cycleCountAdjustments` | `inventory:count:view` |
+| POST | `http://localhost:8080/v1/inventory/cycleCountAdjustments` | `inventory:count:initiate` |
+| POST | `http://localhost:8080/v1/inventory/cycleCountAdjustments/{adjustmentId}/approve` | `inventory:count:approve` |
+| POST | `http://localhost:8080/v1/inventory/cycleCountAdjustments/{adjustmentId}/reject` | `inventory:count:approve` |
+| POST | `http://localhost:8080/v1/inventory/locations/{locationId}/deactivate` | `inventory:location:update` |
+| POST | `http://localhost:8080/v1/inventory/cycleCount/submit` | `inventory:count:submit` |
+| POST | `http://localhost:8080/v1/inventory/cycleCount/recount` | `inventory:count:submit` |
+
+Notes:
+- Paths using `/api/v1/` prefix in the OpenAPI are exposed via the gateway as `http://localhost:8080/v1/inventory/...` (see Gateway path note below). Implementers MUST validate permissions using the internal route's security context.
+
+### Behavioral Assertions
+
+- `403 Forbidden` MUST be returned when the authenticated principal lacks the required `inventory:*` permission for the operation.
+- When permission is denied, an `inventory.access.denied` audit event SHOULD be emitted (include `actor`, `path`, `attemptedAction`, `correlationId`).
+- Event emission guarantees:
+  - Events listed in the Event Contract MUST be emitted for successful state changes.
+  - `eventId` MUST use UUIDv7 and be stable for the operation to support idempotent processing.
+
+### Provider Test Hints (ContractBehaviorIT)
+
+- Permission enforcement tests:
+  - Assert that requests without the required permission return `403` and the `inventory.access.denied` audit event is emitted to the audit topic or stored in the audit log.
+  - Seed test principals with and without each relevant permission and verify success vs `403` behavior.
+
+- Audit/event tests:
+  - For state-changing operations (stock adjustments, count approvals, receiving reversals), assert that the appropriate Kafka topic receives an event conforming to the envelope and `payload` shape.
+  - Verify partitioning by `aggregate.id` and that `eventId` is present and follows UUIDv7 semantics (time-ordered). Tests may validate idempotency by replaying identical operations and asserting dedup behaviour on consumers where applicable.
+
+### Gateway Path Note
+
+- The API gateway normalizes service paths to `http://localhost:8080/v{version}/{domain}/...`.
+- Therefore OpenAPI paths using `/api/v1/inventory/...` or `/v1/inventory/...` are exposed to clients as `http://localhost:8080/v1/inventory/...`.
+
+### General Notes and References
+
+- Security implementation depends on the platform RBAC service (issue #42). Coordinate permission constant names with the shared security repository.
+- See `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md` for the required capability documentation structure and examples.
+- Related ADRs and docs:
+  - ADR-0018 (Audit actor fields from security context)
+  - `docs/architecture/observability/OBSERVABILITY.md` for event logging and telemetry guidelines
+  - OpenAPI source: `pos-inventory/target/openapi.yaml`
 
 # Inventory Management Backend Contract Guide
 
