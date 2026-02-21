@@ -23,6 +23,8 @@ Only surface failure if the subagent is truly blocked/stuck (missing dependency,
 1. One story at a time
 2. One backend module at a time
 3. Prefer service-layer changes before controller/integration-heavy stories
+4. Complete `RED -> GREEN -> coverage` for Story N before starting Story N+1
+5. Never run a "tests for all stories first" or "code all stories at once" pattern
 
 ## Capability Manifest Authority
 - Assume the user provides the correct `CAPABILITY_MANIFEST.yaml` with relevant references.
@@ -118,6 +120,10 @@ Planner must produce and validate a complete plan that covers the full lifecycle
 8. Branch creation/usage
 9. Single PR creation
 10. Emit the plan using exact labels `Step 1:` and `Final Step:`
+11. For multiple stories, emit explicit per-story loops:
+   - Story A: RED tests -> GREEN code -> coverage validation
+   - Story B: RED tests -> GREEN code -> coverage validation
+   Never batch RED or GREEN across all stories.
 
 Hard acceptance rule:
 - If Step 1 is not source-material reading, or if the final step does not include Pull Request creation in `durion-positivity-backend`, the plan is incomplete and MUST be rejected and returned to Planner for remediation.

@@ -45,6 +45,17 @@ Build the plan **backward from the objective**, then present it in executable fo
 3. **Reach Step One**: Continue backward until Step 1 is explicit: read and analyze source material (manifest, prompts, relevant code/docs) before any delegation.
 4. **Forward Plan Output**: Convert the backward chain into ordered execution steps (Step 1 first), describing WHAT must happen, not HOW to code it.
 
+## Story-by-Story Planning Pattern (Mandatory)
+
+Plan each story as an independent delivery loop. Do NOT batch all stories into a single RED phase or a single GREEN phase.
+
+For every story, the plan must include this exact sequence before moving to the next story:
+1. RED: write/update tests for that story and capture failing evidence.
+2. GREEN: implement code for that same story until RED tests pass.
+3. Coverage: run JaCoCo and harden tests for that same story/module scope until coverage target is satisfied.
+
+Only after steps 1-3 are complete for Story N may the plan start Story N+1.
+
 ## Capability Manifest Path Resolution
 
 - Treat the user-provided `CAPABILITY_MANIFEST.yaml` as authoritative.
@@ -97,6 +108,11 @@ Open Questions:
 - A plan is incomplete unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend`
 - The output must contain exact labels `Step 1:` and `Final Step:` in checkbox format (`- [ ]`) as defined in the required template
 - For backend orchestration plans, include an explicit post-coder coverage-hardening step: after coder completion is verified, run Test Coverage Agent with JaCoCo and iterate tests until service+utility coverage is >= 65%
+- For backend orchestration plans with multiple stories, you MUST structure steps as per-story micro-cycles:
+  - Story 1: RED -> GREEN -> coverage hardening
+  - Story 2: RED -> GREEN -> coverage hardening
+  - ...
+  Never propose: "write tests for all stories first" or "implement code for all stories at once"
 - **IMPORTANT**: DO NOT TRY rm to remove `Durion-Processing.md`. Use $HOME/Projects/durion/safe-delete-DP.sh "$HOME/Projects/durion/Durion-Processing.md" instead, which only is allowed to remove Durion-Processing.md. Use the absolute path to avoid mistakes.
 
 ## Sandboxed Mode (No Write Tools)
