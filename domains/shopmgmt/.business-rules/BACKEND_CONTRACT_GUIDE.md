@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-shop-manager/target/openapi.json (to be generated)
+  openapi_source: pos-shop-manager/target/openapi.yaml (to be generated)
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -17,7 +17,7 @@ last_updated: 2026-02-19
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-shop-manager/target/openapi.json` (to be generated)
+**OpenAPI Source:** `pos-shop-manager/target/openapi.yaml` (to be generated)
 
 ---
 

@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-catalog/openapi.json
+  openapi_source: durion-positivity-backend/pos-catalog/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -25,7 +25,7 @@ last_updated: 2026-02-19
 This guide defines the Product backend contract for the Product domain, implemented by `pos-catalog`.
 
 Authoritative source for current endpoint inventory is (OpenAPI authoritative):
-- `$WORKSPACE/durion-positivity-backend/pos-catalog/openapi.json`
+- `$WORKSPACE/durion-positivity-backend/pos-catalog/openapi.yaml`
 
 ---
 
@@ -104,7 +104,7 @@ Mutation endpoints emit events:
 
 ## Endpoint Inventory (OpenAPI-sourced)
 
-Note: OpenAPI (pos-catalog/openapi.json) is authoritative. All gateway examples below use the API Gateway format `http://localhost:8080{path}` where `{path}` is the OpenAPI path (which includes `/v1/...`).
+Note: OpenAPI (pos-catalog/openapi.yaml) is authoritative. All gateway examples below use the API Gateway format `http://localhost:8080{path}` where `{path}` is the OpenAPI path (which includes `/v1/...`).
 
 ### Catalog endpoints (mapped from OpenAPI)
 
@@ -465,7 +465,7 @@ Status: `draft`
 
 ## CAP-166: Cost Management
 
-This section documents the planned backend contract for CAP-166: Cost Management (Acquisition & Cost Models). The endpoints below are greenfield for the backend (`durion-positivity-backend` issues #195 and #196) and are not yet present in `pos-catalog/openapi.json`. The OpenAPI file is authoritative for implemented endpoints; these entries represent the planned contract implementers should add to OpenAPI.
+This section documents the planned backend contract for CAP-166: Cost Management (Acquisition & Cost Models). The endpoints below are greenfield for the backend (`durion-positivity-backend` issues #195 and #196) and are not yet present in `pos-catalog/openapi.yaml`. The OpenAPI file is authoritative for implemented endpoints; these entries represent the planned contract implementers should add to OpenAPI.
 
 Gateway base URL (MANDATORY format): `http://localhost:8080/v1/products` (append path below)
 
@@ -649,7 +649,7 @@ Error codes & semantics (recommended):
 ---
 
 **Notes for implementers**
-- These endpoints are greenfield relative to current `pos-catalog/openapi.json`. Add OpenAPI `paths` and `components/schemas` for `SupplierItemCost`, `CostTier`, `ItemCostsResponse`, and `ItemCostAuditEntry` when implementing.
+- These endpoints are greenfield relative to current `pos-catalog/openapi.yaml`. Add OpenAPI `paths` and `components/schemas` for `SupplierItemCost`, `CostTier`, `ItemCostsResponse`, and `ItemCostAuditEntry` when implementing.
 - Ensure controller methods are annotated with `@EmitEvent` where state changes are significant (create/update/delete) per project event auditing guidance.
 - Add ArchUnit tests where applicable to maintain package encapsulation.
 - Add ContractBehaviorIT coverage for the scenarios described above (happy path, validation, authorization, audit transactional semantics).
@@ -732,7 +732,7 @@ Gateway base URL (MANDATORY format): `http://localhost:8080/v1/products`
 
 Summary: Product Master Data for parts & tires including core product CRUD, lifecycle management, replacements, search, and UOM conversions. Backend issues: #57 (core product CRUD), #55 (lifecycle state + replacements), #56 (UOM conversions).
 
-Note (OpenAPI authoritative): the current `pos-catalog/openapi.json` includes some lifecycle and replacement paths (e.g., `GET/PUT /v1/products/{productId}/lifecycle` and `POST /v1/products/{productId}/replacements`) but several CAP-165 endpoints are greenfield and must be added to OpenAPI during implementation. Where OpenAPI already defines a path, use OpenAPI as the source-of-truth and extend behavior here only for planned additions.
+Note (OpenAPI authoritative): the current `pos-catalog/openapi.yaml` includes some lifecycle and replacement paths (e.g., `GET/PUT /v1/products/{productId}/lifecycle` and `POST /v1/products/{productId}/replacements`) but several CAP-165 endpoints are greenfield and must be added to OpenAPI during implementation. Where OpenAPI already defines a path, use OpenAPI as the source-of-truth and extend behavior here only for planned additions.
 
 Endpoints (planned additions / contract):
 
@@ -1042,7 +1042,7 @@ Event contract entries (implementation links):
 
 Status: `draft`
 
-This capability extends CAP-167 with additional implementation guidance and test scenarios for location-specific price overrides and guardrail management. The authoritative endpoint definitions and schema shapes come from the Product OpenAPI (pos-catalog/openapi.json).
+This capability extends CAP-167 with additional implementation guidance and test scenarios for location-specific price overrides and guardrail management. The authoritative endpoint definitions and schema shapes come from the Product OpenAPI (pos-catalog/openapi.yaml).
 
 All gateway URLs use the API Gateway format: `http://localhost:8080/v1/products/pricing/...`.
 

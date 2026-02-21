@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-price/target/openapi.json
+  openapi_source: pos-price/target/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-20
@@ -17,7 +17,7 @@ last_updated: 2026-02-20
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-price/target/openapi.json`
+**OpenAPI Source:** `pos-price/target/openapi.yaml`
 
 ---
 
@@ -552,7 +552,7 @@ This guide establishes standardized contracts for the Pricing & Price Management
 
 ## References
 
-- OpenAPI Specification: `pos-price/target/openapi.json`
+- OpenAPI Specification: `pos-price/target/openapi.yaml`
 - Domain Agent Guide: `domains/pricing/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/pricing/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/pricing/.business-rules/ERROR_CODES.md`

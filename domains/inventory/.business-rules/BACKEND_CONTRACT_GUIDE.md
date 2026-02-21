@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-inventory/target/openapi.json
+  openapi_source: pos-inventory/target/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -17,7 +17,7 @@ last_updated: 2026-02-19
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-inventory/target/openapi.json`
+**OpenAPI Source:** `pos-inventory/target/openapi.yaml`
 
 ---
 
@@ -1045,7 +1045,7 @@ This guide establishes standardized contracts for the Inventory Management domai
 
 ## References
 
-- OpenAPI Specification: `pos-inventory/target/openapi.json`
+- OpenAPI Specification: `pos-inventory/target/openapi.yaml`
 - Domain Agent Guide: `domains/inventory/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/inventory/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/inventory/.business-rules/ERROR_CODES.md`

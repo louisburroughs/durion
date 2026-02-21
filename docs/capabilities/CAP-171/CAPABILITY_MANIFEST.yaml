@@ -28,7 +28,7 @@ stories:
     repo: louisburroughs/durion
     issue: 171
     title: '[CAP] Substitutions, Fitment Hints, and Commercial Rules'
-    domains: [vehicle-fitment, pricing, workexec]
+    domains: [product, pricing, workexec]
     labels:
     - type:capability
     - layer:functional
@@ -48,7 +48,7 @@ stories:
         type: meta
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    paths: [domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md,domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md,domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md]
     anchor: ''
     status: draft
   pr_links:

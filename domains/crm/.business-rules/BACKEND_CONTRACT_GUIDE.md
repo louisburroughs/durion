@@ -7,8 +7,8 @@ contract:
   owner_repo: louisburroughs/durion
   guide_path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   openapi_source:
-    - durion-positivity-backend/pos-customer/openapi.json
-    - durion-positivity-backend/pos-vehicle-inventory/openapi.json
+    - durion-positivity-backend/pos-customer/openapi.yaml
+    - durion-positivity-backend/pos-vehicle-inventory/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -20,8 +20,8 @@ last_updated: 2026-02-19
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-02-05  
 **OpenAPI Sources:**
-- `durion-positivity-backend/pos-customer/openapi.json`  
-- `durion-positivity-backend/pos-vehicle-inventory/openapi.json` (Vehicle Registry - CAP:091)  
+- `durion-positivity-backend/pos-customer/openapi.yaml`  
+- `durion-positivity-backend/pos-vehicle-inventory/openapi.yaml` (Vehicle Registry - CAP:091)  
 **Status:** Accepted
 
 ---

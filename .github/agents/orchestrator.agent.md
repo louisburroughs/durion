@@ -119,7 +119,7 @@ When a task requires using a prompt file (e.g., `.github/prompts/backend-contrac
      ```
      ## Runtime Context
      - BACKEND_CONTRACT_GUIDE_PATH: $WORKSPACE/durion/domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
-     - OPENAPI_PATH: $WORKSPACE/durion-positivity-backend/pos-{name}/target/openapi.json
+     - OPENAPI_PATH: $WORKSPACE/durion-positivity-backend/pos-{name}/target/openapi.yaml
      - CAPABILITY_MANIFEST_PATH: $WORKSPACE/durion/docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
      - AUTOMATED_MODE: true
      ```
@@ -137,7 +137,7 @@ ${promptContent}
 
 ## Runtime Context
 - BACKEND_CONTRACT_GUIDE_PATH: domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md
-- OPENAPI_PATH: durion-positivity-backend/pos-{name}/target/openapi.json
+- OPENAPI_PATH: durion-positivity-backend/pos-{name}/target/openapi.yaml
 - CAPABILITY_MANIFEST_PATH: docs/capabilities/CAP-###/CAPABILITY_MANIFEST.yaml
 - AUTOMATED_MODE: true
 
@@ -342,7 +342,7 @@ This demonstrates the Capability → Contract → Backend workflow with prompt f
 
 ### Step 1 — Parse Manifest
 Read `docs/capabilities/CAP-253/CAPABILITY_MANIFEST.yaml` to extract:
-- `stories[0].contract_guide.openapi.spec_path`: `pos-security-service/target/openapi.json`
+- `stories[0].contract_guide.openapi.spec_path`: `pos-security-service/target/openapi.yaml`
 - `stories[0].contract_guide.path`: `domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md`
 - Domain: `security`
 
@@ -358,7 +358,7 @@ ${promptContent}
 
 ## Runtime Context
 - BACKEND_CONTRACT_GUIDE_PATH: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
-- OPENAPI_PATH: durion-positivity-backend/pos-security-service/target/openapi.json
+- OPENAPI_PATH: durion-positivity-backend/pos-security-service/target/openapi.yaml
 - CAPABILITY_MANIFEST_PATH: docs/capabilities/CAP-253/CAPABILITY_MANIFEST.yaml
 - AUTOMATED_MODE: true
 
@@ -374,7 +374,7 @@ runSubagent({
 
 ### Step 3 — Verify Output
 The Document Agent subagent will:
-1. Parse the OpenAPI spec from `pos-security-service/target/openapi.json`
+1. Parse the OpenAPI spec from `pos-security-service/target/openapi.yaml`
 2. Compare against `BACKEND_CONTRACT_GUIDE.md`
 3. Generate a patch with:
    - Fixed endpoint: `/v1/auth/delete` → `/v1/auth/revoke`

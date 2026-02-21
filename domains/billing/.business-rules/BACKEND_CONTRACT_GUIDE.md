@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-invoice/openapi.json
+  openapi_source: durion-positivity-backend/pos-invoice/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19

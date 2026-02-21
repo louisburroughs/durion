@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-people/openapi.json
+  openapi_source: durion-positivity-backend/pos-people/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities/CAP-120/CAPABILITY_MANIFEST.yaml
 last_updated: 2026-02-19
@@ -1980,7 +1980,7 @@ This guide establishes standardized contracts for the People & Human Resources d
 
 ## References
 
-- OpenAPI Specification: `pos-people/target/openapi.json`
+- OpenAPI Specification: `pos-people/target/openapi.yaml`
 - Domain Agent Guide: `domains/people/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/people/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/people/.business-rules/ERROR_CODES.md`

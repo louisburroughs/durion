@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-security-service/openapi.json  
+  openapi_source: durion-positivity-backend/pos-security-service/openapi.yaml  
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -18,7 +18,7 @@ last_updated: 2026-02-19
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-02-16  
 **Capability:** [CAP-253: Roles, Permissions, and Audit Controls](../../../docs/capabilities/CAP-253/)  
-**OpenAPI Source:** `durion-positivity-backend/pos-security-service/openapi.json`  
+**OpenAPI Source:** `durion-positivity-backend/pos-security-service/openapi.yaml`  
 **Architecture:** ADR-0011 Gateway-based Security Architecture  
 **Related Issues:** [CAP-253](https://github.com/louisburroughs/durion/issues/253), [CAP-118](https://github.com/louisburroughs/durion/issues/118), [durion-positivity-backend#1](https://github.com/louisburroughs/durion-positivity-backend/issues/1), [durion-positivity-backend#89](https://github.com/louisburroughs/durion-positivity-backend/issues/89), [durion-moqui-frontend#65](https://github.com/louisburroughs/durion-moqui-frontend/issues/65), [durion-positivity-backend#417](https://github.com/louisburroughs/durion-positivity-backend/issues/417), [durion-moqui-frontend#280](https://github.com/louisburroughs/durion-moqui-frontend/issues/280), [durion-positivity-backend#526](https://github.com/louisburroughs/durion-positivity-backend/pull/526)
 
@@ -1601,7 +1601,7 @@ This guide establishes standardized contracts for the Security & Authentication 
 - **Architecture:** ADR-0011 Gateway-based Security Architecture (`docs/adr/0011-api-gateway-security-architecture.adr.md`)
 - **Backend Implementation:** [durion-positivity-backend#417](https://github.com/louisburroughs/durion-positivity-backend/issues/417)
 - **Frontend Implementation:** [durion-moqui-frontend#280](https://github.com/louisburroughs/durion-moqui-frontend/issues/280)
-- **OpenAPI Specification:** `durion-positivity-backend/pos-security-service/openapi.json`
+- **OpenAPI Specification:** `durion-positivity-backend/pos-security-service/openapi.yaml`
 - **Domain Agent Guide:** `domains/security/.business-rules/AGENT_GUIDE.md`
 - **Cross-Domain Integration:** `domains/security/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - **Error Codes:** `domains/security/.business-rules/ERROR_CODES.md`

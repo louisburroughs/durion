@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-accounting/openapi.json
+  openapi_source: durion-positivity-backend/pos-accounting/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -17,7 +17,7 @@ last_updated: 2026-02-19
 **Version:** 1.4  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-02-10  
-**OpenAPI Source:** `durion-positivity-backend/pos-accounting/openapi.json`
+**OpenAPI Source:** `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ---
 
@@ -2879,7 +2879,7 @@ This guide establishes standardized contracts for the Accounting domain:
 
 **Contract Note:**
 
-- No CAP-054-specific Accounting OpenAPI paths detected in `pos-accounting/openapi.json` as of 2026-02-09; this section tracks implementation coordination.
+- No CAP-054-specific Accounting OpenAPI paths detected in `pos-accounting/openapi.yaml` as of 2026-02-09; this section tracks implementation coordination.
 
 ---
 
@@ -2898,11 +2898,11 @@ This guide establishes standardized contracts for the Accounting domain:
 
 **Contract Note:**
 
-- Coordination links only. Any API changes introduced by CAP-278 must be reflected in `pos-accounting/openapi.json` and then synced into this guide.
+- Coordination links only. Any API changes introduced by CAP-278 must be reflected in `pos-accounting/openapi.yaml` and then synced into this guide.
 
 ## References
 
-- OpenAPI Specification: `pos-accounting/openapi.json`
+- OpenAPI Specification: `pos-accounting/openapi.yaml`
 - Domain Agent Guide: `domains/accounting/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/accounting/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/accounting/.business-rules/ERROR_CODES.md`

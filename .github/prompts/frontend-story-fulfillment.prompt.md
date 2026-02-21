@@ -198,7 +198,7 @@ stories:
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-security-service/target/openapi.json
+      spec_path: pos-security-service/target/openapi.yaml
 ```
 
 **Substitution Algorithm (Python)**

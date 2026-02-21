@@ -6,7 +6,7 @@ contract:
   status: draft
   owner_repo: louisburroughs/durion
   guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-location/target/openapi.json
+  openapi_source: pos-location/target/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
 last_updated: 2026-02-19
@@ -17,7 +17,7 @@ last_updated: 2026-02-19
 **Version:** 1.0  
 **Audience:** Backend developers, Frontend developers, API consumers  
 **Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-location/target/openapi.json`
+**OpenAPI Source:** `pos-location/target/openapi.yaml`
 
 ---
 
@@ -833,7 +833,7 @@ This guide establishes standardized contracts for the Location Management domain
 
 ## References
 
-- OpenAPI Specification: `pos-location/target/openapi.json`
+- OpenAPI Specification: `pos-location/target/openapi.yaml`
 - Domain Agent Guide: `domains/location/.business-rules/AGENT_GUIDE.md`
 - Cross-Domain Integration: `domains/location/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - Error Codes: `domains/location/.business-rules/ERROR_CODES.md`
@@ -883,7 +883,7 @@ This service and its contract follow ADR-0016 decisions. Key points (must be res
 - `ParentType` enum values: `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`, `SHIPPING`. A single child may have at most one parent per `ParentType`.
 - `ParentType` enum values: `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`, `SHIPPING`. A single child may have at most one parent per `ParentType`.
 
-Note: The current OpenAPI spec (`pos-location/openapi.json`) defines a different set of parent-type values (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `BILLING`). ADR-0016 is authoritative; repository owners should migrate the OpenAPI enum and persistence model to match ADR-0016 or provide a documented mapping layer. See Issue #87 for discussion.
+Note: The current OpenAPI spec (`pos-location/openapi.yaml`) defines a different set of parent-type values (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `BILLING`). ADR-0016 is authoritative; repository owners should migrate the OpenAPI enum and persistence model to match ADR-0016 or provide a documented mapping layer. See Issue #87 for discussion.
 
 - `GeographicalLocation` is a separate entity holding address and coordinate data; `Location` references it by `geographicalLocationId`.
 - Cross-module integration pattern: other services MUST store only `locationId` and query `pos-location` for details, hierarchy, or address when needed.
