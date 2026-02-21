@@ -350,7 +350,7 @@ Concrete Moqui service names may vary; the following HTTP semantics and field sh
 - `GET /billing/meta/payment-terms`
 - `GET /billing/meta/invoice-delivery-methods`
 - `GET /billing/meta/invoice-grouping-strategies`
-- `GET /billing/meta/po-policies` (optional; if policy varies by tenant/account)
+- `GET /billing/meta/po-policies` (optional; if policy varies by organization/account)
 - `GET /billing/meta/reason-codes?category=PO_OVERRIDE|REPRINT|...`
 
 ### Artifact retrieval (BILL-DEC-005)
@@ -472,7 +472,7 @@ If only one is available upstream, populate the available one; do not rename. (B
 - Secure download via tokenized endpoint (preferred) or short-lived signed URLs when explicitly requested and authorized. (BILL-DEC-005)
 
 **Question A5:** Policy specificity: Which traceability identifiers are policy-required to issue (approval always? estimate version always? configurable per customer/account)? Frontend must not guess.  
-**Response:** Policy is configurable per tenant/account and returned as `issuancePolicy`:
+**Response:** Policy is configurable per organization/account and returned as `issuancePolicy`:
 
 - Always required: `sourceWorkOrderId`, `sourceBillableScopeSnapshotId`, `sourceSchemaVersion`
 - Conditionally required:

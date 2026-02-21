@@ -389,7 +389,7 @@ This document addresses **3 unresolved pricing domain issues** with `blocked:cla
 3. [ ] Effective dating fields: timestamp (`effectiveStartAt`/`effectiveEndAt`) vs date-only
 4. [ ] Store-local timezone interpretation and picker requirements
 5. [ ] Fixed amount currency: Money object vs separate `promotionValue` + `currencyUomId`
-6. [ ] Which currency applies (store currency vs tenant default)
+6. [ ] Which currency applies (store currency vs organization default)
 7. [ ] Activation/deactivation mechanism: status transition vs end-dating (DECISION-PRICING-016)
 8. [ ] Code normalization: uppercase on input vs case-insensitive uniqueness only
 9. [ ] Promotion create endpoint path and request/response DTOs

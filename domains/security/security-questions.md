@@ -171,7 +171,7 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
     - **❌ NO STATUS FIELD:** Immutable in v1; no ACTIVE/DISABLED/ARCHIVED states
     - **Implication:** Soft-delete not supported; defer to Phase 3/4 if needed
   - [x] Confirm name uniqueness scope
-    - **Scope:** Global (single-tenant model in v1)
+    - **Scope:** Global (single-organization model in v1)
   - [x] Confirm name validation rules
     - **Length:** 255 chars default (no explicit entity validation)
     - **Characters:** No regex validation; assume alphanumeric + spaces/hyphens
@@ -215,13 +215,13 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
   - [x] No client-side ID validation
     - **✅ CONFIRMED:** All IDs treated as opaque; presence check only
 
-- [x] **Task 2.7 — Tenant scoping and auth context (Both Issues)**
-  - [x] Confirm tenant scoping enforced via trusted auth
-    - **Current:** Single-tenant (tenantId inferred from auth context, not modeled)
+- [x] **Task 2.7 — Organization scoping and auth context (Both Issues)**
+  - [x] Confirm organization scoping enforced via trusted auth
+    - **Current:** Single-organization (organizationId inferred from auth context, not modeled)
     - **Pattern:** No user input for scoping per DECISION-INVENTORY-008
     - **Future:** Multi-tenant support deferred to Phase 4+
-  - [x] Confirm multi-tenant admin scenarios
-    - **Not yet designed:** Global admin vs tenant-specific admin distinction not modeled
+  - [x] Confirm multi-organization admin scenarios
+    - **Not yet designed:** Global admin vs organization-specific admin distinction not modeled
 
 - [x] **Task 2.8 — Cross-domain permission scoping (Location-based RBAC)**
   - [x] Confirm GLOBAL vs LOCATION scope model
@@ -245,9 +245,9 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 - ✅ Event type codes confirmed (PRICE_OVERRIDE, REFUND, CANCELLATION)
 - ✅ Identifier types confirmed (Long for roles, UUID for audit, all opaque)
 - ✅ Scope model documented (GLOBAL/LOCATION with effective dating, union semantics)
-- ✅ Tenant scoping documented (auth context enforced, single-tenant v1)
-  - [ ] Issue #65: Confirm audit queries are auto-scoped to authenticated user's tenant
-  - [ ] Confirm how multi-tenant admin scenarios are handled (if applicable)
+- ✅ Organization scoping documented (auth context enforced, single-organization v1)
+  - [ ] Issue #65: Confirm audit queries are auto-scoped to authenticated user's organization
+  - [ ] Confirm how multi-organization admin scenarios are handled (if applicable)
 
 **Acceptance:** All entity schemas documented with field types, enums, and identifier examples; permission format canonicalized
 
@@ -413,9 +413,9 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 3. What is the permission registry response structure? (`{ permissionKey, displayName, description, domain, createdAt }`)
 4. Are permissions grouped/categorized for UI rendering? If yes, what is the category field/enum?
 5. What are the exact endpoints for role CRUD? (create, list, detail, update, delete/deactivate)
-6. What is the role create request payload structure? (`{ name, description, tenantId? }`)
+6. What is the role create request payload structure? (`{ name, description, organizationId? }`)
 7. What is the role update request payload structure? (metadata only: `{ description }`)
-8. What is the role detail response structure? (`{ roleId, name, description, tenantId, status, grantedPermissions[], createdAt, updatedAt }`)
+8. What is the role detail response structure? (`{ roleId, name, description, organizationId, status, grantedPermissions[], createdAt, updatedAt }`)
 9. What is the grant endpoint? (Proposed: `POST /api/v1/security/roles/{roleId}/permissions`)
 10. What is the grant request payload? (Single: `{ permissionKey }` vs batch: `{ permissionKeys: [] }`)
 11. What is the revoke endpoint? (Proposed: `DELETE /api/v1/security/roles/{roleId}/permissions/{permissionKey}`)
@@ -429,7 +429,7 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 17. What are the role required fields? (`name`, `description`?)
 18. What are the role optional fields? (`createdAt`, `updatedAt`, `createdByUserId`, `status`)
 19. What is the role status enum? (Proposed: `ACTIVE`, `DISABLED`, `ARCHIVED`)
-20. What is the role name uniqueness scope? (per-tenant or global)
+20. What is the role name uniqueness scope? (per-organization or global)
 21. What are the role name validation rules? (max length, allowed characters, case-sensitivity)
 22. Is role description required or optional?
 23. What is the permission key format? (Confirmed: `domain:resource:action` snake_case)
@@ -550,9 +550,9 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 59. Are field-level validation errors returned in `fieldErrors[]` array?
 60. Must correlation ID be surfaced in all user-visible error messages?
 
-**Section 10: Tenant Scoping & Timezone**
-61. Are all audit queries auto-scoped to authenticated user's tenant? (per DECISION-INVENTORY-008)
-62. Is `tenantId` accepted as user input? (NO per DECISION-INVENTORY-008)
+**Section 10: Organization Scoping & Timezone**
+61. Are all audit queries auto-scoped to authenticated user's organization? (per DECISION-INVENTORY-008)
+62. Is `organizationId` accepted as user input? (NO per DECISION-INVENTORY-008)
 63. What is the timestamp format? (ISO-8601 with timezone)
 64. Are timestamps displayed in user timezone or UTC?
 65. If user timezone, how is it sourced? (user profile, shop location, browser)

@@ -62,7 +62,7 @@ This document is non-normative and exists to explain the rationale, tradeoffs, a
   - Components affected: database uniqueness constraints; role create endpoint.
   - Error contract: `409 ROLE_NAME_TAKEN` (or equivalent) with stable `code`.
 - Auditor-facing explanation:
-  - Inspect: no two roles share the same normalized name within a tenant.
+  - Inspect: no two roles share the same normalized name within an organization.
 - Migration & backward-compatibility notes:
   - Backfill normalized column and resolve collisions prior to enabling constraint.
 - Governance & owner recommendations:
@@ -140,19 +140,19 @@ This document is non-normative and exists to explain the rationale, tradeoffs, a
 - Governance & owner recommendations:
   - Add a dedicated admin workflow when enabled (four-eyes optional).
 
-### DECISION-INVENTORY-008 — Tenant scoping (no location-scoped RBAC in v1)
+### DECISION-INVENTORY-008 — Organization scoping (no location-scoped RBAC in v1)
 
 - Normative source: `AGENT_GUIDE.md` (Decision ID)
-- Decision: RBAC state is tenant-scoped; location-scoped grants/ABAC are deferred.
+- Decision: RBAC state is organization-scoped; location-scoped grants/ABAC are deferred.
 - Alternatives considered:
   - Location-scoped RBAC in v1: requires explicit policy language and consistent enforcement.
 - Reasoning and evidence:
-  - Tenant isolation is non-negotiable; location scoping needs dedicated design.
+  - Organization isolation is non-negotiable; location scoping needs dedicated design.
 - Architectural implications:
-  - Components affected: all RBAC queries must include tenant context.
-  - Security: tenant context must come from trusted claims.
+  - Components affected: all RBAC queries must include organization context.
+  - Security: organization context must come from trusted claims.
 - Auditor-facing explanation:
-  - Inspect: no cross-tenant role/grant/assignment reads.
+  - Inspect: no cross-organization role/grant/assignment reads.
 - Migration & backward-compatibility notes:
   - safe_to_defer: true (location scoping can be added later if policy is clear).
 - Governance & owner recommendations:

@@ -86,6 +86,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0020   | Centralized Document Creation              | ACCEPTED          | 2026-02-19 |
 | 0021   | Tax API Consumption and Internal Access    | ACCEPTED          | 2026-02-21 |
 | 0022   | Audit Stable Person Identifier Claim Policy| ACCEPTED          | 2026-02-21 |
+| 0023   | Remove tenantId / Single-Organization Context | ACCEPTED       | 2026-02-21 |
 
 ## Superseding ADRs
 

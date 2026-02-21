@@ -417,7 +417,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 
 ✅ **Security Best Practices (from framework):**
 - Always check permissions at operation invocation (not caller responsibility)
-- Use location scope for multi-tenant operations (not GLOBAL when location-specific)
+- Use location scope for multi-organization operations (not GLOBAL when location-specific)
 - Log all authorization failures with audit trail
 - Validate permissions registered before role assignment
 - Check effective dates on assignments (start/end date validation)

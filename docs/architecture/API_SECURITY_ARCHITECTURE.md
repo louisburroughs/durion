@@ -74,10 +74,10 @@ The Moqui assertion is a compact token (JWT) signed with HMAC using the shared s
 - `exp`: expiration timestamp (short-lived)
 - `jti`: unique token identifier (UUID)
 
-### 4.3 Optional Claims (if multi-tenant or contextual authorization is needed)
-- `tenantId`
+### 4.3 Optional Claims (if contextual authorization is needed)
 - `storeId` / `locationId`
 - `sessionId`
+- `organizationId` (only where explicit organization scoping is required)
 
 ---
 
@@ -122,7 +122,7 @@ On each request, the API Gateway performs:
    - Create an authenticated principal:
      - `principalName` = `sub` (Moqui `userId`)
      - `authorities` = mapped Spring authorities
-   - Attach additional context from optional claims if needed (e.g., `tenantId`).
+   - Attach additional context from optional claims if needed (e.g., `organizationId`).
 
 7. **SecurityContext population**
    - Set the Spring `SecurityContext` with the authenticated `Authentication` object.

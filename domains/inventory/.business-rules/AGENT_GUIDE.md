@@ -313,7 +313,7 @@ For API contract details, see `BACKEND_CONTRACT_GUIDE.md`.
 
 - Answer: Use `GET /inventory/availability-feeds/runs`, `/runs/{runId}`, `/normalized`, `/unmapped`, and `/exceptions` plus detail endpoints; updates are via `PATCH /inventory/availability-feeds/unmapped/{unmappedId}` and `PATCH /inventory/availability-feeds/exceptions/{exceptionId}`.
 - Assumptions:
-  - Lists use cursor pagination and require date range filters for large tenants.
+  - Lists use cursor pagination and require date range filters for large organizations.
 - Rationale:
   - Ops needs a single, auditable place to triage feed health.
 - Impact:

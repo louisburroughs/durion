@@ -160,7 +160,7 @@ This guide defines the Order domain’s **normative** rules for order cancellati
 
 - Answer: Cancellation eligibility is permission-based, not role-name-based; at minimum Store Manager and Service Advisor are expected to have `ORDER_CANCEL` where appropriate.
 - Assumptions:
-  - Role names vary by tenant; permissions are stable.
+  - Role names vary by organization; permissions are stable.
 - Rationale:
   - Keeps RBAC flexible across deployments.
 - Impact:

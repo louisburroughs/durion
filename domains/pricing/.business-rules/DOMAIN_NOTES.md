@@ -80,7 +80,7 @@ This document is the non-normative rationale and decision log for the Pricing do
 - Auditor-facing explanation:
  	- Inspect that quotes record which book and scope were used.
 - Migration & backward-compatibility notes:
- 	- Backfill default (global) book for existing tenants.
+ 	- Backfill default (global) book for existing organizations.
 - Governance & owner recommendations:
  	- Pricing owns book scope taxonomy.
 

@@ -78,3 +78,9 @@
 - Domain Coverage Property: Correctness property ensuring all required agent domains are available for guidance requests.
 - Guidance Quality Property: Correctness property validating that agent recommendations follow established patterns and best practices.
 - Collaboration Consistency Property: Correctness property ensuring multi-agent recommendations are consistent and conflict-free.
+
+
+## MISC
+
+- tenantId: Deprecated multi-tenant convention; not implemented in the current platform.
+- organizationId: Explicit organization-scope identifier when organization scoping is required.

@@ -30,7 +30,7 @@ It is intentionally non-normative and should not be treated as executable policy
 
 The audit domain is inherently high-risk because it concentrates cross-domain history, actor identity, operational metadata, and occasionally sensitive payloads (pricing context, customer identifiers, free-text reason notes). The primary security objectives are:
 
-1. Prevent cross-tenant data exposure.
+1. Prevent cross-organization data exposure.
 2. Prevent cross-location data exposure (unless explicitly permitted).
 3. Minimize sensitive data exposure (raw payload and rule traces).
 4. Ensure audit exports are controlled, logged, and non-enumerable.
@@ -39,11 +39,11 @@ The audit domain is inherently high-risk because it concentrates cross-domain hi
 
 ---
 
-## Decision AUD-SEC-001 — Tenant Isolation and Scoping Rules
+## Decision AUD-SEC-001 — Organization Isolation and Scoping Rules
 
 ### What it means
 
-Every audit read/write path must be tenant-scoped at the storage, query, and API layers. This includes:
+Every audit read/write path must be organization-scoped at the storage, query, and API layers. This includes:
 
 - Search/list queries
 - Detail queries
@@ -53,16 +53,16 @@ Every audit read/write path must be tenant-scoped at the storage, query, and API
 
 ### Why
 
-Audit data is cross-domain; a single bug in scoping can expose large slices of a tenant’s operational history. Tenant isolation must be enforced server-side to prevent UI tampering, misconfiguration, or “ID guessing.”
+Audit data is cross-domain; a single bug in scoping can expose large slices of an organization’s operational history. Organization isolation must be enforced server-side to prevent UI tampering, misconfiguration, or “ID guessing.”
 
 ### Alternatives considered
 
-- Client-enforced tenant filtering (rejected; insufficient)
-- Multi-tenant shared indexes without strict `tenantId` prefix keys (rejected unless provably safe)
+- Client-enforced organization filtering (rejected; insufficient)
+- Shared indexes without strict `organizationId` prefix keys (rejected unless provably safe)
 
 ### Auditor explanation
 
-“We enforce tenant separation at every layer; even if someone manipulates the UI or query parameters, the system will not return data for another tenant.”
+“We enforce organization separation at every layer; even if someone manipulates the UI or query parameters, the system will not return data for another organization.”
 
 ---
 
@@ -78,7 +78,7 @@ Audit data is cross-domain; a single bug in scoping can expose large slices of a
 
 ### Why
 
-Locations are often a business boundary (different shops, different managers, different operational staff). Many real incidents are “right tenant, wrong location.” This model prevents accidental expansion of scope.
+Locations are often a business boundary (different shops, different managers, different operational staff). Many real incidents are “right organization, wrong location.” This model prevents accidental expansion of scope.
 
 ### Alternative considered
 
@@ -157,7 +157,7 @@ Audit search must be bounded:
 
 - Mandatory date range inputs (`fromUtc`, `toUtc`)
 - Maximum range: 90 days (default)
-- Require at least one indexed filter beyond date range for large tenants (policy-enforced)
+- Require at least one indexed filter beyond date range for large organizations (policy-enforced)
 - Backend returns clear 400 field errors for violations
 
 ### Why
@@ -181,11 +181,11 @@ Audit tables can become large quickly. Unbounded queries cause latency spikes an
 
 - Export is async job-only.
 - Export artifacts are:
-  - tenant-scoped
+  - organization-scoped
   - permissioned (execute/download)
   - audited (who/when/filters/rowCount/digest)
   - time-bound for download (e.g., signed URL expiry or token expiry)
-  - non-enumerable across users/tenants
+  - non-enumerable across users/organizations
 
 Export includes:
 

@@ -34,7 +34,7 @@ Items are actionable and verifiable.
   - [ ] `schemaVersion`
   - [ ] `eventType` (controlled vocabulary)
   - [ ] `occurredAt` (UTC) and `emittedAt` (UTC optional)
-  - [ ] `tenantId`
+  - [ ] `organizationId`
   - [ ] `locationId` (required when applicable; enforced server-side)
   - [ ] `actor` (type + id; displayName optional) (or consistent `actorId`)
   - [ ] `aggregateType` and `aggregateId`
@@ -60,7 +60,7 @@ Items are actionable and verifiable.
   - [ ] Pricing rule trace retrieval by `ruleTraceId`
   - [ ] Export audit logs (async job)
   - [ ] Meta lookups (eventType list, reason code registry, locations)
-- [ ] Tenant scoping enforced server-side.
+- [ ] Organization scoping enforced server-side.
 - [ ] Location scoping enforced server-side.
 - [ ] Guardrails enforced server-side:
   - [ ] Date range required (`fromUtc`, `toUtc`)
@@ -88,7 +88,7 @@ Items are actionable and verifiable.
 ## Security
 
 - [ ] Access control enforced for all read/query/export endpoints:
-  - [ ] Tenant isolation enforced server-side
+  - [ ] Organization isolation enforced server-side
   - [ ] Location scoping enforced server-side
 - [ ] Raw payload handling:
   - [ ] Not shown by default; requires explicit permission
@@ -97,7 +97,7 @@ Items are actionable and verifiable.
 - [ ] Export security:
   - [ ] Export authorized and audited (who/when/filters)
   - [ ] Export artifacts not publicly accessible; access time-bound
-  - [ ] Export jobs non-enumerable across tenants/users
+  - [ ] Export jobs non-enumerable across organizations/users
   - [ ] Export includes digest manifest (SHA-256)
 
 ---
@@ -105,7 +105,7 @@ Items are actionable and verifiable.
 ## Observability
 
 - [ ] Frontend logs include non-sensitive correlation fields (no raw payload).
-- [ ] Backend logs include tenant/location/identifiers (no raw payload).
+- [ ] Backend logs include organization/location/identifiers (no raw payload).
 - [ ] Metrics exist for query latency/errors, export job success/failure, and DLQ volume.
 
 ---
@@ -123,7 +123,7 @@ Items are actionable and verifiable.
 
 - [ ] Unit tests cover UI validation rules and safe rendering.
 - [ ] Integration tests cover search/detail/snapshot/trace/export flows.
-- [ ] Security tests cover tenant isolation, location scoping, and payload access gating.
+- [ ] Security tests cover organization isolation, location scoping, and payload access gating.
 
 ---
 

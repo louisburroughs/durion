@@ -77,7 +77,7 @@ Issuance requirements must be backend-enforced and visible to the user in advanc
 
 - Frontend guessing creates compliance holes and inconsistent behavior.
 - Blockers provide deterministic UX: users see exactly what is missing and can resolve it before attempting issuance.
-- Policy must be tenant/account configurable (B2C vs B2B differences, manufacturer programs, regulated services, etc.).
+- Policy must be organization/account configurable (B2C vs B2B differences, manufacturer programs, regulated services, etc.).
 
 ### Auditor explanation
 
@@ -161,13 +161,13 @@ The UI must not hardcode delivery/grouping/payment terms options.
 
 ### Rationale
 
-- Options change by tenant policy, geography, integrations, and legal constraints.
+- Options change by organization policy, geography, integrations, and legal constraints.
 - Discovery endpoints allow controlled rollout and A/B changes without redeploying frontend.
 
 ### Future considerations
 
 - Cache with ETag to reduce call volume.
-- Localize display labels per tenant locale.
+- Localize display labels per organization locale.
 
 ---
 
@@ -201,7 +201,7 @@ PO capture is write-once and validated server-side; override is explicit and aud
 
 ### Future considerations
 
-- Uniqueness scope varies (account-level, location-level, tenant-wide). Policy must define it.
+- Uniqueness scope varies (account-level, location-level, organization-wide). Policy must define it.
 
 ---
 
