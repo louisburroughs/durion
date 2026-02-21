@@ -85,6 +85,7 @@ Open Questions:
 - The first executable step must always be reading source material relevant to the stories
 - A plan is incomplete unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend`
 - The output must contain exact labels `Step 1:` and `Final Step:` in checkbox format (`- [ ]`) as defined in the required template
+- For backend orchestration plans, include an explicit post-coder coverage-hardening step: after coder completion is verified, run Test Coverage Agent with JaCoCo and iterate tests until service+utility coverage is >= 65%
 - **IMPORTANT**: DO NOT TRY rm to remove `Durion-Processing.md`. Use $HOME/Projects/durion/safe-delete-DP.sh "$HOME/Projects/durion/Durion-Processing.md" instead, which only is allowed to remove Durion-Processing.md. Use the absolute path to avoid mistakes.
 
 ## Sandboxed Mode (No Write Tools)

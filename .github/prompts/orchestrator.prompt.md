@@ -1,7 +1,7 @@
 ---
 name: 'Orchestration Policy for Backend Implementation (TDD Pilot)'
 agent: 'Orchestrator'
-description: 'This prompt defines orchestration policy for backend implementation, including Planner, Document Agent, TDD Agent, and Coder subagents. It enforces iterative completion with explicit RED→GREEN evidence in a small-scope TDD pilot.'
+description: 'This prompt defines orchestration policy for backend implementation, including Planner, Document Agent, TDD Agent, Coder, and Test Coverage Agent subagents. It enforces iterative completion with explicit RED→GREEN evidence in a small-scope TDD pilot plus post-implementation coverage hardening.'
 ---
 Execute this run in strict compliance with your own instructions, and enforce iterative completion with subagents.
 
@@ -75,6 +75,30 @@ Return format:
 - Note any blockers or required follow-up tests
 ```
 
+### Template C: Orchestrator → Test Coverage Agent (post-GREEN hardening)
+Use this template after Coder completion is verified by Planner:
+
+```text
+You are the Test Coverage Agent for module: {{MODULE_PATH}}.
+Story scope: {{STORY_ID_OR_SCOPE}}
+Coder completion evidence: {{CODER_EVIDENCE_REF}}
+Planner verification evidence: {{PLANNER_COMPLETED_STEP_REF}}
+
+Requirements:
+1. Run JaCoCo for {{MODULE_PATH}} and report current coverage for:
+   - service layer (`service` and `internal.service`)
+   - utility/helper packages (`util`, `utils`, `helper`, `helpers`)
+2. Add/modify tests under {{MODULE_PATH}}/src/test/** to raise coverage.
+3. Re-run JaCoCo until service+utility coverage is >= 65%.
+4. Return coverage evidence with exact commands and percentages.
+
+Return format:
+- Changed test files
+- JaCoCo command(s) executed
+- Before/after coverage percentages for service + utility scope
+- Confirmation that threshold >= 65% was achieved (or blocker details)
+```
+
 ## Required subagent completion checks
 
 ### 1) Planner Subagent
@@ -133,10 +157,28 @@ Coder must validate all of the following before handoff:
 
 If any item is missing, return Coder to finish (up to 3 loops).
 
+### 5) Test Coverage Agent Subagent
+Test Coverage Agent must run only after Coder output is accepted and Planner has marked coder work as `completed`.
+Require:
+1. JaCoCo execution command(s) for the targeted module(s)
+2. Coverage report focused on service and utility/helper packages
+3. Test additions/updates scoped to `src/test/**` unless explicitly approved otherwise
+4. Final coverage evidence showing service+utility scope is >= 65%
+
+If any item is missing, return Test Coverage Agent to finish (up to 3 loops).
+
 ## Orchestration policy
 - Retry and remediate with subagents until all checks pass or retry limit is reached.
 - Do not mark complete on partial progress.
 - Escalate as BLOCKED only when truly stuck or retry limit is exhausted.
+
+## Mandatory finalization step
+After all subagent gates are PASS/REMEDIATED (including Test Coverage Agent) and the PR is complete, the orchestrator MUST start OpenAPI generation by running:
+- `durion-positivity-backend/scripts/generate-openapi.sh`
+
+Execution requirement:
+- Start it as a non-blocking/background process.
+- The orchestrator may exit immediately after confirming the script was launched; it does not need to wait for script completion.
 
 ## Final output format
 Provide a completion checklist with PASS/REMEDIATED/BLOCKED per subagent gate, including:
@@ -146,3 +188,7 @@ Provide a completion checklist with PASS/REMEDIATED/BLOCKED per subagent gate, i
 - RED→GREEN evidence summary:
   - RED command + failure proof
   - GREEN command + pass proof
+- Coverage summary:
+  - JaCoCo command(s)
+  - Before/after service+utility coverage %
+  - Threshold confirmation (>= 65%)
