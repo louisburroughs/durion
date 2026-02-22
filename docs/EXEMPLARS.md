@@ -3,6 +3,7 @@
 Purpose: identify high-quality, representative code examples for Java backend developers working in this repository. These exemplars demonstrate architecture, service patterns, controller design, validation, and testing practices used across the project.
 
 ## Table of contents
+
 - Java Exemplars
 - Architecture Layer Exemplars
 - Recommendations
@@ -15,6 +16,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
   - Why: Clean REST controller patterns, role-based `@PreAuthorize` usage, documented OpenAPI annotations, and `@EmitEvent` usage for audit/event logging.
   - What it demonstrates: thin controller delegating to services, consistent HTTP responses (200/201/204/404/400), and proper use of annotation-driven security and observability.
   - Snippet:
+
     ```java
     @GetMapping("/{productId}/lifecycle")
     @EmitEvent(id = "CATALOG_PRODUCT_LIFECYCLE_GET", apiVersion = "1")
@@ -23,10 +25,75 @@ Purpose: identify high-quality, representative code examples for Java backend de
     }
     ```
 
+- File: [pos-customer/src/main/java/com/positivity/customer/internal/controller/CustomerController.java](../../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/internal/controller/CustomerController.java)
+  - Why: Example of controller for modules that expose combined person/commercial APIs. Shows `@PreAuthorize` usage, OpenAPI annotations, and `@EmitEvent` for write operations.
+  - What it demonstrates: routing decisions (commercial vs person service), thin controller logic, proper use of `ResponseEntity` to convey 200/201/204/404 semantics.
+  - Snippet:
+
+    ```java
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('crm:party:view')")
+    public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable UUID id) {
+      return commercialService.getCustomerById(id)
+          .or(() -> personService.getCustomerById(id))
+          .map(ResponseEntity::ok)
+          .orElse(ResponseEntity.notFound().build());
+    }
+    ```
+
+- File: [pos-customer/src/main/java/com/positivity/customer/internal/service/PersonServiceImpl.java](../../durion-positivity-backend/pos-customer/src/main/java/com/positivity/customer/internal/service/PersonServiceImpl.java)
+  - Why: Service implementation pattern that encapsulates transactional boundaries, validation, and repository orchestration. Good model for service methods that must coordinate multiple repositories or clients.
+  - What it demonstrates: `@Service` with `@Transactional` methods, mapping between DTOs/entities, throwing domain-specific exceptions and emitting metrics/events as needed.
+  - Snippet:
+
+    ```java
+    @Service
+    public class PersonServiceImpl implements PersonService {
+      @Transactional
+      public CustomerDTO createPerson(CustomerDTO dto) {
+        validate(dto);
+        var entity = toEntity(dto);
+        entity = repository.save(entity);
+        return toDto(entity);
+      }
+    }
+    ```
+
+- File: [pos-catalog/src/main/java/com/positivity/catalog/internal/entity/ProductEntity.java](../../durion-positivity-backend/pos-catalog/src/main/java/com/positivity/catalog/internal/entity/ProductEntity.java)
+  - Why: Canonical entity demonstrating lifecycle callbacks and ID generation patterns. Use this as the exemplar for adding `@PrePersist`/`@PreUpdate` behavior and consistent audit fields.
+  - What it demonstrates: `@PrePersist` for ID and createdAt setting, `@PreUpdate` for lastModified updates, and the recommended pattern of delegating ID creation to a shared generator (UUIDv7).
+  - Snippet:
+
+    ```java
+    @Entity
+    public class ProductEntity {
+      @Id
+      private UUID id;
+
+      private Instant createdAt;
+      private Instant lastModifiedAt;
+
+      @PrePersist
+      public void onCreate() {
+        if (id == null) {
+          id = com.positivity.shared.id.UUIDv7Generator.generate();
+        }
+        createdAt = Instant.now();
+        lastModifiedAt = createdAt;
+      }
+
+      @PreUpdate
+      public void onUpdate() {
+        lastModifiedAt = Instant.now();
+      }
+    }
+    ```
+
 - File: [pos-catalog/src/main/java/com/positivity/catalog/service/ProductLifecycleService.java](../../durion-positivity-backend/pos-catalog/src/main/java/com/positivity/catalog/service/ProductLifecycleService.java)
   - Why: Good example of service-layer orchestration, transactional boundaries, validation, custom exceptions, and metrics via Micrometer.
   - What it demonstrates: defensive validation, separation of concerns, use of repository abstractions, and metrics counters for success/denied events.
   - Snippet:
+
     ```java
     @Transactional
     public ProductLifecycleResponse updateLifecycle(UUID productId, ProductLifecycleUpdateRequest request) {
@@ -43,6 +110,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
   - Why: Example JPA entity design for complex domain objects with lifecycle metadata and helpful schema annotations.
   - What it demonstrates: `@PrePersist` ID generation, use of `@ElementCollection`, `@Enumerated`, and explicit lifecycle fields used in business logic.
   - Snippet:
+
     ```java
     @Enumerated(EnumType.STRING)
     private ProductLifecycleState lifecycleState = ProductLifecycleState.ACTIVE;
@@ -56,6 +124,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
   - Why: Clear CRUD controller with `@EmitEvent` on create/update, straightforward response handling, and minimal controller logic.
   - What it demonstrates: consistent request/response patterns and use of service to transform entities/DTOs.
   - Snippet:
+
     ```java
     @EmitEvent(id = "PEOPLE_PERSON_CREATE", apiVersion = "1")
     @PostMapping
@@ -69,6 +138,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
   - Why: Service layer that converts between JPA entities and DTOs, with a small example of defensive validation and a TODO for external integration.
   - What it demonstrates: conversion helpers (`toDto` / `toEntity`) and transactional save semantics.
   - Snippet:
+
     ```java
     @Transactional
     public Person savePerson(Person person) {
@@ -119,61 +189,3 @@ Purpose: identify high-quality, representative code examples for Java backend de
 ---
 
 End of document.
-
-## Test Exemplars
-
-- File: [pos-catalog/src/test/java/com/positivity/catalog/contract/ContractBehaviorIT.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/contract/ContractBehaviorIT.java)
-  - Why: Provider contract-style integration tests that validate endpoint semantics and error behavior against the implementation.
-  - What it demonstrates: end-to-end controller + service verification using MockMvc/TestRestTemplate, clear scenario names, and focus on HTTP contract assertions.
-  - Snippet:
-    
-    ```java
-    @Test
-    public void getProduct_notFound_returns404() throws Exception {
-        mockMvc.perform(get("/v1/products/" + UUID.randomUUID()))
-                .andExpect(status().isNotFound());
-    }
-    ```
-
-- File: [pos-catalog/src/test/java/com/positivity/catalog/contract/ProductLifecycleContractBehaviorIT.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/contract/ProductLifecycleContractBehaviorIT.java)
-  - Why: Focused lifecycle behavior tests that mirror business rules (discontinued immutability, replacements, effective-date validation).
-  - What it demonstrates: arranging preconditions, invoking lifecycle endpoints, and asserting domain-specific error messages and response payload shapes.
-  - Snippet:
-
-    ```java
-    @Test
-    public void updateLifecycle_discontinued_withoutPermission_returns403() throws Exception {
-        // arrange: create product in DISCONTINUED
-        // act: PUT /v1/products/{id}/lifecycle without override authority
-        // assert: 403 Forbidden
-    }
-    ```
-
-- File: [pos-catalog/src/test/java/com/positivity/catalog/BaseIntegrationTest.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/BaseIntegrationTest.java)
-  - Why: Shared test harness that sets up security headers, MockMvc, test profile, and helper methods like `withAuth()` used by many integration tests.
-  - What it demonstrates: consistent test setup, base utilities, and patterns for simulating authenticated calls with roles and authorities.
-  - Snippet:
-
-    ```java
-    protected RequestPostProcessor withAuth(String username, String... authorities) {
-        return request -> {
-            request.addHeader("X-User", username);
-            request.addHeader("X-Authorities", String.join(",", authorities));
-            return request;
-        };
-    }
-    ```
-
-- File: [pos-catalog/src/test/java/com/positivity/catalog/config/TestSecurityConfig.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/config/TestSecurityConfig.java)
-  - Why: Test-only security configuration that simplifies authentication and authority injection for integration tests.
-  - What it demonstrates: isolating security concerns in tests to avoid brittle integration setups while preserving the production security contract.
-
-- ArchUnit & Contract Tests (pattern)
-  - Why: Architecture rules and contract tests are used to enforce module boundaries and API guarantees.
-  - What it demonstrates: writing architecture tests to prevent layering violations and contract tests to ensure backward-compatible HTTP semantics.
-
-### Test Exemplar Recommendations
-
-- Prefer `BaseIntegrationTest` for shared helpers: centralize auth, MockMvc setup, and reusable fixtures.
-- Write contract tests that assert status codes and error messages, not just happy-path payloads. Use `BaseIntegrationTest.withAuth()` to test role-based guards.
-- For business-rule-heavy endpoints (like lifecycle transitions), add dedicated focused tests mirroring the service validations to catch regression early.

@@ -186,6 +186,65 @@ assertThat(service.calculateHints(...)).hasSize(1);
 
 ---
 
+## Test Exemplars
+
+- File: [pos-catalog/src/test/java/com/positivity/catalog/contract/ContractBehaviorIT.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/contract/ContractBehaviorIT.java)
+  - Why: Provider contract-style integration tests that validate endpoint semantics and error behavior against the implementation.
+  - What it demonstrates: end-to-end controller + service verification using MockMvc/TestRestTemplate, clear scenario names, and focus on HTTP contract assertions.
+  - Snippet:
+
+    ```java
+    @Test
+    public void getProduct_notFound_returns404() throws Exception {
+        mockMvc.perform(get("/v1/products/" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+    ```
+
+- File: [pos-catalog/src/test/java/com/positivity/catalog/contract/ProductLifecycleContractBehaviorIT.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/contract/ProductLifecycleContractBehaviorIT.java)
+  - Why: Focused lifecycle behavior tests that mirror business rules (discontinued immutability, replacements, effective-date validation).
+  - What it demonstrates: arranging preconditions, invoking lifecycle endpoints, and asserting domain-specific error messages and response payload shapes.
+  - Snippet:
+
+    ```java
+    @Test
+    public void updateLifecycle_discontinued_withoutPermission_returns403() throws Exception {
+        // arrange: create product in DISCONTINUED
+        // act: PUT /v1/products/{id}/lifecycle without override authority
+        // assert: 403 Forbidden
+    }
+    ```
+
+- File: [pos-catalog/src/test/java/com/positivity/catalog/BaseIntegrationTest.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/BaseIntegrationTest.java)
+  - Why: Shared test harness that sets up security headers, MockMvc, test profile, and helper methods like `withAuth()` used by many integration tests.
+  - What it demonstrates: consistent test setup, base utilities, and patterns for simulating authenticated calls with roles and authorities.
+  - Snippet:
+
+    ```java
+    protected RequestPostProcessor withAuth(String username, String... authorities) {
+        return request -> {
+            request.addHeader("X-User", username);
+            request.addHeader("X-Authorities", String.join(",", authorities));
+            return request;
+        };
+    }
+    ```
+
+- File: [pos-catalog/src/test/java/com/positivity/catalog/config/TestSecurityConfig.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/config/TestSecurityConfig.java)
+  - Why: Test-only security configuration that simplifies authentication and authority injection for integration tests.
+  - What it demonstrates: isolating security concerns in tests to avoid brittle integration setups while preserving the production security contract.
+
+- ArchUnit & Contract Tests (pattern)
+  - Why: Architecture rules and contract tests are used to enforce module boundaries and API guarantees.
+  - What it demonstrates: writing architecture tests to prevent layering violations and contract tests to ensure backward-compatible HTTP semantics.
+
+### Test Exemplar Recommendations
+
+- Prefer `BaseIntegrationTest` for shared helpers: centralize auth, MockMvc setup, and reusable fixtures.
+- Write contract tests that assert status codes and error messages, not just happy-path payloads. Use `BaseIntegrationTest.withAuth()` to test role-based guards.
+- For business-rule-heavy endpoints (like lifecycle transitions), add dedicated focused tests mirroring the service validations to catch regression early.
+
+
 ## How to use these exemplars
 
 - Follow the seeding patterns (direct repository writes) for contract/integration tests so tests are self-contained and deterministic.
