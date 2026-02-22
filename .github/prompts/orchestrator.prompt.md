@@ -92,6 +92,7 @@ Coder completion evidence: {{CODER_EVIDENCE_REF}}
 Planner verification evidence: {{PLANNER_COMPLETED_STEP_REF}}
 
 Requirements:
+0. Do not install or configure JaCoCo in module-level `pom.xml` files; JaCoCo is inherited from the parent `pom.xml`.
 1. Run JaCoCo for {{MODULE_PATH}} and report current coverage for:
    - service layer (`service` and `internal.service`)
    - utility/helper packages (`util`, `utils`, `helper`, `helpers`)
