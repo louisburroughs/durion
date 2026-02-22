@@ -32,11 +32,11 @@ stories:
     repo: louisburroughs/durion
     issue: 136
     title: '[CAP] Manage Locations, Bays, and Mobile Units'
-    domain: shopmgmt
+    domain: location
     labels:
     - type:capability
     - layer:functional
-    - domain:shopmgmt
+    - domain:location
     - kiro
     - CAP:136
   children:
@@ -52,19 +52,19 @@ stories:
         type: meta
       business_rules:
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/AGENT_GUIDE.md
+        path: domains/location/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+        path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/DOMAIN_NOTES.md
+        path: domains/location/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-shop-manager/target/openapi.json
+      spec_path: pos-location/target/openapi.json
       generated: true
   pr_links:
     durion_contract_pr: ''
