@@ -24,9 +24,7 @@ This document collects representative, high-quality test exemplars from the duri
 void testNormalize() {
     assertEquals("1HGCM82633A004352", VinUtils.normalize("1hgcm82633a004352"));
     assertEquals("1HGCM82633A004352", VinUtils.normalize("1HG CM826 33A00 4352"));
-}
-```
-
+ 
 - File: [pos-tax/src/test/java/com/positivity/tax/service/TaxCalculationServiceTest.java](../../durion-positivity-backend/pos-tax/src/test/java/com/positivity/tax/service/TaxCalculationServiceTest.java)
   - Why exemplar: Service-level unit tests using Mockito for external dependencies, strong assertion patterns with AssertJ, test-mode vs external-service branching, and validation/error tests.
   - Snippet:
@@ -40,9 +38,7 @@ class TaxCalculationServiceTest {
         TaxCalculationResponse response = service.calculateTax(request);
         assertThat(response.getTotalTax()).isEqualByComparingTo("15.00");
         verifyNoInteractions(externalClient);
-    }
-}
-```
+
 
 ---
 
@@ -80,6 +76,47 @@ mockMvc.perform(withGatewayAuth(get("/v1/inventory/availability/{productId}", pr
 - File: [pos-catalog/src/test/java/com/positivity/catalog/contract/ContractBehaviorIT.java](../../durion-positivity-backend/pos-catalog/src/test/java/com/positivity/catalog/contract/ContractBehaviorIT.java)
   - Why exemplar: Module-level contract harness; shows pattern for writing provider contract tests that integrate with shared base test configuration and feature toggles.
 
+- File: [pos-people/src/test/java/com/positivity/people/ContractBehaviorIT.java](../../durion-positivity-backend/pos-people/src/test/java/com/positivity/people/ContractBehaviorIT.java)
+  - Why exemplar: Comprehensive contract/integration spec that seeds domain state, mocks external clients via `@MockitoBean`, and uses `MockMvc` to exercise REST endpoints with gateway-style headers. Good model for writing deterministic contract tests that include happy, validation, auth and dependency-failure scenarios.
+  - Key patterns demonstrated: `BaseContractIntegrationTest` usage, `@MockitoBean` for lightweight stubbing of downstream clients, explicit seeding helpers for domain entities, and clear `@DisplayName`-annotated test methods.
+  - Snippet:
+
+```java
+@MockitoBean
+private WorkexecJobTimeClient workexecJobTimeClient;
+
+// seed domain entities then stub external client
+seedTechnician(technicianId, "Jane", "Doe");
+when(workexecJobTimeClient.getJobTimeTotals(...)).thenReturn(List.of(jobTime(...)));
+
+mockMvc.perform(withAuth(get("/v1/people/reports/attendanceJobtimeDiscrepancy")
+                .param("startDate", "2026-02-16")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].isFlagged").value(true));
+```
+
+- File: [pos-customer/src/test/java/com/positivity/customer/PersonServiceContractBehaviorIT.java](../../durion-positivity-backend/pos-customer/src/test/java/com/positivity/customer/PersonServiceContractBehaviorIT.java)
+  - Why exemplar: Customer module contract tests show concise seeding of person/commercial fixtures, clear use of `withAuth` helpers, and focused assertions against JSON response shape. Useful when validating API contracts across modules.
+  - Snippet:
+
+```java
+mockMvc.perform(withAuth(get("/v1/crm/persons/{id}", personId)))
+    .andExpect(status().isOk())
+    .andExpect(jsonPath("$.id").value(personId.toString()));
+```
+
+- File: [pos-documents/src/test/java/com/positivity/documents/controller/DocumentRenderControllerIT.java](../../durion-positivity-backend/pos-documents/src/test/java/com/positivity/documents/controller/DocumentRenderControllerIT.java)
+  - Why exemplar: Integration test covering controller behavior for document rendering, including file streaming and large payload handling. Demonstrates use of `MockMvc` for `multipart` or `application/json` requests and assertions on response content types and sizes.
+  - Snippet:
+
+```java
+mockMvc.perform(withAuth(post("/v1/documents/render")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(renderRequest))))
+    .andExpect(status().isOk())
+    .andExpect(content().contentType("application/pdf"));
+```
+
 ---
 
 ## Architecture / Policy Tests
@@ -109,6 +146,42 @@ protected MockHttpServletRequestBuilder withAuth(MockHttpServletRequestBuilder b
                   .header("X-Authorities", TEST_AUTHORITIES)
                   .header("X-Correlation-Id", TEST_CORRELATION_ID);
 }
+```
+
+- File: [pos-documents/src/test/java/com/positivity/documents/service/PdfRenderingServiceTest.java](../../durion-positivity-backend/pos-documents/src/test/java/com/positivity/documents/service/PdfRenderingServiceTest.java)
+  - Why exemplar: Focused unit tests for rendering logic and edge cases (large payloads, error handling). Good example of mocking rendering engine and asserting returned bytes and error propagation.
+  - Snippet:
+
+```java
+when(pdfEngine.render(template)).thenReturn(byteArray);
+byte[] result = service.render(template);
+assertThat(result).isNotEmpty();
+```
+
+- File: [pos-document-helper/src/test/java/com/positivity/documents/helper/TemplateUtilsTest.java](../../durion-positivity-backend/pos-document-helper/src/test/java/com/positivity/documents/helper/TemplateUtilsTest.java)
+  - Why exemplar: Deterministic utility tests covering template parsing/normalization including null/malformed inputs. Good model for simple, fast unit tests with clear expectations.
+  - Snippet:
+
+```java
+assertEquals("expected", TemplateUtils.normalize(" input ")); 
+```
+
+- File: [pos-document-helper/src/test/java/com/positivity/documents/TemplateRegistrationTest.java](../../durion-positivity-backend/pos-document-helper/src/test/java/com/positivity/documents/TemplateRegistrationTest.java)
+  - Why exemplar: Verifies initialization and registration of templates at startup; demonstrates clear setup/teardown and assertions against in-memory registry.
+  - Snippet:
+
+```java
+initializer.register(template);
+assertTrue(registry.contains(templateId));
+```
+
+- File: [pos-vehicle-fitment/src/test/java/com/positivity/vehiclefitment/service/VehicleApplicabilityHintServiceTest.java](../../durion-positivity-backend/pos-vehicle-fitment/src/test/java/com/positivity/vehiclefitment/service/VehicleApplicabilityHintServiceTest.java)
+  - Why exemplar: Service-level unit test that mocks repositories/clients and asserts business rule outcomes across threshold branches. Good example of arranging mocks and verifying outputs.
+  - Snippet:
+
+```java
+when(repo.find(...)).thenReturn(List.of(entity));
+assertThat(service.calculateHints(...)).hasSize(1);
 ```
 
 ---
