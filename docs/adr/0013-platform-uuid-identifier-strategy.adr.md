@@ -188,6 +188,21 @@ UPDATE legacy_table SET uuid_id = gen_uuid_v7();
 -- Eventually: make uuid_id primary, deprecate old id
 ```
 
+### 6. Addendum (2026-02-23): Hibernate `@IdGeneratorType` standard
+
+**Decision:** ✅ **Resolved** - Standardize UUID v7 ID assignment on Hibernate's `@IdGeneratorType` pattern and deprecate per-entity `@PrePersist` ID generation.
+
+**Policy update:**
+
+- Keep UUID creation logic centralized in `com.positivity.shared.id.UUIDv7Generator`.
+- Use a shared ID annotation (for example `@UUIDv7Id`) that is meta-annotated with `@IdGeneratorType(...)`.
+- Apply entity IDs as:
+  - `@Id`
+  - shared UUIDv7 generator annotation (`@UUIDv7Id`)
+- Do not use `@GenericGenerator` for new code (deprecated since Hibernate 6.5 and marked for removal).
+- Avoid duplicating UUID generation implementations in domain modules.
+- Existing entities using `@PrePersist` for IDs can remain temporarily, but touched entities should migrate to the shared `@IdGeneratorType` pattern.
+
 ---
 
 ## Alternatives Considered
@@ -369,3 +384,4 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 ## Changelog
 
 - **2026-02-07**: Initial draft and acceptance—UUID v7 identifier strategy for platform
+- **2026-02-23**: Addendum: standardized generator-based assignment using shared `UUIDv7Generator`
