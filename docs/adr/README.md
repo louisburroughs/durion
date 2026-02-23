@@ -89,6 +89,44 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0023   | Remove tenantId / Single-Organization Context | ACCEPTED       | 2026-02-21 |
 | 0024   | Entity createdAt/updatedAt Population Policy | PROPOSED        | 2026-02-23 |
 
+## ADR Decision Matrix (When to Invoke + Agent Ownership)
+
+Use this matrix during planning, implementation, and review to quickly decide which ADRs apply and which agents should be involved.
+
+| ADR  | Invoke when... | Primary agents concerned |
+|------|----------------|--------------------------|
+| 0001 | Inventory availability/ATP logic, reservation semantics, stock math changes | Coder, Test, Planner |
+| 0002 | CRM/RBAC permission model or permission taxonomy changes | Coder, Test, Planner, Orchestrator |
+| 0003 | CRM navigation/routing/workflow UX structure changes | Coder, Planner, Orchestrator |
+| 0004 | Duplicate detection rules, matching thresholds, merge/review flows | Coder, Test, Planner |
+| 0005 | Concurrency, version conflicts, optimistic locking behavior | Coder, Test, Planner |
+| 0006 | WorkExec ownership boundaries, cross-module responsibility shifts | Planner, Coder, Orchestrator |
+| 0007 | Approval workflow states, transitions, authorization gates | Coder, Test, Planner |
+| 0008 | Cost-maintenance domain behavior or related decision diagrams | Planner, Coder |
+| 0009 | Backend service/domain responsibility boundaries | Planner, Coder, Orchestrator |
+| 0010 | Frontend domain ownership and boundary decisions | Planner, Orchestrator |
+| 0011 | API gateway auth/authz, token handling, edge security architecture | Coder, Test, Planner, Orchestrator |
+| 0012 | Vehicle-party relationship ownership and source-of-truth decisions | Planner, Coder, Test |
+| 0013 | Entity identifier strategy (UUID v7), ID generation and serialization | Coder, Test, Planner |
+| 0014 | Internal service-to-service security via gateway/service trust model | Coder, Test, Planner, Orchestrator |
+| 0015 | Identity entity model relationships and lifecycle behavior | Planner, Coder, Test |
+| 0016 | Location domain semantics, field meaning, ownership of location data | Planner, Coder, Test |
+| 0017 | HTTP status code semantics and error contract behavior in controllers | Coder, Test, Planner |
+| 0018 | Audit actor population from security context and traceability fields | Coder, Test, Planner |
+| 0019 | Short-lived operational state persistence vs in-memory decisions | Coder, Test, Planner |
+| 0020 | Document creation ownership and service boundaries | Planner, Coder, Test, Orchestrator |
+| 0021 | Tax API integration boundaries and internal access policy | Coder, Test, Planner, Orchestrator |
+| 0022 | Stable person identifier claims in audit/event payloads | Coder, Test, Planner |
+| 0023 | tenantId removal and single-org assumptions across contracts/data | Coder, Test, Planner, Orchestrator |
+| 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control | Coder, Test, Planner |
+
+### Agent role shorthand
+
+- **Coder**: apply ADR decisions in production code and migrations.
+- **Test**: verify behavioral compliance, contract coverage, and regression safety.
+- **Planner**: identify impacted ADRs up front and sequence implementation work.
+- **Orchestrator**: coordinate multi-agent execution and enforce ADR checkpoints in handoffs.
+
 ## Superseding ADRs
 
 When a decision is superseded, update the old ADR's status to "SUPERSEDED BY ADR-XXXX" and create a new ADR explaining the new decision and why the change was made.

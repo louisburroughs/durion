@@ -47,11 +47,18 @@ Resolve from manifest references first:
 - `CAPABILITY_MANIFEST_PATH`
 - `BACKEND_CONTRACT_GUIDE_PATH`
 - `OPENAPI_PATH`
+- ADR index: `durion/docs/adr/README.md`
 
 Fallbacks:
 - contract guide: `durion/domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md`
 - openapi: `durion-positivity-backend/<module>/openapi.yaml`
 - if missing openapi: `./mvnw -pl <module> -am -Plocal integration-test`, fallback `scripts/generate-openapi.sh`
+
+## ADR Compliance Delegation Rule
+For every subagent invocation (Planner, TDD Agent, Coder, Test Coverage Agent), explicitly require:
+- ADR check completed against `durion/docs/adr/README.md` decision matrix.
+- List of applicable ADR IDs for the task.
+- Brief compliance statement (or explicit deviation + reason) in subagent output.
 
 ## Validation and Retry
 - Validate each subagent result against delegated objective + acceptance criteria.
