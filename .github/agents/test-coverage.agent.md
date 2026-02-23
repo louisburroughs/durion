@@ -1,7 +1,7 @@
 ---
 name: Test Coverage Agent
 description: "JaCoCo-driven coverage engineer: runs coverage reports and creates JUnit 5 tests to reach the 80% threshold for service and utility packages in any pos-* module."
-model: GPT-4.1 (copilot)
+model: Gemini 2.5 Pro (copilot)
 tools:
   - 'execute/runInTerminal'
   - 'execute/getTerminalOutput'
