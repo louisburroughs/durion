@@ -28,7 +28,7 @@ You create plans. You do not implement code.
 Plan toward exactly one PR in `durion-positivity-backend` with completed stories and verification evidence.
 
 ## Required Method
-1. Plan backward from objective to prerequisites.
+1. Plan backward from objective to prerequisites. Identify all necessary conditions for moving to the next step.
 2. Ensure Step 1 is source-material reading.
 3. Emit forward executable steps.
 4. Use per-story micro-cycles: RED -> GREEN -> coverage before next story.
