@@ -252,7 +252,7 @@ For this workflow, default to the phases below (even if the Planner plan is mini
 ### Phase 4: Coverage hardening to threshold (depends on Phase 3 + Planner verification)
 - Task 4.1: Ask Planner to confirm Coder step is marked `completed` in plan state before coverage work begins → Planner
   Files: `Durion-Processing.md`
-- Task 4.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 65% → Test Coverage Agent
+- Task 4.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 80% → Test Coverage Agent
   Files: `durion-positivity-backend/pos-*/src/test/**`, `durion-positivity-backend/pos-*/target/site/jacoco/**`
 
 ### Mandatory Story Sequencing (Hard Rule)
@@ -303,7 +303,7 @@ For this workflow, verification must include:
 - Coverage hardening evidence is present after Coder + Planner verification:
   - JaCoCo command(s) executed by Test Coverage Agent
   - Before/after coverage percentages for service + utility scope
-  - Final threshold reached: >= 65%
+  - Final threshold reached: >= 80%
 - File-scope guardrails were respected:
   - TDD Agent changes scoped to `src/test/**`.
   - Coder did not remove or dilute TDD assertions without explicit justification.

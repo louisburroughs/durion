@@ -97,14 +97,14 @@ Requirements:
    - service layer (`service` and `internal.service`)
    - utility/helper packages (`util`, `utils`, `helper`, `helpers`)
 2. Add/modify tests under {{MODULE_PATH}}/src/test/** to raise coverage.
-3. Re-run JaCoCo until service+utility coverage is >= 65%.
+3. Re-run JaCoCo until service+utility coverage is >= 80%.
 4. Return coverage evidence with exact commands and percentages.
 
 Return format:
 - Changed test files
 - JaCoCo command(s) executed
 - Before/after coverage percentages for service + utility scope
-- Confirmation that threshold >= 65% was achieved (or blocker details)
+- Confirmation that threshold >= 80% was achieved (or blocker details)
 ```
 
 ## Required subagent completion checks
@@ -189,7 +189,7 @@ Require:
 1. JaCoCo execution command(s) for the targeted module(s)
 2. Coverage report focused on service and utility/helper packages
 3. Test additions/updates scoped to `src/test/**` unless explicitly approved otherwise
-4. Final coverage evidence showing service+utility scope is >= 65%
+4. Final coverage evidence showing service+utility scope is >= 80%
 
 If any item is missing, return Test Coverage Agent to finish (up to 3 loops).
 
@@ -217,4 +217,4 @@ Provide a completion checklist with PASS/REMEDIATED/BLOCKED per subagent gate, i
 - Coverage summary:
   - JaCoCo command(s)
   - Before/after service+utility coverage %
-  - Threshold confirmation (>= 65%)
+  - Threshold confirmation (>= 80%)

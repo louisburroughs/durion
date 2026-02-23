@@ -107,7 +107,7 @@ Open Questions:
 - The first executable step must always be reading source material relevant to the stories
 - A plan is incomplete unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend`
 - The output must contain exact labels `Step 1:` and `Final Step:` in checkbox format (`- [ ]`) as defined in the required template
-- For backend orchestration plans, include an explicit post-coder coverage-hardening step: after coder completion is verified, run Test Coverage Agent with JaCoCo and iterate tests until service+utility coverage is >= 65%
+- For backend orchestration plans, include an explicit post-coder coverage-hardening step: after coder completion is verified, run Test Coverage Agent with JaCoCo and iterate tests until service+utility coverage is >= 80%
 - For backend orchestration plans with multiple stories, you MUST structure steps as per-story micro-cycles:
   - Story 1: RED -> GREEN -> coverage hardening
   - Story 2: RED -> GREEN -> coverage hardening
