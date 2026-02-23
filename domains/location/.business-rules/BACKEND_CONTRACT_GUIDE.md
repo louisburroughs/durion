@@ -956,6 +956,145 @@ Each event should include `eventId` (UUIDv7), `occurredAt` (ISO 8601 UTC), `prod
 
 ---
 
+## CAP-136: Manage Locations, Bays, and Mobile Units
+
+This capability covers creation, update, retrieval, and lifecycle management for Locations, Bays, and Mobile Units as implemented by the `pos-location` service. The OpenAPI spec at `pos-location/openapi.yaml` is authoritative for available paths, request/response shapes, and status codes. All gateway URLs shown below use the gateway base `http://localhost:8080/v1/location`.
+
+### Gateway-format endpoint listing
+
+Each entry shows the HTTP method, gateway URL, short purpose, key request fields (from OpenAPI schemas), main response codes/shapes, and behavioral assertions derived from implementation issues #76 (Mobile Units), #77 (Bays), and #78 (Locations).
+
+- POST http://localhost:8080/v1/location/v1/locations
+  - Purpose: Create a new Location
+  - Key request fields (LocationRequestDTO): `code` (required), `name` (required), `type` (required), `geographicalLocationId`, `addressLine1`, `city`, `postalCode`, `country`, `responsiblePersonId`, `active`
+  - Responses: `201` LocationResponseDTO; `400` validation error; `409` LOCATION_NAME_TAKEN (see behavior)
+  - Behavioral assertions:
+    - `name` uniqueness enforced by normalizedName = lower(trim(name)) → duplicate → `409 LOCATION_NAME_TAKEN` (case-insensitive)
+    - `timezone` (if present) validated via `ZoneId.of()` → invalid → `400 INVALID_TIMEZONE`
+    - `operatingHours` must be open < close (no overnight spans) and no duplicate days → invalid → `400 INVALID_OPERATING_HOURS`
+    - Emits: `LOCATION_CREATE`
+  - Contract test hint: `CP-136-001`
+
+- GET http://localhost:8080/v1/location/v1/locations
+  - Purpose: List locations
+  - Query behavior: default returns only ACTIVE locations; `?status=ALL` returns all
+  - Responses: `200` array of LocationResponseDTO
+  - Behavioral assertions:
+    - Default filtering: only `ACTIVE` unless `status=ALL` specified
+  - Contract test hint: `CP-136-002`
+
+- GET http://localhost:8080/v1/location/v1/locations/{locationId}
+  - Purpose: Retrieve a location by ID
+  - Responses: `200` LocationResponseDTO; `404` if not found
+  - Contract test hint: `CP-136-003`
+
+- PUT http://localhost:8080/v1/location/v1/locations/{locationId}
+  - Purpose: Update an existing location
+  - Key request fields: `LocationRequestDTO` (same as create)
+  - Responses: `200` LocationResponseDTO; `404` not found; `409` OPTIMISTIC_LOCK_FAILED (see behavior)
+  - Behavioral assertions:
+    - Setting `{status: INACTIVE}` via PATCH/PUT performs a deactivate transition; only `ACTIVE -> INACTIVE` allowed
+    - Optimistic locking enforced via JPA `@Version` → stale update → `409 OPTIMISTIC_LOCK_FAILED`
+    - Emits: `LOCATION_UPDATE` (on successful change) and `LOCATION_DEACTIVATED` when status becomes `INACTIVE`
+  - Contract test hints: `CP-136-004`, `CP-136-005`
+
+- DELETE http://localhost:8080/v1/location/v1/locations/{locationId}
+  - Purpose: Remove a location
+  - Responses: `204` deleted; `404` not found
+  - Contract test hint: `CP-136-006`
+
+- POST http://localhost:8080/v1/location/v1/locations/{locationId}/bays
+  - Purpose: Create a bay for a location
+  - Key request fields (see Bay creation request body in OpenAPI): `name`, `bayType` (enum), `supportedServiceIds`, `skillId`, `status`
+  - Responses: `201` (create) / `200` per OpenAPI; `400` invalid input; `404` unknown location; `409` duplicate name per-location
+  - Behavioral assertions (Issue #77):
+    - Bay `name` unique per `locationId` (case-insensitive) → duplicate → `409`
+    - `bayType` values: `GENERAL_SERVICE`, `ALIGNMENT`, `TIRE_SERVICE`, `HEAVY_DUTY`, `INSPECTION`, `WASH_DETAIL`
+    - `supportedServiceIds` and `skillId` validated; invalid IDs returned in `400` with list of invalid IDs
+    - Emits: `BAY_CREATE`
+  - Contract test hints: `CP-136-007`, `CP-136-008`
+
+- GET http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}
+  - Purpose: Retrieve a bay or list bays for a location
+  - Responses: `200` bay(s); `404` not found
+  - Behavioral assertions:
+    - `OUT_OF_SERVICE` status is excluded from `?status=ACTIVE` results
+  - Contract test hint: `CP-136-009`
+
+- DELETE http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}
+  - Purpose: Delete a bay
+  - Responses: `204` deleted; `404` not found
+  - Contract test hint: `CP-136-010`
+
+- POST http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit
+  - Purpose: Create a mobile unit scoped to a base location
+  - Key request fields (Mobile unit creation): `name`, `baseLocationId`, `capabilityIds`, `travelBufferPolicyId`, `coverageRules` (array)
+  - Responses: `201` created; `400` validation error; `409` duplicate name per baseLocationId; `503` service catalog unavailable
+  - Behavioral assertions (Issue #76):
+    - `ACTIVE` mobile unit creation requires: `travelBufferPolicyId`, non-empty `capabilityIds`, and at least one coverage rule → otherwise `400`
+    - Duplicate `name` within the same `baseLocationId` → `409`
+    - `capabilityIds` validated against service catalog; invalid IDs → `400` listing invalid IDs; if catalog cannot be reached → `503`
+    - `coverageRules` of type `DISTANCE_TIER` must have strictly ascending `maxDistance` values; a catch-all tier (`maxDistance: null`) is required → invalid → `400`
+    - Emits: `MOBILE_UNIT_CREATE`
+  - Contract test hints: `CP-136-011`, `CP-136-012`, `CP-136-013`
+
+- GET http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit/{unitId}
+  - Purpose: Retrieve details or list mobile units for a location
+  - Responses: `200`; `404` if not found
+  - Behavioral assertions:
+    - `GET /mobile-units:eligible?postalCode=&countryCode=&at=` (implemented by service) returns `ACTIVE` units whose effective coverage includes the supplied coordinates/postalCode, ordered by `priority` ascending
+  - Contract test hint: `CP-136-014`
+
+- PUT http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit (bulk) and PUT http://localhost:8080/v1/location/v1/locations/mobileUnit
+  - Purpose: Manage mobile units in bulk (create/update)
+  - Responses: `200` on success
+  - Behavioral assertions:
+    - `PUT /v1/mobile-units/{id}/coverage-rules` behavior: coverage rule replacement is atomic (replace-all semantics)
+    - Emits: `MOBILE_UNIT_UPDATE`, `COVERAGE_RULES_REPLACE`, `TRAVEL_BUFFER_POLICY_CREATE` as applicable
+  - Contract test hint: `CP-136-015`
+
+### Events to emit (pos-events / @EmitEvent)
+
+- LOCATION_CREATE
+- LOCATION_UPDATE
+- LOCATION_DEACTIVATED
+- BAY_CREATE
+- BAY_UPDATE
+- MOBILE_UNIT_CREATE
+- MOBILE_UNIT_UPDATE
+- COVERAGE_RULES_REPLACE
+- TRAVEL_BUFFER_POLICY_CREATE
+
+### Implementation links
+
+- https://github.com/louisburroughs/durion-positivity-backend/issues/76
+- https://github.com/louisburroughs/durion-positivity-backend/issues/77
+- https://github.com/louisburroughs/durion-positivity-backend/issues/78
+
+### Contract status
+
+draft
+
+### Provider Contract Test Hints (CP-136-NNN)
+
+- CP-136-001: Create Location returns 201 and persists `code`, `name`; duplicate name → 409 LOCATION_NAME_TAKEN
+- CP-136-002: List locations default filters to ACTIVE; `?status=ALL` returns all
+- CP-136-003: Get location by id returns 200 or 404
+- CP-136-004: Update to INACTIVE transitions `ACTIVE -> INACTIVE` and emits `LOCATION_DEACTIVATED`
+- CP-136-005: Stale update triggers 409 OPTIMISTIC_LOCK_FAILED
+- CP-136-006: Delete location returns 204 or 404
+- CP-136-007: Create bay unique per-location name enforced (409)
+- CP-136-008: Invalid `supportedServiceIds` / `skillId` returns 400 with invalid id list
+- CP-136-009: GET bays excludes `OUT_OF_SERVICE` from `?status=ACTIVE`
+- CP-136-010: Delete bay returns 204 or 404
+- CP-136-011: Create mobile unit requires travelBufferPolicyId + capabilityIds + ≥1 coverage rule when `status=ACTIVE`
+- CP-136-012: Duplicate mobile unit name within `baseLocationId` returns 409
+- CP-136-013: Invalid capabilityIds → 400; catalog unavailable → 503
+- CP-136-014: Eligible mobile units endpoint returns `ACTIVE` units ordered by `priority` with effective coverage applied
+- CP-136-015: PUT coverage-rules is atomic replace
+
+---
+
 ## Capability Contract Template
 
 Use the shared template for capability sections:
