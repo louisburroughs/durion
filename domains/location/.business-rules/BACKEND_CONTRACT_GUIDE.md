@@ -9,7 +9,7 @@ contract:
   openapi_source: pos-location/target/openapi.yaml
 traceability:
   capability_manifest: docs/capabilities
-last_updated: 2026-02-19
+last_updated: 2026-02-22
 ---
 
 # Location Management Backend Contract Guide
@@ -384,7 +384,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: List of locations returned successfully.
 
-
 ---
 
 #### POST /v1/locations
@@ -398,7 +397,6 @@ This domain exposes **18** REST API endpoints:
 **Responses:**
 
 - `200`: Location created successfully.
-
 
 ---
 
@@ -414,7 +412,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Bays retrieved successfully.
 
-
 ---
 
 #### PUT /v1/locations/bays
@@ -428,7 +425,6 @@ This domain exposes **18** REST API endpoints:
 **Responses:**
 
 - `200`: Bays managed successfully.
-
 
 ---
 
@@ -444,7 +440,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Mobile units retrieved successfully.
 
-
 ---
 
 #### PUT /v1/locations/mobileUnit
@@ -459,7 +454,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Mobile units managed successfully.
 
-
 ---
 
 #### GET /v1/locations/parents
@@ -473,7 +467,6 @@ This domain exposes **18** REST API endpoints:
 **Responses:**
 
 - `200`: List of location parents returned successfully.
-
 
 ---
 
@@ -495,7 +488,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Parent relationship added successfully.
 
-
 ---
 
 #### DELETE /v1/locations/{locationId}
@@ -514,7 +506,6 @@ This domain exposes **18** REST API endpoints:
 
 - `204`: Location deleted successfully.
 - `404`: Location not found.
-
 
 ---
 
@@ -535,7 +526,6 @@ This domain exposes **18** REST API endpoints:
 - `200`: Location found and returned.
 - `404`: Location not found.
 
-
 ---
 
 #### PUT /v1/locations/{locationId}
@@ -555,7 +545,6 @@ This domain exposes **18** REST API endpoints:
 - `200`: Location updated successfully.
 - `404`: Location not found.
 
-
 ---
 
 #### POST /v1/locations/{locationId}/bays
@@ -573,7 +562,6 @@ This domain exposes **18** REST API endpoints:
 **Responses:**
 
 - `200`: Bay created successfully.
-
 
 ---
 
@@ -595,7 +583,6 @@ This domain exposes **18** REST API endpoints:
 - `204`: Bay deleted successfully.
 - `404`: Bay not found.
 
-
 ---
 
 #### GET /v1/locations/{locationId}/bays/{bayId}
@@ -615,7 +602,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Bays retrieved successfully.
 
-
 ---
 
 #### POST /v1/locations/{locationId}/mobileUnit
@@ -633,7 +619,6 @@ This domain exposes **18** REST API endpoints:
 **Responses:**
 
 - `200`: Mobile unit created successfully.
-
 
 ---
 
@@ -655,7 +640,6 @@ This domain exposes **18** REST API endpoints:
 - `204`: Mobile unit deleted successfully.
 - `404`: Mobile unit not found.
 
-
 ---
 
 #### GET /v1/locations/{locationId}/mobileUnit/{bayId}
@@ -675,7 +659,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Mobile units retrieved successfully.
 
-
 ---
 
 #### GET /v1/locations/{locationId}/responsible-person
@@ -694,8 +677,6 @@ This domain exposes **18** REST API endpoints:
 
 - `200`: Responsible person found and returned.
 - `404`: Responsible person not found.
-
-
 
 ---
 
@@ -722,7 +703,6 @@ Location object to be created
 | `responsiblePersonId` | integer (int64) | No |  |
 | `state` | string | No |  |
 
-
 ### LocationParent
 
 **Fields:**
@@ -733,7 +713,6 @@ Location object to be created
 | `id` | integer (int64) | No |  |
 | `parent` | string | No |  |
 | `parentType` | string | No |  |
-
 
 ### PersonDTO
 
@@ -748,8 +727,6 @@ Location object to be created
 | `primaryEmail` | string | No |  |
 | `secondaryEmail` | string | No |  |
 | `username` | string | No |  |
-
-
 
 ---
 
@@ -876,6 +853,7 @@ All OpenAPI paths are exposed through the API gateway. Use the following gateway
 - `DELETE http://localhost:8080/v1/locations/{locationId}/mobileUnit/{bayId}`
 
 ### ADR-0016 Compliance (required)
+
 This service and its contract follow ADR-0016 decisions. Key points (must be respected by implementers and consumers):
 
 - `Location` is canonical: `pos-location` is the authoritative source for all location data.
@@ -889,7 +867,6 @@ Note: The current OpenAPI spec (`pos-location/openapi.yaml`) defines a different
 - Cross-module integration pattern: other services MUST store only `locationId` and query `pos-location` for details, hierarchy, or address when needed.
 - Location classifications (examples): Geographical, Physical, Storage (bins/racks), Service (bays), Mobile (wreckers/vans).
 - Hierarchy model: self-referencing adjacency list implemented as `Map<ParentType, UUID> parents` (one parent per ParentType key).
-
 
 ### Location entity (schema per ADR-0016)
 
@@ -964,7 +941,7 @@ This capability covers creation, update, retrieval, and lifecycle management for
 
 Each entry shows the HTTP method, gateway URL, short purpose, key request fields (from OpenAPI schemas), main response codes/shapes, and behavioral assertions derived from implementation issues #76 (Mobile Units), #77 (Bays), and #78 (Locations).
 
-- POST http://localhost:8080/v1/location/v1/locations
+- POST <http://localhost:8080/v1/location/v1/locations>
   - Purpose: Create a new Location
   - Key request fields (LocationRequestDTO): `code` (required), `name` (required), `type` (required), `geographicalLocationId`, `addressLine1`, `city`, `postalCode`, `country`, `responsiblePersonId`, `active`
   - Responses: `201` LocationResponseDTO; `400` validation error; `409` LOCATION_NAME_TAKEN (see behavior)
@@ -975,7 +952,7 @@ Each entry shows the HTTP method, gateway URL, short purpose, key request fields
     - Emits: `LOCATION_CREATE`
   - Contract test hint: `CP-136-001`
 
-- GET http://localhost:8080/v1/location/v1/locations
+- GET <http://localhost:8080/v1/location/v1/locations>
   - Purpose: List locations
   - Query behavior: default returns only ACTIVE locations; `?status=ALL` returns all
   - Responses: `200` array of LocationResponseDTO
@@ -983,12 +960,12 @@ Each entry shows the HTTP method, gateway URL, short purpose, key request fields
     - Default filtering: only `ACTIVE` unless `status=ALL` specified
   - Contract test hint: `CP-136-002`
 
-- GET http://localhost:8080/v1/location/v1/locations/{locationId}
+- GET <http://localhost:8080/v1/location/v1/locations/{locationId}>
   - Purpose: Retrieve a location by ID
   - Responses: `200` LocationResponseDTO; `404` if not found
   - Contract test hint: `CP-136-003`
 
-- PUT http://localhost:8080/v1/location/v1/locations/{locationId}
+- PUT <http://localhost:8080/v1/location/v1/locations/{locationId}>
   - Purpose: Update an existing location
   - Key request fields: `LocationRequestDTO` (same as create)
   - Responses: `200` LocationResponseDTO; `404` not found; `409` OPTIMISTIC_LOCK_FAILED (see behavior)
@@ -998,12 +975,12 @@ Each entry shows the HTTP method, gateway URL, short purpose, key request fields
     - Emits: `LOCATION_UPDATE` (on successful change) and `LOCATION_DEACTIVATED` when status becomes `INACTIVE`
   - Contract test hints: `CP-136-004`, `CP-136-005`
 
-- DELETE http://localhost:8080/v1/location/v1/locations/{locationId}
+- DELETE <http://localhost:8080/v1/location/v1/locations/{locationId}>
   - Purpose: Remove a location
   - Responses: `204` deleted; `404` not found
   - Contract test hint: `CP-136-006`
 
-- POST http://localhost:8080/v1/location/v1/locations/{locationId}/bays
+- POST <http://localhost:8080/v1/location/v1/locations/{locationId}/bays>
   - Purpose: Create a bay for a location
   - Key request fields (see Bay creation request body in OpenAPI): `name`, `bayType` (enum), `supportedServiceIds`, `skillId`, `status`
   - Responses: `201` (create) / `200` per OpenAPI; `400` invalid input; `404` unknown location; `409` duplicate name per-location
@@ -1014,19 +991,19 @@ Each entry shows the HTTP method, gateway URL, short purpose, key request fields
     - Emits: `BAY_CREATE`
   - Contract test hints: `CP-136-007`, `CP-136-008`
 
-- GET http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}
+- GET <http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}>
   - Purpose: Retrieve a bay or list bays for a location
   - Responses: `200` bay(s); `404` not found
   - Behavioral assertions:
     - `OUT_OF_SERVICE` status is excluded from `?status=ACTIVE` results
   - Contract test hint: `CP-136-009`
 
-- DELETE http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}
+- DELETE <http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}>
   - Purpose: Delete a bay
   - Responses: `204` deleted; `404` not found
   - Contract test hint: `CP-136-010`
 
-- POST http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit
+- POST <http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit>
   - Purpose: Create a mobile unit scoped to a base location
   - Key request fields (Mobile unit creation): `name`, `baseLocationId`, `capabilityIds`, `travelBufferPolicyId`, `coverageRules` (array)
   - Responses: `201` created; `400` validation error; `409` duplicate name per baseLocationId; `503` service catalog unavailable
@@ -1038,14 +1015,14 @@ Each entry shows the HTTP method, gateway URL, short purpose, key request fields
     - Emits: `MOBILE_UNIT_CREATE`
   - Contract test hints: `CP-136-011`, `CP-136-012`, `CP-136-013`
 
-- GET http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit/{unitId}
+- GET <http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit/{unitId}>
   - Purpose: Retrieve details or list mobile units for a location
   - Responses: `200`; `404` if not found
   - Behavioral assertions:
     - `GET /mobile-units:eligible?postalCode=&countryCode=&at=` (implemented by service) returns `ACTIVE` units whose effective coverage includes the supplied coordinates/postalCode, ordered by `priority` ascending
   - Contract test hint: `CP-136-014`
 
-- PUT http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit (bulk) and PUT http://localhost:8080/v1/location/v1/locations/mobileUnit
+- PUT <http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit> (bulk) and PUT <http://localhost:8080/v1/location/v1/locations/mobileUnit>
   - Purpose: Manage mobile units in bulk (create/update)
   - Responses: `200` on success
   - Behavioral assertions:
@@ -1067,9 +1044,9 @@ Each entry shows the HTTP method, gateway URL, short purpose, key request fields
 
 ### Implementation links
 
-- https://github.com/louisburroughs/durion-positivity-backend/issues/76
-- https://github.com/louisburroughs/durion-positivity-backend/issues/77
-- https://github.com/louisburroughs/durion-positivity-backend/issues/78
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/76>
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/77>
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/78>
 
 ### Contract status
 
@@ -1092,6 +1069,164 @@ draft
 - CP-136-013: Invalid capabilityIds → 400; catalog unavailable → 503
 - CP-136-014: Eligible mobile units endpoint returns `ACTIVE` units ordered by `priority` with effective coverage applied
 - CP-136-015: PUT coverage-rules is atomic replace
+
+---
+
+## CAP-214: Location & Storage Topology (Shops, Mobile, Floor/Shelf/Bin)
+
+Short description: Define storage location hierarchy, site-level staging & quarantine defaults, and a reconciliation roster for downstream consumers. Covers creation, update/deactivation (with transfer), hierarchy rules (DAG/no-cycles), and event publication for sync consumers.
+
+### Execution Checklist
+
+- Add provider-side endpoints for site defaults, storage-location CRUD, and roster reconciliation
+- Emit events for creates/updates/deactivations: `SiteDefaultsUpdated`, `StorageLocationCreated`, `StorageLocationUpdated`, `StorageLocationDeactivated`, `LocationCreated`, `LocationUpdated`, `LocationDeactivated`
+- Implement DAG validation (no cycles) and sibling-unique names
+- Enforce deactivation transfer semantics (inventory transfer or explicit transfer target)
+
+### Endpoints (gateway URLs)
+
+- PUT  <http://localhost:8080/v1/location/locations/{locationId}/defaults> — configure staging and quarantine defaults
+- GET  <http://localhost:8080/v1/location/locations/{locationId}/defaults> — read current defaults
+- POST <http://localhost:8080/v1/location/locations/{locationId}/storage-locations> — create storage location
+- GET  <http://localhost:8080/v1/location/locations/{locationId}/storage-locations> — list storage locations (filters: `type`, `status`, pagination)
+- GET  <http://localhost:8080/v1/location/locations/{locationId}/storage-locations/{storageLocationId}> — get storage location by id
+- PATCH <http://localhost:8080/v1/location/locations/{locationId}/storage-locations/{storageLocationId}> — update fields or deactivate (with transfer)
+- GET  <http://localhost:8080/v1/location/locations/roster?since_updated_at={iso}&pageNumber=&pageSize=> — reconciliation roster (bulk)
+
+---
+
+### Request / Response Schemas (examples)
+
+PUT /locations/{locationId}/defaults — Request
+
+```json
+{
+  "stagingLocationId": "018e1c9f-6b5a-7890-abcd-1234567890ab",
+  "quarantineLocationId": "018e1c9f-6b5a-7890-abcd-2234567890ab"
+}
+```
+
+Response 200
+
+```json
+{
+  "locationId": "018e1c9f-6b5a-7890-abcd-1234567890ab",
+  "stagingLocationId": "018e1c9f-6b5a-7890-abcd-1234567890ab",
+  "quarantineLocationId": "018e1c9f-6b5a-7890-abcd-2234567890ab",
+  "updatedAt": "2026-02-22T12:00:00Z"
+}
+```
+
+POST /storage-locations — Request
+
+```json
+{
+  "name": "Floor A - Shelf 3",
+  "code": "FLOOR-A/SHELF-3",
+  "type": "SHELF", // one of [FLOOR, SHELF, BIN, CAGE, TRUCK]
+  "parentId": "018e1c9f-6b5a-7890-abcd-3334567890ab", // optional
+  "description": "Third shelf on Floor A",
+  "active": true
+}
+```
+
+Response 201
+
+```json
+{
+  "id": "118e1c9f-6b5a-7890-abcd-9994567890ab",
+  "locationId": "018e1c9f-6b5a-7890-abcd-3334567890ab",
+  "name": "Floor A - Shelf 3",
+  "code": "FLOOR-A/SHELF-3",
+  "type": "SHELF",
+  "parentId": "018e1c9f-6b5a-7890-abcd-2224567890ab",
+  "active": true,
+  "createdAt": "2026-02-22T12:00:00Z"
+}
+```
+
+PATCH /storage-locations/{storageLocationId} — partial update / deactivation (example deactivate)
+
+```json
+{
+  "active": false,
+  "transferToLocationId": "018e1c9f-6b5a-7890-abcd-4444567890ab" // required when inventory exists
+}
+```
+
+GET /locations/roster — Response (page)
+
+```json
+{
+  "results": [
+    { "id": "018e1c9f-...", "code": "MAIN-WH", "name": "Main Warehouse", "updatedAt": "2026-02-22T11:00:00Z", "status": "ACTIVE" }
+  ],
+  "totalCount": 1,
+  "pageNumber": 0,
+  "pageSize": 20,
+  "lastSyncAt": "2026-02-22T12:00:00Z"
+}
+```
+
+---
+
+### Business Rules & Behavioral Assertions
+
+- Site Defaults (stories #38)
+  - `stagingLocationId` and `quarantineLocationId` MUST not be equal. If equal → `409 CONFLICT` with code `SAME_DEFAULT_LOCATION`
+  - Both referenced storage locations MUST exist and belong to the same site (locationId). If a referenced storage location is not found → `404`.
+  - Only users/services with the proper authority may update defaults; unauthorized → `403`.
+  - Successful update MUST emit `SiteDefaultsUpdated` event with payload `{ locationId, stagingLocationId, quarantineLocationId, updatedAt }`.
+  - Read (`GET`) returns the current configured defaults or `200` with `null` fields when not configured.
+
+- Storage Locations (story #39)
+  - Storage locations form a DAG within a site: `parentId` references MUST be validated to prevent cycles. Attempts to create/update that introduce a cycle → `422 CYCLE_DETECTED`.
+  - Sibling uniqueness: `name` (and optionally `code`) MUST be unique among sibling storage locations under the same parent; duplicates → `409 DUPLICATE_NAME`.
+  - Deactivation semantics: to deactivate a storage location that contains inventory, provider MUST accept and require a `transferToLocationId` that is active and within same site. If transfer target invalid/missing → `400` / `422` respectively.
+  - Partial updates via `PATCH` allowed for mutable fields (`name`, `description`, `parentId`, `active`). Updating `parentId` must revalidate DAG and sibling uniqueness.
+  - CRUD events: on create → `StorageLocationCreated`, on update → `StorageLocationUpdated`, on deactivate → `StorageLocationDeactivated` (include `transferTo` when applicable).
+
+- Location Sync / Reconciliation (story #40)
+  - The roster endpoint (`GET /locations/roster`) MUST support `since_updated_at` ISO-8601 filter and return all location records changed since that timestamp.
+  - Support pagination (`pageNumber`, `pageSize`) and return `totalCount` and `lastSyncAt` for consumer checkpointing.
+  - Changes include create/update/deactivate; providers MUST also publish events `LocationCreated`, `LocationUpdated`, `LocationDeactivated` for downstream real-time consumers.
+
+---
+
+### Error Codes (recommended)
+
+- `400 BAD_REQUEST`: Invalid request body or missing required fields
+- `401 UNAUTHORIZED`: Missing or invalid auth
+- `403 FORBIDDEN`: Insufficient permissions
+- `404 NOT_FOUND`: Location or storage location not found
+- `409 CONFLICT`: Business rule violation (e.g., duplicate sibling name, same default location)
+- `422 UNPROCESSABLE_ENTITY`: DAG/cycle detected, invalid transfer target
+- `500 INTERNAL_SERVER_ERROR`: Unexpected error
+
+---
+
+### Provider Test Hints (ContractBehaviorIT)
+
+- CP-214-001 Configure Defaults: create two storage locations under a site; `PUT /locations/{locationId}/defaults` with distinct `stagingLocationId` and `quarantineLocationId` returns `200` and subsequent `GET` returns configured values. Assert `SiteDefaultsUpdated` event emitted.
+- CP-214-002 Defaults validation: same ID for staging+quarantine → `409` and no event emitted.
+- CP-214-010 Create Storage Location: `POST /storage-locations` returns `201` with generated `id`; `StorageLocationCreated` emitted.
+- CP-214-011 Sibling uniqueness: attempting to create duplicate `name` within same parent → `409`.
+- CP-214-012 DAG enforcement: creating a parent reference that would create a cycle → `422`.
+- CP-214-013 Deactivate with transfer: when storage location has inventory (seeded test fixture), `PATCH active=false` without `transferToLocationId` → `400`; with valid `transferToLocationId` → `200`, `StorageLocationDeactivated` emitted, inventory ownership moved (verify via inventory service/mocks where possible).
+- CP-214-020 Roster reconciliation: seed changes, call `GET /locations/roster?since_updated_at={t0}` and assert returned records include only changed locations and pagination works.
+
+### Events (pos-events) — suggested IDs
+
+- `SiteDefaultsUpdated` (pos.location.v1.SiteDefaultsUpdated)
+- `StorageLocationCreated` (pos.location.v1.StorageLocationCreated)
+- `StorageLocationUpdated` (pos.location.v1.StorageLocationUpdated)
+- `StorageLocationDeactivated` (pos.location.v1.StorageLocationDeactivated)
+- `LocationCreated` / `LocationUpdated` / `LocationDeactivated` (existing location events)
+
+### Dependencies
+
+- Inventory service: deactivation transfer requires coordination with inventory; tests should mock inventory transfer behavior or run contract scenario against integrated inventory test harness.
+- Event registry (`pos-events`) must include new event types; register during application startup.
 
 ---
 
