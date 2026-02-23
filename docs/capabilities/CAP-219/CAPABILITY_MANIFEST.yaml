@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 26
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 90
-      impacted_component_repos:
-      - louisburroughs/durion-inventory
+      issues: [26, 27, 176]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/inventory/.ui/frontend-story-counts-approve-and-post-adjustments-90.wf.md
@@ -69,7 +64,7 @@ stories:
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-inventory/target/openapi.json
+      spec_path: pos-inventory/openapi.yaml
       generated: true
   pr_links:
     durion_contract_pr: ''
