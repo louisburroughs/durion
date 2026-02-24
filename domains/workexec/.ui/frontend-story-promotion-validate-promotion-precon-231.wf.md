@@ -10,7 +10,7 @@ Enable users to promote an Estimate to a Work Order only when required precondit
 - Error panel/alert (standard error envelope rendering)
   - Error title/message
   - Optional details (correlation/request ID, field/metadata details when present)
-  - Optional action button: “Open Work Order” (when already promoted / workOrderId available)
+  - Optional action button: “Open Work Order” (when already promoted / workorderId available)
 - (Optional) Secondary link/button: “View Work Order” (shown after success or idempotent detection)
 
 ## Layout
@@ -33,19 +33,19 @@ Enable users to promote an Estimate to a Work Order only when required precondit
    1) Enable “Promote to Work Order”.
    2) On click, set loading state and call the promotion transition/service with required inputs (estimateId, snapshotVersion) and required header(s) (e.g., facilityId).
 5. On success response:
-   1) Receive workOrderId (and any other success fields).
-   2) Redirect/navigate to Work Order detail page using workOrderId.
+   1) Receive workorderId (and any other success fields).
+   2) Redirect/navigate to Work Order detail page using workorderId.
 6. On error response (standard envelope):
    1) Stay on the Estimate page.
    2) Render error panel using envelope fields (type/code/message; include correlation/request ID when available; include details/metadata when provided).
    3) Clear loading state; keep CTA enabled/disabled based on current gating.
 7. Idempotent retry / duplicate promotion scenario:
    1) If user clicks “Promote to Work Order” again for an already-promoted estimate and backend returns either:
-      - Success with existing workOrderId, or
-      - Error envelope indicating “already promoted” and includes workOrderId (when available),
+      - Success with existing workorderId, or
+      - Error envelope indicating “already promoted” and includes workorderId (when available),
    2) Do not show a generic failure.
    3) Show “Already promoted”.
-   4) Navigate to the Work Order page immediately, or present an “Open Work Order” action that navigates using workOrderId.
+   4) Navigate to the Work Order page immediately, or present an “Open Work Order” action that navigates using workorderId.
 
 ## Notes
 - Backend is authoritative; UI gating prevents obvious invalid attempts but must still handle server-side rejection via the standard error envelope.

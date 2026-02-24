@@ -10,10 +10,10 @@ Enable authorized users to promote an Approved Estimate into a Work Order, gener
 - Loading/in-flight state indicator on Promote action (disabled button + spinner)
 - Blocking error modal/dialog (title, message, expandable “Details” showing error code + message)
 - Informational banner/toast on Work Order screen (“Opened existing work order.”)
-- Work Order screen header (workOrderId, workexecId, status)
+- Work Order screen header (workorderId, workexecId, status)
 - Work Order totals summary (money totals)
 - Work Order Items table/list
-  - Columns: itemId, workOrderId, estimateItemId (traceability), quantity, itemType, description/name, productId (nullable), unit price (decimal), snapshot pricing/tax summary, status, isTaxExempt
+  - Columns: itemId, workorderId, estimateItemId (traceability), quantity, itemType, description/name, productId (nullable), unit price (decimal), snapshot pricing/tax summary, status, isTaxExempt
 - Read-only indicators for snapshot fields (pricing/tax snapshot vs catalog display)
 
 ## Layout
@@ -28,7 +28,7 @@ Enable authorized users to promote an Approved Estimate into a Work Order, gener
    2. User clicks “Promote to Work Order”.
    3. UI sends promotion request for the estimate, including an Idempotency-Key header.
    4. UI disables the Promote action while request is in-flight (prevent double-submit).
-   5. On success, UI navigates to the Work Order route for the returned workOrderId.
+   5. On success, UI navigates to the Work Order route for the returned workorderId.
    6. Work Order screen loads and displays Work Order totals and Work Order Items matching the promoted estimate scope (including snapshot pricing/tax fields).
 
 2. Validation failure: stale estimate status (invalid state)
@@ -39,10 +39,10 @@ Enable authorized users to promote an Approved Estimate into a Work Order, gener
 
 3. Concurrency/already promoted
    1. User clicks “Promote to Work Order” and backend indicates the estimate was already promoted.
-   2. If response includes an existing workOrderId (or a field that is a workOrderId):
+   2. If response includes an existing workorderId (or a field that is a workorderId):
       1. UI navigates to that Work Order.
       2. Work Order screen shows informational banner: “Opened existing work order.”
-   3. Else (no workOrderId provided):
+   3. Else (no workorderId provided):
       1. UI shows blocking error: “Estimate already promoted.”
       2. UI remains on the Estimate screen and re-enables Promote after dismissal.
 

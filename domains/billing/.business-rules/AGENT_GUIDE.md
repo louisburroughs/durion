@@ -115,7 +115,7 @@ Decision IDs below correspond 1:1 to sections in `DOMAIN_NOTES.md`.
 
 - `invoiceId` (UUIDv7)
 - `invoiceNumber` (string, assigned at issuance)
-- `workOrderId` (UUIDv7, immutable)
+- `workorderId` (UUIDv7, immutable)
 - `customerAccountId` (UUIDv7, immutable)
 - `billableScopeSnapshotId` (UUIDv7, immutable)
 - `traceability` (TraceabilitySnapshot, immutable)
@@ -129,7 +129,7 @@ Decision IDs below correspond 1:1 to sections in `DOMAIN_NOTES.md`.
 
 Canonical field names:
 
-- `sourceWorkOrderId` (UUIDv7, required) = `workOrderId`
+- `sourceWorkOrderId` (UUIDv7, required) = `workorderId`
 - `sourceBillableScopeSnapshotId` (UUIDv7, required) = `billableScopeSnapshotId`
 - `sourceSchemaVersion` (string, required)
 - Estimate reference:
@@ -200,7 +200,7 @@ Canonical field names:
   - Work Order is Completed
   - `invoiceReady=true`
 - Idempotent behavior:
-  - If draft exists for `workOrderId`: return existing draft (200)
+  - If draft exists for `workorderId`: return existing draft (200)
   - If invoice already ISSUED/PAID/VOID: return 409 conflict with deterministic reason code
 - Lines are derived from BillableScopeSnapshot and are not editable in this flow.
 - Billing calculates taxes/fees using current tax rules; do not trust upstream totals.
@@ -312,7 +312,7 @@ Concrete Moqui service names may vary; the following HTTP semantics and field sh
 1) Create Draft from Work Order (idempotent)
 
 - `POST /billing/invoices/draft`
-  - Request: `{ "workOrderId": "uuidv7" }`
+  - Request: `{ "workorderId": "uuidv7" }`
   - Response: full invoice snapshot recommended
   - Errors:
     - 409 with `{errorCode, message, reasonCode}` when not invoice-ready or already issued
@@ -334,7 +334,7 @@ Concrete Moqui service names may vary; the following HTTP semantics and field sh
 
 1) Lookup by Work Order
 
-- `GET /billing/invoices/by-workorder/{workOrderId}` (returns 404 if none)
+- `GET /billing/invoices/by-workorder/{workorderId}` (returns 404 if none)
 
 ### BillingRules
 
@@ -428,7 +428,7 @@ Correlation/tracing standard is W3C Trace Context:
 
 Logs must include identifiers (non-PII):
 
-- `invoiceId`, `workOrderId`, `accountId`, `billingPaymentId`, `paymentRef` (if permitted), `receiptId`
+- `invoiceId`, `workorderId`, `accountId`, `billingPaymentId`, `paymentRef` (if permitted), `receiptId`
 Never log: PAN/CVV, full billing address/email, signed URLs, tokens, manager PINs/codes.
 
 ---
@@ -524,11 +524,11 @@ Frontend must not hardcode thresholds. (BILL-DEC-011)
 
 ### Source: AGENT_GUIDE.md — C) Invoice retrieval, draft creation, enums, approvals
 
-**Question C1:** Invoice retrieval contract: load by `workOrderId`, `invoiceId`, or both? exact service names/parameter names?  
+**Question C1:** Invoice retrieval contract: load by `workorderId`, `invoiceId`, or both? exact service names/parameter names?  
 **Response:** Both are supported:
 
 - `GET /billing/invoices/{invoiceId}`
-- `GET /billing/invoices/by-workorder/{workOrderId}`  
+- `GET /billing/invoices/by-workorder/{workorderId}`  
 Frontend chooses by context: from Work Order use by-workorder, from invoice list use invoiceId. (BILL-DEC-002)
 
 **Question C2:** Draft creation behavior: show “no invoice” only, or call create draft automatically or via button?  

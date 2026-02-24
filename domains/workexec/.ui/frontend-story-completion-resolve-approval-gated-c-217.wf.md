@@ -37,7 +37,7 @@ Enable Service Advisors to see when pending, approval-gated change requests bloc
    1. If at least one ChangeRequest has status = pending (approval-gated), show a completion blocker indicating pending change requests.
    2. Display the current completion-related value from the WorkOrder (read-only) alongside/within the blockers area.
 3. User selects “View change requests” from the blocker panel.
-4. Navigate to the Work Order Change Requests screen (route requires workOrderId).
+4. Navigate to the Work Order Change Requests screen (route requires workorderId).
 5. System loads and lists all change requests returned by the backend for that work order (multiple statuses allowed).
 6. User scans list entries; each entry shows description, status, requestedAt, and an emergency indicator when present.
 7. User selects a change request entry.

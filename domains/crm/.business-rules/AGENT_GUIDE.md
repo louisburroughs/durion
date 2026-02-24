@@ -206,7 +206,7 @@ This document is the normative agent guide for the CRM domain: system-of-record 
 
 ### Q: Promotions redemptions: what is the exact API/service contract for listing/getting `PromotionRedemption` (pagination/sort/filters)?
 
-- Answer: Provide list/detail read services with server-side pagination and filters by promotionId, partyId, workOrderId, invoiceId, and date range.
+- Answer: Provide list/detail read services with server-side pagination and filters by promotionId, partyId, workorderId, invoiceId, and date range.
 - Assumptions:
 - Read-only UI.
 - Rationale:
@@ -237,7 +237,7 @@ This document is the normative agent guide for the CRM domain: system-of-record 
 - Detail DTO may include `eventId`.
 - Decision ID: DECISION-INVENTORY-010
 
-### Q: Promotions redemptions: are `workOrderId` and `invoiceId` UUIDs or external human-readable identifiers?
+### Q: Promotions redemptions: are `workorderId` and `invoiceId` UUIDs or external human-readable identifiers?
 
 - Answer: Treat as UUIDs; optionally also return display-only numbers.
 - Assumptions:

@@ -28,10 +28,10 @@ You create plans. You do not implement code.
 Plan toward exactly one PR in `durion-positivity-backend` with completed stories and verification evidence.
 
 ## Required Method
-1. Plan backward from objective to prerequisites.
+1. Plan backward from objective to prerequisites. Identify all necessary conditions for moving to the next step.
 2. Ensure Step 1 is source-material reading.
 3. Emit forward executable steps.
-4. Use per-story micro-cycles: RED -> GREEN -> coverage before next story.
+4. Use per-story micro-cycles: conditional scaffold -> RED -> GREEN -> coverage before next story.
 
 ## Path Resolution
 Use manifest references first for:
@@ -52,6 +52,10 @@ Objective: <explicit PR objective in durion-positivity-backend>
 Implementation Steps:
 - [ ] Step 1: Read and analyze source material (manifest, prompts, relevant code/docs).
 - [ ] Step 2: <next executable step>
+- [ ] Step N (optional, only if RED would be blocked): Pre-RED scaffold in src/main/** for missing symbols (compile-only, no behavior logic).
+- [ ] Step N+1: RED (failing behavior tests).
+- [ ] Step N+2: GREEN (implement behavior and remove/replace temporary scaffold artifacts if scaffold step was used).
+- [ ] Step N+3: Coverage hardening (>=80% service+utility).
 - [ ] ...
 - [ ] Final Step: Create the Pull Request in durion-positivity-backend with completed stories and validation evidence.
 
@@ -70,3 +74,5 @@ You maintain `Durion-Processing.md` plan state.
 ## Mandatory Content Rules
 - Include explicit post-coder coverage-hardening step (JaCoCo, >=80% service+utility).
 - Include ADR conflict notes when applicable (story instruction, ADR, chosen direction).
+- Include a scaffold step only when story risk indicates missing production symbols would block RED test execution.
+- When scaffold step exists, include explicit GREEN cleanup acceptance criteria (remove/replace temporary scaffold artifacts in same story cycle).

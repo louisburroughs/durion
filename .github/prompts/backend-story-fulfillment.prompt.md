@@ -41,6 +41,7 @@ If the answer to these is "no", **KEEP WORKING**.
 
 Context (inputs — agent will be provided values at runtime)
 - `OPENAPI_PATH` — path to the authoritative `openapi.yaml` (e.g., `pos-<module>/target/openapi.yaml`) which MUST NOT be overwritten.
+- `BACKEND_API_REFERENCE_PATH` — path to generated API reference (e.g., `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md`).
 
 You are implementing capability {{capability_label}} (e.g., CAP:089).
 
@@ -96,7 +97,7 @@ Contract guide entry (draft):
   4. Validate, Update or Implement the following in the new branch:  **Check for existing implementations to update first before adding new code**
     (A). Implement the endpoint/service to match the contract
     (B). Add provider behavioral contract tests (`ContractBehaviorIT`)
-    (C). Include examples from the contract guide in the tests
+    (C). Use behavior assertions from `BACKEND_CONTRACT_GUIDE.md`; use payload/status examples from `BACKEND_API_REFERENCE.generated.md` and `OPENAPI_PATH` in tests
     (D). Add validation & error handling per the assertions
     (E). Include concurrency-safe patterns if needed (idempotency, optimistic locking)
     (F). Add or update OpenAPI annotations (`@Operation`, `@ApiResponse`, etc.) if the module exposes REST
@@ -173,7 +174,7 @@ Module File Layout (examples)
 - `pos-<module>/src/test/java/com/positivity/<module>/contract/` (ContractBehaviorIT)
 
 Testing Requirements
-- Add `ContractBehaviorIT` tests using examples from the contract guide covering: happy path, validation errors, auth failures, idempotency, and concurrency invariants.
+- Add `ContractBehaviorIT` tests using behavior assertions from the contract guide and request/response examples from OpenAPI/generated API reference covering: happy path, validation errors, auth failures, idempotency, and concurrency invariants.
 - Add ArchUnit tests if the change introduces new packages or layering concerns.
 
 Substitution & Validation

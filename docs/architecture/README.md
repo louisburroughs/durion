@@ -11,6 +11,9 @@ This directory contains architectural documentation for the Durion Positivity PO
 - [Prototype Plan](./prototype-plan.md) - General prototype planning
 - [Project Timeline](./project-timeline.md) - Project timeline and milestones
 
+### API Contract Standards
+- [Backend Contract Global Standards](./api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md) - Canonical cross-domain rules for backend contract guides and OpenAPI source-of-truth boundaries
+
 ### Domain Models and Workflows
 
 #### Customer Approval Workflow (New - 2026-01-08)

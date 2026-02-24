@@ -23,7 +23,7 @@ Enable Dispatchers to check mechanic availability for a specified time window at
     - Conflicts list (may be empty)
       - Conflict time range
       - Reason code (open enum)
-      - Optional reference ID (e.g., workOrderId/appointmentId)
+      - Optional reference ID (e.g., workorderId/appointmentId)
       - Optional description/notes if provided
 - Error/warning banner area within the screenlet (non-blocking to rest of page)
 

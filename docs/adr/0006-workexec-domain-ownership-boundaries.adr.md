@@ -97,7 +97,7 @@ This ADR clarifies domain ownership boundaries for features that appear in WorkE
 2. Document cross-domain integration contract in WorkExec's `CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`:
    - WorkExec provides a "convert to sales order" endpoint that calls `pos-order` APIs
    - Endpoint: `POST /api/v1/orders/from-workorder` (owned by Order domain)
-   - Payload: `{ workOrderId, selectedItemIds[], customerId, paymentTerms }`
+   - Payload: `{ workorderId, selectedItemIds[], customerId, paymentTerms }`
    - Response: `{ orderId, orderNumber, totalAmount, status }`
    - WorkExec UI displays sales order creation status but does not own the order entity
 3. Clarify that WorkExec screens may initiate sales order creation but should redirect users to Order domain screens for order management.

@@ -16,7 +16,7 @@ Provide dispatchers a read-only Daily Dispatch Board dashboard for a selected lo
   - Counts by severity (WARNING vs BLOCKING)
   - List of exception indicators with message and target context
 - Board list/grouping (read-only)
-  - Work order rows/cards with minimum fields (workOrderId, status)
+  - Work order rows/cards with minimum fields (workorderId, status)
   - Optional fields: appointmentId, scheduled start/end, assignee(s), customer/unit, exception badges
 - Optional Availability panel (People SoR signal)
   - “As of” timestamp for availability
@@ -69,7 +69,7 @@ Provide dispatchers a read-only Daily Dispatch Board dashboard for a selected lo
 ## Notes
 - Read-only dashboard: no editing, no dispatch actions; UI must not compute overdue/exception logic client-side if scheduled timestamps are absent.
 - Required parameters to load board: locationId and viewDate (ISO date; default computed to today).
-- Board row minimum render fields: workOrderId (opaque string) and status (enum). Optional: appointmentId, scheduledStart/scheduledEnd, assignee(s), customer/unit, exceptionIndicators array.
+- Board row minimum render fields: workorderId (opaque string) and status (enum). Optional: appointmentId, scheduledStart/scheduledEnd, assignee(s), customer/unit, exceptionIndicators array.
 - ExceptionIndicator minimum fields: code (stable enum), severity (WARNING/BLOCKING), message, targetType (e.g., LOCATION/WORK_ORDER/APPOINTMENT/MECHANIC), optional targetId (required when targetType ≠ LOCATION), optional per-indicator timestamp (else use board-level asOf).
 - Timestamps:
   - “Last updated” = client time of last successful refresh.

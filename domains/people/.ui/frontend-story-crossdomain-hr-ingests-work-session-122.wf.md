@@ -68,4 +68,4 @@ Provide a People/HR UI for Payroll Clerks to review timekeeping entries ingested
   - Pending → “Pending approval”
   - Approved → “Approved”
   - Rejected → “Rejected” (render rejection comments/reason if provided)
-- Query params supported include page/size and optional filters (personId, approval status, date range, locationId, workOrderId); omit any unsupported/undocumented params from UI.
+- Query params supported include page/size and optional filters (personId, approval status, date range, locationId, workorderId); omit any unsupported/undocumented params from UI.

@@ -1,2014 +1,326 @@
 ---
-title: pos-people Backend Contract Guide
+title: People Backend Contract Guide
 domain: people
 doc_type: backend_contract
-contract:
-  status: draft
-  owner_repo: louisburroughs/durion
-  guide_path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: durion-positivity-backend/pos-people/openapi.yaml
+contract_status: draft
+owner_repo: louisburroughs/durion
+guide_path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+openapi_source: durion-positivity-backend/pos-people/openapi.yaml
+openapi_commit: ca7fadc3
+last_verified_utc: 2026-02-24T14:23:11Z
+last_updated: 2026-02-24
+api_reference_generated: domains/people/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
-  capability_manifest: docs/capabilities/CAP-120/CAPABILITY_MANIFEST.yaml
-last_updated: 2026-02-19
+  capability_manifest_root: docs/capabilities
 ---
 
-# pos-people Backend Contract Guide
+# People Backend Contract Guide
 
-## Overview
+## Purpose & Scope
 
-The People domain provides person management, time tracking, and access control integration.
+This is the curated contract guide for People domain behavior.
 
-## Capability Updates
+- Use this guide for capability intent, domain invariants, dependency boundaries, and UI-to-API mapping.
+- Use OpenAPI and generated API reference for request/response schemas and full endpoint detail.
 
-| Capability | Parent Story | Backend Tracking | Last Updated | Document Update |
+Authoritative references:
+
+- OpenAPI: `durion-positivity-backend/pos-people/openapi.yaml`
+- Generated API reference: `domains/people/.business-rules/BACKEND_API_REFERENCE.generated.md`
+- Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- Domain decisions: `domains/people/.business-rules/AGENT_GUIDE.md`
+
+## How To Use This Guide
+
+Backend coder workflow:
+
+1. Read `Domain Invariants` and the relevant capability section.
+2. Validate behavior constraints before implementing endpoint changes.
+3. Use `operationId` mappings here, then confirm payload details in generated API reference.
+4. Ensure tests cover each changed behavioral assertion.
+
+Frontend developer workflow:
+
+1. Start with `Frontend API Lookup` and identify the `operationId` for the UI action.
+2. Open generated API reference for exact payload and response details.
+3. Implement error handling and headers described in this guide.
+
+## Domain Invariants
+
+- People behavioral rules are authoritative in backend services, not inferred from frontend state.
+- Mutating operations require explicit permission enforcement and auditable outcomes.
+- Error responses and correlation headers must be deterministic and traceable across requests.
+- Cross-domain interactions must go through API/event contracts, not direct data coupling.
+
+## Capability Index
+
+| Capability | Parent Issue | Contract Status | Primary Scope |
+| --- | --- | --- | --- |
+| CAP-117 | `durion#117` | draft | [CAP] Identity Orchestration (User ↔ Person Linking) |
+| CAP-118 | `durion#118` | draft | [CAP] Roles, Permissions, and Scoped Access (RBAC) |
+| CAP-119 | `durion#119` | draft | [CAP] Location Management & Staffing Assignments |
+| CAP-120 | `durion#120` | draft | [CAP] Timekeeping (Clock, Breaks, Approvals, Export) |
+| CAP-121 | `durion#121` | draft | [CAP] Job Time Tracking (Workexec Linkage) |
+
+## Frontend API Lookup
+
+| UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
-| `CAP:117` | `durion#117` | `durion-positivity-backend#88`, `#90`, `#91` | 2026-02-18 | Identity orchestration contract (employee CRUD, offboarding, user-person linking). |
-| `CAP:118` | `durion#118` | `durion-positivity-backend#526` | 2026-02-16 | Person-centric RBAC facade contract under `/v1/people/{personId}/access`. |
-| `CAP:119` | `durion#119` | `durion-positivity-backend#86` | 2026-02-19 | Person-to-location staffing assignment contract and behavioral assertions. |
-| `CAP:120` | `durion#120` | `durion-positivity-backend#79`, `#83`, `#84`, `#85` | 2026-02-19 | Timekeeping contract: clock in/out, breaks, time entry adjustments, batch approvals, exceptions, reports. |
-
-## Base URL
-
-- Local (service - OpenAPI authoritative): `http://localhost:8085`
-- Via API Gateway (recommended): `http://localhost:8080/v1/people`
-
-## CAP-117: Identity Orchestration (User ↔ Person Linking)
-
-This section defines the backend contract for CAP-117 (Identity Orchestration) covering employee profile CRUD, offboarding/disable flows, and user↔person linking.
-
-All gateway paths use: `http://localhost:8080/v1/people` as the base.
-
-### From Issue #88 — Employee Profile CRUD
-
-- POST `http://localhost:8080/v1/people/employees`
-  - Purpose: Create employee profile.
-  - Request (TypeScript-like):
-
-    ```ts
-    interface CreateEmployeeRequest {
-      legalName?: string;
-      preferredName?: string;
-      employeeNumber?: string; // unique
-      status?: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
-      hireDate?: string; // yyyy-MM-dd
-      terminationDate?: string; // yyyy-MM-dd
-      contactInfo?: {
-        emails?: string[];
-        phones?: string[];
-      };
-      duplicatePolicy?: 'STRICT' | 'BALANCED';
-    }
-    ```
-
-  - Responses:
-    - `201 Created`: Employee created. Body: `EmployeeResponse`.
-    - `409 Conflict`: High-confidence duplicate detected (exact match on email/phone/employeeNumber).
-    - `201 Created` with `warnings` array: Ambiguous duplicate detected (BALANCED policy returned with warnings).
-  - Behavior / rules:
-    - Duplicate detection: `STRICT` detects exact email/phone/employeeNumber matches; `BALANCED` applies fuzzy/heuristic checks and may return soft-warnings.
-    - `employeeNumber` when provided must be unique.
-    - Persistence: contactInfo fields optional at DB level but business gating requires ≥1 contact before assignment.
-
-- PUT `http://localhost:8080/v1/people/employees/{employeeId}`
-  - Purpose: Update employee profile.
-  - Request: same shape as `CreateEmployeeRequest`.
-  - Responses:
-    - `200 OK`: Updated `EmployeeResponse`.
-    - `404 Not Found`: `employeeId` not found.
-    - `409 Conflict`: Duplicate detection as above.
-  - Behavior:
-    - Same duplicate detection logic as create.
-
-- GET `http://localhost:8080/v1/people/employees/{employeeId}`
-  - Purpose: Retrieve employee profile.
-  - Responses:
-    - `200 OK`: `EmployeeResponse`.
-    - `404 Not Found` if missing.
-  - Employee `status` enum: `ACTIVE | ON_LEAVE | SUSPENDED | TERMINATED`.
-  - Field constraints:
-    - `terminationDate` must be >= `hireDate` when both present.
-
-EmployeeResponse (TypeScript-like):
-
-```ts
-interface EmployeeResponse {
-  employeeId: string; // uuid
-  legalName?: string;
-  preferredName?: string;
-  employeeNumber?: string;
-  status: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
-  hireDate?: string; // yyyy-MM-dd
-  terminationDate?: string | null;
-  contactInfo?: { emails?: string[]; phones?: string[] };
-  warnings?: string[];
-  createdAt?: string; // date-time
-  updatedAt?: string; // date-time
-}
-```
-
-ContractBehaviorIT hints (naming):
-
-- Happy path: `CP-117-001` (create), `CP-117-002` (update), `CP-117-003` (get)
-- Validation errors/VE: `VE-117-001` (terminationDate < hireDate), `VE-117-002` (missing contact when required)
-- Lifecycle/LC: `LC-117-001` (status transitions)
-
-### From Issue #90 — Disable User (Offboarding)
-
-- POST `http://localhost:8080/v1/people/employees/{employeeId}/disable`
-  - Purpose: Disable/offboard an employee's user account and mark associated person/user as DISABLED. Implements a saga-style pattern for downstream coordination.
-  - Request body:
-
-    ```json
-    {
-      "disableReason": "string (optional)",
-      "assignmentPolicy": "END_ASSIGNMENTS_NOW|END_ASSIGNMENTS_AT_DATE|LEAVE_ASSIGNMENTS_ACTIVE",
-      "assignmentEndDate": "2026-12-31" // optional when END_ASSIGNMENTS_AT_DATE
-    }
-    ```
+| End (soft-delete) an assignment | `endAssignment` | DELETE | `/v1/people/staffing/assignments/{assignmentId}` | Refer to generated API reference for payload details |
+| Unlink user from person | `unlinkUserFromPerson` | DELETE | `/v1/people/users/{userId}/link` | Refer to generated API reference for payload details |
+| Delete a person | `deletePerson` | DELETE | `/v1/people/{personId}` | Refer to generated API reference for payload details |
+| Revoke role assignment | `revokeAssignment` | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` | Refer to generated API reference for payload details |
+| Get all people | `getAllPeople` | GET | `/v1/people` | Refer to generated API reference for payload details |
+| Get people availability | `getPeopleAvailability` | GET | `/v1/people/availability` | Refer to generated API reference for payload details |
+| Get employee profile | `getEmployee` | GET | `/v1/people/employees/{employeeId}` | Refer to generated API reference for payload details |
+| List exceptions, optional filter by employeeId | `listByEmployee` | GET | `/v1/people/exceptions` | Refer to generated API reference for payload details |
+| Get approved time entries for accounting export | `getApprovedTimeForExport` | GET | `/v1/people/reports/approvedTime` | Refer to generated API reference for payload details |
+| Get attendance and job time discrepancy report | `getAttendanceDiscrepancyReport` | GET | `/v1/people/reports/attendanceJobtimeDiscrepancy` | Refer to generated API reference for payload details |
+| List assignments for person | `getAssignments_1` | GET | `/v1/people/staffing/assignments` | Refer to generated API reference for payload details |
+| Get assignment by ID | `getAssignment` | GET | `/v1/people/staffing/assignments/{assignmentId}` | Refer to generated API reference for payload details |
+| List adjustments for a time entry | `listForTimeEntry` | GET | `/v1/people/timeEntries/{timeEntryId}/adjustments` | Refer to generated API reference for payload details |
+| Get links by person ID | `getLinkByPersonId` | GET | `/v1/people/user-links/{personId}` | Refer to generated API reference for payload details |
+| Get person by user ID | `getPersonByUserId` | GET | `/v1/people/users/{userId}/person` | Refer to generated API reference for payload details |
 
-  - Responses:
-    - `200 OK`: Action accepted and executed (person+user status set to `DISABLED`), body: operation result.
-    - `400 Bad Request`: If employee already `DISABLED` or `TERMINATED` or invalid payload.
-    - `404 Not Found`: `employeeId` not found.
-  - Behavior / business rules:
-    - Allowed transitions: `ACTIVE -> DISABLED` (reversible via admin restore if supported); `ACTIVE -> TERMINATED` (irreversible).
-    - If already `DISABLED` or `TERMINATED` return `400` with problem details.
-    - Event: immediately emits `user.disabled` (pos-events) with payload indicating `employeeId`, `userId` (if linked), `disableReason`, and `assignmentPolicy`.
-    - Saga: downstream services (security, workexec, payroll) consume `user.disabled` asynchronously and perform their part; retries are handled by consumer logic.
+Headers and auth notes:
 
-ContractBehaviorIT hints:
+- Always propagate `X-Correlation-Id`.
+- Apply `Authorization` and endpoint-specific authorities for restricted operations.
+- Use idempotency semantics where the endpoint contract requires mutation deduplication.
 
-- CP-117-010: disable happy path (verify event emitted)
-- VE-117-010: disabling already DISABLED returns 400
-- LC-117-010: verify status transition rules and irreversibility of TERMINATED
+## Capability Sections
 
-### From Issue #91 — Provision User + Link to Person
+## CAP-117: [CAP] Identity Orchestration (User ↔ Person Linking)
 
-- POST `http://localhost:8080/v1/people/user-links`
-  - Purpose: Create a `UserPersonLink` binding between an authentication `userId` and a `personId`. Idempotent.
-  - Request (TypeScript-like):
+### Capability Metadata
 
-    ```ts
-    interface CreateUserLinkRequest {
-      userId: string; // uuid
-      personId: string; // uuid
-    }
-    ```
+- Capability ID: CAP-117
+- Parent Issue: https://github.com/louisburroughs/durion/issues/117
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-people/openapi.yaml`
 
-  - Responses:
-    - `201 Created`: Link created (body: `UserPersonLinkResponse`).
-    - `200 OK`: Link already exists (idempotent behaviour).
-    - `409 Conflict`: `userId` already linked to a different `personId` (1:1 constraint).
-    - `404 Not Found`: `personId` not found.
-  - Behavior:
-    - This endpoint is administratively callable; the same operation is performed by an event-driven consumer when `UserCreated` / `UserProvisioned` events arrive from the security/provisioning service.
-    - Unique constraint: `userId` -> single `personId`. Attempting to link the same `userId` to another `personId` returns `409`.
+### API Operation References (OpenAPI Source of Truth)
 
-- GET `http://localhost:8080/v1/people/user-links/{personId}`
-  - Purpose: Retrieve current `UserPersonLink` for a given `personId`.
-  - Responses:
-    - `200 OK`: `UserPersonLinkResponse` (or empty if not linked).
-    - `404 Not Found`: `personId` not found.
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| End (soft-delete) an assignment | `endAssignment` | DELETE | `/v1/people/staffing/assignments/{assignmentId}` |
+| Unlink user from person | `unlinkUserFromPerson` | DELETE | `/v1/people/users/{userId}/link` |
+| Delete a person | `deletePerson` | DELETE | `/v1/people/{personId}` |
 
-UserPersonLinkResponse (TypeScript-like):
+### Behavioral Assertions
 
-```ts
-interface UserPersonLinkResponse {
-  linkId: string; // uuid
-  userId: string;
-  personId: string;
-  createdAt?: string; // date-time
-  createdBy?: string;
-}
-```
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-ContractBehaviorIT hints:
+### Frontend Usage Notes
 
-- CP-117-020: create link happy path (201)
-- CP-117-021: idempotent re-create returns 200
-- VE-117-020: 409 on conflicting userId link
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-### Events
+### ADR Constraints
 
-- `user.disabled` — emitted synchronously on successful user disable, as part of the same write transaction
-- `USER_PERSON_LINK_CREATE` — emitted on successful link creation (existing OpenAPI emits `USER_PERSON_LINK_CREATE` for `/users/{userId}/link` endpoints)
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-### Test & Naming Guidance
+### Events & Dependencies
 
-- Use `CP-117-NNN` for capability happy-path tests, `VE-117-NNN` for validation/edge cases, `LC-117-NNN` for lifecycle transitions.
-- Ensure tests cover idempotency, duplicate detection policies (`STRICT|BALANCED`), assignmentPolicy effects, and event emission (verify event payload shape).
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
----
+### Contract Test Traceability
 
-## CAP-118: Person-Centric Access Control Facade
+- Provider tests: `durion-positivity-backend/pos-people/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-This section defines the backend contract for CAP-118 person-centric access control endpoints that facade to `pos-security-service`.
+## CAP-118: [CAP] Roles, Permissions, and Scoped Access (RBAC)
 
-### Execution Checklist
+### Capability Metadata
 
-- Implement/maintain person-centric role and assignment endpoints under `/v1/people/{personUuid}/access/*`.
-- Validate person-to-user translation before proxying role assignment operations.
-- Enforce location scope validation (`locationId` required for LOCATION roles, null for GLOBAL roles).
-- Emit access events for list/create/revoke operations.
-- Cover happy-path, validation, and lifecycle tests with `CP-118-*`, `VE-118-*`, and `LC-118-*` naming.
+- Capability ID: CAP-118
+- Parent Issue: https://github.com/louisburroughs/durion/issues/118
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-people/openapi.yaml`
 
-### Authentication & Headers
+### API Operation References (OpenAPI Source of Truth)
 
-- Standard headers: X-User-Id, X-Correlation-Id, X-Permissions
-- Authentication via JWT tokens (coordinated through API Gateway)
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Revoke role assignment | `revokeAssignment` | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` |
+| Get all people | `getAllPeople` | GET | `/v1/people` |
+| Get people availability | `getPeopleAvailability` | GET | `/v1/people/availability` |
 
-### Endpoints
+### Behavioral Assertions
 
-#### Person Access Control
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-#### GET /v1/people/{personUuid}/access/roles
+### Frontend Usage Notes
 
-**Purpose:** List available access roles for people (LOCATION and GLOBAL scope roles only)
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-**Request:**
+### ADR Constraints
 
-- Path Parameters:
-  - `personUuid` (UUID, required): Person identifier
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-**Response:** 200 OK
+### Events & Dependencies
 
-```json
-[
-  {
-    "code": "SHOP_MANAGER",
-    "name": "Shop Manager",
-    "description": "Manage shop operations",
-    "scopeType": "LOCATION",
-    "active": true
-  }
-```
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-**Event:** `PEOPLE_ACCESS_ROLES_LIST`
+### Contract Test Traceability
 
----
+- Provider tests: `durion-positivity-backend/pos-people/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-#### GET /v1/people/{personUuid}/access/assignments
+## CAP-119: [CAP] Location Management & Staffing Assignments
 
-**Request:**
+### Capability Metadata
 
-- `endDate` (date-time, optional): Filter assignments active at this date (ISO 8601)
-- Path Parameters:
-  - `personUuid` (UUID, required): Person identifier
-- Query Parameters:
-  - `includeHistory` (Boolean, optional): Include historical/inactive assignments
-  - `endDate` (LocalDateTime, optional): Filter assignments active at this date
+- Capability ID: CAP-119
+- Parent Issue: https://github.com/louisburroughs/durion/issues/119
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-people/openapi.yaml`
 
-**Response:** 200 OK
+### API Operation References (OpenAPI Source of Truth)
 
-```json
-[
-  {
-    "userId": "user123",
-    "roleCode": "SHOP_MANAGER",
-    "locationId": "uuid-of-location",
-    "startDate": "2026-01-01T00:00:00",
-    "endDate": null,
-    "active": true
-  }
-```
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get employee profile | `getEmployee` | GET | `/v1/people/employees/{employeeId}` |
+| List exceptions, optional filter by employeeId | `listByEmployee` | GET | `/v1/people/exceptions` |
+| Get approved time entries for accounting export | `getApprovedTimeForExport` | GET | `/v1/people/reports/approvedTime` |
 
-**Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
+### Behavioral Assertions
 
----
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-#### POST /v1/people/{personUuid}/access/assignments
+### Frontend Usage Notes
 
-**Request:**
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-- Path Parameters:
-  - `personUuid` (UUID, required): Person identifier
-- Body:
+### ADR Constraints
 
-```json
-{
-  "roleCode": "SHOP_MANAGER",
-  "locationId": "uuid-of-location",
-  "startDate": "2026-02-16T00:00:00",
-  "endDate": null
-}
-```
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-**Response:** 201 Created
+### Events & Dependencies
 
-```json
-{
-  "userId": "user123",
-  "roleCode": "SHOP_MANAGER",
-  "locationId": "uuid-of-location",
-  "startDate": "2026-02-16T00:00:00",
-  "endDate": null,
-  "active": true
-```
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-**Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
+### Contract Test Traceability
 
-**Validation:**
+- Provider tests: `durion-positivity-backend/pos-people/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-- `locationId` required for LOCATION scope roles, must be null for GLOBAL scope
-- Person must have a linked User account (from UserPersonLink)
+## CAP-120: [CAP] Timekeeping (Clock, Breaks, Approvals, Export)
 
----
+### Capability Metadata
 
-**Note (OpenAPI authoritative):** The OpenAPI spec uses `{roleCode}` (role identifier) as the path parameter for revoke operations, not a numeric `assignmentId`. If your client still references an `assignmentId`, map it to the role code or use the backend issue below to coordinate a migration.
+- Capability ID: CAP-120
+- Parent Issue: https://github.com/louisburroughs/durion/issues/120
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-people/openapi.yaml`
 
-**Request:**
+### API Operation References (OpenAPI Source of Truth)
 
-- Path Parameters:
-- Query Parameters:
-  - `endDate` (date-time, optional): Effective end date (defaults to now)
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get attendance and job time discrepancy report | `getAttendanceDiscrepancyReport` | GET | `/v1/people/reports/attendanceJobtimeDiscrepancy` |
+| List assignments for person | `getAssignments_1` | GET | `/v1/people/staffing/assignments` |
+| Get assignment by ID | `getAssignment` | GET | `/v1/people/staffing/assignments/{assignmentId}` |
 
-**Responses:**
+### Behavioral Assertions
 
-- `204 No Content`: Role assignment revoked successfully
-- `404 Not Found`: Person or role assignment not found
-- `400 Bad Request`: Invalid request for revoking role assignment
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-**Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
+### Frontend Usage Notes
 
-**Coordination / Backlog:** <https://github.com/louisburroughs/durion-positivity-backend/issues/86>
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
----
+### ADR Constraints
 
-### Integration with pos-security-service
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-The Person Access Control endpoints provide a facade over pos-security-service:
+### Events & Dependencies
 
-1. **UserPersonTranslationService** translates Person UUIDs to User IDs using the UserPersonLink entity
-2. **SecurityServiceClient** makes REST calls to pos-security-service endpoints
-3. **PeopleAccessControlService** orchestrates the translation and security service calls
-4. **PersonAccessController** exposes person-centric REST endpoints
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-**Service Dependencies:**
+### Contract Test Traceability
 
-- pos-security-service must be running and accessible at `${pos.security-service.base-url}` (default: <http://localhost:8084>)
+- Provider tests: `durion-positivity-backend/pos-people/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-**Error Handling:**
+## CAP-121: [CAP] Job Time Tracking (Workexec Linkage)
 
-- 404 Not Found: Person has no linked User account
-- 400 Bad Request: Invalid role code, scope mismatch, or validation failure
-- Errors from pos-security-service are propagated with appropriate context
+### Capability Metadata
 
-### Events
+- Capability ID: CAP-121
+- Parent Issue: https://github.com/louisburroughs/durion/issues/121
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-people/openapi.yaml`
 
-All endpoints emit events to pos-events service for audit and observability:
+### API Operation References (OpenAPI Source of Truth)
 
-- `PEOPLE_ACCESS_ROLES_LIST` (fastRead preset)
-- `PEOPLE_ACCESS_ASSIGNMENTS_LIST` (fastRead preset)
-- `PEOPLE_ACCESS_ASSIGNMENT_CREATE` (write preset)
-- `PEOPLE_ACCESS_ASSIGNMENT_REVOKE` (write preset)
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| List adjustments for a time entry | `listForTimeEntry` | GET | `/v1/people/timeEntries/{timeEntryId}/adjustments` |
+| Get links by person ID | `getLinkByPersonId` | GET | `/v1/people/user-links/{personId}` |
+| Get person by user ID | `getPersonByUserId` | GET | `/v1/people/users/{userId}/person` |
 
-### Example Workflows
+### Behavioral Assertions
 
-#### Assign Shop Manager Role to Person
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-1. GET /v1/people/{personUuid}/access/roles - List available roles
-2. POST /v1/people/{personUuid}/access/assignments - Assign SHOP_MANAGER role
-3. GET /v1/people/{personUuid}/access/assignments - Verify assignment
+### Frontend Usage Notes
 
-#### View Historical Role Assignments
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-1. GET /v1/people/{personUuid}/access/assignments?includeHistory=true - Get all assignments including inactive
+### ADR Constraints
 
-#### Revoke Role Effective Future Date
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-1. DELETE /v1/people/{personUuid}/access/assignments/{roleCode}?endDate=2026-12-31T23:59:59 - Schedule future revocation
+### Events & Dependencies
 
----
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-## CAP-119: Person-to-Location Staffing Assignments
+### Contract Test Traceability
 
-This section defines the backend contract for CAP-119 staffing assignment workflows (`PersonLocationAssignment`) used by roster/work execution.
+- Provider tests: `durion-positivity-backend/pos-people/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-### Execution Checklist
+## Events & Cross-Domain Dependencies
 
-- Validate `personId` exists and is ACTIVE.
-- Validate `locationId` exists and is ACTIVE via the location validation API.
-- Enforce overlap conflict rules for `(personId, locationId, role, effective window)`.
-- Enforce primary-assignment demotion rules only when windows overlap; clamp demotion dates to valid ranges.
-- Emit staffing assignment events on create/update/end.
-- Cover contract tests using `CP-119-*`, `VE-119-*`, and `LC-119-*` naming.
+- This domain exchanges data with other services only through REST APIs and message/event contracts.
+- Integration failures must be observable through deterministic status and error reporting.
+- Any contract-affecting change must update OpenAPI and regenerate API references.
 
-### Endpoints
+## Verification Metadata
 
-- `POST http://localhost:8080/v1/people/staffing/assignments` — Create person-to-location assignment
-- `GET http://localhost:8080/v1/people/staffing/assignments?personId={uuid}` — List assignments for a person
-- `GET http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Get assignment by ID
-- `PUT http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — Update assignment
-- `DELETE http://localhost:8080/v1/people/staffing/assignments/{assignmentId}` — End assignment
-
-### Request Schema — Create Staffing Assignment
-
-```ts
-interface CreateStaffingAssignmentRequest {
-  personId: string;       // UUID of the person
-  locationId: string;     // UUID from pos-location service (must be ACTIVE)
-  role: string;           // e.g. "SHOP_MANAGER", "TECHNICIAN"
-  isPrimary: boolean;     // if true, may auto-end current overlapping primary
-  effectiveFrom: string;  // ISO date
-  effectiveTo?: string;   // ISO date, null = open-ended
-}
-```
-
-### Response Schema — StaffingAssignmentResponse
-
-```ts
-interface StaffingAssignmentResponse {
-  assignmentId: string;   // UUID (UUIDv7)
-  personId: string;
-  locationId: string;
-  role: string;
-  isPrimary: boolean;
-  status: "ACTIVE" | "ENDED";
-  effectiveFrom: string;
-  effectiveTo?: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-}
-```
-
-### Business Rule Behavioral Assertions
-
-- `isPrimary=true` ends an existing primary only when windows overlap.
-- Demoted assignment `effectiveTo` must never be before its `effectiveFrom`.
-- Overlapping assignment for same person+location+role returns `409 Conflict`.
-- Missing/invalid request fields or invalid date window returns `400 Bad Request`.
-- Unknown or inactive person/location returns `4xx` per API contract.
-
-### Staffing Assignment Events
-
-- `PEOPLE_STAFFING_ASSIGNMENT_CREATE`
-- `PEOPLE_STAFFING_ASSIGNMENT_UPDATE`
-- `PEOPLE_STAFFING_ASSIGNMENT_END`
-
-### Contract Test Hints (CP-119 naming)
-
-- `CP-119-100`: Create primary assignment and verify demotion behavior.
-- `CP-119-101`: Create non-primary assignment; existing primary remains unchanged.
-- `VE-119-100`: Overlapping assignment conflict returns `409`.
-- `VE-119-105`: `effectiveTo < effectiveFrom` returns `400`.
-- `LC-119-100`: Assignment transitions ACTIVE -> ENDED.
-
-### Cross-Service Dependency
-
-- Use `GET /v1/locations/{locationId}/validation` (gateway route) for location existence+active checks.
-- Store only `locationId` in people domain; do not duplicate location profile fields.
-
-## CAP-120: Timekeeping (Clock, Breaks, Approvals, Export)
-
-This section defines the backend contract for CAP-120 covering work session management (clock in/out and breaks), time entry adjustments, batch time entry approvals and rejections, time entry exceptions, attendance discrepancy reporting, and people availability.
-
-All gateway paths use: `http://localhost:8080/v1/people` as the base.
-
-### From Issue #79 — Work Sessions (Clock In/Out & Breaks)
-
-- POST `http://localhost:8080/v1/people/workSessions/start`
-  - Purpose: Start a work session (clock in) for a person.
-  - Responses:
-    - `200 OK`: Work session started successfully.
-  - Behavior:
-    - Creates an active work session for the calling person.
-    - Only one active session per person is allowed at a time.
-
-- POST `http://localhost:8080/v1/people/workSessions/stop`
-  - Purpose: Stop an active work session (clock out).
-  - Responses:
-    - `200 OK`: Work session stopped successfully.
-  - Behavior:
-    - Ends the active session; generates a time entry from the session data.
-
-- POST `http://localhost:8080/v1/people/workSessions/{id}/breaks/start`
-  - Purpose: Start a break within an active work session.
-  - Path param: `id` — work session ID (int64).
-  - Responses:
-    - `200 OK`: Break started successfully.
-    - `404 Not Found`: Work session not found.
-  - Behavior:
-    - Only one active break per session at a time.
-
-- POST `http://localhost:8080/v1/people/workSessions/{id}/breaks/stop`
-  - Purpose: End a break within an active work session.
-  - Path param: `id` — work session ID (int64).
-  - Responses:
-    - `200 OK`: Break stopped successfully.
-    - `404 Not Found`: Work session or break not found.
-
-ContractBehaviorIT hints:
-
-- `CP-120-001`: Clock in (start session); verify session is ACTIVE.
-- `CP-120-002`: Clock out (stop session); verify time entry generated.
-- `CP-120-003`: Start break; verify break is active within session.
-- `CP-120-004`: Stop break; verify break ended and session still active.
-- `VE-120-001`: Clock in when session already active returns error.
-- `VE-120-002`: Start break on non-existent session returns `404`.
-
-### From Issue #83 — Time Entry Adjustments
-
-- POST `http://localhost:8080/v1/people/timeEntries/adjustments`
-  - Purpose: Submit a request to adjust a time entry. Adjustment is PENDING until approved.
-  - Request (TypeScript-like):
-
-    ```ts
-    interface TimeEntryAdjustmentRequest {
-      timeEntryId: string;       // required — time entry to adjust
-      reasonCode: string;        // required — e.g. "MISSED_BREAK"
-      notes?: string;
-      proposedStartAt?: string;  // date-time
-      proposedEndAt?: string;    // date-time
-      minutesDelta?: number;     // positive to add, negative to subtract
-      createdBy?: string;
-    }
-    ```
-
-  - Responses:
-    - `201 Created`: Adjustment created in PENDING state. Body: `TimeEntryAdjustmentResponse`.
-    - `400 Bad Request`: Invalid request payload.
-    - `404 Not Found`: Time entry not found.
-    - `409 Conflict`: Invalid time entry state for adjustment.
-
-- POST `http://localhost:8080/v1/people/timeEntries/adjustments/{adjustmentId}/approve`
-  - Purpose: Approve a pending time entry adjustment. Requires approval permissions.
-  - Path param: `adjustmentId` (uuid).
-  - Headers: `X-Permissions`, `X-User-Id`, `X-Correlation-Id` (optional; injected by gateway).
-  - Responses:
-    - `200 OK`: Adjustment approved.
-    - `403 Forbidden`: Insufficient permissions.
-    - `404 Not Found`: Adjustment not found.
-
-- GET `http://localhost:8080/v1/people/timeEntries/{timeEntryId}/adjustments`
-  - Purpose: List all adjustments for a time entry.
-  - Path param: `timeEntryId` (string).
-  - Responses:
-    - `200 OK`: Array of `TimeEntryAdjustment`.
-
-TimeEntryAdjustmentResponse (TypeScript-like):
-
-```ts
-interface TimeEntryAdjustmentResponse {
-  adjustmentId: string;  // uuid
-  success: boolean;
-  message?: string;
-}
-```
-
-TimeEntryAdjustment (read model, TypeScript-like):
-
-```ts
-interface TimeEntryAdjustment {
-  adjustmentId: string;       // uuid
-  timeEntryId: string;
-  reasonCode: string;
-  notes?: string;
-  proposedStartAt?: string;   // date-time
-  proposedEndAt?: string;     // date-time
-  minutesDelta?: number;
-  status: 'PROPOSED' | 'PENDING' | 'APPROVED' | 'REJECTED';
-  createdBy?: string;
-  createdAt?: string;         // date-time
-  decidedBy?: string;
-  decidedAt?: string;         // date-time
-}
-```
-
-ContractBehaviorIT hints:
-
-- `CP-120-010`: Create adjustment; verify PENDING status returned.
-- `CP-120-011`: Approve adjustment; verify status transitions to APPROVED.
-- `CP-120-012`: List adjustments for time entry; verify result set.
-- `VE-120-010`: Create adjustment with invalid time entry returns `404`.
-- `VE-120-011`: Approve adjustment without permissions returns `403`.
-- `VE-120-012`: Create adjustment on invalid state entry returns `409`.
-
-### From Issue #84 — Batch Time Entry Approvals
-
-- POST `http://localhost:8080/v1/people/timeEntries/approve`
-  - Purpose: Batch approve multiple time entries. pos-people is authoritative for approval execution.
-  - Headers: `X-User-Id`, `X-Permissions`, `X-Correlation-Id` (optional; injected by gateway).
-  - Request (TypeScript-like):
-
-    ```ts
-    interface TimeEntryDecisionBatchRequest {
-      decisions: Decision[];
-    }
-
-    interface Decision {
-      timeEntryId: string;
-      rejectionReason?: string;  // not required for approve
-    }
-    ```
-
-  - Responses:
-    - `200 OK`: Time entries approved successfully.
-    - `400 Bad Request`: Invalid request (decisions required).
-
-- POST `http://localhost:8080/v1/people/timeEntries/reject`
-  - Purpose: Batch reject multiple time entries. `rejectionReason` is required for each decision.
-  - Headers: `X-User-Id`, `X-Permissions`, `X-Correlation-Id` (optional; injected by gateway).
-  - Request: Same `TimeEntryDecisionBatchRequest` shape as approve.
-  - Responses:
-    - `200 OK`: Time entries rejected successfully.
-    - `400 Bad Request`: `rejectionReason` required for all decisions.
-
-  - Behavior / business rules:
-    - Rejection without a `rejectionReason` per decision is rejected with `400`.
-    - Batch operations are atomic: all decisions must be valid for the request to proceed.
-
-ContractBehaviorIT hints:
-
-- `CP-120-020`: Batch approve multiple entries; verify all transition to APPROVED.
-- `CP-120-021`: Batch reject entries with reasons; verify all transition to REJECTED.
-- `VE-120-020`: Reject without `rejectionReason` returns `400`.
-- `VE-120-021`: Approve with empty decisions array returns `400`.
-
-### From Issue #85 — Time Entry Exceptions
-
-- GET `http://localhost:8080/v1/people/exceptions`
-  - Purpose: List all exceptions, optionally filtered by `employeeId`.
-  - Query params: `employeeId` (optional, string).
-  - Responses:
-    - `200 OK`: Array of `TimeEntryException`.
-
-- POST `http://localhost:8080/v1/people/exceptions`
-  - Purpose: Create a new time entry exception record.
-  - Request (TypeScript-like):
-
-    ```ts
-    interface TimeEntryExceptionRequest {
-      employeeId: string;          // required
-      exceptionCode: string;       // required — e.g. "MISSED_CLOCK_OUT"
-      severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-      timeEntryId?: string;
-      resolutionNotes?: string;
-      detectedAt?: string;         // date-time
-    }
-    ```
-
-  - Responses:
-    - `200 OK`: Exception created. Body: `TimeEntryExceptionResponse`.
-    - `400 Bad Request`: Invalid request.
-
-- POST `http://localhost:8080/v1/people/exceptions/{exceptionId}/acknowledge`
-  - Purpose: Acknowledge an exception (mark as seen by actor).
-  - Path param: `exceptionId` (uuid).
-  - Headers: `X-User-Id`, `X-Correlation-Id`.
-  - Responses:
-    - `200 OK`: Exception acknowledged.
-
-- POST `http://localhost:8080/v1/people/exceptions/{exceptionId}/resolve`
-  - Purpose: Mark an exception as resolved with optional resolution notes.
-  - Path param: `exceptionId` (uuid).
-  - Headers: `X-User-Id`, `X-Correlation-Id`.
-  - Request body (optional): `{ "resolutionNotes": "string" }`
-  - Responses:
-    - `200 OK`: Exception resolved.
-    - `404 Not Found`: Exception not found.
-
-- POST `http://localhost:8080/v1/people/exceptions/{exceptionId}/waive`
-  - Purpose: Waive an exception. `waiveReason` is required.
-  - Path param: `exceptionId` (uuid).
-  - Headers: `X-User-Id`, `X-Correlation-Id`.
-  - Request body: `{ "waiveReason": "string" }` (required).
-  - Responses:
-    - `200 OK`: Exception waived.
-    - `400 Bad Request`: `waiveReason` not provided.
-    - `404 Not Found`: Exception not found.
-
-TimeEntryExceptionResponse (TypeScript-like):
-
-```ts
-interface TimeEntryExceptionResponse {
-  exceptionId: string;  // uuid
-  success: boolean;
-  message?: string;
-}
-```
-
-TimeEntryException (read model, TypeScript-like):
-
-```ts
-interface TimeEntryException {
-  exceptionId: string;       // uuid
-  employeeId: string;
-  workDate: string;          // date yyyy-MM-dd
-  exceptionCode: string;
-  severity: 'WARNING' | 'BLOCKING';
-  status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'WAIVED';
-  timeEntryId?: string;
-  resolutionNotes?: string;
-  detectedAt?: string;       // date-time
-  resolvedBy?: string;
-  resolvedAt?: string;       // date-time
-}
-```
-
-ContractBehaviorIT hints:
-
-- `CP-120-030`: Create exception; verify OPEN status.
-- `CP-120-031`: Acknowledge exception; verify ACKNOWLEDGED transition.
-- `CP-120-032`: Resolve exception; verify RESOLVED transition.
-- `CP-120-033`: Waive exception with reason; verify WAIVED transition.
-- `CP-120-034`: List exceptions by employeeId; verify filtered result.
-- `VE-120-030`: Waive without `waiveReason` returns `400`.
-- `VE-120-031`: Waive on non-existent exception returns `404`.
-
-### Attendance Discrepancy Report
-
-- GET `http://localhost:8080/v1/people/reports/attendanceJobtimeDiscrepancy`
-  - Purpose: Generate a per-technician, per-location, per-day discrepancy report comparing attendance hours to approved job time totals.
-  - Query params:
-    - `startDate` (date, required) — inclusive start, e.g. `2026-02-01`
-    - `endDate` (date, required) — inclusive end, e.g. `2026-02-07`
-    - `timezone` (string, required) — IANA timezone, e.g. `America/Chicago`
-    - `locationId` (uuid, optional) — filter by location
-    - `technicianIds` (uuid[], optional) — filter by technician IDs
-    - `flaggedOnly` (boolean, optional, default `false`) — return only flagged rows
-  - Headers: `X-User`, `X-Correlation-Id`.
-  - Responses:
-    - `200 OK`: Array of `AttendanceDiscrepancyReportResponse`.
-
-AttendanceDiscrepancyReportResponse (TypeScript-like):
-
-```ts
-interface AttendanceDiscrepancyReportResponse {
-  technicianId: string;
-  technicianName: string;
-  locationId: string;
-  reportDate: string;          // date yyyy-MM-dd
-  totalAttendanceHours: number;
-  totalJobHours: number;
-  discrepancyHours: number;    // attendance - job time
-  isFlagged: boolean;
-  thresholdApplied: number;    // threshold in minutes
-}
-```
-
-### People Availability
-
-- GET `http://localhost:8080/v1/people/availability`
-  - Purpose: Return availability data with optional location and date filters.
-  - Query params:
-    - `locationId` (int64, optional) — filter by location
-    - `date` (date, optional) — filter by date (yyyy-MM-dd)
-  - Responses:
-    - `200 OK`: Availability data returned.
-
-### Events
-
-- `PEOPLE_WORK_SESSION_START` — emitted on successful work session start (clock in)
-- `PEOPLE_WORK_SESSION_STOP` — emitted on successful work session stop (clock out)
-- `PEOPLE_TIME_ENTRY_ADJUSTMENT_CREATE` — emitted on time entry adjustment creation
-- `PEOPLE_TIME_ENTRY_APPROVED` — emitted on batch approval execution
-- `PEOPLE_TIME_ENTRY_REJECTED` — emitted on batch rejection execution
-- `PEOPLE_TIME_ENTRY_EXCEPTION_CREATE` — emitted on exception creation
-
-### Test & Naming Guidance
-
-- Use `CP-120-NNN` for capability happy-path tests, `VE-120-NNN` for validation/edge cases, `LC-120-NNN` for lifecycle transitions.
-- Ensure tests cover:
-  - Work session lifecycle (start → break → stop).
-  - Adjustment PENDING → APPROVED/REJECTED lifecycle.
-  - Batch approval with and without rejection reasons.
-  - Exception state machine: OPEN → ACKNOWLEDGED → RESOLVED/WAIVED.
-  - Discrepancy report with `flaggedOnly=true` filtering.
-  - Waive/resolve actor traceability via `X-User-Id` header.
-
----
-
-## Legacy Appendix (Auto-Generated Domain Contract)
-
-## JSON Field Naming Conventions
-
-### Standard Pattern: camelCase
-
-All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase`).
-
-```json
-{
-  "id": "abc-123",
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z",
-  "status": "ACTIVE"
-}
-```
-
-### Rationale
-
-- Aligns with JSON/JavaScript convention
-- Matches Java property naming after Jackson deserialization
-- Consistent with REST API best practices (RFC 7231)
-- Consistent across all Durion platform domains
-
----
-
-## Data Types & Formats
-
-### String Fields
-
-Use `string` type for:
-
-- Names and descriptions
-- Codes and identifiers
-- Free-form text
-- Enum values (serialized as strings)
-
-```java
-private String id;
-private String name;
-private String description;
-private String status;
-```
-
-### Numeric Fields
-
-Use `Integer` or `Long` for:
-
-- Counts (page numbers, total results)
-- Version numbers
-- Sequence numbers
-
-```java
-private Integer pageNumber;
-private Integer pageSize;
-private Long totalCount;
-```
-
-### Boolean Fields
-
-Use `boolean` for true/false flags:
-
-```java
-private boolean isActive;
-private boolean isPrimary;
-private boolean hasPermission;
-```
-
-### UUID/ID Fields
-
-Use `String` for all primary and foreign key IDs:
-
-```java
-private String id;
-private String parentId;
-private String referenceId;
-```
-
-### Instant/Timestamp Fields
-
-Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
-
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-private Instant createdAt;
-private Instant updatedAt;
-```
-
-JSON representation:
-
-```json
-{
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z"
-}
-```
-
-### LocalDate Fields
-
-Use `LocalDate` for date-only fields (no time component):
-
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-private LocalDate effectiveFrom;
-private LocalDate effectiveTo;
-```
-
-JSON representation:
-
-```json
-{
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31"
-}
-```
-
----
-
-## Enum Value Conventions
-
-### Standard Pattern: UPPER_SNAKE_CASE
-
-All enum values **MUST** use `UPPER_SNAKE_CASE`:
-
-```java
-public enum Status {
-    ACTIVE,
-    INACTIVE,
-    PENDING_APPROVAL,
-    ARCHIVED
-}
-```
-
-### Enums in this Domain
-
-#### TimeEntryAdjustment.status
-
-- `PROPOSED`
-- `PENDING`
-- `APPROVED`
-- `REJECTED`
-
-#### TimeEntryException.severity
-
-- `WARNING`
-- `BLOCKING`
-
-#### TimeEntryException.status
-
-- `OPEN`
-- `ACKNOWLEDGED`
-- `RESOLVED`
-- `WAIVED`
-
----
-
-## Identifier Naming
-
-### Standard Pattern
-
-- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `orderId`)
-- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`)
-- Composite identifiers: use structured object, not concatenated string
-
-### Examples
-
-```json
-{
-  "id": "abc-123",
-  "customerId": "cust-456",
-  "orderId": "ord-789"
-}
-```
-
----
-
-## Timestamp Conventions
-
-### Standard Pattern: ISO 8601 UTC
-
-All timestamps **MUST** be:
-
-- Serialized in ISO 8601 format with UTC timezone (`Z` suffix)
-- Stored as `Instant` in Java
-- Include millisecond precision when available
-
-```json
-{
-  "createdAt": "2026-01-27T14:30:00.123Z",
-  "updatedAt": "2026-01-27T15:45:30.456Z"
-}
-```
-
-### Common Timestamp Fields
-
-- `createdAt`: When the entity was created
-- `updatedAt`: When the entity was last updated
-- `deletedAt`: When the entity was soft-deleted (if applicable)
-- `effectiveFrom`: Start date for effective dating
-- `effectiveTo`: End date for effective dating
-
----
-
-## Collection & Pagination
-
-### Standard Pagination Request
-
-```json
-{
-  "pageNumber": 0,
-  "pageSize": 20,
-  "sortField": "createdAt",
-  "sortOrder": "DESC"
-}
-```
-
-### Standard Pagination Response
-
-```json
-{
-  "results": [...],
-  "totalCount": 150,
-  "pageNumber": 0,
-  "pageSize": 20,
-  "totalPages": 8
-}
-```
-
-### Guidelines
-
-- Use zero-based page numbering
-- Default page size: 20 items
-- Maximum page size: 100 items
-- Include total count for client-side pagination controls
-
----
-
-## Error Response Format
-
-### Standard Error Response
-
-All error responses **MUST** follow this format:
-
-```json
-{
-  "code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "correlationId": "abc-123-def-456",
-  "timestamp": "2026-01-27T14:30:00Z",
-  "fieldErrors": [
-    {
-      "field": "email",
-      "message": "Invalid email format",
-      "rejectedValue": "invalid-email"
-    }
-  ]
-}
-```
-
-### Standard HTTP Status Codes
-
-- `200 OK`: Successful GET, PUT, PATCH
-- `201 Created`: Successful POST
-- `204 No Content`: Successful DELETE
-- `400 Bad Request`: Validation error
-- `401 Unauthorized`: Authentication required
-- `403 Forbidden`: Insufficient permissions
-- `404 Not Found`: Resource not found
-- `409 Conflict`: Business rule violation
-- `422 Unprocessable Entity`: Semantic validation error
-- `500 Internal Server Error`: Unexpected server error
-- `501 Not Implemented`: Endpoint not yet implemented
-
----
-
-## Correlation ID & Request Tracking
-
-### X-Correlation-Id Header
-
-All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
-
-```http
-GET /v1/people/entities/123
-X-Correlation-Id: abc-123-def-456
-```
-
-### Response Headers
-
-All API responses **MUST** echo the correlation ID:
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-```
-
-### Error Responses
-
-All error responses **MUST** include the correlation ID in the body:
-
-```json
-{
-  "code": "NOT_FOUND",
-  "message": "Entity not found",
-  "correlationId": "abc-123-def-456"
-}
-```
-
-**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
-
----
-
-## API Endpoints
-
-### Endpoint Summary
-
-This domain exposes **29** REST API endpoints:
-
-| Method | Path | Summary |
-|--------|------|---------|
-| GET | `/v1/people` | Get all people |
-| POST | `/v1/people` | Create a new person |
-| GET | `/v1/people/availability` | Get people availability |
-| GET | `/v1/people/exceptions` | List exceptions, optional filter by employeeId |
-| POST | `/v1/people/exceptions` | Create a time entry exception |
-| POST | `/v1/people/exceptions/{exceptionId}/acknowledge` | Acknowledge an exception |
-| POST | `/v1/people/exceptions/{exceptionId}/resolve` | Resolve an exception |
-| POST | `/v1/people/exceptions/{exceptionId}/waive` | Waive an exception |
-| GET | `/v1/people/reports/attendanceJobtimeDiscrepancy` | Get attendance and job time discrepancy report |
-| POST | `/v1/people/timeEntries/adjustments` | Create a time entry adjustment |
-| POST | `/v1/people/timeEntries/adjustments/{adjustmentId}/approve` |  |
-| POST | `/v1/people/timeEntries/approve` | Batch approve time entries |
-| POST | `/v1/people/timeEntries/reject` | Batch reject time entries |
-| GET | `/v1/people/timeEntries/{timeEntryId}/adjustments` | List adjustments for a time entry |
-| POST | `/v1/people/workSessions/start` | Start work session |
-| POST | `/v1/people/workSessions/stop` | Stop work session |
-| POST | `/v1/people/workSessions/{id}/breaks/start` | Start work session break |
-| POST | `/v1/people/workSessions/{id}/breaks/stop` | Stop work session break |
-| DELETE | `/v1/people/{personId}` | Delete a person |
-| GET | `/v1/people/{personId}` | Get person by ID |
-| PUT | `/v1/people/{personId}` | Update an existing person |
-| POST | `/v1/people/users/{userId}/link` | Link user to person |
-| DELETE | `/v1/people/users/{userId}/link` | Unlink user from person |
-| GET | `/v1/people/users/{userId}/person` | Get person by user ID |
-| GET | `/v1/people/{personId}/access/roles` | List available roles |
-| GET | `/v1/people/{personId}/access/assignments` | Get role assignments for person |
-| POST | `/v1/people/{personId}/access/assignments` | Create role assignment for person |
-| DELETE | `/v1/people/{personId}/access/assignments/{assignmentId}` | Revoke role assignment |
-| GET | `/v1/people/{personId}/users` | Get users linked to person |
-
-### Endpoint Details
-
-#### GET /v1/people
-
-**Summary:** Get all people
-
-**Description:** Retrieve a list of all people.
-
-**Operation ID:** `getAllPeople`
-
-**Responses:**
-
-- `200`: List of people returned successfully.
-
----
-
-#### POST /v1/people
-
-**Summary:** Create a new person
-
-**Description:** Add a new person to the system.
-
-**Operation ID:** `createPerson`
-
-**Responses:**
-
-- `201`: Person created successfully.
-
----
-
-#### GET /v1/people/availability
-
-**Summary:** Get people availability
-
-**Description:** Return availability with optional locationId and date filters.
-
-**Operation ID:** `getPeopleAvailability`
-
-**Parameters:**
-
-- `locationId` (query, Optional, integer): Filter by location ID
-- `date` (query, Optional, string): Filter by date (ISO format: yyyy-MM-dd)
-
-**Responses:**
-
-- `200`: Availability data returned successfully.
-
----
-
-#### GET /v1/people/exceptions
-
-**Summary:** List exceptions, optional filter by employeeId
-
-**Operation ID:** `listByEmployee`
-
-**Parameters:**
-
-- `employeeId` (query, Optional, string):
-
-**Responses:**
-
-- `200`: List returned
-
----
-
-#### POST /v1/people/exceptions
-
-**Summary:** Create a time entry exception
-
-**Operation ID:** `createException`
-
-**Responses:**
-
-- `201`: Exception created
-- `400`: Invalid request
-
----
-
-#### POST /v1/people/exceptions/{exceptionId}/acknowledge
-
-**Summary:** Acknowledge an exception
-
-**Operation ID:** `acknowledgeException`
-
-**Parameters:**
-
-- `exceptionId` (path, Required, string):
-- `X-User-Id` (header, Optional, string):
-- `X-Correlation-Id` (header, Optional, string):
-
-**Responses:**
-
-- `200`: OK
-
----
-
-#### POST /v1/people/exceptions/{exceptionId}/resolve
-
-**Summary:** Resolve an exception
-
-**Operation ID:** `resolveException`
-
-**Parameters:**
-
-- `exceptionId` (path, Required, string):
-- `X-User-Id` (header, Optional, string):
-- `X-Correlation-Id` (header, Optional, string):
-
-**Responses:**
-
-- `200`: OK
-
----
-
-#### POST /v1/people/exceptions/{exceptionId}/waive
-
-**Summary:** Waive an exception
-
-**Operation ID:** `waiveException`
-
-**Parameters:**
-
-- `exceptionId` (path, Required, string):
-- `X-User-Id` (header, Optional, string):
-- `X-Correlation-Id` (header, Optional, string):
-
-**Responses:**
-
-- `200`: OK
-
----
-
-#### GET /v1/people/reports/attendanceJobtimeDiscrepancy
-
-**Summary:** Get attendance and job time discrepancy report
-
-**Description:** Reporting endpoint for attendance vs. job time discrepancies.
-
-**Operation ID:** `getAttendanceDiscrepancyReport`
-
-**Responses:**
-
-- `200`: Report generated successfully.
-
----
-
-#### POST /v1/people/timeEntries/adjustments
-
-**Summary:** Create a time entry adjustment
-
-**Operation ID:** `createAdjustment`
-
-**Responses:**
-
-- `201`: Adjustment created
-- `400`: Invalid request
-
----
-
-#### POST /v1/people/timeEntries/adjustments/{adjustmentId}/approve
-
-**Operation ID:** `approveAdjustment`
-
-**Parameters:**
-
-- `adjustmentId` (path, Required, string):
-- `X-Permissions` (header, Optional, string):
-- `X-User-Id` (header, Optional, string):
-- `X-Correlation-Id` (header, Optional, string):
-
-**Responses:**
-
-- `200`: OK
-
----
-
-#### POST /v1/people/timeEntries/approve
-
-**Summary:** Batch approve time entries
-
-**Description:** Approve multiple time entries. pos-people is authoritative for approval execution.
-
-**Operation ID:** `approveTimeEntries`
-
-**Parameters:**
-
-- `X-User-Id` (header, Optional, string):
-- `X-Permissions` (header, Optional, string):
-- `X-Correlation-Id` (header, Optional, string):
-
-**Responses:**
-
-- `200`: OK
-
----
-
-#### POST /v1/people/timeEntries/reject
-
-**Summary:** Batch reject time entries
-
-**Description:** Reject multiple time entries. rejectionReason is required for each decision.
-
-**Operation ID:** `rejectTimeEntries`
-
-**Parameters:**
-
-- `X-User-Id` (header, Optional, string):
-- `X-Permissions` (header, Optional, string):
-- `X-Correlation-Id` (header, Optional, string):
-
-**Responses:**
-
-- `200`: OK
-
----
-
-#### GET /v1/people/timeEntries/{timeEntryId}/adjustments
-
-**Summary:** List adjustments for a time entry
-
-**Operation ID:** `listForTimeEntry`
-
-**Parameters:**
-
-- `timeEntryId` (path, Required, string):
-
-**Responses:**
-
-- `200`: List returned
-
----
-
-#### POST /v1/people/workSessions/start
-
-**Summary:** Start work session
-
-**Description:** Create/start a work session for a person.
-
-**Operation ID:** `startWorkSession`
-
-**Responses:**
-
-- `201`: Work session started successfully.
-
----
-
-#### POST /v1/people/workSessions/stop
-
-**Summary:** Stop work session
-
-**Description:** Stop an active work session.
-
-**Operation ID:** `stopWorkSession`
-
-**Responses:**
-
-- `200`: Work session stopped successfully.
-
----
-
-#### POST /v1/people/workSessions/{id}/breaks/start
-
-**Summary:** Start work session break
-
-**Description:** Start a break within an active work session.
-
-**Operation ID:** `startWorkSessionBreak`
-
-**Parameters:**
-
-- `id` (path, Required, integer): Work session ID
-
-**Responses:**
-
-- `201`: Break started successfully.
-- `404`: Work session not found.
-
----
-
-#### POST /v1/people/workSessions/{id}/breaks/stop
-
-**Summary:** Stop work session break
-
-**Description:** End a break within a work session.
-
-**Operation ID:** `stopWorkSessionBreak`
-
-**Parameters:**
-
-- `id` (path, Required, integer): Work session ID
-
-**Responses:**
-
-- `200`: Break stopped successfully.
-- `404`: Work session or break not found.
-
----
-
-#### DELETE /v1/people/{personId}
-
-**Summary:** Delete a person
-
-**Description:** Delete a person by their unique ID.
-
-**Operation ID:** `deletePerson`
-
-**Parameters:**
-
-- `personId` (path, Required, string (uuid)): ID of the person to delete
-
-**Responses:**
-
-- `204`: Person deleted successfully.
-- `404`: Person not found.
-
----
-
-#### GET /v1/people/{personId}
-
-**Summary:** Get person by ID
-
-**Description:** Retrieve a person by their unique ID.
-
-**Operation ID:** `getPersonById`
-
-**Parameters:**
-
-- `personId` (path, Required, string (uuid)): ID of the person to retrieve
-
-**Responses:**
-
-- `200`: Person found and returned.
-- `404`: Person not found.
-
----
-
-#### PUT /v1/people/{personId}
-
-**Summary:** Update an existing person
-
-**Description:** Update the details of an existing person.
-
-**Operation ID:** `updatePerson`
-
-**Parameters:**
-
-- `personId` (path, Required, string (uuid)): ID of the person to update
-
-**Responses:**
-
-- `200`: Person updated successfully.
-- `404`: Person not found.
-
----
-
-#### POST /v1/people/users/{userId}/link
-
-**Summary:** Link user to person
-
-**Description:** Create a link between an authentication user and a person record.
-
-**Operation ID:** `linkUserToPerson`
-
-**Parameters:**
-
-- `userId` (path, Required, string): User ID from authentication system
-
-**Request Body:**
-
-- `LinkUserToPersonRequest` (application/json)
-
-**Responses:**
-
-- `201 Created`: Link created successfully. Returns `UserPersonLinkResponse`.
-- `400 Bad Request`: Invalid request (validation error). Returns error body.
-- `404 Not Found`: Person not found. Returns error body.
-- `409 Conflict`: User already linked. Returns `UserPersonLinkResponse` with existing link info.
-
-**Event:** `USER_PERSON_LINK_CREATE` (controller annotated with `@EmitEvent(id = "USER_PERSON_LINK_CREATE", apiVersion = "1")`)
-
-**Example Request:**
-
-```http
-POST http://localhost:8080/v1/people/users/abc-123/link
-Content-Type: application/json
-X-Correlation-Id: abc-123-def-456
-
-{
-  "userId": "abc-123",
-  "personId": "123e4567-e89b-12d3-a456-426614174000",
-  "linkType": "PRIMARY",
-  "notes": "Linked during onboarding"
-}
-```
-
-**Example 201 Response:**
-
-```http
-HTTP/1.1 201 Created
-X-Correlation-Id: abc-123-def-456
-
-{
-  "linkId": "9f8b7a6c-5d4e-4b2a-8f1e-0a1b2c3d4e5f",
-  "userId": "abc-123",
-  "personId": "123e4567-e89b-12d3-a456-426614174000",
-  "linkType": "PRIMARY",
-  "createdAt": "2026-02-16T12:00:00Z",
-  "createdBy": "system",
-  "notes": "Linked during onboarding"
-}
-```
-
----
-
-#### DELETE /v1/people/users/{userId}/link
-
-**Summary:** Unlink user from person
-
-**Description:** Remove the link between a user and person.
-
-**Operation ID:** `unlinkUserFromPerson`
-
-**Parameters:**
-
-- `userId` (path, Required, string): User ID
-
-**Responses:**
-
-- `204 No Content`: Link deleted successfully.
-- `404 Not Found`: Link not found.
-
-**Event:** `USER_PERSON_LINK_DELETE` (controller annotated with `@EmitEvent(id = "USER_PERSON_LINK_DELETE", apiVersion = "1")`)
-
-**Example Request:**
-
-```http
-DELETE http://localhost:8080/v1/people/users/abc-123/link
-X-Correlation-Id: abc-123-def-456
-```
-
-**Example 204 Response:**
-
-```http
-HTTP/1.1 204 No Content
-X-Correlation-Id: abc-123-def-456
-```
-
----
-
-#### GET /v1/people/users/{userId}/person
-
-**Summary:** Get person by user ID
-
-**Description:** Retrieve the person record linked to a user.
-
-**Operation ID:** `getPersonByUserId`
-
-**Parameters:**
-
-- `userId` (path, Required, string): User ID
-
-**Responses:**
-
-- `200 OK`: Person found. Returns `PersonResponse`.
-- `404 Not Found`: Link or person not found.
-
-**Example Request:**
-
-```http
-GET http://localhost:8080/v1/people/users/abc-123/person
-X-Correlation-Id: abc-123-def-456
-```
-
-**Example 200 Response:**
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-
-{
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "firstName": "Jane",
-  "lastName": "Doe",
-  "primaryEmail": "jane.doe@example.com",
-  "phoneNumbers": ["+15551234567"],
-  "username": "jdoe"
-}
-```
-
----
-
-#### GET /v1/people/{personId}/users
-
-**Summary:** Get users linked to person
-
-**Description:** Retrieve all user IDs linked to a person record.
-
-**Operation ID:** `getUserIdsByPersonId`
-
-**Parameters:**
-
-- `personId` (path, Required, string): Person ID
-
-**Responses:**
-
-- `200 OK`: User IDs returned (array of strings).
-- `404 Not Found`: Person not found.
-
-**Example Request:**
-
-```http
-GET http://localhost:8080/v1/people/123e4567-e89b-12d3-a456-426614174000/users
-X-Correlation-Id: abc-123-def-456
-```
-
-**Example 200 Response:**
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-
-["abc-123", "def-456"]
-```
-
----
-
-#### GET /v1/people/{personId}/access/roles
-
-**Summary:** List available roles
-
-**Description:** Returns all available roles that can be assigned through person-centric access APIs.
-
-**Operation ID:** `getRoles`
-
-**Parameters:**
-
-- `personId` (path, Required, string): Person ID
-
-**Responses:**
-
-- `200 OK`: Available roles returned.
-
-**Event:** `PEOPLE_ACCESS_ROLES_LIST`
-
----
-
-#### GET /v1/people/{personId}/access/assignments
-
-**Summary:** Get role assignments for person
-
-**Description:** Returns role assignments for the linked user account behind the person. Use `includeHistory=true` to include expired/revoked assignments.
-
-**Operation ID:** `getAssignments`
-
-**Parameters:**
-
-- `personId` (path, Required, string): Person ID
-- `includeHistory` (query, Optional, boolean): Include historical assignments (default `false`)
-
-**Responses:**
-
-- `200 OK`: Role assignments returned.
-- `404 Not Found`: Person-to-user link not found.
-
-**Event:** `PEOPLE_ACCESS_ASSIGNMENTS_LIST`
-
----
-
-#### POST /v1/people/{personId}/access/assignments
-
-**Summary:** Create role assignment for person
-
-**Description:** Creates a new role assignment for the linked user account behind the person.
-
-**Operation ID:** `createAssignment`
-
-**Parameters:**
-
-- `personId` (path, Required, string): Person ID
-
-**Request Body:** `RoleAssignmentRequest`
-
-**Responses:**
-
-- `201 Created`: Assignment created.
-- `400 Bad Request`: Invalid request payload.
-- `404 Not Found`: Person-to-user link not found.
-
-**Event:** `PEOPLE_ACCESS_ASSIGNMENT_CREATE`
-
----
-
-#### DELETE /v1/people/{personId}/access/assignments/{assignmentId}
-
-**Summary:** Revoke role assignment
-
-**Description:** Revokes a role assignment by setting its end date. If `endDate` is omitted, current date is used.
-
-**Operation ID:** `revokeAssignment`
-
-**Parameters:**
-
-- `personId` (path, Required, string): Person ID
-- `assignmentId` (path, Required, string): Role assignment ID
-- `endDate` (query, Optional, string date): Effective revocation date (`yyyy-MM-dd`)
-
-**Responses:**
-
-- `204 No Content`: Assignment revoked.
-- `404 Not Found`: Assignment not found.
-
-**Event:** `PEOPLE_ACCESS_ASSIGNMENT_REVOKE`
-
----
-
-## Entity-Specific Contracts
-
-### User-Person Linking
-
-Schemas for the User-Person linking endpoints.
-
-#### LinkUserToPersonRequest
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `userId` | string | Yes | Authentication user ID (also present in path) |
-| `personId` | string (uuid) | Yes | Target person ID to link |
-| `linkType` | string | No | Type of link (for example `PRIMARY`, `SECONDARY`) |
-| `notes` | string | No | Free-form notes about the link |
-
-#### UserPersonLinkResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `linkId` | string (uuid) | No | Unique ID for the created link |
-| `userId` | string | No | Authentication user ID |
-| `personId` | string (uuid) | No | Linked person ID |
-| `linkType` | string | No | Link type |
-| `createdAt` | string (date-time) | No | Timestamp when link was created |
-| `createdBy` | string | No | Actor who created the link |
-| `notes` | string | No | Notes provided during linking |
-
-#### PersonResponse
-
-See `Person` fields above; `PersonResponse` mirrors the returned Person representation for linking endpoints.
-
-### Decision
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `rejectionReason` | string | No |  |
-| `timeEntryId` | string | No |  |
-
-### Person
-
-Person object to be created
-
-**Fields:**
-
-| Field            | Type          | Required | Description |
-|------------------|---------------|----------|-------------|
-| `firstName`      | string        | No       |             |
-| `id`             | string (uuid) | No       |             |
-| `lastName`       | string        | No       |             |
-| `phoneNumbers`   | array         | No       |             |
-| `primaryEmail`   | string        | No       |             |
-| `secondaryEmail` | string        | No       |             |
-| `username`       | string        | No       |             |
-
-### TimeEntryAdjustment
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `adjustmentId` | string (uuid) | No |  |
-| `createdAt` | string (date-time) | No |  |
-| `createdBy` | string | No |  |
-| `decidedAt` | string (date-time) | No |  |
-| `decidedBy` | string | No |  |
-| `minutesDelta` | integer (int32) | No |  |
-| `notes` | string | No |  |
-| `proposedEndAt` | string (date-time) | No |  |
-| `proposedStartAt` | string (date-time) | No |  |
-| `reasonCode` | string | No |  |
-| `status` | string | No |  |
-| `timeEntryId` | string | No |  |
-
-### TimeEntryAdjustmentRequest
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `createdBy` | string | No |  |
-| `minutesDelta` | integer (int32) | No |  |
-| `notes` | string | No |  |
-| `proposedEndAt` | string (date-time) | No |  |
-| `proposedStartAt` | string (date-time) | No |  |
-| `reasonCode` | string | No |  |
-| `timeEntryId` | string | No |  |
-
-### TimeEntryAdjustmentResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `adjustmentId` | string (uuid) | No |  |
-| `message` | string | No |  |
-| `success` | boolean | No |  |
-
-### TimeEntryDecisionBatchRequest
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `decisions` | array | No |  |
-
-### TimeEntryException
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `detectedAt` | string (date-time) | No |  |
-| `employeeId` | string | No |  |
-| `exceptionCode` | string | No |  |
-| `exceptionId` | string (uuid) | No |  |
-| `resolutionNotes` | string | No |  |
-| `resolvedAt` | string (date-time) | No |  |
-| `resolvedBy` | string | No |  |
-| `severity` | string | No |  |
-| `status` | string | No |  |
-| `timeEntryId` | string | No |  |
-| `workDate` | string (date) | No |  |
-
-### TimeEntryExceptionRequest
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `detectedAt` | string (date-time) | No |  |
-| `employeeId` | string | No |  |
-| `exceptionCode` | string | No |  |
-| `resolutionNotes` | string | No |  |
-| `severity` | string | No |  |
-| `timeEntryId` | string | No |  |
-
-### TimeEntryExceptionResponse
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `exceptionId` | string (uuid) | No |  |
-| `message` | string | No |  |
-| `success` | boolean | No |  |
-
----
-
-## Examples
-
-### Example Request/Response Pairs
-
-#### Example: Create Request
-
-```http
-POST http://localhost:8080/v1/people
-Content-Type: application/json
-X-Correlation-Id: abc-123-def-456
-
-{
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE"
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 201 Created
-X-Correlation-Id: abc-123-def-456
-
-{
-  "id": "new-id-123",
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:30:00Z"
-}
-```
-
-#### Example: Retrieve Request
-
-```http
-GET http://localhost:8080/v1/people/{personId}
-X-Correlation-Id: abc-123-def-456
-```
-
-**Response:**
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-
-{
-  "id": "existing-id-456",
-  "name": "Example",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:00:00Z",
-  "updatedAt": "2026-01-27T14:30:00Z"
-}
-```
-
----
-
-## Summary
-
-This guide establishes standardized contracts for the People & Human Resources domain:
-
-- **Field Naming**: camelCase for all JSON fields
-- **Enum Values**: UPPER_SNAKE_CASE for all enums
-- **Timestamps**: ISO 8601 UTC format
-- **Identifiers**: String-based UUIDs
-- **Pagination**: Zero-based with standard response format
-- **Error Handling**: Consistent error response structure with correlation IDs
-
----
-
-## Change Log
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.3 | 2026-02-19 | Reorganized guide by top-level capability sections (CAP-117/118/119), added execution checklists, and added a reusable capability contract template. |
-| 1.2 | 2026-02-18 | Added CAP-117: Identity Orchestration (Employee profile CRUD, disable user/offboarding, user-person linking admin API). |
-| 1.1 | 2026-02-16 | Added person-centric RBAC facade endpoints under `/v1/people/{personId}/access` (roles list, assignments list, create assignment, revoke assignment) for CAP-118 |
-| 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
-
----
+- OpenAPI source: `durion-positivity-backend/pos-people/openapi.yaml`
+- OpenAPI source revision: `ca7fadc3`
+- Last verified UTC: `2026-02-24T14:23:11Z`
+- Generated API reference: `domains/people/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
 
-- OpenAPI Specification: `pos-people/target/openapi.yaml`
-- Domain Agent Guide: `domains/people/.business-rules/AGENT_GUIDE.md`
-- Cross-Domain Integration: `domains/people/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-- Error Codes: `domains/people/.business-rules/ERROR_CODES.md`
-- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
-
----
-
-**Generated:** 2026-02-16 19:25:00 UTC  
-**Tool:** `scripts/generate_backend_contract_guides.py`
-
-## General Notes and References
-
-Use this section for cross-capability notes when ownership is unclear or when a rule spans multiple capabilities.
-
-### General Notes
-
-- RBAC role assignments (`/v1/people/{personUuid}/access/assignments`) and staffing assignments are separate concerns.
-- All state-changing APIs should emit events through `pos-events`.
-- Keep API Gateway routes as the contract source for consumers.
-
-### Additional References
-
-- `docs/capabilities/*/CAPABILITY_MANIFEST.yaml`
+- `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - `domains/people/.business-rules/AGENT_GUIDE.md`
-- `domains/people/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-
-## Capability Contract Template
-
-Use the shared template in:
-
-- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
+- `domains/people/.business-rules/DOMAIN_NOTES.md`
+- `domains/people/.business-rules/BACKEND_API_REFERENCE.generated.md`

@@ -12,10 +12,10 @@ Enable real-time, auditable appointment status updates driven by Workexec events
   - Status color/label reflecting latest execution status
   - Live update indicator (optional)
 - Ops “Workexec Event Inbox” screen
-  - Filters: status (PENDING/SUCCESS/FAILED), eventType, date range, workOrderId, appointmentId, eventId
-  - Events table/list: receivedAt, eventTimestamp, eventType, eventId, workOrderId, resolved appointmentId, processing status, processedAt, failureReason/outcome
+  - Filters: status (PENDING/SUCCESS/FAILED), eventType, date range, workorderId, appointmentId, eventId
+  - Events table/list: receivedAt, eventTimestamp, eventType, eventId, workorderId, resolved appointmentId, processing status, processedAt, failureReason/outcome
   - Event detail drawer/modal
-    - Identifiers: eventId, correlationId, workOrderId, appointmentId (if resolved)
+    - Identifiers: eventId, correlationId, workorderId, appointmentId (if resolved)
     - Sanitized payload preview (read-only)
     - Processing outcome summary (SUCCESS/FAILED + reason)
     - Attempts count, lastAttemptAt
@@ -36,7 +36,7 @@ Enable real-time, auditable appointment status updates driven by Workexec events
    3. Timeline list prepends/appends a new entry showing status, appliedAt, eventTimestamp, sourceEventId, and correlationId (if present).
 2. View appointment status timeline
    1. User opens an appointment.
-   2. If entries exist, show chronological list with: status applied, appliedAt, eventTimestamp, sourceEventId, workOrderId, correlationId (if present).
+   2. If entries exist, show chronological list with: status applied, appliedAt, eventTimestamp, sourceEventId, workorderId, correlationId (if present).
    3. If none, show empty state: “No status changes recorded yet.”
 3. Ops review inbox events
    1. Ops opens “Workexec Event Inbox.”
@@ -61,7 +61,7 @@ Enable real-time, auditable appointment status updates driven by Workexec events
 
 ## Notes
 - UI is not responsible for validation; it must display processing outcomes and failure reasons returned by backend ingestion/processor.
-- Inbox must support viewing sanitized payload (redacted) and key identifiers (eventId, correlationId, workOrderId, appointmentId when resolved).
+- Inbox must support viewing sanitized payload (redacted) and key identifiers (eventId, correlationId, workorderId, appointmentId when resolved).
 - Reprocess control is admin-only; non-admin users should not see the button or should see it disabled with “Not authorized.”
 - Real-time behavior: frontend listens to `appointment.status_changed` to update dispatch board and appointment views without refresh.
 - Acceptance criteria highlights:
