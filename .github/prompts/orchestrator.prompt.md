@@ -13,6 +13,7 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 1. Planner creates validated plan.
 2. Contract/doc updates (when in scope).
 3. For each story (one at a time):
+   - Pre-RED Scaffold (Coder, conditional)
    - RED (TDD Agent)
    - GREEN (Coder)
    - Coverage >= 80% service+utility (Test Coverage Agent)
@@ -27,17 +28,23 @@ Reject and return to Planner unless:
 
 ## Delegation Templates
 
-### A) RED (TDD Agent)
+### A) Pre-RED Scaffold (Coder, conditional)
+- Use only when missing production symbols block RED test execution.
+- Scope: compile scaffolding in `src/main/**` only (signatures/types/placeholders), no story behavior logic.
+- Return: changed files, compile command, proof compile succeeded for target symbols, explicit temporary scaffold artifact list.
+
+### B) RED (TDD Agent)
 - Scope: one story, one module.
 - Allowed changes: `src/test/**` only unless explicitly approved.
-- Return: changed files, test command, failing output proving RED, story mapping.
+- Return: changed files, test command, failing test names, assertion/failure snippets proving RED, story mapping.
+- Reject RED evidence based only on compilation/setup errors; treat those as `BLOCKED` preconditions.
 
-### B) GREEN (Coder)
+### C) GREEN (Coder)
 - Scope: same story/module as RED.
 - Preserve TDD assertions unless explicit rationale.
-- Return: changed files, same test command family, passing output proving GREEN.
+- Return: changed files, same test command family, passing output proving GREEN, temporary scaffold cleanup confirmation, no test seam-retargeting confirmation.
 
-### C) Coverage (Test Coverage Agent)
+### D) Coverage (Test Coverage Agent)
 - Prereq: Coder step marked completed by Planner.
 - Run JaCoCo and raise service+utility coverage to >= 80%.
 - Return: changed test files, JaCoCo commands, before/after percentages, threshold confirmation.
@@ -76,7 +83,7 @@ If a subagent fails to execute, document:
 
 ## Final Output
 Provide:
-- Per-story RED/GREEN/coverage evidence
+- Per-story scaffold (when used)/RED/GREEN/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
 - PR reference

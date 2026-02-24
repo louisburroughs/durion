@@ -48,8 +48,10 @@ Run only after Coder completion is verified and plan step is marked completed.
    - verify repo root is `durion-positivity-backend`
    - verify module exists and `./mvnw` exists
 2. Generate/report coverage
-   - `./mvnw -pl {module} -am clean verify -DskipTests=false`
+   - Run explicit JaCoCo goals so coverage works even when the module does not declare the plugin:
+     - `./mvnw -pl {module} -am clean org.jacoco:jacoco-maven-plugin:0.8.11:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.11:report -DskipTests=false`
    - parse `{module}/target/site/jacoco/jacoco.csv`
+   - if CSV is missing, parse `{module}/target/site/jacoco/jacoco.xml` as fallback and report that CSV was unavailable
 3. Identify worst uncovered classes in scope.
 4. Add targeted JUnit 5 tests (no padding, no trivial assertions).
 5. Re-run coverage until threshold reached or blocked.
@@ -63,6 +65,7 @@ If execution fails, return:
 - `evidence` (command + error snippet)
 - `next_action`
 - expected JaCoCo paths and whether `verify` completed
+  - Also state whether the explicit JaCoCo command completed, and whether `jacoco.csv` or `jacoco.xml` was used
 
 ## Deliverables
 - Changed test files

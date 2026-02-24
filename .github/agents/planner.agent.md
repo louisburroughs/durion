@@ -31,7 +31,7 @@ Plan toward exactly one PR in `durion-positivity-backend` with completed stories
 1. Plan backward from objective to prerequisites. Identify all necessary conditions for moving to the next step.
 2. Ensure Step 1 is source-material reading.
 3. Emit forward executable steps.
-4. Use per-story micro-cycles: RED -> GREEN -> coverage before next story.
+4. Use per-story micro-cycles: conditional scaffold -> RED -> GREEN -> coverage before next story.
 
 ## Path Resolution
 Use manifest references first for:
@@ -70,3 +70,5 @@ You maintain `Durion-Processing.md` plan state.
 ## Mandatory Content Rules
 - Include explicit post-coder coverage-hardening step (JaCoCo, >=80% service+utility).
 - Include ADR conflict notes when applicable (story instruction, ADR, chosen direction).
+- Include a scaffold step only when story risk indicates missing production symbols would block RED test execution.
+- When scaffold step exists, include explicit GREEN cleanup acceptance criteria (remove/replace temporary scaffold artifacts in same story cycle).
