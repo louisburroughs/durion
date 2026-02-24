@@ -56,6 +56,8 @@ stories:
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
+        path: domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md
+      - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
