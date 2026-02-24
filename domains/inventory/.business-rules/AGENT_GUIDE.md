@@ -179,7 +179,7 @@ For API contract details, see `BACKEND_CONTRACT_GUIDE.md`.
 
 ### Q: WorkExec integration key: what identifier is available for “movement history for a workorder line”?
 
-- Answer: Ledger entries include `sourceTransactionId` and (when applicable) `workOrderId` and `workOrderLineId`. WorkExec should filter by `workOrderLineId` primarily.
+- Answer: Ledger entries include `sourceTransactionId` and (when applicable) `workorderId` and `workorderLineId`. WorkExec should filter by `workorderLineId` primarily.
 - Assumptions:
   - Not all movements originate from WorkExec.
 - Rationale:

@@ -29,7 +29,7 @@ Provide a read-only Invoice Detail view within Work Execution that can be opened
 
 ## Interaction Flow
 1. Load Invoice Detail (entry from Work Order “Invoice/View Invoice”):
-   1) UI requests invoice by workOrderId.
+   1) UI requests invoice by workorderId.
    2) If 200, render invoice detail panels (read-only) and compute button visibility/enabled from permissions + backend allowed actions.
    3) If 404, show empty state: “No invoice exists for this work order.”
       - If user permitted, show “Create Draft Invoice.”
@@ -39,7 +39,7 @@ Provide a read-only Invoice Detail view within Work Execution that can be opened
    2) On 200, render invoice detail as above (no empty state path).
 3. Create Draft Invoice (user-initiated, idempotent):
    1) User clicks “Create Draft Invoice” (only visible when by-workorder returned 404 and user has permission).
-   2) UI calls create-draft endpoint with workOrderId.
+   2) UI calls create-draft endpoint with workorderId.
    3) On 200, navigate/render returned invoice detail and re-load invoice detail from backend (do not mutate locally).
    4) On 409, show deterministic conflict message (e.g., not invoice-ready / already issued/paid/void) and keep empty state.
    5) On 422, display missing billing data fields (as provided) and keep empty state.

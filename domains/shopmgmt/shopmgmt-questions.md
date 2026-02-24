@@ -114,7 +114,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
     - [ ] `scheduledStartDateTime` (ISO-8601 with offset) required
     - [ ] `facilityTimeZoneId` (IANA TZ string) required per DECISION-SHOPMGMT-015
     - [ ] `estimateId` (UUID vs opaque string) optional (when `sourceType=ESTIMATE`)
-    - [ ] `workOrderId` (UUID vs opaque string) optional (when `sourceType=WORK_ORDER`)
+    - [ ] `workorderId` (UUID vs opaque string) optional (when `sourceType=WORK_ORDER`)
     - [ ] `notificationOutcomeSummary` (string) optional per DECISION-SHOPMGMT-016
   - [ ] Confirm appointment status enum values (if known) or treat as opaque per DECISION-SHOPMGMT-013
 
@@ -142,7 +142,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
   - [ ] Confirm whether backend returns `existingAppointmentId` when source is already linked (permission-gated?)
 
 - [ ] **Task 2.6 — Identifier types and immutability**
-  - [ ] Confirm `appointmentId`, `sourceId`, `facilityId`, `estimateId`, `workOrderId` types (UUID vs opaque string)
+  - [ ] Confirm `appointmentId`, `sourceId`, `facilityId`, `estimateId`, `workorderId` types (UUID vs opaque string)
   - [ ] Treat all IDs as opaque; no client-side validation beyond presence
 
 - [ ] **Task 2.7 — Timezone and timestamp handling**
@@ -382,7 +382,7 @@ This document addresses **1 unresolved shop management domain issue** with `bloc
    - [ ] `scheduledStartDateTime` (ISO-8601 with offset) required
    - [ ] `facilityTimeZoneId` (IANA TZ string) required per DECISION-SHOPMGMT-015
    - [ ] `estimateId` (UUID vs opaque string) optional (when `sourceType=ESTIMATE`)
-   - [ ] `workOrderId` (UUID vs opaque string) optional (when `sourceType=WORK_ORDER`)
+   - [ ] `workorderId` (UUID vs opaque string) optional (when `sourceType=WORK_ORDER`)
    - [ ] `notificationOutcomeSummary` (string) optional per DECISION-SHOPMGMT-016
 35. What is the `ConflictResponse` (409) structure?
    - [ ] `errorCode` = `SCHEDULING_CONFLICT` (string) required per DECISION-SHOPMGMT-011

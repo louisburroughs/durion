@@ -35,7 +35,7 @@ Enable Shop Managers/Dispatchers to assign or reassign a primary technician on a
 ## Interaction Flow
 1. Load Work Order detail view.
 2. UI requests Work Order (read) including: id, status, primaryTechnicianId (nullable), primaryTechnicianName (nullable), shopId (optional), customerId (optional/informational).
-3. UI loads assignment history (preferred: via entity-find related list by workOrderId; fallback: REST read) and renders list or empty state.
+3. UI loads assignment history (preferred: via entity-find related list by workorderId; fallback: REST read) and renders list or empty state.
 4. If user has permission and Work Order status is allowed, show enabled Assign (if no current tech) or Reassign (if current tech exists); otherwise show disabled action with explanation.
 5. Assign technician (Scenario 1):
    1. User clicks Assign.

@@ -62,7 +62,7 @@ Key fields (conceptual):
 - `facilityId`
 - `scheduledStartDateTime` (timezone-sensitive)
 - `status/state` (e.g., SCHEDULED, CONFIRMED, IN_PROGRESS, CANCELLED, COMPLETED — **CLARIFY exact enums**)
-- `estimateId` or `workOrderId` (immutable link once created)
+- `estimateId` or `workorderId` (immutable link once created)
 - `rescheduleCount` (for policy enforcement; **CLARIFY field name/source**)
 - `version` (preferred for optimistic concurrency and change detection; **CLARIFY**)
 

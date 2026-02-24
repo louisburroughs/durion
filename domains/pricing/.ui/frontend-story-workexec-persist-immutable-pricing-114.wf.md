@@ -70,7 +70,7 @@ Enable a Service Advisor to open a read-only “Pricing Snapshot” drilldown fr
 - Optional fields must be rendered only if present; do not require them for the UI to function.
 - Modal/drawer must not navigate away from Work Order/Estimate; on Estimate it must not lose unsaved edits.
 - Logging/traceability per load attempt (safe identifiers only):
-  - originating context identifiers (estimateId/workOrderId/lineId) if available
+  - originating context identifiers (estimateId/workorderId/lineId) if available
   - result status (success/403/404/5xx) and backend error code if present
   - do not log sensitive snapshot fields (e.g., cost) even if present in the response.
 - Error states must not show partial/sensitive snapshot details; show only the error message and safe context if needed.

@@ -160,14 +160,14 @@ GET /rest/api/v1/crm/promotions/redemptions?pageIndex=0&pageSize=25&from=2026-01
 {"promotionRedemptionId":"...","promotionId":"...","eventId":null}
 ```
 
-### Q: Promotions redemptions: are `workOrderId` and `invoiceId` UUIDs or external human-readable identifiers?
+### Q: Promotions redemptions: are `workorderId` and `invoiceId` UUIDs or external human-readable identifiers?
 
 - Acceptance: UUID IDs are accepted in filters; display numbers are optional read-only fields.
-- Test Fixtures: Filter by UUID workOrderId.
+- Test Fixtures: Filter by UUID workorderId.
 - Example API request/response (code block)
 
 ```json
-{"workOrderId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","workOrderNumber":"WO-12345"}
+{"workorderId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","workorderNumber":"WO-12345"}
 ```
 
 ### Q: VehicleUpdated ingestion logs: what is the conflict resolution policy and when is `PENDING_REVIEW` used vs last-write-wins?

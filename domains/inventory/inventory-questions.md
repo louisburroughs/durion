@@ -232,7 +232,7 @@ This document addresses **20 unresolved inventory domain issues** with `blocked:
 - Entity: `WorkorderPart.java` - Represents parts/line items in a workorder
   - Fields: id (Long), productEntityId (Long), nonInventoryProductEntityId (Long), quantity (Integer), declined (Boolean)
   - Status: Enum WorkorderItemStatus with values: OPEN, PARTIAL, PICKED (inferred from canExecute() method)
-  - References: workOrderServiceId (FK to WorkorderService), changeRequestId (Long)
+  - References: workorderServiceId (FK to WorkorderService), changeRequestId (Long)
   - Emergency/Safety Fields: isEmergencySafety (Boolean), photoEvidenceUrl, emergencyNotes, photoNotPossible
   - Approval Fields: customerDenialAcknowledged (Boolean)
   - Decision: Supports partial picking workflow, emergency exception handling
@@ -835,7 +835,7 @@ Reduce picking errors and improve fulfillment traceability by enabling mechanics
 ---
 
 ##### 3. Route Identifier 🔴 BLOCKING
-**Question:** Should route parameter be `workOrderId` or `pickTaskId` (or both)?
+**Question:** Should route parameter be `workorderId` or `pickTaskId` (or both)?
 
 **Status:** PENDING - Requires WorkExec identifier decision
 
@@ -954,7 +954,7 @@ Ensure picked parts are formally consumed against a workorder so on-hand invento
 **Question:** What are the exact Moqui proxy endpoints (paths), request/response schemas, and identifiers for:
 - Load picked items for a workorder (which system owns this - WorkExec or Inventory?)
 - Submit consumption/issue transaction
-- Include identifiers like `pickedItemId`, `workOrderId`, `workOrderLineId` in responses
+- Include identifiers like `pickedItemId`, `workorderId`, `workorderLineId` in responses
 
 **Status:** PENDING - Requires WorkExec + Inventory backend research
 
@@ -1023,7 +1023,7 @@ Ensure picked parts are formally consumed against a workorder so on-hand invento
 ##### 7. Identif ier Stability & Linkage 🔴 BLOCKING
 **Question:** What is the stable identifier for linking picked items to workorder lines?
 - `pickedItemId` alone?
-- `workOrderId` + `workOrderLineId`?
+- `workorderId` + `workorderLineId`?
 - Both?
 - Is `pickedItemId` guaranteed unique per workorder, or per global scope?
 

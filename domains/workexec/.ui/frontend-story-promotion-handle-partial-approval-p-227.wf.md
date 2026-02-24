@@ -57,7 +57,7 @@ Enable Service Advisors to promote only approved estimate lines into a new Work 
 - Status mapping: UI must display status badges using exact enum strings returned by backend for Estimate.status and EstimateLine.status; do not invent or hardcode new client-side enums beyond mapping exact values.
 - Eligibility: Estimate.status must include an “approved” value for promotion eligibility; handle backend “or equivalent” naming without assumptions.
 - Traceability requirements:
-  - After promotion, promoted estimate lines must have at least one traceability id available (workOrderId and/or workOrderLineId, nullable fields).
+  - After promotion, promoted estimate lines must have at least one traceability id available (workorderId and/or workorderLineId, nullable fields).
   - Work Order response/view model must include an estimate id field (name may vary) to render the header link back to the source estimate.
 - Confirmation dialog is informational; it must clearly communicate that deferred items are not executable until later approval flow.
 - API/response handling:

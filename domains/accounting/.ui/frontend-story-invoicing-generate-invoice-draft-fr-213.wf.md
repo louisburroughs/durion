@@ -14,7 +14,7 @@ Enable an AR Clerk to create a draft invoice directly from a Work Order that is 
 - Invoice Detail header section (read-only fields):
   - invoiceId (UUIDv7)
   - status (InvoiceStatus)
-  - workOrderId
+  - workorderId
   - customerAccountId
   - billingAccountId
 - Totals summary panel (read-only):
@@ -24,7 +24,7 @@ Enable an AR Clerk to create a draft invoice directly from a Work Order that is 
   - optional fields: notes, taxable flag, discount amount
 - Anomaly panel: “No invoice items found” (when line items empty)
 - Traceability Snapshot panel (read-only):
-  - snapshotId, workOrderId, snapshotVersion/label (string)
+  - snapshotId, workorderId, snapshotVersion/label (string)
   - optional IDs (e.g., serviceLocationId, vehicleId, relatedWorkItemIds)
   - artifactRefs indicator (view-only; no direct download in this story)
 - Issuance blockers/policy panel (shown when status = DRAFT)
@@ -42,13 +42,13 @@ Enable an AR Clerk to create a draft invoice directly from a Work Order that is 
    1) If Completed + invoiceReady: enable “Create Invoice”.
    2) Otherwise: disable/hide action and show brief reason (not invoice-ready / not completed).
 3. User clicks “Create Invoice”.
-4. UI sends “Create Draft Invoice from Work Order” request (idempotent) with workOrderId.
+4. UI sends “Create Draft Invoice from Work Order” request (idempotent) with workorderId.
 5. While awaiting response: show loading state; prevent duplicate clicks.
 6. On success:
    1) Accept either 201 Created or 200 OK (newly created or existing DRAFT).
    2) Use backend link metadata to navigate to Invoice Detail for returned invoiceId (no hardcoded routes).
 7. Invoice Detail renders from returned snapshot (preferred) or fetches invoice detail if only invoiceId returned:
-   1) Display invoiceId, status, workOrderId, customerAccountId, billingAccountId.
+   1) Display invoiceId, status, workorderId, customerAccountId, billingAccountId.
    2) Display totals exactly as provided by backend (authoritative).
    3) Display line items list; if empty, show “No invoice items found” anomaly panel.
    4) Display Traceability Snapshot fields (read-only).

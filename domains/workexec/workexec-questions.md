@@ -11,7 +11,7 @@ This document consolidates all open questions from the WorkExec domain story spe
 
 1. **Canonical API paths (blocking):** What are the exact REST endpoints for:
    - Load estimate details (GET /api/v1/workexec/estimates/{estimateId})
-   - Load work order details (GET /api/v1/workexec/workorders/{workOrderId})
+   - Load work order details (GET /api/v1/workexec/workorders/{workorderId})
    - Submit approval with signature (POST /api/v1/workexec/approvals or similar)?
    
    Provide request/response field names and confirm if these are Moqui services or REST endpoints.
@@ -186,12 +186,12 @@ POST /v1/workorders/estimates/1/approval
 ### Open Questions
 
 1. **Backend contract (blocking):** What are the exact Moqui services/REST endpoints for:
-   - Load work order with items (GET /api/v1/workexec/workorders/{workOrderId}/items)
-   - Submit partial approval decisions (POST /api/v1/workexec/workorders/{workOrderId}/approvals:record-partial)
+   - Load work order with items (GET /api/v1/workexec/workorders/{workorderId}/items)
+   - Submit partial approval decisions (POST /api/v1/workexec/workorders/{workorderId}/approvals:record-partial)
    - Include request/response DTOs with exact field names.
 
 2. **Line item identifiers (blocking):** When submitting per-item approval decisions, what identifies each item?
-   - `workOrderItemId` (UUID)?
+   - `workorderItemId` (UUID)?
    - `lineSeqId` (sequence number)?
    - Separate collections for LABOR vs PART vs SERVICE items, or single flat list?
 
@@ -799,7 +799,7 @@ Response:
 1. **Backend contract (blocking):** What are the exact endpoints:
    - POST /api/v1/workexec/estimates/{estimateId}:promote
    - Request: `{ reason? }`
-   - Response: `{ workOrderId, estimateId, originEstimateId?, warnings?, estimateSnapshot? }`
+   - Response: `{ workorderId, estimateId, originEstimateId?, warnings?, estimateSnapshot? }`
    - Supports Idempotency-Key (DECISION-INVENTORY-012)?
 
 2. **Authoritative status enum (blocking):** What are work order item statuses?
@@ -815,8 +815,8 @@ Response:
    - HTTP status codes per error?
 
 4. **Duplicate handling (blocking):** If estimate is promoted twice (via retried request with same Idempotency-Key), does backend:
-   - Return same workOrderId (idempotent)?
-   - Return `{ existingResourceId: workOrderId }` in error 409?
+   - Return same workorderId (idempotent)?
+   - Return `{ existingResourceId: workorderId }` in error 409?
    - Confirm exact behavior per DECISION-INVENTORY-012.
 
 ---
@@ -856,16 +856,16 @@ Response:
 ### Open Questions
 
 1. **Backend contract (blocking):** What are the exact endpoints:
-   - GET /api/v1/workexec/workorders/{workOrderId}/promotion-audit
+   - GET /api/v1/workexec/workorders/{workorderId}/promotion-audit
    - GET /api/v1/workexec/estimates/{estimateId}/promotion-audits
-   - Response DTO fields: `auditEventId`, `promotingUserId`, `eventTimestamp`, `estimateSnapshot`, `approvalId`, `workOrderId`, `summary`?
+   - Response DTO fields: `auditEventId`, `promotingUserId`, `eventTimestamp`, `estimateSnapshot`, `approvalId`, `workorderId`, `summary`?
 
 2. **Promotion audit entity fields (blocking):** What fields are included in promotion audit record?
    - `promotingUserId` (who initiated promotion)?
    - `eventTimestamp` (when promoted)?
    - `estimateSnapshotId` (link to frozen estimate state)?
    - `approvalId` (link to approval record if customer approved)?
-   - `workOrderId` (link to created work order)?
+   - `workorderId` (link to created work order)?
    - `promotionSummary` (JSON: labor count, part count, fees, tax amount)?
    - Other fields?
 
@@ -1119,7 +1119,7 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 **Integration Points:**
 - **WorkExec → Inventory:** Parts/fluids usage events (#222)
   - Endpoint: `POST /api/v1/inventory/usage` (assumed)
-  - Payload: `{ workOrderId, itemId, partNumber, quantityUsed, timestamp }`
+  - Payload: `{ workorderId, itemId, partNumber, quantityUsed, timestamp }`
   - Response: `{ usageRecordId, inventoryAdjustmentId, remainingStock }`
   - Error codes: `INSUFFICIENT_STOCK`, `PART_NOT_FOUND`
 
@@ -1129,12 +1129,12 @@ This Phase 4 plan covers **18 remaining WorkExec issues** (#222, #219, #216, #16
 
 - **WorkExec → Appointments:** Status updates (#127)
   - Endpoint: `PUT /api/v1/appointments/{appointmentId}/status`
-  - Payload: `{ status: "IN_PROGRESS" | "COMPLETED", workOrderId, timestamp }`
+  - Payload: `{ status: "IN_PROGRESS" | "COMPLETED", workorderId, timestamp }`
   - Event emission: `appointment.status.changed`
 
 - **WorkExec → Orders:** Sales order creation (#85)
   - Endpoint: `POST /api/v1/orders/from-workorder`
-  - Payload: `{ workOrderId, selectedItemIds[], customerId, paymentTerms }`
+  - Payload: `{ workorderId, selectedItemIds[], customerId, paymentTerms }`
   - Response: `{ orderId, orderNumber, totalAmount }`
 
 **Resolution Strategy:**

@@ -63,7 +63,7 @@ Exception: Emergency/Safety items may proceed with documented customer acknowled
 @Entity
 public class ChangeRequest {
     private Long id;
-    private Long workOrderId;
+    private Long workorderId;
     private Long requestedByUserId;
     private LocalDateTime requestedAt;
     private ChangeRequestStatus status;
@@ -120,20 +120,20 @@ public class WorkOrderPart {
 
 ### Change Request Management
 
-- `POST /api/workorders/{workOrderId}/change-requests` - Create new change request
+- `POST /api/workorders/{workorderId}/change-requests` - Create new change request
 - `POST /api/change-requests/{id}/approve` - Approve change request
 - `POST /api/change-requests/{id}/decline` - Decline change request
 - `POST /api/change-requests/{id}/acknowledge-denial` - Record customer denial acknowledgment for emergency items
 - `GET /api/change-requests/{id}` - Get change request by ID
-- `GET /api/workorders/{workOrderId}/change-requests` - List all change requests for a work order
-- `GET /api/workorders/{workOrderId}/can-close` - Check if work order can be closed
+- `GET /api/workorders/{workorderId}/change-requests` - List all change requests for a work order
+- `GET /api/workorders/{workorderId}/can-close` - Check if work order can be closed
 
 ## Business Logic
 
 ### Create Change Request
 
 ```java
-POST /api/workorders/{workOrderId}/change-requests
+POST /api/workorders/{workorderId}/change-requests
 {
     "requestedByUserId": 123,
     "description": "Customer reports grinding noise from brakes",
@@ -232,7 +232,7 @@ POST /api/change-requests/{id}/acknowledge-denial
 ### Check if Work Order Can Close
 
 ```java
-GET /api/workorders/{workOrderId}/can-close
+GET /api/workorders/{workorderId}/can-close
 ```
 
 **Returns:** `true` if work order can be closed, `false` otherwise

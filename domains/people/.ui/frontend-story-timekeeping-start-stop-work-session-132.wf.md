@@ -31,7 +31,7 @@ Enable a mechanic to start and stop a work session from an assigned work order t
 
 ## Interaction Flow
 1. Page load / initialization
-   1. Read required route/context values (taskId, workOrderId, mechanicId/assignee context as applicable).
+   1. Read required route/context values (taskId, workorderId, mechanicId/assignee context as applicable).
    2. If required context missing, block all actions and show error banner: “Task context missing.”
    3. Fetch active session for the mechanic/task (per backend model) and render either Active Session card or “No active session.”
 2. Start work session (happy path)
@@ -60,7 +60,7 @@ Enable a mechanic to start and stop a work session from an assigned work order t
   - Before Start Work: require task/work order context; otherwise show “Task context missing.” and block.
   - Before Stop Work / Break: require an active session loaded; otherwise disable and show “No active session.”
 - Enable/disable rules must be server-driven for overlap/override; UI must not guess eligibility beyond provided flags/status.
-- WorkSession fields to display (as available): sessionId, taskId, workOrderId, mechanicId, clockIn, clockOut, status, locked, billableMinutes; optional notes; optional override audit (overrideUsed, overrideReason, overrideBy, overrideAt).
+- WorkSession fields to display (as available): sessionId, taskId, workorderId, mechanicId, clockIn, clockOut, status, locked, billableMinutes; optional notes; optional override audit (overrideUsed, overrideReason, overrideBy, overrideAt).
 - Empty state: “No active session” should still allow Start Work when task is eligible and context is present.
 - Acceptance criteria focus: correct button states across statuses (IN_PROGRESS/ON_BREAK/COMPLETED/APPROVED), correct handling of locked sessions, and clear user-facing errors for missing context or missing active session.
 - TODO (dev/design): define exact UI copy for overlap/override denial, and whether break actions are separate endpoints or part of session update; ensure consistent loading/disabled behavior during API calls.
