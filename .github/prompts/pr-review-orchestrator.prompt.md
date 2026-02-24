@@ -8,8 +8,11 @@ Use this runbook to coordinate PR review and remediation.
 
 ## Inputs
 - `REPO`: `<owner/repo>` (required)
-- `PR`: `<number or URL>` (optional; discover if missing)
+- `PR`: `<number or URL>` (optional; discover if missing - look in CAPABILITY_MANIFEST.yaml)
 - `ADR_ROOT`: `durion/docs/adr` (default)
+- `CONTRACT_GUIDE_PATH`: `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` (behavior source)
+- `API_REFERENCE_PATH`: `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md` (schema reference)
+- `OPENAPI_PATH`: `durion-positivity-backend/pos-<module>/openapi.yaml` (authoritative schema source)
 - `PLANNER_AGENT`: `PR Review Planner` (recommended)
 - `REVIEWER_AGENT`: `PR Reviewer` (recommended)
 - `CODER_AGENT`: `PR Fix Coder` (recommended)
@@ -27,6 +30,8 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
    - PR comments and review comments (required)
    - linked issues and acceptance criteria
    - ADRs relevant to changed modules
+   - contract behavior guidance from `BACKEND_CONTRACT_GUIDE.md`
+   - API/schema detail from OpenAPI and `BACKEND_API_REFERENCE.generated.md`
    - current test status (failing/passing signals)
 3. Delegate plan creation to `PLANNER_AGENT`.
 4. Delegate review to `REVIEWER_AGENT` with full evidence pack.

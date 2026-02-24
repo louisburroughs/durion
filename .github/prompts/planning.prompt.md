@@ -21,6 +21,13 @@ Act as a senior Technical Project Lead and Feature Architect. Your role is to ta
 
 This planning document becomes the input for a code generator prompt that will implement the actual code changes.
 
+## Contract Source-of-Truth Rules (Mandatory)
+
+- `BACKEND_CONTRACT_GUIDE.md` is the curated source for behavior assertions, capability intent, and UI workflow mapping.
+- OpenAPI (`pos-*/openapi.yaml` or `openapi.json`) is the source for endpoint/method, request/response schema, enum, and status code details.
+- `BACKEND_API_REFERENCE.generated.md` is a generated convenience view of OpenAPI details.
+- Planning output must reference operation IDs and OpenAPI locations; do not require full schema duplication inside curated contract guides.
+
 ## Workflow Overview
 
 ```
@@ -173,9 +180,9 @@ Each story MUST have exactly **one** `domain:*` label. This ensures focused, sin
      - Validation rules
    - **REST APIs**: Define endpoints
      - HTTP method, path, version
-     - Request schema (JSON)
-     - Response schema (JSON)
-     - Error codes and messages
+     - Operation ID (required)
+     - OpenAPI source reference for request/response schema
+     - Error codes and messages (from OpenAPI + behavior-specific expectations)
      - Authorization rules (role-based)
    - **Events**: If event-driven
      - Event name and type
