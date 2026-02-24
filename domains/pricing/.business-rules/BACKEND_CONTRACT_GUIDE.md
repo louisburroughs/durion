@@ -1,572 +1,140 @@
 ---
-title: Pricing & Price Management Backend Contract Guide
+title: Pricing Backend Contract Guide
 domain: pricing
 doc_type: backend_contract
-contract:
-  status: draft
-  owner_repo: louisburroughs/durion
-  guide_path: domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-price/target/openapi.yaml
+contract_status: draft
+owner_repo: louisburroughs/durion
+guide_path: domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
+openapi_source: durion-positivity-backend/pos-price/openapi.yaml
+openapi_commit: ca7fadc3
+last_verified_utc: 2026-02-24T14:23:11Z
+last_updated: 2026-02-24
+api_reference_generated: domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
-  capability_manifest: docs/capabilities
-last_updated: 2026-02-20
+  capability_manifest_root: docs/capabilities
 ---
 
-# Pricing & Price Management Backend Contract Guide
+# Pricing Backend Contract Guide
 
-**Version:** 1.0  
-**Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-price/target/openapi.yaml`
+## Purpose & Scope
 
----
+This is the curated contract guide for Pricing domain behavior.
 
-## Overview
+- Use this guide for capability intent, domain invariants, dependency boundaries, and UI-to-API mapping.
+- Use OpenAPI and generated API reference for request/response schemas and full endpoint detail.
 
-This guide standardizes field naming conventions, data types, payload structures, and error codes for the Pricing & Price Management domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
+Authoritative references:
 
-This guide is generated from the OpenAPI specification and follows the standards established across all Durion platform domains.
+- OpenAPI: `durion-positivity-backend/pos-price/openapi.yaml`
+- Generated API reference: `domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md`
+- Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- Domain decisions: `domains/pricing/.business-rules/AGENT_GUIDE.md`
 
----
+## How To Use This Guide
 
-## Table of Contents
+Backend coder workflow:
 
-1. [JSON Field Naming Conventions](#json-field-naming-conventions)
-2. [Data Types & Formats](#data-types--formats)
-3. [Enum Value Conventions](#enum-value-conventions)
-4. [Identifier Naming](#identifier-naming)
-5. [Timestamp Conventions](#timestamp-conventions)
-6. [Collection & Pagination](#collection--pagination)
-7. [Error Response Format](#error-response-format)
-8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
-9. [API Endpoints](#api-endpoints)
-10. [Entity-Specific Contracts](#entity-specific-contracts)
-11. [Examples](#examples)
+1. Read `Domain Invariants` and the relevant capability section.
+2. Validate behavior constraints before implementing endpoint changes.
+3. Use `operationId` mappings here, then confirm payload details in generated API reference.
+4. Ensure tests cover each changed behavioral assertion.
 
----
+Frontend developer workflow:
 
-## JSON Field Naming Conventions
+1. Start with `Frontend API Lookup` and identify the `operationId` for the UI action.
+2. Open generated API reference for exact payload and response details.
+3. Implement error handling and headers described in this guide.
 
-### Standard Pattern: camelCase
+## Domain Invariants
 
-All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase`).
+- Pricing behavioral rules are authoritative in backend services, not inferred from frontend state.
+- Mutating operations require explicit permission enforcement and auditable outcomes.
+- Error responses and correlation headers must be deterministic and traceable across requests.
+- Cross-domain interactions must go through API/event contracts, not direct data coupling.
 
-```json
-{
-  "id": "abc-123",
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z",
-  "status": "ACTIVE"
-}
-```
+## Capability Index
 
-### Rationale
+| Capability | Parent Issue | Contract Status | Primary Scope |
+| --- | --- | --- | --- |
+| CAP-TBD | `None` | draft | Pricing Capability Backlog |
 
-- Aligns with JSON/JavaScript convention
-- Matches Java property naming after Jackson deserialization
-- Consistent with REST API best practices (RFC 7231)
-- Consistent across all Durion platform domains
+## Frontend API Lookup
 
----
+| UI Task | operationId | Method | Path | Notes |
+| --- | --- | --- | --- | --- |
+| Operation | `getSnapshot` | GET | `/v1/price/snapshots/{snapshotId}` | Refer to generated API reference for payload details |
+| Normalize pricing | `normalizePricing` | POST | `/v1/price/normalize` | Refer to generated API reference for payload details |
+| Operation | `calculatePriceQuote` | POST | `/v1/price/quotes` | Refer to generated API reference for payload details |
+| Evaluate price restrictions | `evaluateRestrictions` | POST | `/v1/price/restrictions:evaluate` | Refer to generated API reference for payload details |
+| Override price restrictions | `overrideRestrictions` | POST | `/v1/price/restrictions:override` | Refer to generated API reference for payload details |
 
-## Data Types & Formats
+Headers and auth notes:
 
-### String Fields
+- Always propagate `X-Correlation-Id`.
+- Apply `Authorization` and endpoint-specific authorities for restricted operations.
+- Use idempotency semantics where the endpoint contract requires mutation deduplication.
 
-Use `string` type for:
+## Capability Sections
 
-- Names and descriptions
-- Codes and identifiers
-- Free-form text
-- Enum values (serialized as strings)
+## CAP-TBD: Pricing Capability Backlog
 
-```java
-private String id;
-private String name;
-private String description;
-private String status;
-```
+### Capability Metadata
 
-### Numeric Fields
+- Capability ID: CAP-TBD
+- Parent Issue: None
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-price/openapi.yaml`
 
-Use `Integer` or `Long` for:
+### API Operation References (OpenAPI Source of Truth)
 
-- Counts (page numbers, total results)
-- Version numbers
-- Sequence numbers
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Operation | `getSnapshot` | GET | `/v1/price/snapshots/{snapshotId}` |
+| Normalize pricing | `normalizePricing` | POST | `/v1/price/normalize` |
+| Operation | `calculatePriceQuote` | POST | `/v1/price/quotes` |
 
-```java
-private Integer pageNumber;
-private Integer pageSize;
-private Long totalCount;
-```
+### Behavioral Assertions
 
-### Boolean Fields
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-Use `boolean` for true/false flags:
+### Frontend Usage Notes
 
-```java
-private boolean isActive;
-private boolean isPrimary;
-private boolean hasPermission;
-```
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-### UUID/ID Fields
+### ADR Constraints
 
-Use `String` for all primary and foreign key IDs:
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-```java
-private String id;
-private String parentId;
-private String referenceId;
-```
+### Events & Dependencies
 
-### Instant/Timestamp Fields
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
+### Contract Test Traceability
 
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-private Instant createdAt;
-private Instant updatedAt;
-```
+- Provider tests: `durion-positivity-backend/pos-price/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-JSON representation:
+## Events & Cross-Domain Dependencies
 
-```json
-{
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z"
-}
-```
+- This domain exchanges data with other services only through REST APIs and message/event contracts.
+- Integration failures must be observable through deterministic status and error reporting.
+- Any contract-affecting change must update OpenAPI and regenerate API references.
 
-### LocalDate Fields
+## Verification Metadata
 
-Use `LocalDate` for date-only fields (no time component):
-
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-private LocalDate effectiveFrom;
-private LocalDate effectiveTo;
-```
-
-JSON representation:
-
-```json
-{
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31"
-}
-```
-
----
-
-## Enum Value Conventions
-
-### Standard Pattern: UPPER_SNAKE_CASE
-
-All enum values **MUST** use `UPPER_SNAKE_CASE`:
-
-```java
-public enum Status {
-    ACTIVE,
-    INACTIVE,
-    PENDING_APPROVAL,
-    ARCHIVED
-}
-```
-
-### Enums in this Domain
-
-No enums defined in OpenAPI spec. Standard enum conventions apply:
-
-- Use UPPER_SNAKE_CASE
-- Document all possible values
-- Avoid numeric codes
-
----
-
-## Identifier Naming
-
-### Standard Pattern
-
-- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `orderId`)
-- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`)
-- Composite identifiers: use structured object, not concatenated string
-
-### Examples
-
-```json
-{
-  "id": "abc-123",
-  "customerId": "cust-456",
-  "orderId": "ord-789"
-}
-```
-
----
-
-## Timestamp Conventions
-
-### Standard Pattern: ISO 8601 UTC
-
-All timestamps **MUST** be:
-
-- Serialized in ISO 8601 format with UTC timezone (`Z` suffix)
-- Stored as `Instant` in Java
-- Include millisecond precision when available
-
-```json
-{
-  "createdAt": "2026-01-27T14:30:00.123Z",
-  "updatedAt": "2026-01-27T15:45:30.456Z"
-}
-```
-
-### Common Timestamp Fields
-
-- `createdAt`: When the entity was created
-- `updatedAt`: When the entity was last updated
-- `deletedAt`: When the entity was soft-deleted (if applicable)
-- `effectiveFrom`: Start date for effective dating
-- `effectiveTo`: End date for effective dating
-
----
-
-## Collection & Pagination
-
-### Standard Pagination Request
-
-```json
-{
-  "pageNumber": 0,
-  "pageSize": 20,
-  "sortField": "createdAt",
-  "sortOrder": "DESC"
-}
-```
-
-### Standard Pagination Response
-
-```json
-{
-  "results": [...],
-  "totalCount": 150,
-  "pageNumber": 0,
-  "pageSize": 20,
-  "totalPages": 8
-}
-```
-
-### Guidelines
-
-- Use zero-based page numbering
-- Default page size: 20 items
-- Maximum page size: 100 items
-- Include total count for client-side pagination controls
-
----
-
-## Error Response Format
-
-### Standard Error Response
-
-All error responses **MUST** follow this format:
-
-```json
-{
-  "code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "correlationId": "abc-123-def-456",
-  "timestamp": "2026-01-27T14:30:00Z",
-  "fieldErrors": [
-    {
-      "field": "email",
-      "message": "Invalid email format",
-      "rejectedValue": "invalid-email"
-    }
-  ]
-}
-```
-
-### Standard HTTP Status Codes
-
-- `200 OK`: Successful GET, PUT, PATCH
-- `201 Created`: Successful POST
-- `204 No Content`: Successful DELETE
-- `400 Bad Request`: Validation error
-- `401 Unauthorized`: Authentication required
-- `403 Forbidden`: Insufficient permissions
-- `404 Not Found`: Resource not found
-- `409 Conflict`: Business rule violation
-- `422 Unprocessable Entity`: Semantic validation error
-- `500 Internal Server Error`: Unexpected server error
-- `501 Not Implemented`: Endpoint not yet implemented
-
----
-
-## Correlation ID & Request Tracking
-
-### X-Correlation-Id Header
-
-All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
-
-```http
-GET /v1/pricing/entities/123
-X-Correlation-Id: abc-123-def-456
-```
-
-### Response Headers
-
-All API responses **MUST** echo the correlation ID:
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-```
-
-### Error Responses
-
-All error responses **MUST** include the correlation ID in the body:
-
-```json
-{
-  "code": "NOT_FOUND",
-  "message": "Entity not found",
-  "correlationId": "abc-123-def-456"
-}
-```
-
-**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
-
----
-
-## API Endpoints
-
-### Endpoint Summary
-
-This domain exposes **3** REST API endpoints:
-
-| Method | Path | Summary |
-|--------|------|---------|
-| POST | `/v1/price/normalize` | Normalize pricing |
-| POST | `/v1/price/restrictions:evaluate` | Evaluate price restrictions |
-| POST | `/v1/price/restrictions:override` | Override price restrictions |
-
-### Endpoint Details
-
-#### POST /v1/price/normalize
-
-**Summary:** Normalize pricing
-
-**Description:** Normalize and standardize pricing data across the system.
-
-**Operation ID:** `normalizePricing`
-
-**Responses:**
-
-- `400`: Invalid request body.
-- `500`: Internal server error.
-- `501`: Not yet implemented.
-
-### CAP-169 — Pricing Service for Estimates & Workorders
-
-### New endpoints for CAP-169
-
-**Issue #51 — Price Product for Estimate Line (Location + Customer Tier)**
-
-```
-POST http://localhost:8080/v1/price/quotes
-```
-
-Gateway path format: `http://localhost:8080/v1/price/quotes`
-
-Request:
-```json
-{
-  "productId": "uuid",
-  "quantity": 1,
-  "locationId": "uuid",
-  "customerTierId": "uuid",
-  "effectiveTimestamp": "2026-02-20T10:00:00Z"
-}
-```
-
-Response (200 OK):
-```json
-{
-  "productId": "uuid",
-  "quantity": 1,
-  "msrp": { "amount": 100.00, "currency": "USD" },
-  "unitPrice": { "amount": 85.50, "currency": "USD" },
-  "extendedPrice": { "amount": 171.00, "currency": "USD" },
-  "priceSource": "CALCULATED",
-  "pricingBreakdown": [
-    { "ruleName": "BASE_PRICE", "ruleType": "BASE_PRICE", "adjustment": { "amount": 0, "currency": "USD" }, "resultingValue": { "amount": 100.00, "currency": "USD" } },
-    { "ruleName": "LOCATION_OVERRIDE", "ruleType": "LOCATION_OVERRIDE", "adjustment": { "amount": -5.00, "currency": "USD" }, "resultingValue": { "amount": 95.00, "currency": "USD" } },
-    { "ruleName": "CUSTOMER_TIER_DISCOUNT", "ruleType": "CUSTOMER_TIER", "adjustment": { "amount": -9.50, "currency": "USD" }, "resultingValue": { "amount": 85.50, "currency": "USD" } }
-  ],
-  "warnings": []
-}
-```
-
-Notes:
-- `priceSource` = `CALCULATED` | `MSRP_FALLBACK` (fallback when no rules match)
-- Pricing rule evaluation order (deterministic, non-negotiable): Base MSRP → Location Override → Customer Tier → Banker's Rounding
-- `effectiveTimestamp` optional, defaults to `now()`
-- 404 if productId not found; 400 if quantity <= 0 or required fields missing
-
-Behavioral assertions (provider contract):
-- AC1: productId + locationId + customerTierId with matching rules → 200 + unitPrice = base × location × tier, pricingBreakdown has 3 entries
-- AC2: No matching rules → 200 + priceSource=MSRP_FALLBACK + unitPrice=msrp
-- AC3: non-existent productId → 404
-- AC4: quantity=0 → 400
-
----
-
-**Issue #50 — Persist Immutable Pricing Snapshot**
-
-```
-GET http://localhost:8080/v1/price/snapshots/{snapshotId}
-```
-
-Response (200 OK):
-```json
-{
-  "snapshotId": "uuid",
-  "createdAt": "2026-02-20T10:00:00Z",
-  "sourceContext": { "workOrderId": "uuid", "lineItemId": "uuid" },
-  "itemIdentifier": "PART-123",
-  "quantity": 1,
-  "prices": { "msrp": 100.00, "finalPrice": 85.50, "currency": "USD" },
-  "appliedRules": [{ "ruleId": "CUSTOMER_TIER_10", "discount": "10%" }],
-  "policyVersion": "policy_v2.1_2026-02-20"
-}
-```
-
-Notes:
-- PricingSnapshot is write-once; no UPDATE/DELETE endpoints
-- Snapshot created internally when a line item is added
-- 404 if snapshotId not found
-- 403 if unauthorized
-
----
-
-#### POST /v1/price/restrictions:evaluate
-
-**Summary:** Evaluate price restrictions
-
-**Description:** Evaluate whether a price is within allowed restrictions.
-
-**Operation ID:** `evaluateRestrictions`
-
-**Responses:**
-
-- `400`: Invalid request body.
-- `500`: Internal server error.
-- `501`: Not yet implemented.
-
-
----
-
-#### POST /v1/price/restrictions:override
-
-**Summary:** Override price restrictions
-
-**Description:** Override price restrictions for a specific context or condition.
-
-**Operation ID:** `overrideRestrictions`
-
-**Responses:**
-
-- `400`: Invalid request body.
-- `403`: Insufficient permissions to override restrictions.
-- `500`: Internal server error.
-- `501`: Not yet implemented.
-
-
-
----
-
-## Entity-Specific Contracts
-
-No schemas defined in OpenAPI spec.
-
----
-
-## Examples
-
-### Example Request/Response Pairs
-
-#### Example: Create Request
-
-```http
-POST /v1/price/restrictions:override
-Content-Type: application/json
-X-Correlation-Id: abc-123-def-456
-
-{
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE"
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 201 Created
-X-Correlation-Id: abc-123-def-456
-
-{
-  "id": "new-id-123",
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:30:00Z"
-}
-```
-
----
-
-## Summary
-
-This guide establishes standardized contracts for the Pricing & Price Management domain:
-
-- **Field Naming**: camelCase for all JSON fields
-- **Enum Values**: UPPER_SNAKE_CASE for all enums
-- **Timestamps**: ISO 8601 UTC format
-- **Identifiers**: String-based UUIDs
-- **Pagination**: Zero-based with standard response format
-- **Error Handling**: Consistent error response structure with correlation IDs
-
----
-
-## Change Log
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
-
----
+- OpenAPI source: `durion-positivity-backend/pos-price/openapi.yaml`
+- OpenAPI source revision: `ca7fadc3`
+- Last verified UTC: `2026-02-24T14:23:11Z`
+- Generated API reference: `domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
 
-- OpenAPI Specification: `pos-price/target/openapi.yaml`
-- Domain Agent Guide: `domains/pricing/.business-rules/AGENT_GUIDE.md`
-- Cross-Domain Integration: `domains/pricing/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-- Error Codes: `domains/pricing/.business-rules/ERROR_CODES.md`
-- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
-
----
-
-**Generated:** 2026-01-27 14:27:53 UTC  
-**Tool:** `scripts/generate_backend_contract_guides.py`
-
----
-
-## Capability Contract Template
-
-Use the shared template for capability sections:
-
-- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
+- `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- `domains/pricing/.business-rules/AGENT_GUIDE.md`
+- `domains/pricing/.business-rules/DOMAIN_NOTES.md`
+- `domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md`

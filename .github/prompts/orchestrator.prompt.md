@@ -53,13 +53,22 @@ Reject and return to Planner unless:
 Resolve from manifest references first:
 - `CAPABILITY_MANIFEST_PATH`
 - `BACKEND_CONTRACT_GUIDE_PATH`
+- `BACKEND_API_REFERENCE_PATH`
 - `OPENAPI_PATH`
+- `BACKEND_CONTRACT_GLOBAL_STANDARDS_PATH`
 - ADR index: `durion/docs/adr/README.md`
 
 Fallbacks:
 - contract guide: `durion/domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+- generated API reference: `durion/domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md`
 - openapi: `durion-positivity-backend/<module>/openapi.yaml`
+- global standards: `durion/docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - if missing openapi: `./mvnw -pl <module> -am -Plocal integration-test`, fallback `scripts/generate-openapi.sh`
+
+Contract source-of-truth rules:
+- Use `BACKEND_CONTRACT_GUIDE.md` for behavior assertions, capability intent, and workflow mapping.
+- Use OpenAPI and `BACKEND_API_REFERENCE.generated.md` for endpoint/schema/status-code detail.
+- Reject outputs that copy full OpenAPI schemas into curated contract guides.
 
 ## ADR Compliance Delegation Rule
 For every subagent invocation (Planner, TDD Agent, Coder, Test Coverage Agent), explicitly require:
@@ -87,5 +96,5 @@ Provide:
 - Per-story scaffold (when used)/RED/GREEN/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
-- PR reference
+- PR reference in CAPABILITY_MANIFEST.yaml
 - Blockers/failures (if any)
