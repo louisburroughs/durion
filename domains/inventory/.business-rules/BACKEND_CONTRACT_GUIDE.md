@@ -92,48 +92,103 @@ Headers and auth notes:
 
 ## Capability Sections
 
-## CAP-215: [CAP] Inventory Ledger & On-hand/ATP
+## CAP-215: Inventory Ledger & On-hand/ATP
 
-### Capability Metadata
+### Story #36 — Compute On-Hand and Available-to-Promise by Location/Storage
 
-- Capability ID: CAP-215
-- Parent Issue: https://github.com/louisburroughs/durion/issues/215
-- Capability Status: draft
-- OpenAPI Source: `durion-positivity-backend/pos-inventory/openapi.yaml`
+**New endpoint:** `GET /v1/inventory/availability/query`
+**Query params:**
 
-### API Operation References (OpenAPI Source of Truth)
+- `productSku` (String, required)
+- `locationId` (UUID, required)
+- `storageLocationId` (UUID, optional)
 
-| Use Case | operationId | Method | Path |
-| --- | --- | --- | --- |
-| Get tasks assigned to an auditor | `getAuditorTasks` | GET | `/api/inventory/cycleCount/auditor/{auditorId}/tasks` |
-| Get cycle count task details | `getTask` | GET | `/api/inventory/cycleCount/task/{taskId}` |
-| Get count history for a task | `getCountHistory` | GET | `/api/inventory/cycleCount/task/{taskId}/history` |
+**Response (200):** `AvailabilityView`
 
-### Behavioral Assertions
+```json
+{
+  "productSku": "SKU-001",
+  "locationId": "uuid-of-location",
+  "storageLocationId": null,
+  "onHandQuantity": 100,
+  "allocatedQuantity": 20,
+  "availableToPromiseQuantity": 80,
+  "unitOfMeasure": "EACH"
+}
+```
 
-- Requests must satisfy domain validation rules before state change.
-- Successful mutations must produce deterministic persisted outcomes.
-- Failure responses must be explicit and actionable for callers.
+**Behavioral assertions:**
 
-### Frontend Usage Notes
+- ATP = onHandQuantity - allocatedQuantity (NOT onHand - reservations, per ADR-0001)
+- When no storageLocationId is given, aggregate all child storage locations under the parent locationId
+- When storageLocationId is given, scope computation to that storage location only
+- Return 404 if productSku is not found in the ledger
+- Return 404 if locationId is not found in the ledger
+- Return 200 with all-zero quantities if product/location combination has no ledger entries
+- On-hand = net sum of INBOUND minus OUTBOUND ledger entries (entries with affectsOnHand() = true)
+- Allocated = net sum of ALLOCATION_CREATED minus ALLOCATION_RELEASED entries
 
-- Use operation IDs above as the stable API integration keys for UI actions.
-- Read request/response payload shapes from generated API reference, not this guide.
-- Surface validation and authorization failures directly to users with trace context.
+**Test hints:**
 
-### ADR Constraints
+- Seed ledger entries via `InventoryLedgerEntryRepository` directly in tests
+- Use `GOODS_RECEIPT` event to create on-hand stock
+- Use `ALLOCATION_CREATED` event to simulate allocations
 
-- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
+### Story #37 — Record Stock Movements in Inventory Ledger
 
-### Events & Dependencies
+**Endpoints:**
 
-- Respect published API/event contracts for all upstream and downstream dependencies.
-- Preserve traceability when integrating across services or asynchronous workflows.
+- `POST /v1/inventory/stock-movements` — record RECEIVE, PUT_AWAY, PICK, ISSUE, RETURN, TRANSFER movement
+- `POST /v1/inventory/adjustments` — create draft adjustment request (requires INVENTORY_ADJUST_CREATE)
+- `POST /v1/inventory/adjustments/{adjustmentId}/approve` — approve and post adjustment ledger entry (requires INVENTORY_ADJUST_APPROVE)
 
-### Contract Test Traceability
+**Movement request body:**
 
-- Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
-- Add or update tests that cover each behavioral assertion above when behavior changes.
+```json
+{
+  "movementType": "RECEIVE",
+  "productSku": "SKU-001",
+  "locationId": "uuid-of-location",
+  "quantity": 50,
+  "unitOfMeasure": "EACH",
+  "sourceTransactionId": "optional-reference-id"
+}
+```
+
+**Adjustment request body:**
+
+```json
+{
+  "productSku": "SKU-001",
+  "locationId": "uuid-of-location",
+  "quantity": -5,
+  "reasonCode": "DAMAGE",
+  "unitOfMeasure": "EACH"
+}
+```
+
+**Behavioral assertions:**
+
+- RECEIVE movement creates a GOODS_RECEIPT ledger entry (INBOUND)
+- TRANSFER movement creates both TRANSFER_OUT (source location) and TRANSFER_IN (destination location)
+- Adjustment without reasonCode returns 400
+- Approved adjustments post a single ADJUSTMENT_IN or ADJUSTMENT_OUT entry depending on quantity sign
+- Negative on-hand resulting from PICK/ISSUE returns 422 INSUFFICIENT_STOCK
+- PRODUCT_NOT_FOUND returns 404; LOCATION_NOT_FOUND returns 404
+- All entries are immutable once posted (append-only)
+- Actor recorded from SecurityContext, not from request body (ADR-0018)
+
+**Permissions:**
+
+- Regular movements: any authenticated user
+- Adjustment creation (draft): INVENTORY_ADJUST_CREATE
+- Adjustment approval: INVENTORY_ADJUST_APPROVE
+
+**Test hints:**
+
+- Use @WithMockUser(roles={"INVENTORY_ADJUST_CREATE"}) for adjustment creation tests
+- Use @WithMockUser(roles={"INVENTORY_ADJUST_APPROVE"}) for approval tests
+- Verify ledger entry count increases by exactly 1 (or 2 for TRANSFER) after each movement
 
 ## CAP-216: [CAP] Receiving (PO/ASN/Direct)
 

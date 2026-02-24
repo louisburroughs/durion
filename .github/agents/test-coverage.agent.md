@@ -47,14 +47,24 @@ Run only after Coder completion is verified and plan step is marked completed.
 1. Preflight
    - verify repo root is `durion-positivity-backend`
    - verify module exists and `./mvnw` exists
-2. Generate/report coverage
+2. One-time bootstrap (run once per module/session)
+   - Build dependencies once, then avoid reactor rebuilds in the test loop:
+     - `./mvnw -pl {module} -am -DskipTests install`
+3. Generate/report coverage (fast loop command)
    - Run explicit JaCoCo goals so coverage works even when the module does not declare the plugin:
-     - `./mvnw -pl {module} -am clean org.jacoco:jacoco-maven-plugin:0.8.11:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.11:report -DskipTests=false`
+     - `./mvnw -pl {module} -q org.jacoco:jacoco-maven-plugin:0.8.11:prepare-agent -DskipTests=false -DskipITs=true -Dmaven.test.failure.ignore=true test org.jacoco:jacoco-maven-plugin:0.8.11:report`
+   - Do not use `clean` in coverage loops.
+   - Do not use `-am` in coverage loops.
+   - Prefer targeted test runs while iterating:
+     - `-Dtest='*Service*Test,*Util*Test,*Helper*Test'`
+   - During tight TDD loops, run tests without JaCoCo; run JaCoCo periodically as a checkpoint.
+4. Parse coverage outputs
    - parse `{module}/target/site/jacoco/jacoco.csv`
    - if CSV is missing, parse `{module}/target/site/jacoco/jacoco.xml` as fallback and report that CSV was unavailable
-3. Identify worst uncovered classes in scope.
-4. Add targeted JUnit 5 tests (no padding, no trivial assertions).
-5. Re-run coverage until threshold reached or blocked.
+   - if both CSV and XML are missing but `{module}/target/jacoco.exec` exists, run `org.jacoco:jacoco-maven-plugin:0.8.11:report` once more and re-check outputs before declaring failure
+5. Identify worst uncovered classes in scope.
+6. Add targeted JUnit 5 tests (no padding, no trivial assertions).
+7. Re-run coverage until threshold reached or blocked.
 
 Do not add JaCoCo plugin config to module POMs.
 
@@ -66,6 +76,25 @@ If execution fails, return:
 - `next_action`
 - expected JaCoCo paths and whether `verify` completed
   - Also state whether the explicit JaCoCo command completed, and whether `jacoco.csv` or `jacoco.xml` was used
+
+### Quick Failure Triage Block (required)
+Always include this compact block before detailed failure analysis:
+
+```text
+failure_stage: preflight|bootstrap|test_execution|jacoco_report|coverage_parse
+test_status: not_run|passed|failed
+jacoco_agent_status: not_run|attached|failed
+report_status: not_run|generated|missing
+artifacts:
+  - {module}/target/jacoco.exec: present|missing
+  - {module}/target/site/jacoco/jacoco.csv: present|missing
+  - {module}/target/site/jacoco/jacoco.xml: present|missing
+primary_blocker: one-line diagnosis
+```
+
+Use `test_execution` when surefire/failsafe test failures prevent report generation.
+Use `jacoco_report` when tests ran but report generation failed.
+Use `coverage_parse` when report exists but parsing/aggregation failed.
 
 ## Deliverables
 - Changed test files
