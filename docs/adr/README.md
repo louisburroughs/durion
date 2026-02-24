@@ -87,7 +87,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0021   | Tax API Consumption and Internal Access    | ACCEPTED          | 2026-02-21 |
 | 0022   | Audit Stable Person Identifier Claim Policy| ACCEPTED          | 2026-02-21 |
 | 0023   | Remove tenantId / Single-Organization Context | ACCEPTED       | 2026-02-21 |
-| 0024   | Entity createdAt/updatedAt Population Policy | PROPOSED        | 2026-02-23 |
+| 0024   | Entity createdAt/updatedAt Population Policy | ACCEPTED        | 2026-02-23 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 

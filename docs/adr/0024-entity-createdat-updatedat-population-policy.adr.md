@@ -1,6 +1,6 @@
 # ADR-0024: Entity createdAt/updatedAt Population Policy
 
-**Status:** PROPOSED  
+**Status:** ACCEPTED  
 **Date:** 2026-02-23  
 **Deciders:** Architecture, Backend Leads  
 **Affected Issues:** CAP-214 #39
