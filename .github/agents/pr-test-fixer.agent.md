@@ -14,6 +14,9 @@ tools:
   - execute/runTests
   - edit/editFiles
   - github/pull_request_read
+  - github/add_comment_to_pending_review
+  - github/pull_request_review_write
+  - github/add_issue_comment
   - memory
   - todo
 ---
@@ -26,6 +29,7 @@ You fix test defects and missing test coverage.
 3. Do not change production logic unless explicitly delegated.
 4. If tests expose a production defect, return it to coder with evidence.
 5. Map all changes back to finding IDs.
+6. For each assigned PR comment thread (`comment_ref`), post a direct reply describing what test was fixed/added and why.
 
 ## Required Handoff
 - Finding IDs addressed
@@ -33,4 +37,5 @@ You fix test defects and missing test coverage.
 - Test commands run
 - Before/after failure status
 - Coverage gap closures (if any)
+- Comment replies posted (`comment_ref` -> reply summary)
 - Remaining failures requiring coder changes
