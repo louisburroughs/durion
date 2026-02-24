@@ -52,6 +52,10 @@ Objective: <explicit PR objective in durion-positivity-backend>
 Implementation Steps:
 - [ ] Step 1: Read and analyze source material (manifest, prompts, relevant code/docs).
 - [ ] Step 2: <next executable step>
+- [ ] Step N (optional, only if RED would be blocked): Pre-RED scaffold in src/main/** for missing symbols (compile-only, no behavior logic).
+- [ ] Step N+1: RED (failing behavior tests).
+- [ ] Step N+2: GREEN (implement behavior and remove/replace temporary scaffold artifacts if scaffold step was used).
+- [ ] Step N+3: Coverage hardening (>=80% service+utility).
 - [ ] ...
 - [ ] Final Step: Create the Pull Request in durion-positivity-backend with completed stories and validation evidence.
 
