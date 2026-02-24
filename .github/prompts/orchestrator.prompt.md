@@ -69,6 +69,7 @@ For every subagent invocation (Planner, TDD Agent, Coder, Test Coverage Agent), 
 
 ## Validation and Retry
 - Validate each subagent result against delegated objective + acceptance criteria.
+- For scaffold/GREEN validation, explicitly verify temporary scaffold cleanup and no unapproved test seam-retargeting.
 - If tests were edited, require a `Test Change Rationale` section with:
   - changed test files,
   - contract/requirement change (or explicit no-change),

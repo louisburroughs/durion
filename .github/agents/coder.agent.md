@@ -99,6 +99,7 @@ Implement the assigned scope in `durion-positivity-backend` with production-qual
 3. Do not use shortcuts that bypass business rules (hardcoded values, no-op logic, silent fallbacks, blanket catches).
 4. Fix root cause in production code first; only then adjust tests for legitimate contract changes.
 5. Preserve ADR and architecture boundaries (`service` API, `internal` encapsulation, controller->service->repo layering).
+6. Do not retarget test seams/targets to alternate fakes or classes to bypass intended production implementation.
 
 ## Required Inputs Before Coding
 - Story acceptance criteria and constraints.
@@ -111,6 +112,14 @@ Implement the assigned scope in `durion-positivity-backend` with production-qual
 3. Keep tests meaningful; add/adjust tests only to reflect intended behavior.
 4. Run targeted tests, then module verification.
 5. Report evidence with commands and outcomes.
+
+## Pre-RED Scaffold Mode (Conditional)
+Use only when explicitly delegated by orchestrator because RED is blocked by missing production symbols.
+
+- Purpose: introduce minimal compile scaffolding only (`src/main/**` signatures/types/placeholders).
+- Forbidden in this mode: implementing story behavior/business logic.
+- Mark temporary scaffold artifacts with `TODO(scaffold-remove-in-green): <story-id>`.
+- Handoff must include `Temporary scaffold artifacts:` with file + symbol + marker (machine-checkable list).
 
 ## Testing Policy
 - Prefer deterministic tests.
@@ -140,10 +149,13 @@ Implement the assigned scope in `durion-positivity-backend` with production-qual
 - Commands run.
 - Test/build results.
 - Risks/follow-ups.
+- When scaffold mode was used: `Temporary scaffold artifacts:` list (file + symbol + marker).
+- GREEN handoff must include: scaffold cleanup confirmation and no test seam-retargeting confirmation.
 
 ## Done Criteria
 A task is done only when:
 - acceptance criteria are met,
 - architecture/ADR rules are respected,
 - tests pass without weakened guarantees,
-- evidence is provided.
+- evidence is provided,
+- temporary scaffold artifacts introduced for the story are removed/replaced during GREEN.
