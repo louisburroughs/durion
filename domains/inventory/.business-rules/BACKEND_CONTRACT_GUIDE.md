@@ -10,7 +10,7 @@ contract:
 
 traceability:
   capability_manifest: docs/capabilities
-last_updated: 2026-02-21
+last_updated: 2026-02-23
 ---
 
 ## CAP-221: Roles, Permissions, and Audit Controls
@@ -144,6 +144,87 @@ Notes:
   - ADR-0018 (Audit actor fields from security context)
   - `docs/architecture/observability/OBSERVABILITY.md` for event logging and telemetry guidelines
   - OpenAPI source: `pos-inventory/target/openapi.yaml`
+
+## CAP-217: Put-away & Replenishment
+
+See domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md for section structure
+
+### Backend Issues
+
+- Put-away task generation, execution, and replenishment policy design: https://github.com/louisburroughs/durion-positivity-backend/issues/217
+
+### Event Contract
+
+- Topics:
+  - `inventory.v1.putaway.tasks` (putaway task lifecycle events)
+  - `inventory.v1.replenishment.tasks` (replenishment task lifecycle events)
+  - `inventory.v1.inventory.decrements` (used to trigger replenishment)
+- Partition key: `aggregateId` (producers MUST partition by `aggregate.id`)
+- Producers MUST populate `actor` fields per ADR-0018 and use UUIDv7 for `eventId`.
+
+### Behavioral Assertions
+
+- Story #32 (Generate Put-away Tasks from Staging):
+  - Trigger: GoodsReceipt -> COMPLETED.
+  - One `PutawayTask` per receipt line by default; generation is atomic (all-or-nothing).
+  - PutawayRule precedence: product-specific → category → supplier/receipt-type → location default → system fallback.
+  - If suggested destination is full/unavailable, auto-pick next-best, record `originalSuggestedLocationId`, set `finalSuggestedLocationId` and `fallbackReason`; if none available set status `REQUIRES_LOCATION_SELECTION`.
+  - Required permissions: `CLAIM_PUTAWAY_TASK` (claim/execute), `ASSIGN_PUTAWAY_TASK` (assign/reassign), `SELECT_PUTAWAY_LOCATION` (manual selection).
+  - Emit an immutable audit entry per generated task linking `taskId` → `sourceReceiptId` and applied rule.
+
+- Story #31 (Execute Put-away Move):
+  - Clerk workflow: scan source → item → destination → confirm.
+  - Validate SKU compatibility, capacity, and source on-hand.
+  - Atomic update: decrement source on-hand, increment destination on-hand, create `InventoryLedgerEntry` (type `PUTAWAY`), mark `PutawayTask` COMPLETED.
+  - Error responses: 422 `LOCATION_NOT_VALID_FOR_SKU`, 422 `LOCATION_AT_CAPACITY`, 422 `NO_ON_HAND_AT_SOURCE_LOCATION`.
+  - Optional overrides: `OVERRIDE_LOCATION_COMPATIBILITY` (with reason + justification), `OVERRIDE_LOCATION_CAPACITY` (within 5-10% tolerance).
+  - Source on-hand MUST NOT become negative.
+
+- Story #30 (Replenish Pick Faces from Backstock):
+  - `ReplenishmentPolicy` governs thresholds (min/max) per pick face.
+  - Trigger: event-driven `InventoryDecremented` at pick-face (`isPickFace=true`) when onHandQty <= minQty; debounce 60s per (productId,pickFaceLocationId); batch safety net every 5–15 minutes.
+  - Backstock sourcing hierarchy: FEFO/FIFO → sufficient single-location qty → proximity → highest on-hand.
+  - Do not create duplicate open tasks for same (productId, pickFaceLocationId); idempotent per threshold crossing.
+  - If zero backstock, log `BACKSTOCK_UNAVAILABLE` and do not create task.
+
+### Data Contracts (selected fields)
+
+- PutawayTask: `taskId` (UUIDv7), `sourceReceiptId`, `productId`, `quantity`, `sourceLocationId`, `suggestedDestinationLocationId` (nullable when `REQUIRES_LOCATION_SELECTION`), `originalSuggestedLocationId`, `finalSuggestedLocationId`, `actualDestinationLocationId`, `fallbackReason` (DESTINATION_FULL|UNAVAILABLE), `status` (UNASSIGNED|ASSIGNED|IN_PROGRESS|COMPLETED|CANCELLED|REQUIRES_LOCATION_SELECTION), `assigneeId`, `createdAt`, `updatedAt`.
+- PutawayRule: `ruleId` (UUIDv7), `priority` (Integer), `criteria` (JSON), `destinationLocationId`, `isEnabled`.
+- InventoryLedgerEntry (PUTAWAY): `transactionId`, `productId`, `quantity`, `fromLocationId`, `toLocationId`, `transactionType=PUTAWAY`, `actorId`, `timestamp`.
+- ReplenishmentPolicy: `policyId` (UUIDv7), `locationId` (pickFace), `itemSKU`, `minimumQuantity`, `maximumQuantity`.
+- ReplenishmentTask: `taskId` (UUIDv7), `itemSKU`, `quantity`, `sourceLocationId`, `destinationLocationId`, `status` (PENDING|IN_PROGRESS|COMPLETED|CANCELLED), `triggerType` (EVENT|BATCH), `decisionReason` (BELOW_MIN|SAFETY_SCAN), `sourcingReason` (FEFO|FIFO|SUFFICIENT_QTY|PROXIMITY|HIGHEST_STOCK), `createdAt`, `assignedTo`.
+
+### Endpoint Permission Table
+
+| HTTP Method | Service Path | Permission | Story |
+|-------------|--------------|------------|-------|
+| POST | `/api/v1/inventory/putaway/tasks/generate` | CLAIM_PUTAWAY_TASK | #32 |
+| GET | `/api/v1/inventory/putaway/tasks` | CLAIM_PUTAWAY_TASK | #32 |
+| POST | `/api/v1/inventory/putaway/tasks/{taskId}/claim` | CLAIM_PUTAWAY_TASK | #32 |
+| POST | `/api/v1/inventory/putaway/tasks/{taskId}/execute` | CLAIM_PUTAWAY_TASK | #31 |
+| GET | `/api/v1/inventory/replenishment/tasks` | inventory:stock:view | #30 |
+| GET | `/api/v1/inventory/replenishment/policies` | inventory:stock:view | #30 |
+| POST | `/api/v1/inventory/replenishment/policies` | inventory:stock:adjust | #30 |
+
+### Provider Test Hints (ContractBehaviorIT)
+
+- Task generation tests:
+  - Verify atomicity: simulate partial failure and assert no tasks persisted for that receipt.
+  - Seed multiple PutawayRule permutations and assert precedence order is applied.
+  - Test fallback behavior when suggested location is full/unavailable and that `originalSuggestedLocationId`, `finalSuggestedLocationId`, and `fallbackReason` are recorded.
+
+- Execution tests:
+  - Validate on-hand deltas and `InventoryLedgerEntry` creation; assert source on-hand never negative.
+  - Assert 422 responses for invalid SKU, capacity, and insufficient source on-hand.
+  - Test override headers/flags produce correct behavior and audit trail with justification.
+
+- Replenishment tests:
+  - Simulate `InventoryDecremented` events to trigger replenishment; verify debounce and batch safety net behaviors.
+  - Verify sourcing hierarchy selection and partial replenishment task creation when single-source insufficient.
+  - Assert idempotency for repeated threshold crossings and no duplicate open tasks for the same (productId, pickFaceLocationId).
+
+**ADR Compliance:** ADR-0011, ADR-0013, ADR-0017, ADR-0018, ADR-0023
 
 # Inventory Management Backend Contract Guide
 

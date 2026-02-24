@@ -73,13 +73,7 @@ This ADR compliance requirement applies to all agents and subagents (including c
 
 ## Agents & Canonical Docs
 
-Agent docs live under `.github/agents/` in this repo. Use:
-
-- `.github/agents/sre.agent.md` — SRE/observability guidance
-- `.github/agents/coder.agent.md` — primary software engineering guidance
-- `.github/agents/dev-deploy.agent.md` — deployment/CI/CD guidance
-- `.github/agents/api.agent.md` — REST API guidance
-- Backend test agent: `durion-positivity-backend/.github/agents/test.agent.md`
+Agent docs live under `.github/agents/` in this repo. 
 
 Canonical observability architecture doc:
 
