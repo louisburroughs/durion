@@ -23,6 +23,7 @@ You review only. You do not apply fixes.
 - PR changed files and commits
 - linked or referenced GitHub issues
 - ADR compliance (from provided ADR references)
+- coding standards compliance (architecture/layering/null-safety/conventions)
 - test impact:
   - failing tests,
   - missing coverage for changed behavior,
@@ -34,6 +35,7 @@ You review only. You do not apply fixes.
 3. Treat accepted ADR decisions as binding unless explicitly superseded.
 4. Use PR comments as first-class review evidence.
 5. Flag unclear requirements as questions, not assumptions.
+6. Prefer referencing existing PR comment threads with `comment_ref` when a finding already has reviewer discussion.
 
 ## Required Output
 ```markdown
@@ -42,6 +44,7 @@ Findings:
    - file: <path:line>
    - issue_ref: <#id or None>
    - adr_ref: <ADR-id or None>
+   - comment_ref: <PR comment/thread id or None>
    - test_impact: <what should be tested/fixed>
    - rationale: <why this is a defect/risk>
 
