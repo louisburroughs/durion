@@ -7,7 +7,7 @@ Provide a Promotion Audit UI that lets authorized users review promotion events 
 - “Most recent promotion” summary card/row
 - “View details” action (link/button)
 - Expandable events list/table (for multiple events)
-- Event row items: promoting user identifier, event type, timestamp, estimateId, workOrderId, snapshotRef, approvalRef
+- Event row items: promoting user identifier, event type, timestamp, estimateId, workorderId, snapshotRef, approvalRef
 - Event details view (inline panel or dedicated screen)
 - Key-value field list for event details
 - Promotion summary subsection (totals/counts) when present
@@ -40,7 +40,7 @@ Provide a Promotion Audit UI that lets authorized users review promotion events 
 1. Work Order → Promotion Audit (primary)
    1. User opens Work Order detail screen.
    2. System loads Promotion Audit events for the Work Order.
-   3. If events exist, render “Promotion Audit” section with “Most recent promotion” summary showing: promoting user identifier, event timestamp (user timezone), estimateId, workOrderId, plus snapshot/approval references when present.
+   3. If events exist, render “Promotion Audit” section with “Most recent promotion” summary showing: promoting user identifier, event timestamp (user timezone), estimateId, workorderId, plus snapshot/approval references when present.
    4. If promotion summary totals/item counts are provided, render them in the summary (and in details).
    5. User selects “View details” or expands the events list to view all events.
    6. User selects an event to open the event details view (inline panel or dedicated screen).
@@ -49,7 +49,7 @@ Provide a Promotion Audit UI that lets authorized users review promotion events 
 2. Estimate → Promotion Audit (secondary)
    1. User opens Estimate detail screen.
    2. Promotion Audit section renders most recent promotion (if records exist).
-   3. User selects link to the resulting Work Order (when workOrderId exists) and/or opens event details.
+   3. User selects link to the resulting Work Order (when workorderId exists) and/or opens event details.
 
 3. Deep link: Promotion Audit Event
    1. User opens a Promotion Audit Event detail route/screen.
@@ -74,7 +74,7 @@ Provide a Promotion Audit UI that lets authorized users review promotion events 
   - Event timestamp (required; store raw ISO-8601, display in user timezone)
   - Promoting user identifier (required)
   - estimateId (required)
-  - workOrderId (required)
+  - workorderId (required)
   - snapshotRef (optional but expected; show “Snapshot reference unavailable” if missing)
   - approvalRef (optional but expected; show “Approval reference unavailable” if missing)
   - summary/details object (optional JSON): render known keys (totals/counts) and tolerate unknown keys
@@ -83,4 +83,4 @@ Provide a Promotion Audit UI that lets authorized users review promotion events 
   - If unknown keys exist and no known fields can be rendered, show “Summary details available”; optionally allow a collapsible raw JSON view for auditors (read-only), subject to permission.
 - “Most recent promotion” summary should always render when records exist; “All events” list/table appears when multiple events exist (expandable/collapsible).
 - Navigation actions must be enabled only when the corresponding reference exists; otherwise disabled with explanatory helper text.
-- Acceptance criteria focus: Work Order scenario must show most recent event’s promoting user identifier, timestamp, estimateId, workOrderId, snapshot/approval references when present, and promotion summary totals/item counts when provided.
+- Acceptance criteria focus: Work Order scenario must show most recent event’s promoting user identifier, timestamp, estimateId, workorderId, snapshot/approval references when present, and promotion summary totals/item counts when provided.

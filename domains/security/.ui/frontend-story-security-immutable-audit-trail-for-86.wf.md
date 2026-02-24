@@ -43,7 +43,7 @@ Provide a read-only, immutable Audit Log search and detail experience so authori
 ## Interaction Flow
 1. Open Audit Logs
    1. User navigates via main nav (if available) or contextual “View Audit Logs” link from Movement/Work Order/Product/User detail.
-   2. If opened contextually, pre-fill the corresponding indexed filter (movementId, workOrderId, productId/partNumber, actorId/mechanicId) and keep location scope implicit unless cross-location is enabled.
+   2. If opened contextually, pre-fill the corresponding indexed filter (movementId, workorderId, productId/partNumber, actorId/mechanicId) and keep location scope implicit unless cross-location is enabled.
 2. Search audit logs (primary flow)
    1. User selects From/To date-times (local); UI validates required fields and converts to UTC for request.
    2. User provides at least one indexed filter (e.g., movementId).

@@ -125,7 +125,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Validation flow:**
     ```
     1. Order domain receives cancel request
-    2. Query Work Execution: GET /workorders/{workOrderId}/status
+    2. Query Work Execution: GET /workorders/{workorderId}/status
     3. If status IN blocking_list → return 400 with WORK_NOT_CANCELLABLE
     4. Else proceed with cancellation orchestration
     ```
@@ -145,7 +145,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       "errorCode": "WORK_NOT_CANCELLABLE",
       "message": "Order cannot be cancelled because work has started or been completed",
       "details": {
-        "workOrderId": "wo-12345",
+        "workorderId": "wo-12345",
         "workStatus": "LABOR_STARTED"
       }
     }

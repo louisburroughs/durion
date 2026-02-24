@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 36
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 100
-      impacted_component_repos:
-      - louisburroughs/durion-inventory
+      issues: [36, 37]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/inventory/.ui/frontend-story-ledger-compute-on-hand-and-availabl-100.wf.md
@@ -69,7 +64,7 @@ stories:
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-inventory/target/openapi.json
+      spec_path: pos-inventory/openapi.yaml
       generated: true
   pr_links:
     durion_contract_pr: ''
@@ -81,7 +76,7 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+  - Update the merge_order.durion_contract_pr field with a link to the contract PR once it's opened. 
   - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/215.'
   definition_of_done:

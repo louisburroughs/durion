@@ -63,7 +63,7 @@ Draft creation must be idempotent and gated by upstream Work Execution’s `invo
 
 ### Audit perspective
 
-Draft creation should be auditable: who initiated, when, which workOrderId, what blockers were present.
+Draft creation should be auditable: who initiated, when, which workorderId, what blockers were present.
 
 ---
 

@@ -33,7 +33,7 @@ Enable a Service Advisor to record partial approvals for a Work Order by making 
 ## Interaction Flow
 1. Entry point (Work Order edit/detail screen):
    1. Show “Record Approval” button only if Work Order status allows approval entry and user has permission/capability.
-   2. On click, navigate to Record Approval screen with required `workOrderId` parameter.
+   2. On click, navigate to Record Approval screen with required `workorderId` parameter.
 2. Load screen data:
    1. Fetch Work Order details including line items and current approval statuses/editability.
    2. Fetch approval requirements/config if not embedded in Work Order payload.

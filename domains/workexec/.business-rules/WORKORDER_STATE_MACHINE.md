@@ -42,7 +42,7 @@ DRAFT → APPROVED → (ASSIGNED or WORK_IN_PROGRESS) → (AWAITING_PARTS, AWAIT
 ### State Transition Audit Trail
 
 Every state transition is recorded in `WorkOrderStateTransition` entity with:
-- `workOrderId`: Reference to the work order
+- `workorderId`: Reference to the work order
 - `fromStatus`: Previous state
 - `toStatus`: New state
 - `transitionedAt`: UTC timestamp of transition
@@ -53,7 +53,7 @@ Every state transition is recorded in `WorkOrderStateTransition` entity with:
 ### Snapshot Pattern
 
 State snapshots are captured at key boundaries in `WorkOrderSnapshot` entity with:
-- `workOrderId`: Reference to the work order
+- `workorderId`: Reference to the work order
 - `status`: Status at time of snapshot
 - `capturedAt`: UTC timestamp
 - `capturedBy`: User ID who triggered snapshot
@@ -75,7 +75,7 @@ Request Body: {
   "reason": "Beginning work on scheduled maintenance"
 }
 Response: {
-  "workOrderId": 1,
+  "workorderId": 1,
   "previousStatus": "APPROVED",
   "currentStatus": "WORK_IN_PROGRESS",
   "transitionedAt": "2026-01-11T10:00:00Z",
@@ -93,7 +93,7 @@ GET /api/workorders/{id}/transitions
 Response: [
   {
     "id": 1,
-    "workOrderId": 1,
+    "workorderId": 1,
     "fromStatus": "APPROVED",
     "toStatus": "WORK_IN_PROGRESS",
     "transitionedAt": "2026-01-11T10:00:00Z",
@@ -109,7 +109,7 @@ GET /api/workorders/{id}/snapshots
 Response: [
   {
     "id": 1,
-    "workOrderId": 1,
+    "workorderId": 1,
     "status": "WORK_IN_PROGRESS",
     "capturedAt": "2026-01-11T10:00:00Z",
     "capturedBy": 123,
@@ -140,11 +140,11 @@ workorder.statemachine.autoStart.onFirstLaborEntry=false
 Core service implementing FSM logic:
 
 **Key Methods:**
-- `startWorkOrder(Long workOrderId, Long userId, String reason)`: Start work order with validation
-- `transitionWorkOrder(Long workOrderId, WorkOrderStatus toStatus, Long userId, String reason)`: Generic state transition
-- `captureSnapshot(WorkOrder workOrder, Long userId, String snapshotType, String reason)`: Capture state snapshot
-- `getTransitionHistory(Long workOrderId)`: Retrieve audit trail
-- `getSnapshotHistory(Long workOrderId)`: Retrieve snapshots
+- `startWorkOrder(Long workorderId, Long userId, String reason)`: Start work order with validation
+- `transitionWorkOrder(Long workorderId, WorkOrderStatus toStatus, Long userId, String reason)`: Generic state transition
+- `captureSnapshot(WorkOrder workorder, Long userId, String snapshotType, String reason)`: Capture state snapshot
+- `getTransitionHistory(Long workorderId)`: Retrieve audit trail
+- `getSnapshotHistory(Long workorderId)`: Retrieve snapshots
 
 **Validation:**
 - State transition validation using FSM rules

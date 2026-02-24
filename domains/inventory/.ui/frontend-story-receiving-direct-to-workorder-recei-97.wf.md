@@ -71,7 +71,7 @@ Enable an Inventory Manager to cross-dock an inbound receiving line directly to 
    2) Summary is read-only; user can Cancel/Edit to return to Draft.
    3) Confirm is required when override is used; otherwise still available/expected unless backend explicitly indicates auto-issue eligibility.
 6. Submit (atomic receive+issue):
-   1) User confirms; UI POSTs cross-dock command (workOrderId, workOrderLineId, quantityReceived, override flags/reason if used).
+   1) User confirms; UI POSTs cross-dock command (workorderId, workorderLineId, quantityReceived, override flags/reason if used).
    2) While in-flight: disable all inputs/actions; show progress; prevent double-submit.
    3) On success: show Completed result summary with references (receipt/issue ids if provided), issue mode (manual vs auto), confirmed by, timestamp, and correlation id.
    4) User clicks “Return to shipment” and UI navigates back; if response lacks updated model, UI reloads shipment detail.

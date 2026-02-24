@@ -180,7 +180,7 @@ public Estimate reopenEstimate(Long estimateId) {
 ### Work Order Creation
 
 ```java
-public WorkOrder createWorkOrder(WorkOrder workOrder) {
+public WorkOrder createWorkOrder(WorkOrder workorder) {
     // 1. If estimateId provided:
     //    - Load estimate
     //    - Validate status is APPROVED

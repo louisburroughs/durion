@@ -166,7 +166,7 @@ Moqui service naming must map to these capability contracts; UI must not hardcod
 
 **Question:** Must the UI enforce “at least one indexed filter” beyond date range (and which filters qualify)?
 
-**Response:** Yes. Backend enforces; UI mirrors. Qualifying filters include: `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `eventType`, `aggregateId`, `correlationId`, `reasonCode`.
+**Response:** Yes. Backend enforces; UI mirrors. Qualifying filters include: `workorderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `eventType`, `aggregateId`, `correlationId`, `reasonCode`.
 
 ### Q4
 
