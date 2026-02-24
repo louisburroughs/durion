@@ -219,7 +219,7 @@ Support multiple product identifiers because different users think in different 
 
 For other entities:
 
-- Prefer denormalized stable IDs on `AuditLog` for indexed search (workOrderId, movementId, actorId, locationId).
+- Prefer denormalized stable IDs on `AuditLog` for indexed search (workorderId, movementId, actorId, locationId).
 
 ### Why
 

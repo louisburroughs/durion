@@ -28,7 +28,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 - **Rationale & policy alignment:** follows `api-naming-policy` (path-based versioning `/v1/...`, plural resource names, use `POST` for commands). Canonical base path: `/v1/people/timeEntries`.
 
 - **Endpoints (command + query):**
-  - `GET /v1/people/timeEntries` — list/filter time entries (query params: `status`, `workDate`, `workOrderId`, `employeeId`, `pageIndex`, `pageSize`).
+  - `GET /v1/people/timeEntries` — list/filter time entries (query params: `status`, `workDate`, `workorderId`, `employeeId`, `pageIndex`, `pageSize`).
   - `GET /v1/people/timeEntries/{timeEntryId}` — get time entry detail.
   - `POST /v1/people/timeEntries/{timeEntryId}/approve` — approve a single time entry. Request DTO: `TimeEntryApproveRequest`. Response: `TimeEntryApproveResponse` (or 204).
   - `POST /v1/people/timeEntries/{timeEntryId}/reject` — reject a single time entry. Request DTO: `TimeEntryRejectRequest` (requires `rejectionReason`).
@@ -195,7 +195,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
   - [ ] Confirm base path: `/api/time-entries/*` or alternate
   - [ ] Identify time entry list/queue endpoints:
     - [ ] `GET /api/time-entries?status=PENDING_APPROVAL&workDate=YYYY-MM-DD&pageIndex=&pageSize=` (filter by date)
-    - [ ] `GET /api/time-entries?status=PENDING_APPROVAL&workOrderId=<id>&pageIndex=&pageSize=` (filter by work order)
+    - [ ] `GET /api/time-entries?status=PENDING_APPROVAL&workorderId=<id>&pageIndex=&pageSize=` (filter by work order)
   - [ ] Identify time entry detail endpoint: `GET /api/time-entries/{timeEntryId}`
   - [ ] Identify approve/reject endpoints:
     - [ ] `POST /api/time-entries/approve` (batch)
@@ -214,7 +214,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
     - [ ] Subscreens: `Queue.xml`, `EntryDetail.xml`
   - [ ] Confirm Moqui transitions for approve/reject/exception actions
   - [ ] Confirm menu wiring: **Timekeeping → Approvals**
-  - [ ] Confirm deep link patterns: `/timekeeping/approvals?workDate=YYYY-MM-DD`, `/timekeeping/approvals?workOrderId=<id>`
+  - [ ] Confirm deep link patterns: `/timekeeping/approvals?workDate=YYYY-MM-DD`, `/timekeeping/approvals?workorderId=<id>`
 
 - [ ] **Task 1.4 — Error envelope and correlation patterns**
   - [ ] Confirm standard error shape for People domain: `{ code, message, correlationId, fieldErrors?, details? }`
@@ -266,7 +266,7 @@ Next actions for Phase 1 (manual or follow-up):
 - [ ] **Task 2.1 — Time entry entity structure**
   - [ ] Confirm time entry identifier field: `timeEntryId` (type: UUID vs opaque string)
   - [ ] Confirm time entry required fields: `employeeId`, `workDate`, `startAtUtc`, `status`
-  - [ ] Confirm time entry optional fields: `workOrderId`, `endAtUtc`, `submittedAtUtc`, `decisionByUserId`, `decisionAtUtc`, `rejectionReason`
+  - [ ] Confirm time entry optional fields: `workorderId`, `endAtUtc`, `submittedAtUtc`, `decisionByUserId`, `decisionAtUtc`, `rejectionReason`
   - [ ] Confirm time entry status enum values: `DRAFT`, `SUBMITTED`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED` (or canonical set)
   - [ ] Clarify status naming: `SUBMITTED` vs `PENDING_APPROVAL` (are they the same or distinct?)
   - [ ] Confirm which statuses are eligible for manager approve/reject actions
@@ -293,7 +293,7 @@ Next actions for Phase 1 (manual or follow-up):
   - [ ] Confirm exception code examples and whether codes are backend-provided enum or validated string
 
 - [ ] **Task 2.4 — Identifier types and immutability**
-  - [ ] Confirm `timeEntryId`, `adjustmentId`, `exceptionId`, `employeeId`, `workOrderId` types and examples
+  - [ ] Confirm `timeEntryId`, `adjustmentId`, `exceptionId`, `employeeId`, `workorderId` types and examples
   - [ ] Treat all IDs as opaque; no client-side validation beyond presence
 
 - [ ] **Task 2.5 — Timezone and timestamp handling**
@@ -306,12 +306,12 @@ Next actions for Phase 1 (manual or follow-up):
 - [ ] **Task 2.6 — Pagination and filtering contracts**
   - [ ] Confirm pagination parameters: `pageIndex`, `pageSize`, `totalCount`
   - [ ] Confirm default page size and maximum page size
-  - [ ] Confirm filter parameters: `status`, `workDate`, `workOrderId`, `employeeId`
+  - [ ] Confirm filter parameters: `status`, `workDate`, `workorderId`, `employeeId`
   - [ ] Confirm sort parameters: default sort order (most recent first? oldest first?)
   - [ ] Confirm whether backend supports multi-status filtering or single status only
 
 - [ ] **Task 2.7 — Cross-domain dependencies**
-  - [ ] Confirm work order identifier resolution: does workOrderId link to workexec domain?
+  - [ ] Confirm work order identifier resolution: does workorderId link to workexec domain?
   - [ ] Confirm employee identifier resolution: does employeeId link to people/HR domain?
   - [ ] Confirm whether work order details are needed in approval UI (name, status, location)
   - [ ] Confirm whether employee details are needed in approval UI (name, role, department)
@@ -353,11 +353,11 @@ Next actions for Phase 1 (manual or follow-up):
   - `workDate` is a date-only field used for day-bucket filtering; display timezone is shop/location timezone (frontend responsibility to request/format using location timezone).
 
 - Pagination and filtering contract (recommended):
-  - Query params: `pageIndex` (0-based), `pageSize`, `status`, `workDate`, `workOrderId`, `employeeId`, `sort`.
+  - Query params: `pageIndex` (0-based), `pageSize`, `status`, `workDate`, `workorderId`, `employeeId`, `sort`.
   - Response envelope: `{ items: [...], pageIndex, pageSize, totalCount }`.
 
 - Cross-domain dependencies:
-  - `workOrderId` is a reference to the Workexec domain (workorder resource). Treat as opaque ID; backend may call Workexec service for details when needed.
+  - `workorderId` is a reference to the Workexec domain (workorder resource). Treat as opaque ID; backend may call Workexec service for details when needed.
   - `personId`/`employeeId` owned by People/HR domain; `pos-people` is authoritative for person/time entries.
 
 **Implementations added**
@@ -497,7 +497,7 @@ Notes / outstanding small work:
     - [x] Validation rules: rejection reason required (400), blocking exceptions resolved/waived, adjustment one-of enforced (400), reasonCode required, waive reason required
     - [x] Error codes: `REJECTION_REASON_REQUIRED`, `INVALID_INPUT`, `NOT_FOUND`, `INVALID_STATE`
     - [x] Timezone contract: ISO 8601 UTC format, day boundaries use workDate (YYYY-MM-DD)
-    - [x] Pagination/filtering: parameters (status, workDate, workOrderId, employeeId, pageIndex, pageSize), defaults, multi-status support
+    - [x] Pagination/filtering: parameters (status, workDate, workorderId, employeeId, pageIndex, pageSize), defaults, multi-status support
     - [x] Batch operation behavior: per-entry error handling, partial success (200 OK with per-entry results)
     - [x] Correlation ID: shared across batch entries for traceability
     - [x] Cross-domain dependencies: work order and employee are opaque identifiers (no cross-domain validation)
@@ -564,7 +564,7 @@ Notes / outstanding small work:
 **Section 3: Entity Structure & Status Enums**
 21. What is the time entry identifier field name and type? (`timeEntryId`: UUID vs opaque string)
 22. What are the time entry required fields? (`employeeId`, `workDate`, `startAtUtc`, `status`)
-23. What are the time entry optional fields? (`workOrderId`, `endAtUtc`, `submittedAtUtc`, `decisionByUserId`, `decisionAtUtc`, `rejectionReason`)
+23. What are the time entry optional fields? (`workorderId`, `endAtUtc`, `submittedAtUtc`, `decisionByUserId`, `decisionAtUtc`, `rejectionReason`)
 24. What is the time entry status enum? (Canonical values: `DRAFT`, `SUBMITTED`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`?)
 25. Are `SUBMITTED` and `PENDING_APPROVAL` the same status or distinct? If distinct, what is the difference?
 26. Which statuses are eligible for manager approve/reject actions? (Only `PENDING_APPROVAL`?)
@@ -635,7 +635,7 @@ Notes / outstanding small work:
 79. What are the pagination parameters? (`pageIndex`, `pageSize`, `totalCount`)
 80. What is the default page size? (25, 50, 100?)
 81. What is the maximum page size?
-82. What are the supported filter parameters? (status, workDate, workOrderId, employeeId)
+82. What are the supported filter parameters? (status, workDate, workorderId, employeeId)
 83. Does backend support multi-status filtering? (e.g., `status=PENDING_APPROVAL,APPROVED`)
 84. What are the supported sort parameters? (`orderBy`, `sort=-submittedAtUtc`?)
 85. What is the default sort order? (most recent first: `-submittedAtUtc`?)
@@ -649,18 +649,18 @@ Notes / outstanding small work:
 91. Should UI generate idempotency keys or rely on backend de-duplication?
 
 **Section 11: Cross-Domain Dependencies**
-92. Does `workOrderId` link to workexec domain? What is the resolution endpoint?
+92. Does `workorderId` link to workexec domain? What is the resolution endpoint?
 93. Does `employeeId` link to people/HR domain? What is the resolution endpoint?
 94. Are work order details needed in approval UI? (name, status, location)
 95. Are employee details needed in approval UI? (name, role, department)
-96. If work order details are needed, what is the endpoint? (`GET /api/workorders/{workOrderId}`?)
+96. If work order details are needed, what is the endpoint? (`GET /api/workorders/{workorderId}`?)
 97. If employee details are needed, what is the endpoint? (`GET /api/employees/{employeeId}`?)
 
 **Section 12: Moqui Screen Integration**
 98. What are the confirmed Moqui screen paths? (`apps/pos/screen/Timekeeping/Approvals.xml`)
 99. What are the confirmed subscreens? (`Queue.xml`, `EntryDetail.xml`)
 100. What is the menu wiring path? (**Timekeeping → Approvals**)
-101. What are the deep link patterns? (`/timekeeping/approvals?workDate=YYYY-MM-DD`, `/timekeeping/approvals?workOrderId=<id>`)
+101. What are the deep link patterns? (`/timekeeping/approvals?workDate=YYYY-MM-DD`, `/timekeeping/approvals?workorderId=<id>`)
 102. What Moqui transitions are needed for approve/reject/exception actions?
 
 ---

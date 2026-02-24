@@ -72,7 +72,8 @@ This prompt is invoked **AFTER** all backend child stories for a capability have
 **Backend Child Stories (must all be complete):**
 {{backend_child_issues}}
 
-**Contract Guide:** `durion/domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+**Contract Guide (behavior):** `durion/domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+**Generated API Reference (schema helper):** `durion/domains/{{domain}}/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ---
 
@@ -192,8 +193,8 @@ This PR implements the complete backend for {{capability_label}} - {{parent_capa
 
 ### Contract Compliance
 
-- [x] Implementation matches contract guide: `domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- [x] OpenAPI annotations match contract
+- [x] Implementation matches behavior assertions in `domains/{{domain}}/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+- [x] OpenAPI annotations and endpoint schemas match OpenAPI and generated API reference
 - [x] Provider contract tests verify behavior
 
 ### Documentation

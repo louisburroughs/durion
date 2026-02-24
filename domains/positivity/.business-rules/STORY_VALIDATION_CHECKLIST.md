@@ -79,7 +79,7 @@ This checklist is used to validate that changes in the `positivity` domain are i
   - [ ] Workexec cancel includes `idempotencyKey`.
   - [ ] Billing reverse includes `idempotencyKey`.
 - [ ] Ordering guarantees are implemented and tested:
-  - [ ] Workexec cancel attempted before Billing reversal when `workOrderId` exists.
+  - [ ] Workexec cancel attempted before Billing reversal when `workorderId` exists.
   - [ ] Billing reversal is not attempted if Workexec rejects with `409`.
 - [ ] Canonical POS/positivity events are emitted for cancellation progress/final state (success and failure).
 - [ ] Events include correlation identifiers (`correlationId`, `orderId`, and idempotency key where appropriate).
@@ -109,7 +109,7 @@ This checklist is used to validate that changes in the `positivity` domain are i
 
 - [ ] Structured logs include key identifiers:
   - [ ] `productId` and `locationId` for product detail requests.
-  - [ ] `orderId`, `workOrderId`, `paymentId` (when present) for cancellation flows.
+  - [ ] `orderId`, `workorderId`, `paymentId` (when present) for cancellation flows.
   - [ ] `correlationId` and `idempotencyKey` for cancellation flows.
 - [ ] Distributed tracing propagates correlation/trace identifiers to downstream calls (Catalog/Pricing/Inventory; Workexec/Billing).
 - [ ] Metrics are added/updated and tagged appropriately:

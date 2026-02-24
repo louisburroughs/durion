@@ -28,8 +28,8 @@ Enable Dispatchers to locate and view the pick list associated with a work order
 - Inline ASCII hint: [Header: Title | Refresh | Print] → [Pick List Summary] → [Tasks Table/List] → [Pagination/Status]
 
 ## Interaction Flow
-1. Navigate to Work Order pick list screen (e.g., from a Work Order detail page or direct URL containing workOrderId).
-2. System calls Moqui proxy endpoint to load pick list by workOrderId (same-origin JSON).
+1. Navigate to Work Order pick list screen (e.g., from a Work Order detail page or direct URL containing workorderId).
+2. System calls Moqui proxy endpoint to load pick list by workorderId (same-origin JSON).
 3. While waiting, show loading state for header and tasks area.
 4. On success:
    1. Render pick list header with Pick List ID, Work Order ID, Status, Created timestamp (and optional context if present).
@@ -55,12 +55,12 @@ Enable Dispatchers to locate and view the pick list associated with a work order
 ## Notes
 - Must use Moqui proxy services only (same-origin); no direct Vue → backend calls.
 - Deterministic ordering is backend-authoritative; frontend must not compute route optimization or re-sort beyond honoring provided order/orderKey.
-- Required to render header: pickListId, workOrderId, status enum, created timestamp.
+- Required to render header: pickListId, workorderId, status enum, created timestamp.
 - Required per task row: pickTaskId, pickListId, product identifier (preferred for display/deep-link patterns), product display name (strongly preferred), quantity, optional UOM, suggested location fields (site required; bin nullable), optional priority and due time, task status, and either explicit order field or pre-sorted response.
 - “Needs review” handling: tasks with missing/nullable actionable location (e.g., bin null) must be clearly indicated and still listed.
 - Print-friendly and mobile-friendly rendering are in-scope; picking execution (mark picked/partial/substitutions) is out-of-scope unless backend explicitly provides.
 - Observability: include/echo requestId/correlationId from responses in error/timeout UI where available.
 - TODO (blocking): finalize Moqui proxy endpoint paths, params, and response shapes for:
-  - Get pick list by workOrderId (embedded tasks vs tasksRef)
+  - Get pick list by workorderId (embedded tasks vs tasksRef)
   - Get pick tasks by pickListId (ordering field vs pre-ordered; pagination cursor contract if large)
   - Deterministic error schema mapping for 401/403/404/409/422/5xx

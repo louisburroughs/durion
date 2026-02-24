@@ -42,7 +42,7 @@ Enable users to view inventory availability and ledger history in the context of
 3. History / Ledger browsing (line context):
    1. User switches to “History / Ledger” tab.
    2. UI queries ledger list endpoint with cursor pagination and filters:
-      - Primary filter: workOrderLineId (required for “line context” history)
+      - Primary filter: workorderLineId (required for “line context” history)
       - Optional locationId filter (applies as OR across from/to semantics)
    3. User paginates using Next/Previous; UI uses cursor params (after/before) to fetch subsequent pages.
 4. Ledger entry detail:
@@ -58,7 +58,7 @@ Enable users to view inventory availability and ledger history in the context of
    3. Changing Location clears/invalidates selected Storage Location and refilters the storage picker.
 
 ## Notes
-- Preconditions: WorkExec must provide stable identifiers and SKU context; locationId required to query availability; workOrderLineId required for “line context” history.
+- Preconditions: WorkExec must provide stable identifiers and SKU context; locationId required to query availability; workorderLineId required for “line context” history.
 - Inventory Moqui proxy endpoints must be same-origin; UI should treat them as standard API calls with loading/error handling.
 - Acceptance criteria: deep-link with required params triggers exactly one auto-run availability request on load; no further automatic re-runs unless user changes inputs or clicks “Check Availability”.
 - Ledger list must support cursor pagination (after/before) and display at least: id, timestamp, type, quantity, optional from/to location and storage location, plus linkage fields (work order/line refs) when present.

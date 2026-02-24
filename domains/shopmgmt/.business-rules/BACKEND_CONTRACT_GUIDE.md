@@ -2,1252 +2,369 @@
 title: Shop Management Backend Contract Guide
 domain: shopmgmt
 doc_type: backend_contract
-contract:
-  status: draft
-  owner_repo: louisburroughs/durion
-  guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-shop-manager/target/openapi.yaml (to be generated)
+contract_status: draft
+owner_repo: louisburroughs/durion
+guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
+openapi_commit: ca7fadc3
+last_verified_utc: 2026-02-24T14:23:11Z
+last_updated: 2026-02-24
+api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
-  capability_manifest: docs/capabilities
-last_updated: 2026-02-19
+  capability_manifest_root: docs/capabilities
 ---
 
 # Shop Management Backend Contract Guide
 
-**Version:** 1.0  
-**Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-shop-manager/target/openapi.yaml` (to be generated)
+## Purpose & Scope
 
----
+This is the curated contract guide for Shop Management domain behavior.
 
-## Overview
+- Use this guide for capability intent, domain invariants, dependency boundaries, and UI-to-API mapping.
+- Use OpenAPI and generated API reference for request/response schemas and full endpoint detail.
 
-This guide standardizes field naming conventions, data types, payload structures, and error codes for the Shop Management domain REST API and backend services. The shopmgmt domain manages appointment scheduling, resource assignment (bays, mobile units, mechanics), and conflict detection within automotive service shops.
+Authoritative references:
 
-Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
+- OpenAPI: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
+- Generated API reference: `domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md`
+- Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- Domain decisions: `domains/shopmgmt/.business-rules/AGENT_GUIDE.md`
 
----
+## How To Use This Guide
 
-## Table of Contents
+Backend coder workflow:
 
-1. [JSON Field Naming Conventions](#json-field-naming-conventions)
-2. [Data Types & Formats](#data-types--formats)
-3. [Enum Value Conventions](#enum-value-conventions)
-4. [Identifier Naming](#identifier-naming)
-5. [Timestamp Conventions](#timestamp-conventions)
-6. [Collection & Pagination](#collection--pagination)
-7. [Error Response Format](#error-response-format)
-8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
-9. [Idempotency](#idempotency)
-10. [API Endpoints](#api-endpoints)
-11. [Entity-Specific Contracts](#entity-specific-contracts)
-12. [Examples](#examples)
+1. Read `Domain Invariants` and the relevant capability section.
+2. Validate behavior constraints before implementing endpoint changes.
+3. Use `operationId` mappings here, then confirm payload details in generated API reference.
+4. Ensure tests cover each changed behavioral assertion.
 
----
+Frontend developer workflow:
 
-## JSON Field Naming Conventions
+1. Start with `Frontend API Lookup` and identify the `operationId` for the UI action.
+2. Open generated API reference for exact payload and response details.
+3. Implement error handling and headers described in this guide.
 
-### Standard Pattern: camelCase
+## Domain Invariants
 
-All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase`).
+- Shop Management behavioral rules are authoritative in backend services, not inferred from frontend state.
+- Mutating operations require explicit permission enforcement and auditable outcomes.
+- Error responses and correlation headers must be deterministic and traceable across requests.
+- Cross-domain interactions must go through API/event contracts, not direct data coupling.
 
-```json
-{
-  "appointmentId": "abc-123",
-  "scheduledStartDateTime": "2026-01-27T14:30:00-05:00",
-  "facilityId": "facility-456",
-  "assignmentType": "BAY",
-  "createdAt": "2026-01-27T19:30:00Z"
-}
-```
+## Capability Index
 
-### Rationale
+| Capability | Parent Issue | Contract Status | Primary Scope |
+| --- | --- | --- | --- |
+| CAP-137 | `durion#137` | draft | [CAP] Schedule Appointments (Calendar + Queue) |
+| CAP-138 | `durion#138` | draft | [CAP] Dispatch and Assign Mechanics & Resources |
+| CAP-139 | `durion#139` | draft | [CAP] Timekeeping Integration for Assigned Work |
+| CAP-140 | `durion#140` | draft | [CAP] Workorder Execution Context Linking |
+| CAP-141 | `durion#141` | draft | [CAP] Roles, Permissions, and Audit Controls |
+| CAP-142 | `durion#142` | draft | [CAP] Operational Reporting & Dashboards (Lightweight) |
 
-- Aligns with JSON/JavaScript convention
-- Matches Java property naming after Jackson deserialization
-- Consistent with REST API best practices (RFC 7231)
-- Consistent across all Durion platform domains
+## Frontend API Lookup
 
----
+| UI Task | operationId | Method | Path | Notes |
+| --- | --- | --- | --- | --- |
+| Delete bay | `deleteBay` | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
+| Delete mobile unit | `deleteMobileUnit` | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
+| Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` | Refer to generated API reference for payload details |
+| Get bays | `getBays` | GET | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
+| Get mobile units | `getMobileUnits` | GET | `/v1/shop-manager/mobileUnit` | Refer to generated API reference for payload details |
+| Get bays | `getBays_1` | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
+| Get mobile units | `getMobileUnits_1` | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
+| View schedules | `viewSchedules` | GET | `/v1/shop-manager/{locationId}/schedules/view` | Refer to generated API reference for payload details |
+| Get shop service details | `getShopServiceDetails` | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` | Refer to generated API reference for payload details |
+| Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` | Refer to generated API reference for payload details |
+| View workorder operational context | `viewOpenWorkordersByShop` | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
+| Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Refer to generated API reference for payload details |
+| Create bay | `createBay` | POST | `/v1/shop-manager/{locationId}/bays` | Refer to generated API reference for payload details |
+| Create mobile unit | `createMobileUnit` | POST | `/v1/shop-manager/{locationId}/mobileUnit` | Refer to generated API reference for payload details |
+| Manage bays | `manageBays` | PUT | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
 
-## Data Types & Formats
+Headers and auth notes:
 
-### String Fields
+- Always propagate `X-Correlation-Id`.
+- Apply `Authorization` and endpoint-specific authorities for restricted operations.
+- Use idempotency semantics where the endpoint contract requires mutation deduplication.
 
-Use `string` type for:
+## Capability Sections
 
-- Names and descriptions
-- Codes and identifiers
-- Free-form text
-- Enum values (serialized as strings)
+## CAP-137: [CAP] Schedule Appointments (Calendar + Queue)
 
-```java
-private String appointmentId;
-private String facilityId;
-private String sourceId;
-private String assignmentNotes;
-```
+### Capability Metadata
 
-### Numeric Fields
+- Capability ID: CAP-137
+- Parent Issue: https://github.com/louisburroughs/durion/issues/137
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
 
-Use `Integer` or `Long` for:
+### API Operation References (OpenAPI Source of Truth)
 
-- Counts (page numbers, total results)
-- Version numbers
-- Reschedule counts
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Delete bay | `deleteBay` | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` |
+| Delete mobile unit | `deleteMobileUnit` | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
+| Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` |
 
-```java
-private Integer pageNumber;
-private Integer pageSize;
-private Long totalCount;
-private Integer rescheduleCount;
-```
+### Behavioral Assertions
 
-### Boolean Fields
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-Use `boolean` for true/false flags:
+### Frontend Usage Notes
 
-```java
-private boolean overrideSoftConflicts;
-private boolean overridable;
-private boolean isPrimary;
-```
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-### UUID/ID Fields
-
-Use `String` for all primary and foreign key IDs (opaque strings):
-
-```java
-private String appointmentId;
-private String facilityId;
-private String sourceId;
-private String mechanicId;
-private String bayId;
-private String mobileUnitId;
-```
-
-### Instant/Timestamp Fields
-
-Use `Instant` in Java for UTC timestamps; serialize to ISO 8601 UTC in JSON:
-
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-private Instant createdAt;
-private Instant updatedAt;
-private Instant assignedAt;
-```
-
-JSON representation:
-
-```json
-{
-  "createdAt": "2026-01-27T19:30:00Z",
-  "updatedAt": "2026-01-27T20:15:00Z",
-  "assignedAt": "2026-01-27T19:35:00Z"
-}
-```
+### ADR Constraints
 
-### ZonedDateTime/OffsetDateTime Fields
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-Use `OffsetDateTime` or `ZonedDateTime` for facility-timezone-aware scheduling:
+### Events & Dependencies
 
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
-private OffsetDateTime scheduledStartDateTime;
-private OffsetDateTime scheduledEndDateTime;
-```
-
-JSON representation (with timezone offset):
-
-```json
-{
-  "scheduledStartDateTime": "2026-01-27T14:30:00-05:00",
-  "scheduledEndDateTime": "2026-01-27T16:30:00-05:00",
-  "facilityTimeZoneId": "America/New_York"
-}
-```
-
-### LocalTime Fields
-
-Use `LocalTime` for time-only fields (business hours):
-
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
-private LocalTime businessHoursOpen;
-private LocalTime businessHoursClose;
-```
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-JSON representation:
+### Contract Test Traceability
 
-```json
-{
-  "businessHoursOpen": "08:00:00",
-  "businessHoursClose": "18:00:00"
-}
-```
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
----
+## CAP-138: [CAP] Dispatch and Assign Mechanics & Resources
 
-## Enum Value Conventions
+### Capability Metadata
 
-### Standard Pattern: UPPER_CASE_SNAKE
+- Capability ID: CAP-138
+- Parent Issue: https://github.com/louisburroughs/durion/issues/138
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
 
-All enum values **MUST** use `UPPER_CASE_SNAKE` (uppercase with underscores).
+### API Operation References (OpenAPI Source of Truth)
 
-```java
-public enum SourceType {
-    ESTIMATE,
-    WORKORDER  // Note: workorder is one word
-}
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get bays | `getBays` | GET | `/v1/shop-manager/bays` |
+| Get mobile units | `getMobileUnits` | GET | `/v1/shop-manager/mobileUnit` |
+| Get bays | `getBays_1` | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` |
 
-public enum AssignmentType {
-    BAY,
-    MOBILE_UNIT,
-    UNASSIGNED
-}
+### Behavioral Assertions
 
-public enum ConflictSeverity {
-    HARD,
-    SOFT
-}
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-public enum AppointmentStatus {
-    SCHEDULED,
-    CONFIRMED,
-    IN_PROGRESS,
-    CANCELLED,
-    COMPLETED
-}
-```
+### Frontend Usage Notes
 
-JSON representation:
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-```json
-{
-  "sourceType": "WORKORDER",
-  "assignmentType": "BAY",
-  "status": "SCHEDULED"
-}
-```
+### ADR Constraints
 
-### Naming Convention: workorder
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-**CRITICAL:** The term "workorder" **MUST** be written as **ONE WORD** (not "work order", "Work Order", "WorkOrder", or "workOrder").
+### Events & Dependencies
 
-This convention applies to:
-- Enum values: `WORKORDER`
-- Field names: `workorderId`, `workorderStatus`
-- Code identifiers: `workorder`, `Workorder`, `WORKORDER`
-- Comments and documentation
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
----
+### Contract Test Traceability
 
-## Identifier Naming
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-### Pattern: {entity}{Id}
+## CAP-139: [CAP] Timekeeping Integration for Assigned Work
 
-Primary and foreign key identifiers follow the pattern `{entity}Id` in camelCase:
+### Capability Metadata
 
-```java
-private String appointmentId;
-private String facilityId;
-private String sourceId;
-private String estimateId;
-private String workorderId;  // Note: workorder is one word
-private String mechanicId;
-private String bayId;
-private String mobileUnitId;
-```
+- Capability ID: CAP-139
+- Parent Issue: https://github.com/louisburroughs/durion/issues/139
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
 
-### Opaque String IDs
+### API Operation References (OpenAPI Source of Truth)
 
-All identifiers are treated as **opaque strings**. Do not expose internal ID structure or format (e.g., UUID format is an implementation detail).
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get mobile units | `getMobileUnits_1` | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
+| View schedules | `viewSchedules` | GET | `/v1/shop-manager/{locationId}/schedules/view` |
+| Get shop service details | `getShopServiceDetails` | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` |
 
-```json
-{
-  "appointmentId": "appt-abc123",
-  "facilityId": "fac-xyz789"
-}
-```
+### Behavioral Assertions
 
----
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-## Timestamp Conventions
+### Frontend Usage Notes
 
-### Two Timestamp Formats
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-1. **UTC Timestamps** (audit fields): `createdAt`, `updatedAt`, `assignedAt`
-   - Format: ISO 8601 UTC (`2026-01-27T19:30:00Z`)
-   - Use `Instant` in Java
+### ADR Constraints
 
-2. **Facility-Timezone Timestamps** (scheduling fields): `scheduledStartDateTime`, `scheduledEndDateTime`
-   - Format: ISO 8601 with offset (`2026-01-27T14:30:00-05:00`)
-   - Use `OffsetDateTime` or `ZonedDateTime` in Java
-   - Include `facilityTimeZoneId` (IANA timezone) for clarity
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-### Standard Audit Fields
+### Events & Dependencies
 
-Every entity **SHOULD** include:
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-private Instant createdAt;
+### Contract Test Traceability
 
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-private Instant updatedAt;
-```
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
----
+## CAP-140: [CAP] Workorder Execution Context Linking
 
-## Collection & Pagination
+### Capability Metadata
 
-### Standard Pagination Response
+- Capability ID: CAP-140
+- Parent Issue: https://github.com/louisburroughs/durion/issues/140
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
 
-All paginated endpoints return:
+### API Operation References (OpenAPI Source of Truth)
 
-```json
-{
-  "results": [...],
-  "pageNumber": 0,
-  "pageSize": 20,
-  "totalCount": 156,
-  "totalPages": 8
-}
-```
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` |
+| View workorder operational context | `viewOpenWorkordersByShop` | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` |
+| Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` |
 
-### Query Parameters
+### Behavioral Assertions
 
-Standard pagination query parameters:
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-- `pageNumber` (default: 0, zero-indexed)
-- `pageSize` (default: 20, max: 100)
-- `sort` (e.g., `scheduledStartDateTime,asc` or `createdAt,desc`)
+### Frontend Usage Notes
 
-Example:
-```
-GET /v1/shop-manager/appointments?pageNumber=0&pageSize=20&sort=scheduledStartDateTime,asc
-```
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
----
+### ADR Constraints
 
-## Error Response Format
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-### Standard Error Envelope
+### Events & Dependencies
 
-All error responses follow this structure:
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-```json
-{
-  "code": "VALIDATION_FAILED",
-  "message": "Request validation failed",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2026-01-27T19:30:00Z",
-  "fieldErrors": [
-    {
-      "field": "scheduledStartDateTime",
-      "message": "Start date/time is required",
-      "rejectedValue": null
-    }
-  ]
-}
-```
+### Contract Test Traceability
 
-### HTTP Status Codes
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-- `200 OK` — Successful read/query
-- `201 Created` — Successful resource creation
-- `400 Bad Request` — Validation error, malformed request
-- `404 Not Found` — Resource not found
-- `409 Conflict` — Scheduling conflict (soft or hard)
-- `422 Unprocessable Entity` — Business rule violation
-- `500 Internal Server Error` — Unexpected server error
+## CAP-141: [CAP] Roles, Permissions, and Audit Controls
 
-### Domain-Specific Error Codes
+### Capability Metadata
 
-#### Appointment Creation
+- Capability ID: CAP-141
+- Parent Issue: https://github.com/louisburroughs/durion/issues/141
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
 
-- `VALIDATION_FAILED` — Request validation failed
-- `SOURCE_NOT_FOUND` — Source estimate or workorder not found
-- `SOURCE_INELIGIBLE` — Source not eligible for appointment (e.g., already scheduled)
-- `FACILITY_NOT_FOUND` — Facility not found or inactive
-- `SCHEDULING_CONFLICT` — Hard or soft conflict detected (HTTP 409)
-- `OUTSIDE_OPERATING_HOURS` — Requested time outside facility operating hours
-- `MECHANIC_UNAVAILABLE` — Assigned mechanic unavailable at requested time
-- `BAY_OCCUPIED` — Requested bay already occupied
-- `IDEMPOTENCY_CONFLICT` — Duplicate request with different parameters
+### API Operation References (OpenAPI Source of Truth)
 
-#### Assignment Management
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Create bay | `createBay` | POST | `/v1/shop-manager/{locationId}/bays` |
+| Create mobile unit | `createMobileUnit` | POST | `/v1/shop-manager/{locationId}/mobileUnit` |
+| Manage bays | `manageBays` | PUT | `/v1/shop-manager/bays` |
 
-- `APPOINTMENT_NOT_FOUND` — Appointment not found
-- `ASSIGNMENT_CONFLICT` — Resource assignment conflict
-- `INVALID_ASSIGNMENT_TYPE` — Invalid assignment type
-- `RESOURCE_NOT_FOUND` — Bay or mobile unit not found
+### Behavioral Assertions
 
----
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-## Correlation ID & Request Tracking
+### Frontend Usage Notes
 
-### X-Correlation-Id Header
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-All API requests **SHOULD** include an `X-Correlation-Id` header for request tracking and distributed tracing:
+### ADR Constraints
 
-```
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440000
-```
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-**Reference:** DECISION-SHOPMGMT-011
+### Events & Dependencies
 
-### Server Behavior
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-- If client provides `X-Correlation-Id`, server **MUST** use it
-- If client does not provide it, server **MUST** generate one
-- Server **MUST** include `correlationId` in all error responses
-- Server **SHOULD** include `X-Correlation-Id` in response headers
-- Server **MUST** log correlation ID for all operations
+### Contract Test Traceability
 
-### Example Error Response with Correlation ID
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-```json
-{
-  "code": "SCHEDULING_CONFLICT",
-  "message": "Scheduling conflict detected",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2026-01-27T19:30:00Z",
-  "conflicts": [...]
-}
-```
+## CAP-142: [CAP] Operational Reporting & Dashboards (Lightweight)
 
----
+### Capability Metadata
 
-## Idempotency
+- Capability ID: CAP-142
+- Parent Issue: https://github.com/louisburroughs/durion/issues/142
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
 
-### Idempotency-Key Header
+### API Operation References (OpenAPI Source of Truth)
 
-Appointment creation endpoint **MUST** support idempotency via `Idempotency-Key` header:
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Manage mobile units | `manageMobileUnits` | PUT | `/v1/shop-manager/mobileUnit` |
+| Delete bay | `deleteBay` | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` |
+| Delete mobile unit | `deleteMobileUnit` | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
 
-```
-POST /v1/shop-manager/appointments
-Idempotency-Key: client-request-abc123
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
-```
+### Behavioral Assertions
 
-**Reference:** DECISION-SHOPMGMT-014
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-### Server Behavior
+### Frontend Usage Notes
 
-- If `Idempotency-Key` is provided:
-  - Server **MUST** check for duplicate requests with same key
-  - If duplicate with **same parameters**: return cached response (HTTP 200 or 201)
-  - If duplicate with **different parameters**: return error (HTTP 409, code `IDEMPOTENCY_CONFLICT`)
-- If `Idempotency-Key` is not provided:
-  - Server **MAY** use `clientRequestId` from request body as idempotency key (if present)
-  - Otherwise, request is not idempotent
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-### Idempotency Key Retention
+### ADR Constraints
 
-Server **SHOULD** retain idempotency keys for at least **24 hours**.
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
----
+### Events & Dependencies
 
-## API Endpoints
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-### Base Path
+### Contract Test Traceability
 
-All Shop Management endpoints are under:
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-```
-/v1/shop-manager
-```
+## Events & Cross-Domain Dependencies
 
-### Appointment Management
+- This domain exchanges data with other services only through REST APIs and message/event contracts.
+- Integration failures must be observable through deterministic status and error reporting.
+- Any contract-affecting change must update OpenAPI and regenerate API references.
 
-#### Create Appointment
+## Verification Metadata
 
-```
-POST /v1/shop-manager/appointments
-```
+- OpenAPI source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
+- OpenAPI source revision: `ca7fadc3`
+- Last verified UTC: `2026-02-24T14:23:11Z`
+- Generated API reference: `domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
-**Headers:**
-- `Content-Type: application/json`
-- `X-Correlation-Id: {uuid}` (recommended)
-- `Idempotency-Key: {client-key}` (recommended)
+## References
 
-**Request Body:** `AppointmentCreateRequest`
-
-**Success Response:** `201 Created`
-- Body: `AppointmentResponse`
-
-**Error Responses:**
-- `400 Bad Request` — Validation error
-- `404 Not Found` — Source not found
-- `409 Conflict` — Scheduling conflict
-- `422 Unprocessable Entity` — Source ineligible
-
-#### Get Appointment
-
-```
-GET /v1/shop-manager/appointments/{appointmentId}
-```
-
-**Success Response:** `200 OK`
-- Body: `AppointmentResponse`
-
-**Error Responses:**
-- `404 Not Found` — Appointment not found
-
-#### List Appointments
-
-```
-GET /v1/shop-manager/appointments
-```
-
-**Query Parameters:**
-- `facilityId` (optional)
-- `sourceType` (optional): `ESTIMATE` or `WORKORDER`
-- `sourceId` (optional)
-- `status` (optional)
-- `scheduledStartFrom` (optional): ISO 8601 date/time
-- `scheduledStartTo` (optional): ISO 8601 date/time
-- `pageNumber` (default: 0)
-- `pageSize` (default: 20)
-- `sort` (default: `scheduledStartDateTime,asc`)
-
-**Success Response:** `200 OK`
-- Body: Paginated list of `AppointmentResponse`
-
-#### Update Appointment (Reschedule)
-
-```
-PUT /v1/shop-manager/appointments/{appointmentId}/schedule
-```
-
-**Request Body:** `AppointmentRescheduleRequest`
-
-**Success Response:** `200 OK`
-- Body: `AppointmentResponse`
-
-**Error Responses:**
-- `404 Not Found` — Appointment not found
-- `409 Conflict` — Scheduling conflict
-- `422 Unprocessable Entity` — Reschedule limit exceeded
-
-#### Cancel Appointment
-
-```
-DELETE /v1/shop-manager/appointments/{appointmentId}
-```
-
-**Success Response:** `204 No Content`
-
-**Error Responses:**
-- `404 Not Found` — Appointment not found
-
-### Assignment Management
-
-#### Get Assignment
-
-```
-GET /v1/shop-manager/appointments/{appointmentId}/assignment
-```
-
-**Success Response:** `200 OK`
-- Body: `AssignmentView`
-
-**Error Responses:**
-- `404 Not Found` — Appointment or assignment not found
-
-#### Update Assignment
-
-```
-PUT /v1/shop-manager/appointments/{appointmentId}/assignment
-```
-
-**Request Body:** `AssignmentUpdateRequest`
-
-**Success Response:** `200 OK`
-- Body: `AssignmentView`
-
-**Error Responses:**
-- `404 Not Found` — Appointment not found
-- `409 Conflict` — Assignment conflict
-
-### Create Form Initialization
-
-#### Get Create Form Model
-
-```
-GET /v1/shop-manager/appointments/create-model
-```
-
-**Query Parameters:**
-- `sourceType` (required): `ESTIMATE` or `WORKORDER`
-- `sourceId` (required)
-- `facilityId` (required)
-
-**Success Response:** `200 OK`
-- Body: `AppointmentCreateModel`
-
-**Error Responses:**
-- `404 Not Found` — Source or facility not found
-- `422 Unprocessable Entity` — Source ineligible
-
----
-
-## Entity-Specific Contracts
-
-### AppointmentCreateRequest
-
-**Description:** Request payload for creating a new appointment.
-
-**Fields:**
-
-```java
-public record AppointmentCreateRequest(
-    @NotNull SourceType sourceType,           // ESTIMATE | WORKORDER
-    @NotBlank String sourceId,                // Opaque string
-    @NotBlank String facilityId,              // Opaque string (DECISION-SHOPMGMT-012)
-    @NotNull OffsetDateTime scheduledStartDateTime,  // ISO-8601 with offset
-    @NotNull OffsetDateTime scheduledEndDateTime,    // ISO-8601 with offset
-    String clientRequestId,                   // Optional UUID (recommended)
-    boolean overrideSoftConflicts,            // Default: false
-    String overrideReason                     // Required if overrideSoftConflicts=true
-) {}
-```
-
-**Validation Rules:**
-- `sourceType` is required
-- `sourceId` is required and must not be blank
-- `facilityId` is required and must not be blank (DECISION-SHOPMGMT-012)
-- `scheduledStartDateTime` is required
-- `scheduledEndDateTime` is required and must be after `scheduledStartDateTime`
-- `overrideReason` is required if `overrideSoftConflicts` is true (DECISION-SHOPMGMT-007)
-
-**Example:**
-
-```json
-{
-  "sourceType": "WORKORDER",
-  "sourceId": "wo-12345",
-  "facilityId": "fac-67890",
-  "scheduledStartDateTime": "2026-01-28T09:00:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T11:00:00-05:00",
-  "clientRequestId": "550e8400-e29b-41d4-a716-446655440000",
-  "overrideSoftConflicts": false
-}
-```
-
----
-
-### AppointmentResponse
-
-**Description:** Response payload for appointment operations.
-
-**Fields:**
-
-```java
-public record AppointmentResponse(
-    String appointmentId,                     // Opaque string
-    String appointmentStatus,                 // Opaque string (e.g., SCHEDULED, CONFIRMED)
-    OffsetDateTime scheduledStartDateTime,    // ISO-8601 with offset
-    OffsetDateTime scheduledEndDateTime,      // ISO-8601 with offset
-    String facilityId,                        // Opaque string
-    String facilityTimeZoneId,                // IANA timezone (e.g., America/New_York)
-    SourceType sourceType,                    // ESTIMATE | WORKORDER
-    String sourceId,                          // Opaque string
-    String notificationOutcomeSummary,        // Optional (DECISION-SHOPMGMT-016)
-    Instant createdAt,                        // ISO-8601 UTC
-    Instant updatedAt,                        // ISO-8601 UTC
-    Integer rescheduleCount                   // Optional
-) {}
-```
-
-**Example:**
-
-```json
-{
-  "appointmentId": "appt-abc123",
-  "appointmentStatus": "SCHEDULED",
-  "scheduledStartDateTime": "2026-01-28T09:00:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T11:00:00-05:00",
-  "facilityId": "fac-67890",
-  "facilityTimeZoneId": "America/New_York",
-  "sourceType": "WORKORDER",
-  "sourceId": "wo-12345",
-  "notificationOutcomeSummary": "Email sent to customer",
-  "createdAt": "2026-01-27T19:30:00Z",
-  "updatedAt": "2026-01-27T19:30:00Z",
-  "rescheduleCount": 0
-}
-```
-
----
-
-### ConflictResponse
-
-**Description:** Response payload for scheduling conflicts (HTTP 409).
-
-**Fields:**
-
-```java
-public record ConflictResponse(
-    String errorCode,                         // Fixed: "SCHEDULING_CONFLICT"
-    String message,                           // Human-readable message
-    String correlationId,                     // Correlation ID
-    Instant timestamp,                        // ISO-8601 UTC
-    List<Conflict> conflicts,                 // List of conflicts
-    List<SuggestedAlternative> suggestedAlternatives  // Optional
-) {}
-
-public record Conflict(
-    ConflictSeverity severity,                // HARD | SOFT
-    String code,                              // E.g., OUTSIDE_OPERATING_HOURS
-    String message,                           // Human-readable message
-    boolean overridable,                      // HARD=false, SOFT=true
-    String affectedResource                   // E.g., bay ID, mechanic ID
-) {}
-
-public record SuggestedAlternative(
-    OffsetDateTime startDateTime,            // ISO-8601 with offset
-    OffsetDateTime endDateTime,              // ISO-8601 with offset
-    String reason                            // Optional explanation
-) {}
-```
-
-**Example:**
-
-```json
-{
-  "errorCode": "SCHEDULING_CONFLICT",
-  "message": "Scheduling conflict detected",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2026-01-27T19:30:00Z",
-  "conflicts": [
-    {
-      "severity": "SOFT",
-      "code": "MECHANIC_UNAVAILABLE",
-      "message": "Preferred mechanic is unavailable at requested time",
-      "overridable": true,
-      "affectedResource": "mech-456"
-    },
-    {
-      "severity": "HARD",
-      "code": "OUTSIDE_OPERATING_HOURS",
-      "message": "Requested time is outside facility operating hours",
-      "overridable": false,
-      "affectedResource": "fac-67890"
-    }
-  ],
-  "suggestedAlternatives": [
-    {
-      "startDateTime": "2026-01-28T10:00:00-05:00",
-      "endDateTime": "2026-01-28T12:00:00-05:00",
-      "reason": "Next available slot with preferred mechanic"
-    }
-  ]
-}
-```
-
-**Reference:** DECISION-SHOPMGMT-002
-
----
-
-### AssignmentView
-
-**Description:** Read model for appointment assignment display.
-
-**Fields:**
-
-```java
-public record AssignmentView(
-    String appointmentId,                     // Opaque string
-    String facilityId,                        // Opaque string
-    AssignmentType assignmentType,            // BAY | MOBILE_UNIT | UNASSIGNED
-    BayAssignment bay,                        // Nullable
-    MobileUnitAssignment mobileUnit,          // Nullable
-    MechanicAssignment mechanic,              // Nullable
-    String assignmentNotes,                   // Max 500 chars
-    Instant assignedAt,                       // ISO-8601 UTC
-    Instant lastUpdatedAt,                    // ISO-8601 UTC
-    Integer version,                          // Optimistic concurrency
-    String assignmentStatus                   // Optional (e.g., AWAITING_SKILL_FULFILLMENT)
-) {}
-
-public record BayAssignment(
-    String bayId,                             // Opaque string
-    String bayNameOrNumber,                   // Display name
-    String locationName                       // Optional
-) {}
-
-public record MobileUnitAssignment(
-    String mobileUnitId,                      // Opaque string
-    String mobileUnitName,                    // Optional display name
-    Double lastKnownLat,                      // Nullable
-    Double lastKnownLon,                      // Nullable
-    Instant lastUpdatedAt                     // Nullable
-) {}
-
-public record MechanicAssignment(
-    String mechanicId,                        // Nullable
-    String displayName,                       // Nullable
-    String photoUrl                           // Nullable
-) {}
-```
-
-**Example (Bay Assignment):**
-
-```json
-{
-  "appointmentId": "appt-abc123",
-  "facilityId": "fac-67890",
-  "assignmentType": "BAY",
-  "bay": {
-    "bayId": "bay-001",
-    "bayNameOrNumber": "Bay 1",
-    "locationName": "Main Shop"
-  },
-  "mobileUnit": null,
-  "mechanic": {
-    "mechanicId": "mech-456",
-    "displayName": "John Smith",
-    "photoUrl": "https://example.com/photos/mech-456.jpg"
-  },
-  "assignmentNotes": "Customer requested John",
-  "assignedAt": "2026-01-27T19:35:00Z",
-  "lastUpdatedAt": "2026-01-27T19:35:00Z",
-  "version": 1,
-  "assignmentStatus": null
-}
-```
-
-**Example (Mobile Unit Assignment):**
-
-```json
-{
-  "appointmentId": "appt-xyz789",
-  "facilityId": "fac-67890",
-  "assignmentType": "MOBILE_UNIT",
-  "bay": null,
-  "mobileUnit": {
-    "mobileUnitId": "mobile-002",
-    "mobileUnitName": "Mobile Unit 2",
-    "lastKnownLat": 40.7128,
-    "lastKnownLon": -74.0060,
-    "lastUpdatedAt": "2026-01-27T19:30:00Z"
-  },
-  "mechanic": {
-    "mechanicId": "mech-789",
-    "displayName": "Jane Doe",
-    "photoUrl": null
-  },
-  "assignmentNotes": "On-site service at customer location",
-  "assignedAt": "2026-01-27T19:40:00Z",
-  "lastUpdatedAt": "2026-01-27T19:40:00Z",
-  "version": 1,
-  "assignmentStatus": null
-}
-```
-
----
-
-### AppointmentCreateModel
-
-**Description:** Form initialization model for appointment creation.
-
-**Fields:**
-
-```java
-public record AppointmentCreateModel(
-    String facilityId,                        // Opaque string
-    SourceType sourceType,                    // ESTIMATE | WORKORDER
-    String sourceId,                          // Opaque string
-    String facilityTimeZoneId,                // IANA timezone
-    String sourceStatus,                      // Source document status
-    OffsetDateTime suggestedStartDateTime,    // Optional
-    OffsetDateTime suggestedEndDateTime,      // Optional
-    LocalTime businessHoursOpen,              // Optional
-    LocalTime businessHoursClose              // Optional
-) {}
-```
-
-**Example:**
-
-```json
-{
-  "facilityId": "fac-67890",
-  "sourceType": "WORKORDER",
-  "sourceId": "wo-12345",
-  "facilityTimeZoneId": "America/New_York",
-  "sourceStatus": "APPROVED",
-  "suggestedStartDateTime": "2026-01-28T09:00:00-05:00",
-  "suggestedEndDateTime": "2026-01-28T11:00:00-05:00",
-  "businessHoursOpen": "08:00:00",
-  "businessHoursClose": "18:00:00"
-}
-```
-
----
-
-### AssignmentUpdateRequest
-
-**Description:** Request payload for updating appointment assignment.
-
-**Fields:**
-
-```java
-public record AssignmentUpdateRequest(
-    AssignmentType assignmentType,            // BAY | MOBILE_UNIT | UNASSIGNED
-    String bayId,                             // Required if assignmentType=BAY
-    String mobileUnitId,                      // Required if assignmentType=MOBILE_UNIT
-    String mechanicId,                        // Optional
-    String assignmentNotes,                   // Optional, max 500 chars
-    Integer version                           // Required for optimistic concurrency
-) {}
-```
-
-**Validation Rules:**
-- `assignmentType` is required
-- `bayId` is required if `assignmentType` is `BAY`
-- `mobileUnitId` is required if `assignmentType` is `MOBILE_UNIT`
-- `assignmentNotes` max length is 500 characters
-- `version` is required for optimistic concurrency
-
-**Example (Bay Assignment):**
-
-```json
-{
-  "assignmentType": "BAY",
-  "bayId": "bay-003",
-  "mobileUnitId": null,
-  "mechanicId": "mech-456",
-  "assignmentNotes": "Moved to Bay 3 due to equipment availability",
-  "version": 2
-}
-```
-
-**Example (Unassigned):**
-
-```json
-{
-  "assignmentType": "UNASSIGNED",
-  "bayId": null,
-  "mobileUnitId": null,
-  "mechanicId": null,
-  "assignmentNotes": "Awaiting mechanic availability",
-  "version": 3
-}
-```
-
----
-
-### AppointmentRescheduleRequest
-
-**Description:** Request payload for rescheduling an appointment.
-
-**Fields:**
-
-```java
-public record AppointmentRescheduleRequest(
-    @NotNull OffsetDateTime scheduledStartDateTime,  // ISO-8601 with offset
-    @NotNull OffsetDateTime scheduledEndDateTime,    // ISO-8601 with offset
-    boolean overrideSoftConflicts,            // Default: false
-    String overrideReason,                    // Required if overrideSoftConflicts=true
-    Integer version                           // Required for optimistic concurrency
-) {}
-```
-
-**Validation Rules:**
-- `scheduledStartDateTime` is required
-- `scheduledEndDateTime` is required and must be after `scheduledStartDateTime`
-- `overrideReason` is required if `overrideSoftConflicts` is true
-- `version` is required for optimistic concurrency
-
-**Example:**
-
-```json
-{
-  "scheduledStartDateTime": "2026-01-28T14:00:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T16:00:00-05:00",
-  "overrideSoftConflicts": false,
-  "overrideReason": null,
-  "version": 1
-}
-```
-
----
-
-## Examples
-
-### Example 1: Create Appointment from Workorder (Success)
-
-**Request:**
-
-```http
-POST /v1/shop-manager/appointments HTTP/1.1
-Host: api.durion.example.com
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440000
-Idempotency-Key: client-req-abc123
-
-{
-  "sourceType": "WORKORDER",
-  "sourceId": "wo-12345",
-  "facilityId": "fac-67890",
-  "scheduledStartDateTime": "2026-01-28T09:00:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T11:00:00-05:00",
-  "clientRequestId": "550e8400-e29b-41d4-a716-446655440000",
-  "overrideSoftConflicts": false
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 201 Created
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440000
-
-{
-  "appointmentId": "appt-abc123",
-  "appointmentStatus": "SCHEDULED",
-  "scheduledStartDateTime": "2026-01-28T09:00:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T11:00:00-05:00",
-  "facilityId": "fac-67890",
-  "facilityTimeZoneId": "America/New_York",
-  "sourceType": "WORKORDER",
-  "sourceId": "wo-12345",
-  "notificationOutcomeSummary": "Email sent successfully",
-  "createdAt": "2026-01-27T19:30:00Z",
-  "updatedAt": "2026-01-27T19:30:00Z",
-  "rescheduleCount": 0
-}
-```
-
----
-
-### Example 2: Create Appointment with Soft Conflict (Override)
-
-**Request:**
-
-```http
-POST /v1/shop-manager/appointments HTTP/1.1
-Host: api.durion.example.com
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440001
-
-{
-  "sourceType": "ESTIMATE",
-  "sourceId": "est-56789",
-  "facilityId": "fac-67890",
-  "scheduledStartDateTime": "2026-01-28T17:30:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T19:00:00-05:00",
-  "overrideSoftConflicts": true,
-  "overrideReason": "Customer special request, approved by manager"
-}
-```
-
-**Response (if no hard conflicts):**
-
-```http
-HTTP/1.1 201 Created
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440001
-
-{
-  "appointmentId": "appt-def456",
-  "appointmentStatus": "SCHEDULED",
-  "scheduledStartDateTime": "2026-01-28T17:30:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T19:00:00-05:00",
-  "facilityId": "fac-67890",
-  "facilityTimeZoneId": "America/New_York",
-  "sourceType": "ESTIMATE",
-  "sourceId": "est-56789",
-  "createdAt": "2026-01-27T19:35:00Z",
-  "updatedAt": "2026-01-27T19:35:00Z",
-  "rescheduleCount": 0
-}
-```
-
----
-
-### Example 3: Create Appointment with Hard Conflict (Rejected)
-
-**Request:**
-
-```http
-POST /v1/shop-manager/appointments HTTP/1.1
-Host: api.durion.example.com
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440002
-
-{
-  "sourceType": "WORKORDER",
-  "sourceId": "wo-99999",
-  "facilityId": "fac-67890",
-  "scheduledStartDateTime": "2026-01-28T20:00:00-05:00",
-  "scheduledEndDateTime": "2026-01-28T22:00:00-05:00",
-  "overrideSoftConflicts": false
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 409 Conflict
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440002
-
-{
-  "errorCode": "SCHEDULING_CONFLICT",
-  "message": "Scheduling conflict detected",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440002",
-  "timestamp": "2026-01-27T19:40:00Z",
-  "conflicts": [
-    {
-      "severity": "HARD",
-      "code": "OUTSIDE_OPERATING_HOURS",
-      "message": "Requested time is outside facility operating hours (8:00 AM - 6:00 PM)",
-      "overridable": false,
-      "affectedResource": "fac-67890"
-    }
-  ],
-  "suggestedAlternatives": [
-    {
-      "startDateTime": "2026-01-29T08:00:00-05:00",
-      "endDateTime": "2026-01-29T10:00:00-05:00",
-      "reason": "Next available slot during operating hours"
-    }
-  ]
-}
-```
-
----
-
-### Example 4: Update Assignment
-
-**Request:**
-
-```http
-PUT /v1/shop-manager/appointments/appt-abc123/assignment HTTP/1.1
-Host: api.durion.example.com
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440003
-
-{
-  "assignmentType": "BAY",
-  "bayId": "bay-005",
-  "mechanicId": "mech-789",
-  "assignmentNotes": "Moved to larger bay for chassis work",
-  "version": 1
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440003
-
-{
-  "appointmentId": "appt-abc123",
-  "facilityId": "fac-67890",
-  "assignmentType": "BAY",
-  "bay": {
-    "bayId": "bay-005",
-    "bayNameOrNumber": "Bay 5",
-    "locationName": "Main Shop"
-  },
-  "mobileUnit": null,
-  "mechanic": {
-    "mechanicId": "mech-789",
-    "displayName": "Jane Doe",
-    "photoUrl": "https://example.com/photos/mech-789.jpg"
-  },
-  "assignmentNotes": "Moved to larger bay for chassis work",
-  "assignedAt": "2026-01-27T19:35:00Z",
-  "lastUpdatedAt": "2026-01-27T19:45:00Z",
-  "version": 2,
-  "assignmentStatus": null
-}
-```
-
----
-
-### Example 5: Validation Error
-
-**Request:**
-
-```http
-POST /v1/shop-manager/appointments HTTP/1.1
-Host: api.durion.example.com
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440004
-
-{
-  "sourceType": "WORKORDER",
-  "sourceId": "",
-  "facilityId": "fac-67890",
-  "scheduledStartDateTime": "2026-01-28T09:00:00-05:00"
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 400 Bad Request
-Content-Type: application/json
-X-Correlation-Id: 550e8400-e29b-41d4-a716-446655440004
-
-{
-  "code": "VALIDATION_FAILED",
-  "message": "Request validation failed",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440004",
-  "timestamp": "2026-01-27T19:50:00Z",
-  "fieldErrors": [
-    {
-      "field": "sourceId",
-      "message": "Source ID must not be blank",
-      "rejectedValue": ""
-    },
-    {
-      "field": "scheduledEndDateTime",
-      "message": "Scheduled end date/time is required",
-      "rejectedValue": null
-    }
-  ]
-}
-```
-
----
-
-## Related Documentation
-
-- **AGENT_GUIDE.md** — Domain boundaries and design decisions
-- **DOMAIN_NOTES.md** — Additional domain context
-- **STORY_VALIDATION_CHECKLIST.md** — Story acceptance criteria
-
-### Key Design Decisions
-
-- **DECISION-SHOPMGMT-002** — Hard vs Soft conflict classification
-- **DECISION-SHOPMGMT-007** — Override reason required for soft conflicts
-- **DECISION-SHOPMGMT-008** — Operating hours source of truth (Location domain)
-- **DECISION-SHOPMGMT-009** — Mechanic HR profile source of truth (People domain)
-- **DECISION-SHOPMGMT-011** — Correlation ID for request tracking
-- **DECISION-SHOPMGMT-012** — Facility ID required for appointment creation
-- **DECISION-SHOPMGMT-014** — Idempotency support
-- **DECISION-SHOPMGMT-015** — Timezone-aware scheduling
-- **DECISION-SHOPMGMT-016** — Notification outcome summary
-
----
-
-**End of Guide**
-
----
-
-## Capability Contract Template
-
-Use the shared template for capability sections:
-
-- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
+- `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- `domains/shopmgmt/.business-rules/AGENT_GUIDE.md`
+- `domains/shopmgmt/.business-rules/DOMAIN_NOTES.md`
+- `domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md`

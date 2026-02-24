@@ -24,7 +24,7 @@ This checklist validates WorkExec-domain story implementations for correctness, 
 - [ ] Verify date range validation is enforced client-side: `endDate >= startDate` (inclusive) for filters
 - [ ] Verify UUID validation behavior is consistent per screen:
   - [ ] If IDs are guaranteed UUIDs, block invalid UUID input with inline errors
-  - [ ] If IDs are not guaranteed UUIDs (e.g., estimateNumber, workOrderNumber), allow free-text and rely on backend validation
+  - [ ] If IDs are not guaranteed UUIDs (e.g., estimateNumber, workorderNumber), allow free-text and rely on backend validation
 - [ ] Verify currency formatting uses `currencyUomId` from backend and does not assume a default currency
 - [ ] Verify money input validation:
   - [ ] `unitPrice > 0`, `quantity > 0`, `laborUnits > 0` for item additions
@@ -107,8 +107,8 @@ This checklist validates WorkExec-domain story implementations for correctness, 
 - [ ] Verify UI surfaces support-friendly identifiers on success/failure:
   - [ ] Estimate operations: `estimateId`, `estimateNumber`, `version`, `status`, timestamps
   - [ ] Approval operations: `approvalRecordId`, `resolutionStatus`, `resolvedAt`, `resolvedBy`
-  - [ ] WorkOrder operations: `workOrderId`, `workOrderNumber`, `status`, timestamps
-- [ ] Verify Moqui server logs include key identifiers (estimateId, workOrderId, customerId, vehicleId, approvalRecordId) and do not include full signature data
+  - [ ] WorkOrder operations: `workorderId`, `workorderNumber`, `status`, timestamps
+- [ ] Verify Moqui server logs include key identifiers (estimateId, workorderId, customerId, vehicleId, approvalRecordId) and do not include full signature data
 - [ ] Verify correlation/trace header propagation is implemented per project standard
 - [ ] Verify W3C Trace Context propagation on all outbound calls:
   - [ ] `traceparent` propagated unchanged when present
@@ -128,7 +128,7 @@ This checklist validates WorkExec-domain story implementations for correctness, 
 - [ ] Verify concurrency/conflict handling:
   - [ ] On 409 status changed, UI prompts reload and clears stale form state
   - [ ] On 409 version mismatch (if implemented), UI prompts reload
-  - [ ] On 409 estimate already promoted, UI shows existing workOrderId
+  - [ ] On 409 estimate already promoted, UI shows existing workorderId
   - [ ] UI does not show success state unless backend confirms success
 - [ ] Verify approval flow handles async/timeout gracefully:
   - [ ] Loading states during signature capture submit

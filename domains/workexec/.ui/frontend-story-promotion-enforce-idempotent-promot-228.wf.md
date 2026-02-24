@@ -13,7 +13,7 @@ Ensure the “Promote Estimate to Work Order” action behaves idempotently from
   - Non-retryable error banner with escalation/admin message
   - Correlation/Idempotency key display (when relevant for support)
 - Optional secondary action: “Copy correlation id” (or copyable text field)
-- Navigation link to canonical Work Order screen (by workOrderId)
+- Navigation link to canonical Work Order screen (by workorderId)
 
 ## Layout
 - Top: Estimate header/summary + status
@@ -33,7 +33,7 @@ Ensure the “Promote Estimate to Work Order” action behaves idempotently from
    2. UI generates a new idempotency key (UUID) for this attempt and stores it in component state until completion.
    3. Immediately disable the Promote button; show spinner and “Promoting…” in the promotion panel.
    4. Send promotion mutation with required body (estimateId, snapshotVersion) and include the Idempotency-Key header.
-   5. On 200 success with canonical workOrderId (and optional workOrderNumber/reference):
+   5. On 200 success with canonical workorderId (and optional workorderNumber/reference):
       1. Store returned canonical Work Order reference.
       2. Show success banner: “Promoted to Work Order” + Work Order reference + “Open Work Order” link navigating to the canonical Work Order screen.
       3. Keep Promote disabled if returned data indicates the estimate is already promoted; otherwise allow re-click (must still resolve idempotently).

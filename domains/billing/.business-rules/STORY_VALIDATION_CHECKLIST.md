@@ -16,7 +16,7 @@ This checklist validates implementations within the Billing domain (billing rule
 - [ ] Story stays within Billing responsibilities and does not implement Accounting-owned GL logic beyond displaying acknowledgements/status.
 - [ ] UI does not couple to upstream internal storage; all upstream data consumed via stable contracts.
 - [ ] Billing stores traceability references; upstream systems own the records.
-- [ ] Draft invoice creation is Billing-owned and idempotent by workOrderId.
+- [ ] Draft invoice creation is Billing-owned and idempotent by workorderId.
 - [ ] Checkout PO enforcement consumes backend policy evaluation; UI does not hardcode policy thresholds.
 - [ ] AP vendor payment execution is Billing/AP capability; GL posting is downstream/async.
 
@@ -62,7 +62,7 @@ AP vendor payments:
 - [ ] Contracts exist for:
   - [ ] Create draft invoice (`POST /billing/invoices/draft`)
   - [ ] Get invoice detail (`GET /billing/invoices/{invoiceId}`)
-  - [ ] Get invoice by work order (`GET /billing/invoices/by-workorder/{workOrderId}`)
+  - [ ] Get invoice by work order (`GET /billing/invoices/by-workorder/{workorderId}`)
   - [ ] Issue invoice (`POST /billing/invoices/{invoiceId}/issue`)
   - [ ] BillingRules GET/PUT with ETag/If-Match
   - [ ] Discovery endpoints for options/enums
@@ -83,7 +83,7 @@ AP vendor payments:
 
 ## Events & Idempotency
 
-- [ ] Draft creation idempotent per workOrderId.
+- [ ] Draft creation idempotent per workorderId.
 - [ ] Issuance idempotent per invoiceId+version; emits `InvoiceIssued` exactly once.
 - [ ] AP payment idempotent by paymentRef; conflicting payload returns 409.
 - [ ] Checkout finalize is safe against double-submit.

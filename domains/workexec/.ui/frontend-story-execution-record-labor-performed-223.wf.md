@@ -4,7 +4,7 @@ Enable Technicians to record labor performed against a work order’s service it
 
 ## Components
 - Page header: Work Order identifier + status
-- Work order context panel (read-only): workOrderId, serviceItemId/name, work order status, service item status, assignment info, eligibility flag (if provided)
+- Work order context panel (read-only): workorderId, serviceItemId/name, work order status, service item status, assignment info, eligibility flag (if provided)
 - Service items list (selectable rows/cards): item name/identifier, itemStatus, assignment indicator, labor eligibility indicator
 - Service item detail section: selected service item summary + “Record labor” action
 - Labor entries list (read-only): rows with created timestamp, technician name/ID, labor type, hours or completion, notes

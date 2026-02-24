@@ -317,7 +317,7 @@ Response (200 OK):
   "facilityId": "loc-456",
   "facilityTimeZoneId": "America/New_York",
   "estimateId": "est-123",
-  "workOrderId": null,
+  "workorderId": null,
   "createdAt": "2026-01-25T10:00:00Z",
   "lastUpdatedAt": "2026-01-25T10:00:00Z"
 }

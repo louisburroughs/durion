@@ -212,7 +212,7 @@ Search parameters (AND semantics):
 
 - `fromUtc`, `toUtc` (required; see AUD-SEC-005)
 - at least one of:
-  - `workOrderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `eventType`, `aggregateId`, `correlationId`, `reasonCode`
+  - `workorderId`, `appointmentId`, `mechanicId`, `movementId`, `productId`, `sku`, `partNumber`, `actorId`, `eventType`, `aggregateId`, `correlationId`, `reasonCode`
 - `locationIds[]` required for cross-location searches (and requires `audit:scope:cross-location`)
 
 ### Pricing evidence APIs (AUD-SEC-008)
@@ -308,7 +308,7 @@ Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
 
 **Question:** Canonical IDs for movement/workorder/product/location/user: what are they and are they always present on `AuditLog` or only via reference entities/indexes?
 
-**Response:** Canonical IDs are UUIDv7 and should be denormalized onto `AuditLog` when applicable (e.g., `workOrderId`, `movementId`, `productId`, `locationId`, `actorId`) to enable indexed search and avoid payload parsing. (AUD-SEC-007, AUD-SEC-002)
+**Response:** Canonical IDs are UUIDv7 and should be denormalized onto `AuditLog` when applicable (e.g., `workorderId`, `movementId`, `productId`, `locationId`, `actorId`) to enable indexed search and avoid payload parsing. (AUD-SEC-007, AUD-SEC-002)
 
 #### 4) Location scoping and multi-location behavior (blocking)
 

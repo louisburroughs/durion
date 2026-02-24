@@ -140,7 +140,7 @@ Advanced features and optional items:
 **9 Blocking Questions:**
 1. 🔴 Domain ownership (inventory vs workexec)
 2. 🔴 Backend contract/endpoints
-3. 🔴 Route identifier (workOrderId vs pickTaskId)
+3. 🔴 Route identifier (workorderId vs pickTaskId)
 4. 🔴 Scan semantics (what can be scanned)
 5. 🔴 Multi-match handling
 6. 🔴 Quantity rules (partial picks allowed?)

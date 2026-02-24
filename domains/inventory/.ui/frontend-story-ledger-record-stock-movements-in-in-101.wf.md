@@ -24,7 +24,7 @@ Provide a permission-gated Inventory Ledger UI that lets users search and browse
   - Empty state messaging
 - Detail view screen (read-only)
   - Field list of all backend-returned properties
-  - Linkage fields section (sourceTransactionId, workOrderId, workOrderLineId) when present
+  - Linkage fields section (sourceTransactionId, workorderId, workorderLineId) when present
   - Null-safe placeholders (“—”)
   - Back navigation
 - Error/empty states

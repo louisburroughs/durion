@@ -2,1236 +2,193 @@
 title: Location Management Backend Contract Guide
 domain: location
 doc_type: backend_contract
-contract:
-  status: draft
-  owner_repo: louisburroughs/durion
-  guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  openapi_source: pos-location/target/openapi.yaml
+contract_status: draft
+owner_repo: louisburroughs/durion
+guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
+openapi_source: durion-positivity-backend/pos-location/openapi.yaml
+openapi_commit: ca7fadc3
+last_verified_utc: 2026-02-24T14:23:11Z
+last_updated: 2026-02-24
+api_reference_generated: domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
-  capability_manifest: docs/capabilities
-last_updated: 2026-02-22
+  capability_manifest_root: docs/capabilities
 ---
 
 # Location Management Backend Contract Guide
 
-**Version:** 1.0  
-**Audience:** Backend developers, Frontend developers, API consumers  
-**Last Updated:** 2026-01-27  
-**OpenAPI Source:** `pos-location/target/openapi.yaml`
+## Purpose & Scope
 
----
+This is the curated contract guide for Location Management domain behavior.
 
-## Overview
+- Use this guide for capability intent, domain invariants, dependency boundaries, and UI-to-API mapping.
+- Use OpenAPI and generated API reference for request/response schemas and full endpoint detail.
 
-This guide standardizes field naming conventions, data types, payload structures, and error codes for the Location Management domain REST API and backend services. Consistency across all endpoints ensures predictable API contracts and reduces integration friction.
+Authoritative references:
 
-This guide is generated from the OpenAPI specification and follows the standards established across all Durion platform domains.
+- OpenAPI: `durion-positivity-backend/pos-location/openapi.yaml`
+- Generated API reference: `domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md`
+- Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- Domain decisions: `domains/location/.business-rules/AGENT_GUIDE.md`
 
----
+## How To Use This Guide
 
-## Table of Contents
+Backend coder workflow:
 
-1. [JSON Field Naming Conventions](#json-field-naming-conventions)
-2. [Data Types & Formats](#data-types--formats)
-3. [Enum Value Conventions](#enum-value-conventions)
-4. [Identifier Naming](#identifier-naming)
-5. [Timestamp Conventions](#timestamp-conventions)
-6. [Collection & Pagination](#collection--pagination)
-7. [Error Response Format](#error-response-format)
-8. [Correlation ID & Request Tracking](#correlation-id--request-tracking)
-9. [API Endpoints](#api-endpoints)
-10. [Entity-Specific Contracts](#entity-specific-contracts)
-11. [Examples](#examples)
+1. Read `Domain Invariants` and the relevant capability section.
+2. Validate behavior constraints before implementing endpoint changes.
+3. Use `operationId` mappings here, then confirm payload details in generated API reference.
+4. Ensure tests cover each changed behavioral assertion.
 
----
+Frontend developer workflow:
 
-## JSON Field Naming Conventions
+1. Start with `Frontend API Lookup` and identify the `operationId` for the UI action.
+2. Open generated API reference for exact payload and response details.
+3. Implement error handling and headers described in this guide.
 
-### Standard Pattern: camelCase
+## Domain Invariants
 
-All JSON field names **MUST** use `camelCase` (not `snake_case`, not `PascalCase`).
+- Location Management behavioral rules are authoritative in backend services, not inferred from frontend state.
+- Mutating operations require explicit permission enforcement and auditable outcomes.
+- Error responses and correlation headers must be deterministic and traceable across requests.
+- Cross-domain interactions must go through API/event contracts, not direct data coupling.
 
-```json
-{
-  "id": "abc-123",
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z",
-  "status": "ACTIVE"
-}
-```
+## Capability Index
 
-### Rationale
+| Capability | Parent Issue | Contract Status | Primary Scope |
+| --- | --- | --- | --- |
+| CAP-136 | `durion#136` | draft | [CAP] Manage Locations, Bays, and Mobile Units |
+| CAP-214 | `durion#214` | draft | [CAP] Location & Storage Topology (Shops, Mobile, Floor/Shelf/Bin) |
 
-- Aligns with JSON/JavaScript convention
-- Matches Java property naming after Jackson deserialization
-- Consistent with REST API best practices (RFC 7231)
-- Consistent across all Durion platform domains
+## Frontend API Lookup
 
----
+| UI Task | operationId | Method | Path | Notes |
+| --- | --- | --- | --- | --- |
+| Delete a location | `deleteLocation` | DELETE | `/v1/locations/{locationId}` | Refer to generated API reference for payload details |
+| Get all locations | `getAllLocations` | GET | `/v1/locations` | Refer to generated API reference for payload details |
+| Get all location parents | `getAllParents` | GET | `/v1/locations/parents` | Refer to generated API reference for payload details |
+| Get location roster | `getRoster` | GET | `/v1/locations/roster` | Refer to generated API reference for payload details |
+| Get location by ID | `getLocationById` | GET | `/v1/locations/{locationId}` | Refer to generated API reference for payload details |
+| List bays | `listBays` | GET | `/v1/locations/{locationId}/bays` | Refer to generated API reference for payload details |
+| Get bay | `getBay` | GET | `/v1/locations/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
+| Get all children for a location | `getAllChildren` | GET | `/v1/locations/{locationId}/children` | Refer to generated API reference for payload details |
+| Operation | `getDefaults` | GET | `/v1/locations/{locationId}/defaults` | Refer to generated API reference for payload details |
+| Get responsible person for a location | `getResponsiblePerson` | GET | `/v1/locations/{locationId}/responsible-person` | Refer to generated API reference for payload details |
+| Validate location reference | `validateLocation` | GET | `/v1/locations/{locationId}/validation` | Refer to generated API reference for payload details |
+| Operation | `list_2` | GET | `/v1/locations/{siteId}/storage-locations` | Refer to generated API reference for payload details |
+| Operation | `get` | GET | `/v1/locations/{siteId}/storage-locations/{storageLocationId}` | Refer to generated API reference for payload details |
+| List mobile units | `listMobileUnits` | GET | `/v1/mobile-units` | Refer to generated API reference for payload details |
+| Get mobile unit | `getMobileUnitById` | GET | `/v1/mobile-units/{id}` | Refer to generated API reference for payload details |
 
-## Data Types & Formats
+Headers and auth notes:
 
-### String Fields
+- Always propagate `X-Correlation-Id`.
+- Apply `Authorization` and endpoint-specific authorities for restricted operations.
+- Use idempotency semantics where the endpoint contract requires mutation deduplication.
 
-Use `string` type for:
+## Capability Sections
 
-- Names and descriptions
-- Codes and identifiers
-- Free-form text
-- Enum values (serialized as strings)
+## CAP-136: [CAP] Manage Locations, Bays, and Mobile Units
 
-```java
-private String id;
-private String name;
-private String description;
-private String status;
-```
+### Capability Metadata
 
-### Numeric Fields
+- Capability ID: CAP-136
+- Parent Issue: https://github.com/louisburroughs/durion/issues/136
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-location/openapi.yaml`
 
-Use `Integer` or `Long` for:
+### API Operation References (OpenAPI Source of Truth)
 
-- Counts (page numbers, total results)
-- Version numbers
-- Sequence numbers
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Delete a location | `deleteLocation` | DELETE | `/v1/locations/{locationId}` |
+| Get all locations | `getAllLocations` | GET | `/v1/locations` |
+| Get all location parents | `getAllParents` | GET | `/v1/locations/parents` |
 
-```java
-private Integer pageNumber;
-private Integer pageSize;
-private Long totalCount;
-```
+### Behavioral Assertions
 
-### Boolean Fields
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
-Use `boolean` for true/false flags:
+### Frontend Usage Notes
 
-```java
-private boolean isActive;
-private boolean isPrimary;
-private boolean hasPermission;
-```
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-### UUID/ID Fields
+### ADR Constraints
 
-Use `String` for all primary and foreign key IDs:
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-```java
-private String id;
-private String parentId;
-private String referenceId;
-```
+### Events & Dependencies
 
-### Instant/Timestamp Fields
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-Use `Instant` in Java; serialize to ISO 8601 UTC in JSON:
+### Contract Test Traceability
 
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
-private Instant createdAt;
-private Instant updatedAt;
-```
+- Provider tests: `durion-positivity-backend/pos-location/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
-JSON representation:
+## CAP-214: [CAP] Location & Storage Topology (Shops, Mobile, Floor/Shelf/Bin)
 
-```json
-{
-  "createdAt": "2026-01-27T14:30:00Z",
-  "updatedAt": "2026-01-27T15:45:30Z"
-}
-```
+### Capability Metadata
 
-### LocalDate Fields
+- Capability ID: CAP-214
+- Parent Issue: https://github.com/louisburroughs/durion/issues/214
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-location/openapi.yaml`
 
-Use `LocalDate` for date-only fields (no time component):
+### API Operation References (OpenAPI Source of Truth)
 
-```java
-@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-private LocalDate effectiveFrom;
-private LocalDate effectiveTo;
-```
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get location roster | `getRoster` | GET | `/v1/locations/roster` |
+| Get location by ID | `getLocationById` | GET | `/v1/locations/{locationId}` |
+| List bays | `listBays` | GET | `/v1/locations/{locationId}/bays` |
 
-JSON representation:
+### Behavioral Assertions
 
-```json
-{
-  "effectiveFrom": "2026-01-01",
-  "effectiveTo": "2026-12-31"
-}
-```
+- Requests must satisfy domain validation rules before state change.
+- Successful mutations must produce deterministic persisted outcomes.
+- Failure responses must be explicit and actionable for callers.
 
----
+### Frontend Usage Notes
 
-## Enum Value Conventions
+- Use operation IDs above as the stable API integration keys for UI actions.
+- Read request/response payload shapes from generated API reference, not this guide.
+- Surface validation and authorization failures directly to users with trace context.
 
-### Standard Pattern: UPPER_SNAKE_CASE
+### ADR Constraints
 
-All enum values **MUST** use `UPPER_SNAKE_CASE`:
+- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
 
-```java
-public enum Status {
-    ACTIVE,
-    INACTIVE,
-    PENDING_APPROVAL,
-    ARCHIVED
-}
-```
+### Events & Dependencies
 
-### Enums in this Domain
+- Respect published API/event contracts for all upstream and downstream dependencies.
+- Preserve traceability when integrating across services or asynchronous workflows.
 
-#### LocationParent.parentType
+### Contract Test Traceability
 
-- `HOME_OFFICE`
-- `HEADQUARTERS`
-- `REGION`
-- `DISTRICT`
-- `BILLING`
+- Provider tests: `durion-positivity-backend/pos-location/src/test/...`
+- Add or update tests that cover each behavioral assertion above when behavior changes.
 
----
+## Events & Cross-Domain Dependencies
 
-## Identifier Naming
+- This domain exchanges data with other services only through REST APIs and message/event contracts.
+- Integration failures must be observable through deterministic status and error reporting.
+- Any contract-affecting change must update OpenAPI and regenerate API references.
 
-### Standard Pattern
+## Verification Metadata
 
-- Primary keys: `id` or `{entity}Id` (e.g., `customerId`, `orderId`)
-- Foreign keys: `{entity}Id` (e.g., `parentId`, `accountId`)
-- Composite identifiers: use structured object, not concatenated string
-
-### Examples
-
-```json
-{
-  "id": "abc-123",
-  "customerId": "cust-456",
-  "orderId": "ord-789"
-}
-```
-
----
-
-## Timestamp Conventions
-
-### Standard Pattern: ISO 8601 UTC
-
-All timestamps **MUST** be:
-
-- Serialized in ISO 8601 format with UTC timezone (`Z` suffix)
-- Stored as `Instant` in Java
-- Include millisecond precision when available
-
-```json
-{
-  "createdAt": "2026-01-27T14:30:00.123Z",
-  "updatedAt": "2026-01-27T15:45:30.456Z"
-}
-```
-
-### Common Timestamp Fields
-
-- `createdAt`: When the entity was created
-- `updatedAt`: When the entity was last updated
-- `deletedAt`: When the entity was soft-deleted (if applicable)
-- `effectiveFrom`: Start date for effective dating
-- `effectiveTo`: End date for effective dating
-
----
-
-## Collection & Pagination
-
-### Standard Pagination Request
-
-```json
-{
-  "pageNumber": 0,
-  "pageSize": 20,
-  "sortField": "createdAt",
-  "sortOrder": "DESC"
-}
-```
-
-### Standard Pagination Response
-
-```json
-{
-  "results": [...],
-  "totalCount": 150,
-  "pageNumber": 0,
-  "pageSize": 20,
-  "totalPages": 8
-}
-```
-
-### Guidelines
-
-- Use zero-based page numbering
-- Default page size: 20 items
-- Maximum page size: 100 items
-- Include total count for client-side pagination controls
-
----
-
-## Error Response Format
-
-### Standard Error Response
-
-All error responses **MUST** follow this format:
-
-```json
-{
-  "code": "VALIDATION_ERROR",
-  "message": "Invalid request parameters",
-  "correlationId": "abc-123-def-456",
-  "timestamp": "2026-01-27T14:30:00Z",
-  "fieldErrors": [
-    {
-      "field": "email",
-      "message": "Invalid email format",
-      "rejectedValue": "invalid-email"
-    }
-  ]
-}
-```
-
-### Standard HTTP Status Codes
-
-- `200 OK`: Successful GET, PUT, PATCH
-- `201 Created`: Successful POST
-- `204 No Content`: Successful DELETE
-- `400 Bad Request`: Validation error
-- `401 Unauthorized`: Authentication required
-- `403 Forbidden`: Insufficient permissions
-- `404 Not Found`: Resource not found
-- `409 Conflict`: Business rule violation
-- `422 Unprocessable Entity`: Semantic validation error
-- `500 Internal Server Error`: Unexpected server error
-- `501 Not Implemented`: Endpoint not yet implemented
-
----
-
-## Correlation ID & Request Tracking
-
-### X-Correlation-Id Header
-
-All API requests **SHOULD** include an `X-Correlation-Id` header for distributed tracing:
-
-```http
-GET /v1/location/entities/123
-X-Correlation-Id: abc-123-def-456
-```
-
-### Response Headers
-
-All API responses **MUST** echo the correlation ID:
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-```
-
-### Error Responses
-
-All error responses **MUST** include the correlation ID in the body:
-
-```json
-{
-  "code": "NOT_FOUND",
-  "message": "Entity not found",
-  "correlationId": "abc-123-def-456"
-}
-```
-
-**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
-
----
-
-## API Endpoints
-
-### Endpoint Summary
-
-This domain exposes **18** REST API endpoints:
-
-| Method | Path | Summary |
-|--------|------|---------|
-| GET | `/v1/locations` | Get all locations |
-| POST | `/v1/locations` | Create a new location |
-| GET | `/v1/locations/bays` | Get bays |
-| PUT | `/v1/locations/bays` | Manage bays |
-| GET | `/v1/locations/mobileUnit` | Get mobile units |
-| PUT | `/v1/locations/mobileUnit` | Manage mobile units |
-| GET | `/v1/locations/parents` | Get all location parents |
-| POST | `/v1/locations/{childId}/parents/{parentId}` | Add a parent to a location |
-| DELETE | `/v1/locations/{locationId}` | Delete a location |
-| GET | `/v1/locations/{locationId}` | Get location by ID |
-| PUT | `/v1/locations/{locationId}` | Update an existing location |
-| POST | `/v1/locations/{locationId}/bays` | Create bay |
-| DELETE | `/v1/locations/{locationId}/bays/{bayId}` | Delete bay |
-| GET | `/v1/locations/{locationId}/bays/{bayId}` | Get bays |
-| POST | `/v1/locations/{locationId}/mobileUnit` | Create mobile unit |
-| DELETE | `/v1/locations/{locationId}/mobileUnit/{bayId}` | Delete mobile unit |
-| GET | `/v1/locations/{locationId}/mobileUnit/{bayId}` | Get mobile units |
-| GET | `/v1/locations/{locationId}/responsible-person` | Get responsible person for a location |
-
-### Endpoint Details
-
-#### GET /v1/locations
-
-**Summary:** Get all locations
-
-**Description:** Retrieve a list of all locations.
-
-**Operation ID:** `getAllLocations`
-
-**Responses:**
-
-- `200`: List of locations returned successfully.
-
----
-
-#### POST /v1/locations
-
-**Summary:** Create a new location
-
-**Description:** Add a new location to the system.
-
-**Operation ID:** `createLocation`
-
-**Responses:**
-
-- `200`: Location created successfully.
-
----
-
-#### GET /v1/locations/bays
-
-**Summary:** Get bays
-
-**Description:** List all bays or get a specific bay detail by locationId and bayId.
-
-**Operation ID:** `getBays`
-
-**Responses:**
-
-- `200`: Bays retrieved successfully.
-
----
-
-#### PUT /v1/locations/bays
-
-**Summary:** Manage bays
-
-**Description:** Create or update bays in bulk.
-
-**Operation ID:** `manageBays`
-
-**Responses:**
-
-- `200`: Bays managed successfully.
-
----
-
-#### GET /v1/locations/mobileUnit
-
-**Summary:** Get mobile units
-
-**Description:** List all mobile units or get a specific mobile unit detail by locationId and bayId.
-
-**Operation ID:** `getMobileUnits`
-
-**Responses:**
-
-- `200`: Mobile units retrieved successfully.
-
----
-
-#### PUT /v1/locations/mobileUnit
-
-**Summary:** Manage mobile units
-
-**Description:** Create or update mobile units in bulk.
-
-**Operation ID:** `manageMobileUnits`
-
-**Responses:**
-
-- `200`: Mobile units managed successfully.
-
----
-
-#### GET /v1/locations/parents
-
-**Summary:** Get all location parents
-
-**Description:** Retrieve all parent relationships for locations.
-
-**Operation ID:** `getAllParents`
-
-**Responses:**
-
-- `200`: List of location parents returned successfully.
-
----
-
-#### POST /v1/locations/{childId}/parents/{parentId}
-
-**Summary:** Add a parent to a location
-
-**Description:** Add a parent relationship to a location.
-
-**Operation ID:** `addParent`
-
-**Parameters:**
-
-- `childId` (path, Required, integer): ID of the child location
-- `parentId` (path, Required, integer): ID of the parent location
-- `parentType` (query, Required, string): Type of the parent relationship
-
-**Responses:**
-
-- `200`: Parent relationship added successfully.
-
----
-
-#### DELETE /v1/locations/{locationId}
-
-**Summary:** Delete a location
-
-**Description:** Delete a location by its unique ID.
-
-**Operation ID:** `deleteLocation`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): ID of the location to delete
-
-**Responses:**
-
-- `204`: Location deleted successfully.
-- `404`: Location not found.
-
----
-
-#### GET /v1/locations/{locationId}
-
-**Summary:** Get location by ID
-
-**Description:** Retrieve a location by its unique ID.
-
-**Operation ID:** `getLocationById`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): ID of the location to retrieve
-
-**Responses:**
-
-- `200`: Location found and returned.
-- `404`: Location not found.
-
----
-
-#### PUT /v1/locations/{locationId}
-
-**Summary:** Update an existing location
-
-**Description:** Update the details of an existing location.
-
-**Operation ID:** `updateLocation`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): ID of the location to update
-
-**Responses:**
-
-- `200`: Location updated successfully.
-- `404`: Location not found.
-
----
-
-#### POST /v1/locations/{locationId}/bays
-
-**Summary:** Create bay
-
-**Description:** Create a new bay for a specific location.
-
-**Operation ID:** `createBay`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): Location ID
-
-**Responses:**
-
-- `200`: Bay created successfully.
-
----
-
-#### DELETE /v1/locations/{locationId}/bays/{bayId}
-
-**Summary:** Delete bay
-
-**Description:** Delete a specific bay by locationId and bayId.
-
-**Operation ID:** `deleteBay`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): Location ID
-- `bayId` (path, Required, integer): Bay ID
-
-**Responses:**
-
-- `204`: Bay deleted successfully.
-- `404`: Bay not found.
-
----
-
-#### GET /v1/locations/{locationId}/bays/{bayId}
-
-**Summary:** Get bays
-
-**Description:** List all bays or get a specific bay detail by locationId and bayId.
-
-**Operation ID:** `getBays_1`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): Location ID (optional for specific bay)
-- `bayId` (path, Required, integer): Bay ID (optional for specific bay)
-
-**Responses:**
-
-- `200`: Bays retrieved successfully.
-
----
-
-#### POST /v1/locations/{locationId}/mobileUnit
-
-**Summary:** Create mobile unit
-
-**Description:** Create a new mobile unit for a specific location. Validate baseLocationId and capabilities.
-
-**Operation ID:** `createMobileUnit`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): Location ID
-
-**Responses:**
-
-- `200`: Mobile unit created successfully.
-
----
-
-#### DELETE /v1/locations/{locationId}/mobileUnit/{bayId}
-
-**Summary:** Delete mobile unit
-
-**Description:** Delete a specific mobile unit by locationId and bayId.
-
-**Operation ID:** `deleteMobileUnit`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): Location ID
-- `bayId` (path, Required, integer): Bay ID
-
-**Responses:**
-
-- `204`: Mobile unit deleted successfully.
-- `404`: Mobile unit not found.
-
----
-
-#### GET /v1/locations/{locationId}/mobileUnit/{bayId}
-
-**Summary:** Get mobile units
-
-**Description:** List all mobile units or get a specific mobile unit detail by locationId and bayId.
-
-**Operation ID:** `getMobileUnits_1`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): Location ID (optional for specific mobile unit)
-- `bayId` (path, Required, integer): Bay ID (optional for specific mobile unit)
-
-**Responses:**
-
-- `200`: Mobile units retrieved successfully.
-
----
-
-#### GET /v1/locations/{locationId}/responsible-person
-
-**Summary:** Get responsible person for a location
-
-**Description:** Retrieve the person responsible for a given location.
-
-**Operation ID:** `getResponsiblePerson`
-
-**Parameters:**
-
-- `locationId` (path, Required, integer): ID of the location
-
-**Responses:**
-
-- `200`: Responsible person found and returned.
-- `404`: Responsible person not found.
-
----
-
-## Entity-Specific Contracts
-
-### Location
-
-Location object to be created
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `addressLine1` | string | No |  |
-| `addressLine2` | string | No |  |
-| `children` | array | No |  |
-| `city` | string | No |  |
-| `country` | string | No |  |
-| `id` | integer (int64) | No |  |
-| `mailingAddress` | string | No |  |
-| `name` | string | No |  |
-| `parents` | array | No |  |
-| `postalCode` | string | No |  |
-| `responsiblePersonId` | integer (int64) | No |  |
-| `state` | string | No |  |
-
-### LocationParent
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `child` | string | No |  |
-| `id` | integer (int64) | No |  |
-| `parent` | string | No |  |
-| `parentType` | string | No |  |
-
-### PersonDTO
-
-**Fields:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `firstName` | string | No |  |
-| `id` | integer (int64) | No |  |
-| `lastName` | string | No |  |
-| `phoneNumbers` | array | No |  |
-| `primaryEmail` | string | No |  |
-| `secondaryEmail` | string | No |  |
-| `username` | string | No |  |
-
----
-
-## Examples
-
-### Example Request/Response Pairs
-
-#### Example: Create Request
-
-```http
-POST /v1/locations
-Content-Type: application/json
-X-Correlation-Id: abc-123-def-456
-
-{
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE"
-}
-```
-
-**Response:**
-
-```http
-HTTP/1.1 201 Created
-X-Correlation-Id: abc-123-def-456
-
-{
-  "id": "new-id-123",
-  "name": "Example",
-  "description": "Example description",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:30:00Z"
-}
-```
-
-#### Example: Retrieve Request
-
-```http
-GET /v1/locations/{locationId}
-X-Correlation-Id: abc-123-def-456
-```
-
-**Response:**
-
-```http
-HTTP/1.1 200 OK
-X-Correlation-Id: abc-123-def-456
-
-{
-  "id": "existing-id-456",
-  "name": "Example",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-27T14:00:00Z",
-  "updatedAt": "2026-01-27T14:30:00Z"
-}
-```
-
----
-
-## Summary
-
-This guide establishes standardized contracts for the Location Management domain:
-
-- **Field Naming**: camelCase for all JSON fields
-- **Enum Values**: UPPER_SNAKE_CASE for all enums
-- **Timestamps**: ISO 8601 UTC format
-- **Identifiers**: String-based UUIDs
-- **Pagination**: Zero-based with standard response format
-- **Error Handling**: Consistent error response structure with correlation IDs
-
----
-
-## Change Log
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-27 | Initial version generated from OpenAPI spec |
-
----
+- OpenAPI source: `durion-positivity-backend/pos-location/openapi.yaml`
+- OpenAPI source revision: `ca7fadc3`
+- Last verified UTC: `2026-02-24T14:23:11Z`
+- Generated API reference: `domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
 
-- OpenAPI Specification: `pos-location/target/openapi.yaml`
-- Domain Agent Guide: `domains/location/.business-rules/AGENT_GUIDE.md`
-- Cross-Domain Integration: `domains/location/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-- Error Codes: `domains/location/.business-rules/ERROR_CODES.md`
-- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
-
----
-
-**Generated:** 2026-01-27 14:27:53 UTC  
-**Tool:** `scripts/generate_backend_contract_guides.py`
-
----
-
-## CAP-119: Location Management — Generated Contract (summary)
-
-This project includes a generated, capability-specific backend contract for CAP-119. The authoritative implementation document is at the repository path:
-
-- `durion/docs/capabilities/CAP-119/CAP-119-location-backend-contract.md`
-
-### Gateway endpoint mappings
-
-All OpenAPI paths are exposed through the API gateway. Use the following gateway URLs (replace path params as appropriate). Each entry is presented as a single request line in the form `METHOD <gateway-url>`:
-
-- `GET  http://localhost:8080/v1/locations`
-- `POST http://localhost:8080/v1/locations`
-- `GET  http://localhost:8080/v1/locations/{locationId}`
-- `PUT  http://localhost:8080/v1/locations/{locationId}`
-- `DELETE http://localhost:8080/v1/locations/{locationId}`
-- `POST http://localhost:8080/v1/locations/{childId}/parents/{parentId}?parentType={parentType}`
-- `GET  http://localhost:8080/v1/locations/parents`
-- `GET  http://localhost:8080/v1/locations/{locationId}/responsible-person`
-- `GET  http://localhost:8080/v1/locations/bays`
-- `PUT  http://localhost:8080/v1/locations/bays`
-- `POST http://localhost:8080/v1/locations/{locationId}/bays`
-- `GET  http://localhost:8080/v1/locations/{locationId}/bays/{bayId}`
-- `DELETE http://localhost:8080/v1/locations/{locationId}/bays/{bayId}`
-- `GET  http://localhost:8080/v1/locations/mobileUnit`
-- `PUT  http://localhost:8080/v1/locations/mobileUnit`
-- `POST http://localhost:8080/v1/locations/{locationId}/mobileUnit`
-- `GET  http://localhost:8080/v1/locations/{locationId}/mobileUnit/{bayId}`
-- `DELETE http://localhost:8080/v1/locations/{locationId}/mobileUnit/{bayId}`
-
-### ADR-0016 Compliance (required)
-
-This service and its contract follow ADR-0016 decisions. Key points (must be respected by implementers and consumers):
-
-- `Location` is canonical: `pos-location` is the authoritative source for all location data.
-- `LocationType` is a managed entity (not a static enum). Types are runtime-configurable and stored in `pos-location`.
-- `ParentType` enum values: `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`, `SHIPPING`. A single child may have at most one parent per `ParentType`.
-- `ParentType` enum values: `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`, `SHIPPING`. A single child may have at most one parent per `ParentType`.
-
-Note: The current OpenAPI spec (`pos-location/openapi.yaml`) defines a different set of parent-type values (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `BILLING`). ADR-0016 is authoritative; repository owners should migrate the OpenAPI enum and persistence model to match ADR-0016 or provide a documented mapping layer. See Issue #87 for discussion.
-
-- `GeographicalLocation` is a separate entity holding address and coordinate data; `Location` references it by `geographicalLocationId`.
-- Cross-module integration pattern: other services MUST store only `locationId` and query `pos-location` for details, hierarchy, or address when needed.
-- Location classifications (examples): Geographical, Physical, Storage (bins/racks), Service (bays), Mobile (wreckers/vans).
-- Hierarchy model: self-referencing adjacency list implemented as `Map<ParentType, UUID> parents` (one parent per ParentType key).
-
-### Location entity (schema per ADR-0016)
-
-Represented in JSON for API consumers (example):
-
-```json
-{
-  "id": "018e1c9f-6b5a-7890-abcd-1234567890ab",
-  "code": "MAIN-WH",
-  "name": "Main Warehouse",
-  "type": {
-    "id": "2f4d3a2b-...",
-    "name": "Warehouse",
-    "description": "Storage facility"
-  },
-  "parents": {
-    "PHYSICAL": "b3a1...",
-    "ORGANIZATIONAL": "c4f2..."
-  },
-  "geographicalLocationId": "d5e6...",
-  "status": "ACTIVE",
-  "timezone": "America/New_York",
-  "responsiblePersonId": 12345,
-  "createdAt": "2026-02-17T12:00:00Z",
-  "updatedAt": "2026-02-17T12:30:00Z"
-}
-```
-
-Notes:
-
-- `id` is UUIDv7 encoded as a string.
-- `type` references the `LocationType` entity (managed in `pos-location`).
-- `parents` is a JSON object mapping `ParentType` string -> parent `locationId` (UUID). Only one entry allowed per `ParentType` key.
-- Address/coordinate details live in `GeographicalLocation` and are referenced by `geographicalLocationId`.
-
-### Contract behavioral test hints (naming: `CP-119-NNN`)
-
-- `CP-119-001` Create Location: `POST /v1/locations` returns `201` and Location with generated `id`.
-- `CP-119-002` Update Location: `PUT /v1/locations/{locationId}` updates fields and returns `200`; `code` immutable.
-- `CP-119-003` Unique Code: Creating a location with duplicate `code` returns `409 Conflict`.
-- `CP-119-004` ParentType Uniqueness: Adding a parent with a `parentType` already present for a child should either replace or return `409` (implementation choice; document behavior).
-- `CP-119-005` Cross-module reference: Consumers store only `locationId`; verify consumer fetches details by calling `GET /v1/locations/{locationId}` via the gateway.
-
-### Event types (pos-events) — suggested IDs
-
-All write operations MUST emit domain events using pos-events conventions. Suggested event type names:
-
-- `LOCATION_CREATE` (pos.location.v1.LocationCreated)
-- `LOCATION_UPDATE` (pos.location.v1.LocationUpdated)
-- `LOCATION_DELETE` (pos.location.v1.LocationDeleted)
-- `LOCATION_PARENT_ADDED` (pos.location.v1.LocationParentAdded)
-- `BAY_MANAGED` (pos.location.v1.BaysManaged)
-- `BAY_CREATED` (pos.location.v1.BayCreated)
-- `BAY_DELETED` (pos.location.v1.BayDeleted)
-- `MOBILE_UNIT_MANAGED` (pos.location.v1.MobileUnitsManaged)
-- `MOBILE_UNIT_CREATED` (pos.location.v1.MobileUnitCreated)
-- `MOBILE_UNIT_DELETED` (pos.location.v1.MobileUnitDeleted)
-
-Each event should include `eventId` (UUIDv7), `occurredAt` (ISO 8601 UTC), `producer`, `schemaVersion`, and a `payload` containing the resource `id` and change details.
-
-### Links
-
-- Backend issue (implementation / discussion): [Issue #87](https://github.com/louisburroughs/durion-positivity-backend/issues/87)
-
----
-
-## CAP-136: Manage Locations, Bays, and Mobile Units
-
-This capability covers creation, update, retrieval, and lifecycle management for Locations, Bays, and Mobile Units as implemented by the `pos-location` service. The OpenAPI spec at `pos-location/openapi.yaml` is authoritative for available paths, request/response shapes, and status codes. All gateway URLs shown below use the gateway base `http://localhost:8080/v1/location`.
-
-### Gateway-format endpoint listing
-
-Each entry shows the HTTP method, gateway URL, short purpose, key request fields (from OpenAPI schemas), main response codes/shapes, and behavioral assertions derived from implementation issues #76 (Mobile Units), #77 (Bays), and #78 (Locations).
-
-- POST <http://localhost:8080/v1/location/v1/locations>
-  - Purpose: Create a new Location
-  - Key request fields (LocationRequestDTO): `code` (required), `name` (required), `type` (required), `geographicalLocationId`, `addressLine1`, `city`, `postalCode`, `country`, `responsiblePersonId`, `active`
-  - Responses: `201` LocationResponseDTO; `400` validation error; `409` LOCATION_NAME_TAKEN (see behavior)
-  - Behavioral assertions:
-    - `name` uniqueness enforced by normalizedName = lower(trim(name)) → duplicate → `409 LOCATION_NAME_TAKEN` (case-insensitive)
-    - `timezone` (if present) validated via `ZoneId.of()` → invalid → `400 INVALID_TIMEZONE`
-    - `operatingHours` must be open < close (no overnight spans) and no duplicate days → invalid → `400 INVALID_OPERATING_HOURS`
-    - Emits: `LOCATION_CREATE`
-  - Contract test hint: `CP-136-001`
-
-- GET <http://localhost:8080/v1/location/v1/locations>
-  - Purpose: List locations
-  - Query behavior: default returns only ACTIVE locations; `?status=ALL` returns all
-  - Responses: `200` array of LocationResponseDTO
-  - Behavioral assertions:
-    - Default filtering: only `ACTIVE` unless `status=ALL` specified
-  - Contract test hint: `CP-136-002`
-
-- GET <http://localhost:8080/v1/location/v1/locations/{locationId}>
-  - Purpose: Retrieve a location by ID
-  - Responses: `200` LocationResponseDTO; `404` if not found
-  - Contract test hint: `CP-136-003`
-
-- PUT <http://localhost:8080/v1/location/v1/locations/{locationId}>
-  - Purpose: Update an existing location
-  - Key request fields: `LocationRequestDTO` (same as create)
-  - Responses: `200` LocationResponseDTO; `404` not found; `409` OPTIMISTIC_LOCK_FAILED (see behavior)
-  - Behavioral assertions:
-    - Setting `{status: INACTIVE}` via PATCH/PUT performs a deactivate transition; only `ACTIVE -> INACTIVE` allowed
-    - Optimistic locking enforced via JPA `@Version` → stale update → `409 OPTIMISTIC_LOCK_FAILED`
-    - Emits: `LOCATION_UPDATE` (on successful change) and `LOCATION_DEACTIVATED` when status becomes `INACTIVE`
-  - Contract test hints: `CP-136-004`, `CP-136-005`
-
-- DELETE <http://localhost:8080/v1/location/v1/locations/{locationId}>
-  - Purpose: Remove a location
-  - Responses: `204` deleted; `404` not found
-  - Contract test hint: `CP-136-006`
-
-- POST <http://localhost:8080/v1/location/v1/locations/{locationId}/bays>
-  - Purpose: Create a bay for a location
-  - Key request fields (see Bay creation request body in OpenAPI): `name`, `bayType` (enum), `supportedServiceIds`, `skillId`, `status`
-  - Responses: `201` (create) / `200` per OpenAPI; `400` invalid input; `404` unknown location; `409` duplicate name per-location
-  - Behavioral assertions (Issue #77):
-    - Bay `name` unique per `locationId` (case-insensitive) → duplicate → `409`
-    - `bayType` values: `GENERAL_SERVICE`, `ALIGNMENT`, `TIRE_SERVICE`, `HEAVY_DUTY`, `INSPECTION`, `WASH_DETAIL`
-    - `supportedServiceIds` and `skillId` validated; invalid IDs returned in `400` with list of invalid IDs
-    - Emits: `BAY_CREATE`
-  - Contract test hints: `CP-136-007`, `CP-136-008`
-
-- GET <http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}>
-  - Purpose: Retrieve a bay or list bays for a location
-  - Responses: `200` bay(s); `404` not found
-  - Behavioral assertions:
-    - `OUT_OF_SERVICE` status is excluded from `?status=ACTIVE` results
-  - Contract test hint: `CP-136-009`
-
-- DELETE <http://localhost:8080/v1/location/v1/locations/{locationId}/bays/{bayId}>
-  - Purpose: Delete a bay
-  - Responses: `204` deleted; `404` not found
-  - Contract test hint: `CP-136-010`
-
-- POST <http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit>
-  - Purpose: Create a mobile unit scoped to a base location
-  - Key request fields (Mobile unit creation): `name`, `baseLocationId`, `capabilityIds`, `travelBufferPolicyId`, `coverageRules` (array)
-  - Responses: `201` created; `400` validation error; `409` duplicate name per baseLocationId; `503` service catalog unavailable
-  - Behavioral assertions (Issue #76):
-    - `ACTIVE` mobile unit creation requires: `travelBufferPolicyId`, non-empty `capabilityIds`, and at least one coverage rule → otherwise `400`
-    - Duplicate `name` within the same `baseLocationId` → `409`
-    - `capabilityIds` validated against service catalog; invalid IDs → `400` listing invalid IDs; if catalog cannot be reached → `503`
-    - `coverageRules` of type `DISTANCE_TIER` must have strictly ascending `maxDistance` values; a catch-all tier (`maxDistance: null`) is required → invalid → `400`
-    - Emits: `MOBILE_UNIT_CREATE`
-  - Contract test hints: `CP-136-011`, `CP-136-012`, `CP-136-013`
-
-- GET <http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit/{unitId}>
-  - Purpose: Retrieve details or list mobile units for a location
-  - Responses: `200`; `404` if not found
-  - Behavioral assertions:
-    - `GET /mobile-units:eligible?postalCode=&countryCode=&at=` (implemented by service) returns `ACTIVE` units whose effective coverage includes the supplied coordinates/postalCode, ordered by `priority` ascending
-  - Contract test hint: `CP-136-014`
-
-- PUT <http://localhost:8080/v1/location/v1/locations/{locationId}/mobileUnit> (bulk) and PUT <http://localhost:8080/v1/location/v1/locations/mobileUnit>
-  - Purpose: Manage mobile units in bulk (create/update)
-  - Responses: `200` on success
-  - Behavioral assertions:
-    - `PUT /v1/mobile-units/{id}/coverage-rules` behavior: coverage rule replacement is atomic (replace-all semantics)
-    - Emits: `MOBILE_UNIT_UPDATE`, `COVERAGE_RULES_REPLACE`, `TRAVEL_BUFFER_POLICY_CREATE` as applicable
-  - Contract test hint: `CP-136-015`
-
-### Events to emit (pos-events / @EmitEvent)
-
-- LOCATION_CREATE
-- LOCATION_UPDATE
-- LOCATION_DEACTIVATED
-- BAY_CREATE
-- BAY_UPDATE
-- MOBILE_UNIT_CREATE
-- MOBILE_UNIT_UPDATE
-- COVERAGE_RULES_REPLACE
-- TRAVEL_BUFFER_POLICY_CREATE
-
-### Implementation links
-
-- <https://github.com/louisburroughs/durion-positivity-backend/issues/76>
-- <https://github.com/louisburroughs/durion-positivity-backend/issues/77>
-- <https://github.com/louisburroughs/durion-positivity-backend/issues/78>
-
-### Contract status
-
-draft
-
-### Provider Contract Test Hints (CP-136-NNN)
-
-- CP-136-001: Create Location returns 201 and persists `code`, `name`; duplicate name → 409 LOCATION_NAME_TAKEN
-- CP-136-002: List locations default filters to ACTIVE; `?status=ALL` returns all
-- CP-136-003: Get location by id returns 200 or 404
-- CP-136-004: Update to INACTIVE transitions `ACTIVE -> INACTIVE` and emits `LOCATION_DEACTIVATED`
-- CP-136-005: Stale update triggers 409 OPTIMISTIC_LOCK_FAILED
-- CP-136-006: Delete location returns 204 or 404
-- CP-136-007: Create bay unique per-location name enforced (409)
-- CP-136-008: Invalid `supportedServiceIds` / `skillId` returns 400 with invalid id list
-- CP-136-009: GET bays excludes `OUT_OF_SERVICE` from `?status=ACTIVE`
-- CP-136-010: Delete bay returns 204 or 404
-- CP-136-011: Create mobile unit requires travelBufferPolicyId + capabilityIds + ≥1 coverage rule when `status=ACTIVE`
-- CP-136-012: Duplicate mobile unit name within `baseLocationId` returns 409
-- CP-136-013: Invalid capabilityIds → 400; catalog unavailable → 503
-- CP-136-014: Eligible mobile units endpoint returns `ACTIVE` units ordered by `priority` with effective coverage applied
-- CP-136-015: PUT coverage-rules is atomic replace
-
----
-
-## CAP-214: Location & Storage Topology (Shops, Mobile, Floor/Shelf/Bin)
-
-Short description: Define storage location hierarchy, site-level staging & quarantine defaults, and a reconciliation roster for downstream consumers. Covers creation, update/deactivation (with transfer), hierarchy rules (DAG/no-cycles), and event publication for sync consumers.
-
-### Execution Checklist
-
-- Add provider-side endpoints for site defaults, storage-location CRUD, and roster reconciliation
-- Emit events for creates/updates/deactivations: `SiteDefaultsUpdated`, `StorageLocationCreated`, `StorageLocationUpdated`, `StorageLocationDeactivated`, `LocationCreated`, `LocationUpdated`, `LocationDeactivated`
-- Implement DAG validation (no cycles) and sibling-unique names
-- Enforce deactivation transfer semantics (inventory transfer or explicit transfer target)
-
-### Endpoints (gateway URLs)
-
-- PUT  <http://localhost:8080/v1/location/locations/{locationId}/defaults> — configure staging and quarantine defaults
-- GET  <http://localhost:8080/v1/location/locations/{locationId}/defaults> — read current defaults
-- POST <http://localhost:8080/v1/location/locations/{locationId}/storage-locations> — create storage location
-- GET  <http://localhost:8080/v1/location/locations/{locationId}/storage-locations> — list storage locations (filters: `type`, `status`, pagination)
-- GET  <http://localhost:8080/v1/location/locations/{locationId}/storage-locations/{storageLocationId}> — get storage location by id
-- PATCH <http://localhost:8080/v1/location/locations/{locationId}/storage-locations/{storageLocationId}> — update fields or deactivate (with transfer)
-- GET  <http://localhost:8080/v1/location/locations/roster?since_updated_at={iso}&pageNumber=&pageSize=> — reconciliation roster (bulk)
-
----
-
-### Request / Response Schemas (examples)
-
-PUT /locations/{locationId}/defaults — Request
-
-```json
-{
-  "stagingLocationId": "018e1c9f-6b5a-7890-abcd-1234567890ab",
-  "quarantineLocationId": "018e1c9f-6b5a-7890-abcd-2234567890ab"
-}
-```
-
-Response 200
-
-```json
-{
-  "locationId": "018e1c9f-6b5a-7890-abcd-1234567890ab",
-  "stagingLocationId": "018e1c9f-6b5a-7890-abcd-1234567890ab",
-  "quarantineLocationId": "018e1c9f-6b5a-7890-abcd-2234567890ab",
-  "updatedAt": "2026-02-22T12:00:00Z"
-}
-```
-
-POST /storage-locations — Request
-
-```json
-{
-  "name": "Floor A - Shelf 3",
-  "code": "FLOOR-A/SHELF-3",
-  "type": "SHELF", // one of [FLOOR, SHELF, BIN, CAGE, TRUCK]
-  "parentId": "018e1c9f-6b5a-7890-abcd-3334567890ab", // optional
-  "description": "Third shelf on Floor A",
-  "active": true
-}
-```
-
-Response 201
-
-```json
-{
-  "id": "118e1c9f-6b5a-7890-abcd-9994567890ab",
-  "locationId": "018e1c9f-6b5a-7890-abcd-3334567890ab",
-  "name": "Floor A - Shelf 3",
-  "code": "FLOOR-A/SHELF-3",
-  "type": "SHELF",
-  "parentId": "018e1c9f-6b5a-7890-abcd-2224567890ab",
-  "active": true,
-  "createdAt": "2026-02-22T12:00:00Z"
-}
-```
-
-PATCH /storage-locations/{storageLocationId} — partial update / deactivation (example deactivate)
-
-```json
-{
-  "active": false,
-  "transferToLocationId": "018e1c9f-6b5a-7890-abcd-4444567890ab" // required when inventory exists
-}
-```
-
-GET /locations/roster — Response (page)
-
-```json
-{
-  "results": [
-    { "id": "018e1c9f-...", "code": "MAIN-WH", "name": "Main Warehouse", "updatedAt": "2026-02-22T11:00:00Z", "status": "ACTIVE" }
-  ],
-  "totalCount": 1,
-  "pageNumber": 0,
-  "pageSize": 20,
-  "lastSyncAt": "2026-02-22T12:00:00Z"
-}
-```
-
----
-
-### Business Rules & Behavioral Assertions
-
-- Site Defaults (stories #38)
-  - `stagingLocationId` and `quarantineLocationId` MUST not be equal. If equal → `409 CONFLICT` with code `SAME_DEFAULT_LOCATION`
-  - Both referenced storage locations MUST exist and belong to the same site (locationId). If a referenced storage location is not found → `404`.
-  - Only users/services with the proper authority may update defaults; unauthorized → `403`.
-  - Successful update MUST emit `SiteDefaultsUpdated` event with payload `{ locationId, stagingLocationId, quarantineLocationId, updatedAt }`.
-  - Read (`GET`) returns the current configured defaults or `200` with `null` fields when not configured.
-
-- Storage Locations (story #39)
-  - Storage locations form a DAG within a site: `parentId` references MUST be validated to prevent cycles. Attempts to create/update that introduce a cycle → `422 CYCLE_DETECTED`.
-  - Sibling uniqueness: `name` (and optionally `code`) MUST be unique among sibling storage locations under the same parent; duplicates → `409 DUPLICATE_NAME`.
-  - Deactivation semantics: to deactivate a storage location that contains inventory, provider MUST accept and require a `transferToLocationId` that is active and within same site. If transfer target invalid/missing → `400` / `422` respectively.
-  - Partial updates via `PATCH` allowed for mutable fields (`name`, `description`, `parentId`, `active`). Updating `parentId` must revalidate DAG and sibling uniqueness.
-  - CRUD events: on create → `StorageLocationCreated`, on update → `StorageLocationUpdated`, on deactivate → `StorageLocationDeactivated` (include `transferTo` when applicable).
-
-- Location Sync / Reconciliation (story #40)
-  - The roster endpoint (`GET /locations/roster`) MUST support `since_updated_at` ISO-8601 filter and return all location records changed since that timestamp.
-  - Support pagination (`pageNumber`, `pageSize`) and return `totalCount` and `lastSyncAt` for consumer checkpointing.
-  - Changes include create/update/deactivate; providers MUST also publish events `LocationCreated`, `LocationUpdated`, `LocationDeactivated` for downstream real-time consumers.
-
----
-
-### Error Codes (recommended)
-
-- `400 BAD_REQUEST`: Invalid request body or missing required fields
-- `401 UNAUTHORIZED`: Missing or invalid auth
-- `403 FORBIDDEN`: Insufficient permissions
-- `404 NOT_FOUND`: Location or storage location not found
-- `409 CONFLICT`: Business rule violation (e.g., duplicate sibling name, same default location)
-- `422 UNPROCESSABLE_ENTITY`: DAG/cycle detected, invalid transfer target
-- `500 INTERNAL_SERVER_ERROR`: Unexpected error
-
----
-
-### Provider Test Hints (ContractBehaviorIT)
-
-- CP-214-001 Configure Defaults: create two storage locations under a site; `PUT /locations/{locationId}/defaults` with distinct `stagingLocationId` and `quarantineLocationId` returns `200` and subsequent `GET` returns configured values. Assert `SiteDefaultsUpdated` event emitted.
-- CP-214-002 Defaults validation: same ID for staging+quarantine → `409` and no event emitted.
-- CP-214-010 Create Storage Location: `POST /storage-locations` returns `201` with generated `id`; `StorageLocationCreated` emitted.
-- CP-214-011 Sibling uniqueness: attempting to create duplicate `name` within same parent → `409`.
-- CP-214-012 DAG enforcement: creating a parent reference that would create a cycle → `422`.
-- CP-214-013 Deactivate with transfer: when storage location has inventory (seeded test fixture), `PATCH active=false` without `transferToLocationId` → `400`; with valid `transferToLocationId` → `200`, `StorageLocationDeactivated` emitted, inventory ownership moved (verify via inventory service/mocks where possible).
-- CP-214-020 Roster reconciliation: seed changes, call `GET /locations/roster?since_updated_at={t0}` and assert returned records include only changed locations and pagination works.
-
-### Events (pos-events) — suggested IDs
-
-- `SiteDefaultsUpdated` (pos.location.v1.SiteDefaultsUpdated)
-- `StorageLocationCreated` (pos.location.v1.StorageLocationCreated)
-- `StorageLocationUpdated` (pos.location.v1.StorageLocationUpdated)
-- `StorageLocationDeactivated` (pos.location.v1.StorageLocationDeactivated)
-- `LocationCreated` / `LocationUpdated` / `LocationDeactivated` (existing location events)
-
-### Dependencies
-
-- Inventory service: deactivation transfer requires coordination with inventory; tests should mock inventory transfer behavior or run contract scenario against integrated inventory test harness.
-- Event registry (`pos-events`) must include new event types; register during application startup.
-
----
-
-## Capability Contract Template
-
-Use the shared template for capability sections:
-
-- `domains/BACKEND_CONTRACT_CAPABILITY_TEMPLATE.md`
+- `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
+- `domains/location/.business-rules/AGENT_GUIDE.md`
+- `domains/location/.business-rules/DOMAIN_NOTES.md`
+- `domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md`

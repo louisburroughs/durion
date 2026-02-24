@@ -22,7 +22,7 @@ Enable users to initiate a “Return Items to Stock” flow from a Work Order an
   - Return transaction identifier
   - Timestamp (UTC)
   - Optional correlation ID
-  - Returned line summary (sku/workOrderLineId, qty, reason)
+  - Returned line summary (sku/workorderLineId, qty, reason)
 
 ## Layout
 - Top: Back link + Title + Work Order meta (ID, state)
@@ -51,7 +51,7 @@ Enable users to initiate a “Return Items to Stock” flow from a Work Order an
    2. If reason codes list is empty or fails to load: show error banner “Return reasons are unavailable.” and keep submit disabled.
 8. Submit:
    1. User clicks “Return to Stock”; UI locks to prevent duplicate submission (in-flight disabled state).
-   2. Frontend sends a single request via Moqui proxy containing workOrderId, destination (location/bin as applicable), and only lines with qty > 0 including reason per line.
+   2. Frontend sends a single request via Moqui proxy containing workorderId, destination (location/bin as applicable), and only lines with qty > 0 including reason per line.
 9. Submit response handling:
    1. Success: show confirmation with return transaction identifier, timestamp UTC, optional correlation ID, and returned line summary; keep submit disabled or otherwise prevent immediate duplicate submission.
    2. 409 conflict (state/concurrency): show conflict banner and offer reload action.
@@ -65,5 +65,5 @@ Enable users to initiate a “Return Items to Stock” flow from a Work Order an
 - Inactive/pending locations must be blocked for this movement flow (return-to-stock explicitly in-scope).
 - Deterministic error schema required for mapping field errors to specific line items; include correlation ID propagation and display in error UI when available.
 - Out of scope: accounting/financial reconciliation UI, reason code management, work order state changes, costing/valuation, ledger mutation UI.
-- Submit payload should prefer stable per-line identifiers (e.g., workOrderLineId) when available; otherwise use SKU as key for mapping.
+- Submit payload should prefer stable per-line identifiers (e.g., workorderLineId) when available; otherwise use SKU as key for mapping.
 - Do not auto-refresh in a loop after success; provide clear confirmation and a path back to the Work Order.
