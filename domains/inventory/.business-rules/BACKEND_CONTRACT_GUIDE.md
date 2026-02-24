@@ -1168,6 +1168,174 @@ This guide establishes standardized contracts for the Inventory Management domai
 
 ---
 
+## CAP-219: Cycle Counts & Adjustments
+
+See `docs/capabilities/CAP-219/CAPABILITY_MANIFEST.yaml` for manifest details.
+
+### Backend Issues
+
+- Approve and Post Adjustments: https://github.com/louisburroughs/durion-positivity-backend/issues/26
+- Execute Cycle Count and Record Variances: https://github.com/louisburroughs/durion-positivity-backend/issues/27
+- Plan Cycle Counts by Location/Zone: https://github.com/louisburroughs/durion-positivity-backend/issues/176
+
+### Endpoint Permission Table (CAP-219)
+
+| HTTP | Gateway Path | Required Permission | Issue |
+|------|--------------|---------------------|-------|
+| POST | `http://localhost:8080/v1/inventory/cycleCount/submit` | `inventory:count:submit` | #27 |
+| POST | `http://localhost:8080/v1/inventory/cycleCount/recount` | `inventory:count:submit` | #27 |
+| GET  | `http://localhost:8080/v1/inventory/cycleCountAdjustments` | `inventory:count:view` | #26 |
+| POST | `http://localhost:8080/v1/inventory/cycleCountAdjustments` | `inventory:count:initiate` | #26 |
+| POST | `http://localhost:8080/v1/inventory/cycleCountAdjustments/{adjustmentId}/approve` | `inventory:count:approve` | #26 |
+| POST | `http://localhost:8080/v1/inventory/cycleCountAdjustments/{adjustmentId}/reject` | `inventory:count:approve` | #26 |
+| POST | `http://localhost:8080/v1/inventory/cycleCountPlans` | `inventory:count:initiate` | #176 |
+| GET  | `http://localhost:8080/v1/inventory/cycleCountPlans/{planId}` | `inventory:count:view` | #176 |
+
+### Story #26 — Approve and Post Adjustments
+
+#### Endpoint Contracts
+
+**POST /v1/inventory/cycleCountAdjustments** — Create Adjustment  
+- Request requires: `stockItemId` (UUID), `quantityOnHandBefore` (int ≥ 0), `countedQuantity` (int ≥ 0), `reasonCode` (string), `costAtTimeOfAdjustment` (decimal ≥ 0)
+- Returns `201 Created` with `AdjustmentResponse`
+- Policy evaluates unitVariance, valueVariance, percentVariance against configured thresholds
+- If all below threshold: status = `AUTO_APPROVED`, ledger entry created immediately
+- If any above threshold: status = `PENDING_APPROVAL`, `requiredApprovalTier` set
+
+**POST /v1/inventory/cycleCountAdjustments/{adjustmentId}/approve** — Approve Adjustment
+- Request requires: `approvingUserId` (string)
+- Returns `200 OK` with updated `AdjustmentResponse`
+- Sets status = `POSTED`, creates `InventoryLedgerEntry (ADJUST_CYCLE_COUNT)`, updates `quantityOnHand`
+- Returns `404 Not Found` if `adjustmentId` not found
+- Returns `400 Bad Request` if adjustment is not in `PENDING_APPROVAL` status
+- Emits `InventoryAdjustmentPosted` audit event
+
+**POST /v1/inventory/cycleCountAdjustments/{adjustmentId}/reject** — Reject Adjustment
+- Request requires: `approvingUserId` (string), `rejectionReason` (string, non-blank)
+- Returns `200 OK` with updated `AdjustmentResponse`
+- Sets status = `REJECTED`; no ledger entry created; `quantityOnHand` unchanged
+- Returns `404 Not Found` if `adjustmentId` not found
+- Returns `400 Bad Request` if no `rejectionReason` or adjustment not in `PENDING_APPROVAL`
+
+**GET /v1/inventory/cycleCountAdjustments** — List Adjustments
+- Optional query params: `status` (enum filter), `page`, `size`
+- Returns `200 OK` with array of `AdjustmentResponse`
+
+#### Behavioral Assertions
+
+- The three threshold comparisons (unit, value, percent) are evaluated as OR (any one exceeded → manual approval).
+- Zero-variance adjustments (`countedQuantity == quantityOnHandBefore`) MUST be rejected with `400 Bad Request`.
+- `Posted` and `Rejected` adjustments are immutable; further approval/rejection attempts return `400`.
+- `createdByUserId` MUST be populated from the security context (`X-User-Id` gateway header per ADR-0018).
+- `eventId` in emitted events MUST use UUIDv7 (per ADR-0013).
+
+#### Provider Test Hints (ContractBehaviorIT)
+
+- Test auto-approval: seed thresholds high, create adjustment with small variance → assert `AUTO_APPROVED` status + ledger entry.
+- Test manual approval path: seed thresholds low, create adjustment → assert `PENDING_APPROVAL` → approve → assert `POSTED` + ledger entry.
+- Test rejection: create pending adjustment → reject with reason → assert `REJECTED` + no ledger entry.
+- Test zero-variance rejection: submit adjustment where countedQty == onHandBefore → assert `400`.
+
+### Story #27 — Execute Cycle Count and Record Variances
+
+#### Endpoint Contracts
+
+**POST /v1/inventory/cycleCount/submit** — Submit Initial Count
+- Request requires: `taskId` (UUID), `auditorId` (string), `actualQuantity` (int ≥ 0)
+- Returns `200 OK` with `CountResponse`
+- Creates immutable `CountEntry` with `recountSequenceNumber = 0`
+- Sets `CycleCountTask.status = COUNTED_PENDING_REVIEW`
+- Returns `400 Bad Request` if `actualQuantity` is negative
+- Returns `404 Not Found` if `taskId` not found
+- Returns `400 Bad Request` if task is not in `ASSIGNED` status
+
+**POST /v1/inventory/cycleCount/recount** — Submit Recount
+- Request requires: `taskId` (UUID), `auditorId` (string), `actualQuantity` (int ≥ 0), `permissions` (list, e.g. `["TRIGGER_RECOUNT_SELF"]`)
+- Returns `200 OK` with `CountResponse`
+- Creates new `CountEntry` referencing prior entry via `recountOfCountEntryId`
+- `recountSequenceNumber` increments (1, 2, …)
+- Auditor permission `TRIGGER_RECOUNT_SELF`: allowed for first recount only
+- Manager permission `TRIGGER_RECOUNT_ANY`: allowed until cap reached
+- When `totalCountEntries == 3` (cap): sets `CycleCountTask.status = REQUIRES_INVESTIGATION`; further recounts return `409 Conflict`
+- Returns `403 Forbidden` if auditor attempts second recount (insufficient permission)
+
+#### Behavioral Assertions
+
+- `variance = actualQuantity - expectedQuantity` (positive = surplus, negative = shortage).
+- `expectedQuantity` is NEVER returned in count submission responses (blind count).
+- All `CountEntry` records are immutable; no update/delete supported.
+- Recount cap is 3 total counts (original + 2 recounts); exceeding sets `REQUIRES_INVESTIGATION`.
+
+#### Provider Test Hints (ContractBehaviorIT)
+
+- Test initial count: assert `CountEntry` created, task transitions to `COUNTED_PENDING_REVIEW`, variance computed correctly.
+- Test auditor self-recount: create task with 1 count, auditor recounts → success (seq 2).
+- Test auditor blocked on 2nd recount: 2 counts exist, auditor attempts → `403`.
+- Test manager recount: 2 counts, manager recounts → success (seq 3).
+- Test cap enforcement: 3 counts, any user recounts → task status `REQUIRES_INVESTIGATION`, `409`.
+- Test negative quantity: submit negative `actualQuantity` → `400`.
+
+### Story #176 — Plan Cycle Counts by Location/Zone
+
+#### Endpoint Contracts
+
+**POST /v1/inventory/cycleCountPlans** — Create Cycle Count Plan
+- Request body:
+
+```json
+{
+  "locationId": "uuid",
+  "zoneIds": ["uuid", "uuid"],
+  "planName": "Q4 Zone A Count",
+  "scheduledDate": "2026-12-15"
+}
+```
+
+- Returns `201 Created` with `CycleCountPlanResponse`
+- Returns `400 Bad Request` if `scheduledDate` is in the past
+- Returns `400 Bad Request` if `zoneIds` is empty
+- Returns `404 Not Found` if `locationId` does not exist
+- `status` is set to `PLANNED` on creation
+- `createdBy` populated from `X-User-Id` gateway header (ADR-0018)
+- `planId` generated using UUIDv7 (ADR-0013)
+
+**GET /v1/inventory/cycleCountPlans/{planId}** — Get Cycle Count Plan
+- Returns `200 OK` with `CycleCountPlanResponse`
+- Returns `404 Not Found` if `planId` not found
+
+#### Data Contract: `CycleCountPlanResponse`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `planId` | string (UUID) | Primary key |
+| `locationId` | string (UUID) | Foreign key to Location |
+| `zoneIds` | array of string (UUID) | Zones included in this plan |
+| `planName` | string | User-provided plan name |
+| `status` | string (enum) | `PLANNED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` |
+| `scheduledDate` | string (date, yyyy-MM-dd) | Date count is scheduled |
+| `createdBy` | string | User ID from security context |
+| `createdAt` | string (ISO 8601 UTC) | Record creation timestamp |
+| `updatedAt` | string (ISO 8601 UTC) | Last update timestamp |
+
+#### Behavioral Assertions
+
+- `scheduledDate` MUST be today or in the future; past dates return `400 Bad Request` with message "Scheduled date must be today or in the future."
+- At least one `zoneIds` entry MUST be supplied; empty array returns `400`.
+- Exactly one `locationId` MUST be supplied.
+- Once status transitions from `PLANNED` to `IN_PROGRESS`, scope (location, zones) is immutable.
+- An audit event MUST be generated on plan creation.
+
+#### Provider Test Hints (ContractBehaviorIT)
+
+- Test successful creation: valid payload → `201`, planId present, status = `PLANNED`.
+- Test past date: `scheduledDate` = yesterday → `400` with descriptive error.
+- Test empty zones: `zoneIds = []` → `400`.
+- Test non-existent location: unknown `locationId` → `404` (Note: initial implementation may skip location existence check and return `201`; mark this as TODO in test comment if location service is not available).
+- Test get existing plan: create then GET by planId → `200` with same data.
+- Test get non-existent plan: random planId → `404`.
+
+---
+
 ## Change Log
 
 | Version | Date | Changes |

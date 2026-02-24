@@ -31,14 +31,22 @@ Deliver exactly one PR in `durion-positivity-backend` with completed in-scope st
 3. Reject plan unless Step 1 is source-material reading and Final Step is PR creation in `durion-positivity-backend`.
 4. `ACCEPTED` ADRs override story text.
 5. A step is done only when Planner marks it `completed` in plan state.
-6. Story sequencing is mandatory: Story N RED -> GREEN -> coverage, then Story N+1.
+6. Story sequencing is mandatory: Story N (conditional Scaffold -> RED -> GREEN -> coverage), then Story N+1.
 7. Coverage hardening runs only after Coder completion is verified.
 8. Keep execution continuous; stop only on true blockers.
+9. RED evidence must be failing tests (Surefire/Failsafe), not compile failures.
+10. Scaffold phase is compile-only in `src/main/**` (signatures/types/placeholders); no story behavior implementation.
+11. GREEN must remove/replace temporary scaffold artifacts for the story before completion.
 
 ## Execution Loop
 1. Call Planner and obtain/validate plan.
 2. For each plan step, delegate to the correct subagent.
 3. Validate returned evidence against delegated objective and acceptance criteria.
+   - Scaffold acceptance requires: changed files, compile command, compile proof for target symbols, and explicit temporary scaffold artifact list.
+   - RED acceptance requires: failing test names + assertion/failure snippets tied to story behavior.
+   - If RED output only shows compilation/setup failures, reject RED and mark the step BLOCKED (precondition/tooling), not complete.
+   - GREEN acceptance requires: passing output, scaffold cleanup confirmation, and confirmation that tests were not retargeted to alternate seams/fakes to bypass implementation.
+   - If GREEN changed test targets/seams without explicit approved rationale, reject the handoff.
    - If tests were changed, require a `Test Change Rationale` block containing:
      - changed test files,
      - contract/requirement change (or explicit "no contract change"),
@@ -77,7 +85,7 @@ Path resolution defaults:
 ## Required Final Report
 - Objective status (PASS/BLOCKED)
 - Per-step status and evidence
-- RED -> GREEN -> coverage evidence per story
+- Scaffold -> RED -> GREEN -> coverage evidence per story (scaffold shown only when used)
 - Test-change rationale summary (for any step that modified tests)
 - Subagent invocation failures (if any)
 - PR reference and validation summary
