@@ -289,15 +289,56 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Get site default locations | `getSiteDefaultLocations` | GET | `/v1/inventory/sites/{siteId}/defaultLocations` |
-| Submit a recount for a cycle count task | `submitRecount` | POST | `/api/inventory/cycleCount/recount` |
-| Submit a count for a cycle count task | `submitCount` | POST | `/api/inventory/cycleCount/submit` |
+| Reserve stock for a workorder line | `createReservation` | POST | `/v1/inventory/reservations` |
+| Promote SOFT allocation to HARD | `promoteAllocation` | POST | `/v1/inventory/allocations/{allocationId}/promote` |
+| Generate pick list from confirmed reservations | `generatePickList` | POST | `/v1/inventory/pick-lists/generate` |
+| Fetch picking list for workorder execution | `fetchPickingList` | GET | `/v1/inventory/picking-lists/{pickingListId}` |
+| Validate pick scan input | `validatePickScan` | POST | `/v1/inventory/picking-lists/{pickingListId}/scan` |
+| Confirm picking completion | `confirmPicking` | POST | `/v1/inventory/picking-lists/{pickingListId}/confirm` |
+| Consume picked items to workorder | `consumePickedItems` | POST | `/v1/inventory/consume` |
+| Return unused items to stock | `returnItemsToStock` | POST | `/v1/inventory/returns` |
 
 ### Behavioral Assertions
 
-- Requests must satisfy domain validation rules before state change.
-- Successful mutations must produce deterministic persisted outcomes.
-- Failure responses must be explicit and actionable for callers.
+#### Story #29 — Reserve/Allocate Stock to Workorder Lines
+
+- SOFT allocation request is idempotent by `workorderLineId`; repeated calls upsert the same reservation/allocation rather than creating duplicates.
+- SOFT allocation does not reduce ATP; HARD allocation reduces ATP using `ATP = onHand - hardAllocated`.
+- Promoting SOFT to HARD requires permission `inventory.reserve.hard`; unauthorized promotion is rejected.
+- Cancelling SOFT allocation leaves ATP unchanged; cancelling HARD allocation restores ATP by released quantity.
+- HARD allocation with insufficient ATP returns `422 INSUFFICIENT_ATP` and records reservation status `BACKORDERED`.
+
+#### Story #28 — Create Pick List / Pick Tasks for Workorder
+
+- Processing `WorkOrderPartsReservationConfirmed` creates one `PickList` and one `PickTask` per reserved line item.
+- Location selection prefers `isPickZone=true` locations and applies deterministic sort `zoneOrder ASC -> aisleOrder ASC -> rackOrder ASC -> binOrder ASC`.
+- Effective priority is computed as `min(basePriority + modifiers, MAX_PRIORITY)` and due time as `scheduledStartAt - 30min`.
+- Missing eligible location sets `PickTask` status to `NeedsReview` and keeps `PickList` status `Draft`.
+- Successful generation emits `PickListCreated` event with correlation to the originating workorder reservation flow.
+
+#### Story #179 — Mechanic Executes Picking (Scan + Confirm)
+
+- `PickingList` is keyed to `workorderId` in inventory state, while workexec owns user-facing orchestration boundaries (ADR-0006).
+- Scan validation rejects requests with `400` when item is not in list or scan quantity exceeds `requiredQuantity`.
+- Confirm action returns `422` when any item remains not fully picked; all items `PICKED` transitions list to `COMPLETED`.
+- Confirm success transitions related allocation records from `ALLOCATED` to `DISBURSED_TO_WORK_ORDER`.
+- Confirm emits `workexec.PickingListConfirmed` when complete, otherwise `workexec.PickingListPartial`.
+
+#### Story #178 — Issue/Consume Picked Items to Workorder
+
+- `POST /v1/inventory/consume` persists immutable `InventoryLedgerEntry` rows with `transactionType=WORKORDER_CONSUMPTION` and negative `quantityChange`.
+- Consume operation is atomic across all requested items; partial commit is not allowed when any line fails validation.
+- Unit cost uses valuation method rules (Weighted Average as v1 default) and persists computed cost on each ledger entry.
+- Workorder not in `In Progress` state returns `409`; item not picked for the workorder returns `400`.
+- Requested consume quantity greater than picked quantity returns `400`, and no ledger rows are written.
+
+#### Story #177 — Return Unused Items to Stock with Reason
+
+- Return requires workorder in `Completed` or `Closed` state and caller permission `inventory:return:create`.
+- Return request must include valid reason code (`NOT_NEEDED`, `WRONG_PART`, `CUSTOMER_REFUSED`); missing reason returns `400`.
+- Return quantity greater than consumed quantity returns `422` and does not change inventory.
+- Accepted return creates `InventoryReturn` record and immutable `RETURN_TO_STOCK` ledger entries that increment on-hand.
+- Return write and related outbox/event publish are atomic, and emits `Inventory.ItemReturnedToStock` on success.
 
 ### Frontend Usage Notes
 
