@@ -18,9 +18,13 @@ Purpose: identify high-quality, representative code examples for Java backend de
   - Snippet:
 
     ```java
+    @Operation(summary = "Get product lifecycle by product ID")
+    @ApiResponse(responseCode = "200", description = "Lifecycle found")
+    @ApiResponse(responseCode = "404", description = "Product not found")
     @GetMapping("/{productId}/lifecycle")
     @EmitEvent(id = "CATALOG_PRODUCT_LIFECYCLE_GET", apiVersion = "1")
-    public ResponseEntity<ProductLifecycleResponse> getProductLifecycle(@PathVariable UUID productId) {
+    public ResponseEntity<ProductLifecycleResponse> getProductLifecycle(
+        @Parameter(description = "Product identifier", required = true) @PathVariable UUID productId) {
         return ResponseEntity.ok(productLifecycleService.getLifecycle(productId));
     }
     ```
@@ -31,9 +35,14 @@ Purpose: identify high-quality, representative code examples for Java backend de
   - Snippet:
 
     ```java
+    @Operation(summary = "Get customer by ID")
+    @ApiResponse(responseCode = "200", description = "Customer found")
+    @ApiResponse(responseCode = "404", description = "Customer not found")
     @GetMapping("/{id}")
+    @EmitEvent(id = "CUSTOMER_CUSTOMER_GET", apiVersion = "1")
     @PreAuthorize("hasAuthority('crm:party:view')")
-    public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable UUID id) {
+    public ResponseEntity<CustomerDTO> getCustomerById(
+      @Parameter(description = "Customer identifier", required = true) @PathVariable UUID id) {
       return commercialService.getCustomerById(id)
           .or(() -> personService.getCustomerById(id))
           .map(ResponseEntity::ok)
@@ -60,34 +69,45 @@ Purpose: identify high-quality, representative code examples for Java backend de
     ```
 
 - File: [pos-catalog/src/main/java/com/positivity/catalog/internal/entity/ProductEntity.java](../../durion-positivity-backend/pos-catalog/src/main/java/com/positivity/catalog/internal/entity/ProductEntity.java)
-  - Why: Canonical entity demonstrating lifecycle callbacks and ID generation patterns. Use this as the exemplar for adding `@PrePersist`/`@PreUpdate` behavior and consistent audit fields.
-  - What it demonstrates: `@PrePersist` for ID and createdAt setting, `@PreUpdate` for lastModified updates, and the recommended pattern of delegating ID creation to a shared generator (UUIDv7).
+  - Why: Canonical entity demonstrating JPA + Spring Data auditing patterns, UUIDv7 ID generation, and lifecycle defaults.
+  - What it demonstrates: `@EntityListeners(AuditingEntityListener.class)`, `@UUIDv7Id` with `@GeneratedValue`, audited timestamps via `@CreatedDate`/`@LastModifiedDate`, and `@PrePersist` for default status/lifecycle values. Ids stored as UUID.
   - Snippet:
 
     ```java
     @Entity
+    @EntityListeners(AuditingEntityListener.class)
+    @Table(name = "product")
+    @Schema(description = "Represents a product in the catalog")
     public class ProductEntity {
       @Id
+      @GeneratedValue
+      @UUIDv7Id
+      @Column(columnDefinition = "UUID")
       private UUID id;
 
+      @Column(nullable = false)
+      private UUID foriegnKeyId;
+
+      @CreatedDate
+      @Column(nullable = false, updatable = false)
       private Instant createdAt;
-      private Instant lastModifiedAt;
+
+      @LastModifiedDate
+      @Column(nullable = false)
+      private Instant updatedAt;
 
       @PrePersist
-      public void onCreate() {
-        if (id == null) {
-          id = com.positivity.shared.id.UUIDv7Generator.generate();
+      public void applyDefaults() {
+        if (status == null) {
+          status = ProductStatus.ACTIVE;
         }
-        createdAt = Instant.now();
-        lastModifiedAt = createdAt;
-      }
-
-      @PreUpdate
-      public void onUpdate() {
-        lastModifiedAt = Instant.now();
+        if (lifecycleState == null) {
+          lifecycleState = ProductLifecycleState.ACTIVE;
+        }
       }
     }
     ```
+  - Note: For deterministic time in tests, do not call `Instant.now()` directly in entities/services. Use Spring auditing with a `DateTimeProvider` backed by an injected `Clock`.
 
 - File: [pos-catalog/src/main/java/com/positivity/catalog/service/ProductLifecycleService.java](../../durion-positivity-backend/pos-catalog/src/main/java/com/positivity/catalog/service/ProductLifecycleService.java)
   - Why: Good example of service-layer orchestration, transactional boundaries, validation, custom exceptions, and metrics via Micrometer.
@@ -108,7 +128,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
 
 - File: [pos-catalog/src/main/java/com/positivity/catalog/internal/entity/ProductEntity.java](../../durion-positivity-backend/pos-catalog/src/main/java/com/positivity/catalog/internal/entity/ProductEntity.java)
   - Why: Example JPA entity design for complex domain objects with lifecycle metadata and helpful schema annotations.
-  - What it demonstrates: `@PrePersist` ID generation, use of `@ElementCollection`, `@Enumerated`, and explicit lifecycle fields used in business logic.
+  - What it demonstrates: use of `@ElementCollection`, `@Enumerated`, audited lifecycle fields, and explicit product lifecycle metadata used in business logic.
   - Snippet:
 
     ```java
@@ -120,19 +140,6 @@ Purpose: identify high-quality, representative code examples for Java backend de
     private Instant lastStateChangedAt;
     ```
 
-- File: [pos-people/src/main/java/com/positivity/people/internal/controller/PersonController.java](../../durion-positivity-backend/pos-people/src/main/java/com/positivity/people/internal/controller/PersonController.java)
-  - Why: Clear CRUD controller with `@EmitEvent` on create/update, straightforward response handling, and minimal controller logic.
-  - What it demonstrates: consistent request/response patterns and use of service to transform entities/DTOs.
-  - Snippet:
-
-    ```java
-    @EmitEvent(id = "PEOPLE_PERSON_CREATE", apiVersion = "1")
-    @PostMapping
-    public ResponseEntity<Person> createPerson(@RequestBody Person person) {
-        Person saved = personService.savePerson(person);
-        return ResponseEntity.status(201).body(saved);
-    }
-    ```
 
 - File: [pos-people/src/main/java/com/positivity/people/service/PersonService.java](../../durion-positivity-backend/pos-people/src/main/java/com/positivity/people/service/PersonService.java)
   - Why: Service layer that converts between JPA entities and DTOs, with a small example of defensive validation and a TODO for external integration.
@@ -159,6 +166,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
 - Business Logic Layer (Services)
   - Exemplars: `ProductLifecycleService.java`, `PersonService.java`
   - Strengths: transactional demarcation, repository abstraction, domain validation and custom exceptions, Micrometer metrics.
+  - Use of Instant.now(Clock)  with an injected clock is mandatory for performance testing and data loading
 
 - Data Access Layer (Entities & Repos)
   - Exemplars: `ProductEntity.java` (entity modeling), repository patterns used across `pos-*` modules.
@@ -173,7 +181,7 @@ Purpose: identify high-quality, representative code examples for Java backend de
 
 - Use the controllers as canonical examples when adding new REST endpoints: keep them thin and delegate to services.
 - Follow `ProductLifecycleService` pattern for business rules: validate early, throw descriptive custom exceptions, and record metrics for important state changes.
-- When adding entities, mirror the `ProductEntity` approach: add lifecycle metadata, use `@PrePersist` for IDs, and document schema with OpenAPI annotations where DTOs are returned.
+- When adding entities, mirror the `ProductEntity` approach: add lifecycle metadata, use `@UUIDv7Id` + `@GeneratedValue` for IDs, use `@PrePersist` for defaults, and rely on auditing (`@CreatedDate`/`@LastModifiedDate`) with an injected `Clock`-backed `DateTimeProvider` for timestamps.
 - Add unit tests that mirror the contract tests pattern already present under `pos-catalog/src/test/java/.../contract`.
 
 ## API Documentation Annotation Standards
