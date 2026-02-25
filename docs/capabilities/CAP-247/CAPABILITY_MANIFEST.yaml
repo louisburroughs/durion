@@ -28,26 +28,29 @@ stories:
     repo: louisburroughs/durion
     issue: 247
     title: '[CAP] Catalog Search & Product Viewing'
-    domain: pos
+    domain: product
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:pos
+    - domain:product
     - CAP:247
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 16
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 80
-      impacted_component_repos: []
-  contract_guide:
-    repo: louisburroughs/durion
-    path: domains/pos/.business-rules/BACKEND_CONTRACT_GUIDE.md
-    anchor: ''
-    status: draft
+      issues: [16, 17]
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/product/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/product/.business-rules/DOMAIN_NOTES.md
+  repositories:
+  - name: durion-positivity-backend
+    slug: louisburroughs/durion-positivity-backend
+    type: backend
+    notes: ''
   pr_links:
     durion_contract_pr: ''
     backend_pr: ''
@@ -58,8 +61,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/247.'
   definition_of_done:
   - All PRs merged and required checks green
