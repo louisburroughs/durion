@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 28
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 92
-      impacted_component_repos:
-      - louisburroughs/durion-workexec
+      issues: [28, 29, 179, 178, 177]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/workexec/.ui/frontend-story-fulfillment-create-pick-list-pick-t-92.wf.md
@@ -60,6 +55,8 @@ stories:
         path: domains/inventory/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/DOMAIN_NOTES.md
   contract_guide:
@@ -81,7 +78,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
   - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/218.'
   definition_of_done:
