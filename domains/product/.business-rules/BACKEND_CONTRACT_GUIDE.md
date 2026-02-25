@@ -61,6 +61,7 @@ Frontend developer workflow:
 | CAP-167 | `durion#167` | draft | [CAP] MSRP & Base Pricing Policies |
 | CAP-168 | `durion#168` | draft | [CAP] Location Store Pricing (Overrides by Location) |
 | CAP-170 | `durion#170` | draft | [CAP] Availability & Inventory Visibility (Internal + External) |
+| CAP-247 | `durion#247` | draft | [CAP] Catalog Search & Product Viewing (Live Data) |
 
 ## Frontend API Lookup
 
@@ -304,6 +305,59 @@ Headers and auth notes:
 
 - Provider tests: `durion-positivity-backend/pos-catalog/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+
+## CAP-247: [CAP] Catalog Search & Product Viewing (Live Data)
+
+### Capability Metadata
+
+- Capability ID: CAP-247
+- Parent Issue: https://github.com/louisburroughs/durion/issues/247
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-catalog/openapi.yaml`
+
+### API Operation References
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Get product details with live price + availability | `getProductDetailView` | GET | `/v1/products/{productId}/detail?location_id=` |
+| Search catalog by keyword, brand, category | `searchProducts` | GET | `/v1/products/search?q=&brand=&category=&sku=&cursor=&limit=` |
+
+### Behavioral Assertions — Issue #16 (Product Detail View)
+
+| ID | Scenario | Expected HTTP | Body Assertions |
+| --- | --- | --- | --- |
+| PD-001 | Product exists, both services return valid data | 200 OK | `pricing.status="OK"`, `availability.status="OK"`, `confidence="HIGH"` |
+| PD-002 | Product exists, pricing service unavailable | 200 OK | `pricing.status="UNAVAILABLE"`, `availability.status="OK"`, `confidence="MEDIUM"` |
+| PD-003 | Product exists, inventory service unavailable | 200 OK | `pricing.status="OK"`, `availability.status="UNAVAILABLE"`, `confidence="MEDIUM"` |
+| PD-004 | Product exists, both services unavailable | 200 OK | `pricing.status="UNAVAILABLE"`, `availability.status="UNAVAILABLE"`, `confidence="LOW"` |
+| PD-005 | Product not found | 404 Not Found | n/a |
+
+**Cross-service call rules:**
+- `pos-catalog` MUST call `pos-price` via `POST /v1/price/quotes` — never compute price locally
+- `pos-catalog` MUST call `pos-inventory` via `GET /v1/inventory/availability/query` — never duplicate ATP logic
+- Service failures MUST produce graceful degradation (200 partial), not 5xx
+
+### Behavioral Assertions — Issue #17 (Catalog Search)
+
+| ID | Scenario | Expected HTTP | Body Assertions |
+| --- | --- | --- | --- |
+| CS-001 | No matching products | 200 OK | `data=[]`, `nextCursor=null` |
+| CS-002 | Results < page limit | 200 OK | matching items in `data`, `nextCursor=null` |
+| CS-003 | Results exceed page limit | 200 OK | `data.length = limit`, `nextCursor` non-null |
+| CS-004 | Cursor used for next page | 200 OK | next page items returned |
+| CS-005 | SKU exact match present | 200 OK | SKU-matching product first in `data` |
+| CS-006 | brand filter applied | 200 OK | only matching brand products in `data` |
+| CS-007 | category filter applied | 200 OK | only matching category products in `data` |
+| CS-008 | limit > 100 | 200 OK | clamped to 100 results max |
+
+**Search response shape:** `{ data: List<ProductSummary>, nextCursor: String|null }`
+
+`ProductSummary` fields: `productId`, `name`, `sku`, `category`, `thumbnailUrl`, `manufacturerBrand`
+
+### Contract Test Traceability
+
+- `ProductDetailContractBehaviorIT` — covers PD-001 through PD-005
+- `ProductSearchContractBehaviorIT` — covers CS-001 through CS-008
 
 ## Events & Cross-Domain Dependencies
 
