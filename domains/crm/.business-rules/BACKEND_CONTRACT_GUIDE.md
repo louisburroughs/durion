@@ -80,8 +80,9 @@ Frontend developer workflow:
 | Get contacts with roles | `getContactsWithRoles` | GET | `/v1/crm/parties/{partyId}/contacts` | Refer to generated API reference for payload details |
 | Search persons | `searchPersons` | GET | `/v1/crm/persons` | Refer to generated API reference for payload details |
 | Get a person by ID | `getPerson` | GET | `/v1/crm/persons/{personId}` | Refer to generated API reference for payload details |
-| Fetch snapshot by party | `fetchByParty` | GET | `/v1/crm/snapshot/party/{partyId}` | Refer to generated API reference for payload details |
+| Fetch snapshot by party | `fetchByParty` | GET | `/v1/crm/snapshot/party/{partyId}` | Returns account, contacts, vehicles, and billingRules; refer to generated API reference for payload details |
 | Fetch snapshot by vehicle | `fetchByVehicle` | GET | `/v1/crm/snapshot/vehicle/{vehicleId}` | Refer to generated API reference for payload details |
+| Get billing rules for party | `getBillingRules` | GET | `/v1/crm/snapshot/party/{partyId}/billing-rules` | Returns BillingRuleRef only; does not require full snapshot load |
 
 Headers and auth notes:
 
@@ -348,6 +349,72 @@ Headers and auth notes:
 
 - Provider tests: `durion-positivity-backend/pos-customer/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+
+## CAP-252: [CAP] Customer Context (CRM Snapshot)
+
+### Capability Metadata
+
+- Capability ID: CAP-252
+- Parent Issue: [https://github.com/louisburroughs/durion/issues/252](https://github.com/louisburroughs/durion/issues/252)
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-customer/openapi.yaml`
+
+### API Operation References (OpenAPI Source of Truth)
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Fetch snapshot by party | `fetchByParty` | GET | `/v1/crm/snapshot/party/{partyId}` |
+| Fetch snapshot by vehicle | `fetchByVehicle` | GET | `/v1/crm/snapshot/vehicle/{vehicleId}` |
+| Get billing rules for party | `getBillingRules` | GET | `/v1/crm/snapshot/party/{partyId}/billing-rules` |
+
+### Behavioral Assertions — Customer Snapshot (Story #4)
+
+| Assertion | Description |
+| --- | --- |
+| SS-001 | `GET /v1/crm/snapshot/party/{partyId}` returns 200 with `account`, `contacts`, `vehicles`, and `billingRules` sections populated |
+| SS-002 | `billingRules.poRequired` is present and accurately reflects the customer's configured billing rule |
+| SS-003 | When the underlying billing rules data is missing, defaults are applied: `poRequired=false`, `taxExempt=false`, `paymentTerms="Due on Receipt"`, `creditHold=false`, `autoPayEnabled=false`, `invoiceDeliveryMethod=EMAIL` |
+| SS-004 | A second request for the same `partyId` within the cache TTL returns the snapshot from cache; `metadata.source` is `CACHE` |
+| SS-005 | `GET /v1/crm/snapshot/vehicle/{vehicleId}` returns 200 with the owning party's snapshot context |
+| SS-006 | `GET /v1/crm/snapshot/party/{unknownId}` returns 404 |
+| SS-007 | Callers without `PARTY_VIEW` authority receive 403 Forbidden |
+
+### Behavioral Assertions — Billing Rules Surface (Story #3)
+
+| Assertion | Description |
+| --- | --- |
+| BR-001 | `GET /v1/crm/snapshot/party/{partyId}/billing-rules` returns 200 with `BillingRuleRef` including `poRequired` flag |
+| BR-002 | When no billing rules are configured for the party, the endpoint returns defaults (`poRequired=false`, etc.) with all required fields present |
+| BR-003 | `GET /v1/crm/snapshot/party/{unknownId}/billing-rules` returns 404 |
+| BR-004 | Callers without `PARTY_VIEW` authority on the billing-rules endpoint receive 403 Forbidden |
+
+### Domain Boundaries
+
+- **This service provides billing rules** as a read-only configuration snapshot via `BillingRuleRef`. It does NOT enforce billing rules.
+- **Enforcement is the responsibility of downstream services**: Checkout/Order Creation enforces PO requirements; Invoicing enforces payment terms and credit limits; Pricing applies tax exemption.
+- Caching: snapshots are cached with a 15-minute TTL. Cache is backed by in-memory store (Caffeine) for development and test; Redis is the preferred production cache.
+- Authorization is evaluated at request time even when returning cached data.
+
+### Frontend Usage Notes
+
+- Use `fetchByParty` to load the full CRM snapshot (account, contacts, vehicles, billing rules) during order creation.
+- Use `getBillingRules` when only billing configuration is needed (e.g., pre-checkout validation).
+- The `billingRules.poRequired` flag indicates whether a PO number must be captured before order submission.
+- `metadata.stale: true` indicates the snapshot was served from cache after CRM service became unavailable; surface this as a UI warning.
+
+### ADR Constraints
+
+- ADR-0002: Permission `PARTY_VIEW` is required for all snapshot endpoints.
+- ADR-0011, ADR-0014: Auth headers propagated from gateway.
+- ADR-0017: 404 when party not found; 403 when unauthorized.
+- ADR-0018: Audit actor fields from security context.
+- ADR-0022: Stable person identifier in audit events.
+- ADR-0024: `retrievedAt` timestamp in snapshot metadata.
+
+### Contract Test Traceability
+
+- Provider tests: `durion-positivity-backend/pos-customer/src/test/java/com/positivity/customer/contract/`
+- Behavior covered: SS-001..SS-007 and BR-001..BR-004
 
 ## Events & Cross-Domain Dependencies
 
