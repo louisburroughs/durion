@@ -211,8 +211,8 @@ Headers and auth notes:
 |--------|------|------|-------|-------------|
 | POST | /v1/inventory/receiving/sessions | inventory:receiving:create | #35 | 201 |
 | GET | /v1/inventory/receiving/sessions/{sessionId} | inventory:receiving:view | #35 | 200 |
-| POST | /v1/inventory/receiving/sessions/{sessionId}/receive | inventory:receiving:complete | #34 | 200 |
-| POST | /v1/inventory/receiving/sessions/{sessionId}/lines/{lineId}/cross-dock | inventory:receiving:complete AND inventory:issue:parts | #33 | 200 |
+| POST | /v1/inventory/receiving/sessions/{sessionId}/receive | inventory:receiving:execute | #34 | 200 |
+| POST | /v1/inventory/receiving/sessions/{sessionId}/lines/{lineId}/cross-dock | inventory:receiving:execute AND inventory:issue:parts | #33 | 200 |
 
 ### Behavioral Contracts
 
