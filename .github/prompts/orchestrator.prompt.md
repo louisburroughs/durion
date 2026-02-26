@@ -110,5 +110,5 @@ Provide:
 - Per-story scaffold (when used)/RED/GREEN/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
-- PR reference in CAPABILITY_MANIFEST.yaml
+- Must include **PR link in CAPABILITY_MANIFEST.yaml**
 - Blockers/failures (if any)

@@ -6,8 +6,8 @@ usage() {
 Usage:
   copilot-pr-agent-chain.sh \
     --manifest <path/to/CAPABILITY_MANIFEST.yaml> \
-    --prompt1 <file> \
-    --prompt2 <file> \
+    [--prompt1 <file>] \
+    [--prompt2 <file>] \
     [--pr <number>] \
     [--repo <owner/repo>] \
     [--min-delay-seconds <seconds>] \
@@ -26,6 +26,7 @@ Description:
 
 Notes:
   - Requires: copilot, gh, jq
+  - --prompt1/--prompt2 are optional if defaults are set in this script.
   - If PR is unknown before prompt1, the first agent should write it to stories[*].pr_links.backend_pr.
   - "in progress" is inferred from review request presence + no new Copilot review yet.
 USAGE
@@ -39,10 +40,10 @@ require_cmd() {
 }
 
 PR_NUMBER=""
-PROMPT1_FILE=""
-PROMPT2_FILE=""
+PROMPT1_FILE="/home/louisb/Projects/durion/.github/prompts/orchestrator.prompt.md"
+PROMPT2_FILE="/home/louisb/Projects/durion/.github/prompts/pr-review-orchestrator.prompt.md"
 MANIFEST_FILE=""
-REPO=""
+REPO="louisburroughs/durion-positivity-backend"
 MIN_DELAY_SECONDS=600
 MAX_EXTRA_WAIT_SECONDS=1800
 POLL_SECONDS=30
@@ -126,7 +127,7 @@ fi
 
 if [[ "$STATUS_ONLY" == "false" ]]; then
   if [[ -z "$PROMPT1_FILE" || -z "$PROMPT2_FILE" ]]; then
-    echo "--prompt1 and --prompt2 are required unless --status-only is set" >&2
+    echo "Prompt files are not configured. Set defaults in this script or pass --prompt1/--prompt2." >&2
     usage
     exit 1
   fi
@@ -405,7 +406,7 @@ run_agent_with_prompt_file() {
     prompt_text="${prompt_text}CAPABILITY_MANIFEST_CONTENT_START"$'\n'"$(cat "$MANIFEST_FILE")"$'\n'"CAPABILITY_MANIFEST_CONTENT_END"
   fi
 
-  local cmd=(copilot --allow-all-tools --allow-all-paths --allow-all-urls)
+  local cmd=(copilot --yolo --allow-all-tools --allow-all-paths --allow-all-urls)
   if [[ -n "$COPILOT_MODEL" ]]; then
     cmd+=(--model "$COPILOT_MODEL")
   fi
