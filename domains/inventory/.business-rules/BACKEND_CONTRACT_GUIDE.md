@@ -210,7 +210,7 @@ Headers and auth notes:
 | Method | Path | Auth | Story | Status Code |
 |--------|------|------|-------|-------------|
 | POST | /v1/inventory/receiving/sessions | inventory:receiving:create | #35 | 201 |
-| GET | /v1/inventory/receiving/sessions/{sessionId} | authenticated | #35 | 200 |
+| GET | /v1/inventory/receiving/sessions/{sessionId} | inventory:receiving:view | #35 | 200 |
 | POST | /v1/inventory/receiving/sessions/{sessionId}/receive | inventory:receiving:complete | #34 | 200 |
 | POST | /v1/inventory/receiving/sessions/{sessionId}/lines/{lineId}/cross-dock | inventory:receiving:complete AND inventory:issue:parts | #33 | 200 |
 
