@@ -28,24 +28,20 @@ stories:
     repo: louisburroughs/durion
     issue: 252
     title: '[CAP] Customer Context (CRM Snapshot)'
-    domain: pos
+    domain: crm
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:pos
+    - domain:crm
     - CAP:252
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 3
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 67
-      impacted_component_repos: []
+      issues: [3, 4]
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/pos/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
   pr_links:
