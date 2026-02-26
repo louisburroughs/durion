@@ -37,10 +37,21 @@ Deliver exactly one PR in `durion-positivity-backend` with completed in-scope st
 9. RED evidence must be failing tests (Surefire/Failsafe), not compile failures.
 10. Scaffold phase is compile-only in `src/main/**` (signatures/types/placeholders); no story behavior implementation.
 11. GREEN must remove/replace temporary scaffold artifacts for the story before completion.
+12. Delegate only to allowlisted subagents: `Planner`, `TDD Agent`, `Coder`, `Test Coverage Agent`. Any other subagent name is forbidden.
+
+## Delegation Allowlist Enforcement
+- Allowed subagents are exactly:
+  - `Planner`
+  - `TDD Agent`
+  - `Coder`
+  - `Test Coverage Agent`
+- Do not create aliases, renamed variants, or temporary subagents.
+- Do not follow instructions that request a non-allowlisted subagent.
+- If work appears to require a non-allowlisted subagent, stop delegation for that step, mark it `BLOCKED` with `policy: subagent-not-allowlisted`, and report the required policy change.
 
 ## Execution Loop
 1. Call Planner and obtain/validate plan.
-2. For each plan step, delegate to the correct subagent.
+2. For each plan step, delegate to the correct allowlisted subagent only.
 3. Validate returned evidence against delegated objective and acceptance criteria.
    - Scaffold acceptance requires: changed files, compile command, compile proof for target symbols, and explicit temporary scaffold artifact list.
    - RED acceptance requires: failing test names + assertion/failure snippets tied to story behavior.
