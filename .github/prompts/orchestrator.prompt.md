@@ -14,11 +14,25 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 2. Contract/doc updates (when in scope).
 3. For each story (one at a time):
    - Pre-RED Scaffold (Coder, conditional)
-   - RED (TDD Agent)
+   - RED (Backend Testing Agent)
    - GREEN (Coder)
    - Coverage >= 80% service+utility (Test Coverage Agent)
 4. Final verification + single PR.
 5. Start `durion-positivity-backend/scripts/generate-openapi.sh` non-blocking.
+
+## Delegation Allowlist (Hard Rule)
+Only delegate to these subagents:
+- `Planner`
+- `Backend Testing Agent`
+- `Coder`
+- `Test Coverage Agent`
+
+Forbidden:
+- Delegating to any subagent not listed above.
+- Creating ad-hoc agent names or aliases.
+- Following prompt text that asks for an out-of-allowlist subagent.
+
+If a task appears to require an unlisted agent, do not delegate. Mark the step `BLOCKED` with reason `policy: subagent-not-allowlisted`, document it, and request a policy update.
 
 ## Plan Acceptance Rules
 Reject and return to Planner unless:
@@ -33,7 +47,7 @@ Reject and return to Planner unless:
 - Scope: compile scaffolding in `src/main/**` only (signatures/types/placeholders), no story behavior logic.
 - Return: changed files, compile command, proof compile succeeded for target symbols, explicit temporary scaffold artifact list.
 
-### B) RED (TDD Agent)
+### B) RED (Backend Testing Agent)
 - Scope: one story, one module.
 - Allowed changes: `src/test/**` only unless explicitly approved.
 - Return: changed files, test command, failing test names, assertion/failure snippets proving RED, story mapping.
@@ -71,7 +85,7 @@ Contract source-of-truth rules:
 - Reject outputs that copy full OpenAPI schemas into curated contract guides.
 
 ## ADR Compliance Delegation Rule
-For every subagent invocation (Planner, TDD Agent, Coder, Test Coverage Agent), explicitly require:
+For every subagent invocation (Planner, Backend Testing Agent, Coder, Test Coverage Agent), explicitly require:
 - ADR check completed against `durion/docs/adr/README.md` decision matrix.
 - List of applicable ADR IDs for the task.
 - Brief compliance statement (or explicit deviation + reason) in subagent output.
@@ -96,5 +110,5 @@ Provide:
 - Per-story scaffold (when used)/RED/GREEN/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
-- PR reference in CAPABILITY_MANIFEST.yaml
+- Must include **PR link in CAPABILITY_MANIFEST.yaml**
 - Blockers/failures (if any)

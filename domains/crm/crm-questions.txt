@@ -152,7 +152,7 @@ This document consolidates all open questions from the CRM domain story specific
 
 ### Permissions (DECISION-INVENTORY-007)
 ✅ **RESOLVED** — Every story now has explicit permission enforcement:
-- CRM permission taxonomy defined per ADR 0002
+- CRM permission taxonomy is historical; registration policy is now ADR-0025 (`permissions.yaml`)
 - Backend enforces via @PreAuthorize on all controllers (CustomerController, CrmAccountsController, CrmVehiclesController, CrmContactsController, CrmCommunicationPreferencesController)
 - Security service RoleAuthorityService maps CSR/FLEET_MANAGER/ADMIN → crm:*:* permissions
 - JWT tokens carry `authorities` claim with expanded permissions
@@ -180,7 +180,7 @@ All stories blocked on missing Moqui service/REST endpoint specifications:
 ## Next Steps (with current resolution status)
 
 1. **Priority 1 - Permissions Mapping (Blocking All Stories):**
-   - ✅ CRM permission taxonomy defined in [domains/crm/.business-rules/PERMISSION_TAXONOMY.md](domains/crm/.business-rules/PERMISSION_TAXONOMY.md) (status ACCEPTED via ADR 0002, aligns with DECISION-INVENTORY-007).
+   - ✅ CRM permission taxonomy defined in [domains/crm/.business-rules/PERMISSION_TAXONOMY.md](domains/crm/.business-rules/PERMISSION_TAXONOMY.md) (historical taxonomy; registration policy superseded by ADR-0025, aligns with DECISION-INVENTORY-007).
    - ✅ Backend permission enforcement implemented in `pos-customer` service: [durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md](../../durion-positivity-backend/pos-customer/CRM_PERMISSION_IMPLEMENTATION.md)
      - CrmSecurityConfig.java: Spring Security configured with `@EnableMethodSecurity(prePostEnabled=true)`, stateless JWT-based sessions, /v1/crm/** requires authentication
      - CrmPermissionInitializer.java: Automatic permission registration on startup (posts to pos-security-service /v1/permissions/register, non-blocking on failure)

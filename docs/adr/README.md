@@ -65,7 +65,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | Number | Title                                      | Status            | Date       |
 |--------|--------------------------------------------|-------------------|------------|
 | 0001   | Inventory Ledger ATP Computation           | ACCEPTED          | 2026-01-12 |
-| 0002   | CRM Domain Permission Taxonomy             | ACCEPTED          | 2026-01-23 |
+| 0002   | CRM Domain Permission Taxonomy             | DEPRECATED (ADR-0025) | 2026-01-23 |
 | 0003   | CRM Navigation Patterns                    | ACCEPTED          | 2026-01-24 |
 | 0004   | Duplicate Detection UX Strategy            | ACCEPTED          | 2026-01-24 |
 | 0005   | Optimistic Locking Conflict Resolution     | ACCEPTED          | 2026-01-24 |
@@ -88,6 +88,8 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0022   | Audit Stable Person Identifier Claim Policy| ACCEPTED          | 2026-02-21 |
 | 0023   | Remove tenantId / Single-Organization Context | ACCEPTED       | 2026-02-21 |
 | 0024   | Entity createdAt/updatedAt Population Policy | ACCEPTED        | 2026-02-23 |
+| 0025   | Permissions YAML Registration Policy       | ACCEPTED          | 2026-02-26 |
+| 0026   | Service Contract Boundary Policy           | ACCEPTED          | 2026-02-26 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -96,7 +98,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | ADR  | Invoke when... | Primary agents concerned |
 |------|----------------|--------------------------|
 | 0001 | Inventory availability/ATP logic, reservation semantics, stock math changes | Coder, Test, Planner |
-| 0002 | CRM/RBAC permission model or permission taxonomy changes | Coder, Test, Planner, Orchestrator |
+| 0002 | CRM/RBAC permission taxonomy (historical reference; superseded by 0025) | Planner |
 | 0003 | CRM navigation/routing/workflow UX structure changes | Coder, Planner, Orchestrator |
 | 0004 | Duplicate detection rules, matching thresholds, merge/review flows | Coder, Test, Planner |
 | 0005 | Concurrency, version conflicts, optimistic locking behavior | Coder, Test, Planner |
@@ -119,6 +121,8 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0022 | Stable person identifier claims in audit/event payloads | Coder, Test, Planner |
 | 0023 | tenantId removal and single-org assumptions across contracts/data | Coder, Test, Planner, Orchestrator |
 | 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control | Coder, Test, Planner |
+| 0025 | Permission registration source-of-truth, `permissions.yaml` schema, and rollout | Coder, Test, Planner, Orchestrator |
+| 0026 | Service interface-only public API boundary and internal implementation encapsulation | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
 
