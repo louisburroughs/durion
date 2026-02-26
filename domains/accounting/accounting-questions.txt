@@ -154,7 +154,7 @@ This document consolidates all open questions from the accounting domain story s
 
 ### Permissions (DECISION-INVENTORY-007)
 ⚠️ **NOT STARTED** — Every story requires explicit permission enforcement:
-- Accounting permission taxonomy needs definition (following pattern from CRM ADR 0002)
+- Accounting permission taxonomy needs definition (following ADR-0025 `permissions.yaml` registration policy)
 - Backend controllers need @PreAuthorize annotations
 - Security service needs RoleAuthorityService mappings for accounting roles (e.g., ACCOUNTANT, CONTROLLER, AP_CLERK, AR_CLERK, etc.)
 - JWT tokens need to carry expanded accounting permissions
