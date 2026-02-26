@@ -1,6 +1,6 @@
 # Permission Taxonomy Reference
 
-This document provides domain-specific examples of permission taxonomies. Domains should follow the pattern established here and in the [CRM Domain Permission Taxonomy](../../crm/CRM_PERMISSION_TAXONOMY.md).
+This document provides domain-specific examples of permission taxonomies. Domains should follow the pattern established here and the platform policy in [ADR-0025](../../../docs/adr/0025-permissions-yaml-registration-policy.adr.md).
 
 ## Inventory Adjustment Permissions
 
@@ -166,5 +166,5 @@ Permissions follow the format: `domain:resource:action`
 
 ## Related Domain Taxonomies
 
-- **CRM Domain:** [CRM_PERMISSION_TAXONOMY.md](../../crm/CRM_PERMISSION_TAXONOMY.md) (ADR 0002)
-- **Architecture Decision:** [ADR 0002 - CRM Domain Permission Taxonomy](../../../docs/adr/0002-crm-permission-taxonomy.md)
+- **CRM Domain (historical taxonomy):** [CRM_PERMISSION_TAXONOMY.md](../../crm/CRM_PERMISSION_TAXONOMY.md) (superseded by ADR-0025)
+- **Architecture Decision:** [ADR-0025 - Permissions YAML Registration Policy](../../../docs/adr/0025-permissions-yaml-registration-policy.adr.md)
