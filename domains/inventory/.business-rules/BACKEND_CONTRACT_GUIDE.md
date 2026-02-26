@@ -190,7 +190,7 @@ Headers and auth notes:
 - Use @WithMockUser(roles={"INVENTORY_ADJUST_APPROVE"}) for approval tests
 - Verify ledger entry count increases by exactly 1 (or 2 for TRANSFER) after each movement
 
-## CAP-216: [CAP] Receiving (PO/ASN/Direct)
+## CAP-216: [CAP] Receiving (PO/ASN/Direct-to-Workorder)
 
 ### Capability Metadata
 
@@ -199,39 +199,61 @@ Headers and auth notes:
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-inventory/openapi.yaml`
 
-### API Operation References (OpenAPI Source of Truth)
+### Stories
 
-| Use Case | operationId | Method | Path |
-| --- | --- | --- | --- |
-| List adjustments by status | `listAdjustments` | GET | `/api/v1/inventory/cycleCountAdjustments` |
-| List pending approvals | `listPendingApprovals` | GET | `/api/v1/inventory/cycleCountAdjustments/pending` |
-| Count pending approvals | `countPendingApprovals` | GET | `/api/v1/inventory/cycleCountAdjustments/pending/count` |
+- #35 — Create Receiving Session
+- #34 — Receive Items into Staging
+- #33 — Cross-dock to Workorder
 
-### Behavioral Assertions
+### Endpoints (all paths relative to gateway http://localhost:8080)
 
-- Requests must satisfy domain validation rules before state change.
-- Successful mutations must produce deterministic persisted outcomes.
-- Failure responses must be explicit and actionable for callers.
+| Method | Path | Auth | Story | Status Code |
+|--------|------|------|-------|-------------|
+| POST | /v1/inventory/receiving/sessions | inventory:receiving:create | #35 | 201 |
+| GET | /v1/inventory/receiving/sessions/{sessionId} | inventory:receiving:view | #35 | 200 |
+| POST | /v1/inventory/receiving/sessions/{sessionId}/receive | inventory:receiving:execute | #34 | 200 |
+| POST | /v1/inventory/receiving/sessions/{sessionId}/lines/{lineId}/cross-dock | inventory:receiving:execute AND inventory:issue:parts | #33 | 200 |
 
-### Frontend Usage Notes
+### Behavioral Contracts
 
-- Use operation IDs above as the stable API integration keys for UI actions.
-- Read request/response payload shapes from generated API reference, not this guide.
-- Surface validation and authorization failures directly to users with trace context.
+Story #35 — Create Receiving Session:
+- POST `/v1/inventory/receiving/sessions` with a valid `sourceDocumentId` returns `201` with a JSON body containing `sessionId` and `status=OPEN`.
+- GET `/v1/inventory/receiving/sessions/{sessionId}` returns `200` with full session details including lines and their current statuses.
+- If the referenced source document cannot be located, return `404` with error code `SOURCE_NOT_FOUND`.
+- If the source document is already fully received, return `400` with error code `ALREADY_RECEIVED`.
 
-### ADR Constraints
+Story #34 — Receive Items into Staging:
+- POST `/v1/inventory/receiving/sessions/{sessionId}/receive` with line-level received quantities creates `GOODS_RECEIPT` ledger entries and records variance rows where applicable; response `200` on success.
+- When received quantity is less than expected, record a `SHORTAGE` variance for the line and set line status to `RECEIVED_SHORT`.
+- When received quantity is greater than expected, record an `OVERAGE` variance for the line and set line status to `RECEIVED_OVER`.
+- When each session line is completed (all expected quantities received or variance recorded), session status transitions to `COMPLETED`.
 
-- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
+Story #33 — Cross-dock to Workorder:
+- POST `/v1/inventory/receiving/sessions/{sessionId}/lines/{lineId}/cross-dock` performs an atomic operation that creates both `GOODS_RECEIPT` and `GOODS_ISSUE` ledger entries so items flow from inbound receipt directly to the target workorder.
+- If the target workorder is in a closed state, return `400` with error code `WORKORDER_CLOSED` and no ledger rows are written.
+- If the caller lacks `inventory:issue:parts` authority, return `403` `FORBIDDEN`.
+- If the session or session line is not found, return `404`.
 
-### Events & Dependencies
+### Module
 
-- Respect published API/event contracts for all upstream and downstream dependencies.
-- Preserve traceability when integrating across services or asynchronous workflows.
+- pos-inventory
 
-### Contract Test Traceability
+### Flyway migrations added
+
+- V4: create `receiving_session` and `receiving_line` tables
+- V5: create `inventory_variance` table
+
+### Test & Contract Notes
+
+- Contract tests should target the gateway-format paths (`/v1/...`) and assert both success and explicit error codes listed above.
+- Mock upstream source document lookups in provider tests to exercise `SOURCE_NOT_FOUND` and `ALREADY_RECEIVED` paths deterministically.
+- Assert ledger rows created with correct `transactionType` (`GOODS_RECEIPT`, `GOODS_ISSUE`) and that cross-dock operations are atomic.
+
+### Traceability
 
 - Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
-- Add or update tests that cover each behavioral assertion above when behavior changes.
+- Ensure generated API reference (`domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md`) is updated if OpenAPI changes.
+
 
 ## CAP-217: [CAP] Put-away & Replenishment
 
