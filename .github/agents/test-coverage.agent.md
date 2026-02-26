@@ -3,6 +3,14 @@ name: Test Coverage Agent
 description: JaCoCo-focused test hardening for service and utility coverage.
 model: Gemini 2.5 Pro (copilot)
 tools:
+  - 'vscode/getProjectSetupInfo'
+  - 'vscode/installExtension'
+  - 'vscode/newWorkspace'
+  - 'vscode/openSimpleBrowser'
+  - 'vscode/runCommand'
+  - 'vscode/askQuestions'
+  - 'vscode/vscodeAPI'
+  - 'vscode/extensions'
   - execute/runInTerminal
   - execute/getTerminalOutput
   - execute/awaitTerminal
@@ -26,6 +34,7 @@ tools:
   - search/changes
   - search/usages
   - web/fetch
+  - 'memory'
   - todo
 ---
 
