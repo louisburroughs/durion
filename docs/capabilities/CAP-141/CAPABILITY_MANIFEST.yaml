@@ -42,16 +42,14 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 61
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 125
-      impacted_component_repos: []
+      issues: [61, 62]
       business_rules:
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.business-rules/DOMAIN_NOTES.md
   contract_guide:

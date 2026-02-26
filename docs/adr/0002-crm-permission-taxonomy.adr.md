@@ -1,9 +1,13 @@
 # ADR 0002: CRM Domain Permission Taxonomy and Authorization Model
 
-**Status:** ACCEPTED  - 2026-01-23 
+**Status:** DEPRECATED (SUPERSEDED BY ADR-0025)  
 **Date:** 2026-01-23  
 **Author:** CRM Domain + Security Domain Collaboration  
 **Affected Components:** pos-crm-service, durion-moqui-frontend, pos-security-service  
+
+> Deprecation Note (2026-02-26): This ADR is superseded by ADR-0025, which
+> standardizes permission registration via `permissions.yaml` manifests across
+> modules. Keep this document for historical taxonomy context only.
 
 ---
 
