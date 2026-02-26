@@ -53,7 +53,7 @@ stories:
     notes: ''
   pr_links:
     durion_contract_pr: ''
-    backend_pr: ''
+    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/568'
     frontend_prs: []
   merge_order:
   - durion_contract_pr
