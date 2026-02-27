@@ -1,7 +1,7 @@
 ---
 name: 'Orchestration Policy for Backend Delivery'
 agent: 'Orchestrator'
-description: 'Compact policy for Planner -> TDD -> Coder -> Coverage execution with strict validation gates.'
+description: 'Compact policy for Planner -> TDD -> Coder -> Code Review -> Coverage execution with strict validation gates.'
 ---
 
 Run in strict compliance with `orchestrator.agent.md`.
@@ -15,7 +15,9 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 3. For each story (one at a time):
    - Pre-RED Scaffold (Coder, conditional)
    - RED (Backend Testing Agent)
-   - GREEN (Coder)
+   - GREEN (Coder, pre-commit handoff preferred)
+   - Story compliance review (Code Review Agent)
+   - Coder corrections for review findings (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
 4. Final verification + single PR.
 5. Start `durion-positivity-backend/scripts/generate-openapi.sh` non-blocking.
@@ -25,6 +27,7 @@ Only delegate to these subagents:
 - `Planner`
 - `Backend Testing Agent`
 - `Coder`
+- `Code Review Agent`
 - `Test Coverage Agent`
 
 Forbidden:
@@ -57,9 +60,25 @@ Reject and return to Planner unless:
 - Scope: same story/module as RED.
 - Preserve TDD assertions unless explicit rationale.
 - Return: changed files, same test command family, passing output proving GREEN, temporary scaffold cleanup confirmation, no test seam-retargeting confirmation.
+- Commit policy (preferred, not hard-blocking): provide reviewable handoff before final story commit so Code Review Agent can run pre-commit.
 
-### D) Coverage (Test Coverage Agent)
-- Prereq: Coder step marked completed by Planner.
+### D) Story Compliance Review (Code Review Agent)
+- Scope: same story/module as GREEN.
+- Stage: pre-PR only; pre-commit preferred and pre-coverage mandatory.
+- Cycle limit: maximum 5 Coder<->Code Review cycles per story.
+- Required checks:
+  - issue acceptance criteria vs changed code behavior,
+  - applicable ADR compliance,
+  - issue-comment clarifications (when available),
+  - code comment accuracy (no stale/misleading comments),
+  - test adequacy for changed behavior.
+- Forbidden:
+  - editing files,
+  - proposing direct code rewrites/patches.
+- Return: `Verdict: PASS|FAIL`, acceptance-criteria matrix, prioritized findings, and coder fix queue.
+
+### E) Coverage (Test Coverage Agent)
+- Prereq: Code Review Agent verdict is `PASS` for the current story and Coder step is marked completed by Planner.
 - Run JaCoCo and raise service+utility coverage to >= 80%.
 - Return: changed test files, JaCoCo commands, before/after percentages, threshold confirmation.
 
@@ -85,7 +104,7 @@ Contract source-of-truth rules:
 - Reject outputs that copy full OpenAPI schemas into curated contract guides.
 
 ## ADR Compliance Delegation Rule
-For every subagent invocation (Planner, Backend Testing Agent, Coder, Test Coverage Agent), explicitly require:
+For every subagent invocation (Planner, Backend Testing Agent, Coder, Code Review Agent, Test Coverage Agent), explicitly require:
 - ADR check completed against `durion/docs/adr/README.md` decision matrix.
 - List of applicable ADR IDs for the task.
 - Brief compliance statement (or explicit deviation + reason) in subagent output.
@@ -93,6 +112,11 @@ For every subagent invocation (Planner, Backend Testing Agent, Coder, Test Cover
 ## Validation and Retry
 - Validate each subagent result against delegated objective + acceptance criteria.
 - For scaffold/GREEN validation, explicitly verify temporary scaffold cleanup and no unapproved test seam-retargeting.
+- After every GREEN handoff, invoke `Code Review Agent` before coverage work.
+- Prefer a pre-commit review loop when feasible; if not feasible, continue with the same loop pre-coverage and before any PR work.
+- If `Code Review Agent` returns `FAIL`, delegate fixes to `Coder`, then re-run `Code Review Agent`.
+- Hard cap for review loop: maximum 5 Coder<->Code Review cycles per story.
+- If still `FAIL` after 5 cycles, mark `BLOCKED` with reason `review-cycle-limit-exceeded`, document unresolved findings and remediation, and exit the run.
 - If tests were edited, require a `Test Change Rationale` section with:
   - changed test files,
   - contract/requirement change (or explicit no-change),
@@ -107,7 +131,7 @@ If a subagent fails to execute, document:
 
 ## Final Output
 Provide:
-- Per-story scaffold (when used)/RED/GREEN/coverage evidence
+- Per-story scaffold (when used)/RED/GREEN/review/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
 - Must include **PR link in CAPABILITY_MANIFEST.yaml**

@@ -44,6 +44,7 @@ All orchestration, planning, and delegation decisions must be aligned to this ob
   - Retry attempt 1: return concrete deficiency list + required corrections.
   - Retry attempt 2: tighten scope and restate acceptance checks.
   - If still failing after 2 retries, treat as blocker and report to user with failure details and next remediation options.
+  - Exception for Story Compliance Review loop: allow up to 5 Coder<->Code Review cycles per story before blocking.
 - **CRITICAL - CONTINUOUS EXECUTION:** You MUST NOT stop or pause between subagent invocations unless you are TRULY BLOCKED by:
   - Missing information that only the user can provide (credentials, external IDs, business decisions)
   - An explicit blocker/failure from a subagent that requires user intervention
@@ -116,6 +117,7 @@ These are the only agents you can call. Each has a specific role:
 - **Planner** — Creates implementation strategies and technical plans
 - **TDD Agent (Backend Testing Agent)** — Writes failing tests first and defines objective pass criteria before coding begins
 - **Coder** — Create branch, Writes code, fixes bugs, implements logic, create Pull Requests
+- **Code Review Agent** — Reviews coder output pre-PR (pre-commit preferred) against issue acceptance criteria, ADRs, and code-comment accuracy; reports findings only
 - **Test Coverage Agent** — Runs JaCoCo, measures service/utility coverage, and adds tests until the threshold is met
 - **Document Agent** — Technical documentation expert, updates guides and API documentation
 
@@ -244,25 +246,38 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - Coder should primarily modify `src/main/**`; test edits require explicit rationale and orchestrator approval.
   - Must provide GREEN evidence using the same command family used by TDD Agent.
 
-### Phase 4: Coverage hardening to threshold (depends on Phase 3 + Planner verification)
-- Task 4.1: Ask Planner to confirm Coder step is marked `completed` in plan state before coverage work begins → Planner
+### Phase 4: Story compliance review and correction loop (depends on Phase 3)
+- Task 4.1: Invoke Code Review Agent to validate coder changes against issue acceptance criteria, ADRs, and code/comment accuracy → Code Review Agent
+  Files: `durion-positivity-backend/pos-*/src/**`, GitHub issue context, ADR references
+- Task 4.2: If review finds gaps, delegate corrections to Coder and re-run Code Review Agent until `PASS` or blocked → Coder + Code Review Agent
+  Files: `durion-positivity-backend/pos-*/src/**`
+  Constraints:
+  - Prefer running this loop before final story commit when feasible.
+  - If strict pre-commit loop is not feasible, this loop is still mandatory before coverage and before PR creation.
+  - Hard cap: maximum 5 Coder<->Code Review cycles per story.
+  - If still failing after 5 cycles, mark `BLOCKED` (`review-cycle-limit-exceeded`), document unresolved findings/remediation, and exit.
+
+### Phase 5: Coverage hardening to threshold (depends on Phase 4 + Planner verification)
+- Task 5.1: Ask Planner to confirm Coder step is marked `completed` in plan state before coverage work begins → Planner
   Files: `Durion-Processing.md`
-- Task 4.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 65% → Test Coverage Agent
+- Task 5.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 65% → Test Coverage Agent
   Files: `durion-positivity-backend/pos-*/src/test/**`, `durion-positivity-backend/pos-*/target/site/jacoco/**`
 
 ### Mandatory Story Sequencing (Hard Rule)
 - Plan and execute stories one at a time using this micro-cycle:
   1. Story N RED tests
   2. Story N GREEN implementation
-  3. Story N coverage validation/hardening
+  3. Story N code review and coder correction loop until review `PASS` (pre-commit preferred)
+  4. Story N coverage validation/hardening
 - Only after Story N completes this full cycle may Story N+1 begin.
 - Never use these invalid patterns:
   - "Write RED tests for all stories first"
   - "Implement GREEN code for all stories at once"
+  - "Delay review until after all stories are implemented"
   - "Defer coverage until all stories are implemented"
 
-### Phase 5: Build & contract tests (depends on Phase 4)
-- Task 5.1: Run focused backend tests (module tests + provider contract tests) and report results → Coder
+### Phase 6: Build & contract tests (depends on Phase 5)
+- Task 6.1: Run focused backend tests (module tests + provider contract tests) and report results → Coder
   Files: `durion-positivity-backend/**`
 
 ### Step 3: Execute Each Phase
@@ -297,6 +312,11 @@ For this workflow, verification must include:
 - TDD RED→GREEN evidence chain is present for pilot stories:
   - RED: failing tests created by TDD Agent before implementation.
   - GREEN: same tests pass after Coder implementation.
+- Code review evidence is present after each GREEN handoff:
+  - Code Review Agent verdict (`PASS|FAIL`) with acceptance-criteria matrix
+  - Any review findings routed to Coder and revalidated
+  - Code/comment accuracy explicitly checked
+  - Review loop completed before coverage started for that story
 - Coverage hardening evidence is present after Coder + Planner verification:
   - JaCoCo command(s) executed by Test Coverage Agent
   - Before/after coverage percentages for service + utility scope
@@ -330,12 +350,14 @@ For this workflow:
 
 - Phase 1 → Phase 2 is always sequential (contract defines intent; implementation follows).
 - Phase 2 → Phase 3 is always sequential (tests first, then code to satisfy tests).
-- Phase 3 → Phase 4 is always sequential (coverage starts only after Planner confirms coder completion).
-- Phase 4 → Phase 5 is always sequential (final verification after coverage hardening).
-- For each story, RED → GREEN → coverage is always sequential and must complete before the next story starts.
+- Phase 3 → Phase 4 is always sequential (review runs immediately after coder output).
+- Phase 4 → Phase 5 is always sequential (coverage starts only after review `PASS` and Planner confirmation).
+- Phase 5 → Phase 6 is always sequential (final verification after coverage hardening).
+- For each story, RED → GREEN → code review/corrections → coverage is always sequential and must complete before the next story starts.
 - Phase 2 → Phase 3 is always sequential per story (tests first, then code to satisfy tests).
-- Phase 3 → Phase 4 is always sequential per story (coverage starts only after Planner confirms coder completion for that story).
-- Phase 4 → Phase 5 is always sequential (final verification after all story cycles complete).
+- Phase 3 → Phase 4 is always sequential per story (review starts immediately after coder completion for that story).
+- Phase 4 → Phase 5 is always sequential per story (coverage starts only after review pass + Planner confirmation).
+- Phase 5 → Phase 6 is always sequential (final verification after all story cycles complete).
 - Within Phase 3, stories can run in parallel only if they touch disjoint backend modules/files.
 
 ## File Conflict Prevention

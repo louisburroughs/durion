@@ -121,6 +121,12 @@ Use only when explicitly delegated by orchestrator because RED is blocked by mis
 - Mark temporary scaffold artifacts with `TODO(scaffold-remove-in-green): <story-id>`.
 - Handoff must include `Temporary scaffold artifacts:` with file + symbol + marker (machine-checkable list).
 
+## Pre-Commit Review Loop Compatibility
+When orchestrated with `Code Review Agent`:
+- Preferred: provide GREEN handoff as reviewable working changes before final story commit.
+- Required: if reviewer returns `FAIL`, apply fixes and re-handoff for another review cycle until `PASS` or blocker.
+- If strict pre-commit review is not feasible, continue cycles with follow-up commits as needed, but complete review `PASS` before coverage/PR steps.
+
 ## Testing Policy
 - Prefer deterministic tests.
 - Keep or increase assertion strength.
