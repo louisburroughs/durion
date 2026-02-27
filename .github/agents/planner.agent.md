@@ -8,7 +8,6 @@ tools:
   - execute/getTerminalOutput
   - execute/awaitTerminal
   - execute/killTerminal
-  - execute/runTask
   - execute/createAndRunTask
   - execute/runTests
   - read

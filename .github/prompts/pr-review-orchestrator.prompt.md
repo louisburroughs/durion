@@ -18,6 +18,7 @@ Use this runbook to coordinate PR review and remediation.
 - `REVIEWER_AGENT`: `PR Reviewer` (recommended)
 - `CODER_AGENT`: `PR Fix Coder` (recommended)
 - `TEST_AGENT`: `PR Test Fixer` (recommended)
+- `CODE_REVIEW_AGENT`: `PR Code Reviewer` (recommended)
 
 ## Objective
 Review one pull request end-to-end, validate it against issues and ADRs, evaluate test quality/status, and delegate fixes until verification is complete.
@@ -41,13 +42,15 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
 5. Split findings into:
    - production code fixes -> `CODER_AGENT` (include `comment_ref` targets)
    - test fixes -> `TEST_AGENT` (include `comment_ref` targets)
-6. Run remediation loop:
-   - dispatch findings
-   - collect evidence
+6. Run remediation loop for at most 5 cycles using this exact order:
+   - `CODER_AGENT` -> `TEST_AGENT` -> `CODE_REVIEW_AGENT`
+   - `CODE_REVIEW_AGENT` must return `Verdict: PASS | FAIL`, findings, and recommended split
    - after each subagent run, call `PLANNER_AGENT` with `mode: append_output` so planner writes UTC timestamp, delegated objective, output, and validation result to `PROCESSING_FILE`
    - verify coding standards checklist in coder handoff
    - verify direct replies were posted for each targeted `comment_ref`
-   - re-check unresolved findings/comments
+   - if `CODE_REVIEW_AGENT` returns `PASS`, exit loop
+   - if `CODE_REVIEW_AGENT` returns `FAIL`, split findings and start next cycle
+   - if cycle 5 ends with `FAIL`, mark blocked as `review-cycle-limit-exceeded` and include unresolved findings in final summary
 7. If tooling supports thread resolution, resolve addressed threads; otherwise post explicit follow-up status comments.
 8. Produce final summary.
    - Delegate final outcome write to `PLANNER_AGENT` in `mode: write_final_summary` under `## Final Summary` in `PROCESSING_FILE`.

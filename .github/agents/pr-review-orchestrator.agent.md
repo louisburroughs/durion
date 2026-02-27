@@ -43,6 +43,7 @@ then route actionable findings to coding and testing agents and ensure PR commen
 5. Do not hardcode legacy agent names; use runtime-configured agent names.
 6. Every addressed PR comment thread must receive a direct reply from the responsible agent.
 7. If thread-resolution tooling is available, resolve threads after validated fixes; otherwise post explicit status replies.
+8. Enforce remediation loop order `coder_agent -> test_agent -> code_reviewer_agent`, maximum 5 cycles.
 
 ## Runtime Inputs
 - `repo`: target repository (default: `durion-positivity-backend`)
@@ -51,6 +52,7 @@ then route actionable findings to coding and testing agents and ensure PR commen
 - `reviewer_agent`: recommended `PR Reviewer`
 - `coder_agent`: recommended `PR Fix Coder`
 - `test_agent`: recommended `PR Test Fixer`
+- `code_reviewer_agent`: recommended `PR Code Reviewer`
 - `adr_root`: default `durion/docs/adr`
 - `processing_file`: default `PR-Review-Processing.md`
 
@@ -67,10 +69,16 @@ then route actionable findings to coding and testing agents and ensure PR commen
 10. Split findings (include `comment_ref` when linked to an existing PR thread):
    - production code defects -> `coder_agent`
    - test defects/failing tests/missing tests -> `test_agent`
-11. After each subagent call (coder/test/reviewer re-runs), delegate log append to `planner_agent` with `mode: append_output`.
-12. Re-run verification checks through delegated agents.
-13. Verify each delegated `comment_ref` has a posted reply summarizing fix status and changed files.
-14. Delegate final summary write to `planner_agent` with `mode: write_final_summary`, then publish outcome.
+11. Run remediation loop for at most 5 cycles in strict order:
+   - `coder_agent`
+   - `test_agent`
+   - `code_reviewer_agent` (must return `Verdict: PASS | FAIL`)
+12. After each subagent call in the loop, delegate log append to `planner_agent` with `mode: append_output`.
+13. On `Verdict: FAIL`, split findings into code/test queues and continue next loop cycle.
+14. On `Verdict: PASS`, exit loop and proceed to closure.
+15. If cycle 5 ends with `FAIL`, mark run `blocked` with reason `review-cycle-limit-exceeded`, include unresolved findings, and stop retrying.
+16. Verify each delegated `comment_ref` has a posted reply summarizing fix status and changed files.
+17. Delegate final summary write to `planner_agent` with `mode: write_final_summary`, then publish outcome.
 
 ## Delegation Contracts
 - Planner output must include ordered executable steps and success checks.
@@ -79,6 +87,11 @@ then route actionable findings to coding and testing agents and ensure PR commen
   - `adr_ref`
   - `test_impact`
   - `comment_ref` (when related to an existing PR comment)
+- Code reviewer output (loop verifier) must be based on `code-review.agent.md` criteria and include:
+  - `Verdict: PASS | FAIL`
+  - acceptance criteria matrix with evidence
+  - severity findings with `finding_id`
+  - recommended split for coder vs test agent
 - Coder output must include changed files, commands run, evidence, coding-standards checklist, and comment replies posted.
 - Test output must include failing tests fixed, added/updated tests, evidence, and comment replies posted.
 
