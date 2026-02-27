@@ -1,6 +1,6 @@
 ---
 name: git-commit
-description: "Execute git commit with conventional commit analysis using safe, auto-approve-friendly commands. Use when user asks to commit changes, create a commit, or mentions '/commit'."
+description: "Execute git commit with conventional commit analysis using safe, auto-approve-friendly commands. Supports optional MCP-based issue lookup/comment flows via io.github.github. Use when user asks to commit changes, create a commit, or mentions '/commit'."
 license: MIT
 ---
 
@@ -94,6 +94,42 @@ Use one `-m` line by default for reliability with auto-approve.
 - Imperative mood: "fix bug" not "fixes bug"
 - Reference issues: `Closes #123`, `Refs #456`
 - Keep description under 72 characters
+
+## MCP Integration (Optional)
+
+Use MCP only when the user asks to sync commit context with GitHub issues.
+
+### MCP Discovery
+
+```bash
+mcp-cli
+mcp-cli io.github.github -d
+mcp-cli io.github.github/search_issues
+mcp-cli io.github.github/add_issue_comment
+```
+
+### MCP-Assisted Commit Context
+
+```bash
+# Find open issues related to your change
+mcp-cli io.github.github/search_issues '{"query":"repo:OWNER/REPO is:issue is:open auth"}'
+
+# Commit locally
+git commit -m "fix(auth): handle missing SSO callback token"
+
+# Copy commit id for issue comment
+git rev-parse --short HEAD
+
+# Add follow-up comment to a linked issue
+mcp-cli io.github.github/add_issue_comment '{"owner":"OWNER","repo":"REPO","issue_number":123,"body":"Fixed in <commit-sha>. Please validate on next build."}'
+```
+
+### MCP Rules
+
+- Keep git operations local-first; MCP is supplemental.
+- Never post MCP comments unless the user requested issue updates.
+- Keep MCP calls one command per line to match auto-approve-friendly style.
+- Discover exact tool signatures with `mcp-cli io.github.github/<tool>` before execution.
 
 ## Auto-Approve Compatibility Rules
 
