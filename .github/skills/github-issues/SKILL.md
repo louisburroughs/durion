@@ -5,25 +5,30 @@ description: 'Create, update, and manage GitHub issues using MCP tools. Use this
 
 # GitHub Issues
 
-Manage GitHub issues using the `@modelcontextprotocol/server-github` MCP server.
+Manage GitHub issues using the GitHub MCP server (`io.github.github`).
 
 ## Available MCP Tools
 
-| Tool | Purpose |
-|------|---------|
-| `mcp__github__create_issue` | Create new issues |
-| `mcp__github__update_issue` | Update existing issues |
-| `mcp__github__get_issue` | Fetch issue details |
-| `mcp__github__search_issues` | Search issues |
-| `mcp__github__add_issue_comment` | Add comments |
-| `mcp__github__list_issues` | List repository issues |
+The same tool may appear with different naming depending on runtime:
+
+- MCP registry command path: `io.github.github/<tool>`
+- Runtime alias (example): `mcp__github__<tool>`
+
+| Registry Command | Runtime Alias (example) | Purpose |
+|------------------|-------------------------|---------|
+| `io.github.github/create_issue` | `mcp__github__create_issue` | Create new issues |
+| `io.github.github/update_issue` | `mcp__github__update_issue` | Update existing issues |
+| `io.github.github/get_issue` | `mcp__github__get_issue` | Fetch issue details |
+| `io.github.github/search_issues` | `mcp__github__search_issues` | Search issues |
+| `io.github.github/add_issue_comment` | `mcp__github__add_issue_comment` | Add comments |
+| `io.github.github/list_issues` | `mcp__github__list_issues` | List repository issues |
 
 ## Workflow
 
 1. **Determine action**: Create, update, or query?
-2. **Gather context**: Get repo info, existing labels, milestones if needed
+2. **Gather context**: Get repo info, existing labels (or confirm label names), milestones if needed
 3. **Structure content**: Use appropriate template from [references/templates.md](references/templates.md)
-4. **Execute**: Call the appropriate MCP tool
+4. **Execute**: Call the appropriate MCP tool (`io.github.github/...` or runtime alias)
 5. **Confirm**: Report the issue URL to user
 
 ## Creating Issues
@@ -44,6 +49,13 @@ labels: ["bug", "enhancement", "documentation", ...]
 assignees: ["username1", "username2"]
 milestone: milestone number (integer)
 ```
+
+## Label Safety (Required)
+
+- Do not assume custom labels exist in the target repository.
+- If label availability is unknown, create/update the issue without labels first.
+- Add labels only after confirming exact label names with the user or repository context.
+- If user requests labels that may not exist (for example `high-priority`), ask for fallback labels.
 
 ### Title Guidelines
 
@@ -67,7 +79,7 @@ Always use the templates in [references/templates.md](references/templates.md). 
 
 ## Updating Issues
 
-Use `mcp__github__update_issue` with:
+Use `io.github.github/update_issue` (or runtime alias) with:
 
 ```
 owner, repo, issue_number (required)
@@ -82,7 +94,7 @@ State values: `open`, `closed`
 
 **User**: "Create a bug issue - the login page crashes when using SSO"
 
-**Action**: Call `mcp__github__create_issue` with:
+**Action**: Call `io.github.github/create_issue` (or runtime alias) with:
 ```json
 {
   "owner": "github",
@@ -97,18 +109,20 @@ State values: `open`, `closed`
 
 **User**: "Create a feature request for dark mode with high priority"
 
-**Action**: Call `mcp__github__create_issue` with:
+**Action**: Call `io.github.github/create_issue` (or runtime alias) with:
 ```json
 {
   "owner": "github",
   "repo": "awesome-copilot",
   "title": "[Feature] Add dark mode support",
   "body": "## Summary\nAdd dark mode theme option for improved user experience and accessibility.\n\n## Motivation\n- Reduces eye strain in low-light environments\n- Increasingly expected by users\n- Improves accessibility\n\n## Proposed Solution\nImplement theme toggle with system preference detection.\n\n## Acceptance Criteria\n- [ ] Toggle switch in settings\n- [ ] Persists user preference\n- [ ] Respects system preference by default\n- [ ] All UI components support both themes\n\n## Alternatives Considered\nNone specified.\n\n## Additional Context\nHigh priority request.",
-  "labels": ["enhancement", "high-priority"]
+  "labels": ["enhancement"]
 }
 ```
 
-## Common Labels
+If `high-priority` exists in the repo, add it in a follow-up update.
+
+## Common Labels (Use Only If Present in Repo)
 
 Use these standard labels when applicable:
 
@@ -128,5 +142,6 @@ Use these standard labels when applicable:
 
 - Always confirm the repository context before creating issues
 - Ask for missing critical information rather than guessing
+- Treat labels as repo-specific; do not assume availability
 - Link related issues when known: `Related to #123`
 - For updates, fetch current issue first to preserve unchanged fields

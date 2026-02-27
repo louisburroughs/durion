@@ -667,13 +667,15 @@ gh repo deploy-key delete 12345
 
 ```bash
 # View gitignore template
-gh repo gitignore
+gh repo gitignore list
+gh repo gitignore view Python
 
 # View license template
-gh repo license mit
+gh repo license list
+gh repo license view mit
 
-# License with full name
-gh repo license mit --fullname "John Doe"
+# License template to file
+gh repo license view mit > LICENSE.md
 ```
 
 ## Issues (gh issue)
@@ -696,7 +698,7 @@ gh issue create \
 gh issue create --body-file issue.md
 
 # Create with labels
-gh issue create --title "Fix bug" --labels bug,high-priority
+gh issue create --title "Fix bug" --label bug --label high-priority
 
 # Create with assignees
 gh issue create --title "Fix bug" --assignee user1,user2
@@ -728,7 +730,7 @@ gh issue list --assignee username
 gh issue list --assignee @me
 
 # Filter by labels
-gh issue list --labels bug,enhancement
+gh issue list --label bug --label enhancement
 
 # Filter by milestone
 gh issue list --milestone "v1.0"
@@ -920,7 +922,7 @@ gh pr create --assignee user1,user2
 gh pr create --reviewer user1,user2
 
 # Add labels
-gh pr create --labels enhancement,feature
+gh pr create --label enhancement --label feature
 
 # Link to issue
 gh pr create --issue 123
@@ -961,7 +963,7 @@ gh pr list --author @me
 gh pr list --assignee username
 
 # Filter by labels
-gh pr list --labels bug,enhancement
+gh pr list --label bug --label enhancement
 
 # Limit results
 gh pr list --limit 50
@@ -1170,7 +1172,7 @@ gh pr update-branch 123
 gh pr update-branch 123 --force
 
 # Use merge strategy
-gh pr update-branch 123 --merge
+gh pr update-branch 123 --rebase
 ```
 
 ### Lock/Unlock Pull Request
