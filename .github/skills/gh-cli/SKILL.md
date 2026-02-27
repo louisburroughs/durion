@@ -7,7 +7,7 @@ description: GitHub CLI (gh) comprehensive reference for repositories, issues, p
 
 Comprehensive reference for GitHub CLI (gh) - work seamlessly with GitHub from the command line.
 
-**Version:** 2.85.0 (current as of January 2026)
+**Version:** 2.87.3 (current as of February 2026)
 
 ## Prerequisites
 
@@ -213,6 +213,7 @@ gh                          # Root command
 │   ├── trusted-root
 │   └── verify
 ├── completion              # Shell completion
+├── copilot                 # Copilot CLI (preview)
 ├── config                  # Configuration
 │   ├── clear-cache
 │   ├── get
@@ -237,6 +238,7 @@ gh                          # Root command
 │   ├── delete
 │   ├── edit
 │   └── list
+├── licenses                # Third-party licenses
 ├── preview                 # Preview features
 ├── ruleset                 # Rulesets
 │   ├── check
@@ -273,7 +275,7 @@ gh                          # Root command
 gh config list
 
 # Get specific configuration value
-gh config list git_protocol
+gh config get git_protocol
 gh config get editor
 
 # Set configuration value
@@ -304,14 +306,14 @@ export GH_EDITOR=vim
 # Custom pager
 export GH_PAGER=less
 
-# HTTP timeout
-export GH_TIMEOUT=30
+# Enable verbose API debugging
+export GH_DEBUG=api
 
 # Custom repository (override default)
 export GH_REPO=owner/repo
 
-# Custom git protocol
-export GH_ENTERPRISE_HOSTNAME=hostname
+# Enterprise auth token
+export GH_ENTERPRISE_TOKEN=ghp_enterprise_token
 ```
 
 ## Authentication (gh auth)
@@ -475,7 +477,7 @@ gh repo create my-repo --license mit
 gh repo create my-repo --gitignore python
 
 # Initialize as template repository
-gh repo create my-repo --template
+gh repo create my-repo --template owner/template-repo
 
 # Create repository in organization
 gh repo create org/my-repo
@@ -743,8 +745,8 @@ gh issue list --json number,title,labels --jq '.[] | [.number, .title, .labels[]
 # Show comments count
 gh issue list --json number,title,comments --jq '.[] | [.number, .title, .comments]'
 
-# Sort by
-gh issue list --sort created --order desc
+# Sort by creation date (via search query)
+gh issue list --search "sort:created-desc"
 ```
 
 ### View Issue
@@ -814,10 +816,10 @@ gh issue reopen 123
 gh issue comment 123 --body "This looks good!"
 
 # Edit comment
-gh issue comment 123 --edit 456789 --body "Updated comment"
+gh issue comment 123 --edit-last --body "Updated comment"
 
 # Delete comment
-gh issue comment 123 --delete 456789
+gh issue comment 123 --delete-last --yes
 ```
 
 ### Issue Status
@@ -973,8 +975,8 @@ gh pr list --json number,title,state,author,headRefName
 # Show check status
 gh pr list --json number,title,statusCheckRollup --jq '.[] | [.number, .title, .statusCheckRollup[]?.status]'
 
-# Sort by
-gh pr list --sort created --order desc
+# Sort by creation date (via search query)
+gh pr list --search "sort:created-desc"
 ```
 
 ### View Pull Request
@@ -1129,16 +1131,14 @@ gh pr checks 123 --watch --interval 5
 # Add comment
 gh pr comment 123 --body "Looks good!"
 
-# Comment on specific line
-gh pr comment 123 --body "Fix this" \
-  --repo owner/repo \
-  --head-owner owner --head-branch feature
+# Comment in a specific repository
+gh pr comment 123 --repo owner/repo --body "Fix this"
 
 # Edit comment
-gh pr comment 123 --edit 456789 --body "Updated"
+gh pr comment 123 --edit-last --body "Updated"
 
 # Delete comment
-gh pr comment 123 --delete 456789
+gh pr comment 123 --delete-last --yes
 ```
 
 ### Review Pull Request
@@ -1148,9 +1148,7 @@ gh pr comment 123 --delete 456789
 gh pr review 123
 
 # Approve PR
-gh pr review 123 --approve
-
---approve-body "LGTM!"
+gh pr review 123 --approve --body "LGTM!"
 
 # Request changes
 gh pr review 123 --request-changes \
@@ -1159,8 +1157,7 @@ gh pr review 123 --request-changes \
 # Comment on PR
 gh pr review 123 --comment --body "Some thoughts..."
 
-# Dismiss review
-gh pr review 123 --dismiss
+# Reviews cannot be dismissed with gh CLI; use the web UI if needed
 ```
 
 ### Update Branch
@@ -1295,9 +1292,8 @@ gh workflow run ci.yml
 
 # Run with inputs
 gh workflow run ci.yml \
-  --raw-field \
-  version="1.0.0" \
-  environment="production"
+  --raw-field version="1.0.0" \
+  --raw-field environment="production"
 
 # Run from specific branch
 gh workflow run ci.yml --ref develop
@@ -1382,7 +1378,7 @@ gh project list
 gh project list --owner owner
 
 # Open projects
-gh project list --open
+gh project list
 
 # View project
 gh project view 123
@@ -1394,10 +1390,10 @@ gh project view 123 --format json
 gh project create --title "My Project"
 
 # Create in organization
-gh project create --title "Project" --org orgname
+gh project create --owner orgname --title "Project"
 
-# Create with readme
-gh project create --title "Project" --readme "Description here"
+# Create for current user explicitly
+gh project create --owner @me --title "Project"
 
 # Edit project
 gh project edit 123 --title "New Title"
@@ -1409,7 +1405,7 @@ gh project delete 123
 gh project close 123
 
 # Copy project
-gh project copy 123 --owner target-owner --title "Copy"
+gh project copy 123 --source-owner @me --target-owner target-owner --title "Copy"
 
 # Mark template
 gh project mark-template 123
@@ -1418,34 +1414,34 @@ gh project mark-template 123
 gh project field-list 123
 
 # Create field
-gh project field-create 123 --title "Status" --datatype single_select
+gh project field-create 123 --owner @me --name "Status" --data-type SINGLE_SELECT --single-select-options "Todo,In Progress,Done"
 
 # Delete field
-gh project field-delete 123 --id 456
+gh project field-delete --id 456
 
 # List items
 gh project item-list 123
 
 # Create item
-gh project item-create 123 --title "New item"
+gh project item-create 123 --owner @me --title "New item"
 
 # Add item to project
-gh project item-add 123 --owner-owner --repo repo --issue 456
+gh project item-add 123 --owner owner --url https://github.com/owner/repo/issues/456
 
 # Edit item
-gh project item-edit 123 --id 456 --title "Updated title"
+gh project item-edit --id ITEM_ID --title "Updated title"
 
 # Delete item
-gh project item-delete 123 --id 456
+gh project item-delete 123 --owner @me --id ITEM_ID
 
 # Archive item
-gh project item-archive 123 --id 456
+gh project item-archive 123 --owner @me --id ITEM_ID
 
-# Link items
-gh project link 123 --id 456 --link-id 789
+# Link project to repository
+gh project link 123 --owner owner --repo owner/repo
 
-# Unlink items
-gh project unlink 123 --id 456 --link-id 789
+# Unlink project from repository
+gh project unlink 123 --owner owner --repo owner/repo
 
 # View project in browser
 gh project view 123 --web
@@ -1492,7 +1488,7 @@ gh release upload v1.0.0 ./file.tar.gz
 gh release upload v1.0.0 ./file1.tar.gz ./file2.tar.gz
 
 # Upload with label (casing sensitive)
-gh release upload v1.0.0 ./file.tar.gz --casing
+gh release upload v1.0.0 './file.tar.gz#Linux amd64 build'
 
 # Delete release
 gh release delete v1.0.0
@@ -1531,7 +1527,7 @@ gh release verify-asset v1.0.0 file.tar.gz
 # List gists
 gh gist list
 
-# List all gists (including private)
+# List public gists only
 gh gist list --public
 
 # Limit results
@@ -1601,14 +1597,11 @@ gh codespace ssh
 # SSH with specific command
 gh codespace ssh --command "cd /workspaces && ls"
 
-# Open codespace in browser
+# Open in VS Code
 gh codespace code
 
-# Open in VS Code
-gh codespace code --codec
-
-# Open with specific path
-gh codespace code --path /workspaces/repo
+# Open in browser-based VS Code
+gh codespace code --web
 
 # Stop codespace
 gh codespace stop
@@ -1619,13 +1612,14 @@ gh codespace delete
 # View logs
 gh codespace logs
 
---tail 100
+# Follow logs
+gh codespace logs --follow
 
 # View ports
 gh codespace ports
 
 # Forward port
-gh codespace cp 8080:8080
+gh codespace ports forward 8080:8080
 
 # Rebuild codespace
 gh codespace rebuild
@@ -1637,8 +1631,8 @@ gh codespace edit --machine standardLinux
 gh codespace jupyter
 
 # Copy files to/from codespace
-gh codespace cp file.txt :/workspaces/file.txt
-gh codespace cp :/workspaces/file.txt ./file.txt
+gh codespace cp file.txt remote:/workspaces/file.txt
+gh codespace cp remote:/workspaces/file.txt ./file.txt
 ```
 
 ## Organizations (gh org)
@@ -1648,16 +1642,16 @@ gh codespace cp :/workspaces/file.txt ./file.txt
 gh org list
 
 # List for user
-gh org list --user username
+gh org list --limit 100
 
 # JSON output
-gh org list --json login,name,description
+gh org list
 
-# View organization
-gh org view orgname
+# View organization metadata (via API)
+gh api /orgs/orgname --jq '{login, name, description, public_repos}'
 
-# View organization members
-gh org view orgname --json members --jq '.members[] | .login'
+# View organization members (via API)
+gh api /orgs/orgname/members --jq '.[].login'
 ```
 
 ## Search (gh search)
@@ -1764,10 +1758,10 @@ gh gpg-key delete ABCD1234
 gh status
 
 # Status for specific repositories
-gh status --repo owner/repo
+gh status --org owner
 
-# JSON output
-gh status --json
+# Exclude repositories
+gh status --exclude owner/repo
 ```
 
 ## Configuration (gh config)
@@ -1821,7 +1815,7 @@ gh extension create my-extension
 gh extension browse
 
 # Execute extension command
-gh extension exec my-extension --arg value
+gh extension exec my-extension arg1 arg2
 ```
 
 ## Aliases (gh alias)
@@ -1862,7 +1856,7 @@ gh api /user \
 gh api /user/repos --paginate
 
 # Raw output (no formatting)
-gh api /user --raw
+gh api /user
 
 # Include headers in output
 gh api /user --include
@@ -1871,7 +1865,7 @@ gh api /user --include
 gh api /user --silent
 
 # Input from file
-gh api --input request.json
+gh api /repos/owner/repo/issues --input request.json
 
 # jq query on response
 gh api /user --jq '.login'
@@ -1961,26 +1955,24 @@ gh agent-task list
 gh agent-task view 123
 
 # Create agent task
-gh agent-task create --description "My task"
+gh agent-task create "My task"
 ```
 
-## Global Flags
+## Common Flags (Command-Dependent)
 
-| Flag                       | Description                            |
-| -------------------------- | -------------------------------------- |
-| `--help` / `-h`            | Show help for command                  |
-| `--version`                | Show gh version                        |
-| `--repo [HOST/]OWNER/REPO` | Select another repository              |
-| `--hostname HOST`          | GitHub hostname                        |
-| `--jq EXPRESSION`          | Filter JSON output                     |
-| `--json FIELDS`            | Output JSON with specified fields      |
-| `--template STRING`        | Format JSON using Go template          |
-| `--web`                    | Open in browser                        |
-| `--paginate`               | Make additional API calls              |
-| `--verbose`                | Show verbose output                    |
-| `--debug`                  | Show debug output                      |
-| `--timeout SECONDS`        | Maximum API request duration           |
-| `--cache CACHE`            | Cache control (default, force, bypass) |
+| Flag                       | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `--help` / `-h`            | Show help for command                                        |
+| `--version`                | Show gh version                                              |
+| `--repo [HOST/]OWNER/REPO` | Select another repository (supported commands only)          |
+| `--hostname HOST`          | GitHub hostname (supported commands only)                    |
+| `--json FIELDS`            | Output JSON with specified fields (supported commands only)  |
+| `--jq EXPRESSION`          | Filter JSON output (requires `--json` on most commands)      |
+| `--template STRING`        | Format JSON output using Go templates                        |
+| `--web`                    | Open in browser (supported commands only)                    |
+| `--paginate`               | Fetch additional pages (`gh api`)                            |
+| `--cache DURATION`         | Cache API responses, e.g. `3600s`, `60m`, `1h` (`gh api`)    |
+| `--verbose`                | Verbose HTTP request/response output (`gh api`)              |
 
 ## Output Formatting
 
@@ -2075,7 +2067,8 @@ gh label create documentation --color "0075ca" --description "Documentation"
 
 ```bash
 # Run workflow and wait
-RUN_ID=$(gh workflow run ci.yml --ref main --jq '.databaseId')
+gh workflow run ci.yml --ref main
+RUN_ID=$(gh run list --workflow ci.yml --limit 1 --json databaseId --jq '.[0].databaseId')
 
 # Watch the run
 gh run watch "$RUN_ID"
@@ -2153,10 +2146,10 @@ git config --global credential.helper github
    gh pr list --json number,title --jq '.[] | select(.title | contains("fix"))'
    ```
 
-4. **Pagination**: Use --paginate for large result sets
+4. **Pagination**: Use --paginate for API endpoints with large result sets
 
    ```bash
-   gh issue list --state all --paginate
+   gh api /repos/{owner}/{repo}/issues --paginate
    ```
 
 5. **Caching**: Use cache control for frequently accessed data
