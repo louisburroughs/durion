@@ -2,139 +2,139 @@
 
 **Status:** ACCEPTED  
 **Date:** 2026-02-01  
+**Last Updated:** 2026-02-27  
 **Deciders:** Backend Architecture, Security Team  
-**Affected Issues:** Cross-service authentication and authorization  
+**Affected Issues:** Cross-service authentication and authorization
 
 ---
 
 ## Context
 
-The Durion platform consists of two primary systems:
-- **Moqui Frontend**: System of record for user identities, authentication, and role assignment
-- **Spring Boot Backend**: Collection of independently deployable microservices handling business logic
+The backend platform requires a single, consistent ownership model for authentication and authorization.
 
-Previously, individual backend services attempted direct validation of user credentials and tokens, creating:
-- **Circular dependencies**: Services calling Moqui security services during request processing
-- **Duplicate authentication logic**: Each service implementing token validation
-- **Scalability concerns**: Multiple services making redundant security service calls
-- **Operational complexity**: Inconsistent security policies across services
-- **Trust model ambiguity**: Unclear boundaries between frontend and backend authentication
+Previously, identity and role ownership were split across systems, causing:
+- duplicate authentication and role resolution logic
+- unclear ownership of role and permission lifecycle
+- inconsistent authorization behavior across services
+- operational complexity during incident response and audits
 
-The platform needed a unified, centralized security model that:
-1. Treats Moqui as the authoritative source for user identity and roles
-2. Centralizes token validation at the network boundary (API Gateway)
-3. Allows backend services to focus on authorization, not authentication
-4. Eliminates circular dependencies and redundant validation calls
+The platform needs a centralized model where:
+1. `pos-security-service` is the source of truth for identities, roles, permissions, and assignments
+2. the API Gateway is the authentication enforcement boundary
+3. backend services focus on authorization decisions (`@PreAuthorize`) using gateway-provided context
+4. internal services are not directly exposed to external callers
 
 ---
 
 ## Decision
 
-✅ **Resolved** - Implement gateway-based security architecture with the following design:
+✅ **Resolved** - Adopt gateway-enforced security with `pos-security-service` ownership for identity and role management.
 
-### 1. Trust Model
+### 1. Ownership and Trust Model
 
-**Decision:** ✅ **Resolved** - Establish Moqui as the system of record and the API Gateway as the authentication enforcement boundary. Services are NOT directly exposed to external networks; all requests route through the gateway.
+**Decision:** ✅ **Resolved** - `pos-security-service` is the authoritative system for:
+- user identity records
+- role definitions
+- permission definitions
+- role-to-user assignments
+- token issuance and revocation semantics
 
-- **Moqui's Role**: 
-  - Source of truth for user identities and role assignments
-  - Issues cryptographically signed JWT assertions with a shared secret (never transmitted)
-  - Each assertion contains userId, roles, expiration, and anti-replay data
+- **pos-security-service role:**
+  - issues signed JWT access tokens
+  - manages role and permission APIs
+  - provides canonical authority data used by gateway and services
 
-- **API Gateway's Role**:
-  - Single entry point for all backend requests
-  - Validates Moqui assertions using the shared secret (HMAC/HS256)
-  - Performs replay detection using assertion JTI (unique token ID)
-  - Maps Moqui roles to Spring Security authorities
-  - Injects authenticated principal and authorities into downstream requests
+- **API Gateway role:**
+  - single external entry point for backend traffic
+  - validates JWTs and required claims
+  - establishes authenticated principal and authorities for downstream services
+  - forwards only authenticated requests to service routes
 
-- **Backend Services' Role**:
-  - Trust the gateway as the authentication boundary
-  - Use `@PreAuthorize` annotations for fine-grained authorization
-  - Do NOT call external services for identity or role validation during request processing
+- **Backend service role:**
+  - trusts gateway-authenticated context
+  - enforces endpoint authorization with `@PreAuthorize`
+  - does not own role lifecycle logic
 
-### 2. Shared Secret Handling
+### 2. JWT Contract and Claims
 
-**Decision:** ✅ **Resolved** - Use a single shared secret provisioned to both Moqui and the API Gateway, stored securely (encrypted at rest, injected at runtime), never transmitted or logged.
-
-- Secret is used exclusively for **HMAC signing** of JWT assertions (HS256 algorithm)
-- Never included in request/response payloads or logs
-- Provisioned via environment variables or secrets manager (e.g., Vault, K8s Secrets)
-
-### 3. Assertion Format (JWT)
-
-**Decision:** ✅ **Resolved** - Assertions are JWT tokens with the following required claims:
+**Decision:** ✅ **Resolved** - Tokens accepted by gateway must meet this contract.
 
 ```
 Header:
-- alg: HS256
+- alg: HS256 (or configured signing algorithm)
 - typ: JWT
 
 Claims:
-- iss: "moqui" (issuer identifier)
-- aud: "api-gateway" (audience identifier)
-- sub: <userId> (authenticated Moqui user ID)
-- roles: [list of Moqui roles]
+- iss: "pos-security-service"
+- aud: "api-gateway"
+- sub: <stable user/person identifier>
+- exp: <expiration timestamp>
 - iat: <issued-at timestamp>
-- exp: <expiration timestamp> (short-lived, e.g., 5-15 minutes)
-- jti: <unique UUID for replay detection>
+- jti: <unique token identifier>
+- authorities: [list of canonical authority strings]
 
-Optional (if needed):
-- storeId / locationId
+Optional (as needed):
+- roles
+- locationId / storeId
 - sessionId
 - organizationId
 ```
 
-### 4. Request Flow
+### 3. Role and Permission Management Boundary
 
-**Decision:** ✅ **Resolved** - Implement the following request validation pipeline at the API Gateway:
+**Decision:** ✅ **Resolved** - Role and permission management is exclusively owned by `pos-security-service`.
 
-1. Extract JWT from `Authorization: Bearer <token>` header
-2. Verify JWT signature using shared secret
-3. Validate claims (`iss`, `aud`, `exp`, `sub`, `roles`, `jti`)
-4. Check replay cache: reject if `jti` has been seen before (until expiry)
-5. Map Moqui roles → Spring authorities (e.g., `SHOP_MGR` → `ROLE_SHOP_MGR`)
-6. Create authenticated Spring Security principal with mapped authorities
-7. Populate Spring `SecurityContext`
-8. Forward request to backend service with established context
+Rules:
+- Role/permission CRUD endpoints live in `pos-security-service`
+- Assignment workflows (user-role, scope bindings) live in `pos-security-service`
+- Other modules may define or register domain permissions, but the authoritative registry and assignment lifecycle remain in `pos-security-service`
+- No other service may implement a parallel role-management subsystem
 
-### 5. Backend Authorization
+### 4. Gateway Request Validation Flow
 
-**Decision:** ✅ **Resolved** - Backend services use Spring Security `@PreAuthorize` annotations against gateway-derived authorities:
+**Decision:** ✅ **Resolved** - Gateway authentication pipeline:
+
+1. Extract `Authorization: Bearer <token>`
+2. Verify signature with configured key material
+3. Validate required claims (`iss`, `aud`, `exp`, `sub`, `jti`)
+4. Perform replay/revocation checks where configured
+5. Resolve canonical authorities from token (and mapped policy rules if configured)
+6. Create authenticated principal in gateway security context
+7. Forward authenticated request with security headers/context to downstream service
+
+### 5. Backend Authorization Standard
+
+**Decision:** ✅ **Resolved** - Backend services authorize on canonical authorities.
 
 ```java
-@PreAuthorize("hasRole('SHOP_MGR')")
-public ResponseEntity<ShopData> getShopData(@PathVariable Long shopId) { ... }
-
-@PreAuthorize("hasAuthority('ROLE_ACCOUNTING_CLERK')")
-public ResponseEntity<JournalEntry> createEntry(@RequestBody EntryRequest req) { ... }
+@PreAuthorize("hasAuthority('order:price_override:approve')")
+public ResponseEntity<?> approve(...) { ... }
 ```
 
-Backend code accesses authenticated user via `Authentication.getName()` (returns Moqui `userId`).
+Backend code reads authenticated user identity from `Authentication.getName()` (or equivalent principal abstraction) and must not perform role ownership logic.
 
-### 6. CORS Configuration
+### 6. Network and Exposure Constraints
 
-**Decision:** ✅ **Resolved** - Centralize CORS policy in the API Gateway only (`WebFluxConfigurer` bean in `SecurityGatewayConfig`). Individual backend services do NOT define CORS configurations; they rely on the gateway to handle browser-to-gateway communication and assume all backend traffic is already authenticated.
+**Decision:** ✅ **Resolved** - Gateway remains whitelist-routed and internal services remain private by default.
+
+- Public exposure only through explicit API gateway routes
+- Internal-only services are not externally routed
+- CORS policy is centralized at gateway
+
+(Aligned with ADR-0014.)
 
 ---
 
 ## Alternatives Considered
 
-1. **Direct Service-to-Service JWT Validation** (rejected)
-   - Each service validates tokens independently
-   - **Drawback**: Circular dependencies (services calling security service); scalability issues; duplicate logic
-   
-2. **Decentralized OAuth2 / OIDC Server** (rejected)
-   - Separate OAuth2 provider for token exchange
-   - **Drawback**: Additional infrastructure overhead; Moqui is already the identity source; adds latency
+1. **Split ownership (identity in one system, roles in another)**
+   - Rejected: creates policy drift and ambiguous ownership.
 
-3. **No Shared Secret (Token in Request Body)** (rejected)
-   - Send plaintext secret in requests
-   - **Drawback**: Violates security principles; secret exposure risk; not suitable for HTTPS
+2. **Per-service authentication/authorization stacks**
+   - Rejected: duplicates logic and increases attack surface.
 
-4. **Backend Services Directly Query Moqui** (rejected)
-   - Services call Moqui REST endpoints for role validation
-   - **Drawback**: Circular dependencies; service degradation if Moqui is unavailable; performance impact
+3. **Expose role management in multiple domain services**
+   - Rejected: violates single source of truth and complicates audits.
 
 ---
 
@@ -142,81 +142,67 @@ Backend code accesses authenticated user via `Authentication.getName()` (returns
 
 ### Positive ✅
 
-- ✅ **Centralized Authentication**: Single point of validation at the gateway eliminates redundancy
-- ✅ **Simplified Service Logic**: Backend services focus on authorization; no authentication concerns
-- ✅ **Scalability**: Gateway can handle token validation efficiently; services scale independently
-- ✅ **Eliminated Circular Dependencies**: No service-to-service authentication calls needed
-- ✅ **Consistent Security Policy**: All services inherit the same authentication and authorization rules
-- ✅ **Clear Trust Boundaries**: Services trust only the gateway; network isolation is enforced
-- ✅ **Audit Trail**: Gateway logs provide centralized audit of authentication/authorization decisions
-- ✅ **Replay Protection**: Centralized replay detection via JTI cache prevents token reuse attacks
+- ✅ clear ownership for identity and role lifecycle in `pos-security-service`
+- ✅ consistent gateway authentication behavior across all services
+- ✅ simpler backend services focused on business authorization checks
+- ✅ improved auditability and incident triage for auth failures
+- ✅ reduced circular dependencies and duplicate security logic
 
 ### Negative ⚠️
 
-- ⚠️ **Gateway Becomes Single Point of Failure** (mitigated by: load balancing, high availability deployment, fallback error handling)
-- ⚠️ **Tight Coupling to Moqui Roles** (mitigated by: mapping layer abstraction; roles can be evolved independently; versioning strategy for authority changes)
-- ⚠️ **Eventual Consistency for Role Changes** (mitigated by: short token TTL ensures role changes propagate quickly; token refresh on each request window)
-- ⚠️ **Replay Cache Memory Overhead** (mitigated by: cache TTL matching token expiration; distributed cache if needed for multi-instance deployments)
+- ⚠️ `pos-security-service` becomes a high-criticality dependency
+- ⚠️ migration effort required for any legacy externalized role-management flows
+- ⚠️ strict authority naming and registration governance is required
 
 ### Neutral
 
-- ℹ️ **Requires Shared Secret Provisioning**: DevOps/operations must manage secure distribution of shared secret to both Moqui and gateway
-- ℹ️ **HTTPS Enforcement**: All gateway ↔ service communication must use HTTPS to protect assertion tokens in transit
+- ℹ️ requires disciplined contract/version management for security APIs and token claims
 
 ---
 
 ## Implementation Notes
 
 ### Required Components
-- Spring Cloud Gateway (for reactive routing)
-- Spring Security with JWT support (`spring-security-oauth2-resource-server`)
-- JJWT or Spring's built-in JWT utilities for token parsing
-- Distributed cache (Redis) for replay detection if multi-instance gateway deployment
+- Spring Cloud Gateway
+- Spring Security (gateway and services)
+- JWT validation and key management
+- Optional replay/revocation cache for distributed deployments
 
 ### Configuration
-- `moqui.issuer` = configured expected issuer identifier (e.g., `"moqui"`)
-- `gateway.audience` = configured expected audience (e.g., `"api-gateway"`)
-- `hmac.sharedSecret` = shared secret loaded from secure configuration
-- `jwt.token-ttl` = expected token lifetime (e.g., 900 seconds / 15 minutes)
-- `replay.cache-ttl` = replay cache retention (matches or exceeds token TTL)
+- `security.jwt.issuer=pos-security-service`
+- `security.jwt.audience=api-gateway`
+- `security.jwt.signing-key` (or equivalent key/JWKS configuration)
+- `security.jwt.token-ttl`
+- `security.jwt.replay-cache-ttl` (if replay checks enabled)
 
 ### Testing Strategy
-- **Unit Tests**: JWT parsing, signature verification, claim validation
-- **Integration Tests**: Complete request flow (Moqui → gateway → backend) with valid and invalid tokens
-- **Replay Detection Tests**: Verify JTI cache blocks duplicate tokens within TTL window
-- **Authority Mapping Tests**: Ensure Moqui roles are correctly mapped to Spring authorities
+- Unit: token parsing/signature/claim validation
+- Integration: `pos-security-service -> api-gateway -> protected service`
+- Negative-path: expired token, invalid issuer/audience, insufficient authority
+- Regression: role-assignment changes reflected in newly issued tokens
 
 ### Rollout Plan
-1. **Phase 1**: Implement and deploy updated `SecurityGatewayConfig` with gateway authentication filter
-2. **Phase 2**: Deploy `GatewaySecurityConfig` to backend services (replacing individual CORS beans)
-3. **Phase 3**: Gradual rollout using feature flags if transitioning from legacy authentication
-4. **Phase 4**: Decommission direct Moqui authentication calls in backend services
-
-### Metrics & Monitoring
-- **Authentication Success Rate**: `gateway.auth.success` counter
-- **Authentication Failures**: `gateway.auth.failure` counter (broken down by reason: expired, invalid signature, replay)
-- **Token Validation Latency**: `gateway.auth.validation_duration_ms` histogram
-- **Replay Cache Hit Rate**: `gateway.replay.cache_hits` counter
-- **Backend Service Authorization**: `backend.authz.success` / `backend.authz.failure` per endpoint
+1. Migrate all role-management ownership to `pos-security-service`
+2. Align gateway claim validation with the canonical JWT contract
+3. Remove legacy role-management paths in other systems/modules
+4. Enforce policy in CI and architecture tests where applicable
 
 ---
 
 ## References
 
-- **Related Documentation**:
-  - [API Security Architecture](../architecture/API_SECURITY_ARCHITECTURE.md)
-  - [Backend AGENTS.md](../../durion-positivity-backend/AGENTS.md) — @NonNull and @EmitEvent requirements
-  - [Copilot Instructions](../../.github/copilot-instructions.md) — Security and package structure guidelines
-  
 - **Related ADRs**:
-  - [ADR-0009: Backend Domain Responsibilities](0009-backend-domain-responsibilities-guide.adr.md) — Backend service structure
-  - [ADR-0010: Frontend Domain Responsibilities](0010-frontend-domain-responsibilities-guide.adr.md) — Frontend responsibilities
-  
+  - [ADR-0009: Backend Domain Responsibilities](0009-backend-domain-responsibilities-guide.adr.md)
+  - [ADR-0014: Gateway Internal Service Security](0014-gateway-internal-service-security.adr.md)
+  - [ADR-0025: Permissions Manifest Registration Policy](0025-permissions-yaml-registration-policy.adr.md)
+
+- **Related Repo Guidance**:
+  - [Backend AGENTS.md](../../durion-positivity-backend/AGENTS.md)
+
 - **External Resources**:
   - [Spring Cloud Gateway Security](https://spring.io/projects/spring-cloud-gateway)
-  - [Spring Security OAuth2 Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/)
-  - [JWT Best Practices (RFC 8725)](https://tools.ietf.org/html/rfc8725)
-  - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+  - [Spring Security Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/)
+  - [JWT Best Practices (RFC 8725)](https://www.rfc-editor.org/rfc/rfc8725)
 
 ---
 
@@ -224,76 +210,14 @@ Backend code accesses authenticated user via `Authentication.getName()` (returns
 
 | Role | Name | Date | Notes |
 |------|------|------|-------|
-| Architecture | [Pending] | 2026-02-01 | Centralizes authentication at gateway boundary; eliminates circular dependencies |
-| Backend Lead | [Pending] | 2026-02-01 | Services use @PreAuthorize; no service-to-service auth calls |
-| Security | [Pending] | 2026-02-01 | Shared secret handling; replay detection; HTTPS enforcement |
+| Architecture | [Pending] | 2026-02-27 | Security ownership consolidated in pos-security-service |
+| Backend Lead | [Pending] | 2026-02-27 | Gateway boundary and service authorization model confirmed |
+| Security | [Pending] | 2026-02-27 | JWT contract and role lifecycle ownership confirmed |
 
 ---
 
 ## Timeline
 
 - **Proposed**: 2026-02-01
-- **Under Review**: [Pending]
-- **Accepted**: [Pending]
-
-## Addendum
-
-### **Responses to clarifying implementation questions**
-
-### Q1: Which secret store should be used in production for the shared HMAC secret?
-
-**Decision:** Use **AWS Secrets Manager** in production.
-
-* Store a single secret value (the HMAC key) under a well-known name (e.g., `/security/moqui-hmac-key`).
-* Grant read access via IAM role to **Moqui** and **API Gateway** runtimes only.
-* Rotation: managed rotation can be added later; initial implementation can be manual rotation with dual-key support (current/previous) if needed.
-
-**Local testing:** Use a **local file** (substitute vault) loaded at startup (excluded from source control), e.g., `./secrets/moqui-hmac.key`.
-
----
-
-### Q2: What is the canonical `iss` and `aud` values to embed? Should `aud` vary per environment or be fixed?
-
-**Decision:**
-
-* `iss` (canonical, fixed): `moqui`
-* `aud` (canonical, environment-scoped): `api-gateway:<env>`
-
-Where `<env>` is one of: `local`, `dev`, `stage`, `prod` (or your AWS account/region naming convention).
-
-**Rationale (for validation correctness):**
-
-* Environment-scoped `aud` prevents token reuse across environments (e.g., a `dev` assertion accepted by `prod`).
-* Gateway validates exact `iss` and exact `aud`.
-
----
-
-### Q3: Should Moqui persist `AssertionAudit` records by default or leave as opt-in?
-
-**Decision:** **Opt-in** for Moqui persistence.
-
-* Default behavior: Moqui does **not** store assertion audit records.
-* Primary audit trail lives at the **API Gateway** (request logs + authentication decision logs) in AWS logging (e.g., CloudWatch).
-
-If enabled, Moqui `AssertionAudit` should be **minimal** (no full token storage):
-
-* `jti`, `sub` (userId), roles, `iat`, `exp`, `aud`, outcome (issued/failed), timestamp.
-
----
-
-### Q4: Is there an expected mapping table for Moqui roles → Spring authorities, and where should it live?
-
-**Decision:** Yes, there is an expected mapping, and it lives in the **API Gateway** configuration.
-
-**Rules:**
-
-* Moqui emits roles as-is (e.g., `SHOP_MGR`, `TECH`, `ACCOUNTING_CLERK`).
-* Gateway maps roles → Spring authorities deterministically:
-
-  * `X` → `ROLE_X`
-
-**Why the gateway is the canonical mapping location:**
-
-* Keeps backend authorization semantics centralized at the enforcement boundary.
-* Avoids coupling Moqui to Spring Security conventions.
-* Allows changes to authorization policy without modifying Moqui role definitions.
+- **Accepted**: 2026-02-01
+- **Updated**: 2026-02-27
