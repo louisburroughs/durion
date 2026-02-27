@@ -63,6 +63,7 @@ Frontend developer workflow:
 | CAP-219 | `durion#219` | draft | [CAP] Cycle Counts & Adjustments |
 | CAP-220 | `durion#220` | draft | [CAP] Reservations, Allocations, and Substitutions |
 | CAP-221 | `durion#221` | draft | [CAP] Roles, Permissions, and Audit Controls |
+| CAP-315 | `durion#315` | draft | [CAP] Procure-to-Receive Lifecycle (PO + ASN + Accrual) |
 
 ## Frontend API Lookup
 
@@ -83,6 +84,16 @@ Frontend developer workflow:
 | Deactivate a storage location | `deactivate` | POST | `/api/inventory/locations/{locationId}/deactivate` | Refer to generated API reference for payload details |
 | Create cycle count adjustment | `createAdjustment` | POST | `/api/v1/inventory/cycleCountAdjustments` | Refer to generated API reference for payload details |
 | Approve adjustment | `approveAdjustment` | POST | `/api/v1/inventory/cycleCountAdjustments/{adjustmentId}/approve` | Refer to generated API reference for payload details |
+| Create Purchase Order | `createPurchaseOrder` | POST | `/v1/inventory/purchase-orders` | PO DRAFT created |
+| Get Purchase Order | `getPurchaseOrder` | GET | `/v1/inventory/purchase-orders/{poId}` | |
+| List Purchase Orders | `listPurchaseOrders` | GET | `/v1/inventory/purchase-orders` | Filter by vendorId, status |
+| Approve Purchase Order | `approvePurchaseOrder` | POST | `/v1/inventory/purchase-orders/{poId}/approve` | Requires PURCHASE_ORDER_APPROVE |
+| Revise Purchase Order | `revisePurchaseOrder` | POST | `/v1/inventory/purchase-orders/{poId}/revisions` | Increments versionNumber |
+| Cancel Purchase Order | `cancelPurchaseOrder` | POST | `/v1/inventory/purchase-orders/{poId}/cancel` | |
+| Create ASN | `createAsn` | POST | `/v1/inventory/asns` | ASN state LOADED |
+| Get ASN | `getAsn` | GET | `/v1/inventory/asns/{asnId}` | |
+| Create Goods Receipt | `createGoodsReceipt` | POST | `/v1/inventory/goods-receipts` | Creates GRNI accrual event |
+| Get Goods Receipt | `getGoodsReceipt` | GET | `/v1/inventory/goods-receipts/{receiptId}` | |
 
 Headers and auth notes:
 
@@ -510,6 +521,155 @@ Story #33 — Cross-dock to Workorder:
 
 - Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+
+## CAP-315: Procure-to-Receive Lifecycle (PO + ASN + Accrual)
+
+### Capability Metadata
+
+- Capability ID: CAP-315
+- Parent Issue: https://github.com/louisburroughs/durion/issues/315
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-inventory/openapi.yaml`
+- Backend Issues: #571 (ASN + Receiving), #572 (Purchase Order)
+
+### Stories
+
+- #572 — Create Purchase Order (Procure-to-Pay Initiation)
+- #571 — Load ASN for Receiving
+
+### Endpoints (all paths relative to gateway http://localhost:8080)
+
+| Method | Path | Auth | Story | Status Code |
+|--------|------|------|-------|-------------|
+| POST | /v1/inventory/purchase-orders | PURCHASE_ORDER_CREATE | #572 | 201 |
+| GET | /v1/inventory/purchase-orders/{poId} | PURCHASE_ORDER_VIEW | #572 | 200 |
+| GET | /v1/inventory/purchase-orders | PURCHASE_ORDER_VIEW | #572 | 200 |
+| POST | /v1/inventory/purchase-orders/{poId}/approve | PURCHASE_ORDER_APPROVE | #572 | 200 |
+| POST | /v1/inventory/purchase-orders/{poId}/revisions | PURCHASE_ORDER_CREATE | #572 | 201 |
+| POST | /v1/inventory/purchase-orders/{poId}/cancel | PURCHASE_ORDER_APPROVE | #572 | 200 |
+| POST | /v1/inventory/asns | ASN_CREATE | #571 | 201 |
+| GET | /v1/inventory/asns/{asnId} | ASN_VIEW | #571 | 200 |
+| POST | /v1/inventory/goods-receipts | GOODS_RECEIPT_CREATE | #571 | 201 |
+| GET | /v1/inventory/goods-receipts/{receiptId} | GOODS_RECEIPT_VIEW | #571 | 200 |
+
+### Behavioral Contracts
+
+#### Story #572 — Create Purchase Order (Procure-to-Pay Initiation)
+
+**PO Lifecycle state machine:**
+- States: `DRAFT` → `APPROVED` → `PARTIALLY_RECEIVED` → `FULLY_RECEIVED` → `CLOSED`
+- `CANCELLED` is a terminal state reachable from `DRAFT` or `APPROVED` (not from received states).
+- Only `APPROVED` POs may generate receipts or be matched to invoices.
+
+**PO Creation:**
+- `POST /v1/inventory/purchase-orders` creates a PO in `DRAFT` state and returns `201`.
+- Required fields: `vendorId`, `poDate`, `currency` (ISO 4217), `shipToLocationId`, `lines[]` with `skuId`/`description`, `quantity`, `unitCostMinor`, `taxCodeId`.
+- Computed on creation: `lineTotalMinor = quantity × unitCostMinor` (per-line), `subtotalMinor`, `taxMinor`, `grandTotalMinor = subtotalMinor + taxMinor`.
+- All monetary values stored in minor currency units plus currency code.
+- Missing or inactive vendor returns `400` with code `VENDOR_NOT_FOUND` or `VENDOR_INACTIVE`.
+- SKU not found returns `400` with code `SKU_NOT_FOUND`.
+
+**Approval:**
+- `POST /v1/inventory/purchase-orders/{poId}/approve` transitions PO from `DRAFT` to `APPROVED`.
+- On approval: price and quantity fields locked (read-only for receiving/matching); changes only via revision workflow.
+- On approval: emit `PurchaseOrderApproved` event payload: `{ poId, vendorId, totalAmountMinor, currency, lineItems[], approvalStatus, approverId, approvalTimestamp }`.
+- Encumbrance (config flag `encumbranceEnabled`, default `false`): if `true`, emit encumbrance posting event. If `false`, no GL posting at approval time.
+- Unauthorized approval (wrong role) returns `403`.
+
+**Receipts against PO:**
+- Receipt attempt against a non-`APPROVED` PO returns `409` with error code `PO_NOT_APPROVED`.
+- Each receipt decrements `openQuantity` and `openValueMinor` per line and at PO level.
+- When all line `openQuantities` reach zero, PO transitions to `FULLY_RECEIVED`.
+- Partial receipts supported; PO transitions to `PARTIALLY_RECEIVED`.
+
+**Revision workflow:**
+- `POST /v1/inventory/purchase-orders/{poId}/revisions` creates a new revision.
+- `versionNumber` increments on each revision; previous versions are immutable in audit trail.
+- Emit `PurchaseOrderRevised` event with `priorVersion` and `delta`.
+- Revision reducing quantities below already-received quantities is rejected with `409`.
+
+**AP visibility:**
+- `GET /v1/inventory/purchase-orders` supports filtering by `vendorId`, `status`, date ranges, `locationId`, `currency`.
+- Response includes `openBalanceMinor`, per-line `openQuantity` for 2-way/3-way matching.
+
+**Events emitted:**
+- `PurchaseOrderCreated`: `{ poId, vendorId, totalAmountMinor, currency, lineItems[], status, versionNumber, timestamp, actorId }`
+- `PurchaseOrderApproved`: `{ poId, vendorId, totalAmountMinor, currency, lineItems[], approvalStatus, versionNumber, timestamp }`
+- `PurchaseOrderRevised`: `{ poId, priorVersion, versionNumber, delta, timestamp, actorId }`
+- `PurchaseOrderCancelled`: `{ poId, vendorId, timestamp, actorId, reason }`
+
+**Actor source (ADR-0018):** Actor extracted from SecurityContext, never from request body or X-User-Id header.
+
+#### Story #571 — Load ASN for Receiving
+
+**ASN Lifecycle state machine:**
+- States: `LOADED` → `READY_FOR_RECEIPT` → `PARTIALLY_RECEIVED` → `FULLY_RECEIVED` → `CANCELLED`
+- ASN transitions to `PARTIALLY_RECEIVED` when at least one line is partially received.
+- ASN transitions to `FULLY_RECEIVED` when all line received quantities equal shipped quantities.
+- `CANCELLED` allowed if no receipts exist; cannot cancel ASN with posted receipts.
+
+**ASN Creation:**
+- `POST /v1/inventory/asns` creates ASN in `LOADED` state and returns `201`.
+- Required fields: `vendorId`, `asnReferenceNumber` (vendor external identifier), `relatedPoNumbers[]` (at least one), `shipDate`, `expectedArrivalDate`, `lineItems[]` with `sku`, `quantityShipped`.
+- Validation: all referenced POs must exist and be in `APPROVED` state; returns `400` with `INVALID_PO_REFERENCE` listing invalid PO IDs.
+- Each `sku` must exist on the referenced PO line; returns `400` with `SKU_NOT_ON_PO`.
+- `quantityShipped` must be positive; over-shipment relative to PO remaining quantity requires elevated permission or returns `400` with `OVER_SHIPMENT`.
+- Duplicate ASN (same `vendorId` + `asnReferenceNumber`) returns `409` with `DUPLICATE_ASN`.
+- ASN creation produces **no GL journal entries** (accrual occurs only at physical receipt).
+
+**Goods Receipt:**
+- `POST /v1/inventory/goods-receipts` creates a goods receipt and returns `201`.
+- Required fields: `asnId` (nullable), `poId`, `locationId`, `lines[]` with `sku`, `quantityReceived`, `unitCostMinor`.
+- On receipt completion: emit `ReceiptCompleted` event and create GRNI accrual entries (handled by domain:accounting subscriber): Dr Inventory Asset / Cr Accrued Purchases (GRNI).
+- Receipt must link to an `APPROVED` PO; receipt against a non-approved PO returns `409`.
+- On-hand quantity for SKU at location increases by `quantityReceived` (GOODS_RECEIPT ledger entry, type INBOUND).
+- Lot/serial tracking: `lotNumber` and `serialNumbers[]` must be captured when SKU requires lot/serial tracking.
+
+**Over/Under receipt rules:**
+- Over-receipt (`actualReceivedQty > ASN shippedQty` or PO remaining qty) without override permission returns `403` with `OVER_RECEIPT_NOT_PERMITTED`.
+- Over-receipt with override permission: proceeds and creates a variance record + emits over-receipt event.
+- Under-receipt: ASN transitions to `PARTIALLY_RECEIVED`; remaining quantity stays open.
+
+**GRNI / AP matching:**
+- GRNI balance queryable per PO via `GET /v1/inventory/purchase-orders/{poId}` response field `grniBalanceMinor`.
+- Receipt lines are linked to PO lines for 3-way match (PO ↔ Receipt ↔ Invoice).
+
+**Events emitted:**
+- `ASNLoaded`: `{ asnId, vendorId, relatedPoNumbers, lineItems, loadedBy, timestamp }`
+- `ReceiptCreated`: `{ receiptId, asnId, poId, lines[], createdBy, timestamp }`
+- `ReceiptCompleted`: `{ receiptId, asnId, poId, totalAccruedAmountMinor, lineItems[], locationId, timestamp }`
+
+**Actor source (ADR-0018):** Actor extracted from SecurityContext.
+
+### Module
+
+- pos-inventory
+
+### Flyway migrations required
+
+- PO migration: `purchase_order`, `purchase_order_line` tables
+- ASN migration: `advance_shipping_notice`, `asn_line` tables
+- Goods Receipt migration: `goods_receipt`, `goods_receipt_line` tables
+
+### ADR Constraints
+
+- ADR-0017: Receipt against non-APPROVED PO → `409`; over-receipt without permission → `403`; SKU validation failure → `400`
+- ADR-0018: Actor always from SecurityContext
+- ADR-0025: Permissions in permissions.yaml; use registry constants in @PreAuthorize
+- ADR-0001: GOODS_RECEIPT ledger entry type for on-hand updates
+
+### Test & Contract Notes
+
+- Contract tests assert DRAFT PO receipt rejection (409), GRNI accrual event emission, PO state transitions (PARTIALLY_RECEIVED → FULLY_RECEIVED).
+- Tests for ASN: invalid PO reference (400), duplicate ASN (409), no GL on ASN creation, GRNI accrual at receipt.
+- Use `@WithMockUser` for permission-restricted endpoints.
+- Provider test class: `PurchaseOrderContractBehaviorIT`, `AsnContractBehaviorIT`.
+
+### Traceability
+
+- Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
+- Issues: #571 (ASN), #572 (PO)
+- Capability: CAP-315
 
 ## Events & Cross-Domain Dependencies
 
