@@ -40,7 +40,7 @@ const runtimeContext = `
 - BACKEND_REPO_PATH: $WORKSPACE/durion-positivity-backend
 - BASE_BRANCH: main
 - PR_BASE_BRANCH: main
-- SONAR_SCOPE: pos-shop-manager
+- SONAR_SCOPE: {module}
 - AUTOMATED_MODE: true
 `;
 
