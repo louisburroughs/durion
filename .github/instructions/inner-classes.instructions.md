@@ -1,3 +1,7 @@
+---
+description: 'Inner classes usage guidelines for code review'
+applyTo: '*.java'   # This rule is specific to Java files
+---
 # Inner Classes Usage Rule
 
 ## Rule: Avoid Inner Classes for Public APIs

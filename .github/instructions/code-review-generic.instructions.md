@@ -1,6 +1,6 @@
 ---
 description: 'Generic code review instructions that can be customized for any project using GitHub Copilot'
-applyTo: '*.java, *.js, *.ts, *.py, *.go, *.rb, *.php, *.cs' # Adjust file patterns as needed
+applyTo: '*.js, *.ts, *.py, *.go, *.rb, *.php, *.cs' # Adjust file patterns as needed
 ---
 
 # Generic Code Review Instructions
