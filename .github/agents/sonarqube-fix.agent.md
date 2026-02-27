@@ -5,6 +5,8 @@ model: GPT-5.3-Codex (copilot)
 tools:
   - read/readFile
   - read/problems
+  - read/terminalLastCommand
+  - read/getTaskOutput
   - search/listDirectory
   - search/fileSearch
   - search/textSearch
@@ -12,7 +14,14 @@ tools:
   - execute/runInTerminal
   - execute/getTerminalOutput
   - execute/awaitTerminal
+  - execute/killTerminal
   - execute/runTests
+  - github/create_branch
+  - github/list_branches
+  - github/push_files
+  - github/create_pull_request
+  - github/pull_request_read
+  - github/list_pull_requests
   - edit/createFile
   - edit/editFiles
   - sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues
@@ -42,7 +51,19 @@ Read SonarQube issues, apply safe code fixes, and provide a clear remediation re
   - read SonarQube issues and diagnostics
   - modify source and test files to remediate issues
   - run targeted verification commands
+  - run git commands needed for branch, commit, push, and PR flow
+  - create branches and pull requests using GitHub tools when available
 - Keep changes focused on assigned SonarQube findings.
+
+## Git/PR Execution Requirements
+
+When a run requires code changes, you must:
+1. Create and switch to a new remediation branch before editing files.
+2. Verify active branch with `git branch --show-current`.
+3. Commit with a focused message that includes the remediation batch short ID.
+4. Push branch to origin.
+5. Open a PR using `gh pr create` or GitHub API tools.
+6. Return branch name, commit hash, and PR URL in final output.
 
 ## Non-Negotiable Constraints
 
