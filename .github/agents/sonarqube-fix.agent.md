@@ -72,6 +72,18 @@ When a run requires code changes, you must:
 3. Do not fix or alter TODO issues/comments. Skip them and report each with a short summary.
 4. If uncertain about correctness, add a note in the final report and skip the issue.
 
+## Logging Privacy Rule (Required)
+
+For SonarQube issues about logging user/sensitive data:
+
+1. Do not log raw PII/user identifiers directly.
+2. Prefer masking over removing operationally useful logs.
+3. Use the existing project pattern:
+   - services: `maskForLog(Object value)` style helper (see `pos-inventory/.../PutawayValidationServiceImpl`)
+   - controllers: sanitize + mask before logging user-controlled values (see `pos-invoice/.../BillingRulesController#sanitizeForLogging`)
+4. If no shared utility is available in the module, add a small local helper using the same pattern and use it consistently.
+5. In the final report, list each logging fix and the masking method used.
+
 ## Suppression Policy
 
 1. Attempt a real fix first when feasible.

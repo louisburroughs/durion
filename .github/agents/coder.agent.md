@@ -142,6 +142,14 @@ When orchestrated with `Code Review Agent`:
 - Add concise JavaDoc/comments only where behavior is non-obvious.
 - Use issue traceability comments only for materially changed blocks.
 
+## Logging Privacy Rule (Required)
+- Do not log raw user data, PII, or user-controlled values directly.
+- Prefer masking/sanitization instead of removing operationally useful logs.
+- Follow existing project patterns:
+  - services: `maskForLog(Object value)` style helper (see `pos-inventory/.../PutawayValidationServiceImpl`)
+  - controllers: sanitize + mask before logging user-controlled values (see `pos-invoice/.../BillingRulesController#sanitizeForLogging`)
+- If no shared utility exists in the module, add a small local helper with the same behavior and use it consistently.
+
 ## Forbidden Behaviors
 - Muting failures with broad mocks/stubs to hide defects.
 - Deleting failing tests without approved scope change.
