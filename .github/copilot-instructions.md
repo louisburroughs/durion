@@ -15,6 +15,13 @@ If guidance conflicts, follow the closest-scope document in that order.
 - When changing externally visible behavior (APIs, events, configs), update the nearest relevant README/doc.
 - Never hardcode secrets (tokens, passwords, API keys). Use environment variables or secret stores.
 
+## Pre-Production Policy (No Technical Debt)
+
+- This project is pre-production: prioritize clean, correct code over backward-compatibility workarounds.
+- Do not add mitigation/shim logic to reduce the impact of new code on old code paths unless explicitly requested.
+- Remove deprecated members instead of preserving them.
+- Do not introduce new deprecated APIs, fields, flags, or compatibility layers.
+
 ## Mandatory Naming Convention
 
 - `workorder` MUST be one word in code, comments, docs, API text, and logs.
