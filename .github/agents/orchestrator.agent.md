@@ -147,6 +147,8 @@ For backend implementation phases, delegate to `Lead Coder` as the default execu
   - `API Surface Coder` for contract/controller/DTO/service-interface artifacts.
   - `Domain Data Coder` for service implementation/domain/entity/repository artifacts.
 - `Coder` legacy fallback may be invoked only by `Lead Coder` when specialist delegation is blocked.
+- If Lead Coder cannot invoke specialists and cannot invoke legacy `Coder` fallback, Orchestrator MUST mark `BLOCKED` (`policy: lead-coder-delegation-unavailable`) and request tooling/policy remediation.
+- Lead Coder authorization does not allow Orchestrator to bypass this rule with direct calls to specialist coders or `Coder`.
 - Require each `Lead Coder` handoff to include:
   - assignment matrix (`artifact -> subagent -> file list`),
   - dependency order,
