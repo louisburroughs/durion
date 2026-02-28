@@ -6,7 +6,7 @@ tools:
   - vscode/askQuestions
   - read/terminalSelection
   - read/terminalLastCommand
-  - read/getTaskOutput
+  - execute/createAndRunTask
   - read/getNotebookSummary
   - read/problems
   - read/readFile
