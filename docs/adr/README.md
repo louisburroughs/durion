@@ -90,6 +90,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0024   | Entity createdAt/updatedAt Population Policy | ACCEPTED        | 2026-02-23 |
 | 0025   | Permissions YAML Registration Policy       | ACCEPTED          | 2026-02-26 |
 | 0026   | Service Contract Boundary Policy           | ACCEPTED          | 2026-02-26 |
+| 0027   | UUID-Typed Identifier Contract Policy      | ACCEPTED          | 2026-02-28 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -123,6 +124,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control | Coder, Test, Planner |
 | 0025 | Permission registration source-of-truth, `permissions.yaml` schema, and rollout | Coder, Test, Planner, Orchestrator |
 | 0026 | Service interface-only public API boundary and internal implementation encapsulation | Coder, Test, Planner, Orchestrator |
+| 0027 | Identifier typing in service contracts/DTOs/entities (UUID for platform IDs, external ID exceptions) | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
 
