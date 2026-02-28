@@ -9,6 +9,7 @@
 		}
 	],
 	"settings": {
-		"java.compile.nullAnalysis.mode": "automatic"
+		"java.compile.nullAnalysis.mode": "automatic",
+		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml"
 	}
 }

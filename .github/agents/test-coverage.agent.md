@@ -3,35 +3,23 @@ name: Test Coverage Agent
 description: JaCoCo-focused test hardening for service and utility coverage.
 model: Gemini 2.5 Pro (copilot)
 tools:
-  - 'vscode/getProjectSetupInfo'
-  - 'vscode/installExtension'
-  - 'vscode/newWorkspace'
-  - 'vscode/openSimpleBrowser'
-  - 'vscode/runCommand'
-  - 'vscode/askQuestions'
-  - 'vscode/vscodeAPI'
-  - 'vscode/extensions'
   - execute/runInTerminal
   - execute/getTerminalOutput
   - execute/awaitTerminal
   - execute/killTerminal
   - execute/runTests
-  - execute/runTask
   - execute/createAndRunTask
   - execute/testFailure
   - read/readFile
   - read/problems
   - read/terminalLastCommand
   - read/terminalSelection
-  - read/getTaskOutput
   - edit/createFile
   - edit/createDirectory
   - edit/editFiles
-  - search/codebase
   - search/fileSearch
   - search/textSearch
   - search/listDirectory
-  - search/changes
   - search/usages
   - web/fetch
   - 'memory'
@@ -50,7 +38,8 @@ Out of scope unless requested:
 - controller, repository, entity/dto/config boilerplate, ArchUnit tests.
 
 ## Preconditions
-Run only after Coder completion is verified and plan step is marked completed.
+Run only after Lead Coder team completion (or legacy Coder completion) is verified and plan step is marked completed.
+Do not create pull requests; PR creation is reserved for `Pull Request Agent`.
 
 ## Workflow
 1. Preflight

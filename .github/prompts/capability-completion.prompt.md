@@ -1,11 +1,13 @@
 ---
 name: Capability Completion & PR Creation
 description: "Creates pull request after all child stories under a capability are complete. Verifies all stories implemented, runs final tests, and opens PR with comprehensive description."
-agent: "agent"
+agent: "Pull Request Agent"
 model: Claude Sonnet 4.5 (copilot)
 ---
 
 # Capability Completion & Pull Request Creation
+
+Use `.github/pull_request_template.md` as the canonical PR body template.
 
 ## ⚠️ CRITICAL: YOU MUST CREATE THE PULL REQUEST
 

@@ -6,7 +6,7 @@
 - Domain: `domain:<domain>`
 
 ## Contract References (REQUIRED for backend PRs touching API/event behavior)
-- Contract guide entry (durion): `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` → <link-to-anchor>
+- Contract guide entries (durion): `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` → <link-to-anchor>
 - Durion contract PR (if applicable): <link-to-durion-pr>
 
 ## Scope
