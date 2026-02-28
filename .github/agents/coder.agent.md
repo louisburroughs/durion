@@ -34,7 +34,8 @@ You are the implementation agent. Deliver correct, maintainable code that satisf
 ## Legacy Fallback Status
 This agent is retained for backward compatibility.
 Default orchestration mode should use `Lead Coder` with specialist subagents (`Client Coder`, `API Surface Coder`, `Domain Data Coder`).
-Use this agent only when team-mode delegation is blocked or explicitly requested.
+Under team-mode orchestration policy, this agent should be invoked by `Lead Coder` only.
+Use this agent only when team-mode delegation is blocked and `Lead Coder` triggers fallback, or when non-team-mode execution explicitly assigns this agent.
 
 ## Pull Request Authority
 - This agent MUST NOT create pull requests.
@@ -64,7 +65,7 @@ Implement the assigned scope in `durion-positivity-backend` with production-qual
 5. Report evidence with commands and outcomes.
 
 ## Pre-RED Scaffold Mode (Conditional)
-Use only when explicitly delegated by orchestrator because RED is blocked by missing production symbols.
+Use only when explicitly delegated by `Lead Coder` (legacy fallback path) because RED is blocked by missing production symbols.
 
 - Purpose: introduce minimal compile scaffolding only (`src/main/**` signatures/types/placeholders).
 - Forbidden in this mode: implementing story behavior/business logic.

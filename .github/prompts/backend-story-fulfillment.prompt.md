@@ -47,7 +47,7 @@ When invoked under coder team-mode:
   - `Client Coder` for `RestClient`/outbound integration artifacts.
   - `API Surface Coder` for controllers/DTOs/service interfaces/validation/OpenAPI/event annotations.
   - `Domain Data Coder` for service implementations/entities/repositories/domain logic.
-- `Coder` is legacy fallback only when team-mode delegation is blocked.
+- `Coder` is legacy fallback only when team-mode delegation is blocked and is invoked by `Lead Coder` (not directly by Orchestrator).
 
 Context (inputs — agent will be provided values at runtime)
 - `OPENAPI_PATH` — path to the authoritative `openapi.yaml` (e.g., `pos-<module>/target/openapi.yaml`) which MUST NOT be overwritten.

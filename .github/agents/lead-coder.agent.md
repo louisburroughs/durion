@@ -76,6 +76,7 @@ Convert one story into explicit artifact assignments, delegate implementation to
 - When specialist coding is required, you MUST invoke `Client Coder`, `API Surface Coder`, and/or `Domain Data Coder` yourself using `agent/runSubagent`.
 - Do not return specialist work requests to Orchestrator for direct specialist invocation.
 - If specialist delegation is blocked, invoke legacy `Coder` fallback yourself and document why fallback was required.
+- If tooling/policy blocks both specialist delegation and legacy `Coder` fallback, return `BLOCKED` to Orchestrator with evidence and remediation needed. Do not ask Orchestrator to invoke specialist coders or `Coder` directly.
 
 ## Module Test Failure Policy (Hard Gate)
 - You MUST NOT accept failing tests in the target module as "pre-existing" or "out of scope".
