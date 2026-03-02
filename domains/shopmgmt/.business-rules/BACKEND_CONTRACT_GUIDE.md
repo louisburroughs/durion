@@ -63,6 +63,8 @@ Frontend developer workflow:
 | CAP-141 | `durion#141` | draft | [CAP] Roles, Permissions, and Audit Controls |
 | CAP-142 | `durion#142` | draft | [CAP] Operational Reporting & Dashboards (Lightweight) |
 
+| CAP-249 | `durion#249` | draft | [CAP] Appointment Scheduling & Assignment (Shopmgr Coordination) |
+
 ## Frontend API Lookup
 
 | UI Task | operationId | Method | Path | Notes |
@@ -79,6 +81,11 @@ Frontend developer workflow:
 | Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` | Refer to generated API reference for payload details |
 | View workorder operational context | `viewOpenWorkordersByShop` | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
 | Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Refer to generated API reference for payload details |
+| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Refer to generated API reference for payload details |
+| Cancel appointment | `cancelAppointment` | DELETE | `http://localhost:8080/v1/appointments/{appointmentId}/cancel` | Refer to generated API reference for payload details |
+| Create assignment | `createAssignment` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
+| List assignments | `listAssignments` | GET | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
+| Conflict override (scheduling) | `executeOverride` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/conflict-override` | Refer to generated API reference for payload details |
 | Create bay | `createBay` | POST | `/v1/shop-manager/{locationId}/bays` | Refer to generated API reference for payload details |
 | Create mobile unit | `createMobileUnit` | POST | `/v1/shop-manager/{locationId}/mobileUnit` | Refer to generated API reference for payload details |
 | Manage bays | `manageBays` | PUT | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
@@ -133,6 +140,49 @@ Headers and auth notes:
 
 - Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+
+## CAP-249: [CAP] Appointment Scheduling & Assignment (Shopmgr Coordination)
+
+### Capability Metadata
+
+- Capability ID: CAP-249
+- Parent Issue: https://github.com/louisburroughs/durion/issues/249
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
+
+### API Operation References (OpenAPI Source of Truth)
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Create appointment | `createAppointment` | POST | `http://localhost:8080/v1/appointments` |
+| Get appointment | `getAppointment` | GET | `http://localhost:8080/v1/appointments/{appointmentId}` |
+| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` |
+| Cancel appointment | `cancelAppointment` | DELETE | `http://localhost:8080/v1/appointments/{appointmentId}/cancel` |
+| Create assignment | `createAssignment` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` |
+| List assignments | `listAssignments` | GET | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` |
+| Conflict override (scheduling) | `executeOverride` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/conflict-override` |
+
+### Behavioral Assertions
+
+- **Authoritative assignment source:** `shopmgmt` is the authoritative source of assignment data (assignments persisted in `pos-shop-manager` are the source of truth for downstream consumers).
+- **Reschedule rules:** Rescheduling an appointment requires a `reason` field. The service enforces hard vs soft conflict semantics; hard conflicts are rejected unless the caller provides the conflict override permission. On successful reschedule the service emits an `AppointmentRescheduled` event to notify `WorkExec` and other subscribers.
+- **Conflict override:** Conflict overrides are only permitted when the caller has `OVERRIDE_SCHEDULING_CONFLICT` authority and must be recorded via the `conflict-override` endpoint including `overrideReason` and audit metadata.
+- **Appointment provenance & eligibility:** When an appointment is created from an `Estimate` or `WorkOrder` the service must validate eligibility (customer/vehicle linkage, required serviceRequestIds, shop capacity). On successful creation from an estimate the estimate status must transition to `SCHEDULED` and `WorkExec` must be notified via the appropriate event (`AppointmentCreatedFromEstimate` / `AppointmentCreatedFromWorkOrder`).
+- **Permissions:** The service enforces permissions for the UX stories:
+  - `VIEW_ASSIGNMENTS` — required to list or retrieve assignments (story #10).
+  - `RESCHEDULE_APPOINTMENT` and `OVERRIDE_SCHEDULING_CONFLICT` — required for rescheduling and conflict override actions (story #11).
+  - `CREATE_APPOINTMENT` — required to create new appointments (story #12).
+- **Deterministic failures & correlation:** All mutation failures must return deterministic error codes (400/403/409) with `X-Correlation-Id` propagated for tracing.
+
+### Events & Dependencies
+
+- Outgoing events produced by this capability: `AppointmentCreatedFromEstimate`, `AppointmentCreatedFromWorkOrder`, `AppointmentRescheduled`, `ASSIGNMENT_UPDATED`.
+- Downstream consumers: `WorkExec` (scheduling/execution), CRM (customer/vehicle snapshots), Billing (when appointments trigger invoice flows).
+
+### Contract Test Traceability
+
+- Provider tests: `durion-positivity-backend/pos-shop-manager/src/test/.../cap249/`
+- Test suites should cover permission enforcement, conflict semantics (hard vs soft), event emission on create/reschedule, and estimate→appointment status transitions.
 
 ## CAP-138: [CAP] Dispatch and Assign Mechanics & Resources
 
