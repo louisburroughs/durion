@@ -420,7 +420,7 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 ## Sign-Off
 
 | Role | Name | Date | Notes |
-|------|------|------|-------|
+| ------ | ------ | ------ | ------- |
 | Architecture | Platform Team | 2026-02-07 | Approved UUID v7 strategy |
 | Backend Lead | Platform Team | 2026-02-07 | Confirmed Spring Boot compatibility |
 | Frontend Lead | Platform Team | 2026-02-07 | Confirmed TypeScript string representation |
