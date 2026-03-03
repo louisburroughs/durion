@@ -32,11 +32,11 @@ stories:
     repo: louisburroughs/durion
     issue: 139
     title: '[CAP] Timekeeping Integration for Assigned Work'
-    domain: shopmgmt
+    domain: workexec
     labels:
     - type:capability
     - layer:functional
-    - domain:shopmgmt
+    - domain:workexec
     - kiro
     - CAP:139
   children:
@@ -52,14 +52,14 @@ stories:
         type: meta
       business_rules:
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/AGENT_GUIDE.md
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/DOMAIN_NOTES.md
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
@@ -76,8 +76,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/139.'
   definition_of_done:
   - All PRs merged and required checks green
