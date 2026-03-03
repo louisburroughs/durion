@@ -32,22 +32,19 @@ stories:
     repo: louisburroughs/durion
     issue: 140
     title: '[CAP] Workorder Execution Context Linking'
-    domain: shopmgmt
+    domains: [workexec,shopmgmt, people]
     labels:
     - type:capability
     - layer:functional
     - domain:shopmgmt
+    - domain:people
+    - domain:workexec
     - kiro
     - CAP:140
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 58
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 122
-      impacted_component_repos:
-      - louisburroughs/durion-hr
+      issues: [58, 59,63, 64, 65]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/people/.ui/frontend-story-crossdomain-hr-ingests-work-session-122.wf.md
@@ -62,6 +59,18 @@ stories:
         path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.business-rules/DOMAIN_NOTES.md
+      - repo: louisburroughs/durion
+        path: domains/people/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/people/.business-rules/DOMAIN_NOTES.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      - repo: louisburroughs/durion
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -81,8 +90,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/140.'
   definition_of_done:
   - All PRs merged and required checks green

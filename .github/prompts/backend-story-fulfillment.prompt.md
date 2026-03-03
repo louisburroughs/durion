@@ -39,6 +39,16 @@ If the answer to these is "no", **KEEP WORKING**.
 
 ---
 
+## Team-Mode Execution (Lead Coder)
+
+When invoked under coder team-mode:
+- `Lead Coder` coordinates and delegates; it MUST NOT write code directly.
+- `Lead Coder` delegates file-changing work to:
+  - `Client Coder` for `RestClient`/outbound integration artifacts.
+  - `API Surface Coder` for controllers/DTOs/service interfaces/validation/OpenAPI/event annotations.
+  - `Domain Data Coder` for service implementations/entities/repositories/domain logic.
+- `Coder` is legacy fallback only when team-mode delegation is blocked and is invoked by `Lead Coder` (not directly by Orchestrator).
+
 Context (inputs — agent will be provided values at runtime)
 - `OPENAPI_PATH` — path to the authoritative `openapi.yaml` (e.g., `pos-<module>/target/openapi.yaml`) which MUST NOT be overwritten.
 - `BACKEND_API_REFERENCE_PATH` — path to generated API reference (e.g., `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md`).

@@ -72,32 +72,48 @@ UUID v7 format: tttttttt-tttt-7xxx-yxxx-xxxxxxxxxxxx
 **Implementation:**
 
 ```java
-// Entity definition
+// Entity definition — use @GeneratedValue + @UUIDv7Id on the ID field and
+// @EntityListeners(AuditingEntityListener.class) on the class for Spring Data auditing.
 @Entity
 @Table(name = "orders")
+@EntityListeners(AuditingEntityListener.class)
 public class Order {
+
     @Id
-    @Column(name = "id", columnDefinition = "UUID")
+    @GeneratedValue          // delegates to Hibernate's @IdGeneratorType mechanism
+    @UUIDv7Id                // meta-annotated with @IdGeneratorType(UUIDv7Generator.class)
     private UUID id;
-    
-    // Generate UUID v7 on entity creation
-    @PrePersist
-    public void generateId() {
-        if (id == null) {
-            id = UUIDv7.generate(); // Using UUID v7 library
-        }
-    }
+
+    @CreatedBy
+    @Column(nullable = false, updatable = false)
+    private String createdBy;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @LastModifiedBy
+    private String updatedBy;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private Instant updatedAt;
 }
 
-// Repository
+// Repository — ID type is UUID
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 }
 ```
 
+> **Note:** Do **not** use `@PrePersist` to assign the UUID. `@GeneratedValue` + `@UUIDv7Id` delegates
+> generation to `com.positivity.shared.id.UUIDv7Generator` via Hibernate's `@IdGeneratorType`
+> contract. The `@EntityListeners(AuditingEntityListener.class)` annotation is required for
+> Spring Data's `@CreatedBy` / `@CreatedDate` / `@LastModifiedBy` / `@LastModifiedDate` fields.
+
 **Libraries:**
 
-- Primary: `com.github.f4b6a3:uuid-creator` (supports UUID v7)
-- Fallback: `java.util.UUID.randomUUID()` (v4) if v7 unavailable
+- Primary: `com.positivity.shared.id.UUIDv7Generator` (platform-shared Hibernate generator)
+- Hibernate `@IdGeneratorType` (Hibernate 6.x, part of Spring Boot 3+) — **do not use** the deprecated `@GenericGenerator`
 
 **Database:**
 
@@ -195,13 +211,52 @@ UPDATE legacy_table SET uuid_id = gen_uuid_v7();
 **Policy update:**
 
 - Keep UUID creation logic centralized in `com.positivity.shared.id.UUIDv7Generator`.
-- Use a shared ID annotation (for example `@UUIDv7Id`) that is meta-annotated with `@IdGeneratorType(...)`.
-- Apply entity IDs as:
+- Use the shared `@UUIDv7Id` annotation that is meta-annotated with `@IdGeneratorType(UUIDv7Generator.class)`.
+- Apply entity IDs with **all three** of the following annotations:
   - `@Id`
-  - shared UUIDv7 generator annotation (`@UUIDv7Id`)
+  - `@GeneratedValue` (required for Hibernate to invoke the registered generator)
+  - `@UUIDv7Id` (platform annotation wiring the generator)
+- Add `@EntityListeners(AuditingEntityListener.class)` to every entity class that uses Spring Data audit annotations (`@CreatedBy`, `@CreatedDate`, `@LastModifiedBy`, `@LastModifiedDate`).
 - Do not use `@GenericGenerator` for new code (deprecated since Hibernate 6.5 and marked for removal).
+- Do not use `@PrePersist` for ID generation — use the `@GeneratedValue` + `@UUIDv7Id` pattern instead.
 - Avoid duplicating UUID generation implementations in domain modules.
 - Existing entities using `@PrePersist` for IDs can remain temporarily, but touched entities should migrate to the shared `@IdGeneratorType` pattern.
+
+**Canonical example:**
+
+```java
+import com.positivity.shared.id.UUIDv7Id;
+import jakarta.persistence.*;
+import org.springframework.data.annotation.*;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+@Entity
+@Table(name = "advance_shipping_notice")
+@EntityListeners(AuditingEntityListener.class)   // required for @CreatedBy / @CreatedDate etc.
+public class AdvanceShippingNoticeEntity {
+
+    @Id
+    @GeneratedValue                               // triggers Hibernate @IdGeneratorType hook
+    @UUIDv7Id                                     // resolves to UUIDv7Generator
+    private UUID asnId;
+
+    @CreatedBy
+    @Column(nullable = false, updatable = false)
+    private String createdBy;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @LastModifiedBy
+    @Column(name = "updated_by")
+    private String updatedBy;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+}
+```
 
 ---
 
@@ -365,7 +420,7 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 ## Sign-Off
 
 | Role | Name | Date | Notes |
-|------|------|------|-------|
+| ------ | ------ | ------ | ------- |
 | Architecture | Platform Team | 2026-02-07 | Approved UUID v7 strategy |
 | Backend Lead | Platform Team | 2026-02-07 | Confirmed Spring Boot compatibility |
 | Frontend Lead | Platform Team | 2026-02-07 | Confirmed TypeScript string representation |

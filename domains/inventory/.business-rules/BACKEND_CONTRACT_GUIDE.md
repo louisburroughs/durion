@@ -436,48 +436,112 @@ Story #33 — Cross-dock to Workorder:
 - Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
 
-## CAP-220: [CAP] Reservations, Allocations, and Substitutions
+## CAP-220 — Reservations, Allocations, and Substitutions
 
-### Capability Metadata
+> Status: **draft** | Module: `pos-inventory` | Issues: [#24](https://github.com/louisburroughs/durion-positivity-backend/issues/24) [#25](https://github.com/louisburroughs/durion-positivity-backend/issues/25)
 
-- Capability ID: CAP-220
-- Parent Issue: https://github.com/louisburroughs/durion/issues/220
-- Capability Status: draft
-- OpenAPI Source: `durion-positivity-backend/pos-inventory/openapi.yaml`
+### Story #24 — Reallocate Reserved Stock When Schedule Changes
 
-### API Operation References (OpenAPI Source of Truth)
+**Endpoint:** `POST http://localhost:8080/v1/inventory/allocations/reallocate`
 
-| Use Case | operationId | Method | Path |
-| --- | --- | --- | --- |
-| Reject adjustment | `rejectAdjustment` | POST | `/api/v1/inventory/cycleCountAdjustments/{adjustmentId}/reject` |
-| Operation | `createPlan` | POST | `/api/v1/inventory/cycleCountPlans` |
-| Update inventory availability | `updateInventoryAvailability` | POST | `/v1/inventory/availability/{productId}` |
+**Required Authority:** `inventory:allocations:reallocate`
 
-### Behavioral Assertions
+#### Request Body
+```json
+{
+  "stockItemId": "<uuid>",
+  "triggerType": "PRIORITY_CHANGE | SCHEDULE_CHANGE | MANUAL_OVERRIDE | ...",
+  "triggerReferenceId": "<string | null>"
+}
+```
 
-- Requests must satisfy domain validation rules before state change.
-- Successful mutations must produce deterministic persisted outcomes.
-- Failure responses must be explicit and actionable for callers.
+#### Response (200 OK)
+```json
+{
+  "stockItemId": "<uuid>",
+  "totalReallocated": 2,
+  "auditRecordsCreated": 3,
+  "atpAfterReallocation": 5
+}
+```
 
-### Frontend Usage Notes
+#### Behavioral Contract
+- **Deterministic sort:** workorders sorted by (effectivePriority ASC → dueDateTime ASC → waitingSince ASC → scheduleStartTime ASC → createdAt ASC); same inputs always yield same allocation outcome.
+- **Priority aging:** `effectivePriority = max(CRITICAL=1, basePriority - floor((now - waitingSince - 24h) / 24h))`. Aging begins after 24h grace period. Aging resets when a workorder receives a full allocation.
+- **Full-allocation-only:** a workorder receives either its full `requiredQuantity` or 0. No partial allocations.
+- **ATP invariant:** `ATP = onHand - totalAllocated` is unchanged by reallocation; the total allocated across all workorders equals the original total.
+- **Audit:** an `inventory_allocation_audit` record is created for every workorder processed (both allocated and displaced), with `reasonCode` set to `PRIORITY_CHANGE`, `PRIORITY_AGED`, or `STOCK_SHORTAGE` as appropriate.
 
-- Use operation IDs above as the stable API integration keys for UI actions.
-- Read request/response payload shapes from generated API reference, not this guide.
-- Surface validation and authorization failures directly to users with trace context.
+#### Error Responses
+- `400 Bad Request` — `stockItemId` missing or null
+- `422 Unprocessable Entity` — domain constraint violation (future extension)
 
-### ADR Constraints
+---
 
-- Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
+### Story #25 — Handle Shortages with Backorder or Substitution Suggestion
 
-### Events & Dependencies
+**Endpoint:** `POST http://localhost:8080/v1/inventory/allocations/shortages/resolve`
 
-- Respect published API/event contracts for all upstream and downstream dependencies.
-- Preserve traceability when integrating across services or asynchronous workflows.
+**Required Authority:** `inventory:shortages:resolve`
 
-### Contract Test Traceability
+#### Request Body
+```json
+{
+  "allocationId": "<uuid>",
+  "sku": "<string>",
+  "shortQuantity": 3
+}
+```
 
-- Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
-- Add or update tests that cover each behavioral assertion above when behavior changes.
+#### Response (200 OK)
+```json
+{
+  "allocationId": "<uuid>",
+  "sku": "PART-12345",
+  "options": [
+    {
+      "type": "SUBSTITUTE",
+      "substitutePartNumber": "ALT-PART-99",
+      "unitCost": 45.00,
+      "estimatedLeadTimeDays": 3,
+      "source": "PRODUCT",
+      "confidence": "HIGH",
+      "qualityTier": "A"
+    },
+    {
+      "type": "EXTERNAL_PURCHASE",
+      "substitutePartNumber": null,
+      "unitCost": 52.00,
+      "estimatedLeadTimeDays": 5,
+      "source": "EXTERNAL",
+      "confidence": "MEDIUM",
+      "qualityTier": "B"
+    },
+    {
+      "type": "BACKORDER",
+      "substitutePartNumber": null,
+      "unitCost": null,
+      "estimatedLeadTimeDays": null,
+      "source": null,
+      "confidence": null,
+      "qualityTier": null
+    }
+  ],
+  "partialResultsBanner": false
+}
+```
+
+#### Behavioral Contract
+- **Option ordering:** `SUBSTITUTE` options appear first, then `EXTERNAL_PURCHASE`, then `BACKORDER`. The `BACKORDER` option is always present.
+- **Within-category ranking:** sorted by `estimatedLeadTimeDays ASC`, then `unitCost ASC`, then `qualityTier DESC`.
+- **Parallel resolution:** Product Domain (`/product/v1/substitutes:resolve`, timeout 800ms) and Positivity Domain (`/positivity/v1/availability/external`, timeout 1200ms) are called in parallel.
+- **Timeout / failure:** if a client times out or errors, that category is omitted and `partialResultsBanner: true` is set. The remaining categories are still returned.
+- **BACKORDER fields:** `estimatedLeadTimeDays`, `source`, and `confidence` are `null` when no lead time source is available (tiered fallback: PURCHASING → INVENTORY → CATALOG). The BACKORDER option is never omitted.
+- **Event:** `@EmitEvent(id = "INVENTORY_SHORTAGE_RESOLVE", apiVersion = "1")` on the controller.
+
+#### Error Responses
+- `400 Bad Request` — `allocationId` or `sku` missing
+- `422 Unprocessable Entity` — domain constraint violation (future extension)
 
 ## CAP-221: [CAP] Roles, Permissions, and Audit Controls
 

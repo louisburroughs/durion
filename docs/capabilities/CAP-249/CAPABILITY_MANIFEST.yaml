@@ -28,22 +28,17 @@ stories:
     repo: louisburroughs/durion
     issue: 249
     title: '[CAP] Appointment Scheduling & Assignment (Shopmgr Coordination)'
-    domain: pos
+    domain: shopmgmt
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:pos
+    - domain:shopmgmt
     - CAP:249
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 10
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 74
-      impacted_component_repos:
-      - louisburroughs/durion-shopmgr
+      issues: [10, 11, 12]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.ui/frontend-story-appointment-show-assignment-locatio-74.wf.md
@@ -53,7 +48,7 @@ stories:
         type: meta
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/pos/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
   pr_links:
@@ -66,8 +61,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/249.'
   definition_of_done:
   - All PRs merged and required checks green

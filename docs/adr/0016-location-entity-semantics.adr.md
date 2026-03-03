@@ -1,6 +1,6 @@
 # ADR-0016: Location Entity Semantics and Definitions
 
-**Status:** PROPOSED  
+**Status:** ACCEPTED  
 **Date:** 2026-02-17  
 **Deciders:** Architecture, Backend Lead, Domain Lead  
 **Affected Issues:** N/A

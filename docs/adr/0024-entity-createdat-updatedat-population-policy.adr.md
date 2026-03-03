@@ -15,7 +15,7 @@
   - consistent audit semantics across services,
   - deterministic and time-condensed tests,
   - reduced duplicated timestamp logic in entities.
-- **Scope**: All mutable JPA entities that persist lifecycle timestamps in `durion-positivity-backend`.
+- **Scope**: All new mutable JPA entities in `durion-positivity-backend`, plus existing mutable entities touched by ongoing story work.
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### 1. createdAt/updatedAt semantics
 
-**Decision:** ✅ **Resolved** - Mutable entities that track timestamps MUST have both `createdAt` and `updatedAt`. On insert, both are set to the same instant. On update, only `updatedAt` changes.
+**Decision:** ✅ **Resolved** - All new mutable JPA entities MUST have both `createdAt` and `updatedAt`. On insert, both are set to the same instant. On update, only `updatedAt` changes.
 
 ### 2. Timestamp population mechanism
 
@@ -36,6 +36,10 @@
 ### 4. Transitional allowance
 
 **Decision:** ✅ **Resolved** - Existing entities may keep legacy callbacks temporarily, but any touched entity must migrate to the standard auditing approach in the same change when feasible.
+
+### 5. Explicit exemptions
+
+**Decision:** ✅ **Resolved** - Exemptions are allowed only for immutable persistence models (for example entities annotated with `@Immutable`), where lifecycle update semantics do not apply. Exemptions must be called out in review evidence for the story/PR.
 
 ---
 
@@ -81,6 +85,9 @@
   - add `createdAt` and `updatedAt` columns where missing,
   - annotate fields with `@CreatedDate` and `@LastModifiedDate`,
   - remove timestamp-setting callback code.
+- For new mutable entities:
+  - `createdAt` and `updatedAt` are mandatory by default,
+  - do not skip audit timestamps unless the entity is explicitly immutable and the exemption is documented in review output.
 - Test strategy:
   - integration tests with fixed `Clock`,
   - verify insert sets both fields equal,
@@ -99,4 +106,3 @@
   - `0018-audit-actor-fields-from-security-context.adr.md`
 - Related code:
   - `durion-positivity-backend/pos-location/src/main/java/com/positivity/location/internal/entity/Location.java`
-
