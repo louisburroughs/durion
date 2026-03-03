@@ -64,7 +64,7 @@ stories:
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-shop-manager/target/openapi.json
+      spec_path: pos-workorder/openapi.yaml
       generated: true
   pr_links:
     durion_contract_pr: ''
