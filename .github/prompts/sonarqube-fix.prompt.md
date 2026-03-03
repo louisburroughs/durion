@@ -1,7 +1,7 @@
 ---
 name: "SonarQube Remediation With Branch + PR"
 agent: "SonarQube Fix Agent"
-description: "Run SonarQube remediation safely: create branch, apply fixes, commit, and open PR with a unique short name."
+description: "Run SonarQube remediation safely: create branch, apply fixes, commit, and prepare PR handoff for Pull Request Agent."
 model: "GPT-5.3-Codex (copilot)"
 ---
 
@@ -9,14 +9,14 @@ model: "GPT-5.3-Codex (copilot)"
 
 ## Goal
 
-Remediate SonarQube issues in `durion-positivity-backend`, then commit and open a pull request.
+Remediate SonarQube issues in `durion-positivity-backend`, then commit and prepare pull-request handoff for `Pull Request Agent`.
 
 You must:
 1. Create a new branch before making code changes.
 2. Switch to that branch.
 3. Apply safe SonarQube fixes.
 4. Commit the changes.
-5. Push and create a pull request with a unique short name.
+5. Push and prepare a pull request handoff payload with a unique short name.
 
 ## Runtime Context (provide at execution time)
 
@@ -40,13 +40,13 @@ const runtimeContext = `
 - BACKEND_REPO_PATH: $WORKSPACE/durion-positivity-backend
 - BASE_BRANCH: main
 - PR_BASE_BRANCH: main
-- SONAR_SCOPE: pos-shop-manager
+- SONAR_SCOPE: {module}
 - AUTOMATED_MODE: true
 `;
 
 // 3) Delegate to SonarQube Fix Agent
 await runSubagent({
-  description: 'Remediate SonarQube findings and open PR',
+  description: 'Remediate SonarQube findings and prepare PR handoff',
   prompt: `${promptContent}\n\n${runtimeContext}\nPlease execute the prompt above with these runtime values.`
 });
 ```
@@ -118,34 +118,25 @@ git rev-parse HEAD
 
 If no changes were made, do not force a commit. Report why.
 
-### 6) Create pull request with unique short name
+### 6) Prepare PR handoff with unique short name
 
 Use:
 - PR title: `fix(sonar): ${SHORT_ID}`
 - PR branch: `${BRANCH_NAME}`
 - PR base: `${PR_BASE_BRANCH:-${BASE_BRANCH:-main}}`
 
-If `gh` is available:
+Do NOT create the pull request from this prompt.
+PR creation is reserved for `Pull Request Agent`.
+Produce a PR handoff payload containing:
+- title
+- base branch
+- head branch
+- body file path/content
+- traceability links
 
-```bash
-cd ${BACKEND_REPO_PATH:-$WORKSPACE/durion-positivity-backend}
-gh pr create \
-  --base "${PR_BASE_BRANCH:-${BASE_BRANCH:-main}}" \
-  --head "${BRANCH_NAME}" \
-  --title "fix(sonar): ${SHORT_ID}" \
-  --body-file .agent-tmp/sonar-pr-body-${SHORT_ID}.md
-```
+## Required PR Handoff Body Template
 
-If GitHub tool APIs are available, create the PR with the same title/base/head and equivalent body.
-
-If PR creation fails, include:
-- exact error output
-- `git status --short`
-- `git log --oneline -5`
-
-## Required PR Body Template
-
-Write this body to `.agent-tmp/sonar-pr-body-${SHORT_ID}.md` before PR creation:
+Write this body to `.agent-tmp/sonar-pr-body-${SHORT_ID}.md` for `Pull Request Agent`:
 
 ```bash
 cd ${BACKEND_REPO_PATH:-$WORKSPACE/durion-positivity-backend}
@@ -179,7 +170,7 @@ mkdir -p .agent-tmp
 
 - Branch name
 - Commit hash
-- PR URL
+- PR handoff payload (title/base/head/body)
 - Fixed issues list
 - Suppressed issues list with rationale
 - Skipped issues list with reasons

@@ -6,7 +6,6 @@ tools:
   - read/readFile
   - read/problems
   - read/terminalLastCommand
-  - read/getTaskOutput
   - search/listDirectory
   - search/fileSearch
   - search/textSearch
@@ -19,9 +18,6 @@ tools:
   - github/create_branch
   - github/list_branches
   - github/push_files
-  - github/create_pull_request
-  - github/pull_request_read
-  - github/list_pull_requests
   - edit/createFile
   - edit/editFiles
   - sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues
@@ -51,8 +47,8 @@ Read SonarQube issues, apply safe code fixes, and provide a clear remediation re
   - read SonarQube issues and diagnostics
   - modify source and test files to remediate issues
   - run targeted verification commands
-  - run git commands needed for branch, commit, push, and PR flow
-  - create branches and pull requests using GitHub tools when available
+  - run git commands needed for branch, commit, and push flow
+  - create branches and prepare PR handoff material for Pull Request Agent
 - Keep changes focused on assigned SonarQube findings.
 
 ## Git/PR Execution Requirements
@@ -62,8 +58,8 @@ When a run requires code changes, you must:
 2. Verify active branch with `git branch --show-current`.
 3. Commit with a focused message that includes the remediation batch short ID.
 4. Push branch to origin.
-5. Open a PR using `gh pr create` or GitHub API tools.
-6. Return branch name, commit hash, and PR URL in final output.
+5. Prepare PR handoff payload using `.github/pull_request_template.md` for `Pull Request Agent`.
+6. Return branch name, commit hash, and PR handoff payload in final output.
 
 ## Non-Negotiable Constraints
 
@@ -71,6 +67,18 @@ When a run requires code changes, you must:
 2. Do not introduce new thrown exceptions and do not add new `throw` paths.
 3. Do not fix or alter TODO issues/comments. Skip them and report each with a short summary.
 4. If uncertain about correctness, add a note in the final report and skip the issue.
+
+## Logging Privacy Rule (Required)
+
+For SonarQube issues about logging user/sensitive data:
+
+1. Do not log raw PII/user identifiers directly.
+2. Prefer masking over removing operationally useful logs.
+3. Use the existing project pattern:
+   - services: `maskForLog(Object value)` style helper (see `pos-inventory/.../PutawayValidationServiceImpl`)
+   - controllers: sanitize + mask before logging user-controlled values (see `pos-invoice/.../BillingRulesController#sanitizeForLogging`)
+4. If no shared utility is available in the module, add a small local helper using the same pattern and use it consistently.
+5. In the final report, list each logging fix and the masking method used.
 
 ## Suppression Policy
 

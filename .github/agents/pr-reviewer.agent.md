@@ -23,6 +23,7 @@ You review only. You do not apply fixes.
 - PR changed files and commits
 - linked or referenced GitHub issues
 - ADR compliance (from provided ADR references)
+- repository policy files when present (for backend PRs: `durion-positivity-backend/AGENTS.md`)
 - coding standards compliance (architecture/layering/null-safety/conventions)
 - test impact:
   - failing tests,
@@ -33,10 +34,11 @@ You review only. You do not apply fixes.
 1. Prioritize correctness and regression risk over style.
 2. Treat issue acceptance criteria as binding.
 3. Treat accepted ADR decisions as binding unless explicitly superseded.
-4. Use PR comments as first-class review evidence.
-5. Flag unclear requirements as questions, not assumptions.
-6. Prefer referencing existing PR comment threads with `comment_ref` when a finding already has reviewer discussion.
-7. Review the entire changed file to identify any additional issues, not just the specific lines highlighted by review comments or issue references.
+4. Treat mandatory repository policy documents (such as backend `AGENTS.md`) as binding for review scope.
+5. Use PR comments as first-class review evidence.
+6. Flag unclear requirements as questions, not assumptions.
+7. Prefer referencing existing PR comment threads with `comment_ref` when a finding already has reviewer discussion.
+8. Review the entire changed file to identify any additional issues, not just the specific lines highlighted by review comments or issue references.
 
 ## Required Output
 ```markdown

@@ -42,12 +42,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 24
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 88
-      impacted_component_repos:
-      - louisburroughs/durion-inventory
+      issues: [24,25]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/inventory/.ui/frontend-story-allocations-reallocate-reserved-sto-88.wf.md
@@ -61,6 +56,8 @@ stories:
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
+        path: domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md
+      - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
@@ -69,11 +66,11 @@ stories:
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-inventory/target/openapi.json
+      spec_path: pos-inventory/openapi.yaml
       generated: true
   pr_links:
     durion_contract_pr: ''
-    backend_pr: ''
+    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/579'
     frontend_prs: []
   merge_order:
   - durion_contract_pr
@@ -81,8 +78,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/220.'
   definition_of_done:
   - All PRs merged and required checks green
