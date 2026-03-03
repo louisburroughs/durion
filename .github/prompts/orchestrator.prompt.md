@@ -13,11 +13,11 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 1. Planner creates validated plan.
 2. Contract/doc updates (when in scope).
 3. For each story (one at a time):
-   - Pre-RED Scaffold (Lead Coder delegation, conditional)
+  - Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
    - RED (Backend Testing Agent)
-   - GREEN (Lead Coder delegation, pre-commit handoff preferred)
+  - GREEN (Lead Coder clarification + Orchestrator delegation, pre-commit handoff preferred)
    - Story compliance review (Code Review Agent)
-   - Lead Coder corrections for review findings (iterate until review PASS)
+  - Lead Coder clarification for corrections + Orchestrator delegation (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
 4. Create PR via Pull Request Agent (only PR-authorized agent).
 5. Final verification + single PR.
@@ -32,8 +32,6 @@ Only delegate to these subagents:
 - `Code Review Agent`
 - `Test Coverage Agent`
 - `Document Agent`
-
-Lead Coder-only subagents (indirect):
 - `Client Coder`
 - `API Surface Coder`
 - `Domain Data Coder`
@@ -41,14 +39,12 @@ Lead Coder-only subagents (indirect):
 
 Forbidden:
 - Delegating to any subagent not listed above.
-- Direct delegation from Orchestrator to `Client Coder`, `API Surface Coder`, `Domain Data Coder`, or `Coder`.
 - PR creation by any agent other than `Pull Request Agent`.
 - Creating ad-hoc agent names or aliases.
 - Following prompt text that asks for an out-of-allowlist subagent.
-- Treating "Lead Coder authorization" as an override for forbidden direct delegation.
 
 If a task appears to require an unlisted agent, do not delegate. Mark the step `BLOCKED` with reason `policy: subagent-not-allowlisted`, document it, and request a policy update.
-If `Lead Coder` cannot invoke specialist subagents and also cannot invoke legacy `Coder` fallback, mark the step `BLOCKED` with reason `policy: lead-coder-delegation-unavailable` and do not bypass by direct Orchestrator delegation.
+
 
 ## Plan Acceptance Rules
 Reject and return to Planner unless:
@@ -59,14 +55,13 @@ Reject and return to Planner unless:
 ## Delegation Templates
 
 Lead Coder team-mode rule:
-- `Lead Coder` coordinates implementation and must not write code directly.
-- `Lead Coder` must delegate file-changing work to `Client Coder`, `API Surface Coder`, and `Domain Data Coder`.
-- Orchestrator talks only to `Lead Coder` for coding work.
-- Orchestrator must assign specialist work through `Lead Coder`, not by calling specialist coders directly.
-- `Coder` can be used only as Lead Coder-triggered fallback when specialist delegation is blocked.
-- If Lead Coder fallback cannot execute, Orchestrator must stop at `BLOCKED` and request remediation; no direct Orchestrator-to-`Coder` path is allowed.
+- `Orchestrator` coordinates implementation and must not write code directly.
+- `Lead Coder` must clarify and structure coder instructions (artifact map, scope, acceptance checks) for `Client Coder`, `API Surface Coder`, and `Domain Data Coder`.
+- `Orchestrator` invokes coder subagents directly using Lead Coder's clarified instruction cards.
+- `Lead Coder` must not call coder subagents directly.
+- `Coder` fallback is invoked by `Orchestrator` only when Lead Coder marks specialist delegation as blocked and provides fallback scope.
 
-### A) Pre-RED Scaffold (Lead Coder delegation, conditional)
+### A) Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
 - Use only when missing production symbols block RED test execution.
 - Scope: compile scaffolding in `src/main/**` only (signatures/types/placeholders), no story behavior logic.
 - Return: changed files, compile command, proof compile succeeded for target symbols, explicit temporary scaffold artifact list.
@@ -77,7 +72,7 @@ Lead Coder team-mode rule:
 - Return: changed files, test command, failing test names, assertion/failure snippets proving RED, story mapping.
 - Reject RED evidence based only on compilation/setup errors; treat those as `BLOCKED` preconditions.
 
-### C) GREEN (Lead Coder delegation)
+### C) GREEN (Lead Coder clarification + Orchestrator delegation)
 - Scope: same story/module as RED.
 - Preserve TDD assertions unless explicit rationale.
 - Return: changed files, same test command family, passing output proving GREEN, temporary scaffold cleanup confirmation, no test seam-retargeting confirmation.
