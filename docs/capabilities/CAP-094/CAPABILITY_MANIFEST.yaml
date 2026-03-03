@@ -53,11 +53,6 @@ stories:
     backend:
       repo: louisburroughs/durion-positivity-backend
       issue: 93
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 157
-      impacted_component_repos:
-      - louisburroughs/durion-workexec
       wireframes:
       - repo: louisburroughs/durion
         path: domains/workexec/.ui/frontend-story-integration-emit-crm-reference-ids-157.wf.md
@@ -67,14 +62,14 @@ stories:
         type: meta
       business_rules:
       - repo: louisburroughs/durion
-        path: domains/crm/.business-rules/AGENT_GUIDE.md
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/crm/.business-rules/DOMAIN_NOTES.md
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
@@ -103,11 +98,6 @@ stories:
     backend:
       repo: louisburroughs/durion-positivity-backend
       issue: 92
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 156
-      impacted_component_repos:
-      - louisburroughs/durion-crm
       wireframes:
       - repo: louisburroughs/durion
         path: domains/crm/.ui/frontend-story-integration-inbound-event-handler-f-156.wf.md
@@ -141,8 +131,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/094.'
   definition_of_done:
   - All PRs merged and required checks green
