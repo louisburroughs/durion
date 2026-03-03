@@ -38,8 +38,11 @@ Open pull requests with accurate traceability and required metadata after implem
 
 ## Preconditions Before PR Creation
 1. Target branch exists remotely and contains required commits.
-2. Required validation evidence is present (tests/review/coverage as required by orchestrator policy).
-3. Capability/story traceability fields are available (capability ID, parent story, child issue, domain).
+2. Perform a final commit step before PR creation:
+   - If there are staged or unstaged changes intended for the PR, create a final commit with an accurate message.
+   - If there are no pending PR-intended changes, explicitly verify and report a clean working tree.
+3. Required validation evidence is present (tests/review/coverage as required by orchestrator policy).
+4. Capability/story traceability fields are available (capability ID, parent story, child issue, domain).
 
 If preconditions are not met, do not create the PR. Return blocker details and missing prerequisites.
 
