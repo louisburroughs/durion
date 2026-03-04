@@ -78,10 +78,9 @@ stories:
       generated: true
   pr_links:
     durion_contract_pr: ''
-    backend_pr: ''
+    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/588'
     frontend_prs: []
   merge_order:
-  - durion_contract_pr
   - backend_pr
   - frontend_prs
 - parent_story:
@@ -123,10 +122,9 @@ stories:
       generated: true
   pr_links:
     durion_contract_pr: ''
-    backend_pr: ''
+    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/588'
     frontend_prs: []
   merge_order:
-  - durion_contract_pr
   - backend_pr
   - frontend_prs
 execution:
