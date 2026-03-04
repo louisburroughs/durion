@@ -32,22 +32,17 @@ stories:
     repo: louisburroughs/durion
     issue: 142
     title: '[CAP] Operational Reporting & Dashboards (Lightweight)'
-    domain: shopmgmt
+    domain: workexec
     labels:
     - type:capability
     - layer:functional
-    - domain:shopmgmt
+    - domain:workexec
     - kiro
     - CAP:142
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
       issue: 60
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 124
-      impacted_component_repos:
-      - louisburroughs/durion-workexec
       wireframes:
       - repo: louisburroughs/durion
         path: domains/workexec/.ui/frontend-story-reporting-daily-dispatch-board-dash-124.wf.md
@@ -57,19 +52,19 @@ stories:
         type: meta
       business_rules:
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/AGENT_GUIDE.md
+        path: domains/workexec/.business-rules/AGENT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+        path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
-        path: domains/shopmgmt/.business-rules/DOMAIN_NOTES.md
+        path: domains/workexec/.business-rules/DOMAIN_NOTES.md
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_path: pos-shop-manager/target/openapi.json
+      spec_path: pos-workorder/openapi.yaml
       generated: true
   pr_links:
     durion_contract_pr: ''
@@ -81,8 +76,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/142.'
   definition_of_done:
   - All PRs merged and required checks green
