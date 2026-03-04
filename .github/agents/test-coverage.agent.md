@@ -1,7 +1,7 @@
 ---
 name: Test Coverage Agent
 description: JaCoCo-focused test hardening for service and utility coverage.
-model: Gemini 2.5 Pro (copilot)
+model: Claude Sonnet 4.6 (copilot)
 tools:
   - execute/runInTerminal
   - execute/getTerminalOutput

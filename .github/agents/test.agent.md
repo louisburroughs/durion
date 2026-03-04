@@ -1,7 +1,7 @@
 ---
 name: "Backend Testing Agent"
 description: "TDD test-first specialist for Spring Boot modules in durion-positivity-backend"
-model: Claude Opus 4.6 (copilot)
+model: Claude Sonnet 4.6 (copilot)
 tools:
   - 'execute/testFailure'
   - 'execute/getTerminalOutput'
