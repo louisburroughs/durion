@@ -11,6 +11,6 @@
 	"settings": {
 		"java.compile.nullAnalysis.mode": "automatic",
 		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
-		"java.configuration.updateBuildConfiguration": "interactive"
+		"java.configuration.updateBuildConfiguration": "automatic"
 	}
 }
