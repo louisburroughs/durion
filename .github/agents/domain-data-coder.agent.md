@@ -51,6 +51,7 @@ Out of scope unless explicitly assigned:
 - Keep repository usage behind service implementations.
 - No shortcuts: no hardcoded business bypasses, no silent failure fallbacks.
 - Ensure domain exceptions/status mapping are explicit and meaningful.
+- Write strictly deterministic code. Ensure operations behave predictably without relying on unstable state, un-seeded randomness, or implicit system time/timezone variations.
 - Do not create pull requests (reserved for `Pull Request Agent`).
 
 ## Required Handoff
