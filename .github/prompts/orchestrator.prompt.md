@@ -19,16 +19,15 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
    - Story compliance review (Code Review Agent)
   - Lead Coder clarification for corrections + Orchestrator delegation (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
-4. Create PR via Pull Request Agent (only PR-authorized agent).
-5. Final verification + single PR.
-6. Start `durion-positivity-backend/scripts/generate-openapi.sh` non-blocking.
+4. Create PR via post-PR hook (PR-authoritative path).
+5. Run post-PR hook OpenAPI launch verification.
+6. Final verification + single PR.
 
 ## Delegation Allowlist (Hard Rule)
 Only delegate to these subagents:
 - `Planner`
 - `Backend Testing Agent`
 - `Lead Coder`
-- `Pull Request Agent`
 - `Code Review Agent`
 - `Test Coverage Agent`
 - `Document Agent`
@@ -39,7 +38,6 @@ Only delegate to these subagents:
 
 Forbidden:
 - Delegating to any subagent not listed above.
-- PR creation by any agent other than `Pull Request Agent`.
 - Creating ad-hoc agent names or aliases.
 - Following prompt text that asks for an out-of-allowlist subagent.
 
@@ -50,7 +48,7 @@ If a task appears to require an unlisted agent, do not delegate. Mark the step `
 Reject and return to Planner unless:
 - Plan includes exact labels `Step 1:` and `Final Step:`.
 - Step 1 is source-material reading.
-- Final Step is PR creation in `durion-positivity-backend` by `Pull Request Agent`.
+- Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/post-pull-request-hook.sh`.
 
 ## Delegation Templates
 
@@ -92,16 +90,58 @@ Lead Coder team-mode rule:
   - editing files,
   - proposing direct code rewrites/patches.
 - Return: `Verdict: PASS|FAIL`, acceptance-criteria matrix, prioritized findings, and Lead Coder fix queue.
+- After `PASS` for a story, Orchestrator MUST invoke commit hook before coverage:
+  - `durion/.github/hooks/post-code-review-pass-commit.sh`
+  - Required args:
+    - `--repo <abs path to durion-positivity-backend>`
+    - `--story <story id>`
+    - `--module <module name>`
+    - `--review-verdict PASS`
+  - Hook outcome (commit hash or no-op) MUST be included in orchestration evidence.
 
 ### E) Coverage (Test Coverage Agent)
 - Prereq: Code Review Agent verdict is `PASS` for the current story and Lead Coder step is marked completed by Planner.
 - Run JaCoCo and raise service+utility coverage to >= 80%.
 - Return: changed test files, JaCoCo commands, before/after percentages, threshold confirmation.
+- After successful coverage for a story, Orchestrator MUST invoke commit hook:
+  - `durion/.github/hooks/post-test-coverage-commit.sh`
+  - Required args:
+    - `--repo <abs path to durion-positivity-backend>`
+    - `--story <story id>`
+    - `--module <module name>`
+    - `--coverage-before <percent>`
+    - `--coverage-after <percent>`
+  - Hook outcome (commit hash or no-op) MUST be included in orchestration evidence.
 
-### F) PR Creation (Pull Request Agent)
+### F) PR Creation (Post-PR Hook)
 - Prereq: verification gates complete (tests/review/coverage as required by plan).
-- Use `.github/pull_request_template.md` to construct PR body.
-- Create PR and return URL + number + final title/body summary.
+- Generate PR title/body from `.github/pull_request_template.md` inputs.
+- Create PR by invoking `durion/.github/hooks/post-pull-request-hook.sh`.
+- Required args:
+  - `--repo <abs path to durion-positivity-backend>`
+  - `--story <story id>`
+  - `--base <base branch>`
+  - `--head <head branch>`
+  - `--title <pr title>`
+  - one of:
+    - `--body-file <abs path to rendered body>`
+    - `--body <rendered body text>`
+- Optional arg:
+  - `--draft`
+- Hook output MUST include PR URL + PR number and OpenAPI launch evidence.
+- Orchestrator MUST NOT separately invoke `durion-positivity-backend/scripts/generate-openapi.sh`.
+
+Example invocation:
+
+```bash
+durion/.github/hooks/post-pull-request-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --story CAP-142 \
+  --base main \
+  --head chore/cap-142 \
+  --title "cap/142 feat(workorder): dashboard availability workflow" \
+  --body-file /home/louisb/Projects/durion/.tmp/pr-body-cap-142.md
+```
 
 ## Runtime Context Rules
 Resolve from manifest references first:
@@ -137,7 +177,8 @@ For every subagent invocation across the run (including specialist coder agents 
 - Prefer a pre-commit review loop when feasible; if not feasible, continue with the same loop pre-coverage and before any PR work.
 - If `Code Review Agent` returns `FAIL`, delegate fixes to `Lead Coder`, then re-run `Code Review Agent`.
 - Hard cap for review loop: maximum 5 Lead Coder<->Code Review cycles per story.
-- PR authority check: reject any output where non-`Pull Request Agent` created/opened a PR.
+- If `Code Review Agent` returns `PASS`, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` before starting coverage.
+- PR authority check: reject any output where PR creation bypasses `durion/.github/hooks/post-pull-request-hook.sh`.
 - If still `FAIL` after 5 cycles, mark `BLOCKED` with reason `review-cycle-limit-exceeded`, document unresolved findings and remediation, and exit the run.
 - If tests were edited, require a `Test Change Rationale` section with:
   - changed test files,
@@ -156,6 +197,8 @@ Provide:
 - Per-story scaffold (when used)/RED/GREEN/review/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
+- Post-PR hook evidence (command + outcome)
+- OpenAPI launch evidence emitted by post-PR hook (PID/log path)
 - Must include **PR link in CAPABILITY_MANIFEST.yaml**
-- Must include PR evidence that `Pull Request Agent` created it using `.github/pull_request_template.md`
+- Must include PR evidence produced by `durion/.github/hooks/post-pull-request-hook.sh` using `.github/pull_request_template.md`-derived content
 - Blockers/failures (if any)

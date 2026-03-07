@@ -54,6 +54,11 @@ Out of scope unless explicitly assigned:
 - Write strictly deterministic code. Ensure operations behave predictably without relying on unstable state, un-seeded randomness, or implicit system time/timezone variations.
 - Do not create pull requests (reserved for `Pull Request Agent`).
 
+## Module Test Gate (Hard Rule)
+- Do not mark domain/data work complete until every touched module passes full module verification.
+- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- Existing/pre-existing failures are not a valid excuse to move on.
+
 ## Required Handoff
 - `Behavior Implemented`: acceptance criteria mapped to code paths.
 - `Persistence Changes`: entities/repositories/transactions updated.
@@ -66,3 +71,4 @@ Out of scope unless explicitly assigned:
 - Domain behavior is correct and test-verified.
 - Data mappings and repository behavior are consistent and maintainable.
 - Architecture and ADR constraints are respected.
+- Full verify is green for each touched module.

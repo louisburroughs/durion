@@ -86,6 +86,11 @@ When orchestrated with `Code Review Agent`:
   - why old assertion is invalid,
   - how new assertion preserves behavior guarantees.
 
+## Module Test Gate (Hard Rule)
+- Do not declare implementation complete until every touched module passes full module verification.
+- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- "These tests were already failing" is not an acceptable reason to proceed or hand off unfinished work.
+
 ## Java/Backend Standards
 - Use existing Spring + repository patterns; no novel frameworks.
 - Keep services cohesive and explicit.
@@ -122,6 +127,6 @@ When orchestrated with `Code Review Agent`:
 A task is done only when:
 - acceptance criteria are met,
 - architecture/ADR rules are respected,
-- tests pass without weakened guarantees,
+- all tests pass in every touched module without weakened guarantees,
 - evidence is provided,
 - temporary scaffold artifacts introduced for the story are removed/replaced during GREEN.

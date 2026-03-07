@@ -54,6 +54,11 @@ Out of scope unless explicitly assigned:
 - Do not bypass service interfaces by directly wiring controller to repository/entity layers.
 - Do not create pull requests (reserved for `Pull Request Agent`).
 
+## Module Test Gate (Hard Rule)
+- Do not mark API-surface work complete until every touched module passes full module verification.
+- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- Existing/pre-existing failures are not a valid excuse to move on.
+
 ## Required Handoff
 - `API Contract Delta`: endpoints, DTOs, status codes, validation rules.
 - `Annotations Added/Updated`: Swagger/validation/event annotations and why.
@@ -64,4 +69,5 @@ Out of scope unless explicitly assigned:
 ## Done Criteria
 - API contract compiles, is documented, and is behavior-consistent.
 - Validation and event logging requirements are implemented.
+- Full verify is green for each touched module.
 - Handoff is sufficient for domain/data and client integrations to consume.

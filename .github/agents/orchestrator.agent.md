@@ -34,11 +34,13 @@ All orchestration, planning, and delegation decisions must be aligned to this ob
 **MANDATORY RULES (READ CAREFULLY)**
 
 - **Planner First:** Before taking any delegation or spawning subagents you MUST call the `Planner` agent to produce a formal workplan. Do not start Phase parsing, prompt construction, or subagent delegation until the Planner returns a plan. This is non-negotiable.
-- **Plan Acceptance Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend` via `Pull Request Agent`.
+- **Plan Acceptance Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend` via `durion/.github/hooks/post-pull-request-hook.sh`.
 - **Plan Format Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless it contains exact labels `Step 1:` and `Final Step:` for automated validation.
 - **Subagent Completion Requirement:** Every subagent you invoke MUST finish the assigned task before returning control. "Finish" means satisfying the task requirements. You MUST then invoke the `Planner` agent to mark the step as `completed` in the plan. Subagents MUST NOT write to the plan directly.
-- **PR Authority Gate (Hard Gate):** ONLY `Pull Request Agent` is allowed to create pull requests. If any other subagent attempts PR creation, reject the output as policy violation and reroute PR creation to `Pull Request Agent`.
+- **PR Authority Gate (Hard Gate):** Pull request creation MUST flow through `durion/.github/hooks/post-pull-request-hook.sh`. Reject any workflow that creates PRs outside this hook path.
 - **Coder Delegation Gate (Hard Gate):** Orchestrator MUST invoke coder subagents directly (`Client Coder`, `API Surface Coder`, `Domain Data Coder`, `Coder`) using clarified instruction cards from `Lead Coder`. `Lead Coder` MUST NOT be used as a subagent caller.
+- **Module Verify Gate (Hard Gate):** Orchestrator MUST NOT close implementation/review/coverage phases, mark plan steps complete, or create a PR until every touched backend module passes full verification via `./mvnw -pl {module} -DskipTests=false verify`.
+- **No Pre-Existing Failure Excuse (Hard Gate):** "These tests were failing before" is never an acceptable reason to continue. Any failing test in a touched module requires remediation and re-verification before proceeding.
 - **Taskmaster Validation Gate (Hard Gate):** After every subagent response, you MUST validate completion by comparing:
   - the delegated task objective,
   - the target story/acceptance criteria from the capability manifest/contract guide,
@@ -67,7 +69,7 @@ All orchestration, planning, and delegation decisions must be aligned to this ob
 
 ## Handling Subagent Write Requests (Sandboxed Mode)
 
-Subagents (Planner, TDD Agent, Lead Coder team, Pull Request Agent, Document Agent, Code Review Agent, Test Coverage Agent) may run in a restricted environment without file write permissions.
+Subagents (Planner, TDD Agent, Lead Coder team, Document Agent, Code Review Agent, Test Coverage Agent) may run in a restricted environment without file write permissions.
 - **If a subagent returns file content** (e.g., "Please write this to `Durion-Processing.md`" or "Here is `Service.java`"):
   - **You MUST perform the write** using your `edit/createFile` or `edit/editFiles` tools.
   - Verify the path is correct.
@@ -125,7 +127,6 @@ Directly callable by Orchestrator:
 - **Planner** — Creates implementation strategies and technical plans
 - **TDD Agent (Backend Testing Agent)** — Writes failing tests first and defines objective pass criteria before coding begins
 - **Lead Coder** — Non-coding implementation coordinator; decomposes story work and clarifies artifact-specific coding instructions
-- **Pull Request Agent** — Creates pull requests using `.github/pull_request_template.md`; only PR-authorized agent
 - **Code Review Agent** — Reviews Lead Coder team output pre-PR (pre-commit preferred) against issue acceptance criteria, ADRs, and code-comment accuracy; reports findings only
 - **Test Coverage Agent** — Runs JaCoCo, measures service/utility coverage, and adds tests until the threshold is met
 - **Document Agent** — Contract-document specialist for backend capability docs (`BACKEND_CONTRACT_GUIDE.md` and related contract artifacts)
@@ -154,10 +155,9 @@ For backend implementation phases, delegate to `Lead Coder` as the default execu
 
 ## Pull Request Authority (Hard Rule)
 
-- Orchestrator MUST delegate PR creation to `Pull Request Agent`.
-- Orchestrator MUST NOT create PRs itself.
-- Orchestrator MUST NOT delegate PR creation to `Lead Coder`, `Coder`, `TDD Agent`, `Code Review Agent`, `Test Coverage Agent`, or `Document Agent`.
-- PR body MUST be based on `.github/pull_request_template.md`.
+- Orchestrator MUST create PRs by invoking `durion/.github/hooks/post-pull-request-hook.sh`.
+- Orchestrator MUST NOT bypass hook-based PR creation.
+- PR body content MUST be based on `.github/pull_request_template.md`.
 
 ## Team-Mode Delegation Template
 
@@ -388,12 +388,16 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - If strict pre-commit loop is not feasible, this loop is still mandatory before coverage and before PR creation.
   - Hard cap: maximum 5 Lead Coder<->Code Review cycles per story.
   - If still failing after 5 cycles, mark `BLOCKED` (`review-cycle-limit-exceeded`), document unresolved findings/remediation, and exit.
+- Task 4.3: After Code Review Agent returns `PASS` for a story, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` with required args (`--repo`, `--story`, `--module`, `--review-verdict PASS`) and capture hook result in evidence → Orchestrator
+  Files: `durion/.github/hooks/post-code-review-pass-commit.sh`, `durion-positivity-backend/**`
 
 ### Phase 5: Coverage hardening to threshold (depends on Phase 4 + Planner verification)
 - Task 5.1: Ask Planner to confirm Lead Coder step is marked `completed` in plan state before coverage work begins → Planner
   Files: `Durion-Processing.md`
 - Task 5.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 80% → Test Coverage Agent
   Files: `durion-positivity-backend/pos-*/src/test/**`, `durion-positivity-backend/pos-*/target/site/jacoco/**`
+- Task 5.3: After successful coverage for each story, invoke `durion/.github/hooks/post-test-coverage-commit.sh` with required args (`--repo`, `--story`, `--module`, `--coverage-before`, `--coverage-after`) and capture hook result in evidence → Orchestrator
+  Files: `durion/.github/hooks/post-test-coverage-commit.sh`, `durion-positivity-backend/**`
 
 ### Mandatory Story Sequencing (Hard Rule)
 - Plan and execute stories one at a time using this micro-cycle:
@@ -409,12 +413,12 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - "Defer coverage until all stories are implemented"
 
 ### Phase 6: Build & contract tests (depends on Phase 5)
-- Task 6.1: Run focused backend tests (module tests + provider contract tests) and report results → Lead Coder
+- Task 6.1: For each touched backend module, run full module verification (`./mvnw -pl {module} -DskipTests=false verify`) and report results → Lead Coder
   Files: `durion-positivity-backend/**`
 
 ### Phase 7: Pull request creation (depends on Phase 6)
-- Task 7.1: Invoke `.github/prompts/pull-request.prompt.md` with runtime context and create the PR → Pull Request Agent
-  Files: `.github/pull_request_template.md` (read), `durion-positivity-backend/**` (branch/commit evidence)
+- Task 7.1: Prepare PR title/body from `.github/pull_request_template.md` and invoke `durion/.github/hooks/post-pull-request-hook.sh` to create PR with required args (`--repo`, `--story`, `--base`, `--head`, `--title`, and one of `--body-file|--body`) → Orchestrator
+  Files: `.github/pull_request_template.md` (read), `durion/.github/hooks/post-pull-request-hook.sh`, `durion-positivity-backend/**` (branch/commit evidence)
 
 ### Step 3: Execute Each Phase
 For each phase:
@@ -444,7 +448,8 @@ For this workflow, verification must include:
 
 - Contract guide contains only API-gateway-formatted paths (`http://localhost:8080/v{version}/...`).
 - Backend code changes have corresponding provider/behavioral tests where the repo expects them.
-- Backend build/tests for touched modules pass (or failures are clearly reported as blockers).
+- Backend build/tests for touched modules pass via full module verify (`./mvnw -pl {module} -DskipTests=false verify`).
+- Do not accept pre-existing failing tests as blockers to bypass work; remediate and re-run until green.
 - TDD RED→GREEN evidence chain is present for pilot stories:
   - RED: failing tests created by TDD Agent before implementation.
   - GREEN: same tests pass after Lead Coder coordinated implementation.
@@ -453,27 +458,36 @@ For this workflow, verification must include:
   - Any review findings routed to Lead Coder and revalidated
   - Code/comment accuracy explicitly checked
   - Review loop completed before coverage started for that story
+  - Post-review hook invocation evidence is present after `PASS`:
+    - `durion/.github/hooks/post-code-review-pass-commit.sh` command with required args
+    - Hook outcome recorded (commit hash or no-op)
 - Coverage hardening evidence is present after Lead Coder + Planner verification:
   - JaCoCo command(s) executed by Test Coverage Agent
   - Before/after coverage percentages for service + utility scope
   - Final threshold reached: >= 80%
+  - Post-coverage hook invocation evidence is present:
+    - `durion/.github/hooks/post-test-coverage-commit.sh` command with required args
+    - Hook outcome recorded (commit hash or no-op)
 - Pull request evidence is present:
-  - PR created by `Pull Request Agent`
+  - PR created by `durion/.github/hooks/post-pull-request-hook.sh`
   - PR URL + number
   - PR body based on `.github/pull_request_template.md`
+  - Post-PR hook invocation evidence is present:
+    - `durion/.github/hooks/post-pull-request-hook.sh` command with required args
+    - Hook outcome recorded
+    - OpenAPI launch evidence recorded (PID/log path)
 - File-scope guardrails were respected:
   - TDD Agent changes scoped to `src/test/**`.
   - Lead Coder team did not remove or dilute TDD assertions without explicit justification.
   - Test Coverage Agent changes scoped to `src/test/**` unless explicitly approved.
 
-### Step 5: Trigger OpenAPI Generation (final hook)
-After Step 4 succeeds and PR creation is confirmed by `Pull Request Agent`, the orchestrator MUST start:
-- `durion-positivity-backend/scripts/generate-openapi.sh`
+### Step 5: Post-PR Hook Verification (final hook)
+After Step 4 succeeds, the orchestrator MUST run `durion/.github/hooks/post-pull-request-hook.sh` and verify successful PR creation + hook evidence.
 
 Rules for this step:
-- Launch as a non-blocking/background process.
-- Do not wait for command completion.
-- The orchestrator may exit immediately after confirming the process was started.
+- Treat OpenAPI generation as owned by `durion/.github/hooks/post-pull-request-hook.sh`.
+- Do not invoke `durion-positivity-backend/scripts/generate-openapi.sh` separately.
+- Confirm hook output includes OpenAPI launch evidence (PID/log path).
 
 ## Parallelization Rules
 
