@@ -28,24 +28,20 @@ stories:
     repo: louisburroughs/durion
     issue: 250
     title: '[CAP] Payments (Card Acceptance via Payment Service)'
-    domain: pos
+    domain: billing/invoice
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:pos
+    - domain:billing
     - CAP:250
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 7
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 71
-      impacted_component_repos: []
+      issues: [7, 8, 9]
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/pos/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
   pr_links:
@@ -58,8 +54,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/250.'
   definition_of_done:
   - All PRs merged and required checks green
