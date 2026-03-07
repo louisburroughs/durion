@@ -11,17 +11,17 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 
 ## Required Sequence
 1. Planner creates validated plan.
-2. Contract/doc updates (when in scope).
-3. For each story (one at a time):
+2. Create or switch execution branch via branch hook.
+3. Contract/doc updates (when in scope).
+4. For each story (one at a time):
   - Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
    - RED (Backend Testing Agent)
   - GREEN (Lead Coder clarification + Orchestrator delegation, pre-commit handoff preferred)
    - Story compliance review (Code Review Agent)
   - Lead Coder clarification for corrections + Orchestrator delegation (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
-4. Create PR via post-PR hook (PR-authoritative path).
-5. Run post-PR hook OpenAPI launch verification.
-6. Final verification + single PR.
+5. Create PR via pull-request hook (hook also launches OpenAPI generation).
+6. Verify PR is created and mark plan complete.
 
 ## Delegation Allowlist (Hard Rule)
 Only delegate to these subagents:
@@ -48,9 +48,20 @@ If a task appears to require an unlisted agent, do not delegate. Mark the step `
 Reject and return to Planner unless:
 - Plan includes exact labels `Step 1:` and `Final Step:`.
 - Step 1 is source-material reading.
-- Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/post-pull-request-hook.sh`.
+- Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`.
 
 ## Delegation Templates
+
+### Branch Setup (Branch Hook)
+- Before any contract, test, or implementation work, Orchestrator MUST invoke `durion/.github/hooks/create-branch-hook.sh`.
+- Required args:
+  - `--repo <abs path to durion-positivity-backend>`
+  - `--base <base branch>`
+  - `--branch <execution branch>`
+- Optional arg:
+  - `--remote <remote name>`
+- Hook output MUST include branch setup evidence.
+- Orchestrator MUST NOT create or switch branches outside this hook.
 
 Lead Coder team-mode rule:
 - `Orchestrator` coordinates implementation and must not write code directly.
@@ -113,10 +124,10 @@ Lead Coder team-mode rule:
     - `--coverage-after <percent>`
   - Hook outcome (commit hash or no-op) MUST be included in orchestration evidence.
 
-### F) PR Creation (Post-PR Hook)
+### F) PR Creation (Pull-Request Hook)
 - Prereq: verification gates complete (tests/review/coverage as required by plan).
 - Generate PR title/body from `.github/pull_request_template.md` inputs.
-- Create PR by invoking `durion/.github/hooks/post-pull-request-hook.sh`.
+- Create PR by invoking `durion/.github/hooks/pull-request-hook.sh`.
 - Required args:
   - `--repo <abs path to durion-positivity-backend>`
   - `--story <story id>`
@@ -130,11 +141,23 @@ Lead Coder team-mode rule:
   - `--draft`
 - Hook output MUST include PR URL + PR number and OpenAPI launch evidence.
 - Orchestrator MUST NOT separately invoke `durion-positivity-backend/scripts/generate-openapi.sh`.
+- After successful hook execution, Orchestrator MUST:
+  - verify the PR was created successfully, and
+  - ask `Planner` to mark the plan complete.
 
 Example invocation:
 
 ```bash
-durion/.github/hooks/post-pull-request-hook.sh \
+durion/.github/hooks/create-branch-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --base main \
+  --branch chore/cap-142
+```
+
+Pull-request hook example:
+
+```bash
+durion/.github/hooks/pull-request-hook.sh \
   --repo /home/louisb/Projects/durion-positivity-backend \
   --story CAP-142 \
   --base main \
@@ -178,7 +201,7 @@ For every subagent invocation across the run (including specialist coder agents 
 - If `Code Review Agent` returns `FAIL`, delegate fixes to `Lead Coder`, then re-run `Code Review Agent`.
 - Hard cap for review loop: maximum 5 Lead Coder<->Code Review cycles per story.
 - If `Code Review Agent` returns `PASS`, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` before starting coverage.
-- PR authority check: reject any output where PR creation bypasses `durion/.github/hooks/post-pull-request-hook.sh`.
+- PR authority check: reject any output where PR creation bypasses `durion/.github/hooks/pull-request-hook.sh`.
 - If still `FAIL` after 5 cycles, mark `BLOCKED` with reason `review-cycle-limit-exceeded`, document unresolved findings and remediation, and exit the run.
 - If tests were edited, require a `Test Change Rationale` section with:
   - changed test files,
@@ -194,11 +217,13 @@ If a subagent fails to execute, document:
 
 ## Final Output
 Provide:
+- Branch setup evidence (command + outcome)
 - Per-story scaffold (when used)/RED/GREEN/review/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
 - Test-change rationale summary (if any tests were modified)
-- Post-PR hook evidence (command + outcome)
-- OpenAPI launch evidence emitted by post-PR hook (PID/log path)
+- Pull-request hook evidence (command + outcome)
+- OpenAPI launch evidence emitted by pull-request hook (PID/log path)
+- Plan-completion evidence from `Planner`
 - Must include **PR link in CAPABILITY_MANIFEST.yaml**
-- Must include PR evidence produced by `durion/.github/hooks/post-pull-request-hook.sh` using `.github/pull_request_template.md`-derived content
+- Must include PR evidence produced by `durion/.github/hooks/pull-request-hook.sh` using `.github/pull_request_template.md`-derived content
 - Blockers/failures (if any)

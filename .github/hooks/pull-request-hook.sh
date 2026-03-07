@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Post-pull-request orchestration hook.
+# Pull request orchestration hook.
 #
 # Purpose:
 # - Create pull request for the prepared branch.
 # - Launch OpenAPI generation after PR creation.
 #
 # Usage:
-#   ./.github/hooks/post-pull-request-hook.sh \
+#   ./.github/hooks/pull-request-hook.sh \
 #     --repo /abs/path/to/durion-positivity-backend \
 #     --story CAP-123 \
 #     --base main \
@@ -146,7 +146,7 @@ fi
 
 hook_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-echo "Post-PR hook PASS | story=${story} | pr=#${pr_number} | url=${pr_url} | ts=${hook_timestamp}"
+echo "Pull-request hook PASS | story=${story} | pr=#${pr_number} | url=${pr_url} | ts=${hook_timestamp}"
 
 openapi_log="$repo_path/logs/openapi-generate-${story}-${pr_number}.log"
 mkdir -p "$repo_path/logs"

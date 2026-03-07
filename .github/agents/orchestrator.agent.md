@@ -34,10 +34,11 @@ All orchestration, planning, and delegation decisions must be aligned to this ob
 **MANDATORY RULES (READ CAREFULLY)**
 
 - **Planner First:** Before taking any delegation or spawning subagents you MUST call the `Planner` agent to produce a formal workplan. Do not start Phase parsing, prompt construction, or subagent delegation until the Planner returns a plan. This is non-negotiable.
-- **Plan Acceptance Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend` via `durion/.github/hooks/post-pull-request-hook.sh`.
+- **Plan Acceptance Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`.
 - **Plan Format Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless it contains exact labels `Step 1:` and `Final Step:` for automated validation.
 - **Subagent Completion Requirement:** Every subagent you invoke MUST finish the assigned task before returning control. "Finish" means satisfying the task requirements. You MUST then invoke the `Planner` agent to mark the step as `completed` in the plan. Subagents MUST NOT write to the plan directly.
-- **PR Authority Gate (Hard Gate):** Pull request creation MUST flow through `durion/.github/hooks/post-pull-request-hook.sh`. Reject any workflow that creates PRs outside this hook path.
+- **Branch Authority Gate (Hard Gate):** Branch creation/switching MUST flow through `durion/.github/hooks/create-branch-hook.sh`. Reject any workflow that creates or switches execution branches outside this hook path.
+- **PR Authority Gate (Hard Gate):** Pull request creation MUST flow through `durion/.github/hooks/pull-request-hook.sh`. Reject any workflow that creates PRs outside this hook path.
 - **Coder Delegation Gate (Hard Gate):** Orchestrator MUST invoke coder subagents directly (`Client Coder`, `API Surface Coder`, `Domain Data Coder`, `Coder`) using clarified instruction cards from `Lead Coder`. `Lead Coder` MUST NOT be used as a subagent caller.
 - **Module Verify Gate (Hard Gate):** Orchestrator MUST NOT close implementation/review/coverage phases, mark plan steps complete, or create a PR until every touched backend module passes full verification via `./mvnw -pl {module} -DskipTests=false verify`.
 - **No Pre-Existing Failure Excuse (Hard Gate):** "These tests were failing before" is never an acceptable reason to continue. Any failing test in a touched module requires remediation and re-verification before proceeding.
@@ -86,6 +87,10 @@ Use this guide to run an end-to-end backend delivery workflow driven by a `CAPAB
 - Input: `CAPABILITY_MANIFEST.yaml`
 - Output A: Updated `domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md` in the `durion` repo
 - Output B: Backend code changes in `durion-positivity-backend` implemented via the story fulfillment prompt
+
+### Branch Setup Requirement
+
+Before any contract update, RED test creation, or production-code change begins, the orchestrator MUST invoke `durion/.github/hooks/create-branch-hook.sh` to create or switch the execution branch in `durion-positivity-backend`.
 
 ### Background-Only Requirement
 
@@ -155,9 +160,14 @@ For backend implementation phases, delegate to `Lead Coder` as the default execu
 
 ## Pull Request Authority (Hard Rule)
 
-- Orchestrator MUST create PRs by invoking `durion/.github/hooks/post-pull-request-hook.sh`.
+- Orchestrator MUST create PRs by invoking `durion/.github/hooks/pull-request-hook.sh`.
 - Orchestrator MUST NOT bypass hook-based PR creation.
 - PR body content MUST be based on `.github/pull_request_template.md`.
+
+## Branch Authority (Hard Rule)
+
+- Orchestrator MUST create or switch execution branches by invoking `durion/.github/hooks/create-branch-hook.sh`.
+- Orchestrator MUST NOT bypass hook-based branch setup.
 
 ## Team-Mode Delegation Template
 
@@ -354,23 +364,27 @@ For this workflow, default to the phases below (even if the Planner plan is mini
 
 ## Execution Plan (Capability → Contract → Backend)
 
-### Phase 1: Contract guide update (depends on manifest)
-- Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine `BACKEND_CONTRACT_GUIDE_PATH` + `OPENAPI_PATH` per story → Planner
+### Phase 1: Branch setup (depends on manifest)
+- Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine target execution branch name, base branch, `BACKEND_CONTRACT_GUIDE_PATH`, and `OPENAPI_PATH` per story → Planner
   Files: `docs/capabilities/**/CAPABILITY_MANIFEST.yaml` (read)
-- Task 1.2: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables (paths from Task 1.1), and invoke Document Agent subagent to update the contract guide → Orchestrator delegates to Document Agent
+- Task 1.2: Invoke `durion/.github/hooks/create-branch-hook.sh` with required args (`--repo`, `--base`, `--branch`) and capture hook result in evidence → Orchestrator
+  Files: `durion/.github/hooks/create-branch-hook.sh`, `durion-positivity-backend/**`
+
+### Phase 2: Contract guide update (depends on Phase 1)
+- Task 2.1: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables (paths from Phase 1), and invoke Document Agent subagent to update the contract guide → Orchestrator delegates to Document Agent
   Files: `domains/**/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `docs/capabilities/**/CAP-*-backend-contract.md`
   **Implementation**: Use the "How to Invoke Agents with Prompt Files" pattern above - read prompt file, add Runtime Context section with actual paths, call `runSubagent`
 
-### Phase 2: TDD test-first pilot (depends on Phase 1)
-- Task 2.1: TDD Agent writes tests first for the selected story slice and provides RED evidence (new tests fail for the expected reason before code changes) → TDD Agent
+### Phase 3: TDD test-first pilot (depends on Phase 2)
+- Task 3.1: TDD Agent writes tests first for the selected story slice and provides RED evidence (new tests fail for the expected reason before code changes) → TDD Agent
   Files: `durion-positivity-backend/pos-*/src/test/**`
   Constraints:
   - Keep pilot scope small: one story, one module, and preferably service-layer logic.
   - TDD Agent may only modify `src/test/**` unless explicitly allowed by the user.
   - Must provide: changed test file list, exact test command, and failing output snippet.
 
-### Phase 3: Backend implementation to GREEN (depends on Phase 2)
-- Task 3.1: Execute `.github/prompts/backend-story-fulfillment.prompt.md` for each story, using the manifest + contract guide + TDD tests as inputs → Lead Coder
+### Phase 4: Backend implementation to GREEN (depends on Phase 3)
+- Task 4.1: Execute `.github/prompts/backend-story-fulfillment.prompt.md` for each story, using the manifest + contract guide + TDD tests as inputs → Lead Coder
   Files: `durion-positivity-backend/pos-*/src/**`
   Constraints:
   - Lead Coder must not perform direct code edits; it must delegate to specialist coder agents.
@@ -378,25 +392,25 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - Delegated coders should primarily modify `src/main/**`; test edits require explicit rationale and orchestrator approval.
   - Must provide GREEN evidence using the same command family used by TDD Agent.
 
-### Phase 4: Story compliance review and correction loop (depends on Phase 3)
-- Task 4.1: Invoke Code Review Agent to validate Lead Coder team changes against issue acceptance criteria, ADRs, and code/comment accuracy → Code Review Agent
+### Phase 5: Story compliance review and correction loop (depends on Phase 4)
+- Task 5.1: Invoke Code Review Agent to validate Lead Coder team changes against issue acceptance criteria, ADRs, and code/comment accuracy → Code Review Agent
   Files: `durion-positivity-backend/pos-*/src/**`, GitHub issue context, ADR references
-- Task 4.2: If review finds gaps, delegate corrections to Lead Coder and re-run Code Review Agent until `PASS` or blocked → Lead Coder + Code Review Agent
+- Task 5.2: If review finds gaps, delegate corrections to Lead Coder and re-run Code Review Agent until `PASS` or blocked → Lead Coder + Code Review Agent
   Files: `durion-positivity-backend/pos-*/src/**`
   Constraints:
   - Prefer running this loop before final story commit when feasible.
   - If strict pre-commit loop is not feasible, this loop is still mandatory before coverage and before PR creation.
   - Hard cap: maximum 5 Lead Coder<->Code Review cycles per story.
   - If still failing after 5 cycles, mark `BLOCKED` (`review-cycle-limit-exceeded`), document unresolved findings/remediation, and exit.
-- Task 4.3: After Code Review Agent returns `PASS` for a story, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` with required args (`--repo`, `--story`, `--module`, `--review-verdict PASS`) and capture hook result in evidence → Orchestrator
+- Task 5.3: After Code Review Agent returns `PASS` for a story, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` with required args (`--repo`, `--story`, `--module`, `--review-verdict PASS`) and capture hook result in evidence → Orchestrator
   Files: `durion/.github/hooks/post-code-review-pass-commit.sh`, `durion-positivity-backend/**`
 
-### Phase 5: Coverage hardening to threshold (depends on Phase 4 + Planner verification)
-- Task 5.1: Ask Planner to confirm Lead Coder step is marked `completed` in plan state before coverage work begins → Planner
+### Phase 6: Coverage hardening to threshold (depends on Phase 5 + Planner verification)
+- Task 6.1: Ask Planner to confirm Lead Coder step is marked `completed` in plan state before coverage work begins → Planner
   Files: `Durion-Processing.md`
-- Task 5.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 80% → Test Coverage Agent
+- Task 6.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 80% → Test Coverage Agent
   Files: `durion-positivity-backend/pos-*/src/test/**`, `durion-positivity-backend/pos-*/target/site/jacoco/**`
-- Task 5.3: After successful coverage for each story, invoke `durion/.github/hooks/post-test-coverage-commit.sh` with required args (`--repo`, `--story`, `--module`, `--coverage-before`, `--coverage-after`) and capture hook result in evidence → Orchestrator
+- Task 6.3: After successful coverage for each story, invoke `durion/.github/hooks/post-test-coverage-commit.sh` with required args (`--repo`, `--story`, `--module`, `--coverage-before`, `--coverage-after`) and capture hook result in evidence → Orchestrator
   Files: `durion/.github/hooks/post-test-coverage-commit.sh`, `durion-positivity-backend/**`
 
 ### Mandatory Story Sequencing (Hard Rule)
@@ -412,13 +426,15 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - "Delay review until after all stories are implemented"
   - "Defer coverage until all stories are implemented"
 
-### Phase 6: Build & contract tests (depends on Phase 5)
-- Task 6.1: For each touched backend module, run full module verification (`./mvnw -pl {module} -DskipTests=false verify`) and report results → Lead Coder
+### Phase 7: Build & contract tests (depends on Phase 6)
+- Task 7.1: For each touched backend module, run full module verification (`./mvnw -pl {module} -DskipTests=false verify`) and report results → Lead Coder
   Files: `durion-positivity-backend/**`
 
-### Phase 7: Pull request creation (depends on Phase 6)
-- Task 7.1: Prepare PR title/body from `.github/pull_request_template.md` and invoke `durion/.github/hooks/post-pull-request-hook.sh` to create PR with required args (`--repo`, `--story`, `--base`, `--head`, `--title`, and one of `--body-file|--body`) → Orchestrator
-  Files: `.github/pull_request_template.md` (read), `durion/.github/hooks/post-pull-request-hook.sh`, `durion-positivity-backend/**` (branch/commit evidence)
+### Phase 8: Pull request creation (depends on Phase 7)
+- Task 8.1: Prepare PR title/body from `.github/pull_request_template.md` and invoke `durion/.github/hooks/pull-request-hook.sh` to create PR with required args (`--repo`, `--story`, `--base`, `--head`, `--title`, and one of `--body-file|--body`) → Orchestrator
+  Files: `.github/pull_request_template.md` (read), `durion/.github/hooks/pull-request-hook.sh`, `durion-positivity-backend/**` (branch/commit evidence)
+- Task 8.2: After successful pull-request hook execution, verify PR creation evidence and ask Planner to mark the plan complete → Orchestrator + Planner
+  Files: `Durion-Processing.md`
 
 ### Step 3: Execute Each Phase
 For each phase:
@@ -446,6 +462,9 @@ Taskmaster verification in this step is mandatory:
 
 For this workflow, verification must include:
 
+- Branch setup evidence is present before any contract or code changes:
+  - `durion/.github/hooks/create-branch-hook.sh` command with required args
+  - Hook outcome recorded (selected branch/base/source)
 - Contract guide contains only API-gateway-formatted paths (`http://localhost:8080/v{version}/...`).
 - Backend code changes have corresponding provider/behavioral tests where the repo expects them.
 - Backend build/tests for touched modules pass via full module verify (`./mvnw -pl {module} -DskipTests=false verify`).
@@ -469,25 +488,28 @@ For this workflow, verification must include:
     - `durion/.github/hooks/post-test-coverage-commit.sh` command with required args
     - Hook outcome recorded (commit hash or no-op)
 - Pull request evidence is present:
-  - PR created by `durion/.github/hooks/post-pull-request-hook.sh`
+  - PR created by `durion/.github/hooks/pull-request-hook.sh`
   - PR URL + number
   - PR body based on `.github/pull_request_template.md`
-  - Post-PR hook invocation evidence is present:
-    - `durion/.github/hooks/post-pull-request-hook.sh` command with required args
+  - Pull-request hook invocation evidence is present:
+    - `durion/.github/hooks/pull-request-hook.sh` command with required args
     - Hook outcome recorded
     - OpenAPI launch evidence recorded (PID/log path)
+- Plan completion evidence is present after successful PR creation:
+  - Planner confirms final plan step marked `completed`
 - File-scope guardrails were respected:
   - TDD Agent changes scoped to `src/test/**`.
   - Lead Coder team did not remove or dilute TDD assertions without explicit justification.
   - Test Coverage Agent changes scoped to `src/test/**` unless explicitly approved.
 
-### Step 5: Post-PR Hook Verification (final hook)
-After Step 4 succeeds, the orchestrator MUST run `durion/.github/hooks/post-pull-request-hook.sh` and verify successful PR creation + hook evidence.
+### Step 5: PR Verification and Plan Completion
+After Step 4 succeeds, the orchestrator MUST verify successful PR creation from `durion/.github/hooks/pull-request-hook.sh` output and ask `Planner` to mark the plan complete.
 
 Rules for this step:
-- Treat OpenAPI generation as owned by `durion/.github/hooks/post-pull-request-hook.sh`.
+- Treat OpenAPI generation as owned by `durion/.github/hooks/pull-request-hook.sh`.
 - Do not invoke `durion-positivity-backend/scripts/generate-openapi.sh` separately.
-- Confirm hook output includes OpenAPI launch evidence (PID/log path).
+- Confirm hook output includes PR URL/number and OpenAPI launch evidence (PID/log path).
+- Confirm Planner marks the final plan step `completed`.
 
 ## Parallelization Rules
 
@@ -502,18 +524,19 @@ Rules for this step:
 
 For this workflow:
 
-- Phase 1 → Phase 2 is always sequential (contract defines intent; implementation follows).
-- Phase 2 → Phase 3 is always sequential (tests first, then code to satisfy tests).
-- Phase 3 → Phase 4 is always sequential (review runs immediately after Lead Coder implementation handoff).
-- Phase 4 → Phase 5 is always sequential (coverage starts only after review `PASS` and Planner confirmation).
-- Phase 5 → Phase 6 is always sequential (final verification after coverage hardening).
-- Phase 6 → Phase 7 is always sequential (PR creation only after final verification artifacts are ready).
+- Phase 1 → Phase 2 is always sequential (branch setup must finish before contract work).
+- Phase 2 → Phase 3 is always sequential (contract defines intent; RED follows).
+- Phase 3 → Phase 4 is always sequential (tests first, then code to satisfy tests).
+- Phase 4 → Phase 5 is always sequential (review runs immediately after Lead Coder implementation handoff).
+- Phase 5 → Phase 6 is always sequential (coverage starts only after review `PASS` and Planner confirmation).
+- Phase 6 → Phase 7 is always sequential (full module verification follows coverage hardening).
+- Phase 7 → Phase 8 is always sequential (PR creation only after final verification artifacts are ready).
 - For each story, RED → GREEN → code review/corrections → coverage is always sequential and must complete before the next story starts.
-- Phase 2 → Phase 3 is always sequential per story (tests first, then code to satisfy tests).
-- Phase 3 → Phase 4 is always sequential per story (review starts immediately after Lead Coder completion for that story).
-- Phase 4 → Phase 5 is always sequential per story (coverage starts only after review pass + Planner confirmation).
-- Phase 5 → Phase 6 is always sequential (final verification after all story cycles complete).
-- Within Phase 3, stories can run in parallel only if they touch disjoint backend modules/files.
+- Phase 3 → Phase 4 is always sequential per story (tests first, then code to satisfy tests).
+- Phase 4 → Phase 5 is always sequential per story (review starts immediately after Lead Coder completion for that story).
+- Phase 5 → Phase 6 is always sequential per story (coverage starts only after review pass + Planner confirmation).
+- Phase 6 → Phase 7 is always sequential (final verification after all story cycles complete).
+- Within Phase 4, stories can run in parallel only if they touch disjoint backend modules/files.
 
 ## File Conflict Prevention
 
