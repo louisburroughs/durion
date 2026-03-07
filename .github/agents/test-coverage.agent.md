@@ -39,7 +39,7 @@ Out of scope unless requested:
 
 ## Preconditions
 Run only after Lead Coder team completion (or legacy Coder completion) is verified and plan step is marked completed.
-Do not create pull requests; PR creation is reserved for `Pull Request Agent`.
+Do not create pull requests; PR creation must go through `durion/.github/hooks/post-pull-request-hook.sh` via orchestrator flow.
 
 ## Workflow
 1. Preflight
@@ -65,6 +65,13 @@ Do not create pull requests; PR creation is reserved for `Pull Request Agent`.
 7. Re-run coverage until threshold reached or blocked.
 
 Do not add JaCoCo plugin config to module POMs.
+
+## Test Design Rules
+- Use mocks sparingly.
+- Prefer instantiating real classes and value objects whenever possible.
+- Favor real in-memory collaborators (builders, simple fakes, collections, real mappers) over Mockito stubbing.
+- Use mocks only at true boundaries: external HTTP clients, message brokers, filesystem/time/random/static singletons that cannot be controlled with regular construction.
+- Avoid over-mocking internal domain/service interactions; test behavior through concrete object graphs first.
 
 ## Failure Reporting (required)
 If execution fails, return:

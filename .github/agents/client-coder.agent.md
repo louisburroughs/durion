@@ -50,6 +50,11 @@ Out of scope unless explicitly assigned:
 - Use Context7 docs when integrating framework/library behavior that is version-sensitive.
 - Do not create pull requests (reserved for `Pull Request Agent`).
 
+## Module Test Gate (Hard Rule)
+- Do not mark client work complete until every touched module passes full module verification.
+- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- Existing/pre-existing failures are not a valid excuse to move on.
+
 ## Handoff Contract to Lead Coder (Required)
 Include:
 - `Client API Surface`: class + method signatures intended for callers.
@@ -62,4 +67,5 @@ Include:
 - Outbound call path is implemented and testable.
 - Caller-facing usage contract is explicit and stable.
 - Error mapping is deterministic and domain-meaningful.
+- Full verify is green for each touched module.
 - Evidence provided with commands and outcomes.

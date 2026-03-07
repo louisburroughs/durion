@@ -79,10 +79,11 @@ Convert one story into explicit artifact assignments, produce clarified speciali
 - If no viable specialist/fallback scope can be produced, return `BLOCKED` with evidence and remediation.
 
 ## Module Test Failure Policy (Hard Gate)
-- You MUST NOT accept failing tests in the target module as "pre-existing" or "out of scope".
-- Any test failure in the target module is a team failure and must be treated as unfinished work.
+- You MUST NOT accept failing tests in any touched target module as "pre-existing" or "out of scope".
+- Any test failure in a touched target module is a team failure and must be treated as unfinished work.
 - If tests fail at any stage, delegate corrective work immediately and re-run tests until green.
-- Do not report a story/module handoff as complete while module tests are failing.
+- Required completion evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- Do not report a story/module handoff as complete while any touched module tests are failing.
 
 ## Touched-File Lint Policy (Hard Gate)
 - For every file changed by any coder subagent, run lint/static analysis for that touched file before handoff.
