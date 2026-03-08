@@ -49,7 +49,11 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
    - Build dependencies once, then avoid reactor rebuilds in the test loop:
      - `./mvnw -pl {module} -am -DskipTests install`
 3. Generate/report coverage (fast loop command)
-   - Run explicit JaCoCo goals so coverage works even when the module does not declare the plugin:
+   - Preferred: invoke the JaCoCo hook:
+     - `durion/.github/hooks/jacoco-hook.sh --repo /abs/path/to/durion-positivity-backend --module {module}`
+   - For targeted test loops, pass a pattern:
+     - `durion/.github/hooks/jacoco-hook.sh --repo /abs/path/to/durion-positivity-backend --module {module} --test-pattern '*Service*Test,*Util*Test,*Helper*Test'`
+   - Direct command fallback (if hook is unavailable):
      - `./mvnw -pl {module} -q org.jacoco:jacoco-maven-plugin:0.8.11:prepare-agent -DskipTests=false -DskipITs=true -Dmaven.test.failure.ignore=true test org.jacoco:jacoco-maven-plugin:0.8.11:report`
    - Do not use `clean` in coverage loops.
    - Do not use `-am` in coverage loops.
