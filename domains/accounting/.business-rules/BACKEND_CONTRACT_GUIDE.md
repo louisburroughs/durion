@@ -71,25 +71,33 @@ These are normative behavior rules for Accounting and are not replaced by OpenAP
 | CAP-055 | `durion#55` | draft | Reconciliation, audit, and event controls |
 | CAP-278 | `durion#278` | draft | Posting rule engine and reprocessing orchestration |
 
+## Implementation Links / Backlog
+
+- Backend child issues for CAP-251:
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/5
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/6
+
+These links are the authoritative backlog items that implement CAP-251 behavior. Use them for traceability and to resolve TODOs in this guide.
+
 ## Frontend API Lookup
 
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
-| List GL accounts | `listGLAccounts` | GET | `/v1/accounting/gl-accounts` | Use for account maintenance tables |
-| Create GL account | `createGLAccount` | POST | `/v1/accounting/gl-accounts` | Enforce unique account codes |
-| Manage posting categories | `listPostingCategories` | GET | `/v1/accounting/posting-categories` | Pair with create/update/deactivate actions |
-| Resolve posting mapping | `resolveGLMapping` | POST | `/v1/accounting/mappings/resolve` | Used by posting config UX and diagnostics |
-| Create journal entry | `createJournalEntry` | POST | `/v1/accounting/journal-entries` | Draft creation before post/reverse |
-| Post journal entry | `postJournalEntry` | POST | `/v1/accounting/journal-entries/{journalEntryId}/post` | Must satisfy open-period constraint |
-| Apply payment to invoices | `applyPayment` | POST | `/v1/accounting/payments/{paymentId}/applications` | Requires idempotency behavior (`AD-010`) |
-| Reverse payment application | `reversePaymentApplication` | POST | `/v1/accounting/payment-applications/{applicationId}/reverse` | Audit trail required |
-| Create credit memo | `createCreditMemo` | POST | `/v1/accounting/credit-memos` | Use when negative adjustments would occur |
-| List AP bills | `listBills` | GET | `/v1/accounting/ap/bills` | AP workflow entry point |
-| Execute AP payment | `executePayment` | POST | `/v1/accounting/ap/payments` | Track gateway/GL status transitions |
-| Review ingestion queue | `listEvents` | GET | `/v1/accounting/events` | Operational monitoring and reconciliation |
-| Reprocess suspended event | `reprocessSuspendedEvent` | POST | `/v1/accounting/events/{eventId}/reprocess` | Requires strict permission gating |
-| View income statement | `generateIncomeStatement` | GET | `/v1/accounting/reports/financial/income-statement` | Reporting workflow |
-| View balance sheet | `generateBalanceSheet` | GET | `/v1/accounting/reports/financial/balance-sheet` | Reporting workflow |
+| List GL accounts | `listGLAccounts` | GET | `http://localhost:8080/v1/accounting/gl-accounts` | Use for account maintenance tables |
+| Create GL account | `createGLAccount` | POST | `http://localhost:8080/v1/accounting/gl-accounts` | Enforce unique account codes |
+| Manage posting categories | `listPostingCategories` | GET | `http://localhost:8080/v1/accounting/posting-categories` | Pair with create/update/deactivate actions |
+| Resolve posting mapping | `resolveGLMapping` | POST | `http://localhost:8080/v1/accounting/mappings/resolve` | Used by posting config UX and diagnostics |
+| Create journal entry | `createJournalEntry` | POST | `http://localhost:8080/v1/accounting/journal-entries` | Draft creation before post/reverse |
+| Post journal entry | `postJournalEntry` | POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/post` | Must satisfy open-period constraint |
+| Apply payment to invoices | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` | Requires idempotency behavior (`AD-010`) |
+| Reverse payment application | `reversePaymentApplication` | POST | `http://localhost:8080/v1/accounting/payment-applications/{applicationId}/reverse` | Audit trail required |
+| Create credit memo | `createCreditMemo` | POST | `http://localhost:8080/v1/accounting/credit-memos` | Use when negative adjustments would occur |
+| List AP bills | `listBills` | GET | `http://localhost:8080/v1/accounting/ap/bills` | AP workflow entry point |
+| Execute AP payment | `executePayment` | POST | `http://localhost:8080/v1/accounting/ap/payments` | Track gateway/GL status transitions |
+| Review ingestion queue | `listEvents` | GET | `http://localhost:8080/v1/accounting/events` | Operational monitoring and reconciliation |
+| Reprocess suspended event | `reprocessSuspendedEvent` | POST | `http://localhost:8080/v1/accounting/events/{eventId}/reprocess` | Requires strict permission gating |
+| View income statement | `generateIncomeStatement` | GET | `http://localhost:8080/v1/accounting/reports/financial/income-statement` | Reporting workflow |
+| View balance sheet | `generateBalanceSheet` | GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` | Reporting workflow |
 
 Headers and auth notes:
 
@@ -111,9 +119,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| List/create/manage GL accounts | `listGLAccounts`, `createGLAccount`, `updateGLAccount`, `deactivateGLAccount` | GET/POST/PUT/POST | `/v1/accounting/gl-accounts...` |
-| List/create/manage posting categories | `listPostingCategories`, `createPostingCategory`, `updatePostingCategory`, `deactivatePostingCategory` | GET/POST/PUT/POST | `/v1/accounting/posting-categories...` |
-| Manage mapping keys | `createMappingKey`, `updateMappingKey`, `deactivateMappingKey` | POST/PUT/POST | `/v1/accounting/mapping-keys...` |
+| List/create/manage GL accounts | `listGLAccounts`, `createGLAccount`, `updateGLAccount`, `deactivateGLAccount` | GET/POST/PUT/POST | `http://localhost:8080/v1/accounting/gl-accounts...` |
+| List/create/manage posting categories | `listPostingCategories`, `createPostingCategory`, `updatePostingCategory`, `deactivatePostingCategory` | GET/POST/PUT/POST | `http://localhost:8080/v1/accounting/posting-categories...` |
+| Manage mapping keys | `createMappingKey`, `updateMappingKey`, `deactivateMappingKey` | POST/PUT/POST | `http://localhost:8080/v1/accounting/mapping-keys...` |
 
 ### Behavioral Assertions
 
@@ -153,9 +161,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Create/list/get journal entries | `createJournalEntry`, `listJournalEntries`, `getJournalEntry` | POST/GET/GET | `/v1/accounting/journal-entries...` |
-| Post/reverse journal entries | `postJournalEntry`, `reverseJournalEntry` | POST/POST | `/v1/accounting/journal-entries/{journalEntryId}/...` |
-| Trace journal lineage | `getJournalTraceability` | GET | `/v1/accounting/traceability/{journalEntryId}` |
+| Create/list/get journal entries | `createJournalEntry`, `listJournalEntries`, `getJournalEntry` | POST/GET/GET | `http://localhost:8080/v1/accounting/journal-entries...` |
+| Post/reverse journal entries | `postJournalEntry`, `reverseJournalEntry` | POST/POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/...` |
+| Trace journal lineage | `getJournalTraceability` | GET | `http://localhost:8080/v1/accounting/traceability/{journalEntryId}` |
 
 ### Behavioral Assertions
 
@@ -195,11 +203,11 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Apply payment to invoices | `applyPayment` | POST | `/v1/accounting/payments/{paymentId}/applications` |
-| Reverse payment application | `reversePaymentApplication` | POST | `/v1/accounting/payment-applications/{applicationId}/reverse` |
-| Reverse/void payment | `reversePayment`, `voidPayment` | POST/POST | `/v1/accounting/payments/{paymentId}/...` |
-| View payment/invoice status | `getPaymentStatus`, `getInvoiceStatus` | GET/GET | `/v1/accounting/payments/{paymentId}/status`, `/v1/accounting/invoice/{invoiceId}/status` |
-| Credit memo support | `createCreditMemo`, `listCreditMemos`, `getCreditMemo` | POST/GET/GET | `/v1/accounting/credit-memos...` |
+| Apply payment to invoices | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` |
+| Reverse payment application | `reversePaymentApplication` | POST | `http://localhost:8080/v1/accounting/payment-applications/{applicationId}/reverse` |
+| Reverse/void payment | `reversePayment`, `voidPayment` | POST/POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/...` |
+| View payment/invoice status | `getPaymentStatus`, `getInvoiceStatus` | GET/GET | `http://localhost:8080/v1/accounting/payments/{paymentId}/status`, `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` |
+| Credit memo support | `createCreditMemo`, `listCreditMemos`, `getCreditMemo` | POST/GET/GET | `http://localhost:8080/v1/accounting/credit-memos...` |
 
 ### Behavioral Assertions
 
@@ -239,9 +247,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Create and query vendor bills | `createBillFromGoodsReceivedEvent`, `getBillById`, `getBillByOriginEventId` | POST/GET/GET | `/v1/accounting/vendor-bills...` |
-| Bill matching workflow | `listMatchCandidates`, `selectMatchCandidate`, `matchVendorInvoice`, `resolveMatchException` | GET/POST/POST/POST | `/v1/accounting/vendor-bills/...` |
-| AP payment workflow | `listBills`, `executePayment`, `getPayment`, `getPaymentByRef` | GET/POST/GET/GET | `/v1/accounting/ap/...` |
+| Create and query vendor bills | `createBillFromGoodsReceivedEvent`, `getBillById`, `getBillByOriginEventId` | POST/GET/GET | `http://localhost:8080/v1/accounting/vendor-bills...` |
+| Bill matching workflow | `listMatchCandidates`, `selectMatchCandidate`, `matchVendorInvoice`, `resolveMatchException` | GET/POST/POST/POST | `http://localhost:8080/v1/accounting/vendor-bills/...` |
+| AP payment workflow | `listBills`, `executePayment`, `getPayment`, `getPaymentByRef` | GET/POST/GET/GET | `http://localhost:8080/v1/accounting/ap/...` |
 
 ### Behavioral Assertions
 
@@ -282,10 +290,10 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Income statement | `generateIncomeStatement` | GET | `/v1/accounting/reports/financial/income-statement` |
-| Balance sheet | `generateBalanceSheet` | GET | `/v1/accounting/reports/financial/balance-sheet` |
-| Financial drilldowns | `drilldownToAccounts`, `drilldownToJournalLines` | GET/GET | `/v1/accounting/reports/financial/drilldown/...` |
-| Audit trail adjustments | `recordPriceOverride`, `recordRefund`, `recordCancellation` | POST/POST/POST | `/v1/accounting/audit/...` |
+| Income statement | `generateIncomeStatement` | GET | `http://localhost:8080/v1/accounting/reports/financial/income-statement` |
+| Balance sheet | `generateBalanceSheet` | GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` |
+| Financial drilldowns | `drilldownToAccounts`, `drilldownToJournalLines` | GET/GET | `http://localhost:8080/v1/accounting/reports/financial/drilldown/...` |
+| Audit trail adjustments | `recordPriceOverride`, `recordRefund`, `recordCancellation` | POST/POST/POST | `http://localhost:8080/v1/accounting/audit/...` |
 
 ### Behavioral Assertions
 
@@ -326,9 +334,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| List/query event ingestion records | `listEvents`, `getEvent`, `getEventProcessingLog` | GET/GET/GET | `/v1/accounting/events...` |
-| Retry/reprocess failed events | `retryEventProcessing`, `reprocessSuspendedEvent`, `getReprocessingHistory` | POST/POST/GET | `/v1/accounting/events/{eventId}/...` |
-| Audit trail lookup | `getByActor`, `getByInvoiceId`, `getByOrderId`, `getByDateRange`, `getByType` | GET | `/v1/accounting/audit/...` |
+| List/query event ingestion records | `listEvents`, `getEvent`, `getEventProcessingLog` | GET/GET/GET | `http://localhost:8080/v1/accounting/events...` |
+| Retry/reprocess failed events | `retryEventProcessing`, `reprocessSuspendedEvent`, `getReprocessingHistory` | POST/POST/GET | `http://localhost:8080/v1/accounting/events/{eventId}/...` |
+| Audit trail lookup | `getByActor`, `getByInvoiceId`, `getByOrderId`, `getByDateRange`, `getByType` | GET | `http://localhost:8080/v1/accounting/audit/...` |
 
 ### Behavioral Assertions
 
@@ -377,9 +385,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Manage posting rule sets | `listPostingRuleSets`, `createPostingRuleSet`, `getPostingRuleSet`, `updatePostingRuleSet` | GET/POST/GET/PUT | `/v1/accounting/posting-rules...` |
-| Publish/archive posting rule sets | `publishPostingRuleSet`, `archivePostingRuleSet`, `listPostingRuleVersions` | POST/POST/GET | `/v1/accounting/posting-rules/{postingRuleSetId}/...` |
-| Reprocess with rule engine path | `reprocessSuspendedEvent`, `retryEventProcessing` | POST/POST | `/v1/accounting/events/{eventId}/...` |
+| Manage posting rule sets | `listPostingRuleSets`, `createPostingRuleSet`, `getPostingRuleSet`, `updatePostingRuleSet` | GET/POST/GET/PUT | `http://localhost:8080/v1/accounting/posting-rules...` |
+| Publish/archive posting rule sets | `publishPostingRuleSet`, `archivePostingRuleSet`, `listPostingRuleVersions` | POST/POST/GET | `http://localhost:8080/v1/accounting/posting-rules/{postingRuleSetId}/...` |
+| Reprocess with rule engine path | `reprocessSuspendedEvent`, `retryEventProcessing` | POST/POST | `http://localhost:8080/v1/accounting/events/{eventId}/...` |
 
 ### Behavioral Assertions
 
