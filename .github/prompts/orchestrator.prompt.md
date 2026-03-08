@@ -11,17 +11,19 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 
 ## Required Sequence
 1. Planner creates validated plan.
-2. Create or switch execution branch via branch hook.
-3. Contract/doc updates (when in scope).
-4. For each story (one at a time):
+2. Validate plan via plan-acceptance hook.
+3. Create or switch execution branch via branch hook.
+4. Contract/doc updates (when in scope).
+5. For each story (one at a time):
   - Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
    - RED (Backend Testing Agent)
   - GREEN (Lead Coder clarification + Orchestrator delegation, pre-commit handoff preferred)
    - Story compliance review (Code Review Agent)
   - Lead Coder clarification for corrections + Orchestrator delegation (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
-5. Create PR via pull-request hook (hook also launches OpenAPI generation).
-6. Verify PR is created and mark plan complete.
+6. Verify touched backend modules via module-verify hook.
+7. Create PR via pull-request hook (hook also launches OpenAPI generation).
+8. Verify PR is created and mark plan complete.
 
 ## Delegation Allowlist (Hard Rule)
 Only delegate to these subagents:
@@ -49,8 +51,15 @@ Reject and return to Planner unless:
 - Plan includes exact labels `Step 1:` and `Final Step:`.
 - Step 1 is source-material reading.
 - Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`.
+- Orchestrator invokes `durion/.github/hooks/plan-acceptance-hook.sh --plan-file /home/louisb/Projects/durion/Durion-Processing.md` and receives PASS.
 
 ## Delegation Templates
+
+### Plan Acceptance (Plan-Acceptance Hook)
+- Immediately after Planner returns, Orchestrator MUST invoke `durion/.github/hooks/plan-acceptance-hook.sh`.
+- Required args:
+  - `--plan-file /home/louisb/Projects/durion/Durion-Processing.md`
+- Hook output MUST include explicit PASS evidence before branch setup begins.
 
 ### Branch Setup (Branch Hook)
 - Before any contract, test, or implementation work, Orchestrator MUST invoke `durion/.github/hooks/create-branch-hook.sh`.
@@ -124,7 +133,20 @@ Lead Coder team-mode rule:
     - `--coverage-after <percent>`
   - Hook outcome (commit hash or no-op) MUST be included in orchestration evidence.
 
-### F) PR Creation (Pull-Request Hook)
+### F) Module Verification (Verify Hook)
+- Prereq: story loops completed (RED/GREEN/review/coverage for all in-scope stories).
+- Orchestrator MUST invoke `durion/.github/hooks/module-verify-hook.sh`.
+- Required args:
+  - `--repo <abs path to durion-positivity-backend>`
+- Recommended args:
+  - `--modules <comma-separated touched modules>`
+- Alternate detection args (when module list not precomputed):
+  - `--base-ref <base ref>`
+  - `--head-ref <head ref>`
+- Hook output MUST include per-module PASS/FAIL lines and summary evidence.
+- Orchestrator MUST NOT bypass this hook with ad-hoc verify commands.
+
+### G) PR Creation (Pull-Request Hook)
 - Prereq: verification gates complete (tests/review/coverage as required by plan).
 - Generate PR title/body from `.github/pull_request_template.md` inputs.
 - Create PR by invoking `durion/.github/hooks/pull-request-hook.sh`.
@@ -148,10 +170,25 @@ Lead Coder team-mode rule:
 Example invocation:
 
 ```bash
+durion/.github/hooks/plan-acceptance-hook.sh \
+  --plan-file /home/louisb/Projects/durion/Durion-Processing.md
+```
+
+Branch hook example:
+
+```bash
 durion/.github/hooks/create-branch-hook.sh \
   --repo /home/louisb/Projects/durion-positivity-backend \
   --base main \
   --branch chore/cap-142
+```
+
+Module-verify hook example:
+
+```bash
+durion/.github/hooks/module-verify-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --modules pos-workorder,pos-invoice
 ```
 
 Pull-request hook example:
@@ -217,9 +254,11 @@ If a subagent fails to execute, document:
 
 ## Final Output
 Provide:
+- Plan-acceptance hook evidence (command + outcome)
 - Branch setup evidence (command + outcome)
 - Per-story scaffold (when used)/RED/GREEN/review/coverage evidence
 - Coverage summary (before/after and >=80% confirmation)
+- Module-verify hook evidence (command + per-module outcomes + summary)
 - Test-change rationale summary (if any tests were modified)
 - Pull-request hook evidence (command + outcome)
 - OpenAPI launch evidence emitted by pull-request hook (PID/log path)
