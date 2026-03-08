@@ -133,6 +133,16 @@ Lead Coder team-mode rule:
     - `--coverage-after <percent>`
   - Hook outcome (commit hash or no-op) MUST be included in orchestration evidence.
 
+### E.1) General Test Execution (Test-Run Hook)
+- For module-scoped `test` or `verify` commands outside the final module-verify gate, use `durion/.github/hooks/test-run-hook.sh`.
+- The hook must be preferred over ad-hoc `./mvnw` for resource control:
+  - Full-module run (no `--test` / `--it-test`): auto-enables `-DlowResourceTests=true`
+  - Targeted single test/class run (`--test` / `--it-test`): low-resource mode is not required
+- Example full-module run:
+  - `durion/.github/hooks/test-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module pos-order --goal test --also-make`
+- Example single-class run:
+  - `durion/.github/hooks/test-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module pos-order --goal test --test PriceOverrideServiceTest`
+
 ### F) Module Verification (Verify Hook)
 - Prereq: story loops completed (RED/GREEN/review/coverage for all in-scope stories).
 - Orchestrator MUST invoke `durion/.github/hooks/module-verify-hook.sh`.

@@ -27,6 +27,8 @@ base_ref=""
 head_ref="HEAD"
 fail_fast="false"
 include_untracked="true"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+test_run_hook="${script_dir}/test-run-hook.sh"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -79,6 +81,11 @@ fi
 
 if [[ ! -f "$repo_path/mvnw" ]]; then
   echo "Maven wrapper not found: $repo_path/mvnw" >&2
+  exit 2
+fi
+
+if [[ ! -x "$test_run_hook" ]]; then
+  echo "Required hook not found or not executable: $test_run_hook" >&2
   exit 2
 fi
 
@@ -164,7 +171,14 @@ module_csv="$(IFS=,; echo "${modules[*]}")"
 echo "Module verify target | modules=${module_csv}"
 
 for module in "${modules[@]}"; do
-  verify_cmd=(./mvnw -pl "$module" -DskipTests=false verify)
+  verify_cmd=(
+    "$test_run_hook"
+    --repo "$repo_path"
+    --module "$module"
+    --goal verify
+    --low-resource auto
+    --maven-arg "-DskipTests=false"
+  )
   set +e
   "${verify_cmd[@]}"
   verify_exit=$?
