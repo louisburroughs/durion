@@ -28,22 +28,17 @@ stories:
     repo: louisburroughs/durion
     issue: 251
     title: '[CAP] Invoice Payment Status Sync (Accounting Coordination)'
-    domain: pos
+    domain: accounting
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:pos
+    - domain:accounting
     - CAP:251
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 5
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 69
-      impacted_component_repos:
-      - louisburroughs/durion-accounting
+      issues: [5, 6]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/accounting/.ui/frontend-story-accounting-reconcile-pos-status-wit-69.wf.md
@@ -53,7 +48,7 @@ stories:
         type: meta
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/pos/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
   pr_links:
@@ -66,8 +61,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/251.'
   definition_of_done:
   - All PRs merged and required checks green
