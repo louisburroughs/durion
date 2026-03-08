@@ -196,17 +196,33 @@ Template B requirements are strict:
 Use focused commands first, then broaden only if needed.
 
 ```bash
-# Module-scoped test run
-./mvnw -pl pos-accounting -am test
+# Module-scoped test run (auto-enables -DlowResourceTests=true)
+durion/.github/hooks/test-run-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --module pos-accounting \
+  --goal test \
+  --also-make
 
-# Single class
-./mvnw -pl pos-accounting -Dtest=JournalEntryServiceTest test
+# Single class (targeted run; lowResourceTests not required)
+durion/.github/hooks/test-run-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --module pos-accounting \
+  --goal test \
+  --test JournalEntryServiceTest
 
-# Single method
-./mvnw -pl pos-accounting -Dtest=JournalEntryServiceTest#createJournalEntry_unbalanced_throwsException test
+# Single method (targeted run; lowResourceTests not required)
+durion/.github/hooks/test-run-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --module pos-accounting \
+  --goal test \
+  --test JournalEntryServiceTest#createJournalEntry_unbalanced_throwsException
 
-# Contract behavior class
-./mvnw -pl pos-accounting -Dtest=APPaymentContractBehaviorIT test
+# Contract behavior class (targeted run; lowResourceTests not required)
+durion/.github/hooks/test-run-hook.sh \
+  --repo /home/louisb/Projects/durion-positivity-backend \
+  --module pos-accounting \
+  --goal test \
+  --test APPaymentContractBehaviorIT
 ```
 
 

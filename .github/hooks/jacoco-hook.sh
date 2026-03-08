@@ -14,6 +14,7 @@ set -euo pipefail
 #     --module pos-order \
 #     [--test-pattern '*Service*Test,*Util*Test,*Helper*Test'] \
 #     [--bootstrap] \
+#     [--low-resource-tests true|false] \
 #     [--skip-its true|false]
 #
 # Notes:
@@ -28,6 +29,7 @@ run_bootstrap="false"
 skip_its="true"
 jacoco_version="0.8.11"
 maven_quiet="true"
+low_resource_tests="true"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -59,6 +61,10 @@ while [[ $# -gt 0 ]]; do
       maven_quiet="false"
       shift
       ;;
+    --low-resource-tests)
+      low_resource_tests="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 2
@@ -74,6 +80,11 @@ fi
 
 if [[ "$skip_its" != "true" && "$skip_its" != "false" ]]; then
   echo "--skip-its must be true or false (received: $skip_its)" >&2
+  exit 2
+fi
+
+if [[ "$low_resource_tests" != "true" && "$low_resource_tests" != "false" ]]; then
+  echo "--low-resource-tests must be true or false (received: $low_resource_tests)" >&2
   exit 2
 fi
 
@@ -129,7 +140,7 @@ pushd "$repo_path" >/dev/null
 
 if [[ "$run_bootstrap" == "true" ]]; then
   failure_stage="bootstrap"
-  bootstrap_cmd=(./mvnw -pl "$module" -am -DskipTests install)
+  bootstrap_cmd=(./mvnw -pl "$module" -am -DskipTests "-DlowResourceTests=${low_resource_tests}" install)
   set +e
   "${bootstrap_cmd[@]}"
   bootstrap_exit=$?
@@ -147,10 +158,11 @@ jacoco_cmd=(./mvnw -pl "$module")
 if [[ "$maven_quiet" == "true" ]]; then
   jacoco_cmd+=(-q)
 fi
-jacoco_cmd+=(
+jacoco_cmd+=( 
   "org.jacoco:jacoco-maven-plugin:${jacoco_version}:prepare-agent"
   "-DskipTests=false"
   "-DskipITs=${skip_its}"
+  "-DlowResourceTests=${low_resource_tests}"
   "-Dmaven.test.failure.ignore=true"
 )
 if [[ -n "$test_pattern" ]]; then
