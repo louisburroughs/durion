@@ -8,7 +8,7 @@ guide_path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-accounting/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:07:15Z
-last_updated: 2026-02-24
+last_updated: 2026-03-08
 api_reference_generated: domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -69,6 +69,7 @@ These are normative behavior rules for Accounting and are not replaced by OpenAP
 | CAP-053 | `durion#53` | stable-for-ui | Accounts payable bills and vendor payment |
 | CAP-054 | `durion#54` | stable-for-ui | Period close, adjustments, and financial reporting |
 | CAP-055 | `durion#55` | draft | Reconciliation, audit, and event controls |
+| CAP-251 | `durion#251` | draft | Invoice payment status sync and POS accounting reconciliation |
 | CAP-278 | `durion#278` | draft | Posting rule engine and reprocessing orchestration |
 
 ## Implementation Links / Backlog
@@ -365,6 +366,116 @@ Headers and auth notes:
 - Provider tests: `EventIngestionContractBehaviorIT`, `SuspenseQueueContractBehaviorIT`, `AuditTrailContractBehaviorIT`
 - Service tests: `EventIngestionServiceTest`, `IdempotencyServiceTest`
 
+## CAP-251: Invoice Payment Status Sync (Accounting Coordination)
+
+### Capability Metadata
+
+- Capability ID: CAP-251
+- Parent Issue: https://github.com/louisburroughs/durion/issues/251
+- Backend Child Issues:
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/6 (Story #6: Update Invoice Payment Status from Payment Outcomes)
+  - https://github.com/louisburroughs/durion-positivity-backend/issues/5 (Story #5: Reconcile POS Status with Accounting Authoritative Status)
+- OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
+
+### API Operation References (OpenAPI Source of Truth)
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Apply payment to invoice | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` |
+| View invoice accounting status | `getInvoiceStatus` | GET | `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` |
+| List/query ingestion events | `listEvents` | GET | `http://localhost:8080/v1/accounting/events` |
+
+### Story #6 — Update Invoice Payment Status from Payment Outcomes
+
+#### Behavioral Assertions
+
+- Payment outcomes must map deterministically to canonical invoice payment statuses:
+  `Paid`, `PartiallyPaid`, `Unpaid`, `Failed`, `Chargeback` using minor-unit arithmetic.
+- Idempotency keys on `transactionId` first; `applicationRequestId`/`idempotencyKey` fallback.
+  Duplicate `transactionId` is a strict no-op — no state mutation and no event emission.
+- Full payment: `outstandingAmountMinor` reaches zero → `invoiceStatus=Paid`,
+  `InvoicePaymentRecorded` event emitted, posting intent created in outbox.
+- Partial payment: `invoiceStatus=PartiallyPaid`, `paidAmountMinor` incremented,
+  posting intent created for applied portion.
+- Posting is asynchronous via outbox; invoice and payment state updates are transactional
+  and authoritative.
+- SLA/retry/escalation (mandatory): target posting completion ≤ 5 minutes,
+  exponential retry with `maxRetries = 10`.
+- Posting failure on retry exhaustion: `postingError=true`, `InvoicePostingFailed` event
+  emitted, reconciliation record created.
+- Chargeback: explicit chargeback event triggers automatic reversal posting.
+  No heuristic trigger logic in v1.
+- Overpayment: customer credit balance created; invoice transitions to `Paid`.
+
+#### Frontend Usage Notes
+
+- Payment application UX must show applied amount, resulting outstanding balance,
+  and whether posting is in-progress or errored.
+- `postingError` flag on the invoice status response surfaces a posting-failure indicator
+  to ops/support UX.
+
+#### ADR Constraints
+
+- `AD-002`, `AD-003`, `AD-010` (AR reduction, overpayment credit, idempotency) are mandatory.
+- `AD-011` posting reference canonicalization applies to outbox-posted intents.
+- `AD-014` async retry semantics govern outbox retry and escalation.
+- ADR-0017 response code mapping is required for payment outcome endpoints.
+- ADR-0018 audit actor derivation from security context applies to all state transitions.
+
+#### Contract Test Traceability
+
+- Service tests: `PaymentOutcomeProcessingServiceTest`
+- Provider tests: `InvoicePaymentContractBehaviorIT`
+
+### Story #5 — Reconcile POS Status with Accounting Authoritative Status
+
+#### Behavioral Assertions
+
+- POS-facing accounting status enum (v1, fixed): `PENDING_POSTING`, `POSTED`,
+  `RECONCILED`, `REJECTED`, `REVERSED`, `VOIDED`, `ON_HOLD`, `DISPUTED`.
+- Accounting status is financially authoritative; POS workflow state remains separate
+  and visible alongside accounting status.
+- Backward status transitions (e.g. `POSTED → PENDING_POSTING`) are abnormal:
+  blocked by ordering guard, logged as alert/incident, return 409.
+  TODO: exact alerting channel unspecified — update after resolution in issue #5.
+- Event delivery model: at-least-once with idempotent consumer, bounded retry, DLQ on
+  exhaustion, and max event-age enforcement.
+- Three-tier permission authorities are required:
+  - `VIEW_ACCOUNTING_STATUS` — view current accounting status on invoice
+  - `REFRESH_ACCOUNTING_STATUS` — trigger manual status refresh
+  - `VIEW_ACCOUNTING_DETAIL` — access accounting drilldown data
+- Archived invoices continue to receive status synchronization and audit logging
+  (archive-not-delete policy).
+- Staleness indicator: when `accountingStatusUpdatedAt` is > 1 hour old, surface
+  `stale=true` flag in `getInvoiceStatus` response.
+- SLA tiers (observability target, not a hard contract):
+  - Critical statuses (`POSTED`, `REJECTED`, `REVERSED`, `VOIDED`): p95 < 5s, p99 < 30s
+  - Non-critical statuses (`PENDING_POSTING`, `ON_HOLD`, `DISPUTED`, `RECONCILED`):
+    p95 < 30s, p99 < 2m
+
+#### Frontend Usage Notes
+
+- Invoice status display must show both POS workflow state and accounting authoritative
+  status as separate, clearly labelled fields.
+- Stale indicator (`stale=true`) should surface a visual warning prompting manual refresh.
+- Discrepancy between POS and accounting state must surface as an explicit UI indicator;
+  do not silently hide reconciliation failures.
+- Permission gating: hide/disable drilldown and refresh controls for callers lacking
+  `VIEW_ACCOUNTING_DETAIL` or `REFRESH_ACCOUNTING_STATUS` respectively.
+
+#### ADR Constraints
+
+- ADR-0017 response code mapping is required for status inquiry and reconciliation actions.
+- ADR-0018 audit actor derivation applies to all synchronization and access-control events.
+- `AD-007` event ingestion read-model visibility governs status sync processing semantics.
+- `AD-013` permission gating applies to refresh, drilldown, and exception workflows.
+- `AD-014` async retry semantics govern DLQ promotion and exhausted-retry behavior.
+
+#### Contract Test Traceability
+
+- Service tests: `AccountingStatusSyncServiceTest`, `AccountingStatusReconciliationServiceTest`
+- Provider tests: `InvoicePaymentContractBehaviorIT`
+
 ## CAP-278: Posting Rule Engine
 
 ### Capability Metadata
@@ -444,4 +555,5 @@ Headers and auth notes:
 - `docs/capabilities/CAP-053/CAPABILITY_MANIFEST.yaml`
 - `docs/capabilities/CAP-054/CAPABILITY_MANIFEST.yaml`
 - `docs/capabilities/CAP-055/CAPABILITY_MANIFEST.yaml`
+- `docs/capabilities/CAP-251/CAPABILITY_MANIFEST.yaml`
 - `docs/capabilities/CAP-278/CAPABILITY_MANIFEST.yaml`
