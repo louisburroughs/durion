@@ -36,11 +36,13 @@ All orchestration, planning, and delegation decisions must be aligned to this ob
 - **Planner First:** Before taking any delegation or spawning subagents you MUST call the `Planner` agent to produce a formal workplan. Do not start Phase parsing, prompt construction, or subagent delegation until the Planner returns a plan. This is non-negotiable.
 - **Plan Acceptance Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`.
 - **Plan Format Gate (Hard Reject):** Any Planner output is incomplete and MUST be rejected unless it contains exact labels `Step 1:` and `Final Step:` for automated validation.
+- **Plan Acceptance Authority Gate (Hard Gate):** Plan validation MUST flow through `durion/.github/hooks/plan-acceptance-hook.sh`. Reject any workflow that bypasses this hook-based plan acceptance check.
 - **Subagent Completion Requirement:** Every subagent you invoke MUST finish the assigned task before returning control. "Finish" means satisfying the task requirements. You MUST then invoke the `Planner` agent to mark the step as `completed` in the plan. Subagents MUST NOT write to the plan directly.
 - **Branch Authority Gate (Hard Gate):** Branch creation/switching MUST flow through `durion/.github/hooks/create-branch-hook.sh`. Reject any workflow that creates or switches execution branches outside this hook path.
 - **PR Authority Gate (Hard Gate):** Pull request creation MUST flow through `durion/.github/hooks/pull-request-hook.sh`. Reject any workflow that creates PRs outside this hook path.
+- **Module Verify Authority Gate (Hard Gate):** Module verification MUST flow through `durion/.github/hooks/module-verify-hook.sh`. Reject any workflow that performs final module verification outside this hook path.
 - **Coder Delegation Gate (Hard Gate):** Orchestrator MUST invoke coder subagents directly (`Client Coder`, `API Surface Coder`, `Domain Data Coder`, `Coder`) using clarified instruction cards from `Lead Coder`. `Lead Coder` MUST NOT be used as a subagent caller.
-- **Module Verify Gate (Hard Gate):** Orchestrator MUST NOT close implementation/review/coverage phases, mark plan steps complete, or create a PR until every touched backend module passes full verification via `./mvnw -pl {module} -DskipTests=false verify`.
+- **Module Verify Gate (Hard Gate):** Orchestrator MUST NOT close implementation/review/coverage phases, mark plan steps complete, or create a PR until every touched backend module passes full verification via `durion/.github/hooks/module-verify-hook.sh`.
 - **No Pre-Existing Failure Excuse (Hard Gate):** "These tests were failing before" is never an acceptable reason to continue. Any failing test in a touched module requires remediation and re-verification before proceeding.
 - **Taskmaster Validation Gate (Hard Gate):** After every subagent response, you MUST validate completion by comparing:
   - the delegated task objective,
@@ -323,8 +325,10 @@ You MUST follow this structured execution pattern:
 ### Step 1: Get the Plan
 Call the Planner agent with the user's request.
 **CRITICAL:** You must explicitly instruct the Planner to **initialize/update `Durion-Processing.md`** with the plan validation and steps, in addition to returning the structured plan to you.
+**CRITICAL:** You must explicitly instruct the Planner to clean stale plan state first: if `~/Projects/durion/Durion-Processing.md` exists, run `"$HOME/Projects/durion/.github/hooks/safe-delete-DP.sh" "$HOME/Projects/durion/Durion-Processing.md"` before initializing the new plan.
 **CRITICAL:** You must require the Planner to plan backward from the objective (single completed PR in `durion-positivity-backend`) until Step 1 is source-material reading, then emit forward-ordered executable steps.
 **CRITICAL:** You must require the Planner to output its plan with exact labels `Step 1:` and `Final Step:` to satisfy plan acceptance checks.
+**CRITICAL:** Immediately after Planner returns, invoke `durion/.github/hooks/plan-acceptance-hook.sh --plan-file "$HOME/Projects/durion/Durion-Processing.md"` and reject the plan on any non-zero hook result.
 
 For this workflow, ask Planner to:
 
@@ -365,6 +369,8 @@ For this workflow, default to the phases below (even if the Planner plan is mini
 ## Execution Plan (Capability → Contract → Backend)
 
 ### Phase 1: Branch setup (depends on manifest)
+- Task 1.0: Invoke `durion/.github/hooks/plan-acceptance-hook.sh --plan-file "$HOME/Projects/durion/Durion-Processing.md"` and capture hook result in evidence → Orchestrator
+  Files: `durion/.github/hooks/plan-acceptance-hook.sh`, `Durion-Processing.md`
 - Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine target execution branch name, base branch, `BACKEND_CONTRACT_GUIDE_PATH`, and `OPENAPI_PATH` per story → Planner
   Files: `docs/capabilities/**/CAPABILITY_MANIFEST.yaml` (read)
 - Task 1.2: Invoke `durion/.github/hooks/create-branch-hook.sh` with required args (`--repo`, `--base`, `--branch`) and capture hook result in evidence → Orchestrator
@@ -427,8 +433,8 @@ For this workflow, default to the phases below (even if the Planner plan is mini
   - "Defer coverage until all stories are implemented"
 
 ### Phase 7: Build & contract tests (depends on Phase 6)
-- Task 7.1: For each touched backend module, run full module verification (`./mvnw -pl {module} -DskipTests=false verify`) and report results → Lead Coder
-  Files: `durion-positivity-backend/**`
+- Task 7.1: Invoke `durion/.github/hooks/module-verify-hook.sh` and run full module verification for touched backend modules (`--modules <comma-separated modules>` preferred; `--base-ref/--head-ref` fallback detection) → Orchestrator
+  Files: `durion/.github/hooks/module-verify-hook.sh`, `durion-positivity-backend/**`
 
 ### Phase 8: Pull request creation (depends on Phase 7)
 - Task 8.1: Prepare PR title/body from `.github/pull_request_template.md` and invoke `durion/.github/hooks/pull-request-hook.sh` to create PR with required args (`--repo`, `--story`, `--base`, `--head`, `--title`, and one of `--body-file|--body`) → Orchestrator
@@ -462,12 +468,17 @@ Taskmaster verification in this step is mandatory:
 
 For this workflow, verification must include:
 
+- Plan acceptance evidence is present before branch setup:
+  - `durion/.github/hooks/plan-acceptance-hook.sh` command with required args
+  - Hook outcome recorded (PASS required)
 - Branch setup evidence is present before any contract or code changes:
   - `durion/.github/hooks/create-branch-hook.sh` command with required args
   - Hook outcome recorded (selected branch/base/source)
 - Contract guide contains only API-gateway-formatted paths (`http://localhost:8080/v{version}/...`).
 - Backend code changes have corresponding provider/behavioral tests where the repo expects them.
-- Backend build/tests for touched modules pass via full module verify (`./mvnw -pl {module} -DskipTests=false verify`).
+- Module verification evidence is present for touched backend modules:
+  - `durion/.github/hooks/module-verify-hook.sh` command with required args
+  - Per-module PASS outcomes and hook summary recorded
 - Do not accept pre-existing failing tests as blockers to bypass work; remediate and re-run until green.
 - TDD RED→GREEN evidence chain is present for pilot stories:
   - RED: failing tests created by TDD Agent before implementation.

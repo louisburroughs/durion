@@ -84,7 +84,7 @@ Implementation Steps:
 - [ ] Step 2: <next executable step>
 - [ ] Step 3: <next executable step>
 - [ ] ...
-- [ ] Final Step: Create the Pull Request in durion-positivity-backend via Pull Request Agent with completed stories and validation evidence.
+- [ ] Final Step: Create the Pull Request in durion-positivity-backend via `durion/.github/hooks/pull-request-hook.sh` with completed stories and validation evidence.
 
 Edge Cases:
 - [ ] <edge case>
@@ -110,7 +110,9 @@ Open Questions:
   - Story 2: RED -> GREEN -> coverage hardening
   - ...
   Never propose: "write tests for all stories first" or "implement code for all stories at once"
-- **IMPORTANT**: DO NOT TRY rm to remove `Durion-Processing.md`. Use $HOME/Projects/durion/safe-delete-DP.sh "$HOME/Projects/durion/Durion-Processing.md" instead, which only is allowed to remove Durion-Processing.md. Use the absolute path to avoid mistakes.
+- **Pre-Plan Cleanup (Mandatory)**: Before generating a fresh plan, if `~/Projects/durion/Durion-Processing.md` exists, delete it using this hook command:
+  `[ -f "$HOME/Projects/durion/Durion-Processing.md" ] && "$HOME/Projects/durion/.github/hooks/safe-delete-DP.sh" "$HOME/Projects/durion/Durion-Processing.md"`.
+- **IMPORTANT**: DO NOT use `rm` directly for `Durion-Processing.md`; use the hook path above with absolute paths.
 
 ## Sandboxed Mode (No Write Tools)
 If you find that `edit/createFile` or `edit/editFiles` tools are missing (e.g., when running as a subagent):

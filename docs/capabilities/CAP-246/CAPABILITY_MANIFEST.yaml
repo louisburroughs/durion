@@ -28,22 +28,17 @@ stories:
     repo: louisburroughs/durion
     issue: 246
     title: '[CAP] POS Sales Order & Cart (Quote-to-Cash Entry Point)'
-    domain: pos
+    domain: order
     labels:
     - type:capability
     - layer:functional
     - kiro
-    - domain:pos
+    - domain:order
     - CAP:246
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: 19
-    frontend:
-      repo: louisburroughs/durion-moqui-frontend
-      issue: 83
-      impacted_component_repos:
-      - louisburroughs/durion-product
+      issues: [19, 20, 21]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/order/.ui/frontend-story-order-cancel-order-with-controlled-83.wf.md
@@ -53,7 +48,7 @@ stories:
         type: meta
   contract_guide:
     repo: louisburroughs/durion
-    path: domains/pos/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
   pr_links:
@@ -66,8 +61,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/246.'
   definition_of_done:
   - All PRs merged and required checks green
