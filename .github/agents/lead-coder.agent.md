@@ -1,7 +1,7 @@
 ---
 name: Lead Coder
 description: Non-coding backend implementation coordinator that decomposes story work and clarifies specialist coder instructions for Orchestrator execution.
-model: Claude Opus 4.6 (copilot)
+model: GPT-5.3-Codex (copilot)
 tools:
   - read/readFile
   - read/problems
