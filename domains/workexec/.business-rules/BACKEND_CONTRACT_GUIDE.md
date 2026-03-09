@@ -62,6 +62,7 @@ Frontend developer workflow:
 | CAP-005 | `durion#5` | draft | [CAP] Execute Workorder (Parts & Labor) |
 | CAP-006 | `durion#6` | draft | [CAP] Complete Workorder |
 | CAP-007 | `durion#7` | draft | [CAP] Convert Workorder to Invoice |
+| CAP-142 | `durion#142` | draft | [CAP] Daily Dispatch Board Dashboard |
 
 ## Frontend API Lookup
 
@@ -82,6 +83,7 @@ Frontend developer workflow:
 | Get estimates by customer | `getEstimatesByCustomer` | GET | `/v1/workorders/estimates/customer/{customerId}` | Refer to generated API reference for payload details |
 | Get estimates by location | `getEstimatesByLocation` | GET | `/v1/workorders/estimates/location/{locationId}` | Refer to generated API reference for payload details |
 | Get estimates by shop | `getEstimatesByShop` | GET | `/v1/workorders/estimates/shop/{locationId}` | Refer to generated API reference for payload details |
+| View daily dispatch board | `getDashboardToday` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 
 Headers and auth notes:
 
@@ -96,7 +98,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-002
-- Parent Issue: https://github.com/louisburroughs/durion/issues/2
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/2>
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-workorder/openapi.yaml`
 
@@ -139,7 +141,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-003
-- Parent Issue: https://github.com/louisburroughs/durion/issues/3
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/3>
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-workorder/openapi.yaml`
 
@@ -182,7 +184,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-004
-- Parent Issue: https://github.com/louisburroughs/durion/issues/4
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/4>
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-workorder/openapi.yaml`
 
@@ -225,7 +227,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-005
-- Parent Issue: https://github.com/louisburroughs/durion/issues/5
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/5>
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-workorder/openapi.yaml`
 
@@ -268,7 +270,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-006
-- Parent Issue: https://github.com/louisburroughs/durion/issues/6
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/6>
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-workorder/openapi.yaml`
 
@@ -311,7 +313,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-007
-- Parent Issue: https://github.com/louisburroughs/durion/issues/7
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/7>
 - Capability Status: draft
 - OpenAPI Source: `durion-positivity-backend/pos-workorder/openapi.yaml`
 
@@ -348,6 +350,69 @@ Headers and auth notes:
 
 - Provider tests: `durion-positivity-backend/pos-workorder/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+
+## CAP-142: [CAP] Daily Dispatch Board Dashboard
+
+### Capability Metadata
+
+- Capability ID: CAP-142
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/142>
+- Backend Story: <https://github.com/louisburroughs/durion-positivity-backend/issues/60>
+- Capability Status: draft
+
+### Behavioral Contract
+
+#### getDashboardToday — `GET /v1/workexec/dashboard/today`
+
+- Returns aggregated dispatch board data for the selected date (defaults to today via server-side date resolution if no `date` query param is provided).
+- Accepts optional query parameter: `?date=YYYY-MM-DD`
+- Data aggregated from: `pos-workorder` (workorders, line items, labor), `pos-people` (mechanic roster, availability, schedule), `pos-shop-manager` (bay occupancy)
+- SLA targets: P50 < 1.0s, P95 < 2.0s, P99 < 3.5s. Implementation must use server-side caching; cache invalidation on workorder mutation or mechanic status change.
+- Backend returns stale data indicator when upstream dependencies (pos-people, pos-shop-manager) are unavailable; must not fail the entire request.
+
+#### Conflict Detection — 8 Enumerated Conditions
+
+The endpoint MUST include a `conflicts` array in the response. Each conflict entry has `severity` (WARNING | BLOCKING) and `conditionCode`.
+
+BLOCKING conflicts (prevent dispatch):
+
+- `MECHANIC_DOUBLE_BOOKED` — mechanic assigned to overlapping workorders
+- `BAY_DOUBLE_BOOKED` — bay assigned to overlapping workorders
+- `MECHANIC_UNAVAILABLE` — mechanic on approved PTO or sick leave
+- `MECHANIC_NOT_CLOCKED_IN` — mechanic not clocked at expected job start
+
+WARNING conflicts (advisory, do not prevent dispatch):
+
+- `BREAK_OVERLAP` — break occurs within 15-minute grace period of job window
+- `WORKORDER_COUNT_APPROACHING_CAPACITY` — workorder count near bay capacity limit
+- `AVAILABILITY_UNCONFIRMED` — mechanic availability not yet confirmed for the date
+- `SHIFT_ENDING_DURING_JOB` — mechanic shift ends during assigned job window
+
+#### HR Availability Integration
+
+- Source of truth for mechanic availability: `pos-people` via `GET /v1/people/availability?date={date}`
+- Orchestrator (pos-workorder dashboard service) calls this endpoint; it must not access pos-people database directly.
+- If `pos-people` is unavailable, dashboard must return with `dataQualityWarning: true` and use cached/last-known availability data.
+
+#### Data Freshness
+
+- Frontend polling interval: 30 seconds.
+- Backend response includes `lastRefreshed` timestamp (ISO-8601 UTC).
+- Manual refresh is supported; the endpoint is stateless, and each call returns fresh-aggregated data.
+
+### Provider Test Hints
+
+- Test that `HEAD /v1/workexec/dashboard/today` returns HTTP 200 when data is available.
+- Test that all 8 conflict conditions are detectable independently.
+- Test that BLOCKING conflicts are returned even when WARNING conflicts are also present.
+- Test that a date in the past returns data (not an error) when workorders exist for that date.
+- Test that `GET /v1/workexec/dashboard/today?date=2026-03-09` returns the same shape as the default call.
+- Test that if `pos-people` is unreachable, the response still returns HTTP 200 with `dataQualityWarning: true`.
+
+### References
+
+- OpenAPI: `durion-positivity-backend/pos-workorder/openapi.yaml` (operationId: `getDashboardToday`)
+- Generated API reference: `domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## Events & Cross-Domain Dependencies
 
