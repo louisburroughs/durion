@@ -54,7 +54,7 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
    - For targeted test loops, pass a pattern:
      - `durion/.github/hooks/jacoco-hook.sh --repo /abs/path/to/durion-positivity-backend --module {module} --test-pattern '*Service*Test,*Util*Test,*Helper*Test'`
    - Direct command fallback (if hook is unavailable):
-     - `./mvnw -pl {module} -q org.jacoco:jacoco-maven-plugin:0.8.11:prepare-agent -DskipTests=false -DskipITs=true -Dmaven.test.failure.ignore=true test org.jacoco:jacoco-maven-plugin:0.8.11:report`
+     - `./mvnw -pl {module} -q -DskipTests=false -DskipITs=true -Dmaven.test.failure.ignore=true test jacoco:report`
    - Do not use `clean` in coverage loops.
    - Do not use `-am` in coverage loops.
    - Prefer targeted test runs while iterating:
@@ -63,12 +63,12 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
 4. Parse coverage outputs
    - parse `{module}/target/site/jacoco/jacoco.csv`
    - if CSV is missing, parse `{module}/target/site/jacoco/jacoco.xml` as fallback and report that CSV was unavailable
-   - if both CSV and XML are missing but `{module}/target/jacoco.exec` exists, run `org.jacoco:jacoco-maven-plugin:0.8.11:report` once more and re-check outputs before declaring failure
+   - if both CSV and XML are missing but `{module}/target/jacoco.exec` exists, run `jacoco:report` once more and re-check outputs before declaring failure
 5. Identify worst uncovered classes in scope.
 6. Add targeted JUnit 5 tests (no padding, no trivial assertions).
 7. Re-run coverage until threshold reached or blocked.
 
-Do not add JaCoCo plugin config to module POMs.
+JaCoCo is centrally configured in the parent `pom.xml`; do not add module-specific JaCoCo plugin blocks unless explicitly requested.
 
 ## Test Design Rules
 - Use mocks sparingly.

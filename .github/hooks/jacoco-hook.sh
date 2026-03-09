@@ -4,8 +4,7 @@ set -euo pipefail
 # JaCoCo execution hook for Test Coverage Agent workflows.
 #
 # Purpose:
-# - Run explicit JaCoCo goals for a target module, even when the module does not
-#   declare the JaCoCo plugin.
+# - Run JaCoCo coverage for a target module using parent-POM plugin configuration.
 # - Provide deterministic artifact evidence for orchestration.
 #
 # Usage:
@@ -27,7 +26,6 @@ module=""
 test_pattern=""
 run_bootstrap="false"
 skip_its="true"
-jacoco_version="0.8.11"
 maven_quiet="true"
 low_resource_tests="true"
 
@@ -54,7 +52,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --jacoco-version)
-      jacoco_version="$2"
+      # Backward compatibility: version is managed in parent pom.xml.
       shift 2
       ;;
     --no-quiet)
@@ -159,7 +157,6 @@ if [[ "$maven_quiet" == "true" ]]; then
   jacoco_cmd+=(-q)
 fi
 jacoco_cmd+=( 
-  "org.jacoco:jacoco-maven-plugin:${jacoco_version}:prepare-agent"
   "-DskipTests=false"
   "-DskipITs=${skip_its}"
   "-DlowResourceTests=${low_resource_tests}"
@@ -170,7 +167,7 @@ if [[ -n "$test_pattern" ]]; then
 fi
 jacoco_cmd+=(
   test
-  "org.jacoco:jacoco-maven-plugin:${jacoco_version}:report"
+  jacoco:report
 )
 
 set +e
@@ -203,7 +200,7 @@ elif [[ -f "$exec_path" ]]; then
   if [[ "$maven_quiet" == "true" ]]; then
     report_cmd+=(-q)
   fi
-  report_cmd+=("org.jacoco:jacoco-maven-plugin:${jacoco_version}:report")
+  report_cmd+=(jacoco:report)
 
   set +e
   "${report_cmd[@]}"
