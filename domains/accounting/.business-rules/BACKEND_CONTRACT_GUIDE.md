@@ -75,8 +75,8 @@ These are normative behavior rules for Accounting and are not replaced by OpenAP
 ## Implementation Links / Backlog
 
 - Backend child issues for CAP-251:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/5
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/6
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/5>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/6>
 
 These links are the authoritative backlog items that implement CAP-251 behavior. Use them for traceability and to resolve TODOs in this guide.
 
@@ -113,7 +113,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-050
-- Parent Issue: https://github.com/louisburroughs/durion/issues/50
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/50>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -155,7 +155,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-051
-- Parent Issue: https://github.com/louisburroughs/durion/issues/51
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/51>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -197,7 +197,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-052
-- Parent Issue: https://github.com/louisburroughs/durion/issues/52
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/52>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -241,7 +241,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-053
-- Parent Issue: https://github.com/louisburroughs/durion/issues/53
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/53>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -284,7 +284,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-054
-- Parent Issue: https://github.com/louisburroughs/durion/issues/54
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/54>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -328,7 +328,7 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-055
-- Parent Issue: https://github.com/louisburroughs/durion/issues/55
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/55>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -371,10 +371,10 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-251
-- Parent Issue: https://github.com/louisburroughs/durion/issues/251
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/251>
 - Backend Child Issues:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/6 (Story #6: Update Invoice Payment Status from Payment Outcomes)
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/5 (Story #5: Reconcile POS Status with Accounting Authoritative Status)
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/6> (Story #6: Update Invoice Payment Status from Payment Outcomes)
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/5> (Story #5: Reconcile POS Status with Accounting Authoritative Status)
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
@@ -481,15 +481,15 @@ Headers and auth notes:
 ### Capability Metadata
 
 - Capability ID: CAP-278
-- Parent Issue: https://github.com/louisburroughs/durion/issues/278
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/278>
 - Backend Child Issues:
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/472
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/473
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/474
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/475
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/476
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/477
-  - https://github.com/louisburroughs/durion-positivity-backend/issues/478
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/472>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/473>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/474>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/475>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/476>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/477>
+  - <https://github.com/louisburroughs/durion-positivity-backend/issues/478>
 - OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)

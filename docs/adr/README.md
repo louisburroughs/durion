@@ -97,8 +97,8 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 
 Use this matrix during planning, implementation, and review to quickly decide which ADRs apply and which agents should be involved.
 
-| ADR  | Invoke when... | Primary agents concerned |
-|------|----------------|--------------------------|
+| ADR | Invoke when... | Primary agents concerned |
+| ------ | ---------------- | -------------------------- |
 | 0001 | Inventory availability/ATP logic, reservation semantics, stock math changes | Coder, Test, Planner |
 | 0002 | CRM/RBAC permission taxonomy (historical reference; superseded by 0025) | Planner |
 | 0003 | CRM navigation/routing/workflow UX structure changes | Coder, Planner, Orchestrator |

@@ -11,14 +11,17 @@ last_updated: 2026-03-08
 # CAP-251 Backend Contract (Implementation Handoff)
 
 Summary
+
 - Implement coordination between POS payment outcomes and Accounting invoice status.
 - Source of truth for endpoint shapes: `durion-positivity-backend/pos-accounting/openapi.yaml` (authoritative).
 
 Backend child issues
-- https://github.com/louisburroughs/durion-positivity-backend/issues/5
-- https://github.com/louisburroughs/durion-positivity-backend/issues/6
+
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/5>
+- <https://github.com/louisburroughs/durion-positivity-backend/issues/6>
 
 Per-story handoff payloads
+
 - Story #6 (Invoice Payment Status from Payment Outcomes): Backend issue: #6
   - Primary endpoints (gateway URLs):
     - `applyPayment` (POST) — `http://localhost:8080/v1/accounting/payments/{paymentId}/applications`
@@ -55,20 +58,22 @@ Per-story handoff payloads
     - Validate permission gating returns 403 for missing authorities and 200 for authorized callers.
 
 OpenAPI delta notes (authoritative source)
+
 - This contract derives all operationIds and path shapes from `durion-positivity-backend/pos-accounting/openapi.yaml`.
 - Gateway path format used in this guide: `http://localhost:8080/v1/accounting/{resource}` — do not call service ports directly.
 
 TODO / Open questions
+
 - Exact alerting channel and payload for blocked backward transitions (refer to backend issues #5/#6). TODO: implementers should update this contract after issue resolution.
 - Confirmation of exact idempotency header/key naming conventions if they differ from `applicationRequestId` in OpenAPI; refer to backend issue #6.
 
 Traceability
+
 - OpenAPI reference (authoritative): durion-positivity-backend/pos-accounting/openapi.yaml
 - Backend implementation backlog: louisburroughs/durion-positivity-backend issues #5, #6
 
 Provider test checklist (minimum)
+
 - Idempotency suite for `applyPayment` with duplicate transactionId and idempotencyKey variations.
 - Full/partial/overpayment/chargeback flows validate invoice status transitions and emitted events.
 - Reconcile flow validates status enum, staleness indicator, permission gating, and DLQ behavior on exhausted retries.
-
-

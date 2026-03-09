@@ -108,7 +108,7 @@ The platform already provides authenticated principal access through `SecurityCo
 ## Sign-Off
 
 | Role | Name | Date | Notes |
-|------|------|------|-------|
+| ------ | ------ | ------ | ------- |
 | Architecture | LMB | 2026-02-18 | |
 | Backend Lead | LMB | 2026-02-18 | |
 | Security Lead | LMB | 2026-02-18 | |

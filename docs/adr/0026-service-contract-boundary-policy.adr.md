@@ -32,6 +32,7 @@ ADR-0009 already defines backend domain responsibilities and layering, but this 
 **Decision:** ✅ **Resolved** - Controllers and internal components depend on service interfaces, never on concrete service implementations across package boundaries.
 
 Required direction:
+
 - `internal.controller` -> `service` (interface)
 - `internal.service` -> `internal.repository` / `internal.domain` / `internal.entity`
 - No direct external module dependency on `internal.*` packages
@@ -41,6 +42,7 @@ Required direction:
 **Decision:** ✅ **Resolved** - Every module must enforce this boundary with ArchUnit rules.
 
 Minimum checks:
+
 - classes in `..service..` are interfaces
 - no dependencies from outside module into `..internal..`
 - controllers do not directly depend on repositories/entities
