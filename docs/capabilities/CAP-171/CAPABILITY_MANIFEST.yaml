@@ -38,7 +38,7 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [43, 44,45]
+      issues: [43, 44, 45]
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-rules-enforce-location-restrictions-107.wf.md
@@ -61,8 +61,6 @@ stories:
   - frontend_prs
 execution:
   agent_rules:
-  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
-  - Frontend work starts only when contract status is stable-for-ui.
   - 'One branch per repo per capability: CAP/171.'
   definition_of_done:
   - All PRs merged and required checks green
