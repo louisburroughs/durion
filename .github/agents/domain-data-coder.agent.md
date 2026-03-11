@@ -59,12 +59,20 @@ Out of scope unless explicitly assigned:
 - Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
 - Existing/pre-existing failures are not a valid excuse to move on.
 
+## Touched-File Lint Gate (Hard Rule)
+- Run touched-file lint for each touched module before handoff:
+  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+- Default linter is `semgrep` (`p/java`) scoped to touched Java files.
+- If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
+- Any touched-file lint finding must be fixed before completion.
+
 ## Required Handoff
 - `Behavior Implemented`: acceptance criteria mapped to code paths.
 - `Persistence Changes`: entities/repositories/transactions updated.
 - `Annotations Added/Updated`: JPA/transaction/null-safety.
 - `Files Changed`
 - `Test/Verification Evidence`
+- `Touched-File Lint Evidence`: command + result per touched module.
 - `Risks or Follow-ups`
 
 ## Done Criteria

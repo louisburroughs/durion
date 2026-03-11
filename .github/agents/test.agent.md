@@ -22,7 +22,7 @@ tools:
   - 'search/textSearch'
   - 'search/usages'
   - 'web/fetch'
-  - 'memory'
+  - 'vscode/memory'
   - 'todo'
 ---
 
@@ -98,6 +98,14 @@ Return all of the following every time:
   - why failures map to story behavior
 - Suggested GREEN scope for Lead Coder team (`src/main/**` targets)
 - Follow-up tests still needed (if any)
+
+## Touched-File Lint (Required)
+
+- When this agent changes Java test files, run touched-file lint before handoff:
+  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+- Default linter is `semgrep` (`p/java`) scoped to touched Java files.
+- If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
+- Include lint command and status in RED/GREEN handoff evidence.
 
 If blocked by missing symbols, return additionally:
 - `BLOCKED scaffold contract`:

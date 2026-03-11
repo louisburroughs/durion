@@ -22,8 +22,7 @@ tools:
   - search/listDirectory
   - search/usages
   - web/fetch
-  - 'memory'
-  - todo
+  - vscode/memory
 ---
 
 You are a coverage hardening agent. Goal: raise target module service+utility coverage to >= 80% with high-signal tests.
@@ -67,6 +66,9 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
 5. Identify worst uncovered classes in scope.
 6. Add targeted JUnit 5 tests (no padding, no trivial assertions).
 7. Re-run coverage until threshold reached or blocked.
+8. Run touched-file lint before final handoff:
+   - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+   - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 
 JaCoCo is centrally configured in the parent `pom.xml`; do not add module-specific JaCoCo plugin blocks unless explicitly requested.
 
@@ -110,3 +112,4 @@ Use `coverage_parse` when report exists but parsing/aggregation failed.
 - Commands executed
 - Before/after coverage for service+utility scope
 - Threshold status (`>= 80%` reached or blocker with reason)
+- Touched-file lint evidence (command + pass/fail) for touched modules

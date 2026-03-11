@@ -22,8 +22,7 @@ tools:
   - 'search/textSearch'
   - 'search/usages'
   - 'web/fetch'
-  - 'memory'
-  - 'sonarsource.sonarlint-vscode/sonarqube_analyzeFile'
+  - 'vscode/memory'
   - 'todo'
   - io.github.upstash/context7/resolve-library-id
   - io.github.upstash/context7/get-library-docs
@@ -91,6 +90,13 @@ When orchestrated with `Code Review Agent`:
 - Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
 - "These tests were already failing" is not an acceptable reason to proceed or hand off unfinished work.
 
+## Touched-File Lint Gate (Hard Rule)
+- For each touched module, run local touched-file lint before handoff:
+  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+- Default linter is `semgrep` (`p/java`) scoped to touched Java files.
+- If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun lint.
+- Any lint finding in touched files must be fixed and re-validated before completion.
+
 ## Java/Backend Standards
 - Use existing Spring + repository patterns; no novel frameworks.
 - Keep services cohesive and explicit.
@@ -119,6 +125,7 @@ When orchestrated with `Code Review Agent`:
 - Why each change was made.
 - Commands run.
 - Test/build results.
+- Touched-file lint evidence per touched module.
 - Risks/follow-ups.
 - When scaffold mode was used: `Temporary scaffold artifacts:` list (file + symbol + marker).
 - GREEN handoff must include: scaffold cleanup confirmation and no test seam-retargeting confirmation.
