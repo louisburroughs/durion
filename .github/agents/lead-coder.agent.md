@@ -16,12 +16,65 @@ tools:
   - execute/awaitTerminal
   - execute/createAndRunTask
   - execute/runTests
-  - io.github.upstash/context7/resolve-library-id
-  - io.github.upstash/context7/get-library-docs
+  - context7/query-docs
+  - context7/resolve-library-id
   - vscode/memory
 ---
 
 You are the backend implementation coordinator for coder-team mode.
+
+## Active PRD: NLTI + MCP Tool Registry
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+
+Use this artifact ownership map when producing instruction cards for the Orchestrator. Assign ownership by layer and specialist in dependency order.
+
+### Module Targets
+- **`pos-nlti`** (new): `com.positivity.nlti` root; all code under `internal/` except service interfaces.
+- **`pos-mcp-server`** (enhanced): `com.positivity.mcp.internal` additions; preserve existing discovery/proxy behavior.
+
+### Artifact Ownership by Specialist
+
+**API Surface Coder owns:**
+- `pos-nlti/internal/controller/NltController.java` — `POST /nlt/v1/requests`, `GET /nlt/v1/requests/{requestId}`
+- `pos-nlti/internal/controller/PlanController.java` — `GET /nlt/v1/plans/{planId}`, `POST /nlt/v1/plans/{planId}/confirm`
+- `pos-nlti/internal/controller/AuditController.java` — `GET /nlt/v1/audit`
+- `pos-nlti/internal/dto/` — `RequestEnvelopeV1`, `RequestResponseV1`, `IntentV1`, `PlanV1`, `PlanStepV1`, `ActionResultV1`, `GuidanceResponseV1`, `AuditEventV1`, `ToolDescriptorV1`
+- `pos-nlti/service/` interfaces — `NltiRequestService`, `IntentParserService`, `PlanningService`, `ExecutionOrchestratorService`, `AuditLedgerService`
+- `pos-mcp-server/internal/controller/AdminController.java` — tool/role/workflow/intent CRUD
+- `pos-mcp-server/src/main/resources/permissions.yaml` — new `mcp:tool:read/write/admin` entries
+- `pos-mcp-server/internal/config/McpEventTypes.java` and `McpEventTypeInitializer.java` — @EmitEvent registrations
+- `@EmitEvent` annotations on all state-changing endpoints across both modules
+
+**Domain Data Coder owns:**
+- `pos-nlti/internal/entity/` — `NltiRequestEntity`, `IntentEntity`, `PlanEntity`, `PlanStepEntity`, `ConfirmationEntity`, `AuditEventEntity`, `SessionEntity`
+- `pos-nlti/internal/repository/` — all Spring Data JPA repos for above entities
+- `pos-nlti/internal/service/` implementations — `NltiRequestServiceImpl`, `IntentParserServiceImpl`, `PlanningServiceImpl`, `ExecutionOrchestratorServiceImpl`, `AuditLedgerServiceImpl`
+- `pos-nlti/internal/domain/` — `IntentV1` domain model, `PlanV1` domain model, `ExecutionResult`, `ConfirmationToken`
+- `pos-nlti/internal/enums/` — `IntentType`, `IntentStatus`, `RiskLevel`, `ExecutionStatus`, `AuditEventType`
+- `pos-mcp-server/internal/entity/` — `McpToolEntity`, `McpRoleEntity`, `McpToolRoleEntity`, `McpWorkflowStateEntity`, `McpToolWorkflowEntity`, `McpIntentEntity`, `McpIntentToolEntity`, `McpToolInvocationLogEntity`
+- `pos-mcp-server/internal/repository/` — all MCP registry repos including pgvector query
+- `pos-mcp-server/internal/service/ToolRegistryServiceImpl.java` — prefilter + embed + top-K + score + rank
+- `pos-mcp-server/internal/service/ToolAuditServiceImpl.java` — invocation log writes
+- `pos-mcp-server/internal/service/ToolPriorityTuningService.java` — daily scheduled tuning
+- `pos-mcp-server/internal/config/` — embedding service config, adaptive tuning toggle, session-store integration
+
+**Client Coder owns:**
+- `pos-nlti/internal/client/ToolRegistryClient.java` — calls `pos-mcp-server` REST
+- `pos-nlti/internal/client/AuthZClient.java` — calls `pos-security-service`, fail-closed wrapper
+- `pos-nlti/internal/adapter/WorkorderToolAdapter.java` — listCompletedWorkOrders, closeWorkOrder, dailySummary
+- `pos-nlti/internal/adapter/AccountingToolAdapter.java` — listUnpaidInvoices, reprocessPayment
+- `pos-mcp-server/internal/service/EmbeddingServiceImpl.java` + `OpenAIEmbeddingService.java` + provider strategy interface
+
+### Critical Cross-Cutting Constraints (enforce in every card)
+- `pos-nlti` is a **new module**: first artifact card must include `pom.xml` scaffold and parent `pom.xml` module registration.
+- Raw prompts stored as SHA-256 hash or redacted form — never plaintext. Enforce in AuditLedgerServiceImpl.
+- Idempotency: `executionId` + step `idempotencyKey` prevents duplicate mutations in ExecutionOrchestratorServiceImpl.
+- Confirmation tokens: user+session-scoped; cross-user attempt returns HTTP 403 + audit log entry.
+- AuthZ and session-store failures → 503 (fail-closed), never silent success.
+- `mcp_role` entries must be validated against security-service at startup; unknown roles fail closed.
+- Adaptive priority tuning enabled by default; property `pos.mcp.adaptive-tuning.enabled=false` to disable.
+- pgvector `<=>` operator used for cosine similarity; provide deterministic fallback query path for non-vector environments.
 
 ## Mission
 Convert one story into explicit artifact assignments, produce clarified specialist instruction cards, and validate returned evidence against acceptance criteria and ADR constraints.

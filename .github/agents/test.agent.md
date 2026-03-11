@@ -29,6 +29,101 @@ tools:
 You are the TDD Agent for backend story implementation in `durion-positivity-backend`.
 Your primary job is to author tests first, prove RED, and hand off objective evidence for GREEN implementation.
 
+## Active PRD: NLTI + MCP Tool Registry
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+
+### Modules Under Test
+- `pos-nlti` (new module — ArchUnit test class required as part of Phase 1)
+- `pos-mcp-server` (existing module — ArchUnit tests must remain passing after all changes)
+
+### Test Scope by Story
+
+**NLTI-001 — Foundation**
+- `NltiRequestServiceImpl`: session creation, correlationId propagation, duplicate session reuse.
+- `NltController`: 200/202 with required response fields; 400 on missing prompt with structured error; `X-Correlation-Id` echo.
+- Rate-limit enforcement unit tests.
+
+**NLTI-002 — Intent Model**
+- `IntentParserServiceImpl`: classify QUERY/ACTION with confidence; slot extraction with per-slot confidence.
+- Clarification state machine: NEEDS_CLARIFICATION → PENDING_CLARIFICATION → READY transition.
+- Risk detection: bulk/destructive intents flagged HIGH.
+- Benchmark utterance tests: at minimum 20 sample utterances covering key POS domains (workorders, invoices, inventory); assert correct intentType and riskLevel.
+
+**NLTI-003 — Tool Registry RBAC**
+- `ToolRegistryController` (via `pos-nlti`): discovery filtered by authenticated subject's permissions.
+- Fail-closed: when AuthZClient throws, endpoint returns 503 with correlationId.
+- Unauthorized invocation: returns NOT_AUTHORIZED; downstream not called.
+
+**NLTI-004 — Planning Engine**
+- `PlanningServiceImpl`: READY intent → PlanV1 with steps and preconditions.
+- Determinism: same input → same PlanV1 (idempotent IDs or canonical derivation).
+- Missing/unauthorized tool → structured error with correlationId.
+
+**NLTI-005 — Execution Orchestrator**
+- `ExecutionOrchestratorServiceImpl`: steps execute in declared order; completed steps recorded.
+- Idempotency: same `executionId` returns existing result without new mutations.
+- Retry: transient failure triggers backoff retries up to max attempts; permanent failure → FAILED.
+- Partial failure: PARTIAL_FAILURE status with failed step details.
+
+**NLTI-006 — Confirmation Gate**
+- `ConfirmationEntity` persistence: token stored hashed.
+- HIGH-risk plan blocked without valid confirmation record.
+- Cross-user confirmation rejection: HTTP 403 + audit log entry.
+- Expired token: plan returns to pre-confirmation state.
+
+**NLTI-007 — Audit Ledger**
+- `AuditLedgerServiceImpl`: append-only writes (no UPDATE/DELETE on audit table).
+- Complete event chain: REQUEST → INTENT → PLAN → EXECUTION steps linkable by correlationId.
+- Sensitive data: raw prompt never persisted; only hash or redacted form.
+- Writing failure: `nlt.audit.write_failures` metric incremented; destructive execution blocked.
+
+**NLTI-008 — Domain Adapters**
+- `WorkorderToolAdapter`: validate() rejects missing inputs with ERROR; closeWorkOrder unauthorized → NOT_AUTHORIZED without downstream call.
+- `AccountingToolAdapter`: reprocessPayment blocked without `mcp:accounting:reprocess` permission.
+- Idempotency: repeat call with same `idempotencyKey` returns same result.
+- Contract tests for each action: valid input → OK summaryText; invalid → ERROR details.
+
+**NLTI-009 — Observability**
+- `nlt.request.count`, `nlt.request.latency_ms`, `nlt.planning.latency_ms`, `nlt.execution.latency_ms`, `nlt.error.count`, `nlt.audit.write_failures` registered in Micrometer context.
+- OTel span attributes: `correlationId`, `requestId`, `userId` present in spans.
+
+**NLTI-010 — Guidance Mode**
+- How-to phrase detection → GuidanceResponseV1 with numbered steps.
+- Convert-to-plan: `supportedForExecution=true` workflows produce deterministic PlanV1.
+- Permission-gated steps omitted; access-request guidance included.
+
+**MCP-FR-1 through FR-6 (pos-mcp-server)**
+- Repository tests: `McpToolRepository.findEnabledByRoleAndWorkflow` filters to correct role+workflow set.
+- Repository tests: pgvector top-K returns nearest-neighbor results; deterministic fallback returns priority-sorted list.
+- Role sync: unknown role (not in security-service catalog) → no tools returned (fail closed).
+- `ToolRegistryServiceImpl`: pre-filter + embed + top-K + score → returns exactly 3–5 candidates.
+- `ToolPriorityTuningService`: 
+  - Sample floor: tools with < 10 samples skip tuning.
+  - Adaptive tuning enabled by default.
+  - `pos.mcp.adaptive-tuning.enabled=false` disables tuning; priority unchanged.
+- Admin API RBAC: `mcp:tool:write` required for create/update; `mcp:tool:admin` for delete; missing permission → 403.
+- ArchUnit for pos-mcp-server: internal packages still not accessible from external modules after all changes.
+
+### ArchUnit Test Class (new — pos-nlti)
+
+Create `pos-nlti/src/test/java/com/positivity/nlti/ArchitectureTest.java` with rules:
+- Internal packages (`com.positivity.nlti.internal..`) not accessed by other modules.
+- Controllers must not access repositories directly (must go through service layer).
+- Service layer interfaces (`com.positivity.nlti.service..`) are the only public API.
+
+### Test Commands (Standard)
+```bash
+# pos-nlti focused
+cd /home/n541342/IdeaProjects/durion-positivity-backend
+./mvnw -pl pos-nlti -DskipTests=false test
+./mvnw -pl pos-nlti -DskipTests=false verify
+
+# pos-mcp-server focused
+./mvnw -pl pos-mcp-server -DskipTests=false test
+./mvnw -pl pos-mcp-server -DskipTests=false verify
+```
+
 ## Authority and Alignment
 
 This agent must align with:

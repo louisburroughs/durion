@@ -12,16 +12,54 @@ tools:
   - execute/getTerminalOutput
   - execute/awaitTerminal
   - execute/createAndRunTask
-  - io.github.upstash/context7/resolve-library-id
-  - io.github.upstash/context7/get-library-docs
+  - context7/query-docs
+  - context7/resolve-library-id
   - web/fetch
-  - memory
+  - vscode/memory
   - todo
 ---
 
 # Planning Agent
 
 You create plans. You do NOT write code.
+
+## Active PRD: NLTI + MCP Tool Registry
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+
+When asked to plan NLTI or MCP Tool Registry work, use this story list as the authoritative scope. Apply the **per-story micro-cycle rule** (RED → GREEN → coverage per story before moving to next).
+
+### Stories in Phase Order
+
+**Phase 1 — Foundation**
+- NLTI-001: pos-nlti module scaffold, `POST /nlt/v1/requests`, session management, correlation propagation, envelope DTOs.
+- NLTI-002: Intent parser (classification + slot extraction + clarification state machine), `IntentV1`.
+- NLTI-007: Append-only `AuditEvent` ledger, `GET /nlt/v1/audit`, idempotent durable writes.
+- NLTI-009: Micrometer metrics wired (`nlt.request.count`, `nlt.request.latency_ms`, `nlt.error.count`, `nlt.audit.write_failures`), OTel spans.
+
+**Phase 2 — Tool Registry + Planning**
+- NLTI-003: `GET /nlt/v1/tools` RBAC-filtered discovery, fail-closed on AuthZ outage.
+- NLTI-004: `PlanV1` generation from `IntentV1` (ordered steps, preconditions, idempotencyKey).
+- MCP-FR-1: pos-mcp-server data model (`mcp_tool`, `mcp_role`, `mcp_tool_role`, `mcp_workflow_state`, `mcp_tool_workflow`, `mcp_intent`, `mcp_intent_tool`, `mcp_tool_invocation_log`); role sync from security-service.
+- MCP-FR-2: `EmbeddingService` interface + OpenAI provider + safe degraded fallback.
+- MCP-FR-3: `ToolRegistryService.resolveCandidateTools` (role/workflow/intent prefilter → embed → top-K → deterministic scorer → top 3–5).
+- MCP-FR-4: Session-store workflow state integration (default IDLE, fail safe).
+
+**Phase 3 — Safe Execution**
+- NLTI-005: Execution orchestrator (sequential steps, idempotency, exponential backoff, partial failure).
+- NLTI-006: Confirmation gate (`POST /nlt/v1/plans/{planId}/confirm`), HIGH-risk blocking, session-scoped tokens.
+- NLTI-008: `WorkorderToolAdapter` (listCompletedWorkOrders, closeWorkOrder, dailySummary), `AccountingToolAdapter` (listUnpaidInvoices, reprocessPayment); `ActionResultV1`.
+- MCP-FR-5: `ToolAuditService` invocation log; `ToolPriorityTuningService` (daily, 7-day rolling, adaptive default-on, toggle).
+
+**Phase 4 — Guidance + Admin**
+- NLTI-010: `GuidanceResponseV1` (how-to detection, steps, convert-to-plan → `PlanV1`).
+- MCP-FR-6: Admin/write API endpoints for tools, role/workflow/intent mappings, RBAC guards, `@EmitEvent`, `permissions.yaml` entries.
+
+### Key Planning Notes
+- `pos-nlti` is a new module: include `pos-nlti/pom.xml` scaffold and parent `pom.xml` registration in plan.
+- PostgreSQL pgvector extension must be enabled; include verification step in plan.
+- ArchUnit tests for `pos-nlti` must be created/verified as part of Phase 1 coverage.
+- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/nlti-mcp-tool-registry`.
 
 ## Objective (Non-Negotiable)
 Your objective is ALWAYS to drive toward creation of a single PR in `durion-positivity-backend` containing completed stories and verification evidence.

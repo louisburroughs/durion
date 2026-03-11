@@ -18,6 +18,47 @@ tools:
 
 You are a review-only agent. You do not edit code, tests, or docs.
 
+## Active PRD: NLTI + MCP Tool Registry
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+
+Use the PRD's acceptance criteria as the primary review contract for each story when a GitHub issue is not yet available or when the issue acceptance criteria conflict with the PRD.
+
+### Per-Story Review Checklist (NLTI + MCP)
+
+For every story reviewed, verify these PRD-specific invariants **in addition** to the standard checklist below:
+
+| Invariant | What to Check |
+|-----------|---------------|
+| **Prompt privacy** | Raw prompt text NEVER stored in any entity field, log, or telemetry attribute. Only SHA-256 hash or redacted form. Fail any class that persists a raw `prompt` string. |
+| **Fail-closed auth** | `AuthZClient` and `ToolRegistryClient` on any exception/5xx must deny access and emit metric, never return empty-success. |
+| **Idempotency** | `executionId` + step `idempotencyKey` lookups present before mutation in `ExecutionOrchestratorServiceImpl`. Duplicate key must return prior result unchanged. |
+| **Confirmation token scoping** | `ConfirmationEntity.token` stored hashed; confirmation validated against caller's `userId` AND `sessionId`; cross-user attempt returns 403 + audit event. |
+| **Audit append-only** | `AuditEventEntity` must have no UPDATE or DELETE paths anywhere in the codebase. |
+| **Internal package boundaries** | All implementation classes under `com.positivity.nlti.internal.**`; only service interfaces in `com.positivity.nlti.service.**`; `@SpringBootApplication` at root. Same rule for pos-mcp-server additions. |
+| **ArchUnit green** | `pos-nlti/src/test/java/com/positivity/nlti/ArchitectureTest.java` must exist and pass as part of module verify evidence. |
+| **mcp_role integrity** | `McpRoleEntity` entries must only be created via security-service sync; no local-only role creation paths. |
+| **Adaptive tuning toggle** | `ToolPriorityTuningService` must check `pos.mcp.adaptive-tuning.enabled` flag before any priority writes. Default must be `true`. |
+| **pgvector fallback** | `ToolRegistryServiceImpl` must have a non-vector fallback code path when `EmbeddingService.isAvailable()` returns `false`. |
+| **@EmitEvent coverage** | All state-changing endpoints (POST/PUT/DELETE) carry `@EmitEvent` with correct `id` and `apiVersion`. Event types registered at startup. |
+| **@NonNull usage** | All non-null service/DAO parameters and non-void/non-Optional returns carry `@NonNull` from `org.jspecify.annotations`. |
+| **workorder spelling** | Term `workorder` used as one word in all code, comments, docs, and log strings (not `work_order`, `work-order`, or `workOrder`). |
+
+### ADRs Mandatory for NLTI Review
+
+Always load and check:
+- `docs/adr/0011-api-gateway-security-architecture.adr.md`
+- `docs/adr/0014-gateway-internal-service-security.adr.md` — service-to-service shared secret header pattern used by `AuthZClient`.
+- `docs/adr/0017-api-controller-http-response-codes.adr.md` — HTTP response code expectations for 400/401/403/503.
+- `docs/adr/0018-audit-actor-fields-from-security-context.adr.md` — `userId` sourced from security context, never from request body.
+
+### High-Risk Stories Requiring Deepest Scrutiny
+
+- **NLTI-006** (Confirmation Gate): cross-user rejection, token expiry, HIGH-risk blocking.
+- **NLTI-007** (Audit Ledger): append-only enforcement, PII handling, write-failure gate on destructive execution.
+- **NLTI-005** (Execution Orchestrator): idempotency, partial failure, retry bounds.
+- **MCP-FR-6** (Admin APIs): RBAC on every write endpoint, no path that bypasses `@PreAuthorize`.
+
 ## Mission
 Validate that Lead Coder team changes implement the assigned story exactly as specified in GitHub issue acceptance criteria and ADR requirements, before PR creation.
 Prefer to run on pre-commit working changes when available.

@@ -24,6 +24,88 @@ tools:
 
 You are the outbound integration specialist for backend team-mode implementation.
 
+## Active PRD: NLTI + MCP Tool Registry
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+
+Your integration artifacts for this PRD are all in `pos-nlti` and `pos-mcp-server`.
+
+### pos-nlti: Clients and Adapters
+
+**`internal/client/ToolRegistryClient.java`**
+- Calls `pos-mcp-server` `GET /mcp/v1/tools` with auth headers.
+- Returns `List<ToolDescriptorV1>` filtered to caller's permissions.
+- On 503 (AuthZ outage) → propagate fail-closed exception (do NOT return empty list).
+- Base URL: `${pos.mcp.base-url:http://localhost:8086}`.
+
+**`internal/client/AuthZClient.java`**
+- Calls `pos-security-service` to validate permissions for a subject + action.
+- **Fail-closed wrapper**: on any exception (timeout, 5xx, network) → deny access, emit `nlt.authz.failure_count` metric, log correlationId.
+- Base URL: `${pos.security.base-url:http://localhost:8082}`.
+- Use shared secret header (`pos.events.api-secret`) for service-to-service auth, per ADR-0014.
+
+**`internal/adapter/WorkorderToolAdapter.java`** (implements `ToolAdapter` interface)
+- Actions: `listCompletedWorkOrders(inputs)`, `closeWorkOrder(inputs)`, `dailySummary(inputs)`.
+- Delegates to `pos-workorder` service client.
+- Returns `ActionResultV1{status, summaryText, details}`.
+- `validate(inputs)` must reject missing/invalid fields with structured ERROR before calling downstream.
+- Unauthorized subject → NOT_AUTHORIZED response; downstream not called.
+- `closeWorkOrder` is HIGH riskLevel; enforce confirmation presence before proceeding.
+
+**`internal/adapter/AccountingToolAdapter.java`** (implements `ToolAdapter` interface)
+- Actions: `listUnpaidInvoices(inputs)`, `reprocessPayment(inputs)`.
+- `reprocessPayment` requires high privilege — validate `mcp:accounting:reprocess` permission via AuthZClient.
+- Returns `ActionResultV1{status, summaryText, details}`.
+- Missing inputs → structured ERROR; downstream not called.
+
+### pos-mcp-server: Embedding Provider
+
+**`internal/service/EmbeddingService.java`** (interface)
+```java
+public interface EmbeddingService {
+    float[] embed(@NonNull String text);
+    boolean isAvailable();
+}
+```
+
+**`internal/service/OpenAIEmbeddingService.java`** (implements EmbeddingService)
+- Calls OpenAI embeddings API (`POST https://api.openai.com/v1/embeddings`).
+- Model: `${pos.mcp.embedding.openai.model:text-embedding-3-small}`.
+- Timeout: `${pos.mcp.embedding.openai.timeout-ms:3000}`.
+- API key: `${pos.mcp.embedding.openai.api-key}` (never log).
+- On unavailability: `isAvailable()` returns `false`; ToolRegistryService uses deterministic fallback.
+
+**Provider strategy configuration** (`internal/config/EmbeddingConfig.java`)
+```properties
+pos.mcp.embedding.provider=openai   # openai | azure | disabled
+pos.mcp.embedding.openai.model=text-embedding-3-small
+pos.mcp.embedding.openai.timeout-ms=3000
+```
+- `disabled` provider returns a no-op that always reports `isAvailable()=false`.
+
+### Shared ToolAdapter Interface
+
+Define in `pos-nlti/internal/adapter/ToolAdapter.java`:
+```java
+public interface ToolAdapter {
+    ActionResultV1 validate(@NonNull Map<String, Object> inputs);
+    ActionResultV1 transform(@NonNull Map<String, Object> inputs);
+    @NonNull ActionResultV1 call(@NonNull Map<String, Object> inputs, @NonNull String idempotencyKey, @NonNull String correlationId);
+    @NonNull ActionResultV1 normalizeOutput(Object rawResult);
+}
+```
+
+### Config Requirements for Callers
+
+| Property | Default | Notes |
+|----------|---------|-------|
+| `pos.mcp.base-url` | `http://localhost:8086` | pos-mcp-server base URL |
+| `pos.security.base-url` | `http://localhost:8082` | pos-security-service base URL |
+| `pos.mcp.embedding.provider` | `openai` | Embedding strategy |
+| `pos.mcp.embedding.openai.model` | `text-embedding-3-small` | OpenAI model |
+| `pos.mcp.embedding.openai.timeout-ms` | `3000` | Per-request timeout |
+| `pos.mcp.adaptive-tuning.enabled` | `true` | Disable adaptive tuning at runtime |
+
 ## Mission
 Implement and harden outbound API call infrastructure using Spring `RestClient` and return clear integration instructions for consumers.
 
