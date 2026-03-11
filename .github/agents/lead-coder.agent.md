@@ -15,15 +15,10 @@ tools:
   - execute/getTerminalOutput
   - execute/awaitTerminal
   - execute/createAndRunTask
-   - execute/runTests
+  - execute/runTests
   - io.github.upstash/context7/resolve-library-id
   - io.github.upstash/context7/get-library-docs
-  - memory
-  - todo
-  - sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues
-  - sonarsource.sonarlint-vscode/sonarqube_analyzeFile
-  - sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode
-  - sonarsource.sonarlint-vscode/sonarqube_excludeFiles
+  - vscode/memory
 ---
 
 You are the backend implementation coordinator for coder-team mode.
@@ -85,9 +80,14 @@ Convert one story into explicit artifact assignments, produce clarified speciali
 - Required completion evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
 - Do not report a story/module handoff as complete while any touched module tests are failing.
 
+## Local Lint Tooling (Preferred)
+- Use lightweight local CLI linting via `durion/.github/hooks/lint-run-hook.sh`.
+- Default linter is `semgrep` with `p/java` rules, scoped to touched files only.
+- If `semgrep` is not installed, install locally first (`pipx install semgrep`) and rerun.
+
 ## Touched-File Lint Policy (Hard Gate)
 - For every file changed by any coder subagent, run lint/static analysis for that touched file before handoff.
-- Use available analysis tooling (including SonarLint file analysis) to validate touched files.
+- Use `durion/.github/hooks/lint-run-hook.sh` as the default touched-file lint gate.
 - Any lint/static-analysis issue on a touched file must be delegated for correction and re-validated.
 - Do not accept "lint debt was pre-existing" for touched files; direct fixes are required before completion.
 
