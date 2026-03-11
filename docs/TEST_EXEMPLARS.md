@@ -242,8 +242,8 @@ assertThat(service.calculateHints(...)).hasSize(1);
 
 - Prefer `BaseIntegrationTest` for shared helpers: centralize auth, MockMvc setup, and reusable fixtures.
 - Write contract tests that assert status codes and error messages, not just happy-path payloads. Use `BaseIntegrationTest.withAuth()` to test role-based guards.
+- Follow ADR-0017 auth semantics: unauthenticated requests must assert `401 Unauthorized`; authenticated callers lacking permission must assert `403 Forbidden` (see `docs/adr/0017-api-controller-http-response-codes.adr.md`).
 - For business-rule-heavy endpoints (like lifecycle transitions), add dedicated focused tests mirroring the service validations to catch regression early.
-
 
 ## How to use these exemplars
 
