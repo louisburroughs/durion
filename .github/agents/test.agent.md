@@ -34,8 +34,7 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 **PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
 
 ### Modules Under Test
-- `pos-nlti` (new module — ArchUnit test class required as part of Phase 1)
-- `pos-mcp-server` (existing module — ArchUnit tests must remain passing after all changes)
+- `pos-mcp-server` (existing module — all NLTI + MCP story tests run here; ArchUnit tests must remain passing after all changes)
 
 ### Test Scope by Story
 
@@ -51,7 +50,7 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 - Benchmark utterance tests: at minimum 20 sample utterances covering key POS domains (workorders, invoices, inventory); assert correct intentType and riskLevel.
 
 **NLTI-003 — Tool Registry RBAC**
-- `ToolRegistryController` (via `pos-nlti`): discovery filtered by authenticated subject's permissions.
+- `ToolRegistryController` (via `pos-mcp-server`): discovery filtered by authenticated subject's permissions.
 - Fail-closed: when AuthZClient throws, endpoint returns 503 with correlationId.
 - Unauthorized invocation: returns NOT_AUTHORIZED; downstream not called.
 
@@ -105,21 +104,17 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 - Admin API RBAC: `mcp:tool:write` required for create/update; `mcp:tool:admin` for delete; missing permission → 403.
 - ArchUnit for pos-mcp-server: internal packages still not accessible from external modules after all changes.
 
-### ArchUnit Test Class (new — pos-nlti)
+### ArchUnit Test Class (pos-mcp-server)
 
-Create `pos-nlti/src/test/java/com/positivity/nlti/ArchitectureTest.java` with rules:
-- Internal packages (`com.positivity.nlti.internal..`) not accessed by other modules.
+Create `pos-mcp-server/src/test/java/com/positivity/mcp/ArchitectureTest.java` with rules:
+- Internal packages (`com.positivity.mcp.internal..`) not accessed by other modules.
 - Controllers must not access repositories directly (must go through service layer).
-- Service layer interfaces (`com.positivity.nlti.service..`) are the only public API.
+- Service layer interfaces (`com.positivity.mcp.service..`) are the only public API.
 
 ### Test Commands (Standard)
 ```bash
-# pos-nlti focused
-cd /home/n541342/IdeaProjects/durion-positivity-backend
-./mvnw -pl pos-nlti -DskipTests=false test
-./mvnw -pl pos-nlti -DskipTests=false verify
-
-# pos-mcp-server focused
+# pos-mcp-server focused (NLTI + MCP stories)
+cd /home/louisb/Projects/durion-positivity-backend
 ./mvnw -pl pos-mcp-server -DskipTests=false test
 ./mvnw -pl pos-mcp-server -DskipTests=false verify
 ```

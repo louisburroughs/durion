@@ -32,13 +32,13 @@ When asked to plan NLTI or MCP Tool Registry work, use this story list as the au
 ### Stories in Phase Order
 
 **Phase 1 — Foundation**
-- NLTI-001: pos-nlti module scaffold, `POST /nlt/v1/requests`, session management, correlation propagation, envelope DTOs.
+- NLTI-001: pos-mcp-server NLTI scaffold, `POST /v1/nlt/requests`, session management, correlation propagation, envelope DTOs.
 - NLTI-002: Intent parser (classification + slot extraction + clarification state machine), `IntentV1`.
-- NLTI-007: Append-only `AuditEvent` ledger, `GET /nlt/v1/audit`, idempotent durable writes.
+- NLTI-007: Append-only `AuditEvent` ledger, `GET /v1/nlt/audit`, idempotent durable writes.
 - NLTI-009: Micrometer metrics wired (`nlt.request.count`, `nlt.request.latency_ms`, `nlt.error.count`, `nlt.audit.write_failures`), OTel spans.
 
 **Phase 2 — Tool Registry + Planning**
-- NLTI-003: `GET /nlt/v1/tools` RBAC-filtered discovery, fail-closed on AuthZ outage.
+- NLTI-003: `GET /v1/nlt/tools` RBAC-filtered discovery, fail-closed on AuthZ outage.
 - NLTI-004: `PlanV1` generation from `IntentV1` (ordered steps, preconditions, idempotencyKey).
 - MCP-FR-1: pos-mcp-server data model (`mcp_tool`, `mcp_role`, `mcp_tool_role`, `mcp_workflow_state`, `mcp_tool_workflow`, `mcp_intent`, `mcp_intent_tool`, `mcp_tool_invocation_log`); role sync from security-service.
 - MCP-FR-2: `EmbeddingService` interface + OpenAI provider + safe degraded fallback.
@@ -47,7 +47,7 @@ When asked to plan NLTI or MCP Tool Registry work, use this story list as the au
 
 **Phase 3 — Safe Execution**
 - NLTI-005: Execution orchestrator (sequential steps, idempotency, exponential backoff, partial failure).
-- NLTI-006: Confirmation gate (`POST /nlt/v1/plans/{planId}/confirm`), HIGH-risk blocking, session-scoped tokens.
+- NLTI-006: Confirmation gate (`POST /v1/nlt/plans/{planId}/confirm`), HIGH-risk blocking, session-scoped tokens.
 - NLTI-008: `WorkorderToolAdapter` (listCompletedWorkOrders, closeWorkOrder, dailySummary), `AccountingToolAdapter` (listUnpaidInvoices, reprocessPayment); `ActionResultV1`.
 - MCP-FR-5: `ToolAuditService` invocation log; `ToolPriorityTuningService` (daily, 7-day rolling, adaptive default-on, toggle).
 
@@ -56,9 +56,9 @@ When asked to plan NLTI or MCP Tool Registry work, use this story list as the au
 - MCP-FR-6: Admin/write API endpoints for tools, role/workflow/intent mappings, RBAC guards, `@EmitEvent`, `permissions.yaml` entries.
 
 ### Key Planning Notes
-- `pos-nlti` is a new module: include `pos-nlti/pom.xml` scaffold and parent `pom.xml` registration in plan.
+- `pos-mcp-server` is the only target module for NLTI + MCP work; do not plan any new module scaffold.
 - PostgreSQL pgvector extension must be enabled; include verification step in plan.
-- ArchUnit tests for `pos-nlti` must be created/verified as part of Phase 1 coverage.
+- ArchUnit tests for `pos-mcp-server` must be created/verified as part of Phase 1 coverage.
 - Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/nlti-mcp-tool-registry`.
 
 ## Objective (Non-Negotiable)

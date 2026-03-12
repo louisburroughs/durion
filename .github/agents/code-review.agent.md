@@ -31,12 +31,12 @@ For every story reviewed, verify these PRD-specific invariants **in addition** t
 | Invariant | What to Check |
 |-----------|---------------|
 | **Prompt privacy** | Raw prompt text NEVER stored in any entity field, log, or telemetry attribute. Only SHA-256 hash or redacted form. Fail any class that persists a raw `prompt` string. |
-| **Fail-closed auth** | `AuthZClient` and `ToolRegistryClient` on any exception/5xx must deny access and emit metric, never return empty-success. |
+| **Fail-closed auth** | `AuthZClient` and tool resolution/discovery paths (`ToolRegistryService`) on any exception/5xx must deny access and emit metric, never return empty-success. |
 | **Idempotency** | `executionId` + step `idempotencyKey` lookups present before mutation in `ExecutionOrchestratorServiceImpl`. Duplicate key must return prior result unchanged. |
 | **Confirmation token scoping** | `ConfirmationEntity.token` stored hashed; confirmation validated against caller's `userId` AND `sessionId`; cross-user attempt returns 403 + audit event. |
 | **Audit append-only** | `AuditEventEntity` must have no UPDATE or DELETE paths anywhere in the codebase. |
-| **Internal package boundaries** | All implementation classes under `com.positivity.nlti.internal.**`; only service interfaces in `com.positivity.nlti.service.**`; `@SpringBootApplication` at root. Same rule for pos-mcp-server additions. |
-| **ArchUnit green** | `pos-nlti/src/test/java/com/positivity/nlti/ArchitectureTest.java` must exist and pass as part of module verify evidence. |
+| **Internal package boundaries** | All implementation classes under `com.positivity.mcp.internal.**`; only service interfaces in `com.positivity.mcp.service.**`; `@SpringBootApplication` at root. |
+| **ArchUnit green** | `pos-mcp-server/src/test/java/com/positivity/mcp/ArchitectureTest.java` must exist and pass as part of module verify evidence. |
 | **mcp_role integrity** | `McpRoleEntity` entries must only be created via security-service sync; no local-only role creation paths. |
 | **Adaptive tuning toggle** | `ToolPriorityTuningService` must check `pos.mcp.adaptive-tuning.enabled` flag before any priority writes. Default must be `true`. |
 | **pgvector fallback** | `ToolRegistryServiceImpl` must have a non-vector fallback code path when `EmbeddingService.isAvailable()` returns `false`. |

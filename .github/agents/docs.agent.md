@@ -28,20 +28,19 @@ You are the backend contract documentation specialist.
 
 ### Documents to Create or Update
 
-**1. `pos-nlti/README.md`** (create new)
+**1. `pos-mcp-server/README.md`** (update existing)
 
 Must include:
-- Module purpose and domain (Positivity — NLTI capability).
-- Package structure (`com.positivity.nlti` root; `service/` as public API; `internal/` for everything else).
+- Module purpose and domain (Positivity — NLTI + MCP Tool Registry capability).
+- Package structure (`com.positivity.mcp` root; `service/` as public API; `internal/` for everything else).
 - API summary: all REST endpoints, HTTP methods, path, brief description.
 - Session and correlation model: how sessionId is issued/reused; how correlationId flows.
 - Request/response envelope: key fields of `RequestResponseV1`.
 - Audit trail: event chain shape (REQUEST → INTENT → PLAN → CONFIRMATION → EXECUTION).
 - Configuration properties reference (base URLs, rate-limit settings, audit policy).
 - Local run instructions: Maven wrapper command.
-- Testing instructions: `./mvnw -pl pos-nlti -DskipTests=false verify`.
-
-**2. `pos-mcp-server/README.md`** (update existing)
+- Testing instructions: `./mvnw -pl pos-mcp-server -DskipTests=false verify`.
+- Existing MCP chat/config prompt sections remain accurate after NLTI additions.
 
 Add or update these sections:
 - **Tool Registry Architecture**: role/workflow/intent gating + embedding-based resolution; data model table list (`mcp_tool`, `mcp_role`, etc.).
@@ -61,12 +60,12 @@ Add or update these sections:
   - Adaptive tuning runaway → disable toggle, reset priority to 0.5 default.
   - pgvector missing → non-vector fallback path engaged.
 
-**3. `pos-nlti/src/main/resources/application.yml`** (reference only — do not create; verify expected config keys exist in actual file per existing module patterns)
+**2. `pos-mcp-server/src/main/resources/application.yml`** (reference only — do not create; verify expected config keys exist in actual file per existing module patterns)
 
-**4. `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`** (existing — do NOT overwrite; only append if gaps are identified in the final delivery phase)
+**3. `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`** (existing — do NOT overwrite; only append if gaps are identified in the final delivery phase)
 
 ### Source of Truth for Contract Assertions
-- Prefer `pos-nlti/openapi.yaml` once generated (via `./mvnw -pl pos-nlti -am -Plocal integration-test`).
+- Prefer `pos-mcp-server/openapi.yaml` once generated (via `./mvnw -pl pos-mcp-server -am -Plocal integration-test`).
 - Fallback to controller annotation inspection and DTO classes.
 - Cross-reference with `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md` Section 4 (Technical Specifications) for API contracts.
 
