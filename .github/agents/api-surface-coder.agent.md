@@ -24,64 +24,45 @@ tools:
 
 You are responsible for the API contract layer in backend team-mode implementation.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
-Your file scope for this PRD is `pos-mcp-server` only.
+Your API-surface scope for this PRD is primarily `pos-security-service` with supporting config contract updates in `pos-api-gateway`.
 
-### NLTI API Surface (in pos-mcp-server)
+### pos-security-service API Surface
 
 **Controllers**
-- `internal/controller/NltController.java`
-  - `POST /v1/nlt/requests` — accept `RequestEnvelopeV1` (prompt, sessionId?, clientContext?); validate; return `RequestResponseV1` (200/202).
-  - `GET /v1/nlt/requests/{requestId}` — status polling.
-  - HTTP 400 + `{status:"ERROR", code:"VALIDATION_ERROR", correlationId, details[]}` on validation failure.
-  - HTTP 202 + `status:ACCEPTED` for async; `requestId` for polling.
-- `internal/controller/PlanController.java`
-  - `GET /v1/nlt/plans/{planId}` — return `PlanV1` with steps, riskLevel, requiresConfirmation, estimated impact.
-  - `POST /v1/nlt/plans/{planId}/confirm` — record userId, timestamp, confirmation token; session-scoped.
-- `internal/controller/AuditController.java`
-  - `GET /v1/nlt/audit?correlationId=&from=&to=&eventType=` — paginated, ordered.
-- `internal/controller/ToolRegistryController.java`
-  - `GET /v1/nlt/tools?service={domain}` — RBAC-filtered tool discovery; 503 if AuthZ unavailable (fail-closed).
+- `internal/controller/PermissionController.java`
+  - `GET /v1/permissions/catalog-version`:
+    - Response: `{ "version": 1, "permissionCount": 215 }`
+    - Informational endpoint (no auth requirement).
+  - `POST /v1/permissions/decode`:
+    - Request: `{ "perm_bits": "...", "perm_ver": 1 }`
+    - Response: `{ "permissions": ["workorder:create", "..."] }`
+    - Must require `security:permission:view` authority.
+    - Must include `@EmitEvent(id = "PERMISSION_DECODE_EXECUTE", apiVersion = "1")`.
 
 **DTOs**
-- `RequestEnvelopeV1` — `prompt` (required), `sessionId` (optional), `clientContext` (whitelisted fields only).
-- `RequestResponseV1` — `requestId`, `correlationId`, `sessionId`, `status` (ACCEPTED|COMPLETE|ERROR), `result`, `meta{durationMs, validationIssues[]}`.
-- `IntentV1` — `intentId`, `intentType` (QUERY|ACTION|UNKNOWN), `status` (READY|NEEDS_CLARIFICATION|PENDING_CLARIFICATION), `riskLevel` (LOW|MEDIUM|HIGH), `slots[]`, `clarificationQuestions[]`.
-- `PlanV1` — `planId`, `correlationId`, `intentId`, `riskLevel`, `requiresConfirmation`, `planSummaryText`, `preconditions[]`, `steps[]`.
-- `PlanStepV1` — `stepId`, `actionId`, `description`, `inputs`, `expectedOutcome`, `idempotencyKey`.
-- `ActionResultV1` — `status` (OK|ERROR|NOT_AUTHORIZED), `summaryText`, `details`.
-- `GuidanceResponseV1` — `guidanceTitle`, `steps[]`, `notes[]`, `supportedForExecution`, `estimatedRisk`.
-- `AuditEventV1` — `auditEventId`, `correlationId`, `eventType`, `timestamp`, `userId`, `payload` (redacted).
-- `ToolDescriptorV1` — `actionId`, `description`, `inputSchema`, `outputSchema`, `riskLevel`, `requiredPermissions[]`, `version`.
+- Decode request/response DTOs for `perm_bits` + `perm_ver` contract.
+- Catalog-version response DTO (or equivalent response contract type).
+- Validation annotations for non-empty Base64URL `perm_bits` and numeric `perm_ver`.
 
-**Service Interfaces** (`service/` — public module API)
-- `NltiRequestService`, `IntentParserService`, `PlanningService`, `ExecutionOrchestratorService`, `AuditLedgerService`.
+**Event and permission contract alignment**
+- Ensure event type registration includes decode event type.
+- Ensure permission contract needed for decode access is represented and documented.
 
-**Event Logging**
-- `@EmitEvent(id = "NLTI_REQUEST_CREATE", apiVersion = "1")` on `POST /v1/nlt/requests`.
-- `@EmitEvent(id = "NLTI_PLAN_CONFIRM", apiVersion = "1")` on `POST /v1/nlt/plans/{planId}/confirm`.
-- Register event types in `NltiEventTypes` and `NltiEventTypeInitializer` at startup.
-
-### pos-mcp-server (enhancement)
-
-**Controller**
-- `internal/controller/AdminController.java`
-  - `POST /v1/mcp/tools` — `@PreAuthorize("hasPermission(..., 'mcp:tool:write')")`
-  - `PUT /v1/mcp/tools/{id}` — `@PreAuthorize("hasPermission(..., 'mcp:tool:write')")`
-  - `DELETE /v1/mcp/tools/{id}` — `@PreAuthorize("hasPermission(..., 'mcp:tool:admin')")`
-  - CRUD endpoints for role/workflow/intent mappings — all guarded by `mcp:tool:write`.
-  - All state-changing endpoints carry `@EmitEvent`.
-- `src/main/resources/permissions.yaml` — add `mcp:tool:read`, `mcp:tool:write`, `mcp:tool:admin`.
-- `internal/config/McpEventTypes.java` + `McpEventTypeInitializer.java` — register all MCP admin events at startup.
+### pos-api-gateway Supporting Contract Surface
+- Ensure `application.yml` property documentation for rollout flags is present and accurate:
+  - `auth.token-identity-required`
+  - `auth.strip-inbound-identity-headers`
+  - `auth.reject-header-token-mismatch`
+- Keep API-facing behavior and error semantics aligned with ADR-0017 (401/403 boundaries).
 
 ### Validation Rules
-- `prompt`: required, non-blank, max 4000 chars.
-- `sessionId`: optional, valid UUID if present.
-- `clientContext`: whitelist known fields; reject unknown keys with 400.
-- Confirmation endpoint: validate `planId` exists and belongs to caller's session.
+- Decode endpoint must never accept raw JWT tokens; only extracted claim fields.
+- `perm_bits` must be treated as Base64URL payload (padded/unpadded accepted by backend codec rules).
+- `perm_ver` must be required and validated.
 
 ## Mission
 Create or update API-facing artifacts so story behavior is exposed through stable, validated, and documented REST contracts.

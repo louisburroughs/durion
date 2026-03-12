@@ -23,43 +23,46 @@ tools:
 
 You create plans. You do NOT write code.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
-When asked to plan NLTI or MCP Tool Registry work, use this story list as the authoritative scope. Apply the **per-story micro-cycle rule** (RED → GREEN → coverage per story before moving to next).
+When asked to plan PERM work, use this story list as the authoritative scope. Apply the **per-story micro-cycle rule** (RED → GREEN → coverage per story before moving to next) and enforce the Phase 1 contract gate before any later story.
 
 ### Stories in Phase Order
 
-**Phase 1 — Foundation**
-- NLTI-001: pos-mcp-server NLTI scaffold, `POST /v1/nlt/requests`, session management, correlation propagation, envelope DTOs.
-- NLTI-002: Intent parser (classification + slot extraction + clarification state machine), `IntentV1`.
-- NLTI-007: Append-only `AuditEvent` ledger, `GET /v1/nlt/audit`, idempotent durable writes.
-- NLTI-009: Micrometer metrics wired (`nlt.request.count`, `nlt.request.latency_ms`, `nlt.error.count`, `nlt.audit.write_failures`), OTel spans.
+**Phase 1 — Contract**
+- PERM-001: `PermissionCode` enum with 215 immutable indexes and `CATALOG_VERSION = 1`.
+- PERM-003: `PermissionBitsetCodec` encode/decode contract and round-trip behavior.
 
-**Phase 2 — Tool Registry + Planning**
-- NLTI-003: `GET /v1/nlt/tools` RBAC-filtered discovery, fail-closed on AuthZ outage.
-- NLTI-004: `PlanV1` generation from `IntentV1` (ordered steps, preconditions, idempotencyKey).
-- MCP-FR-1: pos-mcp-server data model (`mcp_tool`, `mcp_role`, `mcp_tool_role`, `mcp_workflow_state`, `mcp_tool_workflow`, `mcp_intent`, `mcp_intent_tool`, `mcp_tool_invocation_log`); role sync from security-service.
-- MCP-FR-2: `EmbeddingService` interface + OpenAI provider + safe degraded fallback.
-- MCP-FR-3: `ToolRegistryService.resolveCandidateTools` (role/workflow/intent prefilter → embed → top-K → deterministic scorer → top 3–5).
-- MCP-FR-4: Session-store workflow state integration (default IDLE, fail safe).
+**Phase 2 — Issuance**
+- PERM-002: `Permission.bitIndex` column + migration/backfill.
+- PERM-004: JWT issuance switched to `perm_bits` + `perm_ver`, with backward-compatible decode path.
 
-**Phase 3 — Safe Execution**
-- NLTI-005: Execution orchestrator (sequential steps, idempotency, exponential backoff, partial failure).
-- NLTI-006: Confirmation gate (`POST /v1/nlt/plans/{planId}/confirm`), HIGH-risk blocking, session-scoped tokens.
-- NLTI-008: `WorkorderToolAdapter` (listCompletedWorkOrders, closeWorkOrder, dailySummary), `AccountingToolAdapter` (listUnpaidInvoices, reprocessPayment); `ActionResultV1`.
-- MCP-FR-5: `ToolAuditService` invocation log; `ToolPriorityTuningService` (daily, 7-day rolling, adaptive default-on, toggle).
+**Phase 3 — Catalog**
+- PERM-005: catalog version endpoint + decode diagnostic endpoint + startup catalog validation.
 
-**Phase 4 — Guidance + Admin**
-- NLTI-010: `GuidanceResponseV1` (how-to detection, steps, convert-to-plan → `PlanV1`).
-- MCP-FR-6: Admin/write API endpoints for tools, role/workflow/intent mappings, RBAC guards, `@EmitEvent`, `permissions.yaml` entries.
+**Phase 4 — Gateway**
+- PERM-006: local JWT validation in gateway (no security-service request-path calls).
+- PERM-007: bitset decode and authority mapping via static gateway catalog.
+
+**Phase 5 — Hardening**
+- PERM-008: strip inbound identity headers and regenerate from verified claims only.
+
+**Phase 6 — Rollout Controls**
+- PERM-009: feature flags and configuration wiring for staged rollout.
+
+**Phase 7 — Observability**
+- PERM-010: auth counters and structured warning logs for failure modes.
+
+**Phase 8 — Regression**
+- PERM-011: full security regression suite including spoofing, version mismatch, and malformed bitset paths.
 
 ### Key Planning Notes
-- `pos-mcp-server` is the only target module for NLTI + MCP work; do not plan any new module scaffold.
-- PostgreSQL pgvector extension must be enabled; include verification step in plan.
-- ArchUnit tests for `pos-mcp-server` must be created/verified as part of Phase 1 coverage.
-- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/nlti-mcp-tool-registry`.
+- Target modules are `pos-security-service` and `pos-api-gateway`; no new module scaffold is allowed.
+- Contract gate is mandatory: PERM-001 and PERM-003 must be fully complete before PERM-002 or later.
+- Plan explicit rollout-order validation for feature flags before final cleanup/removal work.
+- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/perm-permissions-encoding`.
 
 ## Objective (Non-Negotiable)
 Your objective is ALWAYS to drive toward creation of a single PR in `durion-positivity-backend` containing completed stories and verification evidence.

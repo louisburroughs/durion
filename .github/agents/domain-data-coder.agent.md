@@ -27,98 +27,77 @@ tools:
 
 You are responsible for domain logic and persistence implementation in backend team-mode delivery.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
-Your file scope for this PRD is a single module: `pos-mcp-server`.
+Your file scope for this PRD spans two modules: `pos-security-service` and `pos-api-gateway`.
 
-### NLTI Entities and Repositories (in pos-mcp-server)
+### pos-security-service Domain and Persistence Scope
 
-```
-internal/entity/
-  NltiRequestEntity      — id (UUIDv7), correlationId, sessionId, userId, promptHash, status (enum), createdAt, updatedAt
-  IntentEntity           — id (UUIDv7), requestId (FK), intentType, status, riskLevel, slotsJson, createdAt
-  PlanEntity             — id (UUIDv7), correlationId, intentId (FK), riskLevel, requiresConfirmation, planSummaryText, createdAt
-  PlanStepEntity         — id (UUIDv7), planId (FK), stepOrder, actionId, description, inputsJson, expectedOutcome, idempotencyKey
-  ConfirmationEntity     — id (UUIDv7), planId (FK), userId, sessionId, token (hashed), confirmedAt, expiresAt
-  AuditEventEntity       — id (UUIDv7), correlationId, eventType (enum), timestamp, userId, payloadRef, createdAt
-  SessionEntity          — id (UUIDv7), userId, createdAt, expiresAt — minimal session metadata only
+**PERM-001: `PermissionCode` contract**
+- Create `internal/enums/PermissionCode.java` with all 215 permissions mapped to immutable bit indexes `0..214`.
+- Include `CATALOG_VERSION = 1`, `bitIndex()`, `code()`, and `fromCode(String)` lookup.
+- Retired entries must be marked deprecated, never deleted/reused.
 
-internal/repository/
-  NltiRequestRepository, IntentRepository, PlanRepository, PlanStepRepository,
-  ConfirmationRepository, AuditEventRepository, SessionRepository
-```
+**PERM-002: Permission bit index persistence**
+- Update `internal/entity/Permission.java` with `Integer bitIndex` mapped to `bit_index`.
+- Add Flyway migration `V{N}__add_permission_bit_index.sql`.
+- Populate `bit_index` from `PermissionCode` mapping for existing rows.
+- Unknown permission names must be surfaced as warnings and excluded from encoding path.
 
-### NLTI Service Implementations (in pos-mcp-server)
+**PERM-003: Bitset codec**
+- Implement `internal/domain/PermissionBitsetCodec.java`:
+  - `encode(Set<PermissionCode>)`
+  - `decode(String)`
+  - `decodeToPermissions(String, int permVer)`
+  - `hasPermission(String, PermissionCode)`
+- Base64URL no-padding encode; decode accepts padded/unpadded input.
 
-- `NltiRequestServiceImpl` — validate envelope; create/reuse session; generate correlationId if absent; persist NltiRequestEntity; dispatch to IntentParserService.
-- `IntentParserServiceImpl` — classify intent (QUERY|ACTION|UNKNOWN) with confidence; extract slots with per-slot confidence; classify risk; transition clarification state machine:
-  - NEEDS_CLARIFICATION → PENDING_CLARIFICATION → READY.
-  - Store pending clarification state per session.
-- `PlanningServiceImpl` — take READY IntentV1; call ToolRegistryService for authorized tools; produce deterministic PlanV1 with ordered steps, preconditions, idempotencyKey per step.
-  - Determinism: same IntentV1 → semantically equivalent PlanV1 (stable UUIDs or canonical derivation).
-  - Missing/unauthorized tool → structured error (NOT_AUTHORIZED or TOOL_UNAVAILABLE) with correlationId.
-- `ExecutionOrchestratorServiceImpl` — execute plan steps in order; enforce idempotency via idempotencyKey lookup before each step; exponential backoff retries for transient errors (configurable max attempts); partial failure handling → PARTIAL_FAILURE/FAILED status with failed step details.
-- `AuditLedgerServiceImpl` — append-only writes; payload stored as hash/redacted; oversized payloads stored by blob reference; writes durable and idempotent; audit write failure above threshold blocks destructive execution.
+**PERM-004: JWT issuance/decode updates**
+- Update `internal/service/JwtServiceImpl.java` to issue `perm_bits`, `perm_ver`, `uid`, `username`.
+- Remove `roles` and `authorities` list claims from access token.
+- Keep backward-compat decoding in `getAuthoritiesFromToken()` for legacy tokens.
 
-### NLTI Enums (in pos-mcp-server)
+**PERM-005: Catalog versioning service**
+- Extend/implement registry services with:
+  - `getCurrentCatalogVersion()`
+  - `resolveByName(String permissionName)`
+- Add startup validation for unresolved/null bit indexes.
+- Add service support for decode endpoint and catalog-version endpoint behavior.
 
-```
-internal/enums/
-  IntentType          (QUERY, ACTION, UNKNOWN)
-  IntentStatus        (READY, NEEDS_CLARIFICATION, PENDING_CLARIFICATION, CANCELLED)
-  RiskLevel           (LOW, MEDIUM, HIGH)
-  ExecutionStatus     (PENDING, IN_PROGRESS, COMPLETE, PARTIAL_FAILURE, FAILED)
-  AuditEventType      (REQUEST, INTENT, PLAN, CONFIRMATION, EXECUTION_STEP_COMPLETED, EXECUTION_STEP_FAILED)
-  NltiRequestStatus   (ACCEPTED, COMPLETE, ERROR)
-```
+### pos-api-gateway Domain Scope
 
-### MCP Registry Entities and Repositories (pos-mcp-server)
+**PERM-006: Local JWT validation**
+- Refactor `internal/config/SecurityGatewayConfig.java` to validate JWT signature locally.
+- Remove request-path dependency on security-service auth endpoints and WebClient auth calls.
 
-```
-internal/entity/
-  McpToolEntity            — id (UUIDv7), name (unique), displayName, description, domain, priority (double), costLevel, avgLatencyMs, enabled, handlerBean, embedding (pgvector float[]), createdAt, updatedAt
-  McpRoleEntity            — id (UUIDv7), name (unique, mirrors security-service role codes), createdAt
-  McpToolRoleEntity        — id, toolId (FK), roleId (FK) — M:M
-  McpWorkflowStateEntity   — id (UUIDv7), name (unique: IDLE, CREATING_PO, RECEIVING_ASN, INVENTORY_RECON, ...), createdAt
-  McpToolWorkflowEntity    — id, toolId (FK), workflowStateId (FK) — M:M
-  McpIntentEntity          — id (UUIDv7), intentCode (unique), description, createdAt
-  McpIntentToolEntity      — id, intentId (FK), toolId (FK) — M:M
-  McpToolInvocationLogEntity — id (UUIDv7), toolId (FK), userId, sessionId, intent, workflowState, semanticRank, finalScore, selected, success, fallbackInvoked, executionTimeMs, errorType, createdAt
+**PERM-007: Bitset decode and authority mapping**
+- Add `internal/config/GatewayPermissionCatalog.java` static bit-index mapping aligned to `PermissionCode`.
+- Decode `perm_bits` locally and map set bits to `PERM_{domain}:{resource}:{action}` authorities.
+- Reject unknown `perm_ver`.
 
-internal/repository/
-  McpToolRepository           — findEnabledByRoleAndWorkflow(role, workflowState), findTopKByEmbedding(float[], limit)
-  McpRoleRepository           — findByName(String)
-  McpWorkflowStateRepository  — findByName(String)
-  McpIntentRepository, McpToolInvocationLogRepository
-```
+**PERM-008: Header trust boundary hardening**
+- Strip inbound `X-User`, `X-User-Id`, `X-Authorities`, `X-Roles` for all requests (including public paths).
+- Generate downstream identity headers strictly from verified token claims.
 
-### pos-mcp-server Service Implementations
+**PERM-009: Feature-flagged rollout controls**
+- Implement `GatewayAuthProperties` (`@ConfigurationProperties(prefix = "auth")`) and wire into gateway behavior.
+- Ensure defaults:
+  - `auth.token-identity-required=false`
+  - `auth.strip-inbound-identity-headers=true`
+  - `auth.reject-header-token-mismatch=false`
 
-- `ToolRegistryServiceImpl` — `resolveCandidateTools(ToolSelectionContext, topK)`:
-  1. Pre-filter by role + workflowState + intent.
-  2. Embed userInput via EmbeddingService.
-  3. pgvector top-K from pre-filtered set.
-  4. Score: `(semRankInverse * 0.5) + (priority * 0.3) - (normLatency * 0.15) - (costWeight * 0.05)`.
-  5. Return top 3–5 in deterministic stable order.
-  - Non-vector fallback: role/workflow/intent filter + priority sort when embedding unavailable.
-- `ToolAuditServiceImpl` — log every invocation immediately after tool call; never throw on log failure but emit metric `nlt.mcp.audit.log_failure`.
-- `ToolPriorityTuningService` — daily `@Scheduled`; 7-day rolling window; min 10 samples; formula:
-  ```
-  perfScore = (successRate * 0.6) + ((1 - normLatency) * 0.3) - (fallbackRate * 0.2)
-  normLatency = min(avgLatencyMs / 2000.0, 1.0)
-  newPriority = clamp(oldPriority * 0.7 + perfScore * 0.3, 0.1, 1.0)
-  ```
-  - Enabled by default; `pos.mcp.adaptive-tuning.enabled=false` disables.
-  - Skip tools below sample floor; exclude outlier latency (> 3× p99).
+**PERM-010: Auth observability**
+- Add Micrometer counters for token validation/decode/catalog/claim/header-strip paths.
+- Emit structured WARN logs with `path`, `reason`, `jti` only (no token, no `perm_bits`, no PII).
 
 ### Critical Invariants
-- `promptHash`: SHA-256 of raw prompt — never store raw text in any entity or log.
-- `ConfirmationEntity.token`: store as hashed value; compare hash at validation time.
-- `NltiRequestEntity` idempotency: re-submitted `executionId` returns existing result without new mutations.
-- `AuditEventEntity` is append-only: no UPDATE/DELETE ever on this table.
-- `mcp_role` entries validated against security-service sync list at startup; unknown role → no tools returned.
+- `PermissionCode` index mapping is append-only and immutable.
+- Gateway request-path auth must perform zero network I/O to security-service.
+- Unknown `perm_ver` and malformed `perm_bits` must fail closed (401).
+- Identity headers reaching downstream must always be gateway-generated from verified JWT claims.
+- Keep downstream service contracts unchanged; no direct changes required outside gateway/security-service.
 
 ## Mission
 Implement production behavior in service implementations and persistence layers to satisfy story acceptance criteria without weakening tests or architectural boundaries.

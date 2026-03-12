@@ -29,94 +29,91 @@ tools:
 You are the TDD Agent for backend story implementation in `durion-positivity-backend`.
 Your primary job is to author tests first, prove RED, and hand off objective evidence for GREEN implementation.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
 ### Modules Under Test
-- `pos-mcp-server` (existing module — all NLTI + MCP story tests run here; ArchUnit tests must remain passing after all changes)
+- `pos-security-service`
+- `pos-api-gateway`
 
 ### Test Scope by Story
 
-**NLTI-001 — Foundation**
-- `NltiRequestServiceImpl`: session creation, correlationId propagation, duplicate session reuse.
-- `NltController`: 200/202 with required response fields; 400 on missing prompt with structured error; `X-Correlation-Id` echo.
-- Rate-limit enforcement unit tests.
+**PERM-001 — PermissionCode catalog contract**
+- `PermissionCodeTest`: 215 entries, unique bit indexes, unique permission codes, `fromCode` round-trip, `CATALOG_VERSION = 1`.
 
-**NLTI-002 — Intent Model**
-- `IntentParserServiceImpl`: classify QUERY/ACTION with confidence; slot extraction with per-slot confidence.
-- Clarification state machine: NEEDS_CLARIFICATION → PENDING_CLARIFICATION → READY transition.
-- Risk detection: bulk/destructive intents flagged HIGH.
-- Benchmark utterance tests: at minimum 20 sample utterances covering key POS domains (workorders, invoices, inventory); assert correct intentType and riskLevel.
+**PERM-002 — Permission bit index persistence**
+- `Permission` entity mapping test for `bit_index`.
+- Migration integration test: seeded permissions resolve to non-null `bit_index` when mapped.
+- Unknown permissions handled per contract (warn + excluded behavior path).
 
-**NLTI-003 — Tool Registry RBAC**
-- `ToolRegistryController` (via `pos-mcp-server`): discovery filtered by authenticated subject's permissions.
-- Fail-closed: when AuthZClient throws, endpoint returns 503 with correlationId.
-- Unauthorized invocation: returns NOT_AUTHORIZED; downstream not called.
+**PERM-003 — PermissionBitsetCodec**
+- `PermissionBitsetCodecTest`: round-trip for empty/single/all permissions.
+- Base64URL padded/unpadded decode support.
+- Malformed Base64 input throws expected exception type.
 
-**NLTI-004 — Planning Engine**
-- `PlanningServiceImpl`: READY intent → PlanV1 with steps and preconditions.
-- Determinism: same input → same PlanV1 (idempotent IDs or canonical derivation).
-- Missing/unauthorized tool → structured error with correlationId.
+**PERM-004 — JWT issuance updates**
+- `JwtServiceImplTest`:
+  - access token contains `perm_bits`, `perm_ver`, `uid`, `username`
+  - access token excludes `roles` and `authorities` list claims
+  - backward-compatible `getAuthoritiesFromToken()` for legacy token format
+  - token-size target assertion (< 600 bytes for representative permission volume)
 
-**NLTI-005 — Execution Orchestrator**
-- `ExecutionOrchestratorServiceImpl`: steps execute in declared order; completed steps recorded.
-- Idempotency: same `executionId` returns existing result without new mutations.
-- Retry: transient failure triggers backoff retries up to max attempts; permanent failure → FAILED.
-- Partial failure: PARTIAL_FAILURE status with failed step details.
+**PERM-005 — Catalog version + decode diagnostics**
+- `PermissionControllerTest` for:
+  - `GET /v1/permissions/catalog-version` payload
+  - `POST /v1/permissions/decode` auth and response behavior
+- Service test coverage for startup validation warnings and version resolution.
 
-**NLTI-006 — Confirmation Gate**
-- `ConfirmationEntity` persistence: token stored hashed.
-- HIGH-risk plan blocked without valid confirmation record.
-- Cross-user confirmation rejection: HTTP 403 + audit log entry.
-- Expired token: plan returns to pre-confirmation state.
+**PERM-006 — Gateway local JWT validation**
+- `SecurityGatewayConfigTest` validates local signature verification and 401 behavior.
+- Explicit no-network-path test (security-service offline/unreachable, valid token still accepted).
 
-**NLTI-007 — Audit Ledger**
-- `AuditLedgerServiceImpl`: append-only writes (no UPDATE/DELETE on audit table).
-- Complete event chain: REQUEST → INTENT → PLAN → EXECUTION steps linkable by correlationId.
-- Sensitive data: raw prompt never persisted; only hash or redacted form.
-- Writing failure: `nlt.audit.write_failures` metric incremented; destructive execution blocked.
+**PERM-007 — Gateway bitset decode and authority mapping**
+- Token with specific `perm_bits` yields exact `PERM_*` authorities downstream.
+- Unknown `perm_ver` rejected with 401.
+- Malformed `perm_bits` rejected with 401.
 
-**NLTI-008 — Domain Adapters**
-- `WorkorderToolAdapter`: validate() rejects missing inputs with ERROR; closeWorkOrder unauthorized → NOT_AUTHORIZED without downstream call.
-- `AccountingToolAdapter`: reprocessPayment blocked without `mcp:accounting:reprocess` permission.
-- Idempotency: repeat call with same `idempotencyKey` returns same result.
-- Contract tests for each action: valid input → OK summaryText; invalid → ERROR details.
+**PERM-008 — Header trust boundary hardening**
+- Spoofed inbound `X-Authorities`, `X-User`, `X-User-Id`, `X-Roles` are stripped.
+- Downstream receives only token-derived identity headers.
+- Public-path request still strips inbound identity headers.
 
-**NLTI-009 — Observability**
-- `nlt.request.count`, `nlt.request.latency_ms`, `nlt.planning.latency_ms`, `nlt.execution.latency_ms`, `nlt.error.count`, `nlt.audit.write_failures` registered in Micrometer context.
-- OTel span attributes: `correlationId`, `requestId`, `userId` present in spans.
+**PERM-009 — Feature flags**
+- Independent tests for:
+  - `auth.token-identity-required`
+  - `auth.strip-inbound-identity-headers`
+  - `auth.reject-header-token-mismatch`
+- Verify default values and toggled behavior paths.
 
-**NLTI-010 — Guidance Mode**
-- How-to phrase detection → GuidanceResponseV1 with numbered steps.
-- Convert-to-plan: `supportedForExecution=true` workflows produce deterministic PlanV1.
-- Permission-gated steps omitted; access-request guidance included.
+**PERM-010 — Observability**
+- Counter increment tests for each auth failure path:
+  - `auth.token.validation.failure`
+  - `auth.perm.decode.failure`
+  - `auth.perm.catalog.version.unknown`
+  - `auth.user.identity.missing`
+  - `auth.header.strip.count`
+- Structured WARN log assertions for `path`, `reason`, `jti` (without token/PII leakage).
 
-**MCP-FR-1 through FR-6 (pos-mcp-server)**
-- Repository tests: `McpToolRepository.findEnabledByRoleAndWorkflow` filters to correct role+workflow set.
-- Repository tests: pgvector top-K returns nearest-neighbor results; deterministic fallback returns priority-sorted list.
-- Role sync: unknown role (not in security-service catalog) → no tools returned (fail closed).
-- `ToolRegistryServiceImpl`: pre-filter + embed + top-K + score → returns exactly 3–5 candidates.
-- `ToolPriorityTuningService`: 
-  - Sample floor: tools with < 10 samples skip tuning.
-  - Adaptive tuning enabled by default.
-  - `pos.mcp.adaptive-tuning.enabled=false` disables tuning; priority unchanged.
-- Admin API RBAC: `mcp:tool:write` required for create/update; `mcp:tool:admin` for delete; missing permission → 403.
-- ArchUnit for pos-mcp-server: internal packages still not accessible from external modules after all changes.
+**PERM-011 — Security regression suite**
+- End-to-end gateway security matrix across success/failure scenarios in PRD.
+- ArchUnit/static-architecture guard ensuring gateway auth path does not depend on WebClient for security-service auth calls.
 
-### ArchUnit Test Class (pos-mcp-server)
-
-Create `pos-mcp-server/src/test/java/com/positivity/mcp/ArchitectureTest.java` with rules:
-- Internal packages (`com.positivity.mcp.internal..`) not accessed by other modules.
-- Controllers must not access repositories directly (must go through service layer).
-- Service layer interfaces (`com.positivity.mcp.service..`) are the only public API.
+### ArchUnit / Architecture Test Expectations
+- Keep module architecture tests passing for `pos-security-service` and `pos-api-gateway`.
+- Enforce controller -> service layering and internal encapsulation rules.
 
 ### Test Commands (Standard)
 ```bash
-# pos-mcp-server focused (NLTI + MCP stories)
 cd /home/louisb/Projects/durion-positivity-backend
-./mvnw -pl pos-mcp-server -DskipTests=false test
-./mvnw -pl pos-mcp-server -DskipTests=false verify
+
+# security-service PERM stories
+./mvnw -pl pos-security-service -DskipTests=false test
+./mvnw -pl pos-security-service -DskipTests=false verify
+
+# gateway PERM stories
+./mvnw -pl pos-api-gateway -DskipTests=false test
+./mvnw -pl pos-api-gateway -DskipTests=false verify
 ```
 
 ## Authority and Alignment
