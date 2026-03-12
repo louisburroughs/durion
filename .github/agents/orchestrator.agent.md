@@ -31,9 +31,8 @@ You act as a TASKMASTER: every delegated result must be validated against the as
 
 **PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
 
-The current project is the Natural Language Task Interface (NLTI) + MCP Tool Registry. This PRD defines 10 backend stories plus the MCP server enhancement, all delivering to two modules:
-- **`pos-nlti`** (new module): API envelope, intent parsing, planning, execution, audit ledger, guidance mode.
-- **`pos-mcp-server`** (enhanced existing module): tool registry, RBAC filtering, embedding-based resolution, adaptive priority tuning, admin APIs.
+The current project is the Natural Language Task Interface (NLTI) + MCP Tool Registry. This PRD defines 10 backend stories plus MCP server enhancement, all delivered inside:
+- **`pos-mcp-server`** (enhanced existing module): NLTI API envelope/intent/planning/execution/audit/guidance plus tool registry, RBAC filtering, embedding-based resolution, adaptive priority tuning, and admin APIs.
 
 ### Delivery Phases (in order)
 
@@ -50,14 +49,14 @@ The current project is the Natural Language Task Interface (NLTI) + MCP Tool Reg
 |-------|-------------------|
 | Lead Coder | Decompose each story; produce artifact-level instruction cards per phase |
 | API Surface Coder | NltController, ToolRegistryController, PlanController, AuditController, MCP AdminController; all *V1 DTO records; @EmitEvent; permissions.yaml entries |
-| Domain Data Coder | pos-nlti entities (NltiRequest, Intent, Plan, PlanStep, Confirmation, AuditEvent, Session); pos-mcp-server entities (McpTool, McpRole, McpToolRole, McpWorkflowState, McpToolWorkflow, McpIntent, McpIntentTool, McpToolInvocationLog); all service implementations; ToolRegistryServiceImpl; ToolAuditServiceImpl; ToolPriorityTuningService |
-| Client Coder | ToolRegistryClient; AuthZClient (fail-closed); WorkorderToolAdapter; AccountingToolAdapter; EmbeddingServiceImpl (OpenAI provider + strategy interface) |
-| Backend Testing Agent | ArchUnit tests for pos-nlti; intent parser benchmark utterance tests; adapter contract tests; clarification/confirmation flow integration tests; registry RBAC + embedding fallback tests; end-to-end audit chain completeness; adaptive tuning toggle tests |
-| Documentation Agent | pos-nlti/README.md (new); update pos-mcp-server/README.md with registry architecture, config reference, seeding runbook |
+| Domain Data Coder | pos-mcp-server NLTI entities (NltiRequest, Intent, Plan, PlanStep, Confirmation, AuditEvent, Session) + MCP entities (McpTool, McpRole, McpToolRole, McpWorkflowState, McpToolWorkflow, McpIntent, McpIntentTool, McpToolInvocationLog); all service implementations; ToolRegistryServiceImpl; ToolAuditServiceImpl; ToolPriorityTuningService |
+| Client Coder | AuthZClient (fail-closed); WorkorderToolAdapter; AccountingToolAdapter; EmbeddingServiceImpl (OpenAI provider + strategy interface) |
+| Backend Testing Agent | ArchUnit tests for pos-mcp-server; intent parser benchmark utterance tests; adapter contract tests; clarification/confirmation flow integration tests; registry RBAC + embedding fallback tests; end-to-end audit chain completeness; adaptive tuning toggle tests |
+| Documentation Agent | Update pos-mcp-server/README.md with NLTI + registry architecture, config reference, seeding runbook |
 
 ### Key Contracts (always enforce in delegation)
 
-- All new code: `com.positivity.nlti.internal.**` (except @SpringBootApplication root and service interfaces).
+- All new code: `com.positivity.mcp.internal.**` (except `@SpringBootApplication` root and service interfaces).
 - NLTI response always includes: `requestId`, `correlationId`, `sessionId`, `status`.
 - Raw prompts NEVER stored in plaintext — SHA-256 hash or redacted form only.
 - AuthZ and session-store failures: always fail-closed (HTTP 503), never open.

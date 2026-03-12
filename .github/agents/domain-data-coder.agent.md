@@ -31,9 +31,9 @@ You are responsible for domain logic and persistence implementation in backend t
 
 **PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
 
-Your file scope for this PRD spans two modules.
+Your file scope for this PRD is a single module: `pos-mcp-server`.
 
-### pos-nlti Entities and Repositories
+### NLTI Entities and Repositories (in pos-mcp-server)
 
 ```
 internal/entity/
@@ -50,19 +50,19 @@ internal/repository/
   ConfirmationRepository, AuditEventRepository, SessionRepository
 ```
 
-### pos-nlti Service Implementations
+### NLTI Service Implementations (in pos-mcp-server)
 
 - `NltiRequestServiceImpl` — validate envelope; create/reuse session; generate correlationId if absent; persist NltiRequestEntity; dispatch to IntentParserService.
 - `IntentParserServiceImpl` — classify intent (QUERY|ACTION|UNKNOWN) with confidence; extract slots with per-slot confidence; classify risk; transition clarification state machine:
   - NEEDS_CLARIFICATION → PENDING_CLARIFICATION → READY.
   - Store pending clarification state per session.
-- `PlanningServiceImpl` — take READY IntentV1; call ToolRegistryClient for authorized tools; produce deterministic PlanV1 with ordered steps, preconditions, idempotencyKey per step.
+- `PlanningServiceImpl` — take READY IntentV1; call ToolRegistryService for authorized tools; produce deterministic PlanV1 with ordered steps, preconditions, idempotencyKey per step.
   - Determinism: same IntentV1 → semantically equivalent PlanV1 (stable UUIDs or canonical derivation).
   - Missing/unauthorized tool → structured error (NOT_AUTHORIZED or TOOL_UNAVAILABLE) with correlationId.
 - `ExecutionOrchestratorServiceImpl` — execute plan steps in order; enforce idempotency via idempotencyKey lookup before each step; exponential backoff retries for transient errors (configurable max attempts); partial failure handling → PARTIAL_FAILURE/FAILED status with failed step details.
 - `AuditLedgerServiceImpl` — append-only writes; payload stored as hash/redacted; oversized payloads stored by blob reference; writes durable and idempotent; audit write failure above threshold blocks destructive execution.
 
-### pos-nlti Enums
+### NLTI Enums (in pos-mcp-server)
 
 ```
 internal/enums/
@@ -74,7 +74,7 @@ internal/enums/
   NltiRequestStatus   (ACCEPTED, COMPLETE, ERROR)
 ```
 
-### pos-mcp-server Entities and Repositories
+### MCP Registry Entities and Repositories (pos-mcp-server)
 
 ```
 internal/entity/

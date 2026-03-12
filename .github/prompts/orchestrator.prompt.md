@@ -51,14 +51,14 @@ Reject and return to Planner unless:
 - Plan includes exact labels `Step 1:` and `Final Step:`.
 - Step 1 is source-material reading.
 - Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`.
-- Orchestrator invokes `durion/.github/hooks/plan-acceptance-hook.sh --plan-file /home/louisb/Projects/durion/Durion-Processing.md` and receives PASS.
+- Orchestrator invokes `durion/.github/hooks/plan-acceptance-hook.sh --plan-file $WORKSPACE/durion/Durion-Processing.md` and receives PASS.
 
 ## Delegation Templates
 
 ### Plan Acceptance (Plan-Acceptance Hook)
 - Immediately after Planner returns, Orchestrator MUST invoke `durion/.github/hooks/plan-acceptance-hook.sh`.
 - Required args:
-  - `--plan-file /home/louisb/Projects/durion/Durion-Processing.md`
+  - `--plan-file $WORKSPACE/durion/Durion-Processing.md`
 - Hook output MUST include explicit PASS evidence before branch setup begins.
 
 ### Branch Setup (Branch Hook)
@@ -139,9 +139,9 @@ Lead Coder team-mode rule:
   - Full-module run (no `--test` / `--it-test`): auto-enables `-DlowResourceTests=true`
   - Targeted single test/class run (`--test` / `--it-test`): low-resource mode is not required
 - Example full-module run:
-  - `durion/.github/hooks/test-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module pos-order --goal test --also-make`
+  - `durion/.github/hooks/test-run-hook.sh --repo $WORKSPACE/durion-positivity-backend --module pos-order --goal test --also-make`
 - Example single-class run:
-  - `durion/.github/hooks/test-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module pos-order --goal test --test PriceOverrideServiceTest`
+  - `durion/.github/hooks/test-run-hook.sh --repo $WORKSPACE/durion-positivity-backend --module pos-order --goal test --test PriceOverrideServiceTest`
 
 ### F) Module Verification (Verify Hook)
 - Prereq: story loops completed (RED/GREEN/review/coverage for all in-scope stories).
@@ -181,14 +181,14 @@ Example invocation:
 
 ```bash
 durion/.github/hooks/plan-acceptance-hook.sh \
-  --plan-file /home/louisb/Projects/durion/Durion-Processing.md
+  --plan-file $WORKSPACE/durion/Durion-Processing.md
 ```
 
 Branch hook example:
 
 ```bash
 durion/.github/hooks/create-branch-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo $WORKSPACE/durion-positivity-backend \
   --base main \
   --branch chore/cap-142
 ```
@@ -197,7 +197,7 @@ Module-verify hook example:
 
 ```bash
 durion/.github/hooks/module-verify-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo $WORKSPACE/durion-positivity-backend \
   --modules pos-workorder,pos-invoice
 ```
 
@@ -205,12 +205,12 @@ Pull-request hook example:
 
 ```bash
 durion/.github/hooks/pull-request-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo $WORKSPACE/durion-positivity-backend \
   --story CAP-142 \
   --base main \
   --head chore/cap-142 \
   --title "cap/142 feat(workorder): dashboard availability workflow" \
-  --body-file /home/louisb/Projects/durion/.tmp/pr-body-cap-142.md
+  --body-file $WORKSPACE/durion/.tmp/pr-body-cap-142.md
 ```
 
 ## Runtime Context Rules

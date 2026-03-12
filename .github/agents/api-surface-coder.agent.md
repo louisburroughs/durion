@@ -28,23 +28,23 @@ You are responsible for the API contract layer in backend team-mode implementati
 
 **PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
 
-Your file scope for this PRD spans two modules:
+Your file scope for this PRD is `pos-mcp-server` only.
 
-### pos-nlti (new module)
+### NLTI API Surface (in pos-mcp-server)
 
 **Controllers**
 - `internal/controller/NltController.java`
-  - `POST /nlt/v1/requests` — accept `RequestEnvelopeV1` (prompt, sessionId?, clientContext?); validate; return `RequestResponseV1` (200/202).
-  - `GET /nlt/v1/requests/{requestId}` — status polling.
+  - `POST /v1/nlt/requests` — accept `RequestEnvelopeV1` (prompt, sessionId?, clientContext?); validate; return `RequestResponseV1` (200/202).
+  - `GET /v1/nlt/requests/{requestId}` — status polling.
   - HTTP 400 + `{status:"ERROR", code:"VALIDATION_ERROR", correlationId, details[]}` on validation failure.
   - HTTP 202 + `status:ACCEPTED` for async; `requestId` for polling.
 - `internal/controller/PlanController.java`
-  - `GET /nlt/v1/plans/{planId}` — return `PlanV1` with steps, riskLevel, requiresConfirmation, estimated impact.
-  - `POST /nlt/v1/plans/{planId}/confirm` — record userId, timestamp, confirmation token; session-scoped.
+  - `GET /v1/nlt/plans/{planId}` — return `PlanV1` with steps, riskLevel, requiresConfirmation, estimated impact.
+  - `POST /v1/nlt/plans/{planId}/confirm` — record userId, timestamp, confirmation token; session-scoped.
 - `internal/controller/AuditController.java`
-  - `GET /nlt/v1/audit?correlationId=&from=&to=&eventType=` — paginated, ordered.
+  - `GET /v1/nlt/audit?correlationId=&from=&to=&eventType=` — paginated, ordered.
 - `internal/controller/ToolRegistryController.java`
-  - `GET /nlt/v1/tools?service={domain}` — RBAC-filtered tool discovery; 503 if AuthZ unavailable (fail-closed).
+  - `GET /v1/nlt/tools?service={domain}` — RBAC-filtered tool discovery; 503 if AuthZ unavailable (fail-closed).
 
 **DTOs**
 - `RequestEnvelopeV1` — `prompt` (required), `sessionId` (optional), `clientContext` (whitelisted fields only).
@@ -61,17 +61,17 @@ Your file scope for this PRD spans two modules:
 - `NltiRequestService`, `IntentParserService`, `PlanningService`, `ExecutionOrchestratorService`, `AuditLedgerService`.
 
 **Event Logging**
-- `@EmitEvent(id = "NLTI_REQUEST_CREATE", apiVersion = "1")` on `POST /nlt/v1/requests`.
-- `@EmitEvent(id = "NLTI_PLAN_CONFIRM", apiVersion = "1")` on `POST /nlt/v1/plans/{planId}/confirm`.
+- `@EmitEvent(id = "NLTI_REQUEST_CREATE", apiVersion = "1")` on `POST /v1/nlt/requests`.
+- `@EmitEvent(id = "NLTI_PLAN_CONFIRM", apiVersion = "1")` on `POST /v1/nlt/plans/{planId}/confirm`.
 - Register event types in `NltiEventTypes` and `NltiEventTypeInitializer` at startup.
 
 ### pos-mcp-server (enhancement)
 
 **Controller**
 - `internal/controller/AdminController.java`
-  - `POST /mcp/v1/tools` — `@PreAuthorize("hasPermission(..., 'mcp:tool:write')")`
-  - `PUT /mcp/v1/tools/{id}` — `@PreAuthorize("hasPermission(..., 'mcp:tool:write')")`
-  - `DELETE /mcp/v1/tools/{id}` — `@PreAuthorize("hasPermission(..., 'mcp:tool:admin')")`
+  - `POST /v1/mcp/tools` — `@PreAuthorize("hasPermission(..., 'mcp:tool:write')")`
+  - `PUT /v1/mcp/tools/{id}` — `@PreAuthorize("hasPermission(..., 'mcp:tool:write')")`
+  - `DELETE /v1/mcp/tools/{id}` — `@PreAuthorize("hasPermission(..., 'mcp:tool:admin')")`
   - CRUD endpoints for role/workflow/intent mappings — all guarded by `mcp:tool:write`.
   - All state-changing endpoints carry `@EmitEvent`.
 - `src/main/resources/permissions.yaml` — add `mcp:tool:read`, `mcp:tool:write`, `mcp:tool:admin`.

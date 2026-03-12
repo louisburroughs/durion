@@ -28,15 +28,9 @@ You are the outbound integration specialist for backend team-mode implementation
 
 **PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
 
-Your integration artifacts for this PRD are all in `pos-nlti` and `pos-mcp-server`.
+Your integration artifacts for this PRD are all in `pos-mcp-server`.
 
-### pos-nlti: Clients and Adapters
-
-**`internal/client/ToolRegistryClient.java`**
-- Calls `pos-mcp-server` `GET /mcp/v1/tools` with auth headers.
-- Returns `List<ToolDescriptorV1>` filtered to caller's permissions.
-- On 503 (AuthZ outage) → propagate fail-closed exception (do NOT return empty list).
-- Base URL: `${pos.mcp.base-url:http://localhost:8086}`.
+### NLTI Clients and Adapters (in pos-mcp-server)
 
 **`internal/client/AuthZClient.java`**
 - Calls `pos-security-service` to validate permissions for a subject + action.
@@ -85,7 +79,7 @@ pos.mcp.embedding.openai.timeout-ms=3000
 
 ### Shared ToolAdapter Interface
 
-Define in `pos-nlti/internal/adapter/ToolAdapter.java`:
+Define in `pos-mcp-server/internal/adapter/ToolAdapter.java`:
 ```java
 public interface ToolAdapter {
     ActionResultV1 validate(@NonNull Map<String, Object> inputs);
@@ -99,8 +93,9 @@ public interface ToolAdapter {
 
 | Property | Default | Notes |
 |----------|---------|-------|
-| `pos.mcp.base-url` | `http://localhost:8086` | pos-mcp-server base URL |
 | `pos.security.base-url` | `http://localhost:8082` | pos-security-service base URL |
+| `pos.workorder.base-url` | `http://localhost:8080` | API gateway/workorder route base URL |
+| `pos.accounting.base-url` | `http://localhost:8080` | API gateway/accounting route base URL |
 | `pos.mcp.embedding.provider` | `openai` | Embedding strategy |
 | `pos.mcp.embedding.openai.model` | `text-embedding-3-small` | OpenAI model |
 | `pos.mcp.embedding.openai.timeout-ms` | `3000` | Per-request timeout |
