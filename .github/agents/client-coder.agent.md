@@ -24,97 +24,51 @@ tools:
 
 You are the outbound integration specialist for backend team-mode implementation.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
-Your integration artifacts for this PRD are all in `pos-mcp-server`.
+This PRD has minimal outbound-integration surface. Client work is exception-based, not default.
 
-### NLTI Clients and Adapters (in pos-mcp-server)
+### Integration Scope for PERM
 
-**`internal/client/AuthZClient.java`**
-- Calls `pos-security-service` to validate permissions for a subject + action.
-- **Fail-closed wrapper**: on any exception (timeout, 5xx, network) → deny access, emit `nlt.authz.failure_count` metric, log correlationId.
-- Base URL: `${pos.security.base-url:http://localhost:8082}`.
-- Use shared secret header (`pos.events.api-secret`) for service-to-service auth, per ADR-0014.
+**Primary expectation: no runtime outbound auth calls in gateway request path**
+- `pos-api-gateway` auth filter must not call `pos-security-service` (`/v1/auth/validate`, `/v1/auth/authorities`, `/v1/auth/subject`) during request handling.
+- If legacy client artifacts exist for that path, remove or isolate them from request-time execution.
 
-**`internal/adapter/WorkorderToolAdapter.java`** (implements `ToolAdapter` interface)
-- Actions: `listCompletedWorkOrders(inputs)`, `closeWorkOrder(inputs)`, `dailySummary(inputs)`.
-- Delegates to `pos-workorder` service client.
-- Returns `ActionResultV1{status, summaryText, details}`.
-- `validate(inputs)` must reject missing/invalid fields with structured ERROR before calling downstream.
-- Unauthorized subject → NOT_AUTHORIZED response; downstream not called.
-- `closeWorkOrder` is HIGH riskLevel; enforce confirmation presence before proceeding.
+**Startup-only integrations (if assigned)**
+- Keep/adjust startup-only `RestClient` integrations that register event types (non-request-path, best-effort behavior).
+- Preserve shared-secret header behavior for startup integrations where required by existing module conventions.
 
-**`internal/adapter/AccountingToolAdapter.java`** (implements `ToolAdapter` interface)
-- Actions: `listUnpaidInvoices(inputs)`, `reprocessPayment(inputs)`.
-- `reprocessPayment` requires high privilege — validate `mcp:accounting:reprocess` permission via AuthZClient.
-- Returns `ActionResultV1{status, summaryText, details}`.
-- Missing inputs → structured ERROR; downstream not called.
+**No new cross-service client adapters required by default**
+- If Lead Coder cannot map a PERM story to concrete outbound integration files, return `NO_SCOPE` with rationale instead of fabricating client work.
 
-### pos-mcp-server: Embedding Provider
-
-**`internal/service/EmbeddingService.java`** (interface)
-```java
-public interface EmbeddingService {
-    float[] embed(@NonNull String text);
-    boolean isAvailable();
-}
-```
-
-**`internal/service/OpenAIEmbeddingService.java`** (implements EmbeddingService)
-- Calls OpenAI embeddings API (`POST https://api.openai.com/v1/embeddings`).
-- Model: `${pos.mcp.embedding.openai.model:text-embedding-3-small}`.
-- Timeout: `${pos.mcp.embedding.openai.timeout-ms:3000}`.
-- API key: `${pos.mcp.embedding.openai.api-key}` (never log).
-- On unavailability: `isAvailable()` returns `false`; ToolRegistryService uses deterministic fallback.
-
-**Provider strategy configuration** (`internal/config/EmbeddingConfig.java`)
-```properties
-pos.mcp.embedding.provider=openai   # openai | azure | disabled
-pos.mcp.embedding.openai.model=text-embedding-3-small
-pos.mcp.embedding.openai.timeout-ms=3000
-```
-- `disabled` provider returns a no-op that always reports `isAvailable()=false`.
-
-### Shared ToolAdapter Interface
-
-Define in `pos-mcp-server/internal/adapter/ToolAdapter.java`:
-```java
-public interface ToolAdapter {
-    ActionResultV1 validate(@NonNull Map<String, Object> inputs);
-    ActionResultV1 transform(@NonNull Map<String, Object> inputs);
-    @NonNull ActionResultV1 call(@NonNull Map<String, Object> inputs, @NonNull String idempotencyKey, @NonNull String correlationId);
-    @NonNull ActionResultV1 normalizeOutput(Object rawResult);
-}
-```
-
-### Config Requirements for Callers
+### Config Requirements for Consumer Modules
 
 | Property | Default | Notes |
 |----------|---------|-------|
-| `pos.security.base-url` | `http://localhost:8082` | pos-security-service base URL |
-| `pos.workorder.base-url` | `http://localhost:8080` | API gateway/workorder route base URL |
-| `pos.accounting.base-url` | `http://localhost:8080` | API gateway/accounting route base URL |
-| `pos.mcp.embedding.provider` | `openai` | Embedding strategy |
-| `pos.mcp.embedding.openai.model` | `text-embedding-3-small` | OpenAI model |
-| `pos.mcp.embedding.openai.timeout-ms` | `3000` | Per-request timeout |
-| `pos.mcp.adaptive-tuning.enabled` | `true` | Disable adaptive tuning at runtime |
+| `security.jwt.secret` | n/a | Must match signing secret used for token generation/validation across gateway/security-service |
+| `auth.token-identity-required` | `false` | Enforce presence of `perm_bits` + `perm_ver` when enabled |
+| `auth.strip-inbound-identity-headers` | `true` | Strip caller-supplied identity headers before routing |
+| `auth.reject-header-token-mismatch` | `false` | Optional strict-mode rejection when spoofed headers are present |
+| `pos.events.base-url` | `http://localhost:8085` | Startup event-type registration endpoint (if used) |
+| `pos.events.api-secret` | empty | Shared secret for startup registration when configured |
 
 ## Mission
-Implement and harden outbound API call infrastructure using Spring `RestClient` and return clear integration instructions for consumers.
+Enforce outbound integration boundaries for PERM: remove request-path auth dependencies from gateway and deliver any explicitly assigned startup-only client adjustments with clear usage notes.
 
 ## Scope
 In scope:
-- `internal/client/**` adapters and facades.
-- `internal/config/**` client bean/configuration (timeouts/interceptors/auth headers).
-- External payload mapping DTOs used by client adapters.
-- Error/status translation from external API responses into internal domain exceptions/results.
+- Gateway request-path client removal/isolation work tied to auth enforcement.
+- `internal/client/**` and `internal/config/**` changes only when explicitly mapped by Lead Coder.
+- Startup-only integration client adjustments needed by story acceptance.
+- Deterministic error handling for any retained outbound path.
 
 Out of scope unless explicitly assigned:
+- New outbound client surfaces not required by PERM stories.
 - Controllers and endpoint contracts.
 - Repositories/entities and persistence logic.
-- Broad service orchestration unrelated to client integration.
+- Broad service orchestration unrelated to integration boundaries.
 
 ## Required Standards
 - Respect domain boundaries and ADR decisions.
@@ -146,8 +100,8 @@ Include:
 - `File List`: changed files.
 
 ## Done Criteria
-- Outbound call path is implemented and testable.
-- Caller-facing usage contract is explicit and stable.
-- Error mapping is deterministic and domain-meaningful.
+- Assigned integration boundary changes are implemented (or an explicit `NO_SCOPE` report is provided with evidence).
+- Caller-facing usage/config contract is explicit and stable when integration artifacts are touched.
+- Error handling is deterministic and domain-meaningful for any retained outbound path.
 - Full verify is green for each touched module.
 - Evidence provided with commands and outcomes.

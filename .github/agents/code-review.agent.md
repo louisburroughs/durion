@@ -18,46 +18,43 @@ tools:
 
 You are a review-only agent. You do not edit code, tests, or docs.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
 Use the PRD's acceptance criteria as the primary review contract for each story when a GitHub issue is not yet available or when the issue acceptance criteria conflict with the PRD.
 
-### Per-Story Review Checklist (NLTI + MCP)
+### Per-Story Review Checklist (PERM)
 
 For every story reviewed, verify these PRD-specific invariants **in addition** to the standard checklist below:
 
 | Invariant | What to Check |
 |-----------|---------------|
-| **Prompt privacy** | Raw prompt text NEVER stored in any entity field, log, or telemetry attribute. Only SHA-256 hash or redacted form. Fail any class that persists a raw `prompt` string. |
-| **Fail-closed auth** | `AuthZClient` and tool resolution/discovery paths (`ToolRegistryService`) on any exception/5xx must deny access and emit metric, never return empty-success. |
-| **Idempotency** | `executionId` + step `idempotencyKey` lookups present before mutation in `ExecutionOrchestratorServiceImpl`. Duplicate key must return prior result unchanged. |
-| **Confirmation token scoping** | `ConfirmationEntity.token` stored hashed; confirmation validated against caller's `userId` AND `sessionId`; cross-user attempt returns 403 + audit event. |
-| **Audit append-only** | `AuditEventEntity` must have no UPDATE or DELETE paths anywhere in the codebase. |
-| **Internal package boundaries** | All implementation classes under `com.positivity.mcp.internal.**`; only service interfaces in `com.positivity.mcp.service.**`; `@SpringBootApplication` at root. |
-| **ArchUnit green** | `pos-mcp-server/src/test/java/com/positivity/mcp/ArchitectureTest.java` must exist and pass as part of module verify evidence. |
-| **mcp_role integrity** | `McpRoleEntity` entries must only be created via security-service sync; no local-only role creation paths. |
-| **Adaptive tuning toggle** | `ToolPriorityTuningService` must check `pos.mcp.adaptive-tuning.enabled` flag before any priority writes. Default must be `true`. |
-| **pgvector fallback** | `ToolRegistryServiceImpl` must have a non-vector fallback code path when `EmbeddingService.isAvailable()` returns `false`. |
-| **@EmitEvent coverage** | All state-changing endpoints (POST/PUT/DELETE) carry `@EmitEvent` with correct `id` and `apiVersion`. Event types registered at startup. |
-| **@NonNull usage** | All non-null service/DAO parameters and non-void/non-Optional returns carry `@NonNull` from `org.jspecify.annotations`. |
-| **workorder spelling** | Term `workorder` used as one word in all code, comments, docs, and log strings (not `work_order`, `work-order`, or `workOrder`). |
+| **Permission catalog immutability** | `PermissionCode` contains all required permissions with unique stable bit indexes; no index reuse/remap risk. |
+| **Token claim contract** | Access token includes `perm_bits`, `perm_ver`, `uid`, `username`; list claims `roles`/`authorities` removed from access token. |
+| **Backward compatibility path** | Legacy-token decode path exists temporarily in `getAuthoritiesFromToken()` and is explicitly bounded for rollout. |
+| **Gateway no-network auth path** | Gateway auth flow performs local JWT validation and does not call security-service endpoints at request time. |
+| **Fail-closed version/bitset checks** | Unknown `perm_ver`, malformed `perm_bits`, or required-claim gaps produce 401 failure paths. |
+| **Header trust boundary** | Inbound identity headers (`X-User`, `X-User-Id`, `X-Authorities`, `X-Roles`) are stripped on all paths; downstream receives only token-derived values. |
+| **Feature-flag defaults** | `auth.token-identity-required=false`, `auth.strip-inbound-identity-headers=true`, `auth.reject-header-token-mismatch=false`. |
+| **Observability contract** | Required auth counters exist and increment on failure paths; WARN logs include `path`, `reason`, `jti` without token/PII leakage. |
+| **Internal package boundaries** | Module internals remain under `internal/**`; public service interfaces remain in `service/**`; no controller->repository shortcuts. |
+| **@EmitEvent + @NonNull compliance** | New/changed endpoints and service signatures align with repository conventions and AGENTS.md rules. |
 
-### ADRs Mandatory for NLTI Review
+### ADRs Mandatory for PERM Review
 
 Always load and check:
 - `docs/adr/0011-api-gateway-security-architecture.adr.md`
-- `docs/adr/0014-gateway-internal-service-security.adr.md` — service-to-service shared secret header pattern used by `AuthZClient`.
-- `docs/adr/0017-api-controller-http-response-codes.adr.md` — HTTP response code expectations for 400/401/403/503.
-- `docs/adr/0018-audit-actor-fields-from-security-context.adr.md` — `userId` sourced from security context, never from request body.
+- `docs/adr/0014-gateway-internal-service-security.adr.md` — gateway trust boundary and internal-service security model.
+- `docs/adr/0017-api-controller-http-response-codes.adr.md` — HTTP response code expectations for 401/403 behavior.
+- `docs/adr/0018-audit-actor-fields-from-security-context.adr.md` — actor derivation and security-context expectations.
 
 ### High-Risk Stories Requiring Deepest Scrutiny
 
-- **NLTI-006** (Confirmation Gate): cross-user rejection, token expiry, HIGH-risk blocking.
-- **NLTI-007** (Audit Ledger): append-only enforcement, PII handling, write-failure gate on destructive execution.
-- **NLTI-005** (Execution Orchestrator): idempotency, partial failure, retry bounds.
-- **MCP-FR-6** (Admin APIs): RBAC on every write endpoint, no path that bypasses `@PreAuthorize`.
+- **PERM-006** (Gateway local JWT validation): signature/expiry validation and no outbound dependency regression.
+- **PERM-007** (Bitset decode + authority mapping): correctness of bit-index mapping and `PERM_*` projection.
+- **PERM-008** (Header trust boundary hardening): spoofing prevention on both authenticated and public routes.
+- **PERM-010** (Auth observability): complete failure coverage with safe log payloads.
 
 ## Mission
 Validate that Lead Coder team changes implement the assigned story exactly as specified in GitHub issue acceptance criteria and ADR requirements, before PR creation.

@@ -9,12 +9,26 @@ Run in strict compliance with `orchestrator.agent.md`.
 ## Objective
 Produce exactly one PR in `durion-positivity-backend` with completed stories and evidence.
 
+## Active PRD
+- **PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+- **Capability:** Compact Permission Bitset Encoding (`PERM`)
+- **Target modules:** `pos-security-service`, `pos-api-gateway`
+- **Execution order gate:** Complete PERM-001 and PERM-003 before starting any other PERM story.
+
 ## Required Sequence
 1. Planner creates validated plan.
 2. Validate plan via plan-acceptance hook.
 3. Create or switch execution branch via branch hook.
 4. Contract/doc updates (when in scope).
-5. For each story (one at a time):
+5. For each story in this exact order (one at a time):
+  - Phase 1 Contract: PERM-001, PERM-003
+  - Phase 2 Issuance: PERM-002, PERM-004
+  - Phase 3 Catalog: PERM-005
+  - Phase 4 Gateway: PERM-006, PERM-007
+  - Phase 5 Hardening: PERM-008
+  - Phase 6 Rollout controls: PERM-009
+  - Phase 7 Observability: PERM-010
+  - Phase 8 Regression: PERM-011
   - Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
    - RED (Backend Testing Agent)
   - GREEN (Lead Coder clarification + Orchestrator delegation, pre-commit handoff preferred)

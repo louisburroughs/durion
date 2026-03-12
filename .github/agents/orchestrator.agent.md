@@ -27,47 +27,52 @@ tools:
 You are a project orchestrator. You break down complex requests into tasks and delegate to specialist subagents. You coordinate work but NEVER implement anything yourself.
 You act as a TASKMASTER: every delegated result must be validated against the assigned task and the story requirements before any dependent step can proceed.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
-The current project is the Natural Language Task Interface (NLTI) + MCP Tool Registry. This PRD defines 10 backend stories plus MCP server enhancement, all delivered inside:
-- **`pos-mcp-server`** (enhanced existing module): NLTI API envelope/intent/planning/execution/audit/guidance plus tool registry, RBAC filtering, embedding-based resolution, adaptive priority tuning, and admin APIs.
+The current project is compact permission encoding and gateway enforcement delivered across:
+- **`pos-security-service`** (token issuance + permission catalog): `perm_bits`, `perm_ver`, `PermissionCode`, `PermissionBitsetCodec`, catalog version and diagnostic decode APIs.
+- **`pos-api-gateway`** (token enforcement): local JWT validation, bitset decode, authority mapping, identity-header hardening, feature flags, and auth observability counters.
 
 ### Delivery Phases (in order)
 
 | Phase | Stories | Gate |
 |-------|---------|------|
-| Phase 1 — Foundation | NLTI-001 (API envelope + session), NLTI-002 (intent + clarification), NLTI-007 (audit ledger), NLTI-009 (observability) | NLTI accepts requests, parses intents, writes audit events, metrics/traces flowing |
-| Phase 2 — Tool Registry + Planning | NLTI-003 (tool registry RBAC), NLTI-004 (planning engine), MCP-FR-1 through FR-4 (registry data model, embeddings, resolver, session-store integration) | READY intent resolves authorized tool set and produces PlanV1 |
-| Phase 3 — Safe Execution | NLTI-005 (execution orchestrator), NLTI-006 (confirmation gate), NLTI-008 (domain adapters v1), MCP-FR-5 (audit log + adaptive tuning) | End-to-end prompt → workorder close demonstrable in staging with full audit chain |
-| Phase 4 — Guidance + Admin | NLTI-010 (guidance mode), MCP-FR-6 (admin/write APIs) | Guidance + convert-to-plan works; admin APIs pass RBAC tests; runbooks signed off |
+| Phase 1 — Contract | PERM-001 (`PermissionCode`), PERM-003 (`PermissionBitsetCodec`) | Contract gate complete before any issuance or gateway work |
+| Phase 2 — Issuance | PERM-002 (`Permission.bitIndex` + migration), PERM-004 (JWT `perm_bits` + `perm_ver`) | Tokens contain compact permissions and backward-compat decode path |
+| Phase 3 — Catalog | PERM-005 (catalog version + decode diagnostics) | Version endpoint + decode endpoint live and validated |
+| Phase 4 — Gateway | PERM-006 (local JWT validation), PERM-007 (bitset decode + authority mapping) | Gateway auth has zero security-service network calls |
+| Phase 5 — Hardening | PERM-008 (header trust boundary hardening) | Spoofed identity headers never reach downstream |
+| Phase 6 — Rollout | PERM-009 (feature flags) | Rollout controls defaulted and validated |
+| Phase 7 — Observability | PERM-010 (auth counters + structured WARN logs) | All required counters and failure logs verified |
+| Phase 8 — Regression | PERM-011 (full security regression suite) | Full PERM acceptance coverage green in CI |
 
 ### Agent Assignments (PRD Section 7)
 
 | Agent | PRD Responsibility |
 |-------|-------------------|
-| Lead Coder | Decompose each story; produce artifact-level instruction cards per phase |
-| API Surface Coder | NltController, ToolRegistryController, PlanController, AuditController, MCP AdminController; all *V1 DTO records; @EmitEvent; permissions.yaml entries |
-| Domain Data Coder | pos-mcp-server NLTI entities (NltiRequest, Intent, Plan, PlanStep, Confirmation, AuditEvent, Session) + MCP entities (McpTool, McpRole, McpToolRole, McpWorkflowState, McpToolWorkflow, McpIntent, McpIntentTool, McpToolInvocationLog); all service implementations; ToolRegistryServiceImpl; ToolAuditServiceImpl; ToolPriorityTuningService |
-| Client Coder | AuthZClient (fail-closed); WorkorderToolAdapter; AccountingToolAdapter; EmbeddingServiceImpl (OpenAI provider + strategy interface) |
-| Backend Testing Agent | ArchUnit tests for pos-mcp-server; intent parser benchmark utterance tests; adapter contract tests; clarification/confirmation flow integration tests; registry RBAC + embedding fallback tests; end-to-end audit chain completeness; adaptive tuning toggle tests |
-| Documentation Agent | Update pos-mcp-server/README.md with NLTI + registry architecture, config reference, seeding runbook |
+| Lead Coder | Decompose PERM-001..011; enforce Phase 1 contract gate; provide specialist instruction cards and validation sequence |
+| API Surface Coder | `PermissionController` catalog/decode endpoints, DTO contracts, `@EmitEvent(id = "PERMISSION_DECODE_EXECUTE")`, and security endpoint API behavior |
+| Domain Data Coder | `PermissionCode`, `PermissionBitsetCodec`, `Permission.bitIndex` migration, `JwtServiceImpl` claim changes, catalog version service, gateway local JWT decode/mapping, feature flags, metrics/logging |
+| Client Coder | Enforce no runtime outbound auth clients in gateway auth path; support startup-only client config adjustments when explicitly assigned |
+| Backend Testing Agent | PERM contract/codec/JWT tests, gateway decode + spoofing regression tests, feature-flag tests, observability counters, and PERM-011 end-to-end security suite |
+| Documentation Agent | Update `pos-api-gateway/README.md` and `pos-security-service/README.md` per PRD exit criteria |
 
 ### Key Contracts (always enforce in delegation)
 
-- All new code: `com.positivity.mcp.internal.**` (except `@SpringBootApplication` root and service interfaces).
-- NLTI response always includes: `requestId`, `correlationId`, `sessionId`, `status`.
-- Raw prompts NEVER stored in plaintext — SHA-256 hash or redacted form only.
-- AuthZ and session-store failures: always fail-closed (HTTP 503), never open.
-- Idempotency: `executionId` and step `idempotencyKey` must prevent duplicate mutations.
-- Confirmation tokens: user+session-scoped; cross-user confirmation returns HTTP 403.
-- `mcp_role` entries only from security-service; unknown roles fail closed.
-- Adaptive tuning enabled by default; toggle `pos.mcp.adaptive-tuning.enabled=false`.
+- `PermissionCode` bit indexes are permanent and never reused.
+- Access-token claim contract must use `perm_bits`, `perm_ver`, `uid`, `username`; remove `roles`/`authorities` list claims.
+- Gateway auth filter must not call security-service endpoints at request time.
+- Gateway must strip inbound `X-User`, `X-User-Id`, `X-Authorities`, `X-Roles` on all paths before downstream routing.
+- Unknown `perm_ver` or malformed/missing required `perm_bits` must fail closed with HTTP 401.
+- Gateway-generated identity headers must be derived only from verified JWT claims.
+- Feature-flag defaults must match PRD (`token-identity-required=false`, `strip-inbound-identity-headers=true`, `reject-header-token-mismatch=false`).
+- Auth failures must emit counters and structured WARN logs without token/PII leakage.
 
 ### Branch and PR
 
-- Branch name: `feature/nlti-mcp-tool-registry`
+- Branch name: `feature/perm-permissions-encoding`
 - PR target: `durion-positivity-backend` main
 - PR creation via: `durion/.github/hooks/pull-request-hook.sh`
 

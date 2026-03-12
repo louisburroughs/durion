@@ -23,56 +23,55 @@ tools:
 
 You are the backend implementation coordinator for coder-team mode.
 
-## Active PRD: NLTI + MCP Tool Registry
+## Active PRD: Compact Permission Bitset Encoding (PERM)
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-nlti-mcp-tool-registry.md`
+**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
 
 Use this artifact ownership map when producing instruction cards for the Orchestrator. Assign ownership by layer and specialist in dependency order.
 
 ### Module Targets
-- **`pos-mcp-server`** (enhanced existing module): `com.positivity.mcp` root; all new NLTI + MCP code under `internal/` except service interfaces.
+- **`pos-security-service`**: permission catalog contract, token issuance changes, and diagnostic/catalog endpoints.
+- **`pos-api-gateway`**: local JWT validation, bitset-to-authority decode, header hardening, and auth observability.
 
 ### Artifact Ownership by Specialist
 
 **API Surface Coder owns:**
-- `pos-mcp-server/internal/controller/NltController.java` — `POST /v1/nlt/requests`, `GET /v1/nlt/requests/{requestId}`
-- `pos-mcp-server/internal/controller/PlanController.java` — `GET /v1/nlt/plans/{planId}`, `POST /v1/nlt/plans/{planId}/confirm`
-- `pos-mcp-server/internal/controller/AuditController.java` — `GET /v1/nlt/audit`
-- `pos-mcp-server/internal/dto/` — `RequestEnvelopeV1`, `RequestResponseV1`, `IntentV1`, `PlanV1`, `PlanStepV1`, `ActionResultV1`, `GuidanceResponseV1`, `AuditEventV1`, `ToolDescriptorV1`
-- `pos-mcp-server/service/` interfaces — `NltiRequestService`, `IntentParserService`, `PlanningService`, `ExecutionOrchestratorService`, `AuditLedgerService`
-- `pos-mcp-server/internal/controller/AdminController.java` — tool/role/workflow/intent CRUD
-- `pos-mcp-server/src/main/resources/permissions.yaml` — new `mcp:tool:read/write/admin` entries
-- `pos-mcp-server/internal/config/McpEventTypes.java` and `McpEventTypeInitializer.java` — @EmitEvent registrations
-- `@EmitEvent` annotations on all state-changing endpoints across NLTI + MCP endpoints in `pos-mcp-server`
+- `pos-security-service/internal/controller/PermissionController.java`:
+  - `GET /v1/permissions/catalog-version`
+  - `POST /v1/permissions/decode`
+- Decode/catalog DTO contracts in `pos-security-service/internal/dto/**` (or existing DTO extensions).
+- `@EmitEvent(id = "PERMISSION_DECODE_EXECUTE", apiVersion = "1")` on decode endpoint.
+- Endpoint authorization contract for decode endpoint (`security:permission:view`), and no-auth informational catalog-version endpoint.
+- Any controller/OpenAPI annotation updates tied to PERM-005.
 
 **Domain Data Coder owns:**
-- `pos-mcp-server/internal/entity/` — `NltiRequestEntity`, `IntentEntity`, `PlanEntity`, `PlanStepEntity`, `ConfirmationEntity`, `AuditEventEntity`, `SessionEntity`
-- `pos-mcp-server/internal/repository/` — all Spring Data JPA repos for above NLTI entities
-- `pos-mcp-server/internal/service/` implementations — `NltiRequestServiceImpl`, `IntentParserServiceImpl`, `PlanningServiceImpl`, `ExecutionOrchestratorServiceImpl`, `AuditLedgerServiceImpl`
-- `pos-mcp-server/internal/domain/` — `IntentV1` domain model, `PlanV1` domain model, `ExecutionResult`, `ConfirmationToken`
-- `pos-mcp-server/internal/enums/` — `IntentType`, `IntentStatus`, `RiskLevel`, `ExecutionStatus`, `AuditEventType`
-- `pos-mcp-server/internal/entity/` — `McpToolEntity`, `McpRoleEntity`, `McpToolRoleEntity`, `McpWorkflowStateEntity`, `McpToolWorkflowEntity`, `McpIntentEntity`, `McpIntentToolEntity`, `McpToolInvocationLogEntity`
-- `pos-mcp-server/internal/repository/` — all MCP registry repos including pgvector query
-- `pos-mcp-server/internal/service/ToolRegistryServiceImpl.java` — prefilter + embed + top-K + score + rank
-- `pos-mcp-server/internal/service/ToolAuditServiceImpl.java` — invocation log writes
-- `pos-mcp-server/internal/service/ToolPriorityTuningService.java` — daily scheduled tuning
-- `pos-mcp-server/internal/config/` — embedding service config, adaptive tuning toggle, session-store integration
+- `pos-security-service/internal/enums/PermissionCode.java` (215 entries, immutable bit index contract, `CATALOG_VERSION = 1`).
+- `pos-security-service/internal/domain/PermissionBitsetCodec.java`.
+- `pos-security-service/internal/entity/Permission.java` + migration `V{N}__add_permission_bit_index.sql`.
+- `pos-security-service/internal/service/JwtServiceImpl.java` and related services for `perm_bits`, `perm_ver`, `uid`, `username` issuance and backward-compatible decode.
+- `pos-security-service/internal/service/PermissionCatalogVersionService.java` (or equivalent extension).
+- `pos-api-gateway/internal/config/SecurityGatewayConfig.java` local JWT validation + bitset decode + header stripping + counters/logging.
+- `pos-api-gateway/internal/config/GatewayPermissionCatalog.java` static bit-index mapping.
+- `pos-api-gateway/internal/config/GatewayAuthProperties.java` and `application.yml` feature flags wiring.
 
-**Client Coder owns:**
-- `pos-mcp-server/internal/client/AuthZClient.java` — calls `pos-security-service`, fail-closed wrapper
-- `pos-mcp-server/internal/adapter/WorkorderToolAdapter.java` — listCompletedWorkOrders, closeWorkOrder, dailySummary
-- `pos-mcp-server/internal/adapter/AccountingToolAdapter.java` — listUnpaidInvoices, reprocessPayment
-- `pos-mcp-server/internal/service/EmbeddingServiceImpl.java` + `OpenAIEmbeddingService.java` + provider strategy interface
+**Client Coder owns (only if explicitly assigned):**
+- Removal or quarantine of outbound auth clients from gateway request path.
+- Startup-only client adjustments that are non-request-path and required by PERM story acceptance.
+- Explicit NO-SCOPE confirmation when no outbound integration changes are needed.
 
 ### Critical Cross-Cutting Constraints (enforce in every card)
-- NLTI artifacts must be implemented inside existing `pos-mcp-server` (no new Maven module scaffold).
-- Raw prompts stored as SHA-256 hash or redacted form — never plaintext. Enforce in AuditLedgerServiceImpl.
-- Idempotency: `executionId` + step `idempotencyKey` prevents duplicate mutations in ExecutionOrchestratorServiceImpl.
-- Confirmation tokens: user+session-scoped; cross-user attempt returns HTTP 403 + audit log entry.
-- AuthZ and session-store failures → 503 (fail-closed), never silent success.
-- `mcp_role` entries must be validated against security-service at startup; unknown roles fail closed.
-- Adaptive priority tuning enabled by default; property `pos.mcp.adaptive-tuning.enabled=false` to disable.
-- pgvector `<=>` operator used for cosine similarity; provide deterministic fallback query path for non-vector environments.
+- **Contract gate:** PERM-001 and PERM-003 must complete before any other PERM story starts.
+- `PermissionCode` bit indexes are append-only and immutable; never reuse retired indexes.
+- Access token claims must include `perm_bits`, `perm_ver`, `uid`, `username`; remove `roles`/`authorities` list claims from access token.
+- `getAuthoritiesFromToken()` must preserve backward compatibility during rollout by decoding legacy `authorities` when `perm_bits` is absent.
+- Gateway auth must execute with **zero** runtime calls to security-service.
+- Gateway must strip inbound identity headers on all paths (including public paths) before downstream routing.
+- Unknown `perm_ver` and malformed/missing required `perm_bits` must fail closed with HTTP 401.
+- Feature flags must default to:
+  - `auth.token-identity-required=false`
+  - `auth.strip-inbound-identity-headers=true`
+  - `auth.reject-header-token-mismatch=false`
+- Required ADR review set before sign-off: 0011, 0014, 0017, 0018.
 
 ## Mission
 Convert one story into explicit artifact assignments, produce clarified specialist instruction cards, and validate returned evidence against acceptance criteria and ADR constraints.
