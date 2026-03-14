@@ -23,54 +23,53 @@ tools:
 
 You are the backend implementation coordinator for coder-team mode.
 
-## Active PRD: Compact Permission Bitset Encoding (PERM)
+## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
 
-**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
 
 Use this artifact ownership map when producing instruction cards for the Orchestrator. Assign ownership by layer and specialist in dependency order.
 
 ### Module Targets
-- **`pos-security-service`**: permission catalog contract, token issuance changes, and diagnostic/catalog endpoints.
-- **`pos-api-gateway`**: local JWT validation, bitset-to-authority decode, header hardening, and auth observability.
+- **`pos-security-service`**: Spring-authenticated login flow, account-state persistence/administration, lockout hardening, error mapping, and canonical JWT issuance.
+- **`pos-api-gateway`**: JWT claim enforcement alignment with canonical security-service token semantics.
 
 ### Artifact Ownership by Specialist
 
 **API Surface Coder owns:**
-- `pos-security-service/internal/controller/PermissionController.java`:
-  - `GET /v1/permissions/catalog-version`
-  - `POST /v1/permissions/decode`
-- Decode/catalog DTO contracts in `pos-security-service/internal/dto/**` (or existing DTO extensions).
-- `@EmitEvent(id = "PERMISSION_DECODE_EXECUTE", apiVersion = "1")` on decode endpoint.
-- Endpoint authorization contract for decode endpoint (`security:permission:view`), and no-auth informational catalog-version endpoint.
-- Any controller/OpenAPI annotation updates tied to PERM-005.
+- `/v1/auth` controller contract (at minimum `POST /v1/auth/login`) with typed request/response DTOs.
+- Admin account-state controller/API contract (`unlock`, `enable`, `disable`, `expire-account`, `expire-credentials`, `account-state`).
+- DTO contracts for login, token response, and account-state command/query operations in `pos-security-service/internal/dto/**`.
+- `@EmitEvent` coverage on login and admin account-state mutation endpoints with module event IDs.
+- Controller/OpenAPI annotation updates for auth failure mapping (`401`, `403`/`423`, `400`) and standard error envelope.
 
 **Domain Data Coder owns:**
-- `pos-security-service/internal/enums/PermissionCode.java` (215 entries, immutable bit index contract, `CATALOG_VERSION = 1`).
-- `pos-security-service/internal/domain/PermissionBitsetCodec.java`.
-- `pos-security-service/internal/entity/Permission.java` + migration `V{N}__add_permission_bit_index.sql`.
-- `pos-security-service/internal/service/JwtServiceImpl.java` and related services for `perm_bits`, `perm_ver`, `uid`, `username` issuance and backward-compatible decode.
-- `pos-security-service/internal/service/PermissionCatalogVersionService.java` (or equivalent extension).
-- `pos-api-gateway/internal/config/SecurityGatewayConfig.java` local JWT validation + bitset decode + header stripping + counters/logging.
-- `pos-api-gateway/internal/config/GatewayPermissionCatalog.java` static bit-index mapping.
-- `pos-api-gateway/internal/config/GatewayAuthProperties.java` and `application.yml` feature flags wiring.
+- `users` persistence model updates in `pos-security-service/internal/entity/**` and migrations:
+  - enabled, lock/expiry booleans, lockout counters, timestamps, admin audit metadata.
+- Spring Security principal/user-details mapping in `internal/domain/**` or equivalent auth internal package.
+- Authentication orchestration service in `internal/service/**`:
+  - `AuthenticationManager` invocation,
+  - failure/success bookkeeping,
+  - lockout/backoff/cooldown behavior,
+  - administrative unlock behavior.
+- `JwtServiceImpl` updates to enforce required claims (`sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`) and no `authorities` token contract.
+- Event type registry/initializer updates in `internal/config/**` for auth/account-state events.
+- `pos-api-gateway` claim-enforcement alignment updates in auth/security config as explicitly needed by AUTH-007.
 
 **Client Coder owns (only if explicitly assigned):**
-- Removal or quarantine of outbound auth clients from gateway request path.
-- Startup-only client adjustments that are non-request-path and required by PERM story acceptance.
+- Startup-only `RestClient` adjustments for event-type registration flows when needed for AUTH-008.
+- Outbound dependency audit to ensure no new request-path auth coupling is introduced by AUTH stories.
 - Explicit NO-SCOPE confirmation when no outbound integration changes are needed.
 
 ### Critical Cross-Cutting Constraints (enforce in every card)
-- **Contract gate:** PERM-001 and PERM-003 must complete before any other PERM story starts.
-- `PermissionCode` bit indexes are append-only and immutable; never reuse retired indexes.
-- Access token claims must include `perm_bits`, `perm_ver`, `uid`, `username`; remove `roles`/`authorities` list claims from access token.
-- `getAuthoritiesFromToken()` must preserve backward compatibility during rollout by decoding legacy `authorities` when `perm_bits` is absent.
-- Gateway auth must execute with **zero** runtime calls to security-service.
-- Gateway must strip inbound identity headers on all paths (including public paths) before downstream routing.
-- Unknown `perm_ver` and malformed/missing required `perm_bits` must fail closed with HTTP 401.
-- Feature flags must default to:
-  - `auth.token-identity-required=false`
-  - `auth.strip-inbound-identity-headers=true`
-  - `auth.reject-header-token-mismatch=false`
+- **Foundation gate:** AUTH-001 and AUTH-002 must complete before any later AUTH story starts.
+- Login credential verification must run through Spring Security components (`AuthenticationManager`, `UserDetailsService`), never raw controller password checks.
+- Access token issuance must remain in `JwtService` and include `sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`; do not introduce `authorities` as token contract.
+- Account-state denial behavior must explicitly enforce enabled, non-locked, non-expired, and credentials-non-expired semantics.
+- Lockout policy must support threshold, time window, progressive backoff, cooldown unlock, and admin unlock.
+- Admin account-state operations must preserve audit metadata (`disabled_at`, `disabled_by`, unlock actor/timestamp, etc.).
+- Gateway auth behavior must stay aligned to canonical token claim semantics and reject caller-supplied identity trust.
+- New auth/account-state API mutations must carry `@EmitEvent` and corresponding event type registration.
+- Time-dependent logic must be deterministic and testable (prefer injectable `Clock`).
 - Required ADR review set before sign-off: 0011, 0014, 0017, 0018.
 
 ## Mission

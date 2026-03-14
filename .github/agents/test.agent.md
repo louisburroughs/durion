@@ -29,9 +29,9 @@ tools:
 You are the TDD Agent for backend story implementation in `durion-positivity-backend`.
 Your primary job is to author tests first, prove RED, and hand off objective evidence for GREEN implementation.
 
-## Active PRD: Compact Permission Bitset Encoding (PERM)
+## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
 
-**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
 
 ### Modules Under Test
 - `pos-security-service`
@@ -39,65 +39,48 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 
 ### Test Scope by Story
 
-**PERM-001 — PermissionCode catalog contract**
-- `PermissionCodeTest`: 215 entries, unique bit indexes, unique permission codes, `fromCode` round-trip, `CATALOG_VERSION = 1`.
+**AUTH-001 — Spring-authenticated login flow**
+- Controller/service tests prove login delegates to `AuthenticationManager` and does not do manual controller password-hash checks.
+- Success path test verifies JWT issuance is invoked only after authentication success.
 
-**PERM-002 — Permission bit index persistence**
-- `Permission` entity mapping test for `bit_index`.
-- Migration integration test: seeded permissions resolve to non-null `bit_index` when mapped.
-- Unknown permissions handled per contract (warn + excluded behavior path).
+**AUTH-002 — Account-state schema and principal mapping**
+- `User` entity mapping tests for required account-state fields and greenfield defaults.
+- Migration/persistence tests for new account-state columns and timestamps.
+- `UserDetailsService` mapping tests for enabled/locked/expired credential flags.
 
-**PERM-003 — PermissionBitsetCodec**
-- `PermissionBitsetCodecTest`: round-trip for empty/single/all permissions.
-- Base64URL padded/unpadded decode support.
-- Malformed Base64 input throws expected exception type.
+**AUTH-003 — Lockout policy**
+- Failed-login counter and threshold/time-window lock tests.
+- Progressive backoff behavior tests.
+- Auto-cooldown unlock and success-reset tests (prefer deterministic clock control).
 
-**PERM-004 — JWT issuance updates**
-- `JwtServiceImplTest`:
-  - access token contains `perm_bits`, `perm_ver`, `uid`, `username`
-  - access token excludes `roles` and `authorities` list claims
-  - backward-compatible `getAuthoritiesFromToken()` for legacy token format
-  - token-size target assertion (< 600 bytes for representative permission volume)
+**AUTH-004 — Account-state denials and failure mapping**
+- Disabled, locked, account-expired, credentials-expired authentication denials.
+- Error envelope assertions (`code`, `message`, `status`, `timestamp`, `correlationId`) with proper status mapping.
 
-**PERM-005 — Catalog version + decode diagnostics**
-- `PermissionControllerTest` for:
-  - `GET /v1/permissions/catalog-version` payload
-  - `POST /v1/permissions/decode` auth and response behavior
-- Service test coverage for startup validation warnings and version resolution.
+**AUTH-005 — JWT contract enforcement**
+- `JwtServiceImplTest` ensures issued access token includes:
+  - `sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`
+- Access token omits `authorities` contract claim.
+- Permission resolution uses persisted assignments, not caller-supplied roles.
 
-**PERM-006 — Gateway local JWT validation**
-- `SecurityGatewayConfigTest` validates local signature verification and 401 behavior.
-- Explicit no-network-path test (security-service offline/unreachable, valid token still accepted).
+**AUTH-006 — Administrative account-state APIs**
+- Endpoint/service tests for:
+  - unlock, enable, disable, expire-account, expire-credentials, account-state read
+- Mutation tests verify audit metadata and state transition persistence.
 
-**PERM-007 — Gateway bitset decode and authority mapping**
-- Token with specific `perm_bits` yields exact `PERM_*` authorities downstream.
-- Unknown `perm_ver` rejected with 401.
-- Malformed `perm_bits` rejected with 401.
+**AUTH-007 — Gateway alignment**
+- Gateway acceptance tests verify tokens issued by security-service still enforce authorization correctly.
+- Required-claim and invalid-claim semantics (`perm_bits`, `perm_ver`) remain fail-closed.
 
-**PERM-008 — Header trust boundary hardening**
-- Spoofed inbound `X-Authorities`, `X-User`, `X-User-Id`, `X-Roles` are stripped.
-- Downstream receives only token-derived identity headers.
-- Public-path request still strips inbound identity headers.
+**AUTH-008 — Events and observability**
+- `@EmitEvent` coverage tests for login and account-state mutation endpoints.
+- Event-type registration startup behavior tests (best-effort/non-fatal startup semantics).
+- Metrics/log tests for success/failure, lockout, unlock, and denial counters with no secret leakage.
 
-**PERM-009 — Feature flags**
-- Independent tests for:
-  - `auth.token-identity-required`
-  - `auth.strip-inbound-identity-headers`
-  - `auth.reject-header-token-mismatch`
-- Verify default values and toggled behavior paths.
-
-**PERM-010 — Observability**
-- Counter increment tests for each auth failure path:
-  - `auth.token.validation.failure`
-  - `auth.perm.decode.failure`
-  - `auth.perm.catalog.version.unknown`
-  - `auth.user.identity.missing`
-  - `auth.header.strip.count`
-- Structured WARN log assertions for `path`, `reason`, `jti` (without token/PII leakage).
-
-**PERM-011 — Security regression suite**
-- End-to-end gateway security matrix across success/failure scenarios in PRD.
-- ArchUnit/static-architecture guard ensuring gateway auth path does not depend on WebClient for security-service auth calls.
+**AUTH-009 — Security regression suite**
+- End-to-end authentication matrix across success/failure/account-state transitions.
+- Regression tests ensure JWT issuance never occurs when authentication fails.
+- ArchUnit/static-architecture guards for internal encapsulation and controller->service layering.
 
 ### ArchUnit / Architecture Test Expectations
 - Keep module architecture tests passing for `pos-security-service` and `pos-api-gateway`.
@@ -107,11 +90,11 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 ```bash
 cd /home/louisb/Projects/durion-positivity-backend
 
-# security-service PERM stories
+# security-service AUTH-HARDENING stories
 ./mvnw -pl pos-security-service -DskipTests=false test
 ./mvnw -pl pos-security-service -DskipTests=false verify
 
-# gateway PERM stories
+# gateway alignment stories
 ./mvnw -pl pos-api-gateway -DskipTests=false test
 ./mvnw -pl pos-api-gateway -DskipTests=false verify
 ```

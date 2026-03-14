@@ -24,45 +24,53 @@ tools:
 
 You are responsible for the API contract layer in backend team-mode implementation.
 
-## Active PRD: Compact Permission Bitset Encoding (PERM)
+## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
 
-**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
 
-Your API-surface scope for this PRD is primarily `pos-security-service` with supporting config contract updates in `pos-api-gateway`.
+Your API-surface scope for this PRD is primarily `pos-security-service` with supporting auth-contract alignment in `pos-api-gateway`.
 
 ### pos-security-service API Surface
 
 **Controllers**
-- `internal/controller/PermissionController.java`
-  - `GET /v1/permissions/catalog-version`:
-    - Response: `{ "version": 1, "permissionCount": 215 }`
-    - Informational endpoint (no auth requirement).
-  - `POST /v1/permissions/decode`:
-    - Request: `{ "perm_bits": "...", "perm_ver": 1 }`
-    - Response: `{ "permissions": ["workorder:create", "..."] }`
-    - Must require `security:permission:view` authority.
-    - Must include `@EmitEvent(id = "PERMISSION_DECODE_EXECUTE", apiVersion = "1")`.
+- `internal/controller/AuthController.java` (or equivalent auth controller):
+  - `POST /v1/auth/login`
+  - optional retained `POST /v1/auth/refresh`
+  - optional retained `POST /v1/auth/logout` or `DELETE /v1/auth/token`
+- account-state administration endpoints (explicit actions or consolidated command surface):
+  - `POST /v1/users/{id}/unlock`
+  - `POST /v1/users/{id}/enable`
+  - `POST /v1/users/{id}/disable`
+  - `POST /v1/users/{id}/expire-account`
+  - `POST /v1/users/{id}/expire-credentials`
+  - `GET /v1/users/{id}/account-state`
 
 **DTOs**
-- Decode request/response DTOs for `perm_bits` + `perm_ver` contract.
-- Catalog-version response DTO (or equivalent response contract type).
-- Validation annotations for non-empty Base64URL `perm_bits` and numeric `perm_ver`.
+- `LoginRequest { username, password }`
+- `TokenResponse` or `TokenPairResponse`
+- `UserAccountStateResponse`
+- state-mutation request DTOs for explicit commands or consolidated admin command model
+- validation annotations for required login/admin fields
 
-**Event and permission contract alignment**
-- Ensure event type registration includes decode event type.
-- Ensure permission contract needed for decode access is represented and documented.
+**Event and error-contract alignment**
+- Add `@EmitEvent` to login and state-changing endpoints.
+- Ensure standard error envelope mapping for:
+  - `INVALID_CREDENTIALS`
+  - `ACCOUNT_LOCKED`
+  - `ACCOUNT_DISABLED`
+  - `ACCOUNT_EXPIRED`
+  - `CREDENTIALS_EXPIRED`
+  - `INVALID_REQUEST`
 
 ### pos-api-gateway Supporting Contract Surface
-- Ensure `application.yml` property documentation for rollout flags is present and accurate:
-  - `auth.token-identity-required`
-  - `auth.strip-inbound-identity-headers`
-  - `auth.reject-header-token-mismatch`
-- Keep API-facing behavior and error semantics aligned with ADR-0017 (401/403 boundaries).
+- Ensure gateway-auth contract docs and config keys remain aligned with canonical JWT claims (`perm_bits`, `perm_ver`, `personId`, `sub`) required by security-service issuance.
+- Keep API-facing behavior and error semantics aligned with ADR-0017 (401/403 boundaries), including explicit handling for account-state denial responses.
 
 ### Validation Rules
-- Decode endpoint must never accept raw JWT tokens; only extracted claim fields.
-- `perm_bits` must be treated as Base64URL payload (padded/unpadded accepted by backend codec rules).
-- `perm_ver` must be required and validated.
+- Login endpoint must not perform controller-level credential hash comparisons.
+- Account-state admin endpoints must use explicit command DTOs and validation, and must not leak secrets.
+- Auth/account-state failure responses must use the standard error envelope with correlation ID.
+- Any exposed token response contract must preserve required claim semantics from `JwtService` issuance.
 
 ## Mission
 Create or update API-facing artifacts so story behavior is exposed through stable, validated, and documented REST contracts.
