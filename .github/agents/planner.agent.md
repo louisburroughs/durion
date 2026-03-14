@@ -23,46 +23,42 @@ tools:
 
 You create plans. You do NOT write code.
 
-## Active PRD: Compact Permission Bitset Encoding (PERM)
+## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
 
-**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
 
-When asked to plan PERM work, use this story list as the authoritative scope. Apply the **per-story micro-cycle rule** (RED → GREEN → coverage per story before moving to next) and enforce the Phase 1 contract gate before any later story.
+When asked to plan AUTH-HARDENING work, use this story list as the authoritative scope. Apply the **per-story micro-cycle rule** (RED -> GREEN -> coverage per story before moving to next) and enforce the Phase 1 foundation gate before any later story.
 
 ### Stories in Phase Order
 
-**Phase 1 — Contract**
-- PERM-001: `PermissionCode` enum with 215 immutable indexes and `CATALOG_VERSION = 1`.
-- PERM-003: `PermissionBitsetCodec` encode/decode contract and round-trip behavior.
+**Phase 1 — Foundations**
+- AUTH-001: Spring Security login flow (`/v1/auth/login`) via `AuthenticationManager` + typed DTOs (no manual controller password checks).
+- AUTH-002: `users` account-state schema/entity updates and defaults (`enabled`, lock/expiry flags, counters, timestamps).
 
-**Phase 2 — Issuance**
-- PERM-002: `Permission.bitIndex` column + migration/backfill.
-- PERM-004: JWT issuance switched to `perm_bits` + `perm_ver`, with backward-compatible decode path.
+**Phase 2 — Account-State Hardening**
+- AUTH-003: lockout policy (threshold + window + progressive backoff + cooldown unlock + success reset).
+- AUTH-004: authentication denial mapping for locked/disabled/account-expired/credentials-expired states with standard error envelope.
 
-**Phase 3 — Catalog**
-- PERM-005: catalog version endpoint + decode diagnostic endpoint + startup catalog validation.
+**Phase 3 — JWT Contract**
+- AUTH-005: JWT issuance contract aligned to required claims (`sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`) and persisted permission resolution.
 
-**Phase 4 — Gateway**
-- PERM-006: local JWT validation in gateway (no security-service request-path calls).
-- PERM-007: bitset decode and authority mapping via static gateway catalog.
+**Phase 4 — Admin APIs**
+- AUTH-006: administrative account-state operations (`unlock`, `enable`, `disable`, `expire-account`, `expire-credentials`, `account-state`) with auditing behavior.
 
-**Phase 5 — Hardening**
-- PERM-008: strip inbound identity headers and regenerate from verified claims only.
+**Phase 5 — Gateway Alignment**
+- AUTH-007: gateway-side enforcement alignment with canonical JWT claims and greenfield permission semantics.
 
-**Phase 6 — Rollout Controls**
-- PERM-009: feature flags and configuration wiring for staged rollout.
+**Phase 6 — Events and Observability**
+- AUTH-008: `@EmitEvent` coverage, event-type registration startup path, and auth/account-state metrics and logs.
 
-**Phase 7 — Observability**
-- PERM-010: auth counters and structured warning logs for failure modes.
-
-**Phase 8 — Regression**
-- PERM-011: full security regression suite including spoofing, version mismatch, and malformed bitset paths.
+**Phase 7 — Regression**
+- AUTH-009: complete unit/integration/security/contract/persistence regression suite for account hardening.
 
 ### Key Planning Notes
 - Target modules are `pos-security-service` and `pos-api-gateway`; no new module scaffold is allowed.
-- Contract gate is mandatory: PERM-001 and PERM-003 must be fully complete before PERM-002 or later.
-- Plan explicit rollout-order validation for feature flags before final cleanup/removal work.
-- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/perm-permissions-encoding`.
+- Foundation gate is mandatory: AUTH-001 and AUTH-002 must be fully complete before AUTH-003 or later.
+- Plan explicit verification of account-state transitions and lockout timing using deterministic time control (`Clock`) where needed.
+- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/auth-account-hardening`.
 
 ## Objective (Non-Negotiable)
 Your objective is ALWAYS to drive toward creation of a single PR in `durion-positivity-backend` containing completed stories and verification evidence.

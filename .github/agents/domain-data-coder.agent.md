@@ -27,76 +27,68 @@ tools:
 
 You are responsible for domain logic and persistence implementation in backend team-mode delivery.
 
-## Active PRD: Compact Permission Bitset Encoding (PERM)
+## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
 
-**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
 
 Your file scope for this PRD spans two modules: `pos-security-service` and `pos-api-gateway`.
 
 ### pos-security-service Domain and Persistence Scope
 
-**PERM-001: `PermissionCode` contract**
-- Create `internal/enums/PermissionCode.java` with all 215 permissions mapped to immutable bit indexes `0..214`.
-- Include `CATALOG_VERSION = 1`, `bitIndex()`, `code()`, and `fromCode(String)` lookup.
-- Retired entries must be marked deprecated, never deleted/reused.
+**AUTH-001: Spring-authenticated login orchestration**
+- Implement/extend auth service flow to authenticate via `AuthenticationManager` and `UsernamePasswordAuthenticationToken`.
+- Replace manual password-check paths with Spring Security authentication components.
+- Ensure successful authentication paths delegate token issuance to `JwtService` only after account-state checks and permission resolution.
 
-**PERM-002: Permission bit index persistence**
-- Update `internal/entity/Permission.java` with `Integer bitIndex` mapped to `bit_index`.
-- Add Flyway migration `V{N}__add_permission_bit_index.sql`.
-- Populate `bit_index` from `PermissionCode` mapping for existing rows.
-- Unknown permission names must be surfaced as warnings and excluded from encoding path.
+**AUTH-002: User account-state persistence**
+- Extend `internal/entity/User.java` (or equivalent) with account-state fields:
+  - `enabled`, `accountNonLocked`, `accountNonExpired`, `credentialsNonExpired`
+  - `failedLoginAttempts`, `lastFailedLoginAt`, `lastSuccessfulLoginAt`
+  - `lockedAt`, `lockedUntil`, `disabledAt`, `disabledBy`
+  - `accountExpiresAt`, `credentialsExpireAt`, optional login telemetry
+- Add Flyway migration(s) for schema updates and defaults.
+- Preserve auditable base fields and invariants for lock/disable states.
 
-**PERM-003: Bitset codec**
-- Implement `internal/domain/PermissionBitsetCodec.java`:
-  - `encode(Set<PermissionCode>)`
-  - `decode(String)`
-  - `decodeToPermissions(String, int permVer)`
-  - `hasPermission(String, PermissionCode)`
-- Base64URL no-padding encode; decode accepts padded/unpadded input.
+**AUTH-003: Principal mapping + lockout policy**
+- Implement custom principal/user-details mapping with account flags and role information.
+- Implement lockout bookkeeping:
+  - increment failures on credential failures,
+  - threshold/time-window lock activation,
+  - progressive backoff,
+  - automatic cooldown unlock,
+  - success-path reset and timestamp updates.
 
-**PERM-004: JWT issuance/decode updates**
-- Update `internal/service/JwtServiceImpl.java` to issue `perm_bits`, `perm_ver`, `uid`, `username`.
-- Remove `roles` and `authorities` list claims from access token.
-- Keep backward-compat decoding in `getAuthoritiesFromToken()` for legacy tokens.
+**AUTH-004: Account-state denial enforcement**
+- Enforce disabled/locked/account-expired/credentials-expired denials through Spring Security exception flow.
+- Ensure exception translation support for explicit auth failure codes and correct status mapping.
 
-**PERM-005: Catalog versioning service**
-- Extend/implement registry services with:
-  - `getCurrentCatalogVersion()`
-  - `resolveByName(String permissionName)`
-- Add startup validation for unresolved/null bit indexes.
-- Add service support for decode endpoint and catalog-version endpoint behavior.
+**AUTH-005: JWT issuance contract**
+- Update `internal/service/JwtServiceImpl.java` (and collaborators) to ensure required claims:
+  - `sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`
+- Do not reintroduce `authorities` as access-token contract claim.
+- Ensure permissions are resolved from persisted assignments, not caller-supplied role payloads.
+
+**AUTH-006: Admin state mutation service support**
+- Implement service-layer operations for unlock/enable/disable/account-expire/credentials-expire/state-read.
+- Ensure audit metadata and state transition invariants are persisted consistently.
 
 ### pos-api-gateway Domain Scope
 
-**PERM-006: Local JWT validation**
-- Refactor `internal/config/SecurityGatewayConfig.java` to validate JWT signature locally.
-- Remove request-path dependency on security-service auth endpoints and WebClient auth calls.
+**AUTH-007: Gateway claim-enforcement alignment**
+- Keep gateway JWT enforcement aligned to required issued claims and greenfield permission encoding.
+- Reject tokens missing required auth-hardening claims or with invalid/unknown claim semantics.
+- Ensure gateway trust boundary remains fail-closed and caller-supplied identity headers are never trusted.
 
-**PERM-007: Bitset decode and authority mapping**
-- Add `internal/config/GatewayPermissionCatalog.java` static bit-index mapping aligned to `PermissionCode`.
-- Decode `perm_bits` locally and map set bits to `PERM_{domain}:{resource}:{action}` authorities.
-- Reject unknown `perm_ver`.
-
-**PERM-008: Header trust boundary hardening**
-- Strip inbound `X-User`, `X-User-Id`, `X-Authorities`, `X-Roles` for all requests (including public paths).
-- Generate downstream identity headers strictly from verified token claims.
-
-**PERM-009: Feature-flagged rollout controls**
-- Implement `GatewayAuthProperties` (`@ConfigurationProperties(prefix = "auth")`) and wire into gateway behavior.
-- Ensure defaults:
-  - `auth.token-identity-required=false`
-  - `auth.strip-inbound-identity-headers=true`
-  - `auth.reject-header-token-mismatch=false`
-
-**PERM-010: Auth observability**
-- Add Micrometer counters for token validation/decode/catalog/claim/header-strip paths.
-- Emit structured WARN logs with `path`, `reason`, `jti` only (no token, no `perm_bits`, no PII).
+**AUTH-008: Eventing and observability alignment**
+- Add/update metrics and structured logging for auth success/failure, lockout/denial paths, and administrative account-state transitions.
+- Ensure no secret/token/PII leakage in logs.
 
 ### Critical Invariants
-- `PermissionCode` index mapping is append-only and immutable.
-- Gateway request-path auth must perform zero network I/O to security-service.
-- Unknown `perm_ver` and malformed `perm_bits` must fail closed (401).
-- Identity headers reaching downstream must always be gateway-generated from verified JWT claims.
+- Credential verification must be delegated to Spring Security authentication components.
+- Account-state flags in persistence must map correctly into principal/account checks.
+- Lockout and cooldown logic must be deterministic and testable (injectable clock where needed).
+- JWT issuance must include required claims and keep `perm_bits`/`perm_ver` contract intact.
+- Gateway must keep fail-closed trust boundary behavior and avoid caller-supplied identity trust.
 - Keep downstream service contracts unchanged; no direct changes required outside gateway/security-service.
 
 ## Mission

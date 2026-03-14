@@ -18,30 +18,30 @@ tools:
 
 You are a review-only agent. You do not edit code, tests, or docs.
 
-## Active PRD: Compact Permission Bitset Encoding (PERM)
+## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
 
-**PRD source of truth:** `durion-positivity-backend/pos-api-gateway/docs/PRD-permissions-encoding.md`
+**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
 
 Use the PRD's acceptance criteria as the primary review contract for each story when a GitHub issue is not yet available or when the issue acceptance criteria conflict with the PRD.
 
-### Per-Story Review Checklist (PERM)
+### Per-Story Review Checklist (AUTH-HARDENING)
 
 For every story reviewed, verify these PRD-specific invariants **in addition** to the standard checklist below:
 
 | Invariant | What to Check |
 |-----------|---------------|
-| **Permission catalog immutability** | `PermissionCode` contains all required permissions with unique stable bit indexes; no index reuse/remap risk. |
-| **Token claim contract** | Access token includes `perm_bits`, `perm_ver`, `uid`, `username`; list claims `roles`/`authorities` removed from access token. |
-| **Backward compatibility path** | Legacy-token decode path exists temporarily in `getAuthoritiesFromToken()` and is explicitly bounded for rollout. |
-| **Gateway no-network auth path** | Gateway auth flow performs local JWT validation and does not call security-service endpoints at request time. |
-| **Fail-closed version/bitset checks** | Unknown `perm_ver`, malformed `perm_bits`, or required-claim gaps produce 401 failure paths. |
-| **Header trust boundary** | Inbound identity headers (`X-User`, `X-User-Id`, `X-Authorities`, `X-Roles`) are stripped on all paths; downstream receives only token-derived values. |
-| **Feature-flag defaults** | `auth.token-identity-required=false`, `auth.strip-inbound-identity-headers=true`, `auth.reject-header-token-mismatch=false`. |
-| **Observability contract** | Required auth counters exist and increment on failure paths; WARN logs include `path`, `reason`, `jti` without token/PII leakage. |
+| **Spring auth authority flow** | Interactive login uses `AuthenticationManager`/`UserDetailsService`; no controller-level raw-password comparisons. |
+| **Account-state persistence contract** | `users` model and mappings include enabled/locked/expiry flags, counters, and timestamps with correct defaults/invariants. |
+| **Lockout policy behavior** | Threshold + window + progressive backoff + cooldown unlock + admin unlock behavior is implemented and deterministic. |
+| **Account-state denial semantics** | Disabled/locked/account-expired/credentials-expired failures map to explicit API errors and status codes. |
+| **Token claim contract** | Access token includes `sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`; no `authorities` contract claim. |
+| **Permissions source of truth** | Token issuance resolves permissions from persisted assignments, not caller-provided role payloads. |
+| **Gateway alignment** | Gateway still enforces canonical token claim semantics and fail-closed behavior for invalid claim states. |
+| **Events and metrics** | Required auth/account-state events and counters exist; logs avoid token/secret/PII leakage. |
 | **Internal package boundaries** | Module internals remain under `internal/**`; public service interfaces remain in `service/**`; no controller->repository shortcuts. |
 | **@EmitEvent + @NonNull compliance** | New/changed endpoints and service signatures align with repository conventions and AGENTS.md rules. |
 
-### ADRs Mandatory for PERM Review
+### ADRs Mandatory for AUTH-HARDENING Review
 
 Always load and check:
 - `docs/adr/0011-api-gateway-security-architecture.adr.md`
@@ -51,10 +51,10 @@ Always load and check:
 
 ### High-Risk Stories Requiring Deepest Scrutiny
 
-- **PERM-006** (Gateway local JWT validation): signature/expiry validation and no outbound dependency regression.
-- **PERM-007** (Bitset decode + authority mapping): correctness of bit-index mapping and `PERM_*` projection.
-- **PERM-008** (Header trust boundary hardening): spoofing prevention on both authenticated and public routes.
-- **PERM-010** (Auth observability): complete failure coverage with safe log payloads.
+- **AUTH-003** (Lockout policy): threshold/window logic, cooldown unlock, and failure counter integrity.
+- **AUTH-004** (Account-state failure mapping): explicit status/error envelope behavior without credential disclosure leaks.
+- **AUTH-005** (JWT contract): strict claim correctness and no reintroduction of `authorities` token contract.
+- **AUTH-007** (Gateway alignment): enforcement compatibility and fail-closed behavior on invalid auth claims.
 
 ## Mission
 Validate that Lead Coder team changes implement the assigned story exactly as specified in GitHub issue acceptance criteria and ADR requirements, before PR creation.
