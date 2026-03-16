@@ -88,7 +88,7 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 
 ### Test Commands (Standard)
 ```bash
-cd /home/louisb/Projects/durion-positivity-backend
+cd ~/IdeaProjects/durion-positivity-backend
 
 # security-service AUTH-HARDENING stories
 ./mvnw -pl pos-security-service -DskipTests=false test
@@ -114,7 +114,7 @@ The orchestrator policy requires this agent to provide strict RED evidence befor
 
 ## Test Exemplars (Mandatory)
 
-- Always use `/home/louisb/Projects/durion/docs/TEST_EXEMPLARS.md` as the primary source of test examples and patterns.
+- Always use `~/IdeaProjects/durion/docs/TEST_EXEMPLARS.md` as the primary source of test examples and patterns.
 - Before adding or refactoring tests, read the relevant exemplar section and mirror its conventions for structure, naming, and assertions.
 - If local module tests conflict with exemplar quality, align new/changed tests to exemplar standards.
 
@@ -172,7 +172,7 @@ Return all of the following every time:
 ## Touched-File Lint (Required)
 
 - When this agent changes Java test files, run touched-file lint before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 - Include lint command and status in RED/GREEN handoff evidence.
@@ -276,28 +276,28 @@ Use focused commands first, then broaden only if needed.
 ```bash
 # Module-scoped test run (auto-enables -DlowResourceTests=true)
 durion/.github/hooks/test-run-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo ~/IdeaProjects/durion-positivity-backend \
   --module pos-accounting \
   --goal test \
   --also-make
 
 # Single class (targeted run; lowResourceTests not required)
 durion/.github/hooks/test-run-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo ~/IdeaProjects/durion-positivity-backend \
   --module pos-accounting \
   --goal test \
   --test JournalEntryServiceTest
 
 # Single method (targeted run; lowResourceTests not required)
 durion/.github/hooks/test-run-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo ~/IdeaProjects/durion-positivity-backend \
   --module pos-accounting \
   --goal test \
   --test JournalEntryServiceTest#createJournalEntry_unbalanced_throwsException
 
 # Contract behavior class (targeted run; lowResourceTests not required)
 durion/.github/hooks/test-run-hook.sh \
-  --repo /home/louisb/Projects/durion-positivity-backend \
+  --repo ~/IdeaProjects/durion-positivity-backend \
   --module pos-accounting \
   --goal test \
   --test APPaymentContractBehaviorIT

@@ -21,11 +21,11 @@ Audit markdown quality across the project and identify obsolete, incorrect, or s
 
 When sources disagree, apply this order:
 
-1. ADRs in `/home/louisb/Projects/durion/docs/adr/` (primary authority)
+1. ADRs in `~/IdeaProjects/durion/docs/adr/` (primary authority)
 2. Architecture and development standards docs (for example:
-   - `/home/louisb/Projects/durion/docs/ARCHITECTURE_GUIDE.md`
-   - `/home/louisb/Projects/durion/docs/DEVELOPMENT_GUIDE.md`
-   - `/home/louisb/Projects/durion/docs/OPERATIONS_RUNBOOK.md`)
+   - `~/IdeaProjects/durion/docs/ARCHITECTURE_GUIDE.md`
+   - `~/IdeaProjects/durion/docs/DEVELOPMENT_GUIDE.md`
+   - `~/IdeaProjects/durion/docs/OPERATIONS_RUNBOOK.md`)
 3. Current implementation in code (module/package names, endpoints, configs)
 4. Local markdown files being audited
 

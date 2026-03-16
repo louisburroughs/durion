@@ -1,13 +1,13 @@
 # ADR 0023 Remediation Checklist: Remove `tenantId`
 
-Status: ACTIVE  
-Last Updated: 2026-02-21  
-Owner: Platform + Domain Teams  
+Status: ACTIVE
+Last Updated: 2026-02-21
+Owner: Platform + Domain Teams
 Related ADR: `0023-remove-tenantid-single-organization-context.adr.md`
 
 ## Goal
 
-Remove `tenantId` from active backend contracts, events, and platform docs.  
+Remove `tenantId` from active backend contracts, events, and platform docs.
 No backward compatibility bridge is required.
 
 ## Phase 1: Contract and Event Model Cleanup
@@ -39,7 +39,7 @@ No backward compatibility bridge is required.
 ## Phase 4: Verification Gates
 
 - [x] Repository scan returns no active backend `tenantId` fields in runtime contracts/events:
-  - `rg -n --glob '!**/target/**' 'tenantId|tenant_id' /home/louisb/Projects/durion-positivity-backend`
+  - `rg -n --glob '!**/target/**' 'tenantId|tenant_id' ~/IdeaProjects/durion-positivity-backend`
 - [ ] Module test suites pass for changed modules.
 - [ ] OpenAPI generation passes for changed modules.
 - [x] Contract behavior tests assert the updated schema (without `tenantId`).

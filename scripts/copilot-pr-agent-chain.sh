@@ -40,8 +40,8 @@ require_cmd() {
 }
 
 PR_NUMBER=""
-PROMPT1_FILE="/home/louisb/Projects/durion/.github/prompts/orchestrator.prompt.md"
-PROMPT2_FILE="/home/louisb/Projects/durion/.github/prompts/pr-review-orchestrator.prompt.md"
+PROMPT1_FILE="~/IdeaProjects/durion/.github/prompts/orchestrator.prompt.md"
+PROMPT2_FILE="~/IdeaProjects/durion/.github/prompts/pr-review-orchestrator.prompt.md"
 MANIFEST_FILE=""
 REPO="louisburroughs/durion-positivity-backend"
 MIN_DELAY_SECONDS=600

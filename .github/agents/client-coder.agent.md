@@ -86,7 +86,7 @@ Out of scope unless explicitly assigned:
 
 ## Touched-File Lint Gate (Hard Rule)
 - Run touched-file lint for each touched module before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 - Any touched-file lint finding must be fixed before completion.
