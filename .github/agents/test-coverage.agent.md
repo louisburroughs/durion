@@ -67,7 +67,7 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
 6. Add targeted JUnit 5 tests (no padding, no trivial assertions).
 7. Re-run coverage until threshold reached or blocked.
 8. Run touched-file lint before final handoff:
-   - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+   - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
    - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 
 JaCoCo is centrally configured in the parent `pom.xml`; do not add module-specific JaCoCo plugin blocks unless explicitly requested.

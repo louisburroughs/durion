@@ -92,7 +92,7 @@ When orchestrated with `Code Review Agent`:
 
 ## Touched-File Lint Gate (Hard Rule)
 - For each touched module, run local touched-file lint before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun lint.
 - Any lint finding in touched files must be fixed and re-validated before completion.

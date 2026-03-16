@@ -84,7 +84,7 @@ After each batch, report:
 ## Working Directory
 
 Primary repo for execution:
-- `/home/louisb/Projects/durion-positivity-backend`
+- `~/IdeaProjects/durion-positivity-backend`
 
 Prompt file location:
-- `/home/louisb/Projects/durion/.github/prompts/complete-standalone-id-jpa-relationship-autonomous-plan.prompt.md`
+- `~/IdeaProjects/durion/.github/prompts/complete-standalone-id-jpa-relationship-autonomous-plan.prompt.md`

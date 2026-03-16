@@ -16,8 +16,8 @@ Usage:
   generate-domain-business-rules.sh [options]
 
 Options:
-  --input-dir DIR        Directory containing domain-*.txt (default: /home/louisb/Projects/durion/scripts/output)
-  --backend-dir DIR      durion-positivity-backend root (default: /home/louisb/Projects/durion-positivity-backend)
+  --input-dir DIR        Directory containing domain-*.txt (default: ~/IdeaProjects/durion/scripts/output)
+  --backend-dir DIR      durion-positivity-backend root (default: ~/IdeaProjects/durion-positivity-backend)
   --model MODEL          OpenAI model (default: OPENAI_MODEL env or gpt-4.1-mini)
   --api-base URL         OpenAI API base URL (default: OPENAI_API_BASE env or https://api.openai.com/v1)
   --domain NAME          Only process a single domain key (e.g., inventory)
@@ -37,8 +37,8 @@ Notes:
 USAGE
 }
 
-INPUT_DIR="/home/louisb/Projects/durion/scripts/output"
-BACKEND_DIR="/home/louisb/Projects/durion-positivity-backend"
+INPUT_DIR="~/IdeaProjects/durion/scripts/output"
+BACKEND_DIR="~/IdeaProjects/durion-positivity-backend"
 OPENAI_MODEL="${OPENAI_MODEL:-gpt-5.2}"
 OPENAI_API_BASE="${OPENAI_API_BASE:-https://api.openai.com/v1}"
 ONLY_DOMAIN=""

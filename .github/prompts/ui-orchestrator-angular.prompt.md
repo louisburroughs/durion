@@ -4,8 +4,8 @@ Goal:
 Design and implement Angular pages/forms from domain wireframes with full i18n (en, fr-CA, es) and accessibility compliance.
 
 Inputs:
-- DOMAIN_DIR: /home/louisb/Projects/durion/domains/inventory/.ui
-- FRONTEND_ROOT: /home/louisb/Projects/<new-angular-frontend>
+- DOMAIN_DIR: ~/IdeaProjects/durion/domains/inventory/.ui
+- FRONTEND_ROOT: ~/IdeaProjects/<new-angular-frontend>
 - STORY_SELECTOR: *.wf.md (or a subset)
 - REQUIRED_LOCALES: en, fr-CA, es
 

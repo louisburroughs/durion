@@ -41,12 +41,12 @@
 - [ ] Consumer/UI tests (out of scope for this backend-only PR)
 - How to run:
   ```bash
-  bash .github/hooks/test-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module pos-shop-manager --goal test
-  bash .github/hooks/test-run-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --module pos-security-service --goal test
+  bash .github/hooks/test-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module pos-shop-manager --goal test
+  bash .github/hooks/test-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module pos-security-service --goal test
   ```
 - Module verify (both PASS):
   ```bash
-  bash .github/hooks/module-verify-hook.sh --repo /home/louisb/Projects/durion-positivity-backend --modules pos-shop-manager,pos-security-service
+  bash .github/hooks/module-verify-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --modules pos-shop-manager,pos-security-service
   ```
 
 ## Risk & Rollback
