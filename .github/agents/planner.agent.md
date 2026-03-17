@@ -23,11 +23,20 @@ tools:
 
 You create plans. You do NOT write code.
 
-## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
+## Active PRD: Durion Positivity Backend SDK
 
-**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
 
-When asked to plan AUTH-HARDENING work, use this story list as the authoritative scope. Apply the **per-story micro-cycle rule** (RED -> GREEN -> coverage per story before moving to next) and enforce the Phase 1 foundation gate before any later story.
+### SDK Planning Override (Mandatory)
+- Plan against the SDK PRD only.
+- Ignore AUTH-* story IDs and phase constraints elsewhere in this file when they conflict with the SDK PRD.
+- Use SDK PRD delivery phases as the sequencing baseline.
+- Plan implementation work for a standalone SDK repository outside both
+  `durion` and `durion-positivity-backend`.
+- Treat `durion` and `durion-positivity-backend` as source-input repositories
+  only.
+
+When asked to plan SDK work, use `durion-positivity-backend/docs/PRD-durion-backend-sdk.md` as the authoritative scope. Apply the **per-phase micro-cycle rule** (RED -> GREEN -> coverage for each planned work slice) and enforce phase order from the PRD delivery plan.
 
 ### Stories in Phase Order
 
@@ -58,10 +67,12 @@ When asked to plan AUTH-HARDENING work, use this story list as the authoritative
 - Target modules are `pos-security-service` and `pos-api-gateway`; no new module scaffold is allowed.
 - Foundation gate is mandatory: AUTH-001 and AUTH-002 must be fully complete before AUTH-003 or later.
 - Plan explicit verification of account-state transitions and lockout timing using deterministic time control (`Clock`) where needed.
-- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to branch `feature/auth-account-hardening`.
+- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to the active SDK execution branch.
 
 ## Objective (Non-Negotiable)
-Your objective is ALWAYS to drive toward creation of a single PR in `durion-positivity-backend` containing completed stories and verification evidence.
+Your objective is ALWAYS to drive toward creation of a single PR in the
+standalone SDK repository containing completed stories and verification
+evidence.
 
 ## Environment
 You are running in a Linux environment. You are explicitly authorized to use standard Unix terminal commands (`grep`, `awk`, `sed`, `cd`, `find`, etc.) for research and verification.
@@ -70,7 +81,9 @@ You are running in a Linux environment. You are explicitly authorized to use sta
 
 Build the plan **backward from the objective**, then present it in executable forward order.
 
-1. **Define End State**: Start from the required end state: one completed PR in `durion-positivity-backend` with all in-scope stories done and validated.
+1. **Define End State**: Start from the required end state: one completed PR
+  in the standalone SDK repository with all in-scope stories done and
+  validated.
 2. **Backward Chain (Necessary-Condition Network)**: Work backward through required gates (PR readiness, verification, implementation, test-first evidence, contract/docs alignment, dependencies) as a dependency network of necessary conditions.
    - Starting from the goal, ask: "What must be true immediately before this can succeed?"
    - For each backward step, define the **required handoff** that must be passed to the next step in forward time (artifacts, decisions, evidence, approvals, mappings, test results).

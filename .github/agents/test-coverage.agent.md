@@ -27,6 +27,16 @@ tools:
 
 You are a coverage hardening agent. Goal: raise target module service+utility coverage to >= 80% with high-signal tests.
 
+## Active PRD: Durion Positivity Backend SDK
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK Coverage Override (Mandatory)
+- Coverage hardening must target behavior delivered for the SDK PRD scope.
+- Ignore legacy AUTH-* references from other templates when they conflict with SDK PRD scope.
+- Measure coverage for the standalone SDK repository implementation, not
+  backend service modules.
+
 ## Scope
 In scope:
 - `com.positivity.{domain}.service.**`

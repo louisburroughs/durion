@@ -24,9 +24,15 @@ tools:
 
 You are responsible for the API contract layer in backend team-mode implementation.
 
-## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
+## Active PRD: Durion Positivity Backend SDK
 
-**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK API-Surface Override (Mandatory)
+- Implement API-facing artifacts and generated-contract alignment from the SDK PRD.
+- Ignore AUTH-* API checklists in this file when they conflict with SDK PRD scope.
+- Apply changes in the standalone SDK repository; treat backend repositories as
+  contract inputs only.
 
 Your API-surface scope for this PRD is primarily `pos-security-service` with supporting auth-contract alignment in `pos-api-gateway`.
 

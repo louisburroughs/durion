@@ -18,13 +18,19 @@ tools:
 
 You are a review-only agent. You do not edit code, tests, or docs.
 
-## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
+## Active PRD: Durion Positivity Backend SDK
 
-**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK Review Override (Mandatory)
+- Review against SDK PRD acceptance criteria and architecture constraints.
+- Ignore AUTH-* checklist content in this file when it conflicts with SDK PRD scope.
+- Evaluate implementation changes in the standalone SDK repository, using
+   backend/domain repositories as evidence sources.
 
 Use the PRD's acceptance criteria as the primary review contract for each story when a GitHub issue is not yet available or when the issue acceptance criteria conflict with the PRD.
 
-### Per-Story Review Checklist (AUTH-HARDENING)
+### Per-Story Review Checklist (Legacy Auth Example)
 
 For every story reviewed, verify these PRD-specific invariants **in addition** to the standard checklist below:
 
@@ -41,7 +47,7 @@ For every story reviewed, verify these PRD-specific invariants **in addition** t
 | **Internal package boundaries** | Module internals remain under `internal/**`; public service interfaces remain in `service/**`; no controller->repository shortcuts. |
 | **@EmitEvent + @NonNull compliance** | New/changed endpoints and service signatures align with repository conventions and AGENTS.md rules. |
 
-### ADRs Mandatory for AUTH-HARDENING Review
+### ADRs Mandatory for Security-Related Review
 
 Always load and check:
 - `docs/adr/0011-api-gateway-security-architecture.adr.md`

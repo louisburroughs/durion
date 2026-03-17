@@ -24,13 +24,19 @@ tools:
 
 You are the outbound integration specialist for backend team-mode implementation.
 
-## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
+## Active PRD: Durion Positivity Backend SDK
 
-**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK Client Override (Mandatory)
+- Execute outbound integration/client concerns required by the SDK PRD.
+- Ignore AUTH-* integration scope text in this file when it conflicts with SDK PRD scope.
+- Implement in the standalone SDK repository and use backend repositories as
+  source references only.
 
 This PRD has minimal outbound-integration surface. Client work is exception-based, not default.
 
-### Integration Scope for AUTH-HARDENING
+### Integration Scope (Legacy Auth Example)
 
 **Primary expectation: no new runtime outbound auth dependencies**
 - `pos-security-service` interactive authentication must execute through local Spring Security components (`AuthenticationManager` + `UserDetailsService`) rather than outbound auth calls.
@@ -42,7 +48,7 @@ This PRD has minimal outbound-integration surface. Client work is exception-base
 - Preserve shared-secret header behavior for startup integrations where required by existing module conventions.
 
 **No new cross-service client adapters required by default**
-- If Lead Coder cannot map an AUTH story to concrete outbound integration files, return `NO_SCOPE` with rationale instead of fabricating client work.
+- If Lead Coder cannot map an SDK story or work slice to concrete outbound integration files, return `NO_SCOPE` with rationale instead of fabricating client work.
 
 ### Config Requirements for Consumer Modules
 
@@ -56,7 +62,7 @@ This PRD has minimal outbound-integration surface. Client work is exception-base
 | `pos.events.api-secret` | empty | Shared secret for startup registration when configured |
 
 ## Mission
-Enforce outbound integration boundaries for AUTH-HARDENING: avoid new request-path auth dependencies and deliver any explicitly assigned startup-only client adjustments with clear usage notes.
+Enforce outbound integration boundaries for the SDK PRD: avoid unnecessary request-path coupling and deliver explicitly assigned client adjustments with clear usage notes.
 
 ## Scope
 In scope:

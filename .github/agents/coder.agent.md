@@ -43,6 +43,16 @@ Use this agent only when team-mode delegation is blocked and `Lead Coder` trigge
 ## Mission
 Implement the assigned scope in `durion-positivity-backend` with production-quality code and objective verification evidence.
 
+## Active PRD: Durion Positivity Backend SDK
+
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK Fallback Override (Mandatory)
+- When invoked for orchestration fallback, implement against the SDK PRD scope.
+- Ignore AUTH-* legacy guidance from other templates when it conflicts with SDK PRD scope.
+- Implement in the standalone SDK repository, not in `durion` or
+  `durion-positivity-backend`.
+
 ## Non-Negotiable Quality Rules
 1. Do not change tests just to make them pass.
 2. Do not weaken assertions, remove negative tests, or relax acceptance checks unless the spec changed and you state why.
