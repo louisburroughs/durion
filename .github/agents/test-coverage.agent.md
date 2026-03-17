@@ -33,15 +33,14 @@ You are a coverage hardening agent. Goal: raise target module service+utility co
 
 ### SDK Coverage Override (Mandatory)
 - Coverage hardening must target behavior delivered for the SDK PRD scope.
-- Ignore legacy AUTH-* references from other templates when they conflict with SDK PRD scope.
 - Measure coverage for the standalone SDK repository implementation, not
   backend service modules.
 
 ## Scope
 In scope:
-- `com.positivity.{domain}.service.**`
-- `com.positivity.{domain}.internal.service.**`
-- `**/util/**`, `**/utils/**`, `**/helper/**`, `**/helpers/**`
+- SDK service/transport/helper packages
+- generated client wrappers and shared utility layers
+- workflow helper packages
 
 Out of scope unless requested:
 - controller, repository, entity/dto/config boilerplate, ArchUnit tests.
@@ -52,18 +51,18 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
 
 ## Workflow
 1. Preflight
-   - verify repo root is `durion-positivity-backend`
+   - verify repo root is the standalone SDK repository
    - verify module exists and `./mvnw` exists
 2. One-time bootstrap (run once per module/session)
    - Build dependencies once, then avoid reactor rebuilds in the test loop:
-     - `./mvnw -pl {module} -am -DskipTests install`
+     - `<sdk-bootstrap-command> <module>`
 3. Generate/report coverage (fast loop command)
    - Preferred: invoke the JaCoCo hook:
-     - `durion/.github/hooks/jacoco-hook.sh --repo /abs/path/to/durion-positivity-backend --module {module}`
+     - `durion/.github/hooks/jacoco-hook.sh --repo <standalone-sdk-repo-path> --module {module}`
    - For targeted test loops, pass a pattern:
-     - `durion/.github/hooks/jacoco-hook.sh --repo /abs/path/to/durion-positivity-backend --module {module} --test-pattern '*Service*Test,*Util*Test,*Helper*Test'`
+     - `durion/.github/hooks/jacoco-hook.sh --repo <standalone-sdk-repo-path> --module {module} --test-pattern '*Service*Test,*Util*Test,*Helper*Test'`
    - Direct command fallback (if hook is unavailable):
-     - `./mvnw -pl {module} -q -DskipTests=false -DskipITs=true -Dmaven.test.failure.ignore=true test jacoco:report`
+     - `<sdk-coverage-command> <module>`
    - Do not use `clean` in coverage loops.
    - Do not use `-am` in coverage loops.
    - Prefer targeted test runs while iterating:
@@ -77,7 +76,7 @@ Do not create pull requests; PR creation must go through `durion/.github/hooks/p
 6. Add targeted JUnit 5 tests (no padding, no trivial assertions).
 7. Re-run coverage until threshold reached or blocked.
 8. Run touched-file lint before final handoff:
-   - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo <standalone-sdk-repo-path> --module {module}`
    - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 
 JaCoCo is centrally configured in the parent `pom.xml`; do not add module-specific JaCoCo plugin blocks unless explicitly requested.
