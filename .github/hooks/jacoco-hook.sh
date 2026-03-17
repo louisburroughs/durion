@@ -91,6 +91,78 @@ if [[ ! -d "$repo_path/.git" ]]; then
   exit 2
 fi
 
+# ── JavaScript/npm dispatch ───────────────────────────────────────────────────
+if [[ -f "$repo_path/package.json" && ! -f "$repo_path/mvnw" ]]; then
+  # Resolve module directory
+  pkg_dir="$repo_path"
+  if [[ -n "$module" ]]; then
+    if [[ -d "$repo_path/packages/$module" ]]; then
+      pkg_dir="$repo_path/packages/$module"
+    elif [[ -d "$repo_path/$module" ]]; then
+      pkg_dir="$repo_path/$module"
+    fi
+  fi
+
+  cov_dir="$pkg_dir/coverage"
+
+  if [[ "$run_bootstrap" == "true" ]]; then
+    pushd "$pkg_dir" >/dev/null
+    set +e
+    npm install --silent
+    boot_exit=$?
+    set -e
+    popd >/dev/null
+    if [[ $boot_exit -ne 0 ]]; then
+      echo "failure_stage: bootstrap"
+      echo "primary_blocker: npm install failed for module ${module}"
+      exit $boot_exit
+    fi
+  fi
+
+  pushd "$pkg_dir" >/dev/null
+  set +e
+  if [[ -n "$test_pattern" ]]; then
+    npx jest --coverage --passWithNoTests --testPathPattern="$test_pattern"
+  else
+    npx jest --coverage --passWithNoTests
+  fi
+  cov_exit=$?
+  set -e
+  popd >/dev/null
+
+  if [[ $cov_exit -ne 0 ]]; then
+    echo "failure_stage: test_execution"
+    echo "test_status: failed"
+    echo "primary_blocker: jest --coverage failed (exit=${cov_exit}) for module ${module}"
+    exit $cov_exit
+  fi
+
+  hook_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  # Determine which coverage artifact Jest produced
+  lcov_info="${cov_dir}/lcov.info"
+  cov_json="${cov_dir}/coverage-final.json"
+  cov_text="${cov_dir}/coverage-summary.json"
+
+  if [[ -f "$cov_json" ]]; then
+    report_source="jest-coverage-json"
+  elif [[ -f "$lcov_info" ]]; then
+    report_source="jest-lcov"
+  else
+    report_source="jest-coverage"
+  fi
+
+  echo "JaCoCo hook PASS | module=${module} | report=${report_source} | ts=${hook_timestamp}"
+
+  json_state="missing"; lcov_state="missing"
+  [[ -f "$cov_json" ]] && json_state="present"
+  [[ -f "$lcov_info" ]] && lcov_state="present"
+  echo "Artifacts | exec=N/A | json=${json_state} | lcov=${lcov_state}"
+
+  exit 0
+fi
+# ── End JavaScript/npm dispatch ───────────────────────────────────────────────
+
 if [[ ! -f "$repo_path/mvnw" ]]; then
   echo "Maven wrapper not found: $repo_path/mvnw" >&2
   exit 2
@@ -156,7 +228,7 @@ jacoco_cmd=(./mvnw -pl "$module")
 if [[ "$maven_quiet" == "true" ]]; then
   jacoco_cmd+=(-q)
 fi
-jacoco_cmd+=( 
+jacoco_cmd+=(
   "-DskipTests=false"
   "-DskipITs=${skip_its}"
   "-DlowResourceTests=${low_resource_tests}"
