@@ -92,6 +92,65 @@ if [[ ! -d "$repo_path/.git" ]]; then
   exit 2
 fi
 
+# ── JavaScript/TypeScript dispatch ───────────────────────────────────────────
+if [[ -f "$repo_path/package.json" && ! -f "$repo_path/mvnw" ]]; then
+  # Detect touched TS/JS files
+  declare -a ts_files=()
+  if [[ -n "$files_arg" ]]; then
+    IFS=',' read -ra ts_files <<< "$files_arg"
+  else
+    pushd "$repo_path" >/dev/null
+    changed_raw=""
+    if [[ -n "$base_ref" ]]; then
+      changed_raw="$(git diff --name-only "${base_ref}..${head_ref}" 2>/dev/null || true)"
+    else
+      changed_raw="$(
+        {
+          git diff --name-only
+          git diff --cached --name-only
+          if [[ "$include_untracked" == "true" ]]; then
+            git ls-files --others --exclude-standard
+          fi
+        } | sort -u 2>/dev/null || true
+      )"
+    fi
+    popd >/dev/null
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      if [[ "$f" =~ \.(ts|tsx|js|jsx)$ ]]; then
+        ts_files+=("$repo_path/$f")
+      fi
+    done <<< "$changed_raw"
+  fi
+
+  if [[ ${#ts_files[@]} -eq 0 ]]; then
+    echo "No TypeScript/JavaScript files to lint. Skipping."
+    exit 0
+  fi
+
+  if [[ "$auto_install" == "true" ]]; then
+    pushd "$repo_path" >/dev/null
+    npm install --silent
+    popd >/dev/null
+  fi
+
+  pushd "$repo_path" >/dev/null
+  set +e
+  npx eslint --ext .ts,.tsx,.js,.jsx "${ts_files[@]}"
+  lint_exit=$?
+  set -e
+  popd >/dev/null
+
+  hook_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  if [[ $lint_exit -eq 0 ]]; then
+    echo "Lint hook PASS | type=typescript | files=${#ts_files[@]} | ts=${hook_timestamp}"
+  else
+    echo "Lint hook FAIL | type=typescript | files=${#ts_files[@]} | exit=${lint_exit} | ts=${hook_timestamp}"
+  fi
+  exit $lint_exit
+fi
+# ── End JavaScript/TypeScript dispatch ───────────────────────────────────────
+
 if [[ ! -f "$repo_path/mvnw" ]]; then
   echo "Maven wrapper not found: $repo_path/mvnw" >&2
   exit 2

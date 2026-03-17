@@ -95,6 +95,48 @@ case "$goal" in
     ;;
 esac
 
+# ── JavaScript/npm dispatch ───────────────────────────────────────────────────
+if [[ -f "$repo_path/package.json" && ! -f "$repo_path/mvnw" ]]; then
+  # Resolve module directory: packages/<module>, <module>, or repo root
+  pkg_dir="$repo_path"
+  if [[ -n "$module" ]]; then
+    if [[ -d "$repo_path/packages/$module" ]]; then
+      pkg_dir="$repo_path/packages/$module"
+    elif [[ -d "$repo_path/$module" ]]; then
+      pkg_dir="$repo_path/$module"
+    fi
+    # else: module name supplied but no subdirectory found; use repo root
+  fi
+
+  is_targeted="false"
+  if [[ -n "$test_pattern" || -n "$it_test_pattern" ]]; then
+    is_targeted="true"
+  fi
+
+  pushd "$pkg_dir" >/dev/null
+  node_cmd=(npx jest --passWithNoTests)
+  if [[ -n "$test_pattern" ]]; then
+    node_cmd+=(--testPathPattern="$test_pattern")
+  elif [[ -n "$it_test_pattern" ]]; then
+    node_cmd+=(--testPathPattern="$it_test_pattern")
+  fi
+  if [[ "$is_targeted" == "false" ]]; then
+    node_cmd+=(--coverage)
+  fi
+  if [[ "$maven_quiet" == "true" ]]; then
+    node_cmd+=(--silent)
+  fi
+
+  set +e
+  "${node_cmd[@]}"
+  js_exit=$?
+  set -e
+
+  popd >/dev/null
+  exit $js_exit
+fi
+# ── End JavaScript/npm dispatch ───────────────────────────────────────────────
+
 if [[ "$low_resource" != "auto" && "$low_resource" != "true" && "$low_resource" != "false" ]]; then
   echo "--low-resource must be auto, true, or false (received: $low_resource)" >&2
   exit 2

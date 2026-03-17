@@ -79,6 +79,112 @@ if [[ ! -d "$repo_path/.git" ]]; then
   exit 2
 fi
 
+# ── JavaScript/npm dispatch ───────────────────────────────────────────────────
+if [[ -f "$repo_path/package.json" && ! -f "$repo_path/mvnw" ]]; then
+  declare -a js_modules=()
+
+  if [[ -n "$modules_arg" ]]; then
+    # Use provided list
+    IFS=',' read -ra js_modules <<< "$modules_arg"
+  else
+    # Detect touched modules from git diff
+    pushd "$repo_path" >/dev/null
+    changed_files=""
+    if [[ -n "$base_ref" ]]; then
+      changed_files="$(git diff --name-only "${base_ref}..${head_ref}" 2>/dev/null || true)"
+    else
+      changed_files="$(
+        {
+          git diff --name-only
+          git diff --cached --name-only
+          if [[ "$include_untracked" == "true" ]]; then
+            git ls-files --others --exclude-standard
+          fi
+        } | sort -u 2>/dev/null || true
+      )"
+    fi
+    popd >/dev/null
+
+    # Extract 'packages/<name>/' -> name, or 'root' for root-level files
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      if [[ "$f" =~ ^packages/([^/]+)/ ]]; then
+        pkg="${BASH_REMATCH[1]}"
+        # deduplicate
+        already=false
+        for existing in "${js_modules[@]}"; do [[ "$existing" == "$pkg" ]] && already=true && break; done
+        [[ "$already" == "false" ]] && js_modules+=("$pkg")
+      else
+        # root-level change
+        already=false
+        for existing in "${js_modules[@]}"; do [[ "$existing" == "root" ]] && already=true && break; done
+        [[ "$already" == "false" ]] && js_modules+=("root")
+      fi
+    done <<< "$changed_files"
+  fi
+
+  if [[ ${#js_modules[@]} -eq 0 ]]; then
+    echo "No touched JS modules detected. Nothing to verify." >&2
+    popd >/dev/null 2>/dev/null || true
+    exit 2
+  fi
+
+  declare -a js_passed=()
+  declare -a js_failed=()
+
+  for mod in "${js_modules[@]}"; do
+    pkg_dir="$repo_path"
+    if [[ "$mod" != "root" ]]; then
+      if [[ -d "$repo_path/packages/$mod" ]]; then
+        pkg_dir="$repo_path/packages/$mod"
+      elif [[ -d "$repo_path/$mod" ]]; then
+        pkg_dir="$repo_path/$mod"
+      fi
+    fi
+
+    pushd "$pkg_dir" >/dev/null
+    set +e
+    npm run build --if-present --silent 2>/dev/null
+    build_exit=$?
+    if [[ $build_exit -eq 0 ]]; then
+      npx jest --coverage --passWithNoTests --silent
+      verify_exit=$?
+    else
+      verify_exit=$build_exit
+    fi
+    set -e
+    popd >/dev/null
+
+    hook_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    if [[ $verify_exit -eq 0 ]]; then
+      js_passed+=("$mod")
+      echo "Module verify PASS | module=${mod} | ts=${hook_timestamp}"
+    else
+      js_failed+=("$mod")
+      echo "Module verify FAIL | module=${mod} | exit=${verify_exit} | ts=${hook_timestamp}"
+      if [[ "$fail_fast" == "true" ]]; then
+        break
+      fi
+    fi
+  done
+
+  total=${#js_modules[@]}
+  passed=${#js_passed[@]}
+  failed=${#js_failed[@]}
+  failed_csv=""
+  if [[ $failed -gt 0 ]]; then
+    failed_csv="$(IFS=,; echo "${js_failed[*]}")"
+  fi
+
+  echo "Module verify summary | total=${total} | passed=${passed} | failed=${failed} | failed_modules=${failed_csv}"
+
+  if [[ $failed -gt 0 ]]; then
+    exit 1
+  fi
+  exit 0
+fi
+# ── End JavaScript/npm dispatch ───────────────────────────────────────────────
+
 if [[ ! -f "$repo_path/mvnw" ]]; then
   echo "Maven wrapper not found: $repo_path/mvnw" >&2
   exit 2
