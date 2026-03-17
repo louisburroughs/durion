@@ -42,7 +42,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [76, 77, 78]
+      issues:
+      - 76
+      - 77
+      - 78
       wireframes:
       - repo: louisburroughs/durion
         path: domains/location/.ui/frontend-story-locations-create-mobile-units-and-c-140.wf.md
@@ -57,6 +60,9 @@ stories:
         path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/location/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_136.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md

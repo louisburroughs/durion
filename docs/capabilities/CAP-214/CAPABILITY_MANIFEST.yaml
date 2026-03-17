@@ -42,7 +42,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [38,39,40]
+      issues:
+      - 38
+      - 39
+      - 40
       wireframes:
       - repo: louisburroughs/durion
         path: domains/location/.ui/frontend-story-topology-define-default-staging-and-102.wf.md
@@ -57,6 +60,9 @@ stories:
         path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/location/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_214.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md

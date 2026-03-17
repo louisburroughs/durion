@@ -1,0 +1,51 @@
+capability_id: CAP:006
+domain: workexec
+manifest: docs/capabilities/CAP-006/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 38
+  frontend_issue: 218
+  frontend_story_md: docs/capabilities/CAP-006/stories/frontend/CAP_006.218.frontend.md
+  backend_issue: 154
+  wireframe: domains/workexec/.ui/frontend-story-completion-validate-completion-prec-218.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 39
+  frontend_issue: 217
+  frontend_story_md: docs/capabilities/CAP-006/stories/frontend/CAP_006.217.frontend.md
+  backend_issue: 153
+  wireframe: domains/workexec/.ui/frontend-story-completion-resolve-approval-gated-c-217.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - approveChangeRequest
+  - declineChangeRequest
+- parent_issue: 40
+  frontend_issue: 216
+  frontend_story_md: docs/capabilities/CAP-006/stories/frontend/CAP_006.216.frontend.md
+  backend_issue: 152
+  wireframe: domains/workexec/.ui/frontend-story-completion-finalize-billable-scope-216.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 41
+  frontend_issue: 215
+  frontend_story_md: docs/capabilities/CAP-006/stories/frontend/CAP_006.215.frontend.md
+  backend_issue: 151
+  wireframe: domains/workexec/.ui/frontend-story-completion-complete-workorder-and-r-215.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 42
+  frontend_issue: 214
+  frontend_story_md: docs/capabilities/CAP-006/stories/frontend/CAP_006.214.frontend.md
+  backend_issue: 150
+  wireframe: domains/workexec/.ui/frontend-story-completion-reopen-completed-workord-214.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []

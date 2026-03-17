@@ -1,0 +1,44 @@
+capability_id: CAP:089
+domain: crm
+manifest: docs/capabilities/CAP-089/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 95
+  frontend_issue: 176
+  frontend_story_md: docs/capabilities/CAP-089/stories/frontend/CAP_089.176.frontend.md
+  backend_issue: 112
+  wireframe: domains/crm/.ui/frontend-story-party-create-commercial-account-176.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids:
+  - createCommercialAccount
+  - getParty
+- parent_issue: 96
+  frontend_issue: 175
+  frontend_story_md: docs/capabilities/CAP-089/stories/frontend/CAP_089.175.frontend.md
+  backend_issue: 111
+  wireframe: domains/crm/.ui/frontend-story-party-create-individual-person-reco-175.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 97
+  frontend_issue: 174
+  frontend_story_md: docs/capabilities/CAP-089/stories/frontend/CAP_089.174.frontend.md
+  backend_issue: 110
+  wireframe: domains/crm/.ui/frontend-story-party-associate-individuals-to-comm-174.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 98
+  frontend_issue: 173
+  frontend_story_md: docs/capabilities/CAP-089/stories/frontend/CAP_089.173.frontend.md
+  backend_issue: 109
+  wireframe: domains/crm/.ui/frontend-story-party-search-and-merge-duplicate-pa-173.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids:
+  - mergeParties
+  - searchParties

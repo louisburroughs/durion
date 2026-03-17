@@ -38,7 +38,13 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [7, 8, 9]
+      issues:
+      - 7
+      - 8
+      - 9
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_250.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md

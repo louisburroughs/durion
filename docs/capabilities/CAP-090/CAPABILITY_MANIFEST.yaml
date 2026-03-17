@@ -54,7 +54,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 108
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 172
       impacted_component_repos:
       - louisburroughs/durion-crm
@@ -72,6 +72,7 @@ stories:
         path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/crm/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_090.172.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -83,9 +84,9 @@ stories:
       generated: true
   pr_links:
     durion_contract_pr: ''
-    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/419'
+    backend_pr: https://github.com/louisburroughs/durion-positivity-backend/pull/419
     frontend_prs:
-    - 'https://github.com/louisburroughs/durion-crm/pull/2'
+    - https://github.com/louisburroughs/durion-crm/pull/2
   merge_order:
   - durion_contract_pr
   - backend_pr
@@ -107,7 +108,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 107
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 171
       impacted_component_repos:
       - louisburroughs/durion-crm
@@ -125,6 +126,7 @@ stories:
         path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/crm/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_090.171.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -157,7 +159,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 106
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 170
       impacted_component_repos:
       - louisburroughs/durion-crm
@@ -175,6 +177,7 @@ stories:
         path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/crm/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_090.170.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md

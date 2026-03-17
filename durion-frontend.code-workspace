@@ -2,10 +2,15 @@
 	"folders": [
 		{
 			"path": "../durion-positivity-frontend",
-			"name": "durion-positivity-frontend"
+			"name": "Frontend"
 		},
 		{
-			"path": "."
+			"path": ".",
+			"name": "Durion"
+		},
+		{
+			"path": "../durion-positivity-sdk",
+			"name": "SDK"
 		}
 	]
 }

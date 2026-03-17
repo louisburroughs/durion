@@ -1,6 +1,6 @@
 meta:
   capability_id: CAP:117
-  capability_name: '[CAP] Identity Orchestration (User ↔ Person Linking)'
+  capability_name: "[CAP] Identity Orchestration (User \u2194 Person Linking)"
   owner_repo: louisburroughs/durion
   created_utc: '2026-01-28T00:02:54.869053+00:00'
   last_updated_utc: '2026-01-28T00:02:54.869053+00:00'
@@ -31,7 +31,7 @@ stories:
 - parent:
     repo: louisburroughs/durion
     issue: 117
-    title: '[CAP] Identity Orchestration (User ↔ Person Linking)'
+    title: "[CAP] Identity Orchestration (User \u2194 Person Linking)"
     domain: people
     labels:
     - type:capability
@@ -42,7 +42,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [88, 90, 91]
+      issues:
+      - 88
+      - 90
+      - 91
       wireframes:
       - repo: louisburroughs/durion
         path: domains/people/.ui/frontend-story-users-create-update-employee-profil-152.wf.md
@@ -57,6 +60,9 @@ stories:
         path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/people/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_117.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md

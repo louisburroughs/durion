@@ -1,0 +1,31 @@
+capability_id: CAP:092
+domain: crm
+manifest: docs/capabilities/CAP-092/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 107
+  frontend_issue: 164
+  frontend_story_md: docs/capabilities/CAP-092/stories/frontend/CAP_092.164.frontend.md
+  backend_issue: 100
+  wireframe: ''
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 108
+  frontend_issue: 163
+  frontend_story_md: docs/capabilities/CAP-092/stories/frontend/CAP_092.163.frontend.md
+  backend_issue: 99
+  wireframe: domains/crm/.ui/frontend-story-billing-expose-crm-snapshot-account-163.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 109
+  frontend_issue: 162
+  frontend_story_md: docs/capabilities/CAP-092/stories/frontend/CAP_092.162.frontend.md
+  backend_issue: 98
+  wireframe: domains/workexec/.ui/frontend-story-billing-enforce-po-requirement-duri-162.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []

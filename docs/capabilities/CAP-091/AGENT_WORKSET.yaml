@@ -1,0 +1,50 @@
+capability_id: CAP:091
+domain: crm
+manifest: docs/capabilities/CAP-091/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 102
+  frontend_issue: 169
+  frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.169.frontend.md
+  backend_issue: 105
+  wireframe: domains/crm/.ui/frontend-story-vehicle-create-vehicle-record-with-169.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids:
+  - createVehicleForParty
+- parent_issue: 103
+  frontend_issue: 168
+  frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.168.frontend.md
+  backend_issue: 104
+  wireframe: domains/crm/.ui/frontend-story-vehicle-associate-vehicles-to-accou-168.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 104
+  frontend_issue: 167
+  frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.167.frontend.md
+  backend_issue: 103
+  wireframe: domains/crm/.ui/frontend-story-vehicle-vehicle-lookup-by-vin-unit-167.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 105
+  frontend_issue: 166
+  frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.166.frontend.md
+  backend_issue: 102
+  wireframe: domains/crm/.ui/frontend-story-vehicle-store-vehicle-care-preferen-166.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
+- parent_issue: 106
+  frontend_issue: 165
+  frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.165.frontend.md
+  backend_issue: 101
+  wireframe: domains/crm/.ui/frontend-story-vehicle-ingest-vehicle-updates-from-165.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []

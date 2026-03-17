@@ -54,7 +54,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 100
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 164
       impacted_component_repos: []
       business_rules:
@@ -64,6 +64,7 @@ stories:
         path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/crm/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_092.164.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -98,7 +99,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 99
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 163
       impacted_component_repos:
       - louisburroughs/durion-crm
@@ -116,6 +117,7 @@ stories:
         path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/crm/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_092.163.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -148,7 +150,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 98
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 162
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -166,6 +168,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_092.162.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md

@@ -1,0 +1,13 @@
+capability_id: CAP:054
+domain: ''
+manifest: docs/capabilities/CAP-054/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: null
+  frontend_issue: 123
+  frontend_story_md: docs/capabilities/CAP-054/stories/frontend/CAP_054.123.frontend.md
+  backend_issue: 125
+  wireframe: domains/workexec/.ui/frontend-story-crossdomain-workexec-displays-opera-123.wf.md
+  contract_guide: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-accounting/openapi.yaml
+  operation_ids: []

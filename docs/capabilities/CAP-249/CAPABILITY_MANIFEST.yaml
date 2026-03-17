@@ -38,7 +38,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [10, 11, 12]
+      issues:
+      - 10
+      - 11
+      - 12
       wireframes:
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.ui/frontend-story-appointment-show-assignment-locatio-74.wf.md
@@ -46,6 +49,9 @@ stories:
       - repo: louisburroughs/durion
         path: domains/shopmgmt/.ui/frontend-story-appointment-show-assignment-locatio-74.wf.meta.json
         type: meta
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_249.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md

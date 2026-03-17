@@ -1,0 +1,52 @@
+capability_id: CAP:003
+domain: workexec
+manifest: docs/capabilities/CAP-003/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 19
+  frontend_issue: 233
+  frontend_story_md: docs/capabilities/CAP-003/stories/frontend/CAP_003.233.frontend.md
+  backend_issue: 168
+  wireframe: domains/workexec/.ui/frontend-story-approval-submit-estimate-for-custom-233.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - createEstimate
+- parent_issue: 20
+  frontend_issue: 271
+  frontend_story_md: docs/capabilities/CAP-003/stories/frontend/CAP_003.271.frontend.md
+  backend_issue: 207
+  wireframe: domains/workexec/.ui/frontend-story-approval-capture-digital-customer-a-271.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 21
+  frontend_issue: 270
+  frontend_story_md: docs/capabilities/CAP-003/stories/frontend/CAP_003.270.frontend.md
+  backend_issue: 206
+  wireframe: domains/workexec/.ui/frontend-story-approval-capture-in-person-customer-270.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - approveEstimate
+  - createEstimate
+- parent_issue: 22
+  frontend_issue: 269
+  frontend_story_md: docs/capabilities/CAP-003/stories/frontend/CAP_003.269.frontend.md
+  backend_issue: 205
+  wireframe: domains/workexec/.ui/frontend-story-approval-record-partial-approval-269.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 23
+  frontend_issue: 268
+  frontend_story_md: docs/capabilities/CAP-003/stories/frontend/CAP_003.268.frontend.md
+  backend_issue: 204
+  wireframe: domains/workexec/.ui/frontend-approval-handle-approval-expiration-268.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []

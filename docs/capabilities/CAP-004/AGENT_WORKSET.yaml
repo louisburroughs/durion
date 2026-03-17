@@ -1,0 +1,59 @@
+capability_id: CAP:004
+domain: workexec
+manifest: docs/capabilities/CAP-004/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 25
+  frontend_issue: 231
+  frontend_story_md: docs/capabilities/CAP-004/stories/frontend/CAP_004.231.frontend.md
+  backend_issue: 167
+  wireframe: domains/workexec/.ui/frontend-story-promotion-validate-promotion-precon-231.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 26
+  frontend_issue: 230
+  frontend_story_md: docs/capabilities/CAP-004/stories/frontend/CAP_004.230.frontend.md
+  backend_issue: 166
+  wireframe: domains/workexec/.ui/frontend-story-promotion-create-workorder-from-app-230.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - getEstimateById
+- parent_issue: 27
+  frontend_issue: 229
+  frontend_story_md: docs/capabilities/CAP-004/stories/frontend/CAP_004.229.frontend.md
+  backend_issue: 165
+  wireframe: domains/workexec/.ui/frontend-story-promotion-generate-workorder-items-229.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 28
+  frontend_issue: 228
+  frontend_story_md: docs/capabilities/CAP-004/stories/frontend/CAP_004.228.frontend.md
+  backend_issue: 164
+  wireframe: domains/workexec/.ui/frontend-story-promotion-enforce-idempotent-promot-228.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 29
+  frontend_issue: 227
+  frontend_story_md: docs/capabilities/CAP-004/stories/frontend/CAP_004.227.frontend.md
+  backend_issue: 163
+  wireframe: domains/workexec/.ui/frontend-story-promotion-handle-partial-approval-p-227.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 30
+  frontend_issue: 226
+  frontend_story_md: docs/capabilities/CAP-004/stories/frontend/CAP_004.226.frontend.md
+  backend_issue: 162
+  wireframe: domains/workexec/.ui/frontend-story-promotion-record-promotion-audit-tr-226.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []

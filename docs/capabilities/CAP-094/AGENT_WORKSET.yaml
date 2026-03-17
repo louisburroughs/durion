@@ -1,0 +1,4 @@
+capability_id: CAP:094
+domain: crm
+manifest: docs/capabilities/CAP-094/CAPABILITY_MANIFEST.yaml
+stories: []

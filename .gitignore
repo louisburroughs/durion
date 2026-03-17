@@ -18,3 +18,5 @@ venv/
 .idea/
 
 .agent-tmp/
+
+archived-frontend-issues/

@@ -42,7 +42,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [26, 27, 176]
+      issues:
+      - 26
+      - 27
+      - 176
       wireframes:
       - repo: louisburroughs/durion
         path: domains/inventory/.ui/frontend-story-counts-approve-and-post-adjustments-90.wf.md
@@ -57,6 +60,9 @@ stories:
         path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_219.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md

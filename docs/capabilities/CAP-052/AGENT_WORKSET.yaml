@@ -1,0 +1,13 @@
+capability_id: CAP:052
+domain: ''
+manifest: docs/capabilities/CAP-052/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: null
+  frontend_issue: 195
+  frontend_story_md: docs/capabilities/CAP-052/stories/frontend/CAP_052.195.frontend.md
+  backend_issue: 131
+  wireframe: domains/accounting/.ui/frontend-story-ar-issue-credit-memo-refund-with-tr-195.wf.md
+  contract_guide: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-accounting/openapi.yaml
+  operation_ids: []

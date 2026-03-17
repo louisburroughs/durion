@@ -28,7 +28,10 @@ stories:
     repo: louisburroughs/durion
     issue: 171
     title: '[CAP] Substitutions, Fitment Hints, and Commercial Rules'
-    domains: [product, pricing, workexec]
+    domains:
+    - product
+    - pricing
+    - workexec
     labels:
     - type:capability
     - layer:functional
@@ -38,7 +41,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [43, 44, 45]
+      issues:
+      - 43
+      - 44
+      - 45
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-rules-enforce-location-restrictions-107.wf.md
@@ -46,9 +52,15 @@ stories:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-rules-enforce-location-restrictions-107.wf.meta.json
         type: meta
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_171.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
-    paths: [domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md,domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md,domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md]
+    paths:
+    - domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    - domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    - domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
   pr_links:

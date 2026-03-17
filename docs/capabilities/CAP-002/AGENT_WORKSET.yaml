@@ -1,0 +1,79 @@
+capability_id: CAP:002
+domain: workexec
+manifest: docs/capabilities/CAP-002/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 13
+  frontend_issue: 239
+  frontend_story_md: docs/capabilities/CAP-002/stories/frontend/CAP_002.239.frontend.md
+  backend_issue: 174
+  wireframe: domains/workexec/.ui/frontend-story-estimate-create-draft-estimate-239.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - createEstimate
+  - getEstimateById
+- parent_issue: 14
+  frontend_issue: 238
+  frontend_story_md: docs/capabilities/CAP-002/stories/frontend/CAP_002.238.frontend.md
+  backend_issue: 173
+  wireframe: domains/workexec/.ui/frontend-story-estimate-add-parts-to-estimate-238.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - addEstimateItem
+  - calculateEstimateTotals
+  - createEstimate
+  - getEstimateById
+  - updateEstimateItem
+- parent_issue: 15
+  frontend_issue: 237
+  frontend_story_md: docs/capabilities/CAP-002/stories/frontend/CAP_002.237.frontend.md
+  backend_issue: 172
+  wireframe: domains/workexec/.ui/frontend-story-estimate-add-labor-to-estimate-237.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - addEstimateItem
+  - calculateEstimateTotals
+  - getEstimateById
+  - updateEstimateItem
+- parent_issue: 16
+  frontend_issue: 236
+  frontend_story_md: docs/capabilities/CAP-002/stories/frontend/CAP_002.236.frontend.md
+  backend_issue: 171
+  wireframe: domains/pricing/.ui/frontend-story-estimate-calculate-taxes-and-totals-236.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - calculateEstimateTotals
+  - getEstimateById
+- parent_issue: 17
+  frontend_issue: 235
+  frontend_story_md: docs/capabilities/CAP-002/stories/frontend/CAP_002.235.frontend.md
+  backend_issue: 170
+  wireframe: domains/workexec/.ui/frontend-story-estimate-revise-estimate-prior-to-a-235.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - createEstimate
+  - getEstimateById
+  - patchEstimateStatus
+  - reopenEstimate
+- parent_issue: 18
+  frontend_issue: 234
+  frontend_story_md: docs/capabilities/CAP-002/stories/frontend/CAP_002.234.frontend.md
+  backend_issue: 169
+  wireframe: domains/workexec/.ui/frontend-story-estimate-present-estimate-summary-f-234.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - createEstimate
+  - createEstimateSnapshot
+  - getEstimateById
+  - getEstimateSummary

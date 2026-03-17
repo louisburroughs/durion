@@ -1,0 +1,35 @@
+capability_id: CAP:090
+domain: crm
+manifest: docs/capabilities/CAP-090/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 99
+  frontend_issue: 172
+  frontend_story_md: docs/capabilities/CAP-090/stories/frontend/CAP_090.172.frontend.md
+  backend_issue: 108
+  wireframe: domains/crm/.ui/frontend-story-contacts-maintain-contact-roles-and-172.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids:
+  - getContactsWithRoles
+  - updateContactRoles
+- parent_issue: 100
+  frontend_issue: 171
+  frontend_story_md: docs/capabilities/CAP-090/stories/frontend/CAP_090.171.frontend.md
+  backend_issue: 107
+  wireframe: domains/crm/.ui/frontend-story-contacts-store-communication-prefer-171.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids:
+  - getCommunicationPreferences
+  - upsertCommunicationPreferences
+- parent_issue: 101
+  frontend_issue: 170
+  frontend_story_md: docs/capabilities/CAP-090/stories/frontend/CAP_090.170.frontend.md
+  backend_issue: 106
+  wireframe: domains/crm/.ui/frontend-story-contacts-capture-multiple-contact-p-170.wf.md
+  contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
+  operation_ids: []
