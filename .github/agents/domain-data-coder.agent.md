@@ -27,9 +27,15 @@ tools:
 
 You are responsible for domain logic and persistence implementation in backend team-mode delivery.
 
-## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
+## Active PRD: Durion Positivity Backend SDK
 
-**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK Domain/Persistence Override (Mandatory)
+- Implement domain/service/entity/repository behavior required by the SDK PRD.
+- Ignore AUTH-* domain logic sections in this file when they conflict with SDK PRD scope.
+- Implement in the standalone SDK repository and consume backend/domain sources
+  as external inputs.
 
 Your file scope for this PRD spans two modules: `pos-security-service` and `pos-api-gateway`.
 

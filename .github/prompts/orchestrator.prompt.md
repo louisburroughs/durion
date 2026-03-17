@@ -1,5 +1,5 @@
 ---
-name: 'Orchestration Policy for Backend Delivery'
+name: 'Orchestration Policy for SDK Delivery'
 agent: 'Orchestrator'
 description: 'Compact policy for Planner -> TDD -> Lead Coder team -> Code Review -> Coverage execution with strict validation gates.'
 ---
@@ -7,13 +7,22 @@ description: 'Compact policy for Planner -> TDD -> Lead Coder team -> Code Revie
 Run in strict compliance with `orchestrator.agent.md`.
 
 ## Objective
-Produce exactly one PR in `durion-positivity-backend` with completed stories and evidence.
+Produce exactly one PR in the standalone SDK repository with completed stories
+and evidence.
+
+## Repository Target Override (Mandatory)
+- SDK implementation MUST be in a standalone repository/project outside both
+  `durion` and `durion-positivity-backend`.
+- `durion` and `durion-positivity-backend` are source-input repositories only
+  (OpenAPI, ADRs, domain docs, and references).
+- Any legacy instruction in this prompt that implies SDK implementation inside
+  `durion` or `durion-positivity-backend` is superseded by this override.
 
 ## Active PRD
-- **PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
-- **Capability:** Spring Authentication and Account State Hardening (`AUTH-HARDENING`)
-- **Target modules:** `pos-security-service`, `pos-api-gateway`
-- **Execution order gate:** Complete AUTH-001 and AUTH-002 before starting any other AUTH story.
+- **PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+- **Capability:** Durion Positivity Backend SDK
+- **Target modules:** Gateway-whitelisted OpenAPI-publishing modules called out in the PRD (including accounting, catalog, customer, inventory, invoice, location, order, people, price, security-service, shop-manager, image, event-receiver, vehicle-fitment, vehicle-inventory, and workorder).
+- **Execution order gate:** Complete Phase 1 before Phase 2, and Phase 2 before Phase 3.
 
 ## Required Sequence
 1. Planner creates validated plan.
@@ -21,22 +30,20 @@ Produce exactly one PR in `durion-positivity-backend` with completed stories and
 3. Create or switch execution branch via branch hook.
 4. Contract/doc updates (when in scope).
 5. For each story in this exact order (one at a time):
-  - Phase 1 Foundations: AUTH-001, AUTH-002
-  - Phase 2 Account State Hardening: AUTH-003, AUTH-004
-  - Phase 3 JWT Contract: AUTH-005
-  - Phase 4 Administration APIs: AUTH-006
-  - Phase 5 Gateway Alignment: AUTH-007
-  - Phase 6 Events and Observability: AUTH-008
-  - Phase 7 Regression and Security: AUTH-009
+  - Phase 1 Contract Foundation: package structure, OpenAPI aggregation/generation pipeline, shared transport configuration, and raw generated clients for security, order, inventory, workorder, and accounting.
+  - Phase 2 Public SDK Beta: remaining public gateway-facing modules, standard error model/correlation support, idempotency helpers, and workflow examples.
+  - Phase 3 Workflow Layer: thin handwritten workflow helpers, optional internal profile handling, and contract-diff/release automation.
   - Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
    - RED (Backend Testing Agent)
   - GREEN (Lead Coder clarification + Orchestrator delegation, pre-commit handoff preferred)
    - Story compliance review (Code Review Agent)
   - Lead Coder clarification for corrections + Orchestrator delegation (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
-6. Verify touched backend modules via module-verify hook.
+6. Verify touched SDK modules/packages via module-verify hook.
 7. Create PR via pull-request hook (hook also launches OpenAPI generation).
 8. Verify PR is created and mark plan complete.
+
+Legacy note: any AUTH-* references in older agent templates are superseded by the Active PRD above for this execution mode.
 
 ## Delegation Allowlist (Hard Rule)
 Only delegate to these subagents:
@@ -63,7 +70,7 @@ If a task appears to require an unlisted agent, do not delegate. Mark the step `
 Reject and return to Planner unless:
 - Plan includes exact labels `Step 1:` and `Final Step:`.
 - Step 1 is source-material reading.
-- Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`.
+- Final Step is PR creation in the standalone SDK repository via `durion/.github/hooks/pull-request-hook.sh`.
 - Orchestrator invokes `durion/.github/hooks/plan-acceptance-hook.sh --plan-file $WORKSPACE/durion/Durion-Processing.md` and receives PASS.
 
 ## Delegation Templates
@@ -77,7 +84,7 @@ Reject and return to Planner unless:
 ### Branch Setup (Branch Hook)
 - Before any contract, test, or implementation work, Orchestrator MUST invoke `durion/.github/hooks/create-branch-hook.sh`.
 - Required args:
-  - `--repo <abs path to durion-positivity-backend>`
+  - `--repo <abs path to standalone SDK repo>`
   - `--base <base branch>`
   - `--branch <execution branch>`
 - Optional arg:
@@ -126,7 +133,7 @@ Lead Coder team-mode rule:
 - After `PASS` for a story, Orchestrator MUST invoke commit hook before coverage:
   - `durion/.github/hooks/post-code-review-pass-commit.sh`
   - Required args:
-    - `--repo <abs path to durion-positivity-backend>`
+    - `--repo <abs path to standalone SDK repo>`
     - `--story <story id>`
     - `--module <module name>`
     - `--review-verdict PASS`
@@ -139,7 +146,7 @@ Lead Coder team-mode rule:
 - After successful coverage for a story, Orchestrator MUST invoke commit hook:
   - `durion/.github/hooks/post-test-coverage-commit.sh`
   - Required args:
-    - `--repo <abs path to durion-positivity-backend>`
+    - `--repo <abs path to standalone SDK repo>`
     - `--story <story id>`
     - `--module <module name>`
     - `--coverage-before <percent>`
@@ -152,15 +159,15 @@ Lead Coder team-mode rule:
   - Full-module run (no `--test` / `--it-test`): auto-enables `-DlowResourceTests=true`
   - Targeted single test/class run (`--test` / `--it-test`): low-resource mode is not required
 - Example full-module run:
-  - `durion/.github/hooks/test-run-hook.sh --repo $WORKSPACE/durion-positivity-backend --module pos-order --goal test --also-make`
+  - `durion/.github/hooks/test-run-hook.sh --repo <standalone-sdk-repo-path> --module sdk-order --goal test --also-make`
 - Example single-class run:
-  - `durion/.github/hooks/test-run-hook.sh --repo $WORKSPACE/durion-positivity-backend --module pos-order --goal test --test PriceOverrideServiceTest`
+  - `durion/.github/hooks/test-run-hook.sh --repo <standalone-sdk-repo-path> --module sdk-order --goal test --test OrderClientTest`
 
 ### F) Module Verification (Verify Hook)
 - Prereq: story loops completed (RED/GREEN/review/coverage for all in-scope stories).
 - Orchestrator MUST invoke `durion/.github/hooks/module-verify-hook.sh`.
 - Required args:
-  - `--repo <abs path to durion-positivity-backend>`
+  - `--repo <abs path to standalone SDK repo>`
 - Recommended args:
   - `--modules <comma-separated touched modules>`
 - Alternate detection args (when module list not precomputed):
@@ -174,7 +181,7 @@ Lead Coder team-mode rule:
 - Generate PR title/body from `.github/pull_request_template.md` inputs.
 - Create PR by invoking `durion/.github/hooks/pull-request-hook.sh`.
 - Required args:
-  - `--repo <abs path to durion-positivity-backend>`
+  - `--repo <abs path to standalone SDK repo>`
   - `--story <story id>`
   - `--base <base branch>`
   - `--head <head branch>`
@@ -201,7 +208,7 @@ Branch hook example:
 
 ```bash
 durion/.github/hooks/create-branch-hook.sh \
-  --repo $WORKSPACE/durion-positivity-backend \
+  --repo <standalone-sdk-repo-path> \
   --base main \
   --branch chore/cap-142
 ```
@@ -210,19 +217,19 @@ Module-verify hook example:
 
 ```bash
 durion/.github/hooks/module-verify-hook.sh \
-  --repo $WORKSPACE/durion-positivity-backend \
-  --modules pos-workorder,pos-invoice
+  --repo <standalone-sdk-repo-path> \
+  --modules sdk-workorder,sdk-invoice
 ```
 
 Pull-request hook example:
 
 ```bash
 durion/.github/hooks/pull-request-hook.sh \
-  --repo $WORKSPACE/durion-positivity-backend \
+  --repo <standalone-sdk-repo-path> \
   --story CAP-142 \
   --base main \
   --head chore/cap-142 \
-  --title "cap/142 feat(workorder): dashboard availability workflow" \
+  --title "cap/142 feat(sdk): workflow helpers and generated client updates" \
   --body-file $WORKSPACE/durion/.tmp/pr-body-cap-142.md
 ```
 

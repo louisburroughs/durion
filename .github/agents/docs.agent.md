@@ -22,9 +22,15 @@ model: GPT-5 mini (copilot)
 
 You are the backend contract documentation specialist.
 
-## Active PRD: Spring Authentication and Account State Hardening (AUTH-HARDENING)
+## Active PRD: Durion Positivity Backend SDK
 
-**PRD source of truth:** `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+
+### SDK Documentation Override (Mandatory)
+- Update docs based on SDK PRD scope, phases, and contract requirements.
+- Ignore AUTH-* documentation targets in this file when they conflict with SDK PRD scope.
+- Document the standalone SDK project; treat `durion` and
+  `durion-positivity-backend` documentation as source context only.
 
 ### Documents to Create or Update
 
@@ -44,14 +50,14 @@ Must include:
 - Gateway enforcement alignment expectations for tokens issued by security-service.
 - Required claim expectations (`perm_bits`, `perm_ver`, identity lineage claims) and fail-closed semantics on invalid claim states.
 - Trust-boundary notes for caller-supplied identity headers and downstream identity propagation.
-- Any gateway behavior changes needed to stay aligned with AUTH-HARDENING acceptance criteria.
+- Any gateway behavior changes needed to stay aligned with SDK PRD acceptance criteria.
 
 **3. `pos-api-gateway/src/main/resources/application.yml` and `pos-security-service/src/main/resources/application.yml`**
 - Verify documented config keys align with actual module configuration.
 - Add concise comments where auth/account-state behavior would otherwise be ambiguous.
 
 ### Source of Truth for Contract Assertions
-- Primary: `durion-positivity-backend/pos-security-service/docs/PRD-spring-authentication-account-hardening.md`
+- Primary: `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
 - Secondary: module OpenAPI/controller contracts in:
   - `durion-positivity-backend/pos-api-gateway/openapi.yaml` (if present)
   - `durion-positivity-backend/pos-security-service/openapi.yaml` (if present)
@@ -70,17 +76,17 @@ Update PRD-required module documentation so authentication flow, account-state b
 
 Out of scope:
 - Code implementation changes in `src/main/**` or `src/test/**` beyond doc/comment updates requested above
-- General platform docs/runbooks/ADR authoring outside AUTH-HARDENING scope
+- General platform docs/runbooks/ADR authoring outside SDK PRD scope
 - Pull request creation
 
 ## Required Inputs
-- PRD path (AUTH-HARDENING source of truth)
+- PRD path (SDK source of truth)
 - Target module README paths
 - OpenAPI/controller references for behavior validation
 - Story/capability issue context when provided
 
 ## Rules
-1. Treat the AUTH-HARDENING PRD as primary behavior contract.
+1. Treat the SDK PRD as primary behavior contract.
 2. Use OpenAPI/controller contracts to verify endpoint/schema details before documenting.
 3. Keep README content concise and implementation-facing; avoid dumping raw schemas.
 4. Preserve existing document structure unless a new section is explicitly required by PRD.
