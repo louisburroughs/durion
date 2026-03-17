@@ -2,7 +2,7 @@
 
 **Status:** ACCEPTED  
 **Date:** 2026-02-01  
-**Last Updated:** 2026-02-27  
+**Last Updated:** 2026-03-17  
 **Deciders:** Backend Architecture, Security Team  
 **Affected Issues:** Cross-service authentication and authorization
 
@@ -23,6 +23,12 @@ The platform needs a centralized model where:
 2. the API Gateway is the authentication enforcement boundary
 3. backend services focus on authorization decisions (`@PreAuthorize`) using gateway-provided context
 4. internal services are not directly exposed to external callers
+
+The platform now also has shared reference artifacts that make this security boundary more explicit for consumers and tooling:
+- `pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md` for gateway auth, token lifecycle, and required header usage
+- `pos-security-service/docs/permissions-aggregate.yaml` for aggregated canonical permissions across service manifests
+- `pos-api-gateway/docs/openapi-aggregate.yaml` as the aggregate gateway-facing API reference artifact
+- `com.positivity.shared.error.ApiError` and `docs/ERROR_ENVELOPE.md` as the common non-2xx error contract returned by backend APIs
 
 ---
 
@@ -102,6 +108,12 @@ Rules:
 6. Create authenticated principal in gateway security context
 7. Forward authenticated request with security headers/context to downstream service
 
+Gateway consumer requests should consistently use:
+- `Authorization: Bearer <token>` for protected endpoints
+- `X-API-Version` for explicit API version routing
+- `X-Correlation-Id` for request tracing
+- `Idempotency-Key` for retry-safe mutation endpoints where supported
+
 ### 5. Backend Authorization Standard
 
 **Decision:** ✅ **Resolved** - Backend services authorize on canonical authorities.
@@ -112,6 +124,8 @@ public ResponseEntity<?> approve(...) { ... }
 ```
 
 Backend code reads authenticated user identity from `Authentication.getName()` (or equivalent principal abstraction) and must not perform role ownership logic.
+
+The aggregated permission catalog in `pos-security-service/docs/permissions-aggregate.yaml` is the consumer-facing reference for canonical permission names exposed by platform modules.
 
 ### 6. Network and Exposure Constraints
 
@@ -167,6 +181,7 @@ Backend code reads authenticated user identity from `Authentication.getName()` (
 - Spring Security (gateway and services)
 - JWT validation and key management
 - Optional replay/revocation cache for distributed deployments
+- Shared security/API contract documentation for consumers and SDK tooling
 
 ### Configuration
 - `security.jwt.issuer=pos-security-service`
@@ -175,11 +190,18 @@ Backend code reads authenticated user identity from `Authentication.getName()` (
 - `security.jwt.token-ttl`
 - `security.jwt.replay-cache-ttl` (if replay checks enabled)
 
+### Consumer Contract Artifacts
+- `pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md` is the canonical consumer guide for login, refresh, validate, revoke, and gateway header usage patterns
+- `pos-security-service/docs/permissions-aggregate.yaml` is the canonical aggregated permission reference for SDK/docs generation and consumer-facing permission lookup
+- `pos-api-gateway/docs/openapi-aggregate.yaml` is the aggregate API discovery/reference artifact for gateway-routed APIs
+- `com.positivity.shared.error.ApiError` is the canonical backend error envelope for auth and authorization failures, including correlation IDs and validation/guidance fields where applicable
+
 ### Testing Strategy
 - Unit: token parsing/signature/claim validation
 - Integration: `pos-security-service -> api-gateway -> protected service`
 - Negative-path: expired token, invalid issuer/audience, insufficient authority
 - Regression: role-assignment changes reflected in newly issued tokens
+- Contract: auth endpoints, gateway-protected APIs, and auth failures remain aligned with the shared `ApiError` envelope and documented consumer header conventions
 
 ### Rollout Plan
 1. Migrate all role-management ownership to `pos-security-service`
@@ -198,6 +220,11 @@ Backend code reads authenticated user identity from `Authentication.getName()` (
 
 - **Related Repo Guidance**:
   - [Backend AGENTS.md](../../durion-positivity-backend/AGENTS.md)
+  - [Platform Auth and Token Usage Guide](../../durion-positivity-backend/pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md)
+  - [Aggregated Permissions Catalog](../../durion-positivity-backend/pos-security-service/docs/permissions-aggregate.yaml)
+  - [Gateway Aggregate API Reference](../../durion-positivity-backend/pos-api-gateway/docs/openapi-aggregate.yaml)
+  - [Shared Error Envelope](../../durion-positivity-backend/docs/ERROR_ENVELOPE.md)
+  - [ApiError.java](../../durion-positivity-backend/pos-shared-dtos/src/main/java/com/positivity/shared/error/ApiError.java)
 
 - **External Resources**:
   - [Spring Cloud Gateway Security](https://spring.io/projects/spring-cloud-gateway)
@@ -210,9 +237,9 @@ Backend code reads authenticated user identity from `Authentication.getName()` (
 
 | Role | Name | Date | Notes |
 |------|------|------|-------|
-| Architecture | [Pending] | 2026-02-27 | Security ownership consolidated in pos-security-service |
-| Backend Lead | [Pending] | 2026-02-27 | Gateway boundary and service authorization model confirmed |
-| Security | [Pending] | 2026-02-27 | JWT contract and role lifecycle ownership confirmed |
+| Architecture | [Pending] | 2026-03-17 | Security ownership consolidated in pos-security-service and related consumer artifacts documented |
+| Backend Lead | [Pending] | 2026-03-17 | Gateway boundary, header conventions, and shared error contract confirmed |
+| Security | [Pending] | 2026-03-17 | JWT contract, permission catalog, and token lifecycle guidance confirmed |
 
 ---
 
@@ -220,4 +247,4 @@ Backend code reads authenticated user identity from `Authentication.getName()` (
 
 - **Proposed**: 2026-02-01
 - **Accepted**: 2026-02-01
-- **Updated**: 2026-02-27
+- **Updated**: 2026-03-17
