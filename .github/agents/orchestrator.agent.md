@@ -169,7 +169,7 @@ The user wants the entire workflow to run “in the background”. As orchestrat
 ### Canonical prompt files
 
 - Contract update prompt: `.github/prompts/backend-contract.prompt.md`
-- Backend implementation prompt: `.github/prompts/backend-story-fulfillment.prompt.md`
+- SDK implementation prompt: `.github/prompts/backend-story-fulfillment.prompt.md`
 - Pull request prompt: `.github/prompts/pull-request.prompt.md`
 - Orchestrator policy prompt: `.github/prompts/orchestrator.prompt.md`
 
@@ -203,7 +203,7 @@ Orchestrator-callable coder subagents (Lead Coder provides instruction cards and
 
 ## Lead Coder Team Mode (Default)
 
-For backend implementation phases, delegate to `Lead Coder` as the default execution owner.
+For SDK implementation phases, delegate to `Lead Coder` as the default execution owner.
 
 - Orchestrator MUST use `Lead Coder` to produce coding execution plans, artifact ownership, and clarified instruction cards.
 - Orchestrator MUST invoke `Client Coder`, `API Surface Coder`, and `Domain Data Coder` directly based on Lead Coder instruction cards.
@@ -383,7 +383,7 @@ You MUST follow this structured execution pattern:
 Call the Planner agent with the user's request.
 **CRITICAL:** You must explicitly instruct the Planner to **initialize/update `Durion-Processing.md`** with the plan validation and steps, in addition to returning the structured plan to you.
 **CRITICAL:** You must explicitly instruct the Planner to clean stale plan state first: if `~/Projects/durion/Durion-Processing.md` exists, run `"$HOME/Projects/durion/.github/hooks/safe-delete-DP.sh" "$HOME/Projects/durion/Durion-Processing.md"` before initializing the new plan.
-**CRITICAL:** You must require the Planner to plan backward from the objective (single completed PR in `durion-positivity-backend`) until Step 1 is source-material reading, then emit forward-ordered executable steps.
+**CRITICAL:** You must require the Planner to plan backward from the objective (single completed PR in the standalone SDK repository) until Step 1 is source-material reading, then emit forward-ordered executable steps.
 **CRITICAL:** You must require the Planner to output its plan with exact labels `Step 1:` and `Final Step:` to satisfy plan acceptance checks.
 **CRITICAL:** Immediately after Planner returns, invoke `durion/.github/hooks/plan-acceptance-hook.sh --plan-file "$HOME/Projects/durion/Durion-Processing.md"` and reject the plan on any non-zero hook result.
 
@@ -421,82 +421,41 @@ Output your execution plan like this:
   Files: pos-api-gateway/src/main/java/com/positivity/gateway/OrderRouteConfig.java
 ```
 
-For this workflow, default to the phases below (even if the Planner plan is minimal), because the file scopes are stable and the dependency chain is strict.
+For this workflow, default to the phases below (even if the Planner plan is
+minimal), because the dependency chain is strict.
 
-## Execution Plan (Capability → Contract → Backend)
+## Execution Plan (Capability -> Contract -> SDK)
 
 ### Phase 1: Branch setup (depends on manifest)
-- Task 1.0: Invoke `durion/.github/hooks/plan-acceptance-hook.sh --plan-file "$HOME/Projects/durion/Durion-Processing.md"` and capture hook result in evidence → Orchestrator
+- Task 1.0: Invoke `durion/.github/hooks/plan-acceptance-hook.sh --plan-file "$HOME/Projects/durion/Durion-Processing.md"` and capture hook result in evidence -> Orchestrator
   Files: `durion/.github/hooks/plan-acceptance-hook.sh`, `Durion-Processing.md`
-- Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine target execution branch name, base branch, `BACKEND_CONTRACT_GUIDE_PATH`, and `OPENAPI_PATH` per story → Planner
+- Task 1.1: Parse `CAPABILITY_MANIFEST.yaml` and determine target SDK repo path, branch name, base branch, and source-input paths (`BACKEND_CONTRACT_GUIDE_PATH`, `OPENAPI_PATH`) -> Planner
   Files: `docs/capabilities/**/CAPABILITY_MANIFEST.yaml` (read)
-- Task 1.2: Invoke `durion/.github/hooks/create-branch-hook.sh` with required args (`--repo`, `--base`, `--branch`) and capture hook result in evidence → Orchestrator
-  Files: `durion/.github/hooks/create-branch-hook.sh`, `durion-positivity-backend/**`
+- Task 1.2: Invoke `durion/.github/hooks/create-branch-hook.sh` with required args (`--repo`, `--base`, `--branch`) for the standalone SDK repository and capture hook result -> Orchestrator
+  Files: `durion/.github/hooks/create-branch-hook.sh`, `<standalone-sdk-repo>/**`
 
-### Phase 2: Contract guide update (depends on Phase 1)
-- Task 2.1: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables (paths from Phase 1), and invoke Document Agent subagent to update the contract guide → Orchestrator delegates to Document Agent
+### Phase 2: Contract and generation baseline (depends on Phase 1)
+- Task 2.1: Read `.github/prompts/backend-contract.prompt.md`, substitute runtime variables, and delegate source-contract updates/documentation sync where required -> Orchestrator delegates to Document Agent
   Files: `domains/**/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `docs/capabilities/**/CAP-*-backend-contract.md`
-  **Implementation**: Use the "How to Invoke Agents with Prompt Files" pattern above - read prompt file, add Runtime Context section with actual paths, call `runSubagent`
+- Task 2.2: Prepare generation inputs and baseline generated client outputs in the standalone SDK repo -> Lead Coder + specialists
+  Files: `<standalone-sdk-repo>/generated/**`, `<standalone-sdk-repo>/config/**`
 
-### Phase 3: TDD test-first pilot (depends on Phase 2)
-- Task 3.1: TDD Agent writes tests first for the selected story slice and provides RED evidence (new tests fail for the expected reason before code changes) → TDD Agent
-  Files: `durion-positivity-backend/pos-*/src/test/**`
-  Constraints:
-  - Keep pilot scope small: one story, one module, and preferably service-layer logic.
-  - TDD Agent may only modify `src/test/**` unless explicitly allowed by the user.
-  - Must provide: changed test file list, exact test command, and failing output snippet.
+### Phase 3: RED/GREEN implementation cycles (depends on Phase 2)
+- Task 3.1: TDD Agent writes failing tests for one SDK work slice and returns RED evidence -> Backend Testing Agent
+  Files: `<standalone-sdk-repo>/**/test/**`
+- Task 3.2: Lead Coder coordinates specialist implementation to GREEN for the same slice -> Lead Coder + specialists
+  Files: `<standalone-sdk-repo>/src/**`
+- Task 3.3: Code Review Agent validates acceptance criteria/ADR alignment; iterate until `PASS` or blocker -> Code Review Agent + Lead Coder
+  Files: `<standalone-sdk-repo>/src/**`
+- Task 3.4: Test Coverage Agent hardens coverage to threshold for touched SDK areas -> Test Coverage Agent
+  Files: `<standalone-sdk-repo>/**/test/**`, `<standalone-sdk-repo>/**/coverage/**`
 
-### Phase 4: Backend implementation to GREEN (depends on Phase 3)
-- Task 4.1: Execute `.github/prompts/backend-story-fulfillment.prompt.md` for each story, using the manifest + contract guide + TDD tests as inputs → Lead Coder
-  Files: `durion-positivity-backend/pos-*/src/**`
-  Constraints:
-  - Lead Coder must not perform direct code edits; it must delegate to specialist coder agents.
-  - Lead Coder and delegated coders must not weaken or delete TDD-authored assertions.
-  - Delegated coders should primarily modify `src/main/**`; test edits require explicit rationale and orchestrator approval.
-  - Must provide GREEN evidence using the same command family used by TDD Agent.
-
-### Phase 5: Story compliance review and correction loop (depends on Phase 4)
-- Task 5.1: Invoke Code Review Agent to validate Lead Coder team changes against issue acceptance criteria, ADRs, and code/comment accuracy → Code Review Agent
-  Files: `durion-positivity-backend/pos-*/src/**`, GitHub issue context, ADR references
-- Task 5.2: If review finds gaps, delegate corrections to Lead Coder and re-run Code Review Agent until `PASS` or blocked → Lead Coder + Code Review Agent
-  Files: `durion-positivity-backend/pos-*/src/**`
-  Constraints:
-  - Prefer running this loop before final story commit when feasible.
-  - If strict pre-commit loop is not feasible, this loop is still mandatory before coverage and before PR creation.
-  - Hard cap: maximum 5 Lead Coder<->Code Review cycles per story.
-  - If still failing after 5 cycles, mark `BLOCKED` (`review-cycle-limit-exceeded`), document unresolved findings/remediation, and exit.
-- Task 5.3: After Code Review Agent returns `PASS` for a story, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` with required args (`--repo`, `--story`, `--module`, `--review-verdict PASS`) and capture hook result in evidence → Orchestrator
-  Files: `durion/.github/hooks/post-code-review-pass-commit.sh`, `durion-positivity-backend/**`
-
-### Phase 6: Coverage hardening to threshold (depends on Phase 5 + Planner verification)
-- Task 6.1: Ask Planner to confirm Lead Coder step is marked `completed` in plan state before coverage work begins → Planner
-  Files: `Durion-Processing.md`
-- Task 6.2: Invoke Test Coverage Agent to run JaCoCo and add targeted tests until service+utility coverage is >= 80% → Test Coverage Agent
-  Files: `durion-positivity-backend/pos-*/src/test/**`, `durion-positivity-backend/pos-*/target/site/jacoco/**`
-- Task 6.3: After successful coverage for each story, invoke `durion/.github/hooks/post-test-coverage-commit.sh` with required args (`--repo`, `--story`, `--module`, `--coverage-before`, `--coverage-after`) and capture hook result in evidence → Orchestrator
-  Files: `durion/.github/hooks/post-test-coverage-commit.sh`, `durion-positivity-backend/**`
-
-### Mandatory Story Sequencing (Hard Rule)
-- Plan and execute stories one at a time using this micro-cycle:
-  1. Story N RED tests
-  2. Story N GREEN implementation
-  3. Story N code review and Lead Coder correction loop until review `PASS` (pre-commit preferred)
-  4. Story N coverage validation/hardening
-- Only after Story N completes this full cycle may Story N+1 begin.
-- Never use these invalid patterns:
-  - "Write RED tests for all stories first"
-  - "Implement GREEN code for all stories at once"
-  - "Delay review until after all stories are implemented"
-  - "Defer coverage until all stories are implemented"
-
-### Phase 7: Build & contract tests (depends on Phase 6)
-- Task 7.1: Invoke `durion/.github/hooks/module-verify-hook.sh` and run full module verification for touched backend modules (`--modules <comma-separated modules>` preferred; `--base-ref/--head-ref` fallback detection) → Orchestrator
-  Files: `durion/.github/hooks/module-verify-hook.sh`, `durion-positivity-backend/**`
-
-### Phase 8: Pull request creation (depends on Phase 7)
-- Task 8.1: Prepare PR title/body from `.github/pull_request_template.md` and invoke `durion/.github/hooks/pull-request-hook.sh` to create PR with required args (`--repo`, `--story`, `--base`, `--head`, `--title`, and one of `--body-file|--body`) → Orchestrator
-  Files: `.github/pull_request_template.md` (read), `durion/.github/hooks/pull-request-hook.sh`, `durion-positivity-backend/**` (branch/commit evidence)
-- Task 8.2: After successful pull-request hook execution, verify PR creation evidence and ask Planner to mark the plan complete → Orchestrator + Planner
+### Phase 4: Verification and PR (depends on Phase 3)
+- Task 4.1: Invoke `durion/.github/hooks/module-verify-hook.sh` against standalone SDK repo and collect evidence -> Orchestrator
+  Files: `durion/.github/hooks/module-verify-hook.sh`, `<standalone-sdk-repo>/**`
+- Task 4.2: Prepare PR title/body from `.github/pull_request_template.md` and invoke `durion/.github/hooks/pull-request-hook.sh` for standalone SDK repo -> Orchestrator
+  Files: `.github/pull_request_template.md` (read), `durion/.github/hooks/pull-request-hook.sh`, `<standalone-sdk-repo>/**`
+- Task 4.3: Verify PR creation evidence and ask Planner to mark plan complete -> Orchestrator + Planner
   Files: `Durion-Processing.md`
 
 ### Step 3: Execute Each Phase
