@@ -43,7 +43,7 @@ then route actionable findings to coding and testing agents and ensure PR commen
 5. Do not hardcode legacy agent names; use runtime-configured agent names.
 6. Every addressed PR comment thread must receive a direct reply from the responsible agent.
 7. If thread-resolution tooling is available, resolve threads after validated fixes; otherwise post explicit status replies.
-8. Enforce remediation loop order `coder_agent -> test_agent -> code_reviewer_agent`, maximum 5 cycles.
+8. Enforce remediation loop order `coder_agent -> test_agent -> code_reviewer_agent` until reviewer `PASS` or an explicit blocked condition is reached.
 
 ## Runtime Inputs
 - `repo`: target repository (default: `durion-positivity-backend`)
@@ -69,14 +69,14 @@ then route actionable findings to coding and testing agents and ensure PR commen
 10. Split findings (include `comment_ref` when linked to an existing PR thread):
    - production code defects -> `coder_agent`
    - test defects/failing tests/missing tests -> `test_agent`
-11. Run remediation loop for at most 5 cycles in strict order:
+11. Run remediation loop in strict order until reviewer `PASS` or an explicit blocked condition is reached:
    - `coder_agent`
    - `test_agent`
    - `code_reviewer_agent` (must return `Verdict: PASS | FAIL`)
 12. After each subagent call in the loop, delegate log append to `planner_agent` with `mode: append_output`.
 13. On `Verdict: FAIL`, split findings into code/test queues and continue next loop cycle.
 14. On `Verdict: PASS`, exit loop and proceed to closure.
-15. If cycle 5 ends with `FAIL`, mark run `blocked` with reason `review-cycle-limit-exceeded`, include unresolved findings, and stop retrying.
+15. If reviewer repeatedly returns `FAIL` and no further safe progress is possible, mark run `blocked` with unresolved findings and clear remediation guidance.
 16. Verify each delegated `comment_ref` has a posted reply summarizing fix status and changed files.
 17. Delegate final summary write to `planner_agent` with `mode: write_final_summary`, then publish outcome.
 

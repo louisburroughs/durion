@@ -1,7 +1,7 @@
 ---
 name: 'Orchestration Policy for SDK Delivery'
 agent: 'Orchestrator'
-description: 'Compact policy for Planner -> TDD -> Lead Coder team -> Code Review -> Coverage execution with strict validation gates.'
+description: 'Compact policy for Planner -> TDD -> anvil team -> anvil review -> Coverage execution with strict validation gates.'
 ---
 
 Run in strict compliance with `orchestrator.agent.md`.
@@ -33,11 +33,11 @@ and evidence.
   - Phase 1 Contract Foundation: package structure, OpenAPI aggregation/generation pipeline, shared transport configuration, and raw generated clients for security, order, inventory, workorder, and accounting.
   - Phase 2 Public SDK Beta: remaining public gateway-facing modules, standard error model/correlation support, idempotency helpers, and workflow examples.
   - Phase 3 Workflow Layer: thin handwritten workflow helpers, optional internal profile handling, and contract-diff/release automation.
-  - Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
+  - Pre-RED Scaffold (anvil clarification + Orchestrator delegation, conditional)
    - RED (Backend Testing Agent)
-  - GREEN (Lead Coder clarification + Orchestrator delegation, pre-commit handoff preferred)
-   - Story compliance review (Code Review Agent)
-  - Lead Coder clarification for corrections + Orchestrator delegation (iterate until review PASS)
+  - GREEN (anvil clarification + Orchestrator delegation, pre-commit handoff preferred)
+   - Story compliance review (anvil)
+  - anvil clarification for corrections + Orchestrator delegation (iterate until review PASS)
    - Coverage >= 80% service+utility (Test Coverage Agent)
 6. Verify touched SDK modules/packages via module-verify hook.
 7. Create PR via pull-request hook (hook also launches OpenAPI generation).
@@ -49,8 +49,8 @@ Legacy note: any AUTH-* references in older agent templates are superseded by th
 Only delegate to these subagents:
 - `Planner`
 - `Backend Testing Agent`
-- `Lead Coder`
-- `Code Review Agent`
+- `anvil`
+- `anvil`
 - `Test Coverage Agent`
 - `Document Agent`
 - `Client Coder`
@@ -92,14 +92,14 @@ Reject and return to Planner unless:
 - Hook output MUST include branch setup evidence.
 - Orchestrator MUST NOT create or switch branches outside this hook.
 
-Lead Coder team-mode rule:
+anvil team-mode rule:
 - `Orchestrator` coordinates implementation and must not write code directly.
-- `Lead Coder` must clarify and structure coder instructions (artifact map, scope, acceptance checks) for `Client Coder`, `API Surface Coder`, and `Domain Data Coder`.
-- `Orchestrator` invokes coder subagents directly using Lead Coder's clarified instruction cards.
-- `Lead Coder` must not call coder subagents directly.
-- `Coder` fallback is invoked by `Orchestrator` only when Lead Coder marks specialist delegation as blocked and provides fallback scope.
+- `anvil` must clarify and structure coder instructions (artifact map, scope, acceptance checks) for `Client Coder`, `API Surface Coder`, and `Domain Data Coder`.
+- `Orchestrator` invokes coder subagents directly using anvil's clarified instruction cards.
+- `anvil` must not call coder subagents directly.
+- `Coder` fallback is invoked by `Orchestrator` only when anvil marks specialist delegation as blocked and provides fallback scope.
 
-### A) Pre-RED Scaffold (Lead Coder clarification + Orchestrator delegation, conditional)
+### A) Pre-RED Scaffold (anvil clarification + Orchestrator delegation, conditional)
 - Use only when missing production symbols block RED test execution.
 - Scope: compile scaffolding in `src/main/**` only (signatures/types/placeholders), no story behavior logic.
 - Return: changed files, compile command, proof compile succeeded for target symbols, explicit temporary scaffold artifact list.
@@ -110,16 +110,15 @@ Lead Coder team-mode rule:
 - Return: changed files, test command, failing test names, assertion/failure snippets proving RED, story mapping.
 - Reject RED evidence based only on compilation/setup errors; treat those as `BLOCKED` preconditions.
 
-### C) GREEN (Lead Coder clarification + Orchestrator delegation)
+### C) GREEN (anvil clarification + Orchestrator delegation)
 - Scope: same story/module as RED.
 - Preserve TDD assertions unless explicit rationale.
 - Return: changed files, same test command family, passing output proving GREEN, temporary scaffold cleanup confirmation, no test seam-retargeting confirmation.
-- Commit policy (preferred, not hard-blocking): provide reviewable handoff before final story commit so Code Review Agent can run pre-commit.
+- Commit policy (preferred, not hard-blocking): provide reviewable handoff before final story commit so anvil can run pre-commit.
 
-### D) Story Compliance Review (Code Review Agent)
+### D) Story Compliance Review (anvil)
 - Scope: same story/module as GREEN.
 - Stage: pre-PR only; pre-commit preferred and pre-coverage mandatory.
-- Cycle limit: maximum 5 Lead Coder<->Code Review cycles per story.
 - Required checks:
   - issue acceptance criteria vs changed code behavior,
   - applicable ADR compliance,
@@ -129,7 +128,7 @@ Lead Coder team-mode rule:
 - Forbidden:
   - editing files,
   - proposing direct code rewrites/patches.
-- Return: `Verdict: PASS|FAIL`, acceptance-criteria matrix, prioritized findings, and Lead Coder fix queue.
+- Return: `Verdict: PASS|FAIL`, acceptance-criteria matrix, prioritized findings, and anvil fix queue.
 - After `PASS` for a story, Orchestrator MUST invoke commit hook before coverage:
   - `durion/.github/hooks/post-code-review-pass-commit.sh`
   - Required args:
@@ -140,7 +139,7 @@ Lead Coder team-mode rule:
   - Hook outcome (commit hash or no-op) MUST be included in orchestration evidence.
 
 ### E) Coverage (Test Coverage Agent)
-- Prereq: Code Review Agent verdict is `PASS` for the current story and Lead Coder step is marked completed by Planner.
+- Prereq: anvil verdict is `PASS` for the current story and anvil step is marked completed by Planner.
 - Run JaCoCo and raise service+utility coverage to >= 80%.
 - Return: changed test files, JaCoCo commands, before/after percentages, threshold confirmation.
 - After successful coverage for a story, Orchestrator MUST invoke commit hook:
@@ -255,7 +254,7 @@ Contract source-of-truth rules:
 - Reject outputs that copy full OpenAPI schemas into curated contract guides.
 
 ## ADR Compliance Delegation Rule
-For every subagent invocation across the run (including specialist coder agents invoked by Lead Coder), explicitly require:
+For every subagent invocation across the run (including specialist coder agents invoked by anvil), explicitly require:
 - ADR check completed against `durion/docs/adr/README.md` decision matrix.
 - List of applicable ADR IDs for the task.
 - Brief compliance statement (or explicit deviation + reason) in subagent output.
@@ -263,13 +262,12 @@ For every subagent invocation across the run (including specialist coder agents 
 ## Validation and Retry
 - Validate each subagent result against delegated objective + acceptance criteria.
 - For scaffold/GREEN validation, explicitly verify temporary scaffold cleanup and no unapproved test seam-retargeting.
-- After every GREEN handoff, invoke `Code Review Agent` before coverage work.
+- After every GREEN handoff, invoke `anvil` before coverage work.
 - Prefer a pre-commit review loop when feasible; if not feasible, continue with the same loop pre-coverage and before any PR work.
-- If `Code Review Agent` returns `FAIL`, delegate fixes to `Lead Coder`, then re-run `Code Review Agent`.
-- Hard cap for review loop: maximum 5 Lead Coder<->Code Review cycles per story.
-- If `Code Review Agent` returns `PASS`, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` before starting coverage.
+- If `anvil` returns `FAIL`, delegate fixes to `anvil`, then re-run `anvil`.
+- If `anvil` returns `PASS`, invoke `durion/.github/hooks/post-code-review-pass-commit.sh` before starting coverage.
 - PR authority check: reject any output where PR creation bypasses `durion/.github/hooks/pull-request-hook.sh`.
-- If still `FAIL` after 5 cycles, mark `BLOCKED` with reason `review-cycle-limit-exceeded`, document unresolved findings and remediation, and exit the run.
+- If `anvil` continues to return `FAIL`, keep routing findings back to `anvil` until it returns `PASS` or explicitly marks a blocked condition with remediation details.
 - If tests were edited, require a `Test Change Rationale` section with:
   - changed test files,
   - contract/requirement change (or explicit no-change),

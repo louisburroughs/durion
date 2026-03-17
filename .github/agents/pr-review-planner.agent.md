@@ -58,9 +58,8 @@ Support these invocation modes from orchestrator:
    - test fixes.
 4. Include explicit remediation loop step in strict order:
    - `coder_agent` -> `test_agent` -> `code_reviewer_agent`
-   - maximum 5 cycles
    - stop early on reviewer `PASS`
-   - mark blocked (`review-cycle-limit-exceeded`) if cycle 5 still fails
+  - if reviewer continues returning `FAIL` without safe progress, mark blocked with unresolved findings and remediation guidance
 5. Include explicit PR comment response step (reply to each addressed comment/thread).
 6. Include explicit re-verification step.
 7. Include final reporting step.
@@ -76,7 +75,7 @@ Implementation Steps:
 - [ ] Step 3: <code-fix delegation>
 - [ ] Step 4: <test-fix delegation>
 - [ ] Step 5: <code-reviewer verification for cycle N>
-- [ ] Step 6: <loop decision: PASS or next cycle (max 5)>
+- [ ] Step 6: <loop decision: PASS or continue remediation>
 - [ ] Step 7: <final verification + comment thread closure checks>
 - [ ] Final Step: <final report to PR or orchestrator output>
 
