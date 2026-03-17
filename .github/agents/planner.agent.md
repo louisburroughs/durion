@@ -40,34 +40,29 @@ When asked to plan SDK work, use `durion-positivity-backend/docs/PRD-durion-back
 
 ### Stories in Phase Order
 
-**Phase 1 — Foundations**
-- AUTH-001: Spring Security login flow (`/v1/auth/login`) via `AuthenticationManager` + typed DTOs (no manual controller password checks).
-- AUTH-002: `users` account-state schema/entity updates and defaults (`enabled`, lock/expiry flags, counters, timestamps).
+**Phase 1 — Contract Foundation**
+- Define SDK package structure and target framework/language profile.
+- Build OpenAPI aggregation and deterministic generation pipeline.
+- Implement shared transport/auth/correlation/idempotency configuration.
+- Publish first generated clients for security, order, inventory, workorder,
+  and accounting.
 
-**Phase 2 — Account-State Hardening**
-- AUTH-003: lockout policy (threshold + window + progressive backoff + cooldown unlock + success reset).
-- AUTH-004: authentication denial mapping for locked/disabled/account-expired/credentials-expired states with standard error envelope.
+**Phase 2 — Public SDK Beta**
+- Add remaining public gateway-facing module clients.
+- Add standard SDK error model and correlation propagation support.
+- Add idempotency helpers and workflow examples from business rules.
+- Publish beta docs and migration notes.
 
-**Phase 3 — JWT Contract**
-- AUTH-005: JWT issuance contract aligned to required claims (`sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`) and persisted permission resolution.
-
-**Phase 4 — Admin APIs**
-- AUTH-006: administrative account-state operations (`unlock`, `enable`, `disable`, `expire-account`, `expire-credentials`, `account-state`) with auditing behavior.
-
-**Phase 5 — Gateway Alignment**
-- AUTH-007: gateway-side enforcement alignment with canonical JWT claims and greenfield permission semantics.
-
-**Phase 6 — Events and Observability**
-- AUTH-008: `@EmitEvent` coverage, event-type registration startup path, and auth/account-state metrics and logs.
-
-**Phase 7 — Regression**
-- AUTH-009: complete unit/integration/security/contract/persistence regression suite for account hardening.
+**Phase 3 — Workflow Layer**
+- Add thin domain-based workflow helpers that compose generated operations.
+- Add optional internal profile support where still required.
+- Add contract-diff reporting and release automation.
 
 ### Key Planning Notes
-- Target modules are `pos-security-service` and `pos-api-gateway`; no new module scaffold is allowed.
-- Foundation gate is mandatory: AUTH-001 and AUTH-002 must be fully complete before AUTH-003 or later.
-- Plan explicit verification of account-state transitions and lockout timing using deterministic time control (`Clock`) where needed.
-- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` to the active SDK execution branch.
+- SDK implementation occurs only in the standalone SDK repository.
+- `durion` and `durion-positivity-backend` provide source inputs only.
+- Preserve strict phase order (Phase 1 -> Phase 2 -> Phase 3).
+- Final step MUST be PR creation via `durion/.github/hooks/pull-request-hook.sh` in the standalone SDK repository.
 
 ## Objective (Non-Negotiable)
 Your objective is ALWAYS to drive toward creation of a single PR in the
@@ -117,7 +112,7 @@ Only after steps 1-3 are complete for Story N may the plan start Story N+1.
 ## Output
 
 - Summary (one paragraph)
-- Objective statement (explicitly restate the PR goal in `durion-positivity-backend`)
+- Objective statement (explicitly restate the PR goal in the standalone SDK repository)
 - Implementation steps (ordered)
 - Edge cases to handle
 - Open questions (if any)
@@ -127,14 +122,14 @@ Only after steps 1-3 are complete for Story N may the plan start Story N+1.
 
 ```markdown
 Summary: <one paragraph>
-Objective: <explicit PR objective in durion-positivity-backend>
+Objective: <explicit PR objective in the standalone SDK repository>
 
 Implementation Steps:
 - [ ] Step 1: Read and analyze source material (manifest, prompts, relevant code/docs).
 - [ ] Step 2: <next executable step>
 - [ ] Step 3: <next executable step>
 - [ ] ...
-- [ ] Final Step: Create the Pull Request in durion-positivity-backend via `durion/.github/hooks/pull-request-hook.sh` with completed stories and validation evidence.
+- [ ] Final Step: Create the Pull Request in the standalone SDK repository via `durion/.github/hooks/pull-request-hook.sh` with completed stories and validation evidence.
 
 Edge Cases:
 - [ ] <edge case>
@@ -152,7 +147,7 @@ Open Questions:
 - Match existing codebase patterns
 - Plans must be objective-first and backward-derived before being emitted in forward order
 - The first executable step must always be reading source material relevant to the stories
-- A plan is incomplete unless Step 1 is source-material reading and the final step includes Pull Request creation in `durion-positivity-backend` via Pull Request Agent
+- A plan is incomplete unless Step 1 is source-material reading and the final step includes Pull Request creation in the standalone SDK repository via Pull Request Agent
 - The output must contain exact labels `Step 1:` and `Final Step:` in checkbox format (`- [ ]`) as defined in the required template
 - For backend orchestration plans, include an explicit post-implementation coverage-hardening step: after Lead Coder completion is verified, run Test Coverage Agent with JaCoCo and iterate tests until service+utility coverage is >= 80%
 - For backend orchestration plans with multiple stories, you MUST structure steps as per-story micro-cycles:
