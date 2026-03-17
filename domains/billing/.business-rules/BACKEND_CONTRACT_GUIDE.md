@@ -5,7 +5,7 @@ doc_type: backend_contract
 contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
-openapi_source: durion-positivity-backend/pos-invoice/openapi.json
+openapi_source: durion-positivity-backend/pos-invoice/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
 last_updated: 2026-02-24
@@ -25,7 +25,7 @@ This is the curated contract guide for Billing domain behavior.
 
 Authoritative references:
 
-- OpenAPI: `durion-positivity-backend/pos-invoice/openapi.json`
+- OpenAPI: `durion-positivity-backend/pos-invoice/openapi.yaml`
 - Generated API reference: `domains/billing/.business-rules/BACKEND_API_REFERENCE.generated.md`
 - Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - Domain decisions: `domains/billing/.business-rules/AGENT_GUIDE.md`
@@ -81,7 +81,7 @@ Headers and auth notes:
 - Capability ID: CAP-TBD
 - Parent Issue: None
 - Capability Status: draft
-- OpenAPI Source: `durion-positivity-backend/pos-invoice/openapi.json`
+- OpenAPI Source: `durion-positivity-backend/pos-invoice/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
 
@@ -227,7 +227,7 @@ Headers and auth notes:
 
 ## Verification Metadata
 
-- OpenAPI source: `durion-positivity-backend/pos-invoice/openapi.json`
+- OpenAPI source: `durion-positivity-backend/pos-invoice/openapi.yaml`
 - OpenAPI source revision: `ca7fadc3`
 - Last verified UTC: `2026-02-24T14:23:11Z`
 - Generated API reference: `domains/billing/.business-rules/BACKEND_API_REFERENCE.generated.md`
