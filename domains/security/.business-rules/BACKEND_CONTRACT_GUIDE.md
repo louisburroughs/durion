@@ -5,7 +5,7 @@ doc_type: backend_contract
 contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
-openapi_source: durion-positivity-backend/pos-security-service/openapi.json
+openapi_source: durion-positivity-backend/pos-security-service/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
 last_updated: 2026-02-24
@@ -25,7 +25,7 @@ This is the curated contract guide for Security domain behavior.
 
 Authoritative references:
 
-- OpenAPI: `durion-positivity-backend/pos-security-service/openapi.json`
+- OpenAPI: `durion-positivity-backend/pos-security-service/openapi.yaml`
 - Generated API reference: `domains/security/.business-rules/BACKEND_API_REFERENCE.generated.md`
 - Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - Domain decisions: `domains/security/.business-rules/AGENT_GUIDE.md`
@@ -94,7 +94,7 @@ Headers and auth notes:
 - Capability ID: CAP-253
 - Parent Issue: https://github.com/louisburroughs/durion/issues/253
 - Capability Status: stable-for-ui
-- OpenAPI Source: `durion-positivity-backend/pos-security-service/openapi.json`
+- OpenAPI Source: `durion-positivity-backend/pos-security-service/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
 
@@ -137,7 +137,7 @@ Headers and auth notes:
 - Capability ID: CAP-275
 - Parent Issue: https://github.com/louisburroughs/durion/issues/275
 - Capability Status: draft
-- OpenAPI Source: `durion-positivity-backend/pos-security-service/openapi.json`
+- OpenAPI Source: `durion-positivity-backend/pos-security-service/openapi.yaml`
 
 ### API Operation References (OpenAPI Source of Truth)
 
@@ -181,7 +181,7 @@ Headers and auth notes:
 
 ## Verification Metadata
 
-- OpenAPI source: `durion-positivity-backend/pos-security-service/openapi.json`
+- OpenAPI source: `durion-positivity-backend/pos-security-service/openapi.yaml`
 - OpenAPI source revision: `ca7fadc3`
 - Last verified UTC: `2026-02-24T14:23:11Z`
 - Generated API reference: `domains/security/.business-rules/BACKEND_API_REFERENCE.generated.md`
