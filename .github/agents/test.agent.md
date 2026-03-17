@@ -66,9 +66,6 @@ Your primary job is to author tests first, prove RED, and hand off objective evi
 
 ### Test Commands (Standard)
 ```bash
-cd ~/IdeaProjects/durion-positivity-backend
-
-# SDK PRD story/module validation
 cd <standalone-sdk-repo-path>
 <sdk-test-command> <module-or-package>
 <sdk-verify-command> <module-or-package>
@@ -147,7 +144,7 @@ Return all of the following every time:
 ## Touched-File Lint (Required)
 
 - When this agent changes Java test files, run touched-file lint before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo <standalone-sdk-repo-path> --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 - Include lint command and status in RED/GREEN handoff evidence.
@@ -251,31 +248,31 @@ Use focused commands first, then broaden only if needed.
 ```bash
 # Module-scoped test run (auto-enables -DlowResourceTests=true)
 durion/.github/hooks/test-run-hook.sh \
-  --repo ~/IdeaProjects/durion-positivity-backend \
-  --module pos-accounting \
+  --repo <standalone-sdk-repo-path> \
+  --module sdk-accounting \
   --goal test \
   --also-make
 
 # Single class (targeted run; lowResourceTests not required)
 durion/.github/hooks/test-run-hook.sh \
-  --repo ~/IdeaProjects/durion-positivity-backend \
-  --module pos-accounting \
+  --repo <standalone-sdk-repo-path> \
+  --module sdk-accounting \
   --goal test \
-  --test JournalEntryServiceTest
+  --test AccountingClientTest
 
 # Single method (targeted run; lowResourceTests not required)
 durion/.github/hooks/test-run-hook.sh \
-  --repo ~/IdeaProjects/durion-positivity-backend \
-  --module pos-accounting \
+  --repo <standalone-sdk-repo-path> \
+  --module sdk-accounting \
   --goal test \
-  --test JournalEntryServiceTest#createJournalEntry_unbalanced_throwsException
+  --test AccountingClientTest#submitJournalEntry_invalidPayload_returnsError
 
 # Contract behavior class (targeted run; lowResourceTests not required)
 durion/.github/hooks/test-run-hook.sh \
-  --repo ~/IdeaProjects/durion-positivity-backend \
-  --module pos-accounting \
+  --repo <standalone-sdk-repo-path> \
+  --module sdk-accounting \
   --goal test \
-  --test APPaymentContractBehaviorIT
+  --test AccountingContractBehaviorIT
 ```
 
 
