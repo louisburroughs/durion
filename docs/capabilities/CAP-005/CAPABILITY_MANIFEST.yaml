@@ -54,7 +54,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 161
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 225
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -72,6 +72,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.225.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -104,7 +105,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 160
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 224
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -122,6 +123,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.224.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -154,7 +156,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 159
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 223
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -172,6 +174,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.223.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -204,7 +207,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 158
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 222
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -222,6 +225,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.222.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -254,7 +258,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 157
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 221
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -272,6 +276,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.221.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -304,7 +309,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 156
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 220
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -322,6 +327,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.220.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -354,7 +360,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 155
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 219
       impacted_component_repos:
       - louisburroughs/durion-workexec
@@ -372,6 +378,7 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_005.219.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md

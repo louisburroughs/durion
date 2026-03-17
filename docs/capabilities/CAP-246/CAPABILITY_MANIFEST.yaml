@@ -38,7 +38,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [19, 20, 21]
+      issues:
+      - 19
+      - 20
+      - 21
       wireframes:
       - repo: louisburroughs/durion
         path: domains/order/.ui/frontend-story-order-cancel-order-with-controlled-83.wf.md
@@ -46,6 +49,9 @@ stories:
       - repo: louisburroughs/durion
         path: domains/order/.ui/frontend-story-order-cancel-order-with-controlled-83.wf.meta.json
         type: meta
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_246.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md

@@ -8,7 +8,9 @@ parent_capability:
   repo: louisburroughs/durion
   issue: 93
   title: '[CAP] Promotions & Commercial Activity (Lightweight)'
-  domains: [crm, pricing]
+  domains:
+  - crm
+  - pricing
   labels:
   - type:capability
   - layer:functional
@@ -53,14 +55,11 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      # Planner note (recommended execution sequence):
-      # 97 -> 96 -> 95 -> 94
-      # Rationale:
-      # - #97 establishes promotion-offer lifecycle/data foundation.
-      # - #96 attaches/evaluates eligibility rules on the promotion model.
-      # - #95 applies offers during estimate pricing using pricing-owned adjustment logic.
-      # - #94 records redemption from invoicing after apply/finalization event flow is stable.
-      issues: [94, 95, 96, 97]
+      issues:
+      - 94
+      - 95
+      - 96
+      - 97
       wireframes:
       - repo: louisburroughs/durion
         path: domains/pricing/.ui/frontend-story-promotions-create-promotion-offer-b-161.wf.md
@@ -81,14 +80,22 @@ stories:
         path: domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/pricing/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      issue: 110
+      story_markdown_path: ./stories/frontend/CAP_093.110.frontend.md
   contract_guide:
     repo: louisburroughs/durion
-    paths: [domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md, domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md]
+    paths:
+    - domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    - domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
     anchor: ''
     status: draft
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
-      spec_paths: [pos-customer/openapi.yaml, pos-price/openapi.yaml]
+      spec_paths:
+      - pos-customer/openapi.yaml
+      - pos-price/openapi.yaml
       generated: true
   pr_links:
     durion_contract_pr: ''

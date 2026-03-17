@@ -1,0 +1,13 @@
+capability_id: CAP:055
+domain: ''
+manifest: docs/capabilities/CAP-055/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: null
+  frontend_issue: 186
+  frontend_story_md: docs/capabilities/CAP-055/stories/frontend/CAP_055.186.frontend.md
+  backend_issue: 122
+  wireframe: domains/accounting/.ui/frontend-story-controls-route-unmapped-or-failed-e-186.wf.md
+  contract_guide: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-accounting/openapi.yaml
+  operation_ids: []

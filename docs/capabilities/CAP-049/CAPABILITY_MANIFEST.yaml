@@ -54,7 +54,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 144
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 208
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -72,6 +72,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.208.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -104,7 +105,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 143
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 207
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -122,6 +123,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.207.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -154,7 +156,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 142
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 206
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -172,6 +174,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.206.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -204,7 +207,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 141
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 205
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -222,6 +225,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.205.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -254,7 +258,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 113
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 177
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -272,6 +276,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.177.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -304,7 +309,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 115
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 179
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -322,6 +327,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.179.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -354,7 +360,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 116
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 180
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -372,6 +378,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.180.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -404,7 +411,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 117
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 181
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -422,6 +429,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.181.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -454,7 +462,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 119
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 183
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -472,6 +480,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.183.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -504,7 +513,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 120
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 184
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -522,6 +531,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.184.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -554,7 +564,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 121
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 185
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -572,6 +582,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.185.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -604,7 +615,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 118
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 182
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -622,6 +633,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_049.182.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md

@@ -1,6 +1,6 @@
 meta:
   capability_id: CAP:053
-  capability_name: '[CAP] Accounts Payable (Bill → Payment)'
+  capability_name: "[CAP] Accounts Payable (Bill \u2192 Payment)"
   owner_repo: louisburroughs/durion
   created_utc: '2026-01-28T00:05:48.413372+00:00'
   last_updated_utc: '2026-01-28T00:05:48.413372+00:00'
@@ -31,7 +31,7 @@ stories:
 - parent:
     repo: louisburroughs/durion
     issue: 53
-    title: '[CAP] Accounts Payable (Bill → Payment)'
+    title: "[CAP] Accounts Payable (Bill \u2192 Payment)"
     domain: accounting
     labels:
     - layer:business
@@ -44,7 +44,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 128
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 192
       impacted_component_repos: []
       business_rules:
@@ -54,6 +54,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_053.192.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md

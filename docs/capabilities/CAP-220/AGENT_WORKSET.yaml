@@ -1,0 +1,4 @@
+capability_id: CAP:220
+domain: ''
+manifest: docs/capabilities/CAP-220/CAPABILITY_MANIFEST.yaml
+stories: []

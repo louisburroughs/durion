@@ -38,7 +38,10 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [55, 56, 57]
+      issues:
+      - 55
+      - 56
+      - 57
       wireframes:
       - repo: louisburroughs/durion
         path: domains/product/.ui/frontend-story-master-set-product-lifecycle-state-119.wf.md
@@ -46,6 +49,9 @@ stories:
       - repo: louisburroughs/durion
         path: domains/product/.ui/frontend-story-master-set-product-lifecycle-state-119.wf.meta.json
         type: meta
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_165.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md

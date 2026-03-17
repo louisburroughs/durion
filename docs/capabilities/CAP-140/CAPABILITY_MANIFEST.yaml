@@ -32,7 +32,10 @@ stories:
     repo: louisburroughs/durion
     issue: 140
     title: '[CAP] Workorder Execution Context Linking'
-    domains: [workexec,shopmgmt, people]
+    domains:
+    - workexec
+    - shopmgmt
+    - people
     labels:
     - type:capability
     - layer:functional
@@ -44,7 +47,12 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [58, 59,63, 64, 65]
+      issues:
+      - 58
+      - 59
+      - 63
+      - 64
+      - 65
       wireframes:
       - repo: louisburroughs/durion
         path: domains/people/.ui/frontend-story-crossdomain-hr-ingests-work-session-122.wf.md
@@ -71,6 +79,9 @@ stories:
         path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/workexec/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_140.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md

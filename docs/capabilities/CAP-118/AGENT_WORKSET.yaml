@@ -1,0 +1,13 @@
+capability_id: CAP:118
+domain: ''
+manifest: docs/capabilities/CAP-118/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: null
+  frontend_issue: 153
+  frontend_story_md: docs/capabilities/CAP-118/stories/frontend/CAP_118.153.frontend.md
+  backend_issue: 89
+  wireframe: domains/people/.ui/frontend-story-access-assign-roles-and-scopes-glob-153.wf.md
+  contract_guide: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-people/openapi.yaml
+  operation_ids: []

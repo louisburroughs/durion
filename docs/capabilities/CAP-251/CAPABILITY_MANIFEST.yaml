@@ -38,7 +38,9 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [5, 6]
+      issues:
+      - 5
+      - 6
       wireframes:
       - repo: louisburroughs/durion
         path: domains/accounting/.ui/frontend-story-accounting-reconcile-pos-status-wit-69.wf.md
@@ -46,6 +48,9 @@ stories:
       - repo: louisburroughs/durion
         path: domains/accounting/.ui/frontend-story-accounting-reconcile-pos-status-wit-69.wf.meta.json
         type: meta
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_251.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md

@@ -1,0 +1,13 @@
+capability_id: CAP:051
+domain: ''
+manifest: docs/capabilities/CAP-051/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: null
+  frontend_issue: 178
+  frontend_story_md: docs/capabilities/CAP-051/stories/frontend/CAP_051.178.frontend.md
+  backend_issue: 114
+  wireframe: domains/accounting/.ui/frontend-story-accounting-apply-payment-to-invoice-178.wf.md
+  contract_guide: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-accounting/openapi.yaml
+  operation_ids: []

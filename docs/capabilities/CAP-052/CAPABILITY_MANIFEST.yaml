@@ -1,6 +1,6 @@
 meta:
   capability_id: CAP:052
-  capability_name: '[CAP] Accounts Receivable (Invoice → Cash Application)'
+  capability_name: "[CAP] Accounts Receivable (Invoice \u2192 Cash Application)"
   owner_repo: louisburroughs/durion
   created_utc: '2026-01-28T00:06:05.518993+00:00'
   last_updated_utc: '2026-01-28T00:06:05.518993+00:00'
@@ -31,7 +31,7 @@ stories:
 - parent:
     repo: louisburroughs/durion
     issue: 52
-    title: '[CAP] Accounts Receivable (Invoice → Cash Application)'
+    title: "[CAP] Accounts Receivable (Invoice \u2192 Cash Application)"
     domain: accounting
     labels:
     - layer:business
@@ -44,7 +44,7 @@ stories:
       repo: louisburroughs/durion-positivity-backend
       issue: 131
     frontend:
-      repo: louisburroughs/durion-moqui-frontend
+      repo: louisburroughs/durion-positivity-frontend
       issue: 195
       impacted_component_repos:
       - louisburroughs/durion-accounting
@@ -62,6 +62,7 @@ stories:
         path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
       - repo: louisburroughs/durion
         path: domains/accounting/.business-rules/DOMAIN_NOTES.md
+      story_markdown_path: ./stories/frontend/CAP_052.195.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md

@@ -42,7 +42,12 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issues: [28, 29, 179, 178, 177]
+      issues:
+      - 28
+      - 29
+      - 179
+      - 178
+      - 177
       wireframes:
       - repo: louisburroughs/durion
         path: domains/workexec/.ui/frontend-story-fulfillment-create-pick-list-pick-t-92.wf.md
@@ -59,6 +64,9 @@ stories:
         path: domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md
       - repo: louisburroughs/durion
         path: domains/inventory/.business-rules/DOMAIN_NOTES.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      story_markdown_path: ./stories/frontend/CAP_218.unknown.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
@@ -70,7 +78,7 @@ stories:
       generated: true
   pr_links:
     durion_contract_pr: ''
-    backend_pr: 'https://github.com/louisburroughs/durion-positivity-backend/pull/567'
+    backend_pr: https://github.com/louisburroughs/durion-positivity-backend/pull/567
     frontend_prs: []
   merge_order:
   - durion_contract_pr

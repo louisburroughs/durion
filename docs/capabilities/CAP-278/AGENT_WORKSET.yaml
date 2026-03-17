@@ -1,0 +1,4 @@
+capability_id: CAP:278
+domain: accounting
+manifest: docs/capabilities/CAP-278/CAPABILITY_MANIFEST.yaml
+stories: []

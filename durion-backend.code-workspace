@@ -2,14 +2,15 @@
 	"folders": [
 		{
 			"path": "../durion-positivity-backend",
-			"name": "durion-positivity-backend"
+			"name": "Backend"
 		},
 		{
-			"path": "."
+			"path": ".",
+			"name": "Durion"
 		},
 		{
 			"path": "../durion-positivity-sdk",
-			"name": "durion-sdk-js"
+			"name": "SDK"
 		}
 	],
 	"settings": {

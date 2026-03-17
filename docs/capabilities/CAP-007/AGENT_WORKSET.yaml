@@ -1,0 +1,49 @@
+capability_id: CAP:007
+domain: workexec
+manifest: docs/capabilities/CAP-007/CAPABILITY_MANIFEST.yaml
+stories:
+- parent_issue: 43
+  frontend_issue: 213
+  frontend_story_md: docs/capabilities/CAP-007/stories/frontend/CAP_007.213.frontend.md
+  backend_issue: 149
+  wireframe: ''
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 44
+  frontend_issue: 212
+  frontend_story_md: docs/capabilities/CAP-007/stories/frontend/CAP_007.212.frontend.md
+  backend_issue: 148
+  wireframe: domains/accounting/.ui/frontend-story-invoicing-calculate-taxes-fees-and-212.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 45
+  frontend_issue: 211
+  frontend_story_md: docs/capabilities/CAP-007/stories/frontend/CAP_007.211.frontend.md
+  backend_issue: 147
+  wireframe: ''
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 46
+  frontend_issue: 210
+  frontend_story_md: docs/capabilities/CAP-007/stories/frontend/CAP_007.210.frontend.md
+  backend_issue: 146
+  wireframe: domains/accounting/.ui/frontend-story-invoicing-support-authorized-invoic-210.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
+- parent_issue: 47
+  frontend_issue: 209
+  frontend_story_md: docs/capabilities/CAP-007/stories/frontend/CAP_007.209.frontend.md
+  backend_issue: 145
+  wireframe: ''
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: packages/sdk-workorder
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids: []
