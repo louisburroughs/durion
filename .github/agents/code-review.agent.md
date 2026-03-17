@@ -24,43 +24,43 @@ You are a review-only agent. You do not edit code, tests, or docs.
 
 ### SDK Review Override (Mandatory)
 - Review against SDK PRD acceptance criteria and architecture constraints.
-- Ignore AUTH-* checklist content in this file when it conflicts with SDK PRD scope.
 - Evaluate implementation changes in the standalone SDK repository, using
    backend/domain repositories as evidence sources.
 
 Use the PRD's acceptance criteria as the primary review contract for each story when a GitHub issue is not yet available or when the issue acceptance criteria conflict with the PRD.
 
-### Per-Story Review Checklist (Legacy Auth Example)
+### Per-Story Review Checklist
 
 For every story reviewed, verify these PRD-specific invariants **in addition** to the standard checklist below:
 
 | Invariant | What to Check |
 |-----------|---------------|
-| **Spring auth authority flow** | Interactive login uses `AuthenticationManager`/`UserDetailsService`; no controller-level raw-password comparisons. |
-| **Account-state persistence contract** | `users` model and mappings include enabled/locked/expiry flags, counters, and timestamps with correct defaults/invariants. |
-| **Lockout policy behavior** | Threshold + window + progressive backoff + cooldown unlock + admin unlock behavior is implemented and deterministic. |
-| **Account-state denial semantics** | Disabled/locked/account-expired/credentials-expired failures map to explicit API errors and status codes. |
-| **Token claim contract** | Access token includes `sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`; no `authorities` contract claim. |
-| **Permissions source of truth** | Token issuance resolves permissions from persisted assignments, not caller-provided role payloads. |
-| **Gateway alignment** | Gateway still enforces canonical token claim semantics and fail-closed behavior for invalid claim states. |
-| **Events and metrics** | Required auth/account-state events and counters exist; logs avoid token/secret/PII leakage. |
-| **Internal package boundaries** | Module internals remain under `internal/**`; public service interfaces remain in `service/**`; no controller->repository shortcuts. |
-| **@EmitEvent + @NonNull compliance** | New/changed endpoints and service signatures align with repository conventions and AGENTS.md rules. |
+| **Standalone implementation boundary** | SDK implementation changes are in the standalone SDK repo; input repos are read-only context. |
+| **Contract fidelity** | SDK operations remain traceable to source OpenAPI (`operationId`, path/method/schema). |
+| **Header/auth behavior** | `X-API-Version`, `X-Correlation-Id`, `Idempotency-Key`, and bearer token behavior are consistent and documented. |
+| **Error model fidelity** | Status/body/correlation/field-error handling aligns with PRD and ADR-0017 semantics. |
+| **API classification** | Public/internal/experimental classification is correctly enforced in exported SDK surface. |
+| **Workflow helper discipline** | Helpers are domain-based, thin, and compose generated operations without inventing backend semantics. |
+| **Versioning and compatibility** | SDK versioning and release signals align with PRD decisions and source contract versioning. |
+| **Security guidance reuse** | Shared reusable security convention is represented consistently across generated modules. |
 
-### ADRs Mandatory for Security-Related Review
+### ADRs Mandatory for SDK Review
 
 Always load and check:
 - `docs/adr/0011-api-gateway-security-architecture.adr.md`
 - `docs/adr/0014-gateway-internal-service-security.adr.md` — gateway trust boundary and internal-service security model.
 - `docs/adr/0017-api-controller-http-response-codes.adr.md` — HTTP response code expectations for 401/403 behavior.
-- `docs/adr/0018-audit-actor-fields-from-security-context.adr.md` — actor derivation and security-context expectations.
+- `docs/adr/0021-tax-api-consumption-and-internal-access-policy.adr.md` — internal-only API handling.
+- `docs/adr/0025-permissions-manifest-registration-policy.adr.md` — permission naming and docs alignment.
+- `docs/adr/0026-service-contract-boundary-policy.adr.md` — contract source boundaries.
+- `docs/adr/0027-uuid-typed-identifier-contract-policy.adr.md` — UUID type fidelity.
 
-### High-Risk Stories Requiring Deepest Scrutiny
+### High-Risk Areas Requiring Deepest Scrutiny
 
-- **AUTH-003** (Lockout policy): threshold/window logic, cooldown unlock, and failure counter integrity.
-- **AUTH-004** (Account-state failure mapping): explicit status/error envelope behavior without credential disclosure leaks.
-- **AUTH-005** (JWT contract): strict claim correctness and no reintroduction of `authorities` token contract.
-- **AUTH-007** (Gateway alignment): enforcement compatibility and fail-closed behavior on invalid auth claims.
+- **Generation pipeline changes**: regressions in operation typing and schema fidelity.
+- **Transport/auth middleware changes**: cross-cutting header and token propagation drift.
+- **Workflow helper additions**: accidental divergence from raw contract semantics.
+- **Public/internal surface changes**: accidental export of internal-only APIs.
 
 ## Mission
 Validate that Lead Coder team changes implement the assigned story exactly as specified in GitHub issue acceptance criteria and ADR requirements, before PR creation.
@@ -77,13 +77,15 @@ Prefer to run on pre-commit working changes when available.
 - GitHub issue id(s) for the story.
 - Changed files (and local diff/commit context when available).
 - ADR index and relevant ADR files (`docs/adr/README.md` + applicable ADRs).
-- Repository-level coding policy files when present (for backend reviews: `durion-positivity-backend/AGENTS.md`).
+- Repository-level coding policy files when present for the active SDK repo and
+   source-input repos.
 - Relevant issue comments when they clarify acceptance criteria or constraints.
 
 ## Review Checklist (Mandatory)
 1. Read issue(s) and extract explicit acceptance criteria.
 2. Read applicable ADRs and identify binding decisions.
-3. Read repository policy files and extract mandatory conventions (for backend repos: `AGENTS.md`).
+3. Read repository policy files and extract mandatory conventions (`AGENTS.md`
+   and local guidance where present).
 4. Review changed files end-to-end (not just highlighted lines).
 5. Verify behavior against each acceptance criterion.
 6. Verify architecture/ADR and repository-policy compliance.

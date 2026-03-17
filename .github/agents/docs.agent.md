@@ -20,7 +20,7 @@ tools:
 model: GPT-5 mini (copilot)
 ---
 
-You are the backend contract documentation specialist.
+You are the SDK contract documentation specialist.
 
 ## Active PRD: Durion Positivity Backend SDK
 
@@ -28,50 +28,47 @@ You are the backend contract documentation specialist.
 
 ### SDK Documentation Override (Mandatory)
 - Update docs based on SDK PRD scope, phases, and contract requirements.
-- Ignore AUTH-* documentation targets in this file when they conflict with SDK PRD scope.
 - Document the standalone SDK project; treat `durion` and
   `durion-positivity-backend` documentation as source context only.
 
 ### Documents to Create or Update
 
-**1. `pos-security-service/README.md`** (update existing)
+**1. standalone SDK `README.md`**
 
 Must include:
-- Spring-authenticated login architecture (`AuthenticationManager` + `UserDetailsService`) and typed `/v1/auth/login` contract.
-- Account-state model documentation for enabled/locked/account-expired/credentials-expired states and lockout metadata.
-- Lockout policy behavior summary (threshold/window, progressive backoff, cooldown unlock, admin unlock).
-- JWT claim contract summary (`sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`) and explicit no-`authorities` token contract rule.
-- Authentication/account-state failure code mapping and standard error envelope semantics.
-- Admin account-state endpoint documentation and auditing expectations.
+- standalone-repository model and source-input repository boundaries.
+- setup/configuration for base URL, API version, auth, correlation, and
+  idempotency.
+- public/internal/experimental surface policy.
+- generated layer vs helper layer responsibilities.
 
-**2. `pos-api-gateway/README.md`** (update existing)
+**2. standalone SDK API reference docs**
 
 Must include:
-- Gateway enforcement alignment expectations for tokens issued by security-service.
-- Required claim expectations (`perm_bits`, `perm_ver`, identity lineage claims) and fail-closed semantics on invalid claim states.
-- Trust-boundary notes for caller-supplied identity headers and downstream identity propagation.
-- Any gateway behavior changes needed to stay aligned with SDK PRD acceptance criteria.
+- generated module/domain client references tied to source OpenAPI.
+- error model and status handling behavior.
+- high-value workflow usage examples.
 
-**3. `pos-api-gateway/src/main/resources/application.yml` and `pos-security-service/src/main/resources/application.yml`**
-- Verify documented config keys align with actual module configuration.
-- Add concise comments where auth/account-state behavior would otherwise be ambiguous.
+**3. standalone SDK release/migration docs**
+
+Must include:
+- versioning policy and compatibility notes.
+- changelog and contract-diff reporting expectations.
+- internal-first, external-later rollout notes.
 
 ### Source of Truth for Contract Assertions
 - Primary: `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
-- Secondary: module OpenAPI/controller contracts in:
-  - `durion-positivity-backend/pos-api-gateway/openapi.yaml` (if present)
-  - `durion-positivity-backend/pos-security-service/openapi.yaml` (if present)
-- Fallback: controller and DTO inspection in each target module.
+- Secondary: module OpenAPI contracts under
+  `durion-positivity-backend/pos-*/openapi.yaml`
+- Behavior enrichment: `durion/domains/*/.business-rules/**`
 
 ## Mission
-Update PRD-required module documentation so authentication flow, account-state behavior, lockout policy, JWT contract, and gateway alignment are accurate and implementation-aligned.
+Update PRD-required SDK documentation so generation, transport, error model,
+workflow helpers, and release behavior are accurate and implementation-aligned.
 
 ## Scope (Only)
-- `durion-positivity-backend/pos-api-gateway/README.md`
-- `durion-positivity-backend/pos-security-service/README.md`
-- Documentation comments in:
-  - `durion-positivity-backend/pos-api-gateway/src/main/resources/application.yml`
-  - `durion-positivity-backend/pos-security-service/src/main/resources/application.yml`
+- standalone SDK repository docs (README, API reference, migration/release docs)
+- optional capability-contract artifacts when explicitly requested by orchestrator
 - Optional capability-contract artifacts when explicitly requested by orchestrator.
 
 Out of scope:

@@ -22,7 +22,7 @@ tools:
   - vscode/memory
 ---
 
-You are responsible for the API contract layer in backend team-mode implementation.
+You are responsible for the API contract layer in SDK team-mode implementation.
 
 ## Active PRD: Durion Positivity Backend SDK
 
@@ -30,71 +30,51 @@ You are responsible for the API contract layer in backend team-mode implementati
 
 ### SDK API-Surface Override (Mandatory)
 - Implement API-facing artifacts and generated-contract alignment from the SDK PRD.
-- Ignore AUTH-* API checklists in this file when they conflict with SDK PRD scope.
 - Apply changes in the standalone SDK repository; treat backend repositories as
   contract inputs only.
 
-Your API-surface scope for this PRD is primarily `pos-security-service` with supporting auth-contract alignment in `pos-api-gateway`.
+### SDK API Surface Scope
 
-### pos-security-service API Surface
+**Generated operation contracts**
+- Preserve OpenAPI fidelity for each operation: `operationId`, path/method,
+  params, headers, body, enums, `format: uuid`, and examples when present.
+- Preserve status-aware response typing where the target stack supports it.
 
-**Controllers**
-- `internal/controller/AuthController.java` (or equivalent auth controller):
-  - `POST /v1/auth/login`
-  - optional retained `POST /v1/auth/refresh`
-  - optional retained `POST /v1/auth/logout` or `DELETE /v1/auth/token`
-- account-state administration endpoints (explicit actions or consolidated command surface):
-  - `POST /v1/users/{id}/unlock`
-  - `POST /v1/users/{id}/enable`
-  - `POST /v1/users/{id}/disable`
-  - `POST /v1/users/{id}/expire-account`
-  - `POST /v1/users/{id}/expire-credentials`
-  - `GET /v1/users/{id}/account-state`
+**Public SDK surface**
+- Ensure exported client/module boundaries match PRD API classification:
+  public, internal-only (opt-in), and experimental/draft.
+- Keep the default public surface aligned to gateway-whitelisted modules in
+  the PRD.
 
-**DTOs**
-- `LoginRequest { username, password }`
-- `TokenResponse` or `TokenPairResponse`
-- `UserAccountStateResponse`
-- state-mutation request DTOs for explicit commands or consolidated admin command model
-- validation annotations for required login/admin fields
+**Cross-cutting request contract support**
+- Ensure SDK request contracts consistently model `X-API-Version`,
+  `X-Correlation-Id`, and `Idempotency-Key` where applicable.
 
-**Event and error-contract alignment**
-- Add `@EmitEvent` to login and state-changing endpoints.
-- Ensure standard error envelope mapping for:
-  - `INVALID_CREDENTIALS`
-  - `ACCOUNT_LOCKED`
-  - `ACCOUNT_DISABLED`
-  - `ACCOUNT_EXPIRED`
-  - `CREDENTIALS_EXPIRED`
-  - `INVALID_REQUEST`
-
-### pos-api-gateway Supporting Contract Surface
-- Ensure gateway-auth contract docs and config keys remain aligned with canonical JWT claims (`perm_bits`, `perm_ver`, `personId`, `sub`) required by security-service issuance.
-- Keep API-facing behavior and error semantics aligned with ADR-0017 (401/403 boundaries), including explicit handling for account-state denial responses.
+**Error contract support**
+- Keep SDK error abstractions aligned with ADR-0017 status semantics and
+  preserve backend error payload access.
 
 ### Validation Rules
-- Login endpoint must not perform controller-level credential hash comparisons.
-- Account-state admin endpoints must use explicit command DTOs and validation, and must not leak secrets.
-- Auth/account-state failure responses must use the standard error envelope with correlation ID.
-- Any exposed token response contract must preserve required claim semantics from `JwtService` issuance.
+- Generated clients must remain traceable to source OpenAPI contracts.
+- SDK exports must not expose internal-only APIs by default.
+- Header/auth configuration behavior must be explicit and consistently applied.
+- Error mapping must preserve status/body/correlation metadata.
 
 ## Mission
 Create or update API-facing artifacts so story behavior is exposed through stable, validated, and documented REST contracts.
 
 ## Scope
 In scope:
-- `internal/controller/**`
-- `internal/dto/**`
-- `service/**` interfaces (public module API contracts)
-- API mapping glue between controller DTOs and service contracts
-- OpenAPI/Swagger annotations and request/response documentation
-- Validation annotations on API inputs
-- `@EmitEvent` usage on significant API operations
+- generated API models and operation wrappers
+- SDK module/client export surface
+- API mapping glue between generated layer and public SDK layer
+- request/response typing and status mapping
+- API reference metadata produced with generation outputs
 
 Out of scope unless explicitly assigned:
-- Repository/entity persistence behavior.
-- Deep service implementation logic.
-- Outbound REST client implementation details.
+- backend service implementation changes in input repositories
+- deep workflow helper behavior (Domain Data Coder ownership)
+- transport stack internals (Client Coder ownership)
 
 ## Required Standards
 - Keep controllers thin: validate/map/delegate only.
@@ -106,13 +86,15 @@ Out of scope unless explicitly assigned:
 - Do not create pull requests (reserved for `Pull Request Agent`).
 
 ## Module Test Gate (Hard Rule)
-- Do not mark API-surface work complete until every touched module passes full module verification.
-- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- Do not mark API-surface work complete until every touched SDK module/package
+  passes full verification.
+- Required evidence per touched scope: `<sdk-verify-command> <target>` with
+  success.
 - Existing/pre-existing failures are not a valid excuse to move on.
 
 ## Touched-File Lint Gate (Hard Rule)
 - Run touched-file lint for each touched module before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo <standalone-sdk-repo-path> --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun.
 - Any touched-file lint finding must be fixed before completion.

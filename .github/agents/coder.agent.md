@@ -41,7 +41,8 @@ Use this agent only when team-mode delegation is blocked and `Lead Coder` trigge
 - PR creation is reserved exclusively for `Pull Request Agent`.
 
 ## Mission
-Implement the assigned scope in `durion-positivity-backend` with production-quality code and objective verification evidence.
+Implement the assigned scope in the standalone SDK repository with
+production-quality code and objective verification evidence.
 
 ## Active PRD: Durion Positivity Backend SDK
 
@@ -49,7 +50,6 @@ Implement the assigned scope in `durion-positivity-backend` with production-qual
 
 ### SDK Fallback Override (Mandatory)
 - When invoked for orchestration fallback, implement against the SDK PRD scope.
-- Ignore AUTH-* legacy guidance from other templates when it conflicts with SDK PRD scope.
 - Implement in the standalone SDK repository, not in `durion` or
   `durion-positivity-backend`.
 
@@ -102,7 +102,7 @@ When orchestrated with `Code Review Agent`:
 
 ## Touched-File Lint Gate (Hard Rule)
 - For each touched module, run local touched-file lint before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo ~/IdeaProjects/durion-positivity-backend --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo <standalone-sdk-repo-path> --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun lint.
 - Any lint finding in touched files must be fixed and re-validated before completion.
