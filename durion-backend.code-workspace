@@ -6,6 +6,10 @@
 		},
 		{
 			"path": "."
+		},
+		{
+			"path": "../durion-positivity-sdk",
+			"name": "durion-sdk-js"
 		}
 	],
 	"settings": {
