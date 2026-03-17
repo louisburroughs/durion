@@ -38,47 +38,42 @@ You are the backend implementation coordinator for coder-team mode.
 Use this artifact ownership map when producing instruction cards for the Orchestrator. Assign ownership by layer and specialist in dependency order.
 
 ### Module Targets
-- **`pos-security-service`**: Spring-authenticated login flow, account-state persistence/administration, lockout hardening, error mapping, and canonical JWT issuance.
-- **`pos-api-gateway`**: JWT claim enforcement alignment with canonical security-service token semantics.
+- **Standalone SDK repository**: generated clients, shared transport layer,
+  error model, and domain-based workflow helpers.
+- **Input repositories**: `durion-positivity-backend` (OpenAPI + backend
+  references) and `durion` (domain behavior docs + ADR context).
 
 ### Artifact Ownership by Specialist
 
 **API Surface Coder owns:**
-- `/v1/auth` controller contract (at minimum `POST /v1/auth/login`) with typed request/response DTOs.
-- Admin account-state controller/API contract (`unlock`, `enable`, `disable`, `expire-account`, `expire-credentials`, `account-state`).
-- DTO contracts for login, token response, and account-state command/query operations in `pos-security-service/internal/dto/**`.
-- `@EmitEvent` coverage on login and admin account-state mutation endpoints with module event IDs.
-- Controller/OpenAPI annotation updates for auth failure mapping (`401`, `403`/`423`, `400`) and standard error envelope.
+- Generated client surface cohesion and typed request/response models.
+- Operation-level fidelity against OpenAPI (`operationId`, path/method/schema,
+  enum/uuid typing, status-specific response typing when feasible).
+- Public/internal/experimental API classification and exported SDK surface
+  boundaries.
 
 **Domain Data Coder owns:**
-- `users` persistence model updates in `pos-security-service/internal/entity/**` and migrations:
-  - enabled, lock/expiry booleans, lockout counters, timestamps, admin audit metadata.
-- Spring Security principal/user-details mapping in `internal/domain/**` or equivalent auth internal package.
-- Authentication orchestration service in `internal/service/**`:
-  - `AuthenticationManager` invocation,
-  - failure/success bookkeeping,
-  - lockout/backoff/cooldown behavior,
-  - administrative unlock behavior.
-- `JwtServiceImpl` updates to enforce required claims (`sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`) and no `authorities` token contract.
-- Event type registry/initializer updates in `internal/config/**` for auth/account-state events.
-- `pos-api-gateway` claim-enforcement alignment updates in auth/security config as explicitly needed by AUTH-007.
+- Domain-based workflow helper composition over generated operations.
+- Cross-operation orchestration patterns (approvals, lifecycle transitions,
+  retries/reprocess) without introducing non-contract semantics.
+- Deterministic helper behavior and idempotent flow support where required.
 
 **Client Coder owns (only if explicitly assigned):**
-- Startup-only `RestClient` adjustments for event-type registration flows when needed for AUTH-008.
-- Outbound dependency audit to ensure no new request-path auth coupling is introduced by AUTH stories.
-- Explicit NO-SCOPE confirmation when no outbound integration changes are needed.
+- Shared SDK transport adapters and request pipeline behavior.
+- Auth token provider integration and header propagation (`X-API-Version`,
+  `X-Correlation-Id`, `Idempotency-Key`).
+- Explicit NO-SCOPE confirmation when no transport integration changes are
+  needed.
 
 ### Critical Cross-Cutting Constraints (enforce in every card)
-- **Foundation gate:** AUTH-001 and AUTH-002 must complete before any later AUTH story starts.
-- Login credential verification must run through Spring Security components (`AuthenticationManager`, `UserDetailsService`), never raw controller password checks.
-- Access token issuance must remain in `JwtService` and include `sub`, `personId`, `jti`, `iat`, `exp`, `perm_bits`, `perm_ver`; do not introduce `authorities` as token contract.
-- Account-state denial behavior must explicitly enforce enabled, non-locked, non-expired, and credentials-non-expired semantics.
-- Lockout policy must support threshold, time window, progressive backoff, cooldown unlock, and admin unlock.
-- Admin account-state operations must preserve audit metadata (`disabled_at`, `disabled_by`, unlock actor/timestamp, etc.).
-- Gateway auth behavior must stay aligned to canonical token claim semantics and reject caller-supplied identity trust.
-- New auth/account-state API mutations must carry `@EmitEvent` and corresponding event type registration.
-- Time-dependent logic must be deterministic and testable (prefer injectable `Clock`).
-- Required ADR review set before sign-off: 0011, 0014, 0017, 0018.
+- Enforce standalone SDK implementation boundary (no production code changes in
+  input repositories).
+- Preserve OpenAPI-first contract fidelity for generated clients.
+- Keep helper methods domain-based and avoid over-complicated abstractions.
+- Ensure consistent auth/correlation/idempotency behavior across SDK modules.
+- Time-dependent logic must be deterministic and testable.
+- Required ADR review set before sign-off: 0011, 0014, 0017, 0021, 0025,
+  0026, 0027.
 
 ## Mission
 Convert one story into explicit artifact assignments, produce clarified specialist instruction cards, and validate returned evidence against acceptance criteria and ADR constraints.
