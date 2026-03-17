@@ -42,7 +42,7 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
 5. Split findings into:
    - production code fixes -> `CODER_AGENT` (include `comment_ref` targets)
    - test fixes -> `TEST_AGENT` (include `comment_ref` targets)
-6. Run remediation loop for at most 5 cycles using this exact order:
+6. Run remediation loop using this exact order until reviewer `PASS` or an explicit blocked condition is reached:
    - `CODER_AGENT` -> `TEST_AGENT` -> `CODE_REVIEW_AGENT`
    - `CODE_REVIEW_AGENT` must return `Verdict: PASS | FAIL`, findings, and recommended split
    - after each subagent run, call `PLANNER_AGENT` with `mode: append_output` so planner writes UTC timestamp, delegated objective, output, and validation result to `PROCESSING_FILE`
@@ -50,7 +50,7 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
    - verify direct replies were posted for each targeted `comment_ref`
    - if `CODE_REVIEW_AGENT` returns `PASS`, exit loop
    - if `CODE_REVIEW_AGENT` returns `FAIL`, split findings and start next cycle
-   - if cycle 5 ends with `FAIL`, mark blocked as `review-cycle-limit-exceeded` and include unresolved findings in final summary
+   - if reviewer continues returning `FAIL` without safe progress, mark blocked and include unresolved findings in final summary
 7. If tooling supports thread resolution, resolve addressed threads; otherwise post explicit follow-up status comments.
 8. Produce final summary.
    - Delegate final outcome write to `PLANNER_AGENT` in `mode: write_final_summary` under `## Final Summary` in `PROCESSING_FILE`.
