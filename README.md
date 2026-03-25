@@ -1,29 +1,30 @@
 # Durion Workspace
 
-This workspace contains the Durion platform: a Moqui-based frontend/runtime and a Spring Boot POS backend. It provides agent-run documentation, development tooling, and observability guidance to help engineers and automation agents work across repositories.
+This workspace contains the shared Durion platform documentation, the Positivity backend, and the TypeScript SDK used by Durion Angular frontend applications. It provides development guidance, agent documentation, and observability references for working across the platform.
 
-Repositories in this workspace
+## Repositories in This Workspace
 
-- `durion-moqui-frontend` — Moqui runtime + UI (Vue 3, Quasar, TypeScript 5)
+- `durion` — workspace coordination, agent docs, ADRs, and governance
 - `durion-positivity-backend` — POS microservices (Java 21, Spring Boot 4.0.x)
-- `durion` — workspace coordination, agent docs, and governance (this repo)
+- `durion-positivity-sdk` — TypeScript SDK generated from backend OpenAPI contracts
 
-Quick links
+Angular frontend applications consume the backend APIs and SDK, but are not part of this workspace checkout.
+
+## Quick Links
 
 - Root agent guide: `AGENTS.md`
 - Architecture Decision Records: `docs/adr/README.md`
 - Observability architecture: `docs/architecture/observability/OBSERVABILITY.md`
-- SRE runbook: `.github/agents/sre.agent.md`
+- Agent docs: `.github/agents/`
 
-Prerequisites
+## Prerequisites
 
 - Java 21+
 - Node 18+ and npm
-- Maven (or use `./mvnw`) for backend
-- Gradle (or use `./gradlew`) for Moqui runtime builds
-- Docker & Docker Compose (for local stacks)
+- Maven (or use `./mvnw`) for backend builds
+- Docker & Docker Compose for local stacks where needed
 
-Quick start
+## Quick Start
 
 1. Clone the workspace:
 
@@ -38,65 +39,53 @@ cd durion
 less AGENTS.md
 ```
 
-3. Frontend quick build (Moqui):
+3. Build the backend:
 
 ```bash
-cd durion-moqui-frontend
-npm install
-./gradlew build -x test
-```
-
-4. Backend quick build (Positivity):
-
-```bash
-cd durion-positivity-backend
+cd ../durion-positivity-backend
 ./mvnw -pl pos-api-gateway -am clean package
 ```
 
-Local compose examples
+4. Build the TypeScript SDK:
 
 ```bash
-# Start Moqui + Postgres local stack
-cd durion-moqui-frontend
-docker-compose -f docker/moqui-postgres-compose.yml up -d
-
-# (If present) start observability demo
-docker-compose -f docs/observability-compose.yml up -d
+cd ../durion-positivity-sdk
+npm install
+npm run build
 ```
 
-Testing
+5. For Angular frontend applications, use the frontend repository's own README and Angular CLI workflow.
+
+## Testing
 
 - Backend tests:
 
 ```bash
-cd durion-positivity-backend
+cd ../durion-positivity-backend
 ./mvnw -DskipTests=false clean test
 ```
 
-- Frontend tests:
+- SDK tests:
 
 ```bash
-cd durion-moqui-frontend
+cd ../durion-positivity-sdk
 npm test
 ```
 
-Observability
+## Local Development
 
-- The canonical observability architecture and collector configuration live at `docs/architecture/observability/OBSERVABILITY.md`.
-- See `.github/agents/sre.agent.md` for telemetry contract, SLIs, and runbooks.
+- Backend local stack and service-specific setup live in `../durion-positivity-backend/AGENTS.md`.
+- The observability architecture and collector configuration live at `docs/architecture/observability/OBSERVABILITY.md`.
 
-Contributing
+## Contributing
 
-- Follow the `AGENTS.md` guidance and the per-repo `AGENTS.md` files.
-- Preface PR titles with the affected area, e.g. `[moqui]`, `[pos-order]`, `[infra]`.
-- Ensure lint and tests pass before opening a PR.
+- Follow the guidance in `AGENTS.md` and each repository's local instructions.
+- Preface PR titles with the affected area, for example `[frontend]`, `[sdk]`, `[pos-order]`, or `[infra]`.
+- Ensure relevant linting and tests pass before opening a PR.
 
-Further reading & tools
+## Further Reading
 
-- Workspace AGENTS.md: `AGENTS.md`
-- Per-repo AGENTS.md: `durion-moqui-frontend/AGENTS.md`, `durion-positivity-backend/AGENTS.md`
-- Agent docs: `.github/agents/`
-- CRM permissions and Moqui service wrappers: see [Durion-CRM-PermissionImplementation.md](Durion-CRM-PermissionImplementation.md) and [CrmRestServices.xml](durion-moqui-frontend/runtime/component/durion-positivity/service/CrmRestServices.xml) for required permissions on CRM endpoints.
-
-If you'd like, I can run the main build/test commands to validate the instructions or create CI snippets for common workflows.
-<parameter name="filePath">/home/n541342/IdeaProjects/durion/README.md
+- Workspace agent guide: `AGENTS.md`
+- Backend agent guide: `../durion-positivity-backend/AGENTS.md`
+- SDK overview: `../durion-positivity-sdk/README.md`
+- ADR index: `docs/adr/README.md`
