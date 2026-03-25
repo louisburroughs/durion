@@ -4,36 +4,6 @@
 
 /* 0. BASE STYLES & FONT IMPORTS (same as Michelin DS) */
 
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 300;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Light.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 400;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Regular.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 600;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-SemiBold.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 700;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Bold.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 900;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Black.woff') format('woff');
-}
 
 @font-face {
   font-family: 'Noto Sans';
@@ -123,9 +93,6 @@ app-root {
   font-family: 'Noto Sans', sans-serif;
 }
 
-body {
-  font-family: 'Michelin Unit Titling', 'Noto Sans', sans-serif;
-}
 
 /* ========================================================================= */
 /* 1. TIOTF COLOR TOKENS                                                     */
@@ -277,13 +244,11 @@ html[data-brand="tiotf"][data-theme] body {
 /* ========================================================================= */
 
 /* Elevation */
-.mic-elevation-1 { box-shadow: 0 4px 8px 0 rgba(102, 102, 102, 0.12); }
-.mic-elevation-2 { box-shadow: 0 8px 16px 0 rgba(102, 102, 102, 0.16); }
-.mic-elevation-3 { box-shadow: 0 16px 32px 0 rgba(102, 102, 102, 0.2); }
-.mic-elevation-4 { box-shadow: 0 32px 64px 0 rgba(102, 102, 102, 0.32); }
+.tiotf-elevation-1 { box-shadow: 0 4px 8px 0 rgba(102, 102, 102, 0.12); }
+.tiotf-elevation-2 { box-shadow: 0 8px 16px 0 rgba(102, 102, 102, 0.16); }
+.tiotf-elevation-3 { box-shadow: 0 16px 32px 0 rgba(102, 102, 102, 0.2); }
+.tiotf-elevation-4 { box-shadow: 0 32px 64px 0 rgba(102, 102, 102, 0.32); }
 
-.font-michelin-unit-titling      { font-family: 'Michelin Unit Titling'; }
-.font-michelin-unit-titling-bold { font-family: 'Michelin Unit Titling'; font-weight: 700; }
 .font-noto-sans                   { font-family: 'Noto Sans', sans-serif; }
 
 /* Alerts */
@@ -350,64 +315,64 @@ a.white:focus {
 }
 
 /* Navbar */
-.mic-navbar .mat-toolbar,
-.mic-navbar .toolbar {
+.tiotf-navbar .mat-toolbar,
+.tiotf-navbar .toolbar {
   color: #ffffff;
   background-color: var(--navBackground);
 }
 
-.mic-navbar.white {
+.tiotf-navbar.white {
   background-color: var(--menuBackground);
   color: var(--currentTextColor);
 }
-.mic-navbar.white .mat-mdc-tab-link:hover,
-.mic-navbar.white .mat-tab-link.mat-tab-label-active {
+.tiotf-navbar.white .mat-mdc-tab-link:hover,
+.tiotf-navbar.white .mat-tab-link.mat-tab-label-active {
   border-color: var(--primaryA400) !important;
 }
 
 /* Sidebar */
-.mic-sidebar .mic-sidebar-item a {
+.tiotf-sidebar .tiotf-sidebar-item a {
   color: var(--currentTextColor);
 }
-.mic-sidebar .mic-sidebar-item a:not(.primary):hover {
+.tiotf-sidebar .tiotf-sidebar-item a:not(.primary):hover {
   background-color: var(--subMenuBackground);
 }
-.mic-sidebar .mic-sidebar-item a.primary {
+.tiotf-sidebar .tiotf-sidebar-item a.primary {
   background-color: var(--primary50);
   color: var(--primaryA400);
 }
-.mic-sidebar .mic-sidebar-item a.primary:hover {
+.tiotf-sidebar .tiotf-sidebar-item a.primary:hover {
   background-color: var(--primaryA300);
   color: #ffffff;
 }
 
 /* Status chips */
-.mic-status .mat-mdc-chip {
+.tiotf-status .mat-mdc-chip {
   background-color: #ffffff;
   color: var(--primaryA400);
 }
-html[data-brand="tiotf"][data-theme="dark"] .mic-status .mat-mdc-chip {
+html[data-brand="tiotf"][data-theme="dark"] .tiotf-status .mat-mdc-chip {
   background-color: #53565a;
 }
 
-.mic-status.primary .mat-mdc-chip {
+.tiotf-status.primary .mat-mdc-chip {
   background-color: var(--primary50) !important;
 }
-.mic-status.valid .mat-mdc-chip {
+.tiotf-status.valid .mat-mdc-chip {
   background-color: var(--status-success-bg) !important;
   color: var(--status-success-fg) !important;
 }
-.mic-status.warn .mat-mdc-chip {
+.tiotf-status.warn .mat-mdc-chip {
   background-color: var(--status-warn-bg) !important;
   color: var(--status-warn-fg) !important;
 }
-.mic-status.error .mat-mdc-chip {
+.tiotf-status.error .mat-mdc-chip {
   background-color: var(--status-error-bg) !important;
   color: var(--status-error-fg) !important;
 }
 
 /* Main content */
-mic-main-content,
+tiotf-main-content,
 .main-content {
   background-color: var(--themeBackground);
   color: var(--currentTextColor);
@@ -415,11 +380,11 @@ mic-main-content,
 
 /* Scrollbars */
 .os-scrollbar-track,
-.mic-scroll::-webkit-scrollbar-track {
+.tiotf-scroll::-webkit-scrollbar-track {
   background: var(--trackColor) !important;
 }
 .os-scrollbar-handle,
-.mic-scroll::-webkit-scrollbar-thumb {
+.tiotf-scroll::-webkit-scrollbar-thumb {
   background: var(--handleColor) !important;
   border-radius: 5px;
 }
@@ -437,10 +402,10 @@ tr.clickable:not(.mat-mdc-header-row):hover td {
 }
 
 /* Timelines */
-mic-timeline-entry-dot {
+tiotf-timeline-entry-dot {
   background-color: var(--primaryA400);
 }
-mic-timeline-entry-dot.accent {
+tiotf-timeline-entry-dot.accent {
   background-color: var(--accentA400);
 }
 .timeline-entry-card {

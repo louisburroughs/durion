@@ -1,11 +1,13 @@
 ## 🏷️ Labels (Proposed)
 
 ### Required
+
 - type:story
 - domain:inventory
 - status:needs-review
 
 ### Recommended
+
 - agent:inventory
 - agent:accounting
 - agent:story-authoring
@@ -14,6 +16,7 @@
 - integration:general-ledger
 
 ### Blocking / Risk
+
 - none
 
 **Rewrite Variant:** inventory-flexible
@@ -53,6 +56,7 @@ As a Purchasing Manager, I want to create and approve a Purchase Order (PO) so t
 **Functional Behavior**
 
 1. PO Creation
+
 - System shall allow creating a PO with:
   - Header: vendorId, poDate, currency, paymentTermsId, expectedDeliveryDate, shipToLocationId, requestedBy, comment, customTags
   - Lines: lineNumber, skuId, description, quantity (decimal), unitCostMinor (integer), taxCodeId, glAccountId (optional override), requestedDeliveryDate
@@ -64,12 +68,14 @@ As a Purchasing Manager, I want to create and approve a Purchase Order (PO) so t
 - Persist line-level cost and currency (store minor units and currency code).
 - Allow attaching supporting documents (quotes, attachments).
 
-2. PO States (strict lifecycle)
+1. PO States (strict lifecycle)
+
 - States: DRAFT → (SUBMITTED_FOR_APPROVAL) → APPROVED → PARTIALLY_RECEIVED → FULLY_RECEIVED → CLOSED
 - CANCELLED is a terminal state allowed from DRAFT or APPROVED (subject to business rules).
 - Only `APPROVED` POs may be used as the basis for receipts and AP three-way matching.
 
-3. Approval Workflow
+1. Approval Workflow
+
 - Draft POs may be submitted for approval.
 - Approval thresholds configurable by total value and may map to approval groups/roles.
 - On Approval:
@@ -78,19 +84,22 @@ As a Purchasing Manager, I want to create and approve a Purchase Order (PO) so t
   - Record approverId, approvalTimestamp, approvalReason.
   - If encumbrance enabled, trigger encumbrance posting contract (see Accounting Integration).
 
-4. Revision Workflow
+1. Revision Workflow
+
 - Approved PO can be revised via an explicit revision operation producing a new version:
   - Preserve immutable audit trail of previous versions.
   - Revisions increment `versionNumber` and emit `PurchaseOrderRevised` with priorVersion and delta.
   - Revisions that increase value beyond configured thresholds must re-trigger approval flow (re-approval).
 
-5. Receiving & Inventory Integration
+1. Receiving & Inventory Integration
+
 - Receiving records reference an `approved` PO and decrement open quantities.
 - Partial receipts allowed; each receipt reduces `openQuantity` and `openValueMinor` per line and at PO level.
 - When all line open quantities reach zero, PO transitions to `FULLY_RECEIVED`.
 - Receipts must include receiptId, receivedBy, receivedAt, quantity, condition, and reference to shipment/ASN if provided.
 
-6. Accounting Integration
+1. Accounting Integration
+
 - On Approval:
   - If encumbrance accounting is enabled (config flag):
     - Emit or request encumbrance posting: Dr Purchase Commitments / Cr Budget Reserve (encumbrance account mapping from budget service).
@@ -101,7 +110,8 @@ As a Purchasing Manager, I want to create and approve a Purchase Order (PO) so t
   - AP will create payable: Dr Accrued Purchases / Cr Accounts Payable (or reverse accruals and post expense entries).
 - All GL posting responsibilities, account validation, and final posting decisions are owned by `domain:accounting`.
 
-7. Search / Visibility / APIs
+1. Search / Visibility / APIs
+
 - Provide query APIs for AP to retrieve:
   - PO by poId, vendorId, status, openBalanceMinor, openQuantity per line.
   - List of POs eligible for 2-way/3-way matching and their matched status.
@@ -191,6 +201,7 @@ As a Purchasing Manager, I want to create and approve a Purchase Order (PO) so t
   - Include tenantId, poId, vendorId, totalMinor in structured logs.
 
 **Open Questions**
+
 - Approval policy specifics: Should the approval flow support delegated approvers and multi-stage approvals (beyond threshold)? (If yes, we need approval matrix config).
 - Revision-to-receipt conflict: Should the system allow revision that reduces quantities below already-received quantities (default = disallow)?
 - Encumbrance GL mapping: What explicit GL account mapping should be used for encumbrances (tenant budget service or static mapping)?
@@ -279,6 +290,7 @@ Accounts Payable Liability
 Optional Encumbrance Account
 
 Functional Requirements
+
 1. PO Creation
 
 System shall allow creation of a Purchase Order with:
@@ -321,7 +333,7 @@ Grand Total
 
 PO totals must be immutable after approval except through revision workflow.
 
-2. PO States
+1. PO States
 
 DRAFT
 
@@ -337,7 +349,7 @@ CANCELLED
 
 Only APPROVED POs may be received against.
 
-3. Approval Workflow
+1. Approval Workflow
 
 Draft POs require approval.
 
@@ -349,7 +361,7 @@ Lock price and quantity.
 
 Emit PurchaseOrderApproved event.
 
-4. Accounting Integration
+1. Accounting Integration
 A. Encumbrance (Configurable)
 
 If encumbrance accounting enabled:
@@ -365,7 +377,7 @@ No GL posting at approval stage.
 
 Configuration flag must control behavior.
 
-5. Accounts Payable Visibility
+1. Accounts Payable Visibility
 
 Approved PO must:
 

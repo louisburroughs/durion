@@ -1,16 +1,19 @@
 ## 🏷️ Labels (Proposed)
 
 ### Required
+
 - type:story
 - domain:inventory
 - status:needs-review
 
 ### Recommended
+
 - agent:inventory
 - agent:accounting
 - agent:story-authoring
 
 ### Blocking / Risk
+
 - none
 
 **Rewrite Variant:** inventory-flexible
@@ -220,6 +223,7 @@ As an Inventory Clerk, I want to load an Advance Shipping Notice (ASN) so that I
 - Retention: audit logs retained per company policy (configurable), with immutable trail for accounting reconciliations.
 
 **Open Questions**
+
 - None required for implementable behavior given applied safe defaults. If business needs differ (e.g., allow ASN to create accruals), mark as clarification and add `blocked:clarification`.
 
 ## Original Story (Unmodified – For Traceability)
@@ -293,6 +297,7 @@ SKU exists on PO.
 Receiving location valid.
 
 Functional Requirements
+
 1. ASN Load
 
 System must allow creation of ASN record containing:
@@ -335,7 +340,7 @@ FULLY_RECEIVED
 
 CANCELLED
 
-2. Receiving Against ASN
+1. Receiving Against ASN
 
 During receipt:
 
