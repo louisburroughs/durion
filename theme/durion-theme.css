@@ -2,87 +2,7 @@
 /* DURION THEME                                                              */
 /* ========================================================================= */
 
-/* 0. BASE STYLES & FONT IMPORTS (same as Michelin DS) */
 
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 300;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Light.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 400;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Regular.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 600;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-SemiBold.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 700;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Bold.woff') format('woff');
-}
-@font-face {
-  font-family: 'Michelin Unit Titling';
-  font-style: normal;
-  font-weight: 900;
-  src: url('../assets/fonts/michelin-unit-titling/MichelinUnitTitling-Black.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'Noto Sans';
-  font-style: normal;
-  font-weight: 400;
-  src:
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-regular.woff') format('woff'),
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-regular.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Noto Sans';
-  font-style: italic;
-  font-weight: 400;
-  src:
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-italic.woff') format('woff'),
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-italic.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Noto Sans';
-  font-style: normal;
-  font-weight: 700;
-  src:
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700.woff') format('woff'),
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Noto Sans';
-  font-style: italic;
-  font-weight: 700;
-  src:
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700italic.woff') format('woff'),
-    url('../assets/fonts/noto-sans/noto-sans-v12-latin-700italic.ttf') format('truetype');
-}
-
-/* Material icons */
-@font-face {
-  font-family: 'Material Icons Two Tone';
-  font-style: normal;
-  font-weight: 400;
-  font-display: block;
-  src: url('../assets/fonts/icons/material-icons-two-tone.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Material Symbols Round';
-  font-style: normal;
-  font-weight: 400;
-  font-display: block;
-  src: url('../assets/fonts/icons/material-symbols-round.woff2') format('woff2');
-}
 
 .material-icons-default {
   font-weight: normal;
@@ -272,13 +192,11 @@ html[data-brand="durion"][data-theme] body {
 /* ========================================================================= */
 
 /* Elevation */
-.mic-elevation-1 { box-shadow: 0 4px 8px 0 rgba(102, 102, 102, 0.12); }
-.mic-elevation-2 { box-shadow: 0 8px 16px 0 rgba(102, 102, 102, 0.16); }
-.mic-elevation-3 { box-shadow: 0 16px 32px 0 rgba(102, 102, 102, 0.2); }
-.mic-elevation-4 { box-shadow: 0 32px 64px 0 rgba(102, 102, 102, 0.32); }
+.dur-elevation-1 { box-shadow: 0 4px 8px 0 rgba(102, 102, 102, 0.12); }
+.dur-elevation-2 { box-shadow: 0 8px 16px 0 rgba(102, 102, 102, 0.16); }
+.dur-elevation-3 { box-shadow: 0 16px 32px 0 rgba(102, 102, 102, 0.2); }
+.dur-elevation-4 { box-shadow: 0 32px 64px 0 rgba(102, 102, 102, 0.32); }
 
-.font-michelin-unit-titling      { font-family: 'Michelin Unit Titling'; }
-.font-michelin-unit-titling-bold { font-family: 'Michelin Unit Titling'; font-weight: 700; }
 .font-noto-sans                   { font-family: 'Noto Sans', sans-serif; }
 
 /* Alerts */
@@ -345,64 +263,64 @@ a.white:focus {
 }
 
 /* Navbar */
-.mic-navbar .mat-toolbar,
-.mic-navbar .toolbar {
+.dur-navbar .mat-toolbar,
+.dur-navbar .toolbar {
   color: #ffffff;
   background-color: var(--navBackground);
 }
 
-.mic-navbar.white {
+.dur-navbar.white {
   background-color: var(--menuBackground);
   color: var(--currentTextColor);
 }
-.mic-navbar.white .mat-mdc-tab-link:hover,
-.mic-navbar.white .mat-tab-link.mat-tab-label-active {
+.dur-navbar.white .mat-mdc-tab-link:hover,
+.dur-navbar.white .mat-tab-link.mat-tab-label-active {
   border-color: var(--primaryA400) !important;
 }
 
 /* Sidebar */
-.mic-sidebar .mic-sidebar-item a {
+.dur-sidebar .dur-sidebar-item a {
   color: var(--currentTextColor);
 }
-.mic-sidebar .mic-sidebar-item a:not(.primary):hover {
+.dur-sidebar .dur-sidebar-item a:not(.primary):hover {
   background-color: var(--subMenuBackground);
 }
-.mic-sidebar .mic-sidebar-item a.primary {
+.dur-sidebar .dur-sidebar-item a.primary {
   background-color: var(--primary50);
   color: var(--primaryA400);
 }
-.mic-sidebar .mic-sidebar-item a.primary:hover {
+.dur-sidebar .dur-sidebar-item a.primary:hover {
   background-color: var(--primaryA300);
   color: #ffffff;
 }
 
 /* Status chips */
-.mic-status .mat-mdc-chip {
+.dur-status .mat-mdc-chip {
   background-color: #ffffff;
   color: var(--primaryA400);
 }
-html[data-brand="durion"][data-theme="dark"] .mic-status .mat-mdc-chip {
+html[data-brand="durion"][data-theme="dark"] .dur-status .mat-mdc-chip {
   background-color: #53565a;
 }
 
-.mic-status.primary .mat-mdc-chip {
+.dur-status.primary .mat-mdc-chip {
   background-color: var(--primary50) !important;
 }
-.mic-status.valid .mat-mdc-chip {
+.dur-status.valid .mat-mdc-chip {
   background-color: var(--status-success-bg) !important;
   color: var(--status-success-fg) !important;
 }
-.mic-status.warn .mat-mdc-chip {
+.dur-status.warn .mat-mdc-chip {
   background-color: var(--status-warn-bg) !important;
   color: var(--status-warn-fg) !important;
 }
-.mic-status.error .mat-mdc-chip {
+.dur-status.error .mat-mdc-chip {
   background-color: var(--status-error-bg) !important;
   color: var(--status-error-fg) !important;
 }
 
 /* Main content */
-mic-main-content,
+dur-main-content,
 .main-content {
   background-color: var(--themeBackground);
   color: var(--currentTextColor);
@@ -410,11 +328,11 @@ mic-main-content,
 
 /* Scrollbars */
 .os-scrollbar-track,
-.mic-scroll::-webkit-scrollbar-track {
+.dur-scroll::-webkit-scrollbar-track {
   background: var(--trackColor) !important;
 }
 .os-scrollbar-handle,
-.mic-scroll::-webkit-scrollbar-thumb {
+.dur-scroll::-webkit-scrollbar-thumb {
   background: var(--handleColor) !important;
   border-radius: 5px;
 }
@@ -432,10 +350,10 @@ tr.clickable:not(.mat-mdc-header-row):hover td {
 }
 
 /* Timelines */
-mic-timeline-entry-dot {
+dur-timeline-entry-dot {
   background-color: var(--primaryA400);
 }
-mic-timeline-entry-dot.accent {
+dur-timeline-entry-dot.accent {
   background-color: var(--accentA400);
 }
 .timeline-entry-card {

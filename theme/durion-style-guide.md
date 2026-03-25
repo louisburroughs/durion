@@ -16,7 +16,6 @@ Durion uses a cool industrial palette:
 ## 2. Typography
 
 Primary font families:
-- `Michelin Unit Titling` (weights 300, 400, 600, 700, 900)
 - `Noto Sans` (regular + italic, bold + bold italic)
 
 Icon fonts:
@@ -25,7 +24,7 @@ Icon fonts:
 
 Global behavior:
 - Universal fallback: `Noto Sans, sans-serif`
-- Body stack: `Michelin Unit Titling`, `Noto Sans`, sans-serif
+- Body stack:  `Noto Sans`, sans-serif
 
 ## 3. Core Color Tokens
 
@@ -112,7 +111,7 @@ Body adopts theme-level background and text color when `data-theme` is present.
 
 ### Elevation
 Utility classes:
-- `.mic-elevation-1` through `.mic-elevation-4`
+- `.dur-elevation-1` through `.dur-elevation-4`
 
 ### Alerts
 `.alert` variants:
@@ -123,12 +122,12 @@ Utility classes:
 - Variants: `.accent`, `.white`
 
 ### Navigation and Sidebar
-- `.mic-navbar` uses themed nav background
-- `.mic-navbar.white` swaps to light menu style
-- `.mic-sidebar` primary item state uses `primary` token mapping
+- `.dur-navbar` uses themed nav background
+- `.dur-navbar.white` swaps to light menu style
+- `.dur-sidebar` primary item state uses `primary` token mapping
 
 ### Status Chips
-- `.mic-status` base style plus variants: `.primary`, `.valid`, `.warn`, `.error`
+- `.dur-status` base style plus variants: `.primary`, `.valid`, `.warn`, `.error`
 - Dark theme override present for chip background
 
 ### Content, Scrollbars, Tables, Timeline
@@ -149,4 +148,4 @@ When integrating this theme, ensure those assets are available at the expected r
 
 - Keep token usage semantic (prefer `--brand-*`, `--primary*`, `--accent*`) over hardcoded hex in component code.
 - For new components, support both light and dark mappings by consuming runtime variables (`--themeBackground`, `--currentTextColor`, etc.).
-- Reuse existing utility classes (`.mic-elevation-*`, status/link variants) before introducing new variants.
+- Reuse existing utility classes (`.dur-elevation-*`, status/link variants) before introducing new variants.
