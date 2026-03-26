@@ -35,3 +35,5 @@ stories:
   operation_ids:
   - getPerson
   - createPerson
+  - getContactsWithRoles
+  - getContacts
