@@ -24,10 +24,10 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Create vehicle record (169) | #102 | #169 | done | Add-vehicle form at `/app/crm/party/:id/add-vehicle` |
-| Associate vehicles to account (168) | #103 | #168 | partial | No operation_ids; add-vehicle form covers basic association |
-| Vehicle lookup by VIN/unit (167) | #104 | #167 | partial | No operation_ids defined; stub normalized |
-| Store vehicle care preferences (166) | #105 | #166 | partial | No operation_ids defined; stub normalized |
-| Ingest vehicle updates from external (165) | #106 | #165 | partial | No operation_ids defined; backend-driven story |
+| Associate vehicles to account (168) | #103 | #168 | partial | operation_ids mapped; contract-review-required (best-fit to current vehicle operations) |
+| Vehicle lookup by VIN/unit (167) | #104 | #167 | partial | operation_ids mapped; contract-review-required (best-fit to snapshot lookup) |
+| Store vehicle care preferences (166) | #105 | #166 | partial | operation_ids mapped; contract-review-required (story-specific care-preferences ops not explicit in current spec) |
+| Ingest vehicle updates from external (165) | #106 | #165 | partial | operation_ids mapped; contract-review-required (backend-driven integration story) |
 
 ## 4. Implementation Changes
 
@@ -49,10 +49,12 @@ Use this run record with:
 | Story | operation_id | SDK/OpenAPI Source | Client/Service File | Status |
 | --- | --- | --- | --- | --- |
 | #169 | `createVehicleForParty` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
-| #168 | — | — | — | blocked — no operation_ids defined |
-| #167 | — | — | — | blocked — no operation_ids defined |
-| #166 | — | — | — | blocked — no operation_ids defined |
-| #165 | — | — | — | blocked — backend-driven; no frontend operation_ids |
+| #168 | `createVehicleForParty` | `pos-customer/openapi.yaml` | `crm.service.ts` | contract-review-required (best-fit mapping) |
+| #168 | `transferVehicles` | `pos-customer/openapi.yaml` | `crm.service.ts` | contract-review-required (best-fit mapping) |
+| #167 | `fetchByVehicle` | `pos-customer/openapi.yaml` | `crm.service.ts` | contract-review-required (best-fit mapping) |
+| #166 | `getVehiclesForCustomer` | `pos-customer/openapi.yaml` | `crm.service.ts` | contract-review-required (best-fit mapping) |
+| #166 | `updateVehicles` | `pos-customer/openapi.yaml` | `crm.service.ts` | contract-review-required (best-fit mapping) |
+| #165 | `fetchByVehicle` | `pos-customer/openapi.yaml` | `crm.service.ts` | contract-review-required (best-fit mapping; backend-driven) |
 
 ## 6. Validation
 
@@ -71,17 +73,16 @@ npm test -- --watch=false
 
 ## 7. Blockers and Decisions
 
-- Blocker: Stories #168, #167, #166, #165 have no operation_ids in workset
-  - Impact: Vehicle lookup, care preferences, and external ingestion UIs cannot be wired
-  - Needed: Normalize workset entries — add operation_ids, wireframes, and contract references
+- Blocker: Stories #168, #167, #166, #165 are marked contract-review-required
+  - Impact: Vehicle lookup, care preferences, and ingestion UI wiring remains provisional until canonical operationIds are confirmed
+  - Needed: Confirm canonical vehicle lookup/care-preferences/integration operationIds and update workset/story contracts
 
 - Decision: `createVehicleForParty` route scoped to `/app/crm/party/:partyId/add-vehicle`
   - Reason: Vehicle creation is a party-contextual action per wireframe spec
 
 ## 8. Follow-Up Actions
 
-- [ ] Define backend OpenAPI operations for vehicle lookup, care preferences
-- [ ] Normalize workset entries for stories #167, #166, #165
+- [ ] Resolve contract review for stories #168, #167, #166, #165 and replace provisional mappings with canonical operation_ids
 
 ## 9. Completion Gate
 

@@ -1,6 +1,7 @@
 # Capability Run Artifact
 
 Use this run record with:
+
 - Manifest: docs/capabilities/CAP-090/CAPABILITY_MANIFEST.yaml
 - Workset: docs/capabilities/CAP-090/AGENT_WORKSET.yaml
 - PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
@@ -30,6 +31,7 @@ Use this run record with:
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
+
 - `src/app/features/crm/pages/party-detail/party-detail.component.ts`
 - `src/app/features/crm/pages/party-detail/party-detail.component.html`
 - `src/app/features/crm/pages/party-detail/party-detail.component.css`
@@ -37,6 +39,7 @@ Use this run record with:
 - `src/app/features/crm/models/crm.models.ts`
 
 ### Behavior Implemented
+
 - Contacts table rendered from `getContactsWithRoles_1` — shows name, email, phone, roles badges
 - Edit-roles modal with per-role checkboxes (BILLING, APPROVER, DRIVER); saves via `updateContactRoles_1`
 - Communication preferences form: emailEnabled / smsEnabled toggles, preferredChannel select
@@ -56,6 +59,7 @@ Use this run record with:
 ## 6. Validation
 
 ### Commands Run
+
 ```bash
 cd durion-positivity-frontend
 npm run build
@@ -63,6 +67,7 @@ npm test -- --watch=false
 ```
 
 ### Results
+
 - Build: pass
 - Tests: pass (2/2)
 - Lint: pass
@@ -85,6 +90,7 @@ npm test -- --watch=false
 ## 9. Completion Gate
 
 Mark complete only if all are true:
+
 - [x] All workset stories processed.
 - [x] All required operations wired or explicitly blocked with reason.
 - [x] Acceptance criteria verified against story markdown and wireframe.

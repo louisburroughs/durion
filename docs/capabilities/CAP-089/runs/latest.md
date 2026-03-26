@@ -1,6 +1,7 @@
 # Capability Run Artifact
 
 Use this run record with:
+
 - Manifest: docs/capabilities/CAP-089/CAPABILITY_MANIFEST.yaml
 - Workset: docs/capabilities/CAP-089/AGENT_WORKSET.yaml
 - PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
@@ -31,6 +32,7 @@ Use this run record with:
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
+
 - `src/app/features/crm/crm.routes.ts`
 - `src/app/features/crm/services/crm.service.ts`
 - `src/app/features/crm/models/crm.models.ts`
@@ -45,14 +47,15 @@ Use this run record with:
 - `src/app/features/crm/pages/customer-list/customer-list.component.css`
 - `src/app/app.routes.server.ts` (SSR fix: all routes to RenderMode.Client)
 - `angular.json` (budget: anyComponentStyle bumped to 16kB error)
- - `src/app/features/crm/pages/party-contacts/party-contacts.component.ts`
- - `src/app/features/crm/pages/party-contacts/party-contacts.component.html`
- - `src/app/features/crm/pages/party-contacts/party-contacts.component.css`
- - `src/app/features/crm/pages/merge-parties/merge-parties.component.ts`
- - `src/app/features/crm/pages/merge-parties/merge-parties.component.html`
- - `src/app/features/crm/pages/merge-parties/merge-parties.component.css`
+- `src/app/features/crm/pages/party-contacts/party-contacts.component.ts`
+- `src/app/features/crm/pages/party-contacts/party-contacts.component.html`
+- `src/app/features/crm/pages/party-contacts/party-contacts.component.css`
+- `src/app/features/crm/pages/merge-parties/merge-parties.component.ts`
+- `src/app/features/crm/pages/merge-parties/merge-parties.component.html`
+- `src/app/features/crm/pages/merge-parties/merge-parties.component.css`
 
 ### Behavior Implemented
+
 - Commercial account creation form with legalName, dba, taxId, billingTerms dropdown
 - Duplicate-account detection: warning step with existing matches before submit
 - Individual person creation form with firstName, lastName, email, phone
@@ -72,6 +75,7 @@ Use this run record with:
 ## 6. Validation
 
 ### Commands Run
+
 ```bash
 cd durion-positivity-frontend
 npm run build
@@ -79,6 +83,7 @@ npm test -- --watch=false
 ```
 
 ### Results
+
 - Build: pass
 - Tests: pass (2/2)
 - Lint: pass (no errors)
@@ -100,6 +105,7 @@ npm test -- --watch=false
 ## 9. Completion Gate
 
 Mark complete only if all are true:
+
 - [x] All workset stories processed.
 - [x] All required operations wired or explicitly blocked with reason.
 - [x] Acceptance criteria verified against story markdown and wireframe.
