@@ -20,7 +20,9 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - createVehicleForParty
+  - transferVehicles
 - parent_issue: 104
   frontend_issue: 167
   frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.167.frontend.md
@@ -29,7 +31,8 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - fetchByVehicle
 - parent_issue: 105
   frontend_issue: 166
   frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.166.frontend.md
@@ -38,7 +41,9 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - getVehiclesForCustomer
+  - updateVehicles
 - parent_issue: 106
   frontend_issue: 165
   frontend_story_md: docs/capabilities/CAP-091/stories/frontend/CAP_091.165.frontend.md
@@ -47,4 +52,5 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - fetchByVehicle

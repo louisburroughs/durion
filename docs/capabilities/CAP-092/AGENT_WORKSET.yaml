@@ -10,7 +10,8 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - getBillingRules
 - parent_issue: 108
   frontend_issue: 163
   frontend_story_md: docs/capabilities/CAP-092/stories/frontend/CAP_092.163.frontend.md
@@ -19,7 +20,9 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - fetchByParty
+  - fetchByVehicle
 - parent_issue: 109
   frontend_issue: 162
   frontend_story_md: docs/capabilities/CAP-092/stories/frontend/CAP_092.162.frontend.md
@@ -28,4 +31,6 @@ stories:
   contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - getEstimateById
+  - approveEstimate
