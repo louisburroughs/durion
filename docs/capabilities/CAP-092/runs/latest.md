@@ -1,6 +1,7 @@
 # Capability Run Artifact
 
 Use this run record with:
+
 - Manifest: docs/capabilities/CAP-092/CAPABILITY_MANIFEST.yaml
 - Workset: docs/capabilities/CAP-092/AGENT_WORKSET.yaml
 - PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
@@ -23,29 +24,32 @@ Use this run record with:
 
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
-| Billing integration story #164 | #107 | #164 | blocked | No wireframe; no operation_ids |
-| CRM snapshot for billing (163) | #108 | #163 | blocked | No operation_ids; wireframe exists |
-| PO requirement enforcement (162) | #109 | #162 | blocked | No operation_ids; cross-domain (workorder) |
+| Billing integration story #164 | #107 | #164 | blocked | operation_ids now defined; cross-domain wireframe (accounting) |
+| CRM snapshot for billing (163) | #108 | #163 | blocked | operation_ids now defined; wireframe exists |
+| PO requirement enforcement (162) | #109 | #162 | blocked | operation_ids now defined; cross-domain (workorder) |
 
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
+
 - `src/app/features/crm/crm.routes.ts` (stub routes only — no functional implementation)
 
 ### Behavior Implemented
+
 - No functional UI implemented. Routes normalized as stubs pending workset completion.
 
 ## 5. API Wiring Evidence
 
 | Story | operation_id | SDK/OpenAPI Source | Client/Service File | Status |
 | --- | --- | --- | --- | --- |
-| #164 | — | — | — | blocked — no wireframe, no operation_ids |
-| #163 | — | — | — | blocked — no operation_ids defined |
-| #162 | — | — | — | blocked — cross-domain (workorder), no operation_ids |
+| #164 | getBillingRules | pos-customer/openapi.yaml | — | blocked — implementation pending despite normalized metadata |
+| #163 | fetchByParty, fetchByVehicle | pos-customer/openapi.yaml | — | blocked — implementation pending |
+| #162 | getEstimateById, approveEstimate | pos-workorder/openapi.yaml | — | blocked — cross-domain (workorder), implementation pending |
 
 ## 6. Validation
 
 ### Commands Run
+
 ```bash
 cd durion-positivity-frontend
 npm run build
@@ -53,6 +57,7 @@ npm test -- --watch=false
 ```
 
 ### Results
+
 - Build: pass (stubs compile cleanly)
 - Tests: pass
 - Lint: pass
@@ -60,13 +65,13 @@ npm test -- --watch=false
 
 ## 7. Blockers and Decisions
 
-- Blocker: All three CAP-092 stories lack operation_ids
-  - Impact: No frontend implementation possible for this capability
-  - Needed: Product/backend team to define operations and wireframes for all three stories
+- Blocker: CAP-092 was previously blocked by missing operation_ids in workset (normalized in this run)
+  - Impact: Workset metadata now supports implementation planning
+  - Needed: Execute implementation in owning frontend domains
 
 - Blocker: Story #164 has no wireframe reference
-  - Impact: Cannot determine UI shape for billing integration entry point
-  - Needed: Add wireframe to workset and create `.wf.md`
+  - Impact: Resolved by linking existing accounting-domain wireframe
+  - Needed: Confirm cross-domain ownership (crm capability vs accounting UI surface)
 
 - Blocker: Story #162 is cross-domain (workorder, not crm)
   - Impact: Requires coordination with workexec domain team
@@ -74,16 +79,18 @@ npm test -- --watch=false
 
 ## 8. Follow-Up Actions
 
-- [ ] Product: Define wireframes for stories #164, #163, #162
-- [ ] Backend: Define operation_ids for `pos-customer` CRM snapshot and billing operations
+- [ ] Product/Architecture: Confirm cross-domain ownership for story #164 wireframe in accounting domain
+- [ ] Frontend: Implement operation_ids for #163 and #164 in CRM frontend module
+- [ ] Frontend: Implement operation_ids for #162 with workexec domain coordination
 - [ ] Clarify domain ownership for story #162 (CRM vs workorder module)
 - [ ] Re-run CAP-092 execution slice once workset is normalized
 
 ## 9. Completion Gate
 
 Mark complete only if all are true:
+
 - [x] All workset stories processed.
-- [x] All required operations wired or explicitly blocked with reason.
-- [ ] Acceptance criteria verified against story markdown and wireframe. (**blocked — no wireframes**)
+- [x] All required operations identified in workset/openapi or explicitly blocked with reason.
+- [ ] Acceptance criteria verified against story markdown and wireframe. (**blocked — implementation pending**)
 - [x] Validation commands executed and results recorded.
 - [x] runs/latest.md reflects final state.

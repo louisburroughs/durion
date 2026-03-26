@@ -25,7 +25,7 @@ Use this run record with:
 | --- | --- | --- | --- | --- |
 | Create commercial account (176) | #95 | #176 | done | Full form + duplicate-check flow implemented |
 | Create individual person (175) | #96 | #175 | done | Person creation form implemented |
-| Associate individuals to commercial account (174) | #97 | #174 | partial | No operation_ids; stub UI normalized |
+| Associate individuals to commercial account (174) | #97 | #174 | partial | operation_ids normalized; end-to-end UI flow still required |
 | Search and merge duplicate parties (173) | #98 | #173 | partial | `searchParties` wired; `mergeParties` has no OpenAPI op yet |
 
 ## 4. Implementation Changes
@@ -60,7 +60,7 @@ Use this run record with:
 | #176 | `getParty` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #176 (dup check) | `searchParties` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #175 | `createPerson` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
-| #174 | — | — | — | blocked — no operation_ids defined in workset |
+| #174 | `getContactsWithRoles`, `createRelationship`, `designatePrimaryBillingContact`, `deactivateRelationship` | `pos-customer/openapi.yaml` | `crm.service.ts` (service wiring) + contacts/roles UI flow | partial — end-to-end UI flow pending |
 | #173 | `searchParties` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #173 | `mergeParties` | — | — | blocked — no OpenAPI operation defined yet |
 
@@ -85,9 +85,9 @@ npm test -- --watch=false
   - Impact: Story #173 merge flow cannot be wired
   - Needed: Backend team to define and expose the merge endpoint
 
-- Blocker: Story #174 (associate individuals) has no operation_ids and no wireframe
-  - Impact: Cannot implement contact association UI
-  - Needed: Normalize workset — add operation_ids and wireframe reference
+- Blocker: Story #174 (associate individuals) lacks complete end-to-end UI behavior
+  - Impact: Contact association flow is not executable from list load through create/set-primary/deactivate lifecycle
+  - Needed: Implement full Contacts & Roles flow per story and wireframe using normalized operation_ids
 
 - Decision: All SSR routes set to `RenderMode.Client`
   - Reason: `TranslateHttpLoader` makes HTTP calls during prerender which fail at build time; authenticated POS app has no SEO requirement
@@ -95,7 +95,7 @@ npm test -- --watch=false
 ## 8. Follow-Up Actions
 
 - [ ] Define `mergeParties` OpenAPI operation in `pos-customer/openapi.yaml`
-- [ ] Normalize story #174 workset entry with operation_ids and wireframe
+- [ ] Implement Story #174 end-to-end UI flow: list, add relationship, set primary billing, deactivate, filters, and error-state handling
 - [ ] Revisit SSR strategy if unauthenticated marketing routes are added
 
 ## 9. Completion Gate
