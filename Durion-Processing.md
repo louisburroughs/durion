@@ -30,7 +30,7 @@ Summary: Wave A CRM domain implementation. Creates the CRM Angular domain featur
 
 - [x] Step 5: CAP-089 (Party Creation — Commercial + Individual) — implement Create Commercial Account page and Create Individual Person page in src/app/features/crm/pages/. Wire createCommercialAccount and getParty operation_ids to CRM service adapter. Acceptance criteria from stories 176 and 175. RED → GREEN with Frontend Testing Agent. anvil cards → HTML Specialist + TypeScript Specialist. Designer sign-off. Code review.
 
-- [x] Step 6: CAP-090 (Contacts) — implement Contact Roles maintenance page and Communication Preferences page. Wire getContactsWithRoles, updateContactRoles, getCommunicationPreferences, upsertCommunicationPreferences. Story 172 and 171. Story 170 (no operation_ids): implement UI structure, mark contract-review-required in run artifact. RED → GREEN. Designer sign-off. Code review.
+- [x] Step 6: CAP-090 (Contacts) — implement Contact Roles maintenance page and Communication Preferences page. Wire getContactsWithRoles, updateContactRoles, getCommunicationPreferences, upsertCommunicationPreferences. Story 172 and 171. Story 170 operation_ids normalized (`getPerson`, `createPerson`) with documented contract gap for explicit contact-point update/delete operations; UI structure implemented and marked contract-review-required in run artifact. RED → GREEN. Designer sign-off. Code review.
 
 - [x] Step 7: CAP-091 (Vehicles) — implement Create Vehicle Record page (story 169, createVehicleForParty). Stories 168, 167, 166, 165 have no operation_ids — implement UI shells, mark contract-review-required. RED → GREEN. Designer sign-off. Code review.
 

@@ -32,4 +32,6 @@ stories:
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - getPerson
+  - createPerson
