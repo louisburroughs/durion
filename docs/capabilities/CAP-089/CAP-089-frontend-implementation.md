@@ -182,6 +182,12 @@ interface CreatePersonResponse {
 
 **Status:** Contract draft
 
+**Execution Contract (Operation IDs):**
+- `getContactsWithRoles` — list active/inactive contacts and roles for account
+- `createRelationship` — associate person to account with role/effective start
+- `designatePrimaryBillingContact` — set exactly one primary billing contact
+- `deactivateRelationship` — end-date existing relationship
+
 **Files to Create:**
 - `screen/durion/crm/party/CommercialAccountContacts.xml`
 - Service methods in `service/crm/PartyServices.xml`
@@ -207,6 +213,14 @@ interface CreatePersonResponse {
    - Validation: endDate >= startDate
 6. ⬜ Add filtering: ACTIVE (default), INACTIVE, ALL
 7. ⬜ Test scenarios per acceptance criteria
+
+**Execution-Ready Definition for #174:**
+- UI flow must be executable end-to-end from account route entry (`partyId`) to list load.
+- Create relationship dialog must support `APPROVER` and `BILLING` with required effective start date.
+- Primary billing action must refresh list and reflect backend atomic demotion behavior.
+- Deactivation must require end date and enforce client-side end>=start validation.
+- Error handling must include deterministic handling for 400/403/404/409/5xx without losing user input.
+- Completion evidence must include screenshot or run artifact notes for list/create/set-primary/deactivate paths.
 
 **TypeScript/DTO Types:**
 ```typescript
