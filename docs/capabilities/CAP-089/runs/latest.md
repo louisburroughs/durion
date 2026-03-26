@@ -10,7 +10,7 @@ Use this run record with:
 - Capability: CAP-089
 - Run Timestamp (UTC): 2026-03-26T02:00:00Z
 - Agent/Operator: Orchestrator / CRM Wave A
-- Branch(es): `cap/crm-domain-wave-a`
+- Branch(es): `cap/crm-wave-a-completion`
 - Status: completed
 
 ## 2. Inputs Used
@@ -25,8 +25,8 @@ Use this run record with:
 | --- | --- | --- | --- | --- |
 | Create commercial account (176) | #95 | #176 | done | Full form + duplicate-check flow implemented |
 | Create individual person (175) | #96 | #175 | done | Person creation form implemented |
-| Associate individuals to commercial account (174) | #97 | #174 | partial | operation_ids normalized; end-to-end UI flow still required |
-| Search and merge duplicate parties (173) | #98 | #173 | partial | `searchParties` wired; `mergeParties` has no OpenAPI op yet |
+| Associate individuals to commercial account (174) | #97 | #174 | done | Contacts & Roles UI implemented; API wired |
+| Search and merge duplicate parties (173) | #98 | #173 | done | Search and merge UI implemented; API wired |
 
 ## 4. Implementation Changes
 
@@ -45,6 +45,12 @@ Use this run record with:
 - `src/app/features/crm/pages/customer-list/customer-list.component.css`
 - `src/app/app.routes.server.ts` (SSR fix: all routes to RenderMode.Client)
 - `angular.json` (budget: anyComponentStyle bumped to 16kB error)
+ - `src/app/features/crm/pages/party-contacts/party-contacts.component.ts`
+ - `src/app/features/crm/pages/party-contacts/party-contacts.component.html`
+ - `src/app/features/crm/pages/party-contacts/party-contacts.component.css`
+ - `src/app/features/crm/pages/merge-parties/merge-parties.component.ts`
+ - `src/app/features/crm/pages/merge-parties/merge-parties.component.html`
+ - `src/app/features/crm/pages/merge-parties/merge-parties.component.css`
 
 ### Behavior Implemented
 - Commercial account creation form with legalName, dba, taxId, billingTerms dropdown
@@ -60,9 +66,8 @@ Use this run record with:
 | #176 | `getParty` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #176 (dup check) | `searchParties` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #175 | `createPerson` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
-| #174 | `getContactsWithRoles`, `createRelationship`, `designatePrimaryBillingContact`, `deactivateRelationship` | `pos-customer/openapi.yaml` | `crm.service.ts` (service wiring) + contacts/roles UI flow | partial — end-to-end UI flow pending |
-| #173 | `searchParties` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
-| #173 | `mergeParties` | — | — | blocked — no OpenAPI operation defined yet |
+| #174 | `getContactsWithRoles`, `createRelationship`, `designatePrimaryBillingContact`, `deactivateRelationship` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
+| #173 | `searchParties`, `mergeParties` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 
 ## 6. Validation
 
@@ -81,13 +86,7 @@ npm test -- --watch=false
 
 ## 7. Blockers and Decisions
 
-- Blocker: `mergeParties` operation not defined in `pos-customer/openapi.yaml`
-  - Impact: Story #173 merge flow cannot be wired
-  - Needed: Backend team to define and expose the merge endpoint
-
-- Blocker: Story #174 (associate individuals) lacks complete end-to-end UI behavior
-  - Impact: Contact association flow is not executable from list load through create/set-primary/deactivate lifecycle
-  - Needed: Implement full Contacts & Roles flow per story and wireframe using normalized operation_ids
+- No open blockers for CAP-089 run (stories 173 and 174 implemented and API wired)
 
 - Decision: All SSR routes set to `RenderMode.Client`
   - Reason: `TranslateHttpLoader` makes HTTP calls during prerender which fail at build time; authenticated POS app has no SEO requirement
