@@ -25,7 +25,7 @@ Use this run record with:
 | --- | --- | --- | --- | --- |
 | Maintain contact roles (172) | #99 | #172 | done | Contacts table + edit-roles modal in party-detail |
 | Store communication preferences (171) | #100 | #171 | done | Prefs form with toggle switches in party-detail |
-| Capture multiple contact phones (170) | #101 | #170 | partial | No operation_ids defined; placeholder section normalized |
+| Capture multiple contact phones (170) | #101 | #170 | partial | operation_ids normalized for read/create path; full contact-point CRUD contract still pending |
 
 ## 4. Implementation Changes
 
@@ -51,7 +51,7 @@ Use this run record with:
 | #172 | `updateContactRoles_1` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #171 | `getCommunicationPreferences_1` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
 | #171 | `upsertCommunicationPreferences_1` | `pos-customer/openapi.yaml` | `crm.service.ts` | done |
-| #170 | — | — | — | blocked — no operation_ids defined in workset |
+| #170 | `getPerson`, `createPerson` | `pos-customer/openapi.yaml` | `crm.service.ts` (partial mapping path) | partial — update/delete contact-point operations not explicitly defined |
 
 ## 6. Validation
 
@@ -70,17 +70,17 @@ npm test -- --watch=false
 
 ## 7. Blockers and Decisions
 
-- Blocker: Story #170 (capture multiple contact phones) has no operation_ids
-  - Impact: Multi-phone capture UI cannot be wired to backend
-  - Needed: Normalize workset — add phone operation_ids and wireframe reference
+- Blocker: Story #170 backend contract lacks explicit contact-point update/delete operations
+  - Impact: Full add/edit/remove/primary lifecycle cannot be implemented end-to-end from dedicated contact-point endpoints
+  - Needed: Backend/domain contract clarification for explicit contact-point update/delete operations (or approved mapping strategy)
 
 - Decision: Contacts and communication preferences implemented as sections of `party-detail`, not separate routes
   - Reason: Wireframes specify "Account Details page section: Contacts" — colocation matches design intent
 
 ## 8. Follow-Up Actions
 
-- [ ] Normalize story #170 workset — add operation_ids for phone capture
-- [ ] Add phone-number section to party-detail once operation defined
+- [ ] Define explicit contact-point update/delete operation_ids for Story #170 in `pos-customer/openapi.yaml` (or document approved endpoint mapping)
+- [ ] Complete Story #170 E2E flow for add/edit/remove/make-primary once contract gap is resolved
 
 ## 9. Completion Gate
 
