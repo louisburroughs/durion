@@ -1,82 +1,65 @@
-## Completion Status: COMPLETE
+## Completion Status: IN_PROGRESS
 
-Orchestration run completed: 2026-03-26T02:15:00Z
-Execution slice: CRM Domain Wave A — CAP-089, CAP-090, CAP-091, CAP-092 + Domain Scaffold
+Orchestration run started: 2026-03-26T03:00:00Z
+Execution slice: CRM Domain Wave A Completion — CAP-089 (stories 173, 174), CAP-092 (stories 163, 164)
 PR target: durion-positivity-frontend
-Branch: cap/crm-domain-wave-a (pushed — open PR at https://github.com/louisburroughs/durion-positivity-frontend/pull/new/cap/crm-domain-wave-a)
+Branch: cap/crm-wave-a-completion (from master @ 21b0171)
 
-NOTE: gh CLI not authenticated in this environment — PR must be opened manually via the GitHub URL above or by authenticating gh auth login.
+NOTE: PR #1 (cap/crm-domain-wave-a) was merged. This run completes the remaining Wave A stories.
 
 ---
 
-Summary: Wave A CRM domain implementation. Creates the CRM Angular domain feature (src/app/features/crm/) with party creation, contacts, and vehicle sub-domains. Scaffolds all other domain folder stubs. Registers CRM routes under /app. Implements stories from CAP-089, CAP-090, CAP-091 (executable subset), and records CAP-092 as blocked pending implementation/cross-domain ownership after metadata normalization. Updates capability run artifacts.
+Summary: Complete the four incomplete Wave A CRM stories deferred in PR #1. Stories 174 and 173 complete CAP-089. Stories 163 and 164 complete the CRM/billing portion of CAP-092. Story 162 deferred to Wave B (workexec).
 
 ## Prior State
 
-- Frontend foundation (auth, shell, admin, system, core): COMPLETE. Angular 17 app with auth guard, role guard, auth interceptor, API base service, theme service, login flow, shell layout, dashboard, nav/header/footer. No domain features exist yet.
-- Durion SDK Phase 3: COMPLETE. PR #3 merged. 17 packages. SDK transport and workflow helpers available.
-- CRM OpenAPI: durion-positivity-backend/pos-customer/openapi.yaml — used as contract source.
-- Design authority: design/DESIGN.md + design/Customer/ + design/source/ tokens.
+- PR #1 MERGED to master (21b0171): CRM Wave A partial — CAP-089 (175, 176 done; 173, 174 partial), CAP-090 (done), CAP-091 (done), CAP-092 (stubs only, metadata normalized).
+- CRM feature exists at src/app/features/crm/ with routes, service, models, and pages.
+- Operations designatePrimaryBillingContact, deactivateRelationship, fetchByVehicle, getBillingRules are NOT yet in crm.service.ts.
 
 ## Implementation Steps
 
-- [x] Step 1: Read and analyze source materials — primary PRD (docs/PRD-multistage-capability-frontend-build.md), workflow PRD (durion/docs/capabilities/PRD-agent-capability-frontend-execution.md), design authority (design/DESIGN.md, design/Customer/DESIGN.md, design/source/theme-tokens.md, design/source/durion-style-guide.md), CRM contract guide (durion/domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md), CRM OpenAPI (durion-positivity-backend/pos-customer/openapi.yaml), wireframes for CAP-089 through CAP-092 stories, all frontend story markdown files for the 4 capabilities, existing app structure (app.routes.ts, shell component, core services).
+- [x] Step 1: Read and analyze source materials — primary PRD (docs/PRD-multistage-capability-frontend-build.md), workflow PRD (durion/docs/capabilities/PRD-agent-capability-frontend-execution.md), design hierarchy (design/DESIGN.md, design/Customer/DESIGN.md, design/source/theme-tokens.md), wireframes for stories 173/174/163/164, CAP-089 and CAP-092 worksets, existing CRM feature code (crm.service.ts, crm.models.ts, crm.routes.ts, pages).
 
-- [x] Step 2: Designer first-pass intake — map CRM domain to design/Customer/ design pack, establish layout/token/component guidance, confirm responsive expectations, note "Architectural Ledger" design constraints for HTML and TypeScript specialists.
+- [x] Step 2: Designer first-pass intake — design brief for stories 173, 174, 163, 164 covering layout, token, and component guidance.
 
-- [x] Step 3: Create execution branch cap/crm-domain-wave-a via create-branch-hook.sh from main in durion-positivity-frontend.
+- [x] Step 3: Create execution branch cap/crm-wave-a-completion from master in durion-positivity-frontend via durion/.github/hooks/create-branch-hook.sh.
 
-- [x] Step 4: Domain scaffold — create feature folder stubs for crm, workexec, accounting, billing, people, location, inventory, product, order, security under src/app/features/. Register CRM lazy route in app.routes.ts.
+- [x] Step 4: Story 174 (CAP-089) — Contacts & Roles page (/app/crm/party/:partyId/contacts): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review.
 
-- [x] Step 5: CAP-089 (Party Creation — Commercial + Individual) — implement Create Commercial Account page and Create Individual Person page in src/app/features/crm/pages/. Wire createCommercialAccount and getParty operation_ids to CRM service adapter. Acceptance criteria from stories 176 and 175. RED → GREEN with Frontend Testing Agent. anvil cards → HTML Specialist + TypeScript Specialist. Designer sign-off. Code review.
+- [x] Step 5: Story 173 (CAP-089) — Merge Parties page (/app/crm/merge-parties): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review.
 
-- [x] Step 6: CAP-090 (Contacts) — implement Contact Roles maintenance page and Communication Preferences page. Wire getContactsWithRoles, updateContactRoles, getCommunicationPreferences, upsertCommunicationPreferences. Story 172 and 171. Story 170 operation_ids normalized (`getPerson`, `createPerson`) with documented contract gap for explicit contact-point update/delete operations; UI structure implemented and marked contract-review-required in run artifact. RED → GREEN. Designer sign-off. Code review.
+- [x] Step 6: Story 163 (CAP-092) — CRM Snapshot Viewer (/app/crm/snapshot): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review.
 
-- [x] Step 7: CAP-091 (Vehicles) — implement Create Vehicle Record page (story 169, createVehicleForParty). Stories 168, 167, 166, 165 have no operation_ids — implement UI shells, mark contract-review-required. RED → GREEN. Designer sign-off. Code review.
+- [x] Step 7: Story 164 (CAP-092) — Account Billing Rules (/app/crm/party/:partyId/billing-rules): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review.
 
-- [x] Step 8: CAP-092 triage — normalize workset/manifest metadata and map OpenAPI operation_ids. Wireframes confirmed for 162/163 and linked for 164; operation_ids defined for 162/163/164. Keep implementation blocked pending cross-domain ownership and frontend execution.
+- [x] Step 8: Designer final sign-off on full Wave A completion integration. Must return Design Verdict: PASS.
 
-- [x] Step 9: Designer final sign-off on complete CRM domain integration. Must return Design Verdict: PASS before proceeding.
+- [x] Step 9: Verification gates:
+    - `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npm run build`
+    - `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false`
 
-- [x] Step 10: Code Review Agent — frontend acceptance, ADR compliance, regression check.
+- [x] Step 10: Update capability run artifacts (CAP-089/runs/latest.md and CAP-092/runs/latest.md).
 
-- [x] Step 11: Test Coverage Agent — harden coverage for crm feature components.
-
-- [x] Step 12: Build verification — npm run build in durion-positivity-frontend. Fix any failures.
-
-- [x] Step 13: Update capability run artifacts — create docs/capabilities/CAP-089/runs/latest.md, CAP-090/runs/latest.md, CAP-091/runs/latest.md, CAP-092/runs/latest.md.
-
-- [x] Final Step: Branch cap/crm-domain-wave-a pushed to origin. PR creation requires authenticated gh CLI — open manually at https://github.com/louisburroughs/durion-positivity-frontend/pull/new/cap/crm-domain-wave-a
+- [ ] Final Step: Create PR in durion-positivity-frontend by invoking durion/.github/hooks/pull-request-hook.sh --repo /home/n541342/IdeaProjects/durion-positivity-frontend --story CAP-089-092-wave-a-completion --base master --head cap/crm-wave-a-completion --title "feat(crm): complete Wave A CRM stories — party contacts, merge, snapshot, billing rules (CAP-089, CAP-092)"
 
 ## Domain Ownership Map
 
-| Angular Domain | Capabilities Assigned | Wave |
-|---|---|---|
-| `crm` | CAP-089, CAP-090, CAP-091, CAP-092, CAP-094, CAP-252 | A |
-| `workexec` | CAP-002–007, CAP-137, CAP-139, CAP-142, CAP-249 | B |
-| `accounting` | CAP-049–055, CAP-250, CAP-251, CAP-278 | B |
-| `billing` | CAP-278 | B |
-| `people` | CAP-117–121, CAP-136, CAP-214 | C |
-| `location` | CAP-214 | C |
-| `inventory` | CAP-165–172, CAP-215–221, CAP-315 | C |
-| `product` | CAP-247 | C |
-| `order` | CAP-246 | C |
-| `security` | CAP-275 | A (existing auth) |
+| Angular Domain | Capability | Story | Route |
+|---|---|---|---|
+| `crm` | CAP-089 | 174 — Contacts & Roles | /app/crm/party/:partyId/contacts |
+| `crm` | CAP-089 | 173 — Merge Parties | /app/crm/merge-parties |
+| `crm` | CAP-092 | 163 — CRM Snapshot | /app/crm/snapshot |
+| `crm` | CAP-092 | 164 — Billing Rules | /app/crm/party/:partyId/billing-rules |
+| `workexec` (Wave B) | CAP-092 | 162 — PO Enforcement | deferred |
 
 ## Verification Commands
 
-- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build`
-- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false`
+- `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npm run build`
+- `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false`
 
-## Edge Cases
+## Deferred
 
-- CAP-092 metadata normalized (wireframes and operation_ids present), but execution remains blocked pending cross-domain ownership and implementation.
-- CAP-091 stories with no operation_ids: implement UI shell, mark contract-review-required.
-- CRM OpenAPI operation_ids not matching workset entries: document mismatch, use most recent OpenAPI as source-of-truth.
-- Design "no-line rule": all container separation via tonal background shifts, no 1px borders in any new component.
-- All domain scaffold stubs must compile cleanly (no unreachable imports).
-
-## Open Questions
-
-- CAP-092 story 99 has a different numbering — need to read that file and determine if it is a duplicate or unique story.
-- CAP-094 not in this PR — noted as deferred to next wave.
+- CAP-092 Story 162 (PO Requirement Enforcement) — workexec domain, deferred to Wave B
+- CAP-094 — empty workset
+- CAP-252 — empty workset
