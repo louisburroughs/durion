@@ -1,4 +1,116 @@
-## Completion Status: COMPLETE
+## Completion Status: COMPLETE — Wave B Initial Slice Done
+
+---
+
+# Wave B Continuation — CAP-004 + CAP-005
+
+## Completion Status: IN PROGRESS
+
+Orchestration run started: 2026-03-26T23:11:51Z
+Execution slice: Workexec Wave B Continuation — CAP-004 (stories 231, 230, 229, 228, 227, 226), CAP-005 (stories 225, 224, 223, 222, 221, 220, 219)
+PR target: durion-positivity-frontend
+Branch: cap/workexec-wave-b-cont (from master @ 441203c)
+
+## Prior State
+
+Wave B initial slice (CAP-002/CAP-003) is COMPLETE. PR #3 merged to master at 441203c. Workexec feature scaffold is live with all estimate and customer approval pages, `WorkexecService` (estimate + approval operations), and `workexec.models.ts`. Existing pages: estimate-create, estimate-detail, estimate-parts, estimate-labor, estimate-revise, estimate-summary, approval-submit, approval-digital, approval-in-person, approval-partial, approval-detail. All approval routes under `/app/workexec/estimates/:estimateId/approval/...`. No workorder-facing pages exist yet. The `/app/workexec` lazy-load is already registered. Design pack: `design/Shop-Workorder/`.
+
+---
+
+Summary: Implement the workorder promotion and execution slice — promotion preconditions + workorder creation (CAP-004, 6 stories) and workorder execution lifecycle (CAP-005, 7 stories) — as PR #4 in durion-positivity-frontend. Establishes `WorkorderDetailPageComponent` as the central hub. ALL operation_ids require contract normalization via OpenAPI inspection. CAP-006 (completion) and CAP-007 (invoicing) deferred to next run.
+
+## Implementation Steps
+
+- [x] Step 1: Read and analyze source materials — PRD-multistage-capability-frontend-build.md, PRD-agent-capability-frontend-execution.md, CAP-004/AGENT_WORKSET.yaml, CAP-005/AGENT_WORKSET.yaml, all 13 frontend story markdown files (CAP_004.231–226, CAP_005.225–219), domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md, domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md, design/DESIGN.md, design/source/theme-tokens.md, design/Shop-Workorder/ design pack (BayDetails.png, ShopFloor.png, WorkorderDashboard.png, DESIGN.md), all 13 wireframes under domains/workexec/.ui/, existing workexec service + routes + models
+
+- [x] Step 2: Designer first-pass intake — Design Brief issued. Architectural Ledger system applied: blueprint-blue gradient header, Electric Teal for primary CTAs only, tonal separation with no dividers, underlined ledger inputs, glassmorphism modals, ledger-style alternating row tables, Public Sans for display/secondary Inter for data, status chips with rounded-sm, role-based guards via @if. Tokens confirmed against design/Shop-Workorder/DESIGN.md and theme-tokens.md. — design brief for workexec workorder hub covering CAP-004 (promotion flow, workorder scaffold, audit trail) and CAP-005 (assign, start, labor, parts, substitutions, change requests, role visibility). Brief must cover: workorder dashboard surface hierarchy using Shop-Workorder design pack (ShopFloor.png / WorkorderDashboard.png as primary), WIP bay card layout, tabbed execution workspace (labor / parts / change-requests tabs), "Promote to Work Order" CTA treatment on estimate-detail, ledger field style for labor and parts entry, role-based conditional rendering approach, tonal separation using blueprint-blue gradients, "Architectural Ledger" style compliance.
+
+- [x] Step 3: Create execution branch cap/workexec-wave-b-cont from master (441203c) in durion-positivity-frontend via durion/.github/hooks/create-branch-hook.sh — PASS branch=cap/workexec-wave-b-cont
+
+- [ ] Step 4: Story 231 (CAP-004) — Validate Promotion Preconditions (action gating on /app/workexec/estimates/:estimateId): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Add "Promote to Work Order" CTA to EstimateDetailPageComponent. Pre-flight validation before calling promotion endpoint: check estimate is in APPROVED state, approved snapshot exists, no duplicate workorder. Display specific precondition failure messages (expired approval, missing approved scope, duplicate promotion). Disable CTA when preconditions fail. Wire `getEstimateById` (status check), `promoteEstimateToWorkorder` (with validation preflight). Contract normalization: inspect OpenAPI for `promoteEstimateToWorkorder` request/response shape and record in runs/latest.md.
+
+- [ ] Step 5: Story 230 (CAP-004) — Create Workorder from Approved Estimate — NEW PAGE WorkorderDetailPageComponent (/app/workexec/workorders/:workorderId): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. CORE STORY — creates `WorkorderDetailPageComponent` as the workorder hub. Scaffold workexec workorder sub-structure: workorders/ pages. Wire `promoteEstimateToWorkorder` (POST, with Idempotency-Key) → navigate to /app/workexec/workorders/:workorderId on success. Implement WorkorderDetailPageComponent: header (workorder ID, status badge, customer/vehicle, assigned tech), tabs placeholder (Labor | Parts | Change Requests), audit summary section. Wire `getWorkorderById`, `getWorkorderDetail`. Register workorders/:workorderId route in workexec.routes.ts. Add WorkorderDto, WorkorderDetailDto to workexec.models.ts.
+
+- [ ] Step 6: Story 229 (CAP-004) — Generate Workorder Items from Estimate Scope (workorder detail page): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Implement workorder items/scope display in WorkorderDetailPageComponent. On load, display line items promoted from estimate (parts + labor). Items are read-only ledger rows showing quantity, description, price. Show original estimate reference. Wire `getWorkorderDetail` (items embedded in response) or separate items fetch from workorder context. Display empty state if no items promoted.
+
+- [ ] Step 7: Story 228 (CAP-004) — Enforce Idempotent Promotion (UI behavior on estimate-detail): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Enhance promotion action: disable "Promote" button after first click, show progress indicator. On response: success → navigate to workorder. 409 conflict (duplicate) → display existing workorder link ("Work order already exists for this estimate: [link]"). Timeout/5xx → show safe-retry guidance ("Action may have succeeded — check your work orders before retrying"). Corrupted link case → admin escalation message. `Idempotency-Key` header on `promoteEstimateToWorkorder`. Wire `getWorkorderById` to resolve existing WO on 409.
+
+- [ ] Step 8: Story 227 (CAP-004) — Handle Partial Approval Promotion (UI behavior on estimate-detail): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Handle partial approval case: display approved scope summary before promotion, show which line items are approved vs declined. Allow promotion with approved-only scope (partial). Display declined items as excluded from workorder. Wire `getEstimateSummary` (approved scope), `promoteEstimateToWorkorder` with partialApproval flag per OpenAPI. Show post-promotion summary of what was and was not included.
+
+- [ ] Step 9: Story 226 (CAP-004) — Record Promotion Audit Trail (inline section in WorkorderDetailPageComponent): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Add read-only promotion audit section to WorkorderDetailPageComponent: promoted-from estimate link, promoting user, timestamp, snapshot reference, any partial exclusions. Wire `getTransitionHistory` (workorder transitions log). Display as collapsible ledger section. No separate page — inline in detail.
+
+- [ ] Step 10: Story 225 (CAP-005) — Assign Technician to Workorder (/app/workexec/workorders/:workorderId/assign): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Implement WorkorderAssignPageComponent. Technician picker with search/filter. Current assignment display. Reassignment flow with reason capture. Navigate back to workorder detail on success. Wire `assignTechnician`, `reassignTechnician`, `getTechnicianAssignment`. Contract normalization: confirm assign endpoint shape in OpenAPI. Register route workorders/:workorderId/assign.
+
+- [ ] Step 11: Story 224 (CAP-005) — Start Workorder and Track Status (WorkorderDetailPageComponent status transitions): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Add status transition CTAs to WorkorderDetailPageComponent header: "Start Work" (PENDING→IN_PROGRESS), status badge updates. Disable transitions for unauthorized states. Show in-progress indicator while status call is pending. Wire `startWork`, `startWorkSession`. Display current status badge prominently with color treatment per design tokens. Contract normalization: confirm startWork/startWorkSession paths in OpenAPI.
+
+- [ ] Step 12: Story 223 (CAP-005) — Record Labor Performed (/app/workexec/workorders/:workorderId/labor): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Implement WorkorderLaborPageComponent. Labor session: start/stop session timer (startLaborSession/stopLaborSession), record completed labor entries (createLaborPerformed). Display labor history ledger (getLaborHistory). Manual time entry with service code and description. Flat-rate vs time-based mode. Wire `startLaborSession`, `stopLaborSession`, `createLaborPerformed`, `getLaborHistory`, `adjustLaborHours`. Register route workorders/:workorderId/labor. Contract normalization: confirm labor paths.
+
+- [ ] Step 13: Story 222 (CAP-005) — Issue and Consume Parts (/app/workexec/workorders/:workorderId/parts): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Implement WorkorderPartsPageComponent. Display workorder parts list from workorder detail. Issue parts from stock (issueParts), consume parts (consumeParts), return unused (returnParts/returnUnusedQuantity). Quantity validation. Usage history (getUsageHistory). Wire `issueParts`, `consumeParts`, `returnParts`, `returnUnusedQuantity`, `correctPartQuantity`, `getUsageHistory`. Register route workorders/:workorderId/parts. Contract normalization: confirm parts paths.
+
+- [ ] Step 14: Story 221 (CAP-005) — Handle Part Substitutions and Returns (within WorkorderPartsPageComponent): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Add substitution flow to WorkorderPartsPageComponent: "Suggest Substitutes" button (suggestSubstitutes) → substitution picker → confirm substitution (substitutePart) with reason capture. Display original vs substituted part. Wire `substitutePart`, `suggestSubstitutes`. No separate page — integrated as modal/panel in parts page.
+
+- [ ] Step 15: Story 220 (CAP-005) — Request Additional Work and Flag for Approval (/app/workexec/workorders/:workorderId/change-requests): RED → anvil → HTML Specialist → TypeScript Specialist → integrate → Designer sign-off → Code Review. Implement WorkorderChangeRequestsPageComponent. Create change request form (description, new items, labor). Change request list with status badges. Approve/decline actions for authorized roles. Wire `createChangeRequest`, `approveChangeRequest`, `declineChangeRequest`, `getChangeRequestsByWorkorder`, `getChangeRequestById`. Register routes workorders/:workorderId/change-requests. Contract normalization: confirm change-request paths.
+
+- [ ] Step 16: Story 219 (CAP-005) — Apply Role-Based Visibility (cross-cutting on WorkorderDetailPageComponent and sub-pages): RED → anvil → TypeScript Specialist → integrate → Designer sign-off → Code Review. NOTE: No separate page — cross-cutting implementation. Add `UserRoleService` or leverage existing auth service to gate sections. Hide cost/margin fields from non-authorized roles. Hide "Assign Technician" from non-managers. Hide "Approve Change Request" from technicians. Use `*ngIf`/`@if` guards based on role claims from auth context. Wire `getOperationalContext` to resolve role-based UI flags from backend if present. Document role mapping in component comments.
+
+- [ ] Step 17: Designer final sign-off on full Wave B continuation integration. Designer must review all 13 implemented stories against design/DESIGN.md, design/Shop-Workorder/ pack, and theme-tokens.md. Must return Design Verdict: PASS before proceeding to verification.
+
+- [ ] Step 18: Verification gates:
+    - `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build`
+    - `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false`
+    - Both must pass. Any failures must be documented in run artifacts with remediation notes before PR creation.
+
+- [ ] Step 19: Update capability run artifacts — create or overwrite:
+    - `/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/runs/latest.md`
+    - `/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/runs/latest.md`
+    Each artifact must include: capability id, domain, stories processed, files changed, operation_ids implemented, validation commands executed, status (done/partial/blocked), blockers, assumptions, and contract normalization findings for empty operation_ids.
+
+- [ ] Final Step: Create PR in durion-positivity-frontend by invoking durion/.github/hooks/pull-request-hook.sh with completed stories 231, 230, 229, 228, 227, 226, 225, 224, 223, 222, 221, 220, 219 and validation evidence from Step 18 and run artifacts from Step 19.
+
+## Domain Ownership Map
+
+| Angular Domain | Capability | Story | Title | Route / Placement |
+|---|---|---|---|---|
+| `workexec` | CAP-004 | 231 | Validate Promotion Preconditions | /app/workexec/estimates/:estimateId (action gate) |
+| `workexec` | CAP-004 | 230 | Create Workorder from Approved Estimate | /app/workexec/workorders/:workorderId (NEW WorkorderDetailPageComponent) |
+| `workexec` | CAP-004 | 229 | Generate Workorder Items from Estimate | /app/workexec/workorders/:workorderId (items section) |
+| `workexec` | CAP-004 | 228 | Enforce Idempotent Promotion | /app/workexec/estimates/:estimateId (UI behavior) |
+| `workexec` | CAP-004 | 227 | Handle Partial Approval Promotion | /app/workexec/estimates/:estimateId (scope display) |
+| `workexec` | CAP-004 | 226 | Record Promotion Audit Trail | /app/workexec/workorders/:workorderId (audit section) |
+| `workexec` | CAP-005 | 225 | Assign Technician to Workorder | /app/workexec/workorders/:workorderId/assign |
+| `workexec` | CAP-005 | 224 | Start Workorder and Track Status | /app/workexec/workorders/:workorderId (status CTAs) |
+| `workexec` | CAP-005 | 223 | Record Labor Performed | /app/workexec/workorders/:workorderId/labor |
+| `workexec` | CAP-005 | 222 | Issue and Consume Parts | /app/workexec/workorders/:workorderId/parts |
+| `workexec` | CAP-005 | 221 | Handle Part Substitutions | /app/workexec/workorders/:workorderId/parts (modal) |
+| `workexec` | CAP-005 | 220 | Request Additional Work | /app/workexec/workorders/:workorderId/change-requests |
+| `workexec` | CAP-005 | 219 | Apply Role-Based Visibility | cross-cutting on workorder-detail + sub-pages |
+
+## Verification Commands
+
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build`
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false`
+
+## Edge Cases
+
+- ALL 13 stories have empty or minimal operation_ids. Contract normalization (OpenAPI inspection) is mandatory for Steps 4–16 and must be recorded in run artifacts.
+- Story 231 (precondition validation) and story 228 (idempotency) and story 227 (partial approval) all modify EstimateDetailPageComponent — do not conflict with existing CAP-002 approval flow logic already in estimate-detail.
+- Story 230 creates the WorkorderDetailPageComponent which is the scaffold for stories 229, 226, 224, 219 — must be implemented first in story order.
+- Story 219 (role-based visibility) has no page component of its own — must be implemented as conditional rendering guards across workorder-detail and sub-pages. Requires a consistent role-checking pattern.
+- Story 221 (substitutions) is co-located in WorkorderPartsPageComponent — no separate route. Implement as modal/slide-out panel.
+- `npm test -- --watch=false` flag required; omitting `--watch=false` will hang CI.
+- Workorder routes use `/app/workexec/workorders/:workorderId/...` — distinct path segment from existing `/app/workexec/estimates/:estimateId/...` routes. No route conflicts expected.
+
+## Open Questions
+
+- `promoteEstimateToWorkorder`: does it return the new workorderId directly or require a follow-up `getWorkorderById` poll? Inspect OpenAPI response shape during Step 4.
+- Story 224 `startWork` vs `startWorkSession`: are these different operations or the same? Inspect OpenAPI during Step 11.
+- Story 219 role-based visibility: does the backend return role/permission flags via `getOperationalContext` or should frontend use JWT claims only? Inspect during Step 16.
+- Story 220 change requests: is approve/decline action on the change request endpoint or via `patchEstimateStatus`-equivalent for workorders? Inspect OpenAPI during Step 15.
+
+## Deferred
+
+- CAP-006: Workorder Completion (stories 218, 217, 216, 215, 214) — deferred to next run
+- CAP-007: Workorder Invoicing (stories 213, 212, 211, 210, 209; 3 missing wireframes) — deferred to next run
 
 Orchestration run started: 2026-03-27T00:00:00Z
 Execution slice: Workexec Domain Wave B — CAP-002 (stories 239, 238, 237, 236, 235, 234), CAP-003 (stories 233, 271, 270, 269, 268)
@@ -55,7 +167,7 @@ Summary: Implement the foundational workexec domain frontend slice — estimate 
     - `/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/runs/latest.md`
     Each artifact must include: capability id, domain, stories processed, files changed, operation_ids implemented, validation commands executed, status (done/partial/blocked), blockers, assumptions, and follow-ups (especially contract normalization findings for stories 271/269/268).
 
-- [ ] Final Step: Create PR in durion-positivity-frontend by invoking durion/.github/hooks/pull-request-hook.sh with completed stories 239, 238, 237, 236, 235, 234, 233, 271, 270, 269, 268 and validation evidence from Step 16 and run artifacts from Step 17.
+- [x] Final Step: Create PR in durion-positivity-frontend by invoking durion/.github/hooks/pull-request-hook.sh with completed stories 239, 238, 237, 236, 235, 234, 233, 271, 270, 269, 268 and validation evidence from Step 16 and run artifacts from Step 17. → PR #3 created and merged to master (441203c). https://github.com/louisburroughs/durion-positivity-frontend/pull/3
 
 ## Domain Ownership Map
 
