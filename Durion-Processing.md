@@ -9,7 +9,7 @@ NOTE: gh CLI not authenticated in this environment — PR must be opened manuall
 
 ---
 
-Summary: Wave A CRM domain implementation. Creates the CRM Angular domain feature (src/app/features/crm/) with party creation, contacts, and vehicle sub-domains. Scaffolds all other domain folder stubs. Registers CRM routes under /app. Implements stories from CAP-089, CAP-090, CAP-091 (executable subset), and marks CAP-092 normalize-first. Updates capability run artifacts.
+Summary: Wave A CRM domain implementation. Creates the CRM Angular domain feature (src/app/features/crm/) with party creation, contacts, and vehicle sub-domains. Scaffolds all other domain folder stubs. Registers CRM routes under /app. Implements stories from CAP-089, CAP-090, CAP-091 (executable subset), and records CAP-092 as blocked pending implementation/cross-domain ownership after metadata normalization. Updates capability run artifacts.
 
 ## Prior State
 
@@ -30,11 +30,11 @@ Summary: Wave A CRM domain implementation. Creates the CRM Angular domain featur
 
 - [x] Step 5: CAP-089 (Party Creation — Commercial + Individual) — implement Create Commercial Account page and Create Individual Person page in src/app/features/crm/pages/. Wire createCommercialAccount and getParty operation_ids to CRM service adapter. Acceptance criteria from stories 176 and 175. RED → GREEN with Frontend Testing Agent. anvil cards → HTML Specialist + TypeScript Specialist. Designer sign-off. Code review.
 
-- [x] Step 6: CAP-090 (Contacts) — implement Contact Roles maintenance page and Communication Preferences page. Wire getContactsWithRoles, updateContactRoles, getCommunicationPreferences, upsertCommunicationPreferences. Story 172 and 171. Story 170 (no operation_ids): implement UI structure, mark contract-review-required in run artifact. RED → GREEN. Designer sign-off. Code review.
+- [x] Step 6: CAP-090 (Contacts) — implement Contact Roles maintenance page and Communication Preferences page. Wire getContactsWithRoles, updateContactRoles, getCommunicationPreferences, upsertCommunicationPreferences. Story 172 and 171. Story 170 operation_ids normalized (`getPerson`, `createPerson`) with documented contract gap for explicit contact-point update/delete operations; UI structure implemented and marked contract-review-required in run artifact. RED → GREEN. Designer sign-off. Code review.
 
 - [x] Step 7: CAP-091 (Vehicles) — implement Create Vehicle Record page (story 169, createVehicleForParty). Stories 168, 167, 166, 165 have no operation_ids — implement UI shells, mark contract-review-required. RED → GREEN. Designer sign-off. Code review.
 
-- [x] Step 8: CAP-092 triage — Story 162 and 163 have no wireframes or operation_ids; story 164 has no wireframe. Record all 4 stories as normalize-first in run artifact. Create placeholder route stubs in crm.routes.ts.
+- [x] Step 8: CAP-092 triage — normalize workset/manifest metadata and map OpenAPI operation_ids. Wireframes confirmed for 162/163 and linked for 164; operation_ids defined for 162/163/164. Keep implementation blocked pending cross-domain ownership and frontend execution.
 
 - [x] Step 9: Designer final sign-off on complete CRM domain integration. Must return Design Verdict: PASS before proceeding.
 
@@ -70,7 +70,7 @@ Summary: Wave A CRM domain implementation. Creates the CRM Angular domain featur
 
 ## Edge Cases
 
-- CAP-092 stories with no wireframes: record as normalize-first in run artifact; create stub route/component placeholders.
+- CAP-092 metadata normalized (wireframes and operation_ids present), but execution remains blocked pending cross-domain ownership and implementation.
 - CAP-091 stories with no operation_ids: implement UI shell, mark contract-review-required.
 - CRM OpenAPI operation_ids not matching workset entries: document mismatch, use most recent OpenAPI as source-of-truth.
 - Design "no-line rule": all container separation via tonal background shifts, no 1px borders in any new component.

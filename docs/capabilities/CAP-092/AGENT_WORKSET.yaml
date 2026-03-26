@@ -6,7 +6,7 @@ stories:
   frontend_issue: 164
   frontend_story_md: docs/capabilities/CAP-092/stories/frontend/CAP_092.164.frontend.md
   backend_issue: 100
-  wireframe: ''
+  wireframe: domains/accounting/.ui/frontend-story-billing-define-account-billing-rule-164.wf.md
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
