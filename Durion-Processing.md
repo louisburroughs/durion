@@ -1,4 +1,4 @@
-## Completion Status: IN_PROGRESS
+## Completion Status: COMPLETE
 
 Orchestration run started: 2026-03-26T03:00:00Z
 Execution slice: CRM Domain Wave A Completion — CAP-089 (stories 173, 174), CAP-092 (stories 163, 164)
@@ -41,7 +41,7 @@ Summary: Complete the four incomplete Wave A CRM stories deferred in PR #1. Stor
 
 - [x] Step 10: Update capability run artifacts (CAP-089/runs/latest.md and CAP-092/runs/latest.md).
 
-- [ ] Final Step: Create PR in durion-positivity-frontend by invoking durion/.github/hooks/pull-request-hook.sh --repo /home/n541342/IdeaProjects/durion-positivity-frontend --story CAP-089-092-wave-a-completion --base master --head cap/crm-wave-a-completion --title "feat(crm): complete Wave A CRM stories — party contacts, merge, snapshot, billing rules (CAP-089, CAP-092)"
+- [x] Final Step: Create PR in durion-positivity-frontend by invoking durion/.github/hooks/pull-request-hook.sh — PR #2 created at https://github.com/louisburroughs/durion-positivity-frontend/pull/2 (2026-03-26T19:42:08Z)
 
 ## Domain Ownership Map
 
