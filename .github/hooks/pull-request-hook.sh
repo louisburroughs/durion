@@ -5,11 +5,11 @@ set -euo pipefail
 #
 # Purpose:
 # - Create pull request for the prepared branch.
-# - Launch OpenAPI generation after PR creation.
+# - Optionally launch a post-create background task after PR creation.
 #
 # Usage:
 #   ./.github/hooks/pull-request-hook.sh \
-#     --repo /abs/path/to/durion-positivity-backend \
+#     --repo /abs/path/to/durion-positivity-frontend \
 #     --story CAP-123 \
 #     --base main \
 #     --head chore/cap-123 \
@@ -17,8 +17,10 @@ set -euo pipefail
 #     --body-file /abs/path/to/pr-body.md
 #
 # Notes:
-# - This hook does not commit or push.
-# - It creates the PR with `gh`, launches OpenAPI generation, and emits deterministic orchestration evidence.
+# - This hook does not commit.
+# - It will push the head branch to the remote if needed for non-interactive PR creation.
+# - It creates the PR with `gh`, optionally launches a post-create background task,
+#   and emits deterministic orchestration evidence.
 
 repo_path=""
 story=""
@@ -28,6 +30,9 @@ pr_title=""
 pr_body_file=""
 pr_body=""
 is_draft="false"
+remote_name="origin"
+post_create_cmd=""
+post_create_label=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -62,6 +67,18 @@ while [[ $# -gt 0 ]]; do
     --draft)
       is_draft="true"
       shift
+      ;;
+    --remote)
+      remote_name="$2"
+      shift 2
+      ;;
+    --post-create-cmd)
+      post_create_cmd="$2"
+      shift 2
+      ;;
+    --post-create-label)
+      post_create_label="$2"
+      shift 2
       ;;
     *)
       echo "Unknown argument: $1" >&2
@@ -104,12 +121,22 @@ if ! git rev-parse --verify "$head_branch" >/dev/null 2>&1; then
   exit 2
 fi
 
+if ! git remote get-url "$remote_name" >/dev/null 2>&1; then
+  echo "Remote not found: $remote_name" >&2
+  popd >/dev/null
+  exit 2
+fi
+
 if [[ -n "$pr_body_file" ]]; then
   if [[ ! -f "$pr_body_file" ]]; then
     echo "PR body file not found: $pr_body_file" >&2
     popd >/dev/null
     exit 2
   fi
+fi
+
+if ! git ls-remote --exit-code --heads "$remote_name" "$head_branch" >/dev/null 2>&1; then
+  git push --set-upstream "$remote_name" "$head_branch" >/dev/null
 fi
 
 existing_pr_url="$(gh pr list --head "$head_branch" --state open --json url --jq '.[0].url' 2>/dev/null || true)"
@@ -133,27 +160,42 @@ fi
 
 pr_number="$(gh pr view "$pr_url" --json number --jq '.number')"
 
-openapi_script="$repo_path/scripts/generate-openapi.sh"
-if [[ ! -f "$openapi_script" ]]; then
-  echo "OpenAPI script not found: $openapi_script" >&2
-  popd >/dev/null
-  exit 2
-fi
-
-if [[ ! -x "$openapi_script" ]]; then
-  chmod +x "$openapi_script"
-fi
-
 hook_timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 echo "Pull-request hook PASS | story=${story} | pr=#${pr_number} | url=${pr_url} | ts=${hook_timestamp}"
 
-openapi_log="$repo_path/logs/openapi-generate-${story}-${pr_number}.log"
-mkdir -p "$repo_path/logs"
+if [[ -z "$post_create_cmd" ]]; then
+  default_post_create_script="$repo_path/scripts/generate-openapi.sh"
+  if [[ -f "$default_post_create_script" ]]; then
+    if [[ ! -x "$default_post_create_script" ]]; then
+      chmod +x "$default_post_create_script"
+    fi
+    post_create_cmd="$default_post_create_script"
+    post_create_label="OpenAPI generation"
+  fi
+fi
 
-nohup "$openapi_script" >"$openapi_log" 2>&1 &
-openapi_pid="$!"
+if [[ -n "$post_create_cmd" ]]; then
+  if [[ -z "$post_create_label" ]]; then
+    post_create_label="Post-create task"
+  fi
 
-echo "OpenAPI generation launched | pid=${openapi_pid} | log=${openapi_log}"
+  post_create_slug="$(
+    printf '%s' "$post_create_label" \
+      | tr '[:upper:]' '[:lower:]' \
+      | sed 's/[^a-z0-9]/-/g; s/--*/-/g; s/^-//; s/-$//'
+  )"
+  [[ -z "$post_create_slug" ]] && post_create_slug="post-create"
+
+  post_create_log="$repo_path/logs/${post_create_slug}-${story}-${pr_number}.log"
+  mkdir -p "$repo_path/logs"
+
+  nohup bash -lc "cd \"$repo_path\" && $post_create_cmd" >"$post_create_log" 2>&1 &
+  post_create_pid="$!"
+
+  echo "${post_create_label} launched | pid=${post_create_pid} | log=${post_create_log}"
+else
+  echo "Post-create step skipped | reason=no configured command"
+fi
 
 popd >/dev/null
