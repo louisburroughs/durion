@@ -33,5 +33,7 @@ stories:
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
   operation_ids:
+  - getPerson
+  - createPerson
   - getContactsWithRoles
   - getContacts

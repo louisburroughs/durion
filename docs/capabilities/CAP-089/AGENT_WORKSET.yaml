@@ -33,6 +33,7 @@ stories:
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
   operation_ids:
+  - getContactsWithRoles
   - createRelationship
   - designatePrimaryBillingContact
   - deactivateRelationship
