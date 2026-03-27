@@ -1,14 +1,14 @@
 capability_id: CAP:275
-domain: ''
+domain: ""
 manifest: docs/capabilities/CAP-275/CAPABILITY_MANIFEST.yaml
 stories:
-- parent_issue: null
-  frontend_issue: 280
-  frontend_story_md: docs/capabilities/CAP-275/stories/frontend/CAP_275.280.frontend.md
-  backend_issue: 417
-  wireframe: domains/security/.ui/frontend-story-security-login-token-handling-280.wf.md
-  contract_guide: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
-  sdk_package: ''
-  openapi_spec: durion-positivity-backend/pos-security-service/openapi.yaml
-  operation_ids:
-  - enable
+  - parent_issue: null
+    frontend_issue: 280
+    frontend_story_md: docs/capabilities/CAP-275/stories/frontend/CAP_275.280.frontend.md
+    backend_issue: 417
+    wireframe: domains/security/.ui/frontend-story-security-login-token-handling-280.wf.md
+    contract_guide: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    sdk_package: ""
+    openapi_spec: durion-positivity-backend/pos-security-service/openapi.yaml
+    operation_ids:
+      - enable

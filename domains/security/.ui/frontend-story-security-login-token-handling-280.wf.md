@@ -78,6 +78,7 @@ Submit credentials   ──────►  login()      ──────►  
 | Other | "Login failed (status). Please try again." |
 
 **Design tokens:**
+
 - Card: `--brand-surface` on `--brand-background`; `mic-elevation-3` shadow
 - Brand logo: `D` glyph in `--brand-primary` circle, `display-sm` headline
 - CTA: gradient `--brand-primary` → `--brand-primary-soft` 135°, sm border-radius
@@ -215,6 +216,7 @@ the Angular service should map both the enable and disable actions to that singl
 Inspect `pos-security-service/openapi.yaml` to confirm the exact path and payload before implementation.
 
 **Design tokens:**
+
 - Status indicator: `--functional-success` for enabled dot; `--durion-graphite-400` for disabled ring
 - Config table: `surface-container-lowest` background; `body-md` Inter font; no dividers (spacing-4 separation)
 - "Confirm Disable" button: `--functional-error-red` gradient (destructive CTA variant)
