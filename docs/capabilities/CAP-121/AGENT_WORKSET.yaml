@@ -1,4 +1,37 @@
 capability_id: CAP:121
-domain: ''
+domain: people
 manifest: docs/capabilities/CAP-121/CAPABILITY_MANIFEST.yaml
-stories: []
+stories:
+- parent_issue: 121
+  frontend_issue: 144
+  frontend_story_md: docs/capabilities/CAP-121/stories/frontend/CAP_121.144.frontend.md
+  backend_issue: 80
+  wireframe: domains/people/.ui/frontend-story-integration-attendance-vs-job-time-144.wf.md
+  contract_guide: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-people/openapi.yaml
+  operation_ids:
+  - getAttendanceDiscrepancyReport
+- parent_issue: 121
+  frontend_issue: 145
+  frontend_story_md: docs/capabilities/CAP-121/stories/frontend/CAP_121.145.frontend.md
+  backend_issue: 81
+  wireframe: domains/people/.ui/frontend-story-integration-submit-job-time-to-work-145.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - createLaborPerformed
+- parent_issue: 121
+  frontend_issue: 146
+  frontend_story_md: docs/capabilities/CAP-121/stories/frontend/CAP_121.146.frontend.md
+  backend_issue: 82
+  wireframe: domains/people/.ui/frontend-story-integration-start-stop-timer-agains-146.wf.md
+  contract_guide: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-workorder/openapi.yaml
+  operation_ids:
+  - getActiveTimerEntries
+  - startTimer
+  - stopTimers
+# Note: CAP_121.82 is order-domain and tracked in CAP-246 (canonical story: CAP_246.83.frontend.md).

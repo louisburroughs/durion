@@ -1,4 +1,25 @@
 capability_id: CAP:215
-domain: ''
+domain: inventory
 manifest: docs/capabilities/CAP-215/CAPABILITY_MANIFEST.yaml
-stories: []
+stories:
+- parent_issue: 215
+  frontend_issue: 100
+  frontend_story_md: docs/capabilities/CAP-215/stories/frontend/CAP_215.100.frontend.md
+  backend_issue: 36
+  wireframe: domains/inventory/.ui/frontend-story-ledger-compute-on-hand-and-availabl-100.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - queryAvailabilityBySku
+  - queryInventoryAvailability
+- parent_issue: 215
+  frontend_issue: 101
+  frontend_story_md: docs/capabilities/CAP-215/stories/frontend/CAP_215.101.frontend.md
+  backend_issue: 37
+  wireframe: domains/inventory/.ui/frontend-story-ledger-record-stock-movements-in-in-101.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - getLocationInventory
