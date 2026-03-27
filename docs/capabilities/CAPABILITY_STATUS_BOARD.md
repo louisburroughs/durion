@@ -32,7 +32,7 @@ Legend for **Status** column:
 | 🟢 READY | 1 (CAP-118) |
 | 🟡 NORMALIZE | 1 (CAP-094; operation_id gap on story #156) |
 | 🔴 BLOCKED | 1 (CAP-053; no wireframe; design fallback required) |
-| ⬜ BACKLOG | 1 capability with no frontend stories |
+| ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
 
 **Total in portfolio: 58 capabilities**
 
@@ -132,7 +132,7 @@ Implementation is complete and merged, but the wireframe artifact gap should be 
 
 ## Backlog — No Frontend Stories Authored
 
-These capabilities have empty `AGENT_WORKSET.yaml` story lists. Frontend work **cannot begin** until stories are elaborated and worksets populated.
+These frontend-scoped capabilities have empty `AGENT_WORKSET.yaml` story lists. Frontend work **cannot begin** until stories are elaborated and worksets populated.
 
 ### `people` / HR Domain
 
@@ -162,7 +162,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 | CAP | Name | Notes |
 | --- | --- | --- |
-| CAP-278 | Accounting — TBD | Backend-only likely; empty workset |
+| CAP-278 | Accounting — Posting Rule Engine | Backend-only capability; excluded from frontend backlog |
 
 ### `crm` Deferred
 
@@ -225,7 +225,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 **Targets (in priority order):**
 
 1. Execute CAP-136, CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
-2. Elaborate remaining backlog capability: CAP-278
+2. No remaining frontend story-elaboration backlog.
 
 ### Wave G — People / HR + Location
 
@@ -235,8 +235,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 ## Story Elaboration Backlog Priority
 
-These are the highest-impact capabilities to story-elaborate next:
+No frontend capabilities currently require story elaboration.
 
-| Priority | CAP | Domain | Why |
-| --- | --- | --- | --- |
-| 1 | CAP-278 | `accounting` | Posting engine follow-up has no frontend story markdown in workset yet |
+Backend-only note:
+CAP-278 remains intentionally backend-only for the current frontend program scope.
