@@ -9,10 +9,13 @@ Use this runbook to coordinate PR review and remediation.
 ## Inputs
 - `REPO`: `<owner/repo>` (required)
 - `PR`: `<number or URL>` (optional; discover if missing - look in CAPABILITY_MANIFEST.yaml)
+- `REVIEW_TRACK`: `auto|backend|frontend` (default `auto`; infer from changed files/repo when `auto`)
 - `ADR_ROOT`: `durion/docs/adr` (default)
 - `CONTRACT_GUIDE_PATH`: `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` (behavior source)
 - `API_REFERENCE_PATH`: `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md` (schema reference)
 - `OPENAPI_PATH`: `durion-positivity-backend/pos-<module>/openapi.yaml` (authoritative schema source)
+- `FRONTEND_POLICY_PATHS`: optional list for frontend PRs (examples: `durion-positivity-frontend/AGENTS.md`, `.github/instructions/html-css-style-color-guide.instructions.md`, `.github/instructions/typescript-5-es2022.instructions.md`)
+- `FRONTEND_REQUIREMENTS_PATHS`: optional list of product/design requirements for frontend behavior and UX acceptance
 - `PROCESSING_FILE`: `PR-Review-Processing.md` (required run log file)
 - `PLANNER_AGENT`: `PR Review Planner` (recommended)
 - `REVIEWER_AGENT`: `PR Reviewer` (recommended)
@@ -31,9 +34,12 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
    - PR metadata, changed files, commits
    - PR comments and review comments (required), including unresolved thread IDs
    - linked issues and acceptance criteria
-   - ADRs relevant to changed modules
-   - contract behavior guidance from `BACKEND_CONTRACT_GUIDE.md`
-   - API/schema detail from OpenAPI and `BACKEND_API_REFERENCE.generated.md`
+   - ADRs relevant to changed modules (if applicable)
+   - backend PRs: contract behavior guidance from `BACKEND_CONTRACT_GUIDE.md`
+   - backend PRs: API/schema detail from OpenAPI and `BACKEND_API_REFERENCE.generated.md`
+   - frontend PRs: UI requirements/design acceptance criteria from linked issues/docs
+   - frontend PRs: accessibility, responsive behavior, and user-flow impact expectations
+   - frontend PRs: policy guidance from `FRONTEND_POLICY_PATHS` when provided
    - current test status (failing/passing signals)
 3. Delegate plan creation to `PLANNER_AGENT`.
    - Require planner to write `## Plan` to `PROCESSING_FILE`.
@@ -46,7 +52,7 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
    - `CODER_AGENT` -> `TEST_AGENT` -> `CODE_REVIEW_AGENT`
    - `CODE_REVIEW_AGENT` must return `Verdict: PASS | FAIL`, findings, and recommended split
    - after each subagent run, call `PLANNER_AGENT` with `mode: append_output` so planner writes UTC timestamp, delegated objective, output, and validation result to `PROCESSING_FILE`
-   - verify coding standards checklist in coder handoff
+   - verify coding standards checklist in coder handoff (track-specific backend/frontend checks)
    - verify direct replies were posted for each targeted `comment_ref`
    - if `CODE_REVIEW_AGENT` returns `PASS`, exit loop
    - if `CODE_REVIEW_AGENT` returns `FAIL`, split findings and start next cycle

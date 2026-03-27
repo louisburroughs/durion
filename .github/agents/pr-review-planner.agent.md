@@ -52,6 +52,8 @@ Support these invocation modes from orchestrator:
    - linked issues,
    - relevant ADRs,
    - current test signals.
+  - include effective review track (`backend|frontend|mixed`) inferred from repo + changed files.
+  - for frontend track: include UX requirements, accessibility expectations, responsive behavior scope, and frontend policy docs when provided.
 2. Include explicit review step against issues + ADRs + tests.
 3. Include separate remediation steps:
    - code fixes,
