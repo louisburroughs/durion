@@ -6,7 +6,7 @@ stories:
   frontend_issue: 280
   frontend_story_md: docs/capabilities/CAP-275/stories/frontend/CAP_275.280.frontend.md
   backend_issue: 417
-  wireframe: ''
+  wireframe: domains/security/.ui/frontend-story-security-login-token-handling-280.wf.md
   contract_guide: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-security-service/openapi.yaml
