@@ -8,10 +8,10 @@ Use this run record with:
 ## 1. Run Metadata
 
 - Capability: CAP-055
-- Run Timestamp (UTC): 2026-03-17T16:47:57Z
-- Agent/Operator: <name>
-- Branch(es): <branch names>
-- Status: in-progress | completed | blocked
+- Run Timestamp (UTC): 2025-03-27T09:30:00Z
+- Agent/Operator: automation
+- Branch(es): cap/accounting-wave-d
+- Status: completed
 
 ## 2. Inputs Used
 
@@ -23,17 +23,15 @@ Use this run record with:
 
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
-| <story title> | <#> | <#> | done/blocked/partial | <short note> |
+| Reconciliation, Audit, and Controls | 55 | 186 | done | - |
 
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
-- <path/to/file1>
-- <path/to/file2>
+- src/app/features/accounting/pages/ingestion-monitor/ (failed/quarantined routing + retry)
 
 ### Behavior Implemented
-- <story behavior 1>
-- <story behavior 2>
+- Failed/quarantined event monitoring: list and detail views for suspended events with reprocess/retry controls.
 
 ## 5. API Wiring Evidence
 
