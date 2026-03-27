@@ -30,9 +30,12 @@ You fix test defects and missing test coverage.
 4. If tests expose a production defect, return it to coder with evidence.
 5. Map all changes back to finding IDs.
 6. For each assigned PR comment thread (`comment_ref`), post a direct reply describing what test was fixed/added and why.
+7. For frontend PRs, prefer coverage across component behavior, integration/user-flow behavior, and accessibility expectations where practical.
+8. For frontend PRs, include viewport or interaction-state coverage when regressions are tied to responsive/layout/state transitions.
 
 ## Required Handoff
 - Finding IDs addressed
+- Review track (`backend|frontend|mixed`)
 - Test files changed
 - Test commands run
 - Before/after failure status

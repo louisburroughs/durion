@@ -35,7 +35,9 @@ Operate as the final step of each remediation cycle after coder and test-fixer r
 - GitHub issue id(s) and acceptance criteria.
 - Changed files and commit context.
 - Relevant ADR files (`docs/adr/README.md` + applicable ADRs).
-- Repository-level coding policy files when present (for backend reviews: `durion-positivity-backend/AGENTS.md`).
+- Repository-level coding policy files when present:
+  - backend reviews: `durion-positivity-backend/AGENTS.md`
+  - frontend reviews: `durion-positivity-frontend/AGENTS.md` and provided frontend policy docs
 - PR comment/review threads, including unresolved thread IDs and referenced `comment_ref` values.
 - Prior cycle findings and assigned finding IDs.
 
@@ -49,6 +51,7 @@ Operate as the final step of each remediation cycle after coder and test-fixer r
 7. Verify code comments and JavaDoc/doc comments are accurate for current behavior and not stale/misleading.
 8. Verify test adequacy for changed behavior (including negative paths/regression risks).
 9. Classify findings by severity and identify blockers.
+10. For frontend changes, verify accessibility, responsive behavior, and critical user-flow stability.
 
 ## Rules
 1. Treat issue acceptance criteria as contract requirements.
@@ -59,6 +62,7 @@ Operate as the final step of each remediation cycle after coder and test-fixer r
 6. Do not propose or apply direct code rewrites; provide correction intent only.
 7. Do not return `PASS` with unresolved high-severity functional/ADR/policy violations.
 8. Include `comment_ref` when a finding maps to an existing PR thread.
+9. For frontend findings, map gaps to concrete interaction/UI states (loading/empty/error/success where relevant).
 
 ## Required Output
 ```markdown
@@ -75,6 +79,7 @@ Findings:
    - file: <path:line or N/A>
    - issue_ref: <#id or None>
    - adr_ref: <ADR-id or None>
+   - review_track: <backend|frontend|mixed>
    - comment_ref: <PR comment/thread id or None>
    - test_impact: <what should be tested/fixed>
    - impact: <functional/regression/compliance risk>
