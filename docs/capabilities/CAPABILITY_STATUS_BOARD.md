@@ -32,7 +32,7 @@ Legend for **Status** column:
 | 🟢 READY | 1 (CAP-118) |
 | 🟡 NORMALIZE | 1 (CAP-094; operation_id gap on story #156) |
 | 🔴 BLOCKED | 1 (CAP-053; no wireframe; design fallback required) |
-| ⬜ BACKLOG | 6 capabilities with no frontend stories |
+| ⬜ BACKLOG | 1 capability with no frontend stories |
 
 **Total in portfolio: 58 capabilities**
 
@@ -162,22 +162,15 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 | CAP | Name | Notes |
 | --- | --- | --- |
-| CAP-250 | Billing — TBD | Empty workset |
-| CAP-251 | Billing / accounting additional | Empty workset |
 | CAP-278 | Accounting — TBD | Backend-only likely; empty workset |
-| CAP-248 | Billing / shop / workexec integration | Empty workset |
 
 ### `crm` Deferred
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-252 | CRM — TBD | Empty workset |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
 ### `security` (aside from CAP-275)
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-172 | Security — TBD | Empty workset |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
 ---
 
@@ -232,7 +225,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 **Targets (in priority order):**
 
 1. Execute CAP-136, CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
-2. Elaborate remaining backlog capabilities: CAP-250, CAP-251, CAP-248, CAP-172, CAP-252, CAP-278
+2. Elaborate remaining backlog capability: CAP-278
 
 ### Wave G — People / HR + Location
 
@@ -246,8 +239,4 @@ These are the highest-impact capabilities to story-elaborate next:
 
 | Priority | CAP | Domain | Why |
 | --- | --- | --- | --- |
-| 1 | CAP-250 | `billing` | Billing follow-up capabilities remain unscoped in frontend |
-| 2 | CAP-251 | `billing` | Additional billing/accounting flows are still unelaborated |
-| 3 | CAP-248 | `billing` / `shop` / `workexec` | Cross-domain billing integration remains unelaborated |
-| 4 | CAP-172 | `security` | Security backlog still has no authored frontend stories |
-| 5 | CAP-252 | `crm` | CRM backlog still has no authored frontend stories |
+| 1 | CAP-278 | `accounting` | Posting engine follow-up has no frontend story markdown in workset yet |
