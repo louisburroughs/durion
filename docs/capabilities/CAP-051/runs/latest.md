@@ -1,6 +1,7 @@
 # Capability Run Artifact
 
 Use this run record with:
+
 - Manifest: docs/capabilities/CAP-051/CAPABILITY_MANIFEST.yaml
 - Workset: docs/capabilities/CAP-051/AGENT_WORKSET.yaml
 - PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
@@ -28,9 +29,11 @@ Use this run record with:
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
+
 - src/app/features/accounting/pages/payment-apply/
 
 ### Behavior Implemented
+
 - Payment application UI: select payment, apply to invoices, confirm application and idempotency handling.
 
 ## 5. API Wiring Evidence
@@ -44,12 +47,14 @@ For each story, list operations implemented and where they are wired.
 ## 6. Validation
 
 ### Commands Run
+
 ```bash
 <command 1>
 <command 2>
 ```
 
 ### Results
+
 - Build: pass/fail
 - Tests: pass/fail
 - Lint: pass/fail
@@ -69,6 +74,7 @@ For each story, list operations implemented and where they are wired.
 ## 9. Completion Gate
 
 Mark complete only if all are true:
+
 - [ ] All workset stories processed.
 - [ ] All required operations wired or explicitly blocked with reason.
 - [ ] Acceptance criteria verified against story markdown and wireframe.
