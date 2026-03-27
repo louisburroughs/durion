@@ -141,7 +141,7 @@ Validation: accepted
 ### PR Comment Thread Coverage
 
 | Thread | Finding | Fix | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | r3001130380 | C1 | JSON.parse try-catch | Replied ✓ |
 | r3001130422 | C2 | JSON.parse try-catch | Replied ✓ |
 | r3001130149 | H1 | Removed button | Replied ✓ |
@@ -160,16 +160,116 @@ Validation: accepted
 | r3001130484 | D1 | TODO comment (deferred) | Replied ✓ |
 | r3001130461 | — | Outdated — skipped | — |
 
-All replies delivered via consolidated comment: https://github.com/louisburroughs/durion-positivity-frontend/pull/6#issuecomment-4143680383
+All replies delivered via consolidated comment: <https://github.com/louisburroughs/durion-positivity-frontend/pull/6#issuecomment-4143680383>
+
+### Final Verification Status (Cycle 1)
+
+**PASS** — 1 loop cycle. All 16 ACs met. 179/179 tests.
+
+---
+
+## Cycle 2 — New Review Threads (16:25 UTC)
+
+7 new unresolved threads posted by `copilot-pull-request-reviewer` at 16:25 UTC. 1 thread was already outdated/resolved by user edits before this cycle began.
+
+### Cycle 2 Subagent Outputs
+
+### 2026-03-27T16:30:00Z | Orchestrator (cycle 2 evidence gathering)
+
+Objective: Read all 8 new review threads, confirm resolved/outdated status, gather affected source files
+Result: 7 unresolved threads (N1–N7); 1 outdated (r3001954655 — credit-memo-list Space key, already resolved by user). Source files read: accounting.service.ts, accounting.models.ts, ingestion-submit-page.component.ts, ingestion-monitor-list-page.component.ts, vendor-payment-new-page.component.html, vendor-payment-list-page.component.html.
+Validation: accepted
+
+---
+
+### 2026-03-27T16:35:00Z | PR Fix Coder (cycle 2 code fixes)
+
+Objective: Apply all 7 production code fixes (N1–N7)
+Result: All 7 fixes applied. Build PASS. No new compile errors.
+
+Files changed:
+
+- `accounting.service.ts` — N1: listEvents maps both `items` and `content` to same `AccountingEventListItem[]`
+- `vendor-payment-new-page.component.html` — N2: `<input>` → `<select>` (ACH/Check/Wire/Credit Card/Other)
+- `ingestion-submit-page.component.ts` — N3: permission check moved from `constructor()` to `ngOnInit()`
+- `accounting.models.ts` — N4: added `'SETTLED'` to `VendorPaymentResult.status`; N5: added `'OPEN'` to `VendorBill.status`
+- `ingestion-monitor-list-page.component.ts` — N6: `parseInt(..., 10)` + NaN guard + page ≥ 0, size 1–100
+- `vendor-payment-list-page.component.html` — N7: added `(keydown.space)` handler to bill row
+
+Validation: accepted
+
+---
+
+### 2026-03-27T16:45:00Z | PR Test Fixer (cycle 2 test coverage)
+
+Objective: Add/update specs to cover all cycle 2 code fixes
+Result: 8 new test cases, 1 new spec file created. 187/187 passing (30 files, up from 179/179 after cycle 1).
+Files created: `accounting.service.spec.ts` (1 test — listEvents maps items + content)
+
+Files updated:
+
+- `ingestion-submit-page.component.spec.ts` — +2 tests (forbidden/allowed via ngOnInit)
+- `ingestion-monitor-list-page.component.spec.ts` — +4 tests (NaN page, NaN size, size cap 100, negative page)
+- `vendor-payment-list-page.component.spec.ts` — +1 test (Space key activates openPayment)
+
+Validation: accepted
+
+---
+
+### 2026-03-27T17:00:00Z | PR Code Reviewer (cycle 2 verification)
+
+Objective: Verify all 11 cycle-2 ACs against remediated code
+Result: **Verdict: PASS**. All 11 ACs satisfied. No findings. No split required.
+Validation: accepted
+
+---
+
+## Final Summary (Updated — Cycles 1 + 2)
+
+### PR Analyzed
+
+- **PR**: #6 `feat(accounting): Wave D — Accounting Domain (CAP-049–055)`
+- **Repo**: `louisburroughs/durion-positivity-frontend`
+- **Branch**: `cap/accounting-wave-d` → `master`
+- **Review Track**: FRONTEND (Angular/TypeScript/i18n)
+- **Commits**: `0bd52e0` (cycle 1 fixes), `0c99ede` (cycle 2 fixes + tests)
+
+### Cycle 2 Findings by Severity
+
+| Severity | Count | Thread IDs |
+| --- | --- | --- |
+| Critical — NaN query param to API | 1 | r3001954610 |
+| High — stale `content` field in map | 1 | r3001954487 |
+| High — free-text cast to union type | 1 | r3001954519 |
+| High — missing union member `SETTLED` | 1 | r3001954581 |
+| High — missing union member `OPEN` | 1 | r3001954674 |
+| Medium — constructor permission check | 1 | r3001954552 |
+| Medium — missing keyboard Space handler (a11y) | 1 | r3001954633 |
+| Outdated (skip) | 1 | r3001954655 |
+
+### Cycle 2 Comment Thread Coverage
+
+| Thread | Finding | Fix | Status |
+| --- | --- | --- | --- |
+| r3001954487 | N1 | listEvents content normalization | Replied ✓ |
+| r3001954519 | N2 | paymentMethod → select control | Replied ✓ |
+| r3001954552 | N3 | permission check → ngOnInit | Replied ✓ |
+| r3001954581 | N4 | VendorPaymentResult.status + SETTLED | Replied ✓ |
+| r3001954674 | N5 | VendorBill.status + OPEN | Replied ✓ |
+| r3001954610 | N6 | parseInt + NaN/bounds guard | Replied ✓ |
+| r3001954633 | N7 | Space key on bill row | Replied ✓ |
+| r3001954655 | — | Outdated — skipped | — |
+
+All cycle 2 replies delivered via consolidated comment: <https://github.com/louisburroughs/durion-positivity-frontend/pull/6#issuecomment-4143969940>
 
 ### Final Verification Status
 
-**PASS** — 1 loop cycle. All 16 ACs met. 179/179 tests.
+**PASS** — 2 loop cycles (1 per review batch). Combined: 27 threads addressed (25 actionable, 2 outdated).
+Tests: 187/187 passing (30 files).
 
 ### Open Blockers / Follow-ups
 
 | Item | Severity | Owner |
-|---|---|---|
+| --- | --- | --- |
 | events/failed route no filter (r3001130484) | Medium | Follow-up on CAP-050 story |
 | ACCOUNTING i18n page titles in es-US/fr-CA still English | Low | Dedicated i18n wave |
-
