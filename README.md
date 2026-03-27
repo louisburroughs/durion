@@ -7,8 +7,9 @@ This workspace contains the shared Durion platform documentation, the Positivity
 - `durion` — workspace coordination, agent docs, ADRs, and governance
 - `durion-positivity-backend` — POS microservices (Java 21, Spring Boot 4.0.x)
 - `durion-positivity-sdk` — TypeScript SDK generated from backend OpenAPI contracts
+- `durion-positivity-frontend` — Angular frontend application for POS user workflows
 
-Angular frontend applications consume the backend APIs and SDK, but are not part of this workspace checkout.
+The frontend consumes backend APIs and SDK packages. When the frontend repository is checked out alongside this workspace, use its README as the source of truth for frontend setup and architecture.
 
 ## Quick Links
 
@@ -16,6 +17,7 @@ Angular frontend applications consume the backend APIs and SDK, but are not part
 - Architecture Decision Records: `docs/adr/README.md`
 - Observability architecture: `docs/architecture/observability/OBSERVABILITY.md`
 - Agent docs: `.github/agents/`
+- Frontend README: `../durion-positivity-frontend/README.md`
 
 ## Prerequisites
 
@@ -54,7 +56,12 @@ npm install
 npm run build
 ```
 
-5. For Angular frontend applications, use the frontend repository's own README and Angular CLI workflow.
+5. For Angular frontend applications, use the frontend repository README and Angular CLI workflow:
+
+```bash
+cd ../durion-positivity-frontend
+less README.md
+```
 
 ## Testing
 
@@ -72,9 +79,17 @@ cd ../durion-positivity-sdk
 npm test
 ```
 
+- Frontend tests:
+
+```bash
+cd ../durion-positivity-frontend
+npm test
+```
+
 ## Local Development
 
 - Backend local stack and service-specific setup live in `../durion-positivity-backend/AGENTS.md`.
+- Frontend local setup, routing, and architecture guidance live in `../durion-positivity-frontend/README.md`.
 - The observability architecture and collector configuration live at `docs/architecture/observability/OBSERVABILITY.md`.
 
 ## Contributing
@@ -88,4 +103,5 @@ npm test
 - Workspace agent guide: `AGENTS.md`
 - Backend agent guide: `../durion-positivity-backend/AGENTS.md`
 - SDK overview: `../durion-positivity-sdk/README.md`
+- Frontend overview: `../durion-positivity-frontend/README.md`
 - ADR index: `docs/adr/README.md`
