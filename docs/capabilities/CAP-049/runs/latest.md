@@ -1,6 +1,7 @@
 # Capability Run Artifact
 
 Use this run record with:
+
 - Manifest: docs/capabilities/CAP-049/CAPABILITY_MANIFEST.yaml
 - Workset: docs/capabilities/CAP-049/AGENT_WORKSET.yaml
 - PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
@@ -39,6 +40,7 @@ Use this run record with:
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
+
 - src/app/features/accounting/pages/event-envelope-contract/
 - src/app/features/accounting/pages/ingestion-submit/
 - src/app/features/accounting/pages/ingestion-monitor/
@@ -46,6 +48,7 @@ Use this run record with:
 - src/app/features/accounting/models/accounting.models.ts
 
 ### Behavior Implemented
+
 - Event envelope viewer: display canonical accounting event structure and details.
 - Event ingestion: submit events via form/endpoint with idempotency support.
 - Ingestion monitor: list and detail pages for event types with filtering and retry hooks.
@@ -62,12 +65,14 @@ For each story, list operations implemented and where they are wired.
 ## 6. Validation
 
 ### Commands Run
+
 ```bash
 <command 1>
 <command 2>
 ```
 
 ### Results
+
 - Build: pass/fail
 - Tests: pass/fail
 - Lint: pass/fail
@@ -87,6 +92,7 @@ For each story, list operations implemented and where they are wired.
 ## 9. Completion Gate
 
 Mark complete only if all are true:
+
 - [ ] All workset stories processed.
 - [ ] All required operations wired or explicitly blocked with reason.
 - [ ] Acceptance criteria verified against story markdown and wireframe.
