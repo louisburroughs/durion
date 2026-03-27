@@ -32,7 +32,7 @@ Legend for **Status** column:
 | 🟢 READY | 1 (CAP-118) |
 | 🟡 NORMALIZE | 1 (CAP-094; operation_id gap on story #156) |
 | 🔴 BLOCKED | 1 (CAP-053; no wireframe; design fallback required) |
-| ⬜ BACKLOG | 7 capabilities with no frontend stories |
+| ⬜ BACKLOG | 6 capabilities with no frontend stories |
 
 **Total in portfolio: 58 capabilities**
 
@@ -156,9 +156,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 ### `location` Domain
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-136 | Shop / bay management | Empty workset |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
 ### `billing` Additions
 
@@ -227,14 +225,14 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 **Pre-condition for CAP-253:** Validate deferred story operation wiring (`CAP_253.65`) during execution and keep deferral rationale in run artifacts if unchanged.
 
-### Wave F — Shopmgmt Execution + Location Story Elaboration
+### Wave F — Shopmgmt + Location Execution
 
-**What:** Shopmgmt worksets are now populated for execution; remaining story elaboration focus is location and other empty-workset domains.
+**What:** Shopmgmt and location worksets are populated; execute those capabilities while moving story elaboration to remaining empty-workset domains.
 
 **Targets (in priority order):**
 
-1. Execute CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
-2. Elaborate CAP-136 (Shop / bay management) and populate its workset
+1. Execute CAP-136, CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
+2. Elaborate remaining backlog capabilities: CAP-250, CAP-251, CAP-248, CAP-172, CAP-252, CAP-278
 
 ### Wave G — People / HR + Location
 
@@ -248,8 +246,8 @@ These are the highest-impact capabilities to story-elaborate next:
 
 | Priority | CAP | Domain | Why |
 | --- | --- | --- | --- |
-| 1 | CAP-136 | `location` | Bay and location structures are prerequisites for dispatch and capacity |
-| 2 | CAP-250 | `billing` | Billing follow-up capabilities remain unscoped in frontend |
-| 3 | CAP-251 | `billing` | Additional billing/accounting flows are still unelaborated |
+| 1 | CAP-250 | `billing` | Billing follow-up capabilities remain unscoped in frontend |
+| 2 | CAP-251 | `billing` | Additional billing/accounting flows are still unelaborated |
+| 3 | CAP-248 | `billing` / `shop` / `workexec` | Cross-domain billing integration remains unelaborated |
 | 4 | CAP-172 | `security` | Security backlog still has no authored frontend stories |
 | 5 | CAP-252 | `crm` | CRM backlog still has no authored frontend stories |
