@@ -1,4 +1,6 @@
 capability_id: CAP:278
 domain: accounting
 manifest: docs/capabilities/CAP-278/CAPABILITY_MANIFEST.yaml
+backend_only: true
+# CAP-278 is backend-only for this program wave. Frontend story work is intentionally out of scope.
 stories: []

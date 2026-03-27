@@ -168,6 +168,72 @@ Validation: accepted
 
 ---
 
+## PR #7 — Pass 2 Plan
+
+### Context (Pass 2)
+
+- **Pass 2 Started UTC**: 2026-03-27T21:15:00Z
+- **New Head SHA**: `ffd186decc575ee06678b59e0ff4d40c9ed9478b`
+- **Trigger**: Automated re-review triggered by pass-1 fix commit (4 commits, 31 files, +3136/-73)
+- **New Open Threads**: 5 (all from `copilot-pull-request-reviewer` at 2026-03-27T21:10:23Z–21:10:24Z)
+
+### New Open Review Threads
+
+| Thread ID | File | Line | Finding |
+| --- | --- | --- | --- |
+| `discussion_r3003256989` | `app.config.ts` | 21 | `provideAppInitializer` runs in `mockAuth=true` dev mode — blocks bootstrap with real `/auth/validate` call |
+| `discussion_r3003257015` | `roles-list-page.component.ts` | 50 | Client-side search filters current page only; `totalPages` stays unfiltered → false empty state + misleading pager |
+| `discussion_r3003257028` | `permissions-list-page.component.ts` | 44 | Same search/pagination mismatch; reviewer provided suggestion snippet |
+| `discussion_r3003257041` | `auth.interceptor.ts` | 14 | JSDoc says `logout()` but code now calls `logoutWithRedirect(...)` — outdated guidance |
+| `discussion_r3003257058` | `auth.service.ts` | 156 | `validateSessionOnResume()`: no mockAuth guard; no-token path calls `logout()` (bad for public routes); error catch uses `logout()` not `logoutWithRedirect()` — loses `returnUrl` and no `sessionExpired` banner |
+
+### Plan (Pass 2)
+
+**Objective**: Address all 5 new open review threads, verify no regressions.
+
+- [ ] **Step 1: Code Remediation (PR Fix Coder)**
+  - C5: `auth.interceptor.ts` — Fix JSDoc comment: `logout()` → `logoutWithRedirect(currentPath)` (`discussion_r3003257041`)
+  - C6: `auth.service.ts` — `validateSessionOnResume()`: add `if (environment.mockAuth) return of(true)` guard; no-token path returns `of(true)` without redirecting; error handler calls `this.logoutWithRedirect(this.router.url)` (`discussion_r3003256989`, `discussion_r3003257058`)
+  - C7: `roles-list-page.component.ts` — Fix search pagination: recalculate `totalPages` from filtered set when search term present (`discussion_r3003257015`)
+  - C8: `permissions-list-page.component.ts` — Fix search pagination: same fix, using reviewer suggestion (`discussion_r3003257028`)
+
+- [ ] **Step 2: Test Remediation (PR Test Fixer)**
+  - T4: `auth.service.spec.ts` — `validateSessionOnResume()` returns `of(true)` immediately when `mockAuth=true`
+  - T5: `auth.service.spec.ts` — no-token path returns `of(true)` without navigating
+  - T6: `auth.service.spec.ts` — error path calls `logoutWithRedirect` with current router URL
+  - T7: `roles-list-page.component.spec.ts` — search with results sets `totalPages(1)` not server totalPages
+  - T8: `roles-list-page.component.spec.ts` — search with no results sets `totalPages(0)`
+  - T9: `permissions-list-page.component.spec.ts` — search recalculates totalPages correctly
+
+- [ ] **Step 3: Verification (PR Code Reviewer)**
+  - Code reviewer returns `Verdict: PASS | FAIL`
+
+- [ ] **Step 4: PR Comment Replies**
+  - Post consolidated reply addressing all 5 new threads
+
+## Subagent Outputs — PR #7 Pass 2
+
+### 2026-03-27T21:20:00Z | PR Reviewer (pass 2 review)
+
+Objective: Review 5 new open Copilot review threads against source files.
+
+Result:
+
+- N1 `discussion_r3003256989` (app.config.ts:21) — MAJOR: `provideAppInitializer` registered unconditionally; combined with no mockAuth guard in validateSessionOnResume, runs real /auth/validate on every dev refresh with mockAuth=true.
+- N2 `discussion_r3003257015` (roles-list:50) — MAJOR: client-side search doesn't recalculate totalPages; pager reflects unfiltered server page count.
+- N3 `discussion_r3003257028` (permissions-list:44) — MAJOR: same search/pagination mismatch.
+- N4 `discussion_r3003257041` (auth.interceptor:14) — MINOR: stale JSDoc says `logout()` but code calls `logoutWithRedirect()`.
+- N5 `discussion_r3003257058` (auth.service:156) — **BLOCKER**: `validateSessionOnResume()` has three defects: (a) no mockAuth guard; (b) no-token path calls `logout()` → redirects to /login, breaking unauthenticated public routes in production; (c) error catch uses `logout()` not `logoutWithRedirect()` — drops returnUrl and blocks sessionExpired banner.
+
+**BLOCKER confirmed**: N5(b) causes production regression — unauthenticated users on public routes (e.g. `/chat`) are forcibly redirected to /login on every bootstrap.
+
+Recommended code split: N1, N2, N3, N4, N5 → coder agent.
+Recommended test split: N1 (no-HTTP-in-mockAuth bootstrap), N2 (filtered totalPages), N3 (same), N5 (3 scenarios: mockAuth, no-token-no-redirect, logoutWithRedirect on failure) → test agent.
+
+Validation: accepted
+
+---
+
 ## PR #6 — Wave D Accounting (archived)
 
 ### PR #6 Context
