@@ -29,10 +29,10 @@ Legend for **Status** column:
 | --- | --- |
 | ✅ DONE | 13 capabilities across 4 domains |
 | 🔄 IN PROGRESS / MERGED | 7 (Wave D — PR #6 merged) |
-| 🟢 READY | 1 (CAP-275) |
-| 🟡 NORMALIZE | 1 (CAP-118; has single story but empty operation_ids) |
+| 🟢 READY | 1 (CAP-118) |
+| 🟡 NORMALIZE | 1 (CAP-094; operation_id gap on story #156) |
 | 🔴 BLOCKED | 1 (CAP-053; no wireframe; design fallback required) |
-| ⬜ BACKLOG | 35 capabilities with no frontend stories |
+| ⬜ BACKLOG | 7 capabilities with no frontend stories |
 
 **Total in portfolio: 58 capabilities**
 
@@ -64,7 +64,7 @@ Legend for **Status** column:
 
 ## In-Progress / Next Execution Ready
 
-### 🟢 READY — CAP-275: Login & Token Handling (ADR-0011)
+### ✅ DONE — CAP-275: Login & Token Handling (ADR-0011)
 
 | Field | Value |
 | --- | --- |
@@ -88,7 +88,7 @@ Legend for **Status** column:
 
 ---
 
-### 🟡 NORMALIZE — CAP-118: Identity Orchestration (People domain)
+### 🟢 READY — CAP-118: Identity Orchestration (People domain)
 
 | Field | Value |
 | --- | --- |
@@ -97,8 +97,22 @@ Legend for **Status** column:
 | **Frontend story** | #153 |
 | **Story MD** | Present |
 | **Wireframe** | Present |
-| **operation_ids** | Empty — needs OpenAPI inspection |
-| **Action required** | Inspect `pos-people-service/openapi.yaml`; populate operation_ids; then READY |
+| **operation_ids** | Populated (`getRoles`, `getAssignments_1`, `createAssignment_1`, `revokeAssignment`) |
+| **Action required** | Execution-ready |
+
+---
+
+### 🟡 NORMALIZE — CAP-094: CRM & Workorder Integration
+
+| Field | Value |
+| --- | --- |
+| **Domain** | `crm` (with `workexec` integration surfaces) |
+| **Angular feature** | `src/app/features/crm/` + `src/app/features/workexec/` |
+| **Frontend stories** | #156 and #157 in `durion-moqui-frontend` |
+| **Story MD** | `docs/capabilities/CAP-094/stories/frontend/CAP_094.156.frontend.md` and `docs/capabilities/CAP-094/stories/frontend/CAP_094.157.frontend.md` |
+| **Wireframes** | `domains/crm/.ui/frontend-story-integration-inbound-event-handler-f-156.wf.md`; `domains/workexec/.ui/frontend-story-integration-emit-crm-reference-ids-157.wf.md` |
+| **operation_ids** | Story #157 populated; Story #156 still empty pending endpoint confirmation |
+| **Action required** | Confirm ProcessingLog/Suspense backend read operations in canonical OpenAPI/service contract, then populate story #156 `operation_ids` |
 
 ---
 
@@ -122,59 +136,23 @@ These capabilities have empty `AGENT_WORKSET.yaml` story lists. Frontend work **
 
 ### `people` / HR Domain
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-117 | People — TBD | Empty workset |
-| CAP-119 | People — TBD | Empty workset |
-| CAP-120 | People — TBD | Empty workset |
-| CAP-121 | People — TBD | Empty workset |
-| CAP-214 | Location management (people-linked) | Empty workset |
-| CAP-253 | Roles, Permissions, and Audit Controls | `contract_status: stable-for-ui`; empty workset — **high-priority to elaborate** |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
-### `inventory` Domain (8 capabilities — none started)
+### `inventory` Domain
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-215 | Inventory receiving | Empty workset |
-| CAP-216 | Put-away | Empty workset |
-| CAP-217 | Picking | Empty workset |
-| CAP-218 | Cycle counts | Empty workset |
-| CAP-219 | Inventory reservations | Empty workset |
-| CAP-220 | Inventory adjustments | Empty workset |
-| CAP-221 | Inventory transfers | Empty workset |
-| CAP-315 | TBD | Empty workset |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
-### `product` / Pricing Domain (9 capabilities — none started)
+### `product` / Pricing Domain
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-165 | Product master data | Empty workset |
-| CAP-166 | Product cost management | Empty workset |
-| CAP-167 | MSRP & list price | Empty workset |
-| CAP-168 | Location-based pricing | Empty workset |
-| CAP-169 | Labor pricing / workexec pricing | Empty workset |
-| CAP-170 | Product / inventory linkage | Empty workset |
-| CAP-171 | Pricing substitution rules | Empty workset |
-| CAP-247 | Product catalog search | Empty workset |
-| CAP-093 | CRM / pricing integration | Empty workset |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
-### `shopmgmt` / Scheduling Domain (6 capabilities)
+### `shopmgmt` / Scheduling Domain
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-137 | Shop scheduling | Empty workset |
-| CAP-138 | Dispatch management | Empty workset |
-| CAP-139 | Shop capacity planning | Empty workset |
-| CAP-140 | Timekeeping integration | Empty workset |
-| CAP-141 | Security / shop access control | Empty workset |
-| CAP-142 | Technician assignment | Empty workset |
-| CAP-249 | Shop manager dashboard | Empty workset |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
 ### `order` Domain
 
-| CAP | Name | Notes |
-| --- | --- | --- |
-| CAP-246 | POS sales order / cart | Empty workset — Angular domain stub only |
+No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
 
 ### `location` Domain
 
@@ -195,7 +173,6 @@ These capabilities have empty `AGENT_WORKSET.yaml` story lists. Frontend work **
 
 | CAP | Name | Notes |
 | --- | --- | --- |
-| CAP-094 | CRM — TBD | Empty workset |
 | CAP-252 | CRM — TBD | Empty workset |
 
 ### `security` (aside from CAP-275)
@@ -245,37 +222,34 @@ These capabilities have empty `AGENT_WORKSET.yaml` story lists. Frontend work **
 
 | CAP | Status | Scope |
 | --- | --- | --- |
-| CAP-275 | 🟢 READY | Auth wire-up + JWT assertion admin toggle (`security` + `auth` domains) |
-| CAP-253 | 🟡 NORMALIZE (stories in `.ui/` wireframes exist) | Roles, permissions, audit log admin (`security` domain) |
+| CAP-275 | ✅ DONE | Auth wire-up + JWT assertion admin toggle (`security` + `auth` domains) |
+| CAP-253 | ✅ DONE | Roles, permissions, audit log admin (`security` domain) |
 
-**Pre-condition for CAP-253:** Elaborate `AGENT_WORKSET.yaml` — wireframes in `.ui/` exist already; operation_ids can be resolved from `BACKEND_CONTRACT_GUIDE.md`.
+**Pre-condition for CAP-253:** Validate deferred story operation wiring (`CAP_253.65`) during execution and keep deferral rationale in run artifacts if unchanged.
 
-### Wave F — Inventory & Product Core (story elaboration first)
+### Wave F — Shopmgmt Execution + Location Story Elaboration
 
-**What:** Author frontend stories for the 8 inventory and 9 product capabilities via Story Authoring Agent, then execute implementation wave.
+**What:** Shopmgmt worksets are now populated for execution; remaining story elaboration focus is location and other empty-workset domains.
 
-**Story elaboration targets (in priority order):**
+**Targets (in priority order):**
 
-1. CAP-165, CAP-166, CAP-167 — Product master data fundamentals
-2. CAP-215, CAP-216, CAP-217 — Inventory receive / put-away / pick
-3. CAP-246 — Sales order / cart (order domain)
-4. CAP-253 — Security roles/permissions (if not done in Wave E)
+1. Execute CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
+2. Elaborate CAP-136 (Shop / bay management) and populate its workset
 
 ### Wave G — People / HR + Location
 
-**What:** CAP-118 (normalize first), then elaborate remaining `people` stories.
+**What:** Execute CAP-118, then elaborate remaining `people` stories.
 
 ---
 
 ## Story Elaboration Backlog Priority
 
-These are the highest-impact capabilities to story-elaborate before Wave F can begin:
+These are the highest-impact capabilities to story-elaborate next:
 
 | Priority | CAP | Domain | Why |
 | --- | --- | --- | --- |
-| 1 | CAP-253 | `security` | Stable-for-ui contract; wireframes exist — only AGENT_WORKSET needs updating |
-| 2 | CAP-165 | `product` | Foundation for all inventory/catalog work |
-| 3 | CAP-215, 216 | `inventory` | Receiving and put-away are entry points for all inventory flows |
-| 4 | CAP-246 | `order` | POS cart is a customer-facing entry point |
-| 5 | CAP-118 | `people` | Story exists; needs operation_ids only |
-| 6 | CAP-249 | `shopmgmt` | Shop manager dashboard (cross-domain view) |
+| 1 | CAP-136 | `location` | Bay and location structures are prerequisites for dispatch and capacity |
+| 2 | CAP-250 | `billing` | Billing follow-up capabilities remain unscoped in frontend |
+| 3 | CAP-251 | `billing` | Additional billing/accounting flows are still unelaborated |
+| 4 | CAP-172 | `security` | Security backlog still has no authored frontend stories |
+| 5 | CAP-252 | `crm` | CRM backlog still has no authored frontend stories |

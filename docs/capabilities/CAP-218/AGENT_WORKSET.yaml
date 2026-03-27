@@ -1,4 +1,64 @@
 capability_id: CAP:218
-domain: ''
+domain: inventory
 manifest: docs/capabilities/CAP-218/CAPABILITY_MANIFEST.yaml
-stories: []
+stories:
+- parent_issue: 218
+  frontend_issue: 92
+  frontend_story_md: docs/capabilities/CAP-218/stories/frontend/CAP_218.92.frontend.md
+  backend_issue: 28
+  wireframe: domains/workexec/.ui/frontend-story-fulfillment-create-pick-list-pick-t-92.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - createPickList
+  - getPickList
+  - getPickTasksForPickList
+  - releasePickList
+- parent_issue: 218
+  frontend_issue: 93
+  frontend_story_md: docs/capabilities/CAP-218/stories/frontend/CAP_218.93.frontend.md
+  backend_issue: 29
+  wireframe: domains/inventory/.ui/frontend-story-fulfillment-reserve-allocate-stock-93.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - createOrUpdateReservation
+  - promoteToHard
+  - cancelReservation
+  - queryAvailabilityBySku
+- parent_issue: 218
+  frontend_issue: 242
+  frontend_story_md: docs/capabilities/CAP-218/stories/frontend/CAP_218.242.frontend.md
+  backend_issue: 177
+  wireframe: domains/inventory/.ui/frontend-story-fulfillment-return-unused-items-to-242.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - returnItemsToStock
+- parent_issue: 218
+  frontend_issue: 243
+  frontend_story_md: docs/capabilities/CAP-218/stories/frontend/CAP_218.243.frontend.md
+  backend_issue: 178
+  wireframe: domains/inventory/.ui/frontend-story-fulfillment-issue-consume-picked-it-243.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - consumePickedItems
+  - getPickList
+- parent_issue: 218
+  frontend_issue: 244
+  frontend_story_md: docs/capabilities/CAP-218/stories/frontend/CAP_218.244.frontend.md
+  backend_issue: 179
+  wireframe: domains/workexec/.ui/frontend-story-fulfillment-mechanic-executes-picki-244.wf.md
+  contract_guide: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
+  sdk_package: ''
+  openapi_spec: durion-positivity-backend/pos-inventory/openapi.yaml
+  operation_ids:
+  - getPickTasksForPickList
+  - confirmPickTask
+  - confirmPickingList
+  - getPickList

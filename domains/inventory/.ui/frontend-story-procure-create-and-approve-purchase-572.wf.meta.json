@@ -1,0 +1,19 @@
+{
+  "issue_number": 572,
+  "issue_title": "[FRONTEND] [STORY] Inventory: Create and Approve Purchase Order",
+  "domain": "inventory",
+  "shortname": "frontend-story-procure-create-and-approve-purchase",
+  "model": "gpt-5.2",
+  "temperature": 0.3,
+  "max_completion_tokens": 12000,
+  "timestamp": "2026-03-27T00:00:00Z",
+  "original_issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/572",
+  "labels": [
+    "domain:inventory",
+    "type:story",
+    "agent:story-authoring",
+    "status:needs-review",
+    "CAP:315"
+  ],
+  "summarized": false
+}

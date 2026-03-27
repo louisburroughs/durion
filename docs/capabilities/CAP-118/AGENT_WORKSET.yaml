@@ -1,5 +1,5 @@
 capability_id: CAP:118
-domain: ''
+domain: people
 manifest: docs/capabilities/CAP-118/CAPABILITY_MANIFEST.yaml
 stories:
 - parent_issue: null
@@ -10,4 +10,8 @@ stories:
   contract_guide: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-people/openapi.yaml
-  operation_ids: []
+  operation_ids:
+  - getRoles
+  - getAssignments_1
+  - createAssignment_1
+  - revokeAssignment
