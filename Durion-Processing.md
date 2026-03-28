@@ -1,3 +1,71 @@
+## Wave G: People RBAC Identity Orchestration + CRM-Workorder Integration (CAP-118, CAP-094)
+
+**Status: IN PROGRESS**
+**Wave:** G — People RBAC + CRM Integration
+**Branch:** `cap/people-crm-wave-g`
+**Base:** `master` (8ca0ebf — Wave F merge)
+**Target repo:** `durion-positivity-frontend`
+**Capabilities:** CAP-118 (story #153), CAP-094 (stories #157, #156)
+**Domains:** `people`, `crm`, `workexec`
+
+### Domain Ownership Mapping
+
+| Domain | Feature Dir | Capability | Story |
+| --- | --- | --- | --- |
+| `people` | `src/app/features/people/` | CAP-118 | #153 — RBAC role/scope assignment |
+| `crm` | `src/app/features/crm/` | CAP-094 | #156 — Inbound workorder event handler |
+| `workexec` | `src/app/features/workexec/` | CAP-094 | #157 — Emit CRM reference IDs in workorder artifacts |
+
+### Steps
+
+- [x] Step 1: Read source materials — story MDs, wireframes, contract guides, and OpenAPI specs for all three stories:
+  - `docs/capabilities/CAP-118/stories/frontend/CAP_118.153.frontend.md`
+  - `domains/people/.ui/frontend-story-access-assign-roles-and-scopes-glob-153.wf.md`
+  - `domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+  - `durion-positivity-backend/pos-people/openapi.yaml` (ops: `getRoles`, `getAssignments_1`, `createAssignment_1`, `revokeAssignment`)
+  - `docs/capabilities/CAP-094/stories/frontend/CAP_094.157.frontend.md`
+  - `domains/workexec/.ui/frontend-story-integration-emit-crm-reference-ids-157.wf.md`
+  - `domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+  - `durion-positivity-backend/pos-workorder/openapi.yaml` (ops: `createEstimate`, `getEstimateById`, `promoteEstimateToWorkorder`, `createWorkorder`, `getWorkorderById`)
+  - `docs/capabilities/CAP-094/stories/frontend/CAP_094.156.frontend.md`
+  - `domains/crm/.ui/frontend-story-integration-inbound-event-handler-f-156.wf.md`
+  - `domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md`
+  - `durion-positivity-backend/pos-accounting/openapi.yaml` (ops: `listEvents`, `getEvent`, `getEventProcessingLog`, `getReprocessingHistory`)
+- [x] Step 2: Create execution branch `cap/people-crm-wave-g` from `master` via `durion/.github/hooks/create-branch-hook.sh`
+- [x] Step 3: Designer first-pass — design brief for `people` RBAC UI and `crm`/`workexec` integration surfaces; consult `design/HR/` for people domain and `design/Customer/` + `design/Shop-Workorder/` for CRM/workexec; issue token, layout, and responsive guidance
+- [x] Step 4: Execute CAP-118 story #153 (RBAC role/scope assignment — `people` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: role assignment UI, scope selectors, empty/loading/error states
+  - TypeScript Specialist: `PeopleService` methods for `getRoles`, `getAssignments_1`, `createAssignment_1`, `revokeAssignment`; route/page; state; validation
+  - Designer final sign-off for story #153
+  - Code Review Agent
+  - Iterate fixes until Code Review PASS
+- [x] Step 5: Execute CAP-094 story #157 (Emit CRM reference IDs in workorder artifacts — `workexec` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: workorder form CRM reference fields, display of linked customer/vehicle IDs, empty/loading/error states
+  - TypeScript Specialist: `WorkorderService` methods for `createEstimate`, `getEstimateById`, `promoteEstimateToWorkorder`, `createWorkorder`, `getWorkorderById`; CRM reference ID wiring; state; validation
+  - Designer final sign-off for story #157
+  - Code Review Agent
+  - Iterate fixes until Code Review PASS
+- [x] Step 6: Execute CAP-094 story #156 (Inbound event handler for workorder-originated updates — `crm` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: event list, event detail, processing log view, reprocessing history, empty/loading/error states
+  - TypeScript Specialist: `CrmIntegrationService` methods for `listEvents`, `getEvent`, `getEventProcessingLog`, `getReprocessingHistory`; route/page; state; filtering/pagination
+  - Designer final sign-off for story #156
+  - Code Review Agent
+  - Iterate fixes until Code Review PASS
+- [x] Step 7: Designer final sign-off on fully integrated Wave G feature set
+- [x] Step 8: Build verification — `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build`
+- [x] Step 9: Test verification — `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false`
+- [ ] Step 10: Test Coverage Agent — harden coverage for `people`, `crm`, and `workexec` changes
+- [x] Step 11: Documentation Agent — update `CAPABILITY_STATUS_BOARD.md` for CAP-118 and CAP-094; create run artifacts under `docs/capabilities/CAP-118/` and `docs/capabilities/CAP-094/`; update completed waves table in `Durion-Processing.md`
+- [x] Final Step: Create PR via `durion/.github/hooks/pull-request-hook.sh` — [PR #9](https://github.com/louisburroughs/durion-positivity-frontend/pull/9)
+
+---
+
 # Durion Processing — Wave E: Security Foundation (CAP-275 + CAP-253)
 
 **Status: IN PROGRESS**
