@@ -27,9 +27,9 @@ Legend for **Status** column:
 
 | Status | Count |
 | --- | --- |
-| ✅ DONE | 19 capabilities across 6 domains |
+| ✅ DONE | 21 capabilities across 6 domains |
 | 🔄 IN PROGRESS | 8 (CAP-136/137/138/139/140/141/142/249 — Wave F, PR #8) |
-| 🟢 READY | 2 (CAP-118, CAP-094) |
+| 🟢 READY | 0 |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
 | ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
@@ -61,6 +61,8 @@ Legend for **Status** column:
 | CAP-092 | Customer preferences / billing rules | `crm` | #2 (partial) | 162–164 | 3/3 operation_ids; 3 wireframes |
 | CAP-275 | Auth session wiring + JWT assertion admin | `security` / `auth` | #7 | 280 | validateSessionOnResume; logoutWithRedirect; interceptor 401 redirect |
 | CAP-253 | Security RBAC admin UI | `security` | #7 | 66 | Roles, permissions, audit log pages; SecurityService (7 ops) |
+| CAP-118 | Identity Orchestration (People RBAC) | `people` |  | #153 | Wave G — stories #153; run artifact exists |
+| CAP-094 | CRM & Workorder Integration | `crm` / `workexec` |  | #156, #157 | Wave G — stories #156, #157; run artifact exists |
 
 ---
 
@@ -80,34 +82,6 @@ Legend for **Status** column:
 | CAP-141 | Security Audit List (Shopmgmt) | `security` | #125–126 | `09e91b1`, `69d1c2b` |
 | CAP-142 | Appointment Reschedule | `shopmgmt` | #124 | `3e7a6f8` |
 | CAP-249 | Mechanic Roster & Availability | `shopmgmt` / `people` | #74–76 | `84e0272` |
-
----
-
-### �🟢 READY — CAP-118: Identity Orchestration (People domain)
-
-| Field | Value |
-| --- | --- |
-| **Domain** | `people` |
-| **Angular feature** | `src/app/features/people/` (stub routes only) |
-| **Frontend story** | #153 |
-| **Story MD** | Present |
-| **Wireframe** | Present |
-| **operation_ids** | Populated (`getRoles`, `getAssignments_1`, `createAssignment_1`, `revokeAssignment`) |
-| **Action required** | Execution-ready |
-
----
-
-### 🟢 READY — CAP-094: CRM & Workorder Integration
-
-| Field | Value |
-| --- | --- |
-| **Domain** | `crm` (with `workexec` integration surfaces) |
-| **Angular feature** | `src/app/features/crm/` + `src/app/features/workexec/` |
-| **Frontend stories** | #156 and #157 in `durion-moqui-frontend` |
-| **Story MD** | `docs/capabilities/CAP-094/stories/frontend/CAP_094.156.frontend.md` and `docs/capabilities/CAP-094/stories/frontend/CAP_094.157.frontend.md` |
-| **Wireframes** | `domains/crm/.ui/frontend-story-integration-inbound-event-handler-f-156.wf.md`; `domains/workexec/.ui/frontend-story-integration-emit-crm-reference-ids-157.wf.md` |
-| **operation_ids** | Story #157: `createEstimate`, `getEstimateById`, `promoteEstimateToWorkorder`, `createWorkorder`, `getWorkorderById`; Story #156: `listEvents`, `getEvent`, `getEventProcessingLog`, `getReprocessingHistory` |
-| **Action required** | Execution-ready |
 
 ---
 
