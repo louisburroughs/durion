@@ -740,3 +740,100 @@ Validation: accepted — 10 findings identified, FAIL verdict
 - F2 spec update → TEST FIXER
 
 <!-- orchestrator appends entries below -->
+
+---
+
+**Timestamp UTC**: 2026-03-28T10:45:00Z
+**Subagent**: PR Code Reviewer
+**Objective**: Final loop verification — verify all F1-F10 fixes applied and tests passing
+**Validation Decision**: accepted — Verdict: PASS
+
+**Verdict**: PASS
+
+**Acceptance Criteria Matrix**: All 13 criteria satisfied (F1, F2, F3, F4, F5, F6, F7, F8, F10, test-F1, test-F2, test-F8)
+
+**New finding noted**: PRCR-NEW-001 (LOW) — AppointmentService.searchAudit() retained alongside SecurityService.searchAudit(); both call /v1/shop/audit but from different domain contexts. No action required this wave — shopmgmt domain usage is correct.
+
+**Action**: Exit loop — proceed to final summary
+
+---
+
+**Timestamp UTC**: 2026-03-28T10:50:00Z
+**Subagent**: PR Fix Coder (git commit + push)
+**Objective**: Commit all remediation fixes and push to origin
+**Result**: Committed as `69d1c2b` on `cap/shopmgmt-location-wave-f`; pushed to remote. 17 files changed.
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T10:55:00Z
+**Subagent**: PR comment (GitHub)
+**Objective**: Post review summary as PR comment
+**Result**: Comment posted at https://github.com/louisburroughs/durion-positivity-frontend/pull/8#issuecomment-4147794184
+**Validation Decision**: accepted
+
+---
+## Final Summary — PR #8 Wave F
+
+**Completed UTC**: 2026-03-28T11:00:00Z
+
+### PR Analyzed
+- louisburroughs/durion-positivity-frontend #8
+- [CAP:shopmgmt-location-wave-f] feat: Wave F — CAP-136/137/138/139/140/141/142/249
+- 105 files changed, +9888/-89, 5+1 commits (6 total after remediation commit 69d1c2b)
+
+### Evidence Sources Used
+- PR #8 metadata, diff, 5 commits
+- No open review threads at review start (PR comments: [])
+- Capabilities: CAP-136/137/138/139/140/141/142/249
+- ADRs: ADR-0010 (frontend domain responsibilities), ADR-0017 (HTTP status codes)
+- PRD: PRD-multistage-capability-frontend-build.md (acceptance criteria)
+- CAPABILITY_STATUS_BOARD.md
+
+### Findings by Severity
+
+| ID  | Severity | Status     |
+|-----|----------|------------|
+| F1  | CRITICAL | ✅ Fixed   |
+| F2  | HIGH     | ✅ Fixed   |
+| F4  | HIGH     | ✅ Fixed   |
+| F8  | HIGH     | ✅ Fixed   |
+| F3  | MEDIUM   | ✅ Fixed   |
+| F5  | MEDIUM   | ✅ Fixed   |
+| F6  | MEDIUM   | ✅ Fixed   |
+| F7  | MEDIUM   | ✅ Fixed   |
+| F10 | MEDIUM   | ✅ Fixed   |
+| F9  | LOW      | ⏩ Deferred to cleanup PR |
+| PRCR-NEW-001 | LOW | No action required |
+
+### Code Fixes Applied
+- SecurityService: added `searchAudit(appointmentId)` method
+- SecurityAuditListPageComponent: replaced AppointmentService with SecurityService
+- PeopleService: added `listPendingTimeEntries()` method
+- TimeApprovalPage: calls correct time-entries endpoint
+- LocationService: removed redundant query param from listBays(); fixed listMobileUnits() return type
+- AppointmentService: removed duplicate people methods
+- MechanicAvailabilityPage: injects PeopleService directly
+- app.routes.ts: stale comment updated
+- 5 CSS files: rgba() → color-mix(); :host blocks removed
+
+### Test Fixes Applied
+- security-audit-list spec: uses SecurityService stub
+- time-approval spec: stubs listPendingTimeEntries
+- mechanic-availability spec: provides PeopleService stub
+
+### Comment Thread Coverage
+- No open review threads at review start
+- Review summary posted at: https://github.com/louisburroughs/durion-positivity-frontend/pull/8#issuecomment-4147794184
+
+### Final Verification Status
+- Tests: 488/488 passing (59 test files) ✅
+- Build: Passing ✅
+- Remediation commit: `69d1c2b` pushed to `cap/shopmgmt-location-wave-f` ✅
+
+### Open Blockers / Follow-ups
+- F9 (LOW): "work order" two-word naming in pre-existing strings/comments. Deferred to dedicated cleanup PR.
+
+### Processing Log File
+`/home/louis-burroughs/IdeaProjects/durion/PR-Review-Processing.md`
+
