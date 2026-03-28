@@ -3,7 +3,7 @@
 **Status:** DEPRECATED (SUPERSEDED BY ADR-0025)  
 **Date:** 2026-01-23  
 **Author:** CRM Domain + Security Domain Collaboration  
-**Affected Components:** pos-crm-service, durion-moqui-frontend, pos-security-service  
+**Affected Components:** pos-crm-service, durion-positivity-frontend, pos-security-service  
 
 > Deprecation Note (2026-02-26): This ADR is superseded by ADR-0025, which
 > standardizes permission registration via `permissions.yaml` manifests across
@@ -144,7 +144,7 @@ Define three foundational roles with clear responsibility boundaries:
 
 - **Normative:** [CRM_PERMISSION_TAXONOMY.md](../CRM_PERMISSION_TAXONOMY.md) — Implementation-ready permission definitions
 - **Registration:** `pos-crm-service/src/main/resources/permissions.yaml` — Code-first permission manifest
-- **Scope:** Durion Positivity Platform (POS backend + Moqui frontend)
+- **Scope:** Durion Positivity Platform (POS backend + Angular frontend)
 
 ---
 
@@ -161,17 +161,17 @@ Define three foundational roles with clear responsibility boundaries:
 
 ### Negative / Challenges
 
-⚠️ **Backend service dependency** — CRM service doesn't yet exist; requires creation of `pos-crm-service` module with Spring Boot + Moqui integration  
+⚠️ **Backend service dependency** — CRM service doesn't yet exist; requires creation of `pos-crm-service` module and integration with the Angular frontend  
 ⚠️ **Security domain integration** — Requires coordination with security team for role→permission mappings in RBAC admin UI  
-⚠️ **Moqui screen permission mapping** — Moqui screens (e.g., account creation UI) must be annotated with permission checks via `<check-permission>`  
-⚠️ **Retroactive permission application** — Existing CRM functionality in Moqui must be retrofitted with permission checks  
+⚠️ **Frontend permission mapping** — Angular CRM routes/pages (e.g., account creation UI) must enforce permission/role gates consistently  
+⚠️ **Retroactive permission application** — Existing CRM functionality in the Angular app must be retrofitted with permission checks where missing  
 
 ### Mitigations
 
 1. **Service creation:** Schedule pos-crm-service setup as Priority 2 task after taxonomy approval
 2. **Security coordination:** Define SLA for Security domain to complete role mapping (recommend 1 sprint)
-3. **Moqui annotation:** Include permission checking as part of CRM story implementation checklist
-4. **Retroactive retrofit:** Mark existing Moqui CRM screens with tech debt tags; plan permission retrofit in backlog
+3. **Frontend gating:** Include permission checking as part of CRM story implementation checklist
+4. **Retroactive retrofit:** Mark existing Angular CRM routes/pages with tech debt tags; plan permission retrofit in backlog
 
 ---
 
@@ -280,11 +280,11 @@ Principal Engineer:  [Name] _____ [Date]
 - [ ] Implement `@PreAuthorize` checks on all endpoints
 - [ ] Register permissions with Security Domain API at startup
 
-### Phase 3: Moqui Integration (Priority 3)
+### Phase 3: Frontend Integration (Priority 3)
 
-- [ ] Create Moqui screens for CRM operations (party, contact, vehicle)
-- [ ] Add `<check-permission>` directives to Moqui screens
-- [ ] Test permission-gated screens locally
+- [ ] Create/update Angular CRM pages for party, contact, and vehicle operations
+- [ ] Add route/page permission gates in Angular feature modules
+- [ ] Test permission-gated routes and actions locally
 
 ### Phase 4: Story Implementation (Priority 4+)
 
@@ -310,7 +310,7 @@ Principal Engineer:  [Name] _____ [Date]
 |-------|--------|-------|-----|
 | Role mappings finalized by Security domain? | PENDING | Security Lead | Sprint [TBD] |
 | pos-crm-service created? | NOT STARTED | Backlog | Sprint [TBD] |
-| Moqui @check-permission pattern established? | NOT STARTED | Framework Lead | Sprint [TBD] |
+| Angular route/page permission gating pattern established? | NOT STARTED | Frontend Lead | Sprint [TBD] |
 
 ---
 

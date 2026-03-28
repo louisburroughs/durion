@@ -174,7 +174,7 @@ GET /crm/parties/{partyId}/contacts/{contactId}/communication-preferences
 - ✅ Mobile-friendly tab-based layout scales well
 
 ### Negative
-- ❌ Requires changes to router configuration in durion-moqui-frontend
+- ❌ Requires changes to router configuration in durion-positivity-frontend
 - ❌ All existing integrations/links must be updated
 - ❌ Legacy users may be confused by terminology shift (party vs. account)
 - ❌ Breadcrumbs require loading entity names (extra API calls if not cached)
@@ -189,29 +189,23 @@ GET /crm/parties/{partyId}/contacts/{contactId}/communication-preferences
 ## Compliance
 
 - **Durion Navigation Standards:** Follows RESTful routing conventions
-- **Moqui Framework:** Compatible with Moqui's router, can use screen URLs or SPA routing
-- **Vue 3 Router:** Fully supported via vue-router
+- **Angular Router:** Compatible with Angular route guards, lazy loading, and nested feature routes
 - **Accessibility (WCAG 2.1):** Breadcrumbs and back button aid keyboard navigation
 
 ---
 
 ## Implementation Notes
 
-### Moqui Artifacts to Create
-- `runtime/component/durion-crm/screen/PartyDetail.xml` – Main party view with tabs
-- `runtime/component/durion-crm/screen/ContactsTab.xml` – Contacts list/edit
-- `runtime/component/durion-crm/screen/VehiclesTab.xml` – Vehicles list/edit
-
-### Vue Components to Create
-- `PartyDetail.vue` – Wrapper component with tabs
-- `PartyDetailsTab.vue` – Details content
-- `ContactsTab.vue` – Contacts table and edit modal
-- `VehiclesTab.vue` – Vehicles table and edit modal
-- `BreadcrumbNav.vue` – Shared breadcrumb component
+### Angular Artifacts to Create/Update
+- `durion-positivity-frontend/src/app/features/crm/pages/party-detail/party-detail.component.ts`
+- `durion-positivity-frontend/src/app/features/crm/pages/party-contacts/party-contacts.component.ts`
+- `durion-positivity-frontend/src/app/features/crm/pages/create-vehicle/create-vehicle.component.ts`
+- `durion-positivity-frontend/src/app/features/crm/pages/billing-rules/billing-rules.component.ts`
+- Shared breadcrumb widget in `src/app/features/shell/components/` (if not already present)
 
 ### Router Configuration
-- Update `durion-crm/router/index.ts` with new routes
-- Add guards for unsaved changes protection
+- Update `durion-positivity-frontend/src/app/features/crm/crm.routes.ts` with canonical routes
+- Add guards for unsaved changes protection where forms are present
 - Handle 404 (entity not found) gracefully
 
 ---

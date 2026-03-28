@@ -645,3 +645,98 @@ Tests: 187/187 passing (30 files).
 | --- | --- | --- |
 | events/failed route no filter (r3001130484) | Medium | Follow-up on CAP-050 story |
 | ACCOUNTING i18n page titles in es-US/fr-CA still English | Low | Dedicated i18n wave |
+
+---
+
+## PR #8 — Wave F Shopmgmt + Location + People + Workexec + Security
+
+## Context
+
+- **Repo**: `louisburroughs/durion-positivity-frontend`
+- **PR**: #8
+- **Title**: `[CAP:shopmgmt-location-wave-f] feat: Wave F — CAP-136/137/138/139/140/141/142/249 frontend capabilities`
+- **Branch**: `cap/shopmgmt-location-wave-f` → `master`
+- **Review Track**: FRONTEND (Angular 21 / TypeScript)
+- **Started UTC**: 2026-03-28T10:00:00Z
+- **PR Size**: 105 changed files, +9888/-89, 5 commits
+- **Test Status**: 488/488 passing (59 test files)
+- **Build Status**: Passing (pre-existing warnings only)
+- **PR Comments**: None (no open review threads)
+- **Evidence Sources**:
+  - Capabilities covered: CAP-136, CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
+  - New pages: 14 (location ×3, shopmgmt ×4, people ×3, workexec ×3, security ×1 replaced stub)
+  - New services: PeopleService (16 methods), LocationService (11 methods), WorkexecService (+5 methods)
+  - Routes wired: people.routes.ts, location.routes.ts, shopmgmt.routes.ts, workexec.routes.ts + app.routes.ts
+
+### Preliminary Findings Identified by Orchestrator
+
+| ID | Severity | File | Finding |
+|----|----------|------|---------|
+| F1 | MEDIUM | `security/pages/audit/security-audit-list/security-audit-list-page.component.ts` | Cross-domain import: security module imports `AppointmentService` from `shopmgmt` domain (violates domain boundary per ADR-0010 intent + Angular domain-first architecture) |
+| F2 | LOW | `location/services/location.service.ts` | `listBays()` uses `HttpParams().set('locationId', locationId)` redundantly — path already contains `{locationId}`. Query param `locationId` is unnecessary and potentially confusing |
+| F3 | LOW | `location/services/location.service.ts` | `listMobileUnits()` return type is `Observable<unknown>` rather than `Observable<unknown[]>` — inconsistent with `getAllLocations()` and `listBays()` |
+| F4 | LOW | `src/app/app.routes.ts` | Outdated comment `// Domain stub routes (scaffold – full implementation in future waves)` still covers `people`, `location`, `workexec`, `accounting`, etc. all of which now have full implementations |
+
+## Plan
+
+**Objective**: Review the full scope of Wave F capabilities and remediate all four preliminary findings.
+
+**Implementation Steps**:
+
+- [ ] **Step 1: PR Reviewer: Full evidence-based review**
+  - **Objective**: Perform a full review of the PR against linked capabilities (CAP-136-142, CAP-249), relevant ADRs (especially ADR-0010 for domain boundaries), and frontend PRD/UX guidelines.
+  - **Success Check**: A comprehensive review report is generated, either confirming the preliminary findings or adding new ones.
+
+- [ ] **Step 2: PR Fix Coder: Address all findings**
+  - **Objective**: Implement code changes to fix findings F1, F2, F3, and F4.
+    - **F1**: Refactor the `security-audit-list-page.component.ts` to remove the direct import of `AppointmentService` from the `shopmgmt` domain. This may require introducing a new shared service or using an event-based mechanism.
+    - **F2**: Remove the redundant `locationId` query parameter from the `listBays` method in `location.service.ts`.
+    - **F3**: Correct the return type of `listMobileUnits` in `location.service.ts` to `Observable<unknown[]>`.
+    - **F4**: Update the outdated comment in `src/app/app.routes.ts` to accurately reflect the implementation status of the domain routes.
+  - **Success Check**: All four findings are addressed in the code, and the build is successful.
+
+- [ ] **Step 3: PR Test Fixer: Verify tests and coverage**
+  - **Objective**: Run all unit tests to ensure that the fixes have not introduced any regressions. If any service method signatures or component logic changed, add or update tests to ensure sufficient coverage.
+  - **Success Check**: All 488+ tests pass, and any new or modified logic is covered by unit tests.
+
+- [ ] **Step 4: PR Code Reviewer: Verify fixes**
+  - **Objective**: Review the changes made by the PR Fix Coder to ensure they meet the acceptance criteria for each finding and adhere to coding standards.
+  - **Success Check**: The reviewer returns a `PASS` verdict, confirming that all fixes are correct and complete.
+
+## Subagent Outputs
+
+### 2026-03-28T10:15:00Z | PR Reviewer
+
+Objective: Full evidence-based review of PR #8 against issues, ADRs, and PRD acceptance criteria
+Validation: accepted — 10 findings identified, FAIL verdict
+
+**Output Summary**:
+
+| finding_id | severity | file_ref | description |
+| :--- | :--- | :--- | :--- |
+| F1 | CRITICAL | security-audit-list-page.component.ts:4 | Cross-domain import: security imports AppointmentService from shopmgmt (ADR-0010 violation) |
+| F2 | HIGH | time-approval-page.component.ts:33 | loadEntries() calls getAllPeople() instead of a time-entries endpoint; placeholder shipped as completed |
+| F3 | MEDIUM | location.service.ts:37-39 | listBays() redundantly passes locationId as query param in addition to path segment |
+| F4 | HIGH | location.service.ts:55 | listMobileUnits() declared as Observable<unknown> not Observable<unknown[]> |
+| F5 | MEDIUM | app.routes.ts:75 | Stale comment "Domain stub routes" for fully-implemented domains |
+| F6 | MEDIUM | schedule-view-page.component.css:168, appointment-edit-page.component.css:106 | Raw rgba() literals instead of design tokens |
+| F7 | MEDIUM | appointment-reschedule.css:1, appointment-create.css:1, appointment-assignment.css:1 | :host blocks violate PRD CSS constraint |
+| F8 | HIGH | appointment.service.ts:62-70 | Duplicate people methods in shopmgmt AppointmentService vs PeopleService |
+| F9 | LOW | workexec + billing templates/strings | "work order" two words in 20+ locations violates workspace naming convention |
+| F10 | MEDIUM | security.service.ts (missing method) | SecurityService has no searchAudit method — root cause of F1 |
+
+**Orchestrator routing decision**:
+
+- F1+F10 → CODER (add searchAudit to SecurityService, fix import in audit component)
+- F2 → CODER (add listPendingTimeEntries to PeopleService, fix loadEntries)
+- F3 → CODER (remove redundant locationId query param from listBays)
+- F4 → CODER (fix listMobileUnits return type)
+- F5 → CODER (update stale comment in app.routes.ts)
+- F6 → CODER (replace raw rgba() with color-mix token expressions)
+- F7 → CODER (replace :host with .page-root class selectors)
+- F8 → CODER (remove duplicate people methods from AppointmentService)
+- F9 → DEFERRED to cleanup PR (LOW severity, pre-existing across many files beyond Wave F scope)
+- F1 spec update → TEST FIXER
+- F2 spec update → TEST FIXER
+
+<!-- orchestrator appends entries below -->

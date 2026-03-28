@@ -73,7 +73,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0007   | Workorder/Estimate Approval workflow       | ACCEPTED          | 2026-01-08 |
 | 0008   | Cost maintenance clarification diagram     | ACCEPTED          | 2026-01-13 |
 | 0009   | Backend Domain responsibilities            | ACCEPTED          | 2026-01-29 |
-| 0010   | Frontend Domain responsibilities           | ACCEPTED          | 2026-01-29 |
+| 0010   | Frontend Domain responsibilities           | ACCEPTED          | 2026-03-28 |
 | 0011   | API Gateway Security Architecture          | ACCEPTED          | 2026-02-01 |
 | 0012   | Vehicle-Party relationship ownwership      | ACCEPTED          | 2026-02-03 |
 | 0013   | UUID v7 Identifier Strategy                | ACCEPTED          | 2026-02-07 |
@@ -92,6 +92,8 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0026   | Service Contract Boundary Policy           | ACCEPTED          | 2026-02-26 |
 | 0027   | UUID-Typed Identifier Contract Policy      | ACCEPTED          | 2026-02-28 |
 | 0028   | Inventory Stock Item Identifier Consistency Policy | ACCEPTED | 2026-02-28 |
+| 0029   | Frontend Accessibility Baseline Policy     | ACCEPTED          | 2026-03-28 |
+| 0030   | Frontend Internationalization and Localization Policy | ACCEPTED | 2026-03-28 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -127,6 +129,8 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0026 | Service interface-only public API boundary and internal implementation encapsulation | Coder, Test, Planner, Orchestrator |
 | 0027 | Identifier typing in service contracts/DTOs/entities (UUID for platform IDs, external ID exceptions) | Coder, Test, Planner, Orchestrator |
 | 0028 | Inventory lookup key consistency across reallocation, reservations, and ledger on-hand computation (`stockItemId` as UUID) | Coder, Test, Planner, Orchestrator |
+| 0029 | Frontend accessibility behavior, keyboard/screen-reader support, and WCAG conformance expectations | Coder, Test, Planner, Orchestrator |
+| 0030 | Frontend i18n/l10n behavior, locale fallback, translation key strategy, and format localization | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
 

@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2026-03-27"
+updated_utc: "2026-03-28"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -29,9 +29,9 @@ Legend for **Status** column:
 | --- | --- |
 | ✅ DONE | 19 capabilities across 6 domains |
 | 🔄 IN PROGRESS | 0 |
-| 🟢 READY | 1 (CAP-118) |
-| 🟡 NORMALIZE | 1 (CAP-094; operation_id gap on story #156) |
-| 🔴 BLOCKED | 1 (CAP-053; no wireframe; design fallback required) |
+| 🟢 READY | 2 (CAP-118, CAP-094) |
+| 🟡 NORMALIZE | 0 |
+| 🔴 BLOCKED | 0 |
 | ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
 
 **Total in portfolio: 58 capabilities**
@@ -52,7 +52,7 @@ Legend for **Status** column:
 | CAP-050 | Posting rule set configuration | `accounting` | #6 | 202 | 1 story |
 | CAP-051 | AR payment application | `accounting` | #6 | 178 | `applyPayment` wired |
 | CAP-052 | Credit memo issuance | `accounting` | #6 | 195 | `createCreditMemo` wired |
-| CAP-053 | AP vendor payment | `accounting` | #6 | 192 | Design fallback used (no wireframe) |
+| CAP-053 | AP vendor payment | `accounting` | #6 | 192 | Wireframe finalized (`frontend-story-ap-execute-payment-and-post-to-gl-192.wf.md`) |
 | CAP-054 | Operational cost display (cross-domain) | `workexec` | #6 | 123 | No API calls; cross-domain read-only |
 | CAP-055 | Failed / quarantined event routing | `accounting` | #6 | 186 | Retry + reprocessing wired |
 | CAP-089 | Party management (CRM) | `crm` | #1 | 173–176 | 8 operation_ids; 4 wireframes |
@@ -80,7 +80,7 @@ Legend for **Status** column:
 
 ---
 
-### 🟡 NORMALIZE — CAP-094: CRM & Workorder Integration
+### 🟢 READY — CAP-094: CRM & Workorder Integration
 
 | Field | Value |
 | --- | --- |
@@ -89,22 +89,14 @@ Legend for **Status** column:
 | **Frontend stories** | #156 and #157 in `durion-moqui-frontend` |
 | **Story MD** | `docs/capabilities/CAP-094/stories/frontend/CAP_094.156.frontend.md` and `docs/capabilities/CAP-094/stories/frontend/CAP_094.157.frontend.md` |
 | **Wireframes** | `domains/crm/.ui/frontend-story-integration-inbound-event-handler-f-156.wf.md`; `domains/workexec/.ui/frontend-story-integration-emit-crm-reference-ids-157.wf.md` |
-| **operation_ids** | Story #157 populated; Story #156 still empty pending endpoint confirmation |
-| **Action required** | Confirm ProcessingLog/Suspense backend read operations in canonical OpenAPI/service contract, then populate story #156 `operation_ids` |
+| **operation_ids** | Story #157: `createEstimate`, `getEstimateById`, `promoteEstimateToWorkorder`, `createWorkorder`, `getWorkorderById`; Story #156: `listEvents`, `getEvent`, `getEventProcessingLog`, `getReprocessingHistory` |
+| **Action required** | Execution-ready |
 
 ---
 
 ## Blocked
 
-### 🔴 BLOCKED — CAP-053 Follow-up Wireframe
-
-CAP-053 (AP vendor payment, story 192) was implemented in Wave D using a design fallback because no wireframe existed.
-Implementation is complete and merged, but the wireframe artifact gap should be closed.
-
-| Field | Value |
-| --- | --- |
-| **Action** | Designer to produce `domains/accounting/.ui/cap053-vendor-payment-new-192.wf.md` |
-| **Impact** | Documentation gap only; functionality is shipped |
+No capabilities are currently blocked.
 
 ---
 
@@ -195,7 +187,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | CAP-275 | ✅ DONE | Auth session wiring, interceptor 401 redirect, validateSessionOnResume (mockAuth-safe) |
 | CAP-253 | ✅ DONE | Roles list/detail, permissions registry, audit log placeholder, SecurityService (7 ops) |
 
-### 🟢 Wave F — Shopmgmt + Location Execution (NEXT)
+### 🟢 Wave F — Shopmgmt + Location Execution (IN FLIGHT)
 
 **What:** Shopmgmt and location worksets are fully populated; execute these capabilities.
 
@@ -203,20 +195,22 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 | CAP | Domain | Stories | operation_ids | Status |
 | --- | --- | --- | --- | --- |
-| CAP-136 | `location` | 140–142 | Empty | 🟡 NORMALIZE |
-| CAP-137 | `shopmgmt` | 137–138 | 137: 3 ops ✅; 138: empty | 🟡 NORMALIZE |
-| CAP-138 | `shopmgmt` | 133–134 | 133: 3 ops ✅; 134: empty | 🟡 NORMALIZE |
-| CAP-139 | `shopmgmt` / `people` | 130–131 | 130: 3 ops ✅; 131: empty | 🟡 NORMALIZE |
-| CAP-140 | `shopmgmt` / `people` | 122, 127 | 122: 3 ops ✅; 127: empty | 🟡 NORMALIZE |
-| CAP-141 | `shopmgmt` / `security` | 125–126 | 125: 3 ops ✅; 126: empty | 🟡 NORMALIZE |
-| CAP-142 | `shopmgmt` | 124 | 3 ops ✅ | 🟢 READY |
-| CAP-249 | `shopmgmt` | 74–75 | 74: 3 ops ✅; 75: empty | 🟡 NORMALIZE |
+| CAP-136 | `location` | 140–142 | All stories mapped (12 ops total) | 🟢 READY |
+| CAP-137 | `shopmgmt` | 137–139 | All stories mapped (9 ops total) | 🟢 READY |
+| CAP-138 | `shopmgmt` | 133–136 | All stories mapped (12 ops total) | 🟢 READY |
+| CAP-139 | `shopmgmt` / `people` | 130–132 | All stories mapped (10 ops total) | 🟢 READY |
+| CAP-140 | `shopmgmt` / `people` | 122, 127–129 | All stories mapped (12 ops total) | 🟢 READY |
+| CAP-141 | `shopmgmt` / `security` | 125–126 | All stories mapped (7 ops total) | 🟢 READY |
+| CAP-142 | `shopmgmt` | 124 | All stories mapped (3 ops total) | 🟢 READY |
+| CAP-249 | `shopmgmt` | 74–76 | All stories mapped (9 ops total) | 🟢 READY |
 
-**Pre-execution:** Normalize empty `operation_ids` for stories 138, 134, 131, 127, 126, 75 by inspecting canonical OpenAPI specs.
+**Normalization status:** Complete for Wave F worksets; no remaining empty `operation_ids` entries in CAP-136/137/138/139/140/141/142/249.
 
 ### Wave G — People / HR
 
-**What:** Execute CAP-118 (READY), then elaborate remaining `people` stories.
+**What:** Execute People capabilities in sequence; story elaboration is already complete.
+
+**Execution queue:** CAP-118 (READY) first, then CAP-117, CAP-119, CAP-120, and CAP-121.
 
 ---
 
