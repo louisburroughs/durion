@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2026-03-28"
+updated_utc: "2026-03-28T11:00:00Z"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -28,7 +28,7 @@ Legend for **Status** column:
 | Status | Count |
 | --- | --- |
 | ✅ DONE | 19 capabilities across 6 domains |
-| 🔄 IN PROGRESS | 0 |
+| 🔄 IN PROGRESS | 8 (CAP-136/137/138/139/140/141/142/249 — Wave F, PR #8) |
 | 🟢 READY | 2 (CAP-118, CAP-094) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
@@ -66,7 +66,24 @@ Legend for **Status** column:
 
 ## In-Progress / Next Execution Ready
 
-### 🟢 READY — CAP-118: Identity Orchestration (People domain)
+### � IN PROGRESS — Wave F (CAP-136/137/138/139/140/141/142/249)
+
+**Branch**: `cap/shopmgmt-location-wave-f` | **PR**: #8 | **Tests**: 488/488
+
+| CAP | Name | Domain | Stories | Commits |
+| --- | --- | --- | --- | --- |
+| CAP-136 | Location & Bay Management | `location` | #140–142 | `09e91b1`, `69d1c2b` |
+| CAP-137 | Appointment Scheduling | `shopmgmt` | #137–139 | `fb8b28c` |
+| CAP-138 | Appointment Dispatch & Conflict | `shopmgmt` | #133–136 | `09e91b1`, `69d1c2b` |
+| CAP-139 | Time Sessions (Mechanic) | `shopmgmt` / `people` | #130–132 | `09e91b1` |
+| CAP-140 | Time Export & Operational Context | `shopmgmt` / `people` | #122, 127–129 | `09e91b1` |
+| CAP-141 | Security Audit List (Shopmgmt) | `security` | #125–126 | `09e91b1`, `69d1c2b` |
+| CAP-142 | Appointment Reschedule | `shopmgmt` | #124 | `3e7a6f8` |
+| CAP-249 | Mechanic Roster & Availability | `shopmgmt` / `people` | #74–76 | `84e0272` |
+
+---
+
+### �🟢 READY — CAP-118: Identity Orchestration (People domain)
 
 | Field | Value |
 | --- | --- |
@@ -155,10 +172,11 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | `auth` | `src/app/features/auth/` | ✅ Full | CAP-275: session wiring, interceptor, session-expired banner |
 | `security` | `src/app/features/security/` | ✅ Full | CAP-275 + CAP-253: roles, permissions, audit log RBAC admin |
 | `inventory` | `src/app/features/inventory/` | ⬜ Stub | Routes file only |
-| `people` | `src/app/features/people/` | ⬜ Stub | Routes file only |
+| `people` | `src/app/features/people/` | 🔄 IN PROGRESS | CAP-249/139/140: PeopleService, time-approval, time-export, work-session, travel-time pages (Wave F PR #8) |
 | `product` | `src/app/features/product/` | ⬜ Stub | Routes file only |
 | `order` | `src/app/features/order/` | ⬜ Stub | Routes file only |
-| `location` | `src/app/features/location/` | ⬜ Stub | Routes file only |
+| `location` | `src/app/features/location/` | 🔄 IN PROGRESS | CAP-136: LocationService, locations/bays/mobile-units pages (Wave F PR #8) |
+| `shopmgmt` | `src/app/features/shopmgmt/` | 🔄 IN PROGRESS | CAP-137/138/139/140/141/142/249: AppointmentService, full scheduling/dispatch/roster pages (Wave F PR #8) |
 | `admin` | `src/app/features/admin/` | ⬜ Stub | Minimal |
 
 ---
@@ -173,6 +191,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | Wave C (Completion) | `cap/workexec-wave-c` | #5 | 2 | 5 | 172 |
 | Wave D (Accounting) | `cap/accounting-wave-d` | #6 | 7 | 18 | 187 |
 | Wave E (Security) | `cap/security-wave-e` | #7 | 2 | ~4 | 279 |
+| Wave F (Shopmgmt+Location+People) | `cap/shopmgmt-location-wave-f` | #8 | 8 | 21 stories | 488 |
 
 ---
 
@@ -187,24 +206,24 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | CAP-275 | ✅ DONE | Auth session wiring, interceptor 401 redirect, validateSessionOnResume (mockAuth-safe) |
 | CAP-253 | ✅ DONE | Roles list/detail, permissions registry, audit log placeholder, SecurityService (7 ops) |
 
-### 🟢 Wave F — Shopmgmt + Location Execution (IN FLIGHT)
+### � Wave F — Shopmgmt + Location Execution (PR #8 OPEN)
 
-**What:** Shopmgmt and location worksets are fully populated; execute these capabilities.
+**Branch:** `cap/shopmgmt-location-wave-f` | **PR:** #8 | **Tests:** 488/488 | **Status:** Remediation complete, awaiting merge
 
-**Readiness triage:**
+**Delivery triage:**
 
 | CAP | Domain | Stories | operation_ids | Status |
 | --- | --- | --- | --- | --- |
-| CAP-136 | `location` | 140–142 | All stories mapped (12 ops total) | 🟢 READY |
-| CAP-137 | `shopmgmt` | 137–139 | All stories mapped (9 ops total) | 🟢 READY |
-| CAP-138 | `shopmgmt` | 133–136 | All stories mapped (12 ops total) | 🟢 READY |
-| CAP-139 | `shopmgmt` / `people` | 130–132 | All stories mapped (10 ops total) | 🟢 READY |
-| CAP-140 | `shopmgmt` / `people` | 122, 127–129 | All stories mapped (12 ops total) | 🟢 READY |
-| CAP-141 | `shopmgmt` / `security` | 125–126 | All stories mapped (7 ops total) | 🟢 READY |
-| CAP-142 | `shopmgmt` | 124 | All stories mapped (3 ops total) | 🟢 READY |
-| CAP-249 | `shopmgmt` | 74–76 | All stories mapped (9 ops total) | 🟢 READY |
+| CAP-136 | `location` | 140–142 | All stories mapped (12 ops total) | 🔄 IN PROGRESS |
+| CAP-137 | `shopmgmt` | 137–139 | All stories mapped (9 ops total) | 🔄 IN PROGRESS |
+| CAP-138 | `shopmgmt` | 133–136 | All stories mapped (12 ops total) | 🔄 IN PROGRESS |
+| CAP-139 | `shopmgmt` / `people` | 130–132 | All stories mapped (10 ops total) | 🔄 IN PROGRESS |
+| CAP-140 | `shopmgmt` / `people` | 122, 127–129 | All stories mapped (12 ops total) | 🔄 IN PROGRESS |
+| CAP-141 | `shopmgmt` / `security` | 125–126 | All stories mapped (7 ops total) | 🔄 IN PROGRESS |
+| CAP-142 | `shopmgmt` | 124 | All stories mapped (3 ops total) | 🔄 IN PROGRESS |
+| CAP-249 | `shopmgmt` | 74–76 | All stories mapped (9 ops total) | 🔄 IN PROGRESS |
 
-**Normalization status:** Complete for Wave F worksets; no remaining empty `operation_ids` entries in CAP-136/137/138/139/140/141/142/249.
+**Review outcome:** PASS — 10 findings (F1–F10) resolved in commit `69d1c2b`. F9 (LOW: "work order" naming) deferred to cleanup PR.
 
 ### Wave G — People / HR
 
