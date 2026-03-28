@@ -848,6 +848,140 @@ Validation: accepted — 10 findings identified, FAIL verdict
 
 ---
 
+## Subagent Outputs — Round 3 Inline Thread Remediation
+
+---
+
+**Timestamp UTC**: 2026-03-28T12:00:00Z
+**Subagent**: PR Review Orchestrator (Round 3 evidence gathering)
+**Objective**: Discover new unresolved inline review threads after Round 2 commit `12c6fee`.
+**Result**: 8 new unresolved threads found (created 2026-03-28T10:59 by `copilot-pull-request-reviewer`). All 18 earlier threads confirmed resolved/outdated.
+**Validation Decision**: accepted
+
+### Round 3 — Open Review Threads
+
+| Thread ID | File | Line | Finding | Severity |
+| --- | --- | --- | --- | --- |
+| `r3004701740` | `appointment-create-page.component.ts` | 124 | `generateUuid()` calls `crypto.randomUUID()` without guard/fallback | MEDIUM |
+| `r3004701745` | `work-session-page.component.ts` | 87 | Hardcoded workorderId/locationId; `getSessionId()` fallback `'session-1'`; stop/break buttons always enabled | HIGH |
+| `r3004701752` | `travel-time-page.component.html` | 10 | Start form inputs have no `<label>` elements — a11y violation | MEDIUM |
+| `r3004701758` | `time-approval-page.component.ts` | 101 | `createAdjustment()` calls `subscribe()` without error handler | MEDIUM |
+| `r3004701760` | `bays-page.component.ts` | 35 | `route.params.subscribe()` never torn down — subscription leak | MEDIUM |
+| `r3004701763` | `schedule-view-page.component.ts` | 55 | `resourceType`/`resourceId` captured from query params but ignored in `loadBoard()` | HIGH |
+| `r3004701764` | `schedule-view-page.component.ts` | 46 | `route.queryParams.subscribe()` not unsubscribed — subscription leak | MEDIUM |
+| `r3004701767` | `mechanic-availability-page.component.ts` | 17 | `AppointmentService` injected but never used | LOW |
+
+### Round 3 — Plan
+
+**Objective**: Address all 8 open review threads, verify no regressions, reply to each thread.
+
+**Code Fixes (CODER)**:
+
+- C9: `appointment-create-page.component.ts` — wrap `crypto.randomUUID()` in guard/fallback consistent with `vendor-payment-new` pattern (`r3004701740`)
+- C10: `work-session-page.component.ts` — `getSessionId()` returns `''` instead of `'session-1'`; add `[disabled]` bindings to stop/break buttons when `!currentSession()` (`r3004701745`)
+- C11: `travel-time-page.component.html` — add `aria-label` attributes to all 3 form inputs/textarea (`r3004701752`)
+- C12: `time-approval-page.component.ts` — add error handler to `createAdjustment()` subscribe (`r3004701758`)
+- C13: `bays-page.component.ts` — add `DestroyRef` + `takeUntilDestroyed` to `route.params.subscribe()` (`r3004701760`)
+- C14: `schedule-view-page.component.ts` — add `DestroyRef`/`takeUntilDestroyed` to `queryParams.subscribe()`; pass `resourceType`/`resourceId` through to `AppointmentService.viewSchedule()` (`r3004701763`, `r3004701764`)
+- C14b: `appointment.service.ts` — extend `viewSchedule()` to accept optional `resourceType?` and `resourceId?` params
+- C15: `mechanic-availability-page.component.ts` — remove unused `AppointmentService` import and injection (`r3004701767`)
+
+**Test Fixes (TEST AGENT)**:
+
+- T10: `work-session-page.component.spec.ts` — update existing hardcoded-IDs test; add: `getSessionId()` returns `''` when no session; stop/break buttons disabled when no session
+- T11: `time-approval-page.component.spec.ts` — add: `createAdjustment()` error path sets `approveError`
+- T12: `schedule-view-page.component.spec.ts` — update test 6 to verify `viewSchedule` called with resourceType/resourceId when present; add test for missing params case
+- T13: `mechanic-availability-page.component.spec.ts` — update: `AppointmentService` not provided (or verify stub empty is still valid)
+
+---
+
+**Timestamp UTC**: 2026-03-28T12:15:00Z
+**Subagent**: PR Fix Coder (Round 3 cycle 1 — C9-C15)
+**Objective**: Apply all 8 code fixes for Round 3 review threads
+**Result**: All fixes applied. 9 files changed. `get_errors` clean on all.
+
+- C9: `appointment-create-page.component.ts` — crypto guard + fallback added
+- C10a: `work-session-page.component.ts` — ActivatedRoute injection; workorderId/locationId from params; empty getSessionId fallback; error on missing params
+- C10b: `work-session-page.component.html` — disabled bindings on stop/break buttons
+- C11: `travel-time-page.component.html` — aria-label on 3 form inputs
+- C12: `time-approval-page.component.ts` — createAdjustment error handler
+- C13: `bays-page.component.ts` — DestroyRef + takeUntilDestroyed
+- C14a: `appointment.service.ts` — viewSchedule extended with optional resourceType?/resourceId?
+- C14b: `schedule-view-page.component.ts` — DestroyRef + takeUntilDestroyed; resourceType/resourceId passed to viewSchedule
+- C15: `mechanic-availability-page.component.ts` — AppointmentService import + injection removed
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T12:30:00Z
+**Subagent**: PR Test Fixer (Round 3 cycle 1 — T10-T13)
+**Objective**: Add/update tests covering all Round 3 code fixes
+**Result**: 4 spec files updated. +6 new tests. Pre-existing `appointment-create-crm-page.component.spec.ts` nav assertion fixed (round 2 regression).
+
+- T10 (work-session): ActivatedRoute mock added to setup; broken hardcoded-IDs test fixed; 4 new tests (getSessionId empty, buttons disabled, missing workorderId error, missing locationId error)
+- T11 (time-approval): createAdjustment error path test added
+- T12 (schedule-view): test 6 assertion updated (`undefined, undefined` → `'', ''`); T12 new test for resourceType/resourceId pass-through
+- T13 (mechanic-availability): AppointmentService import + stub + provider removed from spec
+**Final test run**: 494/494 passing (59 files), exit code 0
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T12:35:00Z
+**Subagent**: PR Code Reviewer (Round 3 cycle 1 verification)
+**Objective**: Verify all 15 ACs for Round 3 fixes
+**Result**: **Verdict: PASS**. All 15 ACs satisfied with direct source evidence.
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T12:40:00Z
+**Subagent**: Coder (git commit + push)
+**Objective**: Commit and push Round 3 fixes
+**Result**: Committed as `d7cbd7f` on `cap/shopmgmt-location-wave-f`; pushed to remote. 14 files changed, +115/-38.
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T12:45:00Z
+**Subagent**: Orchestrator (PR comment)
+**Objective**: Post Round 3 review summary as PR comment
+**Result**: Comment posted at <https://github.com/louisburroughs/durion-positivity-frontend/pull/8#issuecomment-4147891221>
+**Validation Decision**: accepted
+
+---
+
+## Final Summary Addendum — Round 3
+
+### Round 3 Threads (8 addressed)
+
+| Thread ID | File | Fix | Status |
+| --- | --- | --- | --- |
+| `r3004701740` | `appointment-create-page.component.ts` | C9: crypto.randomUUID guard + fallback | ✅ Replied |
+| `r3004701745` | `work-session-page.component.ts` | C10: route params, empty sessionId fallback, disabled buttons | ✅ Replied |
+| `r3004701752` | `travel-time-page.component.html` | C11: aria-label on all inputs | ✅ Replied |
+| `r3004701758` | `time-approval-page.component.ts` | C12: createAdjustment error handler | ✅ Replied |
+| `r3004701760` | `bays-page.component.ts` | C13: takeUntilDestroyed teardown | ✅ Replied |
+| `r3004701763` | `schedule-view-page.component.ts` | C14: resourceType/resourceId wired | ✅ Replied |
+| `r3004701764` | `schedule-view-page.component.ts` | C14: takeUntilDestroyed for queryParams | ✅ Replied |
+| `r3004701767` | `mechanic-availability-page.component.ts` | C15: unused AppointmentService removed | ✅ Replied |
+
+### Tests
+
+- Before: 488/488 (before round 3; 494 after test agent pass 2)
+- After Round 3: **494/494 passing (59 files)** (+6 new tests)
+- Pre-existing regression fixed: `appointment-create-crm-page.component.spec.ts` nav assertion
+
+### Commit: `d7cbd7f`
+
+### PR Comment: <https://github.com/louisburroughs/durion-positivity-frontend/pull/8#issuecomment-4147891221>
+
+### Verification: **PASS** (1 cycle, no FAIL)
+
+### Processing Log: `/home/louis-burroughs/IdeaProjects/durion/PR-Review-Processing.md`
+
+---
+
 ## Subagent Outputs — Round 2 Inline Thread Remediation
 
 ---
