@@ -27,8 +27,8 @@ Legend for **Status** column:
 
 | Status | Count |
 | --- | --- |
-| ✅ DONE | 13 capabilities across 4 domains |
-| 🔄 IN PROGRESS / MERGED | 7 (Wave D — PR #6 merged) |
+| ✅ DONE | 19 capabilities across 6 domains |
+| 🔄 IN PROGRESS | 0 |
 | 🟢 READY | 1 (CAP-118) |
 | 🟡 NORMALIZE | 1 (CAP-094; operation_id gap on story #156) |
 | 🔴 BLOCKED | 1 (CAP-053; no wireframe; design fallback required) |
@@ -59,34 +59,12 @@ Legend for **Status** column:
 | CAP-090 | Contact management | `crm` | #1 | 170–172 + | 4/4 operation_ids; 4 wireframes |
 | CAP-091 | Vehicle management | `crm` | #2 | 165–169 | 7 operation_ids; 5 wireframes |
 | CAP-092 | Customer preferences / billing rules | `crm` | #2 (partial) | 162–164 | 3/3 operation_ids; 3 wireframes |
+| CAP-275 | Auth session wiring + JWT assertion admin | `security` / `auth` | #7 | 280 | validateSessionOnResume; logoutWithRedirect; interceptor 401 redirect |
+| CAP-253 | Security RBAC admin UI | `security` | #7 | 66 | Roles, permissions, audit log pages; SecurityService (7 ops) |
 
 ---
 
 ## In-Progress / Next Execution Ready
-
-### ✅ DONE — CAP-275: Login & Token Handling (ADR-0011)
-
-| Field | Value |
-| --- | --- |
-| **Domain** | `security` |
-| **Angular feature** | `src/app/features/auth/` + `src/app/features/security/` |
-| **Frontend story** | #280 in `durion-moqui-frontend` |
-| **Story MD** | `docs/capabilities/CAP-275/stories/frontend/CAP_275.280.frontend.md` |
-| **Wireframe** | `domains/security/.ui/frontend-story-security-login-token-handling-280.wf.md` ✅ created |
-| **Contract guide** | `domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md` |
-| **Contract status** | `draft` |
-| **operation_ids** | `enable` (JWT assertion enable/disable toggle) |
-| **OpenAPI** | `pos-security-service/openapi.yaml` |
-| **Blockers** | Contract status is `draft`; login page already exists in `auth/` — wave scope is token validation + assertion admin UI |
-
-**What the Angular frontend needs (Wave E scope):**
-
-1. Wire `validateToken` on app bootstrap / session resume (currently not called — AuthService uses JWT decode only)
-2. Add HTTP interceptor 401 handler that redirects to `/login?returnUrl=...`
-3. Security admin page: enable/disable JWT assertion issuance via `enable` operation
-4. Optional: token configuration admin form (issuer, audience, TTL display)
-
----
 
 ### 🟢 READY — CAP-118: Identity Orchestration (People domain)
 
@@ -182,8 +160,8 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | `crm` | `src/app/features/crm/` | ✅ Full (partial on CAP-092) | CAP-089–092 |
 | `billing` | `src/app/features/billing/` | ✅ Full | CAP-007 |
 | `accounting` | `src/app/features/accounting/` | ✅ Full | CAP-049–055 |
-| `auth` | `src/app/features/auth/` | 🟡 Partial | Login page exists; no token refresh or validate wiring |
-| `security` | `src/app/features/security/` | 🔴 Stub | Routes file only; no pages |
+| `auth` | `src/app/features/auth/` | ✅ Full | CAP-275: session wiring, interceptor, session-expired banner |
+| `security` | `src/app/features/security/` | ✅ Full | CAP-275 + CAP-253: roles, permissions, audit log RBAC admin |
 | `inventory` | `src/app/features/inventory/` | ⬜ Stub | Routes file only |
 | `people` | `src/app/features/people/` | ⬜ Stub | Routes file only |
 | `product` | `src/app/features/product/` | ⬜ Stub | Routes file only |
@@ -202,34 +180,43 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | Wave B-cont | `cap/workexec-wave-b-cont` | #4 | 2 | ~8 | — |
 | Wave C (Completion) | `cap/workexec-wave-c` | #5 | 2 | 5 | 172 |
 | Wave D (Accounting) | `cap/accounting-wave-d` | #6 | 7 | 18 | 187 |
+| Wave E (Security) | `cap/security-wave-e` | #7 | 2 | ~4 | 279 |
 
 ---
 
 ## Recommended Execution Sequence — Next Waves
 
-### Wave E — Security Foundation (CAP-275 + CAP-253)
+### ✅ Wave E — Security Foundation (CAP-275 + CAP-253) — MERGED PR #7
 
-**What:** Wire the Angular auth layer properly; build the Security admin UI for roles, permissions, and token control.
+**Merged:** 2026-03-27 | Branch: `cap/security-wave-e` | PR: #7 | Tests: 279/279
 
 | CAP | Status | Scope |
 | --- | --- | --- |
-| CAP-275 | ✅ DONE | Auth wire-up + JWT assertion admin toggle (`security` + `auth` domains) |
-| CAP-253 | ✅ DONE | Roles, permissions, audit log admin (`security` domain) |
+| CAP-275 | ✅ DONE | Auth session wiring, interceptor 401 redirect, validateSessionOnResume (mockAuth-safe) |
+| CAP-253 | ✅ DONE | Roles list/detail, permissions registry, audit log placeholder, SecurityService (7 ops) |
 
-**Pre-condition for CAP-253:** Validate deferred story operation wiring (`CAP_253.65`) during execution and keep deferral rationale in run artifacts if unchanged.
+### 🟢 Wave F — Shopmgmt + Location Execution (NEXT)
 
-### Wave F — Shopmgmt + Location Execution
+**What:** Shopmgmt and location worksets are fully populated; execute these capabilities.
 
-**What:** Shopmgmt and location worksets are populated; execute those capabilities while moving story elaboration to remaining empty-workset domains.
+**Readiness triage:**
 
-**Targets (in priority order):**
+| CAP | Domain | Stories | operation_ids | Status |
+| --- | --- | --- | --- | --- |
+| CAP-136 | `location` | 140–142 | Empty | 🟡 NORMALIZE |
+| CAP-137 | `shopmgmt` | 137–138 | 137: 3 ops ✅; 138: empty | 🟡 NORMALIZE |
+| CAP-138 | `shopmgmt` | 133–134 | 133: 3 ops ✅; 134: empty | 🟡 NORMALIZE |
+| CAP-139 | `shopmgmt` / `people` | 130–131 | 130: 3 ops ✅; 131: empty | 🟡 NORMALIZE |
+| CAP-140 | `shopmgmt` / `people` | 122, 127 | 122: 3 ops ✅; 127: empty | 🟡 NORMALIZE |
+| CAP-141 | `shopmgmt` / `security` | 125–126 | 125: 3 ops ✅; 126: empty | 🟡 NORMALIZE |
+| CAP-142 | `shopmgmt` | 124 | 3 ops ✅ | 🟢 READY |
+| CAP-249 | `shopmgmt` | 74–75 | 74: 3 ops ✅; 75: empty | 🟡 NORMALIZE |
 
-1. Execute CAP-136, CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249
-2. No remaining frontend story-elaboration backlog.
+**Pre-execution:** Normalize empty `operation_ids` for stories 138, 134, 131, 127, 126, 75 by inspecting canonical OpenAPI specs.
 
-### Wave G — People / HR + Location
+### Wave G — People / HR
 
-**What:** Execute CAP-118, then elaborate remaining `people` stories.
+**What:** Execute CAP-118 (READY), then elaborate remaining `people` stories.
 
 ---
 
