@@ -845,3 +845,76 @@ Validation: accepted — 10 findings identified, FAIL verdict
 ### Processing Log File
 
 `/home/louis-burroughs/IdeaProjects/durion/PR-Review-Processing.md`
+
+---
+
+## Subagent Outputs — Round 2 Inline Thread Remediation
+
+---
+
+**Timestamp UTC**: 2026-03-28T11:20:00Z
+**Subagent**: PR Review Orchestrator (inline review comment discovery)
+**Objective**: Identify unresolved review comment threads on PR #8 via get_review_comments
+**Result**: 7 unresolved threads found (created 2026-03-28T10:33 by second Copilot pass). Root cause of missed threads in round 1: orchestrator called get_comments (issue-level) but NOT get_review_comments (inline code threads). Both must always be fetched in future runs.
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T11:25:00Z
+**Subagent**: PR Fix Coder (direct code fixes by orchestrator)
+**Objective**: Fix all 7 unresolved inline review threads
+**Thread → Fix mapping**:
+
+| Thread | File | Fix |
+| :--- | :--- | :--- |
+| r3004678475 | appointment-create-page.component.ts | nav → `[...appointmentId, 'edit']` |
+| r3003971176 (also unfixed) | appointment-create-crm-page.component.ts | same nav fix |
+| r3004678480 | estimate-from-appointment spec | route `/workexec/workorders` → `/app/workexec/workorders` |
+| r3004678485 | travel-time-page.component.ts | removed `'segment-1'` fallback; returns `''` |
+| r3004678488 | travel-time-page.component.html | disabled Stop when no segmentId; disabled Submit All when no assignmentId |
+| r3004678492 | estimate-from-appointment.component.ts | route `/workexec/workorders` → `/app/workexec/workorders` |
+| r3004678495 | operational-context-page.component.ts | `getWorkorder()` → `getOperationalContext()` |
+| r3004678498 | package.json | zone.js moved devDependencies → dependencies |
+
+**Spec fixes**:
+
+- `estimate-from-appointment-page.component.spec.ts` — route expectation updated
+- `operational-context-page.component.spec.ts` — stub/expectations updated `getWorkorder` → `getOperationalContext`
+
+**No spec changes required**: travel-time spec tests call methods directly; existing tests pass with component fix.
+
+**Commit**: `12c6fee`
+**Validation Decision**: accepted
+
+---
+
+**Timestamp UTC**: 2026-03-28T11:30:00Z
+**Subagent**: PR comment (GitHub)
+**Objective**: Post round-2 inline thread remediation summary
+**Result**: Comment posted at <https://github.com/louisburroughs/durion-positivity-frontend/pull/8#issuecomment-4147835759>
+**Validation Decision**: accepted
+
+---
+
+## Final Summary Addendum — Round 2 Inline Threads
+
+```markdown
+### Round 2 Inline Thread Remediation (2026-03-28)
+
+**Commit**: 12c6fee
+
+**Root cause of missed threads**: get_review_comments was not called in round 1; only get_comments (issue-level) was called. This is now documented as a required step in the review runbook.
+
+**7 unresolved threads addressed**:
+- r3004678475: appointment-create nav → /edit suffix ✅
+- r3004678480: estimate-from-appointment spec route fix ✅
+- r3004678485: travel-time getSegmentId no hardcoded fallback ✅
+- r3004678488: travel-time Submit All disabled when no assignmentId ✅
+- r3004678492: estimate-from-appointment nav /app prefix ✅
+- r3004678495: operational-context uses getOperationalContext() ✅
+- r3004678498: zone.js moved to dependencies ✅
+
+**Also fixed (same bug)**: appointment-create-crm nav → /edit suffix (thread r3003971176 was "resolved" without code fix in round 1).
+
+**PR comment**: https://github.com/louisburroughs/durion-positivity-frontend/pull/8#issuecomment-4147835759
+```
