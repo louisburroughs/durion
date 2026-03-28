@@ -23,6 +23,9 @@ stories:
   wireframe: domains/crm/.ui/frontend-story-integration-inbound-event-handler-f-156.wf.md
   contract_guide: domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
-  openapi_spec: durion-positivity-backend/pos-customer/openapi.yaml
-  # TODO(CAP-094.156): populate when ProcessingLog/Suspense read endpoints are present in OpenAPI.
-  operation_ids: []
+  openapi_spec: durion-positivity-backend/pos-accounting/openapi.yaml
+  operation_ids:
+  - listEvents
+  - getEvent
+  - getEventProcessingLog
+  - getReprocessingHistory

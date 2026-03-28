@@ -6,7 +6,7 @@ stories:
   frontend_issue: 192
   frontend_story_md: docs/capabilities/CAP-053/stories/frontend/CAP_053.192.frontend.md
   backend_issue: 128
-  wireframe: ''
+  wireframe: domains/accounting/.ui/frontend-story-ap-execute-payment-and-post-to-gl-192.wf.md
   contract_guide: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
   sdk_package: ''
   openapi_spec: durion-positivity-backend/pos-accounting/openapi.yaml
