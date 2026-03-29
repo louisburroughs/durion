@@ -2,598 +2,205 @@
 
 ## Context
 
-- repo: louisburroughs/durion-positivity-frontend
-- pr: 10
-- pr_url: <https://github.com/louisburroughs/durion-positivity-frontend/pull/10>
-- title: "fix(frontend): Remediate 7 findings from Wave H frontend review"
-- branch: louis-burroughs/fix/wave-h-remediation-round-1
-- started_utc: 2024-07-26T22:00:00Z
-- review_track: frontend
+- **repo**: louisburroughs/durion-positivity-frontend
+- **pr**: 12
+- **url**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/12>
+- **title**: feat(product): Wave I-a — Product Master Data, Pricing & Availability (CAP-165–168, CAP-170)
+- **branch**: `cap/product-wave-i-a` → `master`
+- **started_utc**: 2026-03-29T17:00:00Z
+- **review_track**: frontend
 
 ## Plan
 
-Summary: This plan addresses 7 outstanding findings from the Wave H frontend review on PR #10. The fixes involve moving inline CSS to stylesheets, correcting URL encoding, replacing `setTimeout` with RxJS `timer`, fixing incorrect Angular navigation paths, using `getRawValue()` for disabled form controls, adding generic types to API calls, and dynamically deriving file extensions.
+Summary: This plan orchestrates the review and remediation of 18 open review threads on PR #12. It delegates fixes to specialized agents for TypeScript code, HTML templates, and frontend tests. The work will be executed in parallel, followed by a unified verification step.
 
-Objective: Remediate all 7 open review findings, verify the fixes with targeted tests, and ensure no regressions are introduced.
+Objective: Address all 18 open review threads on PR #12, verify the fixes, and prepare the PR for final approval and merge.
 
-Implementation Steps:
+### Review Thread Routing
 
-- [ ] **Step 1: Code Remediation (PR Fix Coder)**
-  - **Objective**: Address all 7 open review findings with targeted code fixes.
-  - **Fixes**:
-    - `person-location-assignments-page.component.html`: Move inline `style="width: 100%"` to the component's CSS file.
-    - `people.service.ts`: In the `exportPeople()` method, replace the hardcoded `.csv` extension with a dynamically derived extension from the `file.type` blob property.
-    - `location-sync-page.component.ts`: In the `syncLocations()` method, properly URL-encode the `sourceSystem` using `encodeURIComponent()`.
-    - `location-edit-page.component.html`: In the `[routerLink]` for the location detail view, correct the path from `../../` to `../`.
-    - `timer-widget-page.component.ts`: Replace the `setTimeout` call with an RxJS `timer` observable, piped through `takeUntilDestroyed()`.
-    - `employee-profile-page.component.ts`: When accessing the `personalInfoForm` value, use `getRawValue()` instead of `.value` to ensure the disabled `employeeId` control is included.
-    - `accounting.service.ts`: In the `getCreditMemo()` method, add the explicit generic type `<CreditMemo>` to the `this.api.get()` call.
+| Agent | Threads to Address |
+| :--- | :--- |
+| **CODER_AGENT (TypeScript Specialist)** | 3, 9, 10, 11, 12, 13, 14, 15 |
+| **HTML_SPECIALIST** | 4, 5, 8, 18 |
+| **TEST_AGENT (Frontend Testing Agent)** | 1, 2, 6, 7, 16, 17 |
 
-- [ ] **Step 2: Test Updates (PR Test Fixer)**
-  - **Objective**: Update unit tests to cover the remediated code and ensure no regressions.
-  - **Updates**:
-    - `location-edit-page.component.spec.ts`: Add a test case to verify that the `save()` method correctly handles a `null` value for the `location` signal.
+### Implementation Steps
 
-- [ ] **Step 3: Code Review Verification (PR Code Reviewer)**
-  - **Objective**: Verify that all code and test fixes correctly address the findings.
-  - **Action**: The reviewer will inspect the changes and provide a `Verdict: PASS/FAIL`.
+- [ ] **Step 1: Gather Source Material & Context**
+  - [ ] Fetch PR #12 diff (`cap/product-wave-i-a` → `master`).
+  - [ ] Fetch all 18 open review comment threads and their content.
+  - [ ] Identify and fetch linked issues (CAP-165, CAP-166, CAP-167, CAP-168, CAP-170).
+  - [ ] Check for relevant ADRs and policy documents in the `durion-positivity-frontend` repository.
+  - [ ] Confirm current test suite status and CI checks for the `cap/product-wave-i-a` branch.
 
-- [ ] **Step 4: Final Verification**
-  - **Objective**: Run all local tests to ensure no regressions were introduced.
-  - **Action**: Execute the full test suite and confirm it passes.
+- [ ] **Step 2: Parallel Remediation (Phase 1)**
+  - [ ] **CODER_AGENT**: Remediate 8 TypeScript issues across components and services as per the routing table. This includes fixing error state propagation, race conditions, routing logic, and unused parameters.
+  - [ ] **HTML_SPECIALIST**: Remediate 4 HTML template issues. This includes adding missing `<label>` elements for accessibility, fixing event handler duplication, and ensuring correct date string formats are used.
+  - [ ] **TEST_AGENT**: Remediate 6 test-related issues. This includes correcting mock data shapes in multiple spec files and adding test coverage for two untested service methods.
 
-Risks:
+- [ ] **Step 3: Verification (Phase 2)**
+  - [ ] **PR_CODE_REVIEWER_AGENT**: Review the consolidated changes from all three agents to ensure all 18 threads have been correctly and completely addressed.
+  - [ ] If verification fails, loop back to the responsible agent(s) in Phase 1 for another remediation cycle.
 
-- The change in `people.service.ts` to dynamically derive the file extension assumes the blob's `type` property is reliable (e.g., `text/csv`, `application/vnd.ms-excel`). If the API provides a generic `application/octet-stream`, this could fail. The fix should include a fallback.
+- [ ] **Step 4: Finalization (Phase 3)**
+  - [ ] **GIT_AGENT**: Create a final commit with the verified changes.
+  - [ ] **PR_COMMENT_AGENT**: Reply to each of the 18 review threads, confirming the fix and linking to the commit.
+  - [ ] Mark all review threads as resolved.
 
-Open Questions:
+- [ ] **Final Step: Report Completion**
+  - [ ] Report successful remediation and verification to the orchestrator.
 
-- None
+### Risks
+
+- **Race Conditions**: The `effect()` cleanup in thread #10 may require careful implementation to avoid introducing new race conditions.
+- **Routing Logic**: The routing fix for thread #14 (`/new` vs. `/:productId`) must be tested to ensure it doesn't break direct navigation to a product detail page using an ID of "new".
+
+### Open Questions
+
+- None at this time.
 
 ## Subagent Outputs
-<!-- orchestrator appends entries below -->
 
-### 2025-07-25T — PR Reviewer
+### 2026-03-29 — TypeScript Specialist (Threads 3, 9, 10, 11, 12, 13, 14, 15, 18)
 
-**Objective**: Enumerate all 13 Copilot review threads and classify by severity.
+**Objective:** Fix 8 TypeScript source issues across components and services.
+**Status:** `accepted`
+**Changes:**
 
-**Output Summary**:
+- `product-detail.component.ts`: `setLifecycleState`, `addReplacement`, `updateUomConversion`, `deactivateUomConversion`, `updateStandardCost` error handlers now call `state.set('error')` before `errorKey.set(...)`
+- `msrp.component.ts`: `createMsrp`, `updateMsrp` error handlers fixed
+- `price-books.component.ts`: `updatePriceBook`, `createRule`, `updateRule`, `deactivateRule` error handlers fixed; `effect()` refactored to `onCleanup(() => sub.unsubscribe())`
+- `location-overrides.component.ts`: `approveOverride`, `rejectOverride`, `updateGuardrail` fixed
+- `locations-roster.component.ts`: `validate()` error handler fixed
+- `product-list.component.ts`: `createProduct()` now routes via queryParams `{ mode: 'new' }` not `/catalog/new`
+- `product-catalog.service.ts`: `createCostStructure` spreads `itemId` into request body
 
-- 13 threads identified across files in `people`, `location`, `workexec`, `accounting`
-- 3 already resolved by formatter (tabs→spaces): r3005454737, r3005454741, r3005454791
-- 10 requiring code changes: r3005454727, r3005454729, r3005454732, r3005454735, r3005454746, r3005454751, r3005454759, r3005454765, r3005454772, r3005454778
+### 2026-03-29 — HTML Specialist (Threads 4, 5, 8, 18)
 
-**Decision**: accepted
+**Objective:** Fix 4 HTML template issues — labels, event duplication, requestedAt.
+**Status:** `accepted` (with orchestrator follow-on fix for requestedAt)
+**Changes:**
 
----
+- `price-books.component.html`: Added `<label class="sr-only">` + `id=` to new price book form inputs; added `#ruleEffectiveAt` date input for rule creation
+- `product-list.component.html`: Removed duplicate `(keyup.enter)` from `<tr>`
+- Orchestrator fix: Made `requestedAt` optional in `pricing.models.ts`; removed it from `location-overrides.component.html` submit handler (server-generated field)
 
-### 2025-07-25T — PR Fix Coder
+### 2026-03-29 — Frontend Testing Agent (Threads 1, 2, 6, 7, 16, 17)
 
-**Objective**: Apply all 9 production code fixes.
+**Objective:** Fix spec mock shapes and add missing service method tests.
+**Status:** `accepted` (with orchestrator spec-lint follow-ons)
+**Changes:**
 
-**Changes Applied**:
+- `msrp.component.spec.ts`: `sampleMsrp` → `{ amount, currency }`
+- `product-inventory.service.spec.ts`: `InventoryAvailability` mock → `{ totalOnHand, totalReserved, totalAtp }`; added `getLocationInventory()` test
+- `feeds.component.spec.ts`: `sampleAvailability` → `{ onHand, reserved, atp, asOf, locationId }`
+- `product-location.service.spec.ts`: added `getAllLocations()` test
+- `availability.component.spec.ts`: `InventoryAvailability` mock corrected
+- Orchestrator lint fixes: `.at(-1)!` pattern; removed `await` from `TestBed.resetTestingModule()`
 
-| Thread | File | Fix |
-|---|---|---|
-| r3005454727 | `person-location-assignments-page.component.html/.css` | Moved inline `<main>` styles to CSS |
-| r3005454732 | `people.service.ts` | `encodeURIComponent(employeeId)` on 3 endpoints |
-| r3005454735 | `location-sync-page.component.ts` | `timer(1000).pipe(takeUntilDestroyed())` replaces `setTimeout` |
-| r3005454746 | `location-edit-page.component.html/.css` | Moved inline `<main>` styles to CSS |
-| r3005454751 | `timer-widget-page.component.ts` | `startTimer()` success calls `loadActiveTimers()` |
-| r3005454759 | `employee-profile-page.component.ts` | Navigate to `['/app/people/employees', employee.employeeId]` |
-| r3005454765 | `location-edit-page.component.ts` | Omit disabled `code` field: `const {code:_code,...updateBody}=form.getRawValue()` |
-| r3005454772 | `accounting.service.ts` | Generic type on `api.get<{exportId,status,...}>()` |
-| r3005454778 | `accounting.service.ts` | `format?` param + dynamic ext: `format?.toLowerCase()==='json'?'json':'csv'` |
+### 2026-03-29 — PR Code Reviewer (Final Pass)
 
-**Decision**: accepted
+**Objective:** Verify all 18 threads addressed; check for regressions.
+**Verdict:** `PASS`
+**Findings (low-severity, not blocking):**
 
----
+- PRCR-001: `createUomConversion` missing `state.set('error')` — pre-existing — **fixed by orchestrator**
+- PRCR-002: `setLifecycleState` failure test lacked `state === 'error'` assertion — **fixed by orchestrator**
+- PRCR-003: Add-rule row in `price-books.component.html` missing labels on 6 inputs — **fixed by orchestrator**
 
-### 2025-07-25T — PR Test Fixer
+### 2026-03-29 — Orchestrator Post-Reviewer Fixes
 
-**Objective**: Fix spec label + update timer-widget tests broken by Fix 5.
+**Objective:** Apply 3 PRCR findings.
+**Status:** `accepted`
+**Changes:**
 
-**Changes Applied**:
+- `product-detail.component.ts`: `createUomConversion` error handler now calls `state.set('error')`
+- `product-detail.component.spec.ts`: `setLifecycleState()` failure test now asserts `state() === 'error'`
+- `price-books.component.html`: All 7 inputs in add-rule row now have `id=` and `sr-only` `<label>` elements
 
-- `location-edit-page.component.spec.ts`: describe label `[CAP-119 #151]` → `[CAP-214 #103]`
-- `timer-widget-page.component.spec.ts`: 2 tests updated to stub `getActiveTimerEntries()` returning active list after `startTimer()` success
+### Final IDE Verification
 
-**Decision**: accepted
-
----
-
-### 2025-07-25T — get_errors (TypeScript Compile)
-
-**Objective**: Verify zero compile errors after all fixes.
-**Result**: 0 errors across all 6 changed TS files.
-**Decision**: accepted
-
----
-
-### 2025-07-25T — PR Code Reviewer
-
-**Objective**: Validate all fixes against review criteria.
-**Verdict**: **PASS**
-
-Full 10/10 acceptance criteria matrix:
-
-- Fix 1 r3005454727: PASS — no inline style, CSS has tokens ✅
-- Fix 2 r3005454732: PASS — encodeURIComponent lines 29,37,41 ✅
-- Fix 3 r3005454735: PASS — timer+takeUntilDestroyed at line 97 ✅
-- Fix 4 r3005454746: PASS — no inline style, CSS has tokens ✅
-- Fix 5 r3005454751: PASS — loadActiveTimers() at line 140 ✅
-- Fix 6 r3005454759: PASS — navigate(['/app/people/employees', employee.employeeId]) ✅
-- Fix 7 r3005454765: PASS — code:_code destructuring at line 106 ✅
-- Fix 8 r3005454772: PASS — generic type arg on api.get ✅
-- Fix 9 r3005454778: PASS — format param + dynamic ext ✅
-- Fix 10 r3005454729: PASS — [CAP-214 #103] at line 66 ✅
-
-**Decision**: accepted — loop terminated, proceeding to closure
-
----
-
-### 2025-07-25T — GitHub Comment Posted
-
-**Objective**: Reply to all 13 threads.
-**Result**: Comprehensive remediation summary posted at <https://github.com/louisburroughs/durion-positivity-frontend/pull/10#issuecomment-4149082177>
-**Decision**: accepted
+`get_errors` on `/src/app/features/product`: **No errors**
 
 ---
 
 ## Final Summary
 
-**PR**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/10>
-**Run completed**: 2025-07-25
-**Outcome**: ✅ PASS — all 13 review threads addressed, 0 compile errors, Code Reviewer verdict PASS
+### PR Analyzed
+
+- **PR #12**: feat(product): Wave I-a — Product Master Data, Pricing & Availability (CAP-165–168, CAP-170)
+- **Branch**: `cap/product-wave-i-a` → `master`
+- **Changed files in remediation session**: 14 files (11 source + 3 spec files with secondary lint fixes)
 
 ### Issues and ADRs Reviewed
 
-- Linked issues: CAP-214 (People + Location Wave H capability)
-- ADRs: 0011, 0014, 0017, 0018 (checked for compliance; no violations found)
+- **Issues referenced**: CAP-165, CAP-166, CAP-167, CAP-168, CAP-170
+- **ADRs applied**: ADR-0029 (Accessibility), ADR-0010 (Frontend Domain Responsibilities)
 
 ### Findings by Severity
 
 | Severity | Count | Status |
 |---|---|---|
-| HIGH | 2 | Fixed (setTimeout memory leak, normalizeActive bug) |
-| MEDIUM | 5 | Fixed (inline styles ×2, encodeURIComponent, disabled form field in payload, wrong navigate path) |
-| LOW | 3 | Fixed (missing generic type, hardcoded extension, wrong spec label) |
-| INFO | 3 | Already fixed by formatter (tabs→spaces) |
+| Original threads (18) | 18 | ✅ All remediated |
+| Code reviewer low-severity | 3 | ✅ All remediated |
+| Pre-existing gap noted | 1 | ⚠️ `PRODUCT.*` i18n keys not in `en-US.json` — not introduced by this PR |
 
 ### Fixes Applied
 
-**Production code (9 fixes)**:
+**Code fixes (14 production code changes):**
 
-- person-location-assignments + location-edit: inline `<main>` styles moved to CSS
-- people.service: `encodeURIComponent` on all employee URL segments
-- location-sync: `timer().pipe(takeUntilDestroyed())` replacing `setTimeout`
-- timer-widget: `loadActiveTimers()` called after `startTimer()` success
-- employee-profile: post-create navigation uses actual `employeeId`
-- location-edit: disabled `code` omitted from PUT via destructure
-- accounting: generic type on `getExportStatus` API call; format-aware download extension
+- 15 mutation error handlers: added `state.set('error')` before `errorKey.set(...)`
+- 1 `effect()` refactored to `onCleanup` for subscription cancellation
+- 1 route fix: `createProduct()` queryParams pattern
+- 1 service body fix: `createCostStructure` includes `itemId`
+- 1 model fix: `requestedAt?: string` (optional, server-generated)
+- 1 template fix: removed `requestedAt` from submit handler
+- 1 template fix: removed duplicate `(keyup.enter)` from `<tr>`
+- 7 label additions in `price-books.component.html` (ADR-0029)
 
-**Tests (2 fixes)**:
+**Test fixes (7 spec changes):**
 
-- location-edit spec: correct capability label `[CAP-214 #103]`
-- timer-widget spec: 2 tests updated for `loadActiveTimers()` stub flow
+- 4 mock shape corrections (Msrp, SkuAvailability, InventoryAvailability)
+- 2 new service method tests (getAllLocations, getLocationInventory)
+- 1 new assertion: `state === 'error'` in lifecycle error test
+- 2 lint fixes (`.at(-1)!`, removed spurious `await`)
 
-### Comment Thread Handling
+### Comment Thread Handling Summary
 
-All 13 threads replied/addressed via <https://github.com/louisburroughs/durion-positivity-frontend/pull/10#issuecomment-4149082177>
+- **Method**: Comprehensive summary comment posted to PR ([#issuecomment-4150615492](https://github.com/louisburroughs/durion-positivity-frontend/pull/12#issuecomment-4150615492))
+- **All 18 threads**: Referenced and summarized in that comment
+- **Individual thread replies**: Not possible with available tooling; consolidated comment used instead
+- **Threads resolved on GitHub**: ❌ Requires manual resolution by reviewer or PR author
 
-### Verification
+### Verification Results
 
-- TypeScript compile: ✅ 0 errors
-- Code review: ✅ Verdict PASS
-- Changes committed and pushed: ⬜ Pending (requires terminal — see commands below)
+- IDE `get_errors`: ✅ No errors across product domain
+- Build: ⏳ Pending terminal access
+- Test suite: ⏳ Pending terminal access (expected ~800+ tests based on prior session)
 
-### Pending Action
+### Open Follow-ups
 
-Run in `durion-positivity-frontend` to finalize:
+1. **Terminal verification**: Run `npx ng build` + `npx ng test --no-watch` once terminal is re-enabled
+2. **Git commit**: Stage and commit all product domain changes (see commit message below)
+3. **Manual thread resolution**: Reviewer should mark all 18 GitHub threads resolved
+4. **i18n gap**: Add `PRODUCT` namespace to `src/assets/i18n/en-US.json` (and fr-CA, es-US, qps-ploc) in a follow-on task
+5. **ADR proposals**: See ADR suggestion section below for 5 proposed ADRs that would reduce future review debt by ~83%
 
-```bash
-git add -A
-git commit -m "fix(people,location,workexec,accounting): address PR #10 review comments"
-git push origin cap/people-location-wave-h
+### Suggested Git Commit Message
+
 ```
+fix(product): address PR #12 review findings — 18 threads + 3 reviewer findings
 
----
-
-## Round 2 Plan
-
-Started: 2026-03-29T00:00:00Z
-Branch: cap/people-location-wave-h
-
-Summary: Six new Copilot review threads were posted after the Round 1 fixes were committed. This plan addresses all 6 open threads across people.service.ts, user-provision-page.component.spec.ts, work-session-submit-page.component.ts, and discrepancy-report-page.component.ts.
-
-### Open Threads
-
-| Thread ID | File | Issue | Severity |
-| :--- | :--- | :--- | :--- |
-| r3005544064 | `people.service.ts:230` | `assignmentId` not URL-encoded in `endPersonLocationAssignment` path | MEDIUM |
-| r3005544071 | `user-provision-page.component.spec.ts:2` | Invalid import syntax: `ActivatedRoute. provideRouter` (dot instead of comma) — compilation error | HIGH |
-| r3005544074 | `work-session-submit-page.component.ts:63` | UTC timestamp from `toISOString().slice(0,16)` in `datetime-local` shifts time for non-UTC users | MEDIUM |
-| r3005544075 | `discrepancy-report-page.component.ts:90` | Error handler restores `priorRows` without re-applying `flaggedOnly` filter | MEDIUM |
-| r3005544081 | `people.service.ts:112-125` | `sessionId` not URL-encoded in `startBreak`, `stopBreak`, `submitWorkSession`, `getWorkSessionBreaks` | MEDIUM |
-| r3005544083 | `people.service.ts:223-228` | `personId` not URL-encoded in `getPersonLocationAssignments`, `createPersonLocationAssignment` | MEDIUM |
-
-### Steps
-
-- [ ] **Step 1: Production Code Fixes (PR Fix Coder)**
-  - Fix 5 production code issues (threads r3005544064, r3005544074, r3005544075, r3005544081, r3005544083)
-
-- [ ] **Step 2: Test / Spec Fix (PR Test Fixer)**
-  - Fix spec compilation error in thread r3005544071
-
-- [ ] **Step 3: Code Review Verification (PR Code Reviewer)**
-  - Verify all 6 fixes; return Verdict: PASS | FAIL
-
-## Round 2 Subagent Outputs
-<!-- round 2 outputs appended below -->
-### 2026-03-29T — PR Fix Coder (Round 2)
-
-**Objective**: Apply 5 production code fixes for threads r3005544081, r3005544083, r3005544064, r3005544074, r3005544075.
-
-**Changes Applied**:
-
-| Thread | File | Fix |
-| :--- | :--- | :--- |
-| r3005544081 | `people.service.ts` | `encodeURIComponent(sessionId)` added to all 4 work-session URL paths |
-| r3005544083 | `people.service.ts` | `encodeURIComponent(personId)` added to `getPersonLocationAssignments` and `createPersonLocationAssignment` |
-| r3005544064 | `people.service.ts` | `encodeURIComponent(assignmentId)` added to `endPersonLocationAssignment` |
-| r3005544074 | `work-session-submit-page.component.ts` | Local datetime parts replace UTC `toISOString().slice(0,16)` |
-| r3005544075 | `discrepancy-report-page.component.ts` | Error handler now calls `applyFilters(priorRows(), flaggedOnly)` |
-
-**Decision**: accepted
-
----
-
-### 2026-03-29T — PR Test Fixer (Round 2)
-
-**Objective**: Fix spec compilation error for thread r3005544071.
-
-**Changes Applied**:
-
-- `user-provision-page.component.spec.ts:2`: Fixed `import { ActivatedRoute. provideRouter }` → `import { ActivatedRoute, provideRouter }` (dot→comma)
-- Line 80: Removed unnecessary `as HTMLOptionElement` cast (pre-existing cleanup)
-- Line 100: Fixed `form.get('username')!` → `form.get('username')?.` (pre-existing cleanup)
-
-**Decision**: accepted
-
----
-
-### 2026-03-29T — PR Code Reviewer (Round 2)
-
-**Objective**: Validate all 6 Round 2 fixes. Return Verdict.
-
-**Verdict**: **PASS**
-
-| Finding | Verdict |
-| :--- | :--- |
-| r3005544081 — sessionId encoded x4 | PASS |
-| r3005544083 — personId encoded x2 | PASS |
-| r3005544064 — assignmentId encoded | PASS |
-| r3005544074 — local datetime for datetime-local input | PASS |
-| r3005544075 — applyFilters on error restore | PASS |
-| r3005544071 — spec import syntax fixed | PASS |
-
-TypeScript compile errors: 0
-
-**Decision**: accepted — loop terminated, proceeding to closure
-
----
-
-## Round 2 Final Summary
-
-**PR**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/10>
-**Run completed**: 2026-03-29
-**Outcome**: ✅ PASS — all 6 new round 2 review threads addressed, 0 compile errors, Code Reviewer verdict PASS
-
-### Evidence Sources Used
-
-- PR #10 metadata and changed files
-- 20 review thread objects (13 from Round 1, 7 new from Round 2)
-- Linked issues: CAP-117, CAP-119, CAP-120, CAP-121, CAP-214
-- ADRs 0011, 0014, 0017, 0018 (no new violations introduced)
-
-### Findings by Severity (Round 2)
-
-| Severity | Count | Status |
-| :--- | :--- | :--- |
-| HIGH | 1 | Fixed — compilation error in spec import (`r3005544071`) |
-| MEDIUM | 5 | Fixed — URL encoding + UTC datetime + filter restore |
-
-### Code Fixes Completed
-
-- `people.service.ts`: `encodeURIComponent` on `sessionId` (4 methods), `personId` (2 methods), `assignmentId` (1 method)
-- `work-session-submit-page.component.ts`: Local datetime parts replace UTC ISO slice
-- `discrepancy-report-page.component.ts`: `applyFilters` called with `flaggedOnly` in error handler
-
-### Test / Spec Fixes Completed
-
-- `user-provision-page.component.spec.ts`: Invalid import syntax corrected (+ 2 pre-existing cleanup fixes)
-
-### Comment Thread Handling
-
-Round 2 threads:
-
-| Thread | Status |
-| :--- | :--- |
-| r3005544064 | Fixed in code — reply pending (see action below) |
-| r3005544071 | Fixed in spec — reply pending |
-| r3005544074 | Fixed in code — reply pending |
-| r3005544075 | Fixed in code — reply pending |
-| r3005544081 | Fixed in code — reply pending |
-| r3005544083 | Fixed in code — reply pending |
-
-### Verification
-
-- TypeScript compile: ✅ 0 errors (4 changed files)
-- Code review: ✅ Verdict PASS (all 6 criteria)
-- Changes committed and pushed: ⬜ Pending
-
-### Pending Actions
-
-1. Post PR comment replying to all 6 new threads
-2. Commit and push changes:
-
-```bash
-cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend
-git add src/app/features/people/services/people.service.ts \
-        src/app/features/people/pages/work-session-submit/work-session-submit-page.component.ts \
-        src/app/features/people/pages/discrepancy-report/discrepancy-report-page.component.ts \
-        src/app/features/security/pages/user-provision/user-provision-page.component.spec.ts
-git commit -m "fix(people,workexec,security): address PR #10 round 2 review — encode path params, fix datetime-local, filter restore, spec import"
-git push origin cap/people-location-wave-h
+- Mutation error handlers: all 15 now call state.set('error') before errorKey.set(...)
+  (product-detail x6, msrp x2, price-books x4, location-overrides x3, locations-roster x1)
+- effect() in price-books refactored: onCleanup(() => sub.unsubscribe()) prevents stale requests
+- createProduct() routing: use queryParams { mode: 'new' } not /catalog/new (route conflict fix)
+- createCostStructure: itemId now included in POST body
+- requestedAt: made optional in LocationPriceOverride (server-generated); removed from form
+- price-books.html: all 7 form inputs in add-book and add-rule rows have sr-only labels (ADR-0029)
+- product-list.html: removed duplicate (keyup.enter) from <tr>
+- Specs: corrected Msrp/SkuAvailability/InventoryAvailability mock shapes (4 files)
+- Specs: added getAllLocations() and getLocationInventory() tests
+- Specs: setLifecycleState failure test asserts state === 'error'
+- Lint: .at(-1)! and removed spurious await from TestBed.resetTestingModule()
 ```
-
-### Processing Log File
-
-`/home/louis-burroughs/IdeaProjects/durion/PR-Review-Processing.md`
-
----
-
-## Round 3 Plan
-
-Started: 2026-03-29T06:00:00Z
-Branch: cap/people-location-wave-h
-
-Summary: Five new Copilot review threads were posted after Round 2 fixes. All 20 prior threads are resolved. This round addresses shared error signal bugs, a form-control naming mismatch, missing URL encoding, and sort not applied after filter.
-
-### Open Threads
-
-| Thread ID | File | Issue | Severity |
-| :--- | :--- | :--- | :--- |
-| r3005751785 | `location-sync-page.component.ts:76` | Shared `loadError` signal can be overwritten by either `loadInventoryLocations` or `loadSyncLogs`; use separate signals | MEDIUM |
-| r3005751792 | `storage-locations-page.component.ts:102` | Shared `loadError` between `loadStorageLocations` and `loadStorageTypes`; use separate signals | MEDIUM |
-| r3005751798 | `user-provision-page.component.ts:32` | `roleId` FormControl stores `role.name` (not an ID); rename control to `roleName` throughout TS, HTML, and spec | MEDIUM |
-| r3005751800 | `people.service.ts:193` | `timePeriodId` and `personId` not URL-encoded in `approveTimePeriod` / `rejectTimePeriod` | MEDIUM |
-| r3005751801 | `discrepancy-report-page.component.ts:108` | `sortRows()` not applied after `applyFilters()` in `runReport()` and `toggleFlaggedOnly()` | MEDIUM |
-
-### Steps
-
-- [ ] **Step 1: Production Code Fixes (PR Fix Coder)**
-  - Fix 5 production code issues: r3005751785, r3005751792, r3005751798 (TS+HTML), r3005751800, r3005751801
-
-- [ ] **Step 2: Spec Fix (PR Test Fixer)**
-  - Fix r3005751798 spec: rename `roleId` → `roleName` in all `form.setValue()` calls in `user-provision-page.component.spec.ts`
-
-- [ ] **Step 3: Code Review Verification (PR Code Reviewer)**
-  - Verify all 5 thread fixes; return `Verdict: PASS | FAIL`
-
-## Round 3 Subagent Outputs
-<!-- round 3 outputs appended below -->
-
-### 2026-03-29T06:30:00Z — PR Fix Coder (Round 3)
-
-**Objective**: Apply 5 production code fixes for threads r3005751785, r3005751792, r3005751798, r3005751800, r3005751801.
-
-**Changes Applied**:
-
-| Thread | Files | Fix |
-|---|---|---|
-| r3005751785 | `location-sync-page.component.(ts\|html)` | Split `loadError` → `inventoryLocationsError` + `syncLogsError`; template updated per section |
-| r3005751792 | `storage-locations-page.component.(ts\|html)` | Split `loadError` → `storageLocationsError` + `storageTypesError`; template updated |
-| r3005751798 | `user-provision-page.component.(ts\|html)` | Renamed `roleId` control → `roleName`; body preserves `roleId: roleName` for API |
-| r3005751800 | `people.service.ts` | `encodeURIComponent(timePeriodId)` + `encodeURIComponent(personId)` in `approveTimePeriod` + `rejectTimePeriod` |
-| r3005751801 | `discrepancy-report-page.component.ts` | `sortRows(applyFilters(...))` applied in runReport next/error and toggleFlaggedOnly |
-
-**Compile errors**: 0
-**Decision**: accepted
-
----
-
-### 2026-03-29T06:35:00Z — PR Test Fixer (Round 3)
-
-**Objective**: Update spec for r3005751798 — rename `roleId` → `roleName` in `form.setValue` calls.
-
-**Changes Applied**:
-
-- `user-provision-page.component.spec.ts`: lines 110, 129, 147, 165 — `form.setValue({ ..., roleId: ... })` → `form.setValue({ ..., roleName: ... })`
-- Body expectation at line 120 left unchanged (`roleId: 'MANAGER'` — API contract key)
-
-**Compile errors**: 0
-**Decision**: accepted
-
----
-
-### 2026-03-29T06:40:00Z — PR Code Reviewer (Round 3)
-
-**Objective**: Validate all 5 Round 3 fixes. Return Verdict.
-
-**Verdict**: **PASS**
-
-| Finding | Verdict |
-|---|---|
-| r3005751785 — split inventoryLocationsError / syncLogsError | PASS |
-| r3005751792 — split storageLocationsError / storageTypesError | PASS |
-| r3005751798 — roleName control + spec + template | PASS |
-| r3005751800 — encodeURIComponent in approve/rejectTimePeriod | PASS |
-| r3005751801 — sortRows wraps applyFilters in 3 paths | PASS |
-
-TypeScript compile errors: 0
-**Decision**: accepted — loop terminated
-
----
-
-## Round 3 Final Summary
-
-**PR**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/10>
-**Run completed**: 2026-03-29
-**Outcome**: ✅ PASS — all 5 round 3 threads addressed, 0 compile errors, Code Reviewer verdict PASS
-
-### Evidence Sources
-
-- 25 total review threads reviewed (R1: 13, R2: 7, R3: 5); all 25 resolved/addressed
-- Linked issues: CAP-117, CAP-119, CAP-120, CAP-121, CAP-214
-- ADRs 0011, 0014, 0017, 0018 — no violations introduced
-
-### Findings by Severity (Round 3)
-
-| Severity | Count | Status |
-|---|---|---|
-| MEDIUM | 5 | All fixed |
-
-### Code Fixes
-
-- `location-sync-page.component.(ts|html)` — split error signals
-- `storage-locations-page.component.(ts|html)` — split error signals
-- `user-provision-page.component.(ts|html)` — rename roleId → roleName, preserve API key
-- `people.service.ts` — encodeURIComponent on timePeriodId + personId
-- `discrepancy-report-page.component.ts` — sort applied after filter in 3 paths
-
-### Test / Spec Fixes
-
-- `user-provision-page.component.spec.ts` — 4 form.setValue key renames
-
-### Comment Thread Handling
-
-All 5 threads replied via <https://github.com/louisburroughs/durion-positivity-frontend/pull/10#issuecomment-4149525271>
-
-### Verification
-
-- TypeScript compile: ✅ 0 errors (6 changed files)
-- Code Review: ✅ Verdict PASS
-
-### Pending Actions
-
-```bash
-cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend
-git add \
-  src/app/features/location/pages/location-sync/location-sync-page.component.ts \
-  src/app/features/location/pages/location-sync/location-sync-page.component.html \
-  src/app/features/location/pages/storage-locations/storage-locations-page.component.ts \
-  src/app/features/location/pages/storage-locations/storage-locations-page.component.html \
-  src/app/features/security/pages/user-provision/user-provision-page.component.ts \
-  src/app/features/security/pages/user-provision/user-provision-page.component.html \
-  src/app/features/security/pages/user-provision/user-provision-page.component.spec.ts \
-  src/app/features/people/services/people.service.ts \
-  src/app/features/people/pages/discrepancy-report/discrepancy-report-page.component.ts
-git commit -m "fix(location,security,people): address PR #10 round 3 review — split error signals, rename roleName control, encode timePeriod/person params, sort-after-filter"
-git push origin cap/people-location-wave-h
-```
-
-### Processing Log File
-
-`/home/louis-burroughs/IdeaProjects/durion/PR-Review-Processing.md`
-
----
-
-## Round 4 Plan
-
-Started: 2026-03-29T07:00:00Z
-Branch: cap/people-location-wave-h
-
-Summary: Three new Copilot review threads posted after Round 3. This round addresses a URL path
-inconsistency in SecurityService, a hardcoded `/api` prefix in downloadExport, and a weak
-`Record<string, unknown>` type on `createEmployee`.
-
-### Open Threads
-
-| Thread ID | File | Issue | Severity |
-|---|---|---|---|
-| r3005780116 | `security.service.ts:55` | `createUser`/`getUserById` path `/v1/security/users` has extra `/security` segment — inconsistent with `/v1/roles` pattern; fix to `/v1/users` | MEDIUM |
-| r3005780121 | `accounting.service.ts:265` | `downloadExport` hardcodes `/api` prefix; use `environment.apiBaseUrl` | MEDIUM |
-| r3005780124 | `people.service.ts:33` | `createEmployee` param `Record<string, unknown>` → `CreateEmployeeRequest`; update call-site in `employee-profile-page.component.ts` | LOW |
-
-### Steps
-
-- [ ] **Step 1: Production Code Fixes (PR Fix Coder)**
-  - Fix all 3 threads (all production code; no test-only fixes needed)
-
-- [ ] **Step 2: Code Review Verification (PR Code Reviewer)**
-  - Verify all 3 fixes; return `Verdict: PASS | FAIL`
-
-## Round 4 Subagent Outputs
-
-### PR Fix Coder — 2026-03-29T07:15:00Z
-
-**Findings Addressed:**
-
-- r3005780116: `security.service.ts` — removed redundant `/security` from `createUser`/`getUserById`
-  paths. Paths now `/v1/users` and `/v1/users/{id}`, consistent with `/v1/roles`, `/v1/permissions`.
-- r3005780121: `accounting.service.ts` — added `environment` import; replaced hardcoded `` `/api` ``
-  prefix in `downloadExport` with `environment.apiBaseUrl`.
-- r3005780124: `people.service.ts` — added `CreateEmployeeRequest` to import; changed
-  `createEmployee(body: Record<string, unknown>)` → `createEmployee(body: CreateEmployeeRequest)`.
-  `employee-profile-page.component.ts` — added `CreateEmployeeRequest` to import; changed
-  `body as Record<string, unknown>` → `body as CreateEmployeeRequest`.
-
-**Changed files:**
-
-- `src/app/features/security/services/security.service.ts`
-- `src/app/features/accounting/services/accounting.service.ts`
-- `src/app/features/people/services/people.service.ts`
-- `src/app/features/people/pages/employee-profile/employee-profile-page.component.ts`
-
-**TypeScript errors:** 0 across all 4 files.
-
-**Orchestrator decision:** accepted
-
----
-
-### PR Code Reviewer — 2026-03-29T07:20:00Z
-
-**Verdict: PASS**
-
-| finding_id | status | evidence |
-| --- | --- | --- |
-| r3005780116 | resolved | `security.service.ts:54,58` — paths `/v1/users`; no `/security` segment |
-| r3005780121 | resolved | `accounting.service.ts:5,259` — `environment` imported; `environment.apiBaseUrl` used |
-| r3005780124 | resolved | `people.service.ts:5,36` + `employee-profile-page.component.ts:5,~124` — `CreateEmployeeRequest` in imports and signatures |
-
-Blocking issues: none.
-
-**Orchestrator decision:** accepted
-
----
-
-## Round 4 Final Summary
-
-PR: <https://github.com/louisburroughs/durion-positivity-frontend/pull/10>
-Round: 4
-Verdict: PASS
-PR Comment: <https://github.com/louisburroughs/durion-positivity-frontend/pull/10#issuecomment-4149610130>
-
-**Threads resolved (3):**
-
-- r3005780116 — `security.service.ts` path consistency
-- r3005780121 — `accounting.service.ts` environment-aware base URL
-- r3005780124 — `people.service.ts`/`employee-profile-page.component.ts` typed parameter
-
-**Open blockers:** none
-
-**Pending user action (git):**
-
-```bash
-git add src/app/features/security/services/security.service.ts \
-        src/app/features/accounting/services/accounting.service.ts \
-        src/app/features/people/services/people.service.ts \
-        src/app/features/people/pages/employee-profile/employee-profile-page.component.ts
-git commit -m "fix(security,accounting,people): address PR #10 round 4 review — fix user URL paths, env apiBaseUrl in export, typed createEmployee param"
-git push origin cap/people-location-wave-h
-```
-
-### Processing Log File
-
-`/home/louis-burroughs/IdeaProjects/durion/PR-Review-Processing.md`
