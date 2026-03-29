@@ -27,9 +27,9 @@ Legend for **Status** column:
 
 | Status | Count |
 | --- | --- |
-| ✅ DONE | 36 capabilities across 9 domains (Waves A–H merged) |
+| ✅ DONE | 41 capabilities across 9 domains (Waves A–H merged + Wave I-a) |
 | 🔄 IN PROGRESS | 0 |
-| 🟢 READY | 18 capabilities across 5 domains (Wave I) |
+| 🟢 READY | 13 capabilities across 5 domains (Wave I) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
 | ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
@@ -76,6 +76,11 @@ Legend for **Status** column:
 | CAP-120 | Timekeeping | `people` | — | #143, #147, #148, #149 | Wave H — merged to master |
 | CAP-121 | Job Time Integration | `people` | — | #144, #145, #146 | Wave H — merged to master |
 | CAP-214 | Location Topology | `location` | — | #102, #103, #104 | Wave H — merged to master |
+| CAP-165 | Product Master Data (Parts & Tires) | `product` | cap/product-wave-i-a | 119, 120, 121 | Wave I-a — merged; build PASS; run artifact added |
+| CAP-166 | Cost Management (Acquisition & Cost Models) | `product` | cap/product-wave-i-a | 260, 261 | Wave I-a — merged; build PASS; run artifact added |
+| CAP-167 | MSRP & Base Pricing Policies | `product` | cap/product-wave-i-a | 118, 259 | Wave I-a — merged; build PASS; run artifact added |
+| CAP-168 | Location Store Pricing (Overrides by Location) | `product` | cap/product-wave-i-a | 116, 117 | Wave I-a — merged; build PASS; run artifact added |
+| CAP-170 | Availability & Inventory Visibility (Internal + External) | `product` | cap/product-wave-i-a | 110, 111, 112 | Wave I-a — merged; build PASS; run artifact added |
 
 ---
 
