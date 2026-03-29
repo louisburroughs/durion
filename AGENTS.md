@@ -5,9 +5,13 @@
 Durion is a multi-repo platform that includes:
 
 - `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 4.0.2)
+- `durion-positivity-frontend`: Angular 21 POS SPA
 - `durion`: workspace-level coordination, governance, project, and agent docs
 
-This file provides cross-repo guidance only. For backend implementation details, use `durion-positivity-backend/AGENTS.md`.
+This file provides cross-repo guidance only. For project-specific implementation details:
+
+- Backend: use `durion-positivity-backend/AGENTS.md`
+- Frontend: use `durion-positivity-frontend/AGENTS.md`
 
 ---
 
@@ -18,8 +22,9 @@ This file provides cross-repo guidance only. For backend implementation details,
 Documentation follows a strict hierarchy:
 
 1. **Workspace-level**: `durion/AGENTS.md` (this file) — cross-cutting guidance
-2. **Project-level**: `durion-positivity-backend/AGENTS.md` — project-specific setup and patterns
-3. **Module/Component-level**: `README.md` files in each module directory — module-specific documentation
+2. **Project-level**: `durion-positivity-backend/AGENTS.md` — backend setup and patterns
+3. **Project-level**: `durion-positivity-frontend/AGENTS.md` — frontend setup, conventions, and PR checklist
+4. **Module/Component-level**: `README.md` files in each module directory — module-specific documentation
 
 ### README.md Requirements
 
@@ -67,19 +72,32 @@ Minimum ADRs to check for backend work:
 - `docs/adr/0017-api-controller-http-response-codes.adr.md`
 - `docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
 
+Minimum ADRs to check for frontend work:
+
+- `docs/adr/0010-frontend-domain-responsibilities-guide.adr.md`
+- `docs/adr/0029-frontend-accessibility-baseline-policy.adr.md`
+- `docs/adr/0030-frontend-internationalization-localization-policy.adr.md`
+- `docs/adr/0031-frontend-mutation-error-state-convention.adr.md`
+- `docs/adr/0032-frontend-test-fixture-interface-conformity.adr.md`
+- `docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md`
+- `docs/adr/0034-frontend-server-generated-field-omission-policy.adr.md`
+- `docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md`
+
 This ADR compliance requirement applies to all agents and subagents (including coder/test/deploy/sre).
 
 ---
 
 ## Agents & Canonical Docs
 
-Agent docs live under `.github/agents/` in this repo. 
+Agent docs live under `.github/agents/` in this repo.
 
 Canonical observability architecture doc:
 
 - `docs/architecture/observability/OBSERVABILITY.md`
 
 For backend setup, build, run, testing, package conventions, and event logging requirements, defer to `durion-positivity-backend/AGENTS.md`.
+
+For frontend setup, build, conventions, PR checklist, and coding patterns, defer to `durion-positivity-frontend/AGENTS.md`.
 
 ---
 

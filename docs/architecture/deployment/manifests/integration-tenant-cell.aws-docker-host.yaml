@@ -1,0 +1,380 @@
+apiVersion: durion.io/v1alpha1
+kind: TenantCellManifest
+metadata:
+  name: int-shared-01
+  tenantId: integration-shared
+  environment: integration
+  purpose: shared-end-to-end-validation
+  owner: platform
+  substrate: aws-ec2-docker-host
+  region: us-east-1
+  description: >
+    First shared integration tenant cell for Durion. Runs on the current AWS Docker
+    host and provides a release-driven, tenant-aware environment for end-to-end testing,
+    observability validation, and accelerated-time scenarios.
+
+release:
+  releaseVersion: ${RELEASE_VERSION}
+  releaseChannel: integration
+  source:
+    frontendRepo: durion-positivity-frontend
+    backendRepo: durion-positivity-backend
+  artifacts:
+    frontend:
+      image: ${REGISTRY}/durion/frontend-web:${FRONTEND_IMAGE_TAG}
+      commitSha: ${FRONTEND_GIT_SHA}
+    backend:
+      imageTag: ${BACKEND_IMAGE_TAG}
+      commitSha: ${BACKEND_GIT_SHA}
+
+network:
+  publicBaseUrl: https://int-shared-01.durion.example.com
+  internalNetworkName: durion-int-shared-01
+  tls:
+    termination: reverse-proxy-on-host
+    certificateRef: secret://durion/int-shared-01/tls
+  ingress:
+    frontend:
+      host: int-shared-01.durion.example.com
+      port: 443
+      targetService: frontend-web
+      targetPort: 4000
+    api:
+      host: int-shared-01-api.durion.example.com
+      port: 443
+      targetService: pos-api-gateway
+      targetPort: 8080
+
+clock:
+  provider: tenant-cell-clock
+  defaultMode: real_time
+  allowedModes:
+    - real_time
+    - accelerated
+    - stepwise
+    - frozen
+  acceleration:
+    multiplier: 1.0
+    maxMultiplierInEnvironment: 100.0
+  timezone: America/New_York
+  auditRequired: true
+
+persistence:
+  relational:
+    engine: postgres
+    topology: host-local-container
+    databaseName: positivity_int_shared_01
+    credentialsRef: secret://durion/int-shared-01/postgres/app
+    adminCredentialsRef: secret://durion/int-shared-01/postgres/admin
+    storage:
+      volumeName: durion-int-shared-01-postgres-data
+      mountPath: /var/lib/postgresql/data
+    backups:
+      enabled: true
+      mode: pg_dump_to_object_storage
+      schedule: "0 */6 * * *"
+      retentionDays: 14
+      targetRef: secret://durion/int-shared-01/backups/object-store
+  documents:
+    mode: host-volume
+    storage:
+      volumeName: durion-int-shared-01-documents
+      mountPath: /opt/durion/documents
+    backups:
+      enabled: true
+      schedule: "30 */6 * * *"
+      retentionDays: 14
+  observability:
+    prometheus:
+      volumeName: durion-int-shared-01-prometheus-data
+    grafana:
+      volumeName: durion-int-shared-01-grafana-data
+
+configuration:
+  tags:
+    tenant: integration-shared
+    environment: integration
+    cell: int-shared-01
+  environmentVariables:
+    DEPLOYMENT_ENVIRONMENT: integration
+    TENANT_ID: integration-shared
+    TENANT_CELL_ID: int-shared-01
+    CLOCK_MODE: real_time
+    OTEL_RESOURCE_ATTRIBUTES: >
+      service.namespace=durion,
+      deployment.environment=integration,
+      tenant.id=integration-shared,
+      tenant.cell.id=int-shared-01,
+      release.version=${RELEASE_VERSION}
+  featureFlags:
+    enableAcceleratedTime: true
+    enableObservabilityStack: true
+    enablePublicApiDocs: false
+
+secrets:
+  refs:
+    - secret://durion/int-shared-01/postgres/app
+    - secret://durion/int-shared-01/postgres/admin
+    - secret://durion/int-shared-01/security/jwt
+    - secret://durion/int-shared-01/events/api-secret
+    - secret://durion/int-shared-01/grafana/admin
+    - secret://durion/int-shared-01/tls
+    - secret://durion/int-shared-01/backups/object-store
+
+services:
+  infrastructure:
+    - name: postgres
+      role: primary-database
+      image: postgres:16-alpine
+      ports:
+        - name: postgres
+          hostPort: 5432
+          containerPort: 5432
+      healthCheck:
+        type: command
+        command: ["pg_isready", "-U", "positivity", "-d", "positivity_int_shared_01"]
+      storageRefs:
+        - durion-int-shared-01-postgres-data
+
+    - name: jaeger
+      role: tracing
+      image: jaegertracing/all-in-one:1.54
+      ports:
+        - name: jaeger-ui
+          hostPort: 16686
+          containerPort: 16686
+
+    - name: otel-collector
+      role: telemetry-gateway
+      image: otel/opentelemetry-collector-contrib:0.93.0
+      ports:
+        - name: otlp-grpc
+          hostPort: 4317
+          containerPort: 4317
+        - name: otlp-http
+          hostPort: 4318
+          containerPort: 4318
+      configRefs:
+        - file://observability/otel-collector-config.yml
+
+    - name: prometheus
+      role: metrics
+      image: prom/prometheus:v2.49.1
+      ports:
+        - name: prometheus-ui
+          hostPort: 9090
+          containerPort: 9090
+      storageRefs:
+        - durion-int-shared-01-prometheus-data
+      configRefs:
+        - file://observability/prometheus.yml
+
+    - name: grafana
+      role: dashboards
+      image: grafana/grafana:10.3.3
+      ports:
+        - name: grafana-ui
+          hostPort: 3000
+          containerPort: 3000
+      storageRefs:
+        - durion-int-shared-01-grafana-data
+      secretRefs:
+        - secret://durion/int-shared-01/grafana/admin
+
+    - name: backup-runner
+      role: backup-orchestrator
+      image: ${REGISTRY}/durion/backup-runner:${BACKUP_RUNNER_IMAGE_TAG}
+      schedule:
+        enabled: true
+        cron: "0 */6 * * *"
+      secretRefs:
+        - secret://durion/int-shared-01/backups/object-store
+
+  application:
+    - name: frontend-web
+      role: ssr-frontend
+      image: ${REGISTRY}/durion/frontend-web:${FRONTEND_IMAGE_TAG}
+      dependsOn:
+        - pos-api-gateway
+      ports:
+        - name: http
+          hostPort: 4000
+          containerPort: 4000
+      env:
+        API_BASE_URL: https://int-shared-01-api.durion.example.com/api
+        TENANT_ID: integration-shared
+        RELEASE_VERSION: ${RELEASE_VERSION}
+
+    - name: pos-service-discovery
+      role: service-discovery
+      image: ${REGISTRY}/durion/pos-service-discovery:${BACKEND_IMAGE_TAG}
+      ports:
+        - name: http
+          hostPort: 8761
+          containerPort: 8761
+      dependsOn:
+        - postgres
+
+    - name: pos-api-gateway
+      role: api-entry
+      image: ${REGISTRY}/durion/pos-api-gateway:${BACKEND_IMAGE_TAG}
+      ports:
+        - name: http
+          hostPort: 8080
+          containerPort: 8080
+      dependsOn:
+        - pos-service-discovery
+        - pos-security-service
+        - postgres
+      healthCheck:
+        type: http
+        path: /actuator/health
+        port: 8080
+
+    - name: pos-security-service
+      role: identity-and-access
+      image: ${REGISTRY}/durion/pos-security-service:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - postgres
+        - pos-service-discovery
+      secretRefs:
+        - secret://durion/int-shared-01/security/jwt
+
+    - name: pos-catalog
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-catalog:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-customer
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-customer:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-inventory
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-inventory:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-price
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-price:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-order
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-order:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-workorder
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-workorder:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-accounting
+      role: domain-service
+      image: ${REGISTRY}/durion/pos-accounting:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+
+    - name: pos-events
+      role: event-catalog
+      image: ${REGISTRY}/durion/pos-events:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-security-service
+        - pos-service-discovery
+        - postgres
+      secretRefs:
+        - secret://durion/int-shared-01/events/api-secret
+
+    - name: pos-event-receiver
+      role: event-ingress
+      image: ${REGISTRY}/durion/pos-event-receiver:${BACKEND_IMAGE_TAG}
+      dependsOn:
+        - pos-service-discovery
+        - postgres
+      secretRefs:
+        - secret://durion/int-shared-01/events/api-secret
+
+deployment:
+  strategy: recreate-single-host
+  migrationPolicy:
+    mode: predeploy
+    compatibilityRequired: backward-compatible
+    blockOnFailure: true
+  order:
+    - infrastructure
+    - pos-service-discovery
+    - pos-security-service
+    - domain-services
+    - pos-api-gateway
+    - frontend-web
+  healthGate:
+    blockTrafficUntilHealthy: true
+    requiredChecks:
+      - pos-api-gateway:/actuator/health
+      - pos-security-service:/actuator/health
+      - pos-catalog:/actuator/health
+      - pos-customer:/actuator/health
+      - pos-inventory:/actuator/health
+      - frontend-web:/
+
+verification:
+  smokeSuite:
+    required: true
+    tests:
+      - name: frontend-homepage
+        type: http
+        url: https://int-shared-01.durion.example.com/
+      - name: gateway-health
+        type: http
+        url: https://int-shared-01-api.durion.example.com/actuator/health
+      - name: auth-login-route
+        type: http
+        url: https://int-shared-01-api.durion.example.com/api/auth/login
+        expectStatusIn:
+          - 200
+          - 401
+      - name: catalog-route
+        type: http
+        url: https://int-shared-01-api.durion.example.com/api/catalog/products
+        expectStatusIn:
+          - 200
+          - 401
+
+operations:
+  backupRestore:
+    restoreDrillRequired: true
+    restoreDrillFrequency: monthly
+  approvals:
+    requiredFor:
+      - migration-policy-change
+      - clock-mode-change
+      - secret-rotation
+      - restore-into-active-cell
+  observability:
+    requiredLabels:
+      - tenant.id
+      - tenant.cell.id
+      - deployment.environment
+      - release.version
+      - service.name

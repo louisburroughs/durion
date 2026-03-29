@@ -14,6 +14,11 @@ This directory contains architectural documentation for the Durion Positivity PO
 ### API Contract Standards
 - [Backend Contract Global Standards](./api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md) - Canonical cross-domain rules for backend contract guides and OpenAPI source-of-truth boundaries
 
+### Deployment Architecture
+- [Deployment Architecture Index](./deployment/README.md) - Deployment-focused architecture references
+- [Foundation-First Tenant Cell Deployment Architecture](./deployment/FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md) - Reference architecture for isolated per-organization runtime cells, persistent storage, time simulation, and release flow boundaries
+- [Phased CI/CD and Runtime Plan](./deployment/PHASED_CICD_AND_RUNTIME_PLAN.md) - Sequenced implementation plan for control plane, runtime, artifact pipelines, deployment promotion, time simulation, and tenant operations
+
 ### Domain Models and Workflows
 
 #### Customer Approval Workflow (New - 2026-01-08)
