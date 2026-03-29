@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2026-03-28T11:00:00Z"
+updated_utc: "2025-07-16T00:00:00Z"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -63,6 +63,11 @@ Legend for **Status** column:
 | CAP-253 | Security RBAC admin UI | `security` | #7 | 66 | Roles, permissions, audit log pages; SecurityService (7 ops) |
 | CAP-118 | Identity Orchestration (People RBAC) | `people` |  | #153 | Wave G — stories #153; run artifact exists |
 | CAP-094 | CRM & Workorder Integration | `crm` / `workexec` |  | #156, #157 | Wave G — stories #156, #157; run artifact exists |
+| CAP-117 | People Profile Management | `people` |  | #152, #154, #155 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
+| CAP-119 | People Profile Management | `people` |  | #150, #151 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
+| CAP-120 | Timekeeping | `people` |  | #143, #147, #148, #149 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
+| CAP-121 | Timekeeping | `people` |  | #144, #145, #146 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
+| CAP-214 | Location Topology | `location` |  | #102, #103, #104 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h; New Service: InventoryService (inventory.service.ts) |
 
 ---
 
@@ -203,7 +208,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 
 **What:** Execute People capabilities in sequence; story elaboration is already complete.
 
-**Execution queue:** CAP-118 (READY) first, then CAP-117, CAP-119, CAP-120, and CAP-121.
+**Execution queue:** CAP-118 (READY) first.
 
 ---
 
