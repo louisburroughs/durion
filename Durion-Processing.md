@@ -1,12 +1,6 @@
 ## Wave H: People Profile Management + Location Topology (CAP-117, CAP-119, CAP-120, CAP-121, CAP-214)
 
-**Status: IN PROGRESS**
-**Wave:** H — People Profile + Location Topology
-**Branch:** `cap/people-location-wave-h`
-**Base:** `master`
-**Target repo:** `durion-positivity-frontend`
-**Capabilities:** CAP-117 (stories #152, #154, #155), CAP-119 (stories #150, #151), CAP-120 (stories #143, #147, #148, #149), CAP-121 (stories #144, #145, #146), CAP-214 (stories #102, #103, #104)
-**Domains:** `people`, `location`, `security` (cross-domain #155), `workexec` (cross-domain #145, #146)
+**Status: COMPLETED** | **Branch:** `cap/people-location-wave-h` | **Tests at close:** 699/699
 
 ### Domain Ownership Mapping
 
@@ -363,6 +357,100 @@
 - [ ] Step 13: Build + test verification — `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build && npm test -- --watch=false`
 - [ ] Step 14: Documentation Agent — update `CAPABILITY_STATUS_BOARD.md` for all 8 CAPs; create run artifacts; update completed waves table in `Durion-Processing.md`
 - [ ] Final Step: Create PR via `durion/.github/hooks/pull-request-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-frontend --base master --head cap/shopmgmt-location-wave-f --title "feat(shopmgmt,location): Wave F — Shop Management + Location (CAP-136–142, CAP-249)"`
+
+---
+
+## Wave I — Final Delivery (Product + Inventory + Order/Billing/CRM)
+
+**Status: READY** | **Tests at Wave I start:** 699/699 | **Base:** `master`
+
+### Wave I-a: `product` domain
+
+**Branch:** `cap/product-wave-i-a`
+**Domain Ownership:** `product` — `src/app/features/product/`
+**Capabilities:** CAP-165, CAP-166, CAP-167, CAP-168, CAP-170
+**Story Count:** 12 stories (119, 120, 121, 260, 261, 118, 259, 116, 117, 110, 111, 112)
+
+| Domain | Feature Dir | Capability | Stories |
+| --- | --- | --- | --- |
+| `product` | `src/app/features/product/` | CAP-165 | #119, #120, #121 — Product master data |
+| `product` | `src/app/features/product/` | CAP-166 | #260, #261 — Cost management |
+| `product` | `src/app/features/product/` | CAP-167 | #118, #259 — MSRP & base pricing |
+| `product` | `src/app/features/product/` | CAP-168 | #116, #117 — Location store pricing overrides |
+| `product` | `src/app/features/product/` | CAP-170 | #110, #111, #112 — Inventory visibility |
+
+#### Steps
+
+- [ ] Step 1: Read source materials — story MDs, wireframes, contract guides, and OpenAPI specs (pos-catalog, pos-inventory, pos-location) for all 12 product stories
+- [ ] Step 2: Designer first-pass — review `design/Inventory-Catalog/` designs; issue design brief for product domain
+- [ ] Step 3: Create branch `cap/product-wave-i-a` from `master`
+- [ ] Step 4: anvil decomposition — file ownership matrix for product domain shell, catalog service, pricing service, availability service
+- [ ] Step 5–16: Per-story implementation (HTML Specialist → TypeScript Specialist → Designer sign-off → Code Review) for each of the 12 stories
+- [ ] Step 17: `npm run build` and `npx ng test --no-watch` — verify 699+ tests passing
+- [ ] Step 18: Code Review Agent pass
+- [ ] Step 19: Documentation Agent — update CAPABILITY_STATUS_BOARD.md
+- [ ] Final Step: `durion/.github/hooks/pull-request-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-frontend --base master --head cap/product-wave-i-a --title "feat(product): Wave I-a — Product Master Data, Pricing & Availability (CAP-165–168, CAP-170)"`
+
+---
+
+### Wave I-b: `inventory` domain
+
+**Branch:** `cap/inventory-wave-i-b`
+**Domain Ownership:** `inventory` — `src/app/features/inventory/`
+**Capabilities:** CAP-215, CAP-216, CAP-217, CAP-218, CAP-219, CAP-220, CAP-221, CAP-247, CAP-315
+**Story Count:** ~14 stories
+
+| Domain | Feature Dir | Capability | Stories |
+| --- | --- | --- | --- |
+| `inventory` | `src/app/features/inventory/` | CAP-215 | #100, #101 — Inventory ledger & on-hand |
+| `inventory` | `src/app/features/inventory/` | CAP-216 | TBD — Receiving (PO/ASN/Direct) |
+| `inventory` | `src/app/features/inventory/` | CAP-217 | TBD, TBD — Put-away & replenishment |
+| `inventory` | `src/app/features/inventory/` | CAP-218 | TBD×4 — Picking, issuing, workorder fulfillment |
+| `inventory` | `src/app/features/inventory/` | CAP-219 | TBD, TBD — Cycle counts & adjustments |
+| `inventory` | `src/app/features/inventory/` | CAP-220 | TBD — Reservations, allocations, substitutions |
+| `inventory` | `src/app/features/inventory/` | CAP-221 | TBD — Roles, permissions, audit controls |
+| `inventory` | `src/app/features/inventory/` | CAP-247 | TBD — Catalog search & product viewing |
+| `inventory` | `src/app/features/inventory/` | CAP-315 | TBD — Procure-to-receive lifecycle |
+
+#### Steps
+
+- [ ] Step 1: Read source materials — story MDs, wireframes, contract guides, OpenAPI (pos-inventory, pos-catalog)
+- [ ] Step 2: Designer first-pass — review `design/Inventory-Catalog/` designs; issue design brief for inventory domain
+- [ ] Step 3: Create branch `cap/inventory-wave-i-b` from `master`
+- [ ] Step 4: anvil decomposition — file ownership for inventory domain shell, inventory ledger service, receiving service, picking service, cycle-count service
+- [ ] Step 5–N: Per-story implementation (HTML Specialist → TypeScript Specialist → Designer sign-off → Code Review) for all inventory stories
+- [ ] Step N+1: `npm run build` and `npx ng test --no-watch` — verify tests passing
+- [ ] Step N+2: Code Review Agent pass
+- [ ] Step N+3: Documentation Agent — update CAPABILITY_STATUS_BOARD.md
+- [ ] Final Step: `durion/.github/hooks/pull-request-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-frontend --base master --head cap/inventory-wave-i-b --title "feat(inventory): Wave I-b — Inventory Ledger, Receiving, Picking & Fulfillment (CAP-215–221, CAP-247, CAP-315)"`
+
+---
+
+### Wave I-c: `order`, `billing`, `crm` additions
+
+**Branch:** `cap/order-billing-crm-wave-i-c`
+**Domain Ownership:** `order`, `billing`, `crm` — respective feature dirs
+**Capabilities:** CAP-246, CAP-250, CAP-251, CAP-252
+**Story Count:** 7 stories (83, 84, 85, 2×billing, 1×billing, 1×crm)
+
+| Domain | Feature Dir | Capability | Stories |
+| --- | --- | --- | --- |
+| `order` | `src/app/features/order/` | CAP-246 | #83, #84, #85 — POS sales order & cart |
+| `billing` | `src/app/features/billing/` | CAP-250 | TBD, TBD — Payments (card acceptance) |
+| `billing` | `src/app/features/billing/` | CAP-251 | TBD — Invoice payment status sync |
+| `crm` | `src/app/features/crm/` | CAP-252 | TBD — Customer context CRM snapshot |
+
+#### Steps
+
+- [ ] Step 1: Read source materials — story MDs, wireframes, contract guides, OpenAPI (pos-order, pos-billing, pos-customer)
+- [ ] Step 2: Designer first-pass — review cross-domain designs; issue design brief
+- [ ] Step 3: Create branch `cap/order-billing-crm-wave-i-c` from `master`
+- [ ] Step 4: anvil decomposition — file ownership for order domain, billing additions, crm additions
+- [ ] Step 5–11: Per-story implementation (HTML Specialist → TypeScript Specialist → Designer sign-off → Code Review) for all 7 stories
+- [ ] Step 12: `npm run build` and `npx ng test --no-watch` — verify tests passing
+- [ ] Step 13: Code Review Agent pass
+- [ ] Step 14: Documentation Agent — update CAPABILITY_STATUS_BOARD.md; mark all Wave I capabilities DONE
+- [ ] Final Step: `durion/.github/hooks/pull-request-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-frontend --base master --head cap/order-billing-crm-wave-i-c --title "feat(order,billing,crm): Wave I-c — POS Order Cart, Payments & CRM Snapshot (CAP-246, CAP-250, CAP-251, CAP-252)"`
 
 ---
 

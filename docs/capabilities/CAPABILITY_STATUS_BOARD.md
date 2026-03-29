@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2025-07-16T00:00:00Z"
+updated_utc: "2026-03-29T00:00:00Z"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -27,14 +27,14 @@ Legend for **Status** column:
 
 | Status | Count |
 | --- | --- |
-| ✅ DONE | 21 capabilities across 6 domains |
-| 🔄 IN PROGRESS | 8 (CAP-136/137/138/139/140/141/142/249 — Wave F, PR #8) |
-| 🟢 READY | 0 |
+| ✅ DONE | 36 capabilities across 9 domains (Waves A–H merged) |
+| 🔄 IN PROGRESS | 0 |
+| 🟢 READY | 18 capabilities across 5 domains (Wave I) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
 | ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
 
-**Total in portfolio: 58 capabilities**
+**Total in portfolio: 54 capabilities**
 
 ---
 
@@ -61,13 +61,21 @@ Legend for **Status** column:
 | CAP-092 | Customer preferences / billing rules | `crm` | #2 (partial) | 162–164 | 3/3 operation_ids; 3 wireframes |
 | CAP-275 | Auth session wiring + JWT assertion admin | `security` / `auth` | #7 | 280 | validateSessionOnResume; logoutWithRedirect; interceptor 401 redirect |
 | CAP-253 | Security RBAC admin UI | `security` | #7 | 66 | Roles, permissions, audit log pages; SecurityService (7 ops) |
-| CAP-118 | Identity Orchestration (People RBAC) | `people` |  | #153 | Wave G — stories #153; run artifact exists |
-| CAP-094 | CRM & Workorder Integration | `crm` / `workexec` |  | #156, #157 | Wave G — stories #156, #157; run artifact exists |
-| CAP-117 | People Profile Management | `people` |  | #152, #154, #155 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
-| CAP-119 | People Profile Management | `people` |  | #150, #151 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
-| CAP-120 | Timekeeping | `people` |  | #143, #147, #148, #149 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
-| CAP-121 | Timekeeping | `people` |  | #144, #145, #146 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h |
-| CAP-214 | Location Topology | `location` |  | #102, #103, #104 | Wave H — DELIVERED 2025-07-16; Branch: cap/people-location-wave-h; New Service: InventoryService (inventory.service.ts) |
+| CAP-136 | Location & Bay Management | `location` | #8 | #140–142 | Wave F — merged to master |
+| CAP-137 | Appointment Scheduling | `shopmgmt` | #8 | #137–139 | Wave F — merged to master |
+| CAP-138 | Appointment Dispatch & Conflict | `shopmgmt` | #8 | #133–136 | Wave F — merged to master |
+| CAP-139 | Time Sessions (Mechanic) | `shopmgmt` / `people` | #8 | #130–132 | Wave F — merged to master |
+| CAP-140 | Time Export & Operational Context | `shopmgmt` / `people` | #8 | #122, 127–129 | Wave F — merged to master |
+| CAP-141 | Security Audit List (Shopmgmt) | `security` | #8 | #125–126 | Wave F — merged to master |
+| CAP-142 | Appointment Reschedule | `shopmgmt` | #8 | #124 | Wave F — merged to master |
+| CAP-249 | Mechanic Roster & Availability | `shopmgmt` / `people` | #8 | #74–76 | Wave F — merged to master |
+| CAP-118 | Identity Orchestration (People RBAC) | `people` | — | #153 | Wave G — merged to master |
+| CAP-094 | CRM & Workorder Integration | `crm` / `workexec` | — | #156, #157 | Wave G — merged to master |
+| CAP-117 | People Profile Management | `people` | — | #152, #154, #155 | Wave H — merged to master |
+| CAP-119 | Location Assignment (People) | `people` | — | #150, #151 | Wave H — merged to master |
+| CAP-120 | Timekeeping | `people` | — | #143, #147, #148, #149 | Wave H — merged to master |
+| CAP-121 | Job Time Integration | `people` | — | #144, #145, #146 | Wave H — merged to master |
+| CAP-214 | Location Topology | `location` | — | #102, #103, #104 | Wave H — merged to master |
 
 ---
 
@@ -150,12 +158,12 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | `accounting` | `src/app/features/accounting/` | ✅ Full | CAP-049–055 |
 | `auth` | `src/app/features/auth/` | ✅ Full | CAP-275: session wiring, interceptor, session-expired banner |
 | `security` | `src/app/features/security/` | ✅ Full | CAP-275 + CAP-253: roles, permissions, audit log RBAC admin |
-| `inventory` | `src/app/features/inventory/` | ⬜ Stub | Routes file only |
-| `people` | `src/app/features/people/` | 🔄 IN PROGRESS | CAP-249/139/140: PeopleService, time-approval, time-export, work-session, travel-time pages (Wave F PR #8) |
-| `product` | `src/app/features/product/` | ⬜ Stub | Routes file only |
-| `order` | `src/app/features/order/` | ⬜ Stub | Routes file only |
-| `location` | `src/app/features/location/` | 🔄 IN PROGRESS | CAP-136: LocationService, locations/bays/mobile-units pages (Wave F PR #8) |
-| `shopmgmt` | `src/app/features/shopmgmt/` | 🔄 IN PROGRESS | CAP-137/138/139/140/141/142/249: AppointmentService, full scheduling/dispatch/roster pages (Wave F PR #8) |
+| `inventory` | `src/app/features/inventory/` | 🟢 READY | Wave I-b queued |
+| `people` | `src/app/features/people/` | ✅ Full | CAP-117–121, CAP-139, CAP-140, CAP-249 |
+| `product` | `src/app/features/product/` | 🟢 READY | Wave I-a queued |
+| `order` | `src/app/features/order/` | 🟢 READY | Wave I-c queued |
+| `location` | `src/app/features/location/` | ✅ Full | CAP-136, CAP-214 |
+| `shopmgmt` | `src/app/features/shopmgmt/` | ✅ Full | CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249 |
 | `admin` | `src/app/features/admin/` | ⬜ Stub | Minimal |
 
 ---
@@ -171,6 +179,8 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | Wave D (Accounting) | `cap/accounting-wave-d` | #6 | 7 | 18 | 187 |
 | Wave E (Security) | `cap/security-wave-e` | #7 | 2 | ~4 | 279 |
 | Wave F (Shopmgmt+Location+People) | `cap/shopmgmt-location-wave-f` | #8 | 8 | 21 stories | 488 |
+| Wave G (People RBAC + CRM-Workexec) | `cap/people-rbac-wave-g` | — | 2 | 3 stories | — |
+| Wave H (People Profile + Location Topology) | `cap/people-location-wave-h` | — | 5 | 16 stories | 699 |
 
 ---
 
@@ -185,30 +195,23 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | CAP-275 | ✅ DONE | Auth session wiring, interceptor 401 redirect, validateSessionOnResume (mockAuth-safe) |
 | CAP-253 | ✅ DONE | Roles list/detail, permissions registry, audit log placeholder, SecurityService (7 ops) |
 
-### � Wave F — Shopmgmt + Location Execution (PR #8 OPEN)
+### ✅ Wave F — Shopmgmt + Location Execution (PR #8 MERGED)
 
-**Branch:** `cap/shopmgmt-location-wave-f` | **PR:** #8 | **Tests:** 488/488 | **Status:** Remediation complete, awaiting merge
+**Branch:** `cap/shopmgmt-location-wave-f` | **PR:** #8 | **Tests:** 488/488 | **Status:** MERGED to master
 
-**Delivery triage:**
+All 8 capabilities (CAP-136/137/138/139/140/141/142/249) delivered and merged.
 
-| CAP | Domain | Stories | operation_ids | Status |
-| --- | --- | --- | --- | --- |
-| CAP-136 | `location` | 140–142 | All stories mapped (12 ops total) | 🔄 IN PROGRESS |
-| CAP-137 | `shopmgmt` | 137–139 | All stories mapped (9 ops total) | 🔄 IN PROGRESS |
-| CAP-138 | `shopmgmt` | 133–136 | All stories mapped (12 ops total) | 🔄 IN PROGRESS |
-| CAP-139 | `shopmgmt` / `people` | 130–132 | All stories mapped (10 ops total) | 🔄 IN PROGRESS |
-| CAP-140 | `shopmgmt` / `people` | 122, 127–129 | All stories mapped (12 ops total) | 🔄 IN PROGRESS |
-| CAP-141 | `shopmgmt` / `security` | 125–126 | All stories mapped (7 ops total) | 🔄 IN PROGRESS |
-| CAP-142 | `shopmgmt` | 124 | All stories mapped (3 ops total) | 🔄 IN PROGRESS |
-| CAP-249 | `shopmgmt` | 74–76 | All stories mapped (9 ops total) | 🔄 IN PROGRESS |
+### ✅ Wave G/H — People RBAC + Profile + Location Topology (MERGED)
 
-**Review outcome:** PASS — 10 findings (F1–F10) resolved in commit `69d1c2b`. F9 (LOW: "work order" naming) deferred to cleanup PR.
+CAP-118, CAP-094 (Wave G) and CAP-117, CAP-119, CAP-120, CAP-121, CAP-214 (Wave H) all merged to master. Final test count at Wave H close: 699/699.
 
-### Wave G — People / HR
+### 🟢 Wave I — Final Capabilities (Next Up)
 
-**What:** Execute People capabilities in sequence; story elaboration is already complete.
+Execution sequence (see Wave I section above for full capability breakdown):
 
-**Execution queue:** CAP-118 (READY) first.
+1. **Wave I-a** — `product` domain: branch `cap/product-wave-i-a`
+2. **Wave I-b** — `inventory` domain: branch `cap/inventory-wave-i-b`
+3. **Wave I-c** — `order`/`billing`/`crm` additions: branch `cap/order-billing-crm-wave-i-c`
 
 ---
 
