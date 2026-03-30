@@ -28,13 +28,32 @@ Legend for **Status** column:
 | Status | Count |
 | --- | --- |
 | ✅ DONE | 41 capabilities across 9 domains (Waves A–H merged + Wave I-a) |
-| 🔄 IN PROGRESS | 0 |
-| 🟢 READY | 13 capabilities across 5 domains (Wave I) |
+| 🔄 IN PROGRESS | 8 (Wave I-b — `cap/inventory-wave-i-b`; 12/21 stories done, 9 deferred pending contracts) |
+| 🟢 READY | 5 capabilities (Wave I-c queue) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
 | ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
 
 **Total in portfolio: 54 capabilities**
+
+---
+
+## In-Progress — Wave I-b Inventory Domain
+
+### 🔄 IN PROGRESS — Wave I-b (CAP-215/216/217/218/219/220/221/315)
+
+**Branch**: `cap/inventory-wave-i-b` | **PR**: pending | **Tests**: 218/218 | **Status**: READY FOR PR
+
+| CAP | Name | Domain | Stories Done | Stories Deferred |
+| --- | --- | --- | --- | --- |
+| CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #100, #101 | — |
+| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 (cross-dock endpoint contract) |
+| CAP-217 | Put-away & Replenishment | `inventory` | #96, #95, #94 | — |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 (API/proxy/ownership TBD) |
+| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 (planning contract TBD) |
+| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 (cross-domain shortage contract TBD) |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 (explicitly blocked) |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 (ASN receiving contract TBD) |
 
 ---
 
@@ -163,7 +182,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | `accounting` | `src/app/features/accounting/` | ✅ Full | CAP-049–055 |
 | `auth` | `src/app/features/auth/` | ✅ Full | CAP-275: session wiring, interceptor, session-expired banner |
 | `security` | `src/app/features/security/` | ✅ Full | CAP-275 + CAP-253: roles, permissions, audit log RBAC admin |
-| `inventory` | `src/app/features/inventory/` | 🟢 READY | Wave I-b queued |
+| `inventory` | `src/app/features/inventory/` | � IN PROGRESS | Wave I-b partial (12/21 stories on `cap/inventory-wave-i-b`) |
 | `people` | `src/app/features/people/` | ✅ Full | CAP-117–121, CAP-139, CAP-140, CAP-249 |
 | `product` | `src/app/features/product/` | 🟢 READY | Wave I-a queued |
 | `order` | `src/app/features/order/` | 🟢 READY | Wave I-c queued |
@@ -186,6 +205,8 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | Wave F (Shopmgmt+Location+People) | `cap/shopmgmt-location-wave-f` | #8 | 8 | 21 stories | 488 |
 | Wave G (People RBAC + CRM-Workexec) | `cap/people-rbac-wave-g` | — | 2 | 3 stories | — |
 | Wave H (People Profile + Location Topology) | `cap/people-location-wave-h` | — | 5 | 16 stories | 699 |
+| Wave I-a (Product) | `cap/product-wave-i-a` | merged | 5 | ~10 stories | — |
+| Wave I-b (Inventory) | `cap/inventory-wave-i-b` | pending PR | 8 | 12 done / 9 deferred | 218 |
 
 ---
 

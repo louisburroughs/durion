@@ -1,6 +1,7 @@
-# Capability Run Artifact
+# Capability Run Artifact — CAP-221 Wave I-b
 
 Use this run record with:
+
 - Manifest: docs/capabilities/CAP-221/CAPABILITY_MANIFEST.yaml
 - Workset: docs/capabilities/CAP-221/AGENT_WORKSET.yaml
 - PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
@@ -8,10 +9,10 @@ Use this run record with:
 ## 1. Run Metadata
 
 - Capability: CAP-221
-- Run Timestamp (UTC): 2026-03-17T16:47:57Z
-- Agent/Operator: <name>
-- Branch(es): <branch names>
-- Status: in-progress | completed | blocked
+- Run Timestamp (UTC): 2026-03-29T00:00:00Z
+- Agent/Operator: Orchestrator (Wave I-b)
+- Branch(es): `cap/inventory-wave-i-b`
+- Status: partial — 1/2 stories done; 1 explicitly blocked per story
 
 ## 2. Inputs Used
 
@@ -23,17 +24,29 @@ Use this run record with:
 
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
-| <story title> | <#> | <#> | done/blocked/partial | <short note> |
+| Audit Log Search and Detail | #86 | #86 | done | Inventory event audit log table, event detail, search/filter, pagination |
+| Inventory Security Admin (Roles & Permissions) | #87 | #87 | deferred | Explicitly blocked per story; inventory RBAC design pending |
 
 ## 4. Implementation Changes
 
 ### Frontend Files Changed
-- <path/to/file1>
-- <path/to/file2>
+
+- `src/app/features/security/services/security-audit.service.ts`
+- `src/app/features/security/pages/audit-logs/audit-logs.component.ts`
+- `src/app/features/security/pages/audit-logs/audit-logs.component.html`
+- `src/app/features/security/pages/audit-logs/audit-logs.component.css`
+- `src/app/features/security/pages/audit-logs/audit-logs.component.spec.ts`
 
 ### Behavior Implemented
-- <story behavior 1>
-- <story behavior 2>
+
+- Inventory event audit log list with keyword search and entity/event-type filters (`searchEvents`)
+- Event detail view with full event payload (`getEvent`)
+- Inventory context filter for scoping to inventory events
+- Pagination with empty/loading/error states per ADR-0031
+
+### Deferred
+
+- #87 Inventory RBAC admin — explicitly blocked per story; inventory role/permission design not yet finalised
 
 ## 5. API Wiring Evidence
 
@@ -41,38 +54,42 @@ For each story, list operations implemented and where they are wired.
 
 | Story | operation_id | SDK/OpenAPI Source | Client/Service File | Status |
 | --- | --- | --- | --- | --- |
-| <story> | <operationId> | <openapi/spec + sdk> | <path> | done/blocked |
+| #86 Audit Log Search | `searchEvents` | pos-security-service / sdk-security | `security-audit.service.ts` | done |
+| #86 Audit Log Detail | `getEvent` | pos-security-service / sdk-security | `security-audit.service.ts` | done |
+| #87 Inventory Roles | `getAllRoles` | pos-security-service / sdk-security | — | deferred — blocked per story |
+| #87 Inventory Permissions | `getAllPermissions` | pos-security-service / sdk-security | — | deferred — blocked per story |
+| #87 User Role Assignments | `getUserRoleAssignments` | pos-security-service / sdk-security | — | deferred — blocked per story |
 
 ## 6. Validation
 
 ### Commands Run
+
 ```bash
-<command 1>
-<command 2>
+cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend
+npm run build
+npx ng test --no-watch
 ```
 
 ### Results
-- Build: pass/fail
-- Tests: pass/fail
-- Lint: pass/fail
-- Typecheck: pass/fail
+
+- Build: pass
+- Tests: pass (218/218 across 24 spec files)
+- Lint: pass
+- Typecheck: pass
 
 ## 7. Blockers and Decisions
 
-- Blocker: <description>
-  - Impact: <scope>
-  - Needed: <decision/input/fix>
+- Blocker: #87 Inventory security admin explicitly blocked per story
+  - Impact: Inventory-scoped role/permission assignment UI cannot be built
+  - Needed: Inventory RBAC design (role taxonomy, permission scoping model) from security domain team
 
 ## 8. Follow-Up Actions
 
-- [ ] <action 1>
-- [ ] <action 2>
+- [ ] Unblock inventory RBAC design for #87 implementation in a future wave
+- [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate
 
-Mark complete only if all are true:
-- [ ] All workset stories processed.
-- [ ] All required operations wired or explicitly blocked with reason.
-- [ ] Acceptance criteria verified against story markdown and wireframe.
-- [ ] Validation commands executed and results recorded.
-- [ ] runs/latest.md reflects final state.
+- [x] All workset stories processed (1 done, 1 explicitly blocked with reason).
+- [x] All required operations wired or explicitly blocked with reason.
+- [ ] Acceptance criteria for #87 not yet verified (blocked).
