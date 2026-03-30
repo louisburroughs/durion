@@ -1,0 +1,3671 @@
+[
+  {
+    "story_id": "65",
+    "capability": "CAP-253",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-253/stories/frontend/CAP_253.65.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/65",
+    "primary_persona": "Auditor (secondary: Store Manager; Compliance/Security Reviewer)",
+    "normalized_personas": [
+      "Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "66",
+    "capability": "CAP-253",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-253/stories/frontend/CAP_253.66.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/66",
+    "primary_persona": "Admin (authorized security administrator)",
+    "normalized_personas": [
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "67",
+    "capability": "CAP-252",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-252/stories/frontend/CAP_252.67.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/67",
+    "primary_persona": "POS Clerk / Service Advisor",
+    "normalized_personas": [
+      "POS Clerk",
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "68",
+    "capability": "CAP-252",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-252/stories/frontend/CAP_252.68.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/68",
+    "primary_persona": "Service Advisor (POS user creating/managing an order)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "69",
+    "capability": "CAP-251",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-251/stories/frontend/CAP_251.69.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/69",
+    "primary_persona": "Cashier (secondary: Service Advisor, Manager/Supervisor, Accounting Ops, Auditor)",
+    "normalized_personas": [
+      "Cashier"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "70",
+    "capability": "CAP-251",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-251/stories/frontend/CAP_251.70.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/70",
+    "primary_persona": "POS cashier / store manager viewing an invoice in POS",
+    "normalized_personas": [
+      "POS Cashier",
+      "Store Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "71",
+    "capability": "CAP-250",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-250/stories/frontend/CAP_250.71.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/71",
+    "primary_persona": "Cashier (secondary: Supervisor/Manager, Customer Service)",
+    "normalized_personas": [
+      "Cashier"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "72",
+    "capability": "CAP-250",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-250/stories/frontend/CAP_250.72.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/72",
+    "primary_persona": "Store Manager",
+    "normalized_personas": [
+      "Store Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "73",
+    "capability": "CAP-250",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-250/stories/frontend/CAP_250.73.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/73",
+    "primary_persona": "Cashier",
+    "normalized_personas": [
+      "Cashier"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "74",
+    "capability": "CAP-249",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-249/stories/frontend/CAP_249.74.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/74",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "76",
+    "capability": "CAP-249",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-249/stories/frontend/CAP_249.76.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/76",
+    "primary_persona": "Scheduler (Service Advisor / Dispatcher)",
+    "normalized_personas": [
+      "Scheduler"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "77",
+    "capability": "CAP-248",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-248/stories/frontend/CAP_248.77.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/77",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "78",
+    "capability": "CAP-248",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-248/stories/frontend/CAP_248.78.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/78",
+    "primary_persona": "Counter Associate",
+    "normalized_personas": [
+      "Counter Associate"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "79",
+    "capability": "CAP-248",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-248/stories/frontend/CAP_248.79.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/79",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "80",
+    "capability": "CAP-247",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-247/stories/frontend/CAP_247.80.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/80",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "82",
+    "capability": "CAP-121",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-121/stories/frontend/CAP_121.82.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/82",
+    "primary_persona": "Store Manager (and Service Advisor where permitted)",
+    "normalized_personas": [
+      "Store Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "83",
+    "capability": "CAP-246",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-246/stories/frontend/CAP_246.83.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/83",
+    "primary_persona": "Store Manager (and any user granted ORDERCANCEL, e.g., Service Advisor)",
+    "normalized_personas": [
+      "Store Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "84",
+    "capability": "CAP-246",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-246/stories/frontend/CAP_246.84.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/84",
+    "primary_persona": "Service Advisor (POS user)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "85",
+    "capability": "CAP-246",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-246/stories/frontend/CAP_246.85.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/85",
+    "primary_persona": "POS Clerk",
+    "normalized_personas": [
+      "POS Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "86",
+    "capability": "CAP-221",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-221/stories/frontend/CAP_221.86.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/86",
+    "primary_persona": "Compliance Auditor (read-only, compliance-oriented)",
+    "normalized_personas": [
+      "Compliance Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Compliance Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "87",
+    "capability": "CAP-221",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-221/stories/frontend/CAP_221.87.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/87",
+    "primary_persona": "System Administrator (Admin)",
+    "normalized_personas": [
+      "System Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "88",
+    "capability": "CAP-220",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-220/stories/frontend/CAP_220.88.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/88",
+    "primary_persona": "Dispatcher",
+    "normalized_personas": [
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "89",
+    "capability": "CAP-220",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-220/stories/frontend/CAP_220.89.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/89",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "90",
+    "capability": "CAP-219",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-219/stories/frontend/CAP_219.90.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/90",
+    "primary_persona": "Inventory Manager (Tier-1 Approver) and Inventory Controller/Director (Tier-2 Approver)",
+    "normalized_personas": [
+      "Inventory Manager",
+      "Inventory Controller",
+      "Director"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Director",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "91",
+    "capability": "CAP-219",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-219/stories/frontend/CAP_219.91.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/91",
+    "primary_persona": "Auditor",
+    "normalized_personas": [
+      "Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "92",
+    "capability": "CAP-218",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.92.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/92",
+    "primary_persona": "Dispatcher (primary); Mechanic (secondary consumer on mobile)",
+    "normalized_personas": [
+      "Dispatcher",
+      "Mechanic"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "93",
+    "capability": "CAP-218",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.93.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/93",
+    "primary_persona": "Parts Manager / Service Advisor (human user) interacting in POS UI",
+    "normalized_personas": [
+      "Parts Manager",
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Parts Manager",
+        "persona_family": "Parts",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "94",
+    "capability": "CAP-217",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-217/stories/frontend/CAP_217.94.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/94",
+    "primary_persona": "Warehouse Associate (secondary: Inventory Manager)",
+    "normalized_personas": [
+      "Warehouse Associate"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Warehouse Associate",
+        "persona_family": "Warehouse",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "95",
+    "capability": "CAP-217",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-217/stories/frontend/CAP_217.95.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/95",
+    "primary_persona": "Stock Clerk (warehouse/mobile user)",
+    "normalized_personas": [
+      "Stock Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Warehouse Associate",
+        "persona_family": "Warehouse",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "96",
+    "capability": "CAP-217",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-217/stories/frontend/CAP_217.96.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/96",
+    "primary_persona": "Stock Clerk (with supporting personas: Warehouse Manager)",
+    "normalized_personas": [
+      "Stock Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Warehouse Associate",
+        "persona_family": "Warehouse",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "97",
+    "capability": "CAP-216",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-216/stories/frontend/CAP_216.97.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/97",
+    "primary_persona": "Inventory Manager",
+    "normalized_personas": [
+      "Inventory Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "98",
+    "capability": "CAP-216",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-216/stories/frontend/CAP_216.98.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/98",
+    "primary_persona": "Receiver (warehouse receiving clerk)",
+    "normalized_personas": [
+      "Receiver"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Warehouse Associate",
+        "persona_family": "Warehouse",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "99",
+    "capability": "CAP-092",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-092/stories/frontend/CAP_092.99.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/99",
+    "primary_persona": "Receiver (warehouse/store receiving clerk)",
+    "normalized_personas": [
+      "Receiver"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Warehouse Associate",
+        "persona_family": "Warehouse",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "100",
+    "capability": "CAP-215",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-215/stories/frontend/CAP_215.100.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/100",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "101",
+    "capability": "CAP-215",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-215/stories/frontend/CAP_215.101.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/101",
+    "primary_persona": "Inventory Manager",
+    "normalized_personas": [
+      "Inventory Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "103",
+    "capability": "CAP-214",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-214/stories/frontend/CAP_214.103.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/103",
+    "primary_persona": "Inventory Manager",
+    "normalized_personas": [
+      "Inventory Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "104",
+    "capability": "CAP-214",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-214/stories/frontend/CAP_214.104.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/104",
+    "primary_persona": "Inventory Admin / Ops Admin (with inventory topology permissions)",
+    "normalized_personas": [
+      "Inventory Admin",
+      "OPS Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Operations Management",
+        "persona_family": "Operations Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "105",
+    "capability": "CAP-172",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-172/stories/frontend/CAP_172.105.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/105",
+    "primary_persona": "Compliance Auditor",
+    "normalized_personas": [
+      "Compliance Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Compliance Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "106",
+    "capability": "CAP-172",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-172/stories/frontend/CAP_172.106.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/106",
+    "primary_persona": "System Administrator (Admin)",
+    "normalized_personas": [
+      "System Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "107",
+    "capability": "CAP-171",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-171/stories/frontend/CAP_171.107.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/107",
+    "primary_persona": "Service Advisor (primary); Shop Manager (for overrides and rule management)",
+    "normalized_personas": [
+      "Service Advisor",
+      "Shop Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "108",
+    "capability": "CAP-171",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-171/stories/frontend/CAP_171.108.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/108",
+    "primary_persona": "Product Administrator (Product Admin)",
+    "normalized_personas": [
+      "Product Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Product Administrator",
+        "persona_family": "Product Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "109",
+    "capability": "CAP-171",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-171/stories/frontend/CAP_171.109.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/109",
+    "primary_persona": "Product Admin (with inventory/catalog administration responsibilities)",
+    "normalized_personas": [
+      "Product Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Product Administrator",
+        "persona_family": "Product Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "110",
+    "capability": "CAP-170",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-170/stories/frontend/CAP_170.110.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/110",
+    "primary_persona": "Integration Operator (Ops user responsible for monitoring integration health and resolving unmapped items)",
+    "normalized_personas": [
+      "Integration Operator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "111",
+    "capability": "CAP-170",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-170/stories/frontend/CAP_170.111.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/111",
+    "primary_persona": "Integration Operator",
+    "normalized_personas": [
+      "Integration Operator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "112",
+    "capability": "CAP-170",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-170/stories/frontend/CAP_170.112.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/112",
+    "primary_persona": "Service Advisor (POS user creating quotes/estimates)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "113",
+    "capability": "CAP-169",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-169/stories/frontend/CAP_169.113.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/113",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "114",
+    "capability": "CAP-169",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-169/stories/frontend/CAP_169.114.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/114",
+    "primary_persona": "Service Advisor (primary), Accountant/Auditor (secondary, read-only)",
+    "normalized_personas": [
+      "Service Advisor",
+      "Accountant",
+      "Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "115",
+    "capability": "CAP-169",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-169/stories/frontend/CAP_169.115.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/115",
+    "primary_persona": "Service Advisor (POS user)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "116",
+    "capability": "CAP-168",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-168/stories/frontend/CAP_168.116.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/116",
+    "primary_persona": "Store Manager",
+    "normalized_personas": [
+      "Store Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "117",
+    "capability": "CAP-168",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-168/stories/frontend/CAP_168.117.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/117",
+    "primary_persona": "System Administrator / Pricing Administrator (POS backoffice user)",
+    "normalized_personas": [
+      "System Administrator",
+      "Pricing Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Pricing Administrator",
+        "persona_family": "Pricing",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "118",
+    "capability": "CAP-167",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-167/stories/frontend/CAP_167.118.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/118",
+    "primary_persona": "Pricing Analyst / Pricing Administrator",
+    "normalized_personas": [
+      "Pricing Analyst",
+      "Pricing Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Pricing Analyst",
+        "persona_family": "Pricing",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Pricing Administrator",
+        "persona_family": "Pricing",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "119",
+    "capability": "CAP-165",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-165/stories/frontend/CAP_165.119.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/119",
+    "primary_persona": "Product Admin (or Inventory Admin)",
+    "normalized_personas": [
+      "Product Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Product Administrator",
+        "persona_family": "Product Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "120",
+    "capability": "CAP-165",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-165/stories/frontend/CAP_165.120.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/120",
+    "primary_persona": "Product Administrator (a.k.a. Product Admin)",
+    "normalized_personas": [
+      "Product Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Product Administrator",
+        "persona_family": "Product Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "121",
+    "capability": "CAP-165",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-165/stories/frontend/CAP_165.121.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/121",
+    "primary_persona": "Inventory Staff (counter/warehouse user needing quick availability answers)",
+    "normalized_personas": [
+      "Inventory Staff"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Staff",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "122",
+    "capability": "CAP-140",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-140/stories/frontend/CAP_140.122.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/122",
+    "primary_persona": "Payroll Clerk",
+    "normalized_personas": [
+      "Payroll Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "123",
+    "capability": "CAP-054",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.123.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/123",
+    "primary_persona": "Mechanic (primary), Shop Manager / Service Advisor (secondary for privileged overrides)",
+    "normalized_personas": [
+      "Mechanic",
+      "Shop Manager",
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "124",
+    "capability": "CAP-142",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-142/stories/frontend/CAP_142.124.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/124",
+    "primary_persona": "Dispatcher (also applicable: Shop Manager / Dispatch Coordinator)",
+    "normalized_personas": [
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "125",
+    "capability": "CAP-141",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-141/stories/frontend/CAP_141.125.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/125",
+    "primary_persona": "Shop Manager",
+    "normalized_personas": [
+      "Shop Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "126",
+    "capability": "CAP-141",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-141/stories/frontend/CAP_141.126.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/126",
+    "primary_persona": "System Administrator / Admin (authorized to manage RBAC)",
+    "normalized_personas": [
+      "System Administrator",
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "127",
+    "capability": "CAP-140",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-140/stories/frontend/CAP_140.127.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/127",
+    "primary_persona": "System (Moqui runtime acting as event consumer) benefiting Dispatchers and Service Advisors.",
+    "normalized_personas": [
+      "System"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System",
+        "persona_family": "System",
+        "actor_type": "system"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "128",
+    "capability": "CAP-140",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-140/stories/frontend/CAP_140.128.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/128",
+    "primary_persona": "Service Advisor / Shop Manager (POS user managing a work order)",
+    "normalized_personas": [
+      "Service Advisor",
+      "Shop Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "129",
+    "capability": "CAP-140",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-140/stories/frontend/CAP_140.129.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/129",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "130",
+    "capability": "CAP-139",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-139/stories/frontend/CAP_139.130.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/130",
+    "primary_persona": "Shop Manager",
+    "normalized_personas": [
+      "Shop Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "131",
+    "capability": "CAP-139",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-139/stories/frontend/CAP_139.131.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/131",
+    "primary_persona": "Mobile Lead (and Mobile Technician as day-to-day actor)",
+    "normalized_personas": [
+      "Mobile Lead"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "132",
+    "capability": "CAP-139",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-139/stories/frontend/CAP_139.132.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/132",
+    "primary_persona": "Mechanic",
+    "normalized_personas": [
+      "Mechanic"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "133",
+    "capability": "CAP-138",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-138/stories/frontend/CAP_138.133.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/133",
+    "primary_persona": "Shop Manager / Dispatcher with explicit override capability (manager-only override)",
+    "normalized_personas": [
+      "Shop Manager",
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "134",
+    "capability": "CAP-138",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-138/stories/frontend/CAP_138.134.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/134",
+    "primary_persona": "Dispatcher",
+    "normalized_personas": [
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "137",
+    "capability": "CAP-137",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-137/stories/frontend/CAP_137.137.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/137",
+    "primary_persona": "Dispatcher",
+    "normalized_personas": [
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "138",
+    "capability": "CAP-137",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-137/stories/frontend/CAP_137.138.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/138",
+    "primary_persona": "Dispatcher",
+    "normalized_personas": [
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "139",
+    "capability": "CAP-137",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-137/stories/frontend/CAP_137.139.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/139",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "140",
+    "capability": "CAP-136",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-136/stories/frontend/CAP_136.140.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/140",
+    "primary_persona": "Shop Administrator (Admin)",
+    "normalized_personas": [
+      "Shop Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Operations Management",
+        "persona_family": "Operations Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "141",
+    "capability": "CAP-136",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-136/stories/frontend/CAP_136.141.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/141",
+    "primary_persona": "Shop Administrator (Admin)",
+    "normalized_personas": [
+      "Shop Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Operations Management",
+        "persona_family": "Operations Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "142",
+    "capability": "CAP-136",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-136/stories/frontend/CAP_136.142.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/142",
+    "primary_persona": "Admin (Location Manager)",
+    "normalized_personas": [
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "143",
+    "capability": "CAP-120",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-120/stories/frontend/CAP_120.143.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/143",
+    "primary_persona": "Accounting Clerk (Accounting user)",
+    "normalized_personas": [
+      "Accounting Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "144",
+    "capability": "CAP-121",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-121/stories/frontend/CAP_121.144.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/144",
+    "primary_persona": "Manager",
+    "normalized_personas": [
+      "Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "145",
+    "capability": "CAP-121",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-121/stories/frontend/CAP_121.145.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/145",
+    "primary_persona": "Mechanic / Technician (primary), with system-integration behavior initiated from the POS UI context.",
+    "normalized_personas": [
+      "Mechanic",
+      "Technician"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "146",
+    "capability": "CAP-121",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-121/stories/frontend/CAP_121.146.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/146",
+    "primary_persona": "Mechanic (Technician)",
+    "normalized_personas": [
+      "Mechanic"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "147",
+    "capability": "CAP-120",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-120/stories/frontend/CAP_120.147.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/147",
+    "primary_persona": "Manager (authorized to approve time for direct reports)",
+    "normalized_personas": [
+      "Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "148",
+    "capability": "CAP-120",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-120/stories/frontend/CAP_120.148.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/148",
+    "primary_persona": "Mechanic (authenticated employee user)",
+    "normalized_personas": [
+      "Mechanic"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "149",
+    "capability": "CAP-120",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-120/stories/frontend/CAP_120.149.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/149",
+    "primary_persona": "Mechanic (authenticated POS user)",
+    "normalized_personas": [
+      "Mechanic"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "150",
+    "capability": "CAP-119",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-119/stories/frontend/CAP_119.150.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/150",
+    "primary_persona": "Manager (people/location administrator)",
+    "normalized_personas": [
+      "Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "152",
+    "capability": "CAP-117",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-117/stories/frontend/CAP_117.152.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/152",
+    "primary_persona": "HR Administrator (HR user)",
+    "normalized_personas": [
+      "HR Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Operations Management",
+        "persona_family": "Operations Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "153",
+    "capability": "CAP-118",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-118/stories/frontend/CAP_118.153.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/153",
+    "primary_persona": "Admin (a user authorized to manage other users\u2019 access)",
+    "normalized_personas": [
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "154",
+    "capability": "CAP-117",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-117/stories/frontend/CAP_117.154.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/154",
+    "primary_persona": "Admin (People/HR Admin)",
+    "normalized_personas": [
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "155",
+    "capability": "CAP-117",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-117/stories/frontend/CAP_117.155.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/155",
+    "primary_persona": "Admin (authorized to provision users)",
+    "normalized_personas": [
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "156",
+    "capability": "CAP-094",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-094/stories/frontend/CAP_094.156.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/156",
+    "primary_persona": "Integration Support Engineer / Admin User (human operator using the POS frontend)",
+    "normalized_personas": [
+      "Integration Support Engineer",
+      "Admin User"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Integration Support Engineer",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "157",
+    "capability": "CAP-094",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-094/stories/frontend/CAP_094.157.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/157",
+    "primary_persona": "System User (Service Advisor / POS User) operating the POS frontend",
+    "normalized_personas": [
+      "System User"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System",
+        "persona_family": "System",
+        "actor_type": "system"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "158",
+    "capability": "CAP-093",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-093/stories/frontend/CAP_093.158.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/158",
+    "primary_persona": "Customer Service Representative (CSR) / Marketing Manager (read-only)",
+    "normalized_personas": [
+      "Customer Service Representative",
+      "Marketing Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Marketing Manager",
+        "persona_family": "Account Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "159",
+    "capability": "CAP-093",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-093/stories/frontend/CAP_093.159.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/159",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "160",
+    "capability": "CAP-093",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-093/stories/frontend/CAP_093.160.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/160",
+    "primary_persona": "Pricing Analyst (secondary: Account Manager)",
+    "normalized_personas": [
+      "Pricing Analyst"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Pricing Analyst",
+        "persona_family": "Pricing",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "161",
+    "capability": "CAP-093",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-093/stories/frontend/CAP_093.161.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/161",
+    "primary_persona": "Account Manager",
+    "normalized_personas": [
+      "Account Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Account Manager",
+        "persona_family": "Account Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "162",
+    "capability": "CAP-092",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-092/stories/frontend/CAP_092.162.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/162",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "163",
+    "capability": "CAP-092",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-092/stories/frontend/CAP_092.163.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/163",
+    "primary_persona": "Service Advisor / CSR (POS user) using the Durion frontend to view customer context quickly during estimate creation and refresh.",
+    "normalized_personas": [
+      "Service Advisor",
+      "CSR"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "165",
+    "capability": "CAP-091",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-091/stories/frontend/CAP_091.165.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/165",
+    "primary_persona": "CRM Data Steward / Support Engineer (internal user)",
+    "normalized_personas": [
+      "CRM Data Steward",
+      "Support Engineer"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "CRM Data Steward",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Support Engineer",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "166",
+    "capability": "CAP-091",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-091/stories/frontend/CAP_091.166.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/166",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "170",
+    "capability": "CAP-090",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-090/stories/frontend/CAP_090.170.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/170",
+    "primary_persona": "CSR (Customer Service Representative)",
+    "normalized_personas": [
+      "CSR"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "171",
+    "capability": "CAP-090",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-090/stories/frontend/CAP_090.171.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/171",
+    "primary_persona": "Customer Service Representative (CSR)",
+    "normalized_personas": [
+      "Customer Service Representative"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "172",
+    "capability": "CAP-090",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-090/stories/frontend/CAP_090.172.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/172",
+    "primary_persona": "CSR (Customer Service Representative)",
+    "normalized_personas": [
+      "CSR"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "173",
+    "capability": "CAP-089",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-089/stories/frontend/CAP_089.173.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/173",
+    "primary_persona": "Admin (back-office / data steward)",
+    "normalized_personas": [
+      "Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "174",
+    "capability": "CAP-089",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-089/stories/frontend/CAP_089.174.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/174",
+    "primary_persona": "Fleet Account Manager",
+    "normalized_personas": [
+      "Fleet Account Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Account Manager",
+        "persona_family": "Account Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "175",
+    "capability": "CAP-089",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-089/stories/frontend/CAP_089.175.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/175",
+    "primary_persona": "Customer Service Representative (CSR)",
+    "normalized_personas": [
+      "Customer Service Representative"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "176",
+    "capability": "CAP-089",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-089/stories/frontend/CAP_089.176.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/176",
+    "primary_persona": "Fleet Account Manager",
+    "normalized_personas": [
+      "Fleet Account Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Account Manager",
+        "persona_family": "Account Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "177",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.177.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/177",
+    "primary_persona": "Finance Ops User / Accounting Clerk (read-only refund visibility)",
+    "normalized_personas": [
+      "Finance OPS User",
+      "Accounting Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "178",
+    "capability": "CAP-051",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.178.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/178",
+    "primary_persona": "Accounting Clerk (human user) operating within the Accounting domain UI",
+    "normalized_personas": [
+      "Accounting Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "179",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.179.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/179",
+    "primary_persona": "Accounting Ops User (Accountant / Accounting Clerk)",
+    "normalized_personas": [
+      "Accounting OPS User"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "180",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.180.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/180",
+    "primary_persona": "Accounting Ops Specialist (secondary: Auditor read-only; Accounting Manager oversight)",
+    "normalized_personas": [
+      "Accounting OPS Specialist"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "181",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.181.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/181",
+    "primary_persona": "Accounting Ops / Finance Admin (operational responsibility for accounting integrations)",
+    "normalized_personas": [
+      "Accounting OPS",
+      "Finance Admin"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "182",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.182.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/182",
+    "primary_persona": "Accounting Operations user / Accountant (read-only ops visibility)",
+    "normalized_personas": [
+      "Accounting Operations User",
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "183",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.183.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/183",
+    "primary_persona": "Accounting Operations User (Back-office accountant / accounting ops) who monitors accounting event ingestion and resolves failures.",
+    "normalized_personas": [
+      "Accounting Operations User"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "184",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.184.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/184",
+    "primary_persona": "Accounting Ops User (Finance/Accounting back-office user)",
+    "normalized_personas": [
+      "Accounting OPS User"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "185",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.185.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/185",
+    "primary_persona": "Accounting Operations User (Accountant / Finance Ops) monitoring and troubleshooting automated accounting event ingestion.",
+    "normalized_personas": [
+      "Accounting Operations User"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "186",
+    "capability": "CAP-055",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-055/stories/frontend/CAP_055.186.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/186",
+    "primary_persona": "Accounting Admin (accountant with controls responsibility) / Accounting Ops / System Administrator (ops support)",
+    "normalized_personas": [
+      "Accounting Admin",
+      "Accounting OPS",
+      "System Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "187",
+    "capability": "CAP-055",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-055/stories/frontend/CAP_055.187.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/187",
+    "primary_persona": "Accountant (or Finance Manager acting as accountant)",
+    "normalized_personas": [
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "188",
+    "capability": "CAP-055",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-055/stories/frontend/CAP_055.188.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/188",
+    "primary_persona": "Financial Controller / Auditor",
+    "normalized_personas": [
+      "Financial Controller",
+      "Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "189",
+    "capability": "CAP-054",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.189.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/189",
+    "primary_persona": "Financial Controller / Accountant",
+    "normalized_personas": [
+      "Financial Controller",
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "190",
+    "capability": "CAP-054",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.190.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/190",
+    "primary_persona": "Accountant / Controller (authorized financial user)",
+    "normalized_personas": [
+      "Accountant",
+      "Controller"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "191",
+    "capability": "CAP-054",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.191.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/191",
+    "primary_persona": "Finance / Accounting Manager (with period management permissions)",
+    "normalized_personas": [
+      "Finance",
+      "Accounting Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Manager",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "192",
+    "capability": "CAP-053",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-053/stories/frontend/CAP_053.192.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/192",
+    "primary_persona": "AP Clerk (or AP Manager) using POS Back Office (Billing/AP area)",
+    "normalized_personas": [
+      "AP Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "193",
+    "capability": "CAP-053",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-053/stories/frontend/CAP_053.193.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/193",
+    "primary_persona": "AP Clerk",
+    "normalized_personas": [
+      "AP Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "194",
+    "capability": "CAP-053",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-053/stories/frontend/CAP_053.194.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/194",
+    "primary_persona": "AP Clerk (Accounts Payable)",
+    "normalized_personas": [
+      "AP Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "195",
+    "capability": "CAP-052",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-052/stories/frontend/CAP_052.195.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/195",
+    "primary_persona": "Accounts Receivable (AR) Clerk",
+    "normalized_personas": [
+      "Accounts Receivable Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "196",
+    "capability": "CAP-052",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-052/stories/frontend/CAP_052.196.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/196",
+    "primary_persona": "Back Office Accountant (AR Clerk)",
+    "normalized_personas": [
+      "Back Office Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "197",
+    "capability": "CAP-052",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-052/stories/frontend/CAP_052.197.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/197",
+    "primary_persona": "Accounting Clerk / Finance User (AR) and Accounting Support Analyst",
+    "normalized_personas": [
+      "Accounting Clerk",
+      "Finance User",
+      "Accounting Support Analyst"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "198",
+    "capability": "CAP-051",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.198.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/198",
+    "primary_persona": "Controller (Finance)",
+    "normalized_personas": [
+      "Controller"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "199",
+    "capability": "CAP-051",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.199.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/199",
+    "primary_persona": "Finance Manager / Accountant (with accounting admin privileges)",
+    "normalized_personas": [
+      "Finance Manager",
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Finance Manager",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "200",
+    "capability": "CAP-051",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.200.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/200",
+    "primary_persona": "GL Accountant / Controller (back-office user responsible for posting journal entries)",
+    "normalized_personas": [
+      "GL Accountant",
+      "Controller"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "201",
+    "capability": "CAP-051",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.201.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/201",
+    "primary_persona": "Accountant / GL Specialist (back-office user) who monitors and reviews draft Journal Entries generated from source events.",
+    "normalized_personas": [
+      "Accountant",
+      "GL Specialist"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "202",
+    "capability": "CAP-050",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-050/stories/frontend/CAP_050.202.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/202",
+    "primary_persona": "Financial Controller / System Administrator",
+    "normalized_personas": [
+      "Financial Controller",
+      "System Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "System Administrator",
+        "persona_family": "System Administration",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "203",
+    "capability": "CAP-050",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-050/stories/frontend/CAP_050.203.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/203",
+    "primary_persona": "Financial Controller / Accountant",
+    "normalized_personas": [
+      "Financial Controller",
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Controller",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "204",
+    "capability": "CAP-050",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-050/stories/frontend/CAP_050.204.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/204",
+    "primary_persona": "Finance Manager / Accountant (authorized CoA maintainer)",
+    "normalized_personas": [
+      "Finance Manager",
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Finance Manager",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "205",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.205.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/205",
+    "primary_persona": "Accounting Operations Analyst (secondary: System Auditor)",
+    "normalized_personas": [
+      "Accounting Operations Analyst"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "206",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.206.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/206",
+    "primary_persona": "Accounting Ops (operational user monitoring and resolving ingestion integrity issues)",
+    "normalized_personas": [
+      "Accounting OPS"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "207",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.207.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/207",
+    "primary_persona": "Accounting integration operator / platform engineer (diagnostic + producer validation support)",
+    "normalized_personas": [
+      "Accounting Integration Operator",
+      "Platform Engineer"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Platform Engineer",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "208",
+    "capability": "CAP-049",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.208.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/208",
+    "primary_persona": "Domain Architect / Backend Engineer (Accounting) maintaining the canonical event envelope contract and verifying conformance.",
+    "normalized_personas": [
+      "Domain Architect",
+      "Backend Engineer"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Domain Architect",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Backend Engineer",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "209",
+    "capability": "CAP-007",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.209.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/209",
+    "primary_persona": "Back Office / Accounts Receivable Clerk",
+    "normalized_personas": [
+      "Back Office",
+      "Accounts Receivable Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "210",
+    "capability": "CAP-007",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.210.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/210",
+    "primary_persona": "Back Office Manager",
+    "normalized_personas": [
+      "Back Office Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Back Office Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "211",
+    "capability": "CAP-007",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.211.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/211",
+    "primary_persona": "Billing Specialist (authorized POS user) / Billing Administrator",
+    "normalized_personas": [
+      "Billing Specialist",
+      "Billing Administrator"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "212",
+    "capability": "CAP-007",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.212.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/212",
+    "primary_persona": "Service Advisor (primary UI user) and Accountant (review/audit user) viewing a Draft invoice in POS.",
+    "normalized_personas": [
+      "Service Advisor",
+      "Accountant"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "213",
+    "capability": "CAP-007",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.213.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/213",
+    "primary_persona": "Accounts Receivable (AR) Clerk (Back Office)",
+    "normalized_personas": [
+      "Accounts Receivable Clerk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Accounting Associate",
+        "persona_family": "Accounting Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "214",
+    "capability": "CAP-006",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.214.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/214",
+    "primary_persona": "Back Office Manager",
+    "normalized_personas": [
+      "Back Office Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Back Office Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "215",
+    "capability": "CAP-006",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.215.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/215",
+    "primary_persona": "Service Advisor / Shop Manager",
+    "normalized_personas": [
+      "Service Advisor",
+      "Shop Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "216",
+    "capability": "CAP-006",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.216.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/216",
+    "primary_persona": "Service Advisor (primary), Manager/FinanceManager (variance approval / correction initiation if supported)",
+    "normalized_personas": [
+      "Service Advisor",
+      "Manager",
+      "FinanceManager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Finance Manager",
+        "persona_family": "Finance / Accounting Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "217",
+    "capability": "CAP-006",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.217.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/217",
+    "primary_persona": "Service Advisor (Back Office / Front Counter)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "218",
+    "capability": "CAP-006",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.218.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/218",
+    "primary_persona": "Service Advisor (or any authorized user attempting to complete a Work Order)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "219",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.219.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/219",
+    "primary_persona": "Mechanic / Technician (restricted view) and Service Advisor / Back Office (full view)",
+    "normalized_personas": [
+      "Mechanic",
+      "Technician",
+      "Service Advisor",
+      "Back Office"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "220",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.220.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/220",
+    "primary_persona": "Technician (primary creator)",
+    "normalized_personas": [
+      "Technician"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "221",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.221.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/221",
+    "primary_persona": "Technician / Parts Counter Staff",
+    "normalized_personas": [
+      "Technician",
+      "Parts Counter Staff"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Parts Associate",
+        "persona_family": "Parts",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "222",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.222.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/222",
+    "primary_persona": "Technician / Parts Counter Staff",
+    "normalized_personas": [
+      "Technician",
+      "Parts Counter Staff"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Parts Associate",
+        "persona_family": "Parts",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "223",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.223.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/223",
+    "primary_persona": "Technician",
+    "normalized_personas": [
+      "Technician"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "224",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.224.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/224",
+    "primary_persona": "Technician (primary), Shop Manager (secondary)",
+    "normalized_personas": [
+      "Technician",
+      "Shop Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "225",
+    "capability": "CAP-005",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.225.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/225",
+    "primary_persona": "Shop Manager / Dispatcher",
+    "normalized_personas": [
+      "Shop Manager",
+      "Dispatcher"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Dispatcher",
+        "persona_family": "Dispatch",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "226",
+    "capability": "CAP-004",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.226.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/226",
+    "primary_persona": "Shop Manager / System Auditor (secondary: Service Advisor)",
+    "normalized_personas": [
+      "Shop Manager",
+      "System Auditor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "System Auditor",
+        "persona_family": "Audit",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "227",
+    "capability": "CAP-004",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.227.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/227",
+    "primary_persona": "Service Advisor (Back Office / POS user)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "228",
+    "capability": "CAP-004",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.228.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/228",
+    "primary_persona": "Service Advisor (primary UI initiator); System (idempotency enforcer)",
+    "normalized_personas": [
+      "Service Advisor",
+      "System"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "System",
+        "persona_family": "System",
+        "actor_type": "system"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "229",
+    "capability": "CAP-004",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.229.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/229",
+    "primary_persona": "Service Advisor (initiates promotion from an Approved Estimate)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "230",
+    "capability": "CAP-004",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.230.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/230",
+    "primary_persona": "Service Advisor (Back Office/POS user)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "231",
+    "capability": "CAP-004",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.231.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/231",
+    "primary_persona": "Service Advisor (Back Office)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "232",
+    "capability": "CAP-003",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/stories/frontend/CAP_003.232.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/232",
+    "primary_persona": "Service Advisor (primary). Secondary: Technician (read-only awareness).",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "233",
+    "capability": "CAP-003",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/stories/frontend/CAP_003.233.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/233",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "234",
+    "capability": "CAP-002",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.234.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/234",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "235",
+    "capability": "CAP-002",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.235.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/235",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "236",
+    "capability": "CAP-002",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.236.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/236",
+    "primary_persona": "Service Advisor (POS user) viewing and editing an Estimate",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "237",
+    "capability": "CAP-002",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.237.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/237",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "238",
+    "capability": "CAP-002",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.238.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/238",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "239",
+    "capability": "CAP-002",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.239.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/239",
+    "primary_persona": "Service Advisor / Front Desk",
+    "normalized_personas": [
+      "Service Advisor",
+      "Front Desk"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Customer Support Associate",
+        "persona_family": "Customer Support Associate",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "241",
+    "capability": "CAP-219",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-219/stories/frontend/CAP_219.241.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/241",
+    "primary_persona": "Inventory Manager",
+    "normalized_personas": [
+      "Inventory Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "242",
+    "capability": "CAP-218",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.242.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/242",
+    "primary_persona": "Warehouse Manager (primary); Service Advisor (secondary)",
+    "normalized_personas": [
+      "Warehouse Manager",
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Warehouse Manager",
+        "persona_family": "Warehouse",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "243",
+    "capability": "CAP-218",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.243.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/243",
+    "primary_persona": "Parts Manager / Technician (POS user issuing parts to a workorder)",
+    "normalized_personas": [
+      "Parts Manager",
+      "Technician"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Parts Manager",
+        "persona_family": "Parts",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  },
+  {
+    "story_id": "244",
+    "capability": "CAP-218",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.244.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/244",
+    "primary_persona": "Mechanic / Technician (shop-floor user fulfilling parts for a work order)",
+    "normalized_personas": [
+      "Mechanic",
+      "Technician"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Technician",
+        "persona_family": "Technician",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "259",
+    "capability": "CAP-167",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-167/stories/frontend/CAP_167.259.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/259",
+    "primary_persona": "Pricing Manager",
+    "normalized_personas": [
+      "Pricing Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Pricing Manager",
+        "persona_family": "Pricing",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "260",
+    "capability": "CAP-166",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-166/stories/frontend/CAP_166.260.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/260",
+    "primary_persona": "Inventory Manager (or Purchasing Admin responsible for supplier purchasing costs)",
+    "normalized_personas": [
+      "Inventory Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "261",
+    "capability": "CAP-166",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-166/stories/frontend/CAP_166.261.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/261",
+    "primary_persona": "Inventory Manager (Finance Manager as oversight stakeholder)",
+    "normalized_personas": [
+      "Inventory Manager"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Inventory Control Manager",
+        "persona_family": "Inventory Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "268",
+    "capability": "CAP-003",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/stories/frontend/CAP_003.268.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/268",
+    "primary_persona": "Approver (manager/supervisor) who reviews and approves requests in the POS.",
+    "normalized_personas": [
+      "Approver"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "269",
+    "capability": "CAP-003",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/stories/frontend/CAP_003.269.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/269",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "270",
+    "capability": "CAP-003",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/stories/frontend/CAP_003.270.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/270",
+    "primary_persona": "Service Advisor",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "271",
+    "capability": "CAP-003",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-003/stories/frontend/CAP_003.271.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/271",
+    "primary_persona": "Service Advisor (POS user)",
+    "normalized_personas": [
+      "Service Advisor"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Service Advisor",
+        "persona_family": "Service Advisor",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": false
+  },
+  {
+    "story_id": "280",
+    "capability": "CAP-275",
+    "story_path": "/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-275/stories/frontend/CAP_275.280.frontend.md",
+    "issue_url": "https://github.com/louisburroughs/durion-moqui-frontend/issues/280",
+    "primary_persona": "Platform Integrator / Moqui Engineer",
+    "normalized_personas": [
+      "Platform Integrator",
+      "Moqui Engineer"
+    ],
+    "persona_metadata": [
+      {
+        "canonical_persona": "Platform Integrator",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      },
+      {
+        "canonical_persona": "Moqui Engineer",
+        "persona_family": "Technical / Platform",
+        "actor_type": "human"
+      }
+    ],
+    "unmapped_personas": [],
+    "review_required": true
+  }
+]
