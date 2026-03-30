@@ -85,10 +85,10 @@ They are meant to help us identify compelling workflows, screen ownership, and n
   - `Shop Manager`
   - `Store Manager`
   - `Back Office`
+  - `Back Office Manager`
   - `Manager`
   - `Approver`
 - Keep adjacent but separate:
-  - `Back Office Manager`
   - `Director`
 - Notes:
   - `Location Manager` is the current roll-up for the primary location-level management journey.
@@ -274,18 +274,19 @@ This area benefits most from a structured hierarchy. The main divide should be:
   - This bucket is now reserved for system-style administration roles.
   - `Admin` and `Admin User` should currently reconcile into `System Administrator`.
 
-#### 6.4 Operational Management
+#### 6.4 Location-Scoped Administrative Management
 
 - Journey focus: Administrative ownership of location and people operations that function more like business management than system administration.
 
-- Canonical persona family: `Operations Management`
-- Candidate children:
+- Canonical persona family: `Location Management`
+- Canonical persona: `Location Manager`
+- Merge into `Location Manager`:
   - `Shop Administrator`
   - `HR Administrator`
   - `OPS Admin`
 - Notes:
   - These should be construed as management or operational-ownership roles rather than system-administration roles.
-  - `Shop Administrator` may ultimately collapse into `Shop Manager` if the story workflows line up closely enough.
+  - They should roll into the same location-level management journey as `Shop Manager`, `Store Manager`, and `Back Office`.
 
 ### 7. Technical / Platform Actors
 
@@ -325,7 +326,7 @@ This area benefits most from a structured hierarchy. The main divide should be:
 - `Accounting Operations User`, `Accounting OPS`, `Accounting OPS User`, `Accounting Operations Analyst`, `Accounting OPS Specialist`, `Accounting Integration Operator`, `Integration Operator`, `Finance OPS User` -> `Accounting Associate`
 - `Product Admin`, `Product Administrator` -> `Product Administrator`
 - `Financial Controller`, `Controller`, `Finance` -> `Controller`
-- `Shop Manager`, `Store Manager`, `Back Office`, `Manager`, `Approver` -> `Location Manager`
+- `Shop Manager`, `Store Manager`, `Back Office`, `Back Office Manager`, `Manager`, `Approver`, `Shop Administrator`, `HR Administrator`, `OPS Admin` -> `Location Manager`
 - `FinanceManager` -> `Finance Manager`
 - `Admin`, `Admin User` -> `System Administrator`
 - `Accounting Admin`, `Finance Admin` -> `System Administrator`
@@ -346,7 +347,7 @@ This area benefits most from a structured hierarchy. The main divide should be:
 3. Add a second field for `persona_family` so reporting can happen at either level.
 4. Add a separate `actor_type = system` bucket for non-human actors and keep it distinct from personas.
 5. When a story uses a title that sounds like an org role, map it by journey ownership rather than by permissions or security boundaries.
-6. Normalize remaining boundary cases like `Back Office Manager`, `Director`, `Parts Manager`, and `Warehouse Manager` where story context is strong enough.
+6. Normalize remaining boundary cases like `Director`, `Parts Manager`, and `Warehouse Manager` where story context is strong enough.
 
 ## Current Rollup Snapshot
 
