@@ -1357,8 +1357,8 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Operations Management",
-        "persona_family": "Operations Management",
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
         "actor_type": "human"
       }
     ],
@@ -1376,8 +1376,8 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Operations Management",
-        "persona_family": "Operations Management",
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
         "actor_type": "human"
       }
     ],
@@ -1567,8 +1567,8 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Operations Management",
-        "persona_family": "Operations Management",
+        "canonical_persona": "Location Manager",
+        "persona_family": "Location Management",
         "actor_type": "human"
       }
     ],
@@ -2617,7 +2617,7 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Back Office Manager",
+        "canonical_persona": "Location Manager",
         "persona_family": "Location Management",
         "actor_type": "human"
       }
@@ -2695,7 +2695,7 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Back Office Manager",
+        "canonical_persona": "Location Manager",
         "persona_family": "Location Management",
         "actor_type": "human"
       }

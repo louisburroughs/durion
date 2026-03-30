@@ -1071,8 +1071,8 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Shop Administrator (Admin)`
-- `canonical_persona`: `Operations Management`
-- `persona_family`: `Operations Management`
+- `canonical_persona`: `Location Manager`
+- `persona_family`: `Location Management`
 - `actor_type`: `human`
 ```
 
@@ -1086,8 +1086,8 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Shop Administrator (Admin)`
-- `canonical_persona`: `Operations Management`
-- `persona_family`: `Operations Management`
+- `canonical_persona`: `Location Manager`
+- `persona_family`: `Location Management`
 - `actor_type`: `human`
 ```
 
@@ -1236,8 +1236,8 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `HR Administrator (HR user)`
-- `canonical_persona`: `Operations Management`
-- `persona_family`: `Operations Management`
+- `canonical_persona`: `Location Manager`
+- `persona_family`: `Location Management`
 - `actor_type`: `human`
 ```
 
@@ -2046,7 +2046,7 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Back Office Manager`
-- `canonical_persona`: `Back Office Manager`
+- `canonical_persona`: `Location Manager`
 - `persona_family`: `Location Management`
 - `actor_type`: `human`
 ```
@@ -2106,7 +2106,7 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Back Office Manager`
-- `canonical_persona`: `Back Office Manager`
+- `canonical_persona`: `Location Manager`
 - `persona_family`: `Location Management`
 - `actor_type`: `human`
 ```

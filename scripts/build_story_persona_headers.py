@@ -52,11 +52,10 @@ def build_persona_rules() -> dict[str, PersonaMetadata]:
     register(["Marketing Manager"], "Marketing Manager", "Account Management")
 
     register(
-        ["Shop Manager", "Store Manager", "Back Office", "Manager", "Approver"],
+        ["Shop Manager", "Store Manager", "Back Office", "Back Office Manager", "Manager", "Approver"],
         "Location Manager",
         "Location Management",
     )
-    register(["Back Office Manager"], "Back Office Manager", "Location Management")
     register(["Director"], "Director", "Location Management")
     register(["Dispatcher", "Scheduler", "Mobile Lead"], "Dispatcher", "Dispatch")
 
@@ -119,7 +118,7 @@ def build_persona_rules() -> dict[str, PersonaMetadata]:
         "System Administrator",
         "System Administration",
     )
-    register(["Shop Administrator", "HR Administrator", "OPS Admin"], "Operations Management", "Operations Management")
+    register(["Shop Administrator", "HR Administrator", "OPS Admin"], "Location Manager", "Location Management")
 
     register(["Backend Engineer"], "Backend Engineer", "Technical / Platform")
     register(["Domain Architect"], "Domain Architect", "Technical / Platform")
