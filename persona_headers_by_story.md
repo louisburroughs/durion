@@ -7,55 +7,7 @@ This is a review artifact. It is safer than writing directly to story files or G
 ## Summary
 
 - Stories with extracted primary persona: 177
-- Stories requiring review: 45
-
-## Review Needed
-
-- Story `67` in [CAP_252.67.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-252/stories/frontend/CAP_252.67.frontend.md): multiple persona candidates
-- Story `70` in [CAP_251.70.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-251/stories/frontend/CAP_251.70.frontend.md): multiple persona candidates
-- Story `90` in [CAP_219.90.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-219/stories/frontend/CAP_219.90.frontend.md): multiple persona candidates
-- Story `92` in [CAP_218.92.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.92.frontend.md): multiple persona candidates
-- Story `93` in [CAP_218.93.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.93.frontend.md): multiple persona candidates
-- Story `104` in [CAP_214.104.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-214/stories/frontend/CAP_214.104.frontend.md): multiple persona candidates
-- Story `107` in [CAP_171.107.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-171/stories/frontend/CAP_171.107.frontend.md): multiple persona candidates
-- Story `114` in [CAP_169.114.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-169/stories/frontend/CAP_169.114.frontend.md): multiple persona candidates
-- Story `117` in [CAP_168.117.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-168/stories/frontend/CAP_168.117.frontend.md): multiple persona candidates
-- Story `118` in [CAP_167.118.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-167/stories/frontend/CAP_167.118.frontend.md): multiple persona candidates
-- Story `123` in [CAP_054.123.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.123.frontend.md): multiple persona candidates
-- Story `128` in [CAP_140.128.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-140/stories/frontend/CAP_140.128.frontend.md): multiple persona candidates
-- Story `133` in [CAP_138.133.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-138/stories/frontend/CAP_138.133.frontend.md): multiple persona candidates
-- Story `156` in [CAP_094.156.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-094/stories/frontend/CAP_094.156.frontend.md): multiple persona candidates
-- Story `158` in [CAP_093.158.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-093/stories/frontend/CAP_093.158.frontend.md): multiple persona candidates
-- Story `163` in [CAP_092.163.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-092/stories/frontend/CAP_092.163.frontend.md): multiple persona candidates
-- Story `165` in [CAP_091.165.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-091/stories/frontend/CAP_091.165.frontend.md): multiple persona candidates
-- Story `181` in [CAP_049.181.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.181.frontend.md): multiple persona candidates
-- Story `186` in [CAP_055.186.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-055/stories/frontend/CAP_055.186.frontend.md): multiple persona candidates
-- Story `188` in [CAP_055.188.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-055/stories/frontend/CAP_055.188.frontend.md): multiple persona candidates
-- Story `189` in [CAP_054.189.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.189.frontend.md): multiple persona candidates
-- Story `190` in [CAP_054.190.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.190.frontend.md): multiple persona candidates
-- Story `191` in [CAP_054.191.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-054/stories/frontend/CAP_054.191.frontend.md): multiple persona candidates
-- Story `199` in [CAP_051.199.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.199.frontend.md): multiple persona candidates
-- Story `200` in [CAP_051.200.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-051/stories/frontend/CAP_051.200.frontend.md): multiple persona candidates
-- Story `202` in [CAP_050.202.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-050/stories/frontend/CAP_050.202.frontend.md): multiple persona candidates
-- Story `203` in [CAP_050.203.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-050/stories/frontend/CAP_050.203.frontend.md): multiple persona candidates
-- Story `204` in [CAP_050.204.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-050/stories/frontend/CAP_050.204.frontend.md): multiple persona candidates
-- Story `207` in [CAP_049.207.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.207.frontend.md): multiple persona candidates
-- Story `208` in [CAP_049.208.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-049/stories/frontend/CAP_049.208.frontend.md): multiple persona candidates
-- Story `209` in [CAP_007.209.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.209.frontend.md): multiple persona candidates
-- Story `212` in [CAP_007.212.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-007/stories/frontend/CAP_007.212.frontend.md): multiple persona candidates
-- Story `215` in [CAP_006.215.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.215.frontend.md): multiple persona candidates
-- Story `216` in [CAP_006.216.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-006/stories/frontend/CAP_006.216.frontend.md): multiple persona candidates
-- Story `219` in [CAP_005.219.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.219.frontend.md): multiple persona candidates
-- Story `221` in [CAP_005.221.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.221.frontend.md): multiple persona candidates
-- Story `222` in [CAP_005.222.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.222.frontend.md): multiple persona candidates
-- Story `224` in [CAP_005.224.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.224.frontend.md): multiple persona candidates
-- Story `225` in [CAP_005.225.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-005/stories/frontend/CAP_005.225.frontend.md): multiple persona candidates
-- Story `226` in [CAP_004.226.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.226.frontend.md): multiple persona candidates
-- Story `228` in [CAP_004.228.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-004/stories/frontend/CAP_004.228.frontend.md): multiple persona candidates
-- Story `239` in [CAP_002.239.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-002/stories/frontend/CAP_002.239.frontend.md): multiple persona candidates
-- Story `242` in [CAP_218.242.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.242.frontend.md): multiple persona candidates
-- Story `243` in [CAP_218.243.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.243.frontend.md): multiple persona candidates
-- Story `280` in [CAP_275.280.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-275/stories/frontend/CAP_275.280.frontend.md): multiple persona candidates
+- Stories requiring review: 0
 
 ## By Story
 
@@ -99,14 +51,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `POS Clerk / Service Advisor`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Customer Support Associate`
-    `persona_family`: `Customer Support Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Customer Support Associate`
+- `persona_family`: `Customer Support Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `68`
@@ -149,14 +96,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `POS cashier / store manager viewing an invoice in POS`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Customer Support Associate`
-    `persona_family`: `Customer Support Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Customer Support Associate`
+- `persona_family`: `Customer Support Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `71`
@@ -424,14 +366,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Inventory Manager (Tier-1 Approver) and Inventory Controller/Director (Tier-2 Approver)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Inventory Control Manager`
-    `persona_family`: `Inventory Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Director`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Inventory Control Manager`
+- `persona_family`: `Inventory Management`
+- `actor_type`: `human`
 ```
 
 ### Story `91`
@@ -459,14 +396,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Dispatcher (primary); Mechanic (secondary consumer on mobile)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Dispatcher`
-    `persona_family`: `Dispatch`
-    `actor_type`: `human`
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Dispatcher`
+- `persona_family`: `Dispatch`
+- `actor_type`: `human`
 ```
 
 ### Story `93`
@@ -479,14 +411,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Parts Manager / Service Advisor (human user) interacting in POS UI`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Parts Manager`
-    `persona_family`: `Parts`
-    `actor_type`: `human`
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Parts Manager`
+- `persona_family`: `Parts`
+- `actor_type`: `human`
 ```
 
 ### Story `94`
@@ -634,14 +561,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Inventory Admin / Ops Admin (with inventory topology permissions)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Inventory Control Manager`
-    `persona_family`: `Inventory Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Operations Management`
-    `persona_family`: `Operations Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Inventory Control Manager`
+- `persona_family`: `Inventory Management`
+- `actor_type`: `human`
 ```
 
 ### Story `105`
@@ -684,14 +606,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor (primary); Shop Manager (for overrides and rule management)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `108`
@@ -794,17 +711,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor (primary), Accountant/Auditor (secondary, read-only)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Auditor`
-    `persona_family`: `Audit`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `115`
@@ -847,14 +756,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `System Administrator / Pricing Administrator (POS backoffice user)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `System Administrator`
-    `persona_family`: `System Administration`
-    `actor_type`: `human`
-  - `canonical_persona`: `Pricing Administrator`
-    `persona_family`: `Pricing`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Pricing Administrator`
+- `persona_family`: `Pricing`
+- `actor_type`: `human`
 ```
 
 ### Story `118`
@@ -867,14 +771,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Pricing Analyst / Pricing Administrator`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Pricing Analyst`
-    `persona_family`: `Pricing`
-    `actor_type`: `human`
-  - `canonical_persona`: `Pricing Administrator`
-    `persona_family`: `Pricing`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Pricing Analyst`
+- `persona_family`: `Pricing`
+- `actor_type`: `human`
 ```
 
 ### Story `119`
@@ -947,17 +846,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Mechanic (primary), Shop Manager / Service Advisor (secondary for privileged overrides)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Technician`
+- `persona_family`: `Technician`
+- `actor_type`: `human`
 ```
 
 ### Story `124`
@@ -1030,14 +921,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor / Shop Manager (POS user managing a work order)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `129`
@@ -1110,14 +996,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Shop Manager / Dispatcher with explicit override capability (manager-only override)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Dispatcher`
-    `persona_family`: `Dispatch`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Location Manager`
+- `persona_family`: `Location Management`
+- `actor_type`: `human`
 ```
 
 ### Story `134`
@@ -1415,14 +1296,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Integration Support Engineer / Admin User (human operator using the POS frontend)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Integration Support Engineer`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-  - `canonical_persona`: `System Administrator`
-    `persona_family`: `System Administration`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Integration Support Engineer`
+- `persona_family`: `Technical / Platform`
+- `actor_type`: `human`
 ```
 
 ### Story `157`
@@ -1450,14 +1326,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Customer Service Representative (CSR) / Marketing Manager (read-only)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Customer Support Associate`
-    `persona_family`: `Customer Support Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Marketing Manager`
-    `persona_family`: `Account Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Customer Support Associate`
+- `persona_family`: `Customer Support Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `159`
@@ -1530,14 +1401,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor / CSR (POS user) using the Durion frontend to view customer context quickly during estimate creation and refresh.`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Customer Support Associate`
-    `persona_family`: `Customer Support Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `165`
@@ -1550,14 +1416,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `CRM Data Steward / Support Engineer (internal user)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `CRM Data Steward`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-  - `canonical_persona`: `Support Engineer`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Support Engineer`
+- `persona_family`: `Technical / Platform`
+- `actor_type`: `human`
 ```
 
 ### Story `166`
@@ -1750,14 +1611,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Accounting Ops / Finance Admin (operational responsibility for accounting integrations)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `System Administrator`
-    `persona_family`: `System Administration`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Accounting Associate`
+- `persona_family`: `Accounting Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `182`
@@ -1830,14 +1686,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Accounting Admin (accountant with controls responsibility) / Accounting Ops / System Administrator (ops support)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `System Administrator`
-    `persona_family`: `System Administration`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `System Administrator`
+- `persona_family`: `System Administration`
+- `actor_type`: `human`
 ```
 
 ### Story `187`
@@ -1865,14 +1716,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Financial Controller / Auditor`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Auditor`
-    `persona_family`: `Audit`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Controller`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `189`
@@ -1885,14 +1731,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Financial Controller / Accountant`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Controller`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `190`
@@ -1905,14 +1746,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Accountant / Controller (authorized financial user)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Accounting Associate`
+- `persona_family`: `Accounting Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `191`
@@ -1925,14 +1761,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Finance / Accounting Manager (with period management permissions)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Manager`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Accounting Manager`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `192`
@@ -2050,14 +1881,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Finance Manager / Accountant (with accounting admin privileges)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Finance Manager`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Finance Manager`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `200`
@@ -2070,14 +1896,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `GL Accountant / Controller (back-office user responsible for posting journal entries)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Accounting Associate`
+- `persona_family`: `Accounting Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `201`
@@ -2105,14 +1926,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Financial Controller / System Administrator`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `System Administrator`
-    `persona_family`: `System Administration`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Controller`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `203`
@@ -2125,14 +1941,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Financial Controller / Accountant`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Controller`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Controller`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `204`
@@ -2145,14 +1956,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Finance Manager / Accountant (authorized CoA maintainer)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Finance Manager`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Finance Manager`
+- `persona_family`: `Finance / Accounting Management`
+- `actor_type`: `human`
 ```
 
 ### Story `205`
@@ -2195,14 +2001,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Accounting integration operator / platform engineer (diagnostic + producer validation support)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-  - `canonical_persona`: `Platform Engineer`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Platform Engineer`
+- `persona_family`: `Technical / Platform`
+- `actor_type`: `human`
 ```
 
 ### Story `208`
@@ -2215,14 +2016,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Domain Architect / Backend Engineer (Accounting) maintaining the canonical event envelope contract and verifying conformance.`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Domain Architect`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-  - `canonical_persona`: `Backend Engineer`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Domain Architect`
+- `persona_family`: `Technical / Platform`
+- `actor_type`: `human`
 ```
 
 ### Story `209`
@@ -2235,14 +2031,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Back Office / Accounts Receivable Clerk`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Accounting Associate`
+- `persona_family`: `Accounting Associate`
+- `actor_type`: `human`
 ```
 
 ### Story `210`
@@ -2285,14 +2076,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor (primary UI user) and Accountant (review/audit user) viewing a Draft invoice in POS.`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Accounting Associate`
-    `persona_family`: `Accounting Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `213`
@@ -2335,14 +2121,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor / Shop Manager`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `216`
@@ -2355,17 +2136,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor (primary), Manager/FinanceManager (variance approval / correction initiation if supported)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Finance Manager`
-    `persona_family`: `Finance / Accounting Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `217`
@@ -2408,17 +2181,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Mechanic / Technician (restricted view) and Service Advisor / Back Office (full view)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Technician`
+- `persona_family`: `Technician`
+- `actor_type`: `human`
 ```
 
 ### Story `220`
@@ -2446,14 +2211,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Technician / Parts Counter Staff`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-  - `canonical_persona`: `Parts Associate`
-    `persona_family`: `Parts`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Technician`
+- `persona_family`: `Technician`
+- `actor_type`: `human`
 ```
 
 ### Story `222`
@@ -2466,14 +2226,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Technician / Parts Counter Staff`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-  - `canonical_persona`: `Parts Associate`
-    `persona_family`: `Parts`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Technician`
+- `persona_family`: `Technician`
+- `actor_type`: `human`
 ```
 
 ### Story `223`
@@ -2501,14 +2256,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Technician (primary), Shop Manager (secondary)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Technician`
+- `persona_family`: `Technician`
+- `actor_type`: `human`
 ```
 
 ### Story `225`
@@ -2521,14 +2271,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Shop Manager / Dispatcher`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `Dispatcher`
-    `persona_family`: `Dispatch`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Dispatcher`
+- `persona_family`: `Dispatch`
+- `actor_type`: `human`
 ```
 
 ### Story `226`
@@ -2541,14 +2286,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Shop Manager / System Auditor (secondary: Service Advisor)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Location Manager`
-    `persona_family`: `Location Management`
-    `actor_type`: `human`
-  - `canonical_persona`: `System Auditor`
-    `persona_family`: `Audit`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Location Manager`
+- `persona_family`: `Location Management`
+- `actor_type`: `human`
 ```
 
 ### Story `227`
@@ -2576,14 +2316,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor (primary UI initiator); System (idempotency enforcer)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `System`
-    `persona_family`: `System`
-    `actor_type`: `system`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `229`
@@ -2746,14 +2481,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Service Advisor / Front Desk`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-  - `canonical_persona`: `Customer Support Associate`
-    `persona_family`: `Customer Support Associate`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Service Advisor`
+- `persona_family`: `Service Advisor`
+- `actor_type`: `human`
 ```
 
 ### Story `241`
@@ -2781,14 +2511,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Warehouse Manager (primary); Service Advisor (secondary)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Warehouse Manager`
-    `persona_family`: `Warehouse`
-    `actor_type`: `human`
-  - `canonical_persona`: `Service Advisor`
-    `persona_family`: `Service Advisor`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Warehouse Manager`
+- `persona_family`: `Warehouse`
+- `actor_type`: `human`
 ```
 
 ### Story `243`
@@ -2801,14 +2526,9 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Parts Manager / Technician (POS user issuing parts to a workorder)`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Parts Manager`
-    `persona_family`: `Parts`
-    `actor_type`: `human`
-  - `canonical_persona`: `Technician`
-    `persona_family`: `Technician`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Technician`
+- `persona_family`: `Technician`
+- `actor_type`: `human`
 ```
 
 ### Story `244`
@@ -2941,12 +2661,7 @@ Suggested header block:
 
 ```md
 - `primary_persona`: `Platform Integrator / Moqui Engineer`
-- `persona_metadata_candidates`:
-  - `canonical_persona`: `Platform Integrator`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-  - `canonical_persona`: `Moqui Engineer`
-    `persona_family`: `Technical / Platform`
-    `actor_type`: `human`
-- `review_note`: `Multiple persona candidates extracted; choose the best header before writing back to the story.`
+- `canonical_persona`: `Moqui Engineer`
+- `persona_family`: `Technical / Platform`
+- `actor_type`: `human`
 ```

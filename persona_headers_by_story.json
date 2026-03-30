@@ -52,15 +52,10 @@
         "canonical_persona": "Customer Support Associate",
         "persona_family": "Customer Support Associate",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Service Advisor",
-        "persona_family": "Service Advisor",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "68",
@@ -115,15 +110,10 @@
         "canonical_persona": "Customer Support Associate",
         "persona_family": "Customer Support Associate",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "71",
@@ -464,15 +454,10 @@
         "canonical_persona": "Inventory Control Manager",
         "persona_family": "Inventory Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Director",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "91",
@@ -508,15 +493,10 @@
         "canonical_persona": "Dispatcher",
         "persona_family": "Dispatch",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Technician",
-        "persona_family": "Technician",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "93",
@@ -533,15 +513,10 @@
         "canonical_persona": "Parts Manager",
         "persona_family": "Parts",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Service Advisor",
-        "persona_family": "Service Advisor",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "94",
@@ -729,15 +704,10 @@
         "canonical_persona": "Inventory Control Manager",
         "persona_family": "Inventory Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Operations Management",
-        "persona_family": "Operations Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "105",
@@ -792,15 +762,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "108",
@@ -932,20 +897,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Auditor",
-        "persona_family": "Audit",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "115",
@@ -997,18 +952,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "System Administrator",
-        "persona_family": "System Administration",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Pricing Administrator",
         "persona_family": "Pricing",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "118",
@@ -1025,15 +975,10 @@
         "canonical_persona": "Pricing Analyst",
         "persona_family": "Pricing",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Pricing Administrator",
-        "persona_family": "Pricing",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "119",
@@ -1127,20 +1072,10 @@
         "canonical_persona": "Technician",
         "persona_family": "Technician",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Service Advisor",
-        "persona_family": "Service Advisor",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "124",
@@ -1234,15 +1169,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "129",
@@ -1335,15 +1265,10 @@
         "canonical_persona": "Location Manager",
         "persona_family": "Location Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Dispatcher",
-        "persona_family": "Dispatch",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "134",
@@ -1722,15 +1647,10 @@
         "canonical_persona": "Integration Support Engineer",
         "persona_family": "Technical / Platform",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "System Administrator",
-        "persona_family": "System Administration",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "157",
@@ -1766,15 +1686,10 @@
         "canonical_persona": "Customer Support Associate",
         "persona_family": "Customer Support Associate",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Marketing Manager",
-        "persona_family": "Account Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "159",
@@ -1867,15 +1782,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Customer Support Associate",
-        "persona_family": "Customer Support Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "165",
@@ -1889,18 +1799,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "CRM Data Steward",
-        "persona_family": "Technical / Platform",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Support Engineer",
         "persona_family": "Technical / Platform",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "166",
@@ -2146,15 +2051,10 @@
         "canonical_persona": "Accounting Associate",
         "persona_family": "Accounting Associate",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "System Administrator",
-        "persona_family": "System Administration",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "182",
@@ -2249,15 +2149,10 @@
         "canonical_persona": "System Administrator",
         "persona_family": "System Administration",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "187",
@@ -2293,15 +2188,10 @@
         "canonical_persona": "Controller",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Auditor",
-        "persona_family": "Audit",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "189",
@@ -2318,15 +2208,10 @@
         "canonical_persona": "Controller",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "190",
@@ -2343,15 +2228,10 @@
         "canonical_persona": "Accounting Associate",
         "persona_family": "Accounting Associate",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Controller",
-        "persona_family": "Finance / Accounting Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "191",
@@ -2365,18 +2245,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Controller",
-        "persona_family": "Finance / Accounting Management",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Accounting Manager",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "192",
@@ -2528,15 +2403,10 @@
         "canonical_persona": "Finance Manager",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "200",
@@ -2553,15 +2423,10 @@
         "canonical_persona": "Accounting Associate",
         "persona_family": "Accounting Associate",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Controller",
-        "persona_family": "Finance / Accounting Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "201",
@@ -2598,15 +2463,10 @@
         "canonical_persona": "Controller",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "System Administrator",
-        "persona_family": "System Administration",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "203",
@@ -2623,15 +2483,10 @@
         "canonical_persona": "Controller",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "204",
@@ -2648,15 +2503,10 @@
         "canonical_persona": "Finance Manager",
         "persona_family": "Finance / Accounting Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "205",
@@ -2708,18 +2558,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Platform Engineer",
         "persona_family": "Technical / Platform",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "208",
@@ -2736,15 +2581,10 @@
         "canonical_persona": "Domain Architect",
         "persona_family": "Technical / Platform",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Backend Engineer",
-        "persona_family": "Technical / Platform",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "209",
@@ -2758,18 +2598,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Accounting Associate",
         "persona_family": "Accounting Associate",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "210",
@@ -2825,15 +2660,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Accounting Associate",
-        "persona_family": "Accounting Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "213",
@@ -2888,15 +2718,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "216",
@@ -2914,20 +2739,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Finance Manager",
-        "persona_family": "Finance / Accounting Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "217",
@@ -2984,20 +2799,10 @@
         "canonical_persona": "Technician",
         "persona_family": "Technician",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Service Advisor",
-        "persona_family": "Service Advisor",
-        "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "220",
@@ -3033,15 +2838,10 @@
         "canonical_persona": "Technician",
         "persona_family": "Technician",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Parts Associate",
-        "persona_family": "Parts",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "222",
@@ -3058,15 +2858,10 @@
         "canonical_persona": "Technician",
         "persona_family": "Technician",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Parts Associate",
-        "persona_family": "Parts",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "223",
@@ -3102,15 +2897,10 @@
         "canonical_persona": "Technician",
         "persona_family": "Technician",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "225",
@@ -3124,18 +2914,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Location Manager",
-        "persona_family": "Location Management",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Dispatcher",
         "persona_family": "Dispatch",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "226",
@@ -3152,15 +2937,10 @@
         "canonical_persona": "Location Manager",
         "persona_family": "Location Management",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "System Auditor",
-        "persona_family": "Audit",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "227",
@@ -3196,15 +2976,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "System",
-        "persona_family": "System",
-        "actor_type": "system"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "229",
@@ -3411,15 +3186,10 @@
         "canonical_persona": "Service Advisor",
         "persona_family": "Service Advisor",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Customer Support Associate",
-        "persona_family": "Customer Support Associate",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "241",
@@ -3455,15 +3225,10 @@
         "canonical_persona": "Warehouse Manager",
         "persona_family": "Warehouse",
         "actor_type": "human"
-      },
-      {
-        "canonical_persona": "Service Advisor",
-        "persona_family": "Service Advisor",
-        "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "243",
@@ -3477,18 +3242,13 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Parts Manager",
-        "persona_family": "Parts",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Technician",
         "persona_family": "Technician",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   },
   {
     "story_id": "244",
@@ -3655,17 +3415,12 @@
     ],
     "persona_metadata": [
       {
-        "canonical_persona": "Platform Integrator",
-        "persona_family": "Technical / Platform",
-        "actor_type": "human"
-      },
-      {
         "canonical_persona": "Moqui Engineer",
         "persona_family": "Technical / Platform",
         "actor_type": "human"
       }
     ],
     "unmapped_personas": [],
-    "review_required": true
+    "review_required": false
   }
 ]
