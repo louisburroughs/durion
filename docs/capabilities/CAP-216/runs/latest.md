@@ -12,7 +12,7 @@ Use this run record with:
 - Run Timestamp (UTC): 2026-03-29T00:00:00Z
 - Agent/Operator: Orchestrator (Wave I-b)
 - Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/2 stories done; 1 deferred (cross-dock contract undefined)
+- Status: partial — 1/2 stories done; 1 deferred (cross-dock frontend integration details pending)
 
 ## 2. Inputs Used
 
@@ -25,7 +25,7 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Receive Goods into Staging | #98 | #98 | done | Staging receipt UI, item scan/quantity entry, session progress |
-| Cross-dock Receiving (Direct-to-Workorder) | #97 | #97 | deferred | 7 unresolved cross-dock endpoint questions; no confirmed contract for `crossDockLineToWorkorder` |
+| Cross-dock Receiving (Direct-to-Workorder) | #97 | #97 | deferred | Inventory-side receiving detail and cross-dock submit routes are documented; `pos-workorder` offers list/detail/WIP candidates, but the canonical picker path and retry semantics remain unresolved |
 
 ## 4. Implementation Changes
 
@@ -46,7 +46,7 @@ Use this run record with:
 
 ### Deferred
 
-- Cross-dock direct-to-workorder receiving (#97) — `crossDockLineToWorkorder` contract has 7 open questions; no confirmed endpoint spec
+- Cross-dock direct-to-workorder receiving (#97) — inventory submit contract exists, and `pos-workorder` exposes candidate list/detail/WIP endpoints, but the canonical read-side choice and idempotency/retry details are still unresolved
 
 ## 5. API Wiring Evidence
 
@@ -59,7 +59,7 @@ For each story, list operations implemented and where they are wired.
 | #98 Receive into Staging | `createReceivingSession` | pos-inventory / sdk-inventory | `inventory-receiving.service.ts` | done |
 | #98 Receive into Staging | `receiveItemsIntoStaging` | pos-inventory / sdk-inventory | `inventory-receiving.service.ts` | done |
 | #98 Receive into Staging | `getReceivingSession` | pos-inventory / sdk-inventory | `inventory-receiving.service.ts` | done |
-| #97 Cross-dock Receiving | `crossDockLineToWorkorder` | pos-inventory / sdk-inventory | — | deferred — contract undefined |
+| #97 Cross-dock Receiving | `crossDockLineToWorkorder` | pos-inventory / sdk-inventory | — | deferred — inventory contract exists; `pos-workorder` candidate list/detail endpoints are visible, but final read-side choice and retry guidance remain pending |
 
 ## 6. Validation
 
@@ -80,17 +80,15 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: `crossDockLineToWorkorder` endpoint contract undefined for #97
-  - Impact: Story #97 (cross-dock receiving) cannot be implemented
-  - Needed: Backend team to confirm path, request/response shape, and workorder context binding for cross-dock operation
-
-- Blocker: <description>
-  - Impact: <scope>
-  - Needed: <decision/input/fix>
+- Blocker: #97 no longer lacks an inventory contract; the remaining gap is frontend-facing orchestration around that contract
+  - Impact: Cross-dock UI cannot be wired end-to-end without finalizing which `pos-workorder` endpoints drive workorder search/line selection and clarifying safe retry behavior
+  - Resolved: inventory exposes `getReceivingSession` and `crossDockLineToWorkorder`; submit request/response shape is documented; `pos-workorder` exposes `GET /v1/workorders`, `GET /v1/workorders/{workorderId}`, `GET /v1/workorders/{workorderId}/detail`, `GET /v1/workexec/wip`, and `GET /v1/workexec/wip/{workorderId}`
+  - Needed: choose the canonical workorder picker/detail path, decide whether current detail fields are sufficient for line selection, confirm any override-specific permission token, and define idempotency/retry guidance
 
 ## 8. Follow-Up Actions
 
-- [ ] Resolve 7 open endpoint questions for `crossDockLineToWorkorder` to unblock #97
+- [ ] Choose the canonical `pos-workorder` list/detail endpoint pair for cross-dock picker and line selection (#97)
+- [ ] Define idempotency/retry guidance and any override-specific permission rule for cross-dock submit (#97)
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate

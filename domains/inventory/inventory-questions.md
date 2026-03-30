@@ -1244,7 +1244,11 @@ Enable planning cycle counts for specific warehouse locations/zones to maintain 
 - Is "past" evaluated in user timezone, site timezone, or UTC?
 - What is the backend validation message if user submits past date despite client validation?
 
-**Status:** PENDING - Requires counts domain business rules confirmation
+**Status:** PARTIALLY RESOLVED
+
+- `today` is allowed.
+- `past` is evaluated in the site timezone.
+- Remaining detail: confirm the backend validation message returned when a submitted date is still rejected.
 
 ---
 
@@ -1276,7 +1280,12 @@ Enable planning cycle counts for specific warehouse locations/zones to maintain 
 - What are max length limits and allowed characters?
 - Should it be i18n-aware or plain ASCII?
 
-**Status:** PENDING - Requires backend schema confirmation
+**Status:** PARTIALLY RESOLVED
+
+- `description` should be optional.
+- `planName` may also be optional.
+- Current `pos-inventory/openapi.yaml` already exposes optional `planName` on `CreateCycleCountPlanRequest`.
+- Remaining detail: confirm the final proxy field set plus length/character constraints.
 
 ---
 
