@@ -694,31 +694,182 @@
 
 ---
 
-### Wave I-c: `order`, `billing`, `crm` additions
+### Wave I-c: `order`, `billing`, `accounting`, `crm` additions
 
+**Status: IN PROGRESS** | **Base:** `master` | **Generated:** 2026-03-30T00:00:00Z
 **Branch:** `cap/order-billing-crm-wave-i-c`
-**Domain Ownership:** `order`, `billing`, `crm` — respective feature dirs
-**Capabilities:** CAP-246, CAP-250, CAP-251, CAP-252
-**Story Count:** 7 stories (83, 84, 85, 2×billing, 1×billing, 1×crm)
+**Target repo:** `durion-positivity-frontend`
+**Capabilities:** 5 | **Stories:** 13 | **Domains:** `billing` (CAP-248, CAP-250), `accounting` (CAP-251), `order` (CAP-246), `crm` (CAP-252)
+
+#### Domain Ownership Mapping
 
 | Domain | Feature Dir | Capability | Stories |
 | --- | --- | --- | --- |
-| `order` | `src/app/features/order/` | CAP-246 | #83, #84, #85 — POS sales order & cart |
-| `billing` | `src/app/features/billing/` | CAP-250 | TBD, TBD — Payments (card acceptance) |
-| `billing` | `src/app/features/billing/` | CAP-251 | TBD — Invoice payment status sync |
-| `crm` | `src/app/features/crm/` | CAP-252 | TBD — Customer context CRM snapshot |
+| `billing` | `src/app/features/billing/` | CAP-248 | #79 — Retrieve and display estimates; #78 — Display WIP summary; #77 — Display invoice and request payment |
+| `billing` | `src/app/features/billing/` | CAP-250 | #73 — Initiate card authorization; #72 — Void authorization or refund; #71 — Print/email receipt |
+| `accounting` | `src/app/features/accounting/` | CAP-251 | #69 — Reconcile POS status with accounting events; #70 — Update invoice payment status |
+| `order` | `src/app/features/order/` | CAP-246 | #85 — Create sales order cart and add items; #84 — Apply price override; #83 — Cancel order |
+| `crm` | `src/app/features/crm/` | CAP-252 | #67 — Enforce PO requirement and billing rules; #68 — Load customer/vehicle context |
+
+#### Capability Register
+
+| CAP | Name | Stories | operation_ids | OpenAPI |
+| --- | --- | --- | --- | --- |
+| CAP-248 | Estimate, WIP, and Invoice Visibility (Workexec Coordination) | #79, #78, #77 | `createInvoice`, `getInvoice`, `finalizeInvoice`, `listWip`, `getWipDetail`, `getTransitionHistory`, `searchEstimates`, `getEstimateById`, `getEstimatesByCustomer` | pos-invoice, pos-workorder |
+| CAP-250 | Payments (Card Acceptance via Payment Service) | #73, #72, #71 | `applyPayment`, `getInvoiceStatus`, `getPayment`, `voidPayment`, `reversePayment`, `reversePaymentApplication`, `getPaymentByRef` | pos-accounting |
+| CAP-251 | Invoice Payment Status Sync (Accounting Coordination) | #69, #70 | `listEvents`, `getEvent`, `getEventProcessingLog`, `getInvoiceStatus` | pos-accounting |
+| CAP-246 | POS Sales Order & Cart (Quote-to-Cash Entry Point) | #85, #84, #83 | `createCart`, `addItem`, `updateItemQuantity`, `applyPriceOverride`, `getOverridesByOrder`, `getOverride`, `getOrder`, `cancelOrder` | pos-order |
+| CAP-252 | Customer Context (CRM Snapshot) | #67, #68 | `getBillingRules`, `upsertBillingRules`, `finalizeInvoice`, `fetchByParty`, `fetchByVehicle` | pos-invoice, pos-customer |
 
 #### Steps
 
-- [ ] Step 1: Read source materials — story MDs, wireframes, contract guides, OpenAPI (pos-order, pos-billing, pos-customer)
-- [ ] Step 2: Designer first-pass — review cross-domain designs; issue design brief
-- [ ] Step 3: Create branch `cap/order-billing-crm-wave-i-c` from `master`
-- [ ] Step 4: anvil decomposition — file ownership for order domain, billing additions, crm additions
-- [ ] Step 5–11: Per-story implementation (HTML Specialist → TypeScript Specialist → Designer sign-off → Code Review) for all 7 stories
-- [ ] Step 12: `npm run build` and `npx ng test --no-watch` — verify tests passing
-- [ ] Step 13: Code Review Agent pass
-- [ ] Step 14: Documentation Agent — update CAPABILITY_STATUS_BOARD.md; mark all Wave I capabilities DONE
-- [ ] Final Step: `durion/.github/hooks/pull-request-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-frontend --base master --head cap/order-billing-crm-wave-i-c --title "feat(order,billing,crm): Wave I-c — POS Order Cart, Payments & CRM Snapshot (CAP-246, CAP-250, CAP-251, CAP-252)"`
+- [x] Step 1: Read all source materials — story MDs, wireframes, contract guides, and OpenAPI specs for all 13 stories:
+  - CAP-248 #79: `docs/capabilities/CAP-248/stories/frontend/CAP_248.79.frontend.md`, `domains/workexec/.ui/frontend-story-workexec-retrieve-and-display-estim-79.wf.md`, `domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `durion-positivity-backend/pos-workorder/openapi.yaml` (ops: `searchEstimates`, `getEstimateById`, `getEstimatesByCustomer`)
+  - CAP-248 #78: `docs/capabilities/CAP-248/stories/frontend/CAP_248.78.frontend.md`, `domains/workexec/.ui/frontend-story-workexec-display-work-in-progress-s-78.wf.md` (ops: `listWip`, `getWipDetail`, `getTransitionHistory`)
+  - CAP-248 #77: `docs/capabilities/CAP-248/stories/frontend/CAP_248.77.frontend.md`, `domains/accounting/.ui/frontend-story-workexec-display-invoice-and-reques-77.wf.md`, `domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `durion-positivity-backend/pos-invoice/openapi.yaml` (ops: `createInvoice`, `getInvoice`, `finalizeInvoice`)
+  - CAP-250 #73: `docs/capabilities/CAP-250/stories/frontend/CAP_250.73.frontend.md`, `domains/accounting/.ui/frontend-story-payment-initiate-card-authorization-73.wf.md`, `domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `durion-positivity-backend/pos-accounting/openapi.yaml` (ops: `applyPayment`, `getInvoiceStatus`, `getPayment`)
+  - CAP-250 #72: `docs/capabilities/CAP-250/stories/frontend/CAP_250.72.frontend.md`, `domains/accounting/.ui/frontend-story-payment-void-authorization-or-refun-72.wf.md` (ops: `voidPayment`, `reversePayment`, `reversePaymentApplication`)
+  - CAP-250 #71: `docs/capabilities/CAP-250/stories/frontend/CAP_250.71.frontend.md`, `domains/accounting/.ui/frontend-story-payment-print-email-receipt-and-sto-71.wf.md` (ops: `getInvoiceStatus`, `getPayment`, `getPaymentByRef`)
+  - CAP-251 #69: `docs/capabilities/CAP-251/stories/frontend/CAP_251.69.frontend.md`, `domains/accounting/.ui/frontend-story-accounting-reconcile-pos-status-wit-69.wf.md`, `domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md` (ops: `listEvents`, `getEvent`, `getEventProcessingLog`)
+  - CAP-251 #70: `docs/capabilities/CAP-251/stories/frontend/CAP_251.70.frontend.md`, `domains/accounting/.ui/frontend-story-accounting-update-invoice-payment-s-70.wf.md` (ops: `getInvoiceStatus`, `listEvents`, `getEvent`)
+  - CAP-246 #85: `docs/capabilities/CAP-246/stories/frontend/CAP_246.85.frontend.md`, `domains/order/.ui/frontend-story-order-create-sales-order-cart-and-a-85.wf.md`, `domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `durion-positivity-backend/pos-order/openapi.yaml` (ops: `createCart`, `addItem`, `updateItemQuantity`)
+  - CAP-246 #84: `docs/capabilities/CAP-246/stories/frontend/CAP_246.84.frontend.md`, `domains/pricing/.ui/frontend-story-order-apply-price-override-with-per-84.wf.md` (ops: `applyPriceOverride`, `getOverridesByOrder`, `getOverride`, `getOrder`)
+  - CAP-246 #83: `docs/capabilities/CAP-246/stories/frontend/CAP_246.83.frontend.md`, `domains/order/.ui/frontend-story-order-cancel-order-with-controlled-83.wf.md` (ops: `cancelOrder`, `getOrder`)
+  - CAP-252 #67: `docs/capabilities/CAP-252/stories/frontend/CAP_252.67.frontend.md`, `domains/accounting/.ui/frontend-story-customer-enforce-po-requirement-and-67.wf.md`, `domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md` (ops: `getBillingRules`, `upsertBillingRules`, `finalizeInvoice`)
+  - CAP-252 #68: `docs/capabilities/CAP-252/stories/frontend/CAP_252.68.frontend.md`, `domains/crm/.ui/frontend-story-customer-load-customer-vehicle-cont-68.wf.md`, `domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md` (ops: `fetchByParty`, `getBillingRules`, `fetchByVehicle`)
+  - Design packs: `design/Accounting/`, `design/Shop-Workorder/`, `design/Customer/`, `design/DESIGN.md`, `design/source/`
+
+- [x] Step 2: Create execution branch `cap/order-billing-crm-wave-i-c` from `master` via `durion/.github/hooks/create-branch-hook.sh`
+
+- [ ] Step 3: Designer first-pass — design brief for billing/accounting/order/crm surfaces; consult `design/Accounting/`, `design/Shop-Workorder/`, `design/Customer/`, and `design/DESIGN.md`; issue token, layout, state-machine, and payment-flow guidance; confirm design approach for: invoice/payment screens, WIP summary, estimate search, order cart, price-override form, CRM context panel
+
+- [ ] Step 4: Execute CAP-248 story #79 (Retrieve and display estimates — `billing` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: estimate search results list, detail view, customer filter, empty/loading/error states
+  - TypeScript Specialist: `BillingService` methods `searchEstimates`, `getEstimateById`, `getEstimatesByCustomer`; route/page; state machine
+  - Designer final sign-off for story #79
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 5: Execute CAP-248 story #78 (Display WIP summary — `billing` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: WIP list table, status badges, transition history panel, empty/loading/error states
+  - TypeScript Specialist: `BillingService` `listWip`, `getWipDetail`, `getTransitionHistory`; state; route
+  - Designer final sign-off for story #78
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 6: Execute CAP-248 story #77 (Display invoice and request payment — `billing` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: invoice detail display, finalize action, payment initiation entry point, empty/loading/error states
+  - TypeScript Specialist: `BillingService` `createInvoice`, `getInvoice`, `finalizeInvoice`; state machine; route
+  - Designer final sign-off for story #77
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 7: Test Coverage Agent — harden `billing` domain test coverage after CAP-248 stories
+
+- [ ] Step 8: Execute CAP-250 story #73 (Initiate card authorization — `billing` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: card payment entry form, authorization status display, amount/method breakdown, empty/loading/error states
+  - TypeScript Specialist: `PaymentService` `applyPayment`, `getInvoiceStatus`, `getPayment`; validation; state
+  - Designer final sign-off for story #73
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 9: Execute CAP-250 story #72 (Void authorization or refund — `billing` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: void/refund confirmation dialog, status feedback, empty/loading/error states
+  - TypeScript Specialist: `PaymentService` `voidPayment`, `reversePayment`, `reversePaymentApplication`; state
+  - Designer final sign-off for story #72
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 10: Execute CAP-250 story #71 (Print/email receipt — `billing` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: receipt preview/print/email action panel, empty/loading/error states
+  - TypeScript Specialist: `PaymentService` `getInvoiceStatus`, `getPayment`, `getPaymentByRef`; receipt generation; state
+  - Designer final sign-off for story #71
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 11: Test Coverage Agent — harden `billing` domain test coverage after CAP-250 stories
+
+- [ ] Step 12: Execute CAP-251 story #69 (Reconcile POS status with accounting events — `accounting` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: event list/processing log display, status reconciliation view, empty/loading/error states
+  - TypeScript Specialist: `AccountingService` additions `listEvents`, `getEvent`, `getEventProcessingLog`; state; route
+  - Designer final sign-off for story #69
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 13: Execute CAP-251 story #70 (Update invoice payment status — `accounting` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: invoice payment status panel, event log link, empty/loading/error states
+  - TypeScript Specialist: `AccountingService` `getInvoiceStatus`, `listEvents`, `getEvent` additions; state
+  - Designer final sign-off for story #70
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 14: Test Coverage Agent — harden `accounting` domain test coverage after CAP-251 stories
+
+- [ ] Step 15: Execute CAP-246 story #85 (Create sales order cart and add items — `order` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: order cart page, item search/add, quantity controls, order summary panel, empty/loading/error states
+  - TypeScript Specialist: NEW `order.routes.ts`, `OrderService` with `createCart`, `addItem`, `updateItemQuantity`; domain scaffold; state machine
+  - Designer final sign-off for story #85
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 16: Execute CAP-246 story #84 (Apply price override — `order` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: price override input with authorization context, overrides summary list, empty/loading/error states
+  - TypeScript Specialist: `OrderService` `applyPriceOverride`, `getOverridesByOrder`, `getOverride`, `getOrder`; state
+  - Designer final sign-off for story #84
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 17: Execute CAP-246 story #83 (Cancel order — `order` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: cancel order confirmation flow, reason capture, status feedback, empty/loading/error states
+  - TypeScript Specialist: `OrderService` `cancelOrder`, `getOrder`; guard/validation; state
+  - Designer final sign-off for story #83
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 18: Test Coverage Agent — harden `order` domain test coverage after CAP-246 stories
+
+- [ ] Step 19: Execute CAP-252 story #67 (Enforce PO requirement and billing rules — `crm` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: billing rules display/edit form, PO requirement toggle, empty/loading/error states
+  - TypeScript Specialist: `CrmService` additions `getBillingRules`, `upsertBillingRules` + `BillingService` `finalizeInvoice` cross-domain; state; route
+  - Designer final sign-off for story #67
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 20: Execute CAP-252 story #68 (Load customer/vehicle context — `crm` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: customer context panel (party + vehicle snapshot), billing rules summary, empty/loading/error states
+  - TypeScript Specialist: `CrmService` `fetchByParty`, `fetchByVehicle`, `getBillingRules`; derived view-model; route
+  - Designer final sign-off for story #68
+  - Code Review Agent; iterate fixes until PASS
+
+- [ ] Step 21: Test Coverage Agent — harden `crm` domain test coverage after CAP-252 stories
+
+- [ ] Step 22: Documentation Agent — update `CAPABILITY_STATUS_BOARD.md`; create run artifacts under `docs/capabilities/<CAP-ID>/runs/latest.md` for CAP-246, CAP-248, CAP-250, CAP-251, CAP-252; mark all Wave I-c capabilities DONE
+
+- [ ] Step 23: Run `npm run build` in `durion-positivity-frontend` — verify build passes; fix any type/compile errors before PR
+
+- [ ] Step 24: Run `npx ng test --no-watch` in `durion-positivity-frontend` — verify all tests pass; record test count
+
+- [ ] Final Step: Create PR via `durion/.github/hooks/pull-request-hook.sh` with:
+  - `--repo /home/louis-burroughs/IdeaProjects/durion-positivity-frontend`
+  - `--story CAP-246/248/250/251/252`
+  - `--base master`
+  - `--head cap/order-billing-crm-wave-i-c`
+  - `--title "feat(order,billing,crm): Wave I-c — POS Order Cart, Payments, Billing Visibility & CRM Snapshot (CAP-246/248/250/251/252)"`
+  - `--body-file` pointing to rendered run summary
 
 ---
 
