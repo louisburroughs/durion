@@ -123,9 +123,9 @@ This queue captures the deferred frontend stories that are no longer blocked by 
 - Who needs to answer:
   - `inventory backend`
   - `workexec/backend owner`
-  - `frontend/moqui integration owner`
+  - `frontend integration owner`
 - Decisions needed:
-  - Is the screen inventory-owned or WorkExec-owned?
+  - Parts picking for workorder execution is Workorder Execution-owned.
   - Is workorder retrieval the canonical load path?
   - Are tasks embedded or separate?
   - What permissions gate view and print?
@@ -133,7 +133,7 @@ This queue captures the deferred frontend stories that are no longer blocked by 
 - Source:
   - [CAP_218.92.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.92.frontend.md#L402)
 - Recommended artifact:
-  - View/print policy note and proxy mapping.
+  - View/print policy note and frontend-facing WorkExec contract mapping.
 
 ### 7. `#89` / `CAP-220` / Shortage Resolution
 
