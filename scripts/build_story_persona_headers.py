@@ -135,6 +135,58 @@ def build_persona_rules() -> dict[str, PersonaMetadata]:
     return rules
 
 
+def build_story_overrides() -> dict[str, str]:
+    # Story-specific dominant-persona choices resolved by reviewing story intent /
+    # acceptance-criteria language when the authored primary persona names multiple roles.
+    return {
+        "67": "Customer Support Associate",
+        "70": "Customer Support Associate",
+        "90": "Inventory Control Manager",
+        "92": "Dispatcher",
+        "93": "Parts Manager",
+        "104": "Inventory Control Manager",
+        "107": "Service Advisor",
+        "114": "Service Advisor",
+        "117": "Pricing Administrator",
+        "118": "Pricing Analyst",
+        "123": "Technician",
+        "128": "Service Advisor",
+        "133": "Location Manager",
+        "156": "Integration Support Engineer",
+        "158": "Customer Support Associate",
+        "163": "Service Advisor",
+        "165": "Support Engineer",
+        "181": "Accounting Associate",
+        "186": "System Administrator",
+        "188": "Controller",
+        "189": "Controller",
+        "190": "Accounting Associate",
+        "191": "Accounting Manager",
+        "199": "Finance Manager",
+        "200": "Accounting Associate",
+        "202": "Controller",
+        "203": "Controller",
+        "204": "Finance Manager",
+        "207": "Platform Engineer",
+        "208": "Domain Architect",
+        "209": "Accounting Associate",
+        "212": "Service Advisor",
+        "215": "Service Advisor",
+        "216": "Service Advisor",
+        "219": "Technician",
+        "221": "Technician",
+        "222": "Technician",
+        "224": "Technician",
+        "225": "Dispatcher",
+        "226": "Location Manager",
+        "228": "Service Advisor",
+        "239": "Service Advisor",
+        "242": "Warehouse Manager",
+        "243": "Technician",
+        "280": "Moqui Engineer",
+    }
+
+
 def extract_story_id(path: Path) -> str:
     match = re.search(r"\.(\d+)\.", path.name)
     return match.group(1) if match else path.stem
@@ -204,6 +256,7 @@ def main() -> int:
     capabilities_root = args.capabilities_root.resolve()
     extractor = load_extractor(repo_root / "scripts" / "extract_primary_personas.py")
     rules = build_persona_rules()
+    story_overrides = build_story_overrides()
 
     story_entries = []
     review_needed = []
@@ -227,6 +280,12 @@ def main() -> int:
         story_id = extract_story_id(story_file)
         capability_slug = story_file.parts[-4]
         issue_url = f"https://github.com/louisburroughs/durion-moqui-frontend/issues/{story_id}"
+
+        override = story_overrides.get(story_id)
+        if override:
+            override_matches = [item for item in mapped if item.canonical_persona == override]
+            if override_matches:
+                mapped = [override_matches[0]]
 
         entry = {
             "story_id": story_id,
