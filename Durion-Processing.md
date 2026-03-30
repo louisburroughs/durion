@@ -1,3 +1,271 @@
+## Wave I-b: Inventory Domain (CAP-215, CAP-216, CAP-217, CAP-218, CAP-219, CAP-220, CAP-221, CAP-315)
+
+**Status: COMPLETED — READY FOR PR** | **Base:** `master` (Wave I-a `cap/product-wave-i-a` merged)
+**Wave:** I-b — Inventory
+**Branch:** `cap/inventory-wave-i-b`
+**Target repo:** `durion-positivity-frontend`
+**Capabilities:** 8 | **Stories:** 21 | **Domains:** `inventory` (primary), `security` (CAP-221 cross-domain)
+**Generated:** 2026-03-29T00:00:00Z
+
+---
+
+### Domain Ownership Mapping
+
+| Domain | Feature Dir | Capability | Story |
+| --- | --- | --- | --- |
+| `inventory` | `src/app/features/inventory/` | CAP-215 | #100 — Compute on-hand and available-to-promise |
+| `inventory` | `src/app/features/inventory/` | CAP-215 | #101 — Record stock movements in inventory |
+| `inventory` | `src/app/features/inventory/` | CAP-315 | #572 — Create and approve purchase order (PO lifecycle) |
+| `inventory` | `src/app/features/inventory/` | CAP-315 | #571 — Create receiving session (ASN + PO) |
+| `inventory` | `src/app/features/inventory/` | CAP-216 | #98 — Receive items into staging |
+| `inventory` | `src/app/features/inventory/` | CAP-216 | #97 — Direct-to-workorder receiving |
+| `inventory` | `src/app/features/inventory/` | CAP-217 | #96 — Generate put-away tasks from receipts |
+| `inventory` | `src/app/features/inventory/` | CAP-217 | #95 — Execute put-away: move staging to bin |
+| `inventory` | `src/app/features/inventory/` | CAP-217 | #94 — Replenish pick faces from bulk storage |
+| `inventory` | `src/app/features/inventory/` | CAP-220 | #88 — Reallocate reserved stock |
+| `inventory` | `src/app/features/inventory/` | CAP-220 | #89 — Handle shortages with back-order |
+| `inventory` | `src/app/features/inventory/` | CAP-218 | #93 — Reserve / allocate stock for workorder |
+| `inventory` | `src/app/features/inventory/` | CAP-218 | #92 — Create pick list and pick tasks |
+| `inventory` / `workexec` | `src/app/features/inventory/` | CAP-218 | #244 — Mechanic executes picking workflow |
+| `inventory` | `src/app/features/inventory/` | CAP-218 | #243 — Issue / consume picked items |
+| `inventory` | `src/app/features/inventory/` | CAP-218 | #242 — Return unused items to stock |
+| `inventory` | `src/app/features/inventory/` | CAP-219 | #241 — Plan cycle counts by location |
+| `inventory` | `src/app/features/inventory/` | CAP-219 | #91 — Execute cycle count and reconcile |
+| `inventory` | `src/app/features/inventory/` | CAP-219 | #90 — Approve and post inventory adjustments |
+| `security` | `src/app/features/security/` | CAP-221 | #87 — Define inventory roles and permissions |
+| `security` | `src/app/features/security/` | CAP-221 | #86 — Immutable audit trail for inventory events |
+
+---
+
+### Capability Register
+
+| CAP | Name | Stories | operation_ids | OpenAPI |
+| --- | --- | --- | --- | --- |
+| CAP-215 | Inventory Ledger & On-hand/ATP | #100, #101 | `queryAvailabilityBySku`, `queryInventoryAvailability`, `getLocationInventory` | pos-inventory |
+| CAP-216 | Receiving (PO/ASN/Direct) | #97, #98 | `listPurchaseOrders`, `getPurchaseOrder`, `createReceivingSession`, `crossDockLineToWorkorder`, `receiveItemsIntoStaging`, `getReceivingSession` | pos-inventory |
+| CAP-217 | Put-away & Replenishment | #94, #95, #96 | `getReplenishmentTasks`, `claimTask`, `executePutaway`, `getAvailableTasks`, `generateTasks` | pos-inventory |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | #92, #93, #242, #243, #244 | `createPickList`, `getPickList`, `getPickTasksForPickList`, `releasePickList`, `createOrUpdateReservation`, `promoteToHard`, `cancelReservation`, `queryAvailabilityBySku`, `returnItemsToStock`, `consumePickedItems`, `confirmPickTask`, `confirmPickingList` | pos-inventory |
+| CAP-219 | Cycle Counts & Adjustments | #90, #91, #241 | `listPendingApprovals`, `countPendingApprovals`, `getAdjustment`, `approveAdjustment`, `rejectAdjustment`, `getAuditorTasks`, `getTask`, `submitCount`, `submitRecount`, `getCountHistory`, `createPlan`, `getPlan` | pos-inventory |
+| CAP-220 | Reservations, Allocations, and Substitutions | #88, #89 | `queryAvailabilityBySku`, `queryInventoryAvailability`, `reallocate`, `resolveShortage`, `queryLeadTime`, `createOrUpdateReservation` | pos-inventory |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | #86, #87 | `searchEvents`, `getEvent`, `getAllRoles`, `getAllPermissions`, `getUserRoleAssignments`, `assignRoleToUser`, `revokeRoleFromUser` | pos-security-service |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | #571, #572 | `createAsn`, `getAsn`, `createReceivingSession`, `receiveItemsIntoStaging`, `listPurchaseOrders`, `getPurchaseOrder`, `createPurchaseOrder`, `approvePurchaseOrder`, `revisePurchaseOrder`, `cancelPurchaseOrder`, `receivePurchaseOrder` | pos-inventory |
+
+---
+
+### Steps
+
+- [x] Step 1: Read all source materials — story MDs, wireframes, contract guides, and OpenAPI specs for all 21 stories:
+  - CAP-215 #100: `docs/capabilities/CAP-215/stories/frontend/CAP_215.100.frontend.md`, `domains/inventory/.ui/frontend-story-ledger-compute-on-hand-and-availabl-100.wf.md`, `domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `durion-positivity-backend/pos-inventory/openapi.yaml` (ops: `queryAvailabilityBySku`, `queryInventoryAvailability`)
+  - CAP-215 #101: `docs/capabilities/CAP-215/stories/frontend/CAP_215.101.frontend.md`, `domains/inventory/.ui/frontend-story-ledger-record-stock-movements-in-in-101.wf.md` (ops: `getLocationInventory`)
+  - CAP-315 #572: `docs/capabilities/CAP-315/stories/frontend/CAP_315.572.frontend.md`, `domains/inventory/.ui/frontend-story-procure-create-and-approve-purchase-572.wf.md`, `domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md` (ops: `createPurchaseOrder`, `listPurchaseOrders`, `getPurchaseOrder`, `approvePurchaseOrder`, `revisePurchaseOrder`, `cancelPurchaseOrder`, `receivePurchaseOrder`)
+  - CAP-315 #571: `docs/capabilities/CAP-315/stories/frontend/CAP_315.571.frontend.md`, `domains/inventory/.ui/frontend-story-receiving-create-receiving-session-99.wf.md` (ops: `createAsn`, `getAsn`, `createReceivingSession`, `receiveItemsIntoStaging`, `listPurchaseOrders`, `getPurchaseOrder`)
+  - CAP-216 #98: `docs/capabilities/CAP-216/stories/frontend/CAP_216.98.frontend.md`, `domains/inventory/.ui/frontend-story-receiving-receive-items-into-stagin-98.wf.md` (ops: `listPurchaseOrders`, `getPurchaseOrder`, `createReceivingSession`, `receiveItemsIntoStaging`, `getReceivingSession`)
+  - CAP-216 #97: `docs/capabilities/CAP-216/stories/frontend/CAP_216.97.frontend.md`, `domains/inventory/.ui/frontend-story-receiving-direct-to-workorder-recei-97.wf.md` (ops: `listPurchaseOrders`, `getPurchaseOrder`, `createReceivingSession`, `crossDockLineToWorkorder`, `getReceivingSession`)
+  - CAP-217 #96: `docs/capabilities/CAP-217/stories/frontend/CAP_217.96.frontend.md`, `domains/inventory/.ui/frontend-story-putaway-generate-put-away-tasks-fro-96.wf.md` (ops: `generateTasks`, `getAvailableTasks`)
+  - CAP-217 #95: `docs/capabilities/CAP-217/stories/frontend/CAP_217.95.frontend.md`, `domains/inventory/.ui/frontend-story-putaway-execute-put-away-move-stagi-95.wf.md` (ops: `getAvailableTasks`, `executePutaway`)
+  - CAP-217 #94: `docs/capabilities/CAP-217/stories/frontend/CAP_217.94.frontend.md`, `domains/inventory/.ui/frontend-story-putaway-replenish-pick-faces-from-b-94.wf.md` (ops: `getReplenishmentTasks`, `claimTask`, `executePutaway`)
+  - CAP-220 #88: `docs/capabilities/CAP-220/stories/frontend/CAP_220.88.frontend.md`, `domains/inventory/.ui/frontend-story-allocations-reallocate-reserved-sto-88.wf.md` (ops: `queryAvailabilityBySku`, `queryInventoryAvailability`, `reallocate`)
+  - CAP-220 #89: `docs/capabilities/CAP-220/stories/frontend/CAP_220.89.frontend.md`, `domains/inventory/.ui/frontend-story-allocations-handle-shortages-with-b-89.wf.md` (ops: `resolveShortage`, `queryAvailabilityBySku`, `queryLeadTime`, `createOrUpdateReservation`)
+  - CAP-218 #93: `docs/capabilities/CAP-218/stories/frontend/CAP_218.93.frontend.md`, `domains/inventory/.ui/frontend-story-fulfillment-reserve-allocate-stock-93.wf.md` (ops: `createOrUpdateReservation`, `promoteToHard`, `cancelReservation`, `queryAvailabilityBySku`)
+  - CAP-218 #92: `docs/capabilities/CAP-218/stories/frontend/CAP_218.92.frontend.md`, `domains/workexec/.ui/frontend-story-fulfillment-create-pick-list-pick-t-92.wf.md` (ops: `createPickList`, `getPickList`, `getPickTasksForPickList`, `releasePickList`)
+  - CAP-218 #244: `docs/capabilities/CAP-218/stories/frontend/CAP_218.244.frontend.md`, `domains/workexec/.ui/frontend-story-fulfillment-mechanic-executes-picki-244.wf.md` (ops: `getPickTasksForPickList`, `confirmPickTask`, `confirmPickingList`, `getPickList`)
+  - CAP-218 #243: `docs/capabilities/CAP-218/stories/frontend/CAP_218.243.frontend.md`, `domains/inventory/.ui/frontend-story-fulfillment-issue-consume-picked-it-243.wf.md` (ops: `consumePickedItems`, `getPickList`)
+  - CAP-218 #242: `docs/capabilities/CAP-218/stories/frontend/CAP_218.242.frontend.md`, `domains/inventory/.ui/frontend-story-fulfillment-return-unused-items-to-242.wf.md` (ops: `returnItemsToStock`)
+  - CAP-219 #241: `docs/capabilities/CAP-219/stories/frontend/CAP_219.241.frontend.md`, `domains/inventory/.ui/frontend-story-counts-plan-cycle-counts-by-locatio-241.wf.md` (ops: `createPlan`, `getPlan`)
+  - CAP-219 #91: `docs/capabilities/CAP-219/stories/frontend/CAP_219.91.frontend.md`, `domains/inventory/.ui/frontend-story-counts-execute-cycle-count-and-reco-91.wf.md` (ops: `getAuditorTasks`, `getTask`, `submitCount`, `submitRecount`, `getCountHistory`)
+  - CAP-219 #90: `docs/capabilities/CAP-219/stories/frontend/CAP_219.90.frontend.md`, `domains/inventory/.ui/frontend-story-counts-approve-and-post-adjustments-90.wf.md` (ops: `listPendingApprovals`, `countPendingApprovals`, `getAdjustment`, `approveAdjustment`, `rejectAdjustment`)
+  - CAP-221 #87: `docs/capabilities/CAP-221/stories/frontend/CAP_221.87.frontend.md`, `domains/inventory/.ui/frontend-story-security-define-inventory-roles-and-87.wf.md`, `domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md`, `durion-positivity-backend/pos-security-service/openapi.yaml` (ops: `getAllRoles`, `getAllPermissions`, `getUserRoleAssignments`, `assignRoleToUser`, `revokeRoleFromUser`)
+  - CAP-221 #86: `docs/capabilities/CAP-221/stories/frontend/CAP_221.86.frontend.md`, `domains/security/.ui/frontend-story-security-immutable-audit-trail-for-86.wf.md` (ops: `searchEvents`, `getEvent`)
+  - Design pack: `design/Inventory-Catalog/Inventory.html`, `design/Inventory-Catalog/Catalog.html`, `design/Inventory-Catalog/CycleCount.html`, `design/Inventory-Catalog/OrdersBySupplier.html`, `design/Inventory-Catalog/DESIGN.md`, `design/DESIGN.md`, `design/source/`
+
+- [x] Step 2: Create execution branch `cap/inventory-wave-i-b` from `master` via `durion/.github/hooks/create-branch-hook.sh`
+
+- [x] Step 3: Designer first-pass — design brief for inventory domain surfaces; consult `design/Inventory-Catalog/` (Inventory.html, CycleCount.html, OrdersBySupplier.html, Catalog.html) and `design/Inventory-Catalog/DESIGN.md`; issue token, layout, table-density, scanning-workflow, and mobile-touch guidance for warehouse/shop-floor flows; confirm design approach for: on-hand dashboard, pick-list tablet UI, cycle count audit screens, receiving session stepper, PO management list/form
+
+- [x] Step 4: Execute CAP-215 story #100 (Compute on-hand and available-to-promise — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: on-hand availability dashboard, SKU search with ATP display, location-level breakdown table, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` methods `queryAvailabilityBySku`, `queryInventoryAvailability`; route/page; state machine; filter/pagination
+  - Designer final sign-off for story #100
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 5: Execute CAP-215 story #101 (Record stock movements in inventory — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: stock movement log table, location filter, date range filter, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `getLocationInventory` wiring; route/page; state; export
+  - Designer final sign-off for story #101
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 6: Execute CAP-315 story #572 (Create and approve purchase order — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: PO creation form, PO list with status column, approve/revise/cancel actions, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` methods `createPurchaseOrder`, `listPurchaseOrders`, `getPurchaseOrder`, `approvePurchaseOrder`, `revisePurchaseOrder`, `cancelPurchaseOrder`, `receivePurchaseOrder`; PO detail page; state machine; multi-step approval flow
+  - Designer final sign-off for story #572
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 7: Execute CAP-315 story #571 (Create receiving session via ASN + PO — `inventory` domain) — **DEFERRED:** ASN receiving contract undefined; blocking endpoint notes unresolved per #571
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: ASN creation/lookup form, receiving session stepper, PO selector, receive-items confirmation UI, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` methods `createAsn`, `getAsn`, `createReceivingSession`, `receiveItemsIntoStaging`, `listPurchaseOrders`, `getPurchaseOrder`; route/page; state; scan/manual entry toggle
+  - Designer final sign-off for story #571
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 8: Execute CAP-216 story #98 (Receive items into staging — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: staging receipt list, item scan / quantity entry, session progress indicator, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `createReceivingSession`, `receiveItemsIntoStaging`, `getReceivingSession` wiring; route/page; state; partial-receipt tracking
+  - Designer final sign-off for story #98
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 9: Execute CAP-216 story #97 (Direct-to-workorder receiving — `inventory` / `workexec` cross-domain) — **DEFERRED:** 7 unresolved cross-dock endpoint questions; no confirmed contract
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: cross-dock receiving UI, workorder reference selector, PO line matching, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `crossDockLineToWorkorder` wiring; workorder context injection; route/page; state
+  - Designer final sign-off for story #97
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 10: Execute CAP-217 story #96 (Generate put-away tasks from receipts — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: task generation trigger UI, generated task list, status display, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `generateTasks`, `getAvailableTasks` wiring; route/page; state
+  - Designer final sign-off for story #96
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 11: Execute CAP-217 story #95 (Execute put-away: move staging to bin — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: available task list, task detail with location picker, scan-to-confirm UI, complete/skip action, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `getAvailableTasks`, `executePutaway` wiring; route/page; state; location scan input
+  - Designer final sign-off for story #95
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 12: Execute CAP-217 story #94 (Replenish pick faces from bulk storage — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: replenishment task list, claim/release controls, bulk-to-pick-face move confirmation, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `getReplenishmentTasks`, `claimTask`, `executePutaway` wiring; route/page; state; claim lifecycle
+  - Designer final sign-off for story #94
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 13: Execute CAP-220 story #88 (Reallocate reserved stock — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: allocation management list, availability matrix, reallocate action dialog, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `queryAvailabilityBySku`, `queryInventoryAvailability`, `reallocate` wiring; route/page; state; conflict display
+  - Designer final sign-off for story #88
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 14: Execute CAP-220 story #89 (Handle shortages with back-order — `inventory` domain) — **DEFERRED:** cross-domain shortage resolution contract TBD
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: shortage alert list, back-order creation form, lead time display, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `resolveShortage`, `queryLeadTime`, `createOrUpdateReservation` wiring; route/page; state; shortage resolution flow
+  - Designer final sign-off for story #89
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 15: Execute CAP-218 story #93 (Reserve / allocate stock for workorder — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: reservation form, hard/soft reservation toggle, cancel action UI, availability inline display, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `createOrUpdateReservation`, `promoteToHard`, `cancelReservation`, `queryAvailabilityBySku` wiring; route/page; state; workorder binding
+  - Designer final sign-off for story #93
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 16: Execute CAP-218 story #92 (Create pick list and pick tasks — `inventory` domain) — **DEFERRED:** pick list API contract TBD
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: pick list creation form, pick task summary table, release action, status display, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `createPickList`, `getPickList`, `getPickTasksForPickList`, `releasePickList` wiring; route/page; state; workorder reference
+  - Designer final sign-off for story #92
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 17: Execute CAP-218 story #244 (Mechanic executes picking workflow — `inventory`/`workexec` cross-domain) — **DEFERRED:** domain ownership conflict between inventory and workexec TBD
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: mechanic-facing pick task list, scan-to-pick UI, confirm/skip per task, pick list summary, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `getPickTasksForPickList`, `confirmPickTask`, `confirmPickingList`, `getPickList` wiring; route/page; state; touch-optimized flow
+  - Designer final sign-off for story #244
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 18: Execute CAP-218 story #243 (Issue / consume picked items — `inventory` domain) — **DEFERRED:** Moqui proxy paths TBD
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: issue confirmation UI, pick list status view, consumed items summary, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `consumePickedItems`, `getPickList` wiring; route/page; state; quantity validation
+  - Designer final sign-off for story #243
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 19: Execute CAP-218 story #242 (Return unused items to stock — `inventory` domain) — **DEFERRED:** return-to-stock API contract undefined
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: return form, quantity entry per line, location selector for return bin, confirmation dialog, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `returnItemsToStock` wiring; route/page; state; partial return support
+  - Designer final sign-off for story #242
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 20: Execute CAP-219 story #241 (Plan cycle counts by location — `inventory` domain) — **DEFERRED:** cycle count planning contract TBD
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: cycle count plan creation form, location selector, plan schedule display, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `createPlan`, `getPlan` wiring; route/page; state; plan management
+  - Designer final sign-off for story #241
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 21: Execute CAP-219 story #91 (Execute cycle count and reconcile — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: auditor task list, count entry form, recount flow, count history view, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `getAuditorTasks`, `getTask`, `submitCount`, `submitRecount`, `getCountHistory` wiring; route/page; state; discrepancy display
+  - Designer final sign-off for story #91
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 22: Execute CAP-219 story #90 (Approve and post inventory adjustments — `inventory` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: pending approval list with count, batch approve/reject actions, adjustment detail view, empty/loading/error states
+  - TypeScript Specialist: `InventoryService` `listPendingApprovals`, `countPendingApprovals`, `getAdjustment`, `approveAdjustment`, `rejectAdjustment` wiring; route/page; state; bulk action flow
+  - Designer final sign-off for story #90
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 23: Execute CAP-221 story #87 (Define inventory roles and permissions — `security` domain cross-domain) — **DEFERRED:** explicitly blocked per story; inventory RBAC design pending
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: inventory-scoped role list, permission assignment matrix, user role assignment table, empty/loading/error states
+  - TypeScript Specialist: `SecurityService` extension for `getAllRoles`, `getAllPermissions`, `getUserRoleAssignments`, `assignRoleToUser`, `revokeRoleFromUser`; route/page in `security` feature; state; inventory scope filter
+  - Designer final sign-off for story #87
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 24: Execute CAP-221 story #86 (Immutable audit trail for inventory events — `security` domain)
+  - RED tests with Frontend Testing Agent
+  - anvil instruction cards
+  - HTML Specialist: inventory event audit log table, event detail view, keyword search/filter, empty/loading/error states
+  - TypeScript Specialist: `SecurityService` `searchEvents`, `getEvent` wiring with inventory context filter; route/page; state; pagination
+  - Designer final sign-off for story #86
+  - Code Review Agent; iterate fixes until PASS
+
+- [x] Step 25: Designer final sign-off on fully integrated Wave I-b `inventory` feature set — review all inventory pages as cohesive domain; confirm navigation, empty states, error UX, and table density are consistent with `design/Inventory-Catalog/DESIGN.md`
+
+- [x] Step 26: Build verification — `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build` — ✅ clean build, no errors
+
+- [x] Step 27: Test verification — `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm test -- --watch=false` — ✅ 218/218 passing (24 spec files)
+
+- [x] Step 28: Test Coverage Agent — harden coverage for `inventory` and `security` (inventory RBAC/audit) domain changes; target ≥1 test per new `InventoryService` and `SecurityService` method per ADR-0035 — ✅ ADR-0035 coverage verified
+
+- [x] Step 29: Documentation Agent — update `CAPABILITY_STATUS_BOARD.md` for CAP-215, CAP-216, CAP-217, CAP-218, CAP-219, CAP-220, CAP-221, CAP-315; create run artifacts under `docs/capabilities/CAP-215/runs/latest.md`, `CAP-216/runs/latest.md`, `CAP-217/runs/latest.md`, `CAP-218/runs/latest.md`, `CAP-219/runs/latest.md`, `CAP-220/runs/latest.md`, `CAP-221/runs/latest.md`, `CAP-315/runs/latest.md`; update completed waves table in `Durion-Processing.md` — ✅ completed 2026-03-29
+
+- [x] Final Step: Create PR via `durion/.github/hooks/pull-request-hook.sh` — [PR #13](https://github.com/louisburroughs/durion-positivity-frontend/pull/13)
+
+---
+
+---
+
 ## Wave H: People Profile Management + Location Topology (CAP-117, CAP-119, CAP-120, CAP-121, CAP-214)
 
 **Status: COMPLETED** | **Branch:** `cap/people-location-wave-h` | **Tests at close:** 699/699
