@@ -24,6 +24,7 @@ NARRATIVE_SUFFIX_RE = re.compile(
         ,\s*with\b.*|
         \s+with\b.*|
         \s+who\b.*|
+        \s+maintaining\b.*|
         \s+viewing\b.*|
         \s+operating\b.*|
         \s+interacting\b.*|
@@ -37,6 +38,7 @@ NARRATIVE_SUFFIX_RE = re.compile(
     """
 )
 PERSONA_SPLIT_RE = re.compile(r"\s*(?:/|,|;|\band\b)\s*", re.IGNORECASE)
+ACRONYM_TOKENS = {"ap", "ar", "crm", "gl", "hr", "ops", "pos", "rbac", "ui"}
 
 
 def clean_persona(value: str) -> str:
@@ -62,7 +64,20 @@ def split_personas(value: str) -> list[str]:
         return []
 
     parts = [part.strip() for part in PERSONA_SPLIT_RE.split(root)]
-    return [part for part in parts if part]
+    return [normalize_persona_label(part) for part in parts if part]
+
+
+def normalize_persona_label(value: str) -> str:
+    tokens = []
+    for token in value.split():
+        lower = token.lower()
+        if lower in ACRONYM_TOKENS:
+            tokens.append(lower.upper())
+        elif token.isupper() or any(char.isupper() for char in token[1:]):
+            tokens.append(token)
+        else:
+            tokens.append(token.capitalize())
+    return " ".join(tokens)
 
 
 def extract_primary_persona(text: str) -> str | None:
