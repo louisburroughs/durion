@@ -47,13 +47,13 @@ Legend for **Status** column:
 | CAP | Name | Domain | Stories Done | Stories Deferred |
 | --- | --- | --- | --- | --- |
 | CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #100, #101 | — |
-| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 (cross-dock endpoint contract) |
+| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 (cross-dock proxy/read-side/idempotency details pending) |
 | CAP-217 | Put-away & Replenishment | `inventory` | #96, #95, #94 | — |
-| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 (API/proxy/ownership TBD) |
-| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 (planning contract TBD) |
-| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 (cross-domain shortage contract TBD) |
-| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 (explicitly blocked) |
-| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 (ASN receiving contract TBD) |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 (read-model/proxy/orchestration details pending) |
+| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 (zones/list/timezone details pending) |
+| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 (cross-domain orchestration and submit semantics pending) |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 (ownership, scope, and gating matrix pending) |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 (ASN-to-receiving integration path pending) |
 
 ---
 

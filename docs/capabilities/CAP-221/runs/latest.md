@@ -12,7 +12,7 @@ Use this run record with:
 - Run Timestamp (UTC): 2026-03-29T00:00:00Z
 - Agent/Operator: Orchestrator (Wave I-b)
 - Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/2 stories done; 1 explicitly blocked per story
+- Status: partial — 1/2 stories done; 1 deferred (ownership and gating details pending)
 
 ## 2. Inputs Used
 
@@ -25,7 +25,7 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Audit Log Search and Detail | #86 | #86 | done | Inventory event audit log table, event detail, search/filter, pagination |
-| Inventory Security Admin (Roles & Permissions) | #87 | #87 | deferred | Explicitly blocked per story; inventory RBAC design pending |
+| Inventory Security Admin (Roles & Permissions) | #87 | #87 | deferred | Core RBAC endpoints exist, but inventory ownership, scope, and gating matrix remain unresolved |
 
 ## 4. Implementation Changes
 
@@ -46,7 +46,7 @@ Use this run record with:
 
 ### Deferred
 
-- #87 Inventory RBAC admin — explicitly blocked per story; inventory role/permission design not yet finalised
+- #87 Inventory RBAC admin — security endpoints exist, but inventory-scoped ownership and gating rules are not yet finalised
 
 ## 5. API Wiring Evidence
 
@@ -56,9 +56,9 @@ For each story, list operations implemented and where they are wired.
 | --- | --- | --- | --- | --- |
 | #86 Audit Log Search | `searchEvents` | pos-security-service / sdk-security | `security-audit.service.ts` | done |
 | #86 Audit Log Detail | `getEvent` | pos-security-service / sdk-security | `security-audit.service.ts` | done |
-| #87 Inventory Roles | `getAllRoles` | pos-security-service / sdk-security | — | deferred — blocked per story |
-| #87 Inventory Permissions | `getAllPermissions` | pos-security-service / sdk-security | — | deferred — blocked per story |
-| #87 User Role Assignments | `getUserRoleAssignments` | pos-security-service / sdk-security | — | deferred — blocked per story |
+| #87 Inventory Roles | `getAllRoles` | pos-security-service / sdk-security | — | deferred — endpoint exists; inventory scope/role model pending |
+| #87 Inventory Permissions | `getAllPermissions` | pos-security-service / sdk-security | — | deferred — endpoint exists; inventory gating model pending |
+| #87 User Role Assignments | `getUserRoleAssignments` | pos-security-service / sdk-security | — | deferred — endpoint exists; inventory admin workflow pending |
 
 ## 6. Validation
 
@@ -79,13 +79,13 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: #87 Inventory security admin explicitly blocked per story
-  - Impact: Inventory-scoped role/permission assignment UI cannot be built
-  - Needed: Inventory RBAC design (role taxonomy, permission scoping model) from security domain team
+- Blocker: #87 is no longer blocked by missing RBAC primitives; it is blocked by unresolved feature ownership and scope
+  - Impact: Inventory-scoped admin UI cannot be implemented without deciding whether this is a Security feature or an Inventory-admin shell
+  - Needed: Confirm owning domain, canonical role catalog, inventory action-to-permission gating matrix, and any role-assignment audit/history requirements
 
 ## 8. Follow-Up Actions
 
-- [ ] Unblock inventory RBAC design for #87 implementation in a future wave
+- [ ] Confirm ownership, role catalog, and inventory gating matrix for #87
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate

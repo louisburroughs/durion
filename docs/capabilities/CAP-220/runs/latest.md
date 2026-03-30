@@ -12,7 +12,7 @@ Use this run record with:
 - Run Timestamp (UTC): 2026-03-29T00:00:00Z
 - Agent/Operator: Orchestrator (Wave I-b)
 - Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/2 stories done; 1 deferred (shortage resolution cross-domain contract TBD)
+- Status: partial — 1/2 stories done; 1 deferred (shortage resolution orchestration details pending)
 
 ## 2. Inputs Used
 
@@ -25,7 +25,7 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Putaway Task List and Execute | #88 | #88 | done | Task list and execute pages; availability and reallocation wiring |
-| Shortage Resolution / Handle Shortages with Back-order | #89 | #89 | deferred | Cross-domain shortage resolution contract TBD |
+| Shortage Resolution / Handle Shortages with Back-order | #89 | #89 | deferred | Inventory contracts exist, but cross-domain orchestration and option-submit semantics remain unresolved |
 
 ## 4. Implementation Changes
 
@@ -50,7 +50,7 @@ Use this run record with:
 
 ### Deferred
 
-- #89 Shortage resolution — `resolveShortage`, `queryLeadTime` cross-domain contract TBD
+- #89 Shortage resolution — `resolveShortage`, `queryLeadTime` exist, but cross-domain orchestration and submit semantics remain unresolved
 
 ## 5. API Wiring Evidence
 
@@ -61,8 +61,8 @@ For each story, list operations implemented and where they are wired.
 | #88 Putaway / Reallocation | `queryAvailabilityBySku` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
 | #88 Putaway / Reallocation | `queryInventoryAvailability` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
 | #88 Putaway / Reallocation | `reallocate` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
-| #89 Shortage Resolution | `resolveShortage` | pos-inventory / sdk-inventory | — | deferred — cross-domain contract TBD |
-| #89 Shortage Resolution | `queryLeadTime` | pos-inventory / sdk-inventory | — | deferred — cross-domain contract TBD |
+| #89 Shortage Resolution | `resolveShortage` | pos-inventory / sdk-inventory | — | deferred — contract exists; orchestration/submit semantics pending |
+| #89 Shortage Resolution | `queryLeadTime` | pos-inventory / sdk-inventory | — | deferred — contract exists; ownership/orchestration pending |
 
 ## 6. Validation
 
@@ -83,13 +83,13 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: #89 shortage resolution cross-domain contract undefined
-  - Impact: Back-order creation flow and lead time display cannot be implemented
-  - Needed: Confirmed `resolveShortage` and `queryLeadTime` endpoint specs with cross-domain routing
+- Blocker: #89 no longer lacks inventory endpoint contracts; the remaining gap is cross-domain orchestration ownership
+  - Impact: Shortage UI cannot safely decide where the resolution workflow lives or what payload must be submitted after the option list is shown
+  - Needed: Confirm owning/orchestrating domain, proxy routing across Inventory/Product/Positivity/WorkExec, and whether submit uses `optionId` only or a structured payload
 
 ## 8. Follow-Up Actions
 
-- [ ] Resolve cross-domain shortage resolution contract to unblock #89
+- [ ] Confirm owning domain and option-submit semantics for shortage resolution (#89)
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate

@@ -12,7 +12,7 @@ Use this run record with:
 - Run Timestamp (UTC): 2026-03-29T00:00:00Z
 - Agent/Operator: Orchestrator (Wave I-b)
 - Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/2 stories done; 1 deferred (ASN receiving contract TBD)
+- Status: partial — 1/2 stories done; 1 deferred (ASN receiving integration path pending)
 
 ## 2. Inputs Used
 
@@ -25,7 +25,7 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Purchase Order List, Detail, Create, Edit | #572 | #572 | done | PO list, detail view, creation form, approve/revise/cancel/receive actions |
-| Create Receiving Session via ASN + PO | #571 | #571 | deferred | Blocking contract notes; ASN receiving endpoint spec unresolved |
+| Create Receiving Session via ASN + PO | #571 | #571 | deferred | ASN contracts exist; frontend integration path into receiving-session flow remains unresolved |
 
 ## 4. Implementation Changes
 
@@ -56,7 +56,7 @@ Use this run record with:
 
 ### Deferred
 
-- #571 ASN receiving — `createAsn`, `getAsn`, `createReceivingSession` via ASN path; blocking contract notes unresolved
+- #571 ASN receiving — `createAsn`, `getAsn`, and related ASN contracts exist; integration into the receiving-session flow remains unresolved
 
 ## 5. API Wiring Evidence
 
@@ -71,8 +71,8 @@ For each story, list operations implemented and where they are wired.
 | #572 PO Lifecycle | `revisePurchaseOrder` | pos-inventory / sdk-inventory | `inventory-purchase-order.service.ts` | done |
 | #572 PO Lifecycle | `cancelPurchaseOrder` | pos-inventory / sdk-inventory | `inventory-purchase-order.service.ts` | done |
 | #572 PO Lifecycle | `receivePurchaseOrder` | pos-inventory / sdk-inventory | `inventory-purchase-order.service.ts` | done |
-| #571 ASN Receiving | `createAsn` | pos-inventory / sdk-inventory | — | deferred — ASN contract TBD |
-| #571 ASN Receiving | `getAsn` | pos-inventory / sdk-inventory | — | deferred — ASN contract TBD |
+| #571 ASN Receiving | `createAsn` | pos-inventory / sdk-inventory | — | deferred — contract exists; frontend integration path pending |
+| #571 ASN Receiving | `getAsn` | pos-inventory / sdk-inventory | — | deferred — contract exists; frontend integration path pending |
 
 ## 6. Validation
 
@@ -93,13 +93,13 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: #571 ASN receiving session contract has blocking notes
-  - Impact: ASN-based receiving session creation cannot be implemented
-  - Needed: Confirmed `createAsn`, `getAsn` endpoint spec and integration with `createReceivingSession` flow
+- Blocker: #571 no longer lacks ASN endpoint contracts; the remaining gap is how ASN flows plug into receiving
+  - Impact: ASN receiving UI cannot be implemented until the product chooses between an ASN-first load/create flow, existing receiving-session flow, and any goods-receipt-specific UX
+  - Needed: Confirm frontend integration path, proxy mapping, and whether the happy path centers on ASN load + `createReceivingSession` or a distinct goods-receipt-first flow
 
 ## 8. Follow-Up Actions
 
-- [ ] Resolve ASN receiving contract to unblock #571
+- [ ] Confirm ASN-to-receiving integration path and proxy mapping for #571
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate
