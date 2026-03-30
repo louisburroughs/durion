@@ -25,7 +25,7 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Replenishment Task List (empty state) | #93 | #93 | done | Task list page with empty state; reservation wiring scaffold |
-| Create Pick List and Pick Tasks | #92 | #92 | deferred | Backend pick-list contract exists; workorder retrieval, proxy mapping, and ownership/orchestration choices remain unresolved |
+| Create Pick List and Pick Tasks | #92 | #92 | deferred | Workorder Execution ownership is now clarified; workorder retrieval, frontend-facing contract mapping, and print-policy details remain unresolved |
 | Return Unused Items to Stock | #242 | #242 | deferred | Submit contract exists; returnable-items load, reason-code lookup, and destination semantics remain unresolved |
 | Issue / Consume Picked Items | #243 | #243 | deferred | Inventory and workorder consume contracts both exist; picked-items read model and canonical command choice remain unresolved |
 | Mechanic Executes Picking Workflow | #244 | #244 | deferred | WorkExec ownership is likely, but canonical API surface, route parameter, and state model remain unresolved |
@@ -47,7 +47,7 @@ Use this run record with:
 
 ### Deferred
 
-- Pick list creation and management (#92) — contract exists, but frontend retrieval/proxy/ownership details are still open
+- Pick list creation and management (#92) — WorkExec ownership is clarified, but frontend retrieval/contract mapping and print-policy details are still open
 - Return to stock (#242) — submit contract exists, but read-side support and destination semantics are still open
 - Consume picked items (#243) — inventory and workorder consume contracts exist, but picked-items read model and canonical command path are still open
 - Mechanic picking workflow (#244) — ownership direction is clearer, but concrete API/state model is still open
@@ -62,8 +62,8 @@ For each story, list operations implemented and where they are wired.
 | #93 Task List / Reservation | `promoteToHard` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
 | #93 Task List / Reservation | `cancelReservation` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
 | #93 Task List / Reservation | `queryAvailabilityBySku` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
-| #92 Pick List | `createPickList` | pos-inventory / sdk-inventory | — | deferred — backend contract exists; frontend proxy/ownership pending |
-| #92 Pick List | `getPickListsForWorkorder` | pos-inventory / sdk-inventory | — | deferred — backend contract exists; workorder retrieval/proxy pending |
+| #92 Pick List | `createPickList` | pos-inventory / sdk-inventory | — | deferred — backend contract exists; WorkExec-owned frontend placement is clearer, but frontend-facing contract mapping remains pending |
+| #92 Pick List | `getPickListsForWorkorder` | pos-inventory / sdk-inventory | — | deferred — backend contract exists; canonical workorder retrieval path and print policy remain pending |
 | #242 Return to Stock | `returnItemsToStock` | pos-inventory / sdk-inventory | — | deferred — submit contract exists; read-side contracts pending |
 | #243 Consume Items | `consumePickedItems` | pos-inventory / sdk-inventory | — | deferred — inventory consume contract exists; picked-items read model and canonical write-surface choice remain pending |
 | #244 Mechanic Picking | `confirmPickTask` | pos-inventory / sdk-inventory | — | deferred — ownership and canonical API/state model pending |
@@ -87,9 +87,10 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: #92 inventory pick-list contract exists, but the frontend still lacks a settled retrieval/orchestration shape
-  - Impact: Pick-list create/load flow cannot be wired safely without deciding whether the screen is inventory-owned or WorkExec-facing
-  - Needed: Confirm canonical frontend surface, Moqui proxy mapping, workorder-based retrieval path, and any release/print policy
+- Blocker: #92 pick-list contract exists, and ownership is now resolved toward WorkExec, but the frontend still lacks a settled retrieval/contract shape
+  - Impact: Pick-list create/load flow still cannot be wired safely without choosing the canonical workorder-based retrieval path and finalizing print-policy behavior
+  - Resolved: parts picking for workorder execution is Workorder Execution-owned
+  - Needed: Confirm canonical frontend-facing contract mapping, workorder-based retrieval path, whether tasks are embedded or separate, and any release/print policy
 - Blocker: #242 return submit contract exists, but the frontend lacks the read-side data needed to render the flow
   - Impact: Return-to-stock UI cannot load returnable items, reason codes, or destination options deterministically
   - Needed: Confirm returnable-items endpoint, reason-code lookup, destination model (`locationId` vs `storageLocationId`), and retry/idempotency guidance
@@ -103,7 +104,7 @@ npx ng test --no-watch
 
 ## 8. Follow-Up Actions
 
-- [ ] Confirm canonical frontend surface and proxy mapping for pick-list creation/load (#92)
+- [ ] Confirm canonical frontend-facing contract mapping and workorder retrieval path for pick-list creation/load (#92)
 - [ ] Define returnable-items/reason-code/destination contracts for return-to-stock (#242)
 - [ ] Confirm picked-items read model and canonical consume surface for consumption (#243)
 - [ ] Finalize WorkExec vs Inventory API/state model for mechanic picking (#244)
