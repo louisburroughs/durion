@@ -601,7 +601,7 @@ None.
 ### Round 2 Thread Classification
 
 | Thread | File | Stale? | Finding |
-|--------|------|--------|---------|
+| -------- | ------ | -------- | --------- |
 | r3012353553 | invoice-finalization-page.component.ts:35 | YES — `{ allowSignalWrites: true }` already present | Reply only |
 | r3012353566 | estimate-list-page.component.ts:55 | YES — `EMPTY` guard already present | Reply only |
 | r3012353537 | invoice-finalization-page.component.html:16 | NO | R2-F01: Add empty state block to template |
@@ -626,3 +626,126 @@ Steps:
 - [ ] Post PR summary reply for Round 2 threads
 
 ### Round 2 Subagent Outputs
+
+### 2026-03-30T22:00:00Z | PR Fix Coder (Round 2)
+
+Objective: Fix R2-F01, R2-F04, R2-F05, R2-F06, R2-F07 (5 production code fixes)
+Validation: accepted
+
+- R2-F01: Added `@if (state() === 'empty')` block to `invoice-finalization-page.component.html`
+- R2-F04: `setRefundAmount('')` changed to set `null` when input is blank (casts `'' as null`)
+- R2-F05: Added `invoiceId` and `paymentId` guards to `executeVoid`/`executeRefund`
+- R2-F06: Added `invoiceId` guard to `generateAndShow`/`loadReceipt` in receipt-page
+- R2-F07: `invoice-payment-status-page.component.ts` — missing `invoiceId` early-return now sets `state('error')` + `errorKey`
+
+### 2026-03-30T22:10:00Z | PR Test Fixer (Round 2)
+
+Objective: Add 4 new i18n keys to all locale files; add 8 spec tests for R2 fixes
+Validation: accepted
+
+- Added keys to `en-US.json`, `es-US.json`, `fr-CA.json`, `qps-ploc.json`
+- 8 new spec tests across payment-void-refund, receipt, invoice-payment-status spec files
+
+### 2026-03-30T22:15:00Z | PR Code Reviewer (Round 2)
+
+Objective: Final verification of all 7 Round 2 findings
+Validation: accepted — loop exits
+
+Verdict: PASS — All 7 Round 2 threads resolved
+
+---
+
+### Round 2 Final Summary
+
+- **PR comment posted**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/14#issuecomment-4158486185>
+- Stale threads replied: r3012353553, r3012353566
+- Fixed threads: r3012353537, r3012353576, r3012353589, r3012353600, r3012353615
+- 4 new i18n keys added, 8 new spec tests
+- Code Reviewer verdict: PASS
+
+---
+
+## PR #14 — Round 3 Review
+
+### Round 3 Context
+
+- **pr**: 14
+- **url**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/14>
+- **trigger**: 4 new review threads from third automated review pass at 2026-03-30T22:22:13Z
+- **prior_round_status**: Rounds 1 & 2 PASS — 14 threads resolved
+- **review_track**: frontend
+
+### Round 3 Thread Classification
+
+| Thread | File | Stale? | Finding |
+| -------- | ------ | -------- | --------- |
+| r3012482394 | `crm.service.ts:158` | NO | R3-F01: `getBillingRules`/`upsertBillingRules` use `/v1/crm/parties/` instead of `/v1/crm/accounts/parties/` |
+| r3012482414 | `receipt-page.component.ts` | YES (outdated) | `setDeliveryMethod(string)` — already typed as `'PRINT' \| 'EMAIL' \| 'NONE'` |
+| r3012482433 | `payment-capture-page.component.ts` | YES (outdated) | `setSelectedMethod(string)` — already typed as `PaymentMethod` |
+| r3012482449 | `wip-status-page.component.ts:63` | NO | R3-F02: `refresh()` uses both `refreshSub` + `takeUntilDestroyed` — redundant teardown (ADR-0033 violation) |
+
+### Round 3 Plan
+
+- [x] R3-F01: Fix `getBillingRules`/`upsertBillingRules` base path to `/v1/crm/accounts/parties/${partyId}/billing-rules`
+- [x] R3-F02: Remove `private refreshSub?: Subscription`, `onDestroy` callback, and `refreshSub` usage from `refresh()`; retain `takeUntilDestroyed`
+- [x] Update `crm.service.spec.ts` — 4 path string occurrences (2 `it()` descriptions + 2 `expect(path)` assertions)
+- [x] Validate: zero TypeScript errors on all modified files
+- [x] Code Reviewer verdict PASS
+- [x] Post PR Round 3 summary comment
+
+### Round 3 Subagent Outputs
+
+### 2026-03-30T22:30:00Z | PR Code Reviewer (Round 3)
+
+Objective: Verify R3-F01 and R3-F02 fixes; confirm stale threads are resolved
+Validation: accepted — loop exits
+
+Acceptance Matrix (11 criteria):
+
+1. R3-F01 GET path corrected — PASS (crm.service.ts:152)
+2. R3-F01 PUT path corrected — PASS (crm.service.ts:157)
+3. R3-F01 spec paths ×4 updated — PASS (crm.service.spec.ts:84,100,106,132)
+4. ADR-0035 both billing-rules methods covered — PASS
+5. R3-F02 `refreshSub` field removed — PASS
+6. R3-F02 `onDestroy` callback removed — PASS
+7. R3-F02 `refresh()` uses only `takeUntilDestroyed` — PASS
+8. R3-F02 `Subscription` import retained for effect — PASS
+9. ADR-0033 `effect()` → `onCleanup`, `refresh()` → `takeUntilDestroyed` — PASS
+10. `wip-status-page.component.spec.ts` `refresh()` coverage intact — PASS
+11. Zero TypeScript errors — PASS
+
+Verdict: PASS — 11/11 criteria satisfied, zero findings
+
+---
+
+### Round 3 Final Summary
+
+#### Files Modified
+
+| File | Change |
+| ------ | -------- |
+| `src/app/features/crm/services/crm.service.ts` | Fixed billing-rules base path: `/v1/crm/parties/` → `/v1/crm/accounts/parties/` |
+| `src/app/features/crm/services/crm.service.spec.ts` | Updated 4 path references (2 `it()` descriptions + 2 `expect()` assertions) |
+| `src/app/features/workexec/pages/wip-status/wip-status-page.component.ts` | Removed `refreshSub` field, `onDestroy` callback, manual unsubscribe; `takeUntilDestroyed` is sole teardown |
+
+#### Thread Coverage
+
+| Thread | Status |
+| -------- | -------- |
+| r3012482394 | Fixed — billing-rules path corrected |
+| r3012482414 | Stale — already typed; no change |
+| r3012482433 | Stale — already typed; no change |
+| r3012482449 | Fixed — redundant subscription removed |
+
+- **PR comment posted**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/14#issuecomment-4158642584>
+- **Code Reviewer verdict**: PASS (11/11)
+- **Zero TypeScript errors** across all modified files
+
+#### ADR Compliance
+
+- ADR-0033: `effect()` uses `onCleanup`; `refresh()` uses `takeUntilDestroyed` — compliant
+- ADR-0035: both `getBillingRules` and `upsertBillingRules` have spec tests asserting HTTP verb + correct URL — compliant
+
+#### Unresolved Blockers
+
+None. Three rounds complete. PR #14 review workflow complete.

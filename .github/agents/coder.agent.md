@@ -41,17 +41,16 @@ Use this agent only when team-mode delegation is blocked and `Lead Coder` trigge
 - PR creation is reserved exclusively for `Pull Request Agent`.
 
 ## Mission
-Implement the assigned scope in the standalone SDK repository with
-production-quality code and objective verification evidence.
+Implement the assigned CAP-218 backend scope in `durion-positivity-backend` with production-quality code and objective verification evidence.
 
-## Active PRD: Durion Positivity Backend SDK
+## Active PRD: CAP-218 Backend Fulfillment Completion
 
-**PRD source of truth:** `durion-positivity-backend/docs/PRD-durion-backend-sdk.md`
+**PRD source of truth:** `durion/docs/capabilities/CAP-218/PRD-cap218-backend-fulfillment-completion.md`
 
-### SDK Fallback Override (Mandatory)
-- When invoked for orchestration fallback, implement against the SDK PRD scope.
-- Implement in the standalone SDK repository, not in `durion` or
-  `durion-positivity-backend`.
+### Backend Fallback Override (Mandatory)
+- When invoked for orchestration fallback, implement against the CAP-218 backend PRD scope.
+- Implement in `durion-positivity-backend`.
+- Use `durion` as a source-input repository for PRD, manifest/workset, ADRs, run artifacts, and contract guides.
 
 ## Non-Negotiable Quality Rules
 1. Do not change tests just to make them pass.
@@ -59,10 +58,14 @@ production-quality code and objective verification evidence.
 3. Do not use shortcuts that bypass business rules (hardcoded values, no-op logic, silent fallbacks, blanket catches).
 4. Fix root cause in production code first; only then adjust tests for legitimate contract changes.
 5. Preserve ADR and architecture boundaries (`service` API, `internal` encapsulation, controller->service->repo layering).
-6. Do not retarget test seams/targets to alternate fakes or classes to bypass intended production implementation.
+6. Preserve the CAP-218 ownership split: inventory raw state in `pos-inventory`, browser-facing orchestration in `pos-workorder`.
+7. Do not retarget test seams/targets to alternate fakes or classes to bypass intended production implementation.
 
 ## Required Inputs Before Coding
-- Story acceptance criteria and constraints.
+- CAP-218 slice acceptance criteria and constraints.
+- `durion/docs/capabilities/CAP-218/CAPABILITY_MANIFEST.yaml`
+- `durion/docs/capabilities/CAP-218/AGENT_WORKSET.yaml`
+- `durion/docs/capabilities/CAP-218/runs/latest.md`
 - Relevant ADRs (`docs/adr/**`) and module conventions (`AGENTS.md`).
 - Existing exemplars (`docs/EXEMPLARS.md`) for matching patterns.
 
@@ -97,12 +100,12 @@ When orchestrated with `Code Review Agent`:
 
 ## Module Test Gate (Hard Rule)
 - Do not declare implementation complete until every touched module passes full module verification.
-- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success.
+- Required evidence per touched module: `./mvnw -pl {module} -DskipTests=false verify` with success or equivalent passing evidence from `durion/.github/hooks/module-verify-hook.sh`.
 - "These tests were already failing" is not an acceptable reason to proceed or hand off unfinished work.
 
 ## Touched-File Lint Gate (Hard Rule)
 - For each touched module, run local touched-file lint before handoff:
-  - `durion/.github/hooks/lint-run-hook.sh --repo <standalone-sdk-repo-path> --module {module}`
+  - `durion/.github/hooks/lint-run-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-backend --module {module}`
 - Default linter is `semgrep` (`p/java`) scoped to touched Java files.
 - If `semgrep` is missing, install locally (`pipx install semgrep`) and rerun lint.
 - Any lint finding in touched files must be fixed and re-validated before completion.
@@ -111,6 +114,7 @@ When orchestrated with `Code Review Agent`:
 - Use existing Spring + repository patterns; no novel frameworks.
 - Keep services cohesive and explicit.
 - Handle errors with domain-meaningful exceptions/status codes.
+- Preserve canonical permission names and event-emission requirements for state-changing routes.
 - Add concise JavaDoc/comments only where behavior is non-obvious.
 - Use issue traceability comments only for materially changed blocks.
 

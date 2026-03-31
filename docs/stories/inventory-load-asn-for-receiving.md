@@ -52,6 +52,13 @@ As an Inventory Clerk, I want to load an Advance Shipping Notice (ASN) so that I
 
 **Functional Behavior**
 
+**Frontend Receiving Architecture Alignment**
+
+- ASN-backed receiving is the default frontend receiving path.
+- The expected operator sequence is `createAsn -> createReceivingSession -> receiveItemsIntoStaging`.
+- ASN load/review happens inside the existing receiving workflow rather than through a separate dedicated ASN screen family.
+- Trucks without an ASN remain supported as a fallback path through the same receiving entry point, but they are not the primary happy path.
+
 1. ASN Creation / Load
    - System must accept creation of an ASN record with fields:
      - vendorId
