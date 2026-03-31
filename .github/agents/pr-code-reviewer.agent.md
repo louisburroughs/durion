@@ -1,7 +1,7 @@
 ---
 name: PR Code Reviewer
 description: Validates remediated PR code against issue criteria, ADRs, and test expectations during the PR fix loop.
-model: Claude Opus 4.6
+model: Claude Opus 4.6 (copilot)
 tools:
   - read/readFile
   - read/problems

@@ -1,7 +1,7 @@
 ---
 name: PR Fix Coder
 description: Implements production code fixes from orchestrated PR review findings.
-model: GPT-5.3-Codex
+model: GPT-5.3-Codex (copilot)
 tools:
   - read/readFile
   - read/problems
