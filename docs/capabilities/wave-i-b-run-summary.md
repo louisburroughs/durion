@@ -1,13 +1,13 @@
 ---
 wave: "I-b"
 branch: "cap/inventory-wave-i-b"
-date_utc: "2026-03-29T00:00:00Z"
+date_utc: "2026-03-30T00:00:00Z"
 status: "READY FOR PR"
 ---
 
 # Wave I-b Execution Summary — Inventory Domain
 
-**Date:** 2026-03-29
+**Date:** 2026-03-30
 **Branch:** `cap/inventory-wave-i-b`
 **Base:** `master` (Wave I-a `cap/product-wave-i-a` merged)
 **Target repo:** `durion-positivity-frontend`
@@ -18,7 +18,7 @@ status: "READY FOR PR"
 ## Overview
 
 Wave I-b implemented the Inventory domain frontend across 8 capabilities, 12 of 21 planned stories.
-Nine stories were deferred due to undefined or blocked backend contracts.
+Nine stories remain deferred on the branch; five now have documented contract follow-through and four still need contract or architecture decisions.
 
 | Metric | Value |
 | --- | --- |
@@ -71,15 +71,15 @@ Nine stories were deferred due to undefined or blocked backend contracts.
 
 | Story # | Capability | Description | Blocker |
 | --- | --- | --- | --- |
-| #97 | CAP-216 | Cross-dock Receiving (Direct-to-Workorder) | 7 unresolved endpoint questions; no confirmed `crossDockLineToWorkorder` spec |
+| #97 | CAP-216 | Cross-dock Receiving (Direct-to-Workorder) | Contract note documented; implementation still deferred |
 | #92 | CAP-218 | Create Pick List and Pick Tasks | API contract TBD for `createPickList`/`releasePickList` |
-| #242 | CAP-218 | Return Unused Items to Stock | `returnItemsToStock` API contract undefined |
-| #243 | CAP-218 | Issue / Consume Picked Items | Moqui proxy paths TBD for `consumePickedItems` |
-| #244 | CAP-218 | Mechanic Executes Picking Workflow | Domain ownership conflict: `inventory` vs `workexec` unresolved |
-| #241 | CAP-219 | Plan Cycle Counts by Location | Cycle count planning contract TBD (`createPlan`/`getPlan`) |
-| #89 | CAP-220 | Shortage Resolution / Handle Shortages with Back-order | Cross-domain `resolveShortage` and `queryLeadTime` contract TBD |
-| #87 | CAP-221 | Inventory Security Admin (Roles & Permissions) | Explicitly blocked per story; inventory RBAC design pending |
-| #571 | CAP-315 | Create Receiving Session via ASN + PO | Blocking contract notes for ASN receiving (`createAsn`, `getAsn`) |
+| #242 | CAP-218 | Return Unused Items to Stock | Contract note documented; implementation still deferred |
+| #243 | CAP-218 | Issue / Consume Picked Items | Backend ownership note documented; frontend should target workorder facade over inventory consumption |
+| #244 | CAP-218 | Mechanic Executes Picking Workflow | WorkExec ownership is documented, but frontend still depends on the workorder-facing pick scaffold from `#92` |
+| #241 | CAP-219 | Plan Cycle Counts by Location | Contract addendum documented; implementation still deferred |
+| #89 | CAP-220 | Shortage Resolution / Handle Shortages with Back-order | Recommendation contracts documented; submit-decision endpoint/facade still missing |
+| #87 | CAP-221 | Inventory Security Admin (Permissions) | Security permission primitives exist; inventory permission catalog is normalized, the gating matrix is documented, and current-user permissions are available from JWT claims |
+| #571 | CAP-315 | Create Receiving Session via ASN + PO | Receiving-path note documented; implementation still deferred |
 
 ---
 

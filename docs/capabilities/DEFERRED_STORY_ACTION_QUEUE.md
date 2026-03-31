@@ -4,138 +4,74 @@ This queue captures the deferred frontend stories that are no longer blocked by 
 
 ## Reopen Order
 
-1. `#571` / `CAP-315` - closest to implementation-ready
-2. `#241` / `CAP-219`
-3. `#97` / `CAP-216`
-4. `#242` / `CAP-218`
-5. `#243` / `CAP-218`
-6. `#92` / `CAP-218`
-7. `#89` / `CAP-220`
-8. `#87` / `CAP-221`
-9. `#244` / `CAP-218` - needs the largest architecture clarification
+1. `#92` / `CAP-218`
+2. `#89` / `CAP-220`
+3. `#87` / `CAP-221`
+4. `#244` / `CAP-218` - depends on the backend pick scaffold from `#92`
+
+## Recently Completed Artifact Follow-Through
+
+### `#571` / `CAP-315` / ASN Receiving
+
+- Status: `Documented`
+- Completed artifacts:
+  - Story updated with ASN-as-default receiving path and receiving-session reuse
+  - Receiving architecture note updated to reflect `createAsn -> createReceivingSession -> receiveItemsIntoStaging`
+
+### `#241` / `CAP-219` / Plan Cycle Counts
+
+- Status: `Documented`
+- Completed artifacts:
+  - Story updated with zones-by-location and plan-list contract guidance
+  - Field-shape reconciliation documented: `planName` is the canonical optional command field; `description` remains read-model/proxy-owned unless backend adds it
+
+### `#97` / `CAP-216` / Cross-Dock Receiving
+
+- Status: `Documented`
+- Completed artifacts:
+  - Story updated with canonical WorkExec read-side mapping
+  - Retry/idempotency guidance documented as non-idempotent unless contract changes
+
+### `#242` / `CAP-218` / Return to Stock
+
+- Status: `Documented`
+- Completed artifacts:
+  - Story updated with returnable-items source, reason-code lookup, and command mapping
+  - Destination rule documented as eligible `locationId` with optional `storageLocationId`
+
+### `#243` / `CAP-218` / Consume Picked Items
+
+- Status: `Documented`
+- Completed artifacts:
+  - Story updated with backend ownership note: frontend should target a workorder-owned facade, with server-to-server orchestration into inventory consumption
+  - Raw backend contract evidence documented: workorder detail owns part totals; inventory owns pick lists, pick tasks, and `consumePickedItems`
 
 ## Action Queue
 
-### 1. `#571` / `CAP-315` / ASN Receiving
-
-- Priority: `High`
-- Who needs to answer:
-  - `inventory backend`
-  - `frontend integration owner`
-- Decisions needed:
-  - Primary flow is `ASN -> createReceivingSession -> receiveItemsIntoStaging`.
-  - ASN loading lives inside existing receiving screens and should be treated as the normal receiving path.
-  - Trucks without an ASN are less likely, but still possible and should remain a supported fallback path.
-- Source:
-  - [CAP_315.571.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-315/stories/frontend/CAP_315.571.frontend.md#L46)
-- Recommended artifact:
-  - Update the story and receiving architecture notes to reflect ASN as the default receiving path.
-
-### 2. `#241` / `CAP-219` / Plan Cycle Counts
-
-- Priority: `High`
-- Who needs to answer:
-  - `inventory backend`
-  - `frontend integration owner`
-- Decisions needed:
-  - Zones-by-location identifies inventory zones by physical location.
-  - Plan-list is the list endpoint for cycle count plans.
-  - `today` is allowed.
-  - `past` is evaluated in the site timezone.
-  - `description` should be optional. `planName` may also be optional; the current `pos-inventory` OpenAPI already exposes optional `planName` on `CreateCycleCountPlanRequest`.
-- Source:
-  - [CAP_219.241.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-219/stories/frontend/CAP_219.241.frontend.md#L457)
-- Recommended artifact:
-  - Contract addendum in inventory docs plus frontend integration mapping note, including any final path and field-shape reconciliation for `description` vs `planName`.
-
-### 3. `#97` / `CAP-216` / Cross-Dock Receiving
-
-- Priority: `High`
-- Who needs to answer:
-  - `inventory backend`
-  - `workexec/backend owner`
-  - `frontend integration owner`
-- Decisions needed:
-  - Inventory-side receiving detail is available at `GET /v1/inventory/receiving/sessions/{sessionId}`.
-  - Inventory-side cross-dock submit is available at `POST /v1/inventory/receiving/sessions/{sessionId}/lines/{lineId}/cross-dock`.
-  - Cross-dock request/response field shape is defined in `pos-inventory/openapi.yaml`.
-  - `pos-workorder` exposes candidate workorder read endpoints:
-    - `GET /v1/workorders`
-    - `GET /v1/workorders/{workorderId}`
-    - `GET /v1/workorders/{workorderId}/detail`
-    - `GET /v1/workexec/wip`
-    - `GET /v1/workexec/wip/{workorderId}`
-  - The remaining question is which `pos-workorder` endpoint pair should be canonical for workorder search and line selection.
-  - Idempotency support is not documented for cross-dock submit.
-  - Submit does not currently return notification/publication status in the documented response shape.
-- Source:
-  - [CAP_216.97.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-216/stories/frontend/CAP_216.97.frontend.md#L475)
-- Recommended artifact:
-  - Frontend integration contract note with request/response examples and WorkExec read-side mapping.
-
-### 4. `#242` / `CAP-218` / Return to Stock
-
-- Priority: `High`
-- Who needs to answer:
-  - `inventory backend`
-  - `workexec backend`
-  - `frontend/moqui integration owner`
-- Decisions needed:
-  - What endpoint loads returnable items?
-  - What endpoint provides return reason codes?
-  - Is destination fixed `locationId`, selectable `locationId`, or does `storageLocationId` matter?
-  - What is the retry/idempotency behavior?
-  - Which permission gates view vs submit?
-- Source:
-  - [CAP_218.242.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.242.frontend.md#L528)
-- Recommended artifact:
-  - Read-side contract note plus destination rule decision.
-
-### 5. `#243` / `CAP-218` / Consume Picked Items
+### 1. `#92` / `CAP-218` / Pick List Generation and View
 
 - Priority: `Medium`
-- Who needs to answer:
-  - `workexec backend`
-  - `inventory backend`
-  - `frontend integration owner`
-- Decisions needed:
-  - `pos-workorder` is the likely source of truth for workorder-side reads, but there is still no explicit “picked items for workorder” endpoint.
-  - Both consume surfaces exist:
-    - `POST /v1/inventory/consumption` in `pos-inventory`
-    - `POST /v1/workorders/{workorderId}/parts/consume` in `pos-workorder`
-  - Success identifiers differ by surface:
-    - inventory returns `consumptionId`, `workorderId`, `pickListId`, `totalItemsConsumed`, `createdAt`
-    - workorder returns usage-event fields including `id`, `workorderPartId`, `workorderId`, `eventType`, `quantity`, `performedBy`, `performedAt`
-  - Quantity shape is not yet harmonized:
-    - inventory consume request uses integer item quantities
-    - workorder consume request uses decimal quantity
-  - Retry/idempotency depends on the chosen surface:
-    - workorder consume documents `Idempotency-Key`
-    - inventory consume does not currently document idempotency
-- Source:
-  - [CAP_218.243.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.243.frontend.md#L482)
-- Recommended artifact:
-  - Ownership note for read model owner vs movement command owner, plus canonical consume-surface selection.
-
-### 6. `#92` / `CAP-218` / Pick List Generation and View
-
-- Priority: `Medium`
+- Planning artifact:
+  - [PRD-cap218-backend-fulfillment-completion.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/PRD-cap218-backend-fulfillment-completion.md)
 - Who needs to answer:
   - `inventory backend`
   - `workexec/backend owner`
   - `frontend integration owner`
 - Decisions needed:
   - Parts picking for workorder execution is Workorder Execution-owned.
-  - Is workorder retrieval the canonical load path?
+  - Frontend should use a WorkExec/workorder-owned facade rather than call inventory directly.
   - Are tasks embedded or separate?
+  - What display enrichment is guaranteed beyond raw inventory task fields?
   - What permissions gate view and print?
   - Can `Draft` or `NeedsReview` be printed?
 - Source:
   - [CAP_218.92.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.92.frontend.md#L402)
 - Recommended artifact:
   - View/print policy note and frontend-facing WorkExec contract mapping.
+- Action to open:
+  - Implement the backend pick-list scaffold for `#92`: add a WorkExec/workorder-facing facade endpoint that loads inventory pick-list state (`getPickListsForWorkorder` plus pick-task retrieval), normalizes the response shape for frontend view/print use, and makes the final embedded-vs-separate task contract explicit.
 
-### 7. `#89` / `CAP-220` / Shortage Resolution
+### 2. `#89` / `CAP-220` / Shortage Resolution
 
 - Priority: `Medium`
 - Who needs to answer:
@@ -144,54 +80,59 @@ This queue captures the deferred frontend stories that are no longer blocked by 
   - `inventory backend`
   - `product/positivity owners`
 - Decisions needed:
-  - Which domain owns the user-facing shortage-resolution workflow?
+  - Inventory recommendation and lead-time contracts now exist:
+    - `resolveShortage`
+    - `queryLeadTime`
+  - Which backend layer owns the user-facing shortage-decision submit workflow?
   - What are the proxy routes for shortage check and shortage submit?
   - Does submit accept `optionId` only or a structured payload?
   - Can quantity be edited during resolution?
 - Source:
   - [CAP_220.89.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-220/stories/frontend/CAP_220.89.frontend.md#L407)
 - Recommended artifact:
-  - Cross-domain orchestration ADR or contract note.
+  - Cross-domain orchestration note plus backend action to add the submit-decision facade/endpoint.
 
-### 8. `#87` / `CAP-221` / Inventory Security Admin
+### 3. `#87` / `CAP-221` / Inventory Security Admin
 
 - Priority: `Medium`
-- Who needs to answer:
-  - `security owner`
-  - `inventory owner`
-  - `architecture`
-- Decisions needed:
-  - Is this a Security feature area or an Inventory admin shell?
-  - What roles are canonical vs display-only?
-  - What are the admin permissions?
-  - What is the definitive inventory action-to-permission gating matrix?
-  - Is role-assignment audit/history required in this UI?
+- What must be done:
+  - Keep `#87` scoped to permission catalog visibility and permission-gated inventory actions only.
+  - Use the normalized `pos-inventory` permission catalog and the published canonical inventory action-to-permission gating matrix from the story doc.
+  - Use JWT token `authorities` claims for the current-user effective permission set when gating routes and actions.
 - Source:
   - [CAP_221.87.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-221/stories/frontend/CAP_221.87.frontend.md#L453)
 - Recommended artifact:
-  - Ownership ADR plus gating matrix document.
+  - Frontend implementation checklist using the published gating matrix and token-claim permission source.
+- Action to open:
+  - Implement the Inventory Security permission catalog page and route/action gating using the documented canonical matrix and JWT `authorities` claims.
 
-### 9. `#244` / `CAP-218` / Mechanic Picking
+### 4. `#244` / `CAP-218` / Mechanic Picking
 
-- Priority: `Lower until architecture answer`
+- Priority: `Lower until #92 scaffold lands`
+- Planning artifact:
+  - [PRD-cap218-backend-fulfillment-completion.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/PRD-cap218-backend-fulfillment-completion.md)
+- Backend tracker:
+  - `durion-positivity-backend#179` should own the WorkExec/workorder-facing pick facade
+  - `durion-positivity-backend#28` remains the inventory-side pick-list/task system of record
 - Who needs to answer:
   - `workexec owner`
   - `inventory backend`
-  - `architecture`
-  - `frontend/moqui integration owner`
+  - `frontend integration owner`
 - Decisions needed:
-  - Is the story officially `domain:workexec`?
+  - Implement the workorder-facing pick scaffold that `#244` depends on.
   - Is the route keyed by `workOrderId` or `pickTaskId`?
   - What are the task and line statuses and transitions?
   - What can be scanned?
-  - Are partial picks, over-picks, and serial or lot capture supported?
+  - How are multi-match, completion-with-remainder, and serial or lot capture handled?
 - Source:
   - [CAP_218.244.frontend.md](/home/louis-burroughs/IdeaProjects/durion/docs/capabilities/CAP-218/stories/frontend/CAP_218.244.frontend.md#L402)
 - Recommended artifact:
-  - Short ADR or canonical picking contract note before implementation.
+  - Backend contract note plus workorder-facing pick scaffold shared with `#92`.
+- Action to open:
+  - Implement the workorder-facing pick-task scaffold in `pos-workorder` for `#92/#244`: load pick list for a workorder, resolve scans, confirm line picks, complete the pick task, and publish the canonical route/payload/error contract the frontend should use.
 
 ## Working Pattern
 
-1. Run a short contract triage for `#571`, `#241`, `#97`, and `#242`.
+1. Start contract triage with `#92`, then `#89`.
 2. Capture decisions in the story docs first, not only in chat or issue comments.
-3. Escalate `#89`, `#87`, and `#244` as architecture or domain-ownership questions before implementation starts.
+3. Escalate `#89` as a backend contract question before implementation starts, and treat `#92` as the prerequisite backend scaffold for `#244`.

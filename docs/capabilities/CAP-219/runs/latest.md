@@ -12,7 +12,7 @@ Use this run record with:
 - Run Timestamp (UTC): 2026-03-29T00:00:00Z
 - Agent/Operator: Orchestrator (Wave I-b)
 - Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 2/3 stories done; 1 deferred (cycle count planning support details pending)
+- Status: partial — 2/3 stories done; 1 deferred (cycle count planning contract documented, implementation not yet executed)
 
 ## 2. Inputs Used
 
@@ -26,7 +26,7 @@ Use this run record with:
 | --- | --- | --- | --- | --- |
 | Execute Cycle Count | #91 | #91 | done | Auditor task list, count entry, recount flow, count history |
 | Approve/Reject Inventory Adjustments | #90 | #90 | done | Pending approval list, batch approve/reject, adjustment detail |
-| Plan Cycle Counts by Location | #241 | #241 | deferred | Create/get contracts exist; `today`/site-timezone and optional field guidance are now clarified, while proxy list/read routes and final field-shape reconciliation remain unresolved |
+| Plan Cycle Counts by Location | #241 | #241 | deferred | Contract addendum now documents zones-by-location, plan-list semantics, timezone handling, and `planName` vs `description`; implementation remains deferred |
 
 ## 4. Implementation Changes
 
@@ -53,7 +53,7 @@ Use this run record with:
 
 ### Deferred
 
-- #241 Plan cycle counts — `createPlan`/`getPlan` exist; `today` is allowed, `past` is evaluated in site timezone, and optional free-text guidance is clearer, but supporting proxy list/read routes still need confirmation
+- #241 Plan cycle counts — `createPlan`/`getPlan` exist and the contract addendum is now documented; implementation remains deferred on the branch
 
 ## 5. API Wiring Evidence
 
@@ -71,8 +71,8 @@ For each story, list operations implemented and where they are wired.
 | #90 Approve Adjustments | `getAdjustment` | pos-inventory / sdk-inventory | `inventory-cycle-count.service.ts` | done |
 | #90 Approve Adjustments | `approveAdjustment` | pos-inventory / sdk-inventory | `inventory-cycle-count.service.ts` | done |
 | #90 Approve Adjustments | `rejectAdjustment` | pos-inventory / sdk-inventory | `inventory-cycle-count.service.ts` | done |
-| #241 Plan Cycle Counts | `createPlan` | pos-inventory / sdk-inventory | — | deferred — contract exists; `planName` is optional in OpenAPI, but proxy field reconciliation and supporting list/read routes remain pending |
-| #241 Plan Cycle Counts | `getPlan` | pos-inventory / sdk-inventory | — | deferred — contract exists; supporting proxy list/read routes remain pending |
+| #241 Plan Cycle Counts | `createPlan` | pos-inventory / sdk-inventory | — | deferred — contract documented; implementation pending |
+| #241 Plan Cycle Counts | `getPlan` | pos-inventory / sdk-inventory | — | deferred — contract documented; implementation pending |
 
 ## 6. Validation
 
@@ -93,14 +93,15 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: #241 no longer lacks create/get contracts; the remaining gap is the Moqui-facing proxy/read-side surface and final optional-field reconciliation
-  - Impact: Plan creation screen still cannot be completed without zones list and plan list proxy routes, plus a final decision on whether proxy payloads expose `description`, `planName`, or both
-  - Resolved: `today` is allowed, `past` is evaluated in the site timezone, and the current `pos-inventory` OpenAPI already models optional `planName`
-  - Needed: Confirm zones-by-location proxy route, plan-list proxy route, and the final proxy field/limit contract for optional free-text metadata
+- Decision: #241 contract addendum is now documented
+  - Resolved: zones are scoped by physical `locationId`
+  - Resolved: `plan-list` is the canonical list surface
+  - Resolved: `today` is allowed, `past` is evaluated in the site timezone, and `planName` is the canonical optional command field
+  - Remaining: implement the documented routes and create flow in frontend code
 
 ## 8. Follow-Up Actions
 
-- [ ] Confirm zones list and plan list proxy routes, plus final optional-field contract for planning (#241)
+- [ ] Implement the documented planning flow for #241
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate

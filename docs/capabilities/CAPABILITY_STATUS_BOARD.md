@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2026-03-29T00:00:00Z"
+updated_utc: "2026-03-30T00:00:00Z"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -28,7 +28,7 @@ Legend for **Status** column:
 | Status | Count |
 | --- | --- |
 | ✅ DONE | 41 capabilities across 9 domains (Waves A–H merged + Wave I-a) |
-| 🔄 IN PROGRESS | 8 (Wave I-b — `cap/inventory-wave-i-b`; 12/21 stories done, 9 deferred pending contracts) |
+| 🔄 IN PROGRESS | 8 (Wave I-b — `cap/inventory-wave-i-b`; 12/21 stories done, 9 deferred on branch, 4 still awaiting contract decisions) |
 | 🟢 READY | 5 capabilities (Wave I-c queue) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
@@ -47,13 +47,13 @@ Legend for **Status** column:
 | CAP | Name | Domain | Stories Done | Stories Deferred |
 | --- | --- | --- | --- | --- |
 | CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #100, #101 | — |
-| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 (cross-dock proxy/read-side/idempotency details pending) |
+| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 (contract note documented; implementation still deferred) |
 | CAP-217 | Put-away & Replenishment | `inventory` | #96, #95, #94 | — |
-| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 (read-model/proxy/orchestration details pending) |
-| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 (zones/list/timezone details pending) |
-| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 (cross-domain orchestration and submit semantics pending) |
-| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 (ownership, scope, and gating matrix pending) |
-| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 (ASN-to-receiving integration path pending) |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 (`#242/#243` documented; `#92` still needs the workorder-facing pick scaffold, and `#244` depends on that scaffold plus final pick-task state/route contract) |
+| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 (contract addendum documented; implementation still deferred) |
+| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 (recommendation contracts documented; submit-decision orchestration still pending) |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 (inventory permission catalog normalized, gating matrix documented, and JWT-claim permission source confirmed; implementation pending) |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 (receiving-path note documented; implementation still deferred) |
 
 ---
 

@@ -12,7 +12,7 @@ Use this run record with:
 - Run Timestamp (UTC): 2026-03-29T00:00:00Z
 - Agent/Operator: Orchestrator (Wave I-b)
 - Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/2 stories done; 1 deferred (ownership and gating details pending)
+- Status: partial — 1/2 stories done; 1 deferred (implementation pending; contract blockers cleared)
 
 ## 2. Inputs Used
 
@@ -25,7 +25,7 @@ Use this run record with:
 | Story | Parent Issue | Frontend Issue | Result | Notes |
 | --- | --- | --- | --- | --- |
 | Audit Log Search and Detail | #86 | #86 | done | Inventory event audit log table, event detail, search/filter, pagination |
-| Inventory Security Admin (Roles & Permissions) | #87 | #87 | deferred | Core RBAC endpoints exist, but inventory ownership, scope, and gating matrix remain unresolved |
+| Inventory Security Admin (Permissions) | #87 | #87 | deferred | Inventory permission catalog is normalized, gating matrix is documented, and current-user permissions are available from JWT claims |
 
 ## 4. Implementation Changes
 
@@ -46,7 +46,7 @@ Use this run record with:
 
 ### Deferred
 
-- #87 Inventory RBAC admin — security endpoints exist, but inventory-scoped ownership and gating rules are not yet finalised
+- #87 Inventory permission admin — security permission endpoints exist, inventory permission registration is normalized, the gating matrix is documented, and current-user permissions can be read from JWT claims
 
 ## 5. API Wiring Evidence
 
@@ -56,9 +56,8 @@ For each story, list operations implemented and where they are wired.
 | --- | --- | --- | --- | --- |
 | #86 Audit Log Search | `searchEvents` | pos-security-service / sdk-security | `security-audit.service.ts` | done |
 | #86 Audit Log Detail | `getEvent` | pos-security-service / sdk-security | `security-audit.service.ts` | done |
-| #87 Inventory Roles | `getAllRoles` | pos-security-service / sdk-security | — | deferred — endpoint exists; inventory scope/role model pending |
-| #87 Inventory Permissions | `getAllPermissions` | pos-security-service / sdk-security | — | deferred — endpoint exists; inventory gating model pending |
-| #87 User Role Assignments | `getUserRoleAssignments` | pos-security-service / sdk-security | — | deferred — endpoint exists; inventory admin workflow pending |
+| #87 Inventory Permissions | `getPermissionsByDomain` | pos-security-service / sdk-security | — | ready — `GET /v1/permissions/domain/inventory` can drive the read-only inventory permission catalog |
+| #87 Effective User Permissions | JWT `authorities` claim | authenticated session token | `AuthService.currentUserClaims()` | ready — no separate current-user lookup endpoint required for route/action gating |
 
 ## 6. Validation
 
@@ -79,17 +78,17 @@ npx ng test --no-watch
 
 ## 7. Blockers and Decisions
 
-- Blocker: #87 is no longer blocked by missing RBAC primitives; it is blocked by unresolved feature ownership and scope
-  - Impact: Inventory-scoped admin UI cannot be implemented without deciding whether this is a Security feature or an Inventory-admin shell
-  - Needed: Confirm owning domain, canonical role catalog, inventory action-to-permission gating matrix, and any role-assignment audit/history requirements
+- Blocker cleared: #87 is no longer blocked by missing RBAC primitives, inventory permission drift, or current-user permission lookup
+  - Impact: Inventory Security Admin is now implementation-ready from a contract perspective
+  - Needed: Execute the frontend page and gating work against the documented matrix
 
 ## 8. Follow-Up Actions
 
-- [ ] Confirm ownership, role catalog, and inventory gating matrix for #87
+- [ ] Implement the Inventory Security permission catalog and gating UI against the published matrix and JWT claim-based permission source
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate
 
 - [x] All workset stories processed (1 done, 1 explicitly blocked with reason).
 - [x] All required operations wired or explicitly blocked with reason.
-- [ ] Acceptance criteria for #87 not yet verified (blocked).
+- [ ] Acceptance criteria for #87 not yet verified (implementation still pending).
