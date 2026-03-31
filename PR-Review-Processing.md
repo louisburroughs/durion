@@ -60,8 +60,69 @@ Open Questions:
 - None. The required fixes are clearly defined in the review comments.
 
 ## Subagent Outputs
-<!-- orchestrator appends entries below -->
+
+### 2026-03-31T UTC — Orchestrator direct remediation pass
+
+**Objective**: Fix all 8 unresolved Copilot review threads on PR #605.
+
+**Output**:
+
+| Thread | File | Fix | Result |
+|--------|------|-----|--------|
+| r3016348392 | `WorkorderPickFacadeServiceImpl.java` | Added `pickLineId.equals(pickTaskId)` guard → 400 on mismatch | ✅ |
+| r3016348429 | `WorkorderPickFacadeServiceImpl.java` | Replaced O(n*m) `resolveTask` calls with `Map<UUID,InventoryPickTaskDto>` pre-index | ✅ |
+| r3016348456 | `WorkorderPickEventTypeInitializer.java` + `WorkorderEventTypes.java` | Removed `@Component` from duplicate initializer; merged 4 pick event types into `WorkorderEventTypes.ALL_EVENT_TYPES` | ✅ |
+| r3016348484 | `WorkorderPickFacadeController.java` | `@Schema` → `@ArraySchema` for `getPickTasks` | ✅ |
+| r3016348504 | `WorkorderPickedItemsController.java` | `@Schema` → `@ArraySchema` for `getPickedItems` | ✅ |
+| r3016348534 | `openapi.yaml` | Replaced 7 generic `type:object` 200-response schemas with `$ref`; added 6 new component schema definitions | ✅ |
+| r3016348582 | `WorkorderPickFacadeControllerTest.java` | `version(1L)` → `version(0L)` in confirmPickLine test | ✅ |
+| r3016348636 | `WorkorderPickFacadeControllerTest.java` | `version(2L)` → `version(0L)` in completePickTask test | ✅ |
+
+**Compiler validation**: All 6 modified Java files — 0 errors, 0 warnings.
+
+**Validation decision**: accepted
+
+---
 
 ## Final Summary
-<!-- orchestrator writes final summary below -->
+
+- **PR analyzed**: [#605](https://github.com/louisburroughs/durion-positivity-backend/pull/605) — `cap/218: WorkExec pick and consume facades`
+- **Evidence sources**: PR metadata, 8 Copilot review threads (all unresolved), linked issues #178 & #179, ADRs 0017/0018/0025/0026, `AGENTS.md`, all changed source files
+- **Review track**: backend
+
+### Findings by severity
+
+| Severity | Count | Description |
+|----------|-------|-------------|
+| High | 1 | Missing `pickLineId` validation — incorrect API contract |
+| High | 1 | Duplicate `@Component` startup runner — double event registration on every restart |
+| Medium | 1 | O(n*m) complexity in `consumePickedItems` |
+| Medium | 2 | Wrong `@ApiResponse` schema (single object vs array) in 2 controllers |
+| Medium | 1 | openapi.yaml 200 responses all `type: object` — breaks SDK type generation |
+| Low | 2 | Test `version` field mismatch vs implementation contract |
+
+### Code fixes completed (6 files)
+1. `WorkorderPickFacadeServiceImpl.java` — pickLineId guard + Map optimization
+2. `WorkorderPickFacadeController.java` — ArraySchema annotation
+3. `WorkorderPickedItemsController.java` — ArraySchema annotation
+4. `WorkorderPickEventTypeInitializer.java` — @Component removed
+5. `WorkorderEventTypes.java` — 4 pick event types merged in
+6. `openapi.yaml` — 7 response $refs + 6 component schemas added
+
+### Test fixes completed (1 file)
+- `WorkorderPickFacadeControllerTest.java` — 2 version assertions corrected (lines 208, 239)
+
+### PR comment thread coverage
+- All 8 threads addressed in single consolidated PR comment: `#issuecomment-4164043083`
+- Thread-level replies not individually posted (MCP supports issue comments only, not inline review thread replies)
+
+### Final verification status
+- **Java**: 0 compiler errors across all modified files
+- **Build/test**: awaiting CI run after push
+
+### Unresolved blockers
+- None. All 8 review findings are remediated.
+
+### Processing log
+`durion/PR-Review-Processing.md`
 

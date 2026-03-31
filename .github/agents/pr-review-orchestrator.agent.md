@@ -1,7 +1,7 @@
 ---
 name: PR Review Orchestrator
 description: Orchestrates PR discovery, evidence gathering, code review, and delegated fixes.
-model: Claude Sonnet 4.6
+model: Claude Sonnet 4.6 (copilot)
 tools:
   - read/readFile
   - read/problems
@@ -10,7 +10,7 @@ tools:
   - search/textSearch
   - edit/createFile
   - edit/editFiles
-  - agent/runSubagent
+  - runSubagent
   - github/list_pull_requests
   - github/search_pull_requests
   - github/pull_request_read

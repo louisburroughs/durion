@@ -15,8 +15,8 @@ tools:
   - execute/awaitTerminal
   - execute/createAndRunTask
   - agent/runSubagent
-  - io.github.upstash/context7/get-library-docs
-  - io.github.upstash/context7/resolve-library-id
+  - context7/query-docs
+  - context7/resolve-library-id
   - edit/createDirectory
   - edit/createFile
   - edit/editFiles

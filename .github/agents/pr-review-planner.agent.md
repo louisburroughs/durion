@@ -1,7 +1,7 @@
 ---
 name: PR Review Planner
 description: Produces and tracks an executable PR review and remediation plan.
-model: Gemini 2.5 Pro
+model: Gemini 2.5 Pro (copilot)
 tools:
   - read/readFile
   - search/listDirectory
