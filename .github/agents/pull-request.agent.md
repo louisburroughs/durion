@@ -1,7 +1,7 @@
 ---
 name: Pull Request Agent
 description: Creates pull requests using the repository PR template. This is the only agent authorized to open pull requests.
-model: GPT-5.3-Codex (copilot)
+model: GPT-5.3-Codex
 tools:
   - read/readFile
   - read/problems
@@ -17,7 +17,7 @@ tools:
   - github/list_pull_requests
   - github/list_branches
   - github/issue_read
-  - memory
+  - vscode/memory
   - todo
 ---
 
