@@ -14,7 +14,7 @@ tools:
   - github/search_issues
   - github/get_file_contents
   - web/fetch
-  - memory
+  - vscode/memory
   - todo
 ---
 
