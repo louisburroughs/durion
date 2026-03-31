@@ -1,7 +1,7 @@
 ---
 name: PR Test Fixer
 description: Fixes failing tests and closes test coverage gaps identified in PR review.
-model: Claude Opus 4.6 (copilot)
+model: Claude Opus 4.6
 tools:
   - read/readFile
   - read/problems
@@ -17,7 +17,7 @@ tools:
   - github/add_comment_to_pending_review
   - github/pull_request_review_write
   - github/add_issue_comment
-  - memory
+  - vscode/memory
   - todo
 ---
 
