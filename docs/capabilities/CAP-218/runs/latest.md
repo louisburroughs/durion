@@ -9,10 +9,10 @@ Use this run record with:
 ## 1. Run Metadata
 
 - Capability: CAP-218
-- Run Timestamp (UTC): 2026-03-30T00:00:00Z
-- Agent/Operator: Orchestrator (Wave I-b)
-- Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/5 stories done; 4 deferred on branch, 2 still awaiting contract or architecture decisions
+- Run Timestamp (UTC): 2026-03-31T00:00:00Z
+- Agent/Operator: Orchestrator (Wave I-b → Backend Pick Facade)
+- Branch(es): `cap/inventory-wave-i-b` (frontend Wave I-b), `feature/cap218-backend-pick-facade` (backend pick facade)
+- Status: BACKEND IMPLEMENTATION COMPLETE — `feature/cap218-backend-pick-facade` ready for PR; frontend Wave I-b partial (1/5 stories done, 4 deferred)
 
 ## 2. Inputs Used
 
@@ -107,10 +107,11 @@ npx ng test --no-watch
 
 ## 8. Follow-Up Actions
 
-- [ ] Implement the backend pick-list scaffold for #92 and expose the WorkExec/workorder-facing facade contract for pick-list load/view
+- [x] Implement the backend pick-list scaffold for #92 and expose the WorkExec/workorder-facing facade contract for pick-list load/view — **DONE** (`feature/cap218-backend-pick-facade`)
 - [ ] Implement the documented return-to-stock flow for #242
-- [ ] Add or confirm the workorder-owned facade contract for consume-picked-items (#243)
-- [ ] Implement the workorder-facing pick scaffold for #92/#244, then wire the mechanic picking screen against that contract
+- [x] Add or confirm the workorder-owned facade contract for consume-picked-items (#243) — **DONE** (`POST /v1/workorders/{workorderId}/picked-items:consume`)
+- [x] Implement the workorder-facing pick scaffold for #92/#244, then wire the mechanic picking screen against that contract — **backend done**; frontend wiring still deferred
+- [ ] Merge `feature/cap218-backend-pick-facade` to `main` via PR
 - [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
 
 ## 9. Completion Gate
@@ -118,3 +119,85 @@ npx ng test --no-watch
 - [x] All workset stories processed (1 done, 4 explicitly deferred with reason).
 - [x] All required operations wired or explicitly blocked with reason.
 - [ ] Acceptance criteria for #92, #242, #243, #244 not yet verified (deferred).
+
+---
+
+## 10. Backend Pick Facade Run — Wave II
+
+### 10.1 Run Metadata
+
+- Capability: CAP-218
+- Run Timestamp (UTC): 2026-03-31T00:00:00Z
+- Agent/Operator: Domain Data Coder (Backend)
+- Repository: `durion-positivity-backend`
+- Branch: `feature/cap218-backend-pick-facade`
+- Commit: `6ba84b2b`
+- Status: IMPLEMENTATION COMPLETE — ready for PR
+
+### 10.2 Routes Delivered
+
+| Method | Path | Permission | Controller |
+| --- | --- | --- | --- |
+| GET | `/v1/workorders/{workorderId}/pick-list` | `inventory:pick_list:view` | `WorkorderPickFacadeController` |
+| GET | `/v1/workorders/{workorderId}/pick-list/tasks` | `inventory:pick_list:view` | `WorkorderPickFacadeController` |
+| POST | `/v1/workorders/{workorderId}/pick-tasks/{pickTaskId}:resolve-scan` | `inventory:pick_list:execute` | `WorkorderPickFacadeController` |
+| POST | `/v1/workorders/{workorderId}/pick-tasks/{pickTaskId}/lines/{pickLineId}:confirm` | `inventory:pick_list:execute` | `WorkorderPickFacadeController` |
+| POST | `/v1/workorders/{workorderId}/pick-tasks/{pickTaskId}:complete` | `inventory:pick_list:execute` | `WorkorderPickFacadeController` |
+| GET | `/v1/workorders/{workorderId}/picked-items` | `inventory:pick_list:view` | `WorkorderPickedItemsController` |
+| POST | `/v1/workorders/{workorderId}/picked-items:consume` | `workorder:parts:consume` | `WorkorderPickedItemsController` |
+
+### 10.3 Key Implementation Decisions
+
+1. **`version` field in `WorkorderPickTaskResponse` is always `0L`** — reserved for future optimistic locking when pos-inventory exposes a version field on pick tasks. Intentional and documented in code with an inline comment.
+2. **`ConfirmPickLineRequest` has no `version` field** — pick-line confirmation does not require optimistic locking at this scope. Confirmed intentional.
+3. **`workorder:parts:consume` permission** — added to `permissions.yaml` to gate the new consume endpoint. Follows the `{domain}:{resource}:{action}` naming convention.
+4. **Inventory consumption call** — the facade calls `POST /v1/inventory/consumption` in pos-inventory with `ConsumeItemsRequest{workorderId, pickListId, items: [{pickTaskId, skuId, quantity}]}`. The facade resolves `skuId` by fetching pick tasks from inventory before constructing the request body. No direct browser-to-inventory call.
+5. **OpenAPI** — 7 new paths added to `pos-workorder/openapi.yaml` under the `Workorder Pick Facade` and `Workorder Picked Items` tags.
+
+### 10.4 Validation Evidence
+
+#### Lint
+
+| Gate | Result |
+| --- | --- |
+| Lint | PASS |
+| Findings | 0 |
+| Rules checked | 60 |
+| Files scanned | 20 |
+
+#### Tests
+
+| Suite | New Tests | Result |
+| --- | --- | --- |
+| `WorkorderPickFacadeControllerTest` | 10 | GREEN |
+| `WorkorderPickedItemsControllerTest` | 5 | GREEN |
+| `ArchitectureTest` | 11 | GREEN |
+| **Total new** | **26** | **GREEN** |
+
+#### Code Review
+
+| Gate | Result |
+| --- | --- |
+| Code review | PASS |
+| Findings raised | 6 |
+| Findings resolved | 6 |
+| Outstanding | 0 |
+
+#### Pre-existing Failures (out of scope)
+
+- Module: `pos-inventory`
+- Failing tests: `PutawayExecutionContractBehaviorIT` (3 IT errors)
+- Cause: pre-existing; unrelated to CAP-218 scope
+- Changes made to `pos-inventory`: **zero** — no files modified in pos-inventory as part of this branch
+
+### 10.5 Files Changed (pos-workorder)
+
+- `pos-workorder/openapi.yaml` — 7 new paths added
+- `pos-workorder/src/main/java/com/positivity/workorder/service/WorkorderPickFacadeService.java`
+- `pos-workorder/src/main/java/com/positivity/workorder/internal/controller/WorkorderPickFacadeController.java`
+- `pos-workorder/src/main/java/com/positivity/workorder/internal/controller/WorkorderPickedItemsController.java`
+- `pos-workorder/src/main/java/com/positivity/workorder/internal/dto/` (pick facade request/response DTOs)
+- `pos-workorder/src/test/java/com/positivity/workorder/internal/controller/WorkorderPickFacadeControllerTest.java`
+- `pos-workorder/src/test/java/com/positivity/workorder/internal/controller/WorkorderPickedItemsControllerTest.java`
+- `pos-workorder/src/test/java/com/positivity/workorder/ArchitectureTest.java`
+- `scripts/permissions.yaml` (`workorder:parts:consume` entry added)
