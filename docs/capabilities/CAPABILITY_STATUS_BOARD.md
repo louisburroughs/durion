@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2026-03-30T00:00:00Z"
+updated_utc: "2026-04-01T00:00:00Z"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -28,7 +28,7 @@ Legend for **Status** column:
 | Status | Count |
 | --- | --- |
 | ✅ DONE | 41 capabilities across 9 domains (Waves A–H merged + Wave I-a) |
-| 🔄 IN PROGRESS | 8 (Wave I-b — `cap/inventory-wave-i-b`; 12/21 stories done, 9 deferred on branch, 4 still awaiting contract decisions) |
+| 🔄 IN PROGRESS | 8 (Wave I-b — `cap/inventory-wave-i-b`; 12/21 stories done, 9 deferred on branch — **all unblocked** as of 2026-04-01; backend complete, `openapi.yaml` and SDK up to date) |
 | 🟢 READY | 5 capabilities (Wave I-c queue) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
@@ -47,13 +47,13 @@ Legend for **Status** column:
 | CAP | Name | Domain | Stories Done | Stories Deferred |
 | --- | --- | --- | --- | --- |
 | CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #100, #101 | — |
-| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 (contract note documented; implementation still deferred) |
+| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 — **UNBLOCKED** (backend complete; `openapi.yaml` and SDK up to date) |
 | CAP-217 | Put-away & Replenishment | `inventory` | #96, #95, #94 | — |
-| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 (`#242/#243` documented; `#92` still needs the workorder-facing pick scaffold, and `#244` depends on that scaffold plus final pick-task state/route contract) |
-| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 (contract addendum documented; implementation still deferred) |
-| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 (recommendation contracts documented; submit-decision orchestration still pending) |
-| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 (inventory permission catalog normalized, gating matrix documented, and JWT-claim permission source confirmed; implementation pending) |
-| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 (receiving-path note documented; implementation still deferred) |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 — **UNBLOCKED** (backend complete; WorkExec pick facade implemented; `openapi.yaml` and SDK up to date) |
+| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 — **UNBLOCKED** (backend complete; `openapi.yaml` and SDK up to date) |
+| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 — **UNBLOCKED** (backend complete; `resolveShortage` and `queryLeadTime` contracts in `openapi.yaml` and SDK) |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 — **UNBLOCKED** (backend complete; permission catalog and gating matrix implemented; JWT `authorities` claim source confirmed) |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 — **UNBLOCKED** (backend complete; `openapi.yaml` and SDK up to date) |
 
 ---
 
@@ -206,7 +206,7 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | Wave G (People RBAC + CRM-Workexec) | `cap/people-rbac-wave-g` | — | 2 | 3 stories | — |
 | Wave H (People Profile + Location Topology) | `cap/people-location-wave-h` | — | 5 | 16 stories | 699 |
 | Wave I-a (Product) | `cap/product-wave-i-a` | merged | 5 | ~10 stories | — |
-| Wave I-b (Inventory) | `cap/inventory-wave-i-b` | pending PR | 8 | 12 done / 9 deferred | 218 |
+| Wave I-b (Inventory) | `cap/inventory-wave-i-b` | pending PR | 8 | 12 done / 9 deferred (all unblocked 2026-04-01) | 218 |
 
 ---
 
