@@ -2,9 +2,64 @@
 
 ## Context
 
-- **Repo**: louisburroughs/durion-positivity-backend
-- **PR**: 606
-- **URL**: <https://github.com/louisburroughs/durion-positivity-backend/pull/606>
+- **Repo**: louisburroughs/durion-positivity-frontend
+- **PR**: #15
+- **URL**: <https://github.com/louisburroughs/durion-positivity-frontend/pull/15>
+- **Branch**: `cap/inventory-wave-i-b-deferred` → `master`
+- **Title**: Wave I-b deferred inventory stories (CAP-216/218/219/220/221/315)
+- **Review Track**: frontend
+- **Linked Issues**: CAP-216, CAP-218, CAP-219, CAP-220, CAP-221, CAP-315
+- **Session**: 2 (previous session resolved Round-1 + Round-2; new Round-3 opened 2026-04-02T13:53Z)
+- **PR HEAD SHA**: `a5ab573fdeff1aa72af6e7fabb8ad62f495855a5` (local fixes not yet pushed)
+- **Key Evidence**:
+  - 55 changed files (+6425/-18); Angular 21 standalone components, inventory domain
+  - Round-3 Copilot review generated 6 new unresolved threads (2 phantom, 4 genuine)
+- **ADRs Applicable**: ADR-0010, ADR-0029, ADR-0030, ADR-0031, ADR-0032, ADR-0033, ADR-0034, ADR-0035, ADR-0037, ADR-0038
+- **ADRs Created This PR**: ADR-0037 (SPA navigation), ADR-0038 (date-only string handling)
+
+### Round-3 Unresolved Threads
+
+| Thread ID | File | Nature | Status |
+|:---|:---|:---|:---|
+| `r3028198802` | `cross-dock-receive-page.component.ts:55` | Stale errorKey on search clear | Genuine |
+| `r3028198851` | `return-to-stock-page.component.ts:69` | Storage-location error never resets to 'ready' | Genuine |
+| `r3028198886` | `pick-list-page.component.html:21` | href Retry link | Phantom (already fixed locally) |
+| `r3028198928` | `cycle-count-plan-form-page.component.html:71` | href Cancel link | Phantom (already fixed locally) |
+| `r3028198973` | `consume-picked-items-page.component.html:74` | qty input renders blank not 0 | Genuine |
+| `r3028199007` | `cross-dock-receive-page.component.html:22` | @switch missing @case('error') | Genuine |
+
+## Plan
+
+**Summary**: Apply 4 genuine Round-3 fixes; confirm 2 phantom threads covered by pre-existing local fixes from Session 1; commit+push all accumulated changes; post replies to all 6 threads.
+
+### Steps
+
+- [x] Step 1: Verify local file state (phantom confirmation)
+- [x] Step 2: Apply 4 genuine fixes via PR Fix Coder
+- [ ] Step 3: Code Review Verification — delegate to `PR Code Reviewer`; must return `Verdict: PASS | FAIL`
+- [ ] Step 4: Commit and push all accumulated changes (Round-2 + Round-3 fixes)
+- [ ] Step 5: Post replies to all 6 Round-3 threads; update Final Summary
+
+## Subagent Outputs
+
+### 2026-04-02T14:15Z — PR Fix Coder (Round-3 genuine fixes)
+
+**Objective**: Apply 4 genuine Round-3 fixes and add regression tests.
+**Output**:
+- `cross-dock-receive-page.component.ts`: Added `errorKey.set(null)` in `searchWorkorders` empty-query branch; added `resetSearch()` method.
+- `cross-dock-receive-page.component.html`: Added `@case ('error')` with retry button calling `resetSearch()`; gated `@if (errorKey())` banner to `state() !== 'error'`.
+- `return-to-stock-page.component.ts`: Storage-location effect `next` handler now clears errorKey and resets state to 'ready' when recovering from error state.
+- `consume-picked-items-page.component.html`: qty input binding changed to `?? 0`; success-list `@if` condition guarded with `?? 0`.
+- `consume-picked-items-page.component.ts`: `consumeQtys` signal type changed from `Record<string, number>` to `Partial<Record<string, number>>`; `canSubmit` computed updated to `(qty ?? 0) > 0`.
+- Spec files updated: 3 regression tests added (cross-dock search clear, return-to-stock recovery, consume-items qty default).
+- All 3 targeted test suites pass; 0 compile errors.
+
+**Validation**: accepted
+
+## Final Summary
+
+*(Pending — to be completed after code review and push.)*
+
 - **Branch**: `codex/fix-backend-tests-20260401` → `main`
 - **Title**: `fix: update error response format to use 'code' instead of 'errorCode'...`
 - **Review Track**: backend
