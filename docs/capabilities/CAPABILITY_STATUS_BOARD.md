@@ -27,8 +27,8 @@ Legend for **Status** column:
 
 | Status | Count |
 | --- | --- |
-| ✅ DONE | 41 capabilities across 9 domains (Waves A–H merged + Wave I-a) |
-| 🔄 IN PROGRESS | 8 (Wave I-b — `cap/inventory-wave-i-b`; 12/21 stories done, 9 deferred on branch — **all unblocked** as of 2026-04-01; backend complete, `openapi.yaml` and SDK up to date) |
+| ✅ DONE | 47 capabilities across 9 domains (Waves A–H merged + Wave I-a + Wave I-b deferred completions) |
+| 🔄 IN PROGRESS | 2 (remaining Wave I-b items) |
 | 🟢 READY | 5 capabilities (Wave I-c queue) |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
@@ -47,13 +47,13 @@ Legend for **Status** column:
 | CAP | Name | Domain | Stories Done | Stories Deferred |
 | --- | --- | --- | --- | --- |
 | CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #100, #101 | — |
-| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98 | #97 — **UNBLOCKED** (backend complete; `openapi.yaml` and SDK up to date) |
+| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98, #97 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
 | CAP-217 | Put-away & Replenishment | `inventory` | #96, #95, #94 | — |
-| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93 | #92, #242, #243, #244 — **UNBLOCKED** (backend complete; WorkExec pick facade implemented; `openapi.yaml` and SDK up to date) |
-| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90 | #241 — **UNBLOCKED** (backend complete; `openapi.yaml` and SDK up to date) |
-| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88 | #89 — **UNBLOCKED** (backend complete; `resolveShortage` and `queryLeadTime` contracts in `openapi.yaml` and SDK) |
-| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86 | #87 — **UNBLOCKED** (backend complete; permission catalog and gating matrix implemented; JWT `authorities` claim source confirmed) |
-| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572 | #571 — **UNBLOCKED** (backend complete; `openapi.yaml` and SDK up to date) |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93, #92, #242, #243, #244 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
+| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90, #241 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
+| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88, #89 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86, #87 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572, #571 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
 
 ---
 

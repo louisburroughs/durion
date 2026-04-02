@@ -1,100 +1,29 @@
-# Capability Run Artifact — CAP-220 Wave I-b
+## Run: Wave I-b Deferred (branch: cap/inventory-wave-i-b-deferred)
 
-Use this run record with:
+**Date:** 2026-04-01
+**Status:** ✅ DONE
+**PR Branch:** cap/inventory-wave-i-b-deferred
+**Stories Completed:** 89
 
-- Manifest: docs/capabilities/CAP-220/CAPABILITY_MANIFEST.yaml
-- Workset: docs/capabilities/CAP-220/AGENT_WORKSET.yaml
-- PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
+### Validation Gates
 
-## 1. Run Metadata
+- Build: PASS (0 errors)
+- Tests: 1102 passed / 0 failed
+- Domain Tests (inventory): 195 passed / 0 failed
+- Lint: n/a (ng lint not configured)
 
-- Capability: CAP-220
-- Run Timestamp (UTC): 2026-03-30T00:00:00Z
-- Agent/Operator: Orchestrator (Wave I-b)
-- Branch(es): `cap/inventory-wave-i-b`
-- Status: partial — 1/2 stories done; 1 deferred (shortage resolution orchestration details pending)
+### New Files
 
-## 2. Inputs Used
+None
 
-- Manifest: docs/capabilities/CAP-220/CAPABILITY_MANIFEST.yaml
-- Workset: docs/capabilities/CAP-220/AGENT_WORKSET.yaml
-- PRD: docs/capabilities/PRD-agent-capability-frontend-execution.md
+### Modified Files
 
-## 3. Story Execution Summary
-
-| Story | Parent Issue | Frontend Issue | Result | Notes |
-| --- | --- | --- | --- | --- |
-| Putaway Task List and Execute | #88 | #88 | done | Task list and execute pages; availability and reallocation wiring |
-| Shortage Resolution / Handle Shortages with Back-order | #89 | #89 | deferred | Inventory recommendation and lead-time contracts exist, but the workorder-facing submit-decision endpoint is still missing |
-
-## 4. Implementation Changes
-
-### Frontend Files Changed
-
-- `src/app/features/inventory/services/inventory.service.ts`
-- `src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.ts`
-- `src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.html`
-- `src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.css`
-- `src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.spec.ts`
-- `src/app/features/inventory/pages/putaway-execute/putaway-execute.component.ts`
-- `src/app/features/inventory/pages/putaway-execute/putaway-execute.component.html`
-- `src/app/features/inventory/pages/putaway-execute/putaway-execute.component.css`
-- `src/app/features/inventory/pages/putaway-execute/putaway-execute.component.spec.ts`
-
-### Behavior Implemented
-
-- Putaway task list with availability display (`queryAvailabilityBySku`, `queryInventoryAvailability`)
-- Reservation reallocation action (`reallocate`)
-- Task execution flow with location confirmation
-- Empty/loading/error states per ADR-0031
-
-### Deferred
-
-- #89 Shortage resolution — `resolveShortage`, `queryLeadTime` exist, but the mutation side that records the chosen shortage decision is still missing
-
-## 5. API Wiring Evidence
-
-For each story, list operations implemented and where they are wired.
-
-| Story | operation_id | SDK/OpenAPI Source | Client/Service File | Status |
-| --- | --- | --- | --- | --- |
-| #88 Putaway / Reallocation | `queryAvailabilityBySku` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
-| #88 Putaway / Reallocation | `queryInventoryAvailability` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
-| #88 Putaway / Reallocation | `reallocate` | pos-inventory / sdk-inventory | `inventory.service.ts` | done |
-| #89 Shortage Resolution | `resolveShortage` | pos-inventory / sdk-inventory | — | deferred — recommendation contract exists; frontend should consume it through a workorder-facing proxy/facade |
-| #89 Shortage Resolution | `queryLeadTime` | pos-inventory / sdk-inventory | — | deferred — lead-time contract exists; may support the orchestrating backend |
-
-## 6. Validation
-
-### Commands Run
-
-```bash
-cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend
-npm run build
-npx ng test --no-watch
-```
-
-### Results
-
-- Build: pass
-- Tests: pass (218/218 across 24 spec files)
-- Lint: pass
-- Typecheck: pass
-
-## 7. Blockers and Decisions
-
-- Blocker: #89 no longer lacks inventory read/recommendation contracts; the remaining gap is the workorder-facing mutation contract
-  - Impact: Shortage UI can display options, but cannot safely submit the user’s chosen resolution
-  - Resolved: inventory exposes `resolveShortage` and `queryLeadTime`
-  - Needed: add or confirm the submit-decision endpoint/facade, its permission model, and whether submit uses `optionId` only or a structured payload
-
-## 8. Follow-Up Actions
-
-- [ ] Add or confirm the workorder-facing submit-decision contract for shortage resolution (#89)
-- [ ] Merge `cap/inventory-wave-i-b` to `master` via PR
-
-## 9. Completion Gate
-
-- [x] All workset stories processed (1 done, 1 explicitly deferred with reason).
-- [x] All required operations wired or explicitly blocked with reason.
-- [ ] Acceptance criteria for #89 not yet verified (deferred).
+- src/app/features/inventory/services/inventory.service.ts
+- src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.ts
+- src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.html
+- src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.css
+- src/app/features/inventory/pages/putaway-task-list/putaway-task-list.component.spec.ts
+- src/app/features/inventory/pages/putaway-execute/putaway-execute.component.ts
+- src/app/features/inventory/pages/putaway-execute/putaway-execute.component.html
+- src/app/features/inventory/pages/putaway-execute/putaway-execute.component.css
+- src/app/features/inventory/pages/putaway-execute/putaway-execute.component.spec.ts
