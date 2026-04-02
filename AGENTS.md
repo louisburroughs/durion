@@ -82,6 +82,8 @@ Minimum ADRs to check for frontend work:
 - `docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md`
 - `docs/adr/0034-frontend-server-generated-field-omission-policy.adr.md`
 - `docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md`
+- `docs/adr/0037-frontend-spa-navigation-policy.adr.md`
+- `docs/adr/0038-frontend-date-only-string-handling-policy.adr.md`
 
 This ADR compliance requirement applies to all agents and subagents (including coder/test/deploy/sre).
 
