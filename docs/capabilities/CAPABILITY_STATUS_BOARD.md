@@ -1,6 +1,6 @@
 ---
 title: "Capability Status Board — Durion Positivity Frontend"
-updated_utc: "2026-04-01T00:00:00Z"
+updated_utc: "2026-04-02T16:30:00Z"
 generated_by: "Orchestrator"
 source_prd: "durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md"
 ---
@@ -27,33 +27,20 @@ Legend for **Status** column:
 
 | Status | Count |
 | --- | --- |
-| ✅ DONE | 47 capabilities across 9 domains (Waves A–H merged + Wave I-a + Wave I-b deferred completions) |
-| 🔄 IN PROGRESS | 2 (remaining Wave I-b items) |
-| 🟢 READY | 5 capabilities (Wave I-c queue) |
+| ✅ DONE | 54 capabilities across 11 domains (Waves A–H + Wave I-a + Wave I-b + Wave I-b Deferred + Wave I-c — all merged to `master`) |
+| 🔄 IN PROGRESS | 0 |
+| 🟢 READY | 0 |
 | 🟡 NORMALIZE | 0 |
 | 🔴 BLOCKED | 0 |
-| ⬜ BACKLOG | 0 frontend capabilities with no frontend stories |
+| ⬜ BACKLOG | 0 |
 
-**Total in portfolio: 54 capabilities**
+**Total in portfolio: 54 capabilities** — **Program complete. All capabilities merged to `master`.**
 
 ---
 
-## In-Progress — Wave I-b Inventory Domain
+## In-Progress
 
-### 🔄 IN PROGRESS — Wave I-b (CAP-215/216/217/218/219/220/221/315)
-
-**Branch**: `cap/inventory-wave-i-b` | **PR**: pending | **Tests**: 218/218 | **Status**: READY FOR PR
-
-| CAP | Name | Domain | Stories Done | Stories Deferred |
-| --- | --- | --- | --- | --- |
-| CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #100, #101 | — |
-| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #98, #97 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
-| CAP-217 | Put-away & Replenishment | `inventory` | #96, #95, #94 | — |
-| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #93, #92, #242, #243, #244 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
-| CAP-219 | Cycle Counts & Adjustments | `inventory` | #91, #90, #241 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
-| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #88, #89 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
-| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #86, #87 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
-| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #572, #571 | — | ✅ DONE (completed in branch `cap/inventory-wave-i-b-deferred`) |
+No capabilities are currently in progress. All 54 capabilities are merged to `master`.
 
 ---
 
@@ -100,25 +87,19 @@ Legend for **Status** column:
 | CAP-167 | MSRP & Base Pricing Policies | `product` | cap/product-wave-i-a | 118, 259 | Wave I-a — merged; build PASS; run artifact added |
 | CAP-168 | Location Store Pricing (Overrides by Location) | `product` | cap/product-wave-i-a | 116, 117 | Wave I-a — merged; build PASS; run artifact added |
 | CAP-170 | Availability & Inventory Visibility (Internal + External) | `product` | cap/product-wave-i-a | 110, 111, 112 | Wave I-a — merged; build PASS; run artifact added |
-
----
-
-## In-Progress / Next Execution Ready
-
-### � IN PROGRESS — Wave F (CAP-136/137/138/139/140/141/142/249)
-
-**Branch**: `cap/shopmgmt-location-wave-f` | **PR**: #8 | **Tests**: 488/488
-
-| CAP | Name | Domain | Stories | Commits |
-| --- | --- | --- | --- | --- |
-| CAP-136 | Location & Bay Management | `location` | #140–142 | `09e91b1`, `69d1c2b` |
-| CAP-137 | Appointment Scheduling | `shopmgmt` | #137–139 | `fb8b28c` |
-| CAP-138 | Appointment Dispatch & Conflict | `shopmgmt` | #133–136 | `09e91b1`, `69d1c2b` |
-| CAP-139 | Time Sessions (Mechanic) | `shopmgmt` / `people` | #130–132 | `09e91b1` |
-| CAP-140 | Time Export & Operational Context | `shopmgmt` / `people` | #122, 127–129 | `09e91b1` |
-| CAP-141 | Security Audit List (Shopmgmt) | `security` | #125–126 | `09e91b1`, `69d1c2b` |
-| CAP-142 | Appointment Reschedule | `shopmgmt` | #124 | `3e7a6f8` |
-| CAP-249 | Mechanic Roster & Availability | `shopmgmt` / `people` | #74–76 | `84e0272` |
+| CAP-215 | Inventory Ledger & On-hand/ATP | `inventory` | #13 | #100, #101 | Wave I-b — merged PR #13 |
+| CAP-217 | Put-away & Replenishment | `inventory` | #13 | #96, #95, #94 | Wave I-b — merged PR #13 |
+| CAP-216 | Receiving (PO/ASN/Direct) | `inventory` | #15 | #98, #97 | Wave I-b Deferred — merged PR #15 |
+| CAP-218 | Picking, Issuing, and Workorder Fulfillment | `inventory` | #15 | #93, #92, #242, #243, #244 | Wave I-b Deferred — merged PR #15 |
+| CAP-219 | Cycle Counts & Adjustments | `inventory` | #15 | #91, #90, #241 | Wave I-b Deferred — merged PR #15 |
+| CAP-220 | Reservations, Allocations, and Substitutions | `inventory` | #15 | #88, #89 | Wave I-b Deferred — merged PR #15 |
+| CAP-221 | Roles, Permissions, and Audit Controls (Inventory) | `security` / `inventory` | #15 | #86, #87 | Wave I-b Deferred — merged PR #15 |
+| CAP-315 | Procure-to-Receive Lifecycle (PO + ASN + Accrual) | `inventory` | #15 | #572, #571 | Wave I-b Deferred — merged PR #15 |
+| CAP-246 | POS Sales Order & Cart | `order` | #14 | #83, #84, #85 | Wave I-c — merged PR #14 |
+| CAP-248 | Estimate, WIP, and Invoice Visibility | `billing` | #14 | billing stories | Wave I-c — merged PR #14 |
+| CAP-250 | Payments (Card Acceptance via Payment Service) | `billing` | #14 | payment stories | Wave I-c — merged PR #14 |
+| CAP-251 | Invoice Payment Status Sync (Accounting Coordination) | `accounting` | #14 | sync stories | Wave I-c — merged PR #14 |
+| CAP-252 | Customer Context (CRM Snapshot) | `crm` | #14 | #67, #68 | Wave I-c — merged PR #14 |
 
 ---
 
@@ -128,47 +109,15 @@ No capabilities are currently blocked.
 
 ---
 
-## Backlog — No Frontend Stories Authored
+## Backlog
 
-These frontend-scoped capabilities have empty `AGENT_WORKSET.yaml` story lists. Frontend work **cannot begin** until stories are elaborated and worksets populated.
+No capabilities are in the backlog. All frontend-relevant capabilities are implemented.
 
-### `people` / HR Domain
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `inventory` Domain
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `product` / Pricing Domain
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `shopmgmt` / Scheduling Domain
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `order` Domain
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `location` Domain
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `billing` Additions
+Backend-only exclusion:
 
 | CAP | Name | Notes |
 | --- | --- | --- |
-| CAP-278 | Accounting — Posting Rule Engine | Backend-only capability; excluded from frontend backlog |
-
-### `crm` Deferred
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
-
-### `security` (aside from CAP-275)
-
-No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story lists.
+| CAP-278 | Accounting — Posting Rule Engine | Backend-only capability; excluded from frontend scope |
 
 ---
 
@@ -182,10 +131,10 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | `accounting` | `src/app/features/accounting/` | ✅ Full | CAP-049–055 |
 | `auth` | `src/app/features/auth/` | ✅ Full | CAP-275: session wiring, interceptor, session-expired banner |
 | `security` | `src/app/features/security/` | ✅ Full | CAP-275 + CAP-253: roles, permissions, audit log RBAC admin |
-| `inventory` | `src/app/features/inventory/` | � IN PROGRESS | Wave I-b partial (12/21 stories on `cap/inventory-wave-i-b`) |
+| `inventory` | `src/app/features/inventory/` | ✅ Full | CAP-215–221, CAP-315 (Waves I-b + I-b Deferred) |
 | `people` | `src/app/features/people/` | ✅ Full | CAP-117–121, CAP-139, CAP-140, CAP-249 |
-| `product` | `src/app/features/product/` | 🟢 READY | Wave I-a queued |
-| `order` | `src/app/features/order/` | 🟢 READY | Wave I-c queued |
+| `product` | `src/app/features/product/` | ✅ Full | CAP-165–168, CAP-170 (Wave I-a) |
+| `order` | `src/app/features/order/` | ✅ Full | CAP-246 (Wave I-c) |
 | `location` | `src/app/features/location/` | ✅ Full | CAP-136, CAP-214 |
 | `shopmgmt` | `src/app/features/shopmgmt/` | ✅ Full | CAP-137, CAP-138, CAP-139, CAP-140, CAP-141, CAP-142, CAP-249 |
 | `admin` | `src/app/features/admin/` | ⬜ Stub | Minimal |
@@ -205,8 +154,10 @@ No capabilities in this section currently have empty `AGENT_WORKSET.yaml` story 
 | Wave F (Shopmgmt+Location+People) | `cap/shopmgmt-location-wave-f` | #8 | 8 | 21 stories | 488 |
 | Wave G (People RBAC + CRM-Workexec) | `cap/people-rbac-wave-g` | — | 2 | 3 stories | — |
 | Wave H (People Profile + Location Topology) | `cap/people-location-wave-h` | — | 5 | 16 stories | 699 |
-| Wave I-a (Product) | `cap/product-wave-i-a` | merged | 5 | ~10 stories | — |
-| Wave I-b (Inventory) | `cap/inventory-wave-i-b` | pending PR | 8 | 12 done / 9 deferred (all unblocked 2026-04-01) | 218 |
+| Wave I-a (Product) | `cap/product-wave-i-a` | #12 merged | 5 | ~10 stories | — |
+| Wave I-b (Inventory) | `cap/inventory-wave-i-b` | #13 merged | 2 | #100, #101, #96, #95, #94 | 218 |
+| Wave I-b Deferred | `cap/inventory-wave-i-b-deferred` | #15 merged | 6 | 9 deferred stories | — |
+| Wave I-c (Order+Billing+CRM) | `cap/order-billing-crm-wave-i-c` | #14 merged | 5 | order/billing/crm stories | — |
 
 ---
 
@@ -231,13 +182,16 @@ All 8 capabilities (CAP-136/137/138/139/140/141/142/249) delivered and merged.
 
 CAP-118, CAP-094 (Wave G) and CAP-117, CAP-119, CAP-120, CAP-121, CAP-214 (Wave H) all merged to master. Final test count at Wave H close: 699/699.
 
-### 🟢 Wave I — Final Capabilities (Next Up)
+### ✅ Wave I — All Sub-waves Complete (MERGED)
 
-Execution sequence (see Wave I section above for full capability breakdown):
+| Sub-wave | PR | Capabilities | Date Merged |
+| --- | --- | --- | --- |
+| Wave I-a (Product) | #12 | CAP-165/166/167/168/170 | 2026-03/04 |
+| Wave I-b (Inventory core) | #13 | CAP-215, CAP-217 | 2026-04-01 |
+| Wave I-c (Order+Billing+CRM) | #14 | CAP-246/248/250/251/252 | 2026-04-02 |
+| Wave I-b Deferred | #15 | CAP-216/218/219/220/221/315 | 2026-04-02 |
 
-1. **Wave I-a** — `product` domain: branch `cap/product-wave-i-a`
-2. **Wave I-b** — `inventory` domain: branch `cap/inventory-wave-i-b`
-3. **Wave I-c** — `order`/`billing`/`crm` additions: branch `cap/order-billing-crm-wave-i-c`
+All Wave I capabilities are merged to `master`. **The multi-stage capability crawl program is complete.**
 
 ---
 
