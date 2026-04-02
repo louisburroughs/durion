@@ -420,13 +420,55 @@ Humans retain explicit approval at these boundaries:
 
 The follow-on phased plan should resolve:
 
-1. whether the first tenant data boundary is tenant-dedicated Postgres on host or tenant-dedicated managed Postgres
-2. whether service discovery remains in the runtime cell for prototype launch or is simplified
-3. where the release definition lives and how frontend/backend versions are composed
-4. how clock authority is implemented operationally
-5. how tenant provisioning is automated on the current AWS host
-6. what minimum smoke suite gates a deployment promotion
-7. what backup frequency and restore objectives apply to prototype and production cells
+1. **RESOLVED — Alpha: tenant-dedicated Postgres container on host.** The alpha cell runs `postgres:16-alpine` as a Docker container with a named volume (`postgres-data`) attached to the host. Data persists outside container layers. Credentials are injected via environment variables. Port binding is restricted to `127.0.0.1:5432` to prevent external exposure. All backend services reach Postgres through the internal `pos-network` bridge only. Migration path to managed Postgres (RDS or equivalent) is a configuration-only change to `SPRING_DATASOURCE_URL` — no schema or application changes required. A backup policy must be defined before prototype-phase business data is written (see question 7).
+2. **RESOLVED — Alpha: retain Eureka in the runtime cell.** "Simplified" would mean removing Eureka and replacing all `lb://SERVICE-NAME` gateway route URIs with static Docker Compose DNS URIs (`http://pos-service:8080`), relying on Compose-native hostname resolution instead of a service registry. This is viable on a single host because there is never more than one instance of each service to balance across. However, removal is deferred for alpha because: (1) it requires touching every service `application.yml` and all gateway routes simultaneously at high change cost; (2) Eureka provides health-aware deregistration — a crashed service stops receiving traffic before the Docker healthcheck removes it; (3) the existing `depends_on: condition: service_healthy` chain already serializes startup correctly. **Revisit for ECS migration**, where Eureka is genuinely redundant and AWS Cloud Map or ALB target-group health management replaces it at the platform level.
+3. **RESOLVED — Release definitions live in the `durion` repo under a dedicated deployment path.** `durion` is the master coordination project and is the natural control-plane source of truth for versioned tenant-cell release definitions. A release definition is a versioned manifest that pins one frontend image tag, one set of backend service image tags, environment configuration references, secret references, clock mode, and migration version expectations. Frontend and backend CI pipelines each publish a versioned image artifact; the release definition in `durion` composes those independent artifact versions into a single deployable unit. This keeps application repositories responsible for building and testing their own artifacts, while `durion` is responsible for assembly, promotion, and tenant-cell targeting. The existing `docs/architecture/deployment/manifests/` directory is the initial home for these definitions.
+4. **RESOLVED — Alpha production uses default UTC wall clock; shared clock authority is deferred to Phase 4.** The current state is:
+
+   - **Backend**: every service accepts `java.time.Clock` by constructor injection and provides `Clock.systemUTC()` as a default bean using `@ConditionalOnMissingBean(Clock.class)`. This is the correct structural foundation — a test profile or future platform layer can substitute a fixed or offset clock without modifying service code.
+   - **Frontend**: no platform clock injection exists or is needed. The frontend renders timestamps it receives from backend responses. Business time originates in backend services; display time follows system locale. No frontend clock authority is required.
+   - **Production**: the default `Clock.systemUTC()` bean in each service is correct for production. No operational clock configuration is needed at alpha launch.
+   - **End-to-end testing**: a shared accelerated or fixed clock across all services in the cell is the requirement. The `@ConditionalOnMissingBean` hook enables this via a test-profile Spring bean override per service, but a true single-authority cross-service clock (where all services share one injected offset) is **not yet implemented** and is deferred to Phase 4 of the phased runtime plan. Until then, E2E time-sensitive scenarios must be run using direct database seeding with explicit timestamps rather than real-time acceleration.
+5. **RESOLVED — Alpha: human-executed provisioning script; full automation deferred to Phase 5.** Full terraform/Ansible provisioning is not yet implemented and is not required for a single alpha cell. The alpha procedure is a documented, repeatable operator runbook executed once by a human. Decisions recorded:
+
+   - **Compute**: `t3.2xlarge` (8 vCPU, 32 GB RAM) on AWS, `us-east-1`. The full stack runs 22 containers (14 Spring Boot microservices, API gateway, Eureka, Postgres, otel-collector, Jaeger, Prometheus, Grafana, frontend Node.js). Estimated RAM footprint at idle is ~10 GB; 32 GB provides comfortable headroom. Storage: 80 GB `gp3` EBS root volume. Attach an Elastic IP so the DNS record survives instance restarts.
+   - **OS and runtime**: Amazon Linux 2023 (or Ubuntu 22.04). Install Docker Engine and the Docker Compose plugin. No other runtime dependencies on the host.
+   - **IAM**: attach an EC2 instance profile (IAM role) with policies: `AmazonEC2ContainerRegistryReadOnly` (pull images from ECR), `SecretsManagerReadWrite` scoped to the `durion/alpha/` prefix (future), `s3:PutObject`/`s3:GetObject` scoped to the backup bucket. No long-lived AWS access keys on the host.
+   - **Security Group**: inbound 443 (HTTPS, `0.0.0.0/0`), inbound 80 (HTTP, `0.0.0.0/0` — for Let's Encrypt challenge redirect), inbound 22 (SSH, operator IP only), all outbound.
+   - **Domain and TLS**: `positivity.durion.com`. Create a Route 53 A record pointing to the Elastic IP. Install `nginx` on the host as a TLS-terminating reverse proxy. Obtain a certificate via `certbot --nginx` (Let's Encrypt). Nginx proxies `443 → localhost:4200` (frontend) and `443/api/ → localhost:8080` (gateway).
+   - **Container registry**: AWS ECR. One repository per service image (e.g., `durion/pos-frontend`, `durion/pos-api-gateway`, `durion/pos-accounting`, etc.). The EC2 instance profile grants pull access without a stored credential. For alpha without CI, images are built locally and pushed manually: `aws ecr get-login-password | docker login`, `docker build`, `docker push`.
+   - **Secrets**: stored in a `.env` file at `/opt/durion/alpha/.env` with permissions `600`, owned by the operator user. This file is never committed to source control. Required variables: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `POS_EVENTS_API_SECRET`, `OTEL_EXPORTER_OTLP_ENDPOINT`. The `.env` file is sourced by `docker compose --env-file /opt/durion/alpha/.env up -d`.
+   - **CI gap**: neither frontend nor backend has a CI pipeline that builds and pushes images. For alpha, a manual build-and-push step substitutes for CI. This is a known gap — see question 6 and Phase 2 of the phased runtime plan.
+   - **Full automation**: tenant provisioning automation (Terraform for EC2/ECR/Route53/IAM, Ansible for host configuration) is a Phase 5 deliverable and is not required before alpha launch.
+6. **RESOLVED — Smoke suite is gated by a data load step; both are required before a deployment is considered promoted.** A deployment promotion is not complete until the cell passes a two-phase gate:
+
+   **Phase A — Reference data load (prerequisite to smoke)**
+   Before the smoke suite runs, a known reference dataset must be loaded into the tenant cell's database. This is required because several smoke routes address specific entities by ID (e.g., `WO-123`, `EMP-123`) — without matching records the pages render in error state, which makes smoke results meaningless. The reference data load must be:
+   - idempotent (safe to re-run on an already-seeded cell)
+   - versioned alongside the release definition in `durion`
+   - executed as a separate named step in the promotion runbook, not silently bundled into migrations
+   - recorded in the deployment log with the data version used
+   No reference data load implementation exists yet. For alpha, this step is a manual SQL script or API call sequence run by the operator. A seed runner is a Phase 3 deliverable.
+
+   **Phase B — Smoke suite**
+   The existing `scripts/a11y/smoke-routes.mjs` in `durion-positivity-frontend` provides the initial smoke route coverage. It hits 8 routes:
+   - `/app` — shell load
+   - `/app/crm` — customer list
+   - `/app/workexec/estimates/new` — new estimate form
+   - `/app/workexec/workorders/WO-123` — workorder detail (requires seeded workorder)
+   - `/app/accounting/events` — accounting events list
+   - `/app/accounting/vendor-payments` — vendor payments list
+   - `/app/people/employees/EMP-123` — employee detail (requires seeded employee)
+   - `/app/location/locations` — location list
+
+   For a deployment to be considered promoted, all 8 routes must return HTTP 200 with no `critical` accessibility violations (`A11Y_FAIL_ON_IMPACT=critical`). The script is run with `A11Y_USE_EXISTING_SERVER=1` and `A11Y_BASE_URL` pointed at the live cell URL. A failing smoke run blocks promotion and requires a rollback or forward-fix before the cell is considered activated. Backend service health (`/actuator/health` on all services) must also be fully `UP` before the smoke script is invoked.
+7. **RESOLVED — Prototype: daily `pg_dump` to S3; restore is a manual operator step. Production policy deferred to Phase 5.** The prototype backup model is intentionally minimal:
+
+   - **Backup mechanism**: a cron job on the EC2 host runs `pg_dump` once per day and uploads the compressed dump to a dedicated S3 bucket using the instance profile (no stored credentials). Example cron: `0 2 * * * pg_dump ... | gzip | aws s3 cp - s3://durion-backups/alpha/$(date +\%Y-\%m-\%d).sql.gz`
+   - **Retention**: keep 14 daily dumps. S3 lifecycle rule deletes objects older than 14 days automatically.
+   - **Restore procedure**: manual operator step — stop the stack, drop and recreate the database, restore from the target dump file with `aws s3 cp ... | gunzip | psql`, restart the stack. No automated restore tooling required for prototype.
+   - **Recovery objective**: best-effort. For a prototype cell running simulated scenarios, losing up to 24 hours of data is acceptable. No RTO/RPO SLA applies until a paying customer's data is at risk.
+   - **Production policy**: formal RTO/RPO targets, point-in-time recovery, automated restore drills, and tenant offboarding exports are Phase 5 deliverables and are not defined here.
 
 ## Summary
 
