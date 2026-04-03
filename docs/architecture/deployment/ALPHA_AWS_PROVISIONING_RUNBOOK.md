@@ -2,7 +2,7 @@
 
 Status: Authoritative operator and agent guide
 Environment: `alpha` — single-tenant prototype cell
-Last updated: 2026-04-02
+Last updated: 2026-04-03
 Depends on:
 
 - [Foundation-First Tenant Cell Deployment Architecture](./FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md)
