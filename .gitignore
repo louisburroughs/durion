@@ -20,3 +20,7 @@ venv/
 .agent-tmp/
 
 archived-frontend-issues/
+
+# Local AWS CLI install artifacts
+aws/
+awscliv2.zip
