@@ -1,7 +1,7 @@
 # Foundation-First Tenant Cell Deployment Architecture
 
-Created: 2026-03-29  
-Status: Draft reference architecture  
+Created: 2026-03-29
+Status: Draft reference architecture
 Scope: Prototype launch foundation for Durion frontend and backend
 
 ## Purpose
@@ -435,7 +435,7 @@ The follow-on phased plan should resolve:
    - **OS and runtime**: Amazon Linux 2023 (or Ubuntu 22.04). Install Docker Engine and the Docker Compose plugin. No other runtime dependencies on the host.
    - **IAM**: attach an EC2 instance profile (IAM role) with policies: `AmazonEC2ContainerRegistryReadOnly` (pull images from ECR), `SecretsManagerReadWrite` scoped to the `durion/alpha/` prefix (future), `s3:PutObject`/`s3:GetObject` scoped to the backup bucket. No long-lived AWS access keys on the host.
    - **Security Group**: inbound 443 (HTTPS, `0.0.0.0/0`), inbound 80 (HTTP, `0.0.0.0/0` — for Let's Encrypt challenge redirect), inbound 22 (SSH, operator IP only), all outbound.
-   - **Domain and TLS**: `positivity.durion.com`. Create a Route 53 A record pointing to the Elastic IP. Install `nginx` on the host as a TLS-terminating reverse proxy. Obtain a certificate via `certbot --nginx` (Let's Encrypt). Nginx proxies `443 → localhost:4200` (frontend) and `443/api/ → localhost:8080` (gateway).
+   - **Domain and TLS**: `durionpos.org`. Create a Route 53 A record pointing to the Elastic IP. Install `nginx` on the host as a TLS-terminating reverse proxy. Obtain a certificate via `certbot --nginx` (Let's Encrypt). Nginx proxies `443 → localhost:4200` (frontend) and `443/api/ → localhost:8080` (gateway).
    - **Container registry**: AWS ECR. One repository per service image (e.g., `durion/pos-frontend`, `durion/pos-api-gateway`, `durion/pos-accounting`, etc.). The EC2 instance profile grants pull access without a stored credential. For alpha without CI, images are built locally and pushed manually: `aws ecr get-login-password | docker login`, `docker build`, `docker push`.
    - **Secrets**: stored in a `.env` file at `/opt/durion/alpha/.env` with permissions `600`, owned by the operator user. This file is never committed to source control. Required variables: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `POS_EVENTS_API_SECRET`, `OTEL_EXPORTER_OTLP_ENDPOINT`. The `.env` file is sourced by `docker compose --env-file /opt/durion/alpha/.env up -d`.
    - **CI gap**: neither frontend nor backend has a CI pipeline that builds and pushes images. For alpha, a manual build-and-push step substitutes for CI. This is a known gap — see question 6 and Phase 2 of the phased runtime plan.

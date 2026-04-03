@@ -20,7 +20,7 @@ The cell runs 22 Docker containers on a single `t3.2xlarge` EC2 host in `us-east
 
 | Category | Services |
 |---|---|
-| Frontend | `pos-frontend` (Node 22 / Angular SSR) |
+| Frontend | `durion-positivity-frontend` (Node 22 / Angular SSR) |
 | API Gateway | `pos-api-gateway` (Spring Cloud Gateway) |
 | Service Discovery | `eureka-server` (Spring Cloud Eureka) |
 | Backend services (14) | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-event-receiver`, `pos-image`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-people`, `pos-price`, `pos-security-service`, `pos-shop-manager`, `pos-vehicle-inventory`, `pos-workorder` |
@@ -45,7 +45,7 @@ The following must be satisfied before starting:
   - `ec2:RunInstances`, `ec2:AllocateAddress`, `ec2:AssociateAddress`, `ec2:CreateSecurityGroup`, `ec2:AuthorizeSecurityGroupIngress`
   - `s3:CreateBucket`, `s3:PutBucketLifecycleConfiguration`, `s3:PutBucketPolicy`
   - `route53:ChangeResourceRecordSets`, `route53:ListHostedZones`
-- A registered domain hosted in Route 53. This runbook uses `positivity.durion.com`.
+- A registered domain hosted in Route 53. This runbook uses `durionpos.org`.
 - SSH key pair already created in AWS in `us-east-1`. Replace `durion-alpha-key` with your key pair name throughout.
 - Docker Engine and Git installed on the local operator machine (for manual image builds if CI has not run yet).
 - GitHub repository secrets configured (see [Secrets Configuration](#secrets-configuration)).
@@ -62,7 +62,7 @@ export AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
   --query Account --output text --region "$AWS_REGION")
 export ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 export CELL_NAME=alpha
-export DOMAIN=positivity.durion.com
+export DOMAIN=durionpos.org
 export KEY_PAIR_NAME=durion-alpha-key
 export S3_BACKUP_BUCKET=durion-positivity-backups
 
@@ -78,7 +78,7 @@ Create one repository per custom service image. Public infrastructure images do 
 
 ```bash
 ECR_SERVICES=(
-  durion/pos-frontend
+  durion/durion-positivity-frontend
   durion/pos-api-gateway
   durion/eureka-server
   durion/pos-accounting
@@ -436,7 +436,7 @@ Retrieve the hosted zone ID for your domain and create an A record.
 
 ```bash
 HOSTED_ZONE_ID=$(aws route53 list-hosted-zones \
-  --query "HostedZones[?Name=='durion.com.'].Id" \
+  --query "HostedZones[?Name=='durionpos.org.'].Id" \
   --output text | cut -d/ -f3)
 
 echo "Hosted Zone ID: $HOSTED_ZONE_ID"
@@ -523,7 +523,7 @@ The frontend's Express server handles `/api` proxying to the API gateway through
 sudo tee /etc/nginx/conf.d/durion-alpha.conf << 'EOF'
 server {
     listen 80;
-    server_name positivity.durion.com;
+    server_name durionpos.org;
 
     # Increase timeouts for SSR responses
     proxy_read_timeout 60s;
@@ -549,7 +549,7 @@ sudo nginx -t && sudo systemctl reload nginx
 Wait for DNS propagation before running this step. Verify DNS resolves first:
 
 ```bash
-host positivity.durion.com
+host durionpos.org
 # Should return the Elastic IP before proceeding
 ```
 
@@ -559,8 +559,8 @@ Then issue the certificate:
 sudo certbot --nginx \
   --non-interactive \
   --agree-tos \
-  --email ops@durion.com \
-  -d positivity.durion.com
+  --email ops@durionpos.org \
+  -d durionpos.org
 
 sudo systemctl reload nginx
 ```
@@ -570,7 +570,7 @@ certbot modifies the nginx config to add the SSL server block and HTTP → HTTPS
 ### 9.3 Verify nginx TLS
 
 ```bash
-curl -I https://positivity.durion.com
+curl -I https://durionpos.org
 # Expected: HTTP/2 502 (gateway is not running yet — this confirms TLS works)
 ```
 
@@ -605,9 +605,9 @@ cat > /opt/durion/alpha/docker-compose.prod.yml << EOF
 # Production image override — replaces build: directives with ECR image: references.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 services:
-  pos-frontend:
+  durion-positivity-frontend:
     build: !reset null
-    image: ${ECR_REGISTRY}/durion/pos-frontend:${FRONTEND_TAG}
+    image: ${ECR_REGISTRY}/durion/durion-positivity-frontend:${FRONTEND_TAG}
 
   eureka-server:
     build: !reset null
@@ -811,7 +811,7 @@ done
 curl -I http://localhost:4200
 # Expected: HTTP/1.1 200 OK
 
-curl -I https://positivity.durion.com
+curl -I https://durionpos.org
 # Expected: HTTP/2 200
 ```
 
@@ -926,7 +926,7 @@ the live cell.
 cd ~/IdeaProjects/durion-positivity-frontend
 
 A11Y_USE_EXISTING_SERVER=1 \
-A11Y_BASE_URL=https://positivity.durion.com \
+A11Y_BASE_URL=https://durionpos.org \
 A11Y_FAIL_ON_IMPACT=critical \
 npm run a11y:smoke
 ```
@@ -946,8 +946,8 @@ A deployment is **not considered promoted** until:
 | All containers healthy | `docker compose ps` | All `healthy` or `running` |
 | Postgres accepting connections | `docker compose exec postgres pg_isready` | `accepting connections` |
 | Eureka dashboard reachable | `curl -s http://localhost:8761/` (internal only) | HTTP 200 |
-| Frontend responding | `curl -I https://positivity.durion.com` | HTTP 2xx |
-| TLS certificate valid | `curl -vI https://positivity.durion.com 2>&1 \| grep 'expire date'` | Date > 60 days |
+| Frontend responding | `curl -I https://durionpos.org` | HTTP 2xx |
+| TLS certificate valid | `curl -vI https://durionpos.org 2>&1 \| grep 'expire date'` | Date > 60 days |
 | S3 backup ran | `aws s3 ls s3://durion-positivity-backups/alpha/` | Object present |
 | Cron scheduled | `crontab -l` | Backup entry visible |
 | Smoke suite passed | Smoke output | 0 critical violations |

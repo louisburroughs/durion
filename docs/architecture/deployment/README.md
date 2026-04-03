@@ -12,13 +12,13 @@ This directory contains deployment-focused architecture documents for Durion.
 
 These documents define the target deployment model and operational boundaries that later implementation plans, CI/CD workflows, and runbooks should follow.
 
-
 1. Install AWS CLI v2 + configure credentials
-2. git commit the 4 changed/new files across the 3 repos (package-lock.json + workflows + compose + runbook)
-3. git push → triggers build-push-ecr.yml workflows → images land in ECR
+2. Register domain name
+3. git commit the 4 changed/new files across the 3 repos (package-lock.json + workflows + compose + runbook)
+4. git push → triggers build-push-ecr.yml workflows → images land in ECR
    (ECR repos and IAM OIDC role must exist first — chicken-and-egg:
     run Sections 1–3 of the runbook manually before pushing the workflows)
-4. Run Sections 1–7 of the runbook (AWS infra provisioning, no SSH yet)
-5. SSH in → run Sections 8–9 (docker, nginx, TLS)
-6. Run Sections 10–12 (clone, deploy, health check)
-7. Run Sections 13–15 (seed, backup cron, smoke)
+5. Run Sections 1–7 of the runbook (AWS infra provisioning, no SSH yet)
+6. SSH in → run Sections 8–9 (docker, nginx, TLS)
+7. Run Sections 10–12 (clone, deploy, health check)
+8. Run Sections 13–15 (seed, backup cron, smoke)
