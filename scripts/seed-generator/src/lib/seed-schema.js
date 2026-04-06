@@ -174,6 +174,8 @@ export const seedSchema = z.object({
     seed: z.number().int().default(42),
     locale: stringReq.default("en"),
     counts: z.object({
+      catalog_products: z.number().int().nonnegative().default(0),
+      catalog_services: z.number().int().nonnegative().default(0),
       demo_users: z.number().int().nonnegative().default(0),
       demo_customers: z.number().int().nonnegative().default(0),
       demo_vehicles: z.number().int().nonnegative().default(0),

@@ -18,7 +18,7 @@ The generator should combine:
 Rules:
 
 - `prod-minimal` must avoid synthetic identities and fake business transactions unless explicitly allowed.
-- `staging-demo` may generate optional demo users/customers/orders/invoices using faker.
+- `staging-demo` may generate optional demo users/customers/orders/invoices plus catalog products/services/prices using faker.
 
 ## Derivation Rules (No Manual Input Required)
 
@@ -48,6 +48,9 @@ User input should not duplicate these unless overriding is explicitly supported.
 - At least one admin user in `security.users`
 - Role assignments in `security.role_assignments`
 - Optional explicit `security.role_permission_overrides` only when deviating from defaults
+- For committed docs/examples, keep password values as placeholders.
+- For real seed runs, provide the actual value in environment-local runtime input (not in committed docs).
+- If exposure risk is low (dummy account), committed `bcrypt_hash` is acceptable, but plaintext passwords should never be committed.
 
 ### 3) Location Topology
 
@@ -91,6 +94,7 @@ User input should not duplicate these unless overriding is explicitly supported.
 - `demo.invoices`
 - `demo.inventory_activity`
 - `demo.workorders`
+- Additional catalog/service volume from faker counts (`faker.counts.catalog_products`, `faker.counts.catalog_services`)
 
 Guardrails:
 
@@ -120,7 +124,7 @@ security:
       person_ref: "person_admin_1"
       password:
         mode: "bcrypt_hash" # bcrypt_hash | plaintext_for_hashing
-        value: "$2a$12$replace_with_real_hash"
+        value: "$2a$12$replace_with_real_hash" # keep placeholder in committed examples; inject real hash in runtime/local seed-input
       enabled: true
   role_assignments:
     - username: "admin.alpha"
@@ -580,7 +584,7 @@ pricing:
 
 inventory:
   replenishment_policies:
-    - policy_code: "ATL-REPL-DEFAULT"
+    - policy_code: "CAR-REPL-DEFAULT"
       location_code: "CAR-002"
       sku: "OIL-5W30-5QT"
       reorder_point: 20
@@ -589,7 +593,7 @@ inventory:
     - rule_code: "PUTAWAY-OIL"
       location_code: "CAR-002"
       sku_prefix: "OIL-"
-      destination_storage_code: "ATL-001-BULK"
+      destination_storage_code: "CAR-001-BULK"
   approval_thresholds:
     - tier: "SUPERVISOR"
       max_delta_value: 100.00
@@ -637,6 +641,8 @@ faker:
   seed: 42
   locale: "en"
   counts:
+    catalog_products: 0
+    catalog_services: 0
     demo_users: 0
     demo_customers: 0
     demo_vehicles: 0
@@ -652,6 +658,10 @@ faker:
 - All references (`person_ref`, `location_code`, `posting_category_code`, `gl_account_code`, etc.) must resolve.
 - `timekeeping_policies` must include at least one GLOBAL policy.
 - `faker.enabled=true` in `prod-minimal` requires explicit override flag in generator CLI.
+- For large demo catalog generation, use `profile=staging-demo` with:
+  - `faker.enabled: true`
+  - `faker.counts.catalog_products: 100` (or higher)
+  - `faker.counts.catalog_services: 20` (or higher)
 
 ## Generator CLI Contract
 

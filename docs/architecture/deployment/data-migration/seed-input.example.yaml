@@ -159,6 +159,8 @@ faker:
   seed: 42
   locale: "en"
   counts:
+    catalog_products: 0
+    catalog_services: 0
     demo_users: 0
     demo_customers: 0
     demo_vehicles: 0
