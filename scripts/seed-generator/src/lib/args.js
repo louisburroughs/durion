@@ -17,7 +17,7 @@ export function parseArgs(argv) {
   const input = valueAfter(
     args,
     "--input",
-    path.resolve(process.cwd(), "../../docs/architecture/deployment/seed-input.example.yaml")
+    path.resolve(process.cwd(), "../../docs/architecture/deployment/data-migration/seed-input.example.yaml")
   );
   const out = valueAfter(args, "--out", path.resolve(process.cwd(), "./generated-seed-sql"));
   const profile = valueAfter(args, "--profile", undefined);

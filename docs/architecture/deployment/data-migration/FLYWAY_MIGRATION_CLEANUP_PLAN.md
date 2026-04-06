@@ -10,21 +10,21 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
 - [x] Phase 2.2: Replaced `pos-catalog` `V999`-only state with `V1__baseline_catalog_schema.sql` and `V2__migrate_to_uuid_v7.sql`; removed verification `SELECT` blocks from migration execution.
 - [x] Phase 2.3: Added `pos-customer` baseline migration `V1__baseline_customer_schema.sql`.
 - [x] Phase 4: Added CI guardrails script (`scripts/check-flyway-hygiene.sh`) and wired it into CI workflow (`.github/workflows/ci.yml`).
-- [-] Phase 3: Persistent EC2 database baseline + migrate rollout remains operational work to execute per environment.
+- [x] Phase 3 decision recorded: current databases are empty, so baseline/reconciliation is skipped and clean `flyway migrate` from `V1` is required.
 - [ ] Phase 5: Seed Flyway migration integration after cleanup guardrails and environment baselines.
 
 ## Why This First
 
 Before adding long-term seed SQL as Flyway-managed migrations, backend services must have a clean, consistent migration strategy.
 
-Current state snapshot (from `durion-positivity-backend`):
-- Many modules have `src/main/resources/db/migration` files but do not include Flyway dependencies.
-- Most modules still run `spring.jpa.hibernate.ddl-auto=update` in runtime config.
-- `pos-accounting` has duplicate Flyway version numbers (`V1__` used three times).
-- `pos-catalog` has only `V999__...` and no baseline migration chain.
-- `pos-customer` includes Flyway dependency but has no migration scripts.
+Historical pre-cleanup snapshot (from `durion-positivity-backend`, before phases 1-4):
+- Many modules had `src/main/resources/db/migration` files but did not include Flyway dependencies.
+- Most modules ran `spring.jpa.hibernate.ddl-auto=update` in runtime config.
+- `pos-accounting` had duplicate Flyway version numbers (`V1__` used three times).
+- `pos-catalog` had only `V999__...` and no baseline migration chain.
+- `pos-customer` included Flyway dependency but had no migration scripts.
 
-## Inventory Summary
+## Inventory Summary (Pre-Cleanup Baseline)
 
 | Module | Flyway dep in `pom.xml` | `db/migration` files | Runtime `ddl-auto` |
 |---|---|---:|---|
@@ -115,6 +115,19 @@ Then lock runtime to `ddl-auto=validate`.
 
 For each service database already created via Hibernate `update`, baseline before `migrate`.
 
+### 3.0 Current environment state (2026-04-06)
+
+Current deployment databases are empty.
+
+Implication:
+- Skip baseline reconciliation flow (`baselineOnMigrate=true`) for this environment.
+- Run standard `flyway migrate` from `V1` upward for each service database.
+- Keep runtime `spring.jpa.hibernate.ddl-auto=validate`.
+
+Follow-up requirement for empty DB bootstrap:
+- Ensure each Flyway-managed module has a true schema-creating baseline/forward chain for fresh database creation.
+- Marker-only baseline files (for example, `SELECT 1`) are acceptable for reconciliation scenarios but not sufficient by themselves to build an empty database schema.
+
 ### 3.1 Baseline approach
 
 Per database/service:
@@ -156,11 +169,11 @@ After phases 1-4:
 
 ## Concrete Next Patch Set (suggested PR sequence)
 
-1. PR A: migration hygiene tooling + CI checks (read-only checks first).
-2. PR B: add Flyway deps + set `ddl-auto=validate` for target modules.
-3. PR C: repair `pos-accounting` version numbering.
-4. PR D: introduce `pos-catalog` and `pos-customer` baselines.
-5. PR E: add seed Flyway migrations generated from `scripts/seed-generator` outputs.
+1. PR A: migration hygiene tooling + CI checks (read-only checks first). Completed.
+2. PR B: add Flyway deps + set `ddl-auto=validate` for target modules. Completed.
+3. PR C: repair `pos-accounting` version numbering. Completed.
+4. PR D: introduce `pos-catalog` and `pos-customer` baselines. Completed.
+5. PR E: add seed Flyway migrations generated from `scripts/seed-generator` outputs. Next.
 
 ## Risks and Mitigations
 

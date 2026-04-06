@@ -17,7 +17,7 @@ npm install
 
 ```bash
 npm run seed:generate -- \
-  --input ../../docs/architecture/deployment/seed-input.example.yaml \
+  --input ../../docs/architecture/deployment/data-migration/seed-input.example.yaml \
   --out ./generated-seed-sql \
   --backend-root ../../../durion-positivity-backend \
   --profile prod-minimal
@@ -41,3 +41,14 @@ The generator writes:
 - SQL is scaffold quality and idempotent-oriented (`ON CONFLICT` paths).
 - Table/column names across modules may differ by service schema and migration version; refine emitters before production rollout.
 - `faker.enabled` is blocked for `profile=prod-minimal`.
+- In `staging-demo`, faker can also expand catalog volume via:
+  - `faker.counts.catalog_products`
+  - `faker.counts.catalog_services`
+- The catalog emitter auto-generates base prices for faker-created products/services using `environment.currency`.
+
+Demo target example:
+
+- Set `profile: staging-demo`
+- Set `faker.enabled: true`
+- Set `faker.counts.catalog_products: 100`
+- Set `faker.counts.catalog_services: 20`

@@ -1,10 +1,77 @@
+import { faker } from "@faker-js/faker";
+
 import { boolLiteral, quoteLiteral, sqlHeader, stableUuid } from "../lib/sql.js";
 
 export function emitCatalogPricingInventorySql(seed) {
   const lines = [sqlHeader("004_catalog_pricing_inventory.sql")];
+  const products = [...seed.catalog.products];
+  const services = [...seed.catalog.services];
+  const basePrices = [...seed.pricing.base_prices];
+
+  if (seed.faker.enabled) {
+    faker.seed(seed.faker.seed);
+    const productCodeSet = new Set(products.map((product) => product.sku));
+    const serviceCodeSet = new Set(services.map((service) => service.code));
+    const basePriceKeySet = new Set(basePrices.map((price) => `${price.item_type}:${price.item_code}`));
+
+    for (let i = 0; i < seed.faker.counts.catalog_products; i += 1) {
+      const sku = `DEMO-PROD-${String(i + 1).padStart(4, "0")}`;
+      if (productCodeSet.has(sku)) {
+        continue;
+      }
+
+      const product = {
+        sku,
+        name: faker.commerce.productName(),
+        uom: "EACH",
+        active: true
+      };
+
+      products.push(product);
+      productCodeSet.add(sku);
+
+      const priceKey = `PRODUCT:${sku}`;
+      if (!basePriceKeySet.has(priceKey)) {
+        basePrices.push({
+          item_code: sku,
+          item_type: "PRODUCT",
+          amount: faker.number.float({ min: 5, max: 500, fractionDigits: 2 }),
+          currency: seed.environment.currency
+        });
+        basePriceKeySet.add(priceKey);
+      }
+    }
+
+    for (let i = 0; i < seed.faker.counts.catalog_services; i += 1) {
+      const code = `DEMO-SVC-${String(i + 1).padStart(3, "0")}`;
+      if (serviceCodeSet.has(code)) {
+        continue;
+      }
+
+      const service = {
+        code,
+        name: `${faker.commerce.productAdjective()} ${faker.commerce.department()} Service`,
+        active: true
+      };
+
+      services.push(service);
+      serviceCodeSet.add(code);
+
+      const priceKey = `SERVICE:${code}`;
+      if (!basePriceKeySet.has(priceKey)) {
+        basePrices.push({
+          item_code: code,
+          item_type: "SERVICE",
+          amount: faker.number.float({ min: 40, max: 350, fractionDigits: 2 }),
+          currency: seed.environment.currency
+        });
+        basePriceKeySet.add(priceKey);
+      }
+    }
+  }
 
   lines.push("-- Catalog products");
-  for (const product of seed.catalog.products) {
+  for (const product of products) {
     const id = stableUuid("product", product.sku);
     lines.push("INSERT INTO product (id, sku, name, active, created_at, updated_at)");
     lines.push(
@@ -16,7 +83,7 @@ export function emitCatalogPricingInventorySql(seed) {
   }
 
   lines.push("\n-- Catalog services");
-  for (const service of seed.catalog.services) {
+  for (const service of services) {
     const id = stableUuid("service", service.code);
     lines.push("INSERT INTO service (id, code, name, active, created_at, updated_at)");
     lines.push(
@@ -28,7 +95,7 @@ export function emitCatalogPricingInventorySql(seed) {
   }
 
   lines.push("\n-- Base prices");
-  for (const price of seed.pricing.base_prices) {
+  for (const price of basePrices) {
     const id = stableUuid("base-price", `${price.item_type}:${price.item_code}`);
     lines.push("INSERT INTO product_base_price (id, product_code, amount, currency, created_at, updated_at)");
     lines.push(
