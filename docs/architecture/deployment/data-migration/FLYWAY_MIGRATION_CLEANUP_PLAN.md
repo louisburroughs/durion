@@ -1,5 +1,18 @@
 # Flyway Migration Cleanup Plan (Long-Term Seed Strategy Prerequisite)
 
+## Execution Progress (2026-04-06)
+
+Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
+
+- [x] Phase 1.1: Added Flyway dependencies to target modules (`pos-accounting`, `pos-catalog`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-people`, `pos-shop-manager`, `pos-workorder`) and added PostgreSQL Flyway support to `pos-customer`.
+- [x] Phase 1.2: Updated target module runtime `application.yml` files from `spring.jpa.hibernate.ddl-auto=update` to `validate`.
+- [x] Phase 2.1: Repaired `pos-accounting` duplicate version graph by renumbering migrations to ordered `V1..V8`.
+- [x] Phase 2.2: Replaced `pos-catalog` `V999`-only state with `V1__baseline_catalog_schema.sql` and `V2__migrate_to_uuid_v7.sql`; removed verification `SELECT` blocks from migration execution.
+- [x] Phase 2.3: Added `pos-customer` baseline migration `V1__baseline_customer_schema.sql`.
+- [x] Phase 4: Added CI guardrails script (`scripts/check-flyway-hygiene.sh`) and wired it into CI workflow (`.github/workflows/ci.yml`).
+- [-] Phase 3: Persistent EC2 database baseline + migrate rollout remains operational work to execute per environment.
+- [ ] Phase 5: Seed Flyway migration integration after cleanup guardrails and environment baselines.
+
 ## Why This First
 
 Before adding long-term seed SQL as Flyway-managed migrations, backend services must have a clean, consistent migration strategy.
