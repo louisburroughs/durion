@@ -1,0 +1,166 @@
+version: 1
+profile: prod-minimal
+
+tenant:
+  id: "00000000-0000-0000-0000-000000000001"
+  code: "alpha"
+  name: "Durion Alpha"
+
+environment:
+  name: "alpha"
+  default_timezone: "America/New_York"
+  currency: "USD"
+
+security:
+  users:
+    - username: "admin.alpha"
+      email: "admin@durionpos.org"
+      person_ref: "person_admin_1"
+      password:
+        mode: "bcrypt_hash"
+        value: "$2a$12$replace_with_real_hash"
+      enabled: true
+  role_assignments:
+    - username: "admin.alpha"
+      role: "ADMIN"
+      scope_type: "GLOBAL"
+      location_codes: []
+  role_permission_overrides: []
+
+locations:
+  location_types:
+    - code: "SHOP"
+      name: "Shop"
+      description: "Primary service shop"
+    - code: "WAREHOUSE"
+      name: "Warehouse"
+      description: "Inventory warehouse"
+  sites:
+    - code: "ATL-001"
+      name: "Atlanta Main"
+      timezone: "America/New_York"
+      location_type_code: "SHOP"
+      address:
+        line1: "100 Main St"
+        city: "Atlanta"
+        state: "GA"
+        postal_code: "30301"
+        country: "US"
+  service_areas:
+    - code: "ATL-METRO"
+      name: "Atlanta Metro"
+  capabilities:
+    - code: "ALIGNMENT"
+      name: "Wheel Alignment"
+    - code: "OIL_CHANGE"
+      name: "Oil Change"
+  travel_buffer_policies:
+    - code: "DEFAULT_15M"
+      name: "Default 15m"
+      buffer_type: "MINUTES"
+      buffer_value: 15
+
+people:
+  persons:
+    - ref: "person_admin_1"
+      first_name: "System"
+      last_name: "Admin"
+      email: "admin@durionpos.org"
+  user_person_links:
+    - username: "admin.alpha"
+      person_ref: "person_admin_1"
+      link_type: "PRIMARY"
+  person_location_assignments:
+    - person_ref: "person_admin_1"
+      location_code: "ATL-001"
+      role: "MANAGER"
+      is_primary: true
+  timekeeping_policies:
+    - code: "GLOBAL_DEFAULT"
+      scope_type: "GLOBAL"
+      scope_ref: null
+      threshold_minutes: 10
+
+catalog:
+  products:
+    - sku: "OIL-5W30-5QT"
+      name: "Synthetic Oil 5W30"
+      uom: "EACH"
+      active: true
+  services:
+    - code: "SVC-OIL"
+      name: "Oil Change Service"
+      active: true
+
+pricing:
+  base_prices:
+    - item_code: "SVC-OIL"
+      item_type: "SERVICE"
+      amount: 79.99
+      currency: "USD"
+
+inventory:
+  replenishment_policies:
+    - policy_code: "ATL-REPL-DEFAULT"
+      location_code: "ATL-001"
+      sku: "OIL-5W30-5QT"
+      reorder_point: 20
+      reorder_quantity: 40
+  putaway_rules:
+    - rule_code: "PUTAWAY-OIL"
+      location_code: "ATL-001"
+      sku_prefix: "OIL-"
+      destination_storage_code: "ATL-001-BULK"
+  approval_thresholds:
+    - tier: "SUPERVISOR"
+      max_delta_value: 100.00
+      active: true
+
+accounting:
+  gl_accounts:
+    - code: "4000"
+      name: "Service Revenue"
+      type: "REVENUE"
+    - code: "1200"
+      name: "Accounts Receivable"
+      type: "ASSET"
+  posting_categories:
+    - code: "ORDER_REVENUE"
+      name: "Order Revenue"
+  mapping_keys:
+    - code: "DEFAULT"
+      posting_category_code: "ORDER_REVENUE"
+  gl_mappings:
+    - source_system: "ORDER"
+      external_code: "ORDER_COMPLETED"
+      posting_category_code: "ORDER_REVENUE"
+      mapping_key_code: "DEFAULT"
+      gl_account_code: "4000"
+  default_gl_mappings:
+    - event_type: "ORDER_CART_CREATE"
+      debit_gl_account_code: "1200"
+      credit_gl_account_code: "4000"
+      active: true
+  statement_line_mappings:
+    - statement_type: "INCOME_STATEMENT"
+      line_code: "REVENUE"
+      gl_account_code: "4000"
+      operation: "ADD"
+
+invoice:
+  billing_rules:
+    - party_code: "COMMERCIAL_DEFAULT"
+      purchase_order_required: false
+      payment_terms_code: "NET_30"
+      delivery_method: "EMAIL"
+
+faker:
+  enabled: false
+  seed: 42
+  locale: "en"
+  counts:
+    demo_users: 0
+    demo_customers: 0
+    demo_vehicles: 0
+    demo_orders: 0
+    demo_invoices: 0
