@@ -25,6 +25,26 @@ Update (later 2026-04-06):
 - Phase 5 seed integration completed for module-owned repeatables across `pos-security-service`, `pos-location`, `pos-catalog`, `pos-inventory`, `pos-accounting`, `pos-invoice`, and `pos-people`.
 - Post-seed smoke rerun succeeded (`ALL_MODULE_SMOKE_PASS_PHASE_5_SEED_INTEGRATION`) and catalog seed volume check validated `100` demo products + `20` demo services.
 - `pos-price` was brought under Flyway with `V1__baseline_price_schema.sql`, plus `R__seed_reference_price.sql` for `product_base_price`; all-module smoke then passed including `pos-price` (`ALL_MODULE_SMOKE_PASS_PHASE_5_SEED_INTEGRATION_WITH_PRICE`) with `121` base-price rows seeded.
+- Phase 5.3 execution pass added precision-tightening migrations for high-drift modules:
+  - `pos-accounting/V10__tighten_accounting_precision_parity.sql`
+  - `pos-catalog/V5__tighten_catalog_precision_parity.sql`
+  - `pos-customer/V4__tighten_customer_precision_parity.sql`
+  - `pos-inventory/V12__tighten_inventory_precision_parity.sql`
+  - `pos-workorder/V19__tighten_workorder_precision_parity.sql`
+- Full smoke rerun with 5.3 migrations passed (`ALL_MODULE_SMOKE_PASS_PHASE_5_3`) and Flyway hygiene checks remained green.
+- Migration-contract verification against smoke databases confirms all 5.3-enforced constraints were applied:
+  - `pos-accounting`: `NOT NULL 52/52`, `DEFAULT 24/24`, `INDEX 7/7`
+  - `pos-catalog`: `NOT NULL 23/23`, `DEFAULT 14/14`, `INDEX 3/3`
+  - `pos-customer`: `NOT NULL 27/27`, `DEFAULT 16/16`, `INDEX 3/3`
+  - `pos-inventory`: `NOT NULL 30/30`, `DEFAULT 16/16`, `INDEX 4/4`
+  - `pos-workorder`: `NOT NULL 24/24`, `DEFAULT 2/2`, `INDEX 5/5`
+- 5.3 follow-up pass landed additional gap-closure migrations (`V11` accounting, `V6` catalog, `V5` customer, `V13` inventory, `V20` workorder) and fresh smoke passed (`ALL_MODULE_SMOKE_PASS_PHASE_5_3_ITER2`).
+- Current lightweight entity-vs-schema scan snapshot (explicit mapped columns only) after follow-up:
+  - `pos-accounting`: `ENTITY_COL_EXISTS 350/351`, `ENTITY_NONNULL 119/219`
+  - `pos-catalog`: `ENTITY_COL_EXISTS 56/113`, `ENTITY_NONNULL 19/31`
+  - `pos-customer`: `ENTITY_COL_EXISTS 97/97`, `ENTITY_NONNULL 29/70`
+  - `pos-inventory`: `ENTITY_COL_EXISTS 176/290`, `ENTITY_NONNULL 96/134`
+  - `pos-workorder`: `ENTITY_COL_EXISTS 124/215`, `ENTITY_NONNULL 76/77`
 
 ## Method
 
@@ -58,7 +78,7 @@ This is a static source scan and does not include runtime DB introspection.
 Table-coverage parity for explicitly mapped `@Table(name = ...)` entities is now closed for all Flyway-managed modules.
 
 Remaining gaps to track in follow-on (Phase 5.3) work:
-- Column/type/constraint parity against entity mappings (especially `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inventory`, `pos-workorder`).
+- Final module-by-module formal entity-vs-schema diff closure evidence (beyond migration-contract verification), with any residual precision/constraint deltas captured as forward migrations.
 - Shared ownership dependencies that are intentionally not created in-module:
   - `pos-location` depends on external/shared `location`.
   - `pos-people` depends on external/shared `person`.

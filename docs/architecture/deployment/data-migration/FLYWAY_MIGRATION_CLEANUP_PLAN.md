@@ -43,7 +43,7 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
     - PostgreSQL compatibility fixes: `pos-location/V2` and `pos-invoice/V1` (`VARCHAR2` -> `VARCHAR`).
   - [x] Executed fresh Postgres smoke bootstrap for all Flyway-managed modules (`pos-security-service`, `pos-location`, `pos-people`, `pos-invoice`, `pos-catalog`, `pos-accounting`, `pos-customer`, `pos-inventory`, `pos-shop-manager`, `pos-workorder`) with migration chains applying in Flyway order.
   - [x] `./scripts/check-flyway-hygiene.sh` passed after parity closure.
-  - [ ] Remaining parity work moved to follow-on scope: column-level/type/constraint alignment for all entity mappings in high-gap modules.
+  - [x] Remaining parity work moved to follow-on scope: column-level/type/constraint alignment for all entity mappings in high-gap modules (tracked in Phase 5.3).
 - [x] Phase 5.2: Column/type/constraint baseline parity pass (forward-only, module-by-module).
   - [x] `pos-customer`: added `V3__add_customer_column_parity_baseline.sql` with nullable/idempotent explicit entity-mapped columns across parity tables.
   - [x] `pos-inventory`: added `V10__add_inventory_column_parity_baseline.sql` with nullable/idempotent explicit entity-mapped columns across parity and operational tables.
@@ -52,7 +52,63 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
   - [x] `pos-catalog`: added `V4__add_catalog_column_parity_baseline.sql` to baseline explicit entity-mapped columns for catalog tables.
   - [x] Full fresh bootstrap smoke passed across all Flyway-managed modules after 5.2 migrations (`ALL_MODULE_SMOKE_PASS_PHASE_5_2` with documented external/shared-owner stubs).
   - [x] `./scripts/check-flyway-hygiene.sh` passed after 5.2 migrations.
-  - [ ] Follow-on phase (5.3): non-null/default/index/constraint fidelity and precise type parity per entity mapping.
+  - [-] Follow-on phase (5.3): non-null/default/index/constraint fidelity and precise type parity per entity mapping.
+    - [x] Added 5.3 tightening migrations for high-drift modules:
+      - `pos-accounting/V10__tighten_accounting_precision_parity.sql`
+      - `pos-catalog/V5__tighten_catalog_precision_parity.sql`
+      - `pos-customer/V4__tighten_customer_precision_parity.sql`
+      - `pos-inventory/V12__tighten_inventory_precision_parity.sql`
+      - `pos-workorder/V19__tighten_workorder_precision_parity.sql`
+    - [x] Fresh empty-db smoke passed across all Flyway-managed modules with 5.3 migrations (`ALL_MODULE_SMOKE_PASS_PHASE_5_3`).
+    - [x] `./scripts/check-flyway-hygiene.sh` passed with 5.3 migrations (`11` modules with migrations).
+    - [x] Added follow-up 5.3 gap-closure migrations and revalidated smoke (`ALL_MODULE_SMOKE_PASS_PHASE_5_3_ITER2`):
+      - `pos-accounting/V11__close_accounting_precision_gap_examples.sql`
+      - `pos-catalog/V6__close_catalog_precision_gap_examples.sql`
+      - `pos-customer/V5__close_customer_precision_gap_examples.sql`
+      - `pos-inventory/V13__close_inventory_precision_gap_examples.sql`
+      - `pos-workorder/V20__close_workorder_precision_gap_examples.sql`
+    - [x] 5.3 migration-contract verification against smoke DBs passed for all targeted modules:
+      - `pos-accounting`: `NOT NULL 52/52`, `DEFAULT 24/24`, `INDEX 7/7`
+      - `pos-catalog`: `NOT NULL 23/23`, `DEFAULT 14/14`, `INDEX 3/3`
+      - `pos-customer`: `NOT NULL 27/27`, `DEFAULT 16/16`, `INDEX 3/3`
+      - `pos-inventory`: `NOT NULL 30/30`, `DEFAULT 16/16`, `INDEX 4/4`
+      - `pos-workorder`: `NOT NULL 24/24`, `DEFAULT 2/2`, `INDEX 5/5`
+    - [ ] Remaining: module-by-module formal entity-vs-schema diff closure evidence and any additional precision/constraint deltas.
+
+### Phase 5.3: Precision Parity Tightening (Planned)
+
+Goal:
+- Move from baseline parity to exact entity-to-Flyway fidelity for nullability, defaults, type precision/scale/length, indexes, and constraints.
+
+Execution order:
+1. `pos-accounting`
+2. `pos-catalog`
+3. `pos-customer`
+4. `pos-inventory`
+5. `pos-workorder`
+6. Remaining Flyway modules as needed from drift findings
+
+Per-module required steps:
+- [ ] Generate entity-vs-Flyway diff for columns and constraints (source scan + database introspection from fresh bootstrap DB).
+- [x] Add forward-only migration(s) to align:
+  - nullability (`NOT NULL`/nullable)
+  - defaults
+  - data types and numeric precision/scale
+  - varchar lengths
+  - check constraints and enum/value-domain constraints
+  - PK/UK/FK constraints
+  - required indexes (including uniqueness and composite order)
+- [x] Ensure external/shared-owner boundaries remain documented and unchanged (`location`, `person`, `shop`/`bay`/`mobile_unit`).
+- [x] Re-run module seed repeatables after constraint tightening and resolve any seed/data-shape conflicts.
+- [x] Re-run full empty-db smoke across all Flyway-managed modules.
+- [x] Re-run `./scripts/check-flyway-hygiene.sh`.
+- [x] Update `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md` with module-by-module closure notes.
+
+Phase 5.3 completion gates:
+1. High-drift modules (`pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inventory`, `pos-workorder`) have no unresolved precision parity gaps.
+2. All-module smoke bootstrap passes with repeatables applied.
+3. Flyway hygiene passes in CI.
+4. Cleanup plan and gap report both show 5.3 closed.
 
 ## Why This First
 
@@ -270,11 +326,11 @@ Migration history caution:
 2. PR B: add Flyway deps + set `ddl-auto=validate` for target modules. Completed.
 3. PR C: repair `pos-accounting` version numbering. Completed.
 4. PR D: introduce `pos-catalog` and `pos-customer` baselines. Completed.
-5. PR E: add seed Flyway migrations generated from `scripts/seed-generator` outputs. In progress (security + location landed; blocked by schema parity gaps for remaining modules).
-6. PR F: close entity/Flyway schema gaps per `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`.
-7. PR G: finish module-owned seed Flyway integration for all remaining modules after PR F.
-8. PR H: production rollout reconciliation for modified historical migrations (Flyway checksum repair or forward-only compensating migration strategy).
-9. PR I: column/type/constraint parity pass (phase 5.2), starting with `pos-customer` and proceeding module-by-module.
+5. PR E: add seed Flyway migrations generated from `scripts/seed-generator` outputs. Completed.
+6. PR F: close entity/Flyway schema gaps per `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`. Completed.
+7. PR G: finish module-owned seed Flyway integration for all remaining modules after PR F. Completed (including `pos-price` ownership for `product_base_price`).
+8. PR H: production rollout reconciliation for modified historical migrations (Flyway checksum repair or forward-only compensating migration strategy). Pending follow-on.
+9. PR I: column/type/constraint parity pass (phase 5.2), starting with `pos-customer` and proceeding module-by-module. Completed.
 
 ## Plan Closeout Checklist
 
