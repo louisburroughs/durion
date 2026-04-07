@@ -11,7 +11,29 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
 - [x] Phase 2.3: Added `pos-customer` baseline migration `V1__baseline_customer_schema.sql`.
 - [x] Phase 4: Added CI guardrails script (`scripts/check-flyway-hygiene.sh`) and wired it into CI workflow (`.github/workflows/ci.yml`).
 - [x] Phase 3 decision recorded: current databases are empty, so baseline/reconciliation is skipped and clean `flyway migrate` from `V1` is required.
-- [ ] Phase 5: Seed Flyway migration integration after cleanup guardrails and environment baselines.
+- [-] Phase 5: Seed Flyway migration integration after cleanup guardrails and environment baselines.
+  - [x] Added module-owned repeatable seed migration for `pos-security-service` (`R__seed_reference_security.sql`) sourced from generated seed SQL and adapted to current module schema.
+  - [x] Added module-owned repeatable seed migration for `pos-location` (`R__seed_reference_location.sql`) sourced from generated seed SQL (service areas, capabilities, travel buffers).
+  - [ ] Remaining modules pending schema-aligned seed integration (`pos-catalog`, `pos-inventory`, `pos-accounting`, `pos-invoice`, `pos-people`) where generated SQL currently references tables/columns not yet represented in Flyway baseline chains.
+- [x] Phase 5.1: Entity/Flyway table-coverage parity closure for all Flyway-managed modules (see `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`).
+  - [x] Added `pos-invoice` migration `V2__create_billing_and_payment_tables.sql` to cover entity tables `billing_rules`, `payment_intents`, `receipts`, and `refund_records`.
+  - [x] Added `pos-catalog` migration `V3__create_catalog_core_schema.sql` to replace marker-only bootstrap behavior with core table creation for empty databases.
+  - [x] Added `pos-location` migration `V10__create_location_type_table.sql` to cover missing `location_type` entity table.
+  - [x] Added `pos-people` migration `V10__create_timekeeping_policy_and_person_location_assignment.sql` to cover missing `timekeeping_policy` and `person_location_assignment` entity tables.
+  - [x] Patched `pos-accounting` foundational migrations (`V2`, `V3`, `V5`) to add core table creation/idempotency for fresh bootstrap (`gl_account`, `posting_category`, `mapping_key`, `gl_mapping`, `invoice_status_views` prerequisites).
+  - [x] Added remaining parity migrations for unresolved modules:
+    - `pos-customer/V2__create_customer_entity_parity_tables.sql`
+    - `pos-inventory/V9__create_inventory_entity_parity_tables.sql`
+    - `pos-workorder/V17__create_workorder_entity_parity_tables.sql`
+    - `pos-shop-manager/V17__create_shop_audit_entry_table.sql`
+    - `pos-security-service/V10__create_security_entity_parity_tables.sql`
+  - [x] Patched bootstrap blockers in historical migration chains:
+    - `pos-inventory` `V7`/`V8` guarded against absent pre-parity tables.
+    - `pos-workorder` V-series bootstrap hardening (`V1`, `V3`-`V5`, `V7`-`V9`, `V13`-`V16`) plus PostgreSQL type fix (`VARCHAR2` -> `VARCHAR` in `V1`).
+    - PostgreSQL compatibility fixes: `pos-location/V2` and `pos-invoice/V1` (`VARCHAR2` -> `VARCHAR`).
+  - [x] Executed fresh Postgres smoke bootstrap for all Flyway-managed modules (`pos-security-service`, `pos-location`, `pos-people`, `pos-invoice`, `pos-catalog`, `pos-accounting`, `pos-customer`, `pos-inventory`, `pos-shop-manager`, `pos-workorder`) with migration chains applying in Flyway order.
+  - [x] `./scripts/check-flyway-hygiene.sh` passed after parity closure.
+  - [ ] Remaining parity work moved to follow-on scope: column-level/type/constraint alignment for all entity mappings in high-gap modules.
 
 ## Why This First
 
@@ -167,13 +189,76 @@ After phases 1-4:
 2. Use versioned migrations for one-time bootstrap data and repeatables for reference sync only where safe.
 3. Keep generated SQL idempotent with explicit natural-key `ON CONFLICT` rules.
 
+Execution update (2026-04-06):
+- Implemented repeatable (`R__...`) Flyway seed migrations for modules with schema-compatible generated output:
+  - `pos-security-service/src/main/resources/db/migration/R__seed_reference_security.sql`
+  - `pos-location/src/main/resources/db/migration/R__seed_reference_location.sql`
+- Deferred remaining module integrations until generator output is aligned with module Flyway table/column contracts.
+
+Schema parity dependency:
+- Full Phase 5 completion now depends on closing entity-to-Flyway table coverage gaps documented in `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`.
+
+### Phase 5.1: Close Entity/Flyway Gaps
+
+Goal:
+- Ensure each Flyway-managed module has an explicit, deterministic migration chain that can create all tables required by its current JPA entity model (or intentionally documented external/shared dependencies).
+
+Required actions by module:
+- [x] `pos-catalog`: marker-only baseline replaced with schema-creating forward chain (`V3`).
+- [x] `pos-customer`: introduced schema forward chain coverage (`V2`) for customer/person/contact/projection entity tables.
+- [x] `pos-accounting`: foundational missing DDL coverage added (`gl_account`, `posting_category`, `mapping_key`, `gl_mapping`, `invoice_status_views` prerequisites).
+- [x] `pos-invoice`: missing DDL for `billing_rules`, `payment_intents`, `receipts`, `refund_records` added (`V2`).
+- [x] `pos-people`: missing DDL for `timekeeping_policy` and `person_location_assignment` added (`V10`).
+- [x] `pos-people`: external/shared ownership boundary validated during smoke (`person` table stub required for standalone chain execution).
+- [x] `pos-location`: missing `location_type` DDL added (`V10`).
+- [x] `pos-location`: external/shared ownership boundary validated during smoke (`location` table stub required for standalone chain execution).
+- [x] `pos-inventory`: missing DDL for ASN/PO/allocation/reservation/pick/return/approval-threshold tables added (`V9`).
+- [x] `pos-workorder`: missing DDL for estimate/approval/snapshot/substitute/state tables added (`V17`), with bootstrap hardening in earlier migrations.
+- [x] `pos-shop-manager`: missing `shop_audit_entry` DDL added (`V17`).
+- [x] `pos-security-service`: residual entity-only tables closed (`V10`).
+
+Validation gates for Phase 5.1 completion:
+1. Per-module table coverage check: every `@Table(name=...)` is either:
+   - created in module Flyway chain, or
+   - explicitly mapped as external/shared ownership in module docs.
+2. `./scripts/check-flyway-hygiene.sh` passes.
+3. Fresh empty database bootstrap succeeds with `flyway migrate` for all Flyway-managed modules (with explicit external/shared-owner table stubs for modules that alter external tables: `location`, `person`, `shop`/`bay`/`mobile_unit`).
+4. Seed generator output-to-target-table mapping is validated against Flyway schemas, then Phase 5 seed migrations are completed module-by-module.
+
+Execution note (2026-04-06):
+- Phase 5.1 table-coverage closure is complete.
+- Additional parity migrations now landed for `pos-location` and `pos-people`.
+- Additional foundational parity patch landed for `pos-accounting` migration chain to remove fresh-bootstrap dependency failures.
+- Remaining module parity landed: `pos-customer`, `pos-inventory`, `pos-workorder`, `pos-shop-manager`, and `pos-security-service`.
+- Fresh empty-db smoke bootstrap succeeded across all Flyway-managed modules using Flyway-ordered execution; standalone smoke included explicit external/shared-owner stubs where required (`location`, `person`, `shop`/`bay`/`mobile_unit`).
+- Flyway hygiene script passed after parity closure.
+- Follow-on work is now column/type/constraint tightening to full entity-level parity.
+
+Migration history caution:
+- Because some parity fixes are in existing versioned files (`pos-accounting` V2/V3/V5), environments that already executed those versions may require explicit Flyway checksum reconciliation (`repair`) or compensating forward migrations depending on rollout policy.
+
 ## Concrete Next Patch Set (suggested PR sequence)
 
 1. PR A: migration hygiene tooling + CI checks (read-only checks first). Completed.
 2. PR B: add Flyway deps + set `ddl-auto=validate` for target modules. Completed.
 3. PR C: repair `pos-accounting` version numbering. Completed.
 4. PR D: introduce `pos-catalog` and `pos-customer` baselines. Completed.
-5. PR E: add seed Flyway migrations generated from `scripts/seed-generator` outputs. Next.
+5. PR E: add seed Flyway migrations generated from `scripts/seed-generator` outputs. In progress (security + location landed; blocked by schema parity gaps for remaining modules).
+6. PR F: close entity/Flyway schema gaps per `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`.
+7. PR G: finish module-owned seed Flyway integration for all remaining modules after PR F.
+8. PR H: production rollout reconciliation for modified historical migrations (Flyway checksum repair or forward-only compensating migration strategy).
+
+## Plan Closeout Checklist
+
+This cleanup plan is complete when all items below are true:
+
+1. All modules in `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md` are either:
+   - covered by explicit Flyway table creation for current entity mappings, or
+   - have explicit documented external/shared ownership for referenced tables.
+2. `./scripts/check-flyway-hygiene.sh` passes in CI.
+3. Fresh empty-db smoke bootstrap passes for every Flyway-managed module.
+4. Seed Flyway migrations are integrated module-by-module (Phase 5 complete).
+5. Rollout note for environments with existing Flyway history is documented and approved (`repair` vs compensating forward migrations).
 
 ## Risks and Mitigations
 
