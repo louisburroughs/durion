@@ -11,10 +11,20 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
 - [x] Phase 2.3: Added `pos-customer` baseline migration `V1__baseline_customer_schema.sql`.
 - [x] Phase 4: Added CI guardrails script (`scripts/check-flyway-hygiene.sh`) and wired it into CI workflow (`.github/workflows/ci.yml`).
 - [x] Phase 3 decision recorded: current databases are empty, so baseline/reconciliation is skipped and clean `flyway migrate` from `V1` is required.
-- [-] Phase 5: Seed Flyway migration integration after cleanup guardrails and environment baselines.
+- [x] Phase 5: Seed Flyway migration integration after cleanup guardrails and environment baselines.
   - [x] Added module-owned repeatable seed migration for `pos-security-service` (`R__seed_reference_security.sql`) sourced from generated seed SQL and adapted to current module schema.
   - [x] Added module-owned repeatable seed migration for `pos-location` (`R__seed_reference_location.sql`) sourced from generated seed SQL (service areas, capabilities, travel buffers).
-  - [ ] Remaining modules pending schema-aligned seed integration (`pos-catalog`, `pos-inventory`, `pos-accounting`, `pos-invoice`, `pos-people`) where generated SQL currently references tables/columns not yet represented in Flyway baseline chains.
+  - [x] Added module-owned repeatable seed migration for `pos-catalog` (`R__seed_reference_catalog.sql`) with catalog-owned reference seeds (`product`, `service`) only.
+  - [x] Added module-owned repeatable seed migration for `pos-inventory` (`R__seed_reference_inventory.sql`) plus schema support migration `V11__add_approval_threshold_config_columns.sql` for inventory-owned seed shapes.
+  - [x] Added module-owned repeatable seed migration for `pos-accounting` (`R__seed_reference_accounting.sql`) with schema-compatible default/audit and statement mapping values.
+  - [x] Added module-owned repeatable seed migration for `pos-invoice` (`R__seed_reference_invoice.sql`) for billing rules.
+  - [x] Added module-owned repeatable seed migration for `pos-people` (`R__seed_reference_people.sql`) with guarded cross-module inserts for external/shared ownership (`person`, `location`).
+  - [x] Added `pos-price` Flyway baseline and module-owned repeatable seed migration:
+    - `pos-price/src/main/resources/db/migration/V1__baseline_price_schema.sql`
+    - `pos-price/src/main/resources/db/migration/R__seed_reference_price.sql` (`product_base_price`)
+  - [x] Fresh empty-db smoke with Phase 5 seeds passed across all Flyway-managed modules including `pos-price` (`ALL_MODULE_SMOKE_PASS_PHASE_5_SEED_INTEGRATION_WITH_PRICE`) and `./scripts/check-flyway-hygiene.sh` passed.
+  - [x] Catalog seed volume verification passed: `100` demo products and `20` demo services (`sku LIKE 'DEMO-PROD-%'`, `code LIKE 'DEMO-SVC-%'`).
+  - [x] Price seed volume verification passed: `121` `product_base_price` rows in `pos-price` smoke database.
 - [x] Phase 5.1: Entity/Flyway table-coverage parity closure for all Flyway-managed modules (see `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`).
   - [x] Added `pos-invoice` migration `V2__create_billing_and_payment_tables.sql` to cover entity tables `billing_rules`, `payment_intents`, `receipts`, and `refund_records`.
   - [x] Added `pos-catalog` migration `V3__create_catalog_core_schema.sql` to replace marker-only bootstrap behavior with core table creation for empty databases.
@@ -34,6 +44,15 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
   - [x] Executed fresh Postgres smoke bootstrap for all Flyway-managed modules (`pos-security-service`, `pos-location`, `pos-people`, `pos-invoice`, `pos-catalog`, `pos-accounting`, `pos-customer`, `pos-inventory`, `pos-shop-manager`, `pos-workorder`) with migration chains applying in Flyway order.
   - [x] `./scripts/check-flyway-hygiene.sh` passed after parity closure.
   - [ ] Remaining parity work moved to follow-on scope: column-level/type/constraint alignment for all entity mappings in high-gap modules.
+- [x] Phase 5.2: Column/type/constraint baseline parity pass (forward-only, module-by-module).
+  - [x] `pos-customer`: added `V3__add_customer_column_parity_baseline.sql` with nullable/idempotent explicit entity-mapped columns across parity tables.
+  - [x] `pos-inventory`: added `V10__add_inventory_column_parity_baseline.sql` with nullable/idempotent explicit entity-mapped columns across parity and operational tables.
+  - [x] `pos-workorder`: added `V18__add_workorder_column_parity_baseline.sql` with nullable/idempotent explicit entity-mapped columns across parity and earlier chain tables.
+  - [x] `pos-accounting`: added `V9__create_accounting_additional_parity_tables.sql` to create remaining entity tables with baseline columns.
+  - [x] `pos-catalog`: added `V4__add_catalog_column_parity_baseline.sql` to baseline explicit entity-mapped columns for catalog tables.
+  - [x] Full fresh bootstrap smoke passed across all Flyway-managed modules after 5.2 migrations (`ALL_MODULE_SMOKE_PASS_PHASE_5_2` with documented external/shared-owner stubs).
+  - [x] `./scripts/check-flyway-hygiene.sh` passed after 5.2 migrations.
+  - [ ] Follow-on phase (5.3): non-null/default/index/constraint fidelity and precise type parity per entity mapping.
 
 ## Why This First
 
@@ -193,10 +212,18 @@ Execution update (2026-04-06):
 - Implemented repeatable (`R__...`) Flyway seed migrations for modules with schema-compatible generated output:
   - `pos-security-service/src/main/resources/db/migration/R__seed_reference_security.sql`
   - `pos-location/src/main/resources/db/migration/R__seed_reference_location.sql`
-- Deferred remaining module integrations until generator output is aligned with module Flyway table/column contracts.
+- `pos-catalog/src/main/resources/db/migration/R__seed_reference_catalog.sql`
+- `pos-inventory/src/main/resources/db/migration/R__seed_reference_inventory.sql`
+- `pos-accounting/src/main/resources/db/migration/R__seed_reference_accounting.sql`
+- `pos-invoice/src/main/resources/db/migration/R__seed_reference_invoice.sql`
+- `pos-people/src/main/resources/db/migration/R__seed_reference_people.sql`
+- `pos-price/src/main/resources/db/migration/V1__baseline_price_schema.sql`
+- `pos-price/src/main/resources/db/migration/R__seed_reference_price.sql`
+- Executed fresh empty-db smoke with external/shared-owner stubs and all phase-5 repeatables applied in-module order (`ALL_MODULE_SMOKE_PASS_PHASE_5_SEED_INTEGRATION_WITH_PRICE`).
+- `./scripts/check-flyway-hygiene.sh` passed after seed integration (`11` modules with migrations).
 
 Schema parity dependency:
-- Full Phase 5 completion now depends on closing entity-to-Flyway table coverage gaps documented in `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`.
+- Entity/Flyway table-coverage and 5.2 column-baseline parity dependencies are satisfied; remaining follow-on is precision parity tightening in Phase 5.3.
 
 ### Phase 5.1: Close Entity/Flyway Gaps
 
@@ -247,6 +274,7 @@ Migration history caution:
 6. PR F: close entity/Flyway schema gaps per `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md`.
 7. PR G: finish module-owned seed Flyway integration for all remaining modules after PR F.
 8. PR H: production rollout reconciliation for modified historical migrations (Flyway checksum repair or forward-only compensating migration strategy).
+9. PR I: column/type/constraint parity pass (phase 5.2), starting with `pos-customer` and proceeding module-by-module.
 
 ## Plan Closeout Checklist
 
