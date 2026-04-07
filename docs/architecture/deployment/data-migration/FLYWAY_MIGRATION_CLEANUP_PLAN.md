@@ -52,7 +52,7 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
   - [x] `pos-catalog`: added `V4__add_catalog_column_parity_baseline.sql` to baseline explicit entity-mapped columns for catalog tables.
   - [x] Full fresh bootstrap smoke passed across all Flyway-managed modules after 5.2 migrations (`ALL_MODULE_SMOKE_PASS_PHASE_5_2` with documented external/shared-owner stubs).
   - [x] `./scripts/check-flyway-hygiene.sh` passed after 5.2 migrations.
-  - [-] Follow-on phase (5.3): non-null/default/index/constraint fidelity and precise type parity per entity mapping.
+  - [x] Follow-on phase (5.3): non-null/default/index/constraint fidelity and precise type parity per entity mapping.
     - [x] Added 5.3 tightening migrations for high-drift modules:
       - `pos-accounting/V10__tighten_accounting_precision_parity.sql`
       - `pos-catalog/V5__tighten_catalog_precision_parity.sql`
@@ -67,13 +67,19 @@ Status key: `[x]` completed, `[-]` in progress, `[ ]` pending
       - `pos-customer/V5__close_customer_precision_gap_examples.sql`
       - `pos-inventory/V13__close_inventory_precision_gap_examples.sql`
       - `pos-workorder/V20__close_workorder_precision_gap_examples.sql`
+    - [x] Added final 5.3 remaining-column closure migrations:
+      - `pos-accounting/V12__add_accounting_remaining_entity_columns.sql` (`1` column)
+      - `pos-catalog/V7__add_catalog_remaining_entity_columns.sql` (`57` columns)
+      - `pos-inventory/V14__add_inventory_remaining_entity_columns.sql` (`114` columns)
+      - `pos-workorder/V21__add_workorder_remaining_entity_columns.sql` (`91` columns)
+    - [x] Fresh empty-db smoke rerun passed across all Flyway-managed modules with final 5.3 migrations (`ALL_MODULE_SMOKE_PASS_PHASE_5_3_ITER3`).
     - [x] 5.3 migration-contract verification against smoke DBs passed for all targeted modules:
       - `pos-accounting`: `NOT NULL 52/52`, `DEFAULT 24/24`, `INDEX 7/7`
       - `pos-catalog`: `NOT NULL 23/23`, `DEFAULT 14/14`, `INDEX 3/3`
       - `pos-customer`: `NOT NULL 27/27`, `DEFAULT 16/16`, `INDEX 3/3`
       - `pos-inventory`: `NOT NULL 30/30`, `DEFAULT 16/16`, `INDEX 4/4`
       - `pos-workorder`: `NOT NULL 24/24`, `DEFAULT 2/2`, `INDEX 5/5`
-    - [ ] Remaining: module-by-module formal entity-vs-schema diff closure evidence and any additional precision/constraint deltas.
+    - [x] Formal 5.3 closure evidence recorded in `FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md` (module-by-module remaining-column closure + smoke/hygiene validation).
 
 ### Phase 5.3: Precision Parity Tightening (Planned)
 
@@ -89,7 +95,7 @@ Execution order:
 6. Remaining Flyway modules as needed from drift findings
 
 Per-module required steps:
-- [ ] Generate entity-vs-Flyway diff for columns and constraints (source scan + database introspection from fresh bootstrap DB).
+- [x] Generate entity-vs-Flyway diff for columns and constraints (source scan + database introspection from fresh bootstrap DB).
 - [x] Add forward-only migration(s) to align:
   - nullability (`NOT NULL`/nullable)
   - defaults
