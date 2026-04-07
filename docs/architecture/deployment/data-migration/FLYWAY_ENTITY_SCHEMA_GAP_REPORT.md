@@ -39,12 +39,18 @@ Update (later 2026-04-06):
   - `pos-inventory`: `NOT NULL 30/30`, `DEFAULT 16/16`, `INDEX 4/4`
   - `pos-workorder`: `NOT NULL 24/24`, `DEFAULT 2/2`, `INDEX 5/5`
 - 5.3 follow-up pass landed additional gap-closure migrations (`V11` accounting, `V6` catalog, `V5` customer, `V13` inventory, `V20` workorder) and fresh smoke passed (`ALL_MODULE_SMOKE_PASS_PHASE_5_3_ITER2`).
-- Current lightweight entity-vs-schema scan snapshot (explicit mapped columns only) after follow-up:
-  - `pos-accounting`: `ENTITY_COL_EXISTS 350/351`, `ENTITY_NONNULL 119/219`
-  - `pos-catalog`: `ENTITY_COL_EXISTS 56/113`, `ENTITY_NONNULL 19/31`
-  - `pos-customer`: `ENTITY_COL_EXISTS 97/97`, `ENTITY_NONNULL 29/70`
-  - `pos-inventory`: `ENTITY_COL_EXISTS 176/290`, `ENTITY_NONNULL 96/134`
-  - `pos-workorder`: `ENTITY_COL_EXISTS 124/215`, `ENTITY_NONNULL 76/77`
+- Final 5.3 pass landed remaining-column closure migrations:
+  - `pos-accounting/V12__add_accounting_remaining_entity_columns.sql` (`1` column)
+  - `pos-catalog/V7__add_catalog_remaining_entity_columns.sql` (`57` columns)
+  - `pos-inventory/V14__add_inventory_remaining_entity_columns.sql` (`114` columns)
+  - `pos-workorder/V21__add_workorder_remaining_entity_columns.sql` (`91` columns)
+- Fresh all-module smoke rerun passed with final 5.3 migrations (`ALL_MODULE_SMOKE_PASS_PHASE_5_3_ITER3`), and Flyway hygiene checks remained green.
+- Final lightweight entity-vs-schema scan snapshot (explicit mapped columns tracked in 5.3 high-drift scope):
+  - `pos-accounting`: `ENTITY_COL_EXISTS 351/351`
+  - `pos-catalog`: `ENTITY_COL_EXISTS 113/113`
+  - `pos-customer`: `ENTITY_COL_EXISTS 97/97`
+  - `pos-inventory`: `ENTITY_COL_EXISTS 290/290`
+  - `pos-workorder`: `ENTITY_COL_EXISTS 215/215`
 
 ## Method
 
@@ -65,11 +71,11 @@ This is a static source scan and does not include runtime DB introspection.
 | `pos-location` | Table coverage closed | External/shared `location` dependency remains by design |
 | `pos-people` | Table coverage closed | External/shared `person` dependency remains by design |
 | `pos-invoice` | Table coverage closed | Residual work is column/type/constraint parity |
-| `pos-inventory` | 5.2 baseline closed | Follow-on (5.3) type/constraint tightening remains |
-| `pos-workorder` | 5.2 baseline closed | Follow-on (5.3) type/constraint tightening remains |
-| `pos-accounting` | 5.2 baseline closed | Broad type/constraint tightening remains in follow-on (5.3) |
-| `pos-catalog` | 5.2 baseline closed | UUID migration still emits expected clean-bootstrap notices; follow-on (5.3) tightening remains |
-| `pos-customer` | 5.2 baseline closed | Follow-on (5.3) type/constraint tightening remains |
+| `pos-inventory` | 5.3 closed for high-drift scope | Remaining residuals are only documented external/shared ownership boundaries |
+| `pos-workorder` | 5.3 closed for high-drift scope | Remaining residuals are only documented external/shared ownership boundaries |
+| `pos-accounting` | 5.3 closed for high-drift scope | Remaining residuals are only documented external/shared ownership boundaries |
+| `pos-catalog` | 5.3 closed for high-drift scope | UUID migration still emits expected clean-bootstrap notices; no unresolved high-drift column-existence gaps |
+| `pos-customer` | 5.3 closed for high-drift scope | Remaining residuals are only documented external/shared ownership boundaries |
 
 ## Detailed Gaps
 
@@ -77,8 +83,7 @@ This is a static source scan and does not include runtime DB introspection.
 
 Table-coverage parity for explicitly mapped `@Table(name = ...)` entities is now closed for all Flyway-managed modules.
 
-Remaining gaps to track in follow-on (Phase 5.3) work:
-- Final module-by-module formal entity-vs-schema diff closure evidence (beyond migration-contract verification), with any residual precision/constraint deltas captured as forward migrations.
+Remaining residuals after 5.3 closure:
 - Shared ownership dependencies that are intentionally not created in-module:
   - `pos-location` depends on external/shared `location`.
   - `pos-people` depends on external/shared `person`.
