@@ -16,6 +16,15 @@ Update (later 2026-04-06):
 - `pos-security-service` added `V10__create_security_entity_parity_tables.sql` for residual mapped entity tables.
 - Bootstrap blockers were patched in historical migrations (`pos-inventory` V7/V8, `pos-workorder` V1/V3-V5/V7-V9/V13-V16) plus PostgreSQL type compatibility (`VARCHAR2` -> `VARCHAR`) in `pos-invoice` V1 and `pos-location` V2.
 - Static scan now shows full `@Table` table-name coverage across Flyway-managed modules; remaining gaps are primarily column/type/constraint parity.
+- Phase 5.2 kickoff: `pos-customer` added `V3__add_customer_column_parity_baseline.sql` to introduce nullable/idempotent explicit entity-mapped columns for customer parity tables.
+- `pos-inventory` added `V10__add_inventory_column_parity_baseline.sql` to introduce nullable/idempotent explicit entity-mapped columns for inventory parity + operational tables.
+- `pos-workorder` added `V18__add_workorder_column_parity_baseline.sql` to introduce nullable/idempotent explicit entity-mapped columns for workorder parity + core operational tables.
+- `pos-accounting` added `V9__create_accounting_additional_parity_tables.sql` to close remaining table-name parity and baseline key entity columns.
+- `pos-catalog` added `V4__add_catalog_column_parity_baseline.sql` for explicit entity-mapped column baseline across catalog tables.
+- Full 5.2 validation run succeeded across all Flyway-managed modules (`ALL_MODULE_SMOKE_PASS_PHASE_5_2`) and Flyway hygiene checks passed.
+- Phase 5 seed integration completed for module-owned repeatables across `pos-security-service`, `pos-location`, `pos-catalog`, `pos-inventory`, `pos-accounting`, `pos-invoice`, and `pos-people`.
+- Post-seed smoke rerun succeeded (`ALL_MODULE_SMOKE_PASS_PHASE_5_SEED_INTEGRATION`) and catalog seed volume check validated `100` demo products + `20` demo services.
+- `pos-price` was brought under Flyway with `V1__baseline_price_schema.sql`, plus `R__seed_reference_price.sql` for `product_base_price`; all-module smoke then passed including `pos-price` (`ALL_MODULE_SMOKE_PASS_PHASE_5_SEED_INTEGRATION_WITH_PRICE`) with `121` base-price rows seeded.
 
 ## Method
 
@@ -36,11 +45,11 @@ This is a static source scan and does not include runtime DB introspection.
 | `pos-location` | Table coverage closed | External/shared `location` dependency remains by design |
 | `pos-people` | Table coverage closed | External/shared `person` dependency remains by design |
 | `pos-invoice` | Table coverage closed | Residual work is column/type/constraint parity |
-| `pos-inventory` | Table coverage closed | Residual work is column/type/constraint parity |
-| `pos-workorder` | Table coverage closed | Residual work is column/type/constraint parity |
-| `pos-accounting` | Improved | Core bootstrap prerequisites now created; additional column-level parity remains broad |
-| `pos-catalog` | Table coverage closed | UUID migration still emits expected notices for legacy table names in clean bootstrap |
-| `pos-customer` | Table coverage closed | Residual work is column/type/constraint parity |
+| `pos-inventory` | 5.2 baseline closed | Follow-on (5.3) type/constraint tightening remains |
+| `pos-workorder` | 5.2 baseline closed | Follow-on (5.3) type/constraint tightening remains |
+| `pos-accounting` | 5.2 baseline closed | Broad type/constraint tightening remains in follow-on (5.3) |
+| `pos-catalog` | 5.2 baseline closed | UUID migration still emits expected clean-bootstrap notices; follow-on (5.3) tightening remains |
+| `pos-customer` | 5.2 baseline closed | Follow-on (5.3) type/constraint tightening remains |
 
 ## Detailed Gaps
 
@@ -48,7 +57,7 @@ This is a static source scan and does not include runtime DB introspection.
 
 Table-coverage parity for explicitly mapped `@Table(name = ...)` entities is now closed for all Flyway-managed modules.
 
-Remaining gaps to track in follow-on work:
+Remaining gaps to track in follow-on (Phase 5.3) work:
 - Column/type/constraint parity against entity mappings (especially `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inventory`, `pos-workorder`).
 - Shared ownership dependencies that are intentionally not created in-module:
   - `pos-location` depends on external/shared `location`.
@@ -57,10 +66,11 @@ Remaining gaps to track in follow-on work:
 
 ## Impact to Seed Integration
 
-Table-name contract blockers have been removed for covered modules. Remaining seed blocker scope is now mostly column-level contract alignment and data-shape constraints.
+Table-name contract blockers have been removed for covered modules and module-owned Phase 5 seed repeatables are integrated.
+Remaining seed follow-on scope is column/type/constraint tightening in Phase 5.3.
 
 ## Recommended Closure Order
 
 1. Tighten column/type/constraint parity for high-drift modules (`pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inventory`, `pos-workorder`).
 2. Formalize/document external/shared ownership boundaries for `location`, `person`, `shop`/`bay`/`mobile_unit`.
-3. Re-run seed generator contract alignment and complete Phase 5 seed migrations for all remaining modules.
+3. Keep generator-to-target mapping alignment under CI/contract validation as schema precision work proceeds in 5.3.
