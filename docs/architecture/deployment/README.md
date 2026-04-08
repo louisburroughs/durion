@@ -27,38 +27,3 @@ These documents define the target deployment model and operational boundaries th
 6. SSH in → run Sections 8–9 (docker, nginx, TLS)
 7. Run Sections 10–12 (clone, deploy, health check)
 8. Run Sections 13–15 (seed, backup cron, smoke)
-
-ssh -i ~/.ssh/durion-alpha-key.pem ec2-user@34.202.151.97
-
-ecrlogin
-
-docker compose \
-  -f docker-compose.yml \
-  -f /opt/durion/alpha/docker-compose.prod.yml \
-  --env-file /opt/durion/alpha/.env \
-  logs --tail=200 pos-vehicle-inventory
-
-docker inspect backend-pos-frontend-1 --format '{{json .State.Health}}' | jq
-
-curl -i <http://localhost:4200/>
-curl -i <https://durionpos.org>
-
-docker compose \
-  -f docker-compose.yml \
-  -f /opt/durion/alpha/docker-compose.prod.yml \
-  --env-file /opt/durion/alpha/.env \
-  ps
-
-  What you need to set now:
-
-New repo secret: ALPHA_EC2_INSTANCE_ID (e.g. i-xxxxxxxxxxxx).
-GitHub OIDC role (AWS_ROLE_ARN) must allow:
-ssm:SendCommand
-ssm:GetCommandInvocation
-ssm:ListCommandInvocations (optional but useful)
-EC2 instance role must include AmazonSSMManagedInstanceCore and be online in Systems Manager.
-Next step:
-
-Push this workflow change.
-Re-run Build and Push to ECR with deploy_alpha=true.
-If it fails, share that job log and I’ll tune IAM/SSM permissions quickly.

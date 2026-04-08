@@ -9,8 +9,6 @@
 Durion-Processing.md
 PR-Review-Processing.md
 
-ports_defined.txt
-
 .venv/
 venv/
 
@@ -24,3 +22,6 @@ archived-frontend-issues/
 # Local AWS CLI install artifacts
 aws/
 awscliv2.zip
+
+notes.txt
+
