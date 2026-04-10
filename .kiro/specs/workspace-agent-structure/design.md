@@ -4,7 +4,7 @@
 
 The Workspace-Level Agent Structure System is a comprehensive framework that coordinates development across the entire Durion ecosystem, including:
 
-- **durion-positivity-backend**: Spring Boot 4.0.x microservices (Java 21) for business logic, APIs, and data persistence
+- **durion-positivity-backend**: Spring Boot 4.0.x microservices (Java 25) for business logic, APIs, and data persistence
 - **durion-moqui-frontend**: Moqui Framework 3.x (Java 11) with Vue.js 3 frontend for user interfaces and workflows
 
 The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents. **Critically, the workspace agents are responsible for analyzing complete business requirement design documents and intelligently splitting the implementation between the moqui frontend (UI/screens/user interaction) and the durion-positivity-backend (business logic/APIs/data persistence).**
@@ -23,7 +23,7 @@ The workspace agent structure operates as a strategic coordination layer above p
    - Deployment and release coordination
 
 3. **Technology Stack Bridging**: Manage the impedance mismatch between:
-   - Java 21 (durion-positivity-backend) ↔ Java 11 (moqui) ↔ Groovy (moqui services)
+   - Java 25 (durion-positivity-backend) ↔ Java 11 (moqui) ↔ Groovy (moqui services)
    - Spring Boot 4.0.x ↔ Moqui Framework 3.x patterns
    - PostgreSQL (durion-positivity-backend) ↔ PostgreSQL/MySQL (moqui) database coordination
    - Docker deployment (both) with different container configurations
@@ -37,7 +37,7 @@ The workspace agent structure operates as a strategic coordination layer above p
 - **Security-by-Design**: All cross-project communications use JWT tokens with secure integration patterns
 - **Scalability**: System must handle 100 concurrent requests and 50% workspace growth
 - **Disaster Recovery**: RTO of 4 hours and RPO of 1 hour for business continuity
-- **Code Generation Standards**: All code generation and implementation must use Java 21 as the target version for compatibility with the durion-positivity-backend system
+- **Code Generation Standards**: All code generation and implementation must use Java 25 as the target version for compatibility with the durion-positivity-backend system
 - **Agent Implementation Location**: All agent framework implementation classes are located in `durion/workspace-agents/src/main/java/`, and test classes in `durion/workspace-agents/src/test/java/`
 
 ## Requirements Fulfillment Mapping
@@ -57,13 +57,13 @@ This design directly fulfills the requirements specified in requirements.md:
 - WHEN a developer requests architectural guidance for a cross-project feature, THE workspace agent system SHALL provide guidance that references both durion-positivity-backend Spring Boot patterns AND durion-moqui-frontend frontend patterns within 30 seconds
 - WHEN an API contract changes in durion-positivity-backend, THE workspace agent system SHALL automatically validate compatibility with durion-positivity component AND durion-moqui-frontend frontend consumers AND generate migration guidance within 5 minutes if breaking changes are detected
 - WHEN integrating authentication between projects, THE workspace agent system SHALL enforce JWT token format consistency across Spring Boot, durion-positivity component, AND Moqui implementations with 100% accuracy
-- WHEN dependency version conflicts are detected across Java 21 (durion-positivity-backend), Java 11 (moqui), and Groovy (durion-positivity) stacks, THE workspace agent system SHALL prevent deployment AND provide specific remediation steps within 2 minutes
+- WHEN dependency version conflicts are detected across Java 25 (durion-positivity-backend), Java 11 (moqui), and Groovy (durion-positivity) stacks, THE workspace agent system SHALL prevent deployment AND provide specific remediation steps within 2 minutes
 - WHEN architectural changes affect multiple projects, THE workspace agent system SHALL notify all affected project teams within 1 hour AND coordinate change implementation across durion-positivity-backend, durion-positivity component, AND moqui frontend
 
 ### REQ-WS-003: Integrated Development Guidance
 **Acceptance Criteria Fulfillment:**
 - WHEN a developer requests feature implementation guidance based on decomposed requirements, THE workspace agent system SHALL provide coordinated guidance for durion-positivity-backend services, durion-positivity integration, AND durion-moqui-frontend frontend components within 10 seconds
-- All code generation and implementation uses Java 21 as the target version for compatibility with the durion-positivity-backend system
+- All code generation and implementation uses Java 25 as the target version for compatibility with the durion-positivity-backend system
 - Agent framework implementation and test classes are located in durion/workspace-agents/src/main/java/ and durion/workspace-agents/src/test/java/
 
 ## Architecture
@@ -99,7 +99,7 @@ graph TB
         WF[Workflow Coordination Agent]
     end
     
-    subgraph "Positivity Backend (Java 21, Spring Boot 4.0.x)"
+    subgraph "Positivity Backend (Java 25, Spring Boot 4.0.x)"
         POSAPI[Business Logic APIs]
         POSDATA[Data Persistence]
         POSAUTH[Authentication Services]
@@ -168,7 +168,7 @@ The workspace agent architecture is organized into four primary layers plus a cr
 
 ### 3. Operational Coordination Layer
 
-- **Multi-Project DevOps Agent**: Coordinates Docker deployment and infrastructure across durion-positivity-backend (Java 21) and moqui (Java 11) stacks
+- **Multi-Project DevOps Agent**: Coordinates Docker deployment and infrastructure across durion-positivity-backend (Java 25) and moqui (Java 11) stacks
 - **Workspace SRE Agent**: Provides unified observability and monitoring across Spring Boot, Moqui, and Vue.js layers
 - **Cross-Project Testing Agent**: Orchestrates testing strategies using Spock (durion-positivity-backend), Spock (moqui Groovy), and Jest (Vue.js)
 - **Disaster Recovery Agent**: Manages business continuity and disaster recovery coordination across both projects
@@ -218,7 +218,7 @@ WorkspaceAgentHierarchy:
     
   backend_layer:
     durion-positivity-backend:
-      stack: "Java 21, Spring Boot 4.0.x, PostgreSQL"
+      stack: "Java 25, Spring Boot 4.0.x, PostgreSQL"
       agents:
         - spring_boot_developer_agent
         - api_gateway_agent
@@ -420,7 +420,7 @@ DecomposedRequirements:
 - Coordinates feature development between durion-positivity-backend services and moqui frontend based on requirements decomposition
 - Manages backend-frontend dependencies and integration points through durion-positivity component
 - Provides guidance for API versioning and backward compatibility between Spring Boot 4.0.x and Moqui Framework 3.x
-- Orchestrates release coordination between Java 21 backend and Java 11 frontend deployments
+- Orchestrates release coordination between Java 25 backend and Java 11 frontend deployments
 - Handles integration testing scenarios that span the full stack (Spock + Jest)
 - Ensures proper use of durion-positivity component as integration layer
 
@@ -441,16 +441,16 @@ DecomposedRequirements:
 **Capabilities**:
 
 - Defines workspace-wide architectural patterns and principles for both Spring Boot and Moqui frameworks
-- Ensures consistency between Spring Boot 4.0.x microservices (Java 21, durion-positivity-backend) and Moqui Framework 3.x (Java 11, Groovy, Vue.js 3)
+- Ensures consistency between Spring Boot 4.0.x microservices (Java 25, durion-positivity-backend) and Moqui Framework 3.x (Java 11, Groovy, Vue.js 3)
 - Validates requirements decomposition against established architectural boundaries
 - Manages technology stack decisions and integration patterns through durion-positivity component
 - Provides guidance for system boundaries and layer interactions (presentation vs business logic)
-- Coordinates architectural evolution across Java 21 backend and Java 11/Groovy/TypeScript frontend
+- Coordinates architectural evolution across Java 25 backend and Java 11/Groovy/TypeScript frontend
 - Ensures proper separation of concerns between Moqui entities/screens and durion-positivity-backend domain models/APIs
 
 **Performance Requirements**:
 - Cross-project architectural guidance delivery: within 30 seconds
-- Dependency version conflict detection and remediation: within 2 minutes across Java 21, Java 11, and Groovy stacks
+- Dependency version conflict detection and remediation: within 2 minutes across Java 25, Java 11, and Groovy stacks
 - Affected project team notifications for architectural changes: within 1 hour
 
 **Architectural Patterns Enforced**:
@@ -465,7 +465,7 @@ DecomposedRequirements:
 - Validates requirements decomposition from Requirements Decomposition Agent
 - Provides architectural guidance to backend and frontend architecture agents
 - Works with Full-Stack Integration Agent for system design coordination
-- Coordinates with Unified Security Agent for security architecture across Java 21 and Java 11 stacks
+- Coordinates with Unified Security Agent for security architecture across Java 25 and Java 11 stacks
 - Ensures durion-positivity component follows proper integration patterns
 
 #### 3. Unified Security Agent
@@ -622,7 +622,7 @@ export default defineComponent({
 
 - Receives integration requirements from Requirements Decomposition Agent
 - Works with moqui Vue.js agents and durion-positivity-backend REST API agents
-- Coordinates with Unified Security Agent for JWT auth flows across Java 11 and Java 21 stacks
+- Coordinates with Unified Security Agent for JWT auth flows across Java 11 and Java 25 stacks
 - Collaborates with API Contract Agent for durion-positivity interface definitions
 - Provides integration patterns to Testing Agent for end-to-end test scenarios
 
@@ -944,7 +944,7 @@ CrossProjectIntegrationRegistry:
     - id: durion-positivity-backend
       type: spring_boot_microservices
       stack:
-        language: Java 21
+        language: Java 25
         framework: Spring Boot 4.0.x
         database: PostgreSQL
         testing: Spock Framework
@@ -1150,7 +1150,7 @@ After reviewing all properties identified in the prework, several areas of redun
 **Validates: NEW requirement - Requirements decomposition accuracy and architectural boundary enforcement**
 
 **Property 1: Cross-project architectural consistency**
-*For any* architectural decision that affects multiple projects, agents should ensure consistency across Spring Boot 4.0.x (Java 21), Moqui Framework 3.x (Java 11/Groovy), and Vue.js 3 (TypeScript 5.x) technology stacks while respecting project-specific constraints and JVM version differences
+*For any* architectural decision that affects multiple projects, agents should ensure consistency across Spring Boot 4.0.x (Java 25), Moqui Framework 3.x (Java 11/Groovy), and Vue.js 3 (TypeScript 5.x) technology stacks while respecting project-specific constraints and JVM version differences
 **Validates: Requirements 1.2, 2.3, 6.4**
 
 **Property 2: API contract synchronization**

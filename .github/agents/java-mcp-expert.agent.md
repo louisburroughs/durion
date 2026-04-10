@@ -316,7 +316,7 @@ void testReactiveHandler() {
 
 The Java SDK supports:
 
-- Java 21 (LTS recommended)
+- Java 25
 - Jakarta Servlet 5.0+
 - Spring Boot 3.0+
 - Project Reactor 3.5+

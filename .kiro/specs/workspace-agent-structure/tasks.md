@@ -2,12 +2,12 @@
 
 ## Overview
 
-This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 4.0.x, Java 21) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents.
+This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 4.0.x, Java 25) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer above project-specific agents, providing unified guidance for full-stack concerns while delegating backend-specific tasks to durion-positivity-backend agents and frontend-specific tasks to moqui agents.
 
 **Key Innovation:** The **Requirements Decomposition Agent** analyzes complete business requirements and intelligently splits implementation between moqui frontend (UI/screens/workflows) and durion-positivity-backend (business logic/APIs/data persistence), ensuring proper architectural boundaries and seamless integration through the durion-positivity component.
 
 **Technology Stack Bridging:** Manages impedance mismatch between:
-- Java 21 (durion-positivity-backend) ↔ Java 11 (moqui framework) ↔ Groovy (moqui services) ↔ TypeScript 5.x (Vue.js 3 frontend)
+- Java 25 (durion-positivity-backend) ↔ Java 11 (moqui framework) ↔ Groovy (moqui services) ↔ TypeScript 5.x (Vue.js 3 frontend)
 - Spring Boot 4.0.x patterns ↔ Moqui Framework 3.x patterns
 - PostgreSQL (durion-positivity-backend) ↔ PostgreSQL/MySQL (moqui)
 
@@ -35,7 +35,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 
 - [x] 0.1 Create Workspace Agent Directory Structure
   - Locate or Create `durion/workspace-agents/` with Java standard layout (src/main/java/, src/test/java/)
-  - Initialize Maven build with Java 21 target and test frameworks (JUnit 5, jqwik for property tests)
+  - Initialize Maven build with Java 25 target and test frameworks (JUnit 5, jqwik for property tests)
   - Set up package structure: agents/, core/, interfaces/, config/, validation/
   - Configure logging, metrics, and health check infrastructure
   - _Code Location:_ `durion/workspace-agents/`
@@ -53,7 +53,7 @@ This implementation plan creates a workspace-level agent framework for the durio
   - WorkspaceAgent base interface for all 13 workspace agents
   - CrossProjectCoordinator interface for integration agents
   - RequirementsDecomposer interface for business requirement analysis and frontend/backend splitting
-  - TechnologyBridge interface for stack bridging (Java 21/11/Groovy/TypeScript)
+  - TechnologyBridge interface for stack bridging (Java 25/11/Groovy/TypeScript)
   - _Requirements: REQ-WS-001, REQ-WS-002_
   - _Code Location:_ `durion/workspace-agents/src/main/java/interfaces/`
 
@@ -100,7 +100,7 @@ This implementation plan creates a workspace-level agent framework for the durio
   - Enforce consistency across Spring Boot 4.0.x, Moqui 3.x, Vue.js 3 (100% pattern compliance)
   - Validate requirements decomposition against architectural boundaries
   - Manage technology stack integration patterns through durion-positivity
-  - Prevent dependency conflicts between Java 21, Java 11, Groovy (100% detection)
+  - Prevent dependency conflicts between Java 25, Java 11, Groovy (100% detection)
   - Coordinate architectural changes with 1-hour notification across all projects
   - _Requirements: REQ-WS-002 (all 5 acceptance criteria)_
   - _Tests: TEST-WS-002-01 through TEST-WS-002-05_
@@ -181,7 +181,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 ## Phase 3: Operational Coordination Layer
 
 - [x] 3.1 Implement Multi-Project DevOps Agent
-  - Coordinates Docker deployment and infrastructure across durion-positivity-backend (Java 21) and durion-moqui-frontend (Java 11) stacks
+  - Coordinates Docker deployment and infrastructure across durion-positivity-backend (Java 25) and durion-moqui-frontend (Java 11) stacks
   - Manages CI/CD pipelines and deployment orchestration
   - Coordinates infrastructure as code across AWS Fargate and other deployment targets
   - Ensures deployment validation and rollback capabilities

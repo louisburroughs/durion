@@ -5,7 +5,7 @@ This workspace contains the shared Durion platform documentation, the Positivity
 ## Repositories in This Workspace
 
 - `durion` — workspace coordination, agent docs, ADRs, and governance
-- `durion-positivity-backend` — POS microservices (Java 21, Spring Boot 4.0.x)
+- `durion-positivity-backend` — POS microservices (Java 25, Spring Boot 4.0.x)
 - `durion-positivity-sdk` — TypeScript SDK generated from backend OpenAPI contracts
 - `durion-positivity-frontend` — Angular frontend application for POS user workflows
 
@@ -21,7 +21,7 @@ The frontend consumes backend APIs and SDK packages. When the frontend repositor
 
 ## Prerequisites
 
-- Java 21+
+- Java 25+
 - Node 18+ and npm
 - Maven (or use `./mvnw`) for backend builds
 - Docker & Docker Compose for local stacks where needed
@@ -35,20 +35,20 @@ git clone git@github.com:louisburroughs/durion.git
 cd durion
 ```
 
-2. Read the root agent guide for repo-specific instructions:
+1. Read the root agent guide for repo-specific instructions:
 
 ```bash
 less AGENTS.md
 ```
 
-3. Build the backend:
+1. Build the backend:
 
 ```bash
 cd ../durion-positivity-backend
 ./mvnw -pl pos-api-gateway -am clean package
 ```
 
-4. Build the TypeScript SDK:
+1. Build the TypeScript SDK:
 
 ```bash
 cd ../durion-positivity-sdk
@@ -56,7 +56,7 @@ npm install
 npm run build
 ```
 
-5. For Angular frontend applications, use the frontend repository README and Angular CLI workflow:
+1. For Angular frontend applications, use the frontend repository README and Angular CLI workflow:
 
 ```bash
 cd ../durion-positivity-frontend
