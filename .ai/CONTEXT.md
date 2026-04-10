@@ -4,7 +4,7 @@
 
 Durion is a multi-repository platform for TIOTF/Durion initiatives, composed of:
 
-- **Positivity POS Backend (Spring Boot)**: a Java 21, Spring Boot microservice suite organized as a monorepo with `pos-*` services, coordinated via an API gateway and service discovery.
+- **Positivity POS Backend (Spring Boot)**: a Java 25, Spring Boot microservice suite organized as a monorepo with `pos-*` services, coordinated via an API gateway and service discovery.
 - **Supporting tools**: scripts and “workspace agents” used for automation, documentation, and developer workflows.
 
 ## Goals
@@ -19,7 +19,7 @@ Durion is a multi-repository platform for TIOTF/Durion initiatives, composed of:
 
 ### Positivity Backend (durion-positivity-backend)
 
-- Language: Java 21
+- Language: Java 25
 - Framework: Spring Boot (3.x)
 - Build: Maven (wrapper `./mvnw`, root `pom.xml`)
 - Container: Docker Compose for local orchestration
@@ -63,7 +63,7 @@ Project configuration:
 
 ## Operational Notes
 
-- Positivity backend build enforces Java 21; ensure local JDK 21 is active. (managed via `.sdkmanrc`)
+- Positivity backend build enforces Java 25; ensure local JDK 25 is active. (managed via `.sdkmanrc`)
 - Prefer running clients through the API Gateway rather than calling leaf services directly.
 - Use Docker Compose for local end-to-end testing across services.
 
@@ -84,7 +84,7 @@ Project configuration:
 
 ## Adjacent Projects
 
-- `durion-positivity-backend` — Java 21 Spring Boot microservices backend
+- `durion-positivity-backend` — Java 25 Spring Boot microservices backend
 
 ## Context Management Rules
 

@@ -1,6 +1,6 @@
 # People Domain - Open Questions & Phase Implementation Plan
 
-**Created:** 2026-01-25  
+**Created:** 2026-01-25
 **Status:** Phase 1 Complete (2026-01-25)
 **Scope:** Unblock ALL people domain issues with `blocked:clarification` status through systematic backend contract discovery and GitHub issue resolution
 
@@ -11,6 +11,7 @@
 This document addresses **1 unresolved people domain issue** with `blocked:clarification` status. The objective is to systematically resolve all blocking questions through backend contract research and communicate resolutions via GitHub issue comments in `durion-moqui-frontend`, enabling implementation to proceed.
 
 **Coverage Status:**
+
 - ⏳ **This Document:** Issue #130 (1 issue)
 - 🎯 **Target Domain:** People/Timekeeping (with cross-domain Workexec clarification needed)
 - 📊 **Blocking Questions:** Estimated 30+ questions to resolve
@@ -69,6 +70,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 **Objective:** Enforce server-side validation rules from Phase 3 checklists and implement exception action endpoints.
 
 **Completed Tasks:**
+
 1. ✅ **Reject Request Validation**: Enforced `rejectionReason` required for each decision in batch `/reject` endpoint. Validation returns 400 BAD_REQUEST if missing.
 2. ✅ **Adjustment ReasonCode Validation**: Added `reasonCode` field validation (required, non-blank) in `TimeEntryAdjustmentController.createAdjustment()`.
 3. ✅ **Adjustment Status Validation**: Limited adjustment creation to PENDING_APPROVAL entries only. Controller validates time entry status and returns 404 (NOT_FOUND) or 422 (INVALID_STATE) for violations.
@@ -89,6 +91,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
    - `rejectionReason` (String) — reason text
 
 **Test Coverage:**
+
 - Adjustment controller: 9 unit tests (reasonCode validation, status validation, one-of rule)
 - Exception service: 5 unit tests (acknowledge, waive, state guard)
 - Adjustment service: 2 unit tests
@@ -96,6 +99,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 - **Total**: 19 tests passing, 0 failures ✅
 
 **Remaining:**
+
 - OpenAPI examples for validation error responses (error codes, field errors, HTTP status codes)
 
 ---
@@ -115,8 +119,6 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 - [ ] OpenAPI error response examples
 - [ ] Frontend notification hooks (if required by story scope)
 
-
-
 ```bash
 ./mvnw -f pos-people/pom.xml test
 ```
@@ -131,8 +133,6 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
   - Add OpenAPI operations for the above endpoints following `api-naming-policy` rules (operationId camelCase verb-first, examples, servers).
   - Coordinate with frontend owners to map Moqui deep-links (`/timekeeping/approvals?workDate=YYYY-MM-DD`) to `GET /v1/people/timeEntries` filters.
   - Propose `ErrorResponse` change in a small PR to `pos-accounting` and `pos-people` (add `correlationId`, `timestamp`) and update gateway to propagate `X-Correlation-Id`.
-
-
 
 - Completed: domain ownership, endpoint inventory (existing controllers), proposed manager approve/reject API, correlationId recommendation.
 - Pending: Moqui screen/deep-link confirmation and posting the GitHub clarification comment for Issue #130 (Task 4.1).
@@ -155,7 +155,6 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
   2. Implement permission checks (map to `X-User-Id` / auth context) and enforce deny-by-default.
   3. Add audit trail entries for approvals and update related timesheet status if applicable.
   4. Add idempotency handling and validate batch partial-success semantics.
-
 
 ### Phase 1 — Moqui screen & deep-link confirmation
 
@@ -185,12 +184,13 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
 **Objective:** Resolve domain ownership conflict, identify authoritative services, and confirm endpoint patterns
 
 **Tasks:**
+
 - [ ] **Task 1.1 — Domain ownership clarification (CRITICAL)**
   - [x] **Issue #130:** Confirmed — domain label should remain `domain:people` per DECISION-INVENTORY-009 (time entries owned by People domain; Workexec consumes availability read-only)
   - [x] Remove `blocked:domain-conflict` label (recommendation posted; label update pending manual confirmation)
   - [x] Documented rationale and prepared GitHub comment draft for Issue #130 (see Phase 4 tasks)
   - [x] People domain owner/service: `pos-people` (evidence: controllers under `pos-people/src/main/java/com/positivity/people/controller`)
-  
+
 - [ ] **Task 1.2 — REST endpoint/service mapping (Timekeeping Approval)**
   - [ ] Confirm base path: `/api/time-entries/*` or alternate
   - [ ] Identify time entry list/queue endpoints:
@@ -252,6 +252,7 @@ This document addresses **1 unresolved people domain issue** with `blocked:clari
   - Recommendation: Standardize error envelope across People/Accounting services to include `correlationId` and ensure gateway/request pipelines propagate a correlation/request ID header for traceability.
 
 Next actions for Phase 1 (manual or follow-up):
+
 - Create the approve/reject API design for `pos-people` (endpoints, payloads, error codes) and add to Phase 2 work.
 - Coordinate Moqui deep-link and screen file locations with frontend owners and update `Task 1.3` accordingly.
 - Propose `ErrorResponse` extension to include `correlationId` and rollout plan across services (align with DECISION-INVENTORY-015).
@@ -263,6 +264,7 @@ Next actions for Phase 1 (manual or follow-up):
 **Objective:** Resolve entity schemas, ID types, status enums, and cross-domain dependencies
 
 **Tasks:**
+
 - [ ] **Task 2.1 — Time entry entity structure**
   - [ ] Confirm time entry identifier field: `timeEntryId` (type: UUID vs opaque string)
   - [ ] Confirm time entry required fields: `employeeId`, `workDate`, `startAtUtc`, `status`
@@ -374,33 +376,35 @@ Next actions for Phase 1 (manual or follow-up):
 Status: Tasks 2.2 and 2.3 implemented at code and migration level (entities + migration files present). See the entity files above for field-level types and default behaviors (pre-persist timestamps).
 
 Notes / recommendations (remaining):
+
 - Enforcement of the "one-of" rule for adjustments (proposed times XOR minutes delta) is recommended at the service/controller validation layer — not yet enforced by the JPA model.
 - Status enums suggested: `PROPOSED|PENDING|APPROVED|REJECTED` for adjustments and `OPEN|ACKNOWLEDGED|RESOLVED|WAIVED` for exceptions. Currently stored as strings; consider converting to `@Enumerated(EnumType.STRING)` enums in a follow-up refactor.
 - Permission and approval flows for adjustments/exceptions implemented as services (`TimeEntryAdjustmentService`, `TimeEntryExceptionService`) with audit writes; full workflow validation (e.g., blocking exceptions preventing approve) remains to be added in business rules.
- - Enforcement of the "one-of" rule for adjustments (proposed times XOR minutes delta) is implemented at the controller validation layer and covered by unit tests.
- - Status enums suggested: `PROPOSED|PENDING|APPROVED|REJECTED` for adjustments and `OPEN|ACKNOWLEDGED|RESOLVED|WAIVED` for exceptions. Currently stored as strings; consider converting to `@Enumerated(EnumType.STRING)` enums in a follow-up refactor.
- - Permission and approval flows for adjustments/exceptions implemented as services (`TimeEntryAdjustmentService`, `TimeEntryExceptionService`) with audit writes; full workflow validation (e.g., blocking exceptions preventing approve) remains to be added in business rules.
+- Enforcement of the "one-of" rule for adjustments (proposed times XOR minutes delta) is implemented at the controller validation layer and covered by unit tests.
+- Status enums suggested: `PROPOSED|PENDING|APPROVED|REJECTED` for adjustments and `OPEN|ACKNOWLEDGED|RESOLVED|WAIVED` for exceptions. Currently stored as strings; consider converting to `@Enumerated(EnumType.STRING)` enums in a follow-up refactor.
+- Permission and approval flows for adjustments/exceptions implemented as services (`TimeEntryAdjustmentService`, `TimeEntryExceptionService`) with audit writes; full workflow validation (e.g., blocking exceptions preventing approve) remains to be added in business rules.
 
 **Phase 2 — Status**
 
 - Completed: Task 2.1 (TimeEntry schema), Task 2.2 (Adjustment entity), Task 2.3 (Exception entity), Task 2.4 (identifier types), Task 2.5 (timezone handling), Task 2.6 (pagination contract), Task 2.7 (cross-domain mapping).
 
 Additional Phase 2 updates:
+
 - Added DB migrations for adjustments/exceptions and implemented `TimeEntryAdjustment` and `TimeEntryException` JPA entities.
 - Implemented controllers (`TimeEntryAdjustmentController`, `TimeEntryExceptionController`) and services (`TimeEntryAdjustmentService`, `TimeEntryExceptionService`) with basic create/list/approve/resolve flows and audit writes.
 - Added unit tests for services and basic controller tests under `pos-people/src/test/java`.
 - Converted status/severity fields to enums persisted as strings (`TimeEntryStatus`, `AdjustmentStatus`, `ExceptionStatus`, `ExceptionSeverity`) to enforce canonical values.
- - Unit tests were executed locally for the `pos-people` module and passed (9 tests, 0 failures). CI should also validate these in pipeline.
+- Unit tests were executed locally for the `pos-people` module and passed (9 tests, 0 failures). CI should also validate these in pipeline.
 
 Notes / outstanding small work:
- - The adjustment "one-of" validation (proposedStartAt/proposedEndAt XOR minutesDelta) has been enforced in the controller (`TimeEntryAdjustmentController`) and covered by unit tests; integration tests and OpenAPI examples remain.
+
+- The adjustment "one-of" validation (proposedStartAt/proposedEndAt XOR minutesDelta) has been enforced in the controller (`TimeEntryAdjustmentController`) and covered by unit tests; integration tests and OpenAPI examples remain.
 - Integration tests and OpenAPI model examples referencing the enums and error envelope are recommended before opening PRs targeting main branches.
-- Local test runs require Java 21 (Maven enforcer). Run module tests with Java 21:
+- Local test runs require Java 25 (Maven enforcer). Run module tests with Java 25:
 
 ```bash
 ./mvnw -f pos-people/pom.xml test
 ```
-
 
 ---
 
@@ -409,6 +413,7 @@ Notes / outstanding small work:
 **Objective:** Confirm validation rules, state transitions, error handling, and accessibility patterns
 
 **Tasks:**
+
 - [ ] **Task 3.1 — Approval/rejection validation rules**
   - [ ] Reject validation: `rejectionReason` is required (client-side + server-side)
   - [ ] Reject validation: `rejectionReason` minimum/maximum length constraints
@@ -485,6 +490,7 @@ Notes / outstanding small work:
 **Objective:** Post comprehensive resolution comments to GitHub issue in `durion-moqui-frontend` and update labels
 
 **Tasks:**
+
 - [x] **Task 4.1 — Issue #130 GitHub comment (Timekeeping Approval)** ✅ COMPLETED
   - [x] **Priority:** Domain ownership question resolved (people domain per DECISION-INVENTORY-009)
   - [x] Posted comprehensive clarification comment with:
@@ -529,6 +535,7 @@ Notes / outstanding small work:
 ---
 
 ### Phase 4 Status
+
 - [x] GitHub comment posted (Issue #130) ✅
 - [x] Labels update recommended (remove `blocked:clarification`, `blocked:domain-conflict`) — Manual step by issue owner
 - [x] Documentation updated (people domain business rules) ✅
@@ -549,9 +556,9 @@ Notes / outstanding small work:
 
 ---
 
-**Document Status:** ✅ RESOLVED — Phase 4 complete, all blocking clarifications documented in GitHub issue #130  
-**Last Updated:** 2026-01-25  
-**Owner:** Platform Team  
+**Document Status:** ✅ RESOLVED — Phase 4 complete, all blocking clarifications documented in GitHub issue #130
+**Last Updated:** 2026-01-25
+**Owner:** Platform Team
 **GitHub Action:** Issue #130 comment posted with full contract documentation; frontend team can now proceed with implementation
 14. What is the exact exceptions list endpoint? (Proposed: `GET /api/time-entries/{timeEntryId}/exceptions`)
 15. What are the exception action endpoints? (Proposed: `POST /api/time-exceptions/{exceptionId}/acknowledge`, `.../resolve`, `.../waive`)
@@ -668,9 +675,11 @@ Notes / outstanding small work:
 ## Cross-Cutting Concerns
 
 ### DECISION-INVENTORY References
+
 - **DECISION-INVENTORY-009**: Time entry remains in people domain; workexec only consumes people availability read-only (Issue #130 domain ownership)
 
 ### Backend Contract Guides
+
 - Permission format standard: `domain:resource:action` (snake_case)
 - REST path convention: `/api/{domain}/{resource}`
 - Error envelope shape: `{ code, message, correlationId, fieldErrors?, details? }`
@@ -678,7 +687,9 @@ Notes / outstanding small work:
 - Timestamp format: ISO-8601 with UTC offset
 
 ### Permission Taxonomy (Examples)
+
 **People Domain:**
+
 - `people:time_approval:view` — View approvals queue
 - `people:time_approval:approve` — Approve time entries (or `people:time_entry:approve`)
 - `people:time_approval:reject` — Reject time entries (or `people:time_entry:reject`)
@@ -692,12 +703,14 @@ Notes / outstanding small work:
 ## Progress Tracking
 
 ### Phase 1 Status
+
 - [ ] Domain ownership clarification (Issue #130 — people vs workexec)
 - [ ] REST endpoint mapping (time entries, exceptions, adjustments)
 - [ ] Moqui screen/service mapping
 - [ ] Error envelope confirmation
 
 ### Phase 2 Status
+
 - [ ] Time entry entity structure
 - [ ] Time entry adjustment entity structure
 - [ ] Time exception entity structure
@@ -707,6 +720,7 @@ Notes / outstanding small work:
 - [ ] Cross-domain dependencies
 
 ### Phase 3 Status
+
 - [ ] Approval/rejection validation rules
 - [ ] Adjustment validation rules
 - [ ] Exception validation and action rules

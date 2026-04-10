@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 4.0.x, Java 21) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer, providing unified guidance for full-stack concerns while delegating project-specific tasks to specialized agents.
+This implementation plan creates a workspace-level agent framework for the durion ecosystem, coordinating development across **durion-positivity-backend** (Spring Boot 4.0.x, Java 25) and **durion-moqui-frontend** (Moqui Framework 3.x, Java 11/Groovy, Vue.js 3). The workspace agent structure operates as a strategic coordination layer, providing unified guidance for full-stack concerns while delegating project-specific tasks to specialized agents.
 
 **Key Innovation:** The **Requirements Decomposition Agent** analyzes complete business requirements and intelligently splits implementation between moqui frontend (UI/screens/workflows) and positivity backend (business logic/APIs/data persistence), ensuring proper architectural boundaries and seamless integration through the durion-positivity component.
 
@@ -13,7 +13,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 - All 13 workspace-level agents need implementation
 - 20 property-based tests need implementation
 - Cross-project integration infrastructure needs setup
-- Technology stack bridging (Java 21 ↔ Java 11 ↔ Groovy ↔ TypeScript) needs implementation
+- Technology stack bridging (Java 25 ↔ Java 11 ↔ Groovy ↔ TypeScript) needs implementation
 
 **🔧 IMMEDIATE PRIORITIES:**
 
@@ -47,7 +47,7 @@ This implementation plan creates a workspace-level agent framework for the durio
   - WorkspaceAgent base interface
   - CrossProjectCoordinator interface for integration
   - RequirementsDecomposer interface for business requirement analysis
-  - TechnologyBridge interface for stack bridging (Java 21/11/Groovy/TypeScript)
+  - TechnologyBridge interface for stack bridging (Java 25/11/Groovy/TypeScript)
   - _Requirements: REQ-WS-001, REQ-WS-002_
   - _Code Location:_ `workspace-agents/src/main/java/interfaces/`
 
@@ -107,7 +107,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 - **Invariants:**
   - API contracts remain compatible across versions
   - JWT token format identical across all three layers
-  - No dependency conflicts between Java 21, Java 11, Groovy stacks
+  - No dependency conflicts between Java 25, Java 11, Groovy stacks
   - Architectural changes coordinated across all projects
 - _Requirements:_ REQ-WS-002  
 - _Test Cases:_ TEST-WS-002-01, TEST-WS-002-02, TEST-WS-002-03  
@@ -557,7 +557,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 
 ### Task 5.6: Write Property Test for Dependency Conflict Prevention
 - **Property 18:** Dependency conflict prevention
-- **Validates:** No dependency conflicts between Java 21, Java 11, Groovy
+- **Validates:** No dependency conflicts between Java 25, Java 11, Groovy
 - **Invariants:**
   - All dependency conflicts detected before deployment
   - Incompatible versions prevented from deployment
@@ -758,7 +758,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 - Generate architecture diagrams showing agent coordination
 - Document Requirements Decomposition Agent workflow
 - Include cross-project integration patterns and examples
-- Document technology bridge patterns for Java 21/11/Groovy/Vue.js
+- Document technology bridge patterns for Java 25/11/Groovy/Vue.js
 - _Output:_ `workspace-agents/docs/ArchitectureGuide.md`
 
 ### Task 8.3: Generate Developer Onboarding Guide
@@ -933,7 +933,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 ### Critical Constraints
 - **Requirements-First Architecture**: All business requirements must be decomposed by Requirements Decomposition Agent before implementation
 - **Three-Tier Integration**: All integrations must follow Vue.js 3 → durion-positivity (Groovy) → positivity (Spring Boot) pattern
-- **Technology Stack Bridging**: Must manage Java 21 ↔ Java 11 ↔ Groovy ↔ TypeScript impedance mismatch
+- **Technology Stack Bridging**: Must manage Java 25 ↔ Java 11 ↔ Groovy ↔ TypeScript impedance mismatch
 - **Code Generation**: All workspace agent code must be in `workspace-agents/` directory following Java standard structure:
   - Agent implementations: `workspace-agents/src/main/java/`
   - Test classes: `workspace-agents/src/test/java/`
@@ -957,7 +957,7 @@ This implementation plan creates a workspace-level agent framework for the durio
 - [ ] All documentation complete and validated
 - [ ] Cross-project integration confirmed between positivity and moqui
 - [ ] Requirements decomposition agent operational and validated
-- [ ] Technology bridging successful across Java 21/11/Groovy/Vue.js stacks
+- [ ] Technology bridging successful across Java 25/11/Groovy/Vue.js stacks
 - [ ] Final user sign-off received
 
 ---

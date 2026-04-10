@@ -14,10 +14,10 @@ The Story Strengthening Agent is a comprehensive system that processes GitHub is
 
 ## Prerequisites
 
-1. **Java 21** - Required runtime
+1. **Java 25** - Required runtime
 2. **Maven** - Build system (Maven wrapper included)
 3. **GitHub Personal Access Token** - For API access
-   - Create at: https://github.com/settings/tokens
+   - Create at: <https://github.com/settings/tokens>
    - Required scopes: `repo` (for private repos) or `public_repo` (for public repos)
 
 ## Quick Start
@@ -25,11 +25,13 @@ The Story Strengthening Agent is a comprehensive system that processes GitHub is
 ### 1. Set GitHub Token
 
 **Linux/Mac:**
+
 ```bash
 export GITHUB_TOKEN=your_github_token_here
 ```
 
 **Windows:**
+
 ```cmd
 set GITHUB_TOKEN=your_github_token_here
 ```
@@ -37,12 +39,14 @@ set GITHUB_TOKEN=your_github_token_here
 ### 2. Run Story Strengthening
 
 **Linux/Mac:**
+
 ```bash
 cd pos-agent-framework
 ./strengthen-story.sh louisburroughs/durion-positivity-backend 123
 ```
 
 **Windows:**
+
 ```cmd
 cd pos-agent-framework
 strengthen-story.bat louisburroughs/durion-positivity-backend 123
@@ -70,16 +74,19 @@ strengthen-story.bat louisburroughs/durion-positivity-backend 123
 ### Examples
 
 **Process issue #123 from durion-positivity-backend:**
+
 ```bash
 ./strengthen-story.sh louisburroughs/durion-positivity-backend 123
 ```
 
 **Specify custom output directory:**
+
 ```bash
 ./strengthen-story.sh louisburroughs/durion-positivity-backend 123 --output-dir ./my-output
 ```
 
 **Development mode with SSL bypass:**
+
 ```bash
 ./strengthen-story.sh louisburroughs/durion-positivity-backend 123 --bypass-ssl
 ```
@@ -120,11 +127,13 @@ The system generates a structured markdown document with these sections:
 ### Output File Naming
 
 Files are saved with this pattern:
+
 ```
 story_<repository>_issue_<number>_<timestamp>.md
 ```
 
 Example:
+
 ```
 story_louisburroughs_durion-positivity-backend_issue_123_20240104_143022.md
 ```
@@ -147,17 +156,20 @@ These can be customized by modifying `StoryConfiguration` in the code.
 The system may halt processing with stop phrases in these situations:
 
 ### Validation Failures
+
 - `STOP: Invalid repository` - Issue not from allowed repository
 - `STOP: Missing required prefix` - Issue title missing `[BACKEND] [STORY]`
 - `STOP: Not a functional story` - Issue is not a user story
 
 ### Loop Detection
+
 - `STOP: Too many rewrite iterations` - Exceeded max iterations (2)
 - `STOP: Too many acceptance criteria` - Exceeded threshold (25)
 - `STOP: Too many open questions` - Exceeded threshold (10)
 - `STOP: Unsafe inference detected` - Requires human expertise (legal, financial, security, regulatory)
 
 ### Processing Errors
+
 - `STOP: Issue parsing failed` - Unable to parse issue structure
 - `STOP: Loop detected` - Processing loop condition detected
 
@@ -166,13 +178,15 @@ The system may halt processing with stop phrases in these situations:
 ### GitHub API Issues
 
 **Problem**: `GitHub connection test failed`
-**Solution**: 
+**Solution**:
+
 - Verify `GITHUB_TOKEN` is set correctly
 - Check token has required scopes (`repo` or `public_repo`)
-- Test token at: https://api.github.com/user (with Authorization header)
+- Test token at: <https://api.github.com/user> (with Authorization header)
 
 **Problem**: `Rate limit exceeded`
 **Solution**:
+
 - Wait for rate limit reset (system will display reset time)
 - Use authenticated requests (token provides 5000 requests/hour)
 
@@ -180,6 +194,7 @@ The system may halt processing with stop phrases in these situations:
 
 **Problem**: `SSL certificate validation failed`
 **Solution**:
+
 - Use `--bypass-ssl` flag for development environments
 - Install proper SSL certificates for production
 - Check corporate proxy/firewall settings
@@ -188,25 +203,29 @@ The system may halt processing with stop phrases in these situations:
 
 **Problem**: `Maven wrapper not found`
 **Solution**:
+
 - Run script from `pos-agent-framework` directory
 - Ensure Maven wrapper files exist in project root
 
 **Problem**: `Build failed`
 **Solution**:
+
 - Run `./mvnw clean install` to rebuild project
-- Check Java version: `java -version` (requires Java 21)
+- Check Java version: `java -version` (requires Java 25)
 - Review build errors in console output
 
 ### Processing Issues
 
 **Problem**: `Issue not found`
 **Solution**:
+
 - Verify issue number exists in repository
 - Check repository name format: `owner/repo`
 - Ensure token has access to repository
 
 **Problem**: `Processing stopped with stop phrase`
 **Solution**:
+
 - Review stop phrase reason in output
 - Fix issue according to validation requirements
 - For loop detection, simplify story or split into multiple issues

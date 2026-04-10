@@ -89,10 +89,10 @@ Generate a **single, comprehensive code file** with clear section separators and
 
 ```markdown
 # Code Generation Output: {Feature Name}
-**Issue**: #{issue-number}  
-**Feature**: {feature-name}  
-**Generated Date**: {ISO-8601 date}  
-**Branch**: feature/{issue-number}-{description}  
+**Issue**: #{issue-number}
+**Feature**: {feature-name}
+**Generated Date**: {ISO-8601 date}
+**Branch**: feature/{issue-number}-{description}
 
 Table of Contents:
 - [Backend Code](#backend-code)
@@ -128,7 +128,7 @@ Table of Contents:
 ### Services
 
 #### File: `pos-{domain}/src/main/java/com/pos/{domain}/service/{ServiceName}Service.java`
-**Purpose**: {Service purpose from planning}  
+**Purpose**: {Service purpose from planning}
 **Issue Reference**: #{issue-number}
 
 \`\`\`java
@@ -155,7 +155,7 @@ import lombok.extern.slf4j.Slf4j;
 public class {ServiceName}Service {
     // Inject dependencies via constructor
     private final {Repository}Repository repository;
-    
+
     /**
      * {Method description from planning}
      * @param {param} {description}
@@ -205,19 +205,19 @@ public class {EntityName} {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
+
     @NotNull
     @Size(max = 255)
     @Column(nullable = false)
     private String fieldName;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "related_id")
     private RelatedEntity relatedEntity;
-    
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -230,7 +230,7 @@ public class {EntityName} {
 ### REST APIs
 
 #### File: `pos-{domain}/src/main/java/com/pos/{domain}/controller/{Resource}Controller.java`
-**Endpoint**: {METHOD} /api/{domain}/{resource}/{id}/{action}  
+**Endpoint**: {METHOD} /api/{domain}/{resource}/{id}/{action}
 **Purpose**: {API purpose from planning}
 
 \`\`\`java
@@ -259,7 +259,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class {Resource}Controller {
     private final {Service}Service service;
-    
+
     /**
      * {API description from planning}
      * @param request {description}
@@ -272,7 +272,7 @@ public class {Resource}Controller {
         var result = service.methodName(request);
         return ResponseEntity.ok(result);
     }
-    
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_{domain}:read')")
     public ResponseEntity<{Response}DTO> getById(@PathVariable UUID id) {
@@ -288,7 +288,7 @@ public class {Resource}Controller {
 ### Domain Events
 
 #### File: `pos-{domain}/src/main/java/com/pos/{domain}/event/{EventName}Event.java`
-**Event Type**: {Full event class name}  
+**Event Type**: {Full event class name}
 **Trigger**: {When/why emitted from planning}
 
 \`\`\`java
@@ -318,7 +318,7 @@ public class {EventName}Event extends ApplicationEvent {
     private final Instant timestamp;
     // Event-specific payload fields
     private final Object payload;
-    
+
     public {EventName}Event(Object source, UUID aggregateId, Object payload) {
         super(source);
         this.eventId = UUID.randomUUID();
@@ -400,8 +400,8 @@ logging:
 ### Vue Components
 
 #### File: `runtime/component/{component-name}/webapp/vue/{ComponentName}.vue`
-**Purpose**: {Component purpose from planning}  
-**Props**: {List from planning}  
+**Purpose**: {Component purpose from planning}
+**Props**: {List from planning}
 **Emits**: {List from planning}
 
 \`\`\`vue
@@ -441,7 +441,7 @@ logging:
 ### Screens/Pages
 
 #### File: `runtime/component/{component-name}/screen/{ScreenName}.xml`
-**Route**: /path/to/screen  
+**Route**: /path/to/screen
 **Purpose**: {Screen purpose from planning}
 
 \`\`\`xml
@@ -551,25 +551,25 @@ import static org.mockito.Mockito.*;
 class {ServiceName}ServiceTest {
     @Mock
     private {Repository}Repository repository;
-    
+
     @InjectMocks
     private {ServiceName}Service service;
-    
+
     @BeforeEach
     void setUp() {
         // Setup test data
     }
-    
+
     @Test
     @DisplayName("should {test description from planning}")
     void testMethodName() {
         // Arrange
         var input = createTestInput();
         when(repository.findById(any())).thenReturn(Optional.of(entity));
-        
+
         // Act
         var result = service.methodName(input);
-        
+
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getField()).isEqualTo(expectedValue);
@@ -634,29 +634,29 @@ import static org.assertj.core.api.Assertions.*;
 class {FeatureName}IntegrationTest {
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
-    
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
     }
-    
+
     @Autowired
     private TestRestTemplate restTemplate;
-    
+
     @Test
     @DisplayName("should {acceptance criterion from planning}")
     void testEndToEndFlow() {
         // Arrange: Prepare test data
-        
+
         // Act: Execute full feature flow
         var response = restTemplate.postForEntity(
             "/api/{domain}/{resource}",
             request,
             ResponseDTO.class
         );
-        
+
         // Assert: Verify complete flow
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).isNotNull();
@@ -698,10 +698,10 @@ import static org.hamcrest.Matchers.*;
 class {Resource}ControllerTest {
     @Autowired
     private MockMvc mockMvc;
-    
+
     @MockBean
     private {Service}Service service;
-    
+
     @Test
     @DisplayName("should {HTTP method} {endpoint} with valid request")
     @WithMockUser(authorities = "SCOPE_{domain}:write")
@@ -712,7 +712,7 @@ class {Resource}ControllerTest {
               "field": "value"
             }
             """;
-        
+
         // Act & Assert
         mockMvc.perform(post("/api/{domain}/{resource}")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -817,12 +817,12 @@ public BigDecimal calculateItemATP(UUID itemId, LocalDate date) {
     }
     // Query ledger entries for all movements up to and including date
     List<LedgerEntry> entries = ledgerRepository.findByItemIdAndDateLessThanEqual(itemId, date);
-    
+
     // Sum daily balances: beginning_balance + movements
     BigDecimal atp = entries.stream()
         .map(LedgerEntry::getBalance)
         .reduce(BigDecimal.ZERO, BigDecimal::add);
-    
+
     return atp; // May be negative if over-allocated
 }
 ```
@@ -1022,13 +1022,13 @@ generate.prompt.md → Generated Code File
 
 **In Copilot Chat:**
 ```
-@moquiDeveloper-agent Review this generated code from generate.prompt.md 
+@moquiDeveloper-agent Review this generated code from generate.prompt.md
 for architectural alignment with Moqui Framework patterns.
 
-@implementation-agent Review this generated Java/Spring Boot code 
-for Java 21 and Spring Boot 4.0.2 best practices.
+@implementation-agent Review this generated Java/Spring Boot code
+for Java 25 and Spring Boot 4.0.2 best practices.
 
-@vue-agent Review this Vue 3 code for Composition API correctness 
+@vue-agent Review this Vue 3 code for Composition API correctness
 and TypeScript type safety.
 ```
 

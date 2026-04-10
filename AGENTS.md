@@ -4,7 +4,7 @@
 
 Durion is a multi-repo platform that includes:
 
-- `durion-positivity-backend`: POS Spring Boot microservices (Java 21, Spring Boot 4.0.2)
+- `durion-positivity-backend`: POS Spring Boot microservices (Java 25, Spring Boot 4.0.2)
 - `durion-positivity-frontend`: Angular 21 POS SPA
 - `durion`: workspace-level coordination, governance, project, and agent docs
 

@@ -11,12 +11,14 @@ The implementation provides a complete backend system for managing estimate appr
 ### 1. Estimate Lifecycle Management
 
 **States:**
+
 - `DRAFT`: Initial state for new estimates
 - `APPROVED`: Customer has approved the estimate (can become a work order)
 - `DECLINED`: Customer has declined the estimate
 - `EXPIRED`: Declined estimate past the reopen window
 
 **State Transitions:**
+
 - Draft → Approved (via `approveEstimate()`)
 - Draft → Declined (via `declineEstimate()`)
 - Approved → Declined (via `declineEstimate()`)
@@ -25,6 +27,7 @@ The implementation provides a complete backend system for managing estimate appr
 ### 2. Configurable Approval Methods
 
 Approval methods can be configured per location and/or customer:
+
 - `CLICK_CONFIRM` (default): Service advisor clicks to confirm
 - `SIGNATURE`: Customer signature on tablet
 - `ELECTRONIC_SIGNATURE`: Electronic signature via email/SMS
@@ -39,6 +42,7 @@ Approval methods can be configured per location and/or customer:
 ### 4. Configuration Priority
 
 The system selects the most specific configuration:
+
 1. Customer-specific configuration (highest priority)
 2. Location-specific configuration
 3. Default configuration (lowest priority)
@@ -232,14 +236,17 @@ public WorkOrder createWorkOrder(WorkOrder workorder) {
 ## Integration Points
 
 ### pos-customer
+
 - Validates customer existence via `customerId`
 - Uses REST API for customer requirements check (legacy)
 
 ### pos-location
+
 - Validates location existence via `shopId`/`locationId`
 - Uses location ID for configuration matching
 
 ### pos-workorder
+
 - Work orders reference estimates via `estimateId`
 - Validates estimate is approved before creating work order
 - Inherits declined items from estimate
@@ -256,7 +263,8 @@ public WorkOrder createWorkOrder(WorkOrder workorder) {
 ## Testing Notes
 
 ### Build Requirements
-- Java 21 or later
+
+- Java 25 or later
 - Maven 3.8+
 - Spring Boot 4.0.2
 
@@ -293,15 +301,19 @@ public WorkOrder createWorkOrder(WorkOrder workorder) {
 ## Architecture Decisions
 
 ### State Machine in Entity
+
 The state machine logic is embedded in the Estimate entity methods (`canApprove()`, `canDecline()`, `canReopen()`). This keeps business rules close to the data and makes them easily testable.
 
 ### Configuration Priority Calculation
+
 Priority is auto-calculated on save based on presence of `locationId` and `customerId`. This ensures consistent ordering in queries.
 
 ### Timestamp Management
+
 All state transitions record timestamps automatically, providing an audit trail of when changes occurred.
 
 ### Default Configuration
+
 If no configuration exists, the system uses a default in-memory configuration. This ensures the system always has valid approval settings.
 
 ## Related Documentation

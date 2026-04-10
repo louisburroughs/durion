@@ -4,7 +4,7 @@
 
 The durion workspace contains the positivity POS backend system (Spring Boot microservices) and the durion-moqui-frontend frontend application. To effectively coordinate development across the entire durion ecosystem, we need a workspace-level agent structure that provides unified guidance while respecting the distinct patterns and technologies of each project. The agent structure should facilitate seamless integration between the positivity backend services and the durion-moqui-frontend frontend while maintaining clear boundaries and specialized expertise for each technology stack.
 
-**Code Generation Requirements:** All code generation and implementation must use Java 21 as the target version for compatibility with the positivity backend system.
+**Code Generation Requirements:** All code generation and implementation must use Java 25 as the target version for compatibility with the positivity backend system.
 
 This document follows EARS (Easy Approach to Requirements Syntax) patterns and INCOSE quality standards to ensure requirements are testable, measurable, and implementable.
 
@@ -24,7 +24,7 @@ This document follows EARS (Easy Approach to Requirements Syntax) patterns and I
 - **API Contract Compatibility**: The state where API changes maintain backward compatibility across all consuming projects
 - **Workspace Response Time**: The time from agent guidance request to response delivery (target: <5 seconds)
 - **Integration Conflict**: A condition where changes in one project break functionality in dependent projects
-- **Technology Stack Bridging**: Managing impedance mismatch between Java 21 (positivity) ↔ Java 11 (moqui) ↔ Groovy (moqui services) ↔ Vue.js 3 (frontend)
+- **Technology Stack Bridging**: Managing impedance mismatch between Java 25 (positivity) ↔ Java 11 (moqui) ↔ Groovy (moqui services) ↔ Vue.js 3 (frontend)
  - **Story Orchestration System**: The coordinating system that reads GitHub issues from the durion repository, analyzes dependencies, and sequences frontend and backend stories to minimize stub creation and rework
  - **Issue Analysis Agent**: An agent that reads open issues in the durion repository and identifies dependencies, blocking relationships, and required creation sequence
  - **Story Creation Sequencing**: The process of determining which stories must be created first (backend-first, frontend-first, or parallel) to enable efficient, non-blocking development
@@ -75,7 +75,7 @@ All agent framework implementation and test classes are located in the **`durion
 1. WHEN a developer requests architectural guidance for a cross-project feature based on decomposed requirements, THE workspace agent system SHALL provide guidance that references both positivity Spring Boot patterns AND durion-moqui-frontend frontend patterns within 30 seconds
 2. WHEN an API contract changes in positivity backend, THE workspace agent system SHALL automatically validate compatibility with durion-positivity component AND durion-moqui-frontend frontend consumers AND generate migration guidance within 5 minutes if breaking changes are detected
 3. WHEN integrating authentication between projects, THE workspace agent system SHALL enforce JWT token format consistency across Spring Boot, durion-positivity component, AND Moqui implementations with 100% accuracy
-4. WHEN dependency version conflicts are detected across Java 21 (positivity), Java 11 (moqui), and Groovy (durion-positivity) stacks, THE workspace agent system SHALL prevent deployment AND provide specific remediation steps within 2 minutes
+4. WHEN dependency version conflicts are detected across Java 25 (positivity), Java 11 (moqui), and Groovy (durion-positivity) stacks, THE workspace agent system SHALL prevent deployment AND provide specific remediation steps within 2 minutes
 5. WHEN architectural changes affect multiple projects, THE workspace agent system SHALL notify all affected project teams within 1 hour AND coordinate change implementation across positivity backend, durion-positivity component, AND moqui frontend
 
 ### Requirement 3 [REQ-WS-003]

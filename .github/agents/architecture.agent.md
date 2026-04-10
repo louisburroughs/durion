@@ -27,7 +27,7 @@ When you make, change, or recommend an architectural decision (including cross-c
 ## Project Knowledge
 
 ### Technology Stack
-- **Framework:** Spring Boot 4.0.x with Java 21
+- **Framework:** Spring Boot 4.0.x with Java 25
 - **Build System:** Maven
 - **Agent Framework:** Custom AbstractAgent pattern with builder pattern responses
 - **Data Persistence:** PostgreSQL (primary), in-memory H2 for testing
@@ -120,7 +120,7 @@ public abstract class AbstractAgent implements Agent {
         // Delegate to concrete implementation
         return doProcessRequest(request);
     }
-    
+
     // Concrete agents implement this
     protected abstract AgentResponse doProcessRequest(AgentRequest request);
 }
@@ -290,7 +290,7 @@ public class MyAgent implements Agent {
         // Duplicate validation logic
         if (request == null) throw new IllegalArgumentException();
         if (request.getDescription() == null) throw new IllegalArgumentException();
-        
+
         // Manual response building
         AgentResponse response = new AgentResponse();
         response.setStatus("SUCCESS");
@@ -309,7 +309,7 @@ public class MyAgent extends AbstractAgent {
         // Just implement domain logic
         Map<String, Object> context = extractMap(request.getContext());
         String param = (String) context.get("param");
-        
+
         // Use builder pattern
         return AgentResponse.builder()
             .status(AgentStatus.SUCCESS)
@@ -396,10 +396,10 @@ void testProcessRequest_Success() {
         .description("test description")
         .context(Map.of("key", "value"))
         .build();
-    
+
     // Act
     AgentResponse response = agent.processRequest(request);
-    
+
     // Assert
     assertEquals(AgentStatus.SUCCESS, response.getStatusEnum());
     assertNotNull(response.getOutput());
@@ -414,9 +414,9 @@ void testProcessRequest_ValidationFailure() {
         .description(null)  // Invalid
         .context(Map.of())
         .build();
-    
+
     AgentResponse response = agent.processRequest(request);
-    
+
     assertEquals(AgentStatus.FAILURE, response.getStatusEnum());
     assertNotNull(response.getErrorMessage());
 }
@@ -467,7 +467,7 @@ public class WorkflowOrchestrator {
                 .context(Map.of("domain", request.getDomain()))
                 .build()
         );
-        
+
         // Step 2: Architecture guidance
         AgentResponse archGuidance = architectureAgent.processRequest(
             AgentRequest.builder()
@@ -476,7 +476,7 @@ public class WorkflowOrchestrator {
                 .context(buildArchContext(storyAnalysis))
                 .build()
         );
-        
+
         // Step 3: Implementation plan
         AgentResponse implPlan = implementationAgent.processRequest(
             AgentRequest.builder()
@@ -485,7 +485,7 @@ public class WorkflowOrchestrator {
                 .context(mergeContext(storyAnalysis, archGuidance))
                 .build()
         );
-        
+
         return buildWorkflowResult(storyAnalysis, archGuidance, implPlan);
     }
 }
@@ -516,7 +516,7 @@ protected List<String> extractStringList(Object obj) {
 @Override
 protected AgentResponse doProcessRequest(AgentRequest request) {
     Map<String, Object> context = extractMap(request.getContext());
-    
+
     // Extract required domain parameters
     String domainParam = (String) context.get("requiredParam");
     if (domainParam == null || domainParam.isEmpty()) {
@@ -529,7 +529,7 @@ protected AgentResponse doProcessRequest(AgentRequest request) {
             .errorMessage("requiredParam is required for this agent")
             .build();
     }
-    
+
     // Proceed with agent logic
     return performAgentLogic(request, context, domainParam);
 }
@@ -584,15 +584,15 @@ When reviewing architecture and agent implementations:
 @Override
 protected AgentResponse doProcessRequest(AgentRequest request) {
     Map<String, Object> context = extractMap(request.getContext());
-    
+
     String systemType = (String) context.getOrDefault("systemType", "unknown");
     List<String> requirements = extractStringList(context.get("requirements"));
-    
+
     // Real analysis based on context
     ArchitectureAnalysis analysis = analyzeArchitecture(
         request.getDescription(), systemType, requirements
     );
-    
+
     return AgentResponse.builder()
         .status(AgentStatus.SUCCESS)
         .output(analysis.getSummary())
