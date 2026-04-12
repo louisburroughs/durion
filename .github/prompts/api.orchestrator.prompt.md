@@ -30,6 +30,7 @@ Advance backend capability delivery one wave at a time. Each wave targets capabi
 - Preserve module ownership boundaries and service-contract boundaries.
 - Keep state-changing routes aligned with event emission policy.
 - Do not treat lint/test failures in touched modules as optional.
+- Continue execution until the approved plan is fully complete, or a specific step is marked BLOCKED with evidence, impact, and next-action options.
 
 ## Backend Agent Team
 
@@ -134,8 +135,12 @@ Forbidden:
    d. run `Backend Testing Agent`
    e. run `Code Review Agent`
    f. run `Test Coverage Agent` for coverage analysis recommendations
-   g. iterate fixes until review PASS
-   h. update CAPABILITY_STATUS_BOARD via `Documentation Agent` when story status changes
+   g. iterate fixes until review PASS, with a hard maximum of 5 coding/review cycles per slice
+   h. if cycle 5 still fails, stop and mark the slice BLOCKED, then report:
+      - why the team is stuck (root cause + evidence)
+      - what decision/policy needs updating
+      - options to resolve the policy/decision gap
+   i. update CAPABILITY_STATUS_BOARD via `Documentation Agent` when story status changes
 8. Run backend verification gates.
 9. Create the PR.
 10. Verify PR was created and ask API Planner to mark wave complete.

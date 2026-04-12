@@ -43,6 +43,7 @@ Continuously advance backend capability delivery for `durion-positivity-backend`
 - Validate every subagent result against the delegated task, backend policy, and applicable ADRs.
 - Treat `Durion-Processing.md` as the authoritative execution ledger for the active wave.
 - Do not treat a wave as done until Planner marks the corresponding steps completed and backend verification/review gates pass.
+- Continue execution without pausing until the full approved plan is complete, or a step is explicitly blocked with blocker evidence and next-action options recorded.
 - Do not delegate frontend implementation work in this mode.
 - `Coder` may be delegated for git task execution only (branch setup/sync, commit/push preparation, and PR command execution support). `Coder` must not be used for backend feature implementation in this mode.
 
@@ -117,5 +118,11 @@ Continuously advance backend capability delivery for `durion-positivity-backend`
 
 ## Failure Policy
 - Retry failed delegation up to two times with explicit deficiency feedback.
+- For each code slice, the combined coding/review loop (`API Surface Coder`/`Domain Data Coder`/`Client Coder` + `Code Review Agent`) may run at most 5 cycles.
+- If cycle 5 still does not reach PASS, stop further cycling on that slice and mark it BLOCKED.
+- When stopping at the cycle limit, you MUST output:
+  - why the team is stuck (technical root cause and evidence)
+  - what decision or policy needs to be updated to proceed
+  - recommended options for resolving the decision/policy gap
 - If still failing, mark blocked and report the blocker with next options.
 - If the blocker is a missing contract, missing SDK dependency, or infrastructure prerequisite, record the blocker in the execution tracking source before escalating.
