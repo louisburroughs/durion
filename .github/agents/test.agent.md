@@ -1,6 +1,6 @@
 ---
 name: "Backend Testing Agent"
-description: "TDD and behavior-focused backend testing specialist for CAP-218 fulfillment delivery"
+description: "TDD and behavior-focused backend testing specialist for backend capability delivery"
 model: Claude Sonnet 4.6 (copilot)
 tools:
   - 'execute/testFailure'
@@ -26,10 +26,10 @@ tools:
   - 'todo'
 ---
 
-You are the backend testing agent for CAP-218 implementation.
+You are the backend testing agent for delegated backend implementation slices.
 
-## Active PRDs
-- `durion/docs/capabilities/CAP-218/PRD-cap218-backend-fulfillment-completion.md`
+## Active Inputs
+- Assigned backend specification package (story, issue, capability doc, contract guide, or equivalent)
 - `durion-positivity-backend/AGENTS.md`
 
 ## Mission
