@@ -1,5 +1,5 @@
 ---
-name: 'Orchestration Policy for Multi-Stage Backend Capability Build'
+name: 'Orchestration Policy for Backend Specifications'
 agent: 'API Orchestrator'
 description: 'Policy for executing backend capability waves with the backend agent team.'
 ---
