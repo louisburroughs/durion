@@ -13,6 +13,7 @@ This directory contains architectural documentation for the Durion Positivity PO
 
 ### API Contract Standards
 - [Backend Contract Global Standards](./api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md) - Canonical cross-domain rules for backend contract guides and OpenAPI source-of-truth boundaries
+- [Roles/JWT/Permissions Implementation Plan](./roles-jwt-permissions-implementation-plan.md) - Cross-platform execution tracker for ADR-0040 role and permission contract alignment
 
 ### Deployment Architecture
 - [Deployment Architecture Index](./deployment/README.md) - Deployment-focused architecture references
