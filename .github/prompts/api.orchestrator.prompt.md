@@ -7,11 +7,11 @@ description: 'Policy for executing backend capability waves with the backend age
 Run in strict compliance with `api.orchestrator.agent.md`.
 
 ## Objective
-Advance backend capability delivery one wave at a time. Each wave targets capabilities listed in `CAPABILITY_STATUS_BOARD.md` and produces one PR in `durion-positivity-backend` that ships backend contract, domain, integration, tests, and updated documentation.
+Advance backend capability delivery one wave at a time. Each wave targets capabilities listed in the assigned execution tracking source and produces one PR in `durion-positivity-backend` that ships backend contract, domain, integration, tests, and updated documentation.
 
 ## Active Inputs
 - Backend repo policy: `durion-positivity-backend/AGENTS.md`
-- Capability status board: `durion/docs/capabilities/CAPABILITY_STATUS_BOARD.md`
+- Assigned execution tracking source
 - Capability stories and supporting specifications: `durion/docs/capabilities/`
 
 ## Repository Target Override (Mandatory)
@@ -76,7 +76,7 @@ Forbidden:
 ## Team Responsibilities
 
 ### API Planner
-- builds the wave execution plan by scanning `CAPABILITY_STATUS_BOARD.md`
+- builds the wave execution plan by scanning the assigned execution tracking source
 - identifies execute-now / normalize-first / blocked lanes
 - sequences backend module slices, story-to-file mapping, and validation gates
 - maintains `Durion-Processing.md`
@@ -111,7 +111,7 @@ Forbidden:
 - reports findings only
 
 ### Documentation Agent
-- updates CAPABILITY_STATUS_BOARD and adjacent backend docs/run artifacts when assigned
+- updates the assigned execution tracking source and adjacent backend docs/run artifacts when assigned
 
 ### Test Coverage Agent
 - provides coverage analysis and improvement recommendations
@@ -121,7 +121,7 @@ Forbidden:
 1. API Planner creates validated wave plan.
 2. Validate plan via plan-acceptance rules.
 3. Create or switch execution branch in `durion-positivity-backend`.
-4. Read backend AGENTS policy, required ADRs, CAPABILITY_STATUS_BOARD, and affected backend module baselines.
+4. Read backend AGENTS policy, required ADRs, the assigned execution tracking source, and affected backend module baselines.
 5. Delegate ambiguity/tradeoff resolution to `anvil` when policy/ADR guidance is insufficient.
 6. Load source hierarchy for each capability in the wave, in order:
    - story markdown in `durion/docs/capabilities/<CAP-*>/`
@@ -140,7 +140,7 @@ Forbidden:
       - why the team is stuck (root cause + evidence)
       - what decision/policy needs updating
       - options to resolve the policy/decision gap
-   i. update CAPABILITY_STATUS_BOARD via `Documentation Agent` when story status changes
+   i. update the assigned execution tracking source via `Documentation Agent` when story status changes
 8. Run backend verification gates.
 9. Create the PR.
 10. Verify PR was created and ask API Planner to mark wave complete.
@@ -151,7 +151,7 @@ Reject and return to API Planner unless:
 - Step 1 is source-material reading
 - Final Step is PR creation in `durion-positivity-backend` via `durion/.github/hooks/pull-request-hook.sh`
 - the plan explicitly includes:
-  - wave identification from `CAPABILITY_STATUS_BOARD.md`
+  - wave identification from the assigned execution tracking source
   - story-to-backend-module mapping for each capability in scope
   - specialist ownership per file group
   - verification commands for verify and touched-file lint
@@ -159,7 +159,7 @@ Reject and return to API Planner unless:
 ## Delegation Templates
 
 ### A) API Planner
-- Scope: next-wave execution plan from `CAPABILITY_STATUS_BOARD.md`
+- Scope: next-wave execution plan from the assigned execution tracking source
 - Return:
   - wave identification and rationale
   - story-to-module mapping
@@ -229,7 +229,7 @@ Reject and return to API Planner unless:
   - fix queue referencing policy/ADR ids where applicable
 
 ### I) Documentation Agent
-- Scope: CAPABILITY_STATUS_BOARD updates and adjacent backend docs
+- Scope: assigned execution tracking source updates and adjacent backend docs
 - Return:
   - changed files
   - story status changes recorded
@@ -239,7 +239,7 @@ Reject and return to API Planner unless:
 - Before PR creation, API Orchestrator MUST have:
   - review PASS
   - passing backend verification evidence
-  - updated CAPABILITY_STATUS_BOARD when story statuses changed
+  - updated assigned execution tracking source when story statuses changed
 - Create the PR with:
   - `durion/.github/hooks/pull-request-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-backend --story <wave-id> --base <base> --head <branch> --title <title> --body-file <body-file>`
 
@@ -256,7 +256,7 @@ If a command fails, do not proceed to PR creation until:
 ## Runtime Context Rules
 Resolve context in this order:
 1. Backend AGENTS policy in `durion-positivity-backend/AGENTS.md`
-2. `CAPABILITY_STATUS_BOARD.md` and applicable `CAP-*` story files
+2. Assigned execution tracking source and applicable `CAP-*` story files
 3. Domain contract guide and generated backend reference docs
 4. Mandatory backend ADRs (0011, 0014, 0017, 0018)
 5. Affected backend module baselines and existing tests
@@ -267,7 +267,7 @@ Fallbacks:
 
 ## Blocked Story Handling
 If a capability slice is blocked by missing contract, dependency, or infrastructure prerequisites:
-- record the blocker in `CAPABILITY_STATUS_BOARD.md` with reason and date
-- mark the story as BLOCKED in the board
+- record the blocker in the assigned execution tracking source with reason and date
+- mark the story as BLOCKED in the assigned execution tracking source
 - skip to the next available story in the wave
 - report blockers to the user at the end of wave execution
