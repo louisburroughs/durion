@@ -1,9 +1,9 @@
 # ADR-0011: API Gateway Security Architecture
 
-**Status:** ACCEPTED  
-**Date:** 2026-02-01  
-**Last Updated:** 2026-03-17  
-**Deciders:** Backend Architecture, Security Team  
+**Status:** ACCEPTED
+**Date:** 2026-02-01
+**Last Updated:** 2026-03-17
+**Deciders:** Backend Architecture, Security Team
 **Affected Issues:** Cross-service authentication and authorization
 
 ---
@@ -13,18 +13,21 @@
 The backend platform requires a single, consistent ownership model for authentication and authorization.
 
 Previously, identity and role ownership were split across systems, causing:
+
 - duplicate authentication and role resolution logic
 - unclear ownership of role and permission lifecycle
 - inconsistent authorization behavior across services
 - operational complexity during incident response and audits
 
 The platform needs a centralized model where:
+
 1. `pos-security-service` is the source of truth for identities, roles, permissions, and assignments
 2. the API Gateway is the authentication enforcement boundary
 3. backend services focus on authorization decisions (`@PreAuthorize`) using gateway-provided context
 4. internal services are not directly exposed to external callers
 
 The platform now also has shared reference artifacts that make this security boundary more explicit for consumers and tooling:
+
 - `pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md` for gateway auth, token lifecycle, and required header usage
 - `pos-security-service/docs/permissions-aggregate.yaml` for aggregated canonical permissions across service manifests
 - `pos-api-gateway/docs/openapi-aggregate.yaml` as the aggregate gateway-facing API reference artifact
@@ -39,6 +42,7 @@ The platform now also has shared reference artifacts that make this security bou
 ### 1. Ownership and Trust Model
 
 **Decision:** ✅ **Resolved** - `pos-security-service` is the authoritative system for:
+
 - user identity records
 - role definitions
 - permission definitions
@@ -91,6 +95,7 @@ Optional (as needed):
 **Decision:** ✅ **Resolved** - Role and permission management is exclusively owned by `pos-security-service`.
 
 Rules:
+
 - Role/permission CRUD endpoints live in `pos-security-service`
 - Assignment workflows (user-role, scope bindings) live in `pos-security-service`
 - Other modules may define or register domain permissions, but the authoritative registry and assignment lifecycle remain in `pos-security-service`
@@ -109,6 +114,7 @@ Rules:
 7. Forward authenticated request with security headers/context to downstream service
 
 Gateway consumer requests should consistently use:
+
 - `Authorization: Bearer <token>` for protected endpoints
 - `X-API-Version` for explicit API version routing
 - `X-Correlation-Id` for request tracing
@@ -177,6 +183,7 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
 ## Implementation Notes
 
 ### Required Components
+
 - Spring Cloud Gateway
 - Spring Security (gateway and services)
 - JWT validation and key management
@@ -184,6 +191,7 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
 - Shared security/API contract documentation for consumers and SDK tooling
 
 ### Configuration
+
 - `security.jwt.issuer=pos-security-service`
 - `security.jwt.audience=api-gateway`
 - `security.jwt.signing-key` (or equivalent key/JWKS configuration)
@@ -191,12 +199,14 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
 - `security.jwt.replay-cache-ttl` (if replay checks enabled)
 
 ### Consumer Contract Artifacts
+
 - `pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md` is the canonical consumer guide for login, refresh, validate, revoke, and gateway header usage patterns
 - `pos-security-service/docs/permissions-aggregate.yaml` is the canonical aggregated permission reference for SDK/docs generation and consumer-facing permission lookup
 - `pos-api-gateway/docs/openapi-aggregate.yaml` is the aggregate API discovery/reference artifact for gateway-routed APIs
 - `com.positivity.shared.error.ApiError` is the canonical backend error envelope for auth and authorization failures, including correlation IDs and validation/guidance fields where applicable
 
 ### Testing Strategy
+
 - Unit: token parsing/signature/claim validation
 - Integration: `pos-security-service -> api-gateway -> protected service`
 - Negative-path: expired token, invalid issuer/audience, insufficient authority
@@ -204,6 +214,7 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
 - Contract: auth endpoints, gateway-protected APIs, and auth failures remain aligned with the shared `ApiError` envelope and documented consumer header conventions
 
 ### Rollout Plan
+
 1. Migrate all role-management ownership to `pos-security-service`
 2. Align gateway claim validation with the canonical JWT contract
 3. Remove legacy role-management paths in other systems/modules
@@ -235,11 +246,11 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
 
 ## Sign-Off
 
-| Role | Name | Date | Notes |
-|------|------|------|-------|
+| Role         | Name      | Date       | Notes                                                                                             |
+| ------------ | --------- | ---------- | ------------------------------------------------------------------------------------------------- |
 | Architecture | [Pending] | 2026-03-17 | Security ownership consolidated in pos-security-service and related consumer artifacts documented |
-| Backend Lead | [Pending] | 2026-03-17 | Gateway boundary, header conventions, and shared error contract confirmed |
-| Security | [Pending] | 2026-03-17 | JWT contract, permission catalog, and token lifecycle guidance confirmed |
+| Backend Lead | [Pending] | 2026-03-17 | Gateway boundary, header conventions, and shared error contract confirmed                         |
+| Security     | [Pending] | 2026-03-17 | JWT contract, permission catalog, and token lifecycle guidance confirmed                          |
 
 ---
 
