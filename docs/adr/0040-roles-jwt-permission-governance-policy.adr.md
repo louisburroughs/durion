@@ -181,6 +181,7 @@ Refresh tokens may include only identity/lifecycle claims needed for refresh exc
 - [ADR-0018: Audit Actor Fields from Security Context](0018-audit-actor-fields-from-security-context.adr.md)
 - [ADR-0022: Audit Stable Person Identifier Claim Policy](0022-audit-stable-person-identifier-claim-policy.adr.md)
 - [ADR-0025: Permissions Manifest Registration Policy](0025-permissions-yaml-registration-policy.adr.md)
+- [Roles/JWT/Permissions Implementation Plan](../architecture/roles-jwt-permissions-implementation-plan.md)
 - `durion-positivity-frontend/src/app/core/services/auth.service.ts`
 - `durion-positivity-frontend/src/app/core/guards/roles.guard.ts`
 - `durion-positivity-backend/pos-security-service/src/main/java/com/positivity/securityservice/internal/service/JwtServiceImpl.java`
