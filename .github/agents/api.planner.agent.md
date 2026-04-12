@@ -44,6 +44,7 @@ Drive toward creation of a PR in `durion-positivity-backend` for the current exe
 - Include `API Surface Coder`, `Domain Data Coder`, `Client Coder`, `Backend Testing Agent`, `Code Review Agent`, and `Documentation Agent` gates.
 - Include review, documentation, and PR creation gates.
 - Include verification using module-aware Maven verify and touched-file lint.
+- Include explicit branch strategy and PR readiness steps in every plan.
 
 ## Output Requirements
 Use this exact template:
@@ -75,7 +76,15 @@ Blocked Stories:
 - Step 1 must always be source-material reading.
 - Final Step must always be PR creation.
 - The plan must name the wave, target backend modules, capability stories in scope, and specialist ownership split.
+- The plan must define branch strategy:
+  - base branch
+  - head branch naming (`cap/<work-id>-<short-slug>` preferred; `feat/api-<short-slug>` fallback)
+  - branch creation/switch step before implementation begins
 - The plan must include `API Surface Coder`, `Domain Data Coder`, `Client Coder`, `Backend Testing Agent`, `Code Review Agent`, and `Documentation Agent` gates.
+- The plan must include PR requirements:
+  - title format using `cap/<work-id>` prefix when available
+  - PR body checklist (scope, specs, changed modules/files, verification evidence, risks/blockers)
+  - explicit no-PR-before-gates condition
 - The plan must explicitly include:
   - `cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend && ./mvnw -DskipTests=false verify`
   - `cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend && ./mvnw -pl <module> -DskipTests=false verify`

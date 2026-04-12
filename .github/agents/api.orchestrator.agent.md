@@ -44,10 +44,35 @@ Continuously advance backend capability delivery for `durion-positivity-backend`
 - Treat `Durion-Processing.md` as the authoritative execution ledger for the active wave.
 - Do not treat a wave as done until Planner marks the corresponding steps completed and backend verification/review gates pass.
 - Do not delegate frontend implementation work in this mode.
+- `Coder` may be delegated for git task execution only (branch setup/sync, commit/push preparation, and PR command execution support). `Coder` must not be used for backend feature implementation in this mode.
+
+## Branch Strategy (Mandatory)
+- Never implement on `main`/`master`; use a dedicated execution branch for each wave.
+- Create or reuse one branch per active wave and keep all wave changes on that branch until PR creation.
+- Branch naming:
+  - preferred: `cap/<work-id>-<short-slug>`
+  - fallback when no work-id exists: `feat/api-<short-slug>`
+- Keep branch strategy explicit in `Durion-Processing.md` (base branch, head branch, and wave ownership).
+- Before PR creation, confirm the working tree branch matches the planned head branch.
+
+## Pull Request Requirements (Mandatory)
+- API Orchestrator is responsible for final PR creation after all gates pass.
+- PR title must include the capability/work prefix: `cap/<work-id> ...` when a work-id exists.
+- PR body must include:
+  - objective and scope
+  - linked specification sources
+  - modules/files changed
+  - verification evidence (`verify`, module `verify`, touched-file lint)
+  - blocker/risk notes and follow-ups
+- Do not create the PR until:
+  - review verdict is PASS
+  - required verification gates are green or explicitly documented as blockers
+  - `Durion-Processing.md` reflects final step completion state
 
 ## Directly Callable Agents
 - `API Planner`
 - `anvil`
+- `Coder` (git task execution only)
 - `API Surface Coder`
 - `Domain Data Coder`
 - `Client Coder`
@@ -59,6 +84,7 @@ Continuously advance backend capability delivery for `durion-positivity-backend`
 ## Backend Authority
 - `API Planner` defines wave scope, sequencing, and ownership.
 - `anvil` acts as the coding team lead and arbiter of technical decisions, tradeoffs, and specification interpretation when not explicitly covered by policy or ADRs. Provides explicit guidance to subagents when delegating.
+- `Coder` is authorized only for git workflow execution tasks and must not be assigned product code changes in this mode.
 - `API Surface Coder` owns controllers, request/response DTOs, service interfaces, contract shape, and OpenAPI annotations. Acts on explicit delegation from `API Planner` or `anvil` and does not self-initiate work.
 - `Domain Data Coder` owns service implementations, orchestration, entities, repositories, and transactional domain behavior. Acts on explicit delegation from `API Planner` or `anvil` and does not self-initiate work.
 - `Client Coder` owns outbound integration boundaries (`internal/client/**`, request pipeline behavior, and remote error translation). Acts on explicit delegation from `API Planner` or `anvil` and does not self-initiate work.
