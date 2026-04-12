@@ -24,7 +24,7 @@ tools:
   - sonarsource.sonarlint-vscode/sonarqube_analyzeFile
   - sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode
   - sonarsource.sonarlint-vscode/sonarqube_excludeFiles
-  - memory
+  - vscode/memory
   - todo
 ---
 
