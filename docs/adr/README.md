@@ -94,6 +94,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0028   | Inventory Stock Item Identifier Consistency Policy | ACCEPTED | 2026-02-28 |
 | 0029   | Frontend Accessibility Baseline Policy     | ACCEPTED          | 2026-03-28 |
 | 0030   | Frontend Internationalization and Localization Policy | ACCEPTED | 2026-03-28 |
+| 0039   | Frontend Information-Bearing Contrast Policy | ACCEPTED | 2026-04-11 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -131,6 +132,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0028 | Inventory lookup key consistency across reallocation, reservations, and ledger on-hand computation (`stockItemId` as UUID) | Coder, Test, Planner, Orchestrator |
 | 0029 | Frontend accessibility behavior, keyboard/screen-reader support, and WCAG conformance expectations | Coder, Test, Planner, Orchestrator |
 | 0030 | Frontend i18n/l10n behavior, locale fallback, translation key strategy, and format localization | Coder, Test, Planner, Orchestrator |
+| 0039 | Frontend information-bearing text contrast thresholds (small text 4.5:1, large text 3:1) and ADA/WCAG alignment evidence | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
 
