@@ -36,6 +36,7 @@ Advance backend capability delivery one wave at a time. Each wave targets capabi
 ### Directly Callable by API Orchestrator
 - `API Planner`
 - `anvil`
+- `Coder` (git task execution only)
 - `API Surface Coder`
 - `Domain Data Coder`
 - `Client Coder`
@@ -56,6 +57,7 @@ Do not delegate to them for this mode.
 Only delegate to:
 - `API Planner`
 - `anvil`
+- `Coder` (git task execution only)
 - `API Surface Coder`
 - `Domain Data Coder`
 - `Client Coder`
@@ -68,6 +70,7 @@ Forbidden:
 - delegating frontend implementation agents
 - inventing agent aliases
 - implementing code directly as API Orchestrator
+- using `Coder` for backend feature implementation (allowed only for git task execution)
 
 ## Team Responsibilities
 
@@ -81,6 +84,10 @@ Forbidden:
 - acts as coding team lead and arbiter of technical decisions, tradeoffs, and specification interpretation when policy/ADRs do not explicitly resolve ambiguity
 - provides explicit implementation guidance to backend specialist coders before and during delegation
 - resolves ownership/dependency conflicts between API surface, domain data, and client integration work
+
+### Coder
+- executes git workflow tasks only (branch setup/sync, commit/push support, PR command execution support)
+- must not be assigned backend feature implementation in this mode
 
 ### API Surface Coder
 - owns controllers, DTOs, service interfaces, validation, and OpenAPI annotations

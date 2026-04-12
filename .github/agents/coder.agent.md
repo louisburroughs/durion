@@ -3,29 +3,7 @@ name: Coder
 description: Legacy fallback single-agent implementation mode (use when Lead Coder team-mode delegation is unavailable).
 model: GPT-5.3-Codex (copilot)
 tools:
-  - 'execute/testFailure'
-  - 'execute/getTerminalOutput'
-  - 'execute/awaitTerminal'
-  - 'execute/killTerminal'
-  - 'execute/createAndRunTask'
-  - 'execute/runInTerminal'
-  - 'execute/runTests'
-  - 'read/problems'
-  - 'read/readFile'
-  - 'read/terminalSelection'
-  - 'read/terminalLastCommand'
-  - 'edit/createDirectory'
-  - 'edit/createFile'
-  - 'edit/editFiles'
-  - 'search/fileSearch'
-  - 'search/listDirectory'
-  - 'search/textSearch'
-  - 'search/usages'
-  - 'web/fetch'
-  - 'vscode/memory'
-  - 'todo'
-  - io.github.upstash/context7/resolve-library-id
-  - io.github.upstash/context7/get-library-docs
+[execute/testFailure, execute/getTerminalOutput, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/editFiles, 'github/*', 'github/*', 'io.github.upstash/context7/*']
 ---
 
 You are the implementation agent. Deliver correct, maintainable code that satisfies story acceptance criteria.
