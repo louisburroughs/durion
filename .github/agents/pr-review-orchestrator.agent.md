@@ -10,7 +10,7 @@ tools:
   - search/textSearch
   - edit/createFile
   - edit/editFiles
-  - runSubagent
+  - agent
   - github/list_pull_requests
   - github/search_pull_requests
   - github/pull_request_read
