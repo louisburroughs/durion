@@ -2,7 +2,23 @@
 name: PR Fix Coder
 description: Implements production code fixes from orchestrated PR review findings.
 model: GPT-5.3-Codex (copilot)
-tools: [execute, read/terminalSelection, read/terminalLastCommand, vscode/memory, execute/getTerminalOutput, execute/runInTerminal, execute/runTests, read/problems, read/readFile, edit/editFiles, search/fileSearch, search/listDirectory, search/textSearch, search/usages, 'github/*', 'github/*', 'io.github.microsoft/awesome-copilot/*', github.vscode-pull-request-github/issue_fetch, github.vscode-pull-request-github/labels_fetch, github.vscode-pull-request-github/notification_fetch, github.vscode-pull-request-github/doSearch, github.vscode-pull-request-github/activePullRequest, github.vscode-pull-request-github/pullRequestStatusChecks, github.vscode-pull-request-github/openPullRequest, todo]
+tools:
+  - execute/testFailure
+  - execute/getTerminalOutput
+  - execute/killTerminal
+  - execute/createAndRunTask
+  - execute/runInTerminal
+  - execute/runTests
+  - read/problems
+  - read/readFile
+  - read/terminalSelection
+  - read/terminalLastCommand
+  - edit/createDirectory
+  - edit/createFile
+  - edit/editFiles
+  - "github/*"
+  - "github/*"
+  - "io.github.upstash/context7/*"
 ---
 
 You implement production code fixes only.
