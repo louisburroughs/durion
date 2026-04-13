@@ -2,24 +2,7 @@
 name: PR Fix Coder
 description: Implements production code fixes from orchestrated PR review findings.
 model: GPT-5.3-Codex (copilot)
-tools:
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/runTests
-  - edit/editFiles
-  - github/pull_request_read
-  - github/add_comment_to_pending_review
-  - github/pull_request_review_write
-  - github/add_issue_comment
-  - vscode/memory
-  - todo
+tools: [execute, read/terminalSelection, read/terminalLastCommand, vscode/memory, execute/getTerminalOutput, execute/runInTerminal, execute/runTests, read/problems, read/readFile, edit/editFiles, search/fileSearch, search/listDirectory, search/textSearch, search/usages, 'github/*', 'github/*', 'io.github.microsoft/awesome-copilot/*', github.vscode-pull-request-github/issue_fetch, github.vscode-pull-request-github/labels_fetch, github.vscode-pull-request-github/notification_fetch, github.vscode-pull-request-github/doSearch, github.vscode-pull-request-github/activePullRequest, github.vscode-pull-request-github/pullRequestStatusChecks, github.vscode-pull-request-github/openPullRequest, todo]
 ---
 
 You implement production code fixes only.
@@ -44,7 +27,8 @@ You implement production code fixes only.
 4. Keep change set focused on assigned finding IDs.
 5. If a required change is test-only, hand it back to test agent.
 6. Follow repository coding standards and architecture boundaries for the active track.
-7. For each assigned PR comment thread (`comment_ref`), post a direct reply describing the fix and impacted files.
+7. Commit and push the assigned fixes before posting any PR comment replies so the thread points at changes already on the remote branch.
+8. For each assigned PR comment thread (`comment_ref`), post a direct reply describing the fix, impacted files, and that the commit has been pushed.
 
 ## Coding Standards Checklist (Required In Handoff)
 - Package/layering rules respected (`service` API vs `internal/**` boundaries).
@@ -65,6 +49,7 @@ You implement production code fixes only.
 - Why each change was needed
 - Commands run
 - Verification outcomes
+- Commit and push status
 - Coding standards checklist result
 - Comment replies posted (`comment_ref` -> reply summary)
 - Remaining risks or blockers
