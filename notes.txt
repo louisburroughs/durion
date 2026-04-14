@@ -1,0 +1,234 @@
+ssh -i ~/.ssh/durion-alpha-key.pem ec2-user@34.202.151.97
+
+ecrlogin
+
+nano /opt/durion/alpha/.env
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  --env-file /opt/durion/alpha/.env \
+  logs --tail=100 pos-vehicle-inventory
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  --env-file /opt/durion/alpha/.env \
+  ps
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  --env-file /opt/durion/alpha/.env \
+  up -d --force-recreate pos-vehicle-inventory
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  --env-file /opt/durion/alpha/.env \
+  down
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  --env-file /opt/durion/alpha/.env \
+  pull
+
+
+docker inspect backend-pos-frontend-1 --format '{{json .State.Health}}' | jq
+
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  --env-file /opt/durion/alpha/.env \
+  ps
+
+
+docker system prune --all
+
+
+  What you need to set now:
+
+New repo secret: ALPHA_EC2_INSTANCE_ID (e.g. i-xxxxxxxxxxxx).
+GitHub OIDC role (AWS_ROLE_ARN) must allow:
+ssm:SendCommand
+ssm:GetCommandInvocation
+ssm:ListCommandInvocations (optional but useful)
+EC2 instance role must include AmazonSSMManagedInstanceCore and be online in Systems Manager.
+Next step:
+
+Push this workflow change.
+Re-run Build and Push to ECR with deploy_alpha=true.
+If it fails, share that job log and I’ll tune IAM/SSM permissions quickly.
+
+htpasswd -bnBC 12 "" 'YourPlaintextPassword' | tr -d ':\n'
+
+{
+    "OpenIDConnectProviderList": [
+        {
+            "Arn": "arn:aws:iam::288757602241:oidc-provider/token.actions.githubusercontent.com"
+        }
+    ]
+}
+
+ROLE_NAME="github-actions-ecr-push"
+REPO="louisburroughs/durion-positivity-backend"
+BRANCH="main"
+
+cat > /tmp/github-oidc-trust.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::288757602241:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:${REPO}:ref:refs/heads/${BRANCH}"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+aws iam create-role \
+  --role-name "${ROLE_NAME}" \
+  --assume-role-policy-document file:///tmp/github-oidc-trust.json \
+|| aws iam update-assume-role-policy \
+  --role-name "${ROLE_NAME}" \
+  --policy-document file:///tmp/github-oidc-trust.json
+
+aws iam get-role --role-name "${ROLE_NAME}" --query 'Role.Arn' --output text
+
+
+##Update image tags
+
+ENV_FILE="/opt/durion/alpha/.env"
+BACKEND_TAG_NEW="sha-a4799b9"
+FRONTEND_TAG_NEW="sha-44455b8"
+
+# update/add BACKEND_TAG
+
+if grep -q '^BACKEND_TAG=' "$ENV_FILE"; then
+  sed -i "s/^BACKEND_TAG=.*/BACKEND_TAG=${BACKEND_TAG_NEW}/" "$ENV_FILE"
+else
+  printf '\nBACKEND_TAG=%s\n' "$BACKEND_TAG_NEW" >> "$ENV_FILE"
+fi
+
+# update/add FRONTEND_TAG
+
+if grep -q '^FRONTEND_TAG=' "$ENV_FILE"; then
+  sed -i "s/^FRONTEND_TAG=.*/FRONTEND_TAG=${FRONTEND_TAG_NEW}/" "$ENV_FILE"
+else
+  printf 'FRONTEND_TAG=%s\n' "$FRONTEND_TAG_NEW" >> "$ENV_FILE"
+fi
+
+# verify
+
+grep -E '^(BACKEND_TAG|FRONTEND_TAG)=' "$ENV_FILE"
+
+
+
+
+
+
+docker compose -f docker-compose.yml -f /opt/durion/alpha/docker-compose.prod.yml --env-file /opt/durion/alpha/.env \
+  exec -T postgres psql -U pos_user -d positivity -c \
+  "select username, password, length(password) as len from users where username='admin.alpha';"
+
+
+
+-- Add this to mudules if it works for vehicle-inventory :  @SpringBootApplication(exclude = { UserDetailsServiceAutoConfiguration.class })
+-- Plan to have flyway schemas for every entity
+
+
+INSTANCE_ID="otel-collector"
+API_KEY="your_api_key"
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic $(printf '%s' "${INSTANCE_ID}:${API_KEY}" | base64 | tr -d '\n')"
+echo "$OTEL_EXPORTER_OTLP_HEADERS"
+
+
+./mvnw -f pos-event-receiver/pom.xml spring-boot:run
+./mvnw -f pos-mcp-server/pom.xml spring-boot:run -Dspring-boot.run.profiles=preprod
+
+
+cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend/pos-event-receiver
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/pos_event_receiver_db \
+SPRING_DATASOURCE_USERNAME=positivity \
+SPRING_DATASOURCE_PASSWORD=your_secure_password_here \
+../mvnw spring-boot:run
+
+
+LOGGING_LEVEL_ORG_FLYWAYDB=DEBUG \
+ -Dspring-boot.run.arguments="--debug"
+EUREKA_CLIENT_ENABLED=false \
+
+
+cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend/pos-mcp-server
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/pos_mcp \
+POS_MCP_DB_USER=positivity \
+POS_MCP_DB_PASSWORD=your_secure_password_here \
+POS_SECURITY_PERMISSION_REGISTRATION_ENABLED=false \
+MCP_SECURITY_PERMIT_ALL_TRANSPORT=true \
+../mvnw spring-boot:run -Dspring-boot.run.profiles=preprod -Dspring-boot.run.arguments="--management.server.port=8086"
+
+
+
+
+
+cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend/pos-service-discovery
+../mvnw spring-boot:run
+
+
+
+
+psql -h localhost -p 5432 -U positivity -d pos_event_receiver_db -c "\\dt"
+psql -h localhost -p 5432 -U positivity -d pos_event_receiver_db -c "SELECT * FROM flyway_schema_history;"
+
+psql -h localhost -p 5432 -U positivity -c "CREATE DATABASE pos_event_receiver_db OWNER positivity;"
+psql -h localhost -p 5432 -U positivity -c "CREATE DATABASE pos_mcp OWNER positivity;"
+
+
+Ollama base URL:
+http://host.docker.internal:11434
+MCP server URL:
+http://host.docker.internal:8086/mcp/sse
+
+
+cd /home/louis-burroughs/IdeaProjects
+git clone https://github.com/onyx-dot-app/onyx.git
+cd onyx/deployment/docker_compose
+./install.sh --no-prompt
+
+
+//This didn't work.  It was already up
+cd /home/louis-burroughs/IdeaProjects/onyx_data/deployment
+docker compose up -d
+docker compose ps
+
+
+
+
+
+EXA Prompt
+
+docker volume prune -a
+
+
+docker system prune -a --volumes
+
+
+
+
+docker stop $(docker ps -q)
+
+
+
