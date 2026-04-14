@@ -282,6 +282,7 @@ for module in "${modules[@]}"; do
     --repo "$repo_path"
     --module "$module"
     --goal verify
+    --also-make
     --low-resource auto
     --maven-arg "-DskipTests=false"
   )
