@@ -234,7 +234,7 @@ if [[ -n "${DESIRED_POSTGRES_IMAGE}" && "${CURRENT_POSTGRES_IMAGE}" != "${DESIRE
   docker compose "${COMPOSE_ARGS[@]}" up -d --force-recreate postgres
 fi
 
-docker compose "${COMPOSE_ARGS[@]}" pull "${BACKEND_SERVICES[@]}"
+docker compose "${COMPOSE_ARGS[@]}" pull --quiet "${BACKEND_SERVICES[@]}"
 docker compose "${COMPOSE_ARGS[@]}" up -d --force-recreate "${BACKEND_SERVICES[@]}"
 docker compose "${COMPOSE_ARGS[@]}" ps
 EOF
