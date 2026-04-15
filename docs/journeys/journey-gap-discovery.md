@@ -60,6 +60,58 @@ gh api graphql -f query='
 }'
 ```
 
+```bash
+# Check if available (almost certainly yes)
+sqlite3 --version
+
+# Create DB and schema
+sqlite3 /tmp/github-issues.db <<'EOF'
+CREATE TABLE issues (
+  number INTEGER PRIMARY KEY,
+  title TEXT,
+  state TEXT,
+  body TEXT,
+  url TEXT,
+  labels TEXT,       -- JSON array
+  milestone TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+CREATE TABLE comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  issue_number INTEGER REFERENCES issues(number),
+  author TEXT,
+  body TEXT,
+  created_at TEXT
+);
+
+CREATE TABLE sub_issues (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  parent_number INTEGER REFERENCES issues(number),
+  child_number INTEGER,
+  title TEXT,
+  state TEXT
+);
+EOF
+
+# Fetch and insert — pipe gh JSON into sqlite via Python
+gh issue view 100 --json number,title,state,body,url,labels,milestone,createdAt,updatedAt \
+  --repo louisburroughs/durion-positivity-backend \
+  | python3 -c "
+import json, sqlite3, sys
+data = json.load(sys.stdin)
+con = sqlite3.connect('/tmp/github-issues.db')
+con.execute('INSERT OR REPLACE INTO issues VALUES (?,?,?,?,?,?,?,?,?)', (
+    data['number'], data['title'], data['state'], data['body'], data['url'],
+    json.dumps([l['name'] for l in data['labels']]),
+    data['milestone']['title'] if data['milestone'] else None,
+    data['createdAt'], data['updatedAt']
+))
+con.commit()
+"
+```
+
 Sources:
 
 * GitHub Issues (acceptance criteria → steps)
