@@ -9,8 +9,8 @@ AWS Systems Manager (SSM) instead of SSH.
 The deployment flow is:
 
 1. GitHub Actions assumes the OIDC role (`AWS_ROLE_ARN`)
-2. Compose files are uploaded to S3 (`ALPHA_DEPLOY_BUCKET`)
-3. SSM `send-command` pulls the compose files from S3 onto the instance
+2. Compose files and Postgres bootstrap assets are uploaded to S3 (`ALPHA_DEPLOY_BUCKET`)
+3. SSM `send-command` pulls the compose files and `postgres/init-databases.sql` from S3 onto the instance
 4. SSM `send-command` runs `/opt/durion/alpha/scripts/deploy-backend.sh` on the instance
 5. The script updates the `.env` file and restarts Docker Compose services
 
@@ -142,6 +142,9 @@ no longer required and can be removed.
 ## 5. On-Instance Deploy Script
 
 The SSM command calls `/opt/durion/alpha/scripts/deploy-backend.sh` on the instance.
+The deploy workflow also keeps the Postgres bootstrap SQL in sync at
+`/opt/durion/alpha/backend/postgres/init-databases.sql` so first-time alpha
+initialization can create all per-service databases.
 Create this file on the instance once (SSH in while you still have access, or use
 SSM Session Manager):
 
