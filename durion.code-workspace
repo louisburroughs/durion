@@ -18,6 +18,10 @@
 		},
 	],
 	"settings": {
+		"files.associations": {
+			"**/application*.yml": "spring-boot-properties-yaml",
+			"**/bootstrap*.yml": "spring-boot-properties-yaml"
+		},
 		"java.compile.nullAnalysis.mode": "automatic",
 		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
 		"java.configuration.updateBuildConfiguration": "automatic"
