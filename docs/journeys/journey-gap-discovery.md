@@ -42,6 +42,24 @@ This aligns with your **event-driven architecture** and can later map to your do
 
 # 2) Extract Event Streams from Executed Work
 
+```bash
+# Sub-issues/children require the GraphQL API directly
+gh api graphql -f query='
+{
+  repository(owner: "louisburroughs", name: "durion-positivity-backend") {
+    issue(number: 100) {
+      title
+      body
+      state
+      labels(first: 20) { nodes { name } }
+      comments(first: 50) { nodes { author { login } body createdAt } }
+      trackedInIssues(first: 10) { nodes { number title state } }
+      trackedIssues(first: 25) { nodes { number title state } }
+    }
+  }
+}'
+```
+
 Sources:
 
 * GitHub Issues (acceptance criteria → steps)
