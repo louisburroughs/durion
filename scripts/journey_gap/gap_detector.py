@@ -42,7 +42,7 @@ def detect_gaps(
 
     # Get all active issues
     cur = con.cursor()
-    cur.execute("SELECT number, title FROM issues WHERE state = 'OPEN'")
+    cur.execute("SELECT number, title FROM issues WHERE UPPER(state) = 'OPEN'")
     active_issues = {row[0]: row[1] for row in cur.fetchall()}
     slotted_issues = set()
 
@@ -64,7 +64,7 @@ def detect_gaps(
                 # Query DB for matches
                 cur.execute(
                     '''
-                    SELECT number FROM journey_events
+                    SELECT issue_number FROM journey_events
                     WHERE actor LIKE ? AND action LIKE ? AND object LIKE ?
                     ''',
                     (f"%{stage.persona}%", f"%{action}%", f"%{obj}%")

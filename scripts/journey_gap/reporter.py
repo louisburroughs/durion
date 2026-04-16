@@ -69,7 +69,7 @@ def _traceability_section(
                 covering_issues = set()
                 for c in stage_covered_events:
                     for i in c.covering_issues:
-                        row = con.execute("SELECT number FROM issues WHERE number = ? AND state = 'OPEN'", (i,)).fetchone()
+                        row = con.execute("SELECT number FROM issues WHERE number = ? AND UPPER(state) = 'OPEN'", (i,)).fetchone()
                         if row:
                             covering_issues.add(f"#{row[0]}")
                             
@@ -83,7 +83,7 @@ def _traceability_section(
                         if c.expected_event == (action, obj):
                             # check if it has open issues
                             for i in c.covering_issues:
-                                if con.execute("SELECT number FROM issues WHERE number = ? AND state = 'OPEN'", (i,)).fetchone():
+                                if con.execute("SELECT number FROM issues WHERE number = ? AND UPPER(state) = 'OPEN'", (i,)).fetchone():
                                     found = True
                                     break
                     if not found:
