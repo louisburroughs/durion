@@ -103,15 +103,15 @@ This journey covers the customer-facing path from initial context lookup through
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                        | Expected Events                                              | Notes                                                                            |
-| ---------------------------- | ---------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `Service Advisor`            | Customer context and intake  | `#68`, `#79`, `#163`, `#239`                                 | Dominant lane for CRM snapshot, draft estimate creation, and estimate retrieval. |
-| `Customer Support Associate` | Customer context and intake  | `#67`, `#85`                                                 | Front-counter and checkout-adjacent intake behaviors.                            |
-| `Service Advisor`            | Quote and estimate authoring | `#80`, `#84`, `#112`, `#234`, `#235`, `#236`, `#237`, `#238` | Authoring, pricing, taxes, product context, and estimate revision.               |
-| `Service Advisor`            | Review and approval          | `#232`, `#233`, `#269`, `#270`, `#271`                       | Submission, revision effects, and approval handling.                             |
-| `Location Manager`           | Review and approval          | `#268`                                                       | Expiration and higher-authority approval behavior.                               |
-| `Service Advisor`            | Promotion to work order      | `#227`, `#228`, `#229`, `#230`, `#231`                       | Promotion flows, idempotency, and work order creation from approved scope.       |
-| `Location Manager`           | Promotion to work order      | `#226`                                                       | Promotion audit visibility and management oversight.                             |
+| Canonical Persona            | Stage                        | Expected Events                                                              | Notes                                                                            |
+| ---------------------------- | ---------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `Service Advisor`            | Customer context and intake  | `[View, CustomerContext]`, `[Create, DraftEstimate]`, `[Retrieve, Estimate]` | Dominant lane for CRM snapshot, draft estimate creation, and estimate retrieval. |
+| `Customer Support Associate` | Customer context and intake  | `[Initialize, Intake]`                                                       | Front-counter and checkout-adjacent intake behaviors.                            |
+| `Service Advisor`            | Quote and estimate authoring | `[Add, LineItem]`, `[Calculate, Pricing]`, `[Revise, Estimate]`              | Authoring, pricing, taxes, product context, and estimate revision.               |
+| `Service Advisor`            | Review and approval          | `[Submit, Estimate]`, `[Approve, Estimate]`                                  | Submission, revision effects, and approval handling.                             |
+| `Location Manager`           | Review and approval          | `[Override, Approval]`, `[Expire, Estimate]`                                 | Expiration and higher-authority approval behavior.                               |
+| `Service Advisor`            | Promotion to work order      | `[Create, WorkOrder]`, `[Check, Idempotency]`                                | Promotion flows, idempotency, and work order creation from approved scope.       |
+| `Location Manager`           | Promotion to work order      | `[View, PromotionAudit]`                                                     | Promotion audit visibility and management oversight.                             |
 
 ### Journey 2: Scheduling, Dispatch, and Shop Coordination
 
@@ -128,15 +128,15 @@ This journey covers planning and coordination work that places vehicles, technic
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                       | Expected Events        | Notes                                                               |
-| ---------------------------- | --------------------------- | ---------------------- | ------------------------------------------------------------------- |
-| `Service Advisor`            | Appointment creation        | `#74`, `#139`          | Customer-linked appointment creation and assignment visibility.     |
-| `Dispatcher`                 | Appointment creation        | `#76`                  | Dispatcher-owned scheduling entry point.                            |
-| `Dispatcher`                 | Schedule management         | `#131`, `#137`, `#138` | Mobile dispatch and schedule manipulation.                          |
-| `Location Manager`           | Assignment and coordination | `#128`, `#133`, `#225` | Assignment context, overrides, and technician assignment decisions. |
-| `Dispatcher`                 | Assignment and coordination | `#225`                 | Shares assignment ownership with shop/location leadership.          |
-| `Customer Support Associate` | Work visibility             | `#78`                  | Customer-facing or front-counter visibility into active work.       |
-| `Service Advisor`            | Work visibility             | `#77`                  | Invoice/finalization awareness while work is in progress.           |
+| Canonical Persona            | Stage                       | Expected Events                                  | Notes                                                               |
+| ---------------------------- | --------------------------- | ------------------------------------------------ | ------------------------------------------------------------------- |
+| `Service Advisor`            | Appointment creation        | `[Create, Appointment]`                          | Customer-linked appointment creation and assignment visibility.     |
+| `Dispatcher`                 | Appointment creation        | `[View, Schedule]`                               | Dispatcher-owned scheduling entry point.                            |
+| `Dispatcher`                 | Schedule management         | `[Update, Schedule]`, `[Cancel, Appointment]`    | Mobile dispatch and schedule manipulation.                          |
+| `Location Manager`           | Assignment and coordination | `[Assign, Technician]`, `[Override, Assignment]` | Assignment context, overrides, and technician assignment decisions. |
+| `Dispatcher`                 | Assignment and coordination | `[Assign, Technician]`                           | Shares assignment ownership with shop/location leadership.          |
+| `Customer Support Associate` | Work visibility             | `[View, ActiveWork]`                             | Customer-facing or front-counter visibility into active work.       |
+| `Service Advisor`            | Work visibility             | `[Review, WorkStatus]`                           | Invoice/finalization awareness while work is in progress.           |
 
 ### Journey 3: Work Order Execution and Completion
 
@@ -153,14 +153,14 @@ This journey covers the technician-facing execution loop plus the service-adviso
 
 #### Swimlanes
 
-| Canonical Persona  | Stage                           | Expected Events        | Notes                                                                         |
-| ------------------ | ------------------------------- | ---------------------- | ----------------------------------------------------------------------------- |
-| `Technician`       | Execution context               | `#123`, `#219`         | Technician-facing work context and field visibility.                          |
-| `Technician`       | In-progress execution updates   | `#220`, `#224`         | Additional work requests, start work, and in-progress reasons.                |
-| `Technician`       | Parts handling during execution | `#221`, `#222`, `#243` | Substitutions, returns, issue/consume, and picked-item consumption.           |
-| `Parts Manager`    | Parts handling during execution | `#93`                  | Inventory view from work order lines and parts-centric operational decisions. |
-| `Service Advisor`  | Completion and billing handoff  | `#215`, `#216`, `#217` | Completion, finalize-for-billing, and approval-gated change resolution.       |
-| `Location Manager` | Completion and billing handoff  | `#214`                 | Controlled reopen and post-completion management workflow.                    |
+| Canonical Persona  | Stage                           | Expected Events                                                | Notes                                                                         |
+| ------------------ | ------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `Technician`       | Execution context               | `[View, WorkContext]`, `[View, FieldContext]`                  | Technician-facing work context and field visibility.                          |
+| `Technician`       | In-progress execution updates   | `[Start, Work]`, `[Log, AdditionalRequest]`                    | Additional work requests, start work, and in-progress reasons.                |
+| `Technician`       | Parts handling during execution | `[Substitute, Part]`, `[Consume, Part]`, `[Return, Part]`      | Substitutions, returns, issue/consume, and picked-item consumption.           |
+| `Parts Manager`    | Parts handling during execution | `[View, InventoryLine]`                                        | Inventory view from work order lines and parts-centric operational decisions. |
+| `Service Advisor`  | Completion and billing handoff  | `[Complete, Work]`, `[Finalize, Billing]`, `[Resolve, Change]` | Completion, finalize-for-billing, and approval-gated change resolution.       |
+| `Location Manager` | Completion and billing handoff  | `[Reopen, WorkOrder]`                                          | Controlled reopen and post-completion management workflow.                    |
 
 ## Journey Family 4: Inventory, Warehouse, and Fulfillment
 
@@ -177,12 +177,12 @@ This is better treated as a journey family than a single journey. It spans plann
 
 #### Family Overview
 
-| Candidate Journey                     | Dominant Personas                                  | Story IDs                                 | Notes                                                                        |
-| ------------------------------------- | -------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------- |
-| `Cycle count planning to approval`    | `Inventory Control Manager`                        | `#90`, `#91`, `#97`, `#104`               | Count governance and topology/control work fit one managerial journey.       |
-| `Receiving to putaway`                | `Warehouse Associate`, `Inventory Control Manager` | `#94`, `#95`, `#96`, `#98`, `#99`, `#241` | Physical receipt and placement form a stronger end-to-end warehouse journey. |
-| `Pick fulfillment to execution issue` | `Dispatcher`, `Parts Manager`, `Technician`        | `#92`, `#93`, `#243`, `#244`              | This is the execution-support branch of the family.                          |
-| `Return unused parts to stock`        | `Warehouse Manager`, `Technician`                  | `#242`                                    | Small but valid reverse-flow journey.                                        |
+| Candidate Journey                     | Dominant Personas                                  | Expected Events                               | Notes                                                                        |
+| ------------------------------------- | -------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
+| `Cycle count planning to approval`    | `Inventory Control Manager`                        | `[Plan, CycleCount]`, `[Approve, CycleCount]` | Count governance and topology/control work fit one managerial journey.       |
+| `Receiving to putaway`                | `Warehouse Associate`, `Inventory Control Manager` | `[Receive, Shipment]`, `[Putaway, Inventory]` | Physical receipt and placement form a stronger end-to-end warehouse journey. |
+| `Pick fulfillment to execution issue` | `Dispatcher`, `Parts Manager`, `Technician`        | `[Pick, Parts]`, `[Fulfill, Order]`           | This is the execution-support branch of the family.                          |
+| `Return unused parts to stock`        | `Warehouse Manager`, `Technician`                  | `[Return, Parts]`                             | Small but valid reverse-flow journey.                                        |
 
 ## Journey Family 5: Billing, Accounting, and Finance
 
@@ -199,12 +199,12 @@ This is a journey family, not a single journey. It mixes front-counter checkout,
 
 #### Family Overview
 
-| Candidate Journey                               | Dominant Personas                                             | Story IDs                                                      | Notes                                                                    |
-| ----------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `Checkout to payment completion`                | `Customer Support Associate`, `Location Manager`              | `#67`, `#69`, `#70`, `#71`, `#72`, `#73`                       | Clean counter-facing journey with a clear customer and cashier endpoint. |
-| `Invoice issuance to AR application`            | `Service Advisor`, `Accounting Associate`, `Location Manager` | `#177`, `#178`, `#179`, `#180`, `#209`, `#210`, `#211`, `#212` | Operational billing and receivables journey.                             |
-| `Accounting event triage to journal resolution` | `Accounting Associate`                                        | `#181`, `#186`, `#190`, `#200`, `#201`, `#205`, `#206`         | Back-office accounting operations journey.                               |
-| `Period close and finance review`               | `Accounting Manager`, `Controller`, `Finance Manager`         | `#188`, `#189`, `#191`, `#198`, `#199`, `#202`, `#203`, `#204` | Better framed as a management journey cluster than as part of checkout.  |
+| Candidate Journey                               | Dominant Personas                                             | Expected Events                              | Notes                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ |
+| `Checkout to payment completion`                | `Customer Support Associate`, `Location Manager`              | `[Initiate, Checkout]`, `[Process, Payment]` | Clean counter-facing journey with a clear customer and cashier endpoint. |
+| `Invoice issuance to AR application`            | `Service Advisor`, `Accounting Associate`, `Location Manager` | `[Issue, Invoice]`, `[Apply, Receivable]`    | Operational billing and receivables journey.                             |
+| `Accounting event triage to journal resolution` | `Accounting Associate`                                        | `[Triage, Event]`, `[Resolve, Journal]`      | Back-office accounting operations journey.                               |
+| `Period close and finance review`               | `Accounting Manager`, `Controller`, `Finance Manager`         | `[Close, Period]`, `[Review, Audit]`         | Better framed as a management journey cluster than as part of checkout.  |
 
 ## Journey: Checkout to Payment Completion
 
@@ -220,12 +220,12 @@ This journey covers the front-counter path from invoice-ready work through payme
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                 | Expected Events                   | Notes                                                                          |
-| ---------------------------- | --------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
-| `Customer Support Associate` | Checkout and payment  | `#67`, `#69`, `#70`, `#71`, `#73` | Front-counter payment and status visibility behaviors.                         |
-| `Location Manager`           | Exception handling    | `#72`, `#210`                     | Manager-controlled voids, refunds, and invoice adjustments.                    |
-| `Accounting Associate`       | Exception handling    | `#179`, `#180`, `#211`            | Refund handling, AR application, and invoice traceability support.             |
-| `Service Advisor`            | Closeout confirmation | `#212`                            | Draft invoice calculation and totals confidence before final customer handoff. |
+| Canonical Persona            | Stage                 | Expected Events                        | Notes                                                                          |
+| ---------------------------- | --------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| `Customer Support Associate` | Checkout and payment  | `[Process, Payment]`, `[View, Status]` | Front-counter payment and status visibility behaviors.                         |
+| `Location Manager`           | Exception handling    | `[Void, Invoice]`, `[Adjust, Invoice]` | Manager-controlled voids, refunds, and invoice adjustments.                    |
+| `Accounting Associate`       | Exception handling    | `[Issue, Refund]`, `[Apply, AR]`       | Refund handling, AR application, and invoice traceability support.             |
+| `Service Advisor`            | Closeout confirmation | `[Calculate, DraftInvoice]`            | Draft invoice calculation and totals confidence before final customer handoff. |
 
 ## Journey Family 6: Product, Pricing, and Promotions Governance
 
@@ -241,11 +241,11 @@ This area is also better treated as a journey family. Product administration, pr
 
 #### Family Overview
 
-| Candidate Journey                        | Dominant Personas                                             | Story IDs                                      | Notes                                                             |
-| ---------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- |
-| `Product setup and maintenance`          | `Product Administrator`, `Inventory Staff`                    | `#108`, `#109`, `#119`, `#120`, `#121`         | Data stewardship and product maintenance.                         |
-| `Price book and rule governance`         | `Pricing Administrator`, `Pricing Analyst`, `Service Advisor` | `#107`, `#117`, `#118`, `#159`, `#160`, `#167` | Governance plus downstream visibility in customer-facing quoting. |
-| `Promotion design to redemption support` | `Account Manager`, `Customer Support Associate`               | `#158`, `#161`                                 | Lightweight cross-functional promo lifecycle.                     |
+| Candidate Journey                        | Dominant Personas                                             | Expected Events                              | Notes                                                             |
+| ---------------------------------------- | ------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| `Product setup and maintenance`          | `Product Administrator`, `Inventory Staff`                    | `[Create, Product]`, `[Maintain, Product]`   | Data stewardship and product maintenance.                         |
+| `Price book and rule governance`         | `Pricing Administrator`, `Pricing Analyst`, `Service Advisor` | `[Create, Rule]`, `[View, Pricing]`          | Governance plus downstream visibility in customer-facing quoting. |
+| `Promotion design to redemption support` | `Account Manager`, `Customer Support Associate`               | `[Design, Promotion]`, `[Redeem, Promotion]` | Lightweight cross-functional promo lifecycle.                     |
 
 ## Journey: Price Book and Rule Governance
 
@@ -261,11 +261,11 @@ This journey covers how pricing administrators and analysts define pricing scope
 
 #### Swimlanes
 
-| Canonical Persona       | Stage                        | Expected Events        | Notes                                                                      |
-| ----------------------- | ---------------------------- | ---------------------- | -------------------------------------------------------------------------- |
-| `Pricing Administrator` | Scope and visibility         | `#117`                 | Pricing-scope location visibility and sync oversight.                      |
-| `Pricing Analyst`       | Pricing configuration        | `#118`, `#160`, `#167` | Price book rules, eligibility, and pricing governance.                     |
-| `Service Advisor`       | Downstream quote application | `#107`, `#159`         | Restriction visibility and promotion application in customer-facing flows. |
+| Canonical Persona       | Stage                        | Expected Events            | Notes                                                                      |
+| ----------------------- | ---------------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| `Pricing Administrator` | Scope and visibility         | `[View, PricingScope]`     | Pricing-scope location visibility and sync oversight.                      |
+| `Pricing Analyst`       | Pricing configuration        | `[Configure, PricingRule]` | Price book rules, eligibility, and pricing governance.                     |
+| `Service Advisor`       | Downstream quote application | `[Apply, Promotion]`       | Restriction visibility and promotion application in customer-facing flows. |
 
 ### Journey 7: Party, CRM, and Account Management
 
@@ -281,12 +281,12 @@ This journey covers customer and account record creation, association, and stewa
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                           | Expected Events | Notes                                                    |
-| ---------------------------- | ------------------------------- | --------------- | -------------------------------------------------------- |
-| `Customer Support Associate` | Person and account creation     | `#175`          | Individual person creation in customer-facing workflows. |
-| `Account Manager`            | Person and account creation     | `#176`          | Commercial account creation.                             |
-| `Account Manager`            | Account relationship management | `#174`          | Associate individuals to commercial accounts.            |
-| `System Administrator`       | Record stewardship              | `#173`          | Duplicate party search and merge.                        |
+| Canonical Persona            | Stage                           | Expected Events              | Notes                                                    |
+| ---------------------------- | ------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| `Customer Support Associate` | Person and account creation     | `[Create, Person]`           | Individual person creation in customer-facing workflows. |
+| `Account Manager`            | Person and account creation     | `[Create, Account]`          | Commercial account creation.                             |
+| `Account Manager`            | Account relationship management | `[Associate, PersonAccount]` | Associate individuals to commercial accounts.            |
+| `System Administrator`       | Record stewardship              | `[Merge, Party]`             | Duplicate party search and merge.                        |
 
 ### Journey 8: Security, Administration, and Platform Operations
 
@@ -302,15 +302,15 @@ This journey covers access control, security oversight, integration support, pla
 
 #### Swimlanes
 
-| Canonical Persona              | Stage                            | Expected Events | Notes                                                        |
-| ------------------------------ | -------------------------------- | --------------- | ------------------------------------------------------------ |
-| `System Administrator`         | Security administration          | `#66`, `#87`    | Role matrix and admin security configuration.                |
-| `Auditor`                      | Audit and compliance             | `#65`           | Financial exception audit trails.                            |
-| `Compliance Auditor`           | Audit and compliance             | `#86`           | Security and movement audit visibility.                      |
-| `Integration Support Engineer` | Platform and integration support | `#156`, `#157`  | Operational support and inbound processing diagnostics.      |
-| `Platform Engineer`            | Platform and integration support | `#207`          | Ingestion tooling and producer validation support.           |
-| `Domain Architect`             | Platform and integration support | `#208`          | Canonical event envelope contract.                           |
-| `Moqui Engineer`               | Platform and integration support | `#280`          | Signed assertion issuance and frontend platform integration. |
+| Canonical Persona              | Stage                            | Expected Events               | Notes                                                        |
+| ------------------------------ | -------------------------------- | ----------------------------- | ------------------------------------------------------------ |
+| `System Administrator`         | Security administration          | `[Configure, SecurityRole]`   | Role matrix and admin security configuration.                |
+| `Auditor`                      | Audit and compliance             | `[Audit, FinancialException]` | Financial exception audit trails.                            |
+| `Compliance Auditor`           | Audit and compliance             | `[Audit, SecurityMovement]`   | Security and movement audit visibility.                      |
+| `Integration Support Engineer` | Platform and integration support | `[Diagnose, Integration]`     | Operational support and inbound processing diagnostics.      |
+| `Platform Engineer`            | Platform and integration support | `[Validate, Producer]`        | Ingestion tooling and producer validation support.           |
+| `Domain Architect`             | Platform and integration support | `[Define, EventContract]`     | Canonical event envelope contract.                           |
+| `Moqui Engineer`               | Platform and integration support | `[Issue, Assertion]`          | Signed assertion issuance and frontend platform integration. |
 
 ### Journey 9: People, Timekeeping, and Labor Flow
 
@@ -326,12 +326,12 @@ This journey covers labor tracking, mobile work timing, time approval, and accou
 
 #### Swimlanes
 
-| Canonical Persona      | Stage                                | Expected Events                | Notes                                                 |
-| ---------------------- | ------------------------------------ | ------------------------------ | ----------------------------------------------------- |
-| `Technician`           | Work start and timing                | `#132`, `#145`, `#146`, `#147` | Start/stop work, mobile timers, and labor submission. |
-| `Dispatcher`           | Time approval and exception handling | `#131`                         | Mobile travel-time coordination.                      |
-| `Location Manager`     | Time approval and exception handling | `#130`, `#144`                 | Time approval and discrepancy reporting.              |
-| `Accounting Associate` | Export and downstream handoff        | `#143`                         | Approved time export for payroll and accounting.      |
+| Canonical Persona      | Stage                                | Expected Events                                      | Notes                                                 |
+| ---------------------- | ------------------------------------ | ---------------------------------------------------- | ----------------------------------------------------- |
+| `Technician`           | Work start and timing                | `[Start, Timer]`, `[Stop, Timer]`, `[Submit, Labor]` | Start/stop work, mobile timers, and labor submission. |
+| `Dispatcher`           | Time approval and exception handling | `[Coordinate, TravelTime]`                           | Mobile travel-time coordination.                      |
+| `Location Manager`     | Time approval and exception handling | `[Approve, Time]`, `[Report, Discrepancy]`           | Time approval and discrepancy reporting.              |
+| `Accounting Associate` | Export and downstream handoff        | `[Export, Time]`                                     | Approved time export for payroll and accounting.      |
 
 ## Suggested Next Pass
 
