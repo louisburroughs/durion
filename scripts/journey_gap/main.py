@@ -16,13 +16,14 @@ from . import normalizer
 from . import baseline_parser
 from . import gap_detector
 from . import reporter
+from . import story_exporter
 
 log = logging.getLogger("journey-gap")
 
 DEFAULT_DB = Path(__file__).resolve().parent / "github-issues.db"
 DEFAULT_OUTPUT = Path(__file__).resolve().parent.parent.parent / "docs" / "journeys" / "journey-gap-report.md"
 DEFAULT_JOURNEYS_DIR = Path(__file__).resolve().parent.parent.parent / "docs" / "journeys"
-
+DEFAULT_STORIES_DIR = Path(__file__).resolve().parent.parent.parent / "docs" / "capabilities" / "stories"
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -48,6 +49,12 @@ def main(argv: list[str] | None = None) -> int:
         help=f"Baseline journey docs directory (default: {DEFAULT_JOURNEYS_DIR})",
     )
     parser.add_argument(
+        "--stories-dir",
+        type=Path,
+        default=DEFAULT_STORIES_DIR,
+        help=f"Exported rewritten stories directory (default: {DEFAULT_STORIES_DIR})",
+    )
+    parser.add_argument(
         "--skip-extract",
         action="store_true",
         help="Skip issue extraction and use existing DB",
@@ -70,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     log.info("DB: %s", args.db_path)
     log.info("Output: %s", args.output)
     log.info("Journeys: %s", args.journeys_dir)
+    log.info("Stories: %s", args.stories_dir)
 
     con = db.connect(args.db_path)
     if not args.skip_extract:
@@ -118,6 +126,12 @@ def main(argv: list[str] | None = None) -> int:
     log.info("")
     log.info("--- Step 7: Generate Report ---")
     reporter.generate_report(con, journeys, gaps, covered, args.output)
+    
+    # Step 9: Export rewritten stories
+    log.info("")
+    log.info("--- Step 8: Export Stories ---")
+    exported = story_exporter.export_stories(con, args.stories_dir)
+    log.info("Exported %d rewritten story files", exported)
 
     con.close()
     log.info("")
