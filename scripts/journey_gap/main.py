@@ -71,34 +71,37 @@ def main(argv: list[str] | None = None) -> int:
     log.info("Output: %s", args.output)
     log.info("Journeys: %s", args.journeys_dir)
 
-    # Step 1: Connect and reset DB (full re-extract each run)
     con = db.connect(args.db_path)
-    db.reset(con)
-    log.info("Database initialized at %s", args.db_path)
+    if not args.skip_extract:
+        # Step 1: Connect and reset DB (full re-extract each run)
+        db.reset(con)
+        log.info("Database initialized at %s", args.db_path)
 
-    # Step 2: Extract all issues
-    log.info("")
-    log.info("--- Step 1: Extract Issues ---")
-    extractor.extract(con)
+        # Step 2: Extract all issues
+        log.info("")
+        log.info("--- Step 1: Extract Issues ---")
+        extractor.extract(con)
 
-    # Step 3: Link clarifications
-    log.info("")
-    log.info("--- Step 2: Link Clarifications ---")
-    linked = clarification_linker.link_clarifications(con)
-    log.info("Linked %d clarification issues", linked)
+        # Step 3: Link clarifications
+        log.info("")
+        log.info("--- Step 2: Link Clarifications ---")
+        linked = clarification_linker.link_clarifications(con)
+        log.info("Linked %d clarification issues", linked)
 
-    # Step 4: Consolidate issue bodies
-    log.info("")
-    log.info("--- Step 3: Consolidate Issues ---")
-    consolidated = consolidator.consolidate(con)
-    log.info("Consolidated %d issues", consolidated)
+        # Step 4: Consolidate issue bodies
+        log.info("")
+        log.info("--- Step 3: Consolidate Issues ---")
+        consolidated = consolidator.consolidate(con)
+        log.info("Consolidated %d issues", consolidated)
 
-    # Step 5: Normalize events and personas
-    log.info("")
-    log.info("--- Step 4: Normalize Events ---")
-    events = normalizer.normalize(con)
-    log.info("Extracted %d journey events", events)
-
+        # Step 5: Normalize events and personas
+        log.info("")
+        log.info("--- Step 4: Normalize Events ---")
+        events = normalizer.normalize(con)
+        log.info("Extracted %d journey events", events)
+    else:
+        log.info("Skipping extraction, using existing DB at %s", args.db_path)
+        
     # Step 6: Parse baseline journeys
     log.info("")
     log.info("--- Step 5: Parse Baseline ---")
