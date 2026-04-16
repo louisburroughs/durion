@@ -81,7 +81,8 @@ def _list_issue_numbers(owner: str, repo: str) -> list[int]:
             "api",
             "--paginate",
             f"/repos/{owner}/{repo}/issues?state=all&per_page=100",
-            "-q", ".[].number",
+            # Exclude pull requests — the issues endpoint returns both
+            "-q", ".[] | select(.pull_request == null) | .number",
         ])
     except RuntimeError:
         log.warning("Failed to list issues for %s/%s, stopping", owner, repo)
