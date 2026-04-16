@@ -48,6 +48,11 @@ def main(argv: list[str] | None = None) -> int:
         help=f"Baseline journey docs directory (default: {DEFAULT_JOURNEYS_DIR})",
     )
     parser.add_argument(
+        "--skip-extract",
+        action="store_true",
+        help="Skip issue extraction and use existing DB",
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Enable debug logging",
@@ -103,13 +108,13 @@ def main(argv: list[str] | None = None) -> int:
     # Step 7: Detect gaps
     log.info("")
     log.info("--- Step 6: Detect Gaps ---")
-    gaps = gap_detector.detect_gaps(con, journeys)
+    gaps, covered = gap_detector.detect_gaps(journeys, con)
     log.info("Found %d gaps", len(gaps))
 
     # Step 8: Generate report
     log.info("")
     log.info("--- Step 7: Generate Report ---")
-    reporter.generate_report(con, journeys, gaps, args.output)
+    reporter.generate_report(con, journeys, gaps, covered, args.output)
 
     con.close()
     log.info("")

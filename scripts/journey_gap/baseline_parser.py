@@ -15,7 +15,7 @@ class JourneyStage:
     """A single stage within a journey."""
     persona: str
     stage_name: str
-    story_ids: list[str] = field(default_factory=list)
+    expected_events: list[tuple[str, str]] = field(default_factory=list)
     notes: str = ""
 
 
@@ -41,15 +41,15 @@ TABLE_ROW_RE = re.compile(
 TABLE_HEADER_RE = re.compile(r"^\|\s*[-:]+\s*\|", re.MULTILINE)
 
 # Matches story references like #123 or #45
-STORY_REF_RE = re.compile(r"#(\d+)")
+EVENT_REF_RE = re.compile(r"\[([^,\]]+),\s*([^\]]+)\]")
 
 # Matches numbered journey headings: "1. Some Journey" or "### 1. Some Journey"
 NUMBERED_HEADING_RE = re.compile(r"^(?:#{2,3}\s+)?(\d+(?:\.\d+)?)[.\s]+(.+)$")
 
 
-def _extract_story_ids(text: str) -> list[str]:
-    """Extract #NNN references from a string."""
-    return [f"#{m.group(1)}" for m in STORY_REF_RE.finditer(text)]
+def _extract_expected_events(text: str) -> list[tuple[str, str]]:
+    """Extract [Action, Object] tuples from a string."""
+    return [(m.group(1).strip(), m.group(2).strip()) for m in EVENT_REF_RE.finditer(text)]
 
 
 def _parse_journey_section(
@@ -64,7 +64,7 @@ def _parse_journey_section(
         return None
 
     for row in rows:
-        persona_raw, stage_name, story_ids_str, notes = row
+        persona_raw, stage_name, expected_events_str, notes = row
 
         # Skip header rows
         if "persona" in persona_raw.lower() or "---" in persona_raw:
@@ -74,14 +74,14 @@ def _parse_journey_section(
 
         persona = persona_raw.strip().strip("`")
         stage = stage_name.strip()
-        story_ids = _extract_story_ids(story_ids_str)
+        expected_events = _extract_expected_events(expected_events_str)
         note = notes.strip()
 
         if persona and stage:
             journey.stages.append(JourneyStage(
                 persona=persona,
                 stage_name=stage,
-                story_ids=story_ids,
+                expected_events=expected_events,
                 notes=note,
             ))
 
@@ -158,13 +158,6 @@ def parse_baseline(journeys_dir: Path) -> list[Journey]:
     return journeys
 
 
-def get_all_baseline_story_refs(journeys: list[Journey]) -> set[str]:
-    """Get all story references from baseline journeys."""
-    refs: set[str] = set()
-    for journey in journeys:
-        for stage in journey.stages:
-            refs.update(stage.story_ids)
-    return refs
 
 
 def get_personas_in_baseline(journeys: list[Journey]) -> set[str]:
