@@ -42,6 +42,18 @@ This aligns with your **event-driven architecture** and can later map to your do
 
 # 2) Extract Event Streams from Executed Work
 
+- durion-positivity-backend
+- durion-moqui-frontend
+- durion
+
+1. Extract business requirements, capabilities and stories from durion issues (regardless of status) - <https://github.com/louisburroughs/durion/issues/>
+2. Add to database in a hierarchy (using trackedIssues and trackedInIssues to form hierarchy)
+3. Extract issues from durion-positivity-backend and durion-moqui-frontend using the links (trackedIssues) from the parent stories if possible
+   A). Otherwise, extract issues and match after extraction
+4. Need to attach clarification issues to the issue that they clarify - the link is defined in the title of the clarification issue
+5. Take child issues, plus comments, plus clarification and rewrite cleanly (DO NOT ELABORATE OR ASK NEW QUESTIONS)
+6. Add child issues to db, place in the hierarchy
+
 ```bash
 # Sub-issues/children require the GraphQL API directly
 gh api graphql -f query='
@@ -114,18 +126,18 @@ con.commit()
 
 Sources:
 
-* GitHub Issues (acceptance criteria → steps)
-* PR descriptions / commits
-* Agent execution logs
-* Runtime telemetry (if available)
+- GitHub Issues (acceptance criteria → steps)
+- PR descriptions / commits
+- Agent execution logs
+- Runtime telemetry (if available)
 
 ### Extraction approach
 
-* Use an agent to:
+- Use an agent to:
 
-  * Parse Gherkin (Given/When/Then → events)
-  * Parse service calls (API → action/object)
-  * Parse UI flows (Moqui screens → actions)
+  - Parse Gherkin (Given/When/Then → events)
+  - Parse service calls (API → action/object)
+  - Parse UI flows (Moqui screens → actions)
 
 Output:
 
@@ -141,34 +153,34 @@ Each becomes a **raw journey trace**.
 
 Now group similar traces.
 
-### Technique options (practical → advanced):
+### Technique options (practical → advanced)
 
 **A. Heuristic grouping (start here)**
 
-* Group by:
+- Group by:
 
-  * Primary actor
-  * Primary object (e.g., WorkOrder, Invoice)
-  * Entry trigger
+  - Primary actor
+  - Primary object (e.g., WorkOrder, Invoice)
+  - Entry trigger
 
 Example clusters:
 
-* “Create Work Order”
-* “Execute Work Order”
-* “Invoice & Payment”
+- “Create Work Order”
+- “Execute Work Order”
+- “Invoice & Payment”
 
 **B. Sequence similarity**
 
-* Compare traces using:
+- Compare traces using:
 
-  * Longest Common Subsequence (LCS)
-  * Edit distance
+  - Longest Common Subsequence (LCS)
+  - Edit distance
 
 **C. Process mining (ideal end-state)**
 
-* Use process mining tools (e.g., PM4Py)
-* Input: event logs
-* Output: inferred process graphs
+- Use process mining tools (e.g., PM4Py)
+- Input: event logs
+- Output: inferred process graphs
 
 ---
 
@@ -176,7 +188,7 @@ Example clusters:
 
 For each cluster:
 
-### Build a canonical journey:
+### Build a canonical journey
 
 ```
 Journey: Work Order Execution
@@ -190,11 +202,11 @@ Journey: Work Order Execution
 7. Generate Invoice
 ```
 
-### Normalize steps:
+### Normalize steps
 
-* Merge equivalent actions
-* Remove noise (logging, retries)
-* Keep **user-visible intent steps**
+- Merge equivalent actions
+- Remove noise (logging, retries)
+- Keep **user-visible intent steps**
 
 ---
 
@@ -210,8 +222,8 @@ Create a matrix:
 
 This is critical for your workflow:
 
-* Links directly to GitHub Issues
-* Enables agent-driven gap detection
+- Links directly to GitHub Issues
+- Enables agent-driven gap detection
 
 ---
 
@@ -221,14 +233,14 @@ This is critical for your workflow:
 
 Look for:
 
-* Broken sequences (A → C, missing B)
-* State transitions without actions
-* Required domain invariants not enforced
+- Broken sequences (A → C, missing B)
+- State transitions without actions
+- Required domain invariants not enforced
 
 Example:
 
-* WorkOrder → Completed
-* No “Quality Check” step → **gap**
+- WorkOrder → Completed
+- No “Quality Check” step → **gap**
 
 ---
 
@@ -236,29 +248,29 @@ Example:
 
 Look for:
 
-* Domain objects with no full lifecycle
-* Events that never connect into a full flow
+- Domain objects with no full lifecycle
+- Events that never connect into a full flow
 
 Example:
 
-* Inventory Adjustment exists
-* No “Cycle Count Journey” → **missing journey**
+- Inventory Adjustment exists
+- No “Cycle Count Journey” → **missing journey**
 
 ---
 
 ### C. Role Coverage Gaps
 
-* Each persona should have coherent journeys
-* Detect orphan actions
+- Each persona should have coherent journeys
+- Detect orphan actions
 
 ---
 
 ### D. Integration Gaps (important for Durion)
 
-* Events exist but:
+- Events exist but:
 
-  * No upstream trigger
-  * No downstream consumer
+  - No upstream trigger
+  - No downstream consumer
 
 ---
 
@@ -282,12 +294,12 @@ In Progress → (Complete) → Completed
 
 ### C. Swimlanes (recommended)
 
-* Actor lanes:
+- Actor lanes:
 
-  * Service Writer
-  * Technician
-  * System
-  * External (Supplier API)
+  - Service Writer
+  - Technician
+  - System
+  - External (Supplier API)
 
 ---
 
@@ -295,16 +307,16 @@ In Progress → (Complete) → Completed
 
 For each gap:
 
-### Create new issues:
+### Create new issues
 
-* Type: `type:story`
-* Domain: enforce single domain
-* Label: `blocked:clarification` if unclear
+- Type: `type:story`
+- Domain: enforce single domain
+- Label: `blocked:clarification` if unclear
 
-### Add:
+### Add
 
-* Missing step as a STORY
-* Missing journey as CAPABILITY or EPIC
+- Missing step as a STORY
+- Missing journey as CAPABILITY or EPIC
 
 ---
 
@@ -314,22 +326,22 @@ You can implement 3 agents:
 
 ### 1. Extraction Agent
 
-* Input: stories, PRs, logs
-* Output: normalized event streams
+- Input: stories, PRs, logs
+- Output: normalized event streams
 
 ### 2. Journey Builder Agent
 
-* Clusters events
-* Produces canonical journeys
+- Clusters events
+- Produces canonical journeys
 
 ### 3. Gap Analysis Agent
 
-* Builds traceability matrix
-* Flags:
+- Builds traceability matrix
+- Flags:
 
-  * Missing steps
-  * Missing journeys
-  * Domain conflicts
+  - Missing steps
+  - Missing journeys
+  - Domain conflicts
 
 ---
 
@@ -339,14 +351,14 @@ Represent journeys as:
 
 ### State Machine per domain
 
-* States = business states
-* Transitions = actions
+- States = business states
+- Transitions = actions
 
 Then validate:
 
-* Every state reachable
-* No dead-end states
-* All required transitions exist
+- Every state reachable
+- No dead-end states
+- All required transitions exist
 
 This aligns well with your **domain ownership + SoR discipline**.
 
@@ -361,8 +373,8 @@ This aligns well with your **domain ownership + SoR discipline**.
 5. Map steps ↔ stories (traceability)
 6. Identify:
 
-   * Missing steps
-   * Missing journeys
+   - Missing steps
+   - Missing journeys
 7. Feed gaps back into GitHub as structured issues
 8. Automate via agents
 
@@ -370,6 +382,6 @@ This aligns well with your **domain ownership + SoR discipline**.
 
 If needed, this can be converted into:
 
-* A concrete GitHub automation workflow
-* A schema aligned to your `Durion Accounting Event Contract v1`
-* Or a process-mining pipeline using your event data streams
+- A concrete GitHub automation workflow
+- A schema aligned to your `Durion Accounting Event Contract v1`
+- Or a process-mining pipeline using your event data streams
