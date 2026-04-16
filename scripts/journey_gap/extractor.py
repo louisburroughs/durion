@@ -164,7 +164,25 @@ def _store_issue(
         milestone = (issue.get("milestone") or {}).get("title")
         created = issue.get("createdAt", "")
         updated = issue.get("updatedAt", "")
+    else:
+        # REST fallback
+        number = issue["number"]
+        title = issue.get("title", "")
+        body = issue.get("body") or ""
+        state = issue.get("state", "").lower()
+        url = issue.get("html_url", "")
+        labels_list = [l["name"] for l in issue.get("labels", [])]
+        milestone = (issue.get("milestone") or {}).get("title")
+        created = issue.get("created_at", "")
+        updated = issue.get("updated_at", "")
 
+    # Insert issue row first (child tables have FK on this)
+    con.execute(
+        "INSERT OR REPLACE INTO issues (number, repo, title, state, body, url, labels, milestone, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        (number, repo_name, title, state, body, url, json.dumps(labels_list), milestone, created, updated),
+    )
+
+    if source == "graphql":
         # Store comments
         for c in issue.get("comments", {}).get("nodes", []):
             con.execute(
@@ -187,22 +205,6 @@ def _store_issue(
                 "INSERT OR IGNORE INTO sub_issues (parent_repo, parent_number, child_repo, child_number, title, state) VALUES (?,?,?,?,?,?)",
                 (parent_repo_name, parent["number"], repo_name, number, title, state),
             )
-    else:
-        # REST fallback
-        number = issue["number"]
-        title = issue.get("title", "")
-        body = issue.get("body") or ""
-        state = issue.get("state", "").lower()
-        url = issue.get("html_url", "")
-        labels_list = [l["name"] for l in issue.get("labels", [])]
-        milestone = (issue.get("milestone") or {}).get("title")
-        created = issue.get("created_at", "")
-        updated = issue.get("updated_at", "")
-
-    con.execute(
-        "INSERT OR REPLACE INTO issues (number, repo, title, state, body, url, labels, milestone, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        (number, repo_name, title, state, body, url, json.dumps(labels_list), milestone, created, updated),
-    )
 
 
 def extract(con: sqlite3.Connection) -> None:
