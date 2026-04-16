@@ -76,28 +76,18 @@ def _run_gh(args: list[str], retries: int = 3) -> str:
 def _list_issue_numbers(owner: str, repo: str) -> list[int]:
     """List all issue numbers (any state) from a repo via gh CLI."""
     numbers: list[int] = []
-    page = 1
-    while True:
-        try:
-            raw = _run_gh([
-                "api",
-                f"/repos/{owner}/{repo}/issues",
-                "--paginate",
-                "-q", ".[].number",
-                "-f", "state=all",
-                "-f", "per_page=100",
-                "-f", f"page={page}",
-            ])
-        except RuntimeError:
-            log.warning("Failed to list issues for %s/%s page %d, stopping", owner, repo, page)
-            break
+    try:
+        raw = _run_gh([
+            "api",
+            "--paginate",
+            f"/repos/{owner}/{repo}/issues?state=all&per_page=100",
+            "-q", ".[].number",
+        ])
+    except RuntimeError:
+        log.warning("Failed to list issues for %s/%s, stopping", owner, repo)
+        return numbers
 
-        page_numbers = [int(n) for n in raw.strip().splitlines() if n.strip()]
-        if not page_numbers:
-            break
-        numbers.extend(page_numbers)
-        # --paginate handles pagination automatically, so we get everything in one call
-        break
+    numbers = [int(n) for n in raw.strip().splitlines() if n.strip()]
     return numbers
 
 
