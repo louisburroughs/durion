@@ -1,7 +1,4 @@
-> **DEPRECATED**: This document uses the V1 schema (hardcoded GitHub Issue IDs).
-> Please use `JOURNEY_MAP_SEED_V2.md` which uses the V2 semantic behavioral schema `[Action, Object]`.
-
-# Journey Map Seed (DEPRECATED)
+# Journey Map Seed
 
 This document is a starter artifact for grouping normalized stories into prototype journeys.
 
@@ -78,9 +75,9 @@ Use this template for future journey docs:
 
 ### Swimlanes
 
-| Canonical Persona | Stage   | Story IDs    | Notes           |
-| ----------------- | ------- | ------------ | --------------- |
-| <persona>         | <stage> | <#123, #124> | <optional note> |
+| Canonical Persona | Stage   | Expected Events    | Notes           |
+| ----------------- | ------- | ------------------ | --------------- |
+| <persona>         | <stage> | `[Action, Object]` | <optional note> |
 ```
 
 ## Seeded Journey Families and Journeys
@@ -106,7 +103,7 @@ This journey covers the customer-facing path from initial context lookup through
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                        | Story IDs                                                    | Notes                                                                            |
+| Canonical Persona            | Stage                        | Expected Events                                              | Notes                                                                            |
 | ---------------------------- | ---------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | `Service Advisor`            | Customer context and intake  | `#68`, `#79`, `#163`, `#239`                                 | Dominant lane for CRM snapshot, draft estimate creation, and estimate retrieval. |
 | `Customer Support Associate` | Customer context and intake  | `#67`, `#85`                                                 | Front-counter and checkout-adjacent intake behaviors.                            |
@@ -131,7 +128,7 @@ This journey covers planning and coordination work that places vehicles, technic
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                       | Story IDs              | Notes                                                               |
+| Canonical Persona            | Stage                       | Expected Events        | Notes                                                               |
 | ---------------------------- | --------------------------- | ---------------------- | ------------------------------------------------------------------- |
 | `Service Advisor`            | Appointment creation        | `#74`, `#139`          | Customer-linked appointment creation and assignment visibility.     |
 | `Dispatcher`                 | Appointment creation        | `#76`                  | Dispatcher-owned scheduling entry point.                            |
@@ -156,7 +153,7 @@ This journey covers the technician-facing execution loop plus the service-adviso
 
 #### Swimlanes
 
-| Canonical Persona  | Stage                           | Story IDs              | Notes                                                                         |
+| Canonical Persona  | Stage                           | Expected Events        | Notes                                                                         |
 | ------------------ | ------------------------------- | ---------------------- | ----------------------------------------------------------------------------- |
 | `Technician`       | Execution context               | `#123`, `#219`         | Technician-facing work context and field visibility.                          |
 | `Technician`       | In-progress execution updates   | `#220`, `#224`         | Additional work requests, start work, and in-progress reasons.                |
@@ -223,7 +220,7 @@ This journey covers the front-counter path from invoice-ready work through payme
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                 | Story IDs                         | Notes                                                                          |
+| Canonical Persona            | Stage                 | Expected Events                   | Notes                                                                          |
 | ---------------------------- | --------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
 | `Customer Support Associate` | Checkout and payment  | `#67`, `#69`, `#70`, `#71`, `#73` | Front-counter payment and status visibility behaviors.                         |
 | `Location Manager`           | Exception handling    | `#72`, `#210`                     | Manager-controlled voids, refunds, and invoice adjustments.                    |
@@ -264,7 +261,7 @@ This journey covers how pricing administrators and analysts define pricing scope
 
 #### Swimlanes
 
-| Canonical Persona       | Stage                        | Story IDs              | Notes                                                                      |
+| Canonical Persona       | Stage                        | Expected Events        | Notes                                                                      |
 | ----------------------- | ---------------------------- | ---------------------- | -------------------------------------------------------------------------- |
 | `Pricing Administrator` | Scope and visibility         | `#117`                 | Pricing-scope location visibility and sync oversight.                      |
 | `Pricing Analyst`       | Pricing configuration        | `#118`, `#160`, `#167` | Price book rules, eligibility, and pricing governance.                     |
@@ -284,12 +281,12 @@ This journey covers customer and account record creation, association, and stewa
 
 #### Swimlanes
 
-| Canonical Persona            | Stage                           | Story IDs | Notes                                                    |
-| ---------------------------- | ------------------------------- | --------- | -------------------------------------------------------- |
-| `Customer Support Associate` | Person and account creation     | `#175`    | Individual person creation in customer-facing workflows. |
-| `Account Manager`            | Person and account creation     | `#176`    | Commercial account creation.                             |
-| `Account Manager`            | Account relationship management | `#174`    | Associate individuals to commercial accounts.            |
-| `System Administrator`       | Record stewardship              | `#173`    | Duplicate party search and merge.                        |
+| Canonical Persona            | Stage                           | Expected Events | Notes                                                    |
+| ---------------------------- | ------------------------------- | --------------- | -------------------------------------------------------- |
+| `Customer Support Associate` | Person and account creation     | `#175`          | Individual person creation in customer-facing workflows. |
+| `Account Manager`            | Person and account creation     | `#176`          | Commercial account creation.                             |
+| `Account Manager`            | Account relationship management | `#174`          | Associate individuals to commercial accounts.            |
+| `System Administrator`       | Record stewardship              | `#173`          | Duplicate party search and merge.                        |
 
 ### Journey 8: Security, Administration, and Platform Operations
 
@@ -305,15 +302,15 @@ This journey covers access control, security oversight, integration support, pla
 
 #### Swimlanes
 
-| Canonical Persona              | Stage                            | Story IDs      | Notes                                                        |
-| ------------------------------ | -------------------------------- | -------------- | ------------------------------------------------------------ |
-| `System Administrator`         | Security administration          | `#66`, `#87`   | Role matrix and admin security configuration.                |
-| `Auditor`                      | Audit and compliance             | `#65`          | Financial exception audit trails.                            |
-| `Compliance Auditor`           | Audit and compliance             | `#86`          | Security and movement audit visibility.                      |
-| `Integration Support Engineer` | Platform and integration support | `#156`, `#157` | Operational support and inbound processing diagnostics.      |
-| `Platform Engineer`            | Platform and integration support | `#207`         | Ingestion tooling and producer validation support.           |
-| `Domain Architect`             | Platform and integration support | `#208`         | Canonical event envelope contract.                           |
-| `Moqui Engineer`               | Platform and integration support | `#280`         | Signed assertion issuance and frontend platform integration. |
+| Canonical Persona              | Stage                            | Expected Events | Notes                                                        |
+| ------------------------------ | -------------------------------- | --------------- | ------------------------------------------------------------ |
+| `System Administrator`         | Security administration          | `#66`, `#87`    | Role matrix and admin security configuration.                |
+| `Auditor`                      | Audit and compliance             | `#65`           | Financial exception audit trails.                            |
+| `Compliance Auditor`           | Audit and compliance             | `#86`           | Security and movement audit visibility.                      |
+| `Integration Support Engineer` | Platform and integration support | `#156`, `#157`  | Operational support and inbound processing diagnostics.      |
+| `Platform Engineer`            | Platform and integration support | `#207`          | Ingestion tooling and producer validation support.           |
+| `Domain Architect`             | Platform and integration support | `#208`          | Canonical event envelope contract.                           |
+| `Moqui Engineer`               | Platform and integration support | `#280`          | Signed assertion issuance and frontend platform integration. |
 
 ### Journey 9: People, Timekeeping, and Labor Flow
 
@@ -329,7 +326,7 @@ This journey covers labor tracking, mobile work timing, time approval, and accou
 
 #### Swimlanes
 
-| Canonical Persona      | Stage                                | Story IDs                      | Notes                                                 |
+| Canonical Persona      | Stage                                | Expected Events                | Notes                                                 |
 | ---------------------- | ------------------------------------ | ------------------------------ | ----------------------------------------------------- |
 | `Technician`           | Work start and timing                | `#132`, `#145`, `#146`, `#147` | Start/stop work, mobile timers, and labor submission. |
 | `Dispatcher`           | Time approval and exception handling | `#131`                         | Mobile travel-time coordination.                      |
