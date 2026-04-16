@@ -1,5 +1,7 @@
 ssh -i ~/.ssh/durion-alpha-key.pem ec2-user@34.202.151.97
 
+aws ssm start-session   --target "i-06d434c7593e70f5c"   --region us-east-1
+
 ecrlogin
 
 nano /opt/durion/alpha/.env
@@ -232,3 +234,276 @@ docker stop $(docker ps -q)
 
 
 
+sudo bash <<'ROOT'
+set -Eeuo pipefail
+
+cd /opt/durion/alpha/backend
+
+ENV_FILE=/opt/durion/alpha/.env
+OVERRIDE_FILE=/opt/durion/alpha/docker-compose.prod.yml
+
+compose() {
+  docker compose \
+    -f docker-compose.yml \
+    -f "$OVERRIDE_FILE" \
+    --env-file "$ENV_FILE" \
+    "$@"
+}
+
+POSTGRES_USER="$(grep '^POSTGRES_USER=' "$ENV_FILE" | cut -d= -f2-)"
+
+echo "Stopping stack..."
+compose stop
+
+echo "Finding Postgres data volume..."
+POSTGRES_CONTAINER="$(compose ps -q postgres)"
+if [[ -z "$POSTGRES_CONTAINER" ]]; then
+  echo "Could not find postgres container" >&2
+  exit 1
+fi
+
+POSTGRES_VOLUME="$(docker inspect "$POSTGRES_CONTAINER" --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgresql/data"}}{{.Name}}{{end}}{{end}}')"
+if [[ -z "$POSTGRES_VOLUME" ]]; then
+  echo "Could not determine Postgres data volume" >&2
+  exit 1
+fi
+
+echo "Removing volume: $POSTGRES_VOLUME"
+compose rm -sf postgres
+docker volume rm "$POSTGRES_VOLUME"
+
+echo "Recreating Postgres..."
+compose up -d postgres
+
+echo "Waiting for Postgres to become ready..."
+until compose exec -T postgres pg_isready -U "$POSTGRES_USER" >/dev/null 2>&1; do
+  sleep 2
+done
+
+echo "Databases after bootstrap:"
+compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c '\l'
+
+echo "Starting rest of stack..."
+compose up -d
+compose ps
+ROOT
+
+
+
+
+sudo bash <<'ROOT'
+set -Eeuo pipefail
+
+cd /opt/durion/alpha/backend
+
+ENV_FILE=/opt/durion/alpha/.env
+OVERRIDE_FILE=/opt/durion/alpha/docker-compose.prod.yml
+
+compose() {
+  docker compose \
+    -f docker-compose.yml \
+    -f "$OVERRIDE_FILE" \
+    --env-file "$ENV_FILE" \
+    "$@"
+}
+
+POSTGRES_USER="$(grep '^POSTGRES_USER=' "$ENV_FILE" | cut -d= -f2-)"
+
+compose stop || true
+compose rm -sf postgres || true
+
+POSTGRES_VOLUME="$(docker volume ls --format '{{.Name}}' | grep '_postgres-data$' | head -n1 || true)"
+if [[ -n "$POSTGRES_VOLUME" ]]; then
+  echo "Removing volume: $POSTGRES_VOLUME"
+  docker volume rm "$POSTGRES_VOLUME"
+else
+  echo "No existing postgres data volume found"
+fi
+
+compose up -d postgres
+
+until compose exec -T postgres pg_isready -U "$POSTGRES_USER" >/dev/null 2>&1; do
+  sleep 2
+done
+
+compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c '\l'
+compose up -d
+compose ps
+ROOT
+
+sudo bash <<'ROOT'
+set -Eeuo pipefail
+
+cd /opt/durion/alpha/backend
+
+ENV_FILE=/opt/durion/alpha/.env
+OVERRIDE_FILE=/opt/durion/alpha/docker-compose.prod.yml
+
+compose() {
+  docker compose \
+    -f docker-compose.yml \
+    -f "$OVERRIDE_FILE" \
+    --env-file "$ENV_FILE" \
+    "$@"
+}
+
+POSTGRES_USER="$(grep '^POSTGRES_USER=' "$ENV_FILE" | cut -d= -f2-)"
+
+echo "Removing any old postgres container..."
+docker rm -f postgres-positivity 2>/dev/null || true
+
+echo "Removing old postgres data volume if present..."
+POSTGRES_VOLUME="$(docker volume ls --format '{{.Name}}' | grep -E '(^|_)postgres-data$' | head -n1 || true)"
+if [[ -n "$POSTGRES_VOLUME" ]]; then
+  echo "Removing volume: $POSTGRES_VOLUME"
+  docker volume rm "$POSTGRES_VOLUME"
+else
+  echo "No existing postgres-data volume found"
+fi
+
+echo "Starting fresh postgres..."
+compose up -d postgres
+
+echo "Waiting for Postgres to become ready..."
+until compose exec -T postgres pg_isready -U "$POSTGRES_USER" >/dev/null 2>&1; do
+  sleep 2
+done
+
+echo "Databases after bootstrap:"
+compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c '\l'
+
+echo "Starting rest of stack..."
+compose up -d
+compose ps
+ROOT
+
+
+
+docker compose \
+-f docker-compose.yml \
+-f "/opt/durion/alpha/docker-compose.prod.yml" \
+--env-file "/opt/durion/alpha/.env" \
+logs --tail=100 pos-security-service
+
+
+cd /opt/durion/alpha/backend
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  -f /opt/durion/alpha/docker-compose.bootstrap.yml \
+  --env-file /opt/durion/alpha/.env \
+  up -d
+
+
+docker compose \
+  -f docker-compose.yml \
+  -f /opt/durion/alpha/docker-compose.prod.yml \
+  -f /opt/durion/alpha/docker-compose.bootstrap.yml \
+  --env-file /opt/durion/alpha/.env \
+  down
+
+
+cat >/opt/durion/alpha/docker-compose.bootstrap.yml <<'EOF'
+services:
+  pos-security-service:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-accounting:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-catalog:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-customer:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-event-receiver:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-image:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-inventory:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-invoice:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-location:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-order:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-people:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-price:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-shop-manager:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-vehicle-fitment:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-vehicle-inventory:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-vehicle-reference-carapi:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-vehicle-reference-nhtsa:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+
+  pos-workorder:
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      SPRING_FLYWAY_ENABLED: "false"
+EOF
+
+
+cd /opt/durion/alpha/backend
+
+sudo docker compose -f docker-compose.yml -f /opt/durion/alpha/docker-compose.prod.yml --env-file /opt/durion/alpha/.env ps pos-mcp-server postgres
+
+sudo docker compose -f docker-compose.yml -f /opt/durion/alpha/docker-compose.prod.yml --env-file /opt/durion/alpha/.env exec postgres sh -lc 'psql -U "$POSTGRES_USER" -d pos_mcp -c "\dt"'
+
+sudo docker compose -f docker-compose.yml -f /opt/durion/alpha/docker-compose.prod.yml --env-file /opt/durion/alpha/.env exec postgres sh -lc 'psql -U "$POSTGRES_USER" -d pos_mcp -c "select installed_rank, version, description, success from flyway_schema_history order by installed_rank;"'
+
+sudo docker compose -f docker-compose.yml -f /opt/durion/alpha/docker-compose.prod.yml --env-file /opt/durion/alpha/.env logs --tail=200 pos-event-receiver
