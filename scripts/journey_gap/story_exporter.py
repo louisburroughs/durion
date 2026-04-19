@@ -1,85 +1,109 @@
-"""Export rewritten stories to markdown files grouped by capability."""
+"""Export rewritten story issues to flat markdown files."""
 
 from __future__ import annotations
 
+import json
 import logging
 import sqlite3
 from pathlib import Path
 import re
-from collections import defaultdict
+import shutil
 
 log = logging.getLogger(__name__)
 
+STORY_LABEL = "type:story"
+CAPABILITY_LABEL_RE = re.compile(r"^CAP:\s*(\d+)$", re.IGNORECASE)
+
+
+def _parse_labels(raw_labels: str | None) -> list[str]:
+    if not raw_labels:
+        return []
+
+    try:
+        parsed = json.loads(raw_labels)
+    except json.JSONDecodeError:
+        return [label.strip().strip('"') for label in raw_labels.split(",") if label.strip()]
+
+    if not isinstance(parsed, list):
+        return []
+
+    return [str(label).strip() for label in parsed if str(label).strip()]
+
+
+def _extract_capability(labels: list[str]) -> str | None:
+    for label in labels:
+        match = CAPABILITY_LABEL_RE.match(label)
+        if match:
+            return f"CAP-{match.group(1)}"
+    return None
+
+
+def _slugify(value: str, *, fallback: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value).strip("-").lower()
+    return slug or fallback
+
+
+def _repo_slug(repo: str) -> str:
+    return _slugify(repo.split("/", 1)[-1], fallback="repo")
+
+
+def _clear_generated_output(output_dir: Path) -> None:
+    for child in output_dir.iterdir():
+        if child.is_dir():
+            shutil.rmtree(child)
+        elif child.suffix.lower() == ".md":
+            child.unlink()
+
+
 def export_stories(con: sqlite3.Connection, output_dir: Path) -> int:
-    """Export consolidated stories from the database to one markdown file per capability."""
+    """Export one cleaned markdown file per open story issue."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    _clear_generated_output(output_dir)
+
     cur = con.cursor()
-    # Fetch issues and their consolidated bodies where available
     cur.execute('''
-        SELECT 
-            i.number, 
-            i.title, 
+        SELECT
+            i.repo,
+            i.number,
+            i.title,
             coalesce(c.consolidated_body, i.body),
-            i.labels
+            i.labels,
+            i.url
         FROM issues i
         LEFT JOIN consolidated_issues c ON i.repo = c.repo AND i.number = c.number
         WHERE UPPER(i.state) = 'OPEN'
+          AND LOWER(i.labels) LIKE '%type:story%'
+        ORDER BY i.repo, i.number
     ''')
-    
-    # Dictionary to group stories by capability: { 'CAP-123': [(number, title, body), ...] }
-    cap_groups = defaultdict(list)
-    
-    count = 0
-    for number, title, body, labels in cur.fetchall():
+
+    exported = 0
+    for repo, number, title, body, raw_labels, url in cur.fetchall():
         if not body:
             continue
-            
-        capability = "Uncategorized"
-        
-        # Check if the issue ITSELF is a capability
-        is_capability_issue = False
-        if labels and "type:capability" in labels:
-            is_capability_issue = True
-            capability = f"CAP-{number}"
-        
-        # Otherwise, look for a CAP:xxx label
-        if not is_capability_issue and labels:
-            match = re.search(r'CAP:\s*(\d+)', labels)
-            if match:
-                capability = f"CAP-{match.group(1)}"
-            else:
-                # also check if the title starts with [CAP-xxx] or [CAP xxx]
-                title_match = re.search(r'^\[CAP[- ]?(\d+)\]', title, re.IGNORECASE)
-                if title_match:
-                    capability = f"CAP-{title_match.group(1)}"
 
-        cap_groups[capability].append((number, title, body, is_capability_issue))
-        count += 1
+        labels = _parse_labels(raw_labels)
+        if STORY_LABEL not in {label.lower() for label in labels}:
+            continue
 
-    # Write out one markdown file per capability
-    # Clean up previous generated markdown files in the folder (optional but safe)
-    # for existing_file in output_dir.glob("*.md"):
-    #     existing_file.unlink()
+        capability = _extract_capability(labels)
+        repo_slug = _repo_slug(repo)
+        title_slug = _slugify(title, fallback=f"story-{number}")
+        prefix = capability or "NO-CAP"
+        file_name = f"{prefix}-{repo_slug}-{number}-{title_slug}.md"
+        file_path = output_dir / file_name
 
-    exported_files = 0
-    for cap_name, stories in cap_groups.items():
-        # Clean capability name for filename
-        safe_cap = re.sub(r'[^a-zA-Z0-9_-]', '', cap_name)
-        filepath = output_dir / f"{safe_cap}.md"
-        
-        content_lines = [f"# {cap_name} Stories\n"]
-        
-        # Sort so that if the capability issue itself is in here, it's at the top
-        stories.sort(key=lambda s: (not s[3], s[0]))
-        
-        for number, title, body, is_cap in stories:
-            issue_type = "Capability" if is_cap else "Story"
-            content_lines.append(f"## [{issue_type}] #{number}: {title}\n")
-            content_lines.append(f"{body}\n")
-            content_lines.append("\n---\n")
-            
-        filepath.write_text("\n".join(content_lines), encoding='utf-8')
-        exported_files += 1
-        
-    return exported_files
+        metadata_lines = [
+            f"# {title}",
+            "",
+            f"- Issue: {repo}#{number}",
+            f"- Capability: {capability or 'Unassigned'}",
+        ]
+        if url:
+            metadata_lines.append(f"- Source: {url}")
+
+        content = "\n".join(metadata_lines) + f"\n\n---\n\n{body.strip()}\n"
+        file_path.write_text(content, encoding="utf-8")
+        exported += 1
+
+    return exported

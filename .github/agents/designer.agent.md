@@ -50,6 +50,10 @@ HTML files in `design/` are reference only, not requirements.
 ## Mission
 Translate capability stories into coherent, high-quality Angular UI direction that preserves the Architectural Ledger design language.
 
+## Required Skills
+- Use the `web-design-guidelines` skill for UI review, accessibility, and design quality checks.
+- Use the `angular-ui-patterns` skill for Angular-specific loading, error, data-display, and component-state guidance.
+
 ## Required Outputs
 For first-pass reviews, return:
 - design brief

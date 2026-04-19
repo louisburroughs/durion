@@ -30,10 +30,12 @@ this.someService
   .doMutation(payload)
   .pipe(takeUntilDestroyed(this.destroyRef))
   .subscribe({
-    next: result => { /* handle success */ },
+    next: (result) => {
+      /* handle success */
+    },
     error: () => {
-      this.state.set('error');                         // REQUIRED — always first
-      this.errorKey.set('DOMAIN.FEATURE.ERROR.KEY');  // REQUIRED — always second
+      this.state.set("error"); // REQUIRED — always first
+      this.errorKey.set("DOMAIN.FEATURE.ERROR.KEY"); // REQUIRED — always second
     },
   });
 ```
@@ -65,12 +67,12 @@ Exclusions:
 **Decision:** ✅ **Resolved** — Every error path test for a mutation that uses `errorKey` must assert **both** `state() === 'error'` and the correct `errorKey()` value.
 
 ```typescript
-it('doSomething() sets error state on failure', () => {
+it("doSomething() sets error state on failure", () => {
   mockService.doSomething.mockReturnValueOnce(throwError(() => new Error()));
   component.doSomething(payload);
 
-  expect(component.state()).toBe('error');                       // REQUIRED
-  expect(component.errorKey()).toBe('DOMAIN.FEATURE.ERROR.X');  // REQUIRED
+  expect(component.state()).toBe("error"); // REQUIRED
+  expect(component.errorKey()).toBe("DOMAIN.FEATURE.ERROR.X"); // REQUIRED
 });
 ```
 

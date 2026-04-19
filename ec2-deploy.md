@@ -23,6 +23,7 @@ The deployment flow is:
 - GitHub OIDC role (`AWS_ROLE_ARN`) has the required IAM permissions (see below)
 - An S3 bucket exists for staging compose files (`ALPHA_DEPLOY_BUCKET`)
 - The deploy script exists on the instance at `/opt/durion/alpha/scripts/deploy-backend.sh`
+- The canonical source for that script is now `deployment/alpha/deploy-backend.sh` in `durion-positivity-backend`; the GitHub Actions deploy workflow syncs it to the instance before each deploy
 
 ---
 
