@@ -12,6 +12,7 @@ model: "GPT-5.3-Codex (copilot)"
 Remediate SonarQube issues in `durion-positivity-backend`, then commit and prepare pull-request handoff for `Pull Request Agent`.
 
 You must:
+
 1. Create a new branch before making code changes.
 2. Switch to that branch.
 3. Apply safe SonarQube fixes.
@@ -32,7 +33,7 @@ Use this pattern to invoke the prompt with runtime values automatically:
 
 ```typescript
 // 1) Read prompt file
-const promptContent = await readFile('.github/prompts/sonarqube-fix.prompt.md');
+const promptContent = await readFile(".github/prompts/sonarqube-fix.prompt.md");
 
 // 2) Build runtime context (override only what you need)
 const runtimeContext = `
@@ -46,20 +47,14 @@ const runtimeContext = `
 
 // 3) Delegate to SonarQube Fix Agent
 await runSubagent({
-  description: 'Remediate SonarQube findings and prepare PR handoff',
-  prompt: `${promptContent}\n\n${runtimeContext}\nPlease execute the prompt above with these runtime values.`
+  description: "Remediate SonarQube findings and prepare PR handoff",
+  prompt: `${promptContent}\n\n${runtimeContext}\nPlease execute the prompt above with these runtime values.`,
 });
 ```
 
 ## Reinforced Safety Rules (Non-Negotiable)
 
-1. Do not fix cognitive complexity issues. Skip and report.
-2. Do not introduce new thrown exceptions and do not add new `throw` paths.
-3. Do not fix or modify TODO issues/comments. Skip and report each TODO with a short summary.
-4. If uncertain, skip the issue and add a note in the final report.
-5. Try a real fix first; suppress only when a safe fix is not feasible.
-6. Suppression for style issues in tests (including test method names) is allowed.
-7. Every suppression must be explained in the final report.
+1. Do not fix or modify TODO issues/comments. Skip and report each TODO with a short summary.
 
 ## Required Execution Flow
 
@@ -90,17 +85,17 @@ git branch --show-current
 
 ### 2) Read SonarQube findings
 
-- Load issues from SonarQube/SonarLint tools.
+- Load all issues from SonarQube/SonarLint tools (overall code), not only issues on new code.
+- Do not restrict analysis to Sonar's New Code period.
 - If `SONAR_SCOPE` is set, focus analysis there first.
-- Build a remediation list: `fix`, `suppress-after-attempt`, `skip`.
+- Build a remediation list: `fix`, `suppress-after-attempt`, `skip-todo-only`.
 
 ### 3) Apply fixes under strict constraints
 
 - Implement minimal safe fixes.
-- Do not touch cognitive complexity findings.
 - Do not modify TODO findings/comments.
-- Do not add new thrown exceptions or new `throw` paths.
-- When in doubt, skip and note why.
+- Do not stop at partial progress: continue until every non-TODO Sonar issue is addressed in this run.
+- For non-TODO issues, do not skip: attempt a safe fix first; if a safe fix is not feasible, suppress with full rationale.
 
 ### 4) Verify
 
@@ -121,13 +116,13 @@ If no changes were made, do not force a commit. Report why.
 ### 6) Prepare PR handoff with unique short name
 
 Use:
+
 - PR title: `fix(sonar): ${SHORT_ID}`
 - PR branch: `${BRANCH_NAME}`
 - PR base: `${PR_BASE_BRANCH:-${BASE_BRANCH:-main}}`
 
-Do NOT create the pull request from this prompt.
-PR creation is reserved for `Pull Request Agent`.
-Produce a PR handoff payload containing:
+Do NOT create the pull request from this prompt. PR creation is reserved for `Pull Request Agent`. Produce a PR handoff payload containing:
+
 - title
 - base branch
 - head branch
@@ -145,21 +140,27 @@ mkdir -p .agent-tmp
 
 ```md
 ## Summary
+
 - SonarQube remediation batch: `${SHORT_ID}`
 
 ## Fixed Issues
+
 - <rule key> — <file:line> — <short fix summary>
 
 ## Suppressed Issues
+
 - <rule key> — <file:line> — <why suppressed> — <attempted fix / unsafe reason>
 
 ## Skipped Issues
+
 - <rule key> — <file:line> — <reason>
 
 ## TODO Items (Not Modified)
+
 - <file:line> — <short TODO summary>
 
 ## Verification
+
 - Commands run:
   - `<command>`
 - Outcomes:
@@ -176,3 +177,7 @@ mkdir -p .agent-tmp
 - Skipped issues list with reasons
 - TODO short summaries
 - Verification commands and outcomes
+
+Completion requirement:
+
+- Do not stop early. Finish only after all non-TODO Sonar issues are either fixed or explicitly suppressed with rationale, and only TODO issues remain skipped.
