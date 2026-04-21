@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ALLOWED_FILE="$HOME/IdeaProjects/durion/Durion-Processing.md"
+ALLOWED_FILE="$HOME/IdeaProjects/durion/PR-Review-Processing.md"
 
 if [[ "$1" != "$ALLOWED_FILE" ]]; then
   echo "Deletion not permitted"
