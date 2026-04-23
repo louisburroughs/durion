@@ -1,15 +1,14 @@
 # ADR-0030: Frontend Internationalization and Localization Policy
 
-**Status:** ACCEPTED  
-**Date:** 2026-03-28  
-**Deciders:** Frontend Architecture Team, Product Lead, UX Content Lead  
-**Affected Issues:** Multi-locale readiness, translation consistency, locale-safe formatting
+**Status:** ACCEPTED **Date:** 2026-03-28 **Deciders:** Frontend Architecture Team, Product Lead, UX Content Lead **Affected Issues:** Multi-locale readiness, translation
+consistency, locale-safe formatting
 
 ---
 
 ## Context
 
-The Angular frontend currently has a baseline language configuration, but long-term product execution requires predictable internationalization (i18n) and localization (l10n) behavior across features.
+The Angular frontend currently has a baseline language configuration, but long-term product execution requires predictable internationalization (i18n) and localization (l10n)
+behavior across features.
 
 Without a policy, teams risk hard-coded strings, incorrect pluralization, locale-unsafe formatting, and inconsistent fallback behavior.
 
@@ -127,4 +126,3 @@ Required for completion:
 - ICU Message Format: <https://unicode-org.github.io/icu/userguide/format_parse/messages/>
 - ECMAScript Intl API: <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl>
 - ngx-translate: <https://github.com/ngx-translate/core>
-

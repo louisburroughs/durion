@@ -1,15 +1,14 @@
 # ADR-0029: Frontend Accessibility Baseline Policy
 
-**Status:** ACCEPTED  
-**Date:** 2026-03-28  
-**Deciders:** Frontend Architecture Team, UX Lead, QA Lead  
-**Affected Issues:** Angular frontend accessibility consistency, keyboard/screen reader parity, compliance readiness
+**Status:** ACCEPTED **Date:** 2026-03-28 **Deciders:** Frontend Architecture Team, UX Lead, QA Lead **Affected Issues:** Angular frontend accessibility consistency,
+keyboard/screen reader parity, compliance readiness
 
 ---
 
 ## Context
 
-The Angular frontend has multiple implemented and in-flight feature domains with varying UI maturity. Without a single accessibility baseline, teams can ship inconsistent interaction patterns and regressions in keyboard/screen-reader behavior.
+The Angular frontend has multiple implemented and in-flight feature domains with varying UI maturity. Without a single accessibility baseline, teams can ship inconsistent
+interaction patterns and regressions in keyboard/screen-reader behavior.
 
 Accessibility requirements must be explicit and testable so that feature delivery remains inclusive while scaling execution across waves.
 
@@ -130,4 +129,3 @@ Required for completion:
 - MDN Accessibility: <https://developer.mozilla.org/en-US/docs/Web/Accessibility>
 - Section 508: <https://www.section508.gov/>
 - EN 301 549: <https://www.etsi.org/deliver/etsi_en/301500_301599/301549/>
-

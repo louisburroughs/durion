@@ -1,15 +1,14 @@
 # ADR-0033: Angular Effect Observable Cancellation Policy
 
-**Status:** ACCEPTED
-**Date:** 2026-03-29
-**Deciders:** Frontend Architecture Team
-**Affected Issues:** PR #12 review finding — thread r3006417734; CAP-165–170
+**Status:** ACCEPTED **Date:** 2026-03-29 **Deciders:** Frontend Architecture Team **Affected Issues:** PR #12 review finding — thread r3006417734; CAP-165–170
 
 ---
 
 ## Context
 
-Angular Signals' `effect()` function re-executes its body whenever a reactive dependency (signal read) changes. If an `effect()` body initiates an RxJS subscription (e.g., to `forkJoin`, `combineLatest`, or a service call), and the signal changes again before the previous subscription completes, a new subscription is created while the old one is still in-flight.
+Angular Signals' `effect()` function re-executes its body whenever a reactive dependency (signal read) changes. If an `effect()` body initiates an RxJS subscription (e.g., to
+`forkJoin`, `combineLatest`, or a service call), and the signal changes again before the previous subscription completes, a new subscription is created while the old one is
+still in-flight.
 
 This produces a race condition:
 
@@ -17,7 +16,8 @@ This produces a race condition:
 2. Signal changes to value B (before A resolves) → subscription to `serviceCall(B)` starts
 3. `serviceCall(A)` completes and overwrites state with stale result A — rendering wrong data
 
-In PR #12, `price-books.component.ts` contained an `effect()` that subscribed to `forkJoin({ priceBook, rules })` without cancelling the previous subscription, creating this exact race condition.
+In PR #12, `price-books.component.ts` contained an `effect()` that subscribed to `forkJoin({ priceBook, rules })` without cancelling the previous subscription, creating this
+exact race condition.
 
 ---
 
@@ -64,27 +64,33 @@ effect(() => {
 
 ### 2. `takeUntilDestroyed` Scope
 
-**Decision:** ✅ **Resolved** — `takeUntilDestroyed(this.destroyRef)` is the correct pattern for subscriptions outside `effect()` (e.g., in constructor route-param subscriptions, or mutation pipelines). It must not be used inside `effect()` bodies as a substitute for `onCleanup` — `onCleanup` fires on each reactive re-run, whereas `takeUntilDestroyed` only fires on component destruction.
+**Decision:** ✅ **Resolved** — `takeUntilDestroyed(this.destroyRef)` is the correct pattern for subscriptions outside `effect()` (e.g., in constructor route-param
+subscriptions, or mutation pipelines). It must not be used inside `effect()` bodies as a substitute for `onCleanup` — `onCleanup` fires on each reactive re-run, whereas
+`takeUntilDestroyed` only fires on component destruction.
 
 Summary table:
 
-| Subscription context | Required cancellation pattern |
-|---|---|
-| Inside `effect()` body | `onCleanup(() => sub.unsubscribe())` |
-| Constructor / `ngOnInit` (non-effect) | `.pipe(takeUntilDestroyed(this.destroyRef))` |
+| Subscription context                     | Required cancellation pattern                |
+| ---------------------------------------- | -------------------------------------------- |
+| Inside `effect()` body                   | `onCleanup(() => sub.unsubscribe())`         |
+| Constructor / `ngOnInit` (non-effect)    | `.pipe(takeUntilDestroyed(this.destroyRef))` |
 | Mutation handler (`subscribe` in method) | `.pipe(takeUntilDestroyed(this.destroyRef))` |
 
 ### 3. `forkJoin` and `combineLatest` Specifically
 
-`forkJoin` and `combineLatest` inside an `effect()` must always use `onCleanup`. These are the highest-risk patterns because they involve multiple concurrent HTTP requests that can all resolve out of order relative to reactive re-triggers.
+`forkJoin` and `combineLatest` inside an `effect()` must always use `onCleanup`. These are the highest-risk patterns because they involve multiple concurrent HTTP requests
+that can all resolve out of order relative to reactive re-triggers.
 
 ---
 
 ## Alternatives Considered
 
-1. **Use `toSignal()` with async pipe instead of explicit subscription**: Converts an Observable to a Signal directly, automatically handling subscription lifecycle. Accepted as the preferred pattern for *read-only data display* in future greenfield components. For components that need to react to a signal value and load associated data into multiple signals, the `effect` + `onCleanup` pattern remains appropriate.
+1. **Use `toSignal()` with async pipe instead of explicit subscription**: Converts an Observable to a Signal directly, automatically handling subscription lifecycle. Accepted
+   as the preferred pattern for _read-only data display_ in future greenfield components. For components that need to react to a signal value and load associated data into
+   multiple signals, the `effect` + `onCleanup` pattern remains appropriate.
 
-2. **Use `switchMap` with a Subject**: Emit the new signal value into a Subject and pipe through `switchMap` to auto-cancel. Rejected: adds more RxJS boilerplate in a Signals-first architecture; the `onCleanup` callback is the idiomatic Angular 17+ solution.
+2. **Use `switchMap` with a Subject**: Emit the new signal value into a Subject and pipe through `switchMap` to auto-cancel. Rejected: adds more RxJS boilerplate in a
+   Signals-first architecture; the `onCleanup` callback is the idiomatic Angular 17+ solution.
 
 3. **Rely on `takeUntilDestroyed` inside `effect()`**: Only cancels on component destroy, not on reactive re-run. Does not prevent stale-result races. Rejected.
 

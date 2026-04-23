@@ -2,7 +2,8 @@
 
 ## What is an ADR?
 
-An Architecture Decision Record (ADR) is a document that captures an important architectural decision made along with its context and consequences. ADRs help preserve the reasoning behind significant technical choices, making it easier for current and future team members to understand why certain approaches were taken.
+An Architecture Decision Record (ADR) is a document that captures an important architectural decision made along with its context and consequences. ADRs help preserve the
+reasoning behind significant technical choices, making it easier for current and future team members to understand why certain approaches were taken.
 
 ## When to Create an ADR
 
@@ -62,78 +63,78 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 
 ## Current ADRs
 
-| Number | Title                                      | Status            | Date       |
-|--------|--------------------------------------------|-------------------|------------|
-| 0001   | Inventory Ledger ATP Computation           | ACCEPTED          | 2026-01-12 |
-| 0002   | CRM Domain Permission Taxonomy             | DEPRECATED (ADR-0025) | 2026-01-23 |
-| 0003   | CRM Navigation Patterns                    | ACCEPTED          | 2026-01-24 |
-| 0004   | Duplicate Detection UX Strategy            | ACCEPTED          | 2026-01-24 |
-| 0005   | Optimistic Locking Conflict Resolution     | ACCEPTED          | 2026-01-24 |
-| 0006   | WorkExec Domain Ownership Boundaries       | ACCEPTED          | 2026-01-25 |
-| 0007   | Workorder/Estimate Approval workflow       | ACCEPTED          | 2026-01-08 |
-| 0008   | Cost maintenance clarification diagram     | ACCEPTED          | 2026-01-13 |
-| 0009   | Backend Domain responsibilities            | ACCEPTED          | 2026-01-29 |
-| 0010   | Frontend Domain responsibilities           | ACCEPTED          | 2026-03-28 |
-| 0011   | API Gateway Security Architecture          | ACCEPTED          | 2026-02-01 |
-| 0012   | Vehicle-Party relationship ownwership      | ACCEPTED          | 2026-02-03 |
-| 0013   | UUID v7 Identifier Strategy                | ACCEPTED          | 2026-02-07 |
-| 0014   | Gateway Internal Service Security          | ACCEPTED          | 2026-02-14 |
-| 0015   | Identity Entity Relationships              | PROPOSED          | 2026-02-17 |
-| 0016   | Location Entity Semantics and Definitions  | ACCEPTED          | 2026-02-17 |
-| 0017   | Controller HTTP Response Code Standard     | ACCEPTED          | 2026-02-17 |
-| 0018   | Audit Actor Fields from Security Context   | ACCEPTED          | 2026-02-18 |
-| 0019   | Short-Lived Operational State Persistence  | ACCEPTED          | 2026-02-19 |
-| 0020   | Centralized Document Creation              | ACCEPTED          | 2026-02-19 |
-| 0021   | Tax API Consumption and Internal Access    | ACCEPTED          | 2026-02-21 |
-| 0022   | Audit Stable Person Identifier Claim Policy| ACCEPTED          | 2026-02-21 |
-| 0023   | Remove tenantId / Single-Organization Context | ACCEPTED       | 2026-02-21 |
-| 0024   | Entity createdAt/updatedAt Population Policy | ACCEPTED        | 2026-02-23 |
-| 0025   | Permissions YAML Registration Policy       | ACCEPTED          | 2026-02-26 |
-| 0026   | Service Contract Boundary Policy           | ACCEPTED          | 2026-02-26 |
-| 0027   | UUID-Typed Identifier Contract Policy      | ACCEPTED          | 2026-02-28 |
-| 0028   | Inventory Stock Item Identifier Consistency Policy | ACCEPTED | 2026-02-28 |
-| 0029   | Frontend Accessibility Baseline Policy     | ACCEPTED          | 2026-03-28 |
-| 0030   | Frontend Internationalization and Localization Policy | ACCEPTED | 2026-03-28 |
-| 0039   | Frontend Information-Bearing Contrast Policy | ACCEPTED | 2026-04-11 |
-| 0040   | Roles, JWT Claims, and Permission Governance Policy | ACCEPTED | 2026-04-12 |
+| Number | Title                                                 | Status                | Date       |
+| ------ | ----------------------------------------------------- | --------------------- | ---------- |
+| 0001   | Inventory Ledger ATP Computation                      | ACCEPTED              | 2026-01-12 |
+| 0002   | CRM Domain Permission Taxonomy                        | DEPRECATED (ADR-0025) | 2026-01-23 |
+| 0003   | CRM Navigation Patterns                               | ACCEPTED              | 2026-01-24 |
+| 0004   | Duplicate Detection UX Strategy                       | ACCEPTED              | 2026-01-24 |
+| 0005   | Optimistic Locking Conflict Resolution                | ACCEPTED              | 2026-01-24 |
+| 0006   | WorkExec Domain Ownership Boundaries                  | ACCEPTED              | 2026-01-25 |
+| 0007   | Workorder/Estimate Approval workflow                  | ACCEPTED              | 2026-01-08 |
+| 0008   | Cost maintenance clarification diagram                | ACCEPTED              | 2026-01-13 |
+| 0009   | Backend Domain responsibilities                       | ACCEPTED              | 2026-01-29 |
+| 0010   | Frontend Domain responsibilities                      | ACCEPTED              | 2026-03-28 |
+| 0011   | API Gateway Security Architecture                     | ACCEPTED              | 2026-02-01 |
+| 0012   | Vehicle-Party relationship ownwership                 | ACCEPTED              | 2026-02-03 |
+| 0013   | UUID v7 Identifier Strategy                           | ACCEPTED              | 2026-02-07 |
+| 0014   | Gateway Internal Service Security                     | ACCEPTED              | 2026-02-14 |
+| 0015   | Identity Entity Relationships                         | PROPOSED              | 2026-02-17 |
+| 0016   | Location Entity Semantics and Definitions             | ACCEPTED              | 2026-02-17 |
+| 0017   | Controller HTTP Response Code Standard                | ACCEPTED              | 2026-02-17 |
+| 0018   | Audit Actor Fields from Security Context              | ACCEPTED              | 2026-02-18 |
+| 0019   | Short-Lived Operational State Persistence             | ACCEPTED              | 2026-02-19 |
+| 0020   | Centralized Document Creation                         | ACCEPTED              | 2026-02-19 |
+| 0021   | Tax API Consumption and Internal Access               | ACCEPTED              | 2026-02-21 |
+| 0022   | Audit Stable Person Identifier Claim Policy           | ACCEPTED              | 2026-02-21 |
+| 0023   | Remove tenantId / Single-Organization Context         | ACCEPTED              | 2026-02-21 |
+| 0024   | Entity createdAt/updatedAt Population Policy          | ACCEPTED              | 2026-02-23 |
+| 0025   | Permissions YAML Registration Policy                  | ACCEPTED              | 2026-02-26 |
+| 0026   | Service Contract Boundary Policy                      | ACCEPTED              | 2026-02-26 |
+| 0027   | UUID-Typed Identifier Contract Policy                 | ACCEPTED              | 2026-02-28 |
+| 0028   | Inventory Stock Item Identifier Consistency Policy    | ACCEPTED              | 2026-02-28 |
+| 0029   | Frontend Accessibility Baseline Policy                | ACCEPTED              | 2026-03-28 |
+| 0030   | Frontend Internationalization and Localization Policy | ACCEPTED              | 2026-03-28 |
+| 0039   | Frontend Information-Bearing Contrast Policy          | ACCEPTED              | 2026-04-11 |
+| 0040   | Roles, JWT Claims, and Permission Governance Policy   | ACCEPTED              | 2026-04-12 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
 Use this matrix during planning, implementation, and review to quickly decide which ADRs apply and which agents should be involved.
 
-| ADR | Invoke when... | Primary agents concerned |
-| ------ | ---------------- | -------------------------- |
-| 0001 | Inventory availability/ATP logic, reservation semantics, stock math changes | Coder, Test, Planner |
-| 0002 | CRM/RBAC permission taxonomy (historical reference; superseded by 0025) | Planner |
-| 0003 | CRM navigation/routing/workflow UX structure changes | Coder, Planner, Orchestrator |
-| 0004 | Duplicate detection rules, matching thresholds, merge/review flows | Coder, Test, Planner |
-| 0005 | Concurrency, version conflicts, optimistic locking behavior | Coder, Test, Planner |
-| 0006 | WorkExec ownership boundaries, cross-module responsibility shifts | Planner, Coder, Orchestrator |
-| 0007 | Approval workflow states, transitions, authorization gates | Coder, Test, Planner |
-| 0008 | Cost-maintenance domain behavior or related decision diagrams | Planner, Coder |
-| 0009 | Backend service/domain responsibility boundaries | Planner, Coder, Orchestrator |
-| 0010 | Frontend domain ownership and boundary decisions | Planner, Orchestrator |
-| 0011 | API gateway auth/authz, token handling, edge security architecture | Coder, Test, Planner, Orchestrator |
-| 0012 | Vehicle-party relationship ownership and source-of-truth decisions | Planner, Coder, Test |
-| 0013 | Entity identifier strategy (UUID v7), ID generation and serialization | Coder, Test, Planner |
-| 0014 | Internal service-to-service security via gateway/service trust model | Coder, Test, Planner, Orchestrator |
-| 0015 | Identity entity model relationships and lifecycle behavior | Planner, Coder, Test |
-| 0016 | Location domain semantics, field meaning, ownership of location data | Planner, Coder, Test |
-| 0017 | HTTP status code semantics and error contract behavior in controllers | Coder, Test, Planner |
-| 0018 | Audit actor population from security context and traceability fields | Coder, Test, Planner |
-| 0019 | Short-lived operational state persistence vs in-memory decisions | Coder, Test, Planner |
-| 0020 | Document creation ownership and service boundaries | Planner, Coder, Test, Orchestrator |
-| 0021 | Tax API integration boundaries and internal access policy | Coder, Test, Planner, Orchestrator |
-| 0022 | Stable person identifier claims in audit/event payloads | Coder, Test, Planner |
-| 0023 | tenantId removal and single-org assumptions across contracts/data | Coder, Test, Planner, Orchestrator |
-| 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control | Coder, Test, Planner |
-| 0025 | Permission registration source-of-truth, `permissions.yaml` schema, and rollout | Coder, Test, Planner, Orchestrator |
-| 0026 | Service interface-only public API boundary and internal implementation encapsulation | Coder, Test, Planner, Orchestrator |
-| 0027 | Identifier typing in service contracts/DTOs/entities (UUID for platform IDs, external ID exceptions) | Coder, Test, Planner, Orchestrator |
-| 0028 | Inventory lookup key consistency across reallocation, reservations, and ledger on-hand computation (`stockItemId` as UUID) | Coder, Test, Planner, Orchestrator |
-| 0029 | Frontend accessibility behavior, keyboard/screen-reader support, and WCAG conformance expectations | Coder, Test, Planner, Orchestrator |
-| 0030 | Frontend i18n/l10n behavior, locale fallback, translation key strategy, and format localization | Coder, Test, Planner, Orchestrator |
-| 0039 | Frontend information-bearing text contrast thresholds (small text 4.5:1, large text 3:1) and ADA/WCAG alignment evidence | Coder, Test, Planner, Orchestrator |
+| ADR  | Invoke when...                                                                                                                                                     | Primary agents concerned           |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| 0001 | Inventory availability/ATP logic, reservation semantics, stock math changes                                                                                        | Coder, Test, Planner               |
+| 0002 | CRM/RBAC permission taxonomy (historical reference; superseded by 0025)                                                                                            | Planner                            |
+| 0003 | CRM navigation/routing/workflow UX structure changes                                                                                                               | Coder, Planner, Orchestrator       |
+| 0004 | Duplicate detection rules, matching thresholds, merge/review flows                                                                                                 | Coder, Test, Planner               |
+| 0005 | Concurrency, version conflicts, optimistic locking behavior                                                                                                        | Coder, Test, Planner               |
+| 0006 | WorkExec ownership boundaries, cross-module responsibility shifts                                                                                                  | Planner, Coder, Orchestrator       |
+| 0007 | Approval workflow states, transitions, authorization gates                                                                                                         | Coder, Test, Planner               |
+| 0008 | Cost-maintenance domain behavior or related decision diagrams                                                                                                      | Planner, Coder                     |
+| 0009 | Backend service/domain responsibility boundaries                                                                                                                   | Planner, Coder, Orchestrator       |
+| 0010 | Frontend domain ownership and boundary decisions                                                                                                                   | Planner, Orchestrator              |
+| 0011 | API gateway auth/authz, token handling, edge security architecture                                                                                                 | Coder, Test, Planner, Orchestrator |
+| 0012 | Vehicle-party relationship ownership and source-of-truth decisions                                                                                                 | Planner, Coder, Test               |
+| 0013 | Entity identifier strategy (UUID v7), ID generation and serialization                                                                                              | Coder, Test, Planner               |
+| 0014 | Internal service-to-service security via gateway/service trust model                                                                                               | Coder, Test, Planner, Orchestrator |
+| 0015 | Identity entity model relationships and lifecycle behavior                                                                                                         | Planner, Coder, Test               |
+| 0016 | Location domain semantics, field meaning, ownership of location data                                                                                               | Planner, Coder, Test               |
+| 0017 | HTTP status code semantics and error contract behavior in controllers                                                                                              | Coder, Test, Planner               |
+| 0018 | Audit actor population from security context and traceability fields                                                                                               | Coder, Test, Planner               |
+| 0019 | Short-lived operational state persistence vs in-memory decisions                                                                                                   | Coder, Test, Planner               |
+| 0020 | Document creation ownership and service boundaries                                                                                                                 | Planner, Coder, Test, Orchestrator |
+| 0021 | Tax API integration boundaries and internal access policy                                                                                                          | Coder, Test, Planner, Orchestrator |
+| 0022 | Stable person identifier claims in audit/event payloads                                                                                                            | Coder, Test, Planner               |
+| 0023 | tenantId removal and single-org assumptions across contracts/data                                                                                                  | Coder, Test, Planner, Orchestrator |
+| 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control                                                                                    | Coder, Test, Planner               |
+| 0025 | Permission registration source-of-truth, `permissions.yaml` schema, and rollout                                                                                    | Coder, Test, Planner, Orchestrator |
+| 0026 | Service interface-only public API boundary and internal implementation encapsulation                                                                               | Coder, Test, Planner, Orchestrator |
+| 0027 | Identifier typing in service contracts/DTOs/entities (UUID for platform IDs, external ID exceptions)                                                               | Coder, Test, Planner, Orchestrator |
+| 0028 | Inventory lookup key consistency across reallocation, reservations, and ledger on-hand computation (`stockItemId` as UUID)                                         | Coder, Test, Planner, Orchestrator |
+| 0029 | Frontend accessibility behavior, keyboard/screen-reader support, and WCAG conformance expectations                                                                 | Coder, Test, Planner, Orchestrator |
+| 0030 | Frontend i18n/l10n behavior, locale fallback, translation key strategy, and format localization                                                                    | Coder, Test, Planner, Orchestrator |
+| 0039 | Frontend information-bearing text contrast thresholds (small text 4.5:1, large text 3:1) and ADA/WCAG alignment evidence                                           | Coder, Test, Planner, Orchestrator |
 | 0040 | Roles semantics in frontend UX, JWT claim contract (`roles`, `perm_bits`, `perm_ver`), gateway authority derivation, and role-vs-permission enforcement boundaries | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
