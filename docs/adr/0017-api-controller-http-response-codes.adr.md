@@ -1,9 +1,6 @@
 # ADR-0017: API Controller HTTP Response Codes Standard
 
-**Status:** ACCEPTED  
-**Date:** 2026-02-17  
-**Deciders:** Architecture, Backend Lead, API Lead  
-**Affected Issues:** N/A
+**Status:** ACCEPTED **Date:** 2026-02-17 **Deciders:** Architecture, Backend Lead, API Lead **Affected Issues:** N/A
 
 ---
 
@@ -15,7 +12,8 @@ Backend domain contract guides define overlapping HTTP response conventions, but
 - Some guides use `409` for business rule violations while others use `422` for similar domain outcomes.
 - Error envelope shape is mostly aligned, but field-level validation details appear as either `fieldErrors[]` or `details[]`.
 
-Without a platform-level standard, teams can implement semantically similar failures with different status codes, reducing API predictability and increasing contract-testing friction.
+Without a platform-level standard, teams can implement semantically similar failures with different status codes, reducing API predictability and increasing contract-testing
+friction.
 
 ---
 
@@ -42,9 +40,11 @@ Without a platform-level standard, teams can implement semantically similar fail
 
 **Decision:** ✅ **Resolved** - Prefer `409` for stateful collisions and use `422` sparingly for semantic domain-policy violations.
 
-Use `409` when the request cannot be applied because of current resource/system state, including optimistic-lock/version mismatch, duplicate-unique constraints, invalid lifecycle transition, and idempotency-key payload mismatch.
+Use `409` when the request cannot be applied because of current resource/system state, including optimistic-lock/version mismatch, duplicate-unique constraints, invalid
+lifecycle transition, and idempotency-key payload mismatch.
 
-Use `422` when payload shape is valid and resource state is not the primary issue, but the requested operation violates domain policy rules that are explicitly documented in the endpoint contract.
+Use `422` when payload shape is valid and resource state is not the primary issue, but the requested operation violates domain policy rules that are explicitly documented in
+the endpoint contract.
 
 ### 3. Error Envelope Contract
 
@@ -130,7 +130,7 @@ Validation and domain error details:
 ## Sign-Off
 
 | Role         | Name | Date       | Notes |
-|--------------|------|------------|-------|
+| ------------ | ---- | ---------- | ----- |
 | Architecture | LMB  | 2026-02-17 |       |
 | Backend Lead | LMB  | 2026-02-17 |       |
 | API Lead     | LMB  | 2026-02-17 |       |
