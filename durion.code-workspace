@@ -14,8 +14,12 @@
 		},
 		{
 			"path": "../durion-positivity-sdk",
-			"name": "SDK"
+			"name": "TS-SDK"
 		},
+		{
+			"path": "../durion-positivity-sdk-angular",
+			"name": "Angular-SDK"
+		}
 	],
 	"settings": {
 		"files.associations": {
