@@ -19,6 +19,10 @@
 		{
 			"path": "../durion-positivity-sdk-angular",
 			"name": "Angular-SDK"
+		},
+		{
+			"path": "../durion-positivity-sdk-java",
+			"name": "Java-SDK"
 		}
 	],
 	"settings": {
