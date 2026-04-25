@@ -1,6 +1,6 @@
 # Durion Positivity Platform
 
-Durion Positivity is a Point-of-Sale platform built on a Java 25 microservices backend, a TypeScript SDK generated from OpenAPI contracts, and an Angular 21 frontend SPA. This repository is the workspace root: it holds cross-repo governance, Architecture Decision Records, agent specifications, domain models, and observability configuration.
+Durion Positivity is a Point-of-Sale platform built on a Java 25 microservices backend, an Angular-native TypeScript SDK generated from OpenAPI contracts, a framework-agnostic TypeScript SDK for non-Angular consumers, and an Angular 21 frontend SPA. This repository is the workspace root: it holds cross-repo governance, Architecture Decision Records, agent specifications, domain models, and observability configuration.
 
 ---
 
@@ -20,19 +20,21 @@ Durion Positivity is a Point-of-Sale platform built on a Java 25 microservices b
 
 ## Workspace Layout
 
-All four repositories should be cloned into the same parent directory and treated as siblings.
+All relevant repositories should be cloned into the same parent directory and treated as siblings.
 
 | Repository | Role | Stack |
 |---|---|---|
 | `durion` *(this repo)* | Governance, ADRs, agent specs, domain models, observability | Markdown, Python scripts |
 | `durion-positivity-backend` | POS microservices, API Gateway, OpenAPI specs | Java 25, Spring Boot 4.0.5, Maven, PostgreSQL |
-| `durion-positivity-sdk` | Typed client SDK auto-generated from backend specs | TypeScript 5.4+, OpenAPI Generator, npm workspaces |
+| `durion-positivity-sdk-angular` | Angular-native SDK used by the frontend for all backend API calls | TypeScript 5.4+, Angular 21, OpenAPI Generator |
+| `durion-positivity-sdk` | Framework-agnostic typed client SDK for non-Angular consumers | TypeScript 5.4+, OpenAPI Generator, npm workspaces |
 | `durion-positivity-frontend` | POS single-page application with SSR | Angular 21.1.0, TypeScript 5.9.2, Express 5 |
 
 ```
 ~/IdeaProjects/
 ├── durion/                     ← you are here
 ├── durion-positivity-backend/
+├── durion-positivity-sdk-angular/
 ├── durion-positivity-sdk/
 └── durion-positivity-frontend/
 ```
@@ -44,9 +46,9 @@ All four repositories should be cloned into the same parent directory and treate
 ```
 Angular 21 SPA (SSR)
         │
-        │  imports @durion-sdk/{domain}
+        │  injects @durion-sdk/{domain} Angular services
         ▼
-TypeScript SDK (17 packages)
+Angular SDK (OpenAPI-generated packages)
         │
         │  generated from OpenAPI specs via OpenAPI Generator v7.5.0
         ▼
@@ -70,7 +72,7 @@ Observability Stack (Docker Compose)
   └── Grafana                  ← dashboards
 ```
 
-The SDK sits between the frontend and the backend. When a backend OpenAPI spec changes, `npm run generate` in `durion-positivity-sdk` regenerates the affected client package and the frontend picks up the new types at compile time.
+`durion-positivity-sdk-angular` sits between the Angular frontend and the backend. All frontend-to-backend API calls must use the Angular SDK packages rather than direct URL construction in frontend feature code. When a backend OpenAPI spec changes, regenerate and rebuild `durion-positivity-sdk-angular` first so the frontend consumes the updated contract through generated clients.
 
 ---
 
@@ -94,6 +96,7 @@ The SDK sits between the frontend and the backend. When a backend OpenAPI spec c
 cd ~/IdeaProjects
 git clone git@github.com:louisburroughs/durion.git
 git clone git@github.com:louisburroughs/durion-positivity-backend.git
+git clone git@github.com:louisburroughs/durion-positivity-sdk-angular.git
 git clone git@github.com:louisburroughs/durion-positivity-sdk.git
 git clone git@github.com:louisburroughs/durion-positivity-frontend.git
 ```
@@ -120,16 +123,18 @@ docker compose up -d
 ./mvnw -pl pos-api-gateway spring-boot:run
 ```
 
-### 4. Build the TypeScript SDK
+### 4. Build the Angular SDK used by the frontend
 
-The SDK reads OpenAPI specs from the sibling `durion-positivity-backend/` directory:
+The Angular SDK reads OpenAPI specs from the sibling `durion-positivity-backend/` directory:
 
 ```bash
-cd ../durion-positivity-sdk
+cd ../durion-positivity-sdk-angular
 npm install
 npm run generate     # regenerate clients from current OpenAPI specs
 npm run build        # compile CJS + ESM + type declarations
 ```
+
+For non-Angular consumers, the fetch-based `durion-positivity-sdk` can be built separately.
 
 ### 5. Run the frontend
 
