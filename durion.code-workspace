@@ -13,10 +13,6 @@
 			"name": "Frontend"
 		},
 		{
-			"path": "../durion-positivity-sdk",
-			"name": "TS-SDK"
-		},
-		{
 			"path": "../durion-positivity-sdk-angular",
 			"name": "Angular-SDK"
 		},
