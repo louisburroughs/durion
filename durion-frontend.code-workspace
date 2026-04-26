@@ -12,5 +12,41 @@
 			"path": "../durion-positivity-sdk",
 			"name": "SDK"
 		}
-	]
+	],
+	"settings": {
+		"terminal.integrated.scrollback": 2000,
+		"typescript.tsserver.maxTsServerMemory": 2048,
+		"files.exclude": {
+			"**/.angular/**": true,
+			"**/coverage/**": true,
+			"**/dist/**": true,
+			"**/build/**": true,
+			"**/out/**": true,
+			"**/target/**": true
+		},
+		"files.watcherExclude": {
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true,
+			"**/.angular/**": true,
+			"**/.gradle/**": true,
+			"**/coverage/**": true,
+			"**/dist/**": true,
+			"**/build/**": true,
+			"**/out/**": true,
+			"**/target/**": true,
+			"**/*.hprof": true,
+			"**/*.log": true
+		},
+		"search.exclude": {
+			"**/.angular/**": true,
+			"**/.gradle/**": true,
+			"**/coverage/**": true,
+			"**/dist/**": true,
+			"**/build/**": true,
+			"**/out/**": true,
+			"**/target/**": true,
+			"**/*.hprof": true,
+			"**/*.log": true
+		}
+	}
 }
