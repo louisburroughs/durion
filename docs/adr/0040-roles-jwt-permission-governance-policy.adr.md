@@ -1,9 +1,7 @@
 # ADR-0040: Roles, JWT Claims, and Permission Governance Policy
 
-**Status:** ACCEPTED
-**Date:** 2026-04-12
-**Deciders:** Platform Architecture, Security Domain, Frontend Architecture, Backend Leads
-**Affected Issues:** Token-claim contract drift, frontend RBAC gating consistency, PERM migration alignment
+**Status:** ACCEPTED **Date:** 2026-04-12 **Deciders:** Platform Architecture, Security Domain, Frontend Architecture, Backend Leads **Affected Issues:** Token-claim contract
+drift, frontend RBAC gating consistency, PERM migration alignment
 
 ---
 
@@ -181,7 +179,7 @@ Refresh tokens may include only identity/lifecycle claims needed for refresh exc
 - [ADR-0018: Audit Actor Fields from Security Context](0018-audit-actor-fields-from-security-context.adr.md)
 - [ADR-0022: Audit Stable Person Identifier Claim Policy](0022-audit-stable-person-identifier-claim-policy.adr.md)
 - [ADR-0025: Permissions Manifest Registration Policy](0025-permissions-yaml-registration-policy.adr.md)
-- [Roles/JWT/Permissions Implementation Plan](../architecture/roles-jwt-permissions-implementation-plan.md)
+- [Roles/JWT/Permissions Implementation Plan](../architecture/plans/roles-jwt-permissions-implementation-plan.md)
 - `durion-positivity-frontend/src/app/core/services/auth.service.ts`
 - `durion-positivity-frontend/src/app/core/guards/roles.guard.ts`
 - `durion-positivity-backend/pos-security-service/src/main/java/com/positivity/securityservice/internal/service/JwtServiceImpl.java`
@@ -191,12 +189,12 @@ Refresh tokens may include only identity/lifecycle claims needed for refresh exc
 
 ## Sign-Off
 
-| Role | Name | Date | Notes |
-|------|------|------|-------|
-| Architecture | [Pending] | 2026-04-12 | |
-| Security Lead | [Pending] | 2026-04-12 | |
-| Frontend Lead | [Pending] | 2026-04-12 | |
-| Backend Lead | [Pending] | 2026-04-12 | |
+| Role          | Name      | Date       | Notes |
+| ------------- | --------- | ---------- | ----- |
+| Architecture  | [Pending] | 2026-04-12 |       |
+| Security Lead | [Pending] | 2026-04-12 |       |
+| Frontend Lead | [Pending] | 2026-04-12 |       |
+| Backend Lead  | [Pending] | 2026-04-12 |       |
 
 ---
 

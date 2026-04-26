@@ -1,184 +1,294 @@
-# Moqui User Management + Spring Boot Backend Authorization Design
+# API Security Architecture
 
-## 1. Scope and Goals
+## 1. Scope and Source of Truth
 
-This design establishes Moqui as the **system of record** for:
-- user identities
-- authentication (login/session)
-- role assignment
+This document describes the current Durion platform API security architecture across:
 
-Spring Boot remains the enforcement platform for:
-- API protection at the **API Gateway**
-- method-level authorization in backend modules using `@PreAuthorize`
+- `durion-positivity-frontend` (Angular 21 SPA + SSR shell)
+- `pos-api-gateway` (single external HTTP entry point)
+- `pos-security-service` (identity, token, role, and permission authority)
+- downstream Spring Boot services that authorize on gateway-provided context
 
-Trust between Moqui and the Spring Boot backend is established using a **shared secret** that is **never transmitted**. Moqui uses it to **cryptographically sign** short-lived user assertions. The backend verifies those assertions to authenticate the caller and construct authorities for Spring Security.
+This document is governed by the accepted ADRs below and reflects the current Angular code structure rather than the earlier Moqui-era design:
 
-All communications use HTTPS.
+- [ADR-0010](../adr/0010-frontend-domain-responsibilities-guide.adr.md) - frontend architecture and ownership
+- [ADR-0011](../adr/0011-api-gateway-security-architecture.adr.md) - gateway auth boundary and token contract
+- [ADR-0014](../adr/0014-gateway-internal-service-security.adr.md) - whitelist-only gateway exposure
+- [ADR-0036](../adr/0036-frontend-security-audit-model-ownership-boundary.adr.md) - frontend security-domain ownership
+- [ADR-0037](../adr/0037-frontend-spa-navigation-policy.adr.md) - SPA route semantics
+- [ADR-0040](../adr/0040-roles-jwt-permission-governance-policy.adr.md) - roles vs permissions policy
+- [ADR-0041](../adr/0041-frontend-angular-sdk-api-transport-policy.adr.md) - Angular SDK transport boundary
 
----
+## 2. Architecture Summary
 
-## 2. Components and Responsibilities
+```text
+Browser / SSR shell
+        |
+        |  /login, /app/**, /forbidden, /not-found
+        v
+Angular frontend (`durion-positivity-frontend`)
+  - AuthService
+  - authInterceptor
+  - authGuard + rolesChildGuard
+  - feature services / generated Angular SDK clients
+        |
+        |  Authorization: Bearer <access token>
+        v
+API Gateway (`pos-api-gateway`)
+  - validates JWT
+  - derives trusted downstream authorities
+  - strips untrusted inbound identity headers
+  - forwards only whitelisted routes
+        |
+        v
+Spring Boot services
+  - trust gateway-authenticated context
+  - authorize with `@PreAuthorize(hasAuthority(...))`
 
-### 2.1 Moqui Frontend
-- Authenticates users using Moqui’s built-in user management.
-- Determines the authenticated user’s identity and roles (Moqui roles).
-- Issues a **signed assertion** for each backend call (or for a short time window) that includes:
-  - the authorized `userId`
-  - the authorized Moqui role(s)
-  - anti-replay and expiry data
+Identity / token / role / permission source of truth:
+`pos-security-service`
+```
 
-### 2.2 API Gateway (Spring Boot)
-- Serves as the single entry point to backend services.
-- Validates the signed Moqui assertion on every request.
-- Creates the authenticated `SecurityContext` for downstream services.
-- Forwards the request to the target backend module with the authenticated principal and mapped authorities.
+## 3. Component Responsibilities
 
-### 2.3 Backend Services (Spring Boot Modules)
-- Trust the gateway as the authentication boundary.
-- Rely on Spring Security + `@PreAuthorize` for authorization decisions.
-- Do not call Moqui for identity or role checks during normal request processing.
+### 3.1 Frontend
 
----
+The active frontend is Angular, not Moqui.
 
-## 3. Trust Model and Security Properties
+Current security-relevant frontend structure:
 
-### 3.1 Shared Secret Usage
-- A single shared secret is provisioned to:
-  - Moqui (signing)
-  - API Gateway (verification)
-- The shared secret is stored in secure configuration (not source-controlled) and loaded at runtime.
-- The shared secret is used only for **HMAC signing** of assertions (e.g., HS256). The secret itself is never sent in any request.
+- `src/app/app.routes.ts`
+  - public routes: `/`, `/login`, `/forbidden`, `/not-found`
+  - protected shell: `/app/**`
+  - compatibility alias: `/chat -> /app`
+- `src/app/core/services/auth.service.ts`
+  - login, refresh, logout, session validation
+  - token persistence
+  - role extraction from JWT `roles`
+- `src/app/core/interceptors/auth.interceptor.ts`
+  - attaches bearer token
+  - handles `401 -> refresh -> retry once`
+- `src/app/core/guards/auth.guard.ts`
+  - blocks unauthenticated access to `/app/**`
+- `src/app/core/guards/roles.guard.ts`
+  - enforces route `data.roles` for coarse UI gating
+- `src/app/features/shell/services/navigation-registry.service.ts`
+  - filters admin/security nav items based on JWT `roles`
 
-### 3.2 Assertion Security Requirements
-Assertions MUST include:
-- **Integrity**: HMAC signature computed over the assertion content.
-- **Expiration**: short TTL to limit exposure.
-- **Replay protection**: unique identifier per assertion and server-side replay detection.
+Current lazy-loaded protected feature routes under `/app`:
 
----
+- `admin`
+- `crm`
+- `workexec`
+- `accounting`
+- `billing`
+- `people`
+- `location`
+- `inventory`
+- `product`
+- `order`
+- `security`
+- `shopmgmt`
+- `bulk-import`
 
-## 4. Signed Assertion Format
+Per ADR-0041, frontend-to-backend domain API calls must use `durion-positivity-sdk-angular` as the canonical transport boundary. The current codebase already provisions generated SDK configuration in `src/app/app.config.ts` and many features inject `@durion-sdk/*` services. Some feature paths still use `ApiBaseService`; those are migration debt, not target architecture.
 
-The Moqui assertion is a compact token (JWT) signed with HMAC using the shared secret.
+### 3.2 `pos-security-service`
 
-### 4.1 Required JWT Header Fields
-- `alg`: `HS256`
-- `typ`: `JWT`
+Per ADR-0011, `pos-security-service` is the authoritative system for:
 
-### 4.2 Required JWT Claims
-- `iss`: fixed issuer identifier for Moqui (e.g., `moqui`)
-- `aud`: fixed audience identifier for the API Gateway (e.g., `api-gateway`)
-- `sub`: the authorized Moqui `userId`
-- `roles`: list of Moqui roles asserted for the user (strings)
-- `iat`: issued-at timestamp
-- `exp`: expiration timestamp (short-lived)
-- `jti`: unique token identifier (UUID)
+- user identity records
+- role definitions
+- permission definitions
+- role/permission assignment lifecycle
+- access-token and refresh-token issuance semantics
 
-### 4.3 Optional Claims (if contextual authorization is needed)
-- `storeId` / `locationId`
-- `sessionId`
-- `organizationId` (only where explicit organization scoping is required)
+It is the only backend service that owns token issuance and auth lifecycle APIs.
 
----
+### 3.3 API Gateway
 
-## 5. Request Flow
+The API Gateway is the authentication enforcement boundary and the only public backend entry point.
 
-### 5.1 Moqui → Gateway
-1. User authenticates in Moqui (Moqui session established).
-2. When Moqui needs to call a backend API:
-   - Moqui determines the current authorized `userId`.
-   - Moqui resolves the user’s Moqui role(s) required for the call.
-   - Moqui constructs the JWT claims and signs the JWT using the shared secret.
-3. Moqui calls the API Gateway over HTTPS with:
-   - `Authorization: Bearer <moqui_assertion_jwt>`
+Responsibilities:
 
-### 5.2 Gateway Validation and SecurityContext Construction
-On each request, the API Gateway performs:
+- validate access tokens
+- reject invalid, expired, or malformed requests
+- derive trusted downstream authorities from token permission claims
+- establish authenticated request context for downstream services
+- centralize externally exposed routes
 
-1. **Token extraction**
-   - Read `Authorization` header and extract the Bearer token.
+### 3.4 Downstream Services
 
-2. **Signature verification**
-   - Verify JWT signature with the shared secret.
+Backend services:
 
-3. **Claim validation**
-   - Validate `iss` equals the configured Moqui issuer value.
-   - Validate `aud` equals the configured gateway audience value.
-   - Validate `exp` is not expired (allow small clock skew if required).
-   - Validate required claims exist: `sub`, `roles`, `iat`, `exp`, `jti`.
+- trust the gateway-authenticated context
+- do not own identity, role, or token lifecycle logic
+- authorize using canonical permissions via Spring Security and `@PreAuthorize`
 
-4. **Replay protection**
-   - Maintain a replay cache keyed by `jti` with TTL until `exp`.
-   - Reject the request if `jti` has already been seen.
-   - Insert `jti` on first acceptance.
+## 4. Trust Model
 
-5. **Authority mapping**
-   - Convert Moqui roles to Spring authorities using deterministic mapping:
-     - Moqui role `X` → Spring authority `ROLE_X`
-   - Example:
-     - `SHOP_MGR` → `ROLE_SHOP_MGR`
+### 4.1 External boundary
 
-6. **Principal creation**
-   - Create an authenticated principal:
-     - `principalName` = `sub` (Moqui `userId`)
-     - `authorities` = mapped Spring authorities
-   - Attach additional context from optional claims if needed (e.g., `organizationId`).
+All external HTTP traffic enters through `pos-api-gateway`. Internal services are private by default.
 
-7. **SecurityContext population**
-   - Set the Spring `SecurityContext` with the authenticated `Authentication` object.
+Per ADR-0014:
 
-8. **Forwarding**
-   - Route the request to the appropriate backend module with the established security context.
+- `spring.cloud.gateway.discovery.locator.enabled` must remain disabled
+- only explicitly declared gateway routes are externally reachable
+- services without explicit gateway routes are not public APIs
 
----
+### 4.2 Auth ownership
 
-## 6. Backend Authorization with @PreAuthorize
+Per ADR-0011 and ADR-0040:
 
-### 6.1 Authority Model
-- Backend services receive authentication from the gateway-derived security context.
-- Authorities are present as `ROLE_*` strings mapped from Moqui roles.
+- `pos-security-service` owns identities, roles, permissions, and token issuance
+- frontend uses `roles` for route/nav/view gating
+- backend authorization uses permissions, not roles
+- gateway derives downstream authorities from permission claims, not from frontend UI roles
 
-### 6.2 Usage
-Backend controllers/services use `@PreAuthorize` against these authorities:
-- `@PreAuthorize("hasRole('SHOP_MGR')")`
-- `@PreAuthorize("hasAuthority('ROLE_ACCOUNTING_CLERK')")`
+### 4.3 Header trust
 
-### 6.3 Identity Access
-Backend code obtains the current identity from Spring Security:
-- `Authentication.getName()` returns the Moqui `userId` (`sub` claim).
-- Authorities reflect Moqui role assertions after mapping.
+The gateway is the trust boundary for caller identity.
 
----
+- inbound caller-supplied identity headers must not be trusted
+- gateway strips untrusted identity headers and injects trusted downstream context
+- backend services must authorize from gateway-established context only
 
-## 7. Configuration and Key Material Handling
+## 5. Access Token Contract
 
-### 7.1 Shared Secret Provisioning
-- The shared secret is configured independently in Moqui and the API Gateway.
-- Storage requirements:
-  - encrypted at rest
-  - injected via environment variables or a secrets manager at runtime
-  - never logged
+Per ADR-0011 and ADR-0040, access tokens accepted by the gateway must include:
 
-### 7.2 Gateway Configuration Parameters
-- `moqui.issuer` (expected `iss`)
-- `gateway.audience` (expected `aud`)
-- `hmac.sharedSecret` (verification key)
-- `replayCache.ttl` (derived from `exp`, enforced server-side)
+- `iss`
+- `aud`
+- `sub`
+- `uid`
+- `jti`
+- `iat`
+- `exp`
+- `perm_bits`
+- `perm_ver`
+- `roles`
 
----
+Semantics:
 
-## 8. Logging and Audit Requirements
+- `roles`
+  - coarse-grained frontend UX entitlement signal
+  - used by `AuthService`, `rolesChildGuard`, and navigation filtering
+- `perm_bits` + `perm_ver`
+  - canonical backend authorization input
+  - used by the gateway to derive trusted downstream authorities
 
-The API Gateway logs (without logging tokens):
-- request identifier / correlation id
-- `sub` (userId)
-- resolved authorities
-- decision outcome (accepted/rejected) and reason (expired, invalid signature, replay)
+Rules:
 
-Backend services may log:
-- correlation id
-- authenticated `userId`
-- invoked endpoint and authorization outcome
-- without recording the assertion token
+- newly issued tokens must not emit `authorities`
+- any legacy `authorities` handling is migration compatibility only
+- refresh tokens must not carry `roles`, `authorities`, `perm_bits`, or `perm_ver`
 
----
+## 6. Request Flow
+
+### 6.1 Login and session bootstrap
+
+1. The Angular app calls the security-service login endpoint through the configured gateway base URL, currently `POST /api/security-service/v1/auth/login` in frontend environments.
+2. `AuthService` stores the access and refresh tokens.
+3. `AuthService` decodes JWT claims and normalizes `roles` into `ROLE_*` values for UI checks.
+4. Protected navigation under `/app/**` becomes available through `authGuard` and `rolesChildGuard`.
+
+### 6.2 Authenticated frontend API calls
+
+1. A feature page or service calls a generated Angular SDK client or, in migration cases, `ApiBaseService`.
+2. `authInterceptor` attaches `Authorization: Bearer <access token>`.
+3. On `401`, the interceptor triggers `AuthService.refreshTokens()` and retries once.
+4. On refresh failure, the frontend clears session state and redirects to `/login` with `returnUrl` and `sessionExpired=true`.
+
+### 6.3 Gateway validation and forwarding
+
+On each protected request, the gateway:
+
+1. extracts the bearer token
+2. validates signature and required claims
+3. rejects expired or invalid tokens
+4. derives trusted authorities from `perm_bits` and `perm_ver`
+5. establishes authenticated downstream context
+6. forwards only to explicitly routed services
+
+### 6.4 Backend authorization
+
+Downstream services authorize against canonical permission names, for example:
+
+```java
+@PreAuthorize("hasAuthority('order:price_override:approve')")
+```
+
+Service code must treat role-based authorization as migration debt where permission-based policy is available.
+
+## 7. Frontend Structure and Security Boundaries
+
+### 7.1 Route ownership
+
+Per ADR-0010 and ADR-0037:
+
+- all protected business routes live under `/app`
+- feature route files own their domain navigation contracts
+- in-app navigation must use Angular router semantics, not bare `href`
+
+### 7.2 RBAC in the Angular app
+
+The current frontend uses route metadata and token `roles` for coarse UI gating:
+
+- `/app/admin` requires `ROLE_ADMIN`
+- `/app/security` requires `ROLE_ADMIN`
+- shell navigation hides admin-only destinations when the role is absent
+
+This is intentionally a UX concern only. Backend APIs remain authoritative and may still return `403` even if a page is visible.
+
+### 7.3 Security-domain ownership
+
+Per ADR-0036, security-specific models and UI concerns belong inside `src/app/features/security/**`, not in sibling feature domains. Security audit models, pages, and services must stay within the security feature boundary unless promoted to an explicitly shared core contract.
+
+## 8. Transport Topology
+
+The frontend currently runs in two relevant modes:
+
+- browser/dev mode using `environment.apiBaseUrl`
+- SSR/Express mode using the proxy routes in `src/server.ts`
+
+Current SSR proxy behavior:
+
+- `/api -> pos-api-gateway`
+- `/mcp-server -> pos-api-gateway`
+
+This keeps the gateway as the single backend ingress path even when the Angular app is served through the SSR shell.
+
+## 9. Current State and Migration Notes
+
+Target state:
+
+- Angular SDK-first backend transport
+- roles for frontend UX gating
+- permission claims for gateway/backend authorization
+- no Moqui-era signing or role-mapping assumptions
+
+Current implementation notes:
+
+- `src/app/app.config.ts` already configures generated Angular SDK packages with the frontend API base URL
+- frontend JWT claim models already declare `roles`, `perm_bits`, and `perm_ver`, while treating `authorities` as legacy compatibility only
+- some feature services still inject `ApiBaseService`; those paths should migrate opportunistically per ADR-0041
+
+## 10. Operational and Audit Notes
+
+- Do not log raw access or refresh tokens.
+- Correlate auth failures using request/correlation identifiers rather than token dumps.
+- Avoid logging PII beyond what is required for security auditability.
+- Document any gateway-visible auth contract changes in the backend security-service and gateway consumer docs referenced by ADR-0011.
+
+## 11. References
+
+- [Workspace README](../../README.md)
+- [Frontend README](../../../durion-positivity-frontend/README.md)
+- [Frontend app routes](../../../durion-positivity-frontend/src/app/app.routes.ts)
+- [Frontend app config](../../../durion-positivity-frontend/src/app/app.config.ts)
+- [AuthService](../../../durion-positivity-frontend/src/app/core/services/auth.service.ts)
+- [authInterceptor](../../../durion-positivity-frontend/src/app/core/interceptors/auth.interceptor.ts)
+- [roles guard](../../../durion-positivity-frontend/src/app/core/guards/roles.guard.ts)
+- [Navigation registry](../../../durion-positivity-frontend/src/app/features/shell/services/navigation-registry.service.ts)
+- [SSR server proxy](../../../durion-positivity-frontend/src/server.ts)
