@@ -9,31 +9,38 @@ assignees: []
 # Capability Definition
 
 ## Description
+
 What must be true for this capability to be considered complete?
 
 ## Business Rules
-- 
+
+-
 
 ## Inputs
-- 
+
+-
 
 ## Outputs
-- 
+
+-
 
 ## Edge Cases
-- 
+
+-
 
 ## Acceptance Criteria
-- 
+
+-
 
 ## Decomposes Into (Stories)
-- [ ] Story: 
-- [ ] Story: 
+
+- [ ] Story:
+- [ ] Story:
 
 ## Notes for Agents
 
 ## Classification (confirm labels)
+
 - Type:
 - Layer:
 - Domain:
-

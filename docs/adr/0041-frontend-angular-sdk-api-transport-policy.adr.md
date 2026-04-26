@@ -1,9 +1,7 @@
 # ADR-0041: Frontend Angular SDK API Transport Policy
 
-**Status:** ACCEPTED  
-**Date:** 2026-04-25  
-**Deciders:** Frontend Architecture Team, SDK Maintainers, Platform Lead  
-**Affected Repos:** `durion`, `durion-positivity-frontend`, `durion-positivity-sdk-angular`
+**Status:** ACCEPTED **Date:** 2026-04-25 **Deciders:** Frontend Architecture Team, SDK Maintainers, Platform Lead **Affected Repos:** `durion`, `durion-positivity-frontend`,
+`durion-positivity-sdk-angular`
 
 ---
 
@@ -77,7 +75,8 @@ This keeps backend contract usage centralized per feature while still enforcing 
 
 ### 4. Core-layer scope
 
-**Decision:** ✅ **Resolved** - Core frontend code may continue to own cross-cutting concerns such as auth state, token persistence, and HTTP interceptors, but backend transport still flows through the Angular SDK.
+**Decision:** ✅ **Resolved** - Core frontend code may continue to own cross-cutting concerns such as auth state, token persistence, and HTTP interceptors, but backend
+transport still flows through the Angular SDK.
 
 Allowed core responsibilities:
 
@@ -99,15 +98,19 @@ Required enforcement for new or modified frontend API work:
 3. consume the generated Angular SDK service from a feature service or approved workflow wrapper
 4. test the frontend behavior against the SDK-facing abstraction rather than raw URL construction
 
-If a backend endpoint is not yet present in `durion-positivity-sdk-angular`, the missing contract should be added there first unless a time-critical exception is explicitly documented.
+If a backend endpoint is not yet present in `durion-positivity-sdk-angular`, the missing contract should be added there first unless a time-critical exception is explicitly
+documented.
 
 ---
 
 ## Alternatives Considered
 
-1. **Keep `ApiBaseService` as the canonical frontend transport**: Rejected. It duplicates path and payload knowledge in the frontend and weakens the value of the generated contract layer.
-2. **Allow both Angular SDK and direct HTTP indefinitely**: Rejected. Mixed transport patterns create review ambiguity and slow migration because no single boundary is enforceable.
-3. **Use the framework-agnostic `durion-positivity-sdk` in Angular**: Rejected. `durion-positivity-sdk-angular` already matches Angular DI, `HttpClient`, and `Observable` usage directly.
+1. **Keep `ApiBaseService` as the canonical frontend transport**: Rejected. It duplicates path and payload knowledge in the frontend and weakens the value of the generated
+   contract layer.
+2. **Allow both Angular SDK and direct HTTP indefinitely**: Rejected. Mixed transport patterns create review ambiguity and slow migration because no single boundary is
+   enforceable.
+3. **Use the framework-agnostic `durion-positivity-sdk` in Angular**: Rejected. `durion-positivity-sdk-angular` already matches Angular DI, `HttpClient`, and `Observable`
+   usage directly.
 
 ---
 
