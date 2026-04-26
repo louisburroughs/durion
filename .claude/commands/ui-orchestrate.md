@@ -1,30 +1,34 @@
 ---
-name: 'Orchestration Policy for Multi-Stage Angular Frontend Capability Build'
-description: 'Policy for executing the multi-stage frontend capability crawl with the frontend agent team.'
+name: "Orchestration Policy for Frontend Specifications"
+description: "Policy for executing frontend delivery waves with the frontend agent team."
 ---
 
-
-Run in strict compliance with `orchestrator.agent.md`.
+Run in strict compliance with `ui.orchestrator.agent.md`.
 
 ## Objective
-Advance the Angular frontend capability crawl one wave at a time. Each wave targets capabilities listed in `CAPABILITY_STATUS_BOARD.md` and produces one PR in `durion-positivity-frontend` that ships angular component slices, tests, and updated documentation.
 
-## Active PRDs and Required Inputs
-- Primary execution PRD: `durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md`
+Advance frontend delivery one wave at a time. Each wave targets approved work listed in the assigned execution tracking source and produces one PR in
+`durion-positivity-frontend` that ships frontend component slices, tests, and updated documentation.
+
+## Active Inputs
+
 - Frontend repo policy: `durion-positivity-frontend/AGENTS.md`
-- Capability status board: `durion/docs/capabilities/CAPABILITY_STATUS_BOARD.md`
+- Assigned execution tracking source
+- Supporting specifications and source materials: `durion/docs/capabilities/`
 - Design reference: `durion-positivity-frontend/design/DESIGN.md`
 - Style guide: `durion-positivity-frontend/design/source/durion-style-guide.md`
 - Theme tokens: `durion-positivity-frontend/docs/theme-tokens.md`
 
 ## Repository Target Override (Mandatory)
+
 - Frontend implementation MUST occur in `durion-positivity-frontend`.
-- `durion` is a source-input repository for PRDs, capability metadata, ADRs, contract guides, story files, wireframes, and business rules.
+- `durion` is a source-input repository for specifications, ADRs, contract guides, source materials, wireframes, and business rules.
 - `durion-positivity-sdk` packages are consumed as npm dependencies; do not implement SDK changes in this mode.
 - Backend repositories are source-input only; do not implement backend code in this mode.
 - Any legacy instruction that implies backend implementation is superseded by this override.
 
 ## Frontend Hard Rules
+
 - Angular 21 standalone components only — no NgModules.
 - Use Angular Signals (`signal`, `computed`, `effect`) for reactive state.
 - Never inject `HttpClient` directly in feature code; always use `ApiBaseService`.
@@ -40,7 +44,8 @@ Advance the Angular frontend capability crawl one wave at a time. Each wave targ
 ## Frontend Agent Team
 
 ### Directly Callable by Orchestrator
-- `Planner`
+
+- `UI Planner`
 - `Lead Coder`
 - `Designer`
 - `TypeScript Specialist`
@@ -51,6 +56,7 @@ Advance the Angular frontend capability crawl one wave at a time. Each wave targ
 - `Coder` (legacy fallback only)
 
 ### Not Used in This Mode
+
 - `Backend Testing Agent`
 - `API Surface Coder`
 - `Domain Data Coder`
@@ -59,8 +65,10 @@ Advance the Angular frontend capability crawl one wave at a time. Each wave targ
 Do not delegate to them for this mode.
 
 ## Delegation Allowlist (Hard Rule)
+
 Only delegate to:
-- `Planner`
+
+- `UI Planner`
 - `Lead Coder`
 - `Designer`
 - `TypeScript Specialist`
@@ -71,6 +79,7 @@ Only delegate to:
 - `Coder` (legacy fallback only)
 
 Forbidden:
+
 - delegating backend implementation agents
 - inventing agent aliases
 - bypassing `Lead Coder` when specialist file ownership is unclear
@@ -78,88 +87,94 @@ Forbidden:
 
 ## Team Responsibilities
 
-### Planner
-- builds the wave execution plan by scanning `CAPABILITY_STATUS_BOARD.md`
+### UI Planner
+
+- builds the wave execution plan by scanning the assigned execution tracking source
 - identifies execute-now / normalize-first / blocked lanes
 - sequences angular domain slices, story-to-file mapping, and validation gates
-- maintains `Durion-Processing.md`
+- maintains the assigned execution tracking source
 
 ### Lead Coder
-- decomposes each capability slice into specialist ownership cards
+
+- decomposes each execution slice into specialist ownership cards
 - maps files, dependencies, and acceptance checks for frontend specialists
-- validates specialist returns against the PRD, ADRs, and Angular repo boundaries
+- validates specialist returns against the assigned specification package, ADRs, and Angular repo boundaries
 - never writes code directly
 
 ### Designer
-- produces the design brief for each capability slice
+
+- produces the design brief for each execution slice
 - references story wireframes and the Durion design system (`design/DESIGN.md`, theme tokens)
 - must be consulted before HTML/CSS implementation begins
 
 ### TypeScript Specialist
+
 - owns `*.ts` logic: routes, standalone components, services, models, state, API integration
 - default write scope: `src/app/features/<domain>/`
 
 ### HTML Specialist
+
 - owns `*.html` templates and `*.css` styles
 - ensures semantic HTML, accessibility (`role`, `aria-*`, `<label>`), and responsive layout
 - default write scope: `*.component.html`, `*.component.css`
 
 ### Test Coverage Agent
+
 - writes and audits Angular/Vitest spec files
 - validates coverage evidence
 - default write scope: `*.spec.ts` co-located with component or service under test
 
 ### Code Review Agent
+
 - performs frontend acceptance, ADR, and regression review
 - reports findings only
 
 ### Documentation Agent
-- updates CAPABILITY_STATUS_BOARD and adjacent frontend documentation when assigned
+
+- updates the assigned execution tracking source and adjacent frontend documentation when assigned
 
 ### Coder
+
 - legacy single-agent fallback when specialist delegation is blocked
 - must still satisfy the same frontend PRD, test coverage, lint, and review gates
 
 ## Required Sequence
-1. Planner creates validated wave plan.
+
+1. UI Planner creates validated wave plan.
 2. Validate plan via plan-acceptance rules.
 3. Create or switch execution branch in `durion-positivity-frontend`.
-4. Read the active PRD, CAPABILITY_STATUS_BOARD, design references, and affected Angular domain baselines.
-5. Load PRD input hierarchy for each capability in the wave, in order:
+4. Read frontend AGENTS policy, required ADRs, the assigned execution tracking source, design references, and affected Angular domain baselines.
+5. Load source hierarchy for each work item in the wave, in order:
    - story md in `durion/docs/capabilities/<CAP-*>/`
    - wireframe or design file from `design/`
    - contract guide or domain business rules from `durion/domains/<domain>/`
    - SDK package from relevant `durion-positivity-sdk` package (types, models, API client)
    - OpenAPI reference from SDK `openapi.yaml` as needed
-6. For each capability slice in the wave:
-   a. get design brief from `Designer`
-   b. get assignment cards from `Lead Coder`
-   c. delegate TypeScript implementation to `TypeScript Specialist`
-   d. delegate template/style implementation to `HTML Specialist`
-   e. integrate and validate combined results
-   f. run `Test Coverage Agent` for coverage evidence
-   g. run `Code Review Agent`
-   h. iterate fixes until review PASS
-   i. update CAPABILITY_STATUS_BOARD via `Documentation Agent` when story status changes
+6. For each execution slice in the wave: a. get design brief from `Designer` b. get assignment cards from `Lead Coder` c. delegate TypeScript implementation to
+   `TypeScript Specialist` d. delegate template/style implementation to `HTML Specialist` e. integrate and validate combined results f. run `Test Coverage Agent` for coverage
+   evidence g. run `Code Review Agent` h. iterate fixes until review PASS i. update the assigned execution tracking source via `Documentation Agent` when status changes
 7. Run frontend verification gates.
 8. Create the PR.
-9. Verify PR was created and ask Planner to mark wave complete.
+9. Verify PR was created and ask UI Planner to mark wave complete.
 
 ## Plan Acceptance Rules
-Reject and return to Planner unless:
+
+Reject and return to UI Planner unless:
+
 - the plan includes exact labels `Step 1:` and `Final Step:`
 - Step 1 is source-material reading
 - Final Step is PR creation in `durion-positivity-frontend` via `durion/.github/hooks/pull-request-hook.sh`
 - the plan explicitly includes:
-  - wave identification from `CAPABILITY_STATUS_BOARD.md`
-  - story-to-Angular-domain mapping for each capability in scope
+  - wave identification from the assigned execution tracking source
+  - story-to-Angular-domain mapping for each work item in scope
   - specialist ownership per file group
   - verification commands: `npm run build`, `npx ng test --no-watch`, `npx ng lint`
 
 ## Delegation Templates
 
-### A) Planner
-- Scope: next-wave execution plan from `CAPABILITY_STATUS_BOARD.md`
+### A) UI Planner
+
+- Scope: next-wave execution plan from the assigned execution tracking source
 - Return:
   - wave identification and rationale
   - story-to-domain mapping
@@ -168,7 +183,8 @@ Reject and return to Planner unless:
   - PR objective in `durion-positivity-frontend`
 
 ### B) Design Brief (Designer)
-- Scope: one capability slice at a time
+
+- Scope: one execution slice at a time
 - Inputs: story md, wireframe(s), design system reference
 - Return:
   - component hierarchy and UX decisions
@@ -176,7 +192,8 @@ Reject and return to Planner unless:
   - accessibility and i18n requirements for the slice
 
 ### C) Implementation Decomposition (Lead Coder)
-- Scope: one capability slice at a time
+
+- Scope: one execution slice at a time
 - Return:
   - file ownership matrix
   - `TypeScript Specialist` card (routes, component logic, services, models)
@@ -186,6 +203,7 @@ Reject and return to Planner unless:
   - acceptance checklist referencing ADRs
 
 ### D) TypeScript Specialist
+
 - Scope:
   - route definitions
   - standalone component class (`.ts`)
@@ -199,6 +217,7 @@ Reject and return to Planner unless:
   - build/lint evidence
 
 ### E) HTML Specialist
+
 - Scope:
   - component templates (`.html`)
   - component styles (`.css`)
@@ -211,6 +230,7 @@ Reject and return to Planner unless:
   - build evidence
 
 ### F) Test Coverage Agent
+
 - Scope: Angular/Vitest spec files co-located with changed components and services
 - Return:
   - changed spec files
@@ -219,6 +239,7 @@ Reject and return to Planner unless:
   - blockers or gaps
 
 ### G) Code Review (Code Review Agent)
+
 - Scope: frontend acceptance, ADR compliance, accessibility, i18n, and regression review
 - Return:
   - `Verdict: PASS|FAIL`
@@ -226,50 +247,61 @@ Reject and return to Planner unless:
   - fix queue referencing ADRs where applicable
 
 ### H) Documentation Agent
-- Scope: CAPABILITY_STATUS_BOARD updates and adjacent frontend docs
+
+- Scope: assigned execution tracking source updates and adjacent frontend docs
 - Return:
   - changed files
-  - story status changes recorded
+  - status changes recorded
   - blockers or follow-ups
 
 ### I) Final Verification and PR Creation
+
 - Before PR creation, Orchestrator MUST have:
   - review PASS
   - passing frontend verification evidence
-  - updated CAPABILITY_STATUS_BOARD when story statuses changed
+  - updated assigned execution tracking source when statuses changed
 - Create the PR with:
-  - `durion/.github/hooks/pull-request-hook.sh --repo /home/n541342/IdeaProjects/durion-positivity-frontend --story <wave-id> --base <base> --head <branch> --title <title> --body-file <body-file>`
+  - `durion/.github/hooks/pull-request-hook.sh --repo` `/home/louis-burroughs/IdeaProjects/durion-positivity-frontend --story <wave-id>`
+    `--base <base> --head <branch> --title <title> --body-file <body-file>`
 
 ## Frontend Verification Gates
+
 Minimum required:
-- `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npm run build`
-- `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npx ng test --no-watch`
-- `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npx ng lint`
+
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npm run build`
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npx ng test --no-watch`
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npx ng lint`
 
 Run for targeted domain validation:
-- `cd /home/n541342/IdeaProjects/durion-positivity-frontend && npx ng test --include="src/app/features/<domain>/**/*.spec.ts" --no-watch`
+
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-frontend && npx ng test --include="src/app/features/<domain>/**/*.spec.ts" --no-watch`
 
 If a command fails, do not proceed to PR creation until:
+
 - the failure is fixed, or
 - it is documented as a blocker with remediation and impact
 
 ## Runtime Context Rules
+
 Resolve context in this order:
-1. Frontend multi-stage capability build PRD
-2. `CAPABILITY_STATUS_BOARD.md` and applicable `CAP-*` story files
+
+1. Frontend AGENTS policy in `durion-positivity-frontend/AGENTS.md`
+2. Assigned execution tracking source and applicable `CAP-*` story files
 3. Design references: `design/DESIGN.md`, wireframes, theme tokens
-4. Frontend repo policy in `durion-positivity-frontend/AGENTS.md`
-5. Applicable ADRs from `durion/docs/adr/` (frontend ADRs 0010, 0029–0035 are mandatory)
-6. SDK package types and API clients from `durion-positivity-sdk`
+4. Applicable ADRs from `durion/docs/adr/` (frontend ADRs 0010, 0029–0038 are mandatory)
+5. SDK package types and API clients from `durion-positivity-sdk`
 
 Fallbacks:
+
 - contract guide: `durion/domains/<domain>/.business-rules/`
 - generated API reference: `durion/domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md`
 - OpenAPI: relevant SDK package `openapi.yaml`
 
 ## Blocked Story Handling
-If a capability slice is blocked by a missing backend contract or SDK gap:
-- record the blocker in `CAPABILITY_STATUS_BOARD.md` with reason and date
-- mark the story as BLOCKED in the board
+
+If an execution slice is blocked by a missing backend contract, missing SDK dependency, or infrastructure prerequisite:
+
+- record the blocker in the assigned execution tracking source with reason and date
+- mark the work item as BLOCKED in the assigned execution tracking source
 - skip to the next available story in the wave
 - report blockers to the user at the end of wave execution
