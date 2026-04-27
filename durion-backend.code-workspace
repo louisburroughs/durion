@@ -20,6 +20,7 @@
 		},
 		"java.compile.nullAnalysis.mode": "automatic",
 		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
-		"java.configuration.updateBuildConfiguration": "automatic"
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"angular.enable-strict-mode-prompt": false
 	}
 }
