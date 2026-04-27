@@ -9,7 +9,7 @@
 			"name": "Durion"
 		},
 		{
-			"path": "../durion-positivity-sdk",
+			"path": "../durion-positivity-sdk-angular",
 			"name": "SDK"
 		}
 	],
