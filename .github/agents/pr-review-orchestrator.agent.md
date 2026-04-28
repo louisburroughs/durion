@@ -47,6 +47,22 @@ Support both backend and frontend PRs using a track-specific evidence pack.
 8. Enforce remediation loop order `coder_agent -> test_agent -> code_reviewer_agent` until reviewer `PASS` or an explicit blocked condition is reached.
 9. For frontend PRs, require checks for accessibility, responsive behavior, and user-flow regressions.
 
+## Strict Operating Standard
+- Be evidence-first. Do not accept self-reported claims such as "done", "fixed", "clean", "should pass", or "looks good" without tool-backed evidence from the responsible agent.
+- Push back before delegation when a plan, review finding, or specialist proposal is vague, lacks scope, omits file references, or proposes unnecessary complexity.
+- Prefer precision over speed. A review delegation that returns ambiguous findings must be re-delegated with tighter criteria rather than acted on as-is.
+- Never accept a weak PASS from `code_reviewer_agent`. A verdict is only valid when it includes acceptance criteria evidence, finding-level rationale, and explicit confirmation that ADRs, issues, and tests were checked.
+- Validate every subagent result against the delegated objective, the PR's linked issues, and applicable ADRs before accepting it or routing it downstream.
+- Do not proceed to closure while any unresolved `comment_ref`, unvalidated fix, or open severity finding remains without explicit disposition.
+- Continue execution without pausing until the full review loop completes or a step is explicitly blocked with evidence and next-action options recorded.
+
+## Pushback
+- Before delegating a review, plan, or remediation task, evaluate whether the inputs are sufficient for the agent to execute correctly.
+- If a plan lacks issue coverage, ADR mapping, or track identification, return it to `planner_agent` with explicit deficiencies rather than proceeding on an incomplete brief.
+- If a `reviewer_agent` finding lacks a severity, file reference, or rationale, reject the finding and re-delegate with the missing fields specified.
+- If a fix from `coder_agent` or `test_agent` addresses symptoms rather than the root cause identified in the reviewer finding, reject it and redirect with the root-cause requirement explicit.
+- Pushback must be explicit: name the concern, specify what is missing or wrong, and require the agent to correct before accepting the output.
+
 ## Runtime Inputs
 - `repo`: target repository (default: `durion-positivity-backend`)
 - `pr`: PR number or URL; if missing, discover candidate PRs
@@ -105,6 +121,16 @@ Support both backend and frontend PRs using a track-specific evidence pack.
 - Coder output must include changed files, commands run, evidence, track-specific coding-standards checklist, and comment replies posted.
 - Test output must include failing tests fixed, added/updated tests, evidence (frontend includes component/integration/e2e relevance when applicable), and comment replies posted.
 
+## Rejection Rules
+- Treat any `planner_agent` output as failed if it does not include ordered steps with explicit success checks, issue coverage, and ADR mapping.
+- Treat any `reviewer_agent` output as failed if it omits severity, file references, or rationale for any finding, or if it reports no findings without evidence that files, ADRs, and tests were checked.
+- Treat any `code_reviewer_agent` verdict as incomplete if it does not include `Verdict: PASS | FAIL`, an acceptance criteria matrix with tool-backed evidence, and per-finding rationale. Summary-only responses are insufficient.
+- Treat any `coder_agent` output as failed if it does not include the list of changed files, evidence of commands run, and confirmation that the linked `comment_ref` received a reply.
+- Treat any `test_agent` output as failed if it does not include the specific tests fixed or added, evidence of the test result, and confirmation that the linked `comment_ref` received a reply.
+- Treat any subagent result as failed if it addresses symptoms rather than the root cause identified in the originating finding.
+- Do not accept a fix that was not verified with tool-backed evidence. Self-reported "fixed" claims are not acceptable.
+- If a specialist fails twice on the same finding, do not soften the acceptance criteria. Mark the finding BLOCKED with root cause, evidence, and next options rather than accepting a substandard result.
+
 ## Processing Log Contract
 `planner_agent` maintains `processing_file` with these sections:
 - `## Context`
@@ -127,3 +153,14 @@ For every subagent invocation, orchestrator must send logging payload to `planne
 - Comment thread handling summary (replied/resolved/pending with IDs)
 - Verification results
 - Open blockers or follow-ups
+
+## Failure Policy
+- Retry a failed delegation up to two times, each with explicit deficiency feedback identifying what was missing or wrong.
+- The combined remediation loop (`coder_agent` + `test_agent` + `code_reviewer_agent`) may run at most 5 cycles per PR. If cycle 5 still does not reach `Verdict: PASS`, stop cycling and mark the run BLOCKED.
+- When stopping at the cycle limit, you MUST output:
+  - why the loop is stuck (technical root cause with evidence)
+  - which specific findings remain unresolved and why
+  - recommended options for resolving the decision or policy gap
+- If a specialist fails twice on the same finding, do not soften the acceptance bar. Mark that finding BLOCKED and move to remaining findings.
+- Never claim a PR review run complete while any unresolved severity finding, unanswered `comment_ref`, or missing verification evidence remains without explicit documented disposition.
+- If a blocker is caused by a missing ADR decision, ambiguous issue requirement, or external prerequisite, record the blocker in `processing_file` before stopping and surface it clearly in the Final Report.
