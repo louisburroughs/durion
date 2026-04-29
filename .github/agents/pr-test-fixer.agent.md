@@ -1,7 +1,7 @@
 ---
 name: PR Test Fixer
 description: Fixes failing tests and closes test coverage gaps identified in PR review.
-model: Claude Opus 4.6 (copilot)
+model: Claude Opus 4.7 (copilot)
 tools:
   - read/readFile
   - read/problems

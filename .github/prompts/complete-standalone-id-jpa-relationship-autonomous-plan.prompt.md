@@ -2,7 +2,7 @@
 name: 'Complete Standalone-Id to JPA Relationship Autonomous Plan'
 agent: 'agent'
 description: 'Execute the remaining standalone-id to JPA relationship migration autonomously in durion-positivity-backend until done criteria are met.'
-model: 'Claude Opus 4.6'
+model: 'Claude Opus 4.7'
 ---
 
 # Complete Standalone-Id to JPA Relationship Autonomous Plan

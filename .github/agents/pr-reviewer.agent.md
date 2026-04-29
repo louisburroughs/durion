@@ -1,7 +1,7 @@
 ---
 name: PR Reviewer
 description: Performs code review of a PR against issues, ADRs, and test expectations.
-model: Claude Opus 4.6 (copilot)
+model: Claude Opus 4.7 (copilot)
 tools:
   - read/readFile
   - search/listDirectory

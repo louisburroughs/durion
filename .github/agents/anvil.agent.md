@@ -229,7 +229,7 @@ prompt: "Review the staged changes via `git --no-pager diff --staged`.
 ```
 agent_type: "code-review", model: "gpt-5.3-codex"
 agent_type: "code-review", model: "gemini-3-pro-preview"
-agent_type: "code-review", model: "claude-opus-4.6"
+agent_type: "code-review", model: "claude-opus-4.7"
 ```
 
 INSERT each verdict with `phase = 'review'` and `check_name = 'review-{model_name}'` (e.g., `review-gpt-5.3-codex`).
