@@ -15,7 +15,7 @@
 	],
 	"settings": {
 		"terminal.integrated.scrollback": 2000,
-		"typescript.tsserver.maxTsServerMemory": 2048,
+		"js/ts.tsserver.maxTsServerMemory": 2048,
 		"files.exclude": {
 			"**/.angular/**": true,
 			"**/coverage/**": true,
