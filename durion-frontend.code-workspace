@@ -47,6 +47,7 @@
 			"**/target/**": true,
 			"**/*.hprof": true,
 			"**/*.log": true
-		}
+		},
+		"angular.enable-strict-mode-prompt": false
 	}
 }
