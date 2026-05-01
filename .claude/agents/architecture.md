@@ -160,7 +160,7 @@ return AgentResponse.builder()
 
 #### Domain Structure (from project.json)
 
-The Durion POS system is organized into these domains:
+The Durion Positivity system is organized into these domains:
 
 | Domain | Responsibility | Key Components | Primary Layer |
 |--------|----------------|----------------|---------------|

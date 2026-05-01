@@ -2,7 +2,7 @@
 
 ## Summary
 
-This document provides non-normative, verbose rationale and decision logs for the People domain within the Durion POS system. It supports auditors, architects, and engineers by documenting design choices around user lifecycle management, employee profiles, role assignments, location assignments, timekeeping, and cross-domain integration patterns. Each decision includes alternatives considered, architectural implications, and migration guidance.
+This document provides non-normative, verbose rationale and decision logs for the People domain within the Durion Positivity system. It supports auditors, architects, and engineers by documenting design choices around user lifecycle management, employee profiles, role assignments, location assignments, timekeeping, and cross-domain integration patterns. Each decision includes alternatives considered, architectural implications, and migration guidance.
 
 ## Completed items
 
@@ -52,10 +52,10 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Database schema:**
     ```sql
     CREATE TYPE user_status AS ENUM ('ACTIVE', 'DISABLED', 'TERMINATED');
-    
+
     ALTER TABLE "user" ADD COLUMN status user_status NOT NULL DEFAULT 'ACTIVE';
     ALTER TABLE person ADD COLUMN employment_status user_status NOT NULL DEFAULT 'ACTIVE';
-    
+
     CREATE INDEX idx_user_active ON "user"(id) WHERE status = 'ACTIVE';
     ```
   - **Authentication check:**
@@ -79,7 +79,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     WHERE u.status IN ('DISABLED', 'TERMINATED')
       AND al.attempted_at > u.status_updated_at
       AND al.outcome = 'SUCCESS'; -- should be zero
-    
+
     -- Find work assignments to disabled/terminated users after status change
     SELECT wa.id, wa.user_id, u.status, wa.assigned_at
     FROM work_assignment wa
@@ -181,7 +181,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Query example:**
     ```sql
     -- Find disabled users with active assignments (temporary inconsistency OK if recent)
-    SELECT u.id, u.status, u.status_updated_at, 
+    SELECT u.id, u.status, u.status_updated_at,
            COUNT(wa.id) as active_assignments,
            NOW() - u.status_updated_at as time_since_disable
     FROM "user" u
@@ -190,7 +190,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     GROUP BY u.id
     HAVING COUNT(wa.id) > 0
       AND NOW() - u.status_updated_at > INTERVAL '1 hour'; -- alert if inconsistent >1hr
-    
+
     -- DLQ entries for disable operations
     SELECT * FROM dead_letter_queue
     WHERE topic = 'user-disable-failures'
@@ -250,13 +250,13 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Database schema:**
     ```sql
     CREATE TYPE assignment_scope AS ENUM ('GLOBAL', 'LOCATION');
-    
+
     CREATE TABLE role (
       id UUID PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       allowed_scopes assignment_scope[] NOT NULL DEFAULT '{GLOBAL, LOCATION}'
     );
-    
+
     CREATE TABLE role_assignment (
       id UUID PRIMARY KEY,
       user_id UUID NOT NULL REFERENCES "user"(id),
@@ -268,35 +268,35 @@ This document provides non-normative, verbose rationale and decision logs for th
       CHECK (scope = 'LOCATION' IMPLIES location_id IS NOT NULL),
       CHECK (scope = 'GLOBAL' IMPLIES location_id IS NULL)
     );
-    
+
     CREATE INDEX idx_role_assignment_user ON role_assignment(user_id, effective_start_at, effective_end_at);
     ```
   - **Permission check logic:**
     ```java
     public boolean hasPermission(User user, String permission, Location location) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         List<RoleAssignment> assignments = roleAssignmentRepo.findActiveByUser(user, now);
-        
+
         for (RoleAssignment assignment : assignments) {
             Role role = assignment.getRole();
-            
+
             // Check if role grants the permission
             if (!role.getPermissions().contains(permission)) {
                 continue;
             }
-            
+
             // Check scope
             if (assignment.getScope() == Scope.GLOBAL) {
                 return true; // Global scope applies everywhere
             }
-            
-            if (assignment.getScope() == Scope.LOCATION 
+
+            if (assignment.getScope() == Scope.LOCATION
                 && assignment.getLocationId().equals(location.getId())) {
                 return true; // Location scope matches
             }
         }
-        
+
         return false; // No matching assignment
     }
     ```
@@ -313,12 +313,12 @@ This document provides non-normative, verbose rationale and decision logs for th
     SELECT id, user_id, role_id, scope, location_id
     FROM role_assignment
     WHERE scope = 'LOCATION' AND location_id IS NULL;
-    
+
     -- Find GLOBAL-scoped assignments with location reference (invalid)
     SELECT id, user_id, role_id, scope, location_id
     FROM role_assignment
     WHERE scope = 'GLOBAL' AND location_id IS NOT NULL;
-    
+
     -- Find assignments with scope not allowed by role
     SELECT ra.id, ra.user_id, r.name, ra.scope, r.allowed_scopes
     FROM role_assignment ra
@@ -338,7 +338,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     ```sql
     -- Default existing assignments to GLOBAL (conservative)
     UPDATE role_assignment SET scope = 'GLOBAL' WHERE scope IS NULL;
-    
+
     -- Update roles to allow both scopes by default
     UPDATE role SET allowed_scopes = '{GLOBAL, LOCATION}' WHERE allowed_scopes IS NULL;
     ```
@@ -388,7 +388,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       effective_end_at TIMESTAMPTZ,
       CHECK (effective_end_at IS NULL OR effective_end_at > effective_start_at)
     );
-    
+
     -- Unique constraint: only one primary assignment per person at a time
     CREATE UNIQUE INDEX idx_person_location_primary
     ON person_location_assignment(person_id, "primary")
@@ -402,13 +402,13 @@ This document provides non-normative, verbose rationale and decision logs for th
             // Demote existing primary
             assignmentRepo.updatePrimary(req.getPersonId(), false);
         }
-        
+
         PersonLocationAssignment assignment = new PersonLocationAssignment();
         assignment.setPersonId(req.getPersonId());
         assignment.setLocationId(req.getLocationId());
         assignment.setPrimary(req.isPrimary());
         assignment.setEffectiveStartAt(req.getEffectiveStartAt());
-        
+
         return assignmentRepo.save(assignment);
     }
     ```
@@ -446,7 +446,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     WHERE effective_end_at IS NULL
     GROUP BY person_id
     HAVING COUNT(*) > 1;
-    
+
     -- Manually review and keep most recent or most relevant as primary
     ```
   - **Communication:**
@@ -495,7 +495,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       approval_status VARCHAR(50) DEFAULT 'PENDING_APPROVAL',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    
+
     CREATE UNIQUE INDEX idx_timekeeping_source_key
     ON timekeeping_entry(work_session_id);
     ```
@@ -511,7 +511,7 @@ This document provides non-normative, verbose rationale and decision logs for th
             entry.setClockOutAt(event.getEndTime());
             entry.setLocationId(event.getLocationId());
             entry.setWorkOrderId(event.getWorkOrderId());
-            
+
             timekeepingRepo.save(entry);
             log.info("Ingested timekeeping entry for session {}", event.getWorkSessionId());
         } catch (DataIntegrityViolationException e) {
@@ -536,7 +536,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     FROM timekeeping_entry
     GROUP BY work_session_id
     HAVING COUNT(*) > 1;
-    
+
     -- Verify all work sessions have corresponding timekeeping entries
     SELECT ws.id, ws.mechanic_id, ws.ended_at
     FROM work_session ws
@@ -612,7 +612,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       entry_count INTEGER NOT NULL, -- snapshot of entries affected
       -- No unique constraint; allows multiple approval cycles
     );
-    
+
     CREATE INDEX idx_time_period_approval_period_employee
     ON time_period_approval(time_period_id, employee_id, approved_at DESC);
     ```
@@ -622,17 +622,17 @@ This document provides non-normative, verbose rationale and decision logs for th
     public TimePeriodApproval approveTimeEntries(UUID timePeriodId, UUID employeeId, UUID approverId) {
         // Find all pending entries for period-employee
         List<TimeEntry> entries = timeEntryRepo.findByPeriodAndEmployee(timePeriodId, employeeId);
-        
+
         if (entries.isEmpty()) {
             throw new ValidationException("No pending entries to approve");
         }
-        
+
         // Update entry statuses
         for (TimeEntry entry : entries) {
             entry.setStatus(TimeEntryStatus.APPROVED);
         }
         timeEntryRepo.saveAll(entries);
-        
+
         // Create approval record
         TimePeriodApproval approval = new TimePeriodApproval();
         approval.setTimePeriodId(timePeriodId);
@@ -640,7 +640,7 @@ This document provides non-normative, verbose rationale and decision logs for th
         approval.setApprovedBy(approverId);
         approval.setOutcome(ApprovalOutcome.APPROVED);
         approval.setEntryCount(entries.size());
-        
+
         return approvalRepo.save(approval);
     }
     ```
@@ -655,16 +655,16 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Query example:**
     ```sql
     -- Find approval records and verify entry counts match
-    SELECT tpa.id, tpa.time_period_id, tpa.employee_id, 
+    SELECT tpa.id, tpa.time_period_id, tpa.employee_id,
            tpa.entry_count, COUNT(te.id) as actual_entry_count
     FROM time_period_approval tpa
-    LEFT JOIN time_entry te ON 
+    LEFT JOIN time_entry te ON
       te.time_period_id = tpa.time_period_id
       AND te.employee_id = tpa.employee_id
       AND te.approved_at BETWEEN tpa.approved_at - INTERVAL '1 second' AND tpa.approved_at + INTERVAL '1 second'
     GROUP BY tpa.id
     HAVING tpa.entry_count != COUNT(te.id);
-    
+
     -- Find time entries without corresponding approval record
     SELECT te.id, te.time_period_id, te.employee_id, te.status
     FROM time_entry te
@@ -689,7 +689,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     ```sql
     -- Create synthetic approval records for historical approvals
     INSERT INTO time_period_approval (id, time_period_id, employee_id, approved_by, approved_at, outcome, entry_count, comments)
-    SELECT 
+    SELECT
       gen_random_uuid(),
       te.time_period_id,
       te.employee_id,
@@ -742,7 +742,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Database schema:**
     ```sql
     CREATE TYPE break_type AS ENUM ('MEAL', 'REST', 'OTHER');
-    
+
     CREATE TABLE break (
       id UUID PRIMARY KEY,
       person_id UUID NOT NULL REFERENCES person(id),
@@ -752,7 +752,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       auto_ended BOOLEAN DEFAULT false,
       location_id UUID REFERENCES location(id)
     );
-    
+
     CREATE INDEX idx_break_person_date ON break(person_id, started_at DESC);
     ```
   - **Auto-end logic:**
@@ -760,13 +760,13 @@ This document provides non-normative, verbose rationale and decision logs for th
     // When shift ends, auto-close any open breaks
     public void endShift(UUID personId, LocalDateTime shiftEndTime) {
         List<Break> openBreaks = breakRepo.findOpenByPerson(personId);
-        
+
         for (Break brk : openBreaks) {
             brk.setEndedAt(shiftEndTime);
             brk.setAutoEnded(true);
             log.warn("Auto-ended break {} for person {} at shift end", brk.getId(), personId);
         }
-        
+
         breakRepo.saveAll(openBreaks);
     }
     ```
@@ -786,7 +786,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     WHERE ended_at IS NOT NULL
       AND started_at >= '2026-01-01'
     GROUP BY break_type;
-    
+
     -- Find auto-ended breaks (potential data quality issue)
     SELECT id, person_id, break_type, started_at, ended_at, auto_ended
     FROM break
@@ -859,7 +859,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       "field": "employeeNumber",
       "existingEmployeeId": "per-67890"
     }
-    
+
     // 200 OK with warnings - non-blocking
     {
       "id": "per-67890",
@@ -886,12 +886,12 @@ This document provides non-normative, verbose rationale and decision logs for th
     async function saveEmployeeProfile(profile) {
       try {
         const response = await api.post('/employee-profiles', profile);
-        
+
         if (response.warnings && response.warnings.length > 0) {
           // Show warnings banner but allow save
           showWarningsBanner(response.warnings);
         }
-        
+
         showSuccess('Employee profile saved');
         navigate(`/employees/${response.id}`);
       } catch (error) {
@@ -914,7 +914,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     WHERE employee_number IS NOT NULL
     GROUP BY employee_number
     HAVING COUNT(*) > 1;
-    
+
     -- Find profiles with warnings (for data quality review)
     SELECT id, employee_number, hire_date, emergency_contact
     FROM person
@@ -936,7 +936,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       - duplicate_employee_number
       - invalid_hire_date (past termination date)
       - invalid_status_transition
-    
+
     warnings:
       - missing_emergency_contact
       - missing_secondary_phone
@@ -989,7 +989,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       home_location_id UUID,
       last_synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    
+
     CREATE TABLE mechanic_skill (
       mechanic_id UUID NOT NULL REFERENCES mechanic(id),
       skill_id UUID NOT NULL,
@@ -997,7 +997,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       level INTEGER,
       PRIMARY KEY (mechanic_id, skill_id)
     );
-    
+
     CREATE INDEX idx_mechanic_status ON mechanic(status);
     CREATE INDEX idx_mechanic_location ON mechanic(home_location_id);
     ```
@@ -1015,7 +1015,7 @@ This document provides non-normative, verbose rationale and decision logs for th
         {"skillId": "skill-001", "name": "Engine Repair", "level": 3}
       ]
     }
-    
+
     // person.updated event (similar schema)
     // person.terminated event (status change)
     ```
@@ -1030,9 +1030,9 @@ This document provides non-normative, verbose rationale and decision logs for th
         mechanic.setStatus(event.getStatus());
         mechanic.setHomeLocationId(event.getHomeLocationId());
         mechanic.setLastSyncedAt(LocalDateTime.now());
-        
+
         mechanicRepo.save(mechanic);
-        
+
         // Sync skills
         event.getSkills().forEach(skill -> {
             MechanicSkill ms = new MechanicSkill();
@@ -1054,10 +1054,10 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Query example:**
     ```sql
     -- Compare mechanic roster count to People active employee count
-    SELECT 
+    SELECT
       (SELECT COUNT(*) FROM mechanic WHERE status = 'ACTIVE') as roster_count,
       (SELECT COUNT(*) FROM person WHERE employment_status = 'ACTIVE') as people_count;
-    
+
     -- Find stale mechanic records (not synced recently)
     SELECT id, name, status, last_synced_at,
            NOW() - last_synced_at as sync_age
@@ -1127,25 +1127,25 @@ This document provides non-normative, verbose rationale and decision logs for th
         if (!isManagerOf(approverId, employeeId)) {
             throw new ForbiddenException("You can only approve time for your direct reports");
         }
-        
+
         // ... approval logic
     }
-    
+
     private boolean isManagerOf(UUID managerId, UUID employeeId) {
         // Check if manager has authority over employee (location-based or hierarchical)
         PersonLocationAssignment managerAssignment = assignmentRepo.findPrimaryByPerson(managerId);
         PersonLocationAssignment employeeAssignment = assignmentRepo.findPrimaryByPerson(employeeId);
-        
+
         return managerAssignment.getLocationId().equals(employeeAssignment.getLocationId());
     }
     ```
   - **Frontend permission check:**
     ```typescript
     const userPermissions = inject('userPermissions');
-    const canApproveTime = computed(() => 
+    const canApproveTime = computed(() =>
       userPermissions.value.includes('TIME_APPROVE')
     );
-    
+
     <button v-if="canApproveTime && isMyDirectReport(employee)" @click="approveTime">
       Approve Time
     </button>
@@ -1165,19 +1165,19 @@ This document provides non-normative, verbose rationale and decision logs for th
     -- Find approvals by users without TIME_APPROVE permission
     SELECT tpa.id, tpa.approved_by, tpa.employee_id, tpa.approved_at
     FROM time_period_approval tpa
-    LEFT JOIN user_permission_history uph ON 
+    LEFT JOIN user_permission_history uph ON
       uph.user_id = tpa.approved_by
       AND uph.permission = 'TIME_APPROVE'
       AND uph.effective_from <= tpa.approved_at
       AND (uph.effective_to IS NULL OR uph.effective_to >= tpa.approved_at)
     WHERE uph.id IS NULL;
-    
+
     -- Find approvals where manager has no authority over employee
     SELECT tpa.id, tpa.approved_by, tpa.employee_id, tpa.approved_at
     FROM time_period_approval tpa
-    LEFT JOIN person_location_assignment mgr_asg ON 
+    LEFT JOIN person_location_assignment mgr_asg ON
       mgr_asg.person_id = tpa.approved_by AND mgr_asg."primary" = true
-    LEFT JOIN person_location_assignment emp_asg ON 
+    LEFT JOIN person_location_assignment emp_asg ON
       emp_asg.person_id = tpa.employee_id AND emp_asg."primary" = true
     WHERE mgr_asg.location_id != emp_asg.location_id;
     ```

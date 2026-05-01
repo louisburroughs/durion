@@ -2,8 +2,8 @@
 
 ## Summary
 
-This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export.
-It is authoritative for permission gating, guardrails, and capability contracts; rationale and auditor narrative live in `DOMAIN_NOTES.md`.
+This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export. It is authoritative for permission gating, guardrails, and
+capability contracts; rationale and auditor narrative live in `DOMAIN_NOTES.md`.
 
 ## Completed items
 
@@ -13,7 +13,7 @@ It is authoritative for permission gating, guardrails, and capability contracts;
 
 ## Purpose
 
-Provide a cross-cutting, immutable and searchable audit trail for operational and compliance-relevant changes across the Durion POS system.
+Provide a cross-cutting, immutable and searchable audit trail for operational and compliance-relevant changes across the Durion Positivity system.
 
 The audit service is the **system of record** for audit entries (storage, query, export, retention). Source domains remain authoritative for operational state.
 
@@ -25,37 +25,37 @@ This document is **normative** (direct agent input, CI validation, story executi
 
 ## Decision Index (Authoritative)
 
-| Decision ID | Title |
-|---|---|
-| **AUD-SEC-001** | Organization Isolation and Scoping Rules |
-| **AUD-SEC-002** | Location Scoping and Cross-Location Permission Model |
-| **AUD-SEC-003** | Authorization Model (Roles → Permission Strings) |
-| **AUD-SEC-004** | Raw Payload Handling, Redaction, and Safe Rendering |
+| Decision ID     | Title                                                                    |
+| --------------- | ------------------------------------------------------------------------ |
+| **AUD-SEC-001** | Organization Isolation and Scoping Rules                                 |
+| **AUD-SEC-002** | Location Scoping and Cross-Location Permission Model                     |
+| **AUD-SEC-003** | Authorization Model (Roles → Permission Strings)                         |
+| **AUD-SEC-004** | Raw Payload Handling, Redaction, and Safe Rendering                      |
 | **AUD-SEC-005** | Query Guardrails (Mandatory Date Range, Indexed Filter Rule, Max Window) |
-| **AUD-SEC-006** | Export Security Model (Async Jobs, Access, Auditing, Digest Manifest) |
-| **AUD-SEC-007** | Identifier Semantics for Search (Product ID vs SKU vs Part Number) |
-| **AUD-SEC-008** | Pricing Evidence Access (Snapshot/Trace), Size Limits, and Pagination |
-| **AUD-SEC-009** | Immutability Proof Fields (Hash Chain / Signature): Display-Only Policy |
-| **AUD-SEC-010** | Event Type Vocabulary and Discovery Endpoint |
-| **AUD-SEC-011** | Deep-Link Metadata Policy (No Hardcoded URLs; Authorization-Safe) |
-| **AUD-SEC-012** | Correlation and Trace Context Standard |
+| **AUD-SEC-006** | Export Security Model (Async Jobs, Access, Auditing, Digest Manifest)    |
+| **AUD-SEC-007** | Identifier Semantics for Search (Product ID vs SKU vs Part Number)       |
+| **AUD-SEC-008** | Pricing Evidence Access (Snapshot/Trace), Size Limits, and Pagination    |
+| **AUD-SEC-009** | Immutability Proof Fields (Hash Chain / Signature): Display-Only Policy  |
+| **AUD-SEC-010** | Event Type Vocabulary and Discovery Endpoint                             |
+| **AUD-SEC-011** | Deep-Link Metadata Policy (No Hardcoded URLs; Authorization-Safe)        |
+| **AUD-SEC-012** | Correlation and Trace Context Standard                                   |
 
 ## Mapping: Decisions → Notes
 
-| Decision ID | One-line summary | Link to notes |
-| --- | --- | --- |
-| AUD-SEC-001 | Enforce organization isolation for all reads/writes | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-001---organization-isolation-and-scoping-rules) |
-| AUD-SEC-002 | Require and enforce location scoping; gated cross-location | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-002---location-scoping-and-cross-location-permission-model) |
-| AUD-SEC-003 | Least-privilege permissions and role guidance | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-003---authorization-model-roles-%E2%86%92-permission-strings) |
-| AUD-SEC-004 | Restrict, redact, and safely render raw payloads | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-004---raw-payload-handling-redaction-and-safe-rendering) |
-| AUD-SEC-005 | Guardrails: date range required, indexed filters, max window | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-005---query-guardrails) |
-| AUD-SEC-006 | Async export jobs with auditing + digest manifest | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-006---export-security-model) |
-| AUD-SEC-007 | Support multiple identifier semantics; backend normalization | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-007---identifier-semantics-for-search) |
-| AUD-SEC-008 | Pricing evidence access with size limits and pagination | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-008---pricing-evidence-access-size-limits-pagination) |
-| AUD-SEC-009 | Proof fields display-only unless verification is explicit | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-009---immutability-proof-fields-hash-chain--signature) |
-| AUD-SEC-010 | Controlled eventType vocabulary via discovery endpoint | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-010---event-type-vocabulary) |
-| AUD-SEC-011 | Deep-link metadata only; no hardcoded URLs | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-011---deep-link-metadata-policy) |
-| AUD-SEC-012 | Use W3C Trace Context for correlation | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-012---correlation-and-trace-context-standard) |
+| Decision ID | One-line summary                                             | Link to notes                                                                                                    |
+| ----------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| AUD-SEC-001 | Enforce organization isolation for all reads/writes          | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-001---organization-isolation-and-scoping-rules)               |
+| AUD-SEC-002 | Require and enforce location scoping; gated cross-location   | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-002---location-scoping-and-cross-location-permission-model)   |
+| AUD-SEC-003 | Least-privilege permissions and role guidance                | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-003---authorization-model-roles-%E2%86%92-permission-strings) |
+| AUD-SEC-004 | Restrict, redact, and safely render raw payloads             | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-004---raw-payload-handling-redaction-and-safe-rendering)      |
+| AUD-SEC-005 | Guardrails: date range required, indexed filters, max window | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-005---query-guardrails)                                       |
+| AUD-SEC-006 | Async export jobs with auditing + digest manifest            | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-006---export-security-model)                                  |
+| AUD-SEC-007 | Support multiple identifier semantics; backend normalization | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-007---identifier-semantics-for-search)                        |
+| AUD-SEC-008 | Pricing evidence access with size limits and pagination      | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-008---pricing-evidence-access-size-limits-pagination)         |
+| AUD-SEC-009 | Proof fields display-only unless verification is explicit    | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-009---immutability-proof-fields-hash-chain--signature)        |
+| AUD-SEC-010 | Controlled eventType vocabulary via discovery endpoint       | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-010---event-type-vocabulary)                                  |
+| AUD-SEC-011 | Deep-link metadata only; no hardcoded URLs                   | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-011---deep-link-metadata-policy)                              |
+| AUD-SEC-012 | Use W3C Trace Context for correlation                        | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-aud-sec-012---correlation-and-trace-context-standard)                 |
 
 ---
 
@@ -283,8 +283,7 @@ Export formats:
 - Detail: `GET /audit/logs/detail?eventId=...`
 - Export: `POST /audit/export/request`, `GET /audit/export/status`, `GET /audit/export/download`
 - Meta: `GET /audit/meta/eventTypes`, `GET /audit/meta/reasonCodes`, `GET /audit/meta/locations` (if UI uses dropdowns)
-- Pricing evidence: `GET /audit/pricing/snapshot`, `GET /audit/pricing/trace`
-Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
+- Pricing evidence: `GET /audit/pricing/snapshot`, `GET /audit/pricing/trace` Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
 
 #### 2) Query guardrails and date range policy (blocking)
 
@@ -294,7 +293,8 @@ Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
 
 **Question:** Does backend enforce a maximum date range window per query (e.g., max 90 days), and should UI enforce the same?
 
-**Response:** Yes. Backend enforces max window **90 days** per query by default; organization policy may lower but not raise without governance approval. UI enforces same for UX. (AUD-SEC-005)
+**Response:** Yes. Backend enforces max window **90 days** per query by default; organization policy may lower but not raise without governance approval. UI enforces same for
+UX. (AUD-SEC-005)
 
 **Question:** Is timezone interpretation for date filters defined (user locale vs UTC input)? **CLARIFY** canonical behavior.
 
@@ -304,17 +304,20 @@ Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
 
 **Question:** Product identifier for search: `productId`, SKU, part number, or multiple? What is the user-facing identifier in POS?
 
-**Response:** Support multiple identifiers. Canonical internal key is `productId` (UUIDv7). UI also supports `sku` and `partNumber` as user-facing search fields; backend normalizes and indexes all three where available. (AUD-SEC-007)
+**Response:** Support multiple identifiers. Canonical internal key is `productId` (UUIDv7). UI also supports `sku` and `partNumber` as user-facing search fields; backend
+normalizes and indexes all three where available. (AUD-SEC-007)
 
 **Question:** Canonical IDs for movement/workorder/product/location/user: what are they and are they always present on `AuditLog` or only via reference entities/indexes?
 
-**Response:** Canonical IDs are UUIDv7 and should be denormalized onto `AuditLog` when applicable (e.g., `workorderId`, `movementId`, `productId`, `locationId`, `actorId`) to enable indexed search and avoid payload parsing. (AUD-SEC-007, AUD-SEC-002)
+**Response:** Canonical IDs are UUIDv7 and should be denormalized onto `AuditLog` when applicable (e.g., `workorderId`, `movementId`, `productId`, `locationId`, `actorId`) to
+enable indexed search and avoid payload parsing. (AUD-SEC-007, AUD-SEC-002)
 
 #### 4) Location scoping and multi-location behavior (blocking)
 
 **Question:** Is `locationId` implicitly derived from current POS location context, or must it be selectable as a filter?
 
-**Response:** Default is implicit location context, but `locationId` is still a required stored field. Search requires explicit location filter when cross-location permission is used; otherwise backend implicitly scopes to session location. (AUD-SEC-002)
+**Response:** Default is implicit location context, but `locationId` is still a required stored field. Search requires explicit location filter when cross-location permission
+is used; otherwise backend implicitly scopes to session location. (AUD-SEC-002)
 
 **Question:** Can auditors search across locations? If yes, what permission gates cross-location queries?
 
@@ -332,44 +335,51 @@ Security constraints and guardrails are mandatory (AUD-SEC-001..006, 008, 010).
 
 - Shop Manager: search/detail (no export by default)
 - Compliance Auditor: search/detail/export/pricing evidence
-- Support/Operations: search/detail; raw payload only if explicitly granted
-Export and pricing evidence are separately permissioned. (AUD-SEC-003)
+- Support/Operations: search/detail; raw payload only if explicitly granted Export and pricing evidence are separately permissioned. (AUD-SEC-003)
 
 **Question:** Provide role names used in Moqui security groups and/or permission strings to check in Moqui screens/services.
 
-**Response:** Permission strings are authoritative in this guide (AUD-SEC-003). Moqui groups should map to them (e.g., `SEC_AUDIT_VIEW`, `SEC_AUDIT_EXPORT`, `SEC_AUDIT_PAYLOAD_VIEW`, `SEC_AUDIT_CROSS_LOCATION`, `SEC_AUDIT_PRICING_EVIDENCE`).
+**Response:** Permission strings are authoritative in this guide (AUD-SEC-003). Moqui groups should map to them (e.g., `SEC_AUDIT_VIEW`, `SEC_AUDIT_EXPORT`,
+`SEC_AUDIT_PAYLOAD_VIEW`, `SEC_AUDIT_CROSS_LOCATION`, `SEC_AUDIT_PRICING_EVIDENCE`).
 
 **Question:** Is field-level redaction required for `payloadJson` / `rawPayload` / `quoteContext` / trace `inputs/outputs`?
 
-**Response:** Yes. Backend must support redaction or restricted-field markings; UI must render what backend returns and must not infer/redact. Raw payload is behind permission and safe-rendered as escaped text. (AUD-SEC-004)
+**Response:** Yes. Backend must support redaction or restricted-field markings; UI must render what backend returns and must not infer/redact. Raw payload is behind permission
+and safe-rendered as escaped text. (AUD-SEC-004)
 
 #### 6) Navigation and integration points (needs clarification)
 
 **Question:** Where should “Audit Logs” live in POS navigation (menu structure)?
 
-**Response:** Place under an “Administration / Compliance” section with role-based visibility. Add contextual entry points from Work Order, Appointment, Mechanic, Movement, and Estimate Line when the user has `audit:log:view`. (AUD-SEC-011, AUD-SEC-003)
+**Response:** Place under an “Administration / Compliance” section with role-based visibility. Add contextual entry points from Work Order, Appointment, Mechanic, Movement,
+and Estimate Line when the user has `audit:log:view`. (AUD-SEC-011, AUD-SEC-003)
 
 **Question:** Should there be contextual links from Work Order / Appointment / Mechanic / Movement screens?
 
 **Response:** Yes, contextual links are permitted but must pass only identifiers; destination enforces authorization. (AUD-SEC-011)
 
-**Question:** Workexec integration: which exact Workexec screen/component should add “View Pricing Trace”, and what parameter name holds the snapshot reference (`snapshotId` exactly)?
+**Question:** Workexec integration: which exact Workexec screen/component should add “View Pricing Trace”, and what parameter name holds the snapshot reference (`snapshotId`
+exactly)?
 
-**Response:** The integration must pass `snapshotId` exactly. It should appear on estimate line detail and invoice/estimate review screens wherever pricing evidence is referenced. (AUD-SEC-008)
+**Response:** The integration must pass `snapshotId` exactly. It should appear on estimate line detail and invoice/estimate review screens wherever pricing evidence is
+referenced. (AUD-SEC-008)
 
 **Question:** If drilldown links navigate to Movement/Workorder/Product/Location/User detail screens, what are the route/screen names?
 
-**Response:** Do not hardcode URLs in audit records. Store structured link metadata (`targetDomain/targetType/targetId`) and resolve to routes in the frontend router per domain. (AUD-SEC-011)
+**Response:** Do not hardcode URLs in audit records. Store structured link metadata (`targetDomain/targetType/targetId`) and resolve to routes in the frontend router per
+domain. (AUD-SEC-011)
 
 #### 7) Pricing rule trace format and size (blocking)
 
 **Question:** For `evaluationSteps`, what fields are guaranteed and what is the maximum expected size?
 
-**Response:** Guaranteed fields: `ruleId`, `status`, and a stable step index; `inputs/outputs` are optional and may be redacted. Maximum: backend supports up to **10,000 steps** but must provide pagination/truncation indicators beyond **1,000 steps** to protect UI and APIs. (AUD-SEC-008)
+**Response:** Guaranteed fields: `ruleId`, `status`, and a stable step index; `inputs/outputs` are optional and may be redacted. Maximum: backend supports up to **10,000
+steps** but must provide pagination/truncation indicators beyond **1,000 steps** to protect UI and APIs. (AUD-SEC-008)
 
 **Question:** Should UI provide step filtering (applied-only) or is full list always required?
 
-**Response:** UI should support filtering (applied-only, rejected-only) client-side when steps are loaded; backend may optionally support server-side filtering for large traces. (AUD-SEC-008)
+**Response:** UI should support filtering (applied-only, rejected-only) client-side when steps are loaded; backend may optionally support server-side filtering for large
+traces. (AUD-SEC-008)
 
 **Question:** If traces can be large, is server-side pagination or truncation supported/required? **TODO** define contract.
 
@@ -387,7 +397,8 @@ Export and pricing evidence are separately permissioned. (AUD-SEC-003)
 
 **Question:** Whether trace is embedded in snapshot response or retrieved separately; if separate, define caching/ETag behavior.
 
-**Response:** Retrieve separately by default (`snapshot` includes `ruleTraceId`). Allow embedding only for small traces. Use ETag caching on both endpoints where feasible; do not cache restricted fields across users without permission parity. (AUD-SEC-008, AUD-SEC-004)
+**Response:** Retrieve separately by default (`snapshot` includes `ruleTraceId`). Allow embedding only for small traces. Use ETag caching on both endpoints where feasible; do
+not cache restricted fields across users without permission parity. (AUD-SEC-008, AUD-SEC-004)
 
 **Question:** CLARIFY sync vs async job model for export.
 

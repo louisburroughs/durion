@@ -2,7 +2,9 @@
 
 ## Summary
 
-This document provides non-normative, verbose rationale and decision logs for the Order domain within the Durion POS system, focusing primarily on order cancellation orchestration. It supports auditors, architects, and engineers by documenting design choices, alternatives considered, architectural implications, and migration notes for key decisions referenced in the normative AGENT_GUIDE.md.
+This document provides non-normative, verbose rationale and decision logs for the Order domain within the Durion Positivity system, focusing primarily on order cancellation
+orchestration. It supports auditors, architects, and engineers by documenting design choices, alternatives considered, architectural implications, and migration notes for key
+decisions referenced in the normative AGENT_GUIDE.md.
 
 ## Completed items
 
@@ -15,10 +17,12 @@ This document provides non-normative, verbose rationale and decision logs for th
 ## Decision details
 
 <a id="decision-order-001---order-domain-as-cancellation-orchestrator"></a>
+
 ### DECISION-ORDER-001 — Order Domain as Cancellation Orchestrator
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-001)
-- **Decision:** The Order domain is the authoritative orchestrator for order cancellation logic. It owns the cancellation policy (what can/cannot be cancelled), coordinates downstream systems (Payment, Work Execution), manages the order state machine transitions, and creates immutable audit records for every cancellation attempt.
+- **Decision:** The Order domain is the authoritative orchestrator for order cancellation logic. It owns the cancellation policy (what can/cannot be cancelled), coordinates
+  downstream systems (Payment, Work Execution), manages the order state machine transitions, and creates immutable audit records for every cancellation attempt.
 - **Alternatives considered:**
   - **Option A (Chosen):** Order domain orchestrates cancellation
     - Pros: Single source of truth for order lifecycle, clear ownership of cancellation policy, simplified audit trail, consistent state management
@@ -96,10 +100,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Escalation:** Product team approval required for policy changes (e.g., adding new blocking conditions)
 
 <a id="decision-order-002---work-status-blocking-rules-for-cancellation"></a>
+
 ### DECISION-ORDER-002 — Work Status Blocking Rules for Cancellation
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-002)
-- **Decision:** Order cancellation is blocked when associated work is in states: `IN_PROGRESS`, `LABOR_STARTED`, `PARTS_ISSUED`, `MATERIALS_CONSUMED`, `COMPLETED`, `CLOSED`. These states indicate irreversible or completed work that cannot be rolled back without operational disruption or inventory complications.
+- **Decision:** Order cancellation is blocked when associated work is in states: `IN_PROGRESS`, `LABOR_STARTED`, `PARTS_ISSUED`, `MATERIALS_CONSUMED`, `COMPLETED`, `CLOSED`.
+  These states indicate irreversible or completed work that cannot be rolled back without operational disruption or inventory complications.
 - **Alternatives considered:**
   - **Option A (Chosen):** Block cancellation for irreversible work states
     - Pros: Prevents operational chaos, protects inventory integrity, clear policy
@@ -186,10 +192,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Monitoring:** Alert on high rate of cancellation blocks (may indicate UX issue)
 
 <a id="decision-order-003---payment-settlement-handling-in-cancellation"></a>
+
 ### DECISION-ORDER-003 — Payment Settlement Handling in Cancellation
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-003)
-- **Decision:** Order cancellation proceeds regardless of payment settlement state. For authorized/captured but unsettled payments, the system attempts automatic void. For settled payments, the order transitions to `CANCELLED_REQUIRES_REFUND` state and requires manual refund processing. No automatic refund execution is performed.
+- **Decision:** Order cancellation proceeds regardless of payment settlement state. For authorized/captured but unsettled payments, the system attempts automatic void. For
+  settled payments, the order transitions to `CANCELLED_REQUIRES_REFUND` state and requires manual refund processing. No automatic refund execution is performed.
 - **Alternatives considered:**
   - **Option A (Chosen):** Void unsettled, require manual refund for settled
     - Pros: Safe (no risk of double refund), clear manual approval gate, simple implementation
@@ -280,10 +288,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Future enhancement:** Consider semi-automatic refund with approval workflow (phase 2)
 
 <a id="decision-order-004---cancellation-audit-record-immutability"></a>
+
 ### DECISION-ORDER-004 — Cancellation Audit Record Immutability
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-004)
-- **Decision:** Every cancellation attempt creates an immutable `CancellationRecord` that captures user identity, timestamp, reason, comments, downstream action outcomes (work rollback status, payment void status), and correlation IDs. Records are never updated or deleted; retries or corrections create new records.
+- **Decision:** Every cancellation attempt creates an immutable `CancellationRecord` that captures user identity, timestamp, reason, comments, downstream action outcomes (work
+  rollback status, payment void status), and correlation IDs. Records are never updated or deleted; retries or corrections create new records.
 - **Alternatives considered:**
   - **Option A (Chosen):** Immutable audit records, one per attempt
     - Pros: Complete history, tamper-proof audit trail, simple compliance
@@ -307,6 +317,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     - Database: `cancellation_record` table with append-only pattern
     - UI: Displays latest cancellation record; optionally shows history
   - **Database schema:**
+
     ```sql
     CREATE TABLE cancellation_record (
       id UUID PRIMARY KEY,
@@ -322,11 +333,12 @@ This document provides non-normative, verbose rationale and decision logs for th
       payment_correlation_id UUID,
       -- No UPDATE or DELETE allowed at DB policy level
     );
-    
+
     -- Index for latest record queries
-    CREATE INDEX idx_cancellation_record_order_created 
+    CREATE INDEX idx_cancellation_record_order_created
     ON cancellation_record(order_id, created_at DESC);
     ```
+
   - **Application logic:**
     - On cancellation attempt: INSERT new record (never UPDATE)
     - Retrieve latest record: `ORDER BY created_at DESC LIMIT 1`
@@ -337,21 +349,24 @@ This document provides non-normative, verbose rationale and decision logs for th
     CREATE POLICY no_update ON cancellation_record FOR UPDATE USING (false);
     CREATE POLICY no_delete ON cancellation_record FOR DELETE USING (false);
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify all cancellation records are immutable and chronologically consistent
   - **Query example:**
+
     ```sql
     -- Check for any updated records (should be impossible)
     SELECT id, order_id, created_at, updated_at
     FROM cancellation_record
     WHERE updated_at != created_at OR updated_at IS NULL;
-    
+
     -- Verify chronological consistency
     SELECT order_id, COUNT(*) as attempt_count
     FROM cancellation_record
     GROUP BY order_id
     HAVING COUNT(*) > 1; -- orders with multiple attempts
     ```
+
   - **Expected outcome:**
     - Zero updated records (all records have created_at = updated_at or no updated_at)
     - List of orders with multiple attempts (normal for retries/failures)
@@ -359,6 +374,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     - Demonstrate records cannot be altered after creation
     - Show complete history for orders with multiple attempts
     - Provide evidence of user actions and outcomes
+
 - **Migration & backward-compatibility notes:**
   - **Steps:**
     1. Create `cancellation_record` table with immutability constraints
@@ -381,10 +397,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Access control:** Restrict cancellation_record table access to read-only for most users
 
 <a id="decision-order-005---idempotent-cancellation-semantics"></a>
+
 ### DECISION-ORDER-005 — Idempotent Cancellation Semantics
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-005)
-- **Decision:** Cancellation requests are idempotent. If an order is already cancelled, repeated cancellation requests return HTTP 200 with the current state and latest cancellation metadata, without creating duplicate side effects or downstream calls. If cancellation is in-progress, the system returns HTTP 409 Conflict.
+- **Decision:** Cancellation requests are idempotent. If an order is already cancelled, repeated cancellation requests return HTTP 200 with the current state and latest
+  cancellation metadata, without creating duplicate side effects or downstream calls. If cancellation is in-progress, the system returns HTTP 409 Conflict.
 - **Alternatives considered:**
   - **Option A (Chosen):** Idempotent success (200 for already-cancelled), conflict for in-progress
     - Pros: Safe retries, no duplicate side effects, clear in-progress indication
@@ -422,6 +440,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     6. Release lock
     ```
   - **Concurrency control:**
+
     ```sql
     -- Optimistic locking approach
     UPDATE "order"
@@ -429,10 +448,12 @@ This document provides non-normative, verbose rationale and decision logs for th
     WHERE order_id = ?
       AND version = ?
       AND status IN ('OPEN', 'CONFIRMED', ...); -- cancellable states
-    
+
     -- If zero rows updated → concurrent modification or already cancelled
     ```
+
   - **Response examples:**
+
     ```json
     // 200 OK - already cancelled
     {
@@ -446,7 +467,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       "paymentVoidStatus": "VOIDED",
       "workRollbackStatus": "ROLLED_BACK"
     }
-    
+
     // 409 Conflict - in progress
     {
       "errorCode": "CANCELLATION_IN_PROGRESS",
@@ -455,12 +476,13 @@ This document provides non-normative, verbose rationale and decision logs for th
       "retryAfterSeconds": 5
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify no duplicate cancellation records or downstream calls for idempotent requests
   - **Query example:**
     ```sql
     -- Find orders with multiple cancellation records within short time window (suspicious)
-    SELECT order_id, COUNT(*) as record_count, 
+    SELECT order_id, COUNT(*) as record_count,
            MAX(created_at) - MIN(created_at) as time_span
     FROM cancellation_record
     GROUP BY order_id
@@ -490,10 +512,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Documentation:** Update API docs with clear idempotency guarantees
 
 <a id="decision-order-006---cancellation-reason-taxonomy"></a>
+
 ### DECISION-ORDER-006 — Cancellation Reason Taxonomy
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-006)
-- **Decision:** Cancellation reason is required and selected from a fixed enum: `CUSTOMER_REQUEST`, `INVENTORY_UNAVAILABLE`, `PRICING_ERROR`, `DUPLICATE_ORDER`, `OTHER`. The frontend uses this enum for the reason picker. Comments field (optional, max 2000 chars) allows free-text elaboration.
+- **Decision:** Cancellation reason is required and selected from a fixed enum: `CUSTOMER_REQUEST`, `INVENTORY_UNAVAILABLE`, `PRICING_ERROR`, `DUPLICATE_ORDER`, `OTHER`. The
+  frontend uses this enum for the reason picker. Comments field (optional, max 2000 chars) allows free-text elaboration.
 - **Alternatives considered:**
   - **Option A (Chosen):** Fixed enum with optional free-text comments
     - Pros: Structured data for reporting, consistent categorization, searchable
@@ -518,25 +542,27 @@ This document provides non-normative, verbose rationale and decision logs for th
     - Database: Store reason as VARCHAR or ENUM type
     - Reporting: Aggregates cancellations by reason for dashboards
   - **Reason enum definition:**
+
     ```typescript
     // Frontend TypeScript
     enum CancellationReason {
-      CUSTOMER_REQUEST = 'CUSTOMER_REQUEST',
-      INVENTORY_UNAVAILABLE = 'INVENTORY_UNAVAILABLE',
-      PRICING_ERROR = 'PRICING_ERROR',
-      DUPLICATE_ORDER = 'DUPLICATE_ORDER',
-      OTHER = 'OTHER'
+      CUSTOMER_REQUEST = "CUSTOMER_REQUEST",
+      INVENTORY_UNAVAILABLE = "INVENTORY_UNAVAILABLE",
+      PRICING_ERROR = "PRICING_ERROR",
+      DUPLICATE_ORDER = "DUPLICATE_ORDER",
+      OTHER = "OTHER",
     }
-    
+
     // Display labels
     const reasonLabels = {
-      CUSTOMER_REQUEST: 'Customer requested cancellation',
-      INVENTORY_UNAVAILABLE: 'Inventory not available',
-      PRICING_ERROR: 'Pricing error',
-      DUPLICATE_ORDER: 'Duplicate order',
-      OTHER: 'Other (specify in comments)'
+      CUSTOMER_REQUEST: "Customer requested cancellation",
+      INVENTORY_UNAVAILABLE: "Inventory not available",
+      PRICING_ERROR: "Pricing error",
+      DUPLICATE_ORDER: "Duplicate order",
+      OTHER: "Other (specify in comments)",
     };
     ```
+
   - **Database schema:**
     ```sql
     -- cancellation_record table
@@ -552,23 +578,26 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Validation:**
     - Backend enforces reason is one of allowed enum values (400 if invalid)
     - Backend enforces comments max length 2000 chars (400 if exceeded)
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify all cancellation records have valid reasons; check if "OTHER" is overused
   - **Query example:**
+
     ```sql
     -- Cancellation reason distribution
-    SELECT reason, COUNT(*) as count, 
+    SELECT reason, COUNT(*) as count,
            ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER(), 2) as percentage
     FROM cancellation_record
     GROUP BY reason
     ORDER BY count DESC;
-    
+
     -- Orders with OTHER reason but no comments (potential data quality issue)
     SELECT id, order_id, reason, comments
     FROM cancellation_record
     WHERE reason = 'OTHER'
       AND (comments IS NULL OR TRIM(comments) = '');
     ```
+
   - **Expected outcome:**
     - Distribution shows most cancellations fit into standard reasons
     - OTHER category is < 10% (if higher, may indicate missing reason category)
@@ -576,6 +605,7 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Reporting:**
     - Weekly dashboard showing cancellation reason trends
     - Alert if OTHER category exceeds threshold
+
 - **Migration & backward-compatibility notes:**
   - **Steps:**
     1. Define cancellation reason enum in shared constants/config
@@ -607,10 +637,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Future enhancement:** If OTHER usage is high, conduct user research to identify new reason categories
 
 <a id="decision-order-007---cancellation-orchestration-timeout-and-failure-handling"></a>
+
 ### DECISION-ORDER-007 — Cancellation Orchestration Timeout and Failure Handling
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-007)
-- **Decision:** If downstream systems (Payment void or Work rollback) fail or timeout during cancellation orchestration, the order transitions to `CANCELLATION_FAILED` state and requires manual intervention. No automatic retry is performed. The failure is fully audited with correlation IDs for troubleshooting.
+- **Decision:** If downstream systems (Payment void or Work rollback) fail or timeout during cancellation orchestration, the order transitions to `CANCELLATION_FAILED` state
+  and requires manual intervention. No automatic retry is performed. The failure is fully audited with correlation IDs for troubleshooting.
 - **Alternatives considered:**
   - **Option A (Chosen):** Transition to CANCELLATION_FAILED, require manual intervention
     - Pros: Safe, prevents cascading failures, clear signal for operations team
@@ -650,10 +682,11 @@ This document provides non-normative, verbose rationale and decision logs for th
          d. Return 500 to client with "manual intervention required" message
     ```
   - **Database schema:**
+
     ```sql
     -- Order status includes failure state
     ALTER TYPE order_status ADD VALUE 'CANCELLATION_FAILED';
-    
+
     -- cancellation_record captures failure details
     work_rollback_status VARCHAR(50) CHECK (work_rollback_status IN (
       'ROLLED_BACK', 'ROLLBACK_FAILED', 'NOT_APPLICABLE'
@@ -662,6 +695,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       'VOIDED', 'VOID_FAILED', 'REFUND_REQUIRED', 'NOT_APPLICABLE'
     ))
     ```
+
   - **Monitoring and alerting:**
     ```
     Alert: cancellation_failed_orders
@@ -669,9 +703,11 @@ This document provides non-normative, verbose rationale and decision logs for th
     Severity: High
     Action: Notify operations team, create incident ticket
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify failed cancellations are properly audited and resolved
   - **Query example:**
+
     ```sql
     -- Orders in CANCELLATION_FAILED state
     SELECT o.order_id, o.status, o.updated_at,
@@ -681,20 +717,22 @@ This document provides non-normative, verbose rationale and decision logs for th
     JOIN cancellation_record cr ON cr.order_id = o.order_id
     WHERE o.status = 'CANCELLATION_FAILED'
     ORDER BY o.updated_at DESC;
-    
+
     -- Failed cancellations older than SLA (e.g., 24 hours)
-    SELECT order_id, updated_at, 
+    SELECT order_id, updated_at,
            NOW() - updated_at as time_in_failed_state
     FROM "order"
     WHERE status = 'CANCELLATION_FAILED'
       AND updated_at < NOW() - INTERVAL '24 hours';
     ```
+
   - **Expected outcome:**
     - List of orders requiring manual intervention
     - Alert if any order has been in failed state beyond SLA
   - **Resolution tracking:**
     - Operations team logs resolution actions (e.g., manual void, manual work cancellation)
     - Update order to final state (CANCELLED or CANCELLED_REQUIRES_REFUND) after resolution
+
 - **Migration & backward-compatibility notes:**
   - **Steps:**
     1. Add `CANCELLATION_FAILED` status to order schema
@@ -721,10 +759,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Future enhancement:** Consider semi-automatic retry with approval workflow for specific failure types
 
 <a id="decision-order-008---cancellation-comments-maximum-length"></a>
+
 ### DECISION-ORDER-008 — Cancellation Comments Maximum Length
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-008)
-- **Decision:** The optional comments field for cancellation requests has a maximum length of 2000 characters. This limit is enforced client-side and server-side. The field is optional (may be null or empty string).
+- **Decision:** The optional comments field for cancellation requests has a maximum length of 2000 characters. This limit is enforced client-side and server-side. The field is
+  optional (may be null or empty string).
 - **Alternatives considered:**
   - **Option A (Chosen):** 2000 character limit
     - Pros: Allows detailed context, reasonable database storage, protects against abuse
@@ -747,16 +787,18 @@ This document provides non-normative, verbose rationale and decision logs for th
     - Backend API: Validation middleware checks length
     - Database: Store as TEXT (supports up to 64KB, but application enforces 2000)
   - **Frontend validation:**
+
     ```typescript
     // Vue 3 component
     const MAX_COMMENT_LENGTH = 2000;
     const comments = ref('');
     const isCommentTooLong = computed(() => comments.value.length > MAX_COMMENT_LENGTH);
-    
+
     // Display character counter
     <div>{{ comments.value.length }} / {{ MAX_COMMENT_LENGTH }}</div>
     <button :disabled="isCommentTooLong">Submit</button>
     ```
+
   - **Backend validation:**
     ```java
     @Size(max = 2000, message = "Comments must not exceed 2000 characters")
@@ -772,6 +814,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       "actualLength": 2543
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify no comments exceed the 2000 character limit
   - **Query example:**
@@ -790,27 +833,31 @@ This document provides non-normative, verbose rationale and decision logs for th
     3. Audit existing comments for length violations
     4. Truncate or migrate any existing oversized comments
   - **Historical data cleanup:**
+
     ```sql
     -- Find oversized comments (if any)
     SELECT id, order_id, LENGTH(comments) as length
     FROM cancellation_record
     WHERE LENGTH(comments) > 2000;
-    
+
     -- Option 1: Truncate with indicator
     UPDATE cancellation_record
     SET comments = SUBSTRING(comments, 1, 1997) || '...'
     WHERE LENGTH(comments) > 2000;
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Order domain team
   - **Review cadence:** No regular review needed; stable limit
   - **Future consideration:** If users consistently hit the limit, reconsider increasing to 5000
 
 <a id="decision-order-009---concurrency-control-with-409-conflict-response"></a>
+
 ### DECISION-ORDER-009 — Concurrency Control with 409 Conflict Response
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-009)
-- **Decision:** When a cancellation is already in progress for an order, concurrent cancellation requests receive HTTP 409 Conflict response with message "Cancellation already in progress." The frontend displays this as a retriable error and prompts the user to refresh the order status.
+- **Decision:** When a cancellation is already in progress for an order, concurrent cancellation requests receive HTTP 409 Conflict response with message "Cancellation already
+  in progress." The frontend displays this as a retriable error and prompts the user to refresh the order status.
 - **Alternatives considered:**
   - **Option A (Chosen):** 409 Conflict for concurrent requests
     - Pros: RESTful standard, clear semantics, prevents duplicate processing
@@ -857,8 +904,8 @@ This document provides non-normative, verbose rationale and decision logs for th
         if (error.status === 409) {
           // Conflict: show message and refresh button
           showMessage({
-            type: 'warning',
-            message: 'Cancellation is already in progress. Refreshing order status...',
+            type: "warning",
+            message: "Cancellation is already in progress. Refreshing order status...",
           });
           setTimeout(() => refreshOrderDetail(), 2000);
         } else {
@@ -891,25 +938,26 @@ This document provides non-normative, verbose rationale and decision logs for th
     3. Update frontend error handling for 409
     4. Test concurrent cancellation scenarios
   - **Testing:**
+
     ```javascript
     // Test concurrent cancellation
-    const [response1, response2] = await Promise.all([
-      cancelOrder(orderId, reason, comments),
-      cancelOrder(orderId, reason, comments)
-    ]);
-    
+    const [response1, response2] = await Promise.all([cancelOrder(orderId, reason, comments), cancelOrder(orderId, reason, comments)]);
+
     expect([response1.status, response2.status].sort()).toEqual([200, 409]);
     ```
+
 - **Governance & owner recommendations:**
   - **Owner:** Order domain team
   - **Monitoring:** Alert if 409 rate exceeds threshold (indicates UI issue)
   - **Review cadence:** Monthly review of concurrency patterns
 
 <a id="decision-order-010---authorization-and-permission-model-for-cancellation"></a>
+
 ### DECISION-ORDER-010 — Authorization and Permission Model for Cancellation
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-010)
-- **Decision:** Order cancellation requires the `ORDER_CANCEL` permission. Users without this permission cannot initiate cancellation. Authorization is enforced server-side; frontend gates the UI but backend enforcement is mandatory. Unauthorized requests return HTTP 403 Forbidden.
+- **Decision:** Order cancellation requires the `ORDER_CANCEL` permission. Users without this permission cannot initiate cancellation. Authorization is enforced server-side;
+  frontend gates the UI but backend enforcement is mandatory. Unauthorized requests return HTTP 403 Forbidden.
 - **Alternatives considered:**
   - **Option A (Chosen):** Explicit ORDER_CANCEL permission
     - Pros: Fine-grained control, clear audit trail, role-based access
@@ -940,17 +988,19 @@ This document provides non-normative, verbose rationale and decision logs for th
     }
     ```
   - **Frontend permission check:**
+
     ```typescript
     // Vue 3 component
     const userPermissions = inject('userPermissions');
-    const canCancelOrder = computed(() => 
+    const canCancelOrder = computed(() =>
       userPermissions.value.includes('ORDER_CANCEL')
     );
-    
+
     <button v-if="canCancelOrder" @click="showCancelDialog">
       Cancel Order
     </button>
     ```
+
   - **Error response:**
     ```json
     {
@@ -959,6 +1009,7 @@ This document provides non-normative, verbose rationale and decision logs for th
       "requiredPermission": "ORDER_CANCEL"
     }
     ```
+
 - **Auditor-facing explanation:**
   - **What to inspect:** Verify all cancellations were performed by users with ORDER_CANCEL permission
   - **Query example:**
@@ -966,7 +1017,7 @@ This document provides non-normative, verbose rationale and decision logs for th
     -- Find cancellations by users without permission at time of action
     SELECT cr.id, cr.order_id, cr.cancelled_by, cr.created_at
     FROM cancellation_record cr
-    LEFT JOIN user_permission_history uph ON 
+    LEFT JOIN user_permission_history uph ON
       uph.user_id = cr.cancelled_by
       AND uph.permission = 'ORDER_CANCEL'
       AND uph.effective_from <= cr.created_at
@@ -996,10 +1047,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Monitoring:** Alert on unusual cancellation patterns (may indicate compromised account)
 
 <a id="decision-order-011---canonical-domain-label-and-ownership-for-cancellation-ui"></a>
+
 ### DECISION-ORDER-011 — Canonical Domain Label and Ownership for Cancellation UI
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-011)
-- **Decision:** Cancellation orchestration and cancellation UI stories are canonically owned by the Order domain and should be labeled `domain:order`. Payment and Work Execution are dependencies and remain authoritative for their own statuses, but do not own the cancellation entrypoint.
+- **Decision:** Cancellation orchestration and cancellation UI stories are canonically owned by the Order domain and should be labeled `domain:order`. Payment and Work
+  Execution are dependencies and remain authoritative for their own statuses, but do not own the cancellation entrypoint.
 - **Alternatives considered:**
   - **Option A (Chosen):** `domain:order` ownership
     - Pros: Aligns with order lifecycle state machine and orchestration responsibility
@@ -1025,10 +1078,13 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Annual or when cancellation expands beyond current scope
 
 <a id="decision-order-012---ui-to-moqui-service-contract-conventions-safe-defaults"></a>
+
 ### DECISION-ORDER-012 — UI to Moqui Service Contract Conventions (Safe Defaults)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-012)
-- **Decision:** Use a single command-style cancel service owned by Order (inputs: `orderId`, `reason`, `comments`) and a single order-detail read service that returns cancellation summary (or a dedicated Order-owned “latest cancellation” read service if embedding is not feasible). Error responses should include stable `errorCode` and user-safe `message` with optional `details`/`fieldErrors`.
+- **Decision:** Use a single command-style cancel service owned by Order (inputs: `orderId`, `reason`, `comments`) and a single order-detail read service that returns
+  cancellation summary (or a dedicated Order-owned “latest cancellation” read service if embedding is not feasible). Error responses should include stable `errorCode` and
+  user-safe `message` with optional `details`/`fieldErrors`.
 - **Alternatives considered:**
   - **Option A (Chosen):** Single cancel command + order detail includes summary
     - Pros: Minimal UI complexity; avoids UI calling downstream domains
@@ -1055,10 +1111,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Per release when contracts change
 
 <a id="decision-order-013---canonical-order-cancellation-status-enum-contract"></a>
+
 ### DECISION-ORDER-013 — Canonical Order Cancellation Status Enum Contract
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-013)
-- **Decision:** The UI-facing canonical cancellation-related statuses are `CANCELLING`, `CANCELLED`, `CANCELLED_REQUIRES_REFUND`, and `CANCELLATION_FAILED`. Any legacy backend variants must be mapped server-side to these canonical values for UI.
+- **Decision:** The UI-facing canonical cancellation-related statuses are `CANCELLING`, `CANCELLED`, `CANCELLED_REQUIRES_REFUND`, and `CANCELLATION_FAILED`. Any legacy backend
+  variants must be mapped server-side to these canonical values for UI.
 - **Alternatives considered:**
   - **Option A (Chosen):** Canonicalize to a small stable set
     - Pros: Prevents enum drift; simplifies UI logic
@@ -1082,10 +1140,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** Only when adding new cancellation-related states
 
 <a id="decision-order-014---frontend-permission-exposure-pattern-safe-default"></a>
+
 ### DECISION-ORDER-014 — Frontend Permission Exposure Pattern (Safe Default)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-014)
-- **Decision:** UI should gate cancel action based on a backend-provided capability signal (e.g., `canCancel`) returned by order detail (or a capability set), not by duplicating permission rules client-side. Server-side still enforces `ORDER_CANCEL`.
+- **Decision:** UI should gate cancel action based on a backend-provided capability signal (e.g., `canCancel`) returned by order detail (or a capability set), not by
+  duplicating permission rules client-side. Server-side still enforces `ORDER_CANCEL`.
 - **Alternatives considered:**
   - **Option A (Chosen):** Capability boolean in order detail
     - Pros: Single source of truth; avoids duplicating authorization logic in UI
@@ -1107,10 +1167,12 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **Review cadence:** When permission model changes
 
 <a id="decision-order-015---correlation-ids-and-admin-only-details-visibility"></a>
+
 ### DECISION-ORDER-015 — Correlation IDs and Admin-only Details Visibility
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-ORDER-015)
-- **Decision:** `cancellationId` is visible to all users authorized to view the order. Correlation IDs and downstream subsystem detail fields are returned and displayed only when the caller has an explicit admin/support permission; otherwise they are omitted/redacted.
+- **Decision:** `cancellationId` is visible to all users authorized to view the order. Correlation IDs and downstream subsystem detail fields are returned and displayed only
+  when the caller has an explicit admin/support permission; otherwise they are omitted/redacted.
 - **Alternatives considered:**
   - **Option A (Chosen):** Admin-only operational detail
     - Pros: Reduces internal leakage; still supports troubleshooting

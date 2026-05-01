@@ -2,13 +2,10 @@
 
 ## Purpose
 
-Define the Angular frontend implementation scope for CAP-275: Login experience,
-JWT token storage and lifecycle management, session resume validation, and an admin
-configuration panel for enabling/disabling JWT assertion issuance (the `enable` operation)
-as required by ADR-0011.
+Define the Angular frontend implementation scope for CAP-275: Login experience, JWT token storage and lifecycle management, session resume validation, and an admin
+configuration panel for enabling/disabling JWT assertion issuance (the `enable` operation) as required by ADR-0011.
 
-The login page component already exists (`src/app/features/auth/login.component.ts`).
-This wireframe documents the complete interaction surface, unimplemented gaps, and the
+The login page component already exists (`src/app/features/auth/login.component.ts`). This wireframe documents the complete interaction surface, unimplemented gaps, and the
 new security admin panel that exposes the `enable` assertion toggle.
 
 ---
@@ -24,7 +21,7 @@ new security admin panel that exposes the `enable` assertion toggle.
 ```
 ┌────────────────────────────────────────────────────────┐
 │                                                        │
-│              [  D  ]  Durion POS                      │
+│              [  D  ]  Durion Positivity                      │
 │                   Positivity Platform                  │
 │                                                        │
 │  ┌──────────────────────────────────────────────────┐  │
@@ -62,20 +59,20 @@ Submit credentials   ──────►  login()      ──────►  
 
 **Inputs/Outputs:**
 
-| Element | Type | Validation | Notes |
-| --- | --- | --- | --- |
-| `username` | text input | required, minLength 2 | `autocomplete="username"` |
-| `password` | password input | required, minLength 4 | `autocomplete="current-password"` |
-| Sign In button | submit | form valid + not loading | gradient-filled primary CTA |
-| Error banner | alert | conditional on `error()` signal | `role="alert"`, `aria-live="polite"` |
+| Element        | Type           | Validation                      | Notes                                |
+| -------------- | -------------- | ------------------------------- | ------------------------------------ |
+| `username`     | text input     | required, minLength 2           | `autocomplete="username"`            |
+| `password`     | password input | required, minLength 4           | `autocomplete="current-password"`    |
+| Sign In button | submit         | form valid + not loading        | gradient-filled primary CTA          |
+| Error banner   | alert          | conditional on `error()` signal | `role="alert"`, `aria-live="polite"` |
 
 **Error Mapping:**
 
-| HTTP Status | User Message |
-| --- | --- |
-| 401 / 403 | "Invalid username or password. Please try again." |
+| HTTP Status | User Message                                                      |
+| ----------- | ----------------------------------------------------------------- |
+| 401 / 403   | "Invalid username or password. Please try again."                 |
 | 0 (network) | "Cannot reach the server. Check your network or try again later." |
-| Other | "Login failed (status). Please try again." |
+| Other       | "Login failed (status). Please try again."                        |
 
 **Design tokens:**
 
@@ -109,7 +106,7 @@ Router.navigate(['/login'], { queryParams: { returnUrl: currentPath } })
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│              [  D  ]  Durion POS                      │
+│              [  D  ]  Durion Positivity                      │
 │                                                        │
 │  ⚠ "Your session has expired. Please sign in again." │
 │  (info-level banner, not error-red)                   │
@@ -157,7 +154,8 @@ AuthService.validateSessionOnResume()
 
 **Status:** New screen. Not implemented.
 
-**Purpose:** Allow a privileged admin to enable or disable JWT assertion issuance for the platform, and to view current assertion configuration (issuer, audience, token TTL). This is the Angular surface for the `enable` operationId.
+**Purpose:** Allow a privileged admin to enable or disable JWT assertion issuance for the platform, and to view current assertion configuration (issuer, audience, token TTL).
+This is the Angular surface for the `enable` operationId.
 
 **Required permission:** `security:assertions:manage` (or equivalent admin role).
 
@@ -195,13 +193,13 @@ AuthService.validateSessionOnResume()
 
 **States:**
 
-| State | Indicator | CTA |
-| --- | --- | --- |
-| Enabled | Green dot `●` + "ENABLED" label | "Disable" button (ghost/secondary) |
-| Disabled | Grey ring `○` + "DISABLED" label | "Enable" button (primary gradient) |
-| Loading | Spinner | Buttons disabled |
-| Error | Error banner with correlationId | Retry button |
-| Forbidden (403) | Not-authorized state panel | None |
+| State           | Indicator                        | CTA                                |
+| --------------- | -------------------------------- | ---------------------------------- |
+| Enabled         | Green dot `●` + "ENABLED" label  | "Disable" button (ghost/secondary) |
+| Disabled        | Grey ring `○` + "DISABLED" label | "Enable" button (primary gradient) |
+| Loading         | Spinner                          | Buttons disabled                   |
+| Error           | Error banner with correlationId  | Retry button                       |
+| Forbidden (403) | Not-authorized state panel       | None                               |
 
 **API call — operationId `enable`:**
 
@@ -211,9 +209,8 @@ POST /v1/security/assertions/disable   ← disable assertion issuance
 GET  /v1/security/assertions/config    ← read current config (issuer, aud, ttl)
 ```
 
-**Note:** If the backend exposes a single `POST /enable` toggle with a body `{ enabled: boolean }`,
-the Angular service should map both the enable and disable actions to that single call.
-Inspect `pos-security-service/openapi.yaml` to confirm the exact path and payload before implementation.
+**Note:** If the backend exposes a single `POST /enable` toggle with a body `{ enabled: boolean }`, the Angular service should map both the enable and disable actions to that
+single call. Inspect `pos-security-service/openapi.yaml` to confirm the exact path and payload before implementation.
 
 **Design tokens:**
 
@@ -226,14 +223,14 @@ Inspect `pos-security-service/openapi.yaml` to confirm the exact path and payloa
 
 ## Component Inventory
 
-| Component | File | Status | Notes |
-| --- | --- | --- | --- |
-| `LoginComponent` | `features/auth/login.component.ts` | Exists | Missing session-expired banner variant |
-| `LoginComponent` template | `features/auth/login.component.html` | Exists | Has error banner; needs info banner slot |
-| `HttpAuthInterceptor` | `core/interceptors/auth.interceptor.ts` | Needs review | 401 redirect behavior to `/login?returnUrl` |
-| `AuthService.validateSessionOnResume()` | `core/services/auth.service.ts` | Not implemented | Add `validateToken` call on bootstrap |
-| `SecurityAssertionsComponent` | `features/security/pages/assertions/` | Not implemented | New page |
-| `security.routes.ts` | `features/security/security.routes.ts` | Stub | Add `assertions` child route |
+| Component                               | File                                    | Status          | Notes                                       |
+| --------------------------------------- | --------------------------------------- | --------------- | ------------------------------------------- |
+| `LoginComponent`                        | `features/auth/login.component.ts`      | Exists          | Missing session-expired banner variant      |
+| `LoginComponent` template               | `features/auth/login.component.html`    | Exists          | Has error banner; needs info banner slot    |
+| `HttpAuthInterceptor`                   | `core/interceptors/auth.interceptor.ts` | Needs review    | 401 redirect behavior to `/login?returnUrl` |
+| `AuthService.validateSessionOnResume()` | `core/services/auth.service.ts`         | Not implemented | Add `validateToken` call on bootstrap       |
+| `SecurityAssertionsComponent`           | `features/security/pages/assertions/`   | Not implemented | New page                                    |
+| `security.routes.ts`                    | `features/security/security.routes.ts`  | Stub            | Add `assertions` child route                |
 
 ---
 
@@ -293,9 +290,9 @@ Inspect `pos-security-service/openapi.yaml` to confirm the exact path and payloa
 
 ## Blockers / Open Questions
 
-| Item | Owner | Resolution |
-| --- | --- | --- |
-| `enable` operation_id exact endpoint path | Inspect `pos-security-service/openapi.yaml` | Unresolved |
-| `GET /v1/security/assertions/config` — does it exist? | Contract status is `draft` — pre-verify | Unresolved |
-| `validateToken` endpoint availability | `BACKEND_CONTRACT_GUIDE.md` lists it — confirm live in dev | Unresolved |
-| Session expired banner — add `sessionExpired` query param handling to `LoginComponent` | Frontend | Not implemented |
+| Item                                                                                   | Owner                                                      | Resolution      |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --------------- |
+| `enable` operation_id exact endpoint path                                              | Inspect `pos-security-service/openapi.yaml`                | Unresolved      |
+| `GET /v1/security/assertions/config` — does it exist?                                  | Contract status is `draft` — pre-verify                    | Unresolved      |
+| `validateToken` endpoint availability                                                  | `BACKEND_CONTRACT_GUIDE.md` lists it — confirm live in dev | Unresolved      |
+| Session expired banner — add `sessionExpired` query param handling to `LoginComponent` | Frontend                                                   | Not implemented |

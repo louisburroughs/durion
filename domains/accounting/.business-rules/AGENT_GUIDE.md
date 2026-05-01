@@ -4,7 +4,9 @@
 
 ## Purpose
 
-The Accounting domain is responsible for authoritative financial calculations, invoice adjustments, issuance finalization **ingestion visibility**, chart of accounts management, posting category mappings, posting rule configurations, journal entry creation, ledger posting, **AR cash application**, and **operational monitoring of accounting integrations**. It ensures financial data integrity, auditability, and compliance across the Durion POS system.
+The Accounting domain is responsible for authoritative financial calculations, invoice adjustments, issuance finalization **ingestion visibility**, chart of accounts
+management, posting category mappings, posting rule configurations, journal entry creation, ledger posting, **AR cash application**, and **operational monitoring of accounting
+integrations**. It ensures financial data integrity, auditability, and compliance across the Durion Positivity system.
 
 This guide is written for engineers and agents implementing Moqui services/screens and integrations for the Accounting domain. This document is **normative**.
 
@@ -14,23 +16,23 @@ This guide is written for engineers and agents implementing Moqui services/scree
 
 ## Decision Index (Authoritative)
 
-| Decision ID | Title |
-| --- | --- |
-| **AD-001** | Refund System of Record |
-| **AD-002** | Payment Receipt vs AR Reduction |
-| **AD-003** | Overpayment Handling via Customer Credit |
-| **AD-004** | Manual Customer Assignment on Payments |
-| **AD-005** | Timekeeping Export Mode |
-| **AD-006** | Identifier Strategy (UUIDv7) |
-| **AD-007** | Ingestion Monitoring Read Model |
-| **AD-008** | Correlation & Trace Standard |
-| **AD-009** | Raw Payload Visibility Policy |
-| **AD-010** | Apply Payment Idempotency Model |
-| **AD-011** | Posting Reference Canonical Identifier |
-| **AD-012** | Accounting Period Enforcement |
-| **AD-013** | Permission Gating Model |
-| **AD-014** | Asynchronous Retry Semantics |
-| **AD-015** | Export Timezone Semantics |
+| Decision ID | Title                                    |
+| ----------- | ---------------------------------------- |
+| **AD-001**  | Refund System of Record                  |
+| **AD-002**  | Payment Receipt vs AR Reduction          |
+| **AD-003**  | Overpayment Handling via Customer Credit |
+| **AD-004**  | Manual Customer Assignment on Payments   |
+| **AD-005**  | Timekeeping Export Mode                  |
+| **AD-006**  | Identifier Strategy (UUIDv7)             |
+| **AD-007**  | Ingestion Monitoring Read Model          |
+| **AD-008**  | Correlation & Trace Standard             |
+| **AD-009**  | Raw Payload Visibility Policy            |
+| **AD-010**  | Apply Payment Idempotency Model          |
+| **AD-011**  | Posting Reference Canonical Identifier   |
+| **AD-012**  | Accounting Period Enforcement            |
+| **AD-013**  | Permission Gating Model                  |
+| **AD-014**  | Asynchronous Retry Semantics             |
+| **AD-015**  | Export Timezone Semantics                |
 
 ---
 
@@ -57,13 +59,15 @@ This guide is written for engineers and agents implementing Moqui services/scree
   - Persisted ingestion records for canonical accounting events (status, errors, idempotency outcome, posting references) (**Decision AD-007**)
   - Quarantine/DLQ flags as part of ingestion record status taxonomy (**Decision AD-007**)
 
-### What Accounting does *not* own
+### What Accounting does _not_ own
 
 - **Timekeeping**: time entry creation/approval state is owned by People/Timekeeping domain. Accounting owns export + export auditing.
 - **Billing lifecycle**: invoice issuance/finalization is owned by Billing domain; Accounting consumes `InvoiceIssued` events and exposes ingestion status.
-- **Payment capture/clearing**: payment authorization/capture/settlement is owned by Payment domain; Accounting consumes `PaymentReceived` and provides AR application workflows.
+- **Payment capture/clearing**: payment authorization/capture/settlement is owned by Payment domain; Accounting consumes `PaymentReceived` and provides AR application
+  workflows.
 - **Work execution**: work order completion events and operational state are owned by Work Execution; Accounting consumes events and posts.
-- **AP payment execution**: executing vendor payments is owned by Payment/Treasury domain(s). Accounting may own AP bill accounting state and scheduling intent **only if** explicitly defined by backend contracts. **TODO/CLARIFY:** confirm system-of-record for AP Bills workflow (`DRAFT → APPROVED → SCHEDULED`) from consolidated AP stories.
+- **AP payment execution**: executing vendor payments is owned by Payment/Treasury domain(s). Accounting may own AP bill accounting state and scheduling intent **only if**
+  explicitly defined by backend contracts. **TODO/CLARIFY:** confirm system-of-record for AP Bills workflow (`DRAFT → APPROVED → SCHEDULED`) from consolidated AP stories.
 
 ### Integration points (expanded)
 
@@ -74,36 +78,37 @@ This guide is written for engineers and agents implementing Moqui services/scree
 - **Event Bus / Message Broker**: canonical accounting event ingestion.
 - **General Ledger / Ledger subsystem**: posting and balances (internal or external).
 - **Schema repository**: canonical event contracts (“Durion Accounting Event Contract v1”).
-- **Purchasing/Receiving domain (AP upstream)**: emits receiving/vendor invoice events; Accounting may ingest and create AP Vendor Bill read models. **TODO/CLARIFY:** confirm canonical event types and ownership.
+- **Purchasing/Receiving domain (AP upstream)**: emits receiving/vendor invoice events; Accounting may ingest and create AP Vendor Bill read models. **TODO/CLARIFY:** confirm
+  canonical event types and ownership.
 
 ---
 
 ## Key Entities / Concepts
 
-| Entity | Description |
-| --- | --- |
-| **Invoice** | Billing document with financial totals, status, and audit snapshots. |
-| **InvoiceItem** | Line items on an invoice, including pricing and taxability attributes. |
-| **CalculationSnapshot** | Immutable record of tax/fee calculation details for audit and traceability. |
-| **Variance** | Records differences between invoice totals and estimate snapshots, with reason codes. |
-| **InvoiceAuditEvent** | Immutable audit records for invoice adjustments capturing before/after states and reasons. |
-| **CreditMemo** | Separate document for credit adjustments when invoice totals would become negative. |
-| **GLAccount** | Chart of Accounts entry with effective dating and classification (Asset, Liability, etc.). |
-| **PostingCategory** | Business abstraction for financial transaction types, mapped to GL accounts. |
-| **GLMapping** | Effective-dated mapping from PostingCategory to GLAccount and financial dimensions. |
-| **PostingRuleSet** | Versioned rules mapping EventTypes to balanced journal entry lines with conditional logic. |
-| **JournalEntry** | Draft or posted financial record with balanced debit/credit lines linked to source events. |
-| **LedgerEntry** | Immutable posted ledger lines updating GL account balances. |
-| **AccountingPeriod** | Defines open/closed periods controlling posting eligibility. |
-| **ReceivablePayment / Payment (Accounting read model)** | Accounting-side record of received cash/receipts, including source metadata and unapplied amount. |
-| **PaymentApplication** | Immutable record of applying a payment amount to an invoice (many-to-many over time). |
-| **CustomerCredit** | Credit created when payment exceeds applied invoice amounts (overpayment policy). |
-| **RefundTransaction** | Accounting-side read-only record of refund issuance and linkage to original transaction. |
-| **AccountingEventIngestionRecord** | Persisted ingestion outcome for canonical events (status, idempotency outcome, errors, posting references). |
-| **ExportRequest / ExportAuditEvent** | Audit record for user-initiated exports (e.g., approved time export), including parameters and outcome. |
-| **VendorBill (AP read model)** | Read-only AP bill created from upstream Purchasing/Receiving events; includes traceability, ingestion visibility, and posting references. **TODO/CLARIFY:** confirm entity name and whether Accounting is SoR. |
-| **PostingRuleSetVersion** | Versioned rule definition with lifecycle state (DRAFT/PUBLISHED/ARCHIVED) used to generate journal entries. **TODO/CLARIFY:** confirm backend model and naming. |
-| **MappingKey** | Producer-facing key that deterministically resolves to a PostingCategory (many keys → one category; one key → exactly one category). **TODO/CLARIFY:** confirm backend model and naming. |
+| Entity                                                  | Description                                                                                                                                                                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Invoice**                                             | Billing document with financial totals, status, and audit snapshots.                                                                                                                                           |
+| **InvoiceItem**                                         | Line items on an invoice, including pricing and taxability attributes.                                                                                                                                         |
+| **CalculationSnapshot**                                 | Immutable record of tax/fee calculation details for audit and traceability.                                                                                                                                    |
+| **Variance**                                            | Records differences between invoice totals and estimate snapshots, with reason codes.                                                                                                                          |
+| **InvoiceAuditEvent**                                   | Immutable audit records for invoice adjustments capturing before/after states and reasons.                                                                                                                     |
+| **CreditMemo**                                          | Separate document for credit adjustments when invoice totals would become negative.                                                                                                                            |
+| **GLAccount**                                           | Chart of Accounts entry with effective dating and classification (Asset, Liability, etc.).                                                                                                                     |
+| **PostingCategory**                                     | Business abstraction for financial transaction types, mapped to GL accounts.                                                                                                                                   |
+| **GLMapping**                                           | Effective-dated mapping from PostingCategory to GLAccount and financial dimensions.                                                                                                                            |
+| **PostingRuleSet**                                      | Versioned rules mapping EventTypes to balanced journal entry lines with conditional logic.                                                                                                                     |
+| **JournalEntry**                                        | Draft or posted financial record with balanced debit/credit lines linked to source events.                                                                                                                     |
+| **LedgerEntry**                                         | Immutable posted ledger lines updating GL account balances.                                                                                                                                                    |
+| **AccountingPeriod**                                    | Defines open/closed periods controlling posting eligibility.                                                                                                                                                   |
+| **ReceivablePayment / Payment (Accounting read model)** | Accounting-side record of received cash/receipts, including source metadata and unapplied amount.                                                                                                              |
+| **PaymentApplication**                                  | Immutable record of applying a payment amount to an invoice (many-to-many over time).                                                                                                                          |
+| **CustomerCredit**                                      | Credit created when payment exceeds applied invoice amounts (overpayment policy).                                                                                                                              |
+| **RefundTransaction**                                   | Accounting-side read-only record of refund issuance and linkage to original transaction.                                                                                                                       |
+| **AccountingEventIngestionRecord**                      | Persisted ingestion outcome for canonical events (status, idempotency outcome, errors, posting references).                                                                                                    |
+| **ExportRequest / ExportAuditEvent**                    | Audit record for user-initiated exports (e.g., approved time export), including parameters and outcome.                                                                                                        |
+| **VendorBill (AP read model)**                          | Read-only AP bill created from upstream Purchasing/Receiving events; includes traceability, ingestion visibility, and posting references. **TODO/CLARIFY:** confirm entity name and whether Accounting is SoR. |
+| **PostingRuleSetVersion**                               | Versioned rule definition with lifecycle state (DRAFT/PUBLISHED/ARCHIVED) used to generate journal entries. **TODO/CLARIFY:** confirm backend model and naming.                                                |
+| **MappingKey**                                          | Producer-facing key that deterministically resolves to a PostingCategory (many keys → one category; one key → exactly one category). **TODO/CLARIFY:** confirm backend model and naming.                       |
 
 ### Relationships (actionable)
 
@@ -320,17 +325,17 @@ This guide is written for engineers and agents implementing Moqui services/scree
 
 ## Events / Integrations
 
-| Event Name | Source Domain | Description | Consumer Domain(s) |
-| --- | --- | --- | --- |
-| `InvoiceAdjusted` | Accounting | Emitted on authorized invoice adjustment. | Accounting ingestion monitor, downstream systems |
-| `CreditMemoIssued` | Accounting | Emitted when a credit memo is created/issued. | Accounting ingestion monitor, downstream systems |
-| `InvoiceIssued` | Billing | Emitted when invoice is finalized and issued. | Accounting ingestion + AR systems |
-| `PaymentReceived` | Payment / External | Emitted when cash receipt is recorded/cleared. | Accounting payment ingestion + ops UI |
-| `RefundIssued` | Payment / External | Emitted when a refund is issued. | Accounting refund visibility + ops UI |
-| CanonicalAccountingEvent | Various | Standardized financial event envelope. | Accounting ingestion service |
-| Export audit events | Accounting | Records export requests/outcomes (e.g., timekeeping export). | Auditors/Compliance |
-| `Accounting.PaymentScheduled.v1` | Accounting (assumed) | Emitted when an AP bill is scheduled for payment. | Payment/Treasury domain(s) |
-| Purchasing/Receiving → AP events | Purchasing/Receiving | Upstream events that may create Vendor Bills in Accounting. | Accounting AP ingestion |
+| Event Name                       | Source Domain        | Description                                                  | Consumer Domain(s)                               |
+| -------------------------------- | -------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| `InvoiceAdjusted`                | Accounting           | Emitted on authorized invoice adjustment.                    | Accounting ingestion monitor, downstream systems |
+| `CreditMemoIssued`               | Accounting           | Emitted when a credit memo is created/issued.                | Accounting ingestion monitor, downstream systems |
+| `InvoiceIssued`                  | Billing              | Emitted when invoice is finalized and issued.                | Accounting ingestion + AR systems                |
+| `PaymentReceived`                | Payment / External   | Emitted when cash receipt is recorded/cleared.               | Accounting payment ingestion + ops UI            |
+| `RefundIssued`                   | Payment / External   | Emitted when a refund is issued.                             | Accounting refund visibility + ops UI            |
+| CanonicalAccountingEvent         | Various              | Standardized financial event envelope.                       | Accounting ingestion service                     |
+| Export audit events              | Accounting           | Records export requests/outcomes (e.g., timekeeping export). | Auditors/Compliance                              |
+| `Accounting.PaymentScheduled.v1` | Accounting (assumed) | Emitted when an AP bill is scheduled for payment.            | Payment/Treasury domain(s)                       |
+| Purchasing/Receiving → AP events | Purchasing/Receiving | Upstream events that may create Vendor Bills in Accounting.  | Accounting AP ingestion                          |
 
 > **TODO/CLARIFY:** AP-related event names and ownership are not confirmed in the normative guide; do not implement or hardcode until backend contract is confirmed.
 
@@ -641,7 +646,8 @@ Add/ensure metrics for:
 
 ## Common Pitfalls
 
-- **System-of-record confusion**: Refund execution is Payment domain; Accounting is read-only visibility. Payments exist as accounting read models and must not be treated as payment processor truth. (**Decision AD-001**)
+- **System-of-record confusion**: Refund execution is Payment domain; Accounting is read-only visibility. Payments exist as accounting read models and must not be treated as
+  payment processor truth. (**Decision AD-001**)
 - **Enum drift**: Do not hardcode statuses beyond the enumerations in this guide; treat backend as authoritative for any additional enums.
 - **Payload leakage**: Rendering or logging `sourceEventPayload` or raw event payloads without permission gating is a security incident. (**Decision AD-009**)
 - **Timezone mistakes**: Date range filters/exports must use location timezone semantics. (**Decision AD-015**)
@@ -650,7 +656,8 @@ Add/ensure metrics for:
 - **Ingestion visibility claims**: UI must display what ingestion records contain; do not imply completeness beyond persisted ingestion outcomes. (**Decision AD-007**)
 - **Overlapping GL mappings**: Overlapping effective dates cause ambiguous posting resolutions.
 - **Ignoring accounting period status**: Posting/applying actions may be blocked by closed periods; ensure error codes are surfaced and handled. (**Decision AD-012**)
-- **Operator tooling risk**: A sync ingestion submit UI can be misused to inject events. Do not ship without explicit permissions, audit, and environment restrictions (**Decision AD-013**, **Decision AD-009**). **TODO/CLARIFY:** confirm whether this tool is allowed in production environments.
+- **Operator tooling risk**: A sync ingestion submit UI can be misused to inject events. Do not ship without explicit permissions, audit, and environment restrictions
+  (**Decision AD-013**, **Decision AD-009**). **TODO/CLARIFY:** confirm whether this tool is allowed in production environments.
 
 ---
 
@@ -662,8 +669,7 @@ Add/ensure metrics for:
 
 #### A1. **(blocking)** What are the exact Moqui service names / REST endpoints and request/response schemas for each new capability (exports, payments, refunds, ingestion monitoring, apply payment)?
 
-**Response:**  
-Use the canonical endpoint families defined in **API Expectations (High-Level)**:
+**Response:** Use the canonical endpoint families defined in **API Expectations (High-Level)**:
 
 - Exports: `/accounting/export/*` (request, status, download, history)
 - Payments: `/accounting/payments/*` (list, detail, assignCustomer)
@@ -675,17 +681,14 @@ Request/response schemas are backend-authoritative; UI must not invent or reinte
 
 #### A2. **(blocking)** What is the standard correlation/trace header for this project (name, generation rules, propagation)?
 
-**Response:**  
-W3C Trace Context:
+**Response:** W3C Trace Context:
 
 - `traceparent` (required)
-- `tracestate` (optional)  
-Frontend generates `traceparent` only if absent and propagates headers unchanged. (**Decision AD-008**)
+- `tracestate` (optional) Frontend generates `traceparent` only if absent and propagates headers unchanged. (**Decision AD-008**)
 
 #### A3. **(blocking)** What is the canonical error response schema (including per-field/per-row validation errors)? Provide examples
 
-**Response:**  
-Canonical shape:
+**Response:** Canonical shape:
 
 ```json
 {
@@ -719,8 +722,7 @@ Rules:
 
 #### B2. **(blocking)** Delivery mode: synchronous download vs async job (or both)
 
-**Response:**
-Async job only. Status lifecycle:
+**Response:** Async job only. Status lifecycle:
 
 - `QUEUED` → `PROCESSING` → `READY` | `FAILED` (**Decision AD-005**)
 
@@ -733,23 +735,19 @@ Async job only. Status lifecycle:
 
 #### B4. **(blocking)** Location selector source: which endpoint provides locations and how to filter by user access/business unit?
 
-**Response:**
-Locations are sourced from the Location domain and filtered by user authorization and business unit membership:
+**Response:** Locations are sourced from the Location domain and filtered by user authorization and business unit membership:
 
 - Only active locations.
-- Only locations the user is authorized to view/select.
-  UI must not allow arbitrary location IDs.
+- Only locations the user is authorized to view/select. UI must not allow arbitrary location IDs.
 
 #### B5. **(blocking)** Time zone semantics: are `startDate/endDate` interpreted in location, business unit, or user timezone?
 
-**Response:**
-Location timezone. UI must label the timezone used. (**Decision AD-015**)
+**Response:** Location timezone. UI must label the timezone used. (**Decision AD-015**)
 
 #### B6. **(non-blocking)** Skipped-entry reporting: counts only vs downloadable skipped report; what fields are safe to include?
 
-**Response:**
-Default: counts only (exported vs skipped).
-Optional skipped report: allowed only for auditor-authorized users; minimize PII (e.g., mapping identifiers, reason codes, internal keys; avoid names/addresses).
+**Response:** Default: counts only (exported vs skipped). Optional skipped report: allowed only for auditor-authorized users; minimize PII (e.g., mapping identifiers, reason
+codes, internal keys; avoid names/addresses).
 
 ---
 
@@ -757,26 +755,21 @@ Optional skipped report: allowed only for auditor-authorized users; minimize PII
 
 #### C1. **(blocking)** System of record: Accounting `RefundTransaction` vs Payment domain refund log vs both?
 
-**Response:**
-Payment domain is system of record for refund execution. Accounting exposes a read-only `RefundTransaction` derived from refund events. (**Decision AD-001**)
+**Response:** Payment domain is system of record for refund execution. Accounting exposes a read-only `RefundTransaction` derived from refund events. (**Decision AD-001**)
 
 #### C2. **(blocking)** Identifier formats: are `refundId`/`eventId` UUIDs (which version) or arbitrary strings?
 
-**Response:**
-UUIDv7. UI validates UUID format client-side. (**Decision AD-006**)
+**Response:** UUIDv7. UI validates UUID format client-side. (**Decision AD-006**)
 
 #### C3. **(blocking)** Refund status model: authoritative statuses and whether status history exists
 
-**Response:**
-Statuses:
+**Response:** Statuses:
 
-- `PENDING`, `COMPLETED`, `FAILED`, `QUARANTINED`
-  Status history may exist but is backend-provided and read-only.
+- `PENDING`, `COMPLETED`, `FAILED`, `QUARANTINED` Status history may exist but is backend-provided and read-only.
 
 #### C4. Reason codes: allowed set for `reasonCode` and whether UI should label them or treat as opaque
 
-**Response:**
-Reason codes are backend enums. UI must treat them as opaque values and display backend-provided labels (no inference).
+**Response:** Reason codes are backend enums. UI must treat them as opaque values and display backend-provided labels (no inference).
 
 #### C5. Linkage rules: does refund link to payment only, invoice only, or both? What linkage fields are returned?
 
@@ -790,13 +783,11 @@ Reason codes are backend enums. UI must treat them as opaque values and display 
 
 **Response:**
 
-- View refunds: `accounting:refund:view`
-  Auditors are read-only and never granted mutation permissions.
+- View refunds: `accounting:refund:view` Auditors are read-only and never granted mutation permissions.
 
 #### C7. Conflict/quarantine visibility: does backend expose conflict/DLQ/quarantine records and fields?
 
-**Response:**
-Yes via `processingStatus` and `idempotencyOutcome` on ingestion/refund records, plus error fields. `QUARANTINED` must be visible and filterable.
+**Response:** Yes via `processingStatus` and `idempotencyOutcome` on ingestion/refund records, plus error fields. `QUARANTINED` must be visible and filterable.
 
 ---
 
@@ -807,8 +798,7 @@ Yes via `processingStatus` and `idempotencyOutcome` on ingestion/refund records,
 **Response:**
 
 - `GET /accounting/payments/list`
-- `GET /accounting/payments/detail?paymentId=...`
-  Moqui screens must follow Accounting menu conventions and use these services.
+- `GET /accounting/payments/detail?paymentId=...` Moqui screens must follow Accounting menu conventions and use these services.
 
 #### D2. **(blocking)** Permission model: view list/detail, view `sourceEventPayload`, assign/change `customerId`
 
@@ -820,21 +810,20 @@ Yes via `processingStatus` and `idempotencyOutcome` on ingestion/refund records,
 
 #### D3. **(blocking)** Customer assignment policy: allowed at all? change after set? reason required and stored where?
 
-**Response:**
-Allowed once only, cannot be changed after set, justification required (>= 10 chars). Stored in audit record for the mutation and linked to the payment record. (**Decision AD-004**)
+**Response:** Allowed once only, cannot be changed after set, justification required (>= 10 chars). Stored in audit record for the mutation and linked to the payment record.
+(**Decision AD-004**)
 
 #### D4. **(blocking)** Ingestion outcome visibility: is there an entity/service for duplicates/rejected/DLQ/quarantine/ingestion logs?
 
-**Response:**
-Yes. Use `AccountingEventIngestionRecord` list/detail via `/accounting/ingestion/\*` for visibility into:
+**Response:** Yes. Use `AccountingEventIngestionRecord` list/detail via `/accounting/ingestion/\*` for visibility into:
 
 - `PROCESSED`, `REJECTED`, `QUARANTINED`
 - `NEW`, `DUPLICATE_IGNORED`, `DUPLICATE_CONFLICT` (**Decision AD-007**)
 
 #### D5. **(blocking)** Currency mismatch visibility: should UI show rejected events even if no Payment record exists?
 
-**Response:**
-Yes. Currency mismatch is represented as an ingestion record with `processingStatus = REJECTED` and error fields; it must be visible even without a persisted payment entity.
+**Response:** Yes. Currency mismatch is represented as an ingestion record with `processingStatus = REJECTED` and error fields; it must be visible even without a persisted
+payment entity.
 
 ---
 
@@ -844,8 +833,7 @@ Yes. Currency mismatch is represented as an ingestion record with `processingSta
 
 **Response:**
 
-- Submit apply: `accounting:ar:apply-payment`
-  Read-only access is allowed without submit permission (view requires `accounting:payment:view` and invoice view permissions).
+- Submit apply: `accounting:ar:apply-payment` Read-only access is allowed without submit permission (view requires `accounting:payment:view` and invoice view permissions).
 
 #### E2. **(blocking)** Service/API naming & shapes: load payment, list eligible invoices, submit apply; include error schema for per-invoice errors
 
@@ -854,49 +842,43 @@ Yes. Currency mismatch is represented as an ingestion record with `processingSta
 - Load payment: `GET /accounting/ar/payment?paymentId=...`
 - Eligible invoices: `GET /accounting/ar/eligibleInvoices?customerId=...&currencyUomId=...`
 - Submit apply: `POST /accounting/ar/apply` with:
-
   - `applicationRequestId` (UUIDv7)
-  - `allocations[]` of `{invoiceId, amountToApply}`
-    Per-invoice errors use the canonical `{errorCode, message, details}` where `details` may map `invoiceId` → error code/message.
+  - `allocations[]` of `{invoiceId, amountToApply}` Per-invoice errors use the canonical `{errorCode, message, details}` where `details` may map `invoiceId` → error
+    code/message.
 
 #### E3. **(blocking)** Invoice status enum values: canonical strings for eligible vs ineligible
 
-**Response:**
-Eligibility is rule-based:
+**Response:** Eligibility is rule-based:
 
 - Eligible: issued/open and positive balance due
-- Ineligible: draft, voided, cancelled, paid-in-full
-  UI should not hardcode additional enums; it should rely on eligible list from backend.
+- Ineligible: draft, voided, cancelled, paid-in-full UI should not hardcode additional enums; it should rely on eligible list from backend.
 
 #### E4. Overpayment UX: should UI always expect `unappliedAmount=0` when credit created, and hide remaining payment?
 
-**Response:**
-Yes. Overpayment creates `CustomerCredit` and backend returns `unappliedAmount = 0`. UI must display credit creation and show the credit reference. (**Decision AD-003**)
+**Response:** Yes. Overpayment creates `CustomerCredit` and backend returns `unappliedAmount = 0`. UI must display credit creation and show the credit reference. (**Decision
+AD-003**)
 
 #### E5. Idempotency identifier: should frontend generate `applicationRequestId` (UUIDv7?) or backend generate it?
 
-**Response:**
-Frontend generates `applicationRequestId` as UUIDv7 and reuses it on retry. (**Decision AD-010**, **AD-006**)
+**Response:** Frontend generates `applicationRequestId` as UUIDv7 and reuses it on retry. (**Decision AD-010**, **AD-006**)
 
 #### E6. Application date: editable vs fixed to payment effective date; constraints (open period, not future, etc.)
 
-**Response:**
-Not editable in UI. Backend controls application effective date subject to accounting period rules (must be in an open period; not future-dated). (**Decision AD-012**)
+**Response:** Not editable in UI. Backend controls application effective date subject to accounting period rules (must be in an open period; not future-dated). (**Decision
+AD-012**)
 
 #### E7. Auto-allocation: does backend support “apply by policy” when allocations omitted?
 
-**Response:**
-No. Allocations are required. Auto-allocation is out of scope for this workflow.
+**Response:** No. Allocations are required. Auto-allocation is out of scope for this workflow.
 
 #### E8. Invoice settlement fields: does apply response include updated balances/statuses or must UI refetch?
 
-**Response:**
-Response includes updated balances/statuses for affected invoices and the payment. UI may refetch for confirmation but must treat the response as authoritative for immediate display.
+**Response:** Response includes updated balances/statuses for affected invoices and the payment. UI may refetch for confirmation but must treat the response as authoritative
+for immediate display.
 
 #### E9. Reversal workflow: separate story planned or include “Reverse” action?
 
-**Response:**
-Separate story. Apply workflow does not include reversal actions.
+**Response:** Separate story. Apply workflow does not include reversal actions.
 
 ---
 
@@ -904,9 +886,7 @@ Separate story. Apply workflow does not include reversal actions.
 
 #### F1. **(blocking)** Backend read model & endpoints: list/get ingestion records, field names, and entity names/PKs
 
-**Response:**
-Read model: `AccountingEventIngestionRecord` with primary key `ingestionId` (UUIDv7).
-Endpoints:
+**Response:** Read model: `AccountingEventIngestionRecord` with primary key `ingestionId` (UUIDv7). Endpoints:
 
 - `GET /accounting/ingestion/list`
 - `GET /accounting/ingestion/detail?ingestionId=...` (**Decision AD-007**, **AD-006**)
@@ -916,16 +896,14 @@ Endpoints:
 **Response:**
 
 - `processingStatus`: `PROCESSED`, `REJECTED`, `QUARANTINED`
-- `idempotencyOutcome`: `NEW`, `DUPLICATE_IGNORED`, `DUPLICATE_CONFLICT`
-  DLQ/quarantine is represented via `processingStatus = QUARANTINED` plus error fields. (**Decision AD-007**)
+- `idempotencyOutcome`: `NEW`, `DUPLICATE_IGNORED`, `DUPLICATE_CONFLICT` DLQ/quarantine is represented via `processingStatus = QUARANTINED` plus error fields. (**Decision
+  AD-007**)
 
 #### F3. **(blocking)** Timestamp filter basis: default to `occurredAt` vs `receivedAt`; which fields exist?
 
-**Response:**
-Default filtering uses `receivedAt`. Guaranteed fields:
+**Response:** Default filtering uses `receivedAt`. Guaranteed fields:
 
-- `receivedAt`, `processingStatus`, `idempotencyOutcome`, identifiers
-  `occurredAt` may be present but is optional.
+- `receivedAt`, `processingStatus`, `idempotencyOutcome`, identifiers `occurredAt` may be present but is optional.
 
 #### F4. **(blocking)** Permissions: view screens, view payload, retry/reprocess; auditor read-only access?
 
@@ -933,33 +911,28 @@ Default filtering uses `receivedAt`. Guaranteed fields:
 
 - View: `accounting:events:view`
 - View payload: `accounting:events:view-payload`
-- Retry: `accounting:events:retry`
-  Auditors are read-only; they do not receive retry permissions. (**Decision AD-013**)
+- Retry: `accounting:events:retry` Auditors are read-only; they do not receive retry permissions. (**Decision AD-013**)
 
 #### F5. **(blocking)** Posting references: display `ledgerTransactionId` vs `journalEntryId` vs both; which is primary for navigation?
 
-**Response:**
-Primary navigation reference: `journalEntryId`.
-Secondary display reference: `ledgerTransactionId` if present. (**Decision AD-011**)
+**Response:** Primary navigation reference: `journalEntryId`. Secondary display reference: `ledgerTransactionId` if present. (**Decision AD-011**)
 
 #### F6. **(blocking/security)** Payload display policy: raw JSON allowed or must use curated `payloadSummary` with redaction?
 
-**Response:**
-Default: curated `payloadSummary` only.
-Raw JSON allowed only with `accounting:events:view-payload` permission and must not be cached or logged. (**Decision AD-009**)
+**Response:** Default: curated `payloadSummary` only. Raw JSON allowed only with `accounting:events:view-payload` permission and must not be cached or logged. (**Decision
+AD-009**)
 
 #### F7. Retry semantics: synchronous vs async job; if async, polling mechanism (jobId + status endpoint)?
 
-**Response:**
-Retry is async only:
+**Response:** Retry is async only:
 
 - `POST /accounting/ingestion/retry` returns `jobId`
 - `GET /accounting/ingestion/retryStatus?jobId=...` (or equivalent job status endpoint) (**Decision AD-014**)
 
 #### F8. UUID validation behavior: should UI block non-UUID searches or rely on backend validation?
 
-**Response:**
-UI blocks non-UUID identifiers for fields that are UUIDv7 (`eventId`, `invoiceId`, `paymentId`, `refundId`, `ingestionId`, `applicationRequestId`, `exportId`). (**Decision AD-006**)
+**Response:** UI blocks non-UUID identifiers for fields that are UUIDv7 (`eventId`, `invoiceId`, `paymentId`, `refundId`, `ingestionId`, `applicationRequestId`, `exportId`).
+(**Decision AD-006**)
 
 ---
 
@@ -969,141 +942,114 @@ UI blocks non-UUID identifiers for fields that are UUIDv7 (`eventId`, `invoiceId
 
 #### G1. **(blocking)** What is the exact backend endpoint path for **sync event submission** (e.g., `POST /accounting/ingestion/submitSync` vs another path), and what is the exact success response schema (fields and meanings)?
 
-**Response:**  
-TODO/CLARIFY. Not defined in this normative guide yet.
+**Response:** TODO/CLARIFY. Not defined in this normative guide yet.
 
 #### G2. **(blocking)** What permissions gate this submit tool?
 
-- Screen view permission token (new or reuse `accounting:events:view`?) (**Decision AD-013 requires explicit mapping**)  
+- Screen view permission token (new or reuse `accounting:events:view`?) (**Decision AD-013 requires explicit mapping**)
 - Submit/ingest permission token (story currently references `SCOPE_accounting:events:ingest`, but this scope is not defined in the Accounting domain guide)
 
-**Response:**  
-TODO/CLARIFY. Must be explicitly added to **Permission mapping (normative)** before shipping.
+**Response:** TODO/CLARIFY. Must be explicitly added to **Permission mapping (normative)** before shipping.
 
 #### G3. **(blocking)** Does the backend accept `payload` as any valid JSON value, or must it be a JSON object? If object-only, confirm errorCode returned when not an object
 
-**Response:**  
-TODO/CLARIFY. UI must not assume; implement client-side validation only after contract is confirmed.
+**Response:** TODO/CLARIFY. UI must not assume; implement client-side validation only after contract is confirmed.
 
 #### G4. **(blocking)** CoA (GLAccount) backend contract: exact endpoints/services, field names, pagination/sort parameters
 
-**Response:**  
-TODO/CLARIFY. Not defined in this guide.
+**Response:** TODO/CLARIFY. Not defined in this guide.
 
 #### G5. **(blocking)** CoA permissions: explicit tokens for view vs manage (create/update/deactivate)
 
-**Response:**  
-TODO/CLARIFY. Must be added per **Decision AD-013**.
+**Response:** TODO/CLARIFY. Must be added per **Decision AD-013**.
 
 #### G6. **(blocking)** CoA deactivation policy: what conditions block deactivation and what stable `errorCode` values should UI expect?
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G7. **(blocking)** CoA editing inactive accounts: are name/description edits allowed after inactive?
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G8. **(blocking)** CoA list status filtering: server-side support for Active/Inactive/NotYetActive?
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G9. **(blocking)** CoA optimistic locking: ETag/version semantics and conflict response code (409 vs 412)
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G10. **(blocking)** Posting Categories / Mapping Keys / GL Mappings backend contracts: endpoints, schemas, and 409 overlap error details
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G11. **(blocking)** Posting configuration permissions: explicit tokens for view vs manage; auditor read-only access (if distinct)
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G12. **(blocking)** Dimensions schema for GL mappings: authoritative list, types, required/optional rules, and lookup sources
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G13. **(blocking)** Immutability/versioning policy for Posting Categories and Mapping Keys; append-only vs editable-in-place; GL mapping editability
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G14. **(non-blocking unless backend supports auto-end-dating)** Confirm overlap handling policy: always reject overlaps (409) vs auto-end-date prior mapping
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G15. **(non-blocking)** Resolution test endpoint: `mappingKey + transactionDate → postingCategory + glAccount + dimensions` contract and permissions
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G16. **(blocking)** Posting Rule Sets endpoint family: list/detail/versionDetail/create/createVersion/publish/archive
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G17. **(blocking)** Posting Rule Sets permissions: view/create/publish/archive tokens
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G18. **(blocking)** EventType source: authoritative endpoint/service to retrieve recognized EventType values
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G19. **(blocking)** Rules editor schema: is `rulesDefinition` raw JSON only; provide JSON schema and publish validation detail payload shape
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G20. **(blocking)** Journal Entry review endpoints/services and permissions; field naming (`eventId` vs `sourceEventId`, `mappingRuleVersionId` naming) and dimensions fields
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G21. **(blocking)** Rounding/scale for UI balance check: exact decimal equality vs currency-scale rounding and scale per currency
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G22. **(clarification)** Failure policy visibility: should frontend expose failed events/quarantine/DLQ references beyond ingestion monitoring?
 
-**Response:**  
-CLARIFY. Default is: use ingestion monitoring screens only (**Decision AD-007**) unless a separate failure view is explicitly defined.
+**Response:** CLARIFY. Default is: use ingestion monitoring screens only (**Decision AD-007**) unless a separate failure view is explicitly defined.
 
 #### G23. **(blocking)** AP Vendor Bills endpoints/services, schemas, and whether ingestion visibility is embedded vs linked via `ingestionId`
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G24. **(blocking)** AP Vendor Bills permissions: view bills; view linked journal entry; payload summary vs raw payload policy
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G25. **(blocking)** AP origin event taxonomy: canonical upstream event types that create Vendor Bills
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G26. **(blocking)** AP Vendor Bill status enum: canonical values and meanings (for filters/default tabs)
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 #### G27. **(blocking)** AP Bills workflow system-of-record and contracts for approve/schedule commands and emitted scheduling event
 
-**Response:**  
-TODO/CLARIFY.
+**Response:** TODO/CLARIFY.
 
 ---
 
