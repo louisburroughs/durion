@@ -1,7 +1,7 @@
 ---
 name: Code Review Agent
 description: Reviews backend implementation against assigned requirements, architecture policy, and regression risk before PR creation; reports findings only.
-model: Claude Opus 4.7 (copilot)
+model: GPT-5.4 (copilot)
 tools:
   - read/readFile
   - read/problems
