@@ -24,7 +24,8 @@
 	"settings": {
 		"files.associations": {
 			"**/application*.yml": "spring-boot-properties-yaml",
-			"**/bootstrap*.yml": "spring-boot-properties-yaml"
+			"**/bootstrap*.yml": "spring-boot-properties-yaml",
+			"jvm.config": "plaintext"
 		},
 		"java.compile.nullAnalysis.mode": "automatic",
 		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
