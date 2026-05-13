@@ -95,9 +95,18 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0028   | Inventory Stock Item Identifier Consistency Policy    | ACCEPTED              | 2026-02-28 |
 | 0029   | Frontend Accessibility Baseline Policy                | ACCEPTED              | 2026-03-28 |
 | 0030   | Frontend Internationalization and Localization Policy | ACCEPTED              | 2026-03-28 |
+| 0031   | Frontend Mutation Error State Convention              | ACCEPTED              | 2026-03-28 |
+| 0032   | Frontend Test Fixture Interface Conformity            | ACCEPTED              | 2026-03-28 |
+| 0033   | Angular Effect Observable Cancellation Policy         | ACCEPTED              | 2026-03-28 |
+| 0034   | Frontend Server-Generated Field Omission Policy        | ACCEPTED              | 2026-03-28 |
+| 0035   | Frontend Service Method Minimum Test Coverage         | ACCEPTED              | 2026-03-28 |
+| 0036   | Frontend Security Audit Model Ownership Boundary      | ACCEPTED              | 2026-04-08 |
+| 0037   | Frontend SPA Navigation Policy                         | ACCEPTED              | 2026-04-10 |
+| 0038   | Frontend Date-Only String Handling Policy             | ACCEPTED              | 2026-04-11 |
 | 0039   | Frontend Information-Bearing Contrast Policy          | ACCEPTED              | 2026-04-11 |
-| 0040   | Roles, JWT Claims, and Permission Governance Policy   | ACCEPTED              | 2026-04-12 |
+| 0040   | Roles, JWT Permission Governance Policy   | ACCEPTED              | 2026-04-12 |
 | 0041   | Frontend Angular SDK API Transport Policy             | ACCEPTED              | 2026-04-25 |
+| 0042   | OpenAPI Annotation Standards for Backend Services     | ACCEPTED              | 2026-05-12 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -137,7 +146,16 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0030 | Frontend i18n/l10n behavior, locale fallback, translation key strategy, and format localization                                                                    | Coder, Test, Planner, Orchestrator |
 | 0039 | Frontend information-bearing text contrast thresholds (small text 4.5:1, large text 3:1) and ADA/WCAG alignment evidence                                           | Coder, Test, Planner, Orchestrator |
 | 0040 | Roles semantics in frontend UX, JWT claim contract (`roles`, `perm_bits`, `perm_ver`), gateway authority derivation, and role-vs-permission enforcement boundaries | Coder, Test, Planner, Orchestrator |
+| 0031 | Frontend error state population and test expectation setup for mutation/async operations                                                                           | Coder, Test, Planner               |
+| 0032 | Frontend service/mock test fixture typing and interface alignment for spec compliance                                                                            | Coder, Test, Planner               |
+| 0033 | Angular `effect()` subscription lifecycle management, cleanup rules, and `takeUntilDestroyed` vs `onCleanup` semantics                                             | Coder, Test, Planner               |
+| 0034 | Server-generated field omission from request DTOs and prevention of client-supplied server fields in API calls                                                    | Coder, Test, Planner               |
+| 0035 | Service method HTTP verb + URL minimum test coverage expectations and verification strategy                                                                      | Coder, Test, Planner               |
+| 0036 | Frontend security audit boundary: model ownership, principal propagation, and UI authorization gate validation                                                    | Coder, Test, Planner, Orchestrator |
+| 0037 | In-app navigation routing (`routerLink`), button/link semantic correctness, and external link handling                                                           | Coder, Test, Planner               |
+| 0038 | Date-only string (YYYY-MM-DD) parsing and timezone-safe local-date construction without UTC assumptions                                                         | Coder, Test, Planner               |
 | 0041 | Frontend-to-backend Angular transport boundary, SDK-first API consumption, and `ApiBaseService` migration decisions                                                 | Coder, Test, Planner, Orchestrator |
+| 0042 | OpenAPI operation description as tool invocation contract: 7-element structure for unambiguous LLM tool selection and error self-correction                       | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
 
