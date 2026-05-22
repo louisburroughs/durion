@@ -1,72 +1,73 @@
 {
-	"folders": [
-		{
-			"path": ".",
-			"name": "Durion"
-		},
-		{
-			"path": "../durion-positivity-backend",
-			"name": "Backend"
-		},
-		{
-			"path": "../durion-positivity-frontend",
-			"name": "Frontend"
-		},
-		{
-			"path": "../durion-positivity-sdk-angular",
-			"name": "Angular-SDK"
-		},
-		{
-			"path": "../durion-positivity-sdk-java",
-			"name": "Java-SDK"
-		}
-	],
-	"settings": {
-		"files.associations": {
-			"**/application*.yml": "spring-boot-properties-yaml",
-			"**/bootstrap*.yml": "spring-boot-properties-yaml",
-			"jvm.config": "plaintext"
-		},
-		"java.compile.nullAnalysis.mode": "automatic",
-		"java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
-		"java.configuration.updateBuildConfiguration": "interactive",
-		"java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
-		"java.project.explorer.showNonJavaResources": false,
-		"terminal.integrated.scrollback": 2000,
-		"typescript.tsserver.maxTsServerMemory": 2048,
-		"files.exclude": {
-			"../durion-positivity-sdk-java/sdk-java-*/target/**": true,
-			"../durion-positivity-sdk-angular/packages/*/src/**": true,
-			"**/.angular/**": true,
-			"**/coverage/**": true,
-			"**/dist/**": true,
-			"**/build/**": true,
-			"**/out/**": true,
-			"**/target/**": true
-		},
-		"files.watcherExclude": {
-			"**/.git/objects/**": true,
-			"**/.git/subtree-cache/**": true,
-			"**/.angular/**": true,
-			"**/.gradle/**": true,
-			"**/coverage/**": true,
-			"**/dist/**": true,
-			"**/build/**": true,
-			"**/out/**": true,
-			"**/target/**": true,
-			"**/*.hprof": true,
-			"**/*.log": true
-		},
-		"search.exclude": {
-			"**/.angular/**": true,
-			"**/.gradle/**": true,
-			"**/coverage/**": true,
-			"**/dist/**": true,
-			"**/build/**": true,
-			"**/out/**": true,
-			"**/target/**": true,
-			"**/*.hprof": true,
-			"**/*.log": true
-		}
-	}
+  "folders": [
+    {
+      "path": ".",
+      "name": "Durion",
+    },
+    {
+      "path": "../durion-positivity-backend",
+      "name": "Backend",
+    },
+    {
+      "path": "../durion-positivity-frontend",
+      "name": "Frontend",
+    },
+    {
+      "path": "../durion-positivity-sdk-angular",
+      "name": "Angular-SDK",
+    },
+    {
+      "path": "../durion-positivity-sdk-java",
+      "name": "Java-SDK",
+    },
+  ],
+  "settings": {
+    "files.associations": {
+      "**/application*.yml": "spring-boot-properties-yaml",
+      "**/bootstrap*.yml": "spring-boot-properties-yaml",
+      "jvm.config": "plaintext",
+    },
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.format.settings.url": "durion-positivity-backend/.vscode/java-formatter.xml",
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
+    "java.project.explorer.showNonJavaResources": false,
+    "terminal.integrated.scrollback": 2000,
+    "typescript.tsserver.maxTsServerMemory": 2048,
+    "files.exclude": {
+      "../durion-positivity-sdk-java/sdk-java-*/target/**": true,
+      "../durion-positivity-sdk-angular/packages/*/src/**": true,
+      "**/.angular/**": true,
+      "**/coverage/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/out/**": true,
+      "**/target/**": true,
+    },
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/.angular/**": true,
+      "**/.gradle/**": true,
+      "**/coverage/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/out/**": true,
+      "**/target/**": true,
+      "**/*.hprof": true,
+      "**/*.log": true,
+    },
+    "search.exclude": {
+      "**/.angular/**": true,
+      "**/.gradle/**": true,
+      "**/coverage/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/out/**": true,
+      "**/target/**": true,
+      "**/*.hprof": true,
+      "**/*.log": true,
+    },
+    "angular.enable-strict-mode-prompt": false,
+  },
 }
