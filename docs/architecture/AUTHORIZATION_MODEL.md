@@ -257,14 +257,19 @@ These expose specialized or legacy RBAC-matrix style operations. They are not ho
 
 ## Known Drift And Open Risks
 
-The following mismatches are real as of 2026-06-07 and must be considered part of the current contract state:
+Items 1 and 2 below have been resolved. Items 3 and 4 remain open.
 
-1. `PermissionCode.CATALOG_VERSION` is `7` while `GatewayPermissionCatalog.CATALOG_VERSION` is `6`.
-2. `POST /v1/auth/token-pair` is `permitAll()` and accepts `subject` plus optional `roles`, which does not match the normal login flow.
-3. Some older docs still describe access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`.
-4. Some older docs describe the authorization model as fully data-driven even though token permission emission still depends on `RoleAuthorityServiceImpl`.
+### Resolved
 
-Until these are remediated, this document should be treated as the authoritative description of current behavior, not as proof that the model is fully stabilized.
+1. ~~`PermissionCode.CATALOG_VERSION` was `7` while `GatewayPermissionCatalog.CATALOG_VERSION` was `6`.~~ Fixed: both are now `8`. Twenty-three previously-dark permissions were also added to `PermissionCode` and the gateway catalog.
+2. ~~`POST /v1/auth/token-pair` was `permitAll()`.~~ Fixed: the endpoint now requires `security:token:issue_internal`.
+
+### Open
+
+3. Some older docs still describe access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`. See `AUTH_TOKEN_USAGE_GUIDE.md` for the current contract.
+4. Some older docs describe the authorization model as fully data-driven even though token permission emission still depends on `RoleAuthorityServiceImpl`. A migration from the hardcoded expansion to persisted `role_permissions` data has not yet begun.
+
+Until items 3 and 4 are remediated, treat this document as authoritative on runtime behavior, not as proof of a fully stabilized model.
 
 ## Related Documents
 
