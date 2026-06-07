@@ -15,6 +15,7 @@ Use this index to find the current architectural source before consulting older 
 
 ### Core Architecture
 
+- [Authorization Model](./AUTHORIZATION_MODEL.md) - Canonical explanation of how roles, permissions, `perm_bits`, token claims, gateway decoding, and downstream `@PreAuthorize` checks work together today
 - [API Security Architecture](./API_SECURITY_ARCHITECTURE.md) - Current frontend, gateway, JWT, role, and permission boundary aligned to ADR-0011, ADR-0014, ADR-0040, and ADR-0041
 - [Backend Contract Global Standards](./api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md) - Normative rules for backend contract guides and OpenAPI source-of-truth boundaries
 - [GitHub Branching Strategy](./branching-strategy.md) - Branch naming, protection, PR flow, and release branching conventions
@@ -57,6 +58,7 @@ Use this index to find the current architectural source before consulting older 
 ### Current And Actively Useful
 
 - API security architecture
+- Authorization model
 - Backend contract standards
 - Deployment architecture and provisioning runbooks
 - Observability architecture

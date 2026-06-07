@@ -8,6 +8,16 @@
 
 ---
 
+## Amendment
+
+This ADR still records the gateway ownership decision, but it is no longer the live claim-contract reference.
+
+- Claim semantics in this ADR that describe access tokens carrying `authorities` are superseded by [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md) and [Authorization Model](../architecture/AUTHORIZATION_MODEL.md).
+- Current runtime behavior uses `perm_bits` plus `perm_ver` as the primary authority payload, with a temporary legacy `authorities` fallback in gateway code for older tokens.
+- Read this ADR for trust-boundary and ownership intent, not for the exact access-token field contract.
+
+---
+
 ## Context
 
 The backend platform requires a single, consistent ownership model for authentication and authorization.
