@@ -257,19 +257,14 @@ These expose specialized or legacy RBAC-matrix style operations. They are not ho
 
 ## Known Drift And Open Risks
 
-Items 1 and 2 below have been resolved. Items 3 and 4 remain open.
+All four tracked items have been resolved. No open documentation drift remains.
 
 ### Resolved
 
 1. ~~`PermissionCode.CATALOG_VERSION` was `7` while `GatewayPermissionCatalog.CATALOG_VERSION` was `6`.~~ Fixed: both are now `8`. Twenty-three previously-dark permissions were also added to `PermissionCode` and the gateway catalog.
 2. ~~`POST /v1/auth/token-pair` was `permitAll()`.~~ Fixed: the endpoint now requires `security:token:issue_internal`.
-
-### Open
-
-3. Some older docs still describe access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`. See `AUTH_TOKEN_USAGE_GUIDE.md` for the current contract.
-4. Some older docs describe the authorization model as fully data-driven even though token permission emission still depends on `RoleAuthorityServiceImpl`. A migration from the hardcoded expansion to persisted `role_permissions` data has not yet begun.
-
-Until items 3 and 4 are remediated, treat this document as authoritative on runtime behavior, not as proof of a fully stabilized model.
+3. ~~Some older docs described access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`.~~ Fixed: `AUTH_TOKEN_USAGE_GUIDE.md`, `permissions-encoding.md`, and `security-service-guide.md` now describe the `perm_bits`/`perm_ver` contract exclusively. The legacy `authorities` claim path in the gateway is documented as a read-only fallback for pre-migration tokens only.
+4. ~~Some older docs described the authorization model as fully data-driven.~~ Fixed: `security-service-guide.md` now explicitly states that token permissions are emitted from `RoleAuthorityServiceImpl`, a hardcoded role expansion layer. The migration from hardcoded expansion to persisted `role_permissions` data has not yet begun and is tracked separately.
 
 ## Related Documents
 
