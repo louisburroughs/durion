@@ -282,6 +282,7 @@ scripts/generate-permissions.sh --sync
 ```
 
 This does everything in one pass:
+
 - Scans all `@PreAuthorize` annotations and finds permissions not yet registered in `PermissionCode`
 - Appends new enum constants at the next available bit indices in `pos-security-service/.../PermissionCode.java`
 - Appends corresponding `"PERM_..."` entries to `AUTHORITY_BY_BIT` in `pos-api-gateway/.../GatewayPermissionCatalog.java`
@@ -316,7 +317,8 @@ Same as the script path above.
 
 #### Step 2: Assign a bit index and bump the catalog version
 
-This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up equal.
+This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up
+equal.
 
 **`pos-security-service/.../PermissionCode.java`** — append the new constant at the next unused bit index and increment `CATALOG_VERSION`:
 
