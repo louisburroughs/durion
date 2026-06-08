@@ -30,7 +30,8 @@ Code is the final authority when this document and older docs disagree. The runt
 
 - **User**: the login account in `pos-security-service`.
 - **Person**: the stable human identity record linked to a user account when available.
-- **Role**: a coarse assignment label such as `ADMIN` or `MANAGER`. Roles are used by the frontend for UX gating and by token issuance as the starting point for authority expansion.
+- **Role**: a coarse assignment label such as `ADMIN` or `MANAGER`. Roles are used by the frontend for UX gating and by token issuance as the starting point for authority
+  expansion.
 - **Permission**: a canonical `domain:resource:action` API authorization unit such as `security:user:create`.
 - **Authority**: the Spring Security string checked by downstream `@PreAuthorize` rules. In current services this is usually the plain permission string, not a role.
 - **`perm_bits`**: Base64URL-encoded permission bitset stored in access tokens.
@@ -176,7 +177,8 @@ This hardcoded expansion is what drives `perm_bits` in issued access tokens toda
 
 ### Step 3: permissions are encoded
 
-Only authorities that map to `PermissionCode` values become bits in `perm_bits`. The token therefore carries a compact permission payload rather than a string list of authorities.
+Only authorities that map to `PermissionCode` values become bits in `perm_bits`. The token therefore carries a compact permission payload rather than a string list of
+authorities.
 
 ## Gateway Decoding And Forwarding
 
@@ -197,7 +199,8 @@ For bearer-token requests it currently:
 
 ### Legacy compatibility
 
-If a token has no `perm_ver` but does contain an `authorities` claim, the gateway still supports a temporary legacy fallback and forwards those authorities directly. New issuance is not supposed to rely on this.
+If a token has no `perm_ver` but does contain an `authorities` claim, the gateway still supports a temporary legacy fallback and forwards those authorities directly. New
+issuance is not supposed to rely on this.
 
 ## Downstream Spring Security Behavior
 
@@ -232,7 +235,8 @@ This is the data-driven RBAC model many older docs describe.
 
 ### Runtime token-emission model
 
-`JwtServiceImpl` does not currently derive token permissions from persisted `role_permissions`. It derives them from `RoleAuthorityServiceImpl`, which is a hardcoded role-to-authority expansion table.
+`JwtServiceImpl` does not currently derive token permissions from persisted `role_permissions`. It derives them from `RoleAuthorityServiceImpl`, which is a hardcoded
+role-to-authority expansion table.
 
 That means:
 
@@ -255,16 +259,73 @@ These expose specialized or legacy RBAC-matrix style operations. They are not ho
 2. token validation and authority derivation in `pos-api-gateway`
 3. `@PreAuthorize` checks in downstream services using gateway-provided context
 
+## Adding a New Permission
+
+Follow these steps when introducing a new permission to the platform. Steps 1 and 2 are independent and can be done in either order, but all three must be complete before deploying.
+
+### Step 1: Annotate the controller
+
+Add `@PreAuthorize` to the controller method using the new permission string:
+
+```java
+@PreAuthorize("hasAuthority('domain:resource:action')")
+```
+
+Use `hasAnyAuthority(...)` when more than one permission should grant access.
+
+### Step 2: Assign a bit index and bump the catalog version
+
+This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up equal.
+
+**`pos-security-service/.../PermissionCode.java`** — append the new constant at the next unused bit index and increment `CATALOG_VERSION`:
+
+```java
+DOMAIN__RESOURCE__ACTION(285, "domain:resource:action");
+public static final int CATALOG_VERSION = 9;
+```
+
+**`pos-api-gateway/.../GatewayPermissionCatalog.java`** — append the matching entry to `AUTHORITY_BY_BIT` at the same index position and increment `CATALOG_VERSION`:
+
+```java
+"PERM_domain:resource:action",  // 285
+```
+```java
+public static final int CATALOG_VERSION = 9;
+```
+
+Bit indices are **permanent**. Never renumber or remove an existing entry — issued tokens contain encoded bit positions and would decode incorrectly against a reordered array.
+
+Also add the permission to `RoleAuthorityServiceImpl` for any roles that should receive it automatically at token issuance.
+
+### Step 3: Regenerate permissions.yaml
+
+```bash
+scripts/generate-permissions.sh
+```
+
+This scans the updated source and adds the new permission string to the owning module's `permissions.yaml`, which registers it with the security service at startup. See [`scripts/README.md`](../../../durion-positivity-backend/scripts/README.md#generate-permissionssh) for full options.
+
+### Deployment order
+
+`pos-security-service` must deploy before `pos-api-gateway`. The gateway's `PermissionVersionStartupCheck` polls the security service on startup and throws `IllegalStateException` if `CATALOG_VERSION` values do not match.
+
+---
+
 ## Known Drift And Open Risks
 
 All four tracked items have been resolved. No open documentation drift remains.
 
 ### Resolved
 
-1. ~~`PermissionCode.CATALOG_VERSION` was `7` while `GatewayPermissionCatalog.CATALOG_VERSION` was `6`.~~ Fixed: both are now `8`. Twenty-three previously-dark permissions were also added to `PermissionCode` and the gateway catalog.
+1. ~~`PermissionCode.CATALOG_VERSION` was `7` while `GatewayPermissionCatalog.CATALOG_VERSION` was `6`.~~ Fixed: both are now `8`. Twenty-three previously-dark permissions
+   were also added to `PermissionCode` and the gateway catalog.
 2. ~~`POST /v1/auth/token-pair` was `permitAll()`.~~ Fixed: the endpoint now requires `security:token:issue_internal`.
-3. ~~Some older docs described access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`.~~ Fixed: `AUTH_TOKEN_USAGE_GUIDE.md`, `permissions-encoding.md`, and `security-service-guide.md` now describe the `perm_bits`/`perm_ver` contract exclusively. The legacy `authorities` claim path in the gateway is documented as a read-only fallback for pre-migration tokens only.
-4. ~~Some older docs described the authorization model as fully data-driven.~~ Fixed: `security-service-guide.md` now explicitly states that token permissions are emitted from `RoleAuthorityServiceImpl`, a hardcoded role expansion layer. The migration from hardcoded expansion to persisted `role_permissions` data has not yet begun and is tracked separately.
+3. ~~Some older docs described access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`.~~ Fixed: `AUTH_TOKEN_USAGE_GUIDE.md`,
+   `permissions-encoding.md`, and `security-service-guide.md` now describe the `perm_bits`/`perm_ver` contract exclusively. The legacy `authorities` claim path in the gateway
+   is documented as a read-only fallback for pre-migration tokens only.
+4. ~~Some older docs described the authorization model as fully data-driven.~~ Fixed: `security-service-guide.md` now explicitly states that token permissions are emitted from
+   `RoleAuthorityServiceImpl`, a hardcoded role expansion layer. The migration from hardcoded expansion to persisted `role_permissions` data has not yet begun and is tracked
+   separately.
 
 ## Related Documents
 
