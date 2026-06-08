@@ -261,7 +261,8 @@ These expose specialized or legacy RBAC-matrix style operations. They are not ho
 
 ## Adding a New Permission
 
-Follow these steps when introducing a new permission to the platform. Steps 1 and 2 are independent and can be done in either order, but all three must be complete before deploying.
+Follow these steps when introducing a new permission to the platform. Steps 1 and 2 are independent and can be done in either order, but all three must be complete before
+deploying.
 
 ### Step 1: Annotate the controller
 
@@ -275,7 +276,8 @@ Use `hasAnyAuthority(...)` when more than one permission should grant access.
 
 ### Step 2: Assign a bit index and bump the catalog version
 
-This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up equal.
+This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up
+equal.
 
 **`pos-security-service/.../PermissionCode.java`** — append the new constant at the next unused bit index and increment `CATALOG_VERSION`:
 
@@ -289,6 +291,7 @@ public static final int CATALOG_VERSION = 9;
 ```java
 "PERM_domain:resource:action",  // 285
 ```
+
 ```java
 public static final int CATALOG_VERSION = 9;
 ```
@@ -303,11 +306,13 @@ Also add the permission to `RoleAuthorityServiceImpl` for any roles that should 
 scripts/generate-permissions.sh
 ```
 
-This scans the updated source and adds the new permission string to the owning module's `permissions.yaml`, which registers it with the security service at startup. See [`scripts/README.md`](../../../durion-positivity-backend/scripts/README.md#generate-permissionssh) for full options.
+This scans the updated source and adds the new permission string to the owning module's `permissions.yaml`, which registers it with the security service at startup. See
+[`scripts/README.md`](../../../durion-positivity-backend/scripts/README.md#generate-permissionssh) for full options.
 
 ### Deployment order
 
-`pos-security-service` must deploy before `pos-api-gateway`. The gateway's `PermissionVersionStartupCheck` polls the security service on startup and throws `IllegalStateException` if `CATALOG_VERSION` values do not match.
+`pos-security-service` must deploy before `pos-api-gateway`. The gateway's `PermissionVersionStartupCheck` polls the security service on startup and throws
+`IllegalStateException` if `CATALOG_VERSION` values do not match.
 
 ---
 
