@@ -261,10 +261,11 @@ These expose specialized or legacy RBAC-matrix style operations. They are not ho
 
 ## Adding a New Permission
 
-Follow these steps when introducing a new permission to the platform. Steps 1 and 2 are independent and can be done in either order, but all three must be complete before
-deploying.
+There are two ways to add a permission: via the script (recommended) or manually. Both require Step 1. All steps must be complete before deploying.
 
-### Step 1: Annotate the controller
+### Script path (recommended)
+
+#### Step 1: Annotate the controller
 
 Add `@PreAuthorize` to the controller method using the new permission string:
 
@@ -274,10 +275,48 @@ Add `@PreAuthorize` to the controller method using the new permission string:
 
 Use `hasAnyAuthority(...)` when more than one permission should grant access.
 
-### Step 2: Assign a bit index and bump the catalog version
+#### Step 2: Run generate-permissions with --sync
 
-This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up
-equal.
+```bash
+scripts/generate-permissions.sh --sync
+```
+
+This does everything in one pass:
+- Scans all `@PreAuthorize` annotations and finds permissions not yet registered in `PermissionCode`
+- Appends new enum constants at the next available bit indices in `pos-security-service/.../PermissionCode.java`
+- Appends corresponding `"PERM_..."` entries to `AUTHORITY_BY_BIT` in `pos-api-gateway/.../GatewayPermissionCatalog.java`
+- Bumps `CATALOG_VERSION` by 1 in both files
+- Adds the permission to the owning module's `permissions.yaml`
+
+Preview changes without writing:
+
+```bash
+scripts/generate-permissions.sh --sync --dry-run
+```
+
+Check for unregistered permissions (CI mode, exits non-zero if any are found):
+
+```bash
+scripts/generate-permissions.sh --sync --check
+```
+
+#### Step 3: Assign roles
+
+Add the permission to `RoleAuthorityServiceImpl` for any roles that should receive it automatically at token issuance.
+
+---
+
+### Manual path
+
+Use this when you need precise control over the bit index or section grouping.
+
+#### Step 1: Annotate the controller
+
+Same as the script path above.
+
+#### Step 2: Assign a bit index and bump the catalog version
+
+This step is required for the permission to be encoded in JWTs and decoded by the gateway. Both files must change together and their `CATALOG_VERSION` constants must end up equal.
 
 **`pos-security-service/.../PermissionCode.java`** — append the new constant at the next unused bit index and increment `CATALOG_VERSION`:
 
@@ -298,9 +337,7 @@ public static final int CATALOG_VERSION = 9;
 
 Bit indices are **permanent**. Never renumber or remove an existing entry — issued tokens contain encoded bit positions and would decode incorrectly against a reordered array.
 
-Also add the permission to `RoleAuthorityServiceImpl` for any roles that should receive it automatically at token issuance.
-
-### Step 3: Regenerate permissions.yaml
+#### Step 3: Regenerate permissions.yaml
 
 ```bash
 scripts/generate-permissions.sh
@@ -308,6 +345,12 @@ scripts/generate-permissions.sh
 
 This scans the updated source and adds the new permission string to the owning module's `permissions.yaml`, which registers it with the security service at startup. See
 [`scripts/README.md`](../../../durion-positivity-backend/scripts/README.md#generate-permissionssh) for full options.
+
+#### Step 4: Assign roles
+
+Add the permission to `RoleAuthorityServiceImpl` for any roles that should receive it automatically at token issuance.
+
+---
 
 ### Deployment order
 
