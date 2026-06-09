@@ -36,7 +36,9 @@ Code is the final authority when this document and older docs disagree. The runt
 - **Authority**: the Spring Security string checked by downstream `@PreAuthorize` rules. In current services this is usually the plain permission string, not a role.
 - **`perm_bits`**: Base64URL-encoded permission bitset stored in access tokens.
 - **`perm_ver`**: integer permission-catalog version used when decoding `perm_bits`.
-- **`X-Authorities`**: trusted comma-separated authority header injected by the gateway after token validation.
+- **`X-Perm-Bits`**: compact Base64URL-encoded permission bitset forwarded by the gateway to downstream services. Replaces the verbose `X-Authorities` CSV for gateway-to-service traffic. Decoded by `GatewayAuthoritiesFilter` using `DownstreamPermissionCatalog`.
+- **`X-Perm-Ver`**: integer permission-catalog version accompanying `X-Perm-Bits`. Must equal `DownstreamPermissionCatalog.CATALOG_VERSION` for the filter to use the compact decode path.
+- **`X-Authorities`**: legacy/fallback comma-separated authority header. Still used by service-to-service REST clients (which inject 1–3 plain permission strings) and integration tests. Recognised by `GatewayAuthoritiesFilter` as a fallback when `X-Perm-Bits` is absent. Not the primary gateway-to-service forwarding mechanism.
 - **`X-Roles`**: trusted comma-separated normalized role header injected by the gateway after token validation.
 
 ## High-Level Flow
@@ -59,7 +61,8 @@ pos-api-gateway
   - validates issuer, audience, signature, expiry
   - rejects mismatched or malformed permission catalog claims
   - decodes perm_bits into authorities
-  - injects X-User, X-User-Id, X-Authorities, X-Roles
+  - forwards raw perm_bits as X-Perm-Bits + X-Perm-Ver
+  - injects X-User, X-User-Id, X-Roles
     |
     v
 downstream services
@@ -194,7 +197,8 @@ For bearer-token requests it currently:
 6. injects trusted downstream headers:
    - `X-User`
    - `X-User-Id`
-   - `X-Authorities`
+   - `X-Perm-Bits` (raw Base64URL-encoded permission bitset from the token `perm_bits` claim)
+   - `X-Perm-Ver` (permission catalog version from the token `perm_ver` claim)
    - `X-Roles`
 
 ### Legacy compatibility
@@ -208,13 +212,16 @@ issuance is not supposed to rely on this.
 
 Important behavior:
 
-- it trusts `X-Authorities`, `X-Roles`, and `X-User` from the gateway
+- it uses a two-path authority resolution with explicit precedence:
+  1. **Preferred path**: if both `X-Perm-Bits` and `X-Perm-Ver` are present and `X-Perm-Ver` equals `DownstreamPermissionCatalog.CATALOG_VERSION`, the filter decodes the bitset using `DownstreamPermissionCatalog` to recover authorities.
+  2. **Fallback path**: if `X-Perm-Bits` is absent, the filter falls back to parsing the `X-Authorities` CSV. This covers service-to-service REST clients and integration tests that inject plain permission strings directly.
+- it trusts `X-Roles` and `X-User` from the gateway in both paths
 - it parses the bearer token payload to recover `uid`
-- it converts `PERM_<code>` authorities into both:
+- each `PERM_<code>` authority decoded from the bitset is expanded into both:
   - the raw `PERM_<code>` form
   - the plain permission string expected by existing `@PreAuthorize("hasAuthority('...')")` checks
 
-This is why downstream services can continue using plain permission strings even though the gateway transmits a prefixed authority format.
+This is why downstream services can continue using plain permission strings even though the gateway forwards a compact bitset.
 
 ## Current Reality Vs Intended Model
 
@@ -286,7 +293,8 @@ This does everything in one pass:
 - Scans all `@PreAuthorize` annotations and finds permissions not yet registered in `PermissionCode`
 - Appends new enum constants at the next available bit indices in `pos-security-service/.../PermissionCode.java`
 - Appends corresponding `"PERM_..."` entries to `AUTHORITY_BY_BIT` in `pos-api-gateway/.../GatewayPermissionCatalog.java`
-- Bumps `CATALOG_VERSION` by 1 in both files
+- Updates `pos-security-common/.../DownstreamPermissionCatalog.java` to match, so the filter can decode the new bits in downstream services
+- Bumps `CATALOG_VERSION` by 1 in all three files
 - Adds the permission to the owning module's `permissions.yaml`
 
 Preview changes without writing:
@@ -311,7 +319,7 @@ Add the permission to `RoleAuthorityServiceImpl` for any roles that should recei
 
 Use this when you need precise control over the bit index or section grouping.
 
-#### Step 1: Annotate the controller
+#### Step 1: Annotate the controller (Same as Before)
 
 Same as the script path above.
 

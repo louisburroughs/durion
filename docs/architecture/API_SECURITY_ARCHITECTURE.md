@@ -28,7 +28,8 @@ Browser / Angular frontend
 API Gateway (`pos-api-gateway`)
   - validates JWT
   - strips spoofable identity headers
-  - derives trusted X-Authorities and X-Roles
+  - forwards compact X-Perm-Bits + X-Perm-Ver derived from the JWT perm_bits claim
+  - injects trusted X-User, X-User-Id, X-Roles
   - forwards only whitelisted routes
         |
         v
@@ -67,8 +68,8 @@ The gateway is responsible for:
 
 - being the single public backend entry point
 - validating tokens before forwarding requests
-- deriving trusted downstream authorities from token claims
-- injecting trusted user and authorization headers
+- forwarding compact `X-Perm-Bits` + `X-Perm-Ver` headers derived from the JWT `perm_bits` claim
+- injecting trusted `X-User`, `X-User-Id`, `X-Roles` headers
 
 ### Downstream Services
 
@@ -91,7 +92,7 @@ The live token contract is documented in [Authorization Model](./AUTHORIZATION_M
 
 - access tokens carry `roles`, `perm_bits`, and `perm_ver`
 - refresh tokens do not carry authorization payloads
-- gateway decoding produces trusted `X-Authorities` and `X-Roles`
+- gateway decoding produces trusted `X-Perm-Bits`, `X-Perm-Ver`, and `X-Roles`; `X-Authorities` is a legacy fallback for service-to-service and integration-test traffic
 - downstream services authorize using Spring Security authorities
 
 ## Related Documents
