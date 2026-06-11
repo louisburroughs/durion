@@ -1,10 +1,18 @@
 # ADR-0011: API Gateway Security Architecture
 
-**Status:** ACCEPTED
-**Date:** 2026-02-01
-**Last Updated:** 2026-03-17
-**Deciders:** Backend Architecture, Security Team
-**Affected Issues:** Cross-service authentication and authorization
+**Status:** ACCEPTED **Date:** 2026-02-01 **Last Updated:** 2026-03-17 **Deciders:** Backend Architecture, Security Team **Affected Issues:** Cross-service authentication and
+authorization
+
+---
+
+## Amendment
+
+This ADR still records the gateway ownership decision, but it is no longer the live claim-contract reference.
+
+- Claim semantics in this ADR that describe access tokens carrying `authorities` are superseded by [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md) and
+  [Authorization Model](../architecture/AUTHORIZATION_MODEL.md).
+- Current runtime behavior uses `perm_bits` plus `perm_ver` as the primary authority payload, with a temporary legacy `authorities` fallback in gateway code for older tokens.
+- Read this ADR for trust-boundary and ownership intent, not for the exact access-token field contract.
 
 ---
 
@@ -69,7 +77,7 @@ The platform now also has shared reference artifacts that make this security bou
 
 **Decision:** ✅ **Resolved** - Tokens accepted by gateway must meet this contract.
 
-```
+```text
 Header:
 - alg: HS256 (or configured signing algorithm)
 - typ: JWT
@@ -131,7 +139,8 @@ public ResponseEntity<?> approve(...) { ... }
 
 Backend code reads authenticated user identity from `Authentication.getName()` (or equivalent principal abstraction) and must not perform role ownership logic.
 
-The aggregated permission catalog in `pos-security-service/docs/permissions-aggregate.yaml` is the consumer-facing reference for canonical permission names exposed by platform modules.
+The aggregated permission catalog in `pos-security-service/docs/permissions-aggregate.yaml` is the consumer-facing reference for canonical permission names exposed by platform
+modules.
 
 ### 6. Network and Exposure Constraints
 
@@ -203,7 +212,8 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
 - `pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md` is the canonical consumer guide for login, refresh, validate, revoke, and gateway header usage patterns
 - `pos-security-service/docs/permissions-aggregate.yaml` is the canonical aggregated permission reference for SDK/docs generation and consumer-facing permission lookup
 - `pos-api-gateway/docs/openapi-aggregate.yaml` is the aggregate API discovery/reference artifact for gateway-routed APIs
-- `com.positivity.shared.error.ApiError` is the canonical backend error envelope for auth and authorization failures, including correlation IDs and validation/guidance fields where applicable
+- `com.positivity.shared.error.ApiError` is the canonical backend error envelope for auth and authorization failures, including correlation IDs and validation/guidance fields
+  where applicable
 
 ### Testing Strategy
 
@@ -230,27 +240,17 @@ The aggregated permission catalog in `pos-security-service/docs/permissions-aggr
   - [ADR-0025: Permissions Manifest Registration Policy](0025-permissions-yaml-registration-policy.adr.md)
 
 - **Related Repo Guidance**:
-  - [Backend AGENTS.md](../../durion-positivity-backend/AGENTS.md)
-  - [Platform Auth and Token Usage Guide](../../durion-positivity-backend/pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md)
-  - [Aggregated Permissions Catalog](../../durion-positivity-backend/pos-security-service/docs/permissions-aggregate.yaml)
-  - [Gateway Aggregate API Reference](../../durion-positivity-backend/pos-api-gateway/docs/openapi-aggregate.yaml)
-  - [Shared Error Envelope](../../durion-positivity-backend/docs/ERROR_ENVELOPE.md)
-  - [ApiError.java](../../durion-positivity-backend/pos-shared-dtos/src/main/java/com/positivity/shared/error/ApiError.java)
+  - [Backend AGENTS.md](https://github.com/louisburroughs/durion-positivity-backend/blob/main/AGENTS.md)
+  - [Platform Auth and Token Usage Guide](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md)
+  - [Aggregated Permissions Catalog](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service/docs/permissions-aggregate.yaml)
+  - [Gateway Aggregate API Reference](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-api-gateway/docs/openapi-aggregate.yaml)
+  - [Shared Error Envelope](https://github.com/louisburroughs/durion-positivity-backend/blob/main/docs/ERROR_ENVELOPE.md)
+  - [ApiError.java](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shared-dtos/src/main/java/com/positivity/shared/error/ApiError.java)
 
 - **External Resources**:
   - [Spring Cloud Gateway Security](https://spring.io/projects/spring-cloud-gateway)
   - [Spring Security Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/)
   - [JWT Best Practices (RFC 8725)](https://www.rfc-editor.org/rfc/rfc8725)
-
----
-
-## Sign-Off
-
-| Role         | Name      | Date       | Notes                                                                                             |
-| ------------ | --------- | ---------- | ------------------------------------------------------------------------------------------------- |
-| Architecture | [Pending] | 2026-03-17 | Security ownership consolidated in pos-security-service and related consumer artifacts documented |
-| Backend Lead | [Pending] | 2026-03-17 | Gateway boundary, header conventions, and shared error contract confirmed                         |
-| Security     | [Pending] | 2026-03-17 | JWT contract, permission catalog, and token lifecycle guidance confirmed                          |
 
 ---
 

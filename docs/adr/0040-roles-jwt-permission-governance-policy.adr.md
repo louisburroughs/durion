@@ -28,6 +28,8 @@ This creates avoidable regressions and uncertainty:
 
 This ADR defines a single policy so frontend UX and backend security can evolve without ambiguity.
 
+Implementation detail for the live contract now lives in [Authorization Model](../architecture/AUTHORIZATION_MODEL.md). This ADR remains policy-level and should not be treated as the endpoint-by-endpoint or class-by-class runtime guide.
+
 ---
 
 ## Decision
@@ -79,7 +81,7 @@ Refresh tokens may include only identity/lifecycle claims needed for refresh exc
 **Decision:** ✅ **Resolved** - New token issuance must not emit an `authorities` claim.
 
 - `authorities` remains legacy-read compatibility only.
-- Gateway may support temporary fallback handling only for controlled migration windows.
+- Gateway may support temporary legacy `authorities` fallback handling only for controlled migration windows, and that fallback still exists in current gateway code.
 - Greenfield contract is `perm_bits` + `perm_ver` for authority derivation.
 
 ### 5. Gateway and Service Enforcement Boundary
@@ -138,6 +140,8 @@ Refresh tokens may include only identity/lifecycle claims needed for refresh exc
 ---
 
 ## Implementation Notes
+
+See [Authorization Model](../architecture/AUTHORIZATION_MODEL.md) for the current implementation narrative, including known drift between policy intent and the live code.
 
 ### Backend (`pos-security-service`)
 
