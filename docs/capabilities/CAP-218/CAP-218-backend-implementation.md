@@ -138,3 +138,52 @@ Full module **285/285 pass**; Spotless applied; adversarial review PASS.
   `@Transactional(readOnly = true)` at the service layer (the two grouped
   sums are not atomic on their own).
 
+---
+
+## Story #658 — Inventory: Site Inventory Rollup by Storage Location Hierarchy
+
+- **Issue:** https://github.com/louisburroughs/durion-positivity-backend/issues/658
+- **Spec:** `durion` repo — `domains/inventory/SPEC-inventory-location-rollup.md` (FR-1, FR-6, FR-7, FR-8)
+- **Branch:** `cap/CAP218`
+- **Commit:** `63676bd`
+- **Status:** ✅ Implemented, tested, pushed (no PR — capability completion pending)
+
+### Changes (pos-inventory, 13 files, +926)
+
+| Artifact | Purpose |
+| --- | --- |
+| `internal/client/StorageLocationTopologyClient` (FR-6) | Consumes pos-location `/v1/locations/{siteId}/storage-locations/topology` (#655 contract); 404 → `LocationNotFoundException`, 5xx/timeout → `LocationServiceUnavailableException`; consumer-side `StorageLocationNode` record |
+| `internal/service/SiteInventoryQuantityLoader` | Loads on-hand + outstanding-allocation maps in ONE `@Transactional(readOnly = true)` scope using #657 chunked queries (honors #657 handoff note); SKU-scoped variant composes CREATED − RELEASED |
+| `internal/service/SiteInventoryRollupServiceImpl` (FR-7) | Topology fetch outside transaction → tree build on `parentStorageLocationId` (orphan parents attach to root) → depth-first post-order `rolledUp` sums → `includeEmpty`/`depth` pruning last; children sorted by name |
+| `service/SiteInventoryRollupService` | Public interface (module split convention) |
+| `internal/dto/rollup/*` (3 records) | `RollupQuantities` (available unclamped), `StorageLocationRollupNode` (own/rolledUp/children), `SiteInventoryRollupResponse` |
+| `internal/controller/SiteInventoryRollupController` (FR-8) | `GET /v1/inventory/sites/{siteId}/inventory-rollup?sku&depth&includeEmpty`; `@PreAuthorize('inventory:on_hand:view')`; full OpenAPI incl. 503 |
+| `InventoryGlobalExceptionHandler` | New 503 mapping `LOCATION_SERVICE_UNAVAILABLE` |
+
+### Tests (18 new)
+
+- Service (9): 3-level own/rolledUp math, SKU-scoped queries incl. allocation
+  CREATED−RELEASED, orphan parent → root, negative available unclamped,
+  includeEmpty pruning (parents of non-empty children survive), depth=1
+  truncation with full-tree totals, empty site → empty 200, 404/503
+  propagation.
+- Contract IT (6): 200 tree shape, query param pass-through, depth=0 → 400,
+  404 NOT_FOUND, 503 LOCATION_SERVICE_UNAVAILABLE, 403 without authority.
+- Client (3): contract field mapping (MockRestServiceServer), 404 → not
+  found, 5xx → unavailable.
+- Full module: **297/297 pass** incl. ArchUnit 12/12. Spotless applied.
+
+### Deviations
+
+- Spec's example response had `siteName`; the topology contract carries no
+  site name, so the response omits it (consumer can resolve the site via
+  pos-location). Documented in OpenAPI.
+- Orphan WARN log omitted: bulk queries are restricted to known ids, so
+  orphans are invisible without a dedicated scan the spec forbade.
+
+### Next
+
+- #659 (parent-location rollup, `expand=tree`) reuses
+  `SiteInventoryRollupService` per site; needs `fetchDescendants` added to
+  the topology client against the #655 descendants endpoint.
+

@@ -352,6 +352,17 @@ Story #33 — Cross-dock to Workorder:
 - Consumption-closure invariant: whichever flow posts `WORKORDER_CONSUMPTION` for allocated stock must also close the allocation with `ALLOCATION_RELEASED`, otherwise outstanding allocations double-count consumed stock.
 - No backfill: allocation rows hardened before this change keep `locationId = null`; ledger reflects events from deployment forward.
 
+#### Story #658 — Site Inventory Rollup by Storage Location Hierarchy
+
+- `GET /v1/inventory/sites/{siteId}/inventory-rollup` returns `{siteId, totals, nodes}` where each node carries `own` (quantities recorded directly at that storage location) and `rolledUp` (`own` + all descendants), each as `{onHand, allocated, available}`.
+- `available = onHand − allocated`, NOT clamped — negative available signals over-allocation.
+- `allocated` derives from ledger `ALLOCATION_CREATED − ALLOCATION_RELEASED` (Story #656 semantics), site totals = sum of root nodes' `rolledUp`.
+- Topology comes from pos-location's `/storage-locations/topology` contract at request time (ADR-0016); nodes whose parent id is unknown to the site attach to root.
+- Query params: `sku` (scopes all quantities), `depth` (≥1, truncates returned tree only — totals stay full-tree), `includeEmpty` (default false: all-zero nodes pruned; parents of non-empty children survive).
+- Orphan ledger rows (location ids not in the site's topology) are excluded in v1; no `unassigned` bucket.
+- Empty site → `200` with empty `nodes` and zero totals; unknown site → `404 NOT_FOUND`; pos-location unreachable/5xx → `503 LOCATION_SERVICE_UNAVAILABLE` (no partial topology fabrication); `depth=0` → `400`.
+- Authorization mirrors location inquiry: `inventory:on_hand:view`.
+
 #### Story #28 — Create Pick List / Pick Tasks for Workorder
 
 - Processing `WorkOrderPartsReservationConfirmed` creates one `PickList` and one `PickTask` per reserved line item.
