@@ -146,12 +146,22 @@ Headers and auth notes:
 | Get location roster | `getRoster` | GET | `/v1/locations/roster` |
 | Get location by ID | `getLocationById` | GET | `/v1/locations/{locationId}` |
 | List bays | `listBays` | GET | `/v1/locations/{locationId}/bays` |
+| List location descendants by parent type | — | GET | `/v1/locations/{locationId}/descendants` |
+| Storage-location topology for a site | — | GET | `/v1/locations/{siteId}/storage-locations/topology` |
 
 ### Behavioral Assertions
 
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
+
+#### Story #655 — Location Descendants and Storage-Location Topology Contract
+
+- `GET /v1/locations/{locationId}/descendants?parentType=PHYSICAL` returns a flat array of descendant locations `{id, name, code, status, parentId, depth}` (depth 1 = direct child) by walking typed `LocationParent` edges downward.
+- `parentType` is optional and defaults to `PHYSICAL`; unknown values return `400`; unknown `locationId` returns `404 LOCATION_NOT_FOUND`; no descendants returns `200 []`.
+- Traversal is cycle-safe (visited set) and depth-capped at 20.
+- `GET /v1/locations/{siteId}/storage-locations/topology` returns the complete, unpaginated storage-location set for a site as `{id, name, type, status, parentStorageLocationId}` with NO status filtering — inventory may still sit in INACTIVE/MAINTENANCE/QUARANTINED locations. (The paged list endpoint is unsuitable for full-topology consumers; use this endpoint.)
+- Consumer contract pin (pos-inventory rollup): fields `id`, `name`, `type`, `status`, `parentStorageLocationId` are stable on both the list and topology responses.
 
 ### Frontend Usage Notes
 

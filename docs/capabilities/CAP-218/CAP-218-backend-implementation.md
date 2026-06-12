@@ -90,3 +90,51 @@ location-attributable.
 - The previously RED-documented gap "ATP equals on-hand everywhere" is fixed
   from deployment forward only; historical allocations are not represented in
   the ledger.
+
+---
+
+## Story #657 — Inventory: Bulk On-Hand and Allocation Quantity Queries by Location Set
+
+- **Issue:** https://github.com/louisburroughs/durion-positivity-backend/issues/657
+- **Spec:** `durion` repo — `domains/inventory/SPEC-inventory-location-rollup.md` (FR-5)
+- **Branch:** `cap/CAP218`
+- **Commit:** `68c87ff`
+- **Status:** ✅ Implemented, tested, pushed (no PR — capability completion pending)
+
+### Changes (pos-inventory, repository layer only)
+
+| File | Change |
+| --- | --- |
+| `internal/repository/InventoryLedgerEntryRepository.java` | Grouped JPQL queries + chunked default methods + outstanding-allocations helper + nested `LocationQuantity` projection |
+| `internal/entity/InventoryLedgerEntry.java` | `@Index(name = "idx_inventory_ledger_entry_location_event", columnList = "location_id, event_type")` |
+| `db/migration/V3__add_inventory_ledger_entry_location_event_index.sql` | Flyway btree index (authoritative prod artifact; `ddl-auto: validate` ignores indexes) |
+| `test/.../internal/repository/InventoryLedgerEntryRepositoryTest.java` | 5 new repository tests |
+
+### API (service-layer consumers, e.g. #658)
+
+```java
+List<LocationQuantity> sumQuantityByLocation(Collection<UUID> locationIds, Collection<InventoryLedgerEventType> eventTypes);
+List<LocationQuantity> sumQuantityByLocationForSku(String stockItemId, Collection<UUID> locationIds, Collection<InventoryLedgerEventType> eventTypes);
+default Map<UUID, Long> sumQuantityByLocationChunked(...);          // empty/null guard, dedupe, ≤1000 chunks, merged
+default Map<UUID, Long> sumQuantityByLocationForSkuChunked(...);
+default Map<UUID, Long> calculateOutstandingAllocationsByLocation(Collection<UUID> locationIds); // sum(CREATED) − sum(RELEASED)
+```
+
+Semantics mirror `calculateOnHandQuantityAtLocation` exactly
+(`COALESCE(SUM(changeInQuantity), 0)`, eventType IN filter), grouped by
+location. Result maps are sparse (absent = 0) and immutable.
+
+### Tests
+
+5 new: grouped sums (cross-checked vs single-location aggregate), SKU filter,
+empty-set guard (no SQL), 1001-id chunking, outstanding allocations
+cross-checked against `calculateOutstandingAllocations` semantics.
+Full module **285/285 pass**; Spotless applied; adversarial review PASS.
+
+### Notes for downstream
+
+- #658 should call the chunked default methods, never the raw queries, and
+  wrap the two-query outstanding-allocations helper in
+  `@Transactional(readOnly = true)` at the service layer (the two grouped
+  sums are not atomic on their own).
+
