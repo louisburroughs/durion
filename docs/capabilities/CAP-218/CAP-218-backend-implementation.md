@@ -238,6 +238,7 @@ Full module **285/285 pass**; Spotless applied; adversarial review PASS.
 | #657 bulk grouped queries | `68c87ff` | ✅ |
 | #658 site rollup endpoint | `63676bd` | ✅ |
 | #659 parent-location rollup | `7ee1d9a` | ✅ |
+| #662 consumption closes allocations (from PR #661 review finding 3) | `4efb8df` | ✅ |
 
 All four CAP-218 stories of the inventory-location-rollup spec are complete
 on `cap/CAP218` (together with CAP-214 #655 on `cap/CAP214`).

@@ -351,7 +351,7 @@ Story #33 — Cross-dock to Workorder:
 - pos-location outage during promote validation returns `503 LOCATION_SERVICE_UNAVAILABLE`.
 - Cancelling a reservation writes `ALLOCATION_RELEASED` only for HARD allocations with a non-null `locationId` (those with a matching `CREATED` event); SOFT and unlocated allocations release silently.
 - Invariant: per allocation, ledger `ALLOCATION_CREATED` quantities − `ALLOCATION_RELEASED` quantities ∈ {0, allocatedQuantity}.
-- Consumption-closure invariant: whichever flow posts `WORKORDER_CONSUMPTION` for allocated stock must also close the allocation with `ALLOCATION_RELEASED`, otherwise outstanding allocations double-count consumed stock.
+- Consumption closure (Story #662): consuming picked items resolves originating allocations via pick task `workorderLineId` → reservation → located HARD allocations and writes `ALLOCATION_RELEASED` in the same transaction, oldest allocation first. Already-released quantity is derived from the ledger (`sourceTransactionId` = allocation id), so partial consumption followed by cancellation never releases more than `allocatedQuantity`. Fully released allocations transition to `RELEASED`; unallocated consumption writes no allocation events.
 - No backfill: allocation rows hardened before this change keep `locationId = null`; ledger reflects events from deployment forward.
 
 #### Story #658 — Site Inventory Rollup by Storage Location Hierarchy
