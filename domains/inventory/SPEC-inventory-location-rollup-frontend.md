@@ -51,9 +51,10 @@ Contract facts the UI must honor:
 
 ## 2a. REQUIRED PREREQUISITE — Contract regeneration and Angular SDK (Story F0)
 
-The checked-in `pos-inventory/openapi.yaml` predates the rollup endpoints
-(verified: zero `inventory-rollup` entries), and the frontend currently has
-no generated API client. Before any view work:
+The checked-in `pos-inventory/openapi.yaml` predated the rollup endpoints
+(verified: zero `inventory-rollup` entries before regen), so the existing
+`@durion-sdk/inventory` package lacked the rollup client. Before any view
+work:
 
 1. **Regenerate `pos-inventory/openapi.yaml`** from merged `main` in
    `durion-positivity-backend` using the module's documented OpenAPI
