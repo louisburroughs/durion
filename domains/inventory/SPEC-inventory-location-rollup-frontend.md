@@ -65,24 +65,32 @@ no generated API client. Before any view work:
    `LocationInventoryRollupResponse` schemas. Commit to the backend repo.
 2. **Regenerate `domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md`**
    from the refreshed yaml via the `/backend-contract` flow (durion repo).
-3. **Generate the Angular SDK** in `durion-positivity-frontend`:
-   - add `@openapitools/openapi-generator-cli` (dev dependency) and an npm
-     script, e.g. `"api:generate": "openapi-generator-cli generate -g
-     typescript-angular -i <path-or-url-to-pos-inventory-openapi.yaml> -o
-     src/app/api/pos-inventory --additional-properties=providedIn=root,
-     serviceSuffix=ApiClient"`;
-   - generated output is **committed** (reviewable diffs, no build-time
-     network dependency) and excluded from lint/coverage;
-   - document the regen procedure in the frontend `AGENTS.md`/README so
-     future backend contract changes follow the same step.
-4. **Import the SDK**: this feature MUST consume the generated client and
-   generated models — no hand-written request/response interfaces. The
-   thin `InventoryRollupApiService` facade (§4.2) wraps the generated
-   client to apply error mapping and app-level concerns; views depend on
-   the facade, never on the generated client directly.
+3. **Regenerate the Angular SDK** in the existing `durion-positivity-sdk-angular`
+   repo (the platform already has a full SDK pipeline — do NOT add
+   openapi-generator tooling to the frontend):
+   - `bash scripts/generate-openapi.sh --module inventory` (openapitools
+     config reads `../durion-positivity-backend/pos-inventory/openapi.yaml`,
+     generator `typescript-angular`, output `packages/sdk-inventory`,
+     package `@durion-sdk/inventory`);
+   - `npm run build --workspace=@durion-sdk/inventory`; commit + push.
+4. **Install into the frontend**: `npm run sdk:install` in
+   `durion-positivity-frontend` rebuilds/installs the `@durion-sdk/*`
+   packages from the sibling SDK repo and refreshes the vendored
+   `.sdk-tarballs/*.tgz`; commit the tarball refresh. The feature MUST
+   consume `InventoryRollupService` and the generated models from
+   `@durion-sdk/inventory` — no hand-written request/response interfaces.
+   The thin `InventoryRollupApiService` facade (§4.2) wraps the SDK
+   service; views depend on the facade, never on the SDK directly.
 
-Steps 1–2 are backend/durion commits; steps 3–4 land with Story F0 in the
-frontend repo. F1–F3 are blocked until F0 merges.
+Steps 1–2 are backend/durion commits; step 3 is an SDK-repo commit; step 4
+lands in the frontend repo. F1–F3 are blocked until F0 completes.
+
+**F0 EXECUTED 2026-06-12:** openapi.yaml regenerated (backend main);
+API reference regenerated (durion); `@durion-sdk/inventory` regenerated
+with `InventoryRollupService` + 5 rollup models and pushed; frontend
+tarballs refreshed and pushed. Note: the SDK regen also propagates the
+#656 breaking change (`PromoteAllocationRequest.storageLocationId`
+required) to SDK consumers.
 
 ## 3. Information Architecture & Routes
 
@@ -127,8 +135,8 @@ Lazy-loaded route per repo convention.
 ## 4. Frontend Design Decisions
 
 ### 4.1 Models — generated, not hand-written (see §2a)
-All request/response types come from the generated Angular SDK
-(`src/app/api/pos-inventory`): `RollupQuantities`,
+All request/response types come from `@durion-sdk/inventory`:
+`InventoryRollupService`, `RollupQuantities`,
 `StorageLocationRollupNode`, `SiteInventoryRollupResponse`,
 `SiteRollupSummary`, `LocationInventoryRollupResponse`. Views and the
 facade re-export what they need from the SDK; defining parallel hand-written
@@ -184,9 +192,9 @@ by this feature.
 
 ## 7. Testing Requirements (Vitest, per repo conventions)
 
-- SDK integration (F0): `npm run api:generate` against the committed yaml
-  produces a clean diff (drift check — candidate CI step); facade compiles
-  against generated types only.
+- SDK integration (F0): SDK-repo regen against the committed yaml produces
+  a clean diff (drift check — candidate CI step in durion-positivity-sdk-angular);
+  facade compiles against `@durion-sdk/inventory` types only.
 - Facade service: param pass-through (sku, includeEmpty), error mapping
   for 404/503/403, request cancellation on re-query (generated client
   mocked).
@@ -203,7 +211,7 @@ by this feature.
 
 | # | Story | Repo(s) | Depends on |
 | --- | --- | --- | --- |
-| F0 | **REQUIRED:** regenerate `pos-inventory/openapi.yaml` + API reference; add openapi-generator tooling; generate, commit, and wire the Angular SDK (§2a) | backend + durion + frontend | #661 merged ✓ |
+| F0 | **REQUIRED:** regenerate `pos-inventory/openapi.yaml` + API reference; regenerate `@durion-sdk/inventory` in durion-positivity-sdk-angular; refresh frontend tarballs (§2a) — **DONE 2026-06-12** | backend + durion + sdk-angular + frontend | #661 merged ✓ |
 | F1 | Facade service over SDK + error mapping + route scaffolding/guard | frontend | F0 |
 | F2 | Site Inventory Tree screen (tree, badges, SKU filter, includeEmpty, a11y) | frontend | F1 |
 | F3 | Location Inventory Overview (picker, sites table, totals, navigation to F2) | frontend | F1 |
