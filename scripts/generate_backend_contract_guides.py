@@ -8,6 +8,7 @@ generated backend API reference documents for each domain.
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -781,10 +782,17 @@ def main():
     
     # Paths
     workspace_root = Path(__file__).parent.parent
-    backend_root = Path.home() / 'Projects' / 'durion-positivity-backend'
-    
-    if not backend_root.exists():
-        print(f"Error: Backend repository not found at {backend_root}")
+    backend_root_env = os.environ.get('DURION_BACKEND_ROOT')
+    candidates = [Path(backend_root_env)] if backend_root_env else [
+        workspace_root.parent / 'durion-positivity-backend',
+        Path.home() / 'Projects' / 'durion-positivity-backend',
+        Path.home() / 'IdeaProjects' / 'durion-positivity-backend',
+    ]
+    backend_root = next((c for c in candidates if c.exists()), None)
+
+    if backend_root is None:
+        print(f"Error: Backend repository not found; tried {[str(c) for c in candidates]}"
+              " (override with DURION_BACKEND_ROOT)")
         sys.exit(1)
     
     print(f"Workspace root: {workspace_root}")
