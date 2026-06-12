@@ -341,6 +341,17 @@ Story #33 — Cross-dock to Workorder:
 - Cancelling SOFT allocation leaves ATP unchanged; cancelling HARD allocation restores ATP by released quantity.
 - HARD allocation with insufficient ATP returns `422 INSUFFICIENT_ATP` and records reservation status `BACKORDERED`.
 
+#### Story #656 — Write Allocation Ledger Events and Assign Location on Hard Promotion
+
+- `promoteAllocation` requires `storageLocationId` in the request body; a missing value returns `400`.
+- The storage location is validated against pos-location before any state change: nonexistent location returns `404`, inactive location returns `400`.
+- Successful promotion pins the allocation to `storageLocationId` and writes an `ALLOCATION_CREATED` inventory ledger event (quantity = `allocatedQuantity`, `locationId` = storage location, `sourceTransactionId` = allocation id) in the same transaction.
+- Repeat promotion of an already-HARD allocation with a recorded location writes no duplicate `ALLOCATION_CREATED` and keeps the original location.
+- Cancelling a reservation writes `ALLOCATION_RELEASED` only for HARD allocations with a non-null `locationId` (those with a matching `CREATED` event); SOFT and unlocated allocations release silently.
+- Invariant: per allocation, ledger `ALLOCATION_CREATED` quantities − `ALLOCATION_RELEASED` quantities ∈ {0, allocatedQuantity}.
+- Consumption-closure invariant: whichever flow posts `WORKORDER_CONSUMPTION` for allocated stock must also close the allocation with `ALLOCATION_RELEASED`, otherwise outstanding allocations double-count consumed stock.
+- No backfill: allocation rows hardened before this change keep `locationId = null`; ledger reflects events from deployment forward.
+
 #### Story #28 — Create Pick List / Pick Tasks for Workorder
 
 - Processing `WorkOrderPartsReservationConfirmed` creates one `PickList` and one `PickTask` per reserved line item.
