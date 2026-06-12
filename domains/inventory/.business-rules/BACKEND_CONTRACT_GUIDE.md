@@ -346,7 +346,9 @@ Story #33 — Cross-dock to Workorder:
 - `promoteAllocation` requires `storageLocationId` in the request body; a missing value returns `400`.
 - The storage location is validated against pos-location before any state change: nonexistent location returns `404`, inactive location returns `400`.
 - Successful promotion pins the allocation to `storageLocationId` and writes an `ALLOCATION_CREATED` inventory ledger event (quantity = `allocatedQuantity`, `locationId` = storage location, `sourceTransactionId` = allocation id) in the same transaction.
-- Repeat promotion of an already-HARD allocation with a recorded location writes no duplicate `ALLOCATION_CREATED` and keeps the original location.
+- Repeat promotion of an already-HARD allocation at the SAME location writes no duplicate `ALLOCATION_CREATED`; requesting a DIFFERENT location returns `409 CONFLICT` (relocation via promote is not supported).
+- Changing a reservation's stock item while it holds a located HARD allocation returns `409 CONFLICT` (would skew per-SKU ledger math); cancel first.
+- pos-location outage during promote validation returns `503 LOCATION_SERVICE_UNAVAILABLE`.
 - Cancelling a reservation writes `ALLOCATION_RELEASED` only for HARD allocations with a non-null `locationId` (those with a matching `CREATED` event); SOFT and unlocated allocations release silently.
 - Invariant: per allocation, ledger `ALLOCATION_CREATED` quantities − `ALLOCATION_RELEASED` quantities ∈ {0, allocatedQuantity}.
 - Consumption-closure invariant: whichever flow posts `WORKORDER_CONSUMPTION` for allocated stock must also close the allocation with `ALLOCATION_RELEASED`, otherwise outstanding allocations double-count consumed stock.
