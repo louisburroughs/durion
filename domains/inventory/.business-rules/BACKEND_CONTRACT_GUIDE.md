@@ -363,6 +363,16 @@ Story #33 — Cross-dock to Workorder:
 - Empty site → `200` with empty `nodes` and zero totals; unknown site → `404 NOT_FOUND`; pos-location unreachable/5xx → `503 LOCATION_SERVICE_UNAVAILABLE` (no partial topology fabrication); `depth=0` → `400`.
 - Authorization mirrors location inquiry: `inventory:on_hand:view`.
 
+#### Story #659 — Parent-Location Inventory Rollup with Optional Per-Site Trees
+
+- `GET /v1/inventory/locations/{locationId}/inventory-rollup?parentType=PHYSICAL` returns `{locationId, parentType, totals, sites[]}` where each site entry is `{siteId, siteName, totals}` and the grand total equals the sum of site totals.
+- Descendant sites resolve via pos-location's `GET /v1/locations/{locationId}/descendants?parentType=…` contract (CAP-214 #655); descendants with no storage locations contribute zero totals.
+- `parentType` optional, defaults `PHYSICAL`, case-insensitive, validated against the consumer-side ParentType pin (HOME_OFFICE, HEADQUARTERS, REGION, DISTRICT, PHYSICAL, ORGANIZATIONAL, FINANCIAL, SHIPPING) → `400` on unknown value.
+- `expand=tree` inlines each site's full Story #658 rollup tree (`nodes`), honoring `sku`/`depth`/`includeEmpty` per site; any other `expand` value → `400`.
+- Fan-out guard: with `expand=tree`, descendant site count above `pos.inventory.rollup.expand-site-cap` (default 25) → `422 ROLLUP_EXPANSION_TOO_LARGE` advising per-site calls; WITHOUT expand, summaries are always returned regardless of count.
+- Unknown `locationId` → `404 NOT_FOUND`; no descendants → `200` with empty `sites` and zero totals; pos-location unreachable → `503 LOCATION_SERVICE_UNAVAILABLE`.
+- Authorization: `inventory:on_hand:view` (same as Story #658).
+
 #### Story #28 — Create Pick List / Pick Tasks for Workorder
 
 - Processing `WorkOrderPartsReservationConfirmed` creates one `PickList` and one `PickTask` per reserved line item.

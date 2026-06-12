@@ -187,3 +187,59 @@ Full module **285/285 pass**; Spotless applied; adversarial review PASS.
   `SiteInventoryRollupService` per site; needs `fetchDescendants` added to
   the topology client against the #655 descendants endpoint.
 
+---
+
+## Story #659 — Inventory: Parent-Location Inventory Rollup with Optional Per-Site Trees
+
+- **Issue:** https://github.com/louisburroughs/durion-positivity-backend/issues/659
+- **Spec:** `durion` repo — `domains/inventory/SPEC-inventory-location-rollup.md` (FR-2)
+- **Branch:** `cap/CAP218`
+- **Commit:** `7ee1d9a`
+- **Status:** ✅ Implemented, tested, pushed (no PR — capability completion pending)
+
+### Changes (pos-inventory, 11 files, +716)
+
+| Artifact | Purpose |
+| --- | --- |
+| `StorageLocationTopologyClient.fetchDescendants` + `LocationDescendant` record | Consumes the #655 descendants contract (`id, name, code, status, parentId, depth`); 404 → not-found, 5xx → unavailable |
+| `service/LocationInventoryRollupService` + `internal/service/LocationInventoryRollupServiceImpl` | Resolves descendants, computes Story #658 rollup per site (zero totals for non-site descendants), aggregates grand total; consumer-side `ParentType` pin validation (400), case-insensitive, default PHYSICAL |
+| `internal/exception/RollupExpansionTooLargeException` + handler entry | `expand=tree` over `pos.inventory.rollup.expand-site-cap` (default 25) → `422 ROLLUP_EXPANSION_TOO_LARGE`, thrown before any per-site work |
+| `internal/dto/rollup/LocationInventoryRollupResponse`, `SiteRollupSummary` | `sites[]` carry `siteName` (from descendants contract); `nodes` serialized only with expand=tree (`@JsonInclude(NON_NULL)`) |
+| `internal/controller/LocationInventoryRollupController` | `GET /v1/inventory/locations/{locationId}/inventory-rollup?parentType&sku&expand&depth&includeEmpty`; `expand` accepts only `tree` (else 400); full OpenAPI incl. 422/503 |
+
+### Tests (16 new)
+
+- Service (7): grand total = sum of site totals, expand=tree inlines per-site
+  trees, over-cap with expand → 422 before any site computation, over-cap
+  without expand → summaries fine, parentType validation (unknown → 400,
+  case-insensitive), no descendants → empty 200, 404 propagation.
+- Contract IT (7): 200 summaries (`nodes` absent from JSON), 200 expand=tree,
+  `expand=bogus` → 400, unknown parentType → 400 VALIDATION_ERROR, over-cap →
+  422 ROLLUP_EXPANSION_TOO_LARGE, unknown location → 404, 403 without
+  authority.
+- Client (2): descendants contract field mapping, 404.
+- Full module: **306/306 pass**. Spotless applied.
+
+### Notes
+
+- All descendants are treated as candidate sites; non-sites yield empty
+  topology → zero totals. A future pos-location `LocationType` filter on the
+  descendants endpoint could trim the fan-out.
+- Sequential per-site computation in v1; parallelize only if NFR pressure
+  appears (cap bounds the worst case).
+
+---
+
+## CAP-218 story set status
+
+| Story | Commit | Status |
+| --- | --- | --- |
+| #656 allocation ledger events | `1c4b529` | ✅ |
+| #657 bulk grouped queries | `68c87ff` | ✅ |
+| #658 site rollup endpoint | `63676bd` | ✅ |
+| #659 parent-location rollup | `7ee1d9a` | ✅ |
+
+All four CAP-218 stories of the inventory-location-rollup spec are complete
+on `cap/CAP218` (together with CAP-214 #655 on `cap/CAP214`). Ready for
+capability completion / PR when called.
+
