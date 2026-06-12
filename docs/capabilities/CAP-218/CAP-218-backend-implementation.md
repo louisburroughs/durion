@@ -240,6 +240,11 @@ Full module **285/285 pass**; Spotless applied; adversarial review PASS.
 | #659 parent-location rollup | `7ee1d9a` | ✅ |
 
 All four CAP-218 stories of the inventory-location-rollup spec are complete
-on `cap/CAP218` (together with CAP-214 #655 on `cap/CAP214`). Ready for
-capability completion / PR when called.
+on `cap/CAP218` (together with CAP-214 #655 on `cap/CAP214`).
+
+**Pull requests (2026-06-12):**
+[#661](https://github.com/louisburroughs/durion-positivity-backend/pull/661)
+(CAP-218, this branch) depends on
+[#660](https://github.com/louisburroughs/durion-positivity-backend/pull/660)
+(CAP-214) — merge #660 first.
 

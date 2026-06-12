@@ -11,7 +11,8 @@ in `durion-positivity-backend`.
 - **Spec:** `durion` repo — `domains/inventory/SPEC-inventory-location-rollup.md` (FR-3, FR-4)
 - **Branch:** `cap/CAP214`
 - **Commit:** `4d622ca`
-- **Status:** ✅ Implemented, tested, pushed (no PR — capability completion pending)
+- **Status:** ✅ Implemented, tested, pushed
+- **Pull request:** [#660](https://github.com/louisburroughs/durion-positivity-backend/pull/660) (merge before CAP-218 PR #661)
 
 ### Endpoints (pos-location)
 
