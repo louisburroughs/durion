@@ -971,17 +971,17 @@ generate.prompt.md → Generated Code File
 
 **For Backend (Java/Spring Boot) - durion-positivity-backend:**
 - **Relevant Agents:**
-  - [Primary Software Engineer Agent](../agents/primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
-  - [Universal Janitor Agent](../agents/janitor.agent.md) - For code cleanup and tech debt.
-  - [Backend Testing Agent](../../durion-positivity-backend/.github/agents/test.agent.md) - For QA and test development.
-  - [Spring Boot 4.0.x Strategic Advisor](../agents/springboot.agent.md) - For Spring Boot best practices.
-  - [PostgreSQL Database Administrator](../agents/postgresql-dba.agent.md) - For database schema and performance.
-  - [Database Administrator Agent](../agents/dba.agent.md) - For general database administration.
-  - [API Gateway & OpenAPI Architect](../agents/api-gateway.agent.md) - For gateway and API architecture.
-  - [Senior Software Engineer - REST API Agent](../agents/api.agent.md) - For REST API development.
-  - [Security Agent](../../durion-positivity-backend/pos-agent-framework/README.md) - Security & compliance validation
-  - [Observability Agent](../../durion-positivity-backend/pos-agent-framework/README.md) - Performance and reliability review
-  - [Architecture Agent](../../durion-positivity-backend/pos-agent-framework/README.md) - Architectural alignment
+  - [Primary Software Engineer Agent](../../primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
+  - [Universal Janitor Agent](../../janitor.agent.md) - For code cleanup and tech debt.
+  - [Backend Testing Agent](../../../../durion-positivity-backend/.github/agents/test.agent.md) - For QA and test development.
+  - [Spring Boot 4.0.x Strategic Advisor](../../springboot.agent.md) - For Spring Boot best practices.
+  - [PostgreSQL Database Administrator](../../postgresql-dba.agent.md) - For database schema and performance.
+  - [Database Administrator Agent](../../dba.agent.md) - For general database administration.
+  - [API Gateway & OpenAPI Architect](../../api-gateway.agent.md) - For gateway and API architecture.
+  - [Senior Software Engineer - REST API Agent](../../api.agent.md) - For REST API development.
+  - [Security Agent](../../../../durion-positivity-backend/pos-agent-framework/README.md) - Security & compliance validation
+  - [Observability Agent](../../../../durion-positivity-backend/pos-agent-framework/README.md) - Performance and reliability review
+  - [Architecture Agent](../../../../durion-positivity-backend/pos-agent-framework/README.md) - Architectural alignment
 
 - **Validation Checklist:**
   - Spring Boot annotations and dependency injection correctness
@@ -995,17 +995,17 @@ generate.prompt.md → Generated Code File
 
 **For Frontend (Vue/TypeScript + Groovy Services) - durion-moqui-frontend:**
 - **Relevant Agents:**
-  - [Primary Software Engineer Agent](../agents/primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
+  - [Primary Software Engineer Agent](../../primary-software-engineer.agent.md) - Provides principal-level guidance and implementation.
   - [moquiDeveloper-agent](.github/agents/moquiDeveloper-agent.md) - Moqui Framework & Groovy service patterns
   - [Vue Agent](.github/agents/vue-agent.md) - Vue 3 Composition API patterns
   - [TypeScript Agent](.github/agents/typescript-agent.md) - Type safety and TS best practices
   - [Quasar Agent](.github/agents/quasar-agent.md) - Quasar component usage
-  - [Universal Janitor Agent](../agents/janitor.agent.md) - For code cleanup and tech debt.
-  - [Frontend Testing Agent](../../durion-moqui-frontend/.github/agents/test.agent.md) - For QA and test development.
-  - [API Gateway & OpenAPI Architect](../agents/api-gateway.agent.md) - For gateway and API architecture.
-  - [Security Agent](../../durion-positivity-backend/pos-agent-framework/README.md) - Security & compliance validation
-  - [Observability Agent](../../durion-positivity-backend/pos-agent-framework/README.md) - Performance and reliability review
-  - [Architecture Agent](../../durion-positivity-backend/pos-agent-framework/README.md) - Architectural alignment
+  - [Universal Janitor Agent](../../janitor.agent.md) - For code cleanup and tech debt.
+  - [Frontend Testing Agent](../../../../durion-moqui-frontend/.github/agents/test.agent.md) - For QA and test development.
+  - [API Gateway & OpenAPI Architect](../../api-gateway.agent.md) - For gateway and API architecture.
+  - [Security Agent](../../../../durion-positivity-backend/pos-agent-framework/README.md) - Security & compliance validation
+  - [Observability Agent](../../../../durion-positivity-backend/pos-agent-framework/README.md) - Performance and reliability review
+  - [Architecture Agent](../../../../durion-positivity-backend/pos-agent-framework/README.md) - Architectural alignment
 
 - **Validation Checklist:**
   - Vue 3 Composition API correctness (setup(), refs, computed, watchers)
@@ -1173,15 +1173,15 @@ Merge & Deploy
 ### Planning & Generation
 - **Planning Document**: Output from [planning.prompt.md](planning.prompt.md)
 - **Application**: Next step is [apply.prompt.md](apply.prompt.md)
-- **Branching Strategy**: [.github/docs/governance/branching-strategy.md](../docs/governance/branching-strategy.md)
+- **Branching Strategy**: [.github/docs/governance/branching-strategy.md](../../../docs/governance/branching-strategy.md)
 
 ### Implementation Agents (for code validation)
 **Backend (durion-positivity-backend)**:
 - [moquiDeveloper-agent](.github/agents/moquiDeveloper-agent.md) - Moqui Framework implementation patterns
-- [implementation-agent](../pos-agent-framework/README.md) - Spring Boot development patterns
-- [Security Agent](../pos-agent-framework/README.md) - Security & compliance
-- [Performance Agent](../pos-agent-framework/README.md) - Performance optimization
-- [Architecture Agent](../pos-agent-framework/README.md) - Architectural decisions
+- [implementation-agent](../../../pos-agent-framework/README.md) - Spring Boot development patterns
+- [Security Agent](../../../pos-agent-framework/README.md) - Security & compliance
+- [Performance Agent](../../../pos-agent-framework/README.md) - Performance optimization
+- [Architecture Agent](../../../pos-agent-framework/README.md) - Architectural decisions
 
 **Frontend (durion-moqui-frontend)**:
 - [vue-agent](.github/agents/vue-agent.md) - Vue.js 3 patterns
@@ -1197,5 +1197,5 @@ Merge & Deploy
 - **TypeScript**: [typescript-5-es2022.instructions.md](.github/instructions/typescript-5-es2022.instructions.md)
 
 ### Project Copilot Instructions
-- [durion-moqui-frontend](../durion-moqui-frontend/.github/copilot-instructions.md)
-- [durion-positivity-backend](../durion-positivity-backend/.github/copilot-instructions.md)
+- [durion-moqui-frontend](../../../durion-moqui-frontend/.github/copilot-instructions.md)
+- [durion-positivity-backend](../../../durion-positivity-backend/.github/copilot-instructions.md)

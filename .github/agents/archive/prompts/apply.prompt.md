@@ -176,14 +176,14 @@ package com.pos.crm.service;
    Files Created:
    ✓ pos-crm/src/main/java/com/pos/crm/service/CustomerService.java
    ✓ pos-crm/src/main/java/com/pos/crm/entity/Customer.java
-   
+
    Files Modified:
    ✓ pos-crm/src/main/resources/application.yml
-   
+
    Files Skipped (Conflicts):
    ⚠ pos-crm/src/main/java/com/pos/crm/controller/CustomerController.java
      Reason: File exists with different content. Manual review required.
-   
+
    Files Skipped (Identical):
    ≈ pos-crm/src/test/resources/test-data.sql
    ```
@@ -353,7 +353,7 @@ Multiple commits organized by type following Conventional Commits format:
 ```
 feat(crm): add customer context lazy loading
 
-Implements lazy loading of customer relationships to improve 
+Implements lazy loading of customer relationships to improve
 list rendering performance. Reduces initial API payload by 60%.
 
 Closes #42
@@ -362,7 +362,7 @@ Closes #42
 ```
 test(crm): add tests for customer context loading
 
-Adds unit tests for CustomerService.loadContext() and integration 
+Adds unit tests for CustomerService.loadContext() and integration
 tests for /api/customers/{id}/context endpoint.
 ```
 
@@ -426,22 +426,22 @@ Documents new /context endpoint and usage examples.
 2. **Generate PR Body**:
    ```markdown
    Closes #{issue-number}
-   
+
    ## Summary
    {Feature overview from planning document}
-   
+
    ## Implementation Details
    {Brief summary of changes}
-   
+
    ## Testing
    - ✓ Unit tests: {count} passed
    - ✓ Integration tests: {count} passed
    - ✓ Code coverage: {percentage}%
-   
+
    ## Documentation
    - Planning Document: [View Planning](link-to-planning-doc)
    - Generated Code: [View Generated Code](link-to-generated-code-file)
-   
+
    ## Checklist
    - [x] All acceptance criteria met
    - [x] Tests passing
@@ -482,13 +482,13 @@ Documents new /context endpoint and usage examples.
 6. **Add PR Comment with Deployment Instructions** (optional):
    ```markdown
    ## Deployment Notes
-   
+
    ### Environment Variables
    {List new env vars from planning doc}
-   
+
    ### Database Migrations
    {List migration files to run}
-   
+
    ### Rollback Procedure
    {Link to rollback steps from planning doc}
    ```
@@ -605,15 +605,15 @@ If something goes wrong during application, rollback steps:
 ### Example 1: Apply Generated Code with Both Files
 
 ```bash
-@copilot Use apply.prompt to apply the generated code file 
-"42-crm-customer-context-loading-CODE-GENERATION.md" using planning document 
+@copilot Use apply.prompt to apply the generated code file
+"42-crm-customer-context-loading-CODE-GENERATION.md" using planning document
 "docs/ways-of-work/plan/crm/customer-context-loading/planning.md"
 ```
 
 ### Example 2: Apply with Auto-Discovery
 
 ```bash
-@copilot Use apply.prompt with generated code file 
+@copilot Use apply.prompt with generated code file
 "42-crm-customer-context-loading-CODE-GENERATION.md"
 # Agent will auto-discover planning document based on issue number
 ```
@@ -724,7 +724,7 @@ pr:
   - SQL injection vulnerabilities
   - XSS vulnerabilities
   - Insecure dependencies
-  
+
 - **Branch Protection**: Feature branches should not bypass protection rules
 
 - **Commit Signing**: Enable GPG commit signing if required by organization
@@ -737,7 +737,7 @@ pr:
 
 - **Planning Prompt**: [planning.prompt.md](planning.prompt.md)
 - **Generation Prompt**: [generate.prompt.md](generate.prompt.md)
-- **Branching Strategy**: [.github/docs/governance/branching-strategy.md](../docs/governance/branching-strategy.md)
+- **Branching Strategy**: [.github/docs/governance/branching-strategy.md](../../../docs/governance/branching-strategy.md)
 - **Conventional Commits**: https://www.conventionalcommits.org/
 - **GitHub CLI**: https://cli.github.com/
 - **GitHub API**: https://docs.github.com/en/rest

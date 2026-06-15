@@ -55,7 +55,7 @@ The output is a single, structured planning document that contains everything ne
 - Acceptance criteria (at least 3-5)
 - Business context and priority
 - Related issues and dependencies (blocked by / blocks)
-- **Required Labels**: 
+- **Required Labels**:
   - `status:ready-for-development` (workflow status)
   - `domain:{domain}` (single domain scope - e.g., `domain:crm`, `domain:accounting`, `domain:inventory`)
   - `type:story` or `type:feature` (issue type)
@@ -123,12 +123,12 @@ Each story MUST have exactly **one** `domain:*` label. This ensures focused, sin
    - Confirm that cross-domain dependencies use well-defined integration patterns (not direct DB access)
 
 3. **Review Existing ADRs & Patterns**:
-   - Check [docs/adr/](../../docs/adr/README.md) for domain-specific architectural decisions
+   - Check [docs/adr/](../../../../docs/adr/README.md) for domain-specific architectural decisions
    - Review domain-specific documentation in component READMEs (e.g., `pos-crm/README.md`, `durion-crm/README.md`)
    - Confirm alignment with DDD principles and established patterns for this domain
 
 3. **Update Architecture Documentation** (if needed):
-   - Create or update architecture documentation under [.github/docs/architecture/](../.github/docs/architecture/) if this story introduces new patterns, services, or major integrations
+   - Create or update architecture documentation under [.github/docs/architecture/](../../../.github/docs/architecture) if this story introduces new patterns, services, or major integrations
    - Document new entities, services, or APIs in the appropriate component README
    - Update C4 diagrams or architecture overview if the feature significantly changes system structure
 
@@ -159,7 +159,7 @@ Each story MUST have exactly **one** `domain:*` label. This ensures focused, sin
 ### Steps
 
 1. **Branching & Code Integration** (Foundational):
-   - Determine which branch to work on following [.github/docs/governance/branching-strategy.md](../../.github/docs/governance/branching-strategy.md)
+   - Determine which branch to work on following [.github/docs/governance/branching-strategy.md](../../../docs/governance/branching-strategy.md)
    - **Identify domain-specific feature branch name**: `feature/{issue-number}-{domain}-{kebab-case-description}`
      - Example: `feature/42-crm-customer-context-loading` for `domain:crm`
      - Example: `feature/108-inventory-atp-calculation` for `domain:inventory`
@@ -268,12 +268,12 @@ branch:
 ## 2. Architecture & Design
 
 ### Primary Bounded Context
-**Domain**: {domain-name} (from `domain:{domain}` label)  
-**Backend Module**: `pos-{domain}/`  
-**Frontend Component**: `runtime/component/durion-{domain}/`  
-**Ownership**: {Team/domain expert}  
+**Domain**: {domain-name} (from `domain:{domain}` label)
+**Backend Module**: `pos-{domain}/`
+**Frontend Component**: `runtime/component/durion-{domain}/`
+**Ownership**: {Team/domain expert}
 
-**Description**: {Brief description of this domain's bounded context}  
+**Description**: {Brief description of this domain's bounded context}
 
 ### Integration with Other Bounded Contexts (if applicable)
 - **{Context 1}**: {Integration pattern - REST API / Domain Events / Shared Data}
@@ -610,7 +610,7 @@ interface API{Action}Response {
 
 ### 7.2 Architecture Documentation
 - Update {component} README if new entities/services added
-- Update [.github/docs/architecture/](../../.github/docs/architecture/) if new patterns
+- Update [.github/docs/architecture/](../../../docs/architecture) if new patterns
 - Create ADR if major architectural decision made
 
 ### 7.3 User Documentation
@@ -714,7 +714,7 @@ The planning document is **self-contained** and provides all context needed for 
 In GitHub Copilot Chat, use this prompt to generate a planning document:
 
 ```
-@copilot Use the planning.prompt with issue #123 to generate a comprehensive 
+@copilot Use the planning.prompt with issue #123 to generate a comprehensive
 implementation planning document ready for code generation.
 ```
 
@@ -759,7 +759,7 @@ Before finalizing the planning document, verify:
 - **Architecture Decisions**: See [docs/adr/](../../docs/adr/README.md)
 - **Code Conventions**: See [.github/instructions/](../.github/instructions/)
 - **Agent Framework**: See [.github/agents/](../.github/agents/)
-- **Related Prompts**: 
+- **Related Prompts**:
   - `breakdown-plan.prompt.md` - Detailed project planning
   - `breakdown-test.prompt.md` - Comprehensive test strategy
   - `create-architectural-decision-record.prompt.md` - ADR creation
