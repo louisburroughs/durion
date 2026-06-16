@@ -87,7 +87,26 @@ all `Person` relationships in people"*), the following invariants are adopted.
 |---|---|---|
 | 1 | Customer Directory unions commercial + individual customers (I3) | ✅ implemented |
 | 2 | Repair commercial-contact person names + status in `pos-people` (I4) | ✅ implemented |
-| 3 | `pos-people` as SoT; demote `person_party` to a link (I1, I2) | ⏳ pending decision OD1 (thin-link vs event-synced cache) |
+| 3 | `pos-people` as SoT; demote `person_party` to a link (I1, I2) | ▶ in progress — **OD1 resolved: 3a thin-link** |
+
+#### Phase 3 (3a thin-link) execution sequence
+
+Must be staged; each step ships independently and keeps reads working.
+
+1. **Reconcile identity ids (prerequisite for I1).** Seed/data currently links
+   contact `person_party.person_id` to `01960025-*` while the canonical
+   `pos-people.person` rows are `01960026-*`. Repoint `person_party.person_id`
+   to the canonical `pos-people.person.id`; reconcile orphans. Until this holds,
+   demotion cannot read identity from `pos-people`.
+2. **Add identity read path.** `PeopleClient` batch fetch of person
+   name/contact by id; pos-people exposes a get-by-ids endpoint if absent.
+3. **Rewrite pos-customer readers** (contact summaries, `GetPersonResponse`,
+   individual-customer directory display) to source name/contact from
+   `pos-people` instead of `person_party` columns.
+4. **Drop duplicated columns** from `person_party` (name, contact) once no
+   reader depends on them.
+5. **Disable `PeopleClient` local-id fallback** outside dev; add orphan
+   reconciliation/guard (I1).
 
 ---
 
