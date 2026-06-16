@@ -1,9 +1,10 @@
 # ADR-0015: Person, Customer, and User Entity Semantics and Relationships
 
-**Status:** PROPOSED  
-**Date:** 2026-02-17  
+**Status:** ACCEPTED  
+**Date:** 2026-02-17 (accepted 2026-06-16)  
 **Deciders:** Architecture, Backend Lead, Security Lead  
-**Affected Issues:** N/A
+**Affected Issues:** N/A  
+**Realized by:** [PLAN-person-unification](../capabilities/PLAN-person-unification.md)
 
 ---
 
@@ -63,6 +64,49 @@ A `User` is an entity with a security relationship to the system (i.e., can auth
 - Duplicate `User` entities are allowed for migration/legacy, but only one can be ACTIVE per `Person`.
 
 **Decision:** ✅ **Resolved** - Adopt the above definitions and constraints for `Person`, `Customer`, and `User` entities across all modules.
+
+### 6. Person Unification Invariants
+
+Resolving the 2026-02-17 sign-off note (*"revisit people-crm relationship to have
+all `Person` relationships in people"*), the following invariants are adopted.
+`pos-people.person` is the single source of truth for every individual.
+
+- **I1** — Every `pos-customer.person_party.person_id` references an existing
+  `pos-people.person.id`. No orphan links; the `PeopleClient` local-id fallback is
+  disabled outside development.
+- **I2** — Person name and contact attributes are owned by `pos-people`.
+  `pos-customer` references them; it does not master them.
+- **I3** — The Customer Directory is the union of `commercial_party` and the
+  standalone individual customers in `person_party`, each tagged by `partyType`.
+- **I4** — The People Directory lists all `person` rows, filterable by type;
+  `status = null` denotes a non-employee person (customer contact, individual).
+
+### Remediation status (per PLAN-person-unification)
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Customer Directory unions commercial + individual customers (I3) | ✅ implemented |
+| 2 | Repair commercial-contact person names + status in `pos-people` (I4) | ✅ implemented |
+| 3 | `pos-people` as SoT; demote `person_party` to a link (I1, I2) | ▶ in progress — **OD1 resolved: 3a thin-link** |
+
+#### Phase 3 (3a thin-link) execution sequence
+
+Must be staged; each step ships independently and keeps reads working.
+
+1. **Reconcile identity ids (prerequisite for I1).** Seed/data currently links
+   contact `person_party.person_id` to `01960025-*` while the canonical
+   `pos-people.person` rows are `01960026-*`. Repoint `person_party.person_id`
+   to the canonical `pos-people.person.id`; reconcile orphans. Until this holds,
+   demotion cannot read identity from `pos-people`.
+2. **Add identity read path.** `PeopleClient` batch fetch of person
+   name/contact by id; pos-people exposes a get-by-ids endpoint if absent.
+3. **Rewrite pos-customer readers** (contact summaries, `GetPersonResponse`,
+   individual-customer directory display) to source name/contact from
+   `pos-people` instead of `person_party` columns.
+4. **Drop duplicated columns** from `person_party` (name, contact) once no
+   reader depends on them.
+5. **Disable `PeopleClient` local-id fallback** outside dev; add orphan
+   reconciliation/guard (I1).
 
 ---
 
@@ -132,3 +176,6 @@ A `User` is an entity with a security relationship to the system (i.e., can auth
 ## Changelog
 
 - **2026-02-17**: Initial draft
+- **2026-06-16**: Accepted. Added Person Unification Invariants (I1–I4) and
+  remediation status; linked PLAN-person-unification. Phases 1–2 implemented;
+  Phase 3 pending OD1.
