@@ -1,9 +1,10 @@
 # ADR-0015: Person, Customer, and User Entity Semantics and Relationships
 
-**Status:** PROPOSED  
-**Date:** 2026-02-17  
+**Status:** ACCEPTED  
+**Date:** 2026-02-17 (accepted 2026-06-16)  
 **Deciders:** Architecture, Backend Lead, Security Lead  
-**Affected Issues:** N/A
+**Affected Issues:** N/A  
+**Realized by:** [PLAN-person-unification](../capabilities/PLAN-person-unification.md)
 
 ---
 
@@ -63,6 +64,30 @@ A `User` is an entity with a security relationship to the system (i.e., can auth
 - Duplicate `User` entities are allowed for migration/legacy, but only one can be ACTIVE per `Person`.
 
 **Decision:** ✅ **Resolved** - Adopt the above definitions and constraints for `Person`, `Customer`, and `User` entities across all modules.
+
+### 6. Person Unification Invariants
+
+Resolving the 2026-02-17 sign-off note (*"revisit people-crm relationship to have
+all `Person` relationships in people"*), the following invariants are adopted.
+`pos-people.person` is the single source of truth for every individual.
+
+- **I1** — Every `pos-customer.person_party.person_id` references an existing
+  `pos-people.person.id`. No orphan links; the `PeopleClient` local-id fallback is
+  disabled outside development.
+- **I2** — Person name and contact attributes are owned by `pos-people`.
+  `pos-customer` references them; it does not master them.
+- **I3** — The Customer Directory is the union of `commercial_party` and the
+  standalone individual customers in `person_party`, each tagged by `partyType`.
+- **I4** — The People Directory lists all `person` rows, filterable by type;
+  `status = null` denotes a non-employee person (customer contact, individual).
+
+### Remediation status (per PLAN-person-unification)
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Customer Directory unions commercial + individual customers (I3) | ✅ implemented |
+| 2 | Repair commercial-contact person names + status in `pos-people` (I4) | ✅ implemented |
+| 3 | `pos-people` as SoT; demote `person_party` to a link (I1, I2) | ⏳ pending decision OD1 (thin-link vs event-synced cache) |
 
 ---
 
@@ -132,3 +157,6 @@ A `User` is an entity with a security relationship to the system (i.e., can auth
 ## Changelog
 
 - **2026-02-17**: Initial draft
+- **2026-06-16**: Accepted. Added Person Unification Invariants (I1–I4) and
+  remediation status; linked PLAN-person-unification. Phases 1–2 implemented;
+  Phase 3 pending OD1.
