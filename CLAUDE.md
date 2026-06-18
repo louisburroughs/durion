@@ -29,6 +29,8 @@ requested.
 
 **Docs** — when changing externally visible behaviour (APIs, events, config), update the nearest relevant `README.md`.
 
+**Controller changes** — any change to a Controller must propagate through the full contract chain: update the OpenAPI annotations on the controller, regenerate `OpenAPI.yaml`, then update the Angular SDK. Never stop at the Java change — the controller is the API contract source, and the generated spec and SDK must stay in sync or the frontend drifts from the backend.
+
 ---
 
 ## ADR Compliance (mandatory)
