@@ -107,6 +107,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0040   | Roles, JWT Permission Governance Policy   | ACCEPTED              | 2026-04-12 |
 | 0041   | Frontend Angular SDK API Transport Policy             | ACCEPTED              | 2026-04-25 |
 | 0042   | OpenAPI Annotation Standards for Backend Services     | ACCEPTED              | 2026-05-12 |
+| 0043   | User–Person Linkage Authority and Translation         | PROPOSED              | 2026-06-19 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -156,6 +157,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0038 | Date-only string (YYYY-MM-DD) parsing and timezone-safe local-date construction without UTC assumptions                                                         | Coder, Test, Planner               |
 | 0041 | Frontend-to-backend Angular transport boundary, SDK-first API consumption, and `ApiBaseService` migration decisions                                                 | Coder, Test, Planner, Orchestrator |
 | 0042 | OpenAPI operation description as tool invocation contract: 7-element structure for unambiguous LLM tool selection and error self-correction                       | Coder, Test, Planner, Orchestrator |
+| 0043 | User↔Person link authority (`user_person_links` as sole source of truth), token `personId` derivation, mandatory translation (no userId/personId conflation), reconcile + seed-validation enforcement | Coder, Test, Planner, Orchestrator |
 
 ### Agent role shorthand
 

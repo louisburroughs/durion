@@ -1,4 +1,4 @@
-# ADR-0039: User–Person Linkage Authority and Translation
+# ADR-0043: User–Person Linkage Authority and Translation
 
 **Status:** PROPOSED
 **Date:** 2026-06-19
