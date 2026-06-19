@@ -113,6 +113,32 @@ Staged; each step shipped independently and kept reads working.
 > than serving stale local data. Display read paths fail soft; reconciliation
 > still distinguishes "unreachable" from "not found".
 
+### 7. User–Person Linkage Invariants (I5–I7)
+
+§3 states *"A `User` must be linked to a `Person`"* but defined no enforcement; the
+2026-06-19 investigation (issue durion-positivity-backend#714) found `admin.alpha`
+seeded as a `User` with **no** `Person`, and two divergent linkage stores. These
+invariants make §3 enforceable.
+
+- **I5 — Single authoritative link.** `pos-people.user_person_links` is the **sole
+  source of truth** for the user↔person relationship. The
+  `pos-security-service.users.person_id` column is a denormalized cache that MUST
+  mirror the active link; it MUST NOT be written independently. (Target: derive it
+  from the link, or remove it — see the linkage-authority ADR.)
+- **I6 — Every ACTIVE user resolves to exactly one person.** Issuing or refreshing a
+  token for a user with no active `user_person_link` is a policy violation. A
+  reconciliation check (analogous to the I1 person-link reconcile) MUST report any
+  ACTIVE user lacking a person, and seeds MUST NOT create users without persons.
+- **I7 — No userId/personId conflation.** No service may treat a `userId` as a
+  `personId` or vice-versa. Translation across the boundary MUST go through
+  `UserPersonTranslationService.getPersonUuidForUser` (or the
+  `GET /v1/people/users/{userId}/person` contract). Person-owned tables keep their
+  FK to `pos-people.person(id)` as the backstop.
+
+> Enforcement mechanism, token-claim derivation, and migration of the duplicate
+> `users.person_id` column are specified in
+> [ADR-0039: User–Person Linkage Authority and Translation](0039-user-person-linkage-authority.adr.md).
+
 ---
 
 ## Alternatives Considered
@@ -188,3 +214,6 @@ Staged; each step shipped independently and kept reads working.
   sole source of truth for person identity + contacts; `pos-customer` dropped the
   local `contact_point` table and `person_party.first_name/last_name` columns and
   removed all read fallbacks. I1/I2 hold; resilience trade-off recorded.
+- **2026-06-19**: Added §7 User–Person Linkage Invariants (I5–I7) to make §3
+  enforceable, after finding `admin.alpha` seeded as a user with no person
+  (durion-positivity-backend#714). Enforcement/migration specified in ADR-0039.
