@@ -87,26 +87,31 @@ all `Person` relationships in people"*), the following invariants are adopted.
 |---|---|---|
 | 1 | Customer Directory unions commercial + individual customers (I3) | ✅ implemented |
 | 2 | Repair commercial-contact person names + status in `pos-people` (I4) | ✅ implemented |
-| 3 | `pos-people` as SoT; demote `person_party` to a link (I1, I2) | ▶ in progress — **OD1 resolved: 3a thin-link** |
+| 3 | `pos-people` as SoT; demote `person_party` to a link (I1, I2) | ✅ implemented — **3a thin-link complete (#684)** |
 
-#### Phase 3 (3a thin-link) execution sequence
+#### Phase 3 (3a thin-link) execution sequence — ✅ complete
 
-Must be staged; each step ships independently and keeps reads working.
+Staged; each step shipped independently and kept reads working.
 
-1. **Reconcile identity ids (prerequisite for I1).** Seed/data currently links
-   contact `person_party.person_id` to `01960025-*` while the canonical
-   `pos-people.person` rows are `01960026-*`. Repoint `person_party.person_id`
-   to the canonical `pos-people.person.id`; reconcile orphans. Until this holds,
-   demotion cannot read identity from `pos-people`.
-2. **Add identity read path.** `PeopleClient` batch fetch of person
-   name/contact by id; pos-people exposes a get-by-ids endpoint if absent.
-3. **Rewrite pos-customer readers** (contact summaries, `GetPersonResponse`,
+1. ✅ **Reconcile identity ids (prerequisite for I1).** `person_party.person_id`
+   repointed to the canonical `pos-people.person.id`; reconcile confirms I1
+   (`71/71 resolved, 0 orphans`).
+2. ✅ **Add identity read path.** `PeopleClient` batch fetch by id
+   (`POST /v1/people/by-ids`); text search via `GET /v1/people?q=` (#679).
+3. ✅ **Rewrite pos-customer readers** (contact summaries, `GetPersonResponse`,
    individual-customer directory display) to source name/contact from
-   `pos-people` instead of `person_party` columns.
-4. **Drop duplicated columns** from `person_party` (name, contact) once no
-   reader depends on them.
-5. **Disable `PeopleClient` local-id fallback** outside dev; add orphan
-   reconciliation/guard (I1).
+   `pos-people` instead of `person_party` columns (#679, #681, #683).
+4. ✅ **Drop duplicated columns/table** from `pos-customer` (#684): dropped
+   `contact_point` (V10) and `person_party.first_name/last_name` (V11), removed
+   the local read fallbacks. Names/contacts now come solely from `pos-people`.
+5. ✅ **Disable `PeopleClient` local-id fallback** outside dev
+   (`pos.people.allow-local-fallback=false` in non-test profiles); orphan
+   guard via the person-link reconcile endpoint (I1).
+
+> Resilience trade-off (accepted, #684): with the local copies removed, a
+> `pos-people` outage degrades name/contact reads (null on display paths) rather
+> than serving stale local data. Display read paths fail soft; reconciliation
+> still distinguishes "unreachable" from "not found".
 
 ---
 
@@ -179,3 +184,7 @@ Must be staged; each step ships independently and keeps reads working.
 - **2026-06-16**: Accepted. Added Person Unification Invariants (I1–I4) and
   remediation status; linked PLAN-person-unification. Phases 1–2 implemented;
   Phase 3 pending OD1.
+- **2026-06-19**: Phase 3 (3a thin-link) complete (#684). `pos-people` is the
+  sole source of truth for person identity + contacts; `pos-customer` dropped the
+  local `contact_point` table and `person_party.first_name/last_name` columns and
+  removed all read fallbacks. I1/I2 hold; resilience trade-off recorded.
