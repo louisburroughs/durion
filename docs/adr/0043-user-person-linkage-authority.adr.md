@@ -1,7 +1,7 @@
 # ADR-0043: User–Person Linkage Authority and Translation
 
-**Status:** PROPOSED
-**Date:** 2026-06-19
+**Status:** ACCEPTED
+**Date:** 2026-06-19 (accepted 2026-06-19)
 **Deciders:** Architecture, Backend Lead, Security Lead
 **Affected Issues:** durion-positivity-backend#714 (seed: user without person)
 
@@ -133,15 +133,16 @@ sufficient authorization.
 
 | Role         | Name | Date       | Notes |
 |--------------|------|------------|-------|
-| Architecture |      |            | Pending review |
-| Backend Lead |      |            | Pending review |
-| Security Lead|      |            | Pending review |
+| Architecture | LMB  | 2026-06-19 | Accepted       |
+| Backend Lead | LMB  | 2026-06-19 | Accepted       |
+| Security Lead| LMB  | 2026-06-19 | Accepted       |
 
 ---
 
 ## Timeline
 
 - **Proposed**: 2026-06-19
+- **Accepted**: 2026-06-19
 
 ---
 
@@ -151,3 +152,4 @@ sufficient authorization.
   sole link authority, derives token `personId` from it, mandates translation (no
   userId/personId conflation), and adds reconcile + seed-validation enforcement.
   Prompted by durion-positivity-backend#714.
+- **2026-06-19**: Accepted (Architecture/Backend/Security — LMB).

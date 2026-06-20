@@ -107,7 +107,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0040   | Roles, JWT Permission Governance Policy   | ACCEPTED              | 2026-04-12 |
 | 0041   | Frontend Angular SDK API Transport Policy             | ACCEPTED              | 2026-04-25 |
 | 0042   | OpenAPI Annotation Standards for Backend Services     | ACCEPTED              | 2026-05-12 |
-| 0043   | User–Person Linkage Authority and Translation         | PROPOSED              | 2026-06-19 |
+| 0043   | User–Person Linkage Authority and Translation         | ACCEPTED              | 2026-06-19 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
