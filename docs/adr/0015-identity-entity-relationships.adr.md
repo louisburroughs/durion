@@ -137,7 +137,7 @@ invariants make §3 enforceable.
 
 > Enforcement mechanism, token-claim derivation, and migration of the duplicate
 > `users.person_id` column are specified in
-> [ADR-0039: User–Person Linkage Authority and Translation](0039-user-person-linkage-authority.adr.md).
+> [ADR-0043: User–Person Linkage Authority and Translation](0043-user-person-linkage-authority.adr.md).
 
 ---
 
@@ -216,4 +216,4 @@ invariants make §3 enforceable.
   removed all read fallbacks. I1/I2 hold; resilience trade-off recorded.
 - **2026-06-19**: Added §7 User–Person Linkage Invariants (I5–I7) to make §3
   enforceable, after finding `admin.alpha` seeded as a user with no person
-  (durion-positivity-backend#714). Enforcement/migration specified in ADR-0039.
+  (durion-positivity-backend#714). Enforcement/migration specified in ADR-0043.
