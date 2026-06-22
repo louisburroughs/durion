@@ -1,0 +1,79 @@
+meta:
+  capability_id: CAP:316
+  capability_name: 'CAP-316: Retread Plant Labor & Overhead Cost Report (read-only)'
+  owner_repo: louisburroughs/durion
+  created_utc: '2026-06-22T00:00:00Z'
+  last_updated_utc: '2026-06-22T00:00:00Z'
+parent_capability:
+  repo: louisburroughs/durion
+  issue: 328
+  title: 'CAP-316: Retread Plant Labor & Overhead Cost Report (read-only)'
+  domain: accounting
+  labels:
+  - type:capability
+  - domain:accounting
+  - CAP:316
+coordination:
+  github_project_url: https://github.com/users/louisburroughs/projects/1
+  status_field_name: status:{Backlog,Ready,In Progress,In Review,Done}
+  preferred_branch_prefix: cap/
+contract_registry:
+  root_path: domains
+  guide_path_suffix: .business-rules/BACKEND_CONTRACT_GUIDE.md
+  contract_status_markers:
+  - draft
+  - stable-for-ui
+repositories:
+- name: durion-positivity-backend
+  slug: louisburroughs/durion-positivity-backend
+  type: backend
+  notes: 'Read-only Labor & Overhead cost report endpoint.'
+- name: durion-positivity-frontend
+  slug: louisburroughs/durion-positivity-frontend
+  type: frontend
+  notes: 'Read-only cost report screen (Angular).'
+stories:
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 328
+    title: 'CAP-316: Retread Plant Labor & Overhead Cost Report (read-only)'
+    domain: accounting
+    labels:
+    - type:capability
+    - domain:accounting
+    - CAP:316
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: ''  # TBD — see docs/capabilities/CAP-316/01-labor-overhead-cost-report-endpoint.story.md
+      story_markdown_path: ./01-labor-overhead-cost-report-endpoint.story.md
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      issue: ''  # TBD — see ./stories/frontend/CAP_316.frontend.md
+      story_markdown_path: ./stories/frontend/CAP_316.frontend.md
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      spec_path: pos-accounting/target/openapi.json
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
+execution:
+  agent_rules:
+  - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
+  - Frontend work starts only when contract status is stable-for-ui.
+  - 'One branch per repo per capability: cap/316.'
+  - Read-only capability — no posting/mutation paths may be introduced.
+  definition_of_done:
+  - All PRs merged and required checks green
+  - Contract guide entry (CAP-316) added with examples + behavioral assertions
+  - Provider behavioral contract tests prove amounts trace to posted GL data
+  - Frontend wired to stable contract; screen is strictly read-only
