@@ -45,12 +45,12 @@ stories:
   children:
     backend:
       repo: louisburroughs/durion-positivity-backend
-      issue: ''  # TBD — see docs/capabilities/CAP-316/01-labor-overhead-cost-report-endpoint.story.md
+      issue: 724
       story_markdown_path: ./01-labor-overhead-cost-report-endpoint.story.md
     frontend:
       repo: louisburroughs/durion-positivity-frontend
-      issue: ''  # TBD — see ./stories/frontend/CAP_316.frontend.md
-      story_markdown_path: ./stories/frontend/CAP_316.frontend.md
+      issue: 77
+      story_markdown_path: ./stories/frontend/CAP_316.77.frontend.md
   contract_guide:
     repo: louisburroughs/durion
     path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
