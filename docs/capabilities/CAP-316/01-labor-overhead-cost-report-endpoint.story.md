@@ -1,6 +1,6 @@
 # Story: Read-only Retread Plant Labor & Overhead Cost Report endpoint
 
-> Target repo: **louisburroughs/durion-positivity-backend**
+> Target repo: **louisburroughs/durion-positivity-backend** — issue #724
 > Parent capability: CAP-316 — louisburroughs/durion#328
 > Labels: `type:story`, `domain:accounting`, `status:needs-review`
 > Branch: `cap/316-labor-overhead-cost-report`

@@ -231,6 +231,6 @@ Response (shape; field names finalized during backend story):
 | Layer | Repo | Artifact |
 | --- | --- | --- |
 | Primary (high-level) | louisburroughs/durion | Issue #328 |
-| Backend story | louisburroughs/durion-positivity-backend | `01-labor-overhead-cost-report-endpoint.story.md` (this folder) → issue TBD |
-| Frontend story | louisburroughs/durion-positivity-frontend | `stories/frontend/CAP_316.frontend.md` (this folder) → issue TBD |
+| Backend story | louisburroughs/durion-positivity-backend | `01-labor-overhead-cost-report-endpoint.story.md` (this folder) → issue #724 |
+| Frontend story | louisburroughs/durion-positivity-frontend | `stories/frontend/CAP_316.77.frontend.md` (this folder) → issue #77 |
 | Contract | louisburroughs/durion | `domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md` (add CAP-316 section) |
