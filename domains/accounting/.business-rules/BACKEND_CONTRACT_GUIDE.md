@@ -527,6 +527,64 @@ Headers and auth notes:
 - Provider tests: `EventIngestionContractBehaviorIT`, `SuspenseQueueContractBehaviorIT`
 - Service tests: `PostingRuleEvaluatorDefaultMappingTest`, `PostingRuleEvaluatorFeatureFlagTest`, `PostingEngineOrchestratorTest`
 
+## CAP-316: Location Labor & Overhead Cost Report (read-only)
+
+### Capability Metadata
+
+- Capability ID: CAP-316
+- Parent Issue: <https://github.com/louisburroughs/durion/issues/328>
+- Backend Story: <https://github.com/louisburroughs/durion-positivity-backend/issues/724>
+- OpenAPI Source: `durion-positivity-backend/pos-accounting/openapi.yaml`
+
+### API Operation References (OpenAPI Source of Truth)
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| Labor & Overhead cost report | `generateLaborOverheadReport` | GET | `http://localhost:8080/v1/accounting/reports/location/labor-overhead?locationId={id}&fiscalYear={yyyy}[&asOfMonth={1-12}]` |
+
+> Path note: the published backend story (#724) and this guide use `/reports/location/labor-overhead`.
+> This supersedes the `/reports/retread/labor-overhead` path in the older CAP-316 spec markdown.
+
+### Behavioral Assertions
+
+- Read-only: derives the canonical CAP-316 cost-line matrix from posted GL data; performs no posting,
+  mutation, or inference. Reflects posted ledger state only (consistent with CAP-054).
+- Response carries every canonical line (Labor §1, Overhead §2, section subtotals, Total Labor &
+  Overhead) in contractual order, each with `monthly[12]` (index 0 = January) and `ytd`.
+- Leaf monthly amounts equal the net (debit − credit) of posted journal-entry lines for the line's
+  mapped GL account(s), filtered by the `locationId` dimension and transaction month within the year.
+- Subtotal rows are computed column-wise from their children and are never mapped directly.
+- `ytd` = sum of monthly values for elapsed months (1 … `asOfMonth`; default 12).
+- Sign is preserved for credit/income lines (2.13 Inventory charge, 2.14 Rubber dust income).
+- Unmapped / zero-activity lines return `0` with the full layout preserved; unknown location → all `0`.
+- Currency context: `currency`, `localCurrencyPerUsd`, `averageRate` (1.00 for US plants). v1 assumes a
+  US plant (rate 1.00) and echoes `locationId` as the label; FX/label enrichment is a documented follow-up.
+- Report-line → GL-account mapping is persisted master-data: `statement_line_mappings` rows under
+  `statement_type = LABOR_OVERHEAD`. v1 seeds a representative subset (migration `V3`); the full
+  domain-authored account set is a follow-up.
+
+### Frontend Usage Notes
+
+- The screen renders the returned matrix directly (no client-side aggregation); preserve line order.
+- Per-line `definition` and `costType` (`FIXED|VARIABLE|FIXED_IF_LOW_VOLUME`) drive inline help.
+
+### ADR Constraints
+
+- `AD-008` correlation and trace standards apply (auditable, non-mutating read).
+- Gated by the financial-reporting permission family (`reporting:view:financial-statements`);
+  unauthorized → `403`.
+
+### Events & Dependencies
+
+- Consumes posted journal/ledger data (CAP-051) and the chart of accounts (CAP-050).
+- Follows CAP-054 financial-reporting conventions (`/v1/accounting/reports/...`, posted-state semantics).
+
+### Contract Test Traceability
+
+- Provider tests: `LaborOverheadReportContractBehaviorIT`
+- Controller tests: `LaborOverheadReportControllerTest`
+- Service tests: `LaborOverheadReportServiceImplTest`
+
 ## Events & Cross-Domain Dependencies
 
 - Billing emits invoice issuance/finalization events consumed by Accounting.
