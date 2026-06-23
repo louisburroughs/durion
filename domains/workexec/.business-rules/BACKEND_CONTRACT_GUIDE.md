@@ -83,6 +83,8 @@ Frontend developer workflow:
 | Get estimates by customer | `getEstimatesByCustomer` | GET | `/v1/workorders/estimates/customer/{customerId}` | Refer to generated API reference for payload details |
 | Get estimates by location | `getEstimatesByLocation` | GET | `/v1/workorders/estimates/location/{locationId}` | Refer to generated API reference for payload details |
 | Get estimates by shop | `getEstimatesByShop` | GET | `/v1/workorders/estimates/shop/{locationId}` | Refer to generated API reference for payload details |
+| Find estimate (typeahead) | `searchEstimates` | GET | `/v1/workexec/estimates/search?q=` | `q` matches estimate number, customer name, or estimate id; returns `EstimateSummaryResponse` enriched with `customerName`. Auth `workorder:estimate:view`. |
+| Find workorder (typeahead) | `searchWorkorders` | GET | `/v1/workorders/search?q=` | `q` matches customer name or workorder id; returns `WorkorderSearchResult` `{workorderId,status,customerName,createdAt}`. Auth `workorder:workorder:view`. |
 | View daily dispatch board | `getDashboardToday` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 
 Headers and auth notes:
@@ -413,6 +415,26 @@ WARNING conflicts (advisory, do not prevent dispatch):
 
 - OpenAPI: `durion-positivity-backend/pos-workorder/openapi.yaml` (operationId: `getDashboardToday`)
 - Generated API reference: `domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md`
+
+## Finder Search (estimate / workorder)
+
+Typeahead finders on the workexec landing resolve a typed customer name or record id to a record.
+
+- `GET /v1/workexec/estimates/search?q=` (`searchEstimates`) and `GET /v1/workorders/search?q=`
+  (`searchWorkorders`) are **read-only**; no mutation.
+- `q` resolution: estimate `q` matches `estimateNumber` (case-insensitive), customer name, or estimate
+  id (UUID); workorder `q` matches customer name or workorder id (UUID). Workorders have no human-readable
+  number — customer name is the primary key.
+- Customer **name → ids** is resolved against pos-customer party browse (`/v1/crm/accounts/parties?name=`)
+  at query time; `customerName` is enriched on the response (ADR-0015 §6 — name mastered in pos-customer,
+  not denormalized here). **Fail-soft:** if pos-customer is unreachable, name matching yields empty while
+  number/id matching still returns results.
+- Permissions: `workorder:estimate:view` (estimates), `workorder:workorder:view` (workorders). Events:
+  `WORKORDER_ESTIMATE_SEARCH`, `WORKORDER_SEARCH`.
+- Contract tests: `EstimateSearchContractBehaviorIT`, `WorkorderSearchContractBehaviorIT` (+ service unit
+  tests `EstimateSearchByQueryTest`, `WorkorderSearchServiceTest`, `CustomerReferenceServiceTest`).
+- Realized by: durion-positivity-backend#734, durion-positivity-sdk-angular#16,
+  durion-positivity-frontend#89 (CAP — workexec typeahead finders).
 
 ## Events & Cross-Domain Dependencies
 
