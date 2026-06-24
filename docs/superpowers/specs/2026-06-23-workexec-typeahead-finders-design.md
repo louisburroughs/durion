@@ -1,7 +1,12 @@
 # Design — Workexec typeahead finders (find estimate / workorder by customer name or id)
 
-**Date:** 2026-06-23
+**Date:** 2026-06-23 (rev 2026-06-24)
 **Status:** Approved (design) — pending spec review
+
+> **Rev 2026-06-24 — scope expansion (confirmed):** dropdown rows now show **customer
+> name + vehicle label + truncated VIN + estimate number + status**, and the
+> **workorder gains a stored human `workorderNumber`** (was an out-of-scope follow-up).
+> See §"Workorder number" and the revised DTOs below.
 **Repos:** durion-positivity-backend (pos-workorder), durion-positivity-sdk-angular, durion-positivity-frontend
 
 ## Context / problem
@@ -25,7 +30,25 @@ mastered in `pos-customer` (ADR-0015 §6 I2). `pos-workorder` already enriches i
 - **Navigation:** estimate → `/app/workexec/estimates/{id}/summary`; workorder → `/app/workexec/workorders/{id}`.
 - **Depth:** standard coverage, shipped as **chained PRs** (backend → SDK → frontend), like CAP-316.
 
-## Architecture
+## Workorder number (new, stored)
+
+Add a human-readable `workorderNumber` (column on `Workorder`, format `WO-YYYY-NNNN`,
+unique per `locationId` like `estimateNumber`). Populate **at creation** in
+`WorkorderServiceImpl.doCreateWorkorder`:
+
+- **Created from an estimate** → swap the estimate's prefix: `EST-2026-1001` → `WO-2026-1001`,
+  **iff** that value is free at the workorder's location. This makes the WO number "match the
+  estimate number except the prefix" in the normal 1:1 case.
+- **No estimate, or the swapped value collides** (estimate revised into a 2nd workorder) →
+  generate via an independent `WO-YYYY-NNNN` sequence, mirroring `generateEstimateNumber`
+  (`do { n = prefix+seq; seq++ } while (existsByLocationIdAndWorkorderNumber)`).
+
+**Migration (Flyway):** add `workorder.workorder_number` (nullable initially), unique
+constraint `(locationId, workorder_number)`, then **backfill** existing rows — prefix-swap
+from the joined estimate where present and free, else assign sequentially per location.
+After backfill, number is set on every row. (Pre-production: no compatibility shim.)
+
+Consequence: workorder search (below) can now match `workorderNumber ILIKE %q%`.
 
 ### 1. Backend (pos-workorder)
 
@@ -40,20 +63,23 @@ yields empty (id/number matching still works), consistent with existing resilien
 - Resolution when `q` present: estimates where `estimateNumber ILIKE %q%` **OR** `customerId IN (name
   matches)` **OR** `id = q` (when `q` parses as UUID). Existing `customerId`/`vehicleId` filters still
   honored (AND-combined when present).
-- Response: existing `EstimateSummaryResponse` **+ `customerName`** (enriched via `resolveAll`), paginated
-  (`PageableDefault(size=25)`, finder uses ~10).
+- Response: existing `EstimateSummaryResponse` **+ `customerName` + `vehicleLabel` + `vin`** (customer via
+  `CustomerReferenceService.resolveAll`, vehicle via **existing** `VehicleReferenceService.resolveAll` →
+  `{vehicleInfo, vin}`), paginated (`PageableDefault(size=25)`, finder uses ~10). `estimateNumber`/`status`
+  already present.
 - Permission unchanged: `workorder:estimate:view`.
 
 **Workorder search — new `GET /v1/workorders/search?q=` (WorkorderController or a new search controller):**
-- `q` matches `customerId IN (name matches)` **OR** `id = q` (UUID). (No estimateNumber analogue; workorder
-  has no human number.)
-- Lightweight DTO `WorkorderSearchResult { workorderId, status, customerName, vehicleLabel?, createdAt }`,
-  `customerName` enriched. Paginated.
+- `q` matches `workorderNumber ILIKE %q%` **OR** `customerId IN (name matches)` **OR** `id = q` (UUID).
+  (`workorderNumber` is the new human number — see §"Workorder number".)
+- Lightweight DTO `WorkorderSearchResult { workorderId, workorderNumber, estimateNumber, status,
+  customerName, vehicleLabel, vin, createdAt }`. `estimateNumber` via the `estimate` join; `customerName`
+  and `vehicleLabel`/`vin` enriched as above. Paginated.
 - Permission: `workorder:view` (confirm exact scope against existing WorkorderController).
 
 **Repositories:** add finders for `customerId IN (:ids)` + `estimateNumber ILIKE` (estimates) and
-`customerId IN (:ids)` (workorders), both with paging and `endTime`-agnostic active filtering N/A here.
-Dimension/JSON-free, portable to H2.
+`customerId IN (:ids)` + `workorderNumber ILIKE` (workorders), both paged. Vehicle/customer enrichment
+is done per result page via the reference services (batch `resolveAll`), as WIP already does. H2-portable.
 
 ### 2. SDK (durion-positivity-sdk-angular)
 Regenerate the `workorder` module: new `q` param on estimate search, new workorder search operation +
@@ -68,13 +94,15 @@ Regenerate the `workorder` module: new `q` param on estimate search, new workord
 - Output: `selected: EventEmitter<string>` (the chosen record id).
 - Behavior: debounced query; renders an accessible combobox/listbox (`role=combobox` input +
   `role=listbox` popup, `aria-activedescendant`, arrow/enter/escape keyboard nav); each option shows
-  `primary` (customer name) + `secondary` (estimate number / workorder id-short + status). Loading,
-  empty ("no matches"), and error states. No raw-id requirement.
-- `SearchResultItem { id, primary, secondary }` — a thin view model the page maps SDK rows into.
+  `primary` (customer name) + `secondary` (record number + status) + `tertiary` (vehicle label + truncated
+  VIN). Loading, empty ("no matches"), and error states. No raw-id requirement.
+- `SearchResultItem { id, primary, secondary, tertiary }` — thin view model the page maps SDK rows into.
 
-**Facade (`WorkexecService`):** `searchEstimates(q): Observable<SearchResultItem[]>` and
-`searchWorkorders(q): Observable<SearchResultItem[]>`, mapping SDK rows → `SearchResultItem` (primary =
-customerName, secondary = estimateNumber / short workorder id + status).
+**Facade (`WorkexecService`):** `searchEstimates(q)` and `searchWorkorders(q)` returning
+`Observable<SearchResultItem[]>`, mapping SDK rows → `primary = customerName`,
+`secondary = estimateNumber|workorderNumber + ' · ' + status`, `tertiary = vehicleLabel + ' · VIN …' +
+last 8 of vin` (VIN truncation is a display concern — backend returns full `vin`, frontend shows the
+trailing 8 chars).
 
 **Landing (`workexec-landing-page`):** add a **Finders** section at the top with two
 `WorkexecSearchTypeaheadComponent`s. `Find Estimate` → on select, navigate
@@ -104,9 +132,11 @@ elsewhere).
 - Whole-result caps (~10) — `log` when truncated server-side (no silent cap).
 
 ## Testing
-- **Backend:** unit/contract — q matches estimateNumber; q matches customer name (mocked customer client
-  → ids → rows); q as UUID exact match; customerName enrichment present; pos-customer-down fail-soft;
-  permission 403. (H2; Flyway-disabled — seed via repos.)
+- **Backend:** unit/contract — q matches estimateNumber/workorderNumber; q matches customer name (mocked
+  customer client → ids → rows); q as UUID exact match; customerName + vehicleLabel/vin enrichment present;
+  pos-customer/pos-vehicle-down fail-soft; permission 403. **Workorder numbering:** prefix-swap from
+  estimate (1:1), collision → own sequence, estimate-less → own sequence, backfill migration test.
+  (H2; Flyway-disabled — seed via repos.)
 - **SDK:** builds; new operation + DTO present.
 - **Frontend:** typeahead component spec (debounce, keyboard nav, select emits id, loading/empty/error);
   facade mapping spec; landing wiring (select → navigate). `ng build --configuration alpha`; a11y smoke.
@@ -114,7 +144,6 @@ elsewhere).
 ## Out of scope / follow-ups
 - Per-card inline typeahead conversion of the remaining launch cards.
 - Relevance ranking, dropdown pagination/load-more, recent/favorites.
-- Workorder human-readable number (would simplify workorder search; separate change).
 
 ## Ship order
 Backend PR (search + tests) → SDK PR (regen workorder) → frontend PR (finders), merged in order.
