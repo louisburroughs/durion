@@ -93,6 +93,7 @@ ECR_SERVICES=(
   durion/pos-price
   durion/pos-security-service
   durion/pos-shop-manager
+  durion/pos-tax
   durion/pos-vehicle-inventory
   durion/pos-workorder
 )
