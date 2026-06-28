@@ -270,6 +270,44 @@ stories:
   - durion_contract_pr
   - backend_pr
   - frontend_prs
+- parent_story:
+    repo: louisburroughs/durion
+    issue: 337
+    title: '[STORY] Invoicing: Invoice Finder Search Endpoint (billing detail card)'
+    labels:
+    - domain:workexec
+    - layer:functional
+    - type:story
+    - CAP:007
+  children:
+    backend:
+      repo: louisburroughs/durion-positivity-backend
+      issue: 765
+    frontend:
+      repo: louisburroughs/durion-positivity-frontend
+      issue: null
+      impacted_component_repos: []
+      business_rules:
+      - repo: louisburroughs/durion
+        path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
+      story_markdown_path: ''
+  contract_guide:
+    repo: louisburroughs/durion
+    path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
+    anchor: ''
+    status: draft
+    openapi:
+      producer_repo: louisburroughs/durion-positivity-backend
+      spec_path: pos-invoice/openapi.yaml
+      generated: true
+  pr_links:
+    durion_contract_pr: ''
+    backend_pr: ''
+    frontend_prs: []
+  merge_order:
+  - durion_contract_pr
+  - backend_pr
+  - frontend_prs
 execution:
   agent_rules:
   - Backend changes that affect API/event behavior REQUIRE a durion contract PR.
