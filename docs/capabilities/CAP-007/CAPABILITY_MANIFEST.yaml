@@ -301,12 +301,15 @@ stories:
       spec_path: pos-invoice/openapi.yaml
       generated: true
   pr_links:
-    durion_contract_pr: ''
-    backend_pr: ''
-    frontend_prs: []
+    durion_contract_pr: louisburroughs/durion#338
+    backend_pr: louisburroughs/durion-positivity-backend#766
+    sdk_pr: louisburroughs/durion-positivity-sdk-angular#21
+    frontend_prs:
+    - louisburroughs/durion-positivity-frontend#135
   merge_order:
   - durion_contract_pr
   - backend_pr
+  - sdk_pr
   - frontend_prs
 execution:
   agent_rules:
