@@ -219,6 +219,51 @@ Headers and auth notes:
 
 ---
 
+## CAP-007: Invoice Finder Search
+
+### Capability Metadata
+
+- Capability: `cap:007` — Convert Workorder to Invoice
+- Parent story: [durion#337](https://github.com/louisburroughs/durion/issues/337)
+- Backend child: [durion-positivity-backend#765](https://github.com/louisburroughs/durion-positivity-backend/issues/765)
+- Module: `pos-invoice` (with a server-side dependency on `pos-workorder`)
+
+### Frontend API Lookup
+
+- `GET /v1/invoices/search?q={q}&page={p}&size={s}` → `Page<InvoiceSearchResult>` — finder backing the billing landing invoice-detail card. SDK: `InvoiceSearchService.searchInvoices(pageable, q)`.
+
+### Permission Matrix
+
+- `GET /v1/invoices/search` requires authority `invoice:manage`.
+- `POST /v1/workorders/numbers:resolve` (pos-workorder, internal) requires authority `workorder:workorder:view`.
+
+### Behavioral Assertions
+
+- The query matches the **invoice number** (case-insensitive substring; LIKE metacharacters `%`/`_` are escaped and matched literally), the **customer name** (resolved to party ids via pos-customer), or the **workorder number** (resolved to workorder ids via pos-workorder).
+- Each result row is enriched with the resolved customer display name and the human workorder number; the invoice row itself stores only `partyId` and `workorderId`.
+- A blank/whitespace `q` returns an empty page (the finder requires a term; it does not list all invoices).
+- Page size is capped at 50; default sort is `createdAt` descending for deterministic pagination.
+- Reference resolution/enrichment runs outside any open DB transaction, with bounded connect/read timeouts on the outbound calls; a sibling-service failure degrades the affected enrichment field to null rather than failing the search.
+- `InvoiceSearchResult`: `invoiceId`, `invoiceNumber`, `customerName`, `workorderId`, `workorderNumber`, `status` (`DRAFT|FINALIZED|POSTED|ERROR`), `total`, `createdAt`.
+
+### Status Code Semantics (ADR-0017)
+
+- `200 OK` — page of results (possibly empty).
+- `400 Bad Request` — invalid pagination parameters.
+- `403 Forbidden` — caller lacks `invoice:manage`.
+
+### Events
+
+- `INVOICE_SEARCH` (fastRead) — emitted on invoice search.
+- `WORKORDER_NUMBER_RESOLVE` (fastRead) — emitted on the pos-workorder batch id→number resolution.
+
+### Implementation Links
+
+- [Parent story #337](https://github.com/louisburroughs/durion/issues/337) · [Backend #765](https://github.com/louisburroughs/durion-positivity-backend/issues/765)
+- Implementation doc: `docs/capabilities/CAP-007/CAP-007-backend-implementation.md`
+
+---
+
 ## Events & Cross-Domain Dependencies
 
 - This domain exchanges data with other services only through REST APIs and message/event contracts.

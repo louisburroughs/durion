@@ -294,8 +294,8 @@ stories:
   contract_guide:
     repo: louisburroughs/durion
     path: domains/billing/.business-rules/BACKEND_CONTRACT_GUIDE.md
-    anchor: ''
-    status: draft
+    anchor: '#cap-007-invoice-finder-search'
+    status: stable-for-ui
     openapi:
       producer_repo: louisburroughs/durion-positivity-backend
       spec_path: pos-invoice/openapi.yaml

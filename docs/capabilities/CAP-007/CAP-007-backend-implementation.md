@@ -1,4 +1,4 @@
-# CAP-007 — Invoice Finder Search Endpoint (Backend Implementation)
+## CAP-007 — Invoice Finder Search Endpoint (Backend Implementation)
 
 Parent capability: **CAP:007 — Convert Workorder to Invoice** (durion#7)
 Parent story: durion#337 · Backend child: durion-positivity-backend#765
@@ -19,10 +19,10 @@ two cross-service clients, mirroring the proven pos-workorder finder
 
 ## Endpoint
 
-```
+```text
 GET /v1/invoices/search?q={q}&page={p}&size={s}
 Authority: invoice:manage   Event: INVOICE_SEARCH (fastRead)
-200 → Page<InvoiceSearchResult>
+200 → Page<InvoiceSearchResult>   400 invalid pageable   403 missing invoice:manage
 ```
 
 `InvoiceSearchResult`: `invoiceId, invoiceNumber, customerName, workorderNumber,
