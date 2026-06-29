@@ -59,6 +59,19 @@ customer-name enrichment is effectively dead today. The batch endpoint replaces 
     Keep `searchIdsByName`.
 11. Update `CustomerReferenceClientTest` to the batch POST shape.
 
+## Phase E — pos-workorder (second consumer)
+
+`pos-workorder/CustomerReferenceService` has the same N+1: `resolveAll(Collection)` loops
+`resolve(id)` → `GET /v1/crm/{customerId}`. Both finder consumers
+(`WorkorderSearchServiceImpl:77`, `EstimateServiceImpl:178`) use only `CustomerContact.name()`;
+the `phoneNumber` field is resolved but never consumed → dropping it is safe.
+
+15. Rewrite `resolveAll` to a single `POST /v1/crm/accounts/parties:resolve`; `resolve(single)`
+    delegates to `resolveAll(List.of(id))`. Remove the per-id GET path (`/v1/crm/{customerId}`) and the
+    now-dead `unwrapData` / `composeName` / `firstNonBlank` helpers; keep `searchIdsByName`.
+16. Drop the unused `CustomerContact.phoneNumber` component (pre-prod policy); call sites use `.name()`.
+17. Update `CustomerReferenceService` tests to the batch POST shape.
+
 ## Phase D — tests / verify / PR
 
 12. `mvn -pl pos-customer,pos-invoice test`; module-verify; openapi validation.
