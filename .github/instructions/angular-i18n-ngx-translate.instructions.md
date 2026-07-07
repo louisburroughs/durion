@@ -6,8 +6,8 @@ applyTo: '**/*.ts, **/*.html'
 # Angular i18n — @ngx-translate Rules
 
 This project uses `@ngx-translate/core` with `TranslateModule.forRoot()` configured in `app.config.ts`.
-Translation files live at `src/assets/i18n/{en-US,es-US,fr-CA}.json`.
-Supported locales: `en-US`, `es-US`, `fr-CA`.
+Translation files live at `src/assets/i18n/{en-US,es-US,es-MX,fr-CA,fr-FR}.json`.
+Supported locales: `en-US`, `es-US`, `es-MX`, `fr-CA`, `fr-FR`.
 
 ## Core Rules
 
@@ -124,12 +124,14 @@ Strings reused across multiple domains go under top-level namespaces:
 
 When implementing a new component or page:
 
-1. **Add all new keys to all three locale files** before or alongside the implementation:
+1. **Add all new keys to all five locale files** before or alongside the implementation:
    - `src/assets/i18n/en-US.json` — primary, must be complete
    - `src/assets/i18n/es-US.json` — Spanish (US), translate or use English as a placeholder marked `// TODO: translate`
-   - `src/assets/i18n/fr-CA.json` — French (Canadian), same rule
+  - `src/assets/i18n/es-MX.json` — Spanish (Mexico), same rule
+  - `src/assets/i18n/fr-CA.json` — French (Canadian), same rule
+  - `src/assets/i18n/fr-FR.json` — French (France), same rule
 
-2. Keys present in `en-US.json` must exist in `es-US.json` and `fr-CA.json`. Missing keys cause the UI to show raw key strings.
+2. Keys present in `en-US.json` must exist in `es-US.json`, `es-MX.json`, `fr-CA.json`, and `fr-FR.json`. Missing keys cause the UI to show raw key strings.
 
 3. **Do not add placeholder text** like `"TODO"` or `"[key missing]"` as values — use the English string as the fallback value instead, so the app is always readable.
 
