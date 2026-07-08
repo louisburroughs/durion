@@ -14,6 +14,8 @@ This ADR still records the gateway ownership decision, but it is no longer the l
 - Current runtime behavior uses `perm_bits` plus `perm_ver` as the primary authority payload, with a temporary legacy `authorities` fallback in gateway code for older tokens.
 - Read this ADR for trust-boundary and ownership intent, not for the exact access-token field contract.
 
+**2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md):** the gateway trust model in this ADR governs **synchronous/client traffic only**. Module-to-module communication now flows over the asynchronous Kafka channel, which is governed by the trust model in ADR-0044 §5: internal-only broker, producer identity via `sourceService` (plus broker ACLs where supported), and an `actor` field that is audit metadata only — never an authorization input. Token and header semantics for synchronous traffic are unchanged.
+
 ---
 
 ## Context

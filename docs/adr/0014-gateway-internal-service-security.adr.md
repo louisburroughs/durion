@@ -1,5 +1,14 @@
 # 0014 - Internal Service Security via Gateway Route Control
 
+## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+
+- The route whitelist gains `pos-people-contact` (new module from the ADR-0044 people split; its person/contact APIs are frontend-facing).
+- pos-vehicle-inventory's registry **write** endpoints become frontend-facing (vehicle CRUD moves out of pos-customer); the existing `VEHICLE-INVENTORY` route must cover them.
+- The "Internal REST calls" access option under Deployment Guidelines now applies only to the ADR-0044 utility modules (gateway, security, documents, image, tax, event-receiver, price). Domain↔domain access is asynchronous event messaging only.
+- The pos-tax stance (internal-only, no gateway route, `register-with-eureka: false`) is unchanged and reaffirmed by ADR-0044.
+
+---
+
 ## Context
 
 The Durion Positivity Backend uses a microservices architecture where some services are intended for public access (e.g., `pos-order`, `pos-catalog`) while others are strictly internal (e.g., `pos-tax`, `pos-events`).

@@ -8,6 +8,12 @@
 
 ---
 
+## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+
+All invariants in this ADR are unchanged. The **owning module** of `Person`, `PersonContactPoint`, and `user_person_links` moves from `pos-people` to the new `pos-people-contact` module (ADR-0044 people split: contact/identity vs HR). References to `pos-people` as the person source of truth in §1, §6 (I1–I4), and §7 (I5–I7) should be read as `pos-people-contact` once the split lands; `pos-people` retains the HR domain (Employee, timekeeping, work sessions, availability, staffing). Consumers obtain person name/contact data from read-only replicas fed by `people-contact.events.v1` rather than synchronous reads.
+
+---
+
 ## Context
 
 The Durion platform manages several core identity and relationship concepts: `Person`, `Customer`, and `User`. These entities are referenced across multiple modules:

@@ -15,6 +15,13 @@ All Durion backend REST APIs MUST follow comprehensive OpenAPI annotation standa
 3. **Security:** Permission-based tool filtering and authorization
 4. **Quality:** Validation and enforcement via CI/CD pipeline
 
+## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+
+- **Scope note:** this ADR covers synchronous REST contracts only. Asynchronous event contracts (topics, envelopes, payloads per ADR-0044 §3) are out of OpenAPI scope; they live as versioned DTOs in the `pos-domain-events` library. AsyncAPI adoption may be proposed as a separate ADR.
+- **Enforcement inventory additions:** `pos-people-contact` (new module) and pos-vehicle-inventory's newly frontend-facing registry write endpoints must join the OpenAPI enforcement waves (mirror this in `durion-positivity-backend/docs/adr-0042-openapi-rollout-baseline.md`).
+
+---
+
 ## Required OpenAPI Annotations
 
 ### 1. Operation-Level Annotations (MANDATORY)

@@ -5,6 +5,16 @@ drift, frontend RBAC gating consistency, PERM migration alignment
 
 ---
 
+## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+
+This ADR's permission model governs **synchronous API authorization only**. For the asynchronous Kafka channel introduced as the mandatory domain↔domain transport by ADR-0044:
+
+- Event consumption is **not** authorized via permissions, `perm_bits`, or `X-Authorities`.
+- Command events are authorized by **topic and producer identity** (ADR-0044 §5); the initiating user's permission check happens once, at the synchronous edge where the request entered the system (gateway → controller `@PreAuthorize`).
+- The event envelope's `actor` field is recorded for audit only and MUST NOT be used to bypass or re-derive permission checks.
+
+---
+
 ## Context
 
 The platform currently uses two distinct authorization concepts:

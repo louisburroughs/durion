@@ -25,6 +25,7 @@ friction.
 
 - `200 OK` for successful reads and successful mutations that return a response body.
 - `201 Created` for successful resource creation.
+- `202 Accepted` for mutations whose effect is enqueuing an asynchronous command event ([ADR-0044](0044-platform-event-only-domain-walls.adr.md) R4). The response body carries a tracking/idempotency reference and a link to a pending-state resource; asynchronous rejection (the owner's result event reports "rejected") is surfaced through that status resource, never as a late HTTP error on the original request. *(Added 2026-07-08 by ADR-0044.)*
 - `204 No Content` for successful operations with no response body (for example delete/revoke).
 - `400 Bad Request` for malformed requests and request-shape/field validation errors.
 - `401 Unauthorized` for missing or invalid authentication credentials.

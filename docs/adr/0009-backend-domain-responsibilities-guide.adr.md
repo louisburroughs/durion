@@ -40,12 +40,13 @@ Establish and document explicit domain responsibilities for each pos-* module in
 
 | Module | Domain | Primary Responsibility | Key Entities | Authoritative For | Integrates With |
 | -------- | -------- | ---------------------- | -------------- | ------------------- | ----------------- |
-| pos-accounting | Accounting | Financial transaction tracking, audit trails, GL posting, invoice management | Transaction, JournalEntry, GLAccount, AuditTrail | Price overrides, refunds, cost tracking | pos-order, pos-inventory |
+| pos-accounting | Accounting | Financial transaction tracking, audit trails, GL posting, invoice management | Transaction, JournalEntry, GLAccount, AuditTrail | Price overrides, refunds, cost tracking | Event-only (ADR-0044): consumes `customer.events.v1`, `invoice.events.v1`, `workorder.events.v1`; publishes `accounting.events.v1` and command events to invoice/workorder |
 | pos-invoice | Invoice Management | Invoice status tracking, invoice generation from workorders and orders, dispute management, invoice corrections | Invoice, InvoiceStatus, InvoiceDispute, InvoiceCorrection | Invoice tracking, dispute resolution, correction handling | pos-workorder, pos-order, pos-accounting |
 | pos-catalog | Catalog | Product catalog maintenance, SKU management, product attributes, category organization | Product, SKU, Category, ProductAttribute | Product information, catalog structure | pos-workorder, pos-inventory, pos-order, pos-pricing |
 | pos-inventory | Inventory | Stock levels, location management, cycle counts, availability calculation | InventoryLevel, Location, CycleCount, AdjustmentRequest | ATP calculations, stock allocations, cycle counts | pos-order, pos-workorder |
 | pos-location | Location Management | Location hierarchy management, headquarters to shop bays to mobile locations, location metadata and configuration | Location, LocationHierarchy, Bay, MobileLocation | Location data, location hierarchy, location configuration | pos-inventory, pos-workorder, pos-people |
-| pos-people | Human Resources | Employee records, time entries, work sessions, exceptions, payroll | Person, TimeEntry, WorkSession, TimeEntryException | Employee data, time tracking, attendance | pos-workorder |
+| pos-people-contact | Contact & Identity | Person identity and contact data, user–person links (split from pos-people per ADR-0044) | Person, PersonContactPoint, UserPersonLink | Person identity, contact points, user↔person linkage | Publishes `people-contact.events.v1`; consumers (customer, invoice, location, shop-manager, workorder, security) hold read-only replicas |
+| pos-people | Human Resources | Employee records, time entries, work sessions, exceptions, payroll, availability, staffing | Employee, TimeEntry, WorkSession, TimeEntryException | Employee data, time tracking, attendance | Publishes `people.events.v1` (availability/assignments); consumes `workorder.events.v1` for job time |
 | pos-workorder | Workorder | Task/workorder lifecycle, job assignments, status tracking, job costing | Workorder, JobTask, Estimate, WorkorderStatus | Job scheduling, assignments, execution | pos-people, pos-inventory, pos-accounting |
 | pos-shop-manager | Shop Operations | Shop floor operations management, mechanic scheduling, work assignment, shop capacity planning, resource allocation | Shop, ShopSchedule, MechanicAssignment, ShopCapacity, WorkAssignment | Mechanic schedules, shop capacity, work assignments, shop resource allocation | pos-workorder, pos-people, pos-location |
 | pos-customer | Customer Relations | Customer data, contact info, preferences, relationship tracking, customer to vehicle relationships | Customer, Contact, CustomerPreferences | Customer identity, relationship data | pos-order, pos-workorder, pos-vehicle-inventory |
@@ -86,6 +87,8 @@ Establish and document explicit domain responsibilities for each pos-* module in
 
 ### 3. Cross-Domain Integration Patterns
 
+> **Amended 2026-07-08 by [ADR-0044](0044-platform-event-only-domain-walls.adr.md):** the "Synchronous REST (Secondary)" allowance below no longer applies between domain modules. Domain↔domain communication is events-only (read-only replicas fed by owner events; writes via command events). Synchronous REST is reserved for the utility modules listed in ADR-0044 §1 (gateway, security, documents, image, tax, event-receiver, price). The "Integrates With" column above now denotes event-topic integration.
+
 **Decision:** ✅ **Resolved** - Use async event-driven patterns for cross-domain communication where possible; synchronous REST calls only for critical read operations or immediate acknowledgments.
 
 **Preferred Patterns:**
@@ -109,7 +112,7 @@ Establish and document explicit domain responsibilities for each pos-* module in
 **Rules:**
 
 - **Authoritative Owner**: Only the domain owning an entity can create, update, or delete it
-- **Cross-Domain Reads**: Other domains may query via REST endpoints or event-driven projections
+- **Cross-Domain Reads**: Other domains read via event-driven projections (read-only `ext_{owner}_{entity}` replicas per ADR-0044 R3); REST reads between domain modules are no longer permitted (amended 2026-07-08 by ADR-0044)
 - **Denormalization**: Cache frequently-accessed data from other domains locally if latency is critical (documented in METRICS.md)
 - **No Direct Database Access**: Services communicate via APIs or events, never via direct DB queries across domains
 

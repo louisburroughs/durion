@@ -5,6 +5,16 @@
 **Context**: CAP:091 Vehicle Registry Implementation  
 **Decision Makers**: Architecture Team
 
+## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+
+Vehicle-party **association ownership is unchanged** — it stays in pos-customer, and party-association events continue to originate there. What changes under ADR-0044:
+
+- Vehicle *registry* create/update/delete is no longer proxied through pos-customer CRM. The frontend calls pos-vehicle-inventory directly via the gateway; pos-customer's `VehicleInventoryClient` is retired.
+- pos-customer serves its cross-cutting queries ("vehicles owned by a party") from a read-only `ext_vehicle_*` replica fed by `vehicle.events.v1`, not by synchronous calls to pos-vehicle-inventory.
+- The negative consequence below ("must call pos-customer service via gateway") is likewise superseded: pos-vehicle-inventory may hold a read-only replica of association data fed by pos-customer's events if it needs association views.
+
+---
+
 ## Context
 
 During implementation of CAP:091 (Vehicle Registry), a decision arose about where to place vehicle-party association logic:

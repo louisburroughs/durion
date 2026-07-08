@@ -7,6 +7,15 @@
 
 ---
 
+## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+
+1. **Link-store ownership follows the ADR-0044 people split.** `user_person_links`, `Person`, and the in-process `UserPersonTranslationService` move from `pos-people` to the new `pos-people-contact` module. Read this ADR's references to `pos-people` accordingly.
+2. **§2 preference is flipped.** Under event-only domain walls, the *preferred* option is the one this ADR already sanctions as the alternative: `pos-security-service.users.person_id` is **retained strictly as a projection written only from the link event** (`people-contact.events.v1` link-changed), never by user-CRUD code. The previously preferred synchronous resolve (`GET /v1/people/users/{userId}/person` at token-issue time) is deprecated as the primary path; token issuance reads the local projection with no cross-service call, preserving the ADR-0022 claim contract and its fallback/metric rules (§3 unchanged).
+3. **Link mutations become command + confirmation events.** Security-initiated link creation/removal publishes a command event consumed by the link authority, which validates and emits a confirmation (or rejection) event; the projection updates from the confirmation.
+4. **§4 translation:** the in-process translation service lives in the link authority module. Domain modules needing userId↔personId translation consume link events into read-only replicas per ADR-0044 R3; the REST translation contract remains available to utility modules and during migration windows.
+
+---
+
 ## Context
 
 [ADR-0015](0015-identity-entity-relationships.adr.md) §3 requires that *"a `User`
@@ -153,3 +162,4 @@ sufficient authorization.
   userId/personId conflation), and adds reconcile + seed-validation enforcement.
   Prompted by durion-positivity-backend#714.
 - **2026-06-19**: Accepted (Architecture/Backend/Security — LMB).
+- **2026-07-08**: Amended by ADR-0044 — link-store ownership moves to `pos-people-contact`; §2 preference flipped to the event-fed `users.person_id` projection (no sync call at token issuance); link mutations become command + confirmation events.
