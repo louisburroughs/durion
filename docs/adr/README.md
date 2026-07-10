@@ -109,6 +109,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0042   | OpenAPI Annotation Standards for Backend Services     | ACCEPTED              | 2026-05-12 |
 | 0043   | User–Person Linkage Authority and Translation         | ACCEPTED              | 2026-06-19 |
 | 0044   | Event-Only Domain Walls and Module Communication Policy | ACCEPTED              | 2026-07-08 |
+| 0045   | Autonomous Environment Lifecycle Management            | PROPOSED              | 2026-07-10 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -160,6 +161,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0042 | OpenAPI operation description as tool invocation contract: 7-element structure for unambiguous LLM tool selection and error self-correction                       | Coder, Test, Planner, Orchestrator |
 | 0043 | User↔Person link authority (`user_person_links` as sole source of truth), token `personId` derivation, mandatory translation (no userId/personId conflation), reconcile + seed-validation enforcement | Coder, Test, Planner, Orchestrator |
 | 0044 | Cross-module communication: domain↔domain must be Kafka events (read replicas + command events); synchronous REST only toward utility modules (gateway, security, documents, image, tax, event-receiver, price); outbox/idempotency/backfill/reconciliation requirements; ArchUnit wall enforcement | Planner, Coder, Test, Orchestrator |
+| 0045 | Tenant-cell operations automation: off-peak grooming, metric-driven right-sizing, cache warm-up, ramp SLO, autonomy/rollback contract, after-action reporting | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 
