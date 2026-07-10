@@ -6,6 +6,7 @@ This directory contains deployment-focused architecture documents for Durion.
 
 - [Foundation-First Tenant Cell Deployment Architecture](./FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md) - Reference architecture for isolated per-organization runtime cells, persistent storage, time simulation, and release flow boundaries
 - [Phased CI/CD and Runtime Plan](./PHASED_CICD_AND_RUNTIME_PLAN.md) - Sequenced implementation plan for control plane, runtime, artifact pipelines, deployment promotion, time simulation, and tenant operations
+- [DevOps Framework](./devops-framework/README.md) - Autonomous environment lifecycle management: off-peak grooming, metric-driven right-sizing, cache pre-loading, and lean/peak operating-state management for tenant cells
 - [Backend Preload Tables](./data-migration/BACKEND_PRELOAD_TABLES.md) - Backend module crawl of bootstrap-critical and operational reference tables that should be preloaded for a usable deployment
 - [Flyway Migration Cleanup Plan](./data-migration/FLYWAY_MIGRATION_CLEANUP_PLAN.md) - Module-by-module plan to standardize Flyway usage, repair migration graphs, and baseline persistent databases before seed migrations
 - [Flyway vs Entity Gap Report](./data-migration/FLYWAY_ENTITY_SCHEMA_GAP_REPORT.md) - Module-by-module gap analysis comparing JPA entity table mappings with Flyway migration table coverage
