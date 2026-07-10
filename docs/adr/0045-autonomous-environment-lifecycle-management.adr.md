@@ -1,9 +1,9 @@
 # ADR-0045: Autonomous Environment Lifecycle Management
 
-**Status:** PROPOSED
+**Status:** ACCEPTED
 **Date:** 2026-07-10
 **Deciders:** Platform Owner, Chief Architect
-**Affected Issues:** implementation stories `docs/stories/devops-*.md`
+**Affected Issues:** [#341](https://github.com/louisburroughs/durion/issues/341), [#342](https://github.com/louisburroughs/durion/issues/342), [#343](https://github.com/louisburroughs/durion/issues/343), [#344](https://github.com/louisburroughs/durion/issues/344), [#345](https://github.com/louisburroughs/durion/issues/345), [#346](https://github.com/louisburroughs/durion/issues/346), [#347](https://github.com/louisburroughs/durion/issues/347), [#348](https://github.com/louisburroughs/durion/issues/348) (implementation stories, `docs/stories/devops-*.md`)
 
 ---
 
@@ -180,17 +180,18 @@ only on anomalies and critical events
 
 | Role | Name | Date | Notes |
 |------|------|------|-------|
-| Architecture | | | |
-| Platform Owner | | | |
+| Platform Owner | Louis Burroughs | 2026-07-10 | Accepted as written |
 
 ---
 
 ## Timeline
 
 - **Proposed**: 2026-07-10
+- **Accepted**: 2026-07-10
 
 ---
 
 ## Changelog
 
 - **2026-07-10**: Initial draft from platform-owner requirements interview
+- **2026-07-10**: Accepted by platform owner as written

@@ -109,7 +109,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0042   | OpenAPI Annotation Standards for Backend Services     | ACCEPTED              | 2026-05-12 |
 | 0043   | User–Person Linkage Authority and Translation         | ACCEPTED              | 2026-06-19 |
 | 0044   | Event-Only Domain Walls and Module Communication Policy | ACCEPTED              | 2026-07-08 |
-| 0045   | Autonomous Environment Lifecycle Management            | PROPOSED              | 2026-07-10 |
+| 0045   | Autonomous Environment Lifecycle Management            | ACCEPTED              | 2026-07-10 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
