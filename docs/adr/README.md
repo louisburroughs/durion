@@ -110,6 +110,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0043   | User–Person Linkage Authority and Translation         | ACCEPTED              | 2026-06-19 |
 | 0044   | Event-Only Domain Walls and Module Communication Policy | ACCEPTED              | 2026-07-08 |
 | 0045   | Autonomous Environment Lifecycle Management            | ACCEPTED              | 2026-07-10 |
+| 0046   | Environment Log Level Policy                           | PROPOSED              | 2026-07-12 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -162,6 +163,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0043 | User↔Person link authority (`user_person_links` as sole source of truth), token `personId` derivation, mandatory translation (no userId/personId conflation), reconcile + seed-validation enforcement | Coder, Test, Planner, Orchestrator |
 | 0044 | Cross-module communication: domain↔domain must be Kafka events (read replicas + command events); synchronous REST only toward utility modules (gateway, security, documents, image, tax, event-receiver, price); outbox/idempotency/backfill/reconciliation requirements; ArchUnit wall enforcement | Planner, Coder, Test, Orchestrator |
 | 0045 | Tenant-cell operations automation: off-peak grooming, metric-driven right-sizing, cache warm-up, ramp SLO, autonomy/rollback contract, after-action reporting | Planner, Coder, Test, Orchestrator |
+| 0046 | Log level changes in any `application-{profile}.yml`, adding/removing logger overrides, temporary troubleshooting verbosity in deployed environments (alpha WARN; indus/prod ERROR; prod INFO+ needs Tech Lead signoff) | Planner, Coder, Orchestrator |
 
 ### Agent role shorthand
 
