@@ -66,11 +66,11 @@ Frontend developer workflow:
 | Revoke JWT token | `revokeToken` | DELETE | `/v1/auth/revoke` | Refer to generated API reference for payload details |
 | Revoke role assignment | `revokeRoleAssignment` | DELETE | `/v1/roles/assignments/{assignmentId}` | Refer to generated API reference for payload details |
 | Delete a user | `deleteUser` | DELETE | `/v1/users/{id}` | Refer to generated API reference for payload details |
-| Extract authorities from JWT token | `getAuthorities` | GET | `/v1/auth/authorities` | Refer to generated API reference for payload details |
+| Extract authorities from JWT token | *(not in OpenAPI — nearest shipped: `getRoles`, `getSubject`)* | GET | `/v1/auth/authorities` | Refer to generated API reference for payload details |
 | Extract roles from JWT token | `getRoles` | GET | `/v1/auth/roles` | Refer to generated API reference for payload details |
 | Extract subject from JWT token | `getSubject` | GET | `/v1/auth/subject` | Refer to generated API reference for payload details |
 | Validate JWT token | `validateToken` | GET | `/v1/auth/validate` | Refer to generated API reference for payload details |
-| Get all registered permissions | `getAllPermissions` | GET | `/v1/permissions` | Refer to generated API reference for payload details |
+| Get all registered permissions | `listPermissions_1` | GET | `/v1/permissions` | Refer to generated API reference for payload details |
 | Get permissions by domain | `getPermissionsByDomain` | GET | `/v1/permissions/domain/{domain}` | Refer to generated API reference for payload details |
 | Check if permission exists | `permissionExists` | GET | `/v1/permissions/exists/{permissionName}` | Refer to generated API reference for payload details |
 | Validate permission name format | `validatePermissionName` | GET | `/v1/permissions/validate/{permissionName}` | Refer to generated API reference for payload details |
@@ -143,7 +143,7 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Extract authorities from JWT token | `getAuthorities` | GET | `/v1/auth/authorities` |
+| Extract authorities from JWT token | *(not in OpenAPI — nearest shipped: `getRoles`, `getSubject`)* | GET | `/v1/auth/authorities` |
 | Extract roles from JWT token | `getRoles` | GET | `/v1/auth/roles` |
 | Extract subject from JWT token | `getSubject` | GET | `/v1/auth/subject` |
 

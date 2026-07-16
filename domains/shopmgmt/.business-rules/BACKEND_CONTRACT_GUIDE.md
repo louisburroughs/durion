@@ -69,26 +69,26 @@ Frontend developer workflow:
 
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
-| Delete bay | `deleteBay` | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
-| Delete mobile unit | `deleteMobileUnit` | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
+| Delete bay | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
+| Delete mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
 | Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` | Refer to generated API reference for payload details |
-| Get bays | `getBays` | GET | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
-| Get mobile units | `getMobileUnits` | GET | `/v1/shop-manager/mobileUnit` | Refer to generated API reference for payload details |
-| Get bays | `getBays_1` | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
-| Get mobile units | `getMobileUnits_1` | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
-| View schedules | `viewSchedules` | GET | `/v1/shop-manager/{locationId}/schedules/view` | Refer to generated API reference for payload details |
-| Get shop service details | `getShopServiceDetails` | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` | Refer to generated API reference for payload details |
+| Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
+| Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/mobileUnit` | Refer to generated API reference for payload details |
+| Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
+| Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
+| View schedules | `viewSchedule` | GET | `/v1/schedules/view` | Refer to generated API reference for payload details |
+| Get shop service details | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` | Refer to generated API reference for payload details |
 | Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` | Refer to generated API reference for payload details |
-| View workorder operational context | `viewOpenWorkordersByShop` | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
+| View workorder operational context | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
 | Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Refer to generated API reference for payload details |
 | Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Refer to generated API reference for payload details |
 | Cancel appointment | `cancelAppointment` | DELETE | `http://localhost:8080/v1/appointments/{appointmentId}/cancel` | Refer to generated API reference for payload details |
 | Create assignment | `createAssignment` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
 | List assignments | `listAssignments` | GET | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
 | Conflict override (scheduling) | `executeOverride` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/conflict-override` | Refer to generated API reference for payload details |
-| Create bay | `createBay` | POST | `/v1/shop-manager/{locationId}/bays` | Refer to generated API reference for payload details |
-| Create mobile unit | `createMobileUnit` | POST | `/v1/shop-manager/{locationId}/mobileUnit` | Refer to generated API reference for payload details |
-| Manage bays | `manageBays` | PUT | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
+| Create bay | *(planned — not in pos-shop-manager OpenAPI)* | POST | `/v1/shop-manager/{locationId}/bays` | Refer to generated API reference for payload details |
+| Create mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | POST | `/v1/shop-manager/{locationId}/mobileUnit` | Refer to generated API reference for payload details |
+| Manage bays | *(planned — not in pos-shop-manager OpenAPI)* | PUT | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
 
 Headers and auth notes:
 
@@ -111,8 +111,8 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Delete bay | `deleteBay` | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` |
-| Delete mobile unit | `deleteMobileUnit` | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
+| Delete bay | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` |
+| Delete mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
 | Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` |
 
 ### Behavioral Assertions
@@ -197,9 +197,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Get bays | `getBays` | GET | `/v1/shop-manager/bays` |
-| Get mobile units | `getMobileUnits` | GET | `/v1/shop-manager/mobileUnit` |
-| Get bays | `getBays_1` | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` |
+| Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/bays` |
+| Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/mobileUnit` |
+| Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` |
 
 ### Behavioral Assertions
 
@@ -240,9 +240,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Get mobile units | `getMobileUnits_1` | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
-| View schedules | `viewSchedules` | GET | `/v1/shop-manager/{locationId}/schedules/view` |
-| Get shop service details | `getShopServiceDetails` | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` |
+| Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
+| View schedules | `viewSchedule` | GET | `/v1/schedules/view` |
+| Get shop service details | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` |
 
 ### Behavioral Assertions
 
@@ -284,7 +284,7 @@ Headers and auth notes:
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
 | Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` |
-| View workorder operational context | `viewOpenWorkordersByShop` | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` |
+| View workorder operational context | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` |
 | Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` |
 
 ### Behavioral Assertions
@@ -326,9 +326,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Create bay | `createBay` | POST | `/v1/shop-manager/{locationId}/bays` |
-| Create mobile unit | `createMobileUnit` | POST | `/v1/shop-manager/{locationId}/mobileUnit` |
-| Manage bays | `manageBays` | PUT | `/v1/shop-manager/bays` |
+| Create bay | *(planned — not in pos-shop-manager OpenAPI)* | POST | `/v1/shop-manager/{locationId}/bays` |
+| Create mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | POST | `/v1/shop-manager/{locationId}/mobileUnit` |
+| Manage bays | *(planned — not in pos-shop-manager OpenAPI)* | PUT | `/v1/shop-manager/bays` |
 
 ### Behavioral Assertions
 
@@ -369,9 +369,9 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Manage mobile units | `manageMobileUnits` | PUT | `/v1/shop-manager/mobileUnit` |
-| Delete bay | `deleteBay` | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` |
-| Delete mobile unit | `deleteMobileUnit` | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
+| Manage mobile units | *(planned — not in pos-shop-manager OpenAPI)* | PUT | `/v1/shop-manager/mobileUnit` |
+| Delete bay | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` |
+| Delete mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` |
 
 ### Behavioral Assertions
 

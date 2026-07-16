@@ -68,12 +68,12 @@ Frontend developer workflow:
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
 | Deactivate a party relationship | `deactivateRelationship` | DELETE | `/v1/crm/commercial-accounts/{partyId}/relationships/{relationshipId}` | Refer to generated API reference for payload details |
-| Delete vehicle | `deleteVehicle` | DELETE | `/v1/crm/{customerId}/vehicles/{vehicleId}` | Refer to generated API reference for payload details |
+| Delete vehicle | *(removed — vehicle registry writes moved to pos-vehicle-inventory, ADR-0044 §6)* | DELETE | `/v1/crm/{customerId}/vehicles/{vehicleId}` | Refer to generated API reference for payload details |
 | Delete a customer | `deleteCustomer` | DELETE | `/v1/crm/{id}` | Refer to generated API reference for payload details |
 | Get all customers | `getAllCustomers` | GET | `/v1/crm` | Refer to generated API reference for payload details |
 | Get party details | `getParty` | GET | `/v1/crm/accounts/parties/{partyId}` | Refer to generated API reference for payload details |
 | Get communication preferences | `getCommunicationPreferences_1` | GET | `/v1/crm/accounts/parties/{partyId}/communicationPreferences` | Refer to generated API reference for payload details |
-| Get contacts with roles | `getContactsWithRoles_1` | GET | `/v1/crm/accounts/parties/{partyId}/contacts` | Refer to generated API reference for payload details |
+| Get contacts with roles | `getContactsWithRoles` | GET | `/v1/crm/parties/{partyId}/contacts` | Refer to generated API reference for payload details |
 | Get account tier | `getAccountTier` | GET | `/v1/crm/accounts/{accountId}/tier` | Refer to generated API reference for payload details |
 | Get contacts for a commercial account | `getContacts` | GET | `/v1/crm/commercial-accounts/{partyId}/contacts` | Refer to generated API reference for payload details |
 | Get communication preferences | `getCommunicationPreferences` | GET | `/v1/crm/parties/{partyId}/communicationPreferences` | Refer to generated API reference for payload details |
@@ -106,7 +106,7 @@ Headers and auth notes:
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
 | Deactivate a party relationship | `deactivateRelationship` | DELETE | `/v1/crm/commercial-accounts/{partyId}/relationships/{relationshipId}` |
-| Delete vehicle | `deleteVehicle` | DELETE | `/v1/crm/{customerId}/vehicles/{vehicleId}` |
+| Delete vehicle | *(removed — vehicle registry writes moved to pos-vehicle-inventory, ADR-0044 §6)* | DELETE | `/v1/crm/{customerId}/vehicles/{vehicleId}` |
 | Delete a customer | `deleteCustomer` | DELETE | `/v1/crm/{id}` |
 
 ### Behavioral Assertions
@@ -191,7 +191,7 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Get contacts with roles | `getContactsWithRoles_1` | GET | `/v1/crm/accounts/parties/{partyId}/contacts` |
+| Get contacts with roles | `getContactsWithRoles` | GET | `/v1/crm/parties/{partyId}/contacts` |
 | Get account tier | `getAccountTier` | GET | `/v1/crm/accounts/{accountId}/tier` |
 | Get contacts for a commercial account | `getContacts` | GET | `/v1/crm/commercial-accounts/{partyId}/contacts` |
 

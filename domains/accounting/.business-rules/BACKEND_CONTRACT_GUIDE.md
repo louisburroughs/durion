@@ -93,9 +93,9 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Apply payment to invoices | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` | Requires idempotency behavior (`AD-010`) |
 | Reverse payment application | `reversePaymentApplication` | POST | `http://localhost:8080/v1/accounting/payment-applications/{applicationId}/reverse` | Audit trail required |
 | Create credit memo | `createCreditMemo` | POST | `http://localhost:8080/v1/accounting/credit-memos` | Use when negative adjustments would occur |
-| List AP bills | `listBills` | GET | `http://localhost:8080/v1/accounting/ap/bills` | AP workflow entry point |
+| List AP bills | `listApBills` | GET | `http://localhost:8080/v1/accounting/ap/bills` | AP workflow entry point |
 | Execute AP payment | `executePayment` | POST | `http://localhost:8080/v1/accounting/ap/payments` | Track gateway/GL status transitions |
-| Review ingestion queue | `listEvents` | GET | `http://localhost:8080/v1/accounting/events` | Operational monitoring and reconciliation |
+| Review ingestion queue | `listAccountingEvents` | GET | `http://localhost:8080/v1/accounting/events` | Operational monitoring and reconciliation |
 | Reprocess suspended event | `reprocessSuspendedEvent` | POST | `http://localhost:8080/v1/accounting/events/{eventId}/reprocess` | Requires strict permission gating |
 | View income statement | `generateIncomeStatement` | GET | `http://localhost:8080/v1/accounting/reports/financial/income-statement` | Reporting workflow |
 | View balance sheet | `generateBalanceSheet` | GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` | Reporting workflow |
@@ -207,7 +207,7 @@ Headers and auth notes:
 | Apply payment to invoices | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` |
 | Reverse payment application | `reversePaymentApplication` | POST | `http://localhost:8080/v1/accounting/payment-applications/{applicationId}/reverse` |
 | Reverse/void payment | `reversePayment`, `voidPayment` | POST/POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/...` |
-| View payment/invoice status | `getPaymentStatus`, `getInvoiceStatus` | GET/GET | `http://localhost:8080/v1/accounting/payments/{paymentId}/status`, `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` |
+| View invoice status | `getInvoiceStatus` | GET | `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` | Payment-status endpoint (`/payments/{paymentId}/status`) is not in OpenAPI — use `getPayment`/`getPaymentByRef` |
 | Credit memo support | `createCreditMemo`, `listCreditMemos`, `getCreditMemo` | POST/GET/GET | `http://localhost:8080/v1/accounting/credit-memos...` |
 
 ### Behavioral Assertions
@@ -250,7 +250,7 @@ Headers and auth notes:
 | --- | --- | --- | --- |
 | Create and query vendor bills | `createBillFromGoodsReceivedEvent`, `getBillById`, `getBillByOriginEventId` | POST/GET/GET | `http://localhost:8080/v1/accounting/vendor-bills...` |
 | Bill matching workflow | `listMatchCandidates`, `selectMatchCandidate`, `matchVendorInvoice`, `resolveMatchException` | GET/POST/POST/POST | `http://localhost:8080/v1/accounting/vendor-bills/...` |
-| AP payment workflow | `listBills`, `executePayment`, `getPayment`, `getPaymentByRef` | GET/POST/GET/GET | `http://localhost:8080/v1/accounting/ap/...` |
+| AP payment workflow | `listApBills`, `executePayment`, `getPayment`, `getPaymentByRef` | GET/POST/GET/GET | `http://localhost:8080/v1/accounting/ap/...` |
 
 ### Behavioral Assertions
 
@@ -335,7 +335,7 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| List/query event ingestion records | `listEvents`, `getEvent`, `getEventProcessingLog` | GET/GET/GET | `http://localhost:8080/v1/accounting/events...` |
+| List/query event ingestion records | `listAccountingEvents`, `getEvent`, `getEventProcessingLog` | GET/GET/GET | `http://localhost:8080/v1/accounting/events...` |
 | Retry/reprocess failed events | `retryEventProcessing`, `reprocessSuspendedEvent`, `getReprocessingHistory` | POST/POST/GET | `http://localhost:8080/v1/accounting/events/{eventId}/...` |
 | Audit trail lookup | `getByActor`, `getByInvoiceId`, `getByOrderId`, `getByDateRange`, `getByType` | GET | `http://localhost:8080/v1/accounting/audit/...` |
 
@@ -383,7 +383,7 @@ Headers and auth notes:
 | --- | --- | --- | --- |
 | Apply payment to invoice | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` |
 | View invoice accounting status | `getInvoiceStatus` | GET | `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` |
-| List/query ingestion events | `listEvents` | GET | `http://localhost:8080/v1/accounting/events` |
+| List/query ingestion events | `listAccountingEvents` | GET | `http://localhost:8080/v1/accounting/events` |
 
 ### Story #6 — Update Invoice Payment Status from Payment Outcomes
 

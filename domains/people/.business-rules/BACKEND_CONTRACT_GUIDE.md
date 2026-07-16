@@ -67,20 +67,20 @@ Frontend developer workflow:
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
 | End (soft-delete) an assignment | `endAssignment` | DELETE | `/v1/people/staffing/assignments/{assignmentId}` | Refer to generated API reference for payload details |
-| Unlink user from person | `unlinkUserFromPerson` | DELETE | `/v1/people/users/{userId}/link` | Refer to generated API reference for payload details |
-| Delete a person | `deletePerson` | DELETE | `/v1/people/{personId}` | Refer to generated API reference for payload details |
-| Revoke role assignment | `revokeAssignment` | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` | Refer to generated API reference for payload details |
-| Get all people | `getAllPeople` | GET | `/v1/people` | Refer to generated API reference for payload details |
+| Unlink user from person | *(not in pos-people OpenAPI — user-person links moving to pos-people-contact, ADR-0044 §6)* | DELETE | `/v1/people/users/{userId}/link` | Refer to generated API reference for payload details |
+| Delete a person | *(not in pos-people OpenAPI — person ownership moving to pos-people-contact, ADR-0044 §6)* | DELETE | `/v1/people/{personId}` | Refer to generated API reference for payload details |
+| Revoke role assignment | *(not in pos-people OpenAPI — no access-assignment revoke endpoint shipped)* | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` | Refer to generated API reference for payload details |
+| Get all people | *(not in pos-people OpenAPI — person ownership moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people` | Refer to generated API reference for payload details |
 | Get people availability | `getPeopleAvailability` | GET | `/v1/people/availability` | Refer to generated API reference for payload details |
 | Get employee profile | `getEmployee` | GET | `/v1/people/employees/{employeeId}` | Refer to generated API reference for payload details |
 | List exceptions, optional filter by employeeId | `listByEmployee` | GET | `/v1/people/exceptions` | Refer to generated API reference for payload details |
 | Get approved time entries for accounting export | `getApprovedTimeForExport` | GET | `/v1/people/reports/approvedTime` | Refer to generated API reference for payload details |
 | Get attendance and job time discrepancy report | `getAttendanceDiscrepancyReport` | GET | `/v1/people/reports/attendanceJobtimeDiscrepancy` | Refer to generated API reference for payload details |
-| List assignments for person | `getAssignments_1` | GET | `/v1/people/staffing/assignments` | Refer to generated API reference for payload details |
+| List assignments for person | `getAssignments` | GET | `/v1/people/staffing/assignments` | Refer to generated API reference for payload details |
 | Get assignment by ID | `getAssignment` | GET | `/v1/people/staffing/assignments/{assignmentId}` | Refer to generated API reference for payload details |
 | List adjustments for a time entry | `listForTimeEntry` | GET | `/v1/people/timeEntries/{timeEntryId}/adjustments` | Refer to generated API reference for payload details |
-| Get links by person ID | `getLinkByPersonId` | GET | `/v1/people/user-links/{personId}` | Refer to generated API reference for payload details |
-| Get person by user ID | `getPersonByUserId` | GET | `/v1/people/users/{userId}/person` | Refer to generated API reference for payload details |
+| Get links by person ID | *(not in pos-people OpenAPI — user-person links moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people/user-links/{personId}` | Refer to generated API reference for payload details |
+| Get person by user ID | *(not in pos-people OpenAPI — user-person links moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people/users/{userId}/person` | Refer to generated API reference for payload details |
 
 Headers and auth notes:
 
@@ -104,8 +104,8 @@ Headers and auth notes:
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
 | End (soft-delete) an assignment | `endAssignment` | DELETE | `/v1/people/staffing/assignments/{assignmentId}` |
-| Unlink user from person | `unlinkUserFromPerson` | DELETE | `/v1/people/users/{userId}/link` |
-| Delete a person | `deletePerson` | DELETE | `/v1/people/{personId}` |
+| Unlink user from person | *(not in pos-people OpenAPI — user-person links moving to pos-people-contact, ADR-0044 §6)* | DELETE | `/v1/people/users/{userId}/link` |
+| Delete a person | *(not in pos-people OpenAPI — person ownership moving to pos-people-contact, ADR-0044 §6)* | DELETE | `/v1/people/{personId}` |
 
 ### Behavioral Assertions
 
@@ -146,8 +146,8 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Revoke role assignment | `revokeAssignment` | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` |
-| Get all people | `getAllPeople` | GET | `/v1/people` |
+| Revoke role assignment | *(not in pos-people OpenAPI — no access-assignment revoke endpoint shipped)* | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` |
+| Get all people | *(not in pos-people OpenAPI — person ownership moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people` |
 | Get people availability | `getPeopleAvailability` | GET | `/v1/people/availability` |
 
 ### Behavioral Assertions
@@ -233,7 +233,7 @@ Headers and auth notes:
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
 | Get attendance and job time discrepancy report | `getAttendanceDiscrepancyReport` | GET | `/v1/people/reports/attendanceJobtimeDiscrepancy` |
-| List assignments for person | `getAssignments_1` | GET | `/v1/people/staffing/assignments` |
+| List assignments for person | `getAssignments` | GET | `/v1/people/staffing/assignments` |
 | Get assignment by ID | `getAssignment` | GET | `/v1/people/staffing/assignments/{assignmentId}` |
 
 ### Behavioral Assertions
@@ -276,8 +276,8 @@ Headers and auth notes:
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
 | List adjustments for a time entry | `listForTimeEntry` | GET | `/v1/people/timeEntries/{timeEntryId}/adjustments` |
-| Get links by person ID | `getLinkByPersonId` | GET | `/v1/people/user-links/{personId}` |
-| Get person by user ID | `getPersonByUserId` | GET | `/v1/people/users/{userId}/person` |
+| Get links by person ID | *(not in pos-people OpenAPI — user-person links moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people/user-links/{personId}` |
+| Get person by user ID | *(not in pos-people OpenAPI — user-person links moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people/users/{userId}/person` |
 
 ### Behavioral Assertions
 

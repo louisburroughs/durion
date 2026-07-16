@@ -71,7 +71,7 @@ Frontend developer workflow:
 | Delete a catalog | `deleteCatalog` | DELETE | `/v1/catalogs/{catalogId}` | Refer to generated API reference for payload details |
 | Deactivate price book rule | `deactivateRule` | DELETE | `/v1/products/price-books/{priceBookId}/rules/{ruleId}` | Refer to generated API reference for payload details |
 | Delete supplier cost structure | `deleteCostStructure` | DELETE | `/v1/products/supplier-costs/{id}` | Refer to generated API reference for payload details |
-| Deactivate conversion | `deactivate` | DELETE | `/v1/products/uom-conversions/{id}` | Refer to generated API reference for payload details |
+| Deactivate conversion | `deactivateUomConversion` | DELETE | `/v1/products/uom-conversions/{id}` | Refer to generated API reference for payload details |
 | Get catalogs by name | `getCatalogByName` | GET | `/v1/catalogs/name/{name}` | Refer to generated API reference for payload details |
 | Get a catalog by ID | `getCatalogById` | GET | `/v1/catalogs/{catalogId}` | Refer to generated API reference for payload details |
 | Get current item costs | `getItemCosts` | GET | `/v1/products/items/{itemId}/costs` | Refer to generated API reference for payload details |
@@ -148,7 +148,7 @@ Headers and auth notes:
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
 | Delete supplier cost structure | `deleteCostStructure` | DELETE | `/v1/products/supplier-costs/{id}` |
-| Deactivate conversion | `deactivate` | DELETE | `/v1/products/uom-conversions/{id}` |
+| Deactivate conversion | `deactivateUomConversion` | DELETE | `/v1/products/uom-conversions/{id}` |
 | Get catalogs by name | `getCatalogByName` | GET | `/v1/catalogs/name/{name}` |
 
 ### Behavioral Assertions
