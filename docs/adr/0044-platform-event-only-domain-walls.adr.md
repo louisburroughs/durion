@@ -1,6 +1,6 @@
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED
+**Status:** ACCEPTED — amended 2026-07-16 (scoped pos-warranty v1 exception, see §Amendments)
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823
@@ -213,6 +213,29 @@ becomes tier-1 operational surface (lag, DLQ, partition management); one fronten
 point of failure, not designed as a broker); keeping sync reads with caching (does not remove the
 runtime dependency or the model leak); synchronous write exceptions (would leave the strongest
 coupling — accounting↔invoice/workorder — in place indefinitely).
+
+---
+
+## Amendments
+
+### 2026-07-16 — Scoped exception: pos-warranty v1 synchronous clients
+
+`pos-warranty` (new domain module, durion-positivity-backend#786) is granted a scoped exception to
+R1 for its v1: synchronous `@LoadBalanced RestClient` calls from
+`com.positivity.warranty.internal.client` to `pos-invoice`, `pos-workorder`, `pos-catalog`,
+`pos-customer`, and `pos-vehicle-inventory` are permitted, per
+`durion-positivity-backend/docs/PRD-warranty-claims-module.md` §9.4 (approved 2026-07-15).
+Rationale: candidate-line origin search across invoices/workorders and settlement execution
+against pos-invoice are inherently synchronous counter flows. The dependency is one-directional:
+no module calls into pos-warranty synchronously; warranty state leaves the module only as
+`warranty.*` domain events (including a full claim snapshot event for replica builders).
+
+- **Enforcement.** Encoded in `DomainWallsTest` (pos-archunit) as a per-consumer exception map
+  (`pos-warranty` → exactly those five targets). The utility whitelist is **unchanged**; any other
+  module adding a synchronous domain client, and pos-warranty targeting any other domain module,
+  still fails the build. Widening the map requires a further amendment to this ADR.
+- **Evolution.** Migration to event-fed read-only replicas (R3) remains the target pattern for
+  these reads; it MUST accompany any warranty v2.
 
 ---
 
