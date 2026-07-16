@@ -30,6 +30,7 @@ MODULE_TO_DOMAIN = {
     'pos-invoice': 'billing',
     'pos-catalog': 'product',
     'pos-event-receiver': 'audit',
+    'pos-warranty': 'warranty',
 }
 
 # Domain titles
@@ -47,6 +48,7 @@ DOMAIN_TITLES = {
     'billing': 'Billing & Invoicing',
     'product': 'Product Catalog',
     'audit': 'Audit & Event Tracking',
+    'warranty': 'Warranty Claims',
 }
 
 
@@ -813,6 +815,7 @@ def main():
         'pos-catalog',
         'pos-shop-manager',
         'pos-workorder',
+        'pos-warranty',
     ]
 
     modules_with_specs = args.modules if args.modules else default_modules

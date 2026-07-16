@@ -9,6 +9,7 @@ openapi_source: durion-positivity-backend/pos-warranty/openapi.yaml
 openapi_commit: d82be65
 last_verified_utc: 2026-07-16T15:49:22Z
 last_updated: 2026-07-16
+api_reference_generated: domains/warranty/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
 ---
@@ -20,16 +21,15 @@ traceability:
 This is the curated contract guide for Warranty domain behavior (module `pos-warranty`, Eureka name `WARRANTY`, package `com.positivity.warranty`).
 
 - Use this guide for capability intent, domain invariants, dependency boundaries, and UI-to-API mapping.
-- Use OpenAPI for request/response schemas and full endpoint detail.
+- Use OpenAPI and the generated API reference for request/response schemas and full endpoint detail.
 
 Authoritative references:
 
 - OpenAPI: `durion-positivity-backend/pos-warranty/openapi.yaml`
+- Generated API reference: `domains/warranty/.business-rules/BACKEND_API_REFERENCE.generated.md`
 - PRD (domain spec): `durion-positivity-backend/docs/PRD-warranty-claims-module.md`
 - Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - ADR-0044 (event-only domain walls, incl. the scoped warranty sync-client exception): `docs/adr/0044-platform-event-only-domain-walls.adr.md`
-
-A generated `BACKEND_API_REFERENCE.generated.md` for this domain does not exist yet; until it is produced, read payload shapes directly from the OpenAPI source above.
 
 ## How To Use This Guide
 
@@ -37,13 +37,13 @@ Backend coder workflow:
 
 1. Read `Domain Invariants` and the capability section below.
 2. Validate behavior constraints (state machine, settle-customer-first, suggest-don't-dictate) before implementing endpoint changes.
-3. Use `operationId` mappings here, then confirm payload details in `pos-warranty/openapi.yaml`.
+3. Use `operationId` mappings here, then confirm payload details in the generated API reference (or `pos-warranty/openapi.yaml` directly).
 4. Ensure tests cover each changed behavioral assertion.
 
 Frontend developer workflow:
 
 1. Start with `Frontend API Lookup` and identify the `operationId` for the UI action.
-2. Open the OpenAPI source for exact payload and response details.
+2. Open the generated API reference for exact payload and response details.
 3. Implement error handling and headers described in this guide.
 
 Gateway routing: external path `/warranty/warranty/...` with `X-API-Version: 1` → `lb://WARRANTY /v1/warranty/...` (the first `/warranty` segment routes to the service and is stripped; the version header is rewritten into the path — same doubled-segment convention as `pos-inventory`). Pre-versioned form: `/warranty/v1/warranty/...`.
@@ -320,7 +320,7 @@ Non-goals (v1):
 - OpenAPI source: `durion-positivity-backend/pos-warranty/openapi.yaml`
 - OpenAPI source revision: `d82be65` (merge of durion-positivity-backend#920)
 - Last verified UTC: `2026-07-16T15:49:22Z`
-- Generated API reference: not yet generated for this domain
+- Generated API reference: `domains/warranty/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
 
