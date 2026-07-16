@@ -127,14 +127,35 @@ def extract_enums(schemas: Dict[str, Any]) -> Dict[str, List[str]]:
     return enums
 
 
-def generate_api_reference_content(domain: str, module: str, spec: Dict, openapi_source: str) -> str:
+def _domain_reference_links(workspace_root: Optional[Path], domain: str) -> str:
+    """Build reference bullets for curated domain docs that actually exist."""
+    optional_docs = [
+        ('Domain Agent Guide', 'AGENT_GUIDE.md'),
+        ('Cross-Domain Integration', 'CROSS_DOMAIN_INTEGRATION_CONTRACTS.md'),
+        ('Cross-Domain Integration', 'CROSS_DOMAIN_INTEGRATION_CONTRACT.md'),
+        ('Error Codes', 'ERROR_CODES.md'),
+    ]
+    lines = []
+    if workspace_root is not None:
+        rules_dir = workspace_root / 'domains' / domain / '.business-rules'
+        for label, filename in optional_docs:
+            if (rules_dir / filename).exists():
+                lines.append(f"- {label}: `domains/{domain}/.business-rules/{filename}`")
+    return '\n'.join(lines) + '\n' if lines else ''
+
+
+def generate_api_reference_content(
+    domain: str, module: str, spec: Dict, openapi_source: str,
+    workspace_root: Optional[Path] = None,
+) -> str:
     """Generate BACKEND_API_REFERENCE.generated.md content from OpenAPI spec."""
-    
+
     domain_title = DOMAIN_TITLES.get(domain, domain.title())
     endpoints = extract_endpoints(spec)
     schemas = extract_schemas(spec)
     enums = extract_enums(schemas)
-    
+    domain_reference_links = _domain_reference_links(workspace_root, domain)
+
     today = datetime.now().strftime('%Y-%m-%d')
     
     content = f"""# {domain_title} Backend API Reference (Generated)
@@ -462,7 +483,7 @@ All error responses **MUST** include the correlation ID in the body:
 }}
 ```
 
-**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
+**Reference:** See `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md` for correlation ID conventions.
 
 ---
 
@@ -519,10 +540,7 @@ This generated reference summarizes API structures for the {domain_title} domain
 
 - OpenAPI Specification: `{openapi_source}`
 - Curated Domain Contract Guide: `domains/{domain}/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- Domain Agent Guide: `domains/{domain}/.business-rules/AGENT_GUIDE.md`
-- Cross-Domain Integration: `domains/{domain}/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-- Error Codes: `domains/{domain}/.business-rules/ERROR_CODES.md`
-- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
+{domain_reference_links}- Global Contract Standards (incl. correlation ID conventions): `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 
 ---
 
@@ -756,6 +774,7 @@ def generate_reference_for_module(backend_root: Path, workspace_root: Path, modu
         module=module,
         spec=spec,
         openapi_source=str(spec_path.relative_to(backend_root)),
+        workspace_root=workspace_root,
     )
     
     output_dir = workspace_root / 'domains' / domain / '.business-rules'

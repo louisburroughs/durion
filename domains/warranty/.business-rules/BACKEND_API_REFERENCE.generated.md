@@ -665,7 +665,7 @@ All error responses **MUST** include the correlation ID in the body:
 }
 ```
 
-**Reference:** See `DECISION-INVENTORY-012` in domain AGENT_GUIDE.md for correlation ID standards.
+**Reference:** See `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md` for correlation ID conventions.
 
 ---
 
@@ -1732,12 +1732,9 @@ This generated reference summarizes API structures for the Warranty Claims domai
 
 - OpenAPI Specification: `pos-warranty/openapi.yaml`
 - Curated Domain Contract Guide: `domains/warranty/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- Domain Agent Guide: `domains/warranty/.business-rules/AGENT_GUIDE.md`
-- Cross-Domain Integration: `domains/warranty/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
-- Error Codes: `domains/warranty/.business-rules/ERROR_CODES.md`
-- Correlation ID Standards: `X-Correlation-Id-Implementation-Plan.md`
+- Global Contract Standards (incl. correlation ID conventions): `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 
 ---
 
-**Generated:** 2026-07-16 17:01:04 UTC  
+**Generated:** 2026-07-16 17:32:27 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
