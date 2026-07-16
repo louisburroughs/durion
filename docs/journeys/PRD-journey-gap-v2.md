@@ -2,7 +2,8 @@
 
 ## Problem Statement
 
-The V1 implementation of the Journey Gap Discovery tool achieved the goal of extracting, consolidating, and normalizing GitHub issues into a local database. However, the downstream validation (`baseline_parser.py` and `gap_detector.py`) drifted from the original vision of "bottom-up" behavioral analysis into a "top-down" static link checker.
+The V1 implementation of the Journey Gap Discovery tool achieved the goal of extracting, consolidating, and normalizing GitHub issues into a local database. However, the
+downstream validation (`baseline_parser.py` and `gap_detector.py`) drifted from the original vision of "bottom-up" behavioral analysis into a "top-down" static link checker.
 
 Because V1 expects manual hardcoding of GitHub Issue IDs (e.g., `#123`) in the `JOURNEY_MAP_SEED.md` tables:
 
@@ -12,30 +13,35 @@ Because V1 expects manual hardcoding of GitHub Issue IDs (e.g., `#123`) in the `
 
 ## Solution
 
-Evolve the pipeline into a **Semantic Behavioral Analyzer**. Instead of matching hardcoded Issue IDs, the baseline documents will define _Expected Events_ (Actor, Action, Object).
+Evolve the pipeline into a **Semantic Behavioral Analyzer**. Instead of matching hardcoded Issue IDs, the baseline documents will define _Expected Events_ (Actor, Action,
+Object).
 
-The script will automatically slot extracted GitHub issues into the correct journey stages by matching their LLM-extracted `journey_events` against these expectations. This enables true gap detection: verifying that all required logical steps of a business sequence have covering capabilities in the backlog.
+The script will automatically slot extracted GitHub issues into the correct journey stages by matching their LLM-extracted `journey_events` against these expectations. This
+enables true gap detection: verifying that all required logical steps of a business sequence have covering capabilities in the backlog.
 
 ## User Stories
 
-1. **Semantic Auto-Slotting**: As a product owner, I want the tool to automatically group extracted stories into journey stages by matching their extracted events (Actor/Action/Object) against the expected events defined in the baseline, so I don't have to manually link issue IDs in markdown.
-2. **Behavioral Baselines**: As a product owner, I want to define my journey swimlane tables in markdown using human-readable semantic events (e.g., `Service Advisor | Create | Estimate`) rather than GitHub Issue IDs, so the journey definitions remain decoupled from transient GitHub data.
-3. **True Sequence Validation**: As a product owner, I want the gap detector to flag a stage as "Missing" if an expected semantic event is defined in the baseline, but no extracted GitHub issue matches that event.
-4. **Intelligent Orphan Resolution**: As a product owner, I want unmatched issues to be inherently categorized as "Orphans", highlighting capabilities we are building that don't serve any known user journey.
-5. **Journey Sandbox Engine**: As a product owner, I want to be able to drop a new `draft-returns-journey.md` file into the `docs/journeys/` folder defining a new theoretical workflow, and have the tool automatically output exactly which new stories I need to write to achieve that prototype.
+1. **Semantic Auto-Slotting**: As a product owner, I want the tool to automatically group extracted stories into journey stages by matching their extracted events
+   (Actor/Action/Object) against the expected events defined in the baseline, so I don't have to manually link issue IDs in markdown.
+2. **Behavioral Baselines**: As a product owner, I want to define my journey swimlane tables in markdown using human-readable semantic events (e.g.,
+   `Service Advisor | Create | Estimate`) rather than GitHub Issue IDs, so the journey definitions remain decoupled from transient GitHub data.
+3. **True Sequence Validation**: As a product owner, I want the gap detector to flag a stage as "Missing" if an expected semantic event is defined in the baseline, but no
+   extracted GitHub issue matches that event.
+4. **Intelligent Orphan Resolution**: As a product owner, I want unmatched issues to be inherently categorized as "Orphans", highlighting capabilities we are building that
+   don't serve any known user journey.
+5. **Journey Sandbox Engine**: As a product owner, I want to be able to drop a new `draft-returns-journey.md` file into the `docs/journeys/` folder defining a new theoretical
+   workflow, and have the tool automatically output exactly which new stories I need to write to achieve that prototype.
 
 ## Implementation Plan
 
-The V2 upgrade requires targeted modifications, specifically replacing the `baseline_parser` and `gap_detector` modules. The extraction and normalizer modules are already perfectly positioned for this, as they currently extract `journey_events`!
+The V2 upgrade requires targeted modifications, specifically replacing the `baseline_parser` and `gap_detector` modules. The extraction and normalizer modules are already
+perfectly positioned for this, as they currently extract `journey_events`!
 
 ### 1. Update `docs/journeys/*.md` Format (The Baseline)
 
-Migrate the swimlane schema from Issue IDs to Expected Events.
-**V1 (Current):**
-`| Intake | Service Advisor | #68, #79 | Notes... |`
+Migrate the swimlane schema from Issue IDs to Expected Events. **V1 (Current):** `| Intake | Service Advisor | #68, #79 | Notes... |`
 
-**V2 (Target):**
-`| Intake | Service Advisor | [Create, Estimate], [Read, CustomerHistory] | Notes... |`
+**V2 (Target):** `| Intake | Service Advisor | [Create, Estimate], [Read, CustomerHistory] | Notes... |`
 
 ### 2. Update `baseline_parser.py`
 

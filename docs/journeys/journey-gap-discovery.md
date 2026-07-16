@@ -1,4 +1,5 @@
-A structured way to do this is to treat your executed specifications as **observable behavior traces**, then systematically normalize and mine them into **journeys**, and finally analyze gaps.
+A structured way to do this is to treat your executed specifications as **observable behavior traces**, then systematically normalize and mine them into **journeys**, and
+finally analyze gaps.
 
 Below is a method that fits your current GitHub-driven, agent-assisted workflow.
 
@@ -48,8 +49,8 @@ This aligns with your **event-driven architecture** and can later map to your do
 
 1. Extract business requirements, capabilities and stories from durion issues (regardless of status) - <https://github.com/louisburroughs/durion/issues/>
 2. Add to database in a hierarchy (using trackedIssues and trackedInIssues to form hierarchy)
-3. Extract issues from durion-positivity-backend and durion-moqui-frontend using the links (trackedIssues) from the parent stories if possible
-   A). Otherwise, extract issues and match after extraction
+3. Extract issues from durion-positivity-backend and durion-moqui-frontend using the links (trackedIssues) from the parent stories if possible A). Otherwise, extract issues
+   and match after extraction
 4. Need to attach clarification issues to the issue that they clarify - the link is defined in the title of the clarification issue
 5. Take child issues, plus comments, plus clarification and rewrite cleanly (DO NOT ELABORATE OR ASK NEW QUESTIONS)
 6. Add child issues to db, place in the hierarchy
@@ -134,7 +135,6 @@ Sources:
 ### Extraction approach
 
 - Use an agent to:
-
   - Parse Gherkin (Given/When/Then → events)
   - Parse service calls (API → action/object)
   - Parse UI flows (Moqui screens → actions)
@@ -158,7 +158,6 @@ Now group similar traces.
 **A. Heuristic grouping (start here)**
 
 - Group by:
-
   - Primary actor
   - Primary object (e.g., WorkOrder, Invoice)
   - Entry trigger
@@ -172,7 +171,6 @@ Example clusters:
 **B. Sequence similarity**
 
 - Compare traces using:
-
   - Longest Common Subsequence (LCS)
   - Edit distance
 
@@ -268,7 +266,6 @@ Example:
 ### D. Integration Gaps (important for Durion)
 
 - Events exist but:
-
   - No upstream trigger
   - No downstream consumer
 
@@ -295,7 +292,6 @@ In Progress → (Complete) → Completed
 ### C. Swimlanes (recommended)
 
 - Actor lanes:
-
   - Service Writer
   - Technician
   - System
@@ -338,7 +334,6 @@ You can implement 3 agents:
 
 - Builds traceability matrix
 - Flags:
-
   - Missing steps
   - Missing journeys
   - Domain conflicts
@@ -372,9 +367,9 @@ This aligns well with your **domain ownership + SoR discipline**.
 4. Build canonical journeys
 5. Map steps ↔ stories (traceability)
 6. Identify:
-
    - Missing steps
    - Missing journeys
+
 7. Feed gaps back into GitHub as structured issues
 8. Automate via agents
 
