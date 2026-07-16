@@ -1736,5 +1736,5 @@ This generated reference summarizes API structures for the Warranty Claims domai
 
 ---
 
-**Generated:** 2026-07-16 17:32:27 UTC  
+**Generated:** 2026-07-16 17:37:20 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
