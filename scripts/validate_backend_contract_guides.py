@@ -53,7 +53,7 @@ FORBIDDEN_SECTION_HEADINGS = [
 ISSUE_URL_RE = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/issues/\d+\b")
 ISSUE_SHORT_RE = re.compile(r"\b[a-zA-Z0-9_.-]+#\d+\b")
 ISSUE_NUMBER_RE = re.compile(r"(?<!\w)#\d+\b")
-ISSUE_URL_ANY_RE = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/issues/([^\s)\]]+)")
+ISSUE_URL_ANY_RE = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/issues/([^\s)\]>]+)")
 
 ADR_TOKEN_RE = re.compile(r"\bAD-[A-Za-z0-9-]+\b")
 ADR_VALID_RE = re.compile(r"^AD-\d{3}$")

@@ -133,9 +133,9 @@ Headers and auth notes:
 | --- | --- | --- | --- | --- |
 | Initiate card payment (sale/capture) | `initiatePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments` | Default SALE_CAPTURE; use `flow=AUTH_ONLY` with SELECT_PAYMENT_FLOW permission |
 | Manually capture an authorization hold | `capturePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/capture` | Requires MANUAL_CAPTURE permission |
-| Inquire on unknown payment outcome | `inquirePaymentStatus` | GET | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/status` | Use before retry to avoid duplicate charges |
+| Inquire on unknown payment outcome | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/status` | Use before retry to avoid duplicate charges |
 | Generate receipt after capture | `generateReceipt` | POST | `/v1/billing/invoices/{invoiceId}/receipts` | Triggers async email if consent given |
-| Get stored receipt | `getReceipt` | GET | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}` | Returns immutable receipt with original templateVersion |
+| Get stored receipt | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}` | Returns immutable receipt with original templateVersion |
 | Reprint receipt | `reprintReceipt` | POST | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}/reprint` | Requires reprint authorization; watermark applied |
 | Void an authorization hold | `voidPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/void` | Requires VOID_PAYMENT permission + VOID_REASON |
 | Refund a captured payment | `refundPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/refund` | Requires REFUND_PAYMENT permission + REFUND_REASON; async lifecycle |

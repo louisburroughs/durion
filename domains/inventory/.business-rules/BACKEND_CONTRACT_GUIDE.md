@@ -77,7 +77,7 @@ Frontend developer workflow:
 | Count pending approvals | `countPendingApprovals` | GET | `/api/v1/inventory/cycleCountAdjustments/pending/count` | Refer to generated API reference for payload details |
 | Get adjustment details | `getAdjustment` | GET | `/api/v1/inventory/cycleCountAdjustments/{adjustmentId}` | Refer to generated API reference for payload details |
 | Operation | `getPlan` | GET | `/api/v1/inventory/cycleCountPlans/{planId}` | Refer to generated API reference for payload details |
-| Query inventory availability | `queryInventoryAvailability` | GET | `/v1/inventory/availability/{productId}` | Refer to generated API reference for payload details |
+| Query inventory availability | `getInventoryAvailability` | GET | `/v1/inventory/availability/{productId}` | Refer to generated API reference for payload details |
 | Get site default locations | `getSiteDefaultLocations` | GET | `/v1/inventory/sites/{siteId}/defaultLocations` | Refer to generated API reference for payload details |
 | Submit a recount for a cycle count task | `submitRecount` | POST | `/api/inventory/cycleCount/recount` | Refer to generated API reference for payload details |
 | Submit a count for a cycle count task | `submitCount` | POST | `/api/inventory/cycleCount/submit` | Refer to generated API reference for payload details |
@@ -281,7 +281,7 @@ Story #33 — Cross-dock to Workorder:
 | --- | --- | --- | --- |
 | Get adjustment details | `getAdjustment` | GET | `/api/v1/inventory/cycleCountAdjustments/{adjustmentId}` |
 | Operation | `getPlan` | GET | `/api/v1/inventory/cycleCountPlans/{planId}` |
-| Query inventory availability | `queryInventoryAvailability` | GET | `/v1/inventory/availability/{productId}` |
+| Query inventory availability | `getInventoryAvailability` | GET | `/v1/inventory/availability/{productId}` |
 
 ### Behavioral Assertions
 
@@ -322,14 +322,14 @@ Story #33 — Cross-dock to Workorder:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
-| Reserve stock for a workorder line | `createReservation` | POST | `/v1/inventory/reservations` |
-| Promote SOFT allocation to HARD | `promoteAllocation` | POST | `/v1/inventory/allocations/{allocationId}/promote` |
-| Generate pick list from confirmed reservations | `generatePickList` | POST | `/v1/inventory/pick-lists/generate` |
-| Fetch picking list for workorder execution | `fetchPickingList` | GET | `/v1/inventory/picking-lists/{pickingListId}` |
-| Validate pick scan input | `validatePickScan` | POST | `/v1/inventory/picking-lists/{pickingListId}/scan` |
-| Confirm picking completion | `confirmPicking` | POST | `/v1/inventory/picking-lists/{pickingListId}/confirm` |
+| Reserve stock for a workorder line | `createOrUpdateReservation` | POST | `/v1/inventory/reservations` |
+| Promote SOFT allocation to HARD | `promoteToHard` | POST | `/v1/inventory/reservations/{allocationId}/promote` |
+| Generate pick list from confirmed reservations | `createPickList` | POST | `/v1/inventory/pick-lists` |
+| Fetch picking list for workorder execution | `getPickList` | GET | `/v1/inventory/pick-lists/{pickListId}` |
+| Validate pick scan input | `confirmPickTask` | POST | `/v1/inventory/pick-lists/{pickListId}/tasks/{taskId}/confirm` |
+| Confirm picking completion | `confirmPickingList` | POST | `/v1/inventory/pickingLists/{id}/confirm` |
 | Consume picked items to workorder | `consumePickedItems` | POST | `/v1/inventory/consume` |
-| Return unused items to stock | `returnItemsToStock` | POST | `/v1/inventory/returns` |
+| Return unused items to stock | `submitReturnToStock` | POST | `/v1/inventory/returns/submit-to-stock` |
 
 ### Behavioral Assertions
 
@@ -343,7 +343,7 @@ Story #33 — Cross-dock to Workorder:
 
 #### Story #656 — Write Allocation Ledger Events and Assign Location on Hard Promotion
 
-- `promoteAllocation` requires `storageLocationId` in the request body; a missing value returns `400`.
+- `promoteToHard` requires `storageLocationId` in the request body; a missing value returns `400`.
 - The storage location is validated against pos-location before any state change: nonexistent location returns `404`, inactive location returns `400`.
 - Successful promotion pins the allocation to `storageLocationId` and writes an `ALLOCATION_CREATED` inventory ledger event (quantity = `allocatedQuantity`, `locationId` = storage location, `sourceTransactionId` = allocation id) in the same transaction.
 - Repeat promotion of an already-HARD allocation at the SAME location writes no duplicate `ALLOCATION_CREATED`; requesting a DIFFERENT location returns `409 CONFLICT` (relocation via promote is not supported).

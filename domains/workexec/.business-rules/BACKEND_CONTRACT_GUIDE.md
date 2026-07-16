@@ -85,7 +85,7 @@ Frontend developer workflow:
 | Get estimates by shop | `getEstimatesByShop` | GET | `/v1/workorders/estimates/shop/{locationId}` | Refer to generated API reference for payload details |
 | Find estimate (typeahead) | `searchEstimates` | GET | `/v1/workexec/estimates/search?q=` | `q` matches estimate number, customer name, or estimate id; returns `EstimateSummaryResponse` enriched with `customerName`. Auth `workorder:estimate:view`. |
 | Find workorder (typeahead) | `searchWorkorders` | GET | `/v1/workorders/search?q=` | `q` matches customer name or workorder id; returns `WorkorderSearchResult` `{workorderId,status,customerName,createdAt}`. Auth `workorder:workorder:view`. |
-| View daily dispatch board | `getDashboardToday` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
+| View daily dispatch board | `getDashboard` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 
 Headers and auth notes:
 
@@ -413,7 +413,7 @@ WARNING conflicts (advisory, do not prevent dispatch):
 
 ### References
 
-- OpenAPI: `durion-positivity-backend/pos-workorder/openapi.yaml` (operationId: `getDashboardToday`)
+- OpenAPI: `durion-positivity-backend/pos-workorder/openapi.yaml` (operationId: `getDashboard`)
 - Generated API reference: `domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## Finder Search (estimate / workorder)
