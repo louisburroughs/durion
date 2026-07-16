@@ -1,0 +1,98 @@
+# Odoo Tax Engine vs pos-tax — Capability Comparison Map
+
+> Purpose: a working checklist for comparing `durion-positivity-backend/pos-tax` (+
+> `pos-tax-common`) against Odoo 19's tax engine. Odoo detail is in
+> `comp-tax-engine-deep-dive.md`. pos-tax references come from `pos-tax/README.md`,
+> `pos-tax-common` DTOs, and `TestModeTaxCalculator` / `TaxCalculationServiceImpl` /
+> `ExternalTaxServiceClient` as of 2026-07-16.
+>
+> The missions differ by design. **pos-tax** is a stateless calculation façade for US
+> destination-based sales tax: line items + destination address → jurisdiction breakdown, with a
+> flat-rate test mode and an external provider (retry/backoff) in production; it is consumed as a
+> library/service by `pos-invoice` and `pos-workorder`. **Odoo** is a self-contained,
+> configuration-driven VAT/sales-tax engine embedded in the ledger, whose output is journal items
+> and tax-return grids, not just amounts. "Gap" below means "Odoo has machinery pos-tax doesn't",
+> not necessarily "must build" — for US sales tax, delegating rates to a provider is a sound
+> choice Odoo itself makes via its Avalara/TaxCloud connectors.
+
+## 1. Core model
+
+| Concern | Odoo | pos-tax | Notes |
+|---|---|---|---|
+| Tax definition | `account.tax` records: amount_type (percent/fixed/division/group/code), price-include, cascading flags, per-country localization data | No tax entity — rates are config (`TaxProperties` flat rates per `TaxJurisdictionType`) or provider-side | pos-tax owns no tax semantics; the provider does. Decide which semantics must exist in-platform (exemption categories, fixed fees like tire/battery fees common in auto service) |
+| Jurisdiction model | None at calc time — fiscal positions substitute taxes by counterparty country/state/zip; US address-level via connector modules | First-class: `TaxJurisdiction` (STATE/COUNTY/CITY/SPECIAL + rate + amount per address) | pos-tax's jurisdiction breakdown is the right US model; Odoo community can't do this natively |
+| Calculation contract | In-process pipeline over "base lines"; callers are the documents themselves | `POST /v1/tax/calculate`: `TaxCalculationRequest` (lineItems, destinationAddress, currencyCode, customerId, transactionDate, referenceId/Type) → `TaxCalculationResponse` (subtotal, totalTax, total, effectiveTaxRate, jurisdictions[], lineItemTaxes[]) | pos-tax's request already carries the right hooks (customerId for exemptions, transactionDate for rate effectivity) — verify they are actually honored in both modes |
+| Statefulness | Stateful: taxes, positions, and computed tax lines persist with the document | Stateless service; audit via `@EmitEvent` events | Recalculation risk: if an invoice is re-priced later, does the platform re-call pos-tax or trust the stored result? Odoo freezes results via "manual amounts" — see §5 |
+
+## 2. Computation semantics
+
+| Concern | Odoo | pos-tax | Notes |
+|---|---|---|---|
+| Rate math | percent, fixed-per-quantity, division (tax-included %), grouped/cascading (tax-on-tax), custom formula | Flat `base × rate` per jurisdiction (test mode); provider math in production | If the platform ever needs fixed environmental fees or price-included display, pos-tax's contract has no slot for them today |
+| Price-included ("gross") pricing | Core competency: extraction formulas, batch percentages, company default | Not supported — subtotal is always net | Fine for US; blocks any market where shelf price is tax-inclusive |
+| Tax-on-tax / cascading | `include_base_amount`/`is_base_affected` topology with a sign-table propagation algorithm | N/A | Rare in US retail; some states tax fees though — confirm provider handles it |
+| Exemptions | Zero-rated taxes with grids (exempt still *reported*); fiscal-position substitution per customer | Boolean `taxExempt` per line; `customerId` passed for profile lookups | Odoo's point: exemption usually isn't "no tax", it's "0% with paperwork". Check whether exempt sales need certificate tracking and reporting (`taxCategory` field exists — is it used?) |
+| Refunds / credit memos | Separate refund repartition: refunds can post to different accounts/grids than invoices | No refund concept — callers presumably negate amounts | Verify pos-invoice/credit-memo flows recompute tax vs negate stored tax, and that jurisdiction rates haven't changed in between |
+
+## 3. Rounding
+
+| Concern | Odoo | pos-tax | Notes |
+|---|---|---|---|
+| Strategy | Two regimes: `round_per_line` and `round_globally` (raw amounts kept, document-level rounding, deterministic delta distribution biggest-line-first) | `setScale(2, HALF_UP)` independently per jurisdiction total *and* per line item (`TestModeTaxCalculator:104,173`) | **Concrete risk in test mode**: per-jurisdiction totals are rounded from the whole base while per-line taxes are rounded per line with a combined rate — `Σ lineItemTaxes` can differ from `totalTax` by cents. Worth a unit test; Odoo's delta-distribution algorithm is the reference fix |
+| Reconciliation of line vs total | `_round_base_lines_tax_details` guarantees Σ(lines) = total by distributing deltas | No reconciliation step visible | Port Odoo's 17.79/17.80-style test vectors (see deep-dive §5) |
+| Cash rounding (0.05 etc.) | `account.cash.rounding` strategies integrated into totals | N/A | US-irrelevant today |
+
+## 4. Integration with the ledger
+
+| Concern | Odoo | pos-tax | Notes |
+|---|---|---|---|
+| Tax → GL | Repartition lines map each tax to accounts + report tags; engine emits ready-to-post journal items; period close sweeps `use_in_tax_closing` lines into tax payable | pos-tax returns amounts only; GL posting happens in pos-accounting via posting rules (`GLMapping`, credit-memo `tax-payable-account-id` config) | The Odoo question to ask of Durion: can one tax amount split across multiple GL accounts, and do credit memos hit the right tax-payable account per jurisdiction? Today pos-accounting appears to use a single tax-payable account |
+| Tax liability reporting | Tax grids on move lines → declarative tax reports per country; `tax_details` SQL maps every tax line to its base lines | Jurisdiction amounts exist only in the calculation response/events; filing presumably via the external provider's portal | If in-platform sales-tax liability reports are ever needed (by state/county), the jurisdiction breakdown must be *persisted* per invoice line, not just returned — check what pos-invoice stores |
+| Cash-basis (tax on payment) | Full support via transition account + reconciliation-time entries | N/A (accrual assumed) | Some US states allow cash-basis sales tax remittance for small sellers — likely out of scope, record explicitly |
+| Audit trail | Tax lines are journal items: hashed, locked, traceable | `@EmitEvent` audit events; `externalTransactionId` links to provider | Provider-side committed transactions (e.g. AvaTax commit/void) — verify the void/commit lifecycle is handled on invoice cancellation |
+
+## 5. Lifecycle & consistency
+
+| Concern | Odoo | pos-tax | Notes |
+|---|---|---|---|
+| Recompute vs freeze | Dynamic recompute on every line edit (`_sync_tax_lines` diff), with `manual_tax_amounts` freezing for imports/down-payments | Caller-driven: whoever calls `/calculate` decides when | Define the platform rule: at which document states is tax recalculated, and is the stored breakdown immutable after finalization? |
+| Rate effectivity dates | Rates are date-less in core (fiscal positions/localization updates change them); connectors use transaction date | `transactionDate` in request | Good — confirm test mode ignores it and provider mode passes it through |
+| Frontend/backend parity | Same engine in Python and JS, enforced by mirror markers | Single JVM implementation; frontend displays server results | Durion's approach is simpler and safer — only one calculator. Keep it that way; never re-derive tax client-side |
+| Resilience | In-process, no network | Resilience4j retry + exponential backoff; test mode fallback | pos-tax strength. Check behavior when the provider is down at invoice-finalization time (block? queue? estimate-and-true-up?) |
+| Idempotency | Document-scoped recompute is naturally idempotent | `referenceId`/`referenceType` present | Verify the external provider call is idempotent per referenceId (double-commit risk on retry) |
+
+## 6. What each side would borrow from the other
+
+**pos-tax could borrow from Odoo:**
+1. **Line/total rounding reconciliation** — guarantee `Σ lineItemTaxes == totalTax == Σ jurisdictions` with deterministic delta distribution (deep-dive §5).
+2. **Refund-aware semantics** — an explicit credit/refund calculation mode (rate as of original sale date, negative breakdown) instead of caller-side negation.
+3. **Persisted per-line jurisdiction breakdown** — so liability reporting and audits don't depend on replaying provider calls.
+4. **Exemption as reportable zero-tax** — exempt lines should still carry jurisdiction rows at 0 with a reason code, mirroring Odoo's "0% with grids" stance.
+5. **Freeze-after-finalize contract** — the equivalent of Odoo's manual-amounts: once an invoice posts, its tax breakdown is data, never recomputed.
+
+**Durion's design is already right where Odoo is heavy:**
+1. Jurisdiction-first US model with provider delegation (Odoo needs paid connectors for this).
+2. One calculator, one runtime — no dual-implementation parity burden.
+3. Stateless service + events + retry semantics fit the platform's event-driven architecture.
+4. No VAT machinery (repartition, price-included, cash-basis, EDI grids) that a US auto-service
+   platform doesn't need — Odoo carries ~5,300 lines largely for that.
+
+## 7. Suggested comparison exercises
+
+1. **Rounding audit**: build a cart of 3+ odd-priced lines, run test mode, and assert
+   `Σ lineItemTaxes == totalTax == Σ jurisdiction amounts`; then port Odoo's global-rounding test
+   vectors as regression tests.
+2. **Exemption trace**: follow a `taxExempt` line from workorder → pos-tax → pos-invoice →
+   pos-accounting GL posting and check what evidence of the exemption persists (certificate id?
+   reason? zero-rate jurisdiction rows?).
+3. **Credit-memo rate drift**: create an invoice, change the configured rate, issue a credit
+   memo — verify the reversal uses the original tax amounts, not freshly calculated ones.
+4. **Provider lifecycle**: map `ExternalTaxServiceClient` calls against the provider's
+   estimate/commit/void model; confirm invoice cancellation voids the provider-side transaction
+   and retries can't double-commit (`referenceId` idempotency).
+5. **Liability report feasibility**: attempt a "sales tax by state/county for June" query from
+   persisted platform data alone; if it requires provider exports, decide whether that is
+   acceptable and document it.
+6. **GL split check**: confirm whether jurisdiction-level tax amounts need separate GL accounts
+   or tags in pos-accounting posting rules (Odoo's repartition mechanism is the reference for
+   one-tax→many-postings).
