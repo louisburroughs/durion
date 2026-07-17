@@ -130,6 +130,9 @@ Odoo reference: `_check_balanced` SQL assertion, `sequence.mixin` gapless number
   requirement appearing). Sketch for the ADR's "if ever built" appendix: chain =
   SHA-256(prev_hash ‖ entry_number ‖ posted payload canonical JSON), column on `journal_entry`, verified
   by a scheduled integrity job; one-way "restrict mode" flag per deployment.
+- **Done**: recorded in ADR-0047
+  (`durion/docs/adr/0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md`),
+  which covers both D-2 and D-8.
 - **Effort**: S (ADR only). **Deps**: none (schedule in Wave 1 so the record exists before ledger work).
 
 ---
@@ -443,13 +446,13 @@ regeneration + Angular SDK (where frontend-visible) + unit & contract IT + ArchU
 | ID | Decision | Where applied |
 |---|---|---|
 | D-1 | JE numbering: per-month sequence assigned at POST time; gapless as a side effect of post-time assignment, no statutory guarantee claimed | A2 |
-| D-2 | Hash-chain inalterability: non-goal, recorded via ADR with revisit trigger | A4 |
+| D-2 | Hash-chain inalterability: non-goal, recorded in ADR-0047 with revisit trigger | A4 |
 | D-3 | Cash receipts post Dr Undeposited Funds from day one; settlement reconciliation (F1) clears to Cash; never post AR receipts straight to Cash | C1, F1 |
 | D-4 | Single sales-tax-payable GL account; jurisdiction detail is report-time aggregation of the persisted breakdown (tax plan T5/T8); per-state accounts backlogged with a recorded implementation path | D2 |
 | D-5 | Settlement reconciliation before manual CSV bank-rec; settlement design is processor-agnostic — normalized event contract + per-provider matching config **owned by the payment service**; Stripe is a placeholder; zero processor-specific code in pos-accounting | F |
 | D-6 | Bank-rec adjustment-type enum = `BANK_FEE, NSF_FEE, INTEREST_EARNED, FLOAT_ADJUSTMENT, OTHER`, served by endpoint (frontend never hardcodes) | F2 |
 | D-7 | Periods: monthly cadence, OPEN→CLOSED two-state lifecycle in v1 (no CLOSING soft-close), operated by the controller role via `accounting:period:close\|reopen`, override via `accounting:period:override` with mandatory justification | B1, B2 |
-| D-8 | Fiscal-position analog (per-counterparty account substitution): non-goal — no current Durion use case; the `dimensions` map on mapping keys is the escape hatch if fleet/national-account posting ever needs it. Note in the A4 ADR or a sibling ADR | E, G15 |
+| D-8 | Fiscal-position analog (per-counterparty account substitution): non-goal — no current Durion use case; the `dimensions` map on mapping keys is the escape hatch if fleet/national-account posting ever needs it. Recorded in ADR-0047 (with D-2) | E, G15 |
 
 Any of these may be reopened by product/finance — reopening one reopens only the stories in its
 "where applied" column, not the plan.
