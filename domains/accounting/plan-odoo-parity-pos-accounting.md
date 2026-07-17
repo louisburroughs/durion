@@ -458,7 +458,7 @@ Any of these may be reopened by product/finance — reopening one reopens only t
 
 | Wave | Story → Issue |
 |---|---|
-| 1 | H1 → #934 · A1 → #935 · C4 → #936 · B1 → #937 · A4(ADR) → #938 |
+| 1 | H1 → #934 · A1 → #935 · C4 → #936 · B1 → #937 · A4(ADR) → durion#357 (transferred from backend #938 — deliverable lives in durion `docs/adr/`) |
 | 2 | A2 → #942 · A3 → #943 · B2 → #944 · E1 → #945 · E2 → #946 |
 | 3 | D1 → #953 · C1 → #954 · C3 → #955 · G1 → #956 · E3 → #957 |
 | 4 | C2 → #958 · F1a(contract) → #959 · F1b(payment adapter) → #962 · F1c(accounting) → #963 · G2 → #960 |
