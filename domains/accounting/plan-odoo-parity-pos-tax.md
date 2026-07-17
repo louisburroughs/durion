@@ -108,16 +108,18 @@ The core computational fix; everything else layers on it.
      **zero-rate jurisdiction rows** (rate = jurisdiction rate, amount = 0, `exempt=true`, reason echoed)
      so liability reports can show exempt sales per jurisdiction — the reportable-zero-tax model.
   2. **customerId honored**: introduce an **exemption registry** so `customerId` alone can drive
-     exemption. **Ownership decision required (OQ-T1)**: recommend the certificate registry live in
-     pos-tax (small table: certificate id, customerId, state scope, reason, effective/expiry, status) —
-     it is tax semantics, not CRM identity — with certificate CRUD endpoints
-     (`/v1/tax/exemption-certificates`, permissions `tax:exemption:view|manage`, `@EmitEvent`
-     `TAX_EXEMPTION_CERT_CREATE|UPDATE` approval preset). This makes pos-tax minimally stateful
-     (first Flyway migration `V1__exemption_certificate.sql`); the calculate path remains a pure
-     function of request + config + registry lookup.
-  3. Expired/missing certificate with `taxExempt=true` and no reason → configurable policy: reject 422
-     vs tax-anyway-and-flag. Default: tax anyway with `exemptionDenied=true` in response (POS flow must
-     not hard-block a sale). (OQ-T2)
+     exemption. **Decision (D-T1)**: the certificate registry lives in **pos-tax** (small table:
+     certificate id, customerId, state scope, reason, effective/expiry, status) — it is tax semantics,
+     not CRM identity — with certificate CRUD endpoints (`/v1/tax/exemption-certificates`, permissions
+     `tax:exemption:view|manage`, `@EmitEvent` `TAX_EXEMPTION_CERT_CREATE|UPDATE` approval preset).
+     This makes pos-tax minimally stateful (first Flyway migration `V1__exemption_certificate.sql`);
+     the calculate path remains a pure function of request + config + registry lookup. Build the MVP-thin
+     version only; when the external provider is selected (R-T1), evaluate whether its certificate
+     management (e.g. AvaTax CertCapture) becomes the system of record with this registry as a cache —
+     the API contract above is designed to survive that swap.
+  3. **Decision (D-T2)**: expired/missing certificate with `taxExempt=true` → **tax anyway and flag**
+     (`exemptionDenied=true` in the response, reason echoed) so the POS flow never hard-blocks a sale;
+     the flag persists through T5 so exemption-denied sales are auditable. No reject-422 mode in v1.
 - **Tests**: exemption trace test per comp-tax exercise 2 (workorder → tax → invoice → accounting
   evidence chain, coordinated with T5).
 - **Effort**: M–L. **Deps**: T1 (per-line jurisdiction rows).
@@ -180,8 +182,9 @@ durion contract PR → pos-domain-events → pos-invoice → pos-accounting).
     both are synchronous utility calls (permitted: pos-tax is on the ADR-0044 utility list). Failure
     policy at finalization when provider is down: **do not block the sale** — finalize with the last
     estimate, record a `PENDING_COMMIT` row in a small `tax_provider_transaction` log table (pos-tax,
-    Flyway `V2`), and reconcile via a scheduled re-commit job. (Estimate-and-true-up; OQ-T3 to confirm
-    with Finance.)
+    Flyway `V2`), and reconcile via a scheduled re-commit job. **Decision (D-T3)**: estimate-and-true-up
+    is the platform policy — a provider outage must never block invoice finalization; surface the
+    `PENDING_COMMIT` backlog as an operational metric so true-up lag is visible.
   - `externalTransactionId` finally populated from provider responses.
 - **Research flag R-T1 (blocking for the external impl, not for the interface)**: select the actual
   provider (Avalara AvaTax vs TaxJar vs Stripe Tax) and map the real API. The interface + test-mode
@@ -204,7 +207,7 @@ durion contract PR → pos-domain-events → pos-invoice → pos-accounting).
 ### T8 — Sales-tax liability reporting
 
 - **Design**: "tax collected by jurisdiction for period" now answerable from platform data (T5).
-  **Ownership decision (OQ-T4)**: recommend pos-accounting (it owns reporting infrastructure —
+  **Decision (D-T4)**: pos-accounting owns the report (it owns reporting infrastructure —
   `ReportExportService`, pos-documents rendering, period model from accounting plan B) reading its
   `ext_invoice_tax` replica: `GET /v1/accounting/reports/financial/tax-liability?period=` grouped by
   state/county/city with taxable base, exempt base (T3 zero-rows make this possible), and tax collected;
@@ -216,9 +219,10 @@ durion contract PR → pos-domain-events → pos-invoice → pos-accounting).
 
 - Remove pos-workorder's divergent `FALLBACK_TAX_RATE=0.0825` silent-fallback — on tax-service failure,
   surface a degraded-estimate state honestly (estimate flagged `taxPending`) instead of inventing a rate
-  and silently flipping `testMode` (policy decision OQ-T5: block estimate finalize vs flag-and-continue;
-  recommend flag-and-continue for estimates, hard-require tax for invoice finalization per the domain
-  rule "invoice cannot issue if tax calculation failed").
+  and silently flipping `testMode`. **Decision (D-T5)**: **flag-and-continue for estimates**
+  (`taxPending=true`, no invented amount), **hard-require tax for invoice finalization** per the domain
+  rule "invoice cannot issue if tax calculation failed" — with D-T3's estimate-and-true-up covering the
+  case where a calculation succeeded earlier but the provider commit is pending.
 - Fix `TaxClient` (pos-workorder) missing auth headers (`X-Authorities: tax:calculate`) to match
   `TaxServiceClient` (pos-invoice) — currently would 403 wherever enforcement is active.
 - Send `EstimateItem.taxCode`/category through as `taxCategory` (consumed after T7); delete or wire
@@ -258,18 +262,21 @@ where endpoints change + Spotless/Checkstyle/SpotBugs/ArchUnit + module `./mvnw 
   calculation exists anywhere today (would violate freeze-after-finalize; if found, that flow needs the
   T4/T5 decision boundary applied).
 
-## 5. Open questions
+## 5. Decisions (resolved 2026-07-17; supersede the draft's open questions)
 
-- **OQ-T1**: Exemption-certificate registry ownership — pos-tax (recommended), pos-customer, or delegate
-  entirely to provider certificate management (see R-T1)?
-- **OQ-T2**: Policy when `taxExempt=true` but certificate missing/expired — tax-anyway-and-flag
-  (recommended for POS flow) or reject 422?
-- **OQ-T3**: Provider-down at invoice finalization — estimate-and-true-up with `PENDING_COMMIT`
-  reconciliation (recommended) or hard-block finalization?
-- **OQ-T4**: Tax-liability report ownership — pos-accounting from `ext_invoice_tax` (recommended) or
-  pos-invoice as the invoice-data owner?
-- **OQ-T5**: pos-workorder estimate behavior when tax service is unavailable — flag-and-continue
-  (recommended) vs block?
-- **OQ-T6**: Keep scalar `tax` fields (`Invoice.taxAmount`, `InvoiceUpdatedV1.tax`) permanently as
-  denormalized rollups, or deprecate after T5 consumers migrate? (Pre-production policy favors removal;
-  event-schema compatibility favors keeping within v1.)
+| ID | Decision | Where applied |
+|---|---|---|
+| D-T1 | Exemption-certificate registry lives in pos-tax (MVP-thin); re-evaluate as a cache over provider certificate management when the provider is selected (R-T1) — the CRUD contract is designed to survive that swap | T3 |
+| D-T2 | `taxExempt=true` with missing/expired certificate → tax anyway, flag `exemptionDenied=true`, persist the flag through T5 for audit; no reject-422 mode in v1 | T3, T5 |
+| D-T3 | Provider-down at invoice finalization → estimate-and-true-up: finalize on last estimate, `PENDING_COMMIT` log + scheduled re-commit, backlog exposed as an operational metric; never block the sale | T6 |
+| D-T4 | Tax-liability report is owned by pos-accounting, built on its `ext_invoice_tax` replica and period model | T8 |
+| D-T5 | pos-workorder estimates: flag-and-continue (`taxPending`) on tax-service failure, no invented rates; invoice finalization hard-requires a successful tax calculation | T9 |
+| D-T6 | Scalar `tax` fields (`Invoice.taxAmount`, `InvoiceUpdatedV1.tax`) are kept **within the v1 event schema** as denormalized rollups (additive-only rule); pos-invoice's own scalar column stays as a rollup with an invariant test (scalar == Σ breakdown); removal happens only at the next major event-schema version (`InvoiceUpdatedV2`), when consumers have migrated to the breakdown | T5 |
+
+Any of these may be reopened by product/finance — reopening one reopens only the stories in its
+"where applied" column.
+
+Note on payment-processor coupling: nothing in this plan binds to a specific payment processor; the
+settlement-reconciliation design that touches accounting (accounting plan D-5/F1) is processor-agnostic
+with configuration owned by the payment service, and pos-tax's provider abstraction (T6) is likewise
+adapter-based — Stripe appears only as one candidate among several in R-T1.
