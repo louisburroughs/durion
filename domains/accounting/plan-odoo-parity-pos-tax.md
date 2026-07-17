@@ -1,4 +1,4 @@
-# Odoo Parity Plan — pos-tax (and the tax data path through pos-invoice / pos-accounting)
+## Odoo Parity Plan — pos-tax (and the tax data path through pos-invoice / pos-accounting)
 
 > Status: DRAFT for review · Created 2026-07-17 · Branch: `claude/pos-accounting-odoo-parity-idfuje`
 >

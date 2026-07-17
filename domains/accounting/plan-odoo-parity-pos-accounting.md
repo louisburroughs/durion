@@ -1,4 +1,4 @@
-# Odoo Parity Plan — pos-accounting
+## Odoo Parity Plan — pos-accounting
 
 > Status: DRAFT for review · Created 2026-07-17 · Branch: `claude/pos-accounting-odoo-parity-idfuje`
 >
