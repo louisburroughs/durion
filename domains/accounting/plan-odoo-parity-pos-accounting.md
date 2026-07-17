@@ -453,3 +453,15 @@ regeneration + Angular SDK (where frontend-visible) + unit & contract IT + ArchU
 
 Any of these may be reopened by product/finance — reopening one reopens only the stories in its
 "where applied" column, not the plan.
+
+## 13. Issue tracking (durion-positivity-backend, created 2026-07-17)
+
+| Wave | Story → Issue |
+|---|---|
+| 1 | H1 → #934 · A1 → #935 · C4 → #936 · B1 → #937 · A4(ADR) → #938 |
+| 2 | A2 → #942 · A3 → #943 · B2 → #944 · E1 → #945 · E2 → #946 |
+| 3 | D1 → #953 · C1 → #954 · C3 → #955 · G1 → #956 · E3 → #957 |
+| 4 | C2 → #958 · F1a(contract) → #959 · F1b(payment adapter) → #962 · F1c(accounting) → #963 · G2 → #960 |
+| 5 | F2 → #965 · T8(tax liability, cross-plan) → #966 |
+
+Tax-plan issues: see `plan-odoo-parity-pos-tax.md` §6. F3/G3 remain backlog (no issues by design).

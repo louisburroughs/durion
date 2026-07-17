@@ -280,3 +280,15 @@ Note on payment-processor coupling: nothing in this plan binds to a specific pay
 settlement-reconciliation design that touches accounting (accounting plan D-5/F1) is processor-agnostic
 with configuration owned by the payment service, and pos-tax's provider abstraction (T6) is likewise
 adapter-based — Stripe appears only as one candidate among several in R-T1.
+
+## 6. Issue tracking (durion-positivity-backend, created 2026-07-17)
+
+| Wave | Story → Issue |
+|---|---|
+| 1 | T1 → #939 · T2 → #940 · T9a(auth fix) → #941 |
+| 2 | T3 → #947 · T4 → #948 · T7 → #949 |
+| 3 | T5b(events) → #950 · T5a(invoice) → #951 · T5c(accounting) → #952 · D1(credit memo, cross-plan) → #953 |
+| 4 | T6 → #961 · T6x(external adapter, blocked on provider selection) → #964 · T9(remainder) → #967 |
+| 5 | T8 → #966 |
+
+Accounting-plan issues: see `plan-odoo-parity-pos-accounting.md` §13.
