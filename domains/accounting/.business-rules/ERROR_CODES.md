@@ -434,6 +434,96 @@ Error codes follow the format: `{RESOURCE}_{ERROR_TYPE}` (e.g., `MAPPING_NOT_FOU
 
 ---
 
+## Accounting Period Errors (Issue #937)
+
+### PERIOD_NOT_FOUND (404)
+**Description:** Accounting period does not exist  
+**HTTP Status:** 404  
+**Use Cases:**
+- Close or reopen a period code with no `accounting_period` row
+- Note: for posting-time checks a missing row means OPEN; this code applies only to explicit period operations
+
+**Example:**
+```json
+{
+  "errorCode": "PERIOD_NOT_FOUND",
+  "message": "Accounting period '2026-06' does not exist",
+  "details": {
+    "periodCode": "2026-06"
+  }
+}
+```
+
+**Recovery:** Verify the `YYYY-MM` period code; periods are auto-provisioned on first posting into a month
+
+---
+
+### PERIOD_ALREADY_CLOSED (409)
+**Description:** Period is already CLOSED and cannot be closed again  
+**HTTP Status:** 409  
+**Use Cases:**
+- Close request against a period already in CLOSED status
+
+**Example:**
+```json
+{
+  "errorCode": "PERIOD_ALREADY_CLOSED",
+  "message": "Accounting period '2026-06' is already closed",
+  "details": {
+    "periodCode": "2026-06",
+    "status": "CLOSED"
+  }
+}
+```
+
+**Recovery:** No action needed; reopen first if further changes are required
+
+---
+
+### PERIOD_ALREADY_OPEN (409)
+**Description:** Period is OPEN and cannot be reopened  
+**HTTP Status:** 409  
+**Use Cases:**
+- Reopen request against a period that is not CLOSED
+
+**Example:**
+```json
+{
+  "errorCode": "PERIOD_ALREADY_OPEN",
+  "message": "Accounting period '2026-06' is already open",
+  "details": {
+    "periodCode": "2026-06",
+    "status": "OPEN"
+  }
+}
+```
+
+**Recovery:** No action needed; the period already accepts postings
+
+---
+
+### PERIOD_HAS_DRAFT_ENTRIES (422)
+**Description:** Period cannot be closed while DRAFT journal entries remain in it  
+**HTTP Status:** 422  
+**Use Cases:**
+- Close request while unposted (DRAFT) journal entries are dated within the period
+
+**Example:**
+```json
+{
+  "errorCode": "PERIOD_HAS_DRAFT_ENTRIES",
+  "message": "Accounting period '2026-06' has 2 draft journal entries and cannot be closed",
+  "details": {
+    "periodCode": "2026-06",
+    "draftJournalEntryIds": ["JE-12345", "JE-67890"]
+  }
+}
+```
+
+**Recovery:** Post or delete the listed DRAFT entries, then retry the close
+
+---
+
 ## Posting Rule Errors (Issue #202)
 
 ### RULES_NOT_FOUND (404)
@@ -1111,6 +1201,7 @@ public ResponseEntity<ErrorResponse> handleMappingNotFound(MappingNotFoundExcept
 | Date | Version | Author | Changes |
 |------|---------|--------|---------|
 | 2026-01-25 | 1.0 | Backend Team | Initial error taxonomy for all accounting issues |
+| 2026-07-17 | 1.1 | Backend Team | Accounting Period errors (PERIOD_NOT_FOUND, PERIOD_ALREADY_CLOSED, PERIOD_ALREADY_OPEN, PERIOD_HAS_DRAFT_ENTRIES) for Wave 1 story B1 (#937) |
 
 ---
 

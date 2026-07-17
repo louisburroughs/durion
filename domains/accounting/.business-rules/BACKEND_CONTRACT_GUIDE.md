@@ -99,6 +99,9 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Reprocess suspended event | `reprocessSuspendedEvent` | POST | `http://localhost:8080/v1/accounting/events/{eventId}/reprocess` | Requires strict permission gating |
 | View income statement | `generateIncomeStatement` | GET | `http://localhost:8080/v1/accounting/reports/financial/income-statement` | Reporting workflow |
 | View balance sheet | `generateBalanceSheet` | GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` | Reporting workflow |
+| List accounting periods | `listAccountingPeriods` | GET | `http://localhost:8080/v1/accounting/periods` | Requires `accounting:period:view` |
+| Close accounting period | `closeAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/close` | Requires `accounting:period:close`; 422 lists blocking DRAFT entries |
+| Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` | Requires `accounting:period:reopen`; mandatory justification |
 
 Headers and auth notes:
 
@@ -129,6 +132,12 @@ Headers and auth notes:
 - `categoryCode` and mapping key uniqueness must be enforced.
 - Deactivation is preferred over hard delete for auditable entities.
 - Mapping resolution must remain deterministic for a given key/context.
+- GL accounts carry `reconcilable` (boolean, default `false`) and an optional `accountSubtype`
+  enum: `RECEIVABLE`, `PAYABLE`, `BANK_CASH`, `UNDEPOSITED_FUNDS`, `TAX_PAYABLE`, `CURRENT_ASSET`,
+  `FIXED_ASSET`, `CURRENT_LIABILITY`, `SALES`, `COST_OF_SALES`, `OPERATING_EXPENSE`, `OTHER`.
+  Both fields are exposed on COA list/detail responses.
+- GL mapping creation performs a non-blocking subtype plausibility check: an implausible
+  posting-category/subtype pairing produces a warning, never a request failure.
 
 ### Frontend Usage Notes
 
@@ -215,6 +224,10 @@ Headers and auth notes:
 - AR is reduced only by application records, not raw payment receipt (`AD-002`).
 - Overpayment must create customer credit deterministically (`AD-003`).
 - Apply command must be idempotent and not double-apply (`AD-010`).
+- Concurrent applications against the same payment are serialized via optimistic locking:
+  the backend retries a conflicting apply exactly once with fresh state and full revalidation
+  (`AD-010` preserved); a second consecutive conflict returns `409` and the caller should retry.
+  Unapplied amount never goes negative under concurrency.
 
 ### Frontend Usage Notes
 
@@ -295,12 +308,25 @@ Headers and auth notes:
 | Balance sheet | `generateBalanceSheet` | GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` |
 | Financial drilldowns | `drilldownToAccounts`, `drilldownToJournalLines` | GET/GET | `http://localhost:8080/v1/accounting/reports/financial/drilldown/...` |
 | Audit trail adjustments | `recordPriceOverride`, `recordRefund`, `recordCancellation` | POST/POST/POST | `http://localhost:8080/v1/accounting/audit/...` |
+| List accounting periods | `listAccountingPeriods` | GET | `http://localhost:8080/v1/accounting/periods` |
+| Close accounting period | `closeAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/close` |
+| Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` |
 
 ### Behavioral Assertions
 
 - Reporting endpoints must reflect posted ledger state.
 - Adjustments must leave immutable audit evidence.
 - Closed-period constraints must be enforced where mutation is requested.
+- Accounting periods follow a monthly cadence keyed by `YYYY-MM` period code (`D-7`) with a
+  two-state OPEN → CLOSED lifecycle (no soft-close state in v1).
+- A missing period row means OPEN; periods are auto-provisioned on first posting into a new month.
+- Close is rejected with `422 PERIOD_HAS_DRAFT_ENTRIES` listing the DRAFT journal-entry IDs still
+  in the period; reopen requires a mandatory justification recorded in the audit trail.
+- Period error codes: `PERIOD_NOT_FOUND` (404), `PERIOD_ALREADY_CLOSED` (409),
+  `PERIOD_ALREADY_OPEN` (409), `PERIOD_HAS_DRAFT_ENTRIES` (422).
+- Permission gating: `accounting:period:view` / `accounting:period:close` / `accounting:period:reopen`.
+- `AD-012` note: the period open-check is live, but full enforcement across every journal-entry
+  posting path lands with Wave-2 story B2 (durion-positivity-backend#944).
 
 ### Frontend Usage Notes
 
