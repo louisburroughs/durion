@@ -2,7 +2,9 @@
 
 Authoritative schema for the `rulesDefinition` JSON stored on a
 `PostingRuleVersion` in `pos-accounting`. This document was commissioned by
-questions doc #202 and extended by stories E1 (issue #945, proportional
+the posting-rules item (backend issue 202, "Posting Rule Sets") of the
+accounting questions review (`domains/accounting/accounting-questions.md`)
+and extended by stories E1 (issue #945, proportional
 split lines) and E2 (issue #946, condition predicate grammar). It is the
 single reference for rule authors, the publish-time validator, and the
 evaluator implementation (`PostingRuleEvaluatorImpl` /
@@ -54,7 +56,7 @@ Validation points:
 | --- | --- | --- | --- |
 | `conditions` | array of condition blocks | yes (non-empty for a usable rule set) | Evaluated **in order; first matching condition wins**. Later conditions are ignored once one matches. |
 | `conditions[].condition` | string | no | Match expression (see §2.1). Absent/blank ⇒ always matches (catch-all). |
-| `conditions[].lines` | array of line objects | yes (non-empty) | Journal-entry line templates emitted when the condition matches. A matched condition with no lines is skipped with a warning. |
+| `conditions[].lines` | array of line objects | yes (may be empty) | Journal-entry line templates emitted when the condition matches. An empty array is legal but useless: a matched condition with no lines is skipped with a warning at evaluation time. |
 
 A definition that is empty, `{}`, or has no `conditions` array cannot
 produce a journal entry; evaluation fails with `UNMAPPED_EVENT_TYPE` (the

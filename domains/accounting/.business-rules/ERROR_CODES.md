@@ -678,9 +678,9 @@ All violations found in the definition are returned in one pass as `fieldErrors`
 **Example:**
 ```json
 {
-  "code": "UNBALANCED_RULES",
+  "errorCode": "UNBALANCED_RULES",
   "message": "Cannot publish: posting rules definition violates publish-time invariants (3 violations): ...",
-  "status": 422,
+  "httpStatus": 422,
   "fieldErrors": [
     {
       "field": "conditions[0].splitGroup[tax]",
