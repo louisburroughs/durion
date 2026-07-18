@@ -6,8 +6,8 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-accounting/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-07-18T01:41:00Z
+openapi_commit: 3ed498c
+last_verified_utc: 2026-07-18T19:29:21Z
 last_updated: 2026-07-18
 api_reference_generated: domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
@@ -53,7 +53,10 @@ These are normative behavior rules for Accounting and are not replaced by OpenAP
 - Payment receipt does not reduce AR until application records are created (`AD-002`).
 - Overpayment becomes customer credit deterministically (`AD-003`).
 - Apply payment flow must be idempotent (`AD-010`) and atomic.
-- Posting is allowed only in open accounting periods (`AD-012`).
+- Posting is allowed only in open accounting periods (`AD-012`, ENFORCED as of Wave 2 B2 backend#944):
+  the period gate covers every posting and reversal path in order hard lock > closed > override.
+  Dates before the org-level hard-lock date are never postable; CLOSED periods accept postings only
+  with `accounting:period:override` plus a non-blank, audit-logged justification.
 - Posting references are canonical and traceable (`AD-011`).
 - Event ingestion status and idempotency outcomes are backend-authoritative (`AD-007`).
 - Refund execution is external to Accounting; Accounting exposes read model views (`AD-001`).
@@ -88,8 +91,10 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Create GL account | `createGLAccount` | POST | `http://localhost:8080/v1/accounting/gl-accounts` | Enforce unique account codes |
 | Manage posting categories | `listPostingCategories` | GET | `http://localhost:8080/v1/accounting/posting-categories` | Pair with create/update/deactivate actions |
 | Resolve posting mapping | `resolveGLMapping` | POST | `http://localhost:8080/v1/accounting/mappings/resolve` | Used by posting config UX and diagnostics |
+| List journal entries | `listJournalEntries` | GET | `http://localhost:8080/v1/accounting/journal-entries` | Supports `entryNumber` filter (Wave 2 A2) |
 | Create journal entry | `createJournalEntry` | POST | `http://localhost:8080/v1/accounting/journal-entries` | Draft creation before post/reverse |
-| Post journal entry | `postJournalEntry` | POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/post` | Must satisfy open-period constraint |
+| Post journal entry | `postJournalEntry` | POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/post` | Assigns `entryNumber`; period gate applies (422 `PERIOD_CLOSED`/`PERIOD_HARD_LOCKED`); optional body `overrideJustification` with `accounting:period:override` |
+| Reverse journal entry | `reverseJournalEntry` | POST | `http://localhost:8080/v1/accounting/journal-entries/{journalEntryId}/reverse` | Mandatory `reason`; optional `reversalDate` (defaults: original date if OPEN, else today); 409 `JE_ALREADY_REVERSED`/`JE_NOT_POSTED`; period gate applies |
 | Apply payment to invoices | `applyPayment` | POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/applications` | Requires idempotency behavior (`AD-010`) |
 | Reverse payment application | `reversePaymentApplication` | POST | `http://localhost:8080/v1/accounting/payment-applications/{applicationId}/reverse` | Audit trail required |
 | Create credit memo | `createCreditMemo` | POST | `http://localhost:8080/v1/accounting/credit-memos` | Use when negative adjustments would occur |
@@ -102,6 +107,8 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | List accounting periods | `listAccountingPeriods` | GET | `http://localhost:8080/v1/accounting/periods` | Requires `accounting:period:view` |
 | Close accounting period | `closeAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/close` | Requires `accounting:period:close`; 422 lists blocking DRAFT entries |
 | Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` | Requires `accounting:period:reopen`; mandatory justification |
+| View hard-lock date | `getAccountingHardLockDate` | GET | `http://localhost:8080/v1/accounting/periods/hard-lock` | Requires `accounting:period:view`; `hardLockDate: null` when unset |
+| Set hard-lock date | `setAccountingHardLockDate` | PUT | `http://localhost:8080/v1/accounting/periods/hard-lock` | Requires `accounting:period:hard_lock`; mandatory justification; forward-only (422 `HARD_LOCK_DATE_REGRESSION`) |
 
 Headers and auth notes:
 
@@ -178,18 +185,45 @@ Headers and auth notes:
 ### Behavioral Assertions
 
 - Journal entries must be balanced before posting.
-- Posting in closed periods must be rejected.
+- Posting in closed periods must be rejected (see period-gate assertions below).
 - Reversal must preserve traceability to original posting.
+- Posted entries carry `entryNumber` in format `JE-{YYYYMM}-{seq}` (month from `transactionDate`),
+  assigned at POST time only inside the posting transaction (Wave 2 A2 backend#942, decision `D-1`).
+  DRAFT/PENDING and pre-migration entries are unnumbered (`entryNumber: null`). Gapless as a
+  side effect of post-time assignment; **no statutory gapless guarantee is claimed**.
+- `entryNumber` is exposed on journal-entry responses and as an exact-match filter on `listJournalEntries`.
+- Reversal contract (Wave 2 A3 backend#943): `reverseJournalEntry` creates and immediately posts an
+  inverse entry (own `entryNumber`) and transitions the original POSTED → REVERSED race-safely
+  (a lost concurrent-reversal race returns 409). Bidirectional linkage plus `reversedAt` and acting
+  user are recorded; a non-blank `reason` is mandatory.
+- `reversalDate` is optional: it defaults to the original entry's transaction date if that period is
+  OPEN, otherwise to today; the resolved date must pass the period gate.
+- Reversal error codes: `JE_ALREADY_REVERSED` (409), `JE_NOT_POSTED` (409, DRAFT/PENDING entries),
+  `PERIOD_CLOSED` (422), `PERIOD_HARD_LOCKED` (422).
+- Period gate (Wave 2 B2 backend#944, `AD-012` now ENFORCED): both `postJournalEntry` and
+  `reverseJournalEntry` check hard lock > closed > override. A date in a CLOSED period is accepted
+  only when the caller holds `accounting:period:override` and supplies a non-blank
+  `overrideJustification` in the request body; the override is audit-logged. A date strictly before
+  the hard-lock date is never postable — no override path.
+- Reversal emits a `JournalEntryReversed` outbox domain event in the same transaction for downstream
+  read models; API-level events `ACCOUNTING_JOURNAL_ENTRY_POST` / `ACCOUNTING_JOURNAL_ENTRY_REVERSE`
+  are registered.
 
 ### Frontend Usage Notes
 
-- Posting UI should surface period-closed and unbalanced-entry failures explicitly.
-- Traceability view should expose source event and posting reference links.
+- Posting UI should surface period-closed and unbalanced-entry failures explicitly, and distinguish
+  `PERIOD_CLOSED` (recoverable via override or reopen) from `PERIOD_HARD_LOCKED` (terminal).
+- Offer the override-justification input only to callers holding `accounting:period:override`.
+- Traceability view should expose source event and posting reference links; entry lists should show
+  `entryNumber` (blank for unnumbered DRAFT/legacy rows) and support lookup by it.
+- Reversal UX must collect a mandatory reason and treat `reversalDate` as optional with
+  backend-side defaulting.
 
 ### ADR Constraints
 
 - `AD-011` posting references must be canonical and queryable.
-- `AD-012` accounting period enforcement is mandatory.
+- `AD-012` accounting period enforcement is mandatory — ENFORCED across all posting/reversal paths
+  as of Wave 2 B2 (backend#944).
 
 ### Events & Dependencies
 
@@ -311,6 +345,8 @@ Headers and auth notes:
 | List accounting periods | `listAccountingPeriods` | GET | `http://localhost:8080/v1/accounting/periods` |
 | Close accounting period | `closeAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/close` |
 | Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` |
+| View hard-lock date | `getAccountingHardLockDate` | GET | `http://localhost:8080/v1/accounting/periods/hard-lock` |
+| Set hard-lock date | `setAccountingHardLockDate` | PUT | `http://localhost:8080/v1/accounting/periods/hard-lock` |
 
 ### Behavioral Assertions
 
@@ -323,10 +359,26 @@ Headers and auth notes:
 - Close is rejected with `422 PERIOD_HAS_DRAFT_ENTRIES` listing the DRAFT journal-entry IDs still
   in the period; reopen requires a mandatory justification recorded in the audit trail.
 - Period error codes: `PERIOD_NOT_FOUND` (404), `PERIOD_ALREADY_CLOSED` (409),
-  `PERIOD_ALREADY_OPEN` (409), `PERIOD_HAS_DRAFT_ENTRIES` (422).
-- Permission gating: `accounting:period:view` / `accounting:period:close` / `accounting:period:reopen`.
-- `AD-012` note: the period open-check is live, but full enforcement across every journal-entry
-  posting path lands with Wave-2 story B2 (durion-positivity-backend#944).
+  `PERIOD_ALREADY_OPEN` (409), `PERIOD_HAS_DRAFT_ENTRIES` (422), `PERIOD_CLOSED` (422),
+  `PERIOD_HARD_LOCKED` (422), `HARD_LOCK_DATE_REGRESSION` (422).
+- Permission gating: `accounting:period:view` / `accounting:period:close` / `accounting:period:reopen`
+  / `accounting:period:hard_lock` (set the hard-lock date) / `accounting:period:override`
+  (post/reverse into a CLOSED period with justification).
+- `AD-012` note: ENFORCED as of Wave-2 story B2 (durion-positivity-backend#944). The
+  `AccountingPeriodGate` is the single choke point on `postJournalEntry` and `reverseJournalEntry`,
+  covering every posting path (manual, posting engine, credit memo, payment application, AP
+  transitively). Check order: hard lock > closed > override.
+- Hard lock (backend#944): a single org-level hard-lock date; journal entries dated strictly before
+  it are permanently rejected with `422 PERIOD_HARD_LOCKED` and **no override path**. The date is
+  monotonic-forward-only (backward move → `422 HARD_LOCK_DATE_REGRESSION`); setting it requires a
+  mandatory justification and is audit-logged. `GET /periods/hard-lock` returns `hardLockDate: null`
+  when unset. Events: `ACCOUNTING_PERIOD_HARD_LOCK_VIEW` / `ACCOUNTING_PERIOD_HARD_LOCK_SET`.
+- Closed-period override: `accounting:period:override` plus a non-blank `overrideJustification`
+  allows posting/reversing into a CLOSED period; the override is audit-logged
+  (`PERIOD_OVERRIDE_POST`). Without it the request fails `422 PERIOD_CLOSED`.
+- Posting engine: autoPost events blocked by a closed period become SUSPENDED with
+  `failureReasonCode=PERIOD_CLOSED`; the auto-retry loop skips them, and they are reprocessable
+  after the period is reopened. Reprocess-with-override is a recorded follow-up (not in Wave 2).
 
 ### Frontend Usage Notes
 
@@ -531,11 +583,28 @@ Headers and auth notes:
 - Rule evaluation must produce balanced journal drafts.
 - Idempotent handling must prevent duplicate postings across retries.
 - Reprocessing history must capture attempt outcomes for auditability.
+- Rules definition schema is authoritative in
+  `domains/accounting/.business-rules/POSTING_RULES_SCHEMA.md`.
+- Proportional split lines (Wave 2 E1 backend#945, schema §4): lines sharing a `splitGroup` within a
+  condition split one `amountField` by `factorPercent` (0–100, 4dp); factors must sum to 100 and
+  mixed DEBIT/CREDIT groups are forbidden. Shares round HALF_UP to 2dp with the residual assigned to
+  the largest raw share (first-in-order tie-break), so each group sums exactly to the source amount.
+  Non-split lines behave identically to pre-E1 rules.
+- Condition predicates (Wave 2 E2 backend#946, schema §2.1): whitelist grammar only —
+  `eventType` / `payload.<path>` clauses, operators `== != > >= < <=`, `&&` conjunction,
+  string/number literals; no expression engine or scripting. Missing/non-scalar payload paths make a
+  clause a non-match (safe default), never an error.
+- Publish-time validation: split-group violations and predicate parse errors are aggregated and
+  rejected with `422 UNBALANCED_RULES` carrying per-violation `fieldErrors` locators
+  (e.g. `conditions[1].lines[2].factorPercent`, `conditions[0].condition`). Conditions on
+  already-published pre-E2 versions that do not parse stay WARN + non-match at evaluation time.
 
 ### Frontend Usage Notes
 
 - Rule-management UI should separate draft vs published versions clearly.
 - Reprocessing UI should include failure reason and attempted mapping/rule context.
+- Publish-failure UX should map `UNBALANCED_RULES` `fieldErrors` locators back to the offending
+  condition/line in the rule editor so authors can fix all violations in one pass.
 
 ### ADR Constraints
 
@@ -622,8 +691,8 @@ Headers and auth notes:
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-accounting/openapi.yaml`
-- OpenAPI source revision: `ca7fadc3`
-- Last verified UTC: `2026-02-24T14:07:15Z`
+- OpenAPI source revision: `3ed498c`
+- Last verified UTC: `2026-07-18T19:29:21Z`
 - Generated API reference: `domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
@@ -633,6 +702,7 @@ Headers and auth notes:
 - `domains/accounting/.business-rules/DOMAIN_NOTES.md`
 - `domains/accounting/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`
 - `domains/accounting/.business-rules/ERROR_CODES.md`
+- `domains/accounting/.business-rules/POSTING_RULES_SCHEMA.md`
 - `docs/capabilities/CAP-050/CAPABILITY_MANIFEST.yaml`
 - `docs/capabilities/CAP-051/CAPABILITY_MANIFEST.yaml`
 - `docs/capabilities/CAP-052/CAPABILITY_MANIFEST.yaml`

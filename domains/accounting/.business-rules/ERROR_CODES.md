@@ -1,6 +1,6 @@
 # Accounting Domain Error Codes
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Purpose:** Comprehensive error taxonomy for Accounting domain API responses  
 **Domain:** accounting  
 **Owner:** Accounting Domain  
@@ -293,7 +293,7 @@ Error codes follow the format: `{RESOURCE}_{ERROR_TYPE}` (e.g., `MAPPING_NOT_FOU
 
 ---
 
-## Journal Entry Errors (Issue #190, #201)
+## Journal Entry Errors (Issue #190, #201, #943)
 
 ### JE_NOT_FOUND (404)
 **Description:** Journal entry does not exist  
@@ -366,6 +366,53 @@ Error codes follow the format: `{RESOURCE}_{ERROR_TYPE}` (e.g., `MAPPING_NOT_FOU
 
 ---
 
+### JE_ALREADY_REVERSED (409)
+**Description:** Journal entry has already been reversed and cannot be reversed again  
+**HTTP Status:** 409  
+**Use Cases:**
+- Reverse request against an entry already in REVERSED status
+- Lost race between two concurrent reversal requests for the same entry (the conditional POSTED → REVERSED update matched 0 rows)
+
+**Example:**
+```json
+{
+  "errorCode": "JE_ALREADY_REVERSED",
+  "message": "Journal entry 'JE-12345' has already been reversed",
+  "details": {
+    "journalEntryId": "JE-12345",
+    "status": "REVERSED",
+    "reversedAt": "2026-07-17T16:00:00Z",
+    "reversalJournalEntryId": "JE-67890"
+  }
+}
+```
+
+**Recovery:** No action needed; follow `reversalJournalEntryId` to the existing reversal entry
+
+---
+
+### JE_NOT_POSTED (409)
+**Description:** Journal entry is not in POSTED status and cannot be reversed  
+**HTTP Status:** 409  
+**Use Cases:**
+- Reverse request against a DRAFT or PENDING entry (only POSTED entries are reversible)
+
+**Example:**
+```json
+{
+  "errorCode": "JE_NOT_POSTED",
+  "message": "Journal entry 'JE-12345' is not posted and cannot be reversed",
+  "details": {
+    "journalEntryId": "JE-12345",
+    "status": "DRAFT"
+  }
+}
+```
+
+**Recovery:** DRAFT entries should be edited or deleted directly; only POSTED entries are reversed
+
+---
+
 ### JE_INVALID_STATUS (400)
 **Description:** Journal entry status transition invalid  
 **HTTP Status:** 400  
@@ -434,7 +481,7 @@ Error codes follow the format: `{RESOURCE}_{ERROR_TYPE}` (e.g., `MAPPING_NOT_FOU
 
 ---
 
-## Accounting Period Errors (Issue #937)
+## Accounting Period Errors (Issue #937, #944)
 
 ### PERIOD_NOT_FOUND (404)
 **Description:** Accounting period does not exist  
@@ -524,6 +571,76 @@ Error codes follow the format: `{RESOURCE}_{ERROR_TYPE}` (e.g., `MAPPING_NOT_FOU
 
 ---
 
+### PERIOD_CLOSED (422)
+**Description:** Posting (or reversal) date falls in a CLOSED accounting period  
+**HTTP Status:** 422  
+**Use Cases:**
+- Post a journal entry whose transaction date is in a CLOSED period without a valid override
+- Reverse a journal entry with a resolved `reversalDate` in a CLOSED period without a valid override
+- Also used as `failureReasonCode` on posting-engine events SUSPENDED by the period gate (reprocessable after reopen)
+
+**Example:**
+```json
+{
+  "errorCode": "PERIOD_CLOSED",
+  "message": "Accounting period '2026-06' is closed; posting requires accounting:period:override with a justification",
+  "details": {
+    "periodCode": "2026-06",
+    "transactionDate": "2026-06-15",
+    "overridePermission": "accounting:period:override"
+  }
+}
+```
+
+**Recovery:** Use a date in an OPEN period, reopen the period, or (with `accounting:period:override`) retry with a non-blank `overrideJustification` — the override is audit-logged
+
+---
+
+### PERIOD_HARD_LOCKED (422)
+**Description:** Posting (or reversal) date is strictly before the org-level hard-lock date; never overridable  
+**HTTP Status:** 422  
+**Use Cases:**
+- Post or reverse a journal entry dated before the configured `HARD_LOCK_DATE`
+- No override path exists: `accounting:period:override` covers CLOSED periods only, never the hard lock
+
+**Example:**
+```json
+{
+  "errorCode": "PERIOD_HARD_LOCKED",
+  "message": "Transaction date 2026-01-15 is before the accounting hard-lock date 2026-04-01 and can never be posted",
+  "details": {
+    "transactionDate": "2026-01-15",
+    "hardLockDate": "2026-04-01"
+  }
+}
+```
+
+**Recovery:** None for the requested date — history before the hard lock is immutable. Post a correcting entry dated on/after the hard-lock date instead
+
+---
+
+### HARD_LOCK_DATE_REGRESSION (422)
+**Description:** Requested hard-lock date is before the currently stored hard-lock date (monotonic-forward-only)  
+**HTTP Status:** 422  
+**Use Cases:**
+- `PUT /v1/accounting/periods/hard-lock` with a date earlier than the stored `HARD_LOCK_DATE`
+
+**Example:**
+```json
+{
+  "errorCode": "HARD_LOCK_DATE_REGRESSION",
+  "message": "Hard-lock date cannot move backward: requested 2026-03-01 is before current 2026-04-01",
+  "details": {
+    "requestedHardLockDate": "2026-03-01",
+    "currentHardLockDate": "2026-04-01"
+  }
+}
+```
+
+**Recovery:** The hard lock only moves forward; supply a date on or after the current hard-lock date
+
+---
+
 ## Posting Rule Errors (Issue #202)
 
 ### RULES_NOT_FOUND (404)
@@ -550,40 +667,38 @@ Error codes follow the format: `{RESOURCE}_{ERROR_TYPE}` (e.g., `MAPPING_NOT_FOU
 ---
 
 ### UNBALANCED_RULES (422)
-**Description:** Posting rules do not balance (debits ≠ credits)  
+**Description:** Posting rules definition fails publish-time validation (split-group invariants per E1 #945, or condition-predicate grammar per E2 #946)  
 **HTTP Status:** 422  
 **Use Cases:**
-- Attempt to publish rule set with unbalanced conditions
-- Rule validation failure
+- Publish a rule set whose split-group factors do not sum to 100, mix DEBIT/CREDIT in one group, or declare `factorPercent` without `splitGroup` (and vice versa)
+- Publish a rule set with a condition string that does not parse under the whitelist predicate grammar (`POSTING_RULES_SCHEMA.md` §2.1)
+
+All violations found in the definition are returned in one pass as `fieldErrors`, each with a JSON-pointer-style locator into the rules definition.
 
 **Example:**
 ```json
 {
-  "errorCode": "UNBALANCED_RULES",
-  "message": "Posting rule set validation failed: debits and credits do not balance",
-  "details": {
-    "postingRuleSetId": "PRS-12345",
-    "versionNumber": 2,
-    "conditions": [
-      {
-        "condition": "saleType == 'CASH'",
-        "totalDebits": "1000.00",
-        "totalCredits": "1000.00",
-        "balanced": true
-      },
-      {
-        "condition": "saleType == 'CREDIT'",
-        "totalDebits": "500.00",
-        "totalCredits": "450.00",
-        "balanced": false,
-        "difference": "50.00"
-      }
-    ]
-  }
+  "code": "UNBALANCED_RULES",
+  "message": "Cannot publish: posting rules definition violates publish-time invariants (3 violations): ...",
+  "status": 422,
+  "fieldErrors": [
+    {
+      "field": "conditions[0].splitGroup[tax]",
+      "message": "factorPercent values in split group 'tax' must sum to 100 (got 95.0000)"
+    },
+    {
+      "field": "conditions[1].lines[2].factorPercent",
+      "message": "factorPercent requires a splitGroup — a line cannot declare a split factor outside a group"
+    },
+    {
+      "field": "conditions[1].condition",
+      "message": "parse error at position 12: expected comparison operator"
+    }
+  ]
 }
 ```
 
-**Recovery:** Fix rule definition to balance debits and credits per condition
+**Recovery:** Fix every violation listed in `fieldErrors` (locators identify the offending condition, group, or line) and retry the publish
 
 ---
 
@@ -1202,6 +1317,7 @@ public ResponseEntity<ErrorResponse> handleMappingNotFound(MappingNotFoundExcept
 |------|---------|--------|---------|
 | 2026-01-25 | 1.0 | Backend Team | Initial error taxonomy for all accounting issues |
 | 2026-07-17 | 1.1 | Backend Team | Accounting Period errors (PERIOD_NOT_FOUND, PERIOD_ALREADY_CLOSED, PERIOD_ALREADY_OPEN, PERIOD_HAS_DRAFT_ENTRIES) for Wave 1 story B1 (#937) |
+| 2026-07-18 | 1.2 | Backend Team | Wave 2: reversal errors JE_ALREADY_REVERSED, JE_NOT_POSTED (A3 #943); period-gate errors PERIOD_CLOSED, PERIOD_HARD_LOCKED, HARD_LOCK_DATE_REGRESSION (B2 #944); UNBALANCED_RULES refreshed to publish-time fieldErrors locator format (E1 #945 / E2 #946) |
 
 ---
 
