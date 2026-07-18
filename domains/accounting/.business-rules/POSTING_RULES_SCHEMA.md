@@ -2,11 +2,11 @@
 
 Authoritative schema for the `rulesDefinition` JSON stored on a
 `PostingRuleVersion` in `pos-accounting`. This document was commissioned by
-questions doc #202 and extended by story E1 (issue #945, proportional split
-lines). It is the single reference for rule authors, the publish-time
-validator, and the evaluator implementation
-(`PostingRuleEvaluatorImpl` / `PostingRuleDefinitionValidator` in
-`pos-accounting`).
+questions doc #202 and extended by stories E1 (issue #945, proportional
+split lines) and E2 (issue #946, condition predicate grammar). It is the
+single reference for rule authors, the publish-time validator, and the
+evaluator implementation (`PostingRuleEvaluatorImpl` /
+`PostingRuleDefinitionValidator` / `PredicateParser` in `pos-accounting`).
 
 Related references:
 
@@ -32,8 +32,8 @@ Validation points:
 | Stage | What is checked |
 | --- | --- |
 | create / update draft | none beyond request-shape validation — drafts may hold work in progress |
-| **publish** | definition non-empty; definition parses as JSON (`400 VALIDATION_ERROR` otherwise); **all split-group invariants of §4 (`422 UNBALANCED_RULES` otherwise, every violation listed)** |
-| evaluation (runtime) | condition matching, GL account resolution, journal-entry balance; split-group invariants re-checked defensively (violation ⇒ explicit `INTERNAL_ERROR` posting failure, never a silently adjusted amount) |
+| **publish** | definition non-empty; definition parses as JSON (`400 VALIDATION_ERROR` otherwise); **all split-group invariants of §4 and all condition-predicate grammar rules of §2.1 (`422 UNBALANCED_RULES` otherwise, every violation listed)** |
+| evaluation (runtime) | condition matching, GL account resolution, journal-entry balance; split-group invariants re-checked defensively (violation ⇒ explicit `INTERNAL_ERROR` posting failure, never a silently adjusted amount); unparseable condition text (pre-E2 data only) ⇒ WARN + non-match |
 
 ---
 
@@ -61,18 +61,89 @@ produce a journal entry; evaluation fails with `UNMAPPED_EVENT_TYPE` (the
 publish gate only rejects the fully-empty definition, for compatibility
 with existing stub rule sets).
 
-### 2.1 Condition expressions (current grammar)
+### 2.1 Condition expressions (predicate grammar, E2 — issue #946)
 
 | Expression | Behavior |
 | --- | --- |
 | absent / blank / `"*"` | always matches (default / catch-all rule) |
-| `eventType == '<value>'` | matches when the event's `eventType` equals `<value>` (single-quoted literal) |
-| anything else | **does not match** (logged and skipped — fail-safe) |
+| any predicate of the grammar below | matches when **every** clause matches |
+| anything else | rejected at **publish** (`422 UNBALANCED_RULES`, locator `conditions[i].condition`); if such text somehow reaches a published version (pre-E2 data), it **does not match** at evaluation (logged WARN and skipped — fail-safe) |
 
-> Story E2 will extend this grammar with `payload.<path> <op> <literal>`
-> predicates and `&&` conjunction. That extension appends to this section;
-> the first-match-wins contract and the fail-safe treatment of unrecognized
-> expressions are stable.
+#### Grammar (EBNF — strict whitelist, no expression engine)
+
+```ebnf
+predicate  := clause ( '&&' clause )* ;
+clause     := lhs op literal ;
+lhs        := 'eventType' | 'payload' '.' path ;
+path       := identifier ( '.' identifier )* ;
+identifier := [A-Za-z_][A-Za-z0-9_]* ;
+op         := '==' | '!=' | '>' | '>=' | '<' | '<=' ;
+literal    := "'" characters-except-quote "'" | number ;
+number     := ['+'|'-'] digits ['.' digits] ;
+```
+
+Whitespace between tokens is optional. There are no parentheses, no `||`,
+no arithmetic, no functions, no escape sequences inside string literals,
+and no other identifiers — the grammar is deliberately declarative
+(Odoo's sandboxed-formula addon is the cautionary reference). Parsing is
+strict: trailing garbage, unbalanced quotes, unknown identifiers,
+malformed numbers, and empty clauses are all parse errors reported with
+character position.
+
+#### Operator / literal type rules
+
+| Operator | String literal (`'…'`) | Numeric literal |
+| --- | --- | --- |
+| `==` `!=` | allowed — exact, case-sensitive string comparison | allowed — numeric comparison |
+| `>` `>=` `<` `<=` | **rejected at parse/publish** ("ordering operator requires a numeric literal") | allowed |
+
+Numeric comparison is `BigDecimal`-based and scale-insensitive
+(`100 == 100.00`). The left-hand value is coerced: payload `Number`s and
+numeric strings (e.g. `"150.25"`) both coerce; anything else is
+non-coercible.
+
+#### Evaluation semantics (safe defaults — a clause is false, never an error)
+
+- Clauses are AND-combined with **short-circuit**: the first false clause
+  stops evaluation of the predicate.
+- `eventType` resolves to the event's type; `payload.<path>` navigates the
+  payload map segment by segment.
+- **Missing path, `null` value, or a non-map value mid-path ⇒ clause
+  false** — not an error. This applies to `!=` too: `payload.x != 'A'`
+  does *not* match an event without `payload.x`.
+- Non-scalar terminal values (maps, lists) ⇒ clause false.
+- String comparison requires the resolved value to be a string; numeric
+  comparison requires it to coerce to a number. A type mismatch or
+  non-coercible value ⇒ clause false (again, `!=` included).
+- Evaluation of a published predicate never throws for any event shape.
+
+#### Examples
+
+```text
+payload.paymentMethod == 'CASH'
+payload.amount >= 100.00 && eventType == 'PAYMENT_RECEIVED'
+payload.totals.tax > 0 && payload.paymentMethod != 'GIFT_CARD'
+```
+
+The first two are the canonical E2 acceptance predicates: a CASH payment
+routes to a different account than CARD, and a conjunction can gate on a
+numeric threshold plus the event type.
+
+#### Validation split
+
+| Stage | Behavior |
+| --- | --- |
+| **publish** | every non-catch-all `conditions[].condition` must parse under this grammar (including the ordering-op/numeric-literal rule) or the publish fails `422 UNBALANCED_RULES` with one `fieldErrors` entry per bad condition, locator `conditions[i].condition`. A non-string `condition` node is likewise rejected. |
+| evaluation | catch-all forms match; parsed predicates evaluate with the safe defaults above; unparseable text (possible only in versions published before E2) is a WARN + non-match, exactly the pre-E2 fail-safe |
+
+#### Backward compatibility
+
+The E2 grammar is a strict superset of the pre-E2 condition language:
+`eventType == '<value>'` parses to the same equality match, and the
+catch-all forms (absent / blank / `"*"`) are unchanged. First-match-wins
+ordering over the `conditions` array (§2) is untouched. Existing
+published rule sets — including the E1 split rules — evaluate
+byte-for-byte identically.
 
 ---
 
@@ -289,6 +360,10 @@ identical inputs always produce identical line amounts.
   migration is needed. Should invalid split data ever reach a published
   version by other means, the evaluator fails that event explicitly
   (`INTERNAL_ERROR`) rather than distorting amounts.
-- Future schema extensions land as new numbered sections here (E2 will add
-  §2.1's richer predicate grammar) and must keep this additive,
-  first-match-wins, exact-sum contract intact.
+- The E2 additions (issue #946) are likewise strictly additive: the
+  predicate grammar of §2.1 is a superset of the pre-E2 condition
+  language, and its validation only gates new publishes. Unparseable
+  condition text in versions published before E2 keeps its historical
+  WARN + non-match behavior.
+- Future schema extensions land as new numbered sections here and must
+  keep this additive, first-match-wins, exact-sum contract intact.
