@@ -7,8 +7,8 @@ owner_repo: louisburroughs/durion
 guide_path: domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-accounting/openapi.yaml
 openapi_commit: ca7fadc3
-last_verified_utc: 2026-02-24T14:07:15Z
-last_updated: 2026-03-08
+last_verified_utc: 2026-07-18T01:41:00Z
+last_updated: 2026-07-18
 api_reference_generated: domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
