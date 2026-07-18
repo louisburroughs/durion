@@ -277,6 +277,10 @@ Minimum required:
 - `cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend && ./mvnw -pl <module> -DskipTests=false verify` for each touched module
 - `cd /home/louis-burroughs/IdeaProjects/durion && ./.github/hooks/lint-run-hook.sh --repo /home/louis-burroughs/IdeaProjects/durion-positivity-backend --module <module>` for
   each touched module
+- `cd /home/louis-burroughs/IdeaProjects/durion-positivity-backend && scripts/generate-permissions.sh --sync --check` — permission-catalog drift gate (mirrors the
+  `Validate Permission Catalog` CI job). If the wave added any `@PreAuthorize` permission, first run `scripts/generate-permissions.sh --sync` and commit the regenerated
+  catalogs (`PermissionCode`, `GatewayPermissionCatalog`, `DownstreamPermissionCatalog`, `docs/permissions-report.yaml`) plus any catalog contract-test constant updates.
+  Note: a catalog change bumps `CATALOG_VERSION`, which means a fleet-coordinated deploy — record that in the PR body.
 
 If a command fails, do not proceed to PR creation until:
 
