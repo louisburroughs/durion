@@ -470,4 +470,10 @@ Any of these may be reopened by product/finance — reopening one reopens only t
 Status — Wave 1 (H1 #934 · A1 #935 · C4 #936 · B1 #937 · A4 durion#357/ADR-0047): implemented
 2026-07-17; see the linked issues and ADR-0047 for delivery details.
 
+Status — Wave 2 (A2 #942 · A3 #943 · B2 #944 · E1 #945 · E2 #946): implemented 2026-07-18 on branch
+`claude/wave-2-odoo-pos-accounting-31vunc`, PR pending. Notes: reprocess-with-override (reprocessing a
+PERIOD_CLOSED-suspended event into a still-closed period using `accounting:period:override`) is deferred
+as a recorded follow-up — B2 ships reprocess-after-reopen only. E2's predicate grammar unblocks E3
+(dry-run, Wave 3 #957).
+
 Tax-plan issues: see `plan-odoo-parity-pos-tax.md` §6. F3/G3 remain backlog (no issues by design).
