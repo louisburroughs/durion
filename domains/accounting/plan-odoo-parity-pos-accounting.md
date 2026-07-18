@@ -468,6 +468,6 @@ Any of these may be reopened by product/finance — reopening one reopens only t
 | 5 | F2 → #965 · T8(tax liability, cross-plan) → #966 |
 
 Status — Wave 1 (H1 #934 · A1 #935 · C4 #936 · B1 #937 · A4 durion#357/ADR-0047): implemented
-2026-07-17 on branch `claude/wave-1-odoo-pos-accounting-31vunc`, PR pending.
+2026-07-17; see the linked issues and ADR-0047 for delivery details.
 
 Tax-plan issues: see `plan-odoo-parity-pos-tax.md` §6. F3/G3 remain backlog (no issues by design).

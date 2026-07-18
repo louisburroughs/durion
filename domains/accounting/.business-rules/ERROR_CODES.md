@@ -1,11 +1,11 @@
 # Accounting Domain Error Codes
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Purpose:** Comprehensive error taxonomy for Accounting domain API responses  
 **Domain:** accounting  
 **Owner:** Accounting Domain  
 **Status:** ACCEPTED  
-**Date:** 2026-01-25
+**Date:** 2026-07-17
 
 ---
 
