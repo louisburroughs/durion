@@ -1,17 +1,7 @@
 ---
 name: Code Review Agent
 description: Reviews backend implementation against assigned requirements, architecture policy, and regression risk before PR creation; reports findings only.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - github/issue_read
-  - github/search_issues
-  - github/get_file_contents
-  - web/fetch
-  - vscode/memory
+tools: Read, Grep, Glob, WebFetch, mcp__github__issue_read, mcp__github__search_issues, mcp__github__get_file_contents, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search, mcp__tokensave-backend__tokensave_callers
 ---
 
 

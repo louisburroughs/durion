@@ -1,19 +1,7 @@
 ---
 name: PR Code Reviewer
 description: Validates remediated PR code against issue criteria, ADRs, and test expectations during the PR fix loop.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - github/pull_request_read
-  - github/issue_read
-  - github/search_issues
-  - github/get_file_contents
-  - web/fetch
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, WebFetch, TodoWrite, mcp__github__pull_request_read, mcp__github__issue_read, mcp__github__search_issues, mcp__github__get_file_contents
 ---
 
 

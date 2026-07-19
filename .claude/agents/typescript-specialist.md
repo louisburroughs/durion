@@ -1,23 +1,7 @@
 ---
 name: TypeScript Specialist
 description: Owns Angular TypeScript implementation including routes, component logic, services, models, state, and API integration.
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - execute/runTests
-  - edit/createFile
-  - edit/createDirectory
-  - edit/editFiles
-  - vscode/memory
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit
 ---
 
 

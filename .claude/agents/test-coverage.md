@@ -1,26 +1,7 @@
 ---
 name: Test Coverage Agent
 description: Frontend coverage hardening for Angular/Vitest capability delivery.
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/killTerminal
-  - execute/runTests
-  - execute/createAndRunTask
-  - execute/testFailure
-  - read/readFile
-  - read/problems
-  - read/terminalLastCommand
-  - read/terminalSelection
-  - edit/createFile
-  - edit/createDirectory
-  - edit/editFiles
-  - search/fileSearch
-  - search/textSearch
-  - search/listDirectory
-  - search/usages
-  - web/fetch
-  - vscode/memory
+tools: Read, Grep, Glob, Bash, BashOutput, KillShell, Write, Edit, WebFetch
 ---
 
 

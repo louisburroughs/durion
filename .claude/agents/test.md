@@ -1,27 +1,7 @@
 ---
 name: "Backend Testing Agent"
 description: "TDD and behavior-focused backend testing specialist for backend capability delivery"
-  - 'execute/testFailure'
-  - 'execute/getTerminalOutput'
-  - 'execute/awaitTerminal'
-  - 'execute/killTerminal'
-  - 'execute/createAndRunTask'
-  - 'execute/runInTerminal'
-  - 'execute/runTests'
-  - 'read/problems'
-  - 'read/readFile'
-  - 'read/terminalSelection'
-  - 'read/terminalLastCommand'
-  - 'edit/createDirectory'
-  - 'edit/createFile'
-  - 'edit/editFiles'
-  - 'search/fileSearch'
-  - 'search/listDirectory'
-  - 'search/textSearch'
-  - 'search/usages'
-  - 'web/fetch'
-  - 'vscode/memory'
-  - 'todo'
+tools: Read, Grep, Glob, Bash, BashOutput, KillShell, Write, Edit, WebFetch, TodoWrite, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search, mcp__tokensave-backend__tokensave_callers
 ---
 
 

@@ -1,22 +1,7 @@
 ---
 name: PR Test Fixer
 description: Fixes failing tests and closes test coverage gaps identified in PR review.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/runTests
-  - edit/editFiles
-  - github/pull_request_read
-  - github/add_comment_to_pending_review
-  - github/pull_request_review_write
-  - github/add_issue_comment
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, Edit, TodoWrite, mcp__github__pull_request_read, mcp__github__add_comment_to_pending_review, mcp__github__pull_request_review_write, mcp__github__add_issue_comment
 ---
 
 

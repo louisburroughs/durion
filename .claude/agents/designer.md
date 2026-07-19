@@ -1,24 +1,7 @@
 ---
 name: Designer
 description: Frontend design authority for Durion capability delivery.
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - io.github.upstash/context7/get-library-docs
-  - io.github.upstash/context7/resolve-library-id
-  - edit/createDirectory
-  - edit/createFile
-  - edit/editFiles
-  - web/fetch
-  - vscode/memory
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit, WebFetch, mcp__context7__query-docs, mcp__context7__resolve-library-id
 ---
 
 

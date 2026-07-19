@@ -1,18 +1,7 @@
 ---
 name: PR Reviewer
 description: Performs code review of a PR against issues, ADRs, and test expectations.
-  - read/readFile
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - github/pull_request_read
-  - github/issue_read
-  - github/search_issues
-  - github/get_file_contents
-  - web/fetch
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, WebFetch, TodoWrite, mcp__github__pull_request_read, mcp__github__issue_read, mcp__github__search_issues, mcp__github__get_file_contents
 ---
 
 

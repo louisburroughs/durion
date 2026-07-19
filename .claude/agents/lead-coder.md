@@ -1,22 +1,7 @@
 ---
 name: Lead Coder
 description: Non-coding frontend implementation coordinator that decomposes capability story work and clarifies specialist instructions for Orchestrator execution.
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - execute/runTests
-  - io.github.upstash/context7/query-docs
-  - io.github/upstash/context7/resolve-library-id
-  - vscode/memory
+tools: Read, Grep, Glob, Bash, BashOutput, WebFetch, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id
 ---
 
 

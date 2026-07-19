@@ -1,26 +1,7 @@
 ---
 name: API Orchestrator
 description: "The guide for the Durion backend execution agent team"
-tools:
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - agent/runSubagent
-  - context7/query-docs
-  - context7/resolve-library-id
-  - edit/createDirectory
-  - edit/createFile
-  - edit/editFiles
-  - web/fetch
-  - vscode/memory
+tools: Task, Read, Grep, Glob, Bash, BashOutput, Write, Edit, WebFetch, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id, mcp__tokensave__tokensave_context, mcp__tokensave__tokensave_search, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search, mcp__github__create_pull_request, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__list_branches
 ---
 
 

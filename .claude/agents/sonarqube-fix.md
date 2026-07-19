@@ -1,29 +1,7 @@
 ---
 name: SonarQube Fix Agent
 description: "Fixes SonarQube issues in durion-positivity-backend with strict safety and reporting guardrails."
-  - read/readFile
-  - read/problems
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/killTerminal
-  - execute/runTests
-  - github/create_branch
-  - github/list_branches
-  - github/push_files
-  - edit/createFile
-  - edit/editFiles
-  - sonarsource.sonarlint-vscode/sonarqube_getPotentialSecurityIssues
-  - sonarsource.sonarlint-vscode/sonarqube_analyzeFile
-  - sonarsource.sonarlint-vscode/sonarqube_setUpConnectedMode
-  - sonarsource.sonarlint-vscode/sonarqube_excludeFiles
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, KillShell, Write, Edit, TodoWrite, mcp__github__create_branch, mcp__github__list_branches, mcp__github__push_files, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search, mcp__tokensave-backend__tokensave_callers, mcp__sonarqube__search_sonar_issues_in_projects, mcp__sonarqube__change_sonar_issue_status, mcp__sonarqube__analyze_code_snippet, mcp__sonarqube__show_rule, mcp__sonarqube__list_rule_repositories, mcp__sonarqube__get_project_quality_gate_status, mcp__sonarqube__search_my_sonarqube_projects, mcp__sonarqube__list_branches
 ---
 
 

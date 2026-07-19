@@ -1,22 +1,7 @@
 ---
 name: HTML Specialist
 description: Owns Angular templates, semantic HTML, component CSS, and accessibility-first visual implementation.
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - edit/createFile
-  - edit/createDirectory
-  - edit/editFiles
-  - vscode/memory
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit
 ---
 
 

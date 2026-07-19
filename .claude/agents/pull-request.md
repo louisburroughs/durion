@@ -1,22 +1,7 @@
 ---
 name: Pull Request Agent
 description: Creates pull requests using the repository PR template. This is the only agent authorized to open pull requests.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/killTerminal
-  - github/create_pull_request
-  - github/pull_request_read
-  - github/list_pull_requests
-  - github/list_branches
-  - github/issue_read
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, KillShell, TodoWrite, mcp__github__create_pull_request, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__list_branches, mcp__github__issue_read
 ---
 
 

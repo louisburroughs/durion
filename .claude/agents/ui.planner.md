@@ -1,20 +1,7 @@
 ---
 name: UI Planner
 description: Creates executable frontend wave plans and maintains plan state for the multi-stage Angular capability crawl.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - io.github.upstash/context7/get-library-docs
-  - io.github.upstash/context7/resolve-library-id
-  - web/fetch
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit, WebFetch, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id
 ---
 
 

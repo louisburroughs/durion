@@ -1,23 +1,7 @@
 ---
 name: Client Coder
 description: Implements backend outbound integration artifacts with RestClient and boundary-safe contracts.
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - execute/runTests
-  - edit/createFile
-  - edit/createDirectory
-  - edit/editFiles
-  - vscode/memory
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search, mcp__tokensave-backend__tokensave_callers
 ---
 
 

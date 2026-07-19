@@ -1,17 +1,7 @@
 ---
 name: PR Review Planner
 description: Produces and tracks an executable PR review and remediation plan.
-  - read/readFile
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - github/pull_request_read
-  - github/issue_read
-  - github/search_issues
-  - edit/createFile
-  - edit/editFiles
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Write, Edit, TodoWrite, mcp__github__pull_request_read, mcp__github__issue_read, mcp__github__search_issues
 ---
 
 

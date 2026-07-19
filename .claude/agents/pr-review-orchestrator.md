@@ -1,27 +1,7 @@
 ---
 name: PR Review Orchestrator
 description: Orchestrates PR discovery, evidence gathering, code review, and delegated fixes.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - edit/createFile
-  - edit/editFiles
-  - agent
-  - github/list_pull_requests
-  - github/search_pull_requests
-  - github/pull_request_read
-  - github/add_comment_to_pending_review
-  - github/pull_request_review_write
-  - github/add_issue_comment
-  - github/list_issues
-  - github/search_issues
-  - github/issue_read
-  - github/get_file_contents
-  - web/fetch
-  - vscode/memory
-  - todo
+tools: Task, Read, Grep, Glob, Write, Edit, WebFetch, TodoWrite, mcp__github__list_pull_requests, mcp__github__search_pull_requests, mcp__github__pull_request_read, mcp__github__add_comment_to_pending_review, mcp__github__pull_request_review_write, mcp__github__add_issue_comment, mcp__github__list_issues, mcp__github__search_issues, mcp__github__issue_read, mcp__github__get_file_contents
 ---
 
 

@@ -1,26 +1,7 @@
 ---
 name: Domain Data Coder
 description: Implements service-layer behavior, domain logic, entities, and repositories with transactional and JPA correctness.
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - search/usages
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - execute/runTests
-  - edit/createFile
-  - edit/createDirectory
-  - edit/editFiles
-  - context7/query-docs
-  - context7/resolve-library-id
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search, mcp__tokensave-backend__tokensave_callers
 ---
 
 

@@ -1,26 +1,7 @@
 ---
 name: UI Orchestrator
 description: "The guide for the Durion frontend execution agent team"
-tools:
-  - read/readFile
-  - read/problems
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - agent/runSubagent
-  - context7/query-docs
-  - context7/resolve-library-id
-  - edit/createDirectory
-  - edit/createFile
-  - edit/editFiles
-  - web/fetch
-  - vscode/memory
+tools: Task, Read, Grep, Glob, Bash, BashOutput, Write, Edit, WebFetch, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id
 ---
 
 

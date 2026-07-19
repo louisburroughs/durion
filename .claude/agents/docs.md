@@ -1,21 +1,7 @@
 ---
 name: Documentation Agent
 description: Updates backend docs and capability run artifacts for backend delivery workflows.
-  - read/readFile
-  - read/problems
-  - search/fileSearch
-  - search/listDirectory
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - edit/createFile
-  - edit/editFiles
-  - github/issue_read
-  - github/search_issues
-  - web/fetch
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit, WebFetch, TodoWrite, mcp__github__issue_read, mcp__github__search_issues
 ---
 
 

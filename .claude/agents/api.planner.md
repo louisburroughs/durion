@@ -1,20 +1,7 @@
 ---
 name: API Planner
 description: Creates executable backend wave plans and maintains plan state for capability execution.
-  - read/readFile
-  - read/problems
-  - search/listDirectory
-  - search/fileSearch
-  - search/textSearch
-  - execute/runInTerminal
-  - execute/getTerminalOutput
-  - execute/awaitTerminal
-  - execute/createAndRunTask
-  - io.github.upstash/context7/get-library-docs
-  - io.github.upstash/context7/resolve-library-id
-  - web/fetch
-  - vscode/memory
-  - todo
+tools: Read, Grep, Glob, Bash, BashOutput, Write, Edit, WebFetch, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id, mcp__tokensave-backend__tokensave_context, mcp__tokensave-backend__tokensave_search
 ---
 
 

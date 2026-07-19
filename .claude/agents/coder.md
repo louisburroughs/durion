@@ -1,22 +1,7 @@
 ---
 name: Coder
 description: Legacy fallback single-agent implementation mode (use when Lead Coder team-mode delegation is unavailable).
-  - execute/testFailure
-  - execute/getTerminalOutput
-  - execute/killTerminal
-  - execute/createAndRunTask
-  - execute/runInTerminal
-  - execute/runTests
-  - read/problems
-  - read/readFile
-  - read/terminalSelection
-  - read/terminalLastCommand
-  - edit/createDirectory
-  - edit/createFile
-  - edit/editFiles
-  - "github/*"
-  - "github/*"
-  - "io.github.upstash/context7/*"
+tools: Bash, BashOutput, KillShell, Read, Grep, Glob, Write, Edit, TodoWrite, mcp__context7__query-docs, mcp__context7__resolve-library-id, mcp__github__create_pull_request, mcp__github__pull_request_read, mcp__github__list_branches
 ---
 
 
