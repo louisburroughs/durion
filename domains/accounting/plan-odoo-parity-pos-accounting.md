@@ -420,7 +420,7 @@ ships reprocess-after-reopen only. E2's predicate grammar unblocks E3 (dry-run, 
 Status — Wave 3 (D1 #953 · C1 #954 · C3 #955 · G1 #956 · E3 #957): merged 2026-07-19 via PR #974 (branch `cap/odoo-parity-accounting-w3`). Includes F4 date-provenance
 regression hardening and ApiError-contract fixes from PR review.
 
-Status — Wave 4 (code-complete 2026-07-19, branch `cap/odoo-parity-accounting-w4`, PR pending): all stories implemented, ArchUnit + Spotless green, full `pos-accounting` suite green.
+Status — Wave 4 (code-complete 2026-07-19, branch `cap/odoo-parity-accounting-w4`, PR #977): all stories implemented, ArchUnit + Spotless green, full `pos-accounting` + `pos-invoice` suites green.
 
 - **F1a** settlement contract events in `pos-domain-events` (`SettlementReportedV1`, `SettlementProviderConfigV1`, frozen per D-10).
 - **C2 #958** reversing-JE symmetry on payment-application reversal.
