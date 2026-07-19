@@ -420,8 +420,14 @@ ships reprocess-after-reopen only. E2's predicate grammar unblocks E3 (dry-run, 
 Status — Wave 3 (D1 #953 · C1 #954 · C3 #955 · G1 #956 · E3 #957): merged 2026-07-19 via PR #974 (branch `cap/odoo-parity-accounting-w3`). Includes F4 date-provenance
 regression hardening and ApiError-contract fixes from PR review.
 
-Status — Wave 4 (in progress, branch `cap/odoo-parity-accounting-w4`): F1a settlement contract events (pos-domain-events) · C2 #958 reversing-JE symmetry · G2 #960
-(GL + aged AR/AP): API surface + service impl implemented 2026-07-19 (service impl commit `0872b948`, 40 tests green: 35 unit/controller + 5 contract IT). Remaining Wave 4:
-F1b #962 (settlement adapter in pos-invoice `internal.settlement`) · F1c #963 (accounting settlement reconciliation, per D-9…D-14). PR pending.
+Status — Wave 4 (code-complete 2026-07-19, branch `cap/odoo-parity-accounting-w4`, PR pending): all stories implemented, ArchUnit + Spotless green, full `pos-accounting` suite green.
+
+- **F1a** settlement contract events in `pos-domain-events` (`SettlementReportedV1`, `SettlementProviderConfigV1`, frozen per D-10).
+- **C2 #958** reversing-JE symmetry on payment-application reversal.
+- **G2 #960** GL + aged AR/AP reports (API surface + service impl; `generateGeneralLedger`, `generateAgedReceivables`, `generateAgedPayables`).
+- **F1c #963** accounting settlement reconciliation (D-9…D-14): `processor_settlement`/`_line` + `ext_payment_settlement_config` replica (V16 migration), event-driven ingest (`SettlementEventsListener` on `payment.events.v1`, `SettlementConfigEventsListener` on compacted `payment.settlement-config.v1`), gross matching to `ReceivablePayment`, batched settlement JE via `SettlementPostingService` (Dr Cash/Dr Fees/Cr Undeposited/Cr Suspense), and the review controller `/v1/accounting/settlements/...` (list / manual-match / write-off ≤ $25.00 default, reversible JE) behind `accounting:reconciliation:view|adjust`. OpenAPI + permissions regenerated; contract-guide + README updated.
+- **F1b #962** settlement adapter scaffold in **pos-invoice** `internal.settlement`/`internal.config`: `SettlementSourcePort` (+ `UnavailableSettlementSourceAdapter` placeholder, mirroring the Stripe gateway placeholder) and `SettlementEventPublisher` emitting both contracts via the invoice transactional outbox (`payment.events.v1` keyed by settlement id; compacted `payment.settlement-config.v1` keyed per provider). No real processor feed is integrated yet, so the port throws until an adapter is provided.
+
+Follow-up (not blocking wave-4 backend): Angular SDK regeneration for the new `/v1/accounting/settlements/*` + G2 report endpoints rides the F2 frontend story (#965, Wave 5) off the regenerated OpenAPI aggregate.
 
 Tax-plan issues: see `plan-odoo-parity-pos-tax.md` §6. F3/G3 remain backlog (no issues by design).

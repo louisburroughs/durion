@@ -109,6 +109,12 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` | Requires `accounting:period:reopen`; mandatory justification |
 | View hard-lock date | `getAccountingHardLockDate` | GET | `http://localhost:8080/v1/accounting/periods/hard-lock` | Requires `accounting:period:view`; `hardLockDate: null` when unset |
 | Set hard-lock date | `setAccountingHardLockDate` | PUT | `http://localhost:8080/v1/accounting/periods/hard-lock` | Requires `accounting:period:hard_lock`; mandatory justification; forward-only (422 `HARD_LOCK_DATE_REGRESSION`) |
+| General ledger report | `generateGeneralLedger` | GET | `http://localhost:8080/v1/accounting/reports/financial/general-ledger` | Story G2; account-level ledger with running balances |
+| Aged receivables report | `generateAgedReceivables` | GET | `http://localhost:8080/v1/accounting/reports/financial/aged-receivables` | Story G2; per-customer aged AR buckets |
+| Aged payables report | `generateAgedPayables` | GET | `http://localhost:8080/v1/accounting/reports/financial/aged-payables` | Story G2; per-vendor aged AP buckets |
+| List settlement lines | `listSettlementLines` | GET | `http://localhost:8080/v1/accounting/settlements/{settlementId}/lines` | Story F1c; requires `accounting:reconciliation:view`; `unmatchedOnly` filter |
+| Match settlement line | `matchSettlementLine` | POST | `http://localhost:8080/v1/accounting/settlements/lines/{lineId}/match` | Story F1c; requires `accounting:reconciliation:adjust`; matches an UNMATCHED line to a receivable payment |
+| Write off settlement line | `writeOffSettlementLine` | POST | `http://localhost:8080/v1/accounting/settlements/lines/{lineId}/write-off` | Story F1c; requires `accounting:reconciliation:adjust`; ≤ threshold (default $25.00), mandatory reason, reversible JE (422 above threshold) |
 
 Headers and auth notes:
 
@@ -347,10 +353,15 @@ Headers and auth notes:
 | Reopen accounting period | `reopenAccountingPeriod` | POST | `http://localhost:8080/v1/accounting/periods/{periodCode}/reopen` |
 | View hard-lock date | `getAccountingHardLockDate` | GET | `http://localhost:8080/v1/accounting/periods/hard-lock` |
 | Set hard-lock date | `setAccountingHardLockDate` | PUT | `http://localhost:8080/v1/accounting/periods/hard-lock` |
+| General ledger / aged AR / aged AP | `generateGeneralLedger`, `generateAgedReceivables`, `generateAgedPayables` | GET | `http://localhost:8080/v1/accounting/reports/financial/{general-ledger\|aged-receivables\|aged-payables}` |
+| Settlement reconciliation review | `listSettlementLines`, `matchSettlementLine`, `writeOffSettlementLine` | GET/POST/POST | `http://localhost:8080/v1/accounting/settlements/...` |
 
 ### Behavioral Assertions
 
 - Reporting endpoints must reflect posted ledger state.
+- Settlement reconciliation posts one batched JE per settlement (`D-13`): Dr Cash (net) / Dr Processor
+  Fees / Cr Undeposited Funds (matched gross) / Cr Settlement Suspense (unmatched gross). Unmatched
+  lines never block cash posting; they park in suspense for review (match or ≤-threshold write-off).
 - Adjustments must leave immutable audit evidence.
 - Closed-period constraints must be enforced where mutation is requested.
 - Accounting periods follow a monthly cadence keyed by `YYYY-MM` period code (`D-7`) with a
