@@ -16,6 +16,26 @@ Guidance hierarchy: workspace → project → module. Closer scope wins on confl
 
 ---
 
+## Code Intelligence (TokenSave) — server routing
+
+This workspace is cross-repo, so **two** TokenSave MCP servers are configured. Pick by which repo's code you are querying:
+
+| Query target | Tools to use |
+| ------------ | ------------ |
+| This durion orchestration repo (docs, plans, domain business-rules, stories) | `mcp__tokensave__*` (default) |
+| `durion-positivity-backend` Java code (controllers, services, entities, handlers, tests) | `mcp__tokensave-backend__*` |
+
+The default `mcp__tokensave__*` / `tokensave_context` is indexed on the **durion** repo only — it does **not** see backend Java. For any backend code research (symbol search, callers/callees, impact, reading service/handler logic) use the `mcp__tokensave-backend__*` equivalents. Same tool names, backend graph.
+
+Keep the backend graph fresh with `tokensave sync` in `../durion-positivity-backend`.
+
+**When delegating to a subagent for backend code work**, state this explicitly in the agent prompt, e.g.:
+> Backend code lives in `durion-positivity-backend`. Use the `mcp__tokensave-backend__*` tools (e.g. `mcp__tokensave-backend__tokensave_context`) as your ONLY code-exploration tools for backend Java — the default `mcp__tokensave__*` server is indexed on the durion orchestration repo, not the backend. Do not use Read/glob/grep for backend code research. Pass `seen_node_ids` forward via `exclude_node_ids`.
+
+(A frontend server is not yet configured; use Read/tokensave on `durion-positivity-frontend` directly until one is added.)
+
+---
+
 ## Platform Rules
 
 **Naming** — `workorder` is one word everywhere: code, comments, docs, API text, logs. Valid: `workorder`, `Workorder`, `workorderId`, `WorkorderStatus`.
