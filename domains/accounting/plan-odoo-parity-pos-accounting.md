@@ -1,6 +1,6 @@
 ## Odoo Parity Plan — pos-accounting
 
-> Status: DRAFT for review · Created 2026-07-17 · Branch: `claude/pos-accounting-odoo-parity-idfuje`
+> Status: ACCEPTED · Created 2026-07-17 · Branch: `claude/pos-accounting-odoo-parity-idfuje`
 >
 > Goal: bring `durion-positivity-backend/pos-accounting` to functional parity with the Odoo 19 `addons/account` capabilities that matter for a US, single-currency,
 > event-driven POS platform — without breaking established Durion conventions. Companion plan: `plan-odoo-parity-pos-tax.md` (tax engine parity; several stories here depend on
