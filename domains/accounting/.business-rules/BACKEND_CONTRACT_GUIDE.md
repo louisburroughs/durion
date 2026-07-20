@@ -115,6 +115,13 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | List settlement lines | `listSettlementLines` | GET | `http://localhost:8080/v1/accounting/settlements/{settlementId}/lines` | Story F1c; requires `accounting:reconciliation:view`; `unmatchedOnly` filter |
 | Match settlement line | `matchSettlementLine` | POST | `http://localhost:8080/v1/accounting/settlements/lines/{lineId}/match` | Story F1c; requires `accounting:reconciliation:adjust`; matches an UNMATCHED line to a receivable payment |
 | Write off settlement line | `writeOffSettlementLine` | POST | `http://localhost:8080/v1/accounting/settlements/lines/{lineId}/write-off` | Story F1c; requires `accounting:reconciliation:adjust`; ≤ threshold (default $25.00), mandatory reason, reversible JE (422 above threshold) |
+| Import bank reconciliation | `importReconciliation` | POST | `http://localhost:8080/v1/accounting/reconciliations/import` | Story F2; requires `accounting:reconciliation:adjust`; CSV import for a reconcilable GL account (422 `ACCOUNT_NOT_RECONCILABLE`) |
+| List / get reconciliations | `listReconciliations`, `getReconciliation` | GET | `http://localhost:8080/v1/accounting/reconciliations[/{id}]` | Story F2; requires `accounting:reconciliation:view` |
+| Match / unmatch statement lines | `matchReconciliation`, `unmatchReconciliation` | POST | `http://localhost:8080/v1/accounting/reconciliations/{id}/{match\|unmatch}` | Story F2; requires `accounting:reconciliation:adjust`; 1-to-1 / N-to-1 within ±0.01 (422 `MATCH_AMOUNT_MISMATCH`) |
+| Reconciliation adjustment types | `listReconciliationAdjustmentTypes` | GET | `http://localhost:8080/v1/accounting/reconciliations/adjustment-types` | Story F2 (D-6); served enum — frontend never hardcodes |
+| Add reconciliation adjustment | `addReconciliationAdjustment` | POST | `http://localhost:8080/v1/accounting/reconciliations/{id}/adjustments` | Story F2; requires `accounting:reconciliation:adjust`; posts a real JE via posting categories, respects period locks |
+| Finalize reconciliation | `finalizeReconciliation` | POST | `http://localhost:8080/v1/accounting/reconciliations/{id}/finalize` | Story F2; requires `accounting:reconciliation:adjust`; balance gate — statement vs GL ending balance within ±0.01 (422 `RECONCILIATION_NOT_BALANCED`) |
+| Reconciliation report / audit | `getReconciliationReport`, `getReconciliationAudit` | GET | `http://localhost:8080/v1/accounting/reconciliations/{id}/{report\|audit}` | Story F2; requires `accounting:reconciliation:view` |
 
 Headers and auth notes:
 
@@ -355,6 +362,7 @@ Headers and auth notes:
 | Set hard-lock date | `setAccountingHardLockDate` | PUT | `http://localhost:8080/v1/accounting/periods/hard-lock` |
 | General ledger / aged AR / aged AP | `generateGeneralLedger`, `generateAgedReceivables`, `generateAgedPayables` | GET | `http://localhost:8080/v1/accounting/reports/financial/{general-ledger\|aged-receivables\|aged-payables}` |
 | Settlement reconciliation review | `listSettlementLines`, `matchSettlementLine`, `writeOffSettlementLine` | GET/POST/POST | `http://localhost:8080/v1/accounting/settlements/...` |
+| Bank reconciliation (CSV) | `importReconciliation`, `matchReconciliation`, `addReconciliationAdjustment`, `finalizeReconciliation`, … | GET/POST | `http://localhost:8080/v1/accounting/reconciliations/...` |
 
 ### Behavioral Assertions
 
