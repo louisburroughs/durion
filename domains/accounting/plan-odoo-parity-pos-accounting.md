@@ -420,7 +420,7 @@ ships reprocess-after-reopen only. E2's predicate grammar unblocks E3 (dry-run, 
 Status — Wave 3 (D1 #953 · C1 #954 · C3 #955 · G1 #956 · E3 #957): merged 2026-07-19 via PR #974 (branch `cap/odoo-parity-accounting-w3`). Includes F4 date-provenance
 regression hardening and ApiError-contract fixes from PR review.
 
-Status — Wave 4 (code-complete 2026-07-19, branch `cap/odoo-parity-accounting-w4`, PR #977): all stories implemented, ArchUnit + Spotless green, full `pos-accounting` + `pos-invoice` suites green.
+Status — Wave 4 (MERGED 2026-07-20 via PR #977, branch `cap/odoo-parity-accounting-w4`): all stories implemented + post-merge CI/CD green. Includes PR-review remediation (settlement JE sign-routing, ingest-reject of incoherent/net-negative settlements → new `REJECTED` status + V17, POSTED-guard before manual match, whole-request reversal guard, dedicated ADR-0017 error codes, aged-report N+1 + as-of bucketing, listener delegation/DLQ). Perm catalog bumped to v24 (`accounting:reconciliation:view|adjust`, bits 384/385).
 
 - **F1a** settlement contract events in `pos-domain-events` (`SettlementReportedV1`, `SettlementProviderConfigV1`, frozen per D-10).
 - **C2 #958** reversing-JE symmetry on payment-application reversal.
@@ -429,5 +429,12 @@ Status — Wave 4 (code-complete 2026-07-19, branch `cap/odoo-parity-accounting-
 - **F1b #962** settlement adapter scaffold in **pos-invoice** `internal.settlement`/`internal.config`: `SettlementSourcePort` (+ `UnavailableSettlementSourceAdapter` placeholder, mirroring the Stripe gateway placeholder) and `SettlementEventPublisher` emitting both contracts via the invoice transactional outbox (`payment.events.v1` keyed by settlement id; compacted `payment.settlement-config.v1` keyed per provider). No real processor feed is integrated yet, so the port throws until an adapter is provided.
 
 Follow-up (not blocking wave-4 backend): Angular SDK regeneration for the new `/v1/accounting/settlements/*` + G2 report endpoints rides the F2 frontend story (#965, Wave 5) off the regenerated OpenAPI aggregate.
+
+Status — Wave 5 (in progress 2026-07-20, branch `cap/odoo-parity-accounting-w5`):
+
+- **R6 gate closed**: no `/v1/accounting/reconciliations` controller exists; the `Reconciliation`/`ReconciliationRecord` entities + `ReconciliationStatus` are dead scaffold (unreferenced, and `Reconciliation` is malformed — `List<>` under `@Column`) → **F2 rewrites** the model rather than reusing it.
+- **F2 #965** (manual CSV bank reconciliation) — **actionable now, in progress**. Endpoint family `/v1/accounting/reconciliations/{import,match,unmatch,adjustments,finalize,report,audit,adjustment-types}`; signed-amount matching ±0.01 (1-to-1 + N-to-1); finalize balance gate; adjustments post real JEs via posting categories (D-6 enum served by endpoint). **Permissions reuse** the existing `accounting:reconciliation:view|adjust` (bits 384/385) → **no CATALOG_VERSION bump**. Angular UI + SDK regen follow after the backend lands.
+- **D1 breakdown-upgrade + T8 #966 — BLOCKED**: tax-plan **T5** (persist jurisdiction breakdown → extend `InvoiceUpdatedV1` → `ext_invoice_tax` replica) has **not** landed — `ExtInvoice.tax` is still a single scalar. D1 shipped its interim-scalar form in Wave 3 (#953); the breakdown upgrade and in-platform tax-liability reporting (T8) must wait for T5. Reordering note: the Wave-4 cross-plan expectation (§10) that T5 land by Wave 4 was not met.
+- **F3/G3** remain backlog (no issues by design).
 
 Tax-plan issues: see `plan-odoo-parity-pos-tax.md` §6. F3/G3 remain backlog (no issues by design).
