@@ -227,3 +227,9 @@ candidate among several in R-T1.
 | 5    | T8 → #966                                                                                              |
 
 Accounting-plan issues: see `plan-odoo-parity-pos-accounting.md` §13.
+
+## 7. Execution status
+
+Status — Wave 1 (T1 #939 · T2 #940 · T9a #941): **code-complete, PR #980** (branch `cap/odoo-parity-tax-w1`, off `main`). `pos-tax` verify 49 tests green (incl. the Σ-invariant property test — seed `424242L`, 2000 carts), `pos-tax-common` green; Spotless/lint clean; Code-Review PASS (1 contract-accuracy finding fixed in-wave, 3 deferred forward). New reusable `TaxTotalsReconciler` (T4/T6 will reuse). Additive contract `LineItemTax.jurisdictions[]` → **Angular SDK regen required** (frontend follow-up). No permission change. **Pre-existing blocker #979**: `pos-workorder` `EstimateTaxCalculationContractBehaviorIT` rollback (2 ITs) — proven pre-existing on pristine `main`; not in Wave 1 scope, fix before any wave needing pos-workorder verify green.
+
+Waves 2–5 pending. Reminder: **T5 (Wave 3, keystone)** is what unblocks accounting-plan D1-breakdown-upgrade + T8 — waves run sequentially (Wave 2 T3/T4/T7 → Wave 3 T5a→T5b→T5c). Research gates still open before their waves: R-T3 (before T3), R-T2/R-T5 (before T5), R-T4 (before T8).
