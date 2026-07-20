@@ -699,6 +699,25 @@ Headers and auth notes:
 - Controller tests: `LaborOverheadReportControllerTest`
 - Service tests: `LaborOverheadReportServiceImplTest`
 
+## pos-tax Contract Notes (Odoo Parity Wave 1)
+
+These notes cover the shared `pos-tax-common` tax-calculation contract consumed by billing/workexec
+flows. `pos-tax` is an internal library/service (not a gateway route), so there is no accounting
+`operationId`; this section records the response-contract changes for cross-domain awareness.
+
+- **Additive `LineItemTax.jurisdictions[]` (backend#939 / T1):** `TaxCalculationResponse.LineItemTax`
+  gains a `jurisdictions[]` array of `JurisdictionTax {jurisdictionType (enum TaxJurisdictionType),
+  code, rate, amount}`. The rows sum to the line's `taxAmount`. Additive only — never `null`
+  (defaults to an empty list); all existing `LineItemTax` fields are unchanged.
+- **Rounding invariant (backend#939 / T1):** tax is reconciled so that
+  `Σ lineItemTaxes.taxAmount == totalTax == Σ jurisdictions.taxAmount`, with residual cents
+  distributed deterministically largest-raw-amount-first.
+- **`effectiveTaxRate` semantics clarification (backend#939 / T1):** `effectiveTaxRate` is `totalTax`
+  divided by the exempt-filtered taxable base (exempt lines excluded from the denominator); an
+  all-exempt or zero-base cart yields `0.00`.
+- **Frontend follow-up:** Angular SDK regeneration for the additive `jurisdictions[]` field is a
+  pending frontend task and is not performed as part of the backend change.
+
 ## Events & Cross-Domain Dependencies
 
 - Billing emits invoice issuance/finalization events consumed by Accounting.
