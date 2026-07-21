@@ -27,8 +27,9 @@ Remaining: Waves 2-5.
 - **Track certificate effective + expiry dates** at MVP.
 - => T3 `V1__exemption_certificate.sql` schema includes effective_from + expires_at columns; expired/missing cert w/ taxExempt=true => tax anyway + exemptionDenied=true flag (plan D-T2).
 
-### R-T4 (filing) — DEFERRED to Wave 5
-- Do not build T8 fidelity decision now. Revisit after Waves 2-4 land. T8 is Wave 5 anyway.
+### R-T4 (filing) — REVISIT DUE (2026-07-21)
+- Original deferral: do not build the T8 fidelity decision until Waves 2-4 land.
+- **Trigger fired:** Waves 2-4 (and Wave 5 F2/D1) have all merged; T8 (#966) is data-unblocked (#947/#952/#937, AvaTax live). Decision request posted on #966 (2026-07-21): (A) Finance files from the AvaTax provider portal → T8 is a reconciliation/audit report (buildable now, core is R-T4-invariant); (B) Finance prepares filings from platform data → filing-grade precision + period-close alignment (larger scope). Plus sub-questions: reporting-period basis (finalization date vs accounting close), cash vs accrual, credit-memo/refund netting per jurisdiction, jurisdiction granularity. Awaiting Finance's A/B ruling before T8 implementation.
 
 ## Net effect on sequencing
 - Wave 2 (T3, T4, T7): UNBLOCKED. T3 = full 5-code enum + expiry.
