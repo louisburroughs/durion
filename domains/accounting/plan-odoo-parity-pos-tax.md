@@ -153,6 +153,8 @@ capability convention: durion contract PR → pos-domain-events → pos-invoice 
 
 ### T8 — Sales-tax liability reporting
 
+> **DONE — merged via PR #995 (#966), 2026-07-21.** R-T4 resolved as Decision A (reconciliation-grade v1; Finance files via the AvaTax portal). `GET /v1/accounting/reports/financial/tax-liability?startDate=&endDate=` (start/end params match the sibling reports) on `FinancialReportingController`, `reporting:view:financial-statements`: `ext_invoice_tax` aggregated state/county/city with taxable base, exempt base + reasons, gross tax collected, credits netted per jurisdiction+period (`TaxCreditAllocator` pro-rata split of `CreditMemo.taxAmountReversed` across the invoice's jurisdictions), net tax, and a GL-drift column vs the 2200 Sales Tax Payable balance (drift 0 on a clean ledger — proven cent-exact by a real-Postgres IT). Accrual basis. Phase-2 follow-ons filed: #996 (true per-jurisdiction credit attribution), #997 (credit lifecycle beyond POSTED), #998 (filing-grade output = R-T4 Decision B), #999 (real CSV/PDF export rendering — `ReportExportService` is still a stub).
+
 - **Design**: "tax collected by jurisdiction for period" now answerable from platform data (T5). **Decision (D-T4)**: pos-accounting owns the report (it owns reporting
   infrastructure — `ReportExportService`, pos-documents rendering, period model from accounting plan B) reading its `ext_invoice_tax` replica:
   `GET /v1/accounting/reports/financial/tax-liability?period=` grouped by state/county/city with taxable base, exempt base (T3 zero-rows make this possible), and tax

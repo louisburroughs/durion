@@ -27,9 +27,10 @@ Remaining: Waves 2-5.
 - **Track certificate effective + expiry dates** at MVP.
 - => T3 `V1__exemption_certificate.sql` schema includes effective_from + expires_at columns; expired/missing cert w/ taxExempt=true => tax anyway + exemptionDenied=true flag (plan D-T2).
 
-### R-T4 (filing) — REVISIT DUE (2026-07-21)
-- Original deferral: do not build the T8 fidelity decision until Waves 2-4 land.
-- **Trigger fired:** Waves 2-4 (and Wave 5 F2/D1) have all merged; T8 (#966) is data-unblocked (#947/#952/#937, AvaTax live). Decision request posted on #966 (2026-07-21): (A) Finance files from the AvaTax provider portal → T8 is a reconciliation/audit report (buildable now, core is R-T4-invariant); (B) Finance prepares filings from platform data → filing-grade precision + period-close alignment (larger scope). Plus sub-questions: reporting-period basis (finalization date vs accounting close), cash vs accrual, credit-memo/refund netting per jurisdiction, jurisdiction granularity. Awaiting Finance's A/B ruling before T8 implementation.
+### R-T4 (filing) — RESOLVED (2026-07-21): Decision A (reconciliation-grade)
+- Resolved on #966: **Decision A** — Finance files from the AvaTax provider portal, so T8 v1 is a **reconciliation-grade** liability report (confirms platform-collected == GL-posted). Policy: jurisdiction granularity = state+county+city; accrual basis (recognized at invoice/credit posting); period = tax-effective posting period; credits/refunds netted within jurisdiction+period (gross preserved); exempt rows explicit per jurisdiction.
+- **Deferred to Phase 2** (issues filed): filing-grade return-package output #998, cash-basis variant #998, amendment/true-up #998, provider-vs-platform variance workflow #998; plus true per-jurisdiction credit attribution #996, credit-lifecycle-beyond-POSTED #997, real CSV/PDF export rendering #999.
+- **Built + merged:** T8 = PR #995 (#966). See `plan-odoo-parity-pos-tax.md` §2 T8 and `plan-odoo-parity-pos-accounting.md` Wave-5 status.
 
 ## Net effect on sequencing
 - Wave 2 (T3, T4, T7): UNBLOCKED. T3 = full 5-code enum + expiry.
