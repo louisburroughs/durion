@@ -196,6 +196,31 @@ Waves follow the spec §13 dependency graph. A wave starts when its blocking pre
 Wave-1 scheduling note: J0 and X1 first — they carry the cross-domain coordination lead time (accounting review of the valuation ADR; catalog contract additions) that
 gates Waves 3+ (B/E/G) and 5+ (J). A1 is the largest Wave-1 item and the highest-leverage foundation (A2, C2, E1, J1/J2, K3 all consume it).
 
+Status — Wave 1 (J0 durion#365 · X1 #1023 · A1 #1024 · F1 #1025 · I2 #1026 · K1 #1027): implemented 2026-07-22 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(backend commits c9aed64 X1, 59411e0 A1, 3d96122 K1, 7edb637 F1, c89e367 I2; ADR-0048 in durion). Notes:
+
+- **J0** → ADR-0048 (`durion/docs/adr/0048-...adr.md`), status PROPOSED — **requires accounting-domain sign-off before J1 (#1048) starts**.
+- **X1**: `catalog.product.updated` schema v2 (additive): `baseUom`, `trackingLevel`, `uomConversions[]`, `substitutionGroupId`/`substitutionProductIds[]`; new
+  `product_uom` + substitution-group tables (catalog Flyway V7); admin endpoints use catalog's existing ROLE guards (module has no permission-string enforcement — noted
+  deviation). Consumer guidance for B1/E1/G2: `aggregateVersion` = product `updatedAt` epoch millis, skip strictly-lower only (equal must apply); `trackingLevel` null ⇒
+  NONE; membership changes fan out facts to every affected member; no `catalog.commands.v1` replay listener exists yet — add one catalog-side if B1 needs outbox replay.
+- **A1**: `inventory_stock_summary` (V9) + `LedgerPostingService` funnel over all 9 ledger writers; reads switched; rebuild + scheduled drift verifier
+  (`pos.inventory.stock-summary.*`); added a `reserved` column beyond spec — two availability contracts subtract different event families (RESERVATION_* vs ALLOCATION_*
+  per ADR-0001), one `allocated` column cannot serve both.
+- **K1**: matrix enforced in the funnel; `ADJUST_CYCLE_COUNT` grouped with floor-at-zero (judgment call — posted form of an approved count); ArchUnit funnel rule;
+  `docs/negative-stock-policy.md`. Known edge: consumption posts at null location, so its guard evaluates the (SKU, null-location) key — flows receiving at real
+  locations but consuming at null would block until the null key is stocked (revisit when C-workstream firms up location semantics).
+- **F1**: batch scan idempotent per (policy, UTC-day) + open-task refresh; scheduler gated `pos.inventory.replenishment.scan.enabled` (default false); new permission
+  `inventory:replenishment:manage` guards scan + policy-create (migrated off `inventory:adjustment:create` — breaking for callers holding only the old authority);
+  `sourceLocationId` on batch tasks is a placeholder until F5 sourcing.
+- **I2**: conflict detection is window-delta based (net on-hand-affecting ledger sum after task `createdAt`) because `expectedQuantity` is seeded externally with no
+  task-creation service — not an absolute snapshot comparison; runs at submission, recount, and every approval incl. auto-approve; approving a CONFLICT task is the
+  explicit accept choice (variance recomputed `counted − currentOnHand`); 409 `CYCLE_COUNT_CONFLICT`; new `CONFLICT` TaskStatus (V10); freeze-during-count rejection
+  recorded in the endpoint docs.
+- Cross-module `pos-archunit` suite not yet run against the combined branch (agents ran per-module ArchUnit only) — run
+  `./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test` before the wave PR.
+- Frontend follow-up: Angular SDK regeneration for the new/changed endpoints (catalog X1 surface; inventory scan + interfering-movements) rides the next SDK refresh.
+
 ---
 
 ## 4. Cross-domain coordination summary

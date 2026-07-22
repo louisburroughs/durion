@@ -41,6 +41,7 @@ Registration pattern (pos-security-service):
 | `inventory:location:view` | Location | View storage topology (locations/bins) |
 | `inventory:location:manage` | Location | Manage storage locations (with DECISION-INVENTORY-007 restrictions) |
 | `inventory:roles:define` | Global | Define/modify inventory roles & permissions (governance) |
+| `inventory:replenishment:manage` | Location | Manage replenishment policies and run the batch replenishment scan (MEDIUM risk; introduced by odoo-parity F1/#1025 — `POST /v1/inventory/replenishment/policies` and `POST /v1/inventory/replenishment/scan` migrated onto it from `inventory:adjustment:create`) |
 
 ---
 
