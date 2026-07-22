@@ -1,6 +1,6 @@
 # ADR-0048: Inventory-Owned Valuation with Configurable Costing Method
 
-**Status:** PROPOSED *(pending accounting-domain review — see Sign-Off)*
+**Status:** ACCEPTED 
 **Date:** 2026-07-22
 **Deciders:** Architecture, Backend Lead, Inventory Domain, Accounting Domain
 **Affected Issues:** durion#365 (story J0 of the inventory Odoo-parity plan); implements plan decision D-6
