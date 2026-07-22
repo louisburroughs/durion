@@ -24,7 +24,7 @@
    corrections are new entries). Any stored balance introduced by this spec is a derived read model rebuildable from the ledger, never independently writable.
 3. **Module conventions**: UUID v7 IDs (`@UUIDv7Id`), entities in `internal/entity`, public interfaces in `service/` (ArchUnit-enforced), `@EmitEvent` + `EventTypes`
    registry entry per mutating endpoint, permissions in `permissions.yaml`/`InventoryPermissionRegistry` following `inventory:<resource>:<action>`
-   (PERMISSION_TAXONOMY.md), `ApiError` envelope, OpenAPI regeneration + SDK update on any controller change, Flyway migrations appended after V8 (V1–V7 are
+   (PERMISSION_TAXONOMY.md), `ApiError` envelope, OpenAPI regeneration + SDK update on any controller change, Flyway migrations appended after V8 (V1–V8 are
    post-baseline-reset; archives untouched), Spotless/Checkstyle/SpotBugs/ArchUnit green.
 4. **Location semantics**: two-level model per DECISION-INVENTORY-001 (`locationId` site, `storageLocationId` bin); movement eligibility per DECISION-INVENTORY-009
    (INACTIVE/PENDING sites blocked); location truth stays in pos-location, replicated via events.
