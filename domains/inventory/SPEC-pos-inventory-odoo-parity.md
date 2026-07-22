@@ -1,10 +1,10 @@
 # SPEC — pos-inventory Missing Functionality (Odoo Inventory Parity)
 
-> Status: DRAFT for review · Created 2026-07-22 · Branch: `claude/odoo-pos-inventory-comparison-ywp0ev`
+> Status: ACCEPTED · Created 2026-07-22 · Open questions resolved 2026-07-22 (§12 "Response" column; rulings in the plan §1) · Branch: `claude/odoo-pos-inventory-comparison-ywp0ev`
 >
 > Purpose: a detailed **specification of functionality missing from `durion-positivity-backend/pos-inventory`**, derived from the comparison against Odoo 19's inventory
-> stack. This document defines WHAT to build and the constraints on HOW; it is the input to a subsequent detailed implementation plan (stories, waves, estimates), which
-> will be authored separately in the style of `../accounting/plan-odoo-parity-pos-accounting.md`.
+> stack. This document defines WHAT to build and the constraints on HOW; the implementation plan (stories, waves, issue map) is
+> **`plan-odoo-parity-pos-inventory.md`**, in the style of `../accounting/plan-odoo-parity-pos-accounting.md`.
 >
 > Sources: `comp-odoo-inventory-overview.md`, `comp-vs-pos-inventory-comparison.md`, code survey of `pos-inventory` (2026-07-22), `pos-inventory/docs/inventory-ledger-atp.md`,
 > `pos-inventory/docs/putaway-validation-rules.md`, inventory business rules (`.business-rules/`), capability index (CAP-215…CAP-221, CAP-315), platform ADRs
