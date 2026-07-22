@@ -28,6 +28,15 @@ Remaining: Waves 2-5.
 - => T3 `V1__exemption_certificate.sql` schema includes effective_from + expires_at columns; expired/missing cert w/ taxExempt=true => tax anyway + exemptionDenied=true flag (plan D-T2).
 
 ### R-T4 (filing) — RESOLVED (2026-07-21): Decision A (reconciliation-grade)
+- **Authoritative record:** the decision was made and documented in the #966 comment thread —
+  blocker statement <https://github.com/louisburroughs/durion-positivity-backend/issues/966#issuecomment-5027666114>,
+  A/B decision request + sub-questions 1–4 <https://github.com/louisburroughs/durion-positivity-backend/issues/966#issuecomment-5037257792>,
+  and the resolution <https://github.com/louisburroughs/durion-positivity-backend/issues/966#issuecomment-5037473205>.
+  This file is a summary of that thread, not the source of truth.
+- Note on provenance: the resolution comment adopts Decision A as a **common-sense default to unblock
+  T8 now** (AvaTax is already the calculation SoR and all data prerequisites had merged) rather than as
+  a Finance sign-off. Moving to Decision B is therefore a business decision that has not been taken —
+  not one that was taken and rejected.
 - Resolved on #966: **Decision A** — Finance files from the AvaTax provider portal, so T8 v1 is a **reconciliation-grade** liability report (confirms platform-collected == GL-posted). Policy: jurisdiction granularity = state+county+city; accrual basis (recognized at invoice/credit posting); period = tax-effective posting period; credits/refunds netted within jurisdiction+period (gross preserved); exempt rows explicit per jurisdiction.
 - **Deferred to Phase 2** (issues filed): filing-grade return-package output #998, cash-basis variant #998, amendment/true-up #998, provider-vs-platform variance workflow #998; plus true per-jurisdiction credit attribution #996, credit-lifecycle-beyond-POSTED #997, real CSV/PDF export rendering #999.
 - **Built + merged:** T8 = PR #995 (#966). See `plan-odoo-parity-pos-tax.md` §2 T8 and `plan-odoo-parity-pos-accounting.md` Wave-5 status.
@@ -52,8 +61,17 @@ Recorded while implementing #992 / #996 / #997 (branch `cap/odoo-parity-accounti
   date**, not issue date: an invoice issued earlier with longer terms is less overdue than a later
   net-0 invoice. Implementation spans pos-invoice + pos-domain-events + the pos-workorder consumer, so
   it is scoped to its own change; #993 stays open carrying this ruling.
-- **#998 — filing-grade output: STILL GATED.** No Finance ruling moving Decision A → Decision B exists,
-  so nothing was built. Do not start #998 without that ruling.
+- **#998 — filing-grade output: STILL GATED.** The R-T4 resolution comment
+  (<https://github.com/louisburroughs/durion-positivity-backend/issues/966#issuecomment-5037473205>)
+  explicitly lists filing-grade platform output, the cash-basis variant, amendment/true-up, and the
+  provider-vs-platform variance workflow as **Phase 2, non-blocking** — i.e. #998's scope was deferred
+  by the same decision that unblocked T8, not merely left unaddressed. Nothing was built. Do not start
+  #998 without a ruling that moves Decision A → Decision B.
+- **T8 v1 policy from that comment is implemented as specified:** jurisdiction granularity
+  state + county + city; tax-effective posting period; accrual basis; credits/refunds netted within
+  jurisdiction + period with gross preserved; exempt rows explicit per jurisdiction. #996 and #997
+  tighten policy item 4 (credit netting) — #996 replaces the pro-rata approximation with attribution
+  frozen on the credit, and #997 fixes which credits fall in the bucket.
 
 ## Net effect on sequencing
 - Wave 2 (T3, T4, T7): UNBLOCKED. T3 = full 5-code enum + expiry.
