@@ -375,7 +375,7 @@ landed costs. **Gaps**: G16, G17. **This workstream starts with a cross-domain d
 | OQ-3 | Purchase suggestions: may inventory auto-create DRAFT POs on scan (no human accept step), or is SUGGESTED → human ACCEPT mandatory? | WS-F4 | Human accept mandatory (spend governance) | ACCEPTED |
 | OQ-4 | Replenishment lead-time source of truth when feed data and policy override conflict | WS-F2 | Policy override wins; feed is fallback | ACCEPTED |
 | OQ-5 | Product substitution data: replica of catalog substitution groups (ADR-0044-compliant) vs the currently-scaffolded REST client | WS-G2 | Event-fed replica; delete the scaffold client | ACCEPTED |
-| OQ-6 | J0 valuation ownership (inventory-owned recommended) + v1 costing method (AVCO recommended over FIFO) | WS-J | (a) inventory-owned, AVCO first | Can we make this a configuration? |
+| OQ-6 | J0 valuation ownership (inventory-owned recommended) + v1 costing method (AVCO recommended over FIFO) | WS-J | (a) inventory-owned, AVCO first | ACCEPTED (costing method configurable; valuation ownership fixed inventory-owned) |
 | OQ-7 | Should expired-lot exclusion from ATP be immediate (computed) or job-driven (eventual, simpler)? | WS-E3 | Job-driven daily + on-read guard for suggestion paths | ACCEPTED |
 | OQ-8 | Transfer-order approval step: required for cross-site moves or DRAFT→DISPATCH direct? | WS-C1 | Config-flag per deployment, default off | ACCEPTED |
 
