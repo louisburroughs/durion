@@ -1,7 +1,10 @@
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-07-16 (scoped pos-warranty v1 exception, see §Amendments) **Date:** 2026-07-08 (accepted 2026-07-08) **Deciders:** Architecture, Backend
-Lead **Affected Issues:** durion-positivity-backend#823
+**Status:** ACCEPTED — amended 2026-07-22 (pos-warranty settlement sync exception, see
+§Amendments)
+**Date:** 2026-07-08 (accepted 2026-07-08)
+**Deciders:** Architecture, Backend Lead
+**Affected Issues:** durion-positivity-backend#823, #1002
 
 ---
 
@@ -161,9 +164,11 @@ event stream becomes a first-class integration surface (audit, analytics, future
 cost per replica; event contracts become the platform's most rigid API and demand versioning discipline; Kafka becomes tier-1 operational surface (lag, DLQ, partition
 management); one frontend contract change (vehicle writes).
 
-**Explicitly rejected alternatives.** Routing domain events through `pos-event-receiver` (single point of failure, not designed as a broker); keeping sync reads with caching
-(does not remove the runtime dependency or the model leak); synchronous write exceptions (would leave the strongest coupling — accounting↔invoice/workorder — in place
-indefinitely).
+**Explicitly rejected alternatives.** Routing domain events through `pos-event-receiver` (single
+point of failure, not designed as a broker); keeping sync reads with caching (does not remove the
+runtime dependency or the model leak); broad synchronous write exceptions as a general pattern.
+Any domain-to-domain synchronous write exception MUST stay narrow, money-movement-specific, and be
+approved by ADR amendment.
 
 ---
 
@@ -181,6 +186,29 @@ leaves the module only as `warranty.*` domain events (including a full claim sna
   **unchanged**; any other module adding a synchronous domain client, and pos-warranty targeting any other domain module, still fails the build. Widening the map requires a
   further amendment to this ADR.
 - **Evolution.** Migration to event-fed read-only replicas (R3) remains the target pattern for these reads; it MUST accompany any warranty v2.
+
+### 2026-07-22 — Pos-warranty settlement remains synchronous against pos-invoice
+
+Following durion-positivity-backend#924, `pos-warranty` v2 retires its synchronous read clients in
+favor of event-fed `ext_*` replicas for candidate-line search and reference lookups. The final
+exception is narrowed to `pos-invoice` only for settlement execution and authoritative
+reconciliation.
+
+- **Decision.** `InvoiceClient.createAdjustment` and `InvoiceClient.createRefund` remain
+  synchronous calls from `com.positivity.warranty.internal.client` to `pos-invoice`. The matching
+  reconciliation reads, `getInvoiceAdjustments` and `getInvoiceRefunds`, also remain synchronous.
+- **Rationale.** Warranty settlement is a money-moving counter-flow that must fail loudly in the
+  initiating request path. Replacing it with a Kafka command topic would force a pending/confirmation
+  state machine for customer-visible refunds and weaken the current "not refunded unless invoice
+  accepted it" guarantee. The reconciliation reads must check the authoritative invoice state
+  immediately after the write; an event-fed replica can lag and falsely report drift.
+- **Enforcement.** `DomainWallsTest` narrows `SCOPED_MODULE_EXCEPTIONS` to the permanent
+  `pos-warranty` → `pos-invoice` settlement edge only. The exception does not reopen any other
+  synchronous domain reads or writes, and widening it still requires a further amendment to this
+  ADR.
+- **Boundaries.** Warranty settlement requests to `pos-invoice` MUST carry strong idempotency keys
+  so retries remain safe. Result events from `pos-invoice` remain useful for audit, analytics, and
+  downstream consumers, but they are not the settlement authority for warranty.
 
 ---
 
