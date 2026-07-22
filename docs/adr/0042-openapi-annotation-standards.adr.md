@@ -18,7 +18,7 @@ All Durion backend REST APIs MUST follow comprehensive OpenAPI annotation standa
 ## Amendment (2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
 
 - **Scope note:** this ADR covers synchronous REST contracts only. Asynchronous event contracts (topics, envelopes, payloads per ADR-0044 §3) are out of OpenAPI scope; they live as versioned DTOs in the `pos-domain-events` library. AsyncAPI adoption may be proposed as a separate ADR.
-- **Enforcement inventory additions:** `pos-people-contact` (new module) and pos-vehicle-inventory's newly frontend-facing registry write endpoints must join the OpenAPI enforcement waves (mirror this in `durion-positivity-backend/docs/adr-0042-openapi-rollout-baseline.md`).
+- **Enforcement inventory additions:** `pos-people-contact` (new module) and pos-vehicle-inventory's newly frontend-facing registry write endpoints must join the OpenAPI enforcement waves. The live module policy / wave assignment is `durion-positivity-backend/pos-openapi-validation/src/test/resources/openapi/module-inventory.yaml` (enforced by the `pos-openapi-validation` tests); the earlier point-in-time rollout baseline doc has been retired.
 
 ---
 
