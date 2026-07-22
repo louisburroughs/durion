@@ -265,12 +265,34 @@ Headers and auth notes:
 | Reverse/void payment | `reversePayment`, `voidPayment` | POST/POST | `http://localhost:8080/v1/accounting/payments/{paymentId}/...` |
 | View invoice status | `getInvoiceStatus` | GET | `http://localhost:8080/v1/accounting/invoice/{invoiceId}/status` | Payment-status endpoint (`/payments/{paymentId}/status`) is not in OpenAPI — use `getPayment`/`getPaymentByRef` |
 | Credit memo support | `createCreditMemo`, `listCreditMemos`, `getCreditMemo` | POST/GET/GET | `http://localhost:8080/v1/accounting/credit-memos...` |
+| Customer credit balances | `listCustomerCredits`, `getCustomerCredit` | GET/GET | `http://localhost:8080/v1/accounting/customer-credits[/{creditId}]` |
+| Apply customer credit to an invoice | `applyCustomerCredit` | POST | `http://localhost:8080/v1/accounting/customer-credits/{creditId}/applications` |
+| Refund customer credit | `refundCustomerCredit` | POST | `http://localhost:8080/v1/accounting/customer-credits/{creditId}/refunds` |
 
 ### Behavioral Assertions
 
 - AR is reduced only by application records, not raw payment receipt (`AD-002`).
 - Overpayment must create customer credit deterministically (`AD-003`).
 - Apply command must be idempotent and not double-apply (`AD-010`).
+- **Customer-credit lifecycle (issue #992).** Issuance only *recognizes* the Customer Credit
+  Liability (2300); every draw-down must *relieve* it, so a fully-consumed credit nets the control
+  account back to zero:
+  - applying a credit to an invoice posts `Dr Customer Credit Liability (2300) / Cr Accounts
+    Receivable (1200)` for the applied amount;
+  - refunding a credit posts `Dr 2300 / Cr Undeposited Funds (1090)`.
+  Both are enqueued in the same transaction as the draw-down record, are period-gated, and are
+  idempotent on the caller-supplied `requestId` — replaying a `requestId` returns the original
+  draw-down (`replayed: true`) and never relieves the liability twice.
+- A credit may only be drawn down for its **open amount** (`amount − applied − refunded`); an
+  over-draw is `409`. Applying more than the target invoice's balance due, applying to a
+  non-AR-eligible invoice, or applying to another customer's invoice are likewise `409`.
+- The credit's `status` is derived, never client-supplied: `AVAILABLE → PARTIALLY_CONSUMED →
+  CONSUMED`. Concurrent draw-downs are serialized by an optimistic lock so two callers cannot both
+  pass the open-amount check.
+- **Subledger ↔ GL invariant (closes #975 AC-7):** `Σ open customer credits` equals the 2300
+  control-account balance at all times, including after partial applications and refunds.
+- An invoice settled by a customer credit is no longer outstanding: accounting's derived invoice
+  balance subtracts applied credits, so it cannot be paid or credited a second time.
 - Concurrent applications against the same payment are serialized via optimistic locking:
   the backend retries a conflicting apply exactly once with fresh state and full revalidation
   (`AD-010` preserved); a second consecutive conflict returns `409` and the caller should retry.
@@ -280,11 +302,17 @@ Headers and auth notes:
 
 - Payment application UX must show unapplied amount and resulting invoice balances.
 - Reversal actions should require explicit operator confirmation and audit reason.
+- Customer-credit screens should show the credit's **open amount** (not just the issued amount) and
+  its derived status; apply/refund actions must send a caller-generated `requestId` so a retried
+  submit is safely idempotent. Refund is a cash-out action and should require explicit confirmation.
 
 ### ADR Constraints
 
 - `AD-002`, `AD-003`, `AD-010` are mandatory for AR behavior.
-- `AD-013` permission gating applies to apply/reverse endpoints.
+- `AD-013` permission gating applies to apply/reverse endpoints, and to the customer-credit
+  endpoints via `accounting:customer-credit:view|apply|refund`.
+- `AD-011` posting references connect each customer-credit draw-down to the journal entry that
+  relieved it (`gl_journal_entry_id` / `gl_posted_at` on the draw-down row).
 
 ### Events & Dependencies
 
@@ -294,7 +322,10 @@ Headers and auth notes:
 ### Contract Test Traceability
 
 - Provider tests: `InvoicePaymentContractBehaviorIT`, `CreditMemoContractBehaviorIT`
-- Service tests: `PaymentApplicationServiceTest`, `CreditMemoServiceTest`, `InvoicePaymentStatusServiceTest`
+- Service tests: `PaymentApplicationServiceTest`, `CreditMemoServiceTest`, `InvoicePaymentStatusServiceTest`,
+  `CustomerCreditServiceImplTest`
+- Lifecycle ITs (real Postgres): `CustomerCreditIssuanceGLPostingIT` (issuance leg),
+  `CustomerCreditLifecycleGLPostingIT` (application/refund relief, 2300 nets to zero, residual match)
 
 ## CAP-053: Accounts Payable (Bill -> Payment)
 
