@@ -32,6 +32,29 @@ Remaining: Waves 2-5.
 - **Deferred to Phase 2** (issues filed): filing-grade return-package output #998, cash-basis variant #998, amendment/true-up #998, provider-vs-platform variance workflow #998; plus true per-jurisdiction credit attribution #996, credit-lifecycle-beyond-POSTED #997, real CSV/PDF export rendering #999.
 - **Built + merged:** T8 = PR #995 (#966). See `plan-odoo-parity-pos-tax.md` §2 T8 and `plan-odoo-parity-pos-accounting.md` Wave-5 status.
 
+### R-T4 follow-on rulings (2026-07-22)
+
+Recorded while implementing #992 / #996 / #997 (branch `cap/odoo-parity-accounting-followups`):
+
+- **#997 — credit lifecycle beyond POSTED: RESOLVED.** A credit memo counts toward the period it
+  **posted** in, whatever status it currently carries. Posting writes a permanent `Dr 2200`; a later
+  `POSTED → APPLIED` / `→ VOIDED` transition does not remove that entry, so filtering on the current
+  status would drop the credit and surface as GL drift on an otherwise-clean ledger. T8 selects
+  `status <> DRAFT` with the posting timestamp in-period. A void that should reverse the tax must post
+  its own reversing entry, which then nets in the period of the reversal. (`APPLIED`/`VOIDED` are not
+  set anywhere in main code today, so the drift was dormant.)
+- **#996 — per-jurisdiction credit attribution: RESOLVED + BUILT.** Attribution is frozen on the credit
+  memo at creation (`credit_memo_tax`), derived from the invoice's `ext_invoice_tax` breakdown, with a
+  per-jurisdiction residual on the final credit. The read-time pro-rata `TaxCreditAllocator` is demoted
+  to a fallback for pre-migration credits. Unattributable reversals are reported explicitly
+  (`reconciliation.unattributedCredits`) instead of silently inflating drift.
+- **#993 — due-date aging: REQUIRED (build deferred).** `OLDEST_FIRST` should age by invoice **due
+  date**, not issue date: an invoice issued earlier with longer terms is less overdue than a later
+  net-0 invoice. Implementation spans pos-invoice + pos-domain-events + the pos-workorder consumer, so
+  it is scoped to its own change; #993 stays open carrying this ruling.
+- **#998 — filing-grade output: STILL GATED.** No Finance ruling moving Decision A → Decision B exists,
+  so nothing was built. Do not start #998 without that ruling.
+
 ## Net effect on sequencing
 - Wave 2 (T3, T4, T7): UNBLOCKED. T3 = full 5-code enum + expiry.
 - Wave 3 (T5a/b/c): UNBLOCKED. T5b simplified to single additive field on InvoiceUpdatedV1.
