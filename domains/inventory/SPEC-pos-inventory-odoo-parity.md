@@ -368,16 +368,16 @@ landed costs. **Gaps**: G16, G17. **This workstream starts with a cross-domain d
 
 ## 12. Open questions (resolve during planning, before stories are cut)
 
-| #    | Question | Blocking | Default if unanswered |
-| ---- | --- | --- | --- |
-| OQ-1 | UoM conversion factors: does pos-catalog already model purchase-UoM/pack conversions per product, or must that be added catalog-side first? | WS-B | Add to catalog product contract; inventory consumes via replica |
-| OQ-2 | Tracking-level flag (NONE/LOT/SERIAL) ownership — catalog product attribute (recommended) or inventory-side config? | WS-E | Catalog attribute, replicated |
-| OQ-3 | Purchase suggestions: may inventory auto-create DRAFT POs on scan (no human accept step), or is SUGGESTED → human ACCEPT mandatory? | WS-F4 | Human accept mandatory (spend governance) |
-| OQ-4 | Replenishment lead-time source of truth when feed data and policy override conflict | WS-F2 | Policy override wins; feed is fallback |
-| OQ-5 | Product substitution data: replica of catalog substitution groups (ADR-0044-compliant) vs the currently-scaffolded REST client | WS-G2 | Event-fed replica; delete the scaffold client |
-| OQ-6 | J0 valuation ownership (inventory-owned recommended) + v1 costing method (AVCO recommended over FIFO) | WS-J | (a) inventory-owned, AVCO first |
-| OQ-7 | Should expired-lot exclusion from ATP be immediate (computed) or job-driven (eventual, simpler)? | WS-E3 | Job-driven daily + on-read guard for suggestion paths |
-| OQ-8 | Transfer-order approval step: required for cross-site moves or DRAFT→DISPATCH direct? | WS-C1 | Config-flag per deployment, default off |
+| #    | Question | Blocking | Default if unanswered | Response |
+| ---- | --- | --- | --- | ---|
+| OQ-1 | UoM conversion factors: does pos-catalog already model purchase-UoM/pack conversions per product, or must that be added catalog-side first? | WS-B | Add to catalog product contract; inventory consumes via replica | ACCEPTED|
+| OQ-2 | Tracking-level flag (NONE/LOT/SERIAL) ownership — catalog product attribute (recommended) or inventory-side config? | WS-E | Catalog attribute, replicated | ACCEPTED |
+| OQ-3 | Purchase suggestions: may inventory auto-create DRAFT POs on scan (no human accept step), or is SUGGESTED → human ACCEPT mandatory? | WS-F4 | Human accept mandatory (spend governance) | ACCEPTED |
+| OQ-4 | Replenishment lead-time source of truth when feed data and policy override conflict | WS-F2 | Policy override wins; feed is fallback | ACCEPTED |
+| OQ-5 | Product substitution data: replica of catalog substitution groups (ADR-0044-compliant) vs the currently-scaffolded REST client | WS-G2 | Event-fed replica; delete the scaffold client | ACCEPTED |
+| OQ-6 | J0 valuation ownership (inventory-owned recommended) + v1 costing method (AVCO recommended over FIFO) | WS-J | (a) inventory-owned, AVCO first | Can we make this a configuration? |
+| OQ-7 | Should expired-lot exclusion from ATP be immediate (computed) or job-driven (eventual, simpler)? | WS-E3 | Job-driven daily + on-read guard for suggestion paths | ACCEPTED |
+| OQ-8 | Transfer-order approval step: required for cross-site moves or DRAFT→DISPATCH direct? | WS-C1 | Config-flag per deployment, default off | ACCEPTED |
 
 ---
 
