@@ -246,6 +246,29 @@ Status — Wave 2 (A2 #1028 · A3 #1029 · D1 #1030 · I1 #1031 · K3 #1032 · B
   allocation ledger keying confirmed as `sourceTransactionId = allocationId`, both event types positive-quantity; both invariants set-based in SQL (Wave-1 lesson).
 - Permissions added: `inventory:scrap:{create,view,approve}` (+ back-registered `inventory:adjustment:override`); taxonomy updated.
 
+Wave 2 merged 2026-07-23 via backend PR #1058 (merge 579bd4a; remediation en route: permission-catalog sync to v30 + pinned-test updates, forecast bin→site scoping fix,
+ADR-0024 conformance on `ExtProductReplica`). Issues #1028–#1033 closed. **ADR-0048 ACCEPTED by owner 2026-07-23 — J0 complete (durion#365 closed); J1 (#1048) ungated.**
+
+Status — Wave 3 (B2 #1034 · C1 #1035 · C2 #1036 · H1 #1037 · E1 #1038): implemented 2026-07-23 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(commits 158d5c2 B2, b48db4f C1, 177ba5c C2, c83d431 H1, 1f911ae E1). Notes:
+
+- **B2**: document-UoM conversion at PO/ASN/receiving/return boundaries; `unitCostMinor` stays the DOCUMENT-unit cost (money math unchanged; base quantity flows through
+  open-balance/ledger math); funnel validates ledger `unitOfMeasure` only where the catalog replica can answer (legacy SKUs/pre-v2 facts pass through); PO-receive endpoint
+  converts but persists no metadata (it creates no receipt-line entity); cross-dock untouched.
+- **C1/C2**: TransferOrder lifecycle with config-flagged approval (`pos.inventory.transfer.approval-required`, default off per D-8); all five `inventory:transfer:*`
+  permissions registered up front (catalog v31, bits 397–401; short_close pre-registered for C3). **In-transit is ledger-shape-derived**: TRANSFER_OUT with a
+  `toLocationId` contributes in-transit at the destination key, TRANSFER_IN cancels it — intra-site pairs self-cancel in-transaction, so `in_transit_qty` is fully
+  reconstructable and the drift verifier/rebuild cover it with no exemptions. Conservation invariant proven across dispatch → partial receive → final receive. Destination
+  `incomingQty` includes in-transit under any horizon; cross-site `/stock-movements` TRANSFER → 422 `CROSS_SITE_TRANSFER_REQUIRES_ORDER`.
+- **H1**: sourcing engine (FIFO / PROXIMITY BFS-hop / HIGHEST_STOCK; FEFO registered, delegates to FIFO until a `LotExpiryProvider` exists — E3); resolution
+  SKU-category → site → default with category currently unresolvable (`ext_product` carries no category — provider SPI ready); consumption ordering regression-identical
+  under default FIFO; **pick-list generation was an unwired scaffold and is now a real implementation** using engine suggestions; `sourcing_reason` column added to pick
+  tasks (spec H2 assumed it existed — it did not); F5-ready `selectSource(candidates, neededQty)` API shipped.
+- **E1**: lot master + inbound capture with **dual-row summary bookkeeping** — lot-tagged postings update both the lot-agnostic row (all pre-E1 readers pinned to
+  `lot_id IS NULL`, byte-identical behavior) and a per-lot row; drift/rebuild reconstruct both from the ledger. Tracking gate from the B1 replica (non-UUID/no-replica ⇒
+  NONE; SERIAL treated as NONE until E4). PO-receive gates + registers lots but stamps no ledger rows (that path posts none); cross-dock deliberately not lot-gated until
+  E2 (would strand phantom per-lot on-hand). Per-lot uniqueness relies on Postgres `NULLS NOT DISTINCT` (H2 tests use an in-JVM serialization guard).
+
 ---
 
 ## 4. Cross-domain coordination summary
