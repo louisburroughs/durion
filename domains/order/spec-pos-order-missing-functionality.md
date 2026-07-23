@@ -1,6 +1,6 @@
 # Specification — Functionality Missing from pos-order (Odoo POS Parity, Repair-Shop Scope)
 
-> Status: DRAFT for planning · Created 2026-07-23 · Branch: `claude/odoo-pos-comparison-nru5g0`
+> Status: DRAFT for planning (open questions Q1–Q9 resolved 2026-07-23, see §15) · Created 2026-07-23 · Branch: `claude/odoo-pos-comparison-nru5g0`
 >
 > Purpose: the definitive gap specification for `durion-positivity-backend/pos-order`, derived from the Odoo 19 Point of Sale comparison. This document is the input to a
 > parity plan (companion to `plan-odoo-parity-pos-accounting.md` in the accounting domain). It specifies **what** is missing and **where it should live**; the plan will
@@ -50,9 +50,9 @@ required before planning · **NON-GOAL** = deliberately not built; record and mo
 | G2 | No tax, no grand total — `subtotal` is the only money field | `SalesOrder.subtotal`; `recalculateSubtotal` = Σ(unitPrice×qty); pos-tax never called | BUILD + WIRE | §3 |
 | G3 | Pricing is a stub — every SKU costs $10.00 | `DefaultPricingPortAdapter` (canned $10, `stale=true`); pos-price `PriceQuoteService` unwired | WIRE | §3 |
 | G4 | No payment handshake — single unused `paymentId` column | `SalesOrder.paymentId`; `DefaultBillingPortAdapter` stub; real machinery in pos-invoice | WIRE + BUILD | §4 |
-| G5 | No returns/refunds model | Nothing in pos-order; pos-invoice `RefundRecord` and pos-inventory `ReturnController` exist but nothing links a return to original sale lines with qty caps | BUILD + [...] |
+| G5 | No returns/refunds model | Nothing in pos-order; pos-invoice `RefundRecord` and pos-inventory `ReturnController` exist but nothing links a return to original sale lines with qty caps | BUILD + WIRE | §5 |
 | G6 | No register session / cash-drawer management anywhere in the platform | `terminalId`/`clerkId` opaque strings; no session entity in any module | BUILD, new sub-domain | §6 |
-| G7 | Source-document settlement unimplemented | `DefaultSourceDocumentPortAdapter.fetchLines` returns empty list; no finalize-back to workorder; two unreconciled quote-to-cash paths | WIRE + DECIDE [...] |
+| G7 | Source-document settlement unimplemented | `DefaultSourceDocumentPortAdapter.fetchLines` returns empty list; no finalize-back to workorder; two unreconciled quote-to-cash paths | WIRE + DECIDE (R7.2 path ratification) | §7 |
 | G8 | No human-facing order/receipt numbering | UUIDv7 only | BUILD | §2.4 |
 | G9 | No counter-sale inventory decrement | `DefaultInventoryPortAdapter` always "available"; no stock movement on completion | WIRE | §8 |
 | G10 | No idempotent intake for cart create/mutation | Idempotency only on cancel + overrides; replayed cart-create duplicates the cart | BUILD | §9 |
@@ -93,7 +93,9 @@ Requirements:
 - R2.2 `COMPLETED` is set only by the payment-settlement confirmation (§4.3) when amount paid covers the grand total — the Durion analog of `action_pos_order_paid`'s
   `float_is_zero(total − amount_paid)` check. Tolerance: exact to the cent (no cash-rounding tolerance; see §14).
 - R2.3 `QUOTED`: `POST /v1/orders/{orderId}/quote` converts a cart to a priced, held quote (persists the pricing snapshot reference, sets an expiry). A quote can be
-  re-opened to DRAFT (repricing on reopen) or confirmed. Decide in planning whether QUOTED duplicates pos-workorder's Estimate enough to drop it — see Open Question Q3.
+  re-opened to DRAFT (repricing on reopen) or confirmed. Resolved (Q3): `QUOTED` stays, scoped narrowly to counter-sale/parts quotes with no workorder; pos-workorder
+  Estimates remain the sole quote mechanism for repair work. Using `QUOTED` as a shadow estimate for workorder scenarios is prohibited — enforce by rejecting the quote
+  transition on orders with a `WORKORDER` source link.
 - R2.4 `VOIDED`: `POST /v1/orders/{orderId}/void` — abandonment of a checkout that never settled (payment failed/abandoned). Requires `order:order:void`. Distinct from the
   cancellation saga, which handles workorder/payment unwinding; void must be rejected if any settled payment exists (else caller must use cancel).
 - R2.5 Mutation guards: all cart-mutation endpoints (add/update/remove item, link source, price override apply) return `409` unless status is `DRAFT` (overrides: `DRAFT` or
@@ -160,8 +162,9 @@ and **persists the results**; it performs no price/tax math of its own beyond su
 ### 3.4 Discounts and promotions
 
 - R3.9 Keep `PriceOverride` as the manual-discount governance mechanism (it exceeds Odoo's `restrict_price_control`). Fix: set `appliedAt` when the override price lands on
-  the line; emit the commission event that is currently a `COMMISSION_EVENT_TODO` log line (target: pos-people/commission consumer via §12 events — confirm consumer in
-  planning).
+  the line; emit the commission event that is currently a `COMMISSION_EVENT_TODO` log line. Resolved (Q7): the event is an order-domain event addressed to the commission
+  domain (likely pos-people — planning verifies ownership; the contract must not hardcode a module name). Payload contract: explicit `affectsCommission` boolean, discount
+  delta amount, order/line identifiers, approver identity, and effective timestamp — downstream commission logic must never infer impact from raw price changes.
 - R3.10 Order-level percentage/amount discount (Odoo `pos_discount` analog): implement as a first-class `orderDiscount` (percent or amount, reason code, permission
   `order:order:discount`), applied pro-rata across lines for tax correctness — NOT as a negative synthetic line (Odoo's discount-product trick is an artifact of its data
   model; a pro-rata field is cleaner and pos-tax needs per-line taxable amounts).
@@ -185,11 +188,15 @@ pos-order checkout (R2.1)
                      └─▶ paid-in-full ⇒ order → COMPLETED (R2.2); receipt issued by pos-invoice
 ```
 
-- R4.1 New `InvoicingPort` (replaces the reversal-only `BillingPort` or extends it): `createInvoiceForOrder(order)` → `{invoiceId}`, idempotent per orderId. pos-invoice
-  needs a counter-sale invoice creation API (it currently invoices from workorder completion) — cross-module requirement to flag in the plan.
+- R4.1 New `InvoicingPort` (replaces the reversal-only `BillingPort` or extends it): `createInvoiceForOrder(order)` → `{invoiceId}`, idempotent per orderId. Resolved (Q1):
+  pos-invoice adds a **new** counter-sale invoice creation endpoint, reusing its lower-level invoice-assembly primitives where reuse is real, but the workorder-oriented
+  `InvoiceFinalizationService` is NOT generalized — that would blur authority and pull workorder assumptions into the counter-sale flow. pos-invoice owns the API shape and
+  invoice lifecycle semantics; pos-order carries a paired dependency story for the `InvoicingPort` adapter and checkout handshake.
 - R4.2 New `OrderPaymentRecord` entity in pos-order (read-model, not authority): paymentId, method type (CASH / CARD / ON_ACCOUNT / OTHER), amount, settledAt, reference.
-  Populated from pos-invoice payment events (§12 consume) or synchronous confirmation callback. Replaces the single `SalesOrder.paymentId` column (keep the column during
-  migration for the cancellation saga, then migrate the saga to the records).
+  Resolved (Q2): populated from pos-invoice Kafka settlement events (outbox/`ProcessedEvent` rails, §12) as the system contract — checkout stays synchronous only for
+  invoice creation; do not design around a synchronous confirmation callback as the primary path. Whether pos-invoice publishes settled/reversed events today is an
+  explicit planning dependency (V1); if a gap is found, a callback may exist only as a temporary compatibility bridge. Replaces the single `SalesOrder.paymentId` column
+  (keep the column during migration for the cancellation saga, then migrate the saga to the records).
 - R4.3 `amountPaid` = Σ settled payment records; `balanceDue = grandTotal − amountPaid`. Transition to COMPLETED exactly when `balanceDue == 0` and status is
   `PENDING_PAYMENT` (R2.2). Overpayment: reject at pos-invoice (authority); pos-order treats `amountPaid > grandTotal` as an integrity alert event, never silently.
 - R4.4 Split/multi-tender: naturally supported by N payment records; no change math in pos-order (cash drawer/change is a register concern — §6; pos-invoice records the
@@ -215,19 +222,22 @@ order per return.
 - R5.3 Orchestration on return completion: (a) pos-invoice refund/credit (`StandaloneRefundController` / credit memo path — confirm API in planning), (b) pos-inventory
   return receipt (`ReturnController`) for RESTOCK-condition lines, (c) events (§12). Follow the cancellation saga's persisted-state pattern for the multi-service flow
   (states: `RETURN_REQUESTED → REFUND_ISSUED → STOCK_RETURNED → COMPLETED`, with failure states and retry, mirroring DECISION-ORDER-003 semantics).
-- R5.4 Workorder-sourced lines: returning a part consumed by a workorder is a workorder/warranty concern (pos-warranty exists) — pos-order returns apply only to
-  counter-sale lines and workorder-settled lines explicitly flagged returnable. Coordinate with the Workorder Execution domain in planning.
+- R5.4 Workorder-sourced lines — resolved (Q6): pos-order owns returns only for counter-sale lines and for workorder-settled lines explicitly marked returnable at
+  settlement time; warranty/remediation returns for parts already consumed in execution belong to pos-warranty / workorder flows (sale-document reversal vs
+  service-remediation policy). Imported workorder-backed lines therefore carry an explicit `returnable` flag from the source document (R7.1) — behavior is never inferred.
 - R5.5 Permissions: `order:return:create`, `order:return:approve` (approval above threshold, reusing the PriceOverride approval pattern and `ApprovalRecord`).
 
 ---
 
-## 6. Register sessions & cash management (G6) — platform capability decision
+## 6. Register sessions & cash management (G6) — ratified: pos-order sub-domain
 
 Odoo: `pos.session` is the drawer-accountability and accounting boundary (opening float, counted close, over/short, cash in/out, one open session per register). Durion has
 **nothing** — in any module. This is the largest wholly-missing capability and it is bigger than pos-order alone.
 
-Recommendation (to ratify in planning): a `RegisterSession` sub-domain **inside pos-order** (not pos-shop-manager, which is scheduling-centric; not a new microservice yet —
-per pre-production policy, avoid premature service proliferation). GL effects flow to pos-accounting via events, matching its posting-rules design.
+Decision (ratified, Q4): a `RegisterSession` sub-domain **inside pos-order** — the capability is operationally coupled to checkout, tender state, cash movements, and order
+completion, not bay scheduling. pos-shop-manager may later consume session facts for clerk-shift visibility but does not own drawer-accountability semantics; a separate
+module is premature (pre-production policy) unless multiple bounded contexts later need to mutate register sessions directly. GL effects flow to pos-accounting via events,
+matching its posting-rules design.
 
 - R6.1 Entities: `RegisterSession` (terminalId, locationId, openedByClerkId, status `OPEN → CLOSING → CLOSED`, openingFloat, countedClosingCash, theoreticalClosingCash,
   overShortAmount, openedAt/closedAt) and `CashMovement` (session, type `PAID_IN | PAID_OUT`, amount, reason, clerkId — permission-gated, Odoo `try_cash_in_out` analog).
@@ -260,9 +270,11 @@ The repair-shop core path; Odoo analog is `pos_sale`/`pos_repair` settlement. Th
   already-invoiced workorder returns the existing invoice for tender instead of a duplicate.
 - R7.3 Finalize-back: on order COMPLETED with a workorder source, emit `order.completed` with workorderId + settlement summary; pos-workorder consumes it to mark the
   workorder settled/closed (its own state machine's concern). No synchronous write into pos-workorder.
-- R7.4 Deposits/down payments (Odoo `down_payment_product_id` analog, DECIDE): support taking a deposit against an estimate/workorder before work: a `DEPOSIT`-type order
-  line (no inventory, no source line) tendered normally; the deposit amount rides the `order.completed` event and the invoice, and pos-invoice applies it as a credit when
-  the final settlement invoice is created. Requires pos-invoice cooperation — flag as a cross-module workstream in the plan.
+- R7.4 Deposits/down payments (Odoo `down_payment_product_id` analog, BUILD): support taking a deposit against an estimate/workorder before work: a `DEPOSIT`-type order
+  line (no inventory, no source line) tendered normally; the deposit amount rides the `order.completed` event and the invoice. Resolved (Q5): on the pos-invoice side,
+  deposits are a dedicated invoice-level credit-application concept — a deposit must stay traceable as a liability/credit artifact carrying source identity, remaining
+  balance, and application auditability until applied to the final settlement invoice. `InvoiceAdjustment` may serve as the implementation primitive only if planning
+  verifies it preserves that provenance (V2); do not assume it. Cross-module workstream with pos-invoice.
 - R7.5 Double-stock protection (the `pos_repair` rule): lines with `sourceType=WORKORDER` never trigger pos-order-side inventory movements (§8) — parts consumption was
   already recorded by pos-workorder/pos-inventory pick flows. Encode as a hard rule in the fulfillment dispatcher.
 
@@ -297,8 +309,10 @@ Odoo reference: client uuid identity with CREATE→UPDATE rewrite. Durion equiva
 
 ## 11. Customer & vehicle integration (G12)
 
-- R11.1 Convert `customerId`/`vehicleId` to UUID-typed references validated against pos-customer at assignment (existence check via REST; tolerate CRM downtime with a
-  `VALIDATION_PENDING` flag rather than blocking cart work — decide strictness in planning).
+- R11.1 Convert `customerId`/`vehicleId` to UUID-typed references validated against pos-customer at assignment (existence check via REST). Resolved (Q8): under CRM
+  outage, cart creation and mutation proceed with a `VALIDATION_PENDING` flag, but any financially consequential transition requiring a validated customer — on-account
+  tender, business invoicing, store-credit return, workorder-linked settlement where identity is contractually required — hard-blocks until validation succeeds. Pending
+  identity state must never reach a COMPLETED financial record.
 - R11.2 Required-customer policy (Odoo: invoice/pay-later/ship-later force a partner): customer required for — on-account tender (R4.5), returns refunded to store credit,
   workorder-linked orders (already enforced), and any order the customer wants invoiced to a business account. Anonymous walk-in cash sales stay customer-optional.
 - R11.3 Vehicle stays optional on counter sales; when present, ride it on `order.completed` so CRM service history (pos-customer `CrmVehicles`) reflects counter purchases.
@@ -307,10 +321,12 @@ Odoo reference: client uuid identity with CREATE→UPDATE rewrite. Durion equiva
 
 pos-order currently has zero Kafka integration; siblings use outbox + `ProcessedEvent`. Adopt the same rails (per ADR-0044-style event walls used in the accounting plan):
 
-- R12.1 Outbox-published events on `order.events.v1`: `order.completed` (the load-bearing contract: order header, lines with pricing/tax/promotion snapshot ids, tender
-  summary, workorderId?, sessionId?, serials, customer/vehicle), `order.cancelled`, `order.returned`, `register-session.closed` (§6.4). Consumers: pos-invoice (already has
-  its own flow — consumes for reconciliation), pos-inventory (R8.2), pos-accounting (posting rules), pos-customer (promotion redemption R3.11, vehicle history R11.3),
-  pos-people/commission (R3.9).
+- R12.1 Outbox-published events on `order.events.v1`: `order.completed` (the load-bearing contract), `order.cancelled`, `order.returned`, `register-session.closed` (§6.4).
+  Resolved (Q9): `order.completed` is a rich integration event sized for downstream autonomy with a compact canonical payload — identifiers, line items with monetary
+  totals and pricing/tax/promotion snapshot references, tender summary, fulfillment metadata, `workorderId?`/`sessionId?`, serials, and customer/vehicle **by ID only** (no
+  embedded PII). Consumers — pos-inventory (R8.2), pos-accounting (posting rules), pos-customer (promotion redemption R3.11, vehicle history R11.3), the commission domain
+  (R3.9), pos-invoice (reconciliation) — must not need synchronous re-fetch for core processing. If payload size ever becomes a real transport concern, fall back to a
+  summary event plus a versioned read-model endpoint; fetch-by-orderId is never the default integration contract.
 - R12.2 Consumed events (with `ProcessedEvent` dedup): pos-invoice payment settled/reversed (R4.2), invoice finalized (R7.2 reconciliation).
 - R12.3 Keep `@EmitEvent` audit emissions on all new endpoints with `EventTypes` registry entries (platform requirement).
 
@@ -339,7 +355,7 @@ Confirmed against repair-shop scope and platform boundaries:
 - **Odoo-style consolidated session journal entry** — pos-accounting stays per-order + session-variance events (R6.4).
 - **Margin/cost on the order** — cost analytics belong to reporting over pos-catalog cost data; do not denormalize cost onto sale lines now.
 
-## 15. Open questions (resolve before or during planning)
+## 15. Open questions — RESOLVED 2026-07-23 (answers below; propagated into §§2–12)
 
 | # | Question | Blocks | Response |
 | --- | --- | --- | --- |
@@ -352,6 +368,19 @@ Confirmed against repair-shop scope and platform boundaries:
 | Q7 | Commission event consumer (pos-people?) and contract for `affectsCommission` overrides. | R3.9 | Use an order-domain event as the source, with the primary consumer assumed to be the people/commission capability if that bounded context exists; however, the spec should frame the consumer as "commission domain" rather than hardcoding a module name until planning verifies ownership. Contract-wise, `affectsCommission` should be an explicit boolean on the override/audit payload plus the delta amount, order/line identifiers, approver identity, and effective timestamp so downstream commission logic does not infer impact from raw price changes. |
 | Q8 | Strictness of customer validation under CRM outage (block vs `VALIDATION_PENDING`). | R11.1 | Use `VALIDATION_PENDING` for draft/cart work, but enforce hard validation before any irreversible or financially consequential transition. Concretely: cart creation and mutation may proceed with pending validation, but checkout paths that require a validated customer — on-account tender, business invoicing, store-credit return, workorder-linked settlement if customer identity is required by contract — must block until validation succeeds. This preserves counter workflow resilience without letting bad identity state leak into completed financial records. |
 | Q9 | Does `order.completed` carrying full line detail violate any event-size/PII policy, or should consumers re-fetch by orderId? | §12 | Keep `order.completed` as a rich integration event, but limit it to the line/header fields required for downstream autonomy and exclude unnecessary PII. Consumers such as inventory, accounting, promotions, and commission should not be forced into synchronous re-fetches for core processing. Planning should define a compact canonical payload: identifiers, monetary totals, promotion/tax snapshot references, fulfillment metadata, and minimal customer/vehicle references by ID only. If payload size becomes a real transport concern, use a summary event plus a versioned read model endpoint, but do not start with fetch-by-orderId as the default integration contract. |
+
+### Residual verification items for planning (verify, don't re-decide)
+
+Extracted from the answers above — each is a fact-check or ownership confirmation, not a reopened decision:
+
+- **V1 (from Q2)** — confirm whether pos-invoice already publishes payment settled/reversed Kafka events; if not, add that pos-invoice story as a hard dependency before
+  the checkout handshake (§4) ships.
+- **V2 (from Q5)** — verify whether `InvoiceAdjustment` preserves deposit source identity, remaining balance, and application auditability; if not, pos-invoice models a
+  dedicated deposit-credit artifact (R7.4).
+- **V3 (from Q7)** — confirm which module owns commission processing (likely pos-people) and register it as the consumer of the override-commission event contract (R3.9).
+- **V4 (R7.2, still open)** — the one G7 decision this Q&A round did not close: ratify the settlement-path rule that pos-order fronts all counter tender and pos-invoice
+  dedupes invoices by workorderId. Q1's ownership split is consistent with it, but the rule itself still needs explicit sign-off from the Workorder Execution and
+  Invoicing domains.
 
 ---
 
