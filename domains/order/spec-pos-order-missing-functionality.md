@@ -51,7 +51,7 @@ required before planning · **NON-GOAL** = deliberately not built; record and mo
 | G3 | Pricing is a stub — every SKU costs $10.00 | `DefaultPricingPortAdapter` (canned $10, `stale=true`); pos-price `PriceQuoteService` unwired | WIRE | §3 |
 | G4 | No payment handshake — single unused `paymentId` column | `SalesOrder.paymentId`; `DefaultBillingPortAdapter` stub; real machinery in pos-invoice | WIRE + BUILD | §4 |
 | G5 | No returns/refunds model | Nothing in pos-order; pos-invoice `RefundRecord` and pos-inventory `ReturnController` exist but nothing links a return to original sale lines with qty caps | BUILD + WIRE | §5 |
-| G6 | No register session / cash-drawer management anywhere in the platform | `terminalId`/`clerkId` opaque strings; no session entity in any module | DECIDE (recommend BUILD, new sub-domain) | §6 |
+| G6 | No register session / cash-drawer management anywhere in the platform | `terminalId`/`clerkId` opaque strings; no session entity in any module | BUILD, new sub-domain | §6 |
 | G7 | Source-document settlement unimplemented | `DefaultSourceDocumentPortAdapter.fetchLines` returns empty list; no finalize-back to workorder; two unreconciled quote-to-cash paths | WIRE + DECIDE | §7 |
 | G8 | No human-facing order/receipt numbering | UUIDv7 only | BUILD | §2.4 |
 | G9 | No counter-sale inventory decrement | `DefaultInventoryPortAdapter` always "available"; no stock movement on completion | WIRE | §8 |
@@ -60,7 +60,7 @@ required before planning · **NON-GOAL** = deliberately not built; record and mo
 | G12 | Customer/vehicle are unvalidated strings; no required-customer policy | `SalesOrder.customerId`/`vehicleId` (String, nullable) | WIRE | §11 |
 | G13 | Promotions/loyalty never applied or recorded on the cart | pos-price `PromotionOffer` + pos-customer `PromotionRedemption` unwired | WIRE | §3.4 |
 | G14 | No order-domain events for downstream consumers (Kafka/outbox) | No `@KafkaListener`/`KafkaTemplate`/outbox in pos-order | BUILD | §12 |
-| G15 | No deposits/down payments on orders sourced from estimates/workorders | Nothing platform-wide | DECIDE | §7.4 |
+| G15 | No deposits/down payments on orders sourced from estimates/workorders | Nothing platform-wide | BUILD | §7.4 |
 | G16 | No optimistic locking, no completion edit-guard | No `@Version` on `SalesOrder`; guards only in cancellation service | BUILD | §2.3 |
 | G17 | Draft parking exists implicitly but has no retrieval/naming surface | Only `GET /carts/{orderId}` by id | BUILD (small) | §2.5 |
 | G18 | Cart CRUD endpoints lack fine-grained authorities | `SalesOrderController` = `isAuthenticated()` only | BUILD (small) | §13 |
@@ -89,7 +89,7 @@ Requirements:
 
 - R2.1 `POST /v1/orders/{orderId}/checkout` (new): validates the cart (≥1 line, customer policy §11, availability re-check §8), triggers the final price/tax recompute (§3),
   freezes lines (no further mutation), transitions `DRAFT|QUOTED → PENDING_PAYMENT`, and initiates settlement (§4). Returns the priced order + settlement reference.
-  `202`-style async is not required; checkout is synchronous, settlement completion is async.
+  `202`-style async is not required; checkout is synchronous, and settlement completion is async.
 - R2.2 `COMPLETED` is set only by the payment-settlement confirmation (§4.3) when amount paid covers the grand total — the Durion analog of `action_pos_order_paid`'s
   `float_is_zero(total − amount_paid)` check. Tolerance: exact to the cent (no cash-rounding tolerance; see §14).
 - R2.3 `QUOTED`: `POST /v1/orders/{orderId}/quote` converts a cart to a priced, held quote (persists the pricing snapshot reference, sets an expiry). A quote can be
@@ -341,17 +341,17 @@ Confirmed against repair-shop scope and platform boundaries:
 
 ## 15. Open questions (resolve before or during planning)
 
-| # | Question | Blocks |
-| --- | --- | --- |
-| Q1 | Counter-sale invoice API in pos-invoice: new endpoint, or generalize `InvoiceFinalizationService`? Who owns the story? | §4, §7.2 |
-| Q2 | Payment-settled signal: consume pos-invoice Kafka events (preferred, matches rails) or synchronous confirmation callback? Does pos-invoice publish settlement events today? | §4.2, R12.2 |
-| Q3 | Is `QUOTED` worth keeping given pos-workorder Estimates? (Counter-quote for parts without a vehicle/workorder is the remaining use case.) | §2.1 R2.3 |
-| Q4 | RegisterSession placement ratification (pos-order sub-domain vs pos-shop-manager vs new module) and whether shop-manager needs session awareness (clerk shift ↔ schedule). | §6 |
-| Q5 | Deposit application mechanics in pos-invoice (credit on final invoice) — does `InvoiceAdjustment` cover it? | §7.4 |
-| Q6 | Returns of workorder-consumed parts: pos-warranty vs pos-order return-order boundary. | §5.4 |
-| Q7 | Commission event consumer (pos-people?) and contract for `affectsCommission` overrides. | R3.9 |
-| Q8 | Strictness of customer validation under CRM outage (block vs `VALIDATION_PENDING`). | R11.1 |
-| Q9 | Does `order.completed` carrying full line detail violate any event-size/PII policy, or should consumers re-fetch by orderId? | §12 |
+| # | Question | Blocks | Response |
+| --- | --- | --- | --- |
+| Q1 | Counter-sale invoice API in pos-invoice: new endpoint, or generalize `InvoiceFinalizationService`? Who owns the story? | §4, §7.2 ||
+| Q2 | Payment-settled signal: consume pos-invoice Kafka events (preferred, matches rails) or synchronous confirmation callback? Does pos-invoice publish settlement events today? | §4.2, R12.2 ||
+| Q3 | Is `QUOTED` worth keeping given pos-workorder Estimates? (Counter-quote for parts without a vehicle/workorder is the remaining use case.) | §2.1 R2.3 ||
+| Q4 | RegisterSession placement ratification (pos-order sub-domain vs pos-shop-manager vs new module) and whether shop-manager needs session awareness (clerk shift ↔ schedule). | §6 ||
+| Q5 | Deposit application mechanics in pos-invoice (credit on final invoice) — does `InvoiceAdjustment` cover it? | §7.4 ||
+| Q6 | Returns of workorder-consumed parts: pos-warranty vs pos-order return-order boundary. | §5.4 ||
+| Q7 | Commission event consumer (pos-people?) and contract for `affectsCommission` overrides. | R3.9 ||
+| Q8 | Strictness of customer validation under CRM outage (block vs `VALIDATION_PENDING`). | R11.1 ||
+| Q9 | Does `order.completed` carrying full line detail violate any event-size/PII policy, or should consumers re-fetch by orderId? | §12 ||
 
 ---
 
