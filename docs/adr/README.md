@@ -111,6 +111,8 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0044   | Event-Only Domain Walls and Module Communication Policy | ACCEPTED              | 2026-07-08 |
 | 0045   | Autonomous Environment Lifecycle Management            | ACCEPTED              | 2026-07-10 |
 | 0046   | Environment Log Level Policy                           | PROPOSED              | 2026-07-12 |
+| 0047   | Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals | ACCEPTED | 2026-07-17 |
+| 0048   | Inventory-Owned Valuation with Configurable Costing Method | ACCEPTED | 2026-07-23 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -164,6 +166,8 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0044 | Cross-module communication: domain↔domain must be Kafka events (read replicas + command events); synchronous REST only toward utility modules (gateway, security, documents, image, tax, event-receiver, price); outbox/idempotency/backfill/reconciliation requirements; ArchUnit wall enforcement | Planner, Coder, Test, Orchestrator |
 | 0045 | Tenant-cell operations automation: off-peak grooming, metric-driven right-sizing, cache warm-up, ramp SLO, autonomy/rollback contract, after-action reporting | Planner, Coder, Test, Orchestrator |
 | 0046 | Log level changes in any `application-{profile}.yml`, adding/removing logger overrides, temporary troubleshooting verbosity in deployed environments (alpha WARN; indus/prod ERROR; prod INFO+ needs Tech Lead signoff) | Planner, Coder, Orchestrator |
+| 0047 | Accounting parity decisions about ledger tamper-evidence non-goals and fiscal-position non-goals, including revisit triggers and accounting-scope guardrails | Planner, Coder, Test, Orchestrator |
+| 0048 | Inventory valuation ownership, cost-bearing inventory facts, costing-method configurability, and the J1/K1 boundary between inventory valuation and accounting posting | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 
