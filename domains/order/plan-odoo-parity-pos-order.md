@@ -1,4 +1,4 @@
-# Odoo Parity Plan — pos-order
+## Odoo Parity Plan — pos-order
 
 > Status: ACCEPTED · Created 2026-07-23 · Branch: `claude/odoo-pos-comparison-nru5g0`
 >
