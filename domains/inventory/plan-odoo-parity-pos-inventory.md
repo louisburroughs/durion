@@ -269,6 +269,32 @@ Status — Wave 3 (B2 #1034 · C1 #1035 · C2 #1036 · H1 #1037 · E1 #1038): im
   NONE; SERIAL treated as NONE until E4). PO-receive gates + registers lots but stamps no ledger rows (that path posts none); cross-dock deliberately not lot-gated until
   E2 (would strand phantom per-lot on-hand). Per-lot uniqueness relies on Postgres `NULLS NOT DISTINCT` (H2 tests use an in-JVM serialization guard).
 
+Wave 3 merged 2026-07-23 via backend PR #1088 (merge 82a2b99; Copilot remediation fac05e3-analog in 3abec5e: REQUIRES_NEW lot-creation race fix, lot-GET @EmitEvents,
+FEFO javadoc corrections). Issues #1034–#1038 closed.
+
+Status — Wave 4 (C3 #1039 · F2 #1040 · F3 #1041 · E2 #1042 · D2 #1043): implemented 2026-07-23 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(commits c3234ea C3, c7ce9fa F2, 079950d F3, ead7c7e E2, 1e51fcd D2). Notes:
+
+- **C3**: short-close dispositions LOST_IN_TRANSIT / RETURNED_TO_SOURCE resolve via constructive TRANSFER_IN pairings that zero in-transit through the EXISTING
+  reconstruction rules (zero drift-SQL changes); LOST posts destination-keyed SCRAP_OUT (reason LOST, latest-receipt cost) with NO ScrapRecord and NO ScrapPostedV1 —
+  the `TransferOrderUpdatedV1` fact carries the disposition instead (protects D2's document assumption); whole-order single disposition v1; approval event preset.
+- **F2**: Odoo orderpoint math in both scan and event paths — trigger `projectedAvailable(leadHorizon) < min`, replenish-to-max with in-progress netting;
+  `LeadTimeResolver` feed(MAX-day, conservative)→default with the D-4 override seam; bin→site extraction (`ForecastSiteResolver`) shared with availability.
+  **Finding: the event-path evaluation had NO math at all pre-F2** (never created tasks); it now runs the shared evaluation. `findLeadTime` (Optional) added to the
+  lead-time service interface — the throwing variant marked scan transactions rollback-only through its proxy.
+- **F3**: policy `orderMultiple` (creation-time seed from newest feed `packSize` > 1), `leadTimeDaysOverride` (D-4 chain complete), `snoozedUntil`/`active` scan gates,
+  `preferredSourceType` stored for F5; task `deadlineDate` via change-point evaluation of the bounded forecast; `GET /replenishment/needs` (side-effect-free) +
+  minimal policy PUT (policies were create-only); snooze-with-null clears.
+- **E2**: all six outbound flows lot-aware (pick/consumption/returns/transfers incl. C3 shapes/scrap/cross-dock); **picks post nothing — consumption is the first
+  posting** (verified), so confirm pins `pickedLotId` on the task and consumption stamps it; per-lot floor in the funnel (absolute, batch-order-aware projection);
+  per-lot conservation across sites drift-clean + rebuild-identical; CONSUMED↔ACTIVE reconciler counts on-hand + in-transit; FIFO lot suggestion by receivedAt
+  (FEFO upgrades automatically via the SPI in E3); returns may target CONSUMED lots (reactivate) and land on QUARANTINED/RECALLED balances without lifting blocks.
+- **D2**: pos-accounting `InventoryEventsListener` (none existed — GRNI/encumbrance consumers were never built, contrary to earlier survey assumptions) modeled on the
+  settlement listener; balanced JE Dr **5100 Inventory Shrinkage** / Cr **1300 Inventory** (both newly seeded), category `INVENTORY_SHRINKAGE`, two-layer idempotency
+  (eventId + scrapId posting key); uncosted facts (costSource NONE) record-and-skip with greppable WARN — J3 re-points cost to the engine. Known pre-existing failure
+  documented: `ReportExportRenderingContractBehaviorIT.trialBalanceCsvMatchesJson` fails identically on the clean tree (H2 + full-suite state pollution) — not
+  introduced by this wave.
+
 ---
 
 ## 4. Cross-domain coordination summary
