@@ -221,6 +221,31 @@ Status — Wave 1 (J0 durion#365 · X1 #1023 · A1 #1024 · F1 #1025 · I2 #1026
   `./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test` before the wave PR.
 - Frontend follow-up: Angular SDK regeneration for the new/changed endpoints (catalog X1 surface; inventory scan + interfering-movements) rides the next SDK refresh.
 
+Wave 1 merged 2026-07-23 via backend PR #1057 (merge 69a2249; Copilot review findings remediated in fac05e3d — array/404 OpenAPI schema, int64 inquiry quantities,
+set-based drift verifier). Issues #1023–#1027 closed.
+
+Status — Wave 2 (A2 #1028 · A3 #1029 · D1 #1030 · I1 #1031 · K3 #1032 · B1 #1033): implemented 2026-07-23 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(rebased on the Wave-1 merge; commits 399db51 A2, 8eecce7 A3, 15472e2 B1, d19e08e D1, 1f14df7 I1, 11e53c6 K3). Notes:
+
+- **A2**: forecast fields computed on read (not stored — they derive from open documents, not the ledger); PO/ASN dates are header-level so horizon bounds apply at
+  header granularity; **reservations carry no site** → remainders counted as site-agnostic demand in every site scope (conservative; revisit with C-workstream);
+  fresh reservations are fully soft-allocated so their remainder is 0 until reallocation/backorder uncovers quantity; `InventoryAvailabilityUpdatedV1` bumped to
+  schema v2 (additive); `ExpectedSupplyDroppedV1` wired to PO cancel only — **no PO close path exists in the codebase** (CLOSED is checked, never set); helper ready.
+- **A3**: as-of responses are on-hand only (allocation state not reconstructable from ATP-neutral events); programmatic `inventory:ledger:view` gate (same endpoint
+  serves both modes); `asOf`+`horizon` together → 400.
+- **B1**: replica shape `ext_product` + `ext_product_uom` + `ext_product_substitution` (all X1 v2 fields in one listener — E1/G2 need no new consumers);
+  equal-aggregateVersion facts apply (same-millisecond fan-out); **catalog manifest drift is detect-only** (`replica.drift` metric) — pos-catalog has no
+  `catalog.commands.v1` replay listener yet; `UomConversionService` ships HALF_UP/reservation-DOWN rounding, unused until B2 wires document boundaries.
+- **D1**: `ApprovalThresholdConfig` gained a `flow_type` discriminator (CYCLE_COUNT default, SCRAP seeded $100/T1, $1000/T2); unknown cost ⇒ approval required at
+  TIER_1; ledger posts at bin when `storageLocationId` present; `ScrapPostedV1` producer-side only (accounting consumption = D2, Wave 4); registered the previously
+  missing `inventory:adjustment:override` permission. **Governance note: neither cycle-count nor scrap approval enforces approver ≠ creator (existing module
+  precedent, mirrored — raise a follow-up story if separation-of-duties is wanted).**
+- **I1**: no plan-status lifecycle existed (plans never left PLANNED) — a minimal validated transition path was added (`PUT /cycleCountPlans/{planId}/status`);
+  restamp on APPROVED; idempotency via same-tx `nextDueDate` advance + `(schedule_id, due_date)` unique backstop; overdue schedules catch up one due date per pass.
+- **K3**: invariant refined from the spec's coarse "∈ {0, qty}" to per-state expectations (partial consumption legitimately leaves 0 < outstanding < qty);
+  allocation ledger keying confirmed as `sourceTransactionId = allocationId`, both event types positive-quantity; both invariants set-based in SQL (Wave-1 lesson).
+- Permissions added: `inventory:scrap:{create,view,approve}` (+ back-registered `inventory:adjustment:override`); taxonomy updated.
+
 ---
 
 ## 4. Cross-domain coordination summary
