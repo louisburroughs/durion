@@ -136,8 +136,7 @@ Any such change requires ADR revision or supersession, not a feature flag.
 - **Related Issues:** durion#365 — parity J0 ADR for valuation ownership and costing configurability
 - **Related Plans:** `../../domains/inventory/plan-odoo-parity-pos-inventory.md` decision D-6 and stories J0/J1/J3/K1
 - **Related Specifications:** `../../domains/inventory/SPEC-pos-inventory-odoo-parity.md` workstream J (§10), workstream K1 (§11), and OQ-6 (§12)
-- **Related ADRs:** [ADR-0044: Event-Only Domain Walls](0044-platform-event-only-domain-walls.adr.md), [ADR-0047: Ledger Inalterability and Fiscal Positions Are Accounting
-  Non-Goals](0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md)
+- **Related ADRs:** [ADR-0044: Event-Only Domain Walls](0044-platform-event-only-domain-walls.adr.md), [ADR-0047: Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals](0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md)
 
 ---
 
