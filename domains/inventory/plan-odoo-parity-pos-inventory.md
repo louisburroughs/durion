@@ -315,6 +315,12 @@ Status — Wave 5 (F4 #1044 · F5 #1045 · G1 #1046 · E3 #1047 · J1 #1048): im
   changes recorded in `cost_method_change_log`. V26 (`sku_cost_state`, `costing_method_config`, `cost_method_change_log`); OpenAPI regenerated; new event types
   `INVENTORY_VALUATION_METHOD_LIST`/`_UPSERT`. 28 costing tests + unbroken ledger-posting suite + full `pos-archunit` sweep (20, EntityStandards included) green.
 
+Wave 5 merged 2026-07-24 via backend PR #1095 (merge 43c06c371). **First cross-effort merge conflict:** a parallel odoo-pos-comparison effort (order/invoice/accounting/workorder, PRs #1092–1094) had
+landed on main taking permission bits 402–414 (order session/return); the Wave-5 merge regenerated the catalog so `inventory:lot:manage` moved to **bit 415, CATALOG_VERSION 35** (count 416) — the
+E3 note above records the pre-merge v32/bit-402 assignment. Copilot review remediated in the merge commit: `sku_cost_state` first-insert race closed with a `REQUIRES_NEW` `SkuCostStateInitializer`
+(mirrors the E1 lot-creator); `LotStatusUpdateRequest.reason` tightened `@NotNull` → `@NotBlank`. Backorder read endpoints deliberately omit `@EmitEvent` (consistent with the sibling `ShortageController`
+GET precedent — documented in the controller javadoc). Issues #1044–#1048 closed.
+
 ---
 
 ## 4. Cross-domain coordination summary
