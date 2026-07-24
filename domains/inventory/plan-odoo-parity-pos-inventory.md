@@ -371,6 +371,18 @@ Status — Wave 7 (J4 #1054 · K2 #1055; **J5 #1056 GATED — not built**): impl
 - **J5 — Landed costs (#1056): NOT IMPLEMENTED — remains GATED on confirmed accounting-side demand** per the plan (spec §10 / workstream J). The issue stays open as the gate marker;
   build only when accounting rules on the requirement. This is the sole remaining odoo-parity inventory item.
 
+Wave 7 merged 2026-07-24 via backend PR #1098 (merge 8016237f). Copilot review remediated in 54f21ba5: revaluation not-found now throws `ResourceNotFoundException` (→404, was
+`IllegalArgumentException`→400) on approve/reject/get, matching the OpenAPI contract; `PutawayDestinationResolver` capacity check fails closed on a null `ValidationResult`
+(treats the bin as unavailable rather than admitting a possibly over-capacity destination). Issues #1054, #1055 closed. **#1056 (J5, landed costs) intentionally left OPEN as the
+gate marker.**
+
+### Plan status — COMPLETE (except the J5 gate)
+
+All seven waves merged. Every workstream story A–K is delivered except **J5 (landed costs, #1056)**, which stays gated on confirmed accounting-side demand per D-6/spec §10 and is
+the only open odoo-parity inventory issue. Final permission catalog: **v37 / count 418** (inventory bits added across the waves: scrap 394–396, transfer 397–401,
+`inventory:lot:manage` 402→415 after the cross-effort catalog rebase, `inventory:valuation:view` 416, `inventory:valuation:adjust` 417). Flyway through **V30**. Follow-up
+tech-debt: **#1097** (valuation read-model N+1 batch-load).
+
 ---
 
 ## 4. Cross-domain coordination summary
