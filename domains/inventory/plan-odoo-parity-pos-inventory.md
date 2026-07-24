@@ -295,6 +295,26 @@ Status — Wave 4 (C3 #1039 · F2 #1040 · F3 #1041 · E2 #1042 · D2 #1043): im
   documented: `ReportExportRenderingContractBehaviorIT.trialBalanceCsvMatchesJson` fails identically on the clean tree (H2 + full-suite state pollution) — not
   introduced by this wave.
 
+Status — Wave 5 (F4 #1044 · F5 #1045 · G1 #1046 · E3 #1047 · J1 #1048): implemented 2026-07-24 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(commits 02604ff F4, 1aa605e F5, 37dd270 G1, c2434ba E3, 530f621 J1). Notes:
+
+- **F4**: deterministic purchase-suggestion generation from replenishment scan needs — vendor selection scored on unit cost then lead time (`VendorSelectionService`),
+  `open suggestion quantity` netted so a re-scan does not double-order; suggestions carry `unitCostMinor`/currency snapshot. New `PurchaseSuggestionCreationService`
+  dependency threaded into `ReplenishmentServiceImpl` (its test gained the mock + a zero-open default stub). V22.
+- **F5**: replenishment sourcing resolves a need to an internal cross-site transfer (materializing a TransferOrder) or a purchase, via `ReplenishmentSourcingService`
+  consuming H1's `selectSource`; the sourcing-strategy config mirrors H1's resolver seam (`sourcing_strategy_config`). Task `sourceTransferOrderId` wired (placeholder from
+  F1 now real). V23.
+- **G1**: backorder lifecycle (`BackorderRecord`, V24) with an availability-driven auto-resolution hook fired from the posting funnel — an on-hand increase for a SKU with
+  open backorders reevaluates them in-transaction; emits `BackorderCreatedV1`/`BackorderResolvedV1` (workexec read-side, no contract they must change). New
+  `inventory:shortage:resolve` event; `INVENTORY_SHORTAGE_RESOLVE`.
+- **E3**: lot expiry (`expirationDate` on lots, V25), FEFO activation (H1's FEFO strategy now backed by a real `LotExpiryProvider`, ordering by earliest expiry), and
+  quarantine/recall status flows with expiry-alerting scan. **New permission `inventory:lot:manage`** (catalog → v32, bit 402) guards lot status/expiration mutation.
+- **J1**: ADR-0048 costing engine (see §J below). STANDARD + AVERAGE (AVCO) behind `CostingStrategy` (FIFO-ready, not built); method-derived `unitCost` stamped on every
+  on-hand-affecting funnel posting in the same transaction and correct batch order; running weighted-average in `sku_cost_state`; negative-on-hand branch keeps the last
+  average; first issue with no prior cost stamps null. Admin `PUT/GET /v1/inventory/valuation/methods` reuses `inventory:location:admin` (**zero new permissions**); method
+  changes recorded in `cost_method_change_log`. V26 (`sku_cost_state`, `costing_method_config`, `cost_method_change_log`); OpenAPI regenerated; new event types
+  `INVENTORY_VALUATION_METHOD_LIST`/`_UPSERT`. 28 costing tests + unbroken ledger-posting suite + full `pos-archunit` sweep (20, EntityStandards included) green.
+
 ---
 
 ## 4. Cross-domain coordination summary
