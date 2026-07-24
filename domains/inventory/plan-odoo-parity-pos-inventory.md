@@ -355,6 +355,22 @@ decision ID covers opaque IDs / role-name normalization, not paging; a per-lot/s
 batch-load `sku_cost_state`; the as-of path is inherently per-SKU replay). Issues #1049–#1053 closed. **Permission catalog now v36 / count 417** (bit 415 lot:manage from
 Wave 5, bit 416 `inventory:valuation:view` from J2).
 
+Status — Wave 7 (J4 #1054 · K2 #1055; **J5 #1056 GATED — not built**): implemented 2026-07-24 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(commits 76d2967 J4, 3a9227c K2). Notes:
+
+- **J4**: approval-gated cost revaluation — `POST /v1/inventory/valuation/revaluations` (+ approve/reject/read) lets an operator correct a SKU's standard price (STANDARD) or
+  running average (AVCO); impact = Δcost × on-hand drives an approval tier reusing the D1 `ApprovalThresholdConfig` machinery (new `ApprovalFlowType.REVALUATION`, seeded
+  $100 manager / $1000 director; auto-approve below threshold). On apply, `SkuCostState` is updated atomically, a `RevaluationRecord` (V29, workflow + who/when/old/new audit)
+  is written, and a new **`ProductValueChangedV1`** fact (pos-domain-events, the Odoo `product.value` analog: old/new unit cost, on-hand, signed value delta, reason, actor)
+  is emitted via the outbox for a future accounting revaluation-JE consumer (fact ready; consumer deferred, no producer-side blocker). **New permission `inventory:valuation:adjust`
+  → bit 417, CATALOG_VERSION 37, count 418** (mutations `:adjust`, reads `:view` or `:adjust`). Approver need not differ from submitter (D1 precedent).
+- **K2**: putaway sublocation strategies on `PutawayRule` (`PutawayDestinationStrategy` = FIXED default / LAST_USED / CLOSEST_AVAILABLE; V30 additive column). `LAST_USED` targets the
+  SKU's most-recent COMPLETED putaway destination (fixed-destination fallback when never used); `CLOSEST_AVAILABLE` ranks site bins by **reusing H1's `ProximitySourcingStrategy`**
+  (no topology re-implementation), gated on the existing capacity validation — skips at/over-capacity bins, falls through nearest→next→fixed. Wired into `PutawayGenerationServiceImpl`
+  with a recorded fallback chain; FIXED and the no-rule path are byte-identical to pre-K2. No new permission (rules are seed/DB-managed; no admin REST endpoint exists).
+- **J5 — Landed costs (#1056): NOT IMPLEMENTED — remains GATED on confirmed accounting-side demand** per the plan (spec §10 / workstream J). The issue stays open as the gate marker;
+  build only when accounting rules on the requirement. This is the sole remaining odoo-parity inventory item.
+
 ---
 
 ## 4. Cross-domain coordination summary
