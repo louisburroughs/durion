@@ -348,6 +348,13 @@ Status — Wave 6 (G2 #1049 · E4 #1050 · E5 #1051 · J2 #1052 · J3 #1053): im
   records (old-consumer tolerance verified, incl. pos-workorder). No goods-receipt/transfer fact enriched (no cost-bearing consumer / cost already on the receipt ledger entry).
   No new permissions/entities/migrations.
 
+Wave 6 merged 2026-07-24 via backend PR #1096 (merge 904b3dcb). Copilot review remediated in 13c676e4c: serial `locationId` cleared on outbound (ISSUED/SCRAPPED);
+already-in-stock receive → deterministic 422 `SerialAlreadyInStockException` (was a bare `IllegalStateException`→409); `@Validated` on `ShortageController` so the
+`@NotBlank`/`@Positive` param constraints fire (→400). Two review threads closed as non-issues: the traceability "cursor pagination per DECISION-INVENTORY-003" note (that
+decision ID covers opaque IDs / role-name normalization, not paging; a per-lot/serial trace is bounded), and the valuation N+1 (deferred to tracked follow-up **#1097** —
+batch-load `sku_cost_state`; the as-of path is inherently per-SKU replay). Issues #1049–#1053 closed. **Permission catalog now v36 / count 417** (bit 415 lot:manage from
+Wave 5, bit 416 `inventory:valuation:view` from J2).
+
 ---
 
 ## 4. Cross-domain coordination summary
