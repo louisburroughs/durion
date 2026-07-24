@@ -321,6 +321,33 @@ E3 note above records the pre-merge v32/bit-402 assignment. Copilot review remed
 (mirrors the E1 lot-creator); `LotStatusUpdateRequest.reason` tightened `@NotNull` → `@NotBlank`. Backorder read endpoints deliberately omit `@EmitEvent` (consistent with the sibling `ShortageController`
 GET precedent — documented in the controller javadoc). Issues #1044–#1048 closed.
 
+Status — Wave 6 (G2 #1049 · E4 #1050 · E5 #1051 · J2 #1052 · J3 #1053): implemented 2026-07-24 on branch `claude/odoo-pos-inventory-comparison-ywp0ev`
+(commits 02e7917 G2, b3531dd E4, 99a5491 E5, 22f62e6 J2, 65b3b9e J3). Notes:
+
+- **G2**: computed shortage options (BACKORDER / SUBSTITUTE / TRANSFER_IN / EMERGENCY_PURCHASE / CANCEL_LINE), each with an expected-resolution date and a cost delta where
+  computable; `POST /shortage/resolve` is transactional + idempotent by key (pre-check + unique-index backstop, mirroring the G1 backorder guard), delegating artifact creation
+  to the G1/reservation/C1-transfer/F4-suggestion services. **Pre-production cleanup (D-5):** deleted the scaffolded `ProductSubstituteClient`/`ExternalAvailabilityClient`
+  (+Impls), the dead `dto/shortage/` package, and the now-unused `ShortageResolutionConfig` — substitution data comes from the X1 `ext_product_substitution` replica, not REST.
+  V27 (`shortage_resolution_record`, idempotency + audit). No new permissions (reused `inventory:shortage:view`/`:resolve`).
+- **E4**: serial tracking — `InventorySerialUnit` (IN_STOCK/ISSUED/RETURNED/SCRAPPED), the **serial-enumeration = quantity invariant** enforced centrally in the posting funnel
+  for SERIAL SKUs only (mirrors E1's per-lot floor; SERIAL was treated as NONE until now); receipts enumerate new serials, issues consume named serials (double-issue → 422),
+  consumption records serial→workorder linkage (joining `WarrantyPartReturnHold.serialNumber`); serial-on-hand-vs-ledger verifier. Untracked/LOT SKUs unchanged. V28. Reused
+  `inventory:on_hand:view`; no new permission.
+- **E5**: lot/serial traceability — `GET /lots/{lotId}/traceability` + `GET /serial-units/{serialUnitId}/traceability`, reconstruction (not a graph walk): upstream = PO→ASN→
+  goods-receipt resolved from receipt lines matching the lot's (sku, lotNumber) + vendor/date (serials resolve upstream through their lot); downstream = lot-tagged (or serial)
+  ledger entries chronologically (receipt→putaway→pick→consume→return→scrap) + warranty-hold join. Read-only, reused `inventory:ledger:view`; no entity/migration/permission. The
+  trace is bounded so it returns the full chain unpaginated (documented; the issue's cursor-pagination note is moot for a per-lot/per-serial trace).
+- **J2**: valuation read model — `GET /v1/inventory/valuation` with SKU-level `onHandValue`/`unitCostCurrent` (unit cost from each SKU's running `SkuCostState` per resolved
+  method) + total; `locationId`/`sku` filters; **as-of** variant via `asOf` (reuses A3's `AsOfQueryGuard`; on-hand and cost both replayed through `CostingStrategy` to the
+  instant); uncosted SKUs surface `uncosted=true`/value 0, no crash. **New permission `inventory:valuation:view` → bit 416, CATALOG_VERSION 36, count 417** (catalog regenerated;
+  gateway/security pins updated). Computed from `sku_cost_state` + `inventory_stock_summary` — no entity/migration. Pure-read (no `@EmitEvent`, per the ShortageController precedent).
+- **J3**: cost-bearing facts re-pointed at the J1 engine so accounting posts costed JEs instead of record-and-skip. `ScrapPostedV1` → SCHEMA_VERSION 2 (semantics re-pointed:
+  `unitCost` = engine cost stamped on the `SCRAP_OUT` ledger entry; `costSource` = resolved method or NONE); `ConsumptionRecordedV1` → SCHEMA_VERSION 2 (additive per-line
+  `unitCost`/`extendedCost` + fact-level `costSource`); `costAtTimeOfAdjustment` on cycle-count adjustments sourced from engine running cost. pos-accounting `InventoryEventsListener`
+  contract test extended to prove AVERAGE + STANDARD facts post a costed shrinkage JE while uncosted (NONE) stays record-and-skip (D2 preserved); v1 JSON deserializes into the v2
+  records (old-consumer tolerance verified, incl. pos-workorder). No goods-receipt/transfer fact enriched (no cost-bearing consumer / cost already on the receipt ledger entry).
+  No new permissions/entities/migrations.
+
 ---
 
 ## 4. Cross-domain coordination summary
