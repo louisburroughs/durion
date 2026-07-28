@@ -411,12 +411,12 @@ New tables in pos-customer migrations (continue the V-series after current max V
 | # | Question | Owner(s) | Blocks | Answer |
 |---|---|---|---|---|
 | O-1 | Email/SMS **delivery provider & transport** — dedicated provider client vs a shared platform sender? Owns bounce/complaint webhooks? | Platform/Positivity-integrations + Marketing | §2 send, §4.3 suppression |Assume we will use a shared platform sender|
-| O-2 | **Commercial consent model** — is marketing consent held at the account level, per contact-role, or personally by each contact? Legal basis for B2B sends. | CRM + Security/Legal | §4.1 |personally, by primary contact and a flag at account level|
+| O-2 | **Commercial consent model** — is marketing consent held at the account level, per contact-role, or personally by each contact? Legal basis for B2B sends. | CRM + Security/Legal | §4.1 |Personally, by primary contact and a flag at account level|
 | O-3 | Can `pos-price` **eligibility rules accept an `audienceType`/`campaignCode`** input for audience-specific offers? | Pricing | §1.5 |It can; I don't know if it does.  Make a follow-up issue|
-| O-4 | **Service-history data feed** — does pos-customer get workorder/service-completion facts to power "last service", "service-due", "declined service" segments? Today it only consumes `ContactPreferenceUpdated` + `PartyNoteAdded`. | Workexec/Workorder + CRM | §3.3, §6, §7 ||
-| O-5 | **Structured address / geography** — needed for geo/region segmentation and mail campaigns; today `primaryAddress` is free text. Build a structured address, or rely on shop/location association? | CRM + Location | §3.3 geo attributes |build a structured address in pos-people-contact, create issue to address|
+| O-4 | **Service-history data feed** — does pos-customer get workorder/service-completion facts to power "last service", "service-due", "declined service" segments? Today it only consumes `ContactPreferenceUpdated` + `PartyNoteAdded`. | Workexec/Workorder + CRM | §3.3, §6, §7 |Yes, create an issue for emitting these events and consuming them|
+| O-5 | **Structured address / geography** — needed for geo/region segmentation and mail campaigns; today `primaryAddress` is free text. Build a structured address, or rely on shop/location association? | CRM + Location | §3.3 geo attributes |Build a structured address in pos-people-contact, create issue to address this gap|
 | O-6 | **Prospect/inquiry ownership** — does `pos-inquiry` own the Inquiry object, or is a `PROSPECT` lifecycle stage on the party sufficient for v1? | CRM + product | §5 |pos-inquiry is a holder for inquiries to suppliers, not prospects|
-| O-7 | **Declined-service event** — will `pos-workorder` emit a `serviceLine.declined` fact to drive follow-up tasks? | Workorder + CRM | §6.1 | yes - make a follow-up issue to address|
+| O-7 | **Declined-service event** — will `pos-workorder` emit a `serviceLine.declined` fact to drive follow-up tasks? | Workorder + CRM | §6.1 | yes - make a follow-up issue to address (closely related to O-4, maybe it's the same issue?)|
 | O-8 | ~~**Module placement** — new `pos-marketing` module vs campaign-in-pos-customer.~~ **RESOLVED (ACCEPTED 2026-07-28): new `pos-marketing` module** (§0.3). | Architecture | — (closed) |chose pos-marketing|
 
 ---
