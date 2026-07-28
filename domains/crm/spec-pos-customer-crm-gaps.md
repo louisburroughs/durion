@@ -1,6 +1,6 @@
 # Specification — CRM Functionality Missing from pos-customer
 
-> Status: DRAFT · Created 2026-07-28 · Companion docs: `comp-crm-overview.md` (Odoo CRM reference), `comp-vs-pos-customer-comparison.md` (capability map).
+> Status: **ACCEPTED** · Created 2026-07-28 · Accepted 2026-07-28 · Companion docs: `comp-crm-overview.md` (Odoo CRM reference), `comp-vs-pos-customer-comparison.md` (capability map), `plan-odoo-parity-pos-customer.md` (implementation plan).
 >
 > Purpose: define, in enough detail to drive a subsequent implementation plan, the CRM capabilities that `pos-customer` (and the platform around it) is missing versus Odoo CRM — **scoped to what an enterprise tire-service management system actually needs.** This is a specification of *what to build and why*, not a task-by-task plan. The plan (`plan-odoo-parity-pos-customer.md`) will be derived from this.
 >
@@ -447,8 +447,8 @@ Waves are dependency-ordered; each is independently shippable.
 - **Wave 1 — CRM data foundations [CRM]:** `PartyTag`(+assignment), `Segment` (static + dynamic over already-available party/tier/tag/vehicle attributes), marketing-consent enrichment on `CommunicationPreference`, `SuppressionEntry`, `ConsentEvent`, `CustomerInteraction` (generalize `PartyNote`). Snapshot integration. *No external dependencies; unblocks everything.*
 - **Wave 2 — Campaign core [MKT]:** stand up the `pos-marketing` module (§0.3 bootstrap), then `Campaign` + lifecycle, `MessageTemplate`, audience binding to segments, audience preview (consent-filtered), attribution `campaignCode` on redemptions. *Depends on Wave 1 + O-1 for actual send.*
 - **Wave 3 — Send + attribution [MKT]:** `CampaignSend`, provider channel adapter(s), async batched dispatch with send-time consent/suppression re-check, provider webhooks → suppression + delivery stats, `GET /stats` with redemption attribution. *Depends on O-1, O-3.*
-- **Wave 4 — Follow-up & prospects [CRM/inquiry]:** `FollowUpTask` (declined-service + service-due), `Inquiry`/`PROSPECT` lifecycle, hand-off to shop-manager. *Depends on O-4, O-6, O-7.*
-- **Backlog:** service-due/churn signal (§7), A/B testing, double opt-in, structured address (O-5), account ownership (§6.2).
+- **Wave 4 — Follow-up, prospects & geo segmentation [CRM/inquiry]:** `FollowUpTask` (declined-service + service-due), `Inquiry`/`PROSPECT` lifecycle, hand-off to shop-manager, and the service-history + **structured-address/region** segment attributes. *Depends on O-4 (FI-3), O-5 (FI-4 — structured address, prerequisite for geo/region segmentation), O-6, O-7.*
+- **Backlog:** service-due/churn signal (§7), A/B testing, double opt-in, account ownership (§6.2).
 
 ---
 
