@@ -206,7 +206,7 @@ A safe, validated predicate tree (**not** free SQL) over a fixed attribute catal
 - Resolution is a query builder over local tables + replicas; must paginate and cap.
 - **Two attribute groups depend on data pos-customer doesn't hold today, now resolved with follow-up work:**
   - *Service history* (resolved O-4): `pos-workorder`/workexec **will emit** service-completion and declined-service facts, which pos-customer consumes into a local projection (powers win-back, service-due, and declined-service predicates and the §6 follow-up tasks). Follow-up issue §11.1 FI-3.
-  - *Structured geography* (resolved O-5): a **structured address will be built in `pos-people-contact`** (the person/contact-point authority), replacing free-text `primaryAddress`; pos-customer reads it via the `ext_people_contact_person` replica / snapshot for region/geo segmentation. Follow-up issue §11.1 FI-4.
+  - *Structured geography* (resolved O-5): a **structured address will be built in `pos-people-contact`** (the person/contact-point authority) for **both person and commercial/organization parties**, replacing free-text `primaryAddress`; pos-customer reads it via the `ext_people_contact_person` replica / snapshot for region/geo segmentation. Follow-up issue §11.1 FI-4.
 - **v1 can still ship** with the party/tier/tag/vehicle attributes pos-customer already has, adding the service-history and geography predicates as those feeds land.
 
 ### 3.4 Endpoints (`/v1/crm/segments`)
@@ -228,7 +228,7 @@ pos-customer has a solid base (`CommunicationPreference` with per-channel prefer
 ### 4.1 Enrich consent — extend `CommunicationPreference`
 
 - Model **per-channel marketing consent** separately from transactional contactability: `marketingEmailConsent`, `marketingSmsConsent` (OPT_IN/OPT_OUT/UNSET) — distinct from the operational `emailPreference`/`smsPreference`.
-- **COMMERCIAL consent model (resolved, O-2):** marketing consent is held **personally by the primary business contact** — that contact's own per-channel `marketingEmailConsent`/`marketingSmsConsent` governs account-level campaign sends — **plus an account-level marketing flag** on `CommercialParty` (`accountMarketingOptOut`) that acts as a master gate: when the account flag is opted-out, no contact on the account is marketed regardless of personal consent. Individual (person) parties use their own personal per-channel consent directly. *(Assumption pending confirmation: the account-level flag is a hard master switch, not merely a default; and only the primary business contact's personal consent — not every account contact's — is consulted for account-level sends.)*
+- **COMMERCIAL consent model (resolved, O-2):** the account-level marketing flag on `CommercialParty` (`accountMarketingOptOut`) is a **hard master gate** — when set, no contact on the account is marketed regardless of personal consent. When the account is not opted-out, account-level campaign sends are governed by the **primary business contact's personal per-channel consent** (`marketingEmailConsent`/`marketingSmsConsent`); other account contacts' personal consent is not consulted for account-level sends. Individual (person) parties use their own personal per-channel consent directly.
 - Add **quiet-hours / cadence** guidance (optional v1): max marketing touches per party per window, do-not-disturb hours (respect timezone).
 - Capture **opt-out reason** (catalog `OptOutReason`: NOT_INTERESTED, TOO_FREQUENT, NEVER_SIGNED_UP, LEGAL_DNC, …) — Odoo parity with `mailing.subscription.optout`.
 
@@ -431,12 +431,12 @@ All eight questions are resolved (answers provided 2026-07-28). Where an answer 
 
 Cross-domain work the answers call for, to be raised as tracked issues before/with the plan. Repos: platform/coordination issues in `durion`; service-specific work in `durion-positivity-backend`.
 
-| ID | Title | Repo / target module | Scope |
-|---|---|---|---|
-| FI-1 | pos-price: audience-type / campaign-code eligibility predicate | `durion-positivity-backend` · pos-price | Confirm current eligibility-rule inputs; add `audienceType`/`partyType`/`campaignCode` predicate support so campaigns can bind audience-specific offers (spec §1.5). |
-| FI-2 | Shared platform sender contract for marketing (email + SMS) | `durion` (coordination) → owning sender service | Define/confirm the shared sender API pos-marketing calls, and the delivery/bounce/complaint outcome feedback (event or callback) that updates `CampaignSend` + suppression (spec §2.2, §4.3). |
-| FI-3 | Workorder → CRM facts: service-completion + declined-service | `durion-positivity-backend` · pos-workorder (emit) + pos-customer (consume) | Emit service-completion and `serviceLine.declined` facts; pos-customer consumes into a service-history projection powering win-back/service-due/declined segments (§3.3) and follow-up tasks (§6). **Combines O-4 and O-7.** |
-| FI-4 | Structured address in pos-people-contact | `durion-positivity-backend` · pos-people-contact (own) + pos-customer (replica read) | Model a structured address (replace free-text `primaryAddress`); expose it on the person replica/snapshot for region/geo segmentation (§3.3). Confirm whether it also covers commercial/organization addresses. |
+| ID | Issue | Title | Repo / target module | Scope |
+|---|---|---|---|---|
+| FI-1 | durion-positivity-backend#1134 | pos-price: audience-type / campaign-code eligibility predicate | `durion-positivity-backend` · pos-price | Confirm current eligibility-rule inputs; add `audienceType`/`partyType`/`campaignCode` predicate support so campaigns can bind audience-specific offers (spec §1.5). |
+| FI-2 | durion#369 | Shared platform sender contract for marketing (email + SMS) | `durion` (coordination) → owning sender service | Define/confirm the shared sender API pos-marketing calls, and the delivery/bounce/complaint outcome feedback (event or callback) that updates `CampaignSend` + suppression (spec §2.2, §4.3). |
+| FI-3 | durion-positivity-backend#1133 | Workorder → CRM facts: service-completion + declined-service | `durion-positivity-backend` · pos-workorder (emit) + pos-customer (consume) | Emit service-completion and `serviceLine.declined` facts; pos-customer consumes into a service-history projection powering win-back/service-due/declined segments (§3.3) and follow-up tasks (§6). **Combines O-4 and O-7.** |
+| FI-4 | durion-positivity-backend#1135 | Structured address in pos-people-contact (persons + organizations) | `durion-positivity-backend` · pos-people-contact (own) + pos-customer (replica read) | Model a structured address for **both person and organization/commercial parties** (replace free-text `primaryAddress`); expose it on the replica/snapshot for region/geo segmentation (§3.3). Note: pos-people-contact today owns Person only — this broadens it to hold organization addresses too. |
 
 ---
 
