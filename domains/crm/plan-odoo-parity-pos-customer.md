@@ -55,7 +55,7 @@ Non-negotiable constraints. Every story must be validated against them before me
 
 Spec §3, §4, §8. No external dependencies; unblocks everything else. Migrations start at **V17**.
 
-### Story A1 — Party tags
+### Story A1 — Party tags (#1136)
 - **Change**: `PartyTag` (`tagId`, `name` unique, `category` nullable, `color`, `active`) + `PartyTagAssignment` (`partyId`, `tagId`, `assignedBy`, `assignedAt`, `source` enum MANUAL/CAMPAIGN/IMPORT/RULE). Flat taxonomy for v1.
 - **Files**: `internal/entity/PartyTag.java`, `PartyTagAssignment.java`; `internal/repository/*`; `service/PartyTagService.java` + `internal/service/PartyTagServiceImpl.java`; `internal/controller/CrmTagController.java` (`/v1/crm/tags` CRUD) + tag endpoints on `/v1/crm/parties/{partyId}/tags`; DTOs; `V17__party_tags.sql`.
 - **Permissions**: `crm:tag:view`, `crm:tag:manage`, `crm:tag:assign` (add to `CrmPermissionRegistry` + `permissions.yaml`).
@@ -63,7 +63,7 @@ Spec §3, §4, §8. No external dependencies; unblocks everything else. Migratio
 - **AC**: tags CRUD; assign/remove idempotent; assignment emits audit + fact; ArchUnit green.
 - **Effort**: M. **Deps**: none.
 
-### Story A2 — Segment model (static + dynamic)
+### Story A2 — Segment model (static + dynamic) (#1137)
 - **Change**: `Segment` (`segmentId`, `name`, `description`, `audienceType` COMMERCIAL/INDIVIDUAL, `type` STATIC/DYNAMIC, `predicate` JSON for DYNAMIC, audit) + `SegmentMember` (`segmentId`, `partyId`, `contactId?`) for STATIC. Predicate is a **validated boolean tree** (`{attribute, operator, value}` + AND/OR/NOT) over a whitelisted attribute catalog — **not** free SQL.
 - **Attribute catalog (v1, from data pos-customer already holds)**: party (`partyType`, `accountTier`, `accountStatus`, `parentPartyId present`, `externalIdentifier[system]`, tags), billing rules (`taxExempt`, `creditHold`, `paymentTerms`), consent (`marketing <channel> opted-in`), vehicle from `ext_vehicle` (`make/model`, `year range`, `has active vehicle`, `vehicle count ≥ N`). Service-history + geography attributes deferred to A-follow (needs FI-3/FI-4).
 - **Files**: `internal/entity/Segment.java`, `SegmentMember.java`; `internal/domain/SegmentPredicate*.java` (predicate model + validator); `internal/service/SegmentResolutionService*` (query builder over local tables + replicas, paginated + capped); `service/SegmentService.java`; `internal/controller/CrmSegmentController.java` (`/v1/crm/segments` CRUD + `POST /{id}/resolve`); `V18__segments.sql`.
@@ -71,7 +71,7 @@ Spec §3, §4, §8. No external dependencies; unblocks everything else. Migratio
 - **AC**: invalid predicate rejected at save (`422`); resolution deterministic, paginated, consent-filtered; a COMMERCIAL segment never returns person parties (and vice-versa); resolve returns count + masked sample.
 - **Effort**: L. **Deps**: A1 (tag attribute).
 
-### Story A3 — Marketing consent enrichment
+### Story A3 — Marketing consent enrichment (#1138)
 - **Change**: extend `CommunicationPreference` with per-channel marketing consent (`marketingEmailConsent`, `marketingSmsConsent` — OPT_IN/OPT_OUT/UNSET) distinct from operational `emailPreference`/`smsPreference`; add opt-out reason (`OptOutReason` catalog: NOT_INTERESTED, TOO_FREQUENT, NEVER_SIGNED_UP, LEGAL_DNC, …); optional quiet-hours/cadence fields. Add **`CommercialParty.accountMarketingOptOut`** (hard master gate — O-2).
 - **Consent resolution rule (O-2)**: for a COMMERCIAL account, if `accountMarketingOptOut` is set → suppress the whole account; else the **primary business contact's** personal per-channel consent governs account-level sends. Individuals use personal consent directly. Encapsulate in a `MarketingConsentResolver`.
 - **Files**: edit `internal/entity/CommunicationPreference.java`, `CommercialParty.java`; `internal/enums/OptOutReason.java`; `internal/service/MarketingConsentResolver*`; extend comm-pref upsert DTO/endpoints; `V19__marketing_consent.sql`.
@@ -79,13 +79,13 @@ Spec §3, §4, §8. No external dependencies; unblocks everything else. Migratio
 - **AC**: consent resolver returns correct allow/deny per channel for both party types under all account-flag states; migration backfills `marketingPreference` → per-channel consent.
 - **Effort**: M. **Deps**: none (A2 references the consent attribute; sequence A3 before A2 resolve-filtering hardens, but can proceed in parallel with a stub).
 
-### Story A4 — Consent-change audit (`ConsentEvent`)
+### Story A4 — Consent-change audit (`ConsentEvent`) (#1139)
 - **Change**: append-only `ConsentEvent` (`partyId`, `channel`, `oldValue`, `newValue`, `reason`, `source`, `actor`, `at`). Written on every marketing-consent change. Compliance export endpoint.
 - **Files**: `internal/entity/ConsentEvent.java`; repo; hook in `MarketingConsentResolver`/comm-pref service; `GET /v1/crm/parties/{partyId}/consent-history`; `V20__consent_event.sql`.
 - **AC**: every consent change writes exactly one `ConsentEvent`; history queryable + exportable; append-only (no update/delete path).
 - **Effort**: S. **Deps**: A3.
 
-### Story A5 — Suppression list (`SuppressionEntry`)
+### Story A5 — Suppression list (`SuppressionEntry`) (#1140)
 - **Change**: hard address-level block consulted by every send. `SuppressionEntry` (`suppressionId`, `channel`, `addressHash` normalized+hashed, `partyId?`, `reason` HARD_BOUNCE/SPAM_COMPLAINT/LEGAL_DNC/MANUAL/UNSUBSCRIBE_LINK, `source`, `createdAt`). Populated by manual admin action + unsubscribe-link + (later) provider bounce/complaint feed. Read API for the send pipeline.
 - **Files**: `internal/entity/SuppressionEntry.java`; repo; `service/SuppressionService.java`; `internal/controller/CrmSuppressionController.java` (`/v1/crm/suppression` add/list/remove) + a suppression-check read used by pos-marketing (via gateway or `customer.events.v1` replica of suppression facts); `V21__suppression.sql`.
 - **Permissions**: `crm:suppression:view/manage`.
@@ -93,26 +93,26 @@ Spec §3, §4, §8. No external dependencies; unblocks everything else. Migratio
 - **AC**: suppression is honored independent of preference; address hashing consistent with lookup; manual add/remove audited.
 - **Effort**: M. **Deps**: none.
 
-### Story A6 — Interaction / touch history (`CustomerInteraction`)
+### Story A6 — Interaction / touch history (`CustomerInteraction`) (#1141)
 - **Change**: generalize the one-way `PartyNote` into `CustomerInteraction` (`interactionId`, `partyId`, `contactId?`, `type` CAMPAIGN_SEND/EMAIL/SMS/CALL/FOLLOW_UP/NOTE/WORKORDER_NOTE, `channel?`, `direction` OUTBOUND/INBOUND, `campaignId?`, `subject/summary`, `body?` redaction-aware per DECISION-INVENTORY-006, `actor`, `occurredAt`, `sourceEventId`). Written by: campaign-send facts (from `marketing.events.v1`), CSR follow-up actions (WS-D), and the existing workorder `PartyNoteAdded` projection.
 - **Files**: `internal/entity/CustomerInteraction.java`; repo; `service/CustomerInteractionService.java`; migrate `WorkorderEventHandler` `PartyNoteAdded` path to write `CustomerInteraction` (keep `party_note` or fold in); `GET /v1/crm/parties/{partyId}/interactions` (paged, filterable); consume `marketing.events.v1` campaign-send facts into interactions; `V22__customer_interaction.sql`.
 - **Permissions**: `crm:interaction:view`.
 - **AC**: campaign sends appear in party history within event SLA; existing PartyNote projection preserved; redaction applied to `body`.
 - **Effort**: M. **Deps**: A-tier; the `marketing.events.v1` consumer half depends on WS-C (can land as a follow-up).
 
-### Story A7 — Redemption attribution column
+### Story A7 — Redemption attribution column (#1142)
 - **Change**: add `campaignCode` to `PromotionRedemption` (already has `promotionCode`); populate from the redemption-recording path when a campaign code is present; emit on the redemption fact for pos-marketing attribution.
 - **Files**: edit `internal/entity/PromotionRedemption.java`, `RecordRedemptionRequest`, mapper, `PromotionRedemptionServiceImpl`; `V23__redemption_campaign_code.sql`.
 - **AC**: redemptions carry `campaignCode`; existing idempotency (dup → 409) unchanged; attribution fact emitted.
 - **Effort**: S. **Deps**: none.
 
-### Story A8 — Snapshot integration
+### Story A8 — Snapshot integration (#1143)
 - **Change**: extend `CrmSnapshotDTO` with a consent summary (per-channel marketing consent + suppression flags) and a recent-interaction summary.
 - **Files**: edit `dto/snapshot/CrmSnapshotDTO.java`, snapshot builder in `PartyServiceImpl`/`CrmVehicleServiceImpl`; snapshot controller unchanged.
 - **AC**: snapshot exposes contactability + touch summary without raw PII beyond policy; existing consumers unaffected.
 - **Effort**: S. **Deps**: A3, A5, A6.
 
-### Story A-follow — Service-history & geography segment attributes (deferred)
+### Story A-follow — Service-history & geography segment attributes (deferred) (#1144)
 - **Change**: once FI-3 (service-history feed) and FI-4 (structured address) land, add the `last service > N months`, `service-due`, `declined service in last N days`, and region/geo attributes to the A2 predicate catalog + resolver.
 - **AC**: new attributes validate and resolve; documented as available.
 - **Effort**: M. **Deps**: A2, **FI-3** (`#1133`), **FI-4** (`#1135`).
@@ -123,13 +123,13 @@ Spec §3, §4, §8. No external dependencies; unblocks everything else. Migratio
 
 Spec §0.3, §1, §2.1. Stand up the new module, then campaign definition/lifecycle and templates. `marketing.events.v1` + fresh Flyway baseline.
 
-### Story B0 — Module bootstrap
+### Story B0 — Module bootstrap (#1145)
 - **Change**: create `pos-marketing` Maven module under the reactor: `PosMarketingApplication` (root of `com.positivity.marketing`), `internal/{controller,service,repository,entity,dto,config,client,event}`, `service/` public interfaces, `MarketingEventTypes` + `MarketingEventTypeInitializer`, `MarketingPermissionRegistry`, `MarketingApplicationConfig` (security filter, DB, Kafka), `ArchitectureTest`, `application.yml` (`server.port: 0`, Eureka), gateway route `marketing/vN`, Docker/pom wiring, `V1__baseline_marketing_schema.sql` (empty baseline + outbox tables mirroring pos-customer's `event_outbox`/`processed_events`).
 - **Files**: new module tree; add to root `pom.xml` `<modules>`; `pos-api-gateway` route config.
 - **AC**: module builds, registers with Eureka, health endpoint green, ArchUnit passes, permission/event initializers run without blocking startup.
 - **Effort**: M. **Deps**: none (parallel with WS-A).
 
-### Story B1 — Campaign entity + lifecycle
+### Story B1 — Campaign entity + lifecycle (#1146)
 - **Change**: `Campaign` (`campaignId`, `code` unique, `name`, `description`, `audienceType` immutable, `campaignProgramId?`, `status`, `channels` Set<EMAIL,SMS>, `segmentId`, `promotionOfferId?`, `catalogFocusRef?`, `windowStart/End`, `scheduleType`, `scheduledAt?`, template refs, audit). Lifecycle DRAFT→SCHEDULED→SENDING→SENT/CLOSED with PAUSED/CANCELLED; transitions are command endpoints.
 - **Files**: `internal/entity/Campaign.java`, `internal/enums/{AudienceType,CampaignStatus,CampaignChannel,ScheduleType}.java`; repo; `service/CampaignService.java` + impl (state machine + guards); `internal/controller/CampaignController.java` (`/v1/marketing/campaigns` create/get/list/update/schedule/pause/resume/cancel); DTOs; `V2__campaign.sql`.
 - **Permissions**: `marketing:campaign:view/create/edit/schedule/send/manage`.
@@ -137,14 +137,14 @@ Spec §0.3, §1, §2.1. Stand up the new module, then campaign definition/lifecy
 - **AC**: `audienceType` immutable after create; cannot SCHEDULE without a resolvable matching-audience segment + present templates + (if referenced) an ACTIVE offer; illegal transitions rejected.
 - **Effort**: L. **Deps**: B0; segment validation reads pos-customer segment via gateway (A2).
 
-### Story B2 — Message templates
+### Story B2 — Message templates (#1147)
 - **Change**: `MessageTemplate` per channel with token substitution; token catalog validated against `audienceType` (commercial `{{accountName}}` vs individual `{{vehicle...}}`).
 - **Files**: `internal/entity/MessageTemplate.java`; repo; `service/MessageTemplateService.java`; `internal/service/TemplateRenderService*` (token substitution, safe rendering); `/v1/marketing/templates` CRUD; `V3__message_template.sql`.
 - **Permissions**: `marketing:template:view/manage`.
 - **AC**: unknown/invalid tokens rejected at save; render produces channel-appropriate output; SMS length/segment guard.
 - **Effort**: M. **Deps**: B0.
 
-### Story B3 — Audience binding + preview + offer/catalog validation
+### Story B3 — Audience binding + preview + offer/catalog validation (#1148)
 - **Change**: bind a campaign to a segment; `POST /{id}/audience-preview` resolves the segment (via pos-customer gateway REST or a segment replica) and returns per-channel recipient counts **after** consent + suppression filtering, with a masked sample. Validate `promotionOfferId` is ACTIVE at schedule time (read `pos-price`); `catalogFocusRef` resolvable (read `pos-catalog`).
 - **Files**: `internal/client/{CustomerClient,PriceClient,CatalogClient}.java` (load-balanced RestClients); `internal/service/AudienceResolutionService*`; preview DTOs.
 - **AC**: preview counts reflect consent/suppression; COMMERCIAL resolves to account contacts by role, INDIVIDUAL to the person's primary contact; offer/catalog refs validated; no raw PII beyond masked sample.
@@ -156,26 +156,26 @@ Spec §0.3, §1, §2.1. Stand up the new module, then campaign definition/lifecy
 
 Spec §2.2, §8. Async batched send through the **shared platform sender** (O-1); attribution from redemptions.
 
-### Story C1 — CampaignSend model + async dispatch
+### Story C1 — CampaignSend model + async dispatch (#1149)
 - **Change**: `CampaignSend` (`campaignId`, `recipientPartyId`, `contactId`, `channel`, `resolvedAddress` transient/hashed, `status`, `providerMessageId`, `failureReason`, timestamps). Async batched dispatch (outbox/worker), rate-limited, **re-checks consent + suppression at send time**. Idempotent per (campaignId, recipientId, channel). `POST /{id}/send` → `202`.
 - **Files**: `internal/entity/CampaignSend.java`; repo; `internal/service/CampaignSendOrchestrator*` + worker; `internal/config/…` scheduling; DTOs.
 - **@EmitEvent/facts**: `MARKETING_CAMPAIGN_SEND`; emit `campaign.sent`.
 - **AC**: no send to a suppressed/opted-out recipient at dispatch time; every send carries the campaign `code`; re-invoking `/send` never double-sends; provider failures retried with backoff, permanent → `FAILED` without blocking the batch.
 - **Effort**: L. **Deps**: B3, A5.
 
-### Story C2 — Shared sender adapter + outcome feedback
+### Story C2 — Shared sender adapter + outcome feedback (#1150)
 - **Change**: `MessageChannel` interface + adapter to the shared platform sender (per FI-2 contract). Ingest delivery/bounce/complaint outcomes (event or callback) → update `CampaignSend` + push bounce/complaint into CRM suppression (emit to `customer.commands.v1`/suppression API). Emit `campaign.send.delivered/bounced/complained`.
 - **Files**: `internal/client/PlatformSenderClient.java`; `internal/service/DeliveryOutcomeListener*`; suppression feedback path.
 - **AC**: outcomes update send state; bounces/complaints reach CRM suppression (A5); open/click tracked when the sender supports it, degrade gracefully otherwise.
 - **Effort**: L. **Deps**: C1, **FI-2** (`durion#369`), A5.
 
-### Story C3 — Interaction logging of sends (CRM side)
+### Story C3 — Interaction logging of sends (CRM side) (#1151)
 - **Change**: pos-customer consumes `campaign.sent`/send facts from `marketing.events.v1` → writes `CAMPAIGN_SEND` `CustomerInteraction` rows (closes A6's marketing half).
 - **Files**: `internal/service/MarketingEventsListener` (pos-customer), idempotent via `processed_events`.
 - **AC**: each campaign send appears in the recipient's interaction history within SLA; idempotent.
 - **Effort**: S. **Deps**: A6, C1.
 
-### Story C4 — Campaign stats + attribution
+### Story C4 — Campaign stats + attribution (#1152)
 - **Change**: `GET /campaigns/{id}/stats` — reach funnel per channel (targeted → eligible → sent → delivered → opened/clicked → redeemed → attributed workorders/revenue), split by `audienceType`, with a `campaignProgramId` rollup comparing commercial vs individual arms. Attribution: consume redemption facts (with `campaignCode`, A7) → conversion counters, idempotent by `redemptionId`.
 - **Files**: `internal/service/CampaignStatsService*`; `internal/service/RedemptionAttributionListener*` (consume `customer.events.v1` redemption facts); stats DTOs.
 - **Permissions**: `marketing:stats:view`.
@@ -188,14 +188,14 @@ Spec §2.2, §8. Async batched send through the **shared platform sender** (O-1)
 
 Spec §5, §6. Depends on cross-domain facts (FI-3) and is lower priority than A–C.
 
-### Story D1 — FollowUpTask
+### Story D1 — FollowUpTask (#1153)
 - **Change**: `FollowUpTask` (`taskId`, `partyId`, `vehicleId?`, `type` DECLINED_SERVICE_FOLLOWUP/SERVICE_DUE_REMINDER/FLEET_CHECKIN/CAMPAIGN_RESPONSE/GENERAL, `dueDate`, `assignedTo?`, `status` OPEN/DONE/DISMISSED, `sourceWorkorderId?`, `reason?`, `outcome?`, `notes`). Created from workorder `serviceLine.declined` facts (one per declined line, idempotent) and from `VehicleCarePreference` service-due. Completing a task can deep-link to `pos-shop-manager` appointment creation (hand-off, never books).
 - **Files**: `internal/entity/FollowUpTask.java`; repo; `service/FollowUpTaskService.java`; consume declined-service facts in a listener (idempotent via `processing_log`); `/v1/crm/parties/{partyId}/follow-ups` + CSR queue `/v1/crm/follow-ups?assignedTo=&status=`; `V24__follow_up_task.sql`.
 - **Permissions**: `crm:followup:view/manage`.
 - **AC**: a declined-service event yields exactly one task; completion records outcome and links the resulting appointment/workorder when booked.
 - **Effort**: M. **Deps**: **FI-3** (`#1133`) for the declined-service + care-preference feed.
 
-### Story D2 — Prospect lifecycle + Inquiry capture
+### Story D2 — Prospect lifecycle + Inquiry capture (#1154)
 - **Change**: add `lifecycleStage` (PROSPECT → ACTIVE → DORMANT) to the party; `Inquiry` entity in **pos-customer** (`inquiryId`, `channel`, `audienceType`, captured contact fields, `vehicleOfInterest?`, `serviceOfInterest?`, `campaignCode?`, `status` NEW→CONTACTED→CONVERTED→CLOSED, `partyId?`, `assignedTo?`). Public inbound "request service / fleet quote" endpoint (rate-limited, captcha, no auth) fronted through the gateway. Conversion reuses `checkPartyDuplicates` + create-party, optional shop-manager hand-off. **Not** in `pos-inquiry` (supplier-scoped).
 - **Files**: edit `AbstractParty`/status handling for `lifecycleStage`; `internal/entity/Inquiry.java`; repo; `service/InquiryService.java`; `internal/controller/{InquiryController, PublicInquiryController}.java`; `V25__prospect_inquiry.sql`.
 - **Permissions**: `crm:inquiry:view/manage`; public capture endpoint unauthenticated but rate-limited.
