@@ -31,18 +31,24 @@ That pipeline already exists and is owned by `pos-shop-manager` (appointments, s
 | D | **Follow-up / declined-service tasks** | Convert declined recommendations and service-due into bookings | `pos-customer` (hand off to `pos-shop-manager`) |
 | E | **Prospect/inquiry capture** (adapted lead capture) | Onboard new fleet accounts and web inquiries | `pos-inquiry` or `pos-customer` |
 
-### 0.3 DECISION REQUIRED — where do campaigns live?
+### 0.3 DECISION (ACCEPTED) — a new `pos-marketing` module owns campaigns
 
-pos-customer already owns the party master, communication preferences, and promotion-redemption ledger — the *data* campaigns target and attribute against. But full campaign orchestration (audience resolution, scheduled multi-channel sends, delivery tracking, per-recipient state) is a distinct lifecycle with its own heavy dependency: **outbound message delivery infrastructure (email/SMS), which pos-customer does not have.**
+**Decision:** campaign functionality lives in a **new `pos-marketing` bounded-context module**, not inside pos-customer. `pos-marketing` owns campaign definition, audience binding, send orchestration, message templates, and campaign analytics. `pos-customer` remains the customer master and owns the CRM-native data campaigns *consume* — segments, tags, marketing consent, suppression, interaction history, and prospects.
 
-**Recommendation: a new `pos-marketing` module** owns campaign definition, audience binding, send orchestration, and campaign analytics; **pos-customer** owns the CRM-native data that campaigns *consume* (segments, tags, consent, suppression, interaction history, prospects). Rationale:
+> Status: **ACCEPTED** (2026-07-28). This resolves open question O-8 and is binding on the plan derived from this spec. Every item below tagged **[MKT]** is built in `pos-marketing`; every **[CRM]** item is built in `pos-customer` (or `pos-inquiry` where noted).
 
-- Respects ADR-0026 / ArchUnit domain walls: pos-customer stays a party registry; marketing send-lifecycle is its own bounded context.
-- The delivery-infrastructure dependency (SMTP/SMS provider) is isolated in the new module, not bolted onto the customer master.
-- pos-marketing reads party/segment/consent data via the existing `CrmSnapshotDTO` + `customer.events.v1` replica pattern (ADR-0044), exactly like other consumers.
-- Keeps consent/suppression enforcement authoritative in pos-customer (the system of record for party contactability) while pos-marketing *asks before sending*.
+pos-customer already owns the party master, communication preferences, and promotion-redemption ledger — the *data* campaigns target and attribute against. But full campaign orchestration (audience resolution, scheduled multi-channel sends, delivery tracking, per-recipient state) is a distinct lifecycle with its own heavy dependency — **outbound message delivery infrastructure (email/SMS), which pos-customer does not have** — and belongs in its own module.
 
-**Alternative (smaller, faster):** put a thin campaign definition + attribution model directly in pos-customer and delegate only raw message delivery to a channel service. Acceptable for a v1 that only ships promo-code campaigns with redemption attribution (no per-recipient open/click tracking). Chosen trade-off is the user's call; this spec is written so either placement works — each entity below is tagged **[CRM]** (pos-customer) or **[MKT]** (pos-marketing/campaign owner).
+Rationale:
+
+- Respects ADR-0026 / ArchUnit domain walls: pos-customer stays a party registry; the marketing send-lifecycle is its own bounded context with its own schema and Flyway baseline.
+- Isolates the delivery-infrastructure dependency (SMTP/SMS provider) in the new module instead of bolting it onto the customer master.
+- pos-marketing reads party/segment/consent data via the existing `CrmSnapshotDTO` + `customer.events.v1` replica pattern (ADR-0044), exactly like every other consumer — no synchronous reach into pos-customer's tables.
+- Keeps consent/suppression enforcement authoritative in pos-customer (the system of record for party contactability); pos-marketing *asks before sending* and never overrides it.
+
+**Considered and rejected:** a thin campaign model embedded in pos-customer that delegates only raw message delivery. Rejected because it couples an unbounded send-lifecycle (per-recipient state, provider webhooks, retry/backoff, delivery analytics) to the customer master, blurs the domain wall, and would have to be extracted later once open/click tracking and A/B testing arrive. The `[CRM]`/`[MKT]` tags below reflect the accepted split, not an either/or.
+
+**New module bootstrap (`pos-marketing`):** standard `pos-{domain}` layout under `com.positivity.marketing` — `PosMarketingApplication` at root, `service/` public interfaces, `internal/{controller,service,repository,entity,dto,config,client,event}`, `MarketingEventTypes` + `MarketingEventTypeInitializer`, `MarketingPermissionRegistry`, own Postgres schema + Flyway baseline (`V1__baseline_marketing_schema.sql`), ArchUnit `ArchitectureTest`, `server.port: 0` + Eureka registration, gateway route `marketing/vN`. Depends on `pos-events`, `pos-shared-dtos`, `pos-domain-events`, `pos-security-common`; **no** compile-time dependency on pos-customer (integration is REST via gateway + `customer.events.v1` events only).
 
 ### 0.4 Platform ground rules every story must honor
 
@@ -174,7 +180,7 @@ Campaigns are only as good as their targeting. pos-customer today has no tags an
 - `PartyTagAssignment`: `(partyId, tagId)`, `assignedBy`, `assignedAt`, optional `source` (MANUAL/CAMPAIGN/IMPORT/RULE). Tags apply to both party subtypes.
 - Endpoints under `/v1/crm/parties/{partyId}/tags` (list/add/remove) + `/v1/crm/tags` (catalog CRUD). Permissions `crm:tag:{view,manage,assign}`.
 
-### 3.2 Entity — `Segment`  **[CRM]** (recommend) or **[MKT]**
+### 3.2 Entity — `Segment`  **[CRM]**
 
 A **named, reusable audience definition**. Two flavors (Odoo parity: `mailing.list` static vs `mailing.filter` dynamic):
 
@@ -411,7 +417,7 @@ New tables in pos-customer migrations (continue the V-series after current max V
 | O-5 | **Structured address / geography** — needed for geo/region segmentation and mail campaigns; today `primaryAddress` is free text. Build a structured address, or rely on shop/location association? | CRM + Location | §3.3 geo attributes |
 | O-6 | **Prospect/inquiry ownership** — does `pos-inquiry` own the Inquiry object, or is a `PROSPECT` lifecycle stage on the party sufficient for v1? | CRM + product | §5 |
 | O-7 | **Declined-service event** — will `pos-workorder` emit a `serviceLine.declined` fact to drive follow-up tasks? | Workorder + CRM | §6.1 |
-| O-8 | **Module placement** confirmation — new `pos-marketing` module vs campaign-in-pos-customer (§0.3). | Architecture | §0.3, all [MKT] items |
+| O-8 | ~~**Module placement** — new `pos-marketing` module vs campaign-in-pos-customer.~~ **RESOLVED (ACCEPTED 2026-07-28): new `pos-marketing` module** (§0.3). | Architecture | — (closed) |
 
 ---
 
@@ -420,7 +426,7 @@ New tables in pos-customer migrations (continue the V-series after current max V
 Waves are dependency-ordered; each is independently shippable.
 
 - **Wave 1 — CRM data foundations [CRM]:** `PartyTag`(+assignment), `Segment` (static + dynamic over already-available party/tier/tag/vehicle attributes), marketing-consent enrichment on `CommunicationPreference`, `SuppressionEntry`, `ConsentEvent`, `CustomerInteraction` (generalize `PartyNote`). Snapshot integration. *No external dependencies; unblocks everything.*
-- **Wave 2 — Campaign core [MKT]:** `Campaign` + lifecycle, `MessageTemplate`, audience binding to segments, audience preview (consent-filtered), attribution `campaignCode` on redemptions. Resolves O-8 first. *Depends on Wave 1 + O-1 for actual send.*
+- **Wave 2 — Campaign core [MKT]:** stand up the `pos-marketing` module (§0.3 bootstrap), then `Campaign` + lifecycle, `MessageTemplate`, audience binding to segments, audience preview (consent-filtered), attribution `campaignCode` on redemptions. *Depends on Wave 1 + O-1 for actual send.*
 - **Wave 3 — Send + attribution [MKT]:** `CampaignSend`, provider channel adapter(s), async batched dispatch with send-time consent/suppression re-check, provider webhooks → suppression + delivery stats, `GET /stats` with redemption attribution. *Depends on O-1, O-3.*
 - **Wave 4 — Follow-up & prospects [CRM/inquiry]:** `FollowUpTask` (declined-service + service-due), `Inquiry`/`PROSPECT` lifecycle, hand-off to shop-manager. *Depends on O-4, O-6, O-7.*
 - **Backlog:** service-due/churn signal (§7), A/B testing, double opt-in, structured address (O-5), account ownership (§6.2).

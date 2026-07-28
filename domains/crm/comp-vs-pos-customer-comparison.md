@@ -100,7 +100,7 @@
 | Concern | Odoo | pos-customer | Notes / Verdict |
 | --- | --- | --- | --- |
 | Eventing / async integration | ORM + mail bus | Transactional outbox → `customer.events.v1`, replica consumers (`vehicle.events.v1`, `people-contact.events.v1`), manifests + replay, `ProcessedEvent` idempotency | **HAVE** — strong ADR-0044 rails; new campaign facts/commands ride the same outbox. |
-| Multi-channel send infra | Outgoing mail servers, IAP SMS | **Absent** in pos-customer | **BUILD / ELSEWHERE** — needs an email/SMS delivery channel (provider client or a `pos-notifications`/`pos-documents`-style sender). Key architectural decision, spec §0/§2. |
+| Multi-channel send infra | Outgoing mail servers, IAP SMS | **Absent** in pos-customer | **BUILD** in the **new `pos-marketing` module** (ACCEPTED, spec §0.3) — needs an email/SMS delivery channel (provider client or a `pos-notifications`/`pos-documents`-style sender). Provider selection is the remaining open item (spec §2, O-1). |
 | Idempotent redemption ingest | — | `recordRedemption` (dup → 409), `PromotionCounter` `@Version` | **HAVE.** |
 | Permissions model | Security groups | `crm:*` permission taxonomy (party/contact/relationship/promotion_redemption/…) registered to `pos-security-service` | **HAVE** — extend with `crm:campaign:*`, `crm:segment:*`, `crm:consent:*`. Spec each section. |
 
@@ -110,5 +110,5 @@
 2. **Consent enforcement.** Walk a send through the suppression checks: per-channel `CommunicationPreference`, marketing opt-out, global suppression list, quiet hours. Compare against Odoo's two-tier (per-list opt-out + global blacklist) and decide the equivalent tiers for Positivity.
 3. **"Pipeline" boundary.** Confirm explicitly that appointment→estimate→workorder→invoice (shop-manager + workorder) is the sales pipeline and that pos-customer will *not* grow an opportunity kanban — record it as a non-goal so it isn't reintroduced.
 4. **Follow-up vs booking boundary.** Model a "declined brake service" follow-up task and show it hands off to `pos-shop-manager` for the actual re-booking rather than duplicating scheduling.
-5. **Where campaigns live.** Decide whether the campaign/segment/consent capability is a new module (`pos-marketing`/`pos-campaign`) or an extension of `pos-customer`. Weigh ArchUnit module boundaries, the fact that parties/consent/redemptions already live in pos-customer, and the send-infrastructure dependency. (Spec §0 makes a recommendation.)
+5. **Where campaigns live — DECIDED.** Campaign orchestration + send live in a **new `pos-marketing` module**; segments/tags/consent/suppression/interaction-history/prospects stay in `pos-customer` (ACCEPTED 2026-07-28, spec §0.3). The exercise now is to validate the split against ArchUnit boundaries and confirm pos-marketing integrates with pos-customer via gateway REST + `customer.events.v1` only (no compile-time coupling).
 6. **Interaction history retro-fit.** Decide whether the customer interaction log generalizes the existing one-way `PartyNote` projection or is a new entity, and what write API it needs.
