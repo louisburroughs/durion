@@ -1,6 +1,6 @@
 ## Odoo Parity Plan — pos-customer (CRM)
 
-> Status: DRAFT · Created 2026-07-28 · Branch: `claude/odoo-crm-pos-customer-comparison-pc1ky6`
+> Status: **ACCEPTED** · Created 2026-07-28 · Accepted 2026-07-28 · Branch: `claude/odoo-crm-pos-customer-comparison-pc1ky6`
 >
 > Goal: bring the Durion CRM surface to functional parity with the Odoo 19 CRM capabilities that matter for an **enterprise tire-service management** platform — without importing the parts of Odoo's sales funnel that do not fit a service shop. Revenue is realized through the workorder flow (`pos-shop-manager` → `pos-workorder` → `pos-invoice`); this plan builds the **demand-generation and customer-relationship layer** that feeds it: marketing campaigns (differentiated commercial vs individual), segmentation, marketing-grade consent, interaction history, follow-up, and lightweight prospect capture.
 >
@@ -249,8 +249,22 @@ Critical path: Wave 1 (A2/A3/A5) → B3 → C1 → C2(FI-2) → C4. FI-2 is the 
 ## 9. Issue tracking
 
 - **Cross-domain prerequisites (created):** FI-1 `durion-positivity-backend#1134`, FI-2 `durion#369`, FI-3 `durion-positivity-backend#1133`, FI-4 `durion-positivity-backend#1135`.
-- **Implementation stories (to be created):** A1–A8 + A-follow, B0–B3, C1–C4, D1–D2 — file as capability stories under a CRM/marketing capability in `durion-positivity-backend` (and the `pos-marketing` bootstrap). Suggested labels: `[STORY]`, domain `crm`/`marketing`, wave tag.
-- **Module addition:** `pos-marketing` (B0) requires a reactor `pom.xml` change + gateway route + CI wiring — call out in the PR description.
+- **Implementation stories (created 2026-07-28, all in `durion-positivity-backend`):**
+
+  | Story | Issue | Story | Issue |
+  | --- | --- | --- | --- |
+  | A1 Party tags | #1136 | B0 pos-marketing bootstrap | #1145 |
+  | A2 Segment model | #1137 | B1 Campaign + lifecycle | #1146 |
+  | A3 Marketing consent enrichment | #1138 | B2 Message templates | #1147 |
+  | A4 Consent-change audit | #1139 | B3 Audience binding + preview | #1148 |
+  | A5 Suppression list | #1140 | C1 CampaignSend + dispatch | #1149 |
+  | A6 Interaction history | #1141 | C2 Shared sender adapter | #1150 |
+  | A7 Redemption `campaignCode` | #1142 | C3 Log sends to interactions | #1151 |
+  | A8 Snapshot integration | #1143 | C4 Stats + attribution | #1152 |
+  | A-follow Service-history/geo attrs | #1144 | D1 FollowUpTask | #1153 |
+  |  |  | D2 Prospect + Inquiry | #1154 |
+
+- **Module addition:** `pos-marketing` (B0, #1145) requires a reactor `pom.xml` change + gateway route + CI wiring — call out in the PR description.
 
 ---
 
