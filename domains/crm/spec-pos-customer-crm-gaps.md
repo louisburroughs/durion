@@ -29,13 +29,13 @@ That pipeline already exists and is owned by `pos-shop-manager` (appointments, s
 | B | **Segmentation, tags, and audiences** over party/vehicle/service data | Target the right customers; power A | `pos-customer` (data) + `pos-marketing` (audience binding) |
 | C | **Marketing consent, suppression, and interaction history** | Legal defensibility (CAN-SPAM/TCPA), don't spam, know what we sent | `pos-customer` |
 | D | **Follow-up / declined-service tasks** | Convert declined recommendations and service-due into bookings | `pos-customer` (hand off to `pos-shop-manager`) |
-| E | **Prospect/inquiry capture** (adapted lead capture) | Onboard new fleet accounts and web inquiries | `pos-inquiry` or `pos-customer` |
+| E | **Prospect/inquiry capture** (adapted lead capture) | Onboard new fleet accounts and web inquiries | `pos-customer` (not `pos-inquiry` — that module is for supplier inquiries) |
 
 ### 0.3 DECISION (ACCEPTED) — a new `pos-marketing` module owns campaigns
 
 **Decision:** campaign functionality lives in a **new `pos-marketing` bounded-context module**, not inside pos-customer. `pos-marketing` owns campaign definition, audience binding, send orchestration, message templates, and campaign analytics. `pos-customer` remains the customer master and owns the CRM-native data campaigns *consume* — segments, tags, marketing consent, suppression, interaction history, and prospects.
 
-> Status: **ACCEPTED** (2026-07-28). This resolves open question O-8 and is binding on the plan derived from this spec. Every item below tagged **[MKT]** is built in `pos-marketing`; every **[CRM]** item is built in `pos-customer` (or `pos-inquiry` where noted).
+> Status: **ACCEPTED** (2026-07-28). This resolves open question O-8 and is binding on the plan derived from this spec. Every item below tagged **[MKT]** is built in `pos-marketing`; every **[CRM]** item is built in `pos-customer`.
 
 pos-customer already owns the party master, communication preferences, and promotion-redemption ledger — the *data* campaigns target and attribute against. But full campaign orchestration (audience resolution, scheduled multi-channel sends, delivery tracking, per-recipient state) is a distinct lifecycle with its own heavy dependency — **outbound message delivery infrastructure (email/SMS), which pos-customer does not have** — and belongs in its own module.
 
@@ -137,7 +137,7 @@ Transitions are `@EmitEvent` command endpoints; SENDING/SENT emit facts on `mark
 ### 1.5 Offer & catalog linkage
 
 - `promotionOfferId` references a `pos-price` `PromotionOffer` (validate it exists + is ACTIVE at schedule time via a load-balanced read or a replicated offer fact). The campaign never defines discount type/value.
-- If audience-type-specific eligibility is required (e.g. a fleet-only offer), coordinate with `pos-price` so its eligibility rules can accept an `audienceType`/`partyType` or `campaignCode` input. **Open question O-3.**
+- If audience-type-specific eligibility is required (e.g. a fleet-only offer), `pos-price` eligibility rules *can* accept an `audienceType`/`partyType` or `campaignCode` input — whether they *do* today is unverified. **Resolved (O-3): raise a follow-up issue** on `pos-price` to confirm/implement an audience-type / campaign-code eligibility predicate (see §11.1, FI-1).
 - `catalogFocusRef` references a `pos-catalog` product or collection for content assembly (e.g. campaign body lists the promoted tire lines). Read-only reference.
 
 ### 1.6 Acceptance criteria (representative)
@@ -159,7 +159,7 @@ Per-channel content with token substitution (`{{firstName}}`, `{{vehicleYearMake
 
 - Audience resolution → per-recipient **`CampaignSend`** rows (`campaignId`, `recipientPartyId`, `contactId`, `channel`, `resolvedAddress` [transient/hashed], `status`, `providerMessageId`, `failureReason`, timestamps).
 - Dispatch is **async & batched** (reuse the outbox/worker pattern), rate-limited, and **re-checks consent + suppression at send time** (not just at preview — consent can change between schedule and send).
-- **Channel delivery is provider-backed.** Decision O-1: use an email/SMS provider client (SES/SendGrid/Twilio-style) behind a `MessageChannel` interface, or route through an existing platform sender. This module owns the *orchestration*; the raw transport may be a thin adapter. Bounces/complaints feed the suppression list (§4.3).
+- **Channel delivery routes through the shared platform sender.** Resolved (O-1): pos-marketing does **not** integrate an email/SMS provider directly — it hands each rendered message to the platform's shared notification/sender service behind a `MessageChannel` interface and owns only the *orchestration* (audience, batching, state, retry policy). The shared sender owns transport, provider credentials, and bounce/complaint webhooks; it must relay delivery/bounce/complaint outcomes back to pos-marketing (event or callback) so `CampaignSend` state and the suppression list (§4.3) stay current. Confirm the shared sender's contract exists / gaps — see §11.1, FI-2.
 - Provider webhooks (delivered/bounced/complained/opened/clicked) update `CampaignSend` and feed §8 stats. Open/click tracking is provider-dependent — degrade gracefully if unavailable (v1 may track only sent/delivered/bounced + redemption).
 
 ### 2.3 Acceptance criteria
@@ -199,12 +199,15 @@ A safe, validated predicate tree (**not** free SQL) over a fixed attribute catal
 | Billing rules | `taxExempt`, `creditHold`, `paymentTerms` |
 | Consent (§4) | `marketing email opted-in`, `channel allowed` (segments should pre-filter, though send-time re-checks anyway) |
 | Vehicle (from `ext_vehicle`) | `owns make/model`, `vehicle year range`, `has active vehicle`, `vehicle count ≥ N` (fleet size) |
-| Service history (needs data — see O-4) | `last service > N months` (win-back), `service-due` (care preference interval elapsed), `declined service in last N days` |
-| Geography | shop/location association, region (needs structured address — O-5) |
+| Service history (needs a new data feed — resolved O-4) | `last service > N months` (win-back), `service-due` (care preference interval elapsed), `declined service in last N days` |
+| Geography (needs structured address — resolved O-5) | shop/location association, region |
 
 - Predicate = boolean tree of `{attribute, operator, value}` leaves with AND/OR/NOT.
 - Resolution is a query builder over local tables + replicas; must paginate and cap.
-- **Some high-value attributes (service history, structured geography) require data pos-customer doesn't hold today** — see Open Questions O-4/O-5. v1 can ship with the party/tier/tag/vehicle attributes it already has and add service-history predicates when the data feed exists.
+- **Two attribute groups depend on data pos-customer doesn't hold today, now resolved with follow-up work:**
+  - *Service history* (resolved O-4): `pos-workorder`/workexec **will emit** service-completion and declined-service facts, which pos-customer consumes into a local projection (powers win-back, service-due, and declined-service predicates and the §6 follow-up tasks). Follow-up issue §11.1 FI-3.
+  - *Structured geography* (resolved O-5): a **structured address will be built in `pos-people-contact`** (the person/contact-point authority), replacing free-text `primaryAddress`; pos-customer reads it via the `ext_people_contact_person` replica / snapshot for region/geo segmentation. Follow-up issue §11.1 FI-4.
+- **v1 can still ship** with the party/tier/tag/vehicle attributes pos-customer already has, adding the service-history and geography predicates as those feeds land.
 
 ### 3.4 Endpoints (`/v1/crm/segments`)
 
@@ -225,7 +228,7 @@ pos-customer has a solid base (`CommunicationPreference` with per-channel prefer
 ### 4.1 Enrich consent — extend `CommunicationPreference`
 
 - Model **per-channel marketing consent** separately from transactional contactability: `marketingEmailConsent`, `marketingSmsConsent` (OPT_IN/OPT_OUT/UNSET) — distinct from the operational `emailPreference`/`smsPreference`.
-- For **COMMERCIAL** accounts, consent may be held at the account level and/or per contact-role; define whether an operations contact's consent is personal or account-delegated. **Open question O-2.**
+- **COMMERCIAL consent model (resolved, O-2):** marketing consent is held **personally by the primary business contact** — that contact's own per-channel `marketingEmailConsent`/`marketingSmsConsent` governs account-level campaign sends — **plus an account-level marketing flag** on `CommercialParty` (`accountMarketingOptOut`) that acts as a master gate: when the account flag is opted-out, no contact on the account is marketed regardless of personal consent. Individual (person) parties use their own personal per-channel consent directly. *(Assumption pending confirmation: the account-level flag is a hard master switch, not merely a default; and only the primary business contact's personal consent — not every account contact's — is consulted for account-level sends.)*
 - Add **quiet-hours / cadence** guidance (optional v1): max marketing touches per party per window, do-not-disturb hours (respect timezone).
 - Capture **opt-out reason** (catalog `OptOutReason`: NOT_INTERESTED, TOO_FREQUENT, NEVER_SIGNED_UP, LEGAL_DNC, …) — Odoo parity with `mailing.subscription.optout`.
 
@@ -262,16 +265,18 @@ Extend `CrmSnapshotDTO` with a consent summary (per-channel marketing consent + 
 
 ---
 
-## 5. Capability E — Prospect / inquiry capture (adapted lead capture)  **[pos-inquiry or CRM]**
+## 5. Capability E — Prospect / inquiry capture (adapted lead capture)  **[CRM]**
 
-Positivity has no "stranger" object — parties are created already-as-customers, and `pos-inquiry` is an empty placeholder. New fleet accounts and web "request a quote" inquiries have no home.
+Positivity has no customer-facing "stranger" object — parties are created already-as-customers. New fleet accounts and web "request a quote" inquiries have no home.
+
+> **Placement note (resolved O-6):** `pos-inquiry` is **not** the home for this — that module is a holder for *inbound inquiries to suppliers* (procurement), not customer prospects. Customer prospect/inquiry capture is a CRM concern and lives in **`pos-customer`** (with the public inbound web endpoint fronted through the gateway; campaign-attributed inbound may also originate a command from `pos-marketing`). Do not put customer prospects in `pos-inquiry`.
 
 ### 5.1 Adapted model — **do not** import `crm.lead`
 
-Instead of Odoo's denormalized-lead-then-materialize funnel, model a lightweight **prospect state on the party** plus an inquiry capture:
+Instead of Odoo's denormalized-lead-then-materialize funnel, model a lightweight **prospect state on the party** plus an inquiry capture, both in pos-customer:
 
-- Add `PARTY_STATUS = PROSPECT` (or a `lifecycleStage` field: `PROSPECT → ACTIVE → DORMANT`) so a party can exist pre-first-service without polluting active-customer queries.
-- **`Inquiry`** (in `pos-inquiry`, which is reserved for exactly this): `inquiryId`, `channel` (WEB_FORM, PHONE, WALK_IN, REFERRAL, CAMPAIGN), `audienceType`, captured contact fields, `vehicleOfInterest?`, `serviceOfInterest?`, `campaignCode?` (attribution), `status` (NEW → CONTACTED → CONVERTED → CLOSED), `partyId?` (once linked/created), `assignedTo?`.
+- Add a `lifecycleStage` field on the party (`PROSPECT → ACTIVE → DORMANT`) so a party can exist pre-first-service without polluting active-customer queries.
+- **`Inquiry`** (in `pos-customer`): `inquiryId`, `channel` (WEB_FORM, PHONE, WALK_IN, REFERRAL, CAMPAIGN), `audienceType`, captured contact fields, `vehicleOfInterest?`, `serviceOfInterest?`, `campaignCode?` (attribution), `status` (NEW → CONTACTED → CONVERTED → CLOSED), `partyId?` (once linked/created), `assignedTo?`.
 - **Conversion**: an inquiry converts by creating/linking a party (reuse `checkPartyDuplicates` + `createCommercialAccount`/person create) and optionally handing off to `pos-shop-manager` to book an appointment. No opportunity/stage machinery.
 
 ### 5.2 Web form / email capture
@@ -281,7 +286,7 @@ Instead of Odoo's denormalized-lead-then-materialize funnel, model a lightweight
 
 ### 5.3 Verdict / scope
 
-**BUILD (light, adapted).** This is genuinely useful but lower priority than campaigns/consent. It can ship after A–C. If `pos-inquiry` ownership is unclear, the minimal version is just the `PROSPECT` lifecycle stage + `campaignCode` attribution on party creation, deferring the full inquiry object. **Open question O-6.**
+**BUILD (light, adapted) in pos-customer.** This is genuinely useful but lower priority than campaigns/consent. It can ship after A–C. The minimal version is just the `lifecycleStage=PROSPECT` state + `campaignCode` attribution on party creation, deferring the full `Inquiry` object.
 
 ---
 
@@ -292,7 +297,7 @@ The service-shop analog of Odoo's activities/next-actions and lost-reason — re
 ### 6.1 `FollowUpTask`
 
 - `taskId`, `partyId`, `vehicleId?`, `type` (DECLINED_SERVICE_FOLLOWUP, SERVICE_DUE_REMINDER, FLEET_CHECKIN, CAMPAIGN_RESPONSE, GENERAL), `dueDate`, `assignedTo?` (CSR), `status` (OPEN/DONE/DISMISSED), `sourceWorkorderId?`, `reason?` (decline reason), `outcome?`, `notes`.
-- **Created from workorder events**: when a recommended service line is declined on a workorder, `pos-workorder` emits a fact → pos-customer creates a `DECLINED_SERVICE_FOLLOWUP` task (parity with Odoo lost-reason, but at line granularity and actionable). Requires a workorder event (**O-7**).
+- **Created from workorder events (resolved O-7):** when a recommended service line is declined on a workorder, `pos-workorder` **will emit** a `serviceLine.declined` fact → pos-customer creates a `DECLINED_SERVICE_FOLLOWUP` task (parity with Odoo lost-reason, but at line granularity and actionable). This is the same workorder-events workstream as the service-history feed (O-4) and should likely be **one combined follow-up issue** (§11.1 FI-3).
 - **Created from service-due**: `VehicleCarePreference` interval elapsed (care-preference feature referenced in DECISION-INVENTORY-012) → `SERVICE_DUE_REMINDER` task and/or campaign audience membership.
 - **Hand-off, not scheduling**: completing a task can deep-link to `pos-shop-manager` appointment creation. pos-customer never books.
 - Endpoints `/v1/crm/parties/{partyId}/follow-ups` + a CSR work-queue view `/v1/crm/follow-ups?assignedTo=&status=`. Permissions `crm:followup:{view,manage}`.
@@ -312,7 +317,7 @@ Odoo has salesperson/team ownership; Positivity may want a CSR/account-manager a
 
 Odoo's PLS predicts *deal* win probability — not applicable. The Positivity-relevant analog is a **service-due / churn-risk signal**: which customers are overdue for service or lapsing. This is derivable from vehicle care preferences + service history rather than ML.
 
-- **Backlog / NON-GOAL for v1.** Once service-history data (O-4) is available, a simple rules-based "next-service-due" and "at-risk (no visit in N months)" scoring can drive campaign segments (§3) and follow-up tasks (§6). No Naive-Bayes/ML needed. Record as a fast-follow, not a v1 deliverable.
+- **Backlog / NON-GOAL for v1.** Once the service-history feed (FI-3) is available, a simple rules-based "next-service-due" and "at-risk (no visit in N months)" scoring can drive campaign segments (§3) and follow-up tasks (§6). No Naive-Bayes/ML needed. Record as a fast-follow, not a v1 deliverable.
 
 ---
 
@@ -358,7 +363,8 @@ targeted → eligible(after consent/suppression) → sent → delivered → (ope
 |---|---|---|
 | `PartyTag`, `PartyTagAssignment` | [CRM] | new |
 | `Segment`, `SegmentMember` | [CRM] | new |
-| `CommunicationPreference` (marketing consent fields, quiet hours) | [CRM] | change |
+| `CommunicationPreference` (per-channel marketing consent, quiet hours, opt-out reason) | [CRM] | change |
+| `CommercialParty.accountMarketingOptOut` (account-level master gate, O-2) | [CRM] | change |
 | `ConsentEvent` | [CRM] | new (append-only) |
 | `SuppressionEntry` | [CRM] | new |
 | `CustomerInteraction` | [CRM] | new (generalizes `PartyNote`) |
@@ -367,7 +373,7 @@ targeted → eligible(after consent/suppression) → sent → delivered → (ope
 | `PromotionRedemption.campaignCode` | [CRM] | change (attribution) |
 | `Campaign`, `CampaignSend` | [MKT] | new |
 | `MessageTemplate` | [MKT] | new |
-| `Inquiry` | pos-inquiry | new |
+| `Inquiry` | [CRM] pos-customer | new |
 
 ### 9.2 Permissions (code-first registries)
 
@@ -379,7 +385,7 @@ targeted → eligible(after consent/suppression) → sent → delivered → (ope
 
 - **New facts** `marketing.events.v1`: `campaign.scheduled`, `campaign.sent`, `campaign.send.delivered/bounced/complained`, `campaign.converted`.
 - **CRM facts** on `customer.events.v1`: `party.tag.changed`, `party.consent.changed`, `party.suppressed`, `segment.changed`, `interaction.logged` (for consumers/replicas).
-- **Consumed by CRM**: workorder `serviceLine.declined` (→ follow-up task, **O-7**), `promotion.redeemed`/existing redemption path (→ attribution).
+- **Consumed by CRM**: workorder `serviceLine.declined` + service-completion facts (→ follow-up tasks + service-history projection, FI-3), `promotion.redeemed`/existing redemption path (→ attribution).
 - **Consumed by MKT**: `customer.events.v1` party/segment/consent facts (audience replica), redemption facts (attribution).
 - Reuse outbox + `ProcessedEvent` idempotency.
 
@@ -406,18 +412,31 @@ New tables in pos-customer migrations (continue the V-series after current max V
 
 ---
 
-## 11. Open questions / cross-domain contracts needed
+## 11. Resolved decisions (was: open questions)
 
-| # | Question | Owner(s) | Blocks | Answer |
-|---|---|---|---|---|
-| O-1 | Email/SMS **delivery provider & transport** — dedicated provider client vs a shared platform sender? Owns bounce/complaint webhooks? | Platform/Positivity-integrations + Marketing | §2 send, §4.3 suppression |Assume we will use a shared platform sender|
-| O-2 | **Commercial consent model** — is marketing consent held at the account level, per contact-role, or personally by each contact? Legal basis for B2B sends. | CRM + Security/Legal | §4.1 |Personally, by primary contact and a flag at account level|
-| O-3 | Can `pos-price` **eligibility rules accept an `audienceType`/`campaignCode`** input for audience-specific offers? | Pricing | §1.5 |It can; I don't know if it does.  Make a follow-up issue|
-| O-4 | **Service-history data feed** — does pos-customer get workorder/service-completion facts to power "last service", "service-due", "declined service" segments? Today it only consumes `ContactPreferenceUpdated` + `PartyNoteAdded`. | Workexec/Workorder + CRM | §3.3, §6, §7 |Yes, create an issue for emitting these events and consuming them|
-| O-5 | **Structured address / geography** — needed for geo/region segmentation and mail campaigns; today `primaryAddress` is free text. Build a structured address, or rely on shop/location association? | CRM + Location | §3.3 geo attributes |Build a structured address in pos-people-contact, create issue to address this gap|
-| O-6 | **Prospect/inquiry ownership** — does `pos-inquiry` own the Inquiry object, or is a `PROSPECT` lifecycle stage on the party sufficient for v1? | CRM + product | §5 |pos-inquiry is a holder for inquiries to suppliers, not prospects|
-| O-7 | **Declined-service event** — will `pos-workorder` emit a `serviceLine.declined` fact to drive follow-up tasks? | Workorder + CRM | §6.1 | yes - make a follow-up issue to address (closely related to O-4, maybe it's the same issue?)|
-| O-8 | ~~**Module placement** — new `pos-marketing` module vs campaign-in-pos-customer.~~ **RESOLVED (ACCEPTED 2026-07-28): new `pos-marketing` module** (§0.3). | Architecture | — (closed) |chose pos-marketing|
+All eight questions are resolved (answers provided 2026-07-28). Where an answer implies cross-domain work, it is captured as a follow-up issue in §11.1.
+
+| # | Question | Decision | Spec impact |
+|---|---|---|---|
+| O-1 | Email/SMS delivery provider & transport | **Use the shared platform sender**; pos-marketing owns orchestration only, the shared sender owns transport + bounce/complaint webhooks and relays outcomes back. | §2.2 · FI-2 |
+| O-2 | Commercial consent model | **Personal consent of the primary business contact + an account-level `accountMarketingOptOut` master gate** on `CommercialParty`. Individuals use personal per-channel consent. | §4.1, §9.1 |
+| O-3 | Can `pos-price` eligibility accept `audienceType`/`campaignCode`? | **It can; unverified whether it does** → follow-up issue on pos-price. | §1.5 · FI-1 |
+| O-4 | Service-history data feed to pos-customer | **Yes** — emit workorder/service-completion facts and consume them → follow-up issue. | §3.3, §6, §7 · FI-3 |
+| O-5 | Structured address / geography | **Build a structured address in `pos-people-contact`**; pos-customer reads it via the replica → follow-up issue. | §3.3 · FI-4 |
+| O-6 | Prospect/inquiry ownership | **Not `pos-inquiry`** (that is for supplier inquiries) — prospect/inquiry capture lives in **`pos-customer`** (`lifecycleStage=PROSPECT` + `Inquiry`). | §5, §9.1 |
+| O-7 | Declined-service event from pos-workorder | **Yes** — `serviceLine.declined` fact drives follow-up tasks; **same workstream as O-4**, combine into one issue. | §6.1 · FI-3 |
+| O-8 | Module placement | **New `pos-marketing` module** (ACCEPTED). | §0.3 |
+
+### 11.1 Follow-up issues to create
+
+Cross-domain work the answers call for, to be raised as tracked issues before/with the plan. Repos: platform/coordination issues in `durion`; service-specific work in `durion-positivity-backend`.
+
+| ID | Title | Repo / target module | Scope |
+|---|---|---|---|
+| FI-1 | pos-price: audience-type / campaign-code eligibility predicate | `durion-positivity-backend` · pos-price | Confirm current eligibility-rule inputs; add `audienceType`/`partyType`/`campaignCode` predicate support so campaigns can bind audience-specific offers (spec §1.5). |
+| FI-2 | Shared platform sender contract for marketing (email + SMS) | `durion` (coordination) → owning sender service | Define/confirm the shared sender API pos-marketing calls, and the delivery/bounce/complaint outcome feedback (event or callback) that updates `CampaignSend` + suppression (spec §2.2, §4.3). |
+| FI-3 | Workorder → CRM facts: service-completion + declined-service | `durion-positivity-backend` · pos-workorder (emit) + pos-customer (consume) | Emit service-completion and `serviceLine.declined` facts; pos-customer consumes into a service-history projection powering win-back/service-due/declined segments (§3.3) and follow-up tasks (§6). **Combines O-4 and O-7.** |
+| FI-4 | Structured address in pos-people-contact | `durion-positivity-backend` · pos-people-contact (own) + pos-customer (replica read) | Model a structured address (replace free-text `primaryAddress`); expose it on the person replica/snapshot for region/geo segmentation (§3.3). Confirm whether it also covers commercial/organization addresses. |
 
 ---
 
