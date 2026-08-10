@@ -337,6 +337,28 @@ This document is the non-normative rationale and decision log for the Pricing do
 - Governance & owner recommendations:
  	- Compliance review for any historical edit policy change.
 
+### DECISION-PRICING-019 — Sell-price system-of-record split (ADR-0054)
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); ADR-0054 (durion#382, decided 2026-08-10)
+- Decision: `pos-price` owns transactional sell-price resolution (quote chain: base price → location override → customer-tier discount) and is the only source read by quotes, workorder/estimate pricing, and checkout; `pos-catalog` owns list/MSRP reference pricing (price books, MSRP history, reference series including PRICAT suggested retail per ADR-0053 §4), which is displayable and reportable but never a transactional price source.
+- Alternatives considered:
+ 	- Option A (chosen): Narrow both models to documented, non-overlapping roles
+ 	- Option B: Retire one of the two sell-price models
+- Reasoning and evidence:
+ 	- Two coexisting sell-price models had overlapping authority with no documented boundary (surfaced by durion#371, formalized in durion#382).
+ 	- Each model already serves a distinct need: transactional quoting (pos-price) vs reference/list display (pos-catalog).
+- Architectural implications:
+ 	- Routing rule for new stories: computing what a customer pays → `pos-price`; showing a list/MSRP/reference price → `pos-catalog`.
+ 	- Catalog `CUSTOMER_TIER` price books are tier reference/list prices; `pos-price` customer-tier discounts are the applied transactional mechanism — never competing resolvers (ADR-0054 §3).
+ 	- `pos-price` base prices become history-retaining (own row identity, append-on-change windows, ADR-0054 §4); `pos-price` stays a utility module (ADR-0044 §1).
+ 	- Supplier PRICAT cost enters neither resolver (ADR-0053 §4); inventory valuation cost is pos-inventory's (ADR-0048).
+- Auditor-facing explanation:
+ 	- Inspect that transactional documents (quotes, estimates, invoices) reference pos-price outputs only, and that catalog price data appears only as displayed reference values.
+- Migration & backward-compatibility notes:
+ 	- Backend stories: base-price history schema (pos-price), CUSTOMER_TIER candidate-book selection (pos-catalog), and README/business-rules boundary documentation land under ADR-0054; until merged, reviewers enforce the boundary from the ADR.
+- Governance & owner recommendations:
+ 	- Pricing & Fees owns transactional quoting semantics; Product & Catalog owns reference pricing; cross-domain review required for any story that moves a price fact across the boundary.
+
 ## End
 
 End of document.
