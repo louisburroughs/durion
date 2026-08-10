@@ -56,7 +56,7 @@ Findings from the durion#371 investigation (as-is analysis in the issue comments
   convention; PRICAT effective dates are vendor-local dates), source-document ID and date, import-manifest ID, and fetch timestamp.
 - Rows are **immutable**; a new vendor price appends a new row. Effective windows are half-open `[effectiveFrom, nextEffectiveFrom)` per (vendorProfileId, productId, scope).
 - **Latest** = greatest `effectiveFrom` ≤ today; ties resolve by source-document date, then fetch timestamp. Superseded rows are retained (cost history is a first-class
-  query), satisfying the durion#372 §12 decision 9 dating rule.
+  query), satisfying the dating rule resolved 2026-08-10 in the supplier architecture document (§12, decision 9).
 - The pos-price `ProductBasePrice` overwrite-on-save behavior is noted as a **pre-existing retention defect** but is out of PRICAT scope — supplier data never writes there.
 
 ### 3. Market scope, not location scope
@@ -69,7 +69,7 @@ profile's catalog. Deployments needing different supplier costs per store group 
 
 **Decision:** ✅ **Resolved**
 
-- Neither the pos-price quote chain nor the pos-catalog price-book resolver reads supplier price entries. This makes the durion#372 §12 rule — vendor prices never override
+- Neither the pos-price quote chain nor the pos-catalog price-book resolver reads supplier price entries. This makes the rule resolved in the supplier architecture document (§12, decision 9) — vendor prices never override
   service-provider or location prices — structural rather than procedural.
 - PRICAT **suggested retail** may be surfaced as reference-only display data (alongside MSRP history), labeled with its PRICAT source, and is never auto-applied to any sell
   price.

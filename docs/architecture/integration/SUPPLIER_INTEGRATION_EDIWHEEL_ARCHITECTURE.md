@@ -317,7 +317,7 @@ The [durion#371](https://github.com/louisburroughs/durion/issues/371) investigat
 - **Vendor prices never override service-provider or location-specific prices** — structurally: neither sell-price resolver reads supplier price entries. PRICAT suggested retail is reference-only display; net cost may appear as margin context, never as a pricing input.
 - PRICAT scope is buyer account + market (no location parameter); location applicability derives from the vendor profile's delivery mappings — no per-location supplier cost is invented.
 - Product matching is deterministic-only (EAN → UPC cross-reference → manufacturer+MPN), with an EAN/UPC uniqueness prerequisite in pos-catalog and quarantine for the rest; no fuzzy matching, no auto-create.
-- Event contract: manifest-chunked `supplier.pricecatalog.updated` events plus an `import.completed` completeness event on `supplier.events.v1` (ADR-0053 §7).
+- Event contract: manifest-chunked `supplier.pricecatalog.updated` events plus a `supplier.pricecatalog.import.completed` completeness event on `supplier.events.v1` (ADR-0053 §7).
 - Out of scope but flagged: the duplicate pos-price / pos-catalog sell-price models need their own reconciliation decision; the ADR holds under either outcome.
 
 ## 9. Cross-Cutting Concerns
