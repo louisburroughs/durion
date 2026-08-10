@@ -1,6 +1,6 @@
 # ADR-0053: Supplier PRICAT Ingestion, Effective Dating, and Price Precedence
 
-**Status:** PROPOSED — pending Pricing & Fees and Product & Catalog domain owner review  
+**Status:** ACCEPTED 2026-08-10 — Pricing & Fees and Product & Catalog domain sign-off recorded (durion#371)  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Pricing & Fees Domain, Product & Catalog Domain, Positivity (Integrations) Domain  
 **Affected Issues:** durion#371 (investigation), durion#373 (CAP-318), durion-positivity-backend#1224

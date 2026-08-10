@@ -117,7 +117,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0050   | Supplier Vendor Profile Configuration Model            | ACCEPTED              | 2026-08-10 |
 | 0051   | Supplier Protocol Adapter and Codec Versioning Policy  | ACCEPTED              | 2026-08-10 |
 | 0052   | Supplier Outbound Idempotency and Duplicate-Order Prevention | ACCEPTED | 2026-08-10 |
-| 0053   | Supplier PRICAT Ingestion, Effective Dating, and Price Precedence | PROPOSED | 2026-08-10 |
+| 0053   | Supplier PRICAT Ingestion, Effective Dating, and Price Precedence | ACCEPTED | 2026-08-10 |
 | 0054   | Sell-Price System of Record Split (pos-price Quoting, pos-catalog Reference) | ACCEPTED | 2026-08-10 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
