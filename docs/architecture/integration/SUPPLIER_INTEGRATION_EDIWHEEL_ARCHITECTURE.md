@@ -347,14 +347,19 @@ The AI services (DOT recognition, TireSnap) follow the same pattern behind `Tire
 
 ## 11. Suggested Phasing
 
-| Phase | Deliverable | Rationale |
-| --- | --- | --- |
-| 1 | `pos-supplier` skeleton: canonical model, profiles/bindings, registry, exchange audit, admin API. Michelin **Price Catalog (B4.0)** + **Stock Inquiry (A2.5)** | Read-only, low-risk capabilities that immediately enrich quoting; proves profile + adapter + version machinery end to end |
-| 2 | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, purchasing events | The commercial core; needs Phase 1 plumbing hardened first |
-| 3 | **Invoice fetch (B3.3)**, **Stock Report (B2.1)**, **Shipment tracking**, accounting/receiving event consumers | Back-office reconciliation |
-| 4 | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim |
-| 5 | MKCAT marketing catalog; DOT / TireSnap scanning behind the `TireIdentificationPort` placeholder | DOT scanning is expected to be required by most service providers — port defined up front, adapter implemented once confirmed |
-| Next vendor | Second EDIWheel manufacturer via configuration (+ codec gaps only) | Validates the reusability goal; target: zero changes outside `adapter/` + profile data |
+The phasing plan is decomposed into capability stories **CAP-317 through CAP-324** (GitHub issues [durion#372](https://github.com/louisburroughs/durion/issues/372)–[durion#379](https://github.com/louisburroughs/durion/issues/379)).
+
+| Phase | Capability | Deliverable | Rationale |
+| --- | --- | --- | --- |
+| 1 | CAP-317 ([#372](https://github.com/louisburroughs/durion/issues/372)) | `pos-supplier` foundation: canonical model, profiles/bindings/accounts, adapter registry, exchange audit, resilience, admin API/UI | The plumbing every later capability plugs into |
+| 1 | CAP-318 ([#373](https://github.com/louisburroughs/durion/issues/373)) | Michelin **Price Catalog (B4.0)** sync with effective-dating (consumer blocked by [#371](https://github.com/louisburroughs/durion/issues/371)) | Read-only, low-risk; proves profile + adapter + version machinery |
+| 1 | CAP-319 ([#374](https://github.com/louisburroughs/durion/issues/374)) | **Stock Inquiry (A2.5)** — live availability in Product Detail and pos-order procurement | Immediately enriches quoting; exercises the approved sync-read exception |
+| 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first |
+| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation |
+| 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** + **Shipment tracking** with inventory/receiving consumers | Back-office visibility |
+| 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim |
+| 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed |
+| Next vendor | — | Second EDIWheel manufacturer via configuration (+ codec gaps only) | Validates the reusability goal; target: zero changes outside `adapter/` + profile data |
 
 **Vendor roadmap:** after Michelin, onboard manufacturers in order of market share, favoring vendors that participate in the EDIWheel standard (they reuse existing adapters; non-participants require a new protocol family).
 
