@@ -113,10 +113,10 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0046   | Environment Log Level Policy                           | PROPOSED              | 2026-07-12 |
 | 0047   | Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals | ACCEPTED | 2026-07-17 |
 | 0048   | Inventory-Owned Valuation with Configurable Costing Method | ACCEPTED | 2026-07-23 |
-| 0049   | Supplier Integration Module Boundary and Event Contracts (pos-supplier) | PROPOSED | 2026-08-10 |
-| 0050   | Supplier Vendor Profile Configuration Model            | PROPOSED              | 2026-08-10 |
-| 0051   | Supplier Protocol Adapter and Codec Versioning Policy  | PROPOSED              | 2026-08-10 |
-| 0052   | Supplier Outbound Idempotency and Duplicate-Order Prevention | PROPOSED | 2026-08-10 |
+| 0049   | Supplier Integration Module Boundary and Event Contracts (pos-supplier) | ACCEPTED | 2026-08-10 |
+| 0050   | Supplier Vendor Profile Configuration Model            | ACCEPTED              | 2026-08-10 |
+| 0051   | Supplier Protocol Adapter and Codec Versioning Policy  | ACCEPTED              | 2026-08-10 |
+| 0052   | Supplier Outbound Idempotency and Duplicate-Order Prevention | ACCEPTED | 2026-08-10 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 

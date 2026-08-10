@@ -1,6 +1,6 @@
 # ADR-0051: Supplier Protocol Adapter and Codec Versioning Policy
 
-**Status:** PROPOSED — revised 2026-08-10 (PRCR-009)  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-009  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
 **Affected Issues:** durion#372 (CAP-317), durion-positivity-backend#1221

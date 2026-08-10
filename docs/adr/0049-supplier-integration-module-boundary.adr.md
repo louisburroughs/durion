@@ -1,6 +1,6 @@
 # ADR-0049: Supplier Integration Module Boundary and Event Contracts (pos-supplier)
 
-**Status:** PROPOSED — revised 2026-08-10 (PRCR-003/004)  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
 **Affected Issues:** durion#372–#379 (CAP-317..CAP-324), durion#371

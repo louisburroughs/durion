@@ -1,6 +1,6 @@
 # ADR-0050: Supplier Vendor Profile Configuration Model
 
-**Status:** PROPOSED — revised 2026-08-10 (PRCR-005/006/007)  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-005/006/007  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
 **Affected Issues:** durion#372 (CAP-317), durion-positivity-backend#1222

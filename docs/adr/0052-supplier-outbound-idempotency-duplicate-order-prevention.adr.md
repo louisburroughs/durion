@@ -1,6 +1,6 @@
 # ADR-0052: Supplier Outbound Idempotency and Duplicate-Order Prevention
 
-**Status:** PROPOSED — revised 2026-08-10 (PRCR-001/002/008)  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-001/002/008  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain, Order Domain  
 **Affected Issues:** durion#375 (CAP-320), durion-positivity-backend#1226
