@@ -137,6 +137,7 @@ pos-supplier/
       orchestration/              # retries, outbox, idempotency, sagas
     spi/                          # capability ports adapters implement
       SupplierOrderPort.java
+      SupplierOrderStatusPort.java
       SupplierStockInquiryPort.java
       SupplierStockReportPort.java
       SupplierPriceCatalogPort.java
