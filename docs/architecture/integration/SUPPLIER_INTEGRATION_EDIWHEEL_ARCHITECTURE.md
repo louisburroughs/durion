@@ -118,7 +118,7 @@ Pre-production policy favors clean, minimal structure. All supplier connectivity
 
 ## 5. Module Layout
 
-New backend module in `durion-positivity-backend`: **`pos-supplier`** (working name; see open question 2). Follows platform layering and ADR-0026 (service package is contract-only interfaces).
+New backend module in `durion-positivity-backend`: **`pos-supplier`** (confirmed; see §12, decision 2). Follows platform layering and ADR-0026 (service package is contract-only interfaces).
 
 ```text
 pos-supplier/
