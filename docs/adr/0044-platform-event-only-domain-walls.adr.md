@@ -1,7 +1,6 @@
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-07-22 (pos-warranty settlement sync exception, see
-§Amendments)
+**Status:** ACCEPTED — amended 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23; see §Amendments)
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -36,7 +35,7 @@ events** with result events and pending states.
 | Class                        | Modules                                                                                                                                                                                                                                                                                                       | May be called synchronously? |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`                                               | Yes — by any module          |
-| **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader` | No — events only             |
+| **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10) | No — events only             |
 | **Libraries / non-deployed** | `pos-events`, `pos-shared-dtos`, `pos-domain-events` (new), `pos-security-common`, `pos-tax-common`, `pos-bulk-ingest-lib`, `pos-document-helper`, `pos-dependencies`, `pos-archunit`                                                                                                                         | n/a                          |
 
 `pos-tax` and `pos-price` are utilities because they are stateless _computation_ (tax and price determination), not data lookups — replicating their rule engines into callers
@@ -210,17 +209,38 @@ reconciliation.
   so retries remain safe. Result events from `pos-invoice` remain useful for audit, analytics, and
   downstream consumers, but they are not the settlement authority for warranty.
 
+### 2026-07-23 — Pos-order checkout/cancellation is synchronous against pos-invoice (back-ported 2026-08-10)
+
+> **Documentation back-port.** This edge has been live in `DomainWallsTest`'s
+> `SCOPED_MODULE_EXCEPTIONS` (`pos-order` → `pos-invoice`) since the counter-sale order parity
+> work (durion-positivity-backend#1071/#1072), where the enforcement javadoc cites an "ADR-0044
+> amendment 2026-07-23" — but the entry was never added to this canonical ADR (only to the
+> since-retired backend-local copy). PRCR-003 (2026-08-10) surfaced the drift; this entry
+> regularizes it. The decision content below records what shipped.
+
+- **Decision.** The counter-sale checkout handshake creates the fronting invoice at checkout, and
+  the cancellation saga reverses settled payments, via synchronous calls from
+  `com.positivity.order.internal.client` to `pos-invoice`.
+- **Rationale.** Same money-moving counter-flow class as the 2026-07-22 warranty settlement
+  exception: invoice creation and payment reversal must fail loudly in the initiating request
+  path. Settlement signals remain asynchronous on `payment.events.v1`.
+- **Enforcement.** `SCOPED_MODULE_EXCEPTIONS` carries `pos-order` → `pos-invoice`. Widening
+  requires a further amendment to this ADR.
+
 ### 2026-08-10 — Scoped exception: synchronous supplier stock-inquiry reads from pos-supplier
 
 `pos-supplier` (new domain module for outbound supplier connectivity, durion#372, architecture in
 `docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md`) is added to the
-**Domain** class: its cross-module integration is event-only (`supplier.*` topics) with one scoped
-read exception, approved in the supplier integration review (durion#374, §12 decisions 4–5).
+**Domain** class (§1 table): its cross-module integration is event-only (`supplier.commands.v1` /
+`supplier.events.v1` topics per §3) with one scoped read exception, approved in the supplier
+integration review (durion#374, §12 decisions 4–5).
 
-- **Decision.** The positivity Product Detail composition service and `pos-order` (procurement
-  flows) MAY call `pos-supplier`'s `SupplierStockService` **read API** synchronously for live vendor
-  stock availability/quote. No other module may call `pos-supplier` synchronously, `pos-supplier`
-  calls no domain module synchronously, and no write path is included in the exception.
+- **Decision.** **`pos-catalog`** (owner of the Product Detail composition — it already serves
+  product-detail display from its `ext_inventory_availability` / `ext_product_lead_time` replicas)
+  and **`pos-order`** (procurement flows) MAY call `pos-supplier`'s `SupplierStockService`
+  **read API** synchronously for live vendor stock availability/quote. No other module may call
+  `pos-supplier` synchronously, `pos-supplier` calls no domain module synchronously, and no write
+  path is included in the exception.
 - **Rationale.** Live vendor availability is an inherently synchronous counter flow: the user is
   quoting or raising a purchase order and needs the vendor's answer now. The freshness requirement
   is seconds, not minutes — an event-fed replica of external vendor stock cannot meet it, and
@@ -230,10 +250,17 @@ read exception, approved in the supplier integration review (durion#374, §12 de
   on failure or open breaker, null (never zero) numeric fields when status is non-OK, and `asOf`
   timestamps on all values. A `pos-supplier` outage MUST degrade the calling screen's supplier
   component only — never fail the composition.
-- **Enforcement.** Encoded in `DomainWallsTest` (pos-archunit) as a per-consumer exception map
-  entry: {positivity composition module, `pos-order`} → `pos-supplier` read API only, added with
-  the CAP-319 implementation (durion-positivity-backend#1225). Widening the caller set or adding a
-  write path requires a further amendment to this ADR.
+- **Enforcement (class-level, not module-level).** A bare `SCOPED_MODULE_EXCEPTIONS` entry
+  (`pos-catalog`/`pos-order` → `pos-supplier`) would permit *any* synchronous call to
+  `pos-supplier`, including writes. The exception is therefore scoped to a **named client class**:
+  each caller's sole permitted client source is a single stock-inquiry client (e.g.
+  `SupplierStockClient` under `internal.client`) whose only target surface is the
+  `SupplierStockService` read API. `DomainWallsTest` MUST be extended to express per-source-file
+  scoping for this entry (origin module → target module → allowed client source pattern), so any
+  other client source in those modules targeting `pos-supplier` still fails the build. Delivered
+  with the CAP-319 implementation (durion-positivity-backend#1225), which also refreshes the stale
+  "as of 2026-07-22" enforcement note in the backend-local ADR pointer stub
+  (`durion-positivity-backend/docs/adr-0044-event-only-domain-walls.md`).
 - **Boundaries.** All other supplier data flows (price catalog, stock report, order lifecycle,
   invoices, shipment, workorder authorization) remain event-only per the main decision.
 

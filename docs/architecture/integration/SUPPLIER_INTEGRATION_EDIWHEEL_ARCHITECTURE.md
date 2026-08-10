@@ -120,6 +120,9 @@ Pre-production policy favors clean, minimal structure. All supplier connectivity
 
 New backend module in `durion-positivity-backend`: **`pos-supplier`** (confirmed; see §12, decision 2). Follows platform layering and ADR-0026 (service package is contract-only interfaces).
 
+Per the repository package policy, only the `service` contract interfaces (ADR-0026) and the application class live outside `internal` — everything else sits under
+`com.positivity.supplier.internal..` (ADR-0051 §1):
+
 ```text
 pos-supplier/
   src/main/java/com/positivity/supplier/
@@ -132,39 +135,40 @@ pos-supplier/
       SupplierWorkorderAuthorizationService.java
       SupplierCatalogService.java         # MKCAT marketing catalog
       SupplierProfileAdminService.java
-    domain/                       # canonical model + orchestration
-      model/                      # canonical DTOs and entities
-      orchestration/              # retries, outbox, idempotency, sagas
-    spi/                          # capability ports adapters implement
-      SupplierOrderPort.java
-      SupplierOrderStatusPort.java
-      SupplierStockInquiryPort.java
-      SupplierStockReportPort.java
-      SupplierPriceCatalogPort.java
-      SupplierInvoicePort.java
-      SupplierShipmentTrackingPort.java
-      SupplierWorkorderAuthorizationPort.java
-      SupplierCatalogPort.java
-      TireIdentificationPort.java         # DOT / sidewall AI (optional)
-    registry/                     # AdapterRegistry, VendorProfileResolver
-    config/                       # profile loading, secret resolution
-    adapter/
-      ediwheel/
-        a25/                      # A2.5 XML codecs + client
-        c1/                       # C1.0 / C1.1 XML codecs + client
-        bseries/                  # B2.1 / B3.3 / B4.0 codecs + client
-        json/                     # C1.2 JSON (ediwheel.net MKCAT style)
-      michelin/
-        s2s/                      # S2S workorder authorization JSON
-        airecognition/            # DOT + TireSnap (optional capability)
-    web/                          # admin/read controllers (profiles, audit)
-    events/                       # published event contracts
-    persistence/                  # profiles, bindings, exchange audit, outbox
+    internal/
+      domain/                     # canonical model + orchestration
+        model/                    # canonical DTOs and entities
+        orchestration/            # retries, outbox, idempotency, sagas
+      spi/                        # capability ports adapters implement
+        SupplierOrderPort.java
+        SupplierOrderStatusPort.java
+        SupplierStockInquiryPort.java
+        SupplierStockReportPort.java
+        SupplierPriceCatalogPort.java
+        SupplierInvoicePort.java
+        SupplierShipmentTrackingPort.java
+        SupplierWorkorderAuthorizationPort.java
+        SupplierCatalogPort.java
+        TireIdentificationPort.java       # DOT / sidewall AI (optional)
+      registry/                   # AdapterRegistry, VendorProfileResolver
+      config/                     # profile loading, secret resolution
+      adapter/
+        ediwheel/
+          a25/                    # A2.5 XML codecs + client
+          c1/                     # C1.0 / C1.1 XML codecs + client
+          bseries/                # B2.1 / B3.3 / B4.0 codecs + client
+          json/                   # C1.2 JSON (ediwheel.net MKCAT style)
+        michelin/
+          s2s/                    # S2S workorder authorization JSON
+          airecognition/          # DOT + TireSnap (optional capability)
+      web/                        # admin/read controllers (profiles, audit)
+      events/                     # published event contracts
+      persistence/                # profiles, bindings, exchange audit, outbox
 ```
 
 Rules:
 
-- `adapter/**` may depend on `spi` and `domain/model`, never the reverse.
+- `internal.adapter..` may depend on `internal.spi..` and `internal.domain.model..`, never the reverse (ArchUnit `..` package notation per ADR-0026).
 - Consuming modules depend only on `com.positivity.supplier.service..` per ADR-0026, and preferentially on **events** per ADR-0044 (§8).
 - Codecs (XML/JSON binding classes generated or hand-written from the C1 PDFs and OpenAPI schemas) live entirely inside their adapter package; canonical DTOs never expose wire types.
 
@@ -202,12 +206,12 @@ This is the mechanism that satisfies "multiple versions of the same services dep
 
 ## 7. Vendor Profile and Configuration Model
 
-The unit of deployment customization is the **vendor profile**: one per supplier account per environment. Profiles are persisted (DB-backed, admin API + UI later) with an initial bootstrap path from YAML for the first deployments. Secrets are always indirect references resolved from the environment/secret store — never stored in profile rows or YAML (platform secrets rule).
+The unit of deployment customization is the **vendor profile**: one per supplier account per environment. A profile's platform identity is `vendorProfileId` (UUIDv7, ADR-0027); the `supplierRef` key below is a unique human-readable alias for configuration and logs (ADR-0050 §1). Profiles are persisted (DB-backed, admin API + UI) and may alternatively be **YAML-managed**: for those, the YAML is authoritative on every startup — the database is reconciled to it, profiles removed from YAML are disabled (not deleted), and the admin API rejects edits to them (ADR-0050 §6). Secrets are always indirect references resolved from the environment/secret store — never stored in profile rows or YAML (platform secrets rule).
 
 ```yaml
 supplier:
   profiles:
-    - key: michelin-eu            # SupplierRef used by ports
+    - key: michelin-eu            # supplierRef alias (identity is vendorProfileId UUID)
       displayName: "Michelin Europe"
       protocolDefaults:
         family: EDIWHEEL
@@ -285,21 +289,22 @@ Design points:
 - **Account resolution is location-aware.** The billing account number is typically fixed per profile (legal entity); the delivery account number varies by location. The profile maps Durion `pos-location` UUIDs to vendor delivery account numbers; callers pass the delivery location in the `PartyContext` and the adapter stamps the correct vendor identities into the wire message. A missing delivery mapping for the requested location is a configuration error surfaced before any network call.
 - **Per-binding schedules** drive the batch capabilities (PRICAT, invoice fetch, stock report) from the orchestration layer's scheduler; real-time capabilities (stock inquiry, order create/status) are request-driven.
 - **Environment overlays** (sandbox vs production URLs, present in every Michelin spec) are part of the profile so promotion between environments is configuration-only, matching the tenant-cell deployment direction.
-- Profile changes are audited (who, when, what) via the standard audit fields policy (ADR-0018/0024).
+- Profile changes are audited (who, when, what) via the standard audit fields policy (ADR-0018/0024); YAML reconciliation is audited under the actor `system:yaml-bootstrap`.
+- **Exchange-payload governance** (ADR-0050 §7): payloads are retained 400 days by default (configurable per deployment; accepted 2026-08-10), encrypted at rest, redacted by data classification, access-audited under `supplier:audit:read`, and capture is configurable per binding (`FULL` | `REDACTED` | `METADATA_ONLY`).
 
 ## 8. Integration with Durion Domains (ADR-0044 Alignment)
 
-`pos-supplier` is a **domain module**, so cross-module interaction is event-first:
+`pos-supplier` is a **domain module**, so cross-module interaction is event-first. Per ADR-0044 §3, **topics** are `supplier.commands.v1` (requests to pos-supplier) and `supplier.events.v1` (facts/results it publishes); the names below are unversioned envelope `eventType`s with `schemaVersion` carrying payload evolution — the full contract table is ADR-0049 §3:
 
 | Flow | Mechanism | Notes |
 | --- | --- | --- |
-| PRICAT sync results | `supplier.pricecatalog.updated.v1` event; pos-catalog / pos-price consume and upsert supplier cost/eligibility data | Batch, scheduled per binding; dating and precedence rules in §8.1 |
-| Stock report snapshots | `supplier.stockreport.updated.v1`; pos-inventory consumes for supplier ATP hints | Batch |
-| Order lifecycle | Commands in, results out: **pos-order** (purchase-order aggregate owner) emits `supplier.order.requested.v1`; pos-supplier executes and emits `supplier.order.confirmed.v1` / `supplier.order.rejected.v1` / `supplier.orderstatus.changed.v1` | Command events with result events and pending states, per ADR-0044 |
-| Vendor invoices | `supplier.invoice.received.v1`; **pos-accounting** consumes and creates AP vouchers | Batch |
-| Shipment tracking | `supplier.shipment.event.v1`; consumers: purchasing/receiving flows | |
-| Workorder authorization | Workorder flow emits request command; pos-supplier calls S2S API and emits `supplier.workorderauth.granted.v1` / `.denied.v1`; completion approval triggered by workorder completion events | Keeps `workexec` authority over workorder state |
-| Real-time stock inquiry | **Synchronous read exception (approved)**: positivity product-detail composition **and pos-order procurement flows** may call `SupplierStockService` directly for live availability/quote, with the standard degradation semantics (component status, null numerics, `asOf`) | Approved 2026-08-10 (§12, decisions 4–5); to be ratified as an ADR-0044 amendment |
+| PRICAT sync results | `supplier.pricecatalog.updated` fact; pos-catalog / pos-price consume and upsert supplier cost/eligibility data | Batch, scheduled per binding; dating and precedence rules in §8.1 |
+| Stock report snapshots | `supplier.stockreport.updated` fact; pos-inventory consumes for supplier ATP hints | Batch |
+| Order lifecycle | Commands in, results out: **pos-order** (purchase-order aggregate owner) emits `supplier.order.requested` on `supplier.commands.v1`; pos-supplier transmits and emits `supplier.order.confirmed` / `supplier.order.rejected` / `supplier.orderstatus.changed` | Command events with result events and pending states, per ADR-0044; idempotency per ADR-0052 |
+| Vendor invoices | `supplier.invoice.received` fact; **pos-accounting** consumes and creates AP vouchers | Batch |
+| Shipment tracking | `supplier.shipment.event` fact (append-only); consumer: **pos-order** (purchase-order timeline). Additional consumers require an ADR-0049 amendment with exact module names | |
+| Workorder authorization | **pos-workorder** emits `supplier.workorderauth.requested` on `supplier.commands.v1`; pos-supplier calls the S2S API and emits `supplier.workorderauth.granted` / `.denied`; completion approval is triggered by pos-supplier consuming `workorder.completed` on `workorder.events.v1` | Keeps `workexec` authority over workorder state |
+| Real-time stock inquiry | **Synchronous read exception (approved)**: **pos-catalog** (Product Detail composition) **and pos-order procurement flows** may call `SupplierStockService` directly for live availability/quote, with the standard degradation semantics (component status, null numerics, `asOf`) | Ratified as the ADR-0044 amendment dated 2026-08-10, with class-level (named-client) enforcement in `DomainWallsTest` |
 
 The real-time stock inquiry is the one place where event-only communication fights the use case (a counter user wants live vendor availability while quoting or raising a purchase order). `pos-supplier`'s read side is treated like the existing utility-module reads, wrapped in the positivity degradation contract: timeouts are short, failure degrades to `SUPPLIER_UNAVAILABLE` status, and no numeric field is fabricated. Live vendor availability surfaces in **both** the Product Detail composition (as an additional degradable component) and the pos-order procurement screens.
 
@@ -313,8 +318,8 @@ The real-time stock inquiry is the one place where event-only communication figh
 
 ### 9.1 Resilience and idempotency
 
-- Every outbound exchange carries a correlation ID (X-Correlation-Id plan) and a deterministic client reference (`CustomerReference` / `DocumentID` in EDIWheel messages) derived from the canonical entity UUID, so vendor-side deduplication works across retries.
-- Order creation is **exactly-once-intent**: an outbox row is written in the same transaction as the canonical order intent; the dispatcher retries with the same `DocumentID`; a confirmed/rejected result is idempotently applied. Never auto-retry an order create after an ambiguous timeout without first querying order status — duplicate physical orders are the top operational risk in supplier EDI.
+- Every outbound exchange carries a correlation ID (X-Correlation-Id plan) and a deterministic client reference (`CustomerReference` / `DocumentID` in EDIWheel messages) derived from an immutable **`transmissionIntentId`** (UUIDv7) — not the purchase-order UUID directly, since one purchase order can legitimately produce multiple intents (splits, revisions, replacements, vendor switches). Retries of one intent always present the same reference; a new intent always gets a new one (ADR-0052 §1).
+- Order creation is **exactly-once-intent**: an outbox row is written in the same transaction as the canonical order intent, and dispatch follows a persisted attempt-state machine — the `DISPATCHING` transition is committed *before* network I/O, so a crash after body-send can never be mistaken for a never-sent order. On restart, `PENDING` rows re-dispatch; `DISPATCHING` rows go to status reconciliation (or `MANUAL_REVIEW` when the vendor has no `ORDER_STATUS` binding), never automatic resend. Never auto-retry an order create after an ambiguous timeout without first querying order status — duplicate physical orders are the top operational risk in supplier EDI (ADR-0052 §§2–4).
 - Circuit breakers per vendor binding; breaker state exposed as a health indicator and in the admin UI.
 - Batch capabilities are checkpointed (last successful window per binding) so a missed night self-heals on the next run.
 
