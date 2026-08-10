@@ -1,0 +1,264 @@
+openapi: 3.0.0
+info:
+  description: This is an AI-powered API which detects the DOT code imprinted on a tyre's sidewall given its image
+  version: 1.0.0
+  title: DOT Image Recognition
+  contact: 
+    name: API Support
+    email: devportal.support@michelin.com
+    url: 'https://developer.michelin.com/en/contact'
+
+servers:
+  - url: https://api.michelin.com/dot-image-recognition/v1
+    description: Production
+
+security:
+  - OAuth2Production: [dot-image-recognition]
+
+tags:
+  - name: DOTImageRecognition
+    description: Extract the DOT code present in an image(sent as a Base64 encoded string) of a tire's side-wall.
+
+paths: 
+  /score:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/ApiKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DOTImageUploadDetails'
+        description: Image Upload Request body
+        required: true
+
+      responses:
+        '200':
+          description: Success response containing DOT code extracted from image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DOTImageRecognitionResponse'
+              examples: 
+                DotDetected:
+                  $ref: '#/components/examples/dotdetectedwith200'
+                DotNotDetected:
+                  $ref: '#/components/examples/dotnotdetectedwith200'
+                ReqRefNotAvailable:
+                  $ref: '#/components/examples/reqrefnotavailable200'
+        '400':
+          description: Failure responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRecognitionErrorResponse_Receivedinvalidresponse'
+              examples:
+                InvalidNullmodel:
+                  $ref: '#/components/examples/invalidnullmissingmodel400'
+                InvalidNullimage:
+                  $ref: '#/components/examples/invalidnullmissingimage400'
+                Smallimage:
+                  $ref: '#/components/examples/smallimage400'
+        '502':
+          description: Received invalid response from endpoint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRecognitionErrorResponse_Receivedinvalidresponse'
+              examples:
+                Internalserver:
+                  $ref: '#/components/examples/receivedinvalidresponse502'
+
+        '504':
+          description: Gateway timeout. A response was not available to send within the stipulated time limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              example: |-
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+      tags:
+        - DOTImageRecognition
+      description: Returns the DOT code from tire's side-wall image.
+      operationId: scoreGET
+      summary: Returns the DOT code from tire's side-wall image.
+    x-swagger-router-controller: DOTImageRecognition
+
+components:
+  parameters:
+    ApiKey:
+      name: apikey
+      in: header
+      description: Custom header for API Gateway analytics
+      schema:
+        type: string
+      required: true 
+  securitySchemes:
+    OAuth2Production:
+      type: oauth2
+      description: This is the OAuth2 security scheme for the production environment
+      flows:
+        clientCredentials:
+          tokenUrl:  https://api.michelin.com/idp/v1/internal/oauth/token/accesstoken?grant_type=client_credentials
+          scopes:
+            dot-image-recognition: This scope grants access to the DOT image recognition API
+            
+  examples:
+    dotdetectedwith200:
+      summary: Dot Detected
+      value:
+        dot: "ABCDEF123"
+        char_confs: [0.9979810118675232, 0.9991994500160217, 0.6245126128196716, 0.9990648627281189,0.999535083770752, 0.9637184143066406, 0.9724106192588806, 0.9985443353652954, 0.9993342757225037]
+        avg_conf: 0.950477851761712
+        status: "Success"
+        message: "Detected DOT code"
+        timestamp: "2023-05-23 11:59:12"
+    dotnotdetectedwith200:
+      summary: Dot Not available
+      value:
+        dot: ""
+        char_confs: []
+        avg_conf: NaN
+        status: "Success"
+        message: "unable to detect dot code"
+        timestamp: "2023-05-23 12:17:06"
+    reqrefnotavailable200:
+      summary: reqrefkey/val not available
+      value:
+        dot: "ABCDEF123"
+        char_confs:  [0.9979810118675232, 0.9991994500160217, 0.6245126128196716, 0.9990648627281189,0.999535083770752, 0.9637184143066406, 0.9724106192588806, 0.9985443353652954, 0.9993342757225037]
+        avg_conf: 0.950477851761712
+        status: "warning"
+        message: "warning- 'req_ref_key/val' is missing"
+        timestamp:  "2023-05-23 12:18:06"
+    invalidnullmissingmodel400:
+      summary: Invalid/Null/Missing model
+      value:
+        dot: ""
+        char_confs: []
+        avg_conf: "null"
+        status: "fail"
+        message: "invalid/null value for request parameter 'model'"
+        timestamp: "2023-05-23 12:02:00"
+    invalidnullmissingimage400:
+      summary: Invaid/Null/Missing image data
+      value:
+        dot: ""
+        char_confs: []
+        avg_conf: "null"
+        status: "fail"
+        message: "invalid/null value for request parameter 'data'"
+        timestamp: "2023-05-23 12:02:50"
+    smallimage400:
+      summary: small image size
+      value:
+        dot: ""
+        char_confs: []
+        avg_conf: "null"
+        status: "fail"
+        message: "Minimum image resolution required: 800x600"
+        timestamp: "2023-05-23 12:00:12"
+    receivedinvalidresponse502:
+      summary:  Received invalid response from endpoint
+      value:
+        dot: ""
+        char_confs: []
+        avg_conf: "null"
+        status: "fail"
+        message: "Received invalid response from endpoint"
+        timestamp: "2023-05-23 12:19:08"
+        
+
+  schemas:
+    DOTImageUploadDetails:
+      type: object
+      required:
+        - data
+        - model
+      properties:
+        data:
+          type: string
+          description: "Base64 encoded string convertion of the DOT Image"
+          example: Please use the Base64 encoded string of the image
+        model:
+          type: string
+          description: "OCR model type"
+          enum: [scoreensemble, scoresingle]
+          example: scoreensemble
+        req_ref_key:
+          type: string
+          description: "The name of the request reference"
+          enum: [claim_id, scan_id]
+          example: API_DEMO
+        req_ref_val:
+          type: string
+          description: "The value corresp to the above request reference name (alphanumeric)"
+          example: c20b5859-1af5-4ed2-9908-25151a3088ce
+    DOTImageRecognitionResponse:
+      type: object
+      properties:
+        dot:
+          type: string
+          description: "DOT code detected by the model" 
+          nullable: true
+        char_confs:
+          type: array
+          description: "Confidence for each detected character from DOT code"
+          items:
+              type: number
+        avg_conf:
+          type: number
+          description: "Average confidence for final detected code"
+        status:
+          type: string
+          description: "Status of the response"
+        message:
+          type: string
+          description: "Descriptive message"
+        timestamp:
+          type: string
+          description: "Server timestamp of execution"
+    ImageRecognitionErrorResponse_Receivedinvalidresponse:
+      type: object
+      properties:
+        dot:
+          type: string
+          description: "DOT code detected by the model"
+          nullable: true
+        char_confs:
+          type: array
+          description: "Confidence for each detected character from DOT code"
+          items:
+              type: number
+        avg_conf:
+          type: string
+          description: "Average confidence for final detected code"
+        status:
+          type: string
+          description: "Status of the response"
+        message:
+          type: string
+          description: "Descriptive message"
+        timestamp:
+          type: string
+          description: "Server timestamp of execution"
+    ProxyErrorResponse:
+      type: object
+      properties:
+        fault: 
+          type: object
+          properties: 
+            faultstring: 
+              type: string
+            detail: 
+              type: object
+              properties: 
+                errorcode: 
+                  type: string

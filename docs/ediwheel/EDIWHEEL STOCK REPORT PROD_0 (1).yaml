@@ -1,0 +1,446 @@
+openapi: 3.1.0
+info:
+  description: >-
+    API provided to customers worldwide to get a snapshot of Michelin stock
+    (qty) at country level
+  version: 1.2.0
+  title: EDIWHEEL STOCK REPORT
+  # Contact details of API Producer
+  contact:
+    name: API Support
+    email: devportal.support@michelin.com
+    url: "https://developer.michelin.com/en/contact"
+  license:
+    name: Michelin
+    url: https://developer.michelin.com/en/terms-and-conditions-use
+# The servers section specifies the API server and base URL
+servers:
+  - url: "https://api.michelin.com/stock"
+    description: Production
+  - url: "https://sandbox.api.michelin.com/stock"
+    description: Sandbox
+security:
+  - BasicAuth: []
+tags:
+  - name: Stock Report Ediwheel B2.1
+    description: Get Stock Report in B2.1 norm
+  - name: Stock Report Ediwheel C1.0
+    description: Get Stock Report in C1.0 norm
+paths:
+  # Name of the resource to append to the basepath
+  /B2_1/report:
+    parameters:
+      - $ref: "#/components/parameters/BuyerParty"
+      - $ref: "#/components/parameters/AgencyCode"
+      - $ref: "#/components/parameters/Apikey"
+    get:
+      tags:
+        - Stock Report Ediwheel B2.1
+      summary: Stock Report Ediwheel B2.1
+      operationId: stockreportB21GET
+      description: Get stock report in JSON format
+
+      responses:
+        # HTTP status code
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockReportB2_1"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                {
+                  "fault":
+                    {
+                      "faultstring": "Invalid ApiKey",
+                      "detail": { "errorcode": "oauth.v2.InvalidApiKey" },
+                    },
+                }
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                "fault":
+                  {
+                    "faultstring": "Internal server error occured",
+                    "detail": { "errorcode": "500" },
+                  }
+        "503":
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                {
+                  "fault":
+                    {
+                      "faultstring": "The Service is temporarily unavailable",
+                      "detail":
+                        {
+                          "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable",
+                        },
+                    },
+                }
+        "504":
+          description: >-
+            Gateway timeout. A response was not available to send within the
+            stipulated time limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                {
+                  "fault":
+                    {
+                      "faultstring": "Gateway Timeout",
+                      "detail":
+                        {
+                          "errorcode": "messaging.adaptors.http.flow.GatewayTimeout",
+                        },
+                    },
+                }
+  /C1_0/report:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/BuyerParty"
+        - $ref: "#/components/parameters/AgencyCode"
+        - $ref: "#/components/parameters/Apikey"
+      tags:
+        - Stock Report Ediwheel C1.0
+      summary: GET stock-report in JSON
+      operationId: stockreportC10GET
+      description: Get stock report in JSON format
+      responses:
+        # HTTP status code
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockReportC1_0"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                {
+                  "fault":
+                    {
+                      "faultstring": "Invalid ApiKey",
+                      "detail": { "errorcode": "oauth.v2.InvalidApiKey" },
+                    },
+                }
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                "fault":
+                  {
+                    "faultstring": "Internal server error occured",
+                    "detail": { "errorcode": "500" },
+                  }
+        "503":
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                {
+                  "fault":
+                    {
+                      "faultstring": "The Service is temporarily unavailable",
+                      "detail":
+                        {
+                          "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable",
+                        },
+                    },
+                }
+        "504":
+          description: >-
+            Gateway timeout. A response was not available to send within the
+            stipulated time limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example:
+                {
+                  "fault":
+                    {
+                      "faultstring": "Gateway Timeout",
+                      "detail":
+                        {
+                          "errorcode": "messaging.adaptors.http.flow.GatewayTimeout",
+                        },
+                    },
+                }
+components:
+  parameters:
+    Apikey:
+      name: apikey
+      in: header
+      schema:
+        type: string
+      required: true
+      description: API key is a code used to identify and authenticate an application or user.
+    BuyerParty:
+      name: buyerParty
+      in: query
+      description: Identifier of the customer for which the stockr report is requested
+      required: true
+      schema:
+        type: string
+        examples: ["30012456"]
+    AgencyCode:
+      name: agencyCode
+      in: query
+      description: Code identifying the agency responsible for an identifier
+      required: true
+      schema:
+        $ref: "#/components/schemas/agencyCode"
+  schemas:
+    ProxyErrorResponse:
+      type: object
+      properties:
+        fault:
+          type: object
+          properties:
+            faultstring:
+              type: string
+            detail:
+              type: object
+              properties:
+                errorcode:
+                  type: string
+    agencyCode:
+      type: string
+      enum:
+        - "91"
+        - "92"
+        - "9"
+      xml:
+        name: AgencyCode
+      description: |
+        Applicable Codes:
+          * `91` - Assigned by seller or seller's agent
+          * `92` - Assigned by buyer or buyer's agent
+          * `9`  - EAN (International Article Numbering Association)
+    BuyerParty:
+      type: object
+      properties:
+        partyId:
+          type: string
+          maxLength: 17
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+      required:
+        - partyId
+        - agencyCode
+    issueDate:
+      type: string
+    issueTime:
+      type: string
+    documentId:
+      type: string
+    variant:
+      type: string
+    documentNumber:
+      type: string
+    errorHead:
+      type: object
+      properties:
+        errorCode:
+          $ref: "#/components/schemas/errorCode"
+      required:
+        - errorCode
+    errorCode:
+      type: string
+    totalLineItemNumber:
+      type: string
+    totalLineItemsNumber:
+      type: string
+    customerReference:
+      type: object
+      properties:
+        documentId:
+          $ref: "#/components/schemas/documentId"
+    lineId:
+      type: string
+    StockReportB2_1:
+      type: object
+      properties:
+        envelopeHeader:
+          type: object
+          properties:
+            issueDate:
+              $ref: "#/components/schemas/issueDate"
+            issueTime:
+              $ref: "#/components/schemas/issueTime"
+            documentId:
+              $ref: "#/components/schemas/documentId"
+            variant:
+              $ref: "#/components/schemas/variant"
+            errorCode:
+              $ref: "#/components/schemas/errorCode"
+          required:
+            - issueDate
+            - documentId
+            - variant
+            - errorCode
+        totalLineItemsNumber:
+          $ref: "#/components/schemas/totalLineItemsNumber"
+        buyerParty:
+          $ref: "#/components/schemas/BuyerParty"
+        lineLevel:
+          type: array
+          items:
+            $ref: "#/components/schemas/Line"
+      required:
+        - envelopeHeader
+        - buyerParty
+    StockReportC1_0:
+      type: object
+      properties:
+        envelopeHeader:
+          type: object
+          properties:
+            issueDate:
+              $ref: "#/components/schemas/issueDate"
+            issueTime:
+              $ref: "#/components/schemas/issueTime"
+            documentId:
+              $ref: "#/components/schemas/documentId"
+            documentNumber:
+              $ref: "#/components/schemas/documentNumber"
+            variant:
+              $ref: "#/components/schemas/variant"
+            errorHead:
+              $ref: "#/components/schemas/errorHead"
+          required:
+            - issueDate
+            - documentId
+            - variant
+            - errorHead
+        totalLineItemNumber:
+          $ref: "#/components/schemas/totalLineItemNumber"
+        customerReference:
+          $ref: "#/components/schemas/customerReference"
+        buyerParty:
+          $ref: "#/components/schemas/BuyerParty"
+        contract:
+          type: object
+          properties:
+            documentId:
+              type: string
+        lineLevel:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineC1"
+      required:
+        - envelopeHeader
+        - buyerParty
+    Line:
+      type: object
+      properties:
+        lineId:
+          $ref: "#/components/schemas/lineId"
+        article:
+          $ref: "#/components/schemas/Article"
+    LineC1:
+      type: object
+      properties:
+        lineId:
+          $ref: "#/components/schemas/lineId"
+        article:
+          $ref: "#/components/schemas/ArticleC1"
+    Article:
+      type: object
+      properties:
+        articleIdentification:
+          $ref: "#/components/schemas/ArticleIdentification"
+        articleDescription:
+          $ref: "#/components/schemas/ArticleDescription"
+        availableQuantity:
+          $ref: "#/components/schemas/AvailableQuantity"
+    ArticleC1:
+      type: object
+      properties:
+        articleIdentification:
+          $ref: "#/components/schemas/ArticleIdentificationC1"
+        articleDescription:
+          $ref: "#/components/schemas/ArticleDescription"
+        scheduleDetails:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScheduleDetails"
+    ArticleDescription:
+      type: object
+      properties:
+        articleDescriptionText:
+          type: string
+    ArticleIdentification:
+      type: object
+      properties:
+        buyersArticleId:
+          type: string
+        manufacturersArticleId:
+          type: string
+        eanuccarticleID:
+          type: string
+    ArticleIdentificationC1:
+      type: object
+      properties:
+        manufacturersArticleId:
+          type: string
+        eanuccarticleID:
+          type: string
+    AvailableQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: string
+    ScheduleDetails:
+      type: object
+      properties:
+        availability:
+          type: string
+        availableQuantity:
+          $ref: "#/components/schemas/AvailableQuantity"
+        supplierParty:
+          $ref: "#/components/schemas/BuyerParty"
+        availabilityDate:
+          type: string
+        shippingLocation:
+          type: object
+          properties:
+            locationName:
+              type: string
+  securitySchemes:
+    BasicAuth:
+      scheme: basic
+      type: http

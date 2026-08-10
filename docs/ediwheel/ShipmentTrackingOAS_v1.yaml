@@ -1,0 +1,338 @@
+openapi: 3.0.1
+info:
+  title: Shipment tracking documentation
+  description: REST API exposed by LEX
+  contact:
+    name: LEX API support
+    email: lex-l3@michelin.com
+  version: '1.0'
+servers:
+  - url: https://api.michelin.com/mock-lex-shipmenttracking-v1
+    description: Server url
+security: []
+tags:
+  - name: POST Operation
+    description: API to send shipment-notice events-with-headers to LEX
+paths:
+  /shipment-tracking:
+    post:
+      tags:
+        - POST Operation
+      summary: Post shipment-tracking to LEX
+      operationId: createShipmentNoticeAndEventWithHeader
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+            default: Bearer token_ok
+      requestBody:
+        description: The shipment-tracking to send to LEX
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ShipmentNoticeEventWithHeaderDto'
+            examples:
+              ShipmentTracking:
+                description: ShipmentTracking
+                value:
+                  - eventCode: mandatory code
+                    carrierEventCode: carrier event code
+                    creationDateTime: mandatory creation timestamp
+                    encodedDateTime: mandatory encoded timestamp
+                    type: mandatory type
+                    documentNumber: mandatory number
+                    documentCreationDateTime: creation timestamp of the shipment-notice
+                    shipFrom:
+                      code: ship from code
+                      name: ship from name
+                      address:
+                        addressLine1: ship from address line 1
+                        addressLine2: ship from address line 2
+                        addressLine3: ship from address line 3
+                        zipCode: ship from postal code
+                        city: ship from city
+                        isoCountry2Code: ship from country
+                    shipTo:
+                      code: ship to code
+                      name: ship to name
+                      address:
+                        addressLine1: ship to address line 1
+                        addressLine2: ship to address line 2
+                        addressLine3: ship to address line 3
+                        zipCode: ship to postal code
+                        city: ship to city
+                        isoCountry2Code: ship to country
+                    carrier:
+                      code: carrier code
+                      name: carrier name
+                    billOfLadingList:
+                      - bl 1
+                      - bl 2
+                      - bl 3
+                      - bl 4
+                      - bl 5
+                    transportOrderNumberList:
+                      - transport order number 1
+                      - transport order number 2
+                      - transport order number 3
+                      - transport order number 4
+                    orderCaptureNumberList:
+                      - order capture number 3
+                      - order capture number 3
+                      - order capture number 3
+                    shipmentTrackingUrl: shipment tracking URL
+                    genericRound: generic round
+                    carriageMode: carriage mode
+                    eventSender:
+                      code: sender code
+                      name: sender name
+                    position:
+                      latitude: position latitude
+                      longitude: position longitude
+                    eventDescription: label
+                    eventAnomaliesNumber: nmubre UM anomalies
+                    eventRemarks: remarks
+                    eventOrigin: origin
+                    eventInformation: infos
+                    documentUrl: URL
+                    contactName: contact name
+                    appointmentDateTime: new appointment timestamp
+        required: true
+      responses:
+        '200':
+          description: Messages successfully integrated
+          content:
+            application/json:
+              examples:
+                Example of successful message:
+                  description: Example of successful message
+                  value:
+                    correlationId: 00000000-0000-0000-0000-000000000000
+                    statusCode: STOP_OK
+                    message: The whole batch was processed
+                    nbMessagePosted: '{{ nbMessagePosted }}'
+                    nbMessageProcessed: '{{ nbMessageProcessed }}'
+                    nbMessageFailed: '{{ nbMessageFailed }}'
+        '206':
+          description: Messages partially integrated
+          content:
+            application/json:
+              examples:
+                Example of partial integration result:
+                  description: Example of partial integration result
+                  value:
+                    correlationId: 00000000-0000-0000-0000-000000000000
+                    statusCode: STOP_PARTIAL
+                    message: Some items in the batch could not be processed
+                    nbMessagePosted: '{{ nbMessagePosted }}'
+                    nbMessageProcessed: '{{ nbMessageProcessed }}'
+                    nbMessageFailed: '{{ nbMessageFailed }}'
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              examples:
+                Example of bad request result:
+                  description: Example of bad request result
+                  value:
+                    correlationId: 00000000-0000-0000-0000-000000000000
+                    statusCode: STOP_BAD_REQUEST
+                    message: No item in the batch could be processed
+                    nbMessagePosted: '{{ nbMessagePosted }}'
+                    nbMessageProcessed: '{{ nbMessageProcessed }}'
+                    nbMessageFailed: '{{ nbMessageFailed }}'
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              examples:
+                Example of unauthenticated result:
+                  description: Example of unauthenticated result
+                  value: Unauthorized access
+        '403':
+          description: Forbidden
+          content:
+            text/plain:
+              examples:
+                Example of forbidden result:
+                  description: Example of forbidden result
+                  value: Forbidden access
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        addressLine1:
+          type: string
+          description: Logistic address (part 1)
+        addressLine2:
+          type: string
+          description: Logistic address (part 2)
+        addressLine3:
+          type: string
+          description: Logistic address (part 3)
+        zipCode:
+          type: string
+          description: Logistic postal code
+        city:
+          type: string
+          description: Logistic city
+        isoCountry2Code:
+          type: string
+          description: Logistic country
+      description: Logistic ship to full address
+    CarrierDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Carrier code
+        name:
+          type: string
+          description: Carrier name
+      description: Information on carrier
+    PositionDto:
+      type: object
+      properties:
+        latitude:
+          type: string
+          description: Location latitude of the event sender
+        longitude:
+          type: string
+          description: Location longitude of the event sender
+      description: Location in latitude and longitude
+    SenderDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code of the event sender
+        name:
+          type: string
+          description: Name of the event sender
+      description: Information on sender
+    ShipFromDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Logistic ship from code
+        name:
+          type: string
+          description: Logistic ship from name
+        address:
+          $ref: '#/components/schemas/Address'
+      description: Ship from pieces of information
+    ShipToDto:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Logistic ship to code
+        name:
+          type: string
+          description: Logistic ship to name
+        address:
+          $ref: '#/components/schemas/Address'
+      description: Ship to pieces of information
+    ShipmentNoticeEventWithHeaderDto:
+      required:
+        - carrier
+        - creationDateTime
+        - documentNumber
+        - encodedDateTime
+        - eventCode
+        - eventSender
+        - shipFrom
+        - shipTo
+        - type
+      type: object
+      properties:
+        eventCode:
+          type: string
+          description: code of the event (INOVERT norm)
+        carrierEventCode:
+          type: string
+          description: Event code sent by the carrier system
+        creationDateTime:
+          type: string
+          description: Creation date and time of the event from the carrier
+        encodedDateTime:
+          type: string
+          description: Encoded date and time of the event from the carrier
+        type:
+          type: string
+          description: >-
+            Type of the ShipmentNotice (could be D3 or DN depending on the
+            context of the event)
+        documentNumber:
+          type: string
+          description: ID of the shipment-notice
+        documentCreationDateTime:
+          type: string
+          description: Date of creation of the document
+        shipFrom:
+          $ref: '#/components/schemas/ShipFromDto'
+        shipTo:
+          $ref: '#/components/schemas/ShipToDto'
+        carrier:
+          $ref: '#/components/schemas/CarrierDto'
+        billOfLadingList:
+          type: array
+          description: List of BL assigned to the Shipment Notice
+          items:
+            type: string
+            description: List of BL assigned to the Shipment Notice
+        transportOrderNumberList:
+          type: array
+          description: Transport references
+          items:
+            type: string
+            description: Transport references
+        orderCaptureNumberList:
+          type: array
+          description: Sales order references
+          items:
+            type: string
+            description: Sales order references
+        shipmentTrackingUrl:
+          type: string
+          description: Tracking URL of the shipment-notice
+        genericRound:
+          type: string
+          description: Generic round of the shipment-notice
+        carriageMode:
+          type: string
+          description: Carriage mode of the shipment-notice
+        eventSender:
+          $ref: '#/components/schemas/SenderDto'
+        position:
+          $ref: '#/components/schemas/PositionDto'
+        eventDescription:
+          type: string
+          description: Label of the event
+        eventAnomaliesNumber:
+          type: string
+          description: Number of UM Anomalies
+        eventRemarks:
+          type: string
+          description: Remarks of the event
+        eventOrigin:
+          type: string
+          description: origin of the event
+        eventInformation:
+          type: string
+          description: Complementary pieces of information of the event
+        documentUrl:
+          type: string
+          description: Complementary URL of the event
+        contactName:
+          type: string
+          description: Contact name of the event
+        appointmentDateTime:
+          type: string
+          description: New appointment date and time

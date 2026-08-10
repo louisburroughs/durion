@@ -1,0 +1,2968 @@
+openapi: 3.0.3
+info:
+  title: EDIWheel API
+  description: |
+    Last modification: 2026-02-04 based on C1.2.
+    ---
+    As a start it supports the marketing catalogue. 
+    It combines a resource based approach as well as a message based approach to support legacy systems.
+  termsOfService: 'https://ediwheel.net/data-privacy/'
+  contact:
+    name: wdk Wirtschaftsverband der deutschen Kautschukindustrie e.V.
+    url: 'https://ediwheel.net'
+    email: 'info@wdk.de'
+  license:
+    name: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  version: 1.2.0
+servers:
+  - url: 'https://api.ediwheel.net/v1/'
+paths:
+  /:
+    description: Get info about this API
+    get:
+      tags:
+        - Administration
+      description: Get info about this API.
+      operationId: getAPIInfo
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apiInfoResponse'
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+  /treadDesignVariants/:
+    description: List of marketing catalogue items
+    get:
+      tags:
+        - Marketing Catalogue
+      description: Get list of TreadDesignVariants
+      operationId: getTreadDesignVariantList
+      parameters:
+        - $ref: '#/components/parameters/afterDate'
+        - $ref: '#/components/parameters/brand'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/vehicleType'
+        - $ref: '#/components/parameters/seasonality'
+        - name: hasPromotions
+          in: query
+          description: Filter on promotion.
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/treadDesign1'
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Link:
+              description: |
+                With this header the pagination links are provided to the consumer as defined in [RFC 5988](https://datatracker.ietf.org/doc/html/rfc5988).
+
+                #### Examples
+
+                __Link to current page (mandatory):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants?cursor=XXX>; rel="current"
+
+                __Link to first page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants?cursor=FFF>; rel="first"
+
+                __Link to next page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants?cursor=NNN>; rel="next"
+
+                __Link to previous page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants?cursor=PPP>; rel="prev"
+
+                __Link to last page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants?cursor=LLL>; rel="last"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/treadDesignVariantList'
+              example:
+                - TreadDesignVariant: TYRE1
+                  TreadDesign1: Tyre Lorem Ipsum 1
+                  TreadDesign2: TLORIMPS1
+                  ProductName: Tyre Product Name
+                  MainFunction: CA
+                - TreadDesignVariant: TYRE2
+                  TreadDesign1: Tyre Lorem Ipsum 2
+                  TreadDesign2: TLORIMPS2
+                  ProductName: Tyre Product Name 2
+          links:
+            partyByBrand:
+              operationId: getAllSuppliers
+              parameters:
+                brand: '$response.body#/Brand'
+            images:
+              $ref: '#/components/links/TreadDesignVariant_images'
+            languageDependentData:
+              $ref: '#/components/links/TreadDesignVariant_languageDependentData'
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+  /treadDesignVariants/subscribe/:
+    description: Subscribe to an event. You will get informed once the defined filter is met.
+    post:
+      tags:
+        - Marketing Catalogue
+      description: Add a subscriber
+      operationId: subscribeToTreadDesingVariantChanges
+      parameters:
+        - name: callbackUrl
+          in: query
+          description: The API consumers URL that is called if the event is fired.
+          required: true
+          schema:
+            type: string
+          example: 'https://client.shop.tld/notify'
+        - name: event
+          in: query
+          description: The event to subscribe to
+          required: true
+          schema:
+            $ref: '#/components/schemas/eventType'
+          example: newTreadDesignVariant
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/afterDate'
+        - $ref: '#/components/parameters/brand'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: string
+              example: 'https://api.ediwheel.net/ediwheel/v1/treadDesignVariants/subscribe/AAA-123-BBB-456'
+          links:
+            unsubscribe:
+              operationId: unsubscribeTreadDesignVariantsEvent
+              parameters:
+                Id: '$response.body#/'
+              description: Unsubscribe for event
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+      callbacks:
+        myEvent:
+          "{$request.query.callbackUrl}?event={$request.query.event}":
+            description: Callback for events on treadDesignVariants.
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                    example: 'https://api.ediwheel.net/ediwheel/v1/treadDesignVariants/EAGF1AS2'
+              responses:
+                '200':
+                  description: OK
+                '400':
+                  $ref: '#/components/responses/400_invalid_parameter_id'
+                '401':
+                  $ref: '#/components/responses/401_unauthorized_error'
+                '403':
+                  $ref: '#/components/responses/403_forbidden'
+                '404':
+                  $ref: '#/components/responses/404_not_found'
+                '408':
+                  $ref: '#/components/responses/408_no_message'
+                '415':
+                  $ref: '#/components/responses/415_only_json'
+                '429':
+                  $ref: '#/components/responses/429_too_many_requests'
+                '500':
+                  $ref: '#/components/responses/500_internal_server_error'
+                '503':
+                  $ref: '#/components/responses/503_come_back_later'
+    delete:
+      tags:
+        - Marketing Catalogue
+      description: Unsubscribe from event
+      operationId: unsubscribeTreadDesignVariantsEvent
+      parameters:
+        - name: ID
+          in: query
+          description: The subscription ID.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully unsubscribed.
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+  /treadDesignVariants/{ID}/:
+    description: Get one specific TreadDesignVariant
+    get:
+      tags:
+        - Marketing Catalogue
+      description: Get a single TreadDesignVariant
+      operationId: getTreadDesignVariantByID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/treadDesignVariant'
+          links:
+            images:
+              $ref: '#/components/links/TreadDesignVariant_images'
+            languageDependentData:
+              $ref: '#/components/links/TreadDesignVariant_languageDependentData'
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    parameters:
+      - name: ID
+        in: path
+        description: The ID of the TreadDesignVariant.
+        required: true
+        schema:
+          type: string
+        example: EUGRIP
+  /treadDesignVariants/{ID}/images:
+    description: Get images of one specific TreadDesignVariant.
+    get:
+      tags:
+        - Marketing Catalogue
+      description: |
+        Get images of a single TreadDesignVariant.
+        The response supports three different mediaTypes. Any image provides by the supplier is available through the API in each of those three formats.
+      operationId: getTreadDesignVariantImages
+      parameters:
+        - name: minResolution
+          in: query
+          description: Minimum resolution in DPI
+          schema:
+            $ref: '#/components/schemas/resolution'
+        - name: maxResolution
+          in: query
+          description: Maximum resolution in DPI
+          schema:
+            $ref: '#/components/schemas/resolution'
+        - $ref: '#/components/parameters/fileType'
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Link:
+              description: |
+                With this header the pagination links are provided to the consumer as defined in [RFC 5988](https://datatracker.ietf.org/doc/html/rfc5988).
+
+                #### Examples
+
+                __Link to current page (mandatory):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/images?cursor=XXX>; rel="current"
+
+                __Link to first page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/images?cursor=FFF>; rel="first"
+
+                __Link to next page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/images?cursor=NNN>; rel="next"
+
+                __Link to previous page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/images?cursor=PPP>; rel="prev"
+
+                __Link to last page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/images?cursor=LLL>; rel="last"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/image'
+              example:
+                - ImageType: 25DegreeFull
+                  DefinitionHeight: '231'
+                  DefinitionWidth: '360'
+                  Resolution: '75'
+                  FileType: png
+                  FileName: example.png
+                  URI: 'https://ediwheel.net/wp-content/uploads/example.png'
+                - ImageType: FrontFull
+                  DefinitionHeight: '150'
+                  DefinitionWidth: '360'
+                  Resolution: '75'
+                  FileType: png
+                  FileName: example2.png
+                  URI: 'https://ediwheel.net/wp-content/uploads/example2.png'
+                - ImageType: SideFull
+                  DefinitionHeight: '240'
+                  DefinitionWidth: '240'
+                  Resolution: '75'
+                  FileType: png
+                  FileName: example3.png
+                  URI: 'https://ediwheel.net/wp-content/uploads/example3.png'
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    parameters:
+      - $ref: '#/components/parameters/afterDate'
+      - name: ID
+        in: path
+        description: The ID of the TreadDesignVariant
+        required: true
+        schema:
+          type: string
+        example: EUGRIP
+  /treadDesignVariants/{ID}/languageDependentData:
+    get:
+      tags:
+        - Marketing Catalogue
+      description: Get the language dependent data information of one specific TreadDesignVariant.
+      operationId: getTreadDesignVariantLanguageDependentData
+      parameters:
+        - $ref: '#/components/parameters/textFormat'
+        - $ref: '#/components/parameters/cursor'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Link:
+              description: |
+                With this header the pagination links are provided to the consumer as defined in [RFC 5988](https://datatracker.ietf.org/doc/html/rfc5988).
+
+                #### Examples
+
+                __Link to current page (mandatory):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/languageDependentData?cursor=XXX>; rel="current"
+
+                __Link to first page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/languageDependentData?cursor=FFF>; rel="first"
+
+                __Link to next page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/languageDependentData?cursor=NNN>; rel="next"
+
+                __Link to previous page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/languageDependentData?cursor=PPP>; rel="prev"
+
+                __Link to last page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/treadDesignVariants/EUGRIP/languageDependentData?cursor=LLL>; rel="last"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/languageDependentData'
+              example:
+                - TextFormattingControlMethod: 'NON-FORMATTED'
+                  LanguageCode: en
+                  UniqueSellingPoint: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliquat
+                  ShortText: ""
+                  LongText: ""
+                  DesignSpecial: ""
+                  AdditionalGraphic:
+                    - LabelGraphic: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                      SortOrder: 'TYRE-S-00'
+                      Description: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                      FootNotes: ""
+                      URI: 'https://ediwheel.net/1/default/original/TYRE-S-00-image.jpg'
+                    - LabelGraphic: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                      SortOrder: 'TYRE-S-01'
+                      Description: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua..
+                      FootNotes: ""
+                      URI: 'https://ediwheel.net/1/default/original/TYRE-S-01-image.jpg'
+                  TestLabels:
+                    - URI: 'https://ediwheel.net/1/default/original/TYRE_BILAGRE_9999.jpg'
+                      Graphic:
+                        {}
+                      DateIssue: 03/9999
+                      SortOrder:
+                        {}
+                      TestResult: Top 2 from 8
+                      ExpiringDate:
+                        {}
+                      TestAbstract:
+                        {}
+                      TireDimension: 'SIZE: 225/60 R18'
+                      TestingCountry: SE
+                      NameTestingInstance: Vi Bilägare, PRINT 1/2099
+                      TestResultQuotation:
+                        {}
+                      CompetitionLawRequirements:
+                        {}
+                    - URI: 'https://ediwheel.net/1/default/original/TYRE_TUULILASI_9999.jpg'
+                      Graphic:
+                        {}
+                      DateIssue: 03/9999
+                      SortOrder:
+                        {}
+                      TestResult: Top 4 from 8
+                      ExpiringDate:
+                        {}
+                      TestAbstract:
+                        {}
+                      TireDimension: 'SIZE: 225/60 R18'
+                      TestingCountry: FI
+                      NameTestingInstance: Tuulilasi, Print 3/2099
+                      TestResultQuotation:
+                        {}
+                      CompetitionLawRequirements:
+                        {}
+                    - URI: 'https://ediwheel.net/1/default/original/tyre1-oeamtc-03-2099.jpg'
+                      Graphic:
+                        {}
+                      DateIssue: 09/9999
+                      SortOrder:
+                        {}
+                      TestResult: Highly recommendable
+                      ExpiringDate:
+                        {}
+                      TestAbstract:
+                        {}
+                      TireDimension: 'Size: 225/40 R18 92Y'
+                      TestingCountry: AT
+                      NameTestingInstance: OEAMTC
+                      TestResultQuotation:
+                        {}
+                      CompetitionLawRequirements:
+                        {}
+                  TechnologyLabel:
+                    - URI: 'https://ediwheel.net/1/default/original/TYRE-S-00.jpg'
+                      Graphic: Lorem ipsum
+                      FootNotes:
+                        {}
+                      SortOrder: 'TYRE-S-00'
+                      Description:
+                        {}
+                    - URI: 'https://ediwheel.net/1/default/original/TYRE-S-01.jpg'
+                      Graphic: Lorem ipsum
+                      FootNotes:
+                        {}
+                      SortOrder: 'TYRE-S-01'
+                      Description:
+                        {}
+                  GeneralFootNote:
+                    {}
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    parameters:
+      - $ref: '#/components/parameters/afterDate'
+      - $ref: '#/components/parameters/language'
+      - $ref: '#/components/parameters/country'
+      - name: ID
+        in: path
+        description: The ID of the TreadDesignVariant
+        required: true
+        schema:
+          type: string
+        example: EUGRIP
+  /mktcat/:
+    description: Marketing Catalogue message support
+    get:
+      tags:
+        - Marketing Catalogue
+      description: |
+        Get current mktcat for legacy systems in a message structure.
+        Will be deprecated sometime in future?
+      operationId: getMktcat
+      parameters:
+        - $ref: '#/components/parameters/language'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/brand'
+        - $ref: '#/components/parameters/treadDesign1'
+      responses:
+        '200':
+          description: OK
+          content:
+            text/xml:
+              schema:
+                $ref: '#/components/schemas/mktCat'
+              example: |
+                <mktCat>
+                	<EnvelopeHeader>
+                		<DocumentID>C1</DocumentID>
+                		<Variant>1</Variant>
+                		<MessageType>MktCat</MessageType>
+                	</EnvelopeHeader>
+                	<MktCatHeader>
+                		<CatalogueType>FULL</CatalogueType>
+                		<TextFormattingControlMethod>HTML</TextFormattingControlMethod>
+                		<SupplierParty>
+                			<PartyID>123456789</PartyID>
+                			<AgencyCode>9</AgencyCode>
+                			<Name>Tire Supplier</Name>
+                			<InformationContact>
+                				<ContactID>1234</ContactID>
+                				<Name>John Smith</Name>
+                				<TelephoneNumber>+49123456789</TelephoneNumber>
+                				<TelephoneExtension>89</TelephoneExtension>
+                				<FaxNumber>+49121</FaxNumber>
+                				<EmailAddress>john.smith@ediwheel-example.net</EmailAddress>
+                			</InformationContact>
+                		</SupplierParty>
+                		<BrandInfo>
+                			<BrandInfoID>BrandID</BrandInfoID>
+                			<Brand>TyreBrand</Brand>
+                			<LanguageCode>EN</LanguageCode>
+                			<BrandUSP>Tyre</BrandUSP>
+                			<BrandShortText>Lorem ipsum dolor sit amet</BrandShortText>
+                			<BrandLongText>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</BrandLongText>
+                			<BrandWallPaper>
+                				<URI>https://ediwheel.net/wp-content/uploads/brandwallpaper.png</URI>
+                				<WallPaperLabel>brandwallpaper.png</WallPaperLabel>
+                			</BrandWallPaper>
+                			<BrandAdditionalGraphic>
+                				<LabelGraphic>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</LabelGraphic>
+                				<SortOrder>123</SortOrder>
+                				<Description>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</Description>
+                				<FootNotes>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</FootNotes>
+                				<URI>https://ediwheel.net/wp-content/uploads/brandadditionalgraphic.png</URI>
+                			</BrandAdditionalGraphic>
+                		</BrandInfo>
+                		<Items>
+                			<LineID>1</LineID>
+                			<TreadDesignVariant>TYRE1</TreadDesignVariant>
+                			<DateCreated>2024-01-01</DateCreated>
+                			<DateLastModified>2024-01-01</DateLastModified>
+                			<TreadDesign1>Tyre Lorem Ipsum 1</TreadDesign1>
+                			<TreadDesign2>TLORIMPS1</TreadDesign2>
+                			<ProductName>Tyre Lorem Ipsum</ProductName>
+                			<Brand>TIRES</Brand>
+                			<VehicleType>C0</VehicleType>
+                			<Seasonality>AS</Seasonality>
+                			<RelatedDesign>
+                				<RelatedDesignCode>DesignCode</RelatedDesignCode>
+                				<RelatedDesignLabel>TLORIMPS2</RelatedDesignLabel>
+                			</RelatedDesign>
+                			<MainFunction>AH</MainFunction>
+                			<TreadPattern>TLORIMPS12</TreadPattern>
+                			<Image>
+                				<ImageType>25DegreeFull</ImageType>
+                				<DefinitionHeight>359</DefinitionHeight>
+                				<DefinitionWidth>228</DefinitionWidth>
+                				<FileType>png</FileType>
+                				<FileName>example.png</FileName>
+                				<URI>https://ediwheel.net/wp-content/uploads/example.png</URI>
+                			</Image>
+                			<Image>
+                				<ImageType>FrontFull</ImageType>
+                				<DefinitionHeight>359</DefinitionHeight>
+                				<DefinitionWidth>145</DefinitionWidth>
+                				<FileType>png</FileType>
+                				<FileName>example2.png</FileName>
+                				<URI>https://ediwheel.net/wp-content/uploads/example2.png</URI>
+                			</Image>
+                			<LanguageDependentData>
+                				<LanguageCode>EN</LanguageCode>
+                				<UniqueSellingPoint>Lorem ipsum dolor sit amet.</UniqueSellingPoint>
+                				<ShortText>Lorem ipsum.</ShortText>
+                				<LongText>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</LongText>
+                				<DesignSpecial>Tread Pattern</DesignSpecial>
+                				<DesignWallPaper>
+                					<URI>https://ediwheel.net/wp-content/uploads/designwallpaper.png</URI>
+                					<WallPaperLabel>TyreWallPaperLabel</WallPaperLabel>
+                				</DesignWallPaper>
+                				<SeasonalityWallPaper>
+                					<URI>https://ediwheel.net/wp-content/uploads/seasonalitywallpaper.png</URI>
+                					<WallPaperLabel>TyreWallPaperLabel</WallPaperLabel>
+                				</SeasonalityWallPaper>
+                				<VehicleTypeWallPaper>
+                					<URI>https://ediwheel.net/wp-content/uploads/vehicletypewallPaper.png</URI>
+                					<WallPaperLabel>TyreWallPaperLabel</WallPaperLabel>
+                				</VehicleTypeWallPaper>
+                				<DesignPromotion>
+                					<USP>string</USP>
+                					<ShortText>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</ShortText>
+                					<LongText>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</LongText>
+                					<StartDate>2024-01-01</StartDate>
+                					<ExpiringDate>2099-01-01</ExpiringDate>
+                					<URI>https://ediwheel.net/wp-content/uploads/designpromotion.png</URI>
+                					<QRCode>Lorem ipsum</QRCode>
+                					<Graphic>Lorem ipsum</Graphic>
+                				</DesignPromotion>
+                				<AdditionalGraphic>
+                					<LabelGraphic>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</LabelGraphic>
+                					<SortOrder>TYRE-S-00</SortOrder>
+                					<Description>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</Description>
+                					<FootNotes>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</FootNotes>
+                					<URI>https://ediwheel.net/1/default/original/TTYRE-S-01-image.jpg</URI>
+                				</AdditionalGraphic>
+                				<TestLabels>
+                					<Graphic>Lorem ipsum</Graphic>
+                					<SortOrder>123</SortOrder>
+                					<TireDimension>SIZE: 225/60 R18</TireDimension>
+                					<NameTestingInstance>Vi Bilägare, PRINT 1/2099</NameTestingInstance>
+                					<DateIssue>2024-01-01</DateIssue>
+                					<DisplayCountry>SE</DisplayCountry>
+                					<TestingCountry>SE</TestingCountry>
+                					<TestResult>Top 2 from 8</TestResult>
+                					<TestAbstract>Lorem ipsum dolor sit amet</TestAbstract>
+                					<TestResultQuotation>Lorem ipsum dolor sit amet</TestResultQuotation>
+                					<CompetitionLawRequirements>Lorem ipsum dolor sit amet</CompetitionLawRequirements>
+                					<ExpiringDate>2999-01-01</ExpiringDate>
+                					<URI>https://ediwheel.net/1/default/original/TYRE_BILAGRE_9999.png</URI>
+                				</TestLabels>
+                				<MediaContents>
+                					<MediaType>png</MediaType>
+                					<URI>https://ediwheel.net/wp-content/uploads/example2.png</URI>
+                					<Description>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</Description>
+                					<QRCode>string</QRCode>
+                					<iBeacon>
+                						<UUID>196ef920-d7b0-45f8-8ee8-e2047a788d44</UUID>
+                						<Major>1</Major>
+                						<Minor>2</Minor>
+                					</iBeacon>
+                				</MediaContents>
+                				<Contact>
+                					<ContactID>1234</ContactID>
+                					<Name>John Smith</Name>
+                					<TelephoneNumber>+49123456789</TelephoneNumber>
+                					<TelephoneExtension>89</TelephoneExtension>
+                					<FaxNumber>+49121</FaxNumber>
+                					<EmailAddress>john.smith@ediwheel-example.net</EmailAddress>
+                				</Contact>
+                				<TechnologyLabel>
+                					<Graphic>Lorem ipsum</Graphic>
+                					<SortOrder>1234</SortOrder>
+                					<Description>Lorem ipsum dolor sit amet</Description>
+                					<FootNotes>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</FootNotes>
+                					<URI>https://ediwheel.net/wp-content/uploads/example2.png</URI>
+                				</TechnologyLabel>
+                				<GeneralFootNote>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</GeneralFootNote>
+                			</LanguageDependentData>
+                		</Items>
+                	</MktCatHeader>
+                </mktCat>
+            application/json:
+              schema:
+                $ref: '#/components/schemas/mktCat'
+              example:
+                EnvelopeHeader:
+                  DocumentID: C1
+                  Variant: '1'
+                  MessageType: MktCat
+                MktCatHeader:
+                  CatalogueType: FULL
+                  TextFormattingControlMethod: HTML
+                  SupplierParty:
+                    PartyID: '123456789'
+                    AgencyCode: '9'
+                    Name:
+                      - Tire Supplier
+                    InformationContact:
+                      ContactID: '1234'
+                      Name:
+                        - John Smith
+                      TelephoneNumber: '+49123456789'
+                      TelephoneExtension: '89'
+                      FaxNumber: '+49121'
+                      EmailAddress: 'john.smith@ediwheel-example.net'
+                  BrandInfo:
+                    - Brand: TyreBrand
+                      LanguageCode: en
+                      BrandUSP: Tyre
+                      BrandShortText: Lorem ipsum dolor sit amet
+                      BrandLongText: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                      BrandWallPaper:
+                        - URI: 'https://ediwheel.net/wp-content/uploads/brandwallpaper.png'
+                          WallPaperLabel: brandwallpaper.png
+                      BrandAdditionalGraphic:
+                        - LabelGraphic: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                          SortOrder: '123'
+                          Description: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                          FootNotes: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                          URI: 'https://ediwheel.net/wp-content/uploads/brandadditionalgraphic.png'
+                  Items:
+                    - LineID: '1'
+                      TreadDesignVariant: TYRE1
+                      DateCreated: '2024-01-01'
+                      DateLastModified: '2024-01-01'
+                      TreadDesign1: Tyre Lorem Ipsum 1
+                      TreadDesign2: TLORIMPS1
+                      ProductName: Tyre Lorem Ipsum
+                      Brand: TIRES
+                      VehicleType: C0
+                      Seasonality: AS
+                      RelatedDesign:
+                        - RelatedDesignCode:
+                            - DesignCode
+                          RelatedDesignLabel:
+                            - TLORIMPS2
+                      MainFunction: AH
+                      TreadPattern: TLORIMPS12
+                      Image:
+                        - ImageType: 25DegreeFull
+                          DefinitionHeight: '359'
+                          DefinitionWidth: '228'
+                          FileType: png
+                          FileName: example.png
+                          URI: 'https://ediwheel.net/wp-content/uploads/example.png'
+                      LanguageDependentData:
+                        - LanguageCode: en
+                          UniqueSellingPoint: Lorem ipsum dolor sit amet.
+                          ShortText: Lorem ipsum.
+                          LongText: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                          DesignSpecial: Tread Pattern
+                          DesignWallPaper:
+                            URI: 'https://ediwheel.net/wp-content/uploads/designwallpaper.png'
+                            WallPaperLabel: TyreWallPaperLabel
+                          SeasonalityWallPaper:
+                            URI: 'https://ediwheel.net/wp-content/uploads/seasonalitywallpaper.png'
+                            WallPaperLabel: TyreWallPaperLabel
+                          VehicleTypeWallPaper:
+                            URI: 'https://ediwheel.net/wp-content/uploads/vehicletypewallPaper.png'
+                            WallPaperLabel: TyreWallPaperLabel
+                          DesignPromotion:
+                            USP: Lorem ipsum
+                            ShortText: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                            LongText: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                            StartDate: '2024-01-01'
+                            ExpiringDate: '2099-01-01'
+                            URI: 'https://ediwheel.net/wp-content/uploads/designpromotion.png'
+                            QRCode: Lorem ipsum
+                            Graphic: Lorem ipsum
+                          AdditionalGraphic:
+                            - LabelGraphic: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                              SortOrder: 'TYRE-S-00'
+                              Description: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                              FootNotes: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                              URI: 'https://ediwheel.net/1/default/original/TTYRE-S-01-image.jpg'
+                          TestLabels:
+                            - Graphic: Lorem ipsum
+                              SortOrder: '123'
+                              TireDimension: 'SIZE: 225/60 R18'
+                              NameTestingInstance: Vi Bilägare, PRINT 1/2099
+                              DateIssue: '2024-01-01'
+                              DisplayCountry:
+                                - SE
+                              TestingCountry: SE
+                              TestResult: Top 2 from 8
+                              TestAbstract: Lorem ipsum dolor sit amet
+                              TestResultQuotation: Lorem ipsum dolor sit amet
+                              CompetitionLawRequirements: Lorem ipsum dolor sit amet
+                              ExpiringDate: '2999-01-01'
+                              URI: 'https://ediwheel.net/1/default/original/TYRE_BILAGRE_9999.png'
+                          MediaContents:
+                            - MediaType: png
+                              URI: 'https://ediwheel.net/wp-content/uploads/example2.png'
+                              Description: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                              QRCode: string
+                              iBeacon:
+                                UUID: '196ef920-d7b0-45f8-8ee8-e2047a788d44'
+                                Major: '1'
+                                Minor: '2'
+                          Contact:
+                            - ContactID: '1234'
+                              Name:
+                                - John Smith
+                              TelephoneNumber: '+49123456789'
+                              TelephoneExtension: '89'
+                              FaxNumber: '+49121'
+                              EmailAddress: 'john.smith@ediwheel-example.net'
+                          TechnologyLabel:
+                            - Graphic: Lorem ipsum
+                              SortOrder: '1234'
+                              Description: Lorem ipsum dolor sit amet
+                              FootNotes: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+                              URI: 'https://ediwheel.net/wp-content/uploads/example2.png'
+                          GeneralFootNote: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json_xml'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+  /suppliers/:
+    description: Handle suppliers
+    get:
+      tags:
+        - Suppliers
+      description: Get list of all suppliers
+      operationId: getAllSuppliers
+      parameters:
+        - name: brand
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Link:
+              description: |
+                With this header the pagination links are provided to the consumer as defined in [RFC 5988](https://datatracker.ietf.org/doc/html/rfc5988).
+
+                #### Examples
+
+                __Link to current page (mandatory):__
+
+                    Link: <https://api.ediwheel.net/v1/suppliers?cursor=XXX>; rel="current"
+
+                __Link to first page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/suppliers?cursor=FFF>; rel="first"
+
+                __Link to next page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/suppliers?cursor=NNN>; rel="next"
+
+                __Link to previous page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/suppliers?cursor=PPP>; rel="prev"
+
+                __Link to last page (optional):__
+
+                    Link: <https://api.ediwheel.net/v1/suppliers?cursor=LLL>; rel="last"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/listParty'
+              example:
+                - PartyID: '123456789'
+                  AgencyCode: '9'
+                  Name:
+                    - Tire Supplier
+          links:
+            supplier:
+              operationId: getSupplierByID
+              parameters:
+                ID: '$response.body#/PartyID'
+              description: Gets all detail information for a specific supplier party
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+  /suppliers/{ID}/:
+    description: All direct supplier related operations
+    get:
+      tags:
+        - Suppliers
+      operationId: getSupplierByID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/party'
+              example:
+                PartyID: '123456789'
+                AgencyCode: '9'
+                Name:
+                  - Tire Supplier
+                InformationContact:
+                  Name:
+                    - John Smith
+                  TelephoneNumber: '+49123456'
+                  EmailAddress: 'john.smith@ediwheel-example.net'
+        '400':
+          $ref: '#/components/responses/400_invalid_parameter_id'
+        '401':
+          $ref: '#/components/responses/401_unauthorized_error'
+        '403':
+          $ref: '#/components/responses/403_forbidden'
+        '404':
+          $ref: '#/components/responses/404_not_found'
+        '408':
+          $ref: '#/components/responses/408_no_message'
+        '415':
+          $ref: '#/components/responses/415_only_json'
+        '429':
+          $ref: '#/components/responses/429_too_many_requests'
+        '500':
+          $ref: '#/components/responses/500_internal_server_error'
+        '503':
+          $ref: '#/components/responses/503_come_back_later'
+    post:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    patch:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    put:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    delete:
+      tags:
+        - Unsupported Operation
+      responses:
+        '405':
+          $ref: '#/components/responses/405_Method_Not_Allowed_Only_GET'
+    parameters:
+      - name: ID
+        in: path
+        description: ID of the supplier party
+        required: true
+        schema:
+          type: string
+components:
+  schemas:
+    resolution:
+      maxLength: 3
+      type: string
+    apiInfoResponse:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The name of the API. It SHALL be identical to the API title defined in the OpenAPI specification
+          example: EDIWheel API
+        version:
+          type: string
+          description: The API version.
+          example: 1.2.0
+        status:
+          type: string
+          description: |
+            The operation status of the API. The following values are used:
+
+
+
+            -   **DRAFT**: The API is still under development.
+
+            -   **ACTIVE**: The API is in its productive phase. Maintenance or deprecation of specific services SHALL be indicated at the service level. The effective defines the moment in the past since when API is in its productive phase.
+
+
+            -   **DEPRECATED**: The complete API is going to its end-of-life phase. The effective defines the moment in the future when the API is intended to switch to RETIRED. The rules of deprecation are applied additionally.
+
+
+            - **RETIRED**: The complete API is to its end-of-life phase. The effective defines the moment in the past when the API was set to RETIRED. The rules of deprecation are applied additionally.
+          example: ACTIVE
+          enum:
+            - ACTIVE
+            - DEPRECATED
+            - DRAFT
+            - RETIRED
+        effective:
+          type: string
+          description: The moment in time corresponding to the **status**.
+          example: '2024-05-01T00:00:00Z'
+          format: 'date-time'
+        specification:
+          type: string
+          description: 'A valid URI to the OpenAPI specification of the current API. This way the available services and data types become self-descriptive from their basic structure. The OpenAPI specification SHOULD be public where possible and easily accessible to those that require it.'
+          example: 'https://ediwheel.net'
+          format: uri
+      required:
+        - title
+        - version
+        - status
+        - effective
+        - specification
+    errorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          description: A list of thrown errors.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Identifier of the specific error
+                example: '86032cbe-a804-4c3b-86ce-ec3041e3effc'
+                format: uuid
+              code:
+                type: string
+                description: 'An application-specific error code'
+                example: '19283'
+              detail:
+                type: string
+                description: 'A human-readable explanation specific to this occurrence of the problem.'
+                example: Invalid value(s) in request input
+              source:
+                type: object
+                description: An object containing computer processable information about the origin of the error.
+                properties:
+                  parameter:
+                    type: string
+                    description: The (query) parameter where the error was caused.
+                    example: ident
+                  pointer:
+                    type: string
+                    description: |
+                      JSON Pointer [RFC6901] to the associated entity in the request document.
+
+                      e.g. "/data" for a primary data object, 
+
+                      or "/data/attributes/title" for a specific attribute
+                    example: '#/businessProcesses/12345'
+                    format: 'json-pointer'
+            required:
+              - code
+              - detail
+          minItems: 1
+      required:
+        - errors
+    brandInfo:
+      type: object
+      properties:
+        BrandInfoID:
+# description: Identification for Brand information
+          $ref: '#/components/schemas/IDType'
+        Brand:
+          $ref: '#/components/schemas/BrandType'
+        LanguageCode:
+# description: Code of language (ISO 639-1988).
+# 
+# Note: Use ISO 639-1988.
+          $ref: '#/components/schemas/languageCode'
+        BrandUSP:
+# description: Brand unique selling point
+          $ref: '#/components/schemas/USPType'
+        BrandShortText:
+# description: Description of the brand - short text
+          $ref: '#/components/schemas/ShortTextType'
+        BrandLongText:
+# description: Description of the brand - long text
+          $ref: '#/components/schemas/LongTextType'
+        BrandWallPaper:
+          type: array
+          items:
+            $ref: '#/components/schemas/WallPaperType'
+        BrandAdditionalGraphic:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdditionalGraphicType'
+      required:
+        - BrandInfoID
+        - Brand
+    countryCode:
+      enum:
+        - AD
+        - AE
+        - AF
+        - AG
+        - AI
+        - AL
+        - AM
+        - AO
+        - AQ
+        - AR
+        - AS
+        - AT
+        - AU
+        - AW
+        - AX
+        - AZ
+        - BA
+        - BB
+        - BD
+        - BE
+        - BF
+        - BG
+        - BH
+        - BI
+        - BJ
+        - BL
+        - BM
+        - BN
+        - BO
+        - BQ
+        - BR
+        - BS
+        - BT
+        - BV
+        - BW
+        - BY
+        - BZ
+        - CA
+        - CC
+        - CD
+        - CF
+        - CG
+        - CH
+        - CI
+        - CK
+        - CL
+        - CM
+        - CN
+        - CO
+        - CR
+        - CU
+        - CV
+        - CW
+        - CX
+        - CY
+        - CZ
+        - DE
+        - DJ
+        - DK
+        - DM
+        - DO
+        - DZ
+        - EC
+        - EE
+        - EG
+        - EH
+        - ER
+        - ES
+        - ET
+        - FI
+        - FJ
+        - FK
+        - FM
+        - FO
+        - FR
+        - GA
+        - GB
+        - GD
+        - GE
+        - GF
+        - GG
+        - GH
+        - GI
+        - GL
+        - GM
+        - GN
+        - GP
+        - GQ
+        - GR
+        - GS
+        - GT
+        - GU
+        - GW
+        - GY
+        - HK
+        - HM
+        - HN
+        - HR
+        - HT
+        - HU
+        - ID
+        - IE
+        - IL
+        - IM
+        - IN
+        - IO
+        - IQ
+        - IR
+        - IS
+        - IT
+        - JE
+        - JM
+        - JO
+        - JP
+        - KE
+        - KG
+        - KH
+        - KI
+        - KM
+        - KN
+        - KP
+        - KR
+        - KW
+        - KY
+        - KZ
+        - LA
+        - LB
+        - LC
+        - LI
+        - LK
+        - LR
+        - LS
+        - LT
+        - LU
+        - LV
+        - LY
+        - MA
+        - MC
+        - MD
+        - ME
+        - MF
+        - MG
+        - MH
+        - MK
+        - ML
+        - MM
+        - MN
+        - MO
+        - MP
+        - MQ
+        - MR
+        - MS
+        - MT
+        - MU
+        - MV
+        - MW
+        - MX
+        - MY
+        - MZ
+        - NA
+        - NC
+        - NE
+        - NF
+        - NG
+        - NI
+        - NL
+        - NO
+        - NP
+        - NR
+        - NU
+        - NZ
+        - OM
+        - PA
+        - PE
+        - PF
+        - PG
+        - PH
+        - PK
+        - PL
+        - PM
+        - PN
+        - PR
+        - PS
+        - PT
+        - PW
+        - PY
+        - QA
+        - RE
+        - RO
+        - RS
+        - RU
+        - RW
+        - SA
+        - SB
+        - SC
+        - SD
+        - SE
+        - SG
+        - SH
+        - SI
+        - SJ
+        - SK
+        - SL
+        - SM
+        - SN
+        - SO
+        - SR
+        - SS
+        - ST
+        - SV
+        - SX
+        - SY
+        - SZ
+        - TC
+        - TD
+        - TF
+        - TG
+        - TH
+        - TJ
+        - TK
+        - TL
+        - TM
+        - TN
+        - TO
+        - TR
+        - TT
+        - TV
+        - TW
+        - TZ
+        - UA
+        - UG
+        - UM
+        - US
+        - UY
+        - UZ
+        - VA
+        - VC
+        - VE
+        - VG
+        - VI
+        - VN
+        - VU
+        - WF
+        - WS
+        - YE
+        - YT
+        - ZA
+        - ZM
+        - ZW
+      type: string
+    image:
+      type: object
+      properties:
+        ImageType:
+          $ref: '#/components/schemas/ImageTypeCodeType'
+        DefinitionHeight:
+          $ref: '#/components/schemas/DefinitionHeightType'
+        DefinitionWidth:
+          $ref: '#/components/schemas/DefinitionWidthType'
+        Resolution:
+          $ref: '#/components/schemas/resolution'
+        FileType:
+          $ref: '#/components/schemas/fileType'
+        FileName:
+          $ref: '#/components/schemas/FileNameType'
+        URI:
+          $ref: '#/components/schemas/URIType'
+      required:
+        - ImageType
+        - DefinitionHeight
+        - DefinitionWidth
+        - FileType
+        - FileName
+    fileType:
+      enum:
+        - bmp
+        - gif
+        - jpeg
+        - jpg
+        - png
+        - svg
+        - tif
+        - tiff
+        - webp
+      type: string
+      example: bmp, gif, jpeg, jpg, png, svg, tif, tiff, ...
+    languageCode:
+      enum:
+        - aa
+        - AA
+        - ab
+        - AB
+        - ae
+        - AE
+        - af
+        - AF
+        - ak
+        - AK
+        - am
+        - AM
+        - an
+        - AN
+        - ar
+        - AR
+        - as
+        - AS
+        - av
+        - AV
+        - ay
+        - AY
+        - az
+        - AZ
+        - ba
+        - BA
+        - be
+        - BE
+        - bg
+        - BG
+        - bh
+        - BH
+        - bi
+        - BI
+        - bm
+        - BM
+        - bn
+        - BN
+        - bo
+        - BO
+        - br
+        - BR
+        - bs
+        - BS
+        - ca
+        - CA
+        - ce
+        - CE
+        - ch
+        - CH
+        - co
+        - CO
+        - cr
+        - CR
+        - cs
+        - CS
+        - cu
+        - CU
+        - cv
+        - CV
+        - cy
+        - CY
+        - da
+        - DA
+        - de
+        - DE
+        - dv
+        - DV
+        - dz
+        - DZ
+        - ee
+        - EE
+        - el
+        - EL
+        - en
+        - EN
+        - eo
+        - EO
+        - es
+        - ES
+        - et
+        - ET
+        - eu
+        - EU
+        - fa
+        - FA
+        - ff
+        - FF
+        - fi
+        - FI
+        - fj
+        - FJ
+        - fo
+        - FO
+        - fr
+        - FR
+        - fy
+        - FY
+        - ga
+        - GA
+        - gd
+        - GD
+        - gl
+        - GL
+        - gn
+        - GN
+        - gu
+        - GU
+        - gv
+        - GV
+        - ha
+        - HA
+        - he
+        - HE
+        - hi
+        - HI
+        - ho
+        - HO
+        - hr
+        - HR
+        - ht
+        - HT
+        - hu
+        - HU
+        - hy
+        - HY
+        - hz
+        - HZ
+        - ia
+        - IA
+        - id
+        - ID
+        - ie
+        - IE
+        - ig
+        - IG
+        - ii
+        - II
+        - ik
+        - IK
+        - io
+        - IO
+        - is
+        - IS
+        - it
+        - IT
+        - iu
+        - IU
+        - ja
+        - JA
+        - jv
+        - JV
+        - ka
+        - KA
+        - kg
+        - KG
+        - ki
+        - KI
+        - kj
+        - KJ
+        - kk
+        - KK
+        - kl
+        - KL
+        - km
+        - KM
+        - kn
+        - KN
+        - ko
+        - KO
+        - kr
+        - KR
+        - ks
+        - KS
+        - ku
+        - KU
+        - kv
+        - KV
+        - kw
+        - KW
+        - ky
+        - KY
+        - la
+        - LA
+        - lb
+        - LB
+        - lg
+        - LG
+        - li
+        - LI
+        - ln
+        - LN
+        - lo
+        - LO
+        - lt
+        - LT
+        - lu
+        - LU
+        - lv
+        - LV
+        - mg
+        - MG
+        - mh
+        - MH
+        - mi
+        - MI
+        - mk
+        - MK
+        - ml
+        - ML
+        - mn
+        - MN
+        - mo
+        - MO
+        - mr
+        - MR
+        - ms
+        - MS
+        - mt
+        - MT
+        - my
+        - MY
+        - na
+        - NA
+        - nb
+        - NB
+        - nd
+        - ND
+        - ne
+        - NE
+        - ng
+        - NG
+        - nl
+        - NL
+        - nn
+        - NN
+        - no
+        - NO
+        - nr
+        - NR
+        - nv
+        - NV
+        - ny
+        - NY
+        - oc
+        - OC
+        - oj
+        - OJ
+        - om
+        - OM
+        - or
+        - OR
+        - os
+        - OS
+        - pa
+        - PA
+        - pi
+        - PI
+        - pl
+        - PL
+        - ps
+        - PS
+        - pt
+        - PT
+        - qu
+        - QU
+        - rm
+        - RM
+        - rn
+        - RN
+        - ro
+        - RO
+        - ru
+        - RU
+        - rw
+        - RW
+        - sa
+        - SA
+        - sc
+        - SC
+        - sd
+        - SD
+        - se
+        - SE
+        - sg
+        - SG
+        - si
+        - SI
+        - sk
+        - SK
+        - sl
+        - SL
+        - sm
+        - SM
+        - sn
+        - SN
+        - so
+        - SO
+        - sq
+        - SQ
+        - sr
+        - SR
+        - ss
+        - SS
+        - st
+        - ST
+        - su
+        - SU
+        - sv
+        - SV
+        - sw
+        - SW
+        - ta
+        - TA
+        - te
+        - TE
+        - tg
+        - TG
+        - th
+        - TH
+        - ti
+        - TI
+        - tk
+        - TK
+        - tl
+        - TL
+        - tn
+        - TN
+        - to
+        - TO
+        - tr
+        - TR
+        - ts
+        - TS
+        - tt
+        - TT
+        - tw
+        - TW
+        - ty
+        - TY
+        - ug
+        - UG
+        - uk
+        - UK
+        - ur
+        - UR
+        - uz
+        - UZ
+        - ve
+        - VE
+        - vi
+        - VI
+        - vo
+        - VO
+        - wa
+        - WA
+        - wo
+        - WO
+        - xh
+        - XH
+        - yi
+        - YI
+        - yo
+        - YO
+        - za
+        - ZA
+        - zh
+        - ZH
+        - zu
+        - ZU
+      type: string
+    languageDependentDataType:
+      type: object
+      properties:
+        LanguageCode:
+# description: Code of language (ISO 639-1988).
+# 
+# Note: Use ISO 639-1988.
+          $ref: '#/components/schemas/languageCode'
+        UniqueSellingPoint:
+          $ref: '#/components/schemas/UniqueSellingPointType'
+        ShortText:
+          $ref: '#/components/schemas/ShortTextType'
+        LongText:
+          $ref: '#/components/schemas/LongTextType'
+        DesignSpecial:
+          $ref: '#/components/schemas/DesignSpecialType'
+        DesignWallPaper:
+          $ref: '#/components/schemas/WallPaperType_2'
+        SeasonalityWallPaper:
+          $ref: '#/components/schemas/WallPaperType_2'
+        VehicleTypeWallPaper:
+          $ref: '#/components/schemas/WallPaperType_2'
+        DesignPromotion:
+          $ref: '#/components/schemas/DesignPromotionType'
+        AdditionalGraphic:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdditionalGraphicType'
+        TestLabels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestLabelsType'
+        MediaContents:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaContentsType'
+        Contact:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactType'
+        TechnologyLabel:
+          type: array
+          items:
+            $ref: '#/components/schemas/TechnologyLabelType'
+        GeneralFootNote:
+          type: string
+      required:
+        - LanguageCode
+    languageDependentData:
+      allOf:
+        - $ref: '#/components/schemas/languageDependentDataType'
+        - type: object
+          properties:
+            TextFormattingControlMethod:
+              $ref: '#/components/schemas/textFormatCode'
+    listParty:
+      description: Identification of a supplier
+      type: object
+      properties:
+        PartyID:
+# description: Identification number supplier
+          $ref: '#/components/schemas/PartyIDType'
+        AgencyCode:
+          enum:
+            - '9'
+            - '91'
+            - '92'
+          type: string
+        Name:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameType'
+          maxItems: 4
+        Address:
+          $ref: '#/components/schemas/AddressType'
+        SalesContact:
+          type: object
+          properties:
+            Name:
+# description: Name of a department or employee.
+              $ref: '#/components/schemas/NameType'
+          required:
+            - Name
+        ShippingLocation:
+          type: object
+          properties:
+            LocationName:
+              $ref: '#/components/schemas/LocationNameType'
+          required:
+            - LocationName
+      required:
+        - PartyID
+        - AgencyCode
+    mktCat:
+      description: MKTCAT C1.2 is based on PRICAT C1 (applicable only for VehicleType, Seasonality, MainFunction)
+      type: object
+      properties:
+        EnvelopeHeader:
+          $ref: '#/components/schemas/EnvelopeHeaderType'
+        MktCatHeader:
+          $ref: '#/components/schemas/MktCatHeaderType'
+      required:
+        - EnvelopeHeader
+        - MktCatHeader
+    party:
+      description: Identification of a supplier
+      type: object
+      properties:
+        PartyID:
+# description: Identification number supplier
+          $ref: '#/components/schemas/PartyIDType'
+        AgencyCode:
+          enum:
+            - '9'
+            - '91'
+            - '92'
+          type: string
+        Name:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameType'
+          maxItems: 4
+        Address:
+          $ref: '#/components/schemas/AddressType'
+        InformationContact:
+          $ref: '#/components/schemas/ContactType'
+        SalesContact:
+          type: object
+          properties:
+            Name:
+# description: Name of a department or employee.
+              $ref: '#/components/schemas/NameType'
+          required:
+            - Name
+        ShippingLocation:
+          type: object
+          properties:
+            LocationName:
+              $ref: '#/components/schemas/LocationNameType'
+          required:
+            - LocationName
+      required:
+        - PartyID
+        - AgencyCode
+    seasonality:
+      maxLength: 3
+      enum:
+        - AS
+        - NR
+        - SU
+        - WI
+      type: string
+    textFormatCode:
+      enum:
+        - HTML
+        - MARKDOWN
+        - 'NOT-FORMATTED'
+      type: string
+    treadDesignVariant:
+      type: object
+      properties:
+        TreadDesignVariant:
+          $ref: '#/components/schemas/TreadDesignVariantType'
+        DateCreated:
+          $ref: '#/components/schemas/DateType'
+        DateLastModified:
+          $ref: '#/components/schemas/DateType'
+        TreadDesign1:
+          $ref: '#/components/schemas/TreadDesign1Type'
+        TreadDesign2:
+          $ref: '#/components/schemas/TreadDesign2Type'
+        ProductName:
+          $ref: '#/components/schemas/ProductNameType'
+        Brand:
+          $ref: '#/components/schemas/BrandType'
+        VehicleType:
+          $ref: '#/components/schemas/vehicleType'
+        Seasonality:
+          $ref: '#/components/schemas/seasonality'
+        RelatedDesign:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedDesignType'
+        MainFunction:
+          $ref: '#/components/schemas/MainFunctionCodeType'
+        TreadPattern:
+          $ref: '#/components/schemas/TreadPatternType'
+      required:
+        - TreadDesignVariant
+    treadDesignVariantList:
+      type: object
+      properties:
+        TreadDesignVariant:
+          $ref: '#/components/schemas/TreadDesignVariantType'
+        TreadDesign1:
+          $ref: '#/components/schemas/TreadDesign1Type'
+        TreadDesign2:
+          $ref: '#/components/schemas/TreadDesign2Type'
+        ProductName:
+          $ref: '#/components/schemas/ProductNameType'
+      required:
+        - TreadDesignVariant
+    vehicleType:
+      enum:
+        - C0
+        - CA
+        - CB
+        - CC
+        - E0
+        - F0
+        - H0
+        - I0
+        - L0
+        - LA
+        - LB
+        - M0
+        - MA
+        - MB
+        - MC
+        - MD
+        - ME
+        - MF
+        - R0
+        - T0
+        - TA
+        - TB
+        - TC
+        - TD
+        - X0
+      type: string
+    eventType:
+      type: string
+      description: Types of events for filter purposes.
+      enum:
+        - changedImages
+        - changedLanguageDependentData
+        - deletedTreadDesignVariant
+        - newTreadDesignVariant
+    AdditionalGraphicType:
+      oneOf:
+        - $ref: '#/components/schemas/GraphicType'
+        - $ref: '#/components/schemas/SortOrderType'
+        - $ref: '#/components/schemas/DescriptionType'
+        - $ref: '#/components/schemas/FootNotesType'
+        - $ref: '#/components/schemas/URIType'
+    AddressType:
+      type: object
+      properties:
+        Street:
+          type: array
+          items:
+            $ref: '#/components/schemas/StreetType'
+          maxItems: 3
+        City:
+          $ref: '#/components/schemas/CityType'
+        District:
+          $ref: '#/components/schemas/DistrictType'
+        PostCode:
+          $ref: '#/components/schemas/PostCodeType'
+        SubCountry:
+          $ref: '#/components/schemas/SubCountryType'
+        CountryCode:
+          $ref: '#/components/schemas/countryCode'
+        AddressLineText:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressLineTextType'
+          maxItems: 5
+        Geolocation:
+          $ref: '#/components/schemas/GeolocationType'
+      required:
+        - City
+        - CountryCode
+    BrandType:
+      maxLength: 35
+      type: string
+    ContactType:
+      type: object
+      properties:
+        ContactID:
+          $ref: '#/components/schemas/IDType'
+        Name:
+          type: array
+          items:
+            $ref: '#/components/schemas/NameType'
+          minItems: 1
+          maxItems: 2
+        TelephoneNumber:
+          $ref: '#/components/schemas/TelephoneNumberType'
+        FaxNumber:
+          $ref: '#/components/schemas/FaxNumberType'
+        EmailAddress:
+          $ref: '#/components/schemas/EmailAddressType'
+    DateType:
+      pattern: '\d{4}-\d{2}-\d{2}'
+      type: string
+    DefinitionHeightType:
+      maxLength: 4
+      type: string
+    DefinitionWidthType:
+      maxLength: 4
+      type: string
+    DesignPromotionType:
+      oneOf:
+        - $ref: '#/components/schemas/USPType'
+        - $ref: '#/components/schemas/ShortTextType'
+        - $ref: '#/components/schemas/LongTextType'
+        - $ref: '#/components/schemas/DateType'
+        - $ref: '#/components/schemas/DateType'
+        - $ref: '#/components/schemas/URIType'
+        - $ref: '#/components/schemas/QRCodeType'
+        - $ref: '#/components/schemas/GraphicType'
+    DesignSpecialType:
+      maxLength: 10000
+      type: string
+    EnvelopeHeaderType:
+      type: object
+      properties:
+        DocumentID:
+# description: Identification of Message version
+          $ref: '#/components/schemas/DocumentIDType'
+        Variant:
+# description: Variant of the message type.
+          $ref: '#/components/schemas/VariantType'
+        MessageType:
+          enum:
+            - MktCat
+          type: string
+      required:
+        - DocumentID
+        - Variant
+        - MessageType
+    FileNameType:
+      maxLength: 250
+      type: string
+    IDType:
+      maxLength: 35
+      type: string
+    ImageTypeCodeType:
+      enum:
+        - 25DegreeFull
+        - 25DegreeFullNoRim
+        - 25DegreeFullSet
+        - 25DegreeFullSetNoRim
+        - 25DegreeHalf
+        - 25DegreeHalfNoRim
+        - 25DegreeHalfSet
+        - 25DegreeHalfSetNoRim
+        - 30DegreeFull
+        - 30DegreeFullNoRim
+        - 30DegreeFullSet
+        - 30DegreeFullSetNoRim
+        - 30DegreeHalf
+        - 30DegreeHalfNoRim
+        - 30DegreeHalfSet
+        - 30DegreeHalfSetNoRim
+        - 360Degree
+        - 360DegreeNoRim
+        - 3D
+        - 3DNoRim
+        - Cut
+        - CutSet
+        - FrontFull
+        - FrontFullSet
+        - FrontHalf
+        - FrontHalfSet
+        - SideFull
+        - SideFull Set
+        - SideFullNoRim
+        - SideFullSetNoRim
+        - SideHalf
+        - SideHalfNoRim
+        - SideHalfSet
+        - SideHalfSetNoRim
+      type: string
+    LocationNameType:
+      maxLength: 20
+      type: string
+    LongTextType:
+      maxLength: 30000
+      type: string
+    MainFunctionCodeType:
+      enum:
+        - AH
+        - BI
+        - CA
+        - CT
+        - FF
+        - FI
+        - FT
+        - FX
+        - IM
+        - LT
+        - MO
+        - NR
+        - PC
+        - TA
+        - TD
+        - TS
+        - TT
+      type: string
+    MediaContentsType:
+      oneOf:
+        - $ref: '#/components/schemas/MediaTypeType'
+        - $ref: '#/components/schemas/URIType'
+        - $ref: '#/components/schemas/DescriptionType'
+        - $ref: '#/components/schemas/QRCodeType'
+        - $ref: '#/components/schemas/iBeaconType'
+    MktCatHeaderType:
+      type: object
+      properties:
+        CatalogueType:
+          $ref: '#/components/schemas/CatalogueTypeCodeType'
+        TextFormattingControlMethod:
+          $ref: '#/components/schemas/textFormatCode'
+        SupplierParty:
+          $ref: '#/components/schemas/party'
+        BrandInfo:
+          type: array
+          items:
+            $ref: '#/components/schemas/brandInfo'
+        Items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemsType_3'
+          minItems: 1
+      required:
+        - TextFormattingControlMethod
+        - SupplierParty
+    NameType:
+      maxLength: 40
+      type: string
+    PartyIDType:
+      maxLength: 17
+      type: string
+    ProductNameType:
+      maxLength: 60
+      type: string
+    RelatedDesignType:
+      type: object
+      properties:
+        RelatedDesignCode:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedDesignCodeType'
+          minItems: 1
+        RelatedDesignLabel:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedDesignLabelType'
+    ShortTextType:
+      maxLength: 1000
+      type: string
+    TechnologyLabelType:
+      oneOf:
+        - $ref: '#/components/schemas/GraphicType'
+        - $ref: '#/components/schemas/SortOrderType'
+        - $ref: '#/components/schemas/DescriptionType'
+        - $ref: '#/components/schemas/FootNotesType'
+        - $ref: '#/components/schemas/URIType'
+    TestLabelsType:
+      oneOf:
+        - $ref: '#/components/schemas/GraphicType'
+        - $ref: '#/components/schemas/SortOrderType'
+        - $ref: '#/components/schemas/TireDimensionType'
+        - $ref: '#/components/schemas/NameTestingInstanceType'
+        - $ref: '#/components/schemas/DateType_2'
+        - $ref: '#/components/schemas/countryCode'
+        - $ref: '#/components/schemas/countryCode'
+        - $ref: '#/components/schemas/TestResultType'
+        - $ref: '#/components/schemas/TestAbstractType'
+        - $ref: '#/components/schemas/TestResultQuotationType'
+        - $ref: '#/components/schemas/CompetitionLawRequirementsType'
+        - $ref: '#/components/schemas/DateType'
+        - $ref: '#/components/schemas/URIType'
+    TreadDesign1Type:
+      maxLength: 35
+      type: string
+    TreadDesign2Type:
+      description: Design abbreviation (e.g. pattern code or similar) representing entry of DESIGN_1
+      maxLength: 35
+      type: string
+    TreadDesignVariantType:
+      maxLength: 35
+      type: string
+    TreadPatternType:
+      maxLength: 35
+      type: string
+    URIType:
+      maxLength: 2000
+      type: string
+    USPType:
+      maxLength: 500
+      type: string
+    UniqueSellingPointType:
+      maxLength: 500
+      type: string
+    WallPaperType:
+      oneOf:
+        - $ref: '#/components/schemas/URIType'
+        - $ref: '#/components/schemas/WallPaperLabelType'
+    WallPaperType_2:
+      oneOf:
+        - $ref: '#/components/schemas/URIType'
+        - $ref: '#/components/schemas/WallPaperLabelType'
+    AddressLineTextType:
+      maxLength: 35
+      type: string
+    CatalogueTypeCodeType:
+      enum:
+        - FULL
+        - PARTIAL
+      type: string
+    CityType:
+      maxLength: 40
+      type: string
+    CompetitionLawRequirementsType:
+      maxLength: 500
+      type: string
+    DateType_2:
+      maxLength: 20
+      pattern: '\d{4}-\d{2}-\d{2}'
+      type: string
+    DescriptionType:
+      description: 'Description in Text-Form'
+      maxLength: 10000
+      type: string
+    DistrictType:
+      maxLength: 40
+      type: string
+    DocumentIDType:
+      description: Identification of Message version
+      maxLength: 35
+      type: string
+    EmailAddressType:
+      maxLength: 256
+      type: string
+    FaxNumberType:
+      maxLength: 100
+      type: string
+    FootNotesType:
+      maxLength: 10000
+      type: string
+    GeolocationType:
+      type: object
+      properties:
+        Latitude:
+          $ref: '#/components/schemas/LatitudeType'
+        Longitude:
+          $ref: '#/components/schemas/LongitudeType'
+      required:
+        - Latitude
+        - Longitude
+    GraphicType:
+      maxLength: 40
+      type: string
+    ItemsType_3:
+      type: object
+      properties:
+        LineID:
+          $ref: '#/components/schemas/LineIDType'
+        TreadDesignVariant:
+          $ref: '#/components/schemas/TreadDesignVariantType'
+        DateCreated:
+          $ref: '#/components/schemas/DateType'
+        DateLastModified:
+          $ref: '#/components/schemas/DateType'
+        TreadDesign1:
+          $ref: '#/components/schemas/TreadDesign1Type'
+        TreadDesign2:
+          $ref: '#/components/schemas/TreadDesign2Type'
+        ProductName:
+          $ref: '#/components/schemas/ProductNameType'
+        Brand:
+          $ref: '#/components/schemas/BrandType'
+        VehicleType:
+          $ref: '#/components/schemas/vehicleType'
+        Seasonality:
+          $ref: '#/components/schemas/seasonality'
+        RelatedDesign:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedDesignType'
+        MainFunction:
+          $ref: '#/components/schemas/MainFunctionCodeType'
+        TreadPattern:
+          $ref: '#/components/schemas/TreadPatternType'
+        Image:
+          type: array
+          items:
+            $ref: '#/components/schemas/image'
+        LanguageDependentData:
+          type: array
+          items:
+            $ref: '#/components/schemas/languageDependentDataType'
+      required:
+        - LineID
+        - TreadDesignVariant
+    MediaTypeType:
+      maxLength: 256
+      type: string
+    NameTestingInstanceType:
+      maxLength: 40
+      type: string
+    PostCodeType:
+      maxLength: 10
+      type: string
+    QRCodeType:
+      maxLength: 256
+      type: string
+    RelatedDesignCodeType:
+      maxLength: 35
+      type: string
+    RelatedDesignLabelType:
+      maxLength: 35
+      type: string
+    SortOrderType:
+      maxLength: 200
+      type: string
+    StreetType:
+      maxLength: 40
+      type: string
+    SubCountryType:
+      maxLength: 70
+      type: string
+    TelephoneNumberType:
+      maxLength: 100
+      type: string
+    TestAbstractType:
+      maxLength: 20
+      type: string
+    TestResultQuotationType:
+      maxLength: 200
+      type: string
+    TestResultType:
+      maxLength: 5
+      type: string
+    TireDimensionType:
+      maxLength: 40
+      type: string
+    VariantType:
+      maxLength: 1
+      minLength: 1
+      type: string
+    WallPaperLabelType:
+      maxLength: 40
+      type: string
+    iBeaconType:
+      oneOf:
+        - $ref: '#/components/schemas/UUIDType'
+        - $ref: '#/components/schemas/MajorType'
+        - $ref: '#/components/schemas/MinorType'
+    LatitudeType:
+      pattern: '(\+|-)?(([0-8][0-9])(\.[0-9]{1,6})?|90)'
+      type: string
+    LineIDType:
+      description: Identification number of a line item in a document.
+      maxLength: 6
+      type: string
+    LongitudeType:
+      pattern: '(\+|-)?((0[0-9]{2}|1[0-7][0-9])(\.[0-9]{1,6})?|180)'
+      type: string
+    MajorType:
+      maxLength: 5
+      type: string
+    MinorType:
+      maxLength: 5
+      type: string
+    UUIDType:
+      maxLength: 32
+      type: string
+  responses:
+    200_OK:
+      description: OK
+    200_MktCat:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/mktCat'
+    400_invalid_parameter_id:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          examples:
+            Invalid_parameter_ID:
+              $ref: '#/components/examples/invalid_parameter_id'
+    401_unauthorized_error:
+      description: Authentication information is missing or invalid
+      headers:
+        WWW_Authenticate:
+          description: The authentication method that should be used to gain access to this resource.
+          schema:
+            type: string
+    403_forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+              detail: You are not allowed to access this service.
+              code: '19287'
+    404_not_found:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          examples:
+            invalid_id:
+              $ref: '#/components/examples/invalid_id'
+    405_Method_Not_Allowed_Only_GET:
+      description: Method Not Allowed
+      headers:
+        Allow:
+          description: 'A comma-separated list of allowed HTTP request methods.'
+          schema:
+            type: string
+          example: 'Allow: GET'
+    408_no_message:
+      description: Request Timeout
+    415_only_json:
+      description: Unsupported Media Type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          examples:
+            only_json_supported:
+              $ref: '#/components/examples/only_json_supported'
+    415_only_json_xml:
+      description: Unsupported Media Type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          examples:
+            only_json_xml_supported:
+              $ref: '#/components/examples/only_json_xml_supported'
+    415_only_specific_image_formats:
+      description: Unsupported Media Type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          examples:
+            only_specific_mediatypes_supported:
+              $ref: '#/components/examples/only_images_supported'
+    429_too_many_requests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+              detail: You made more than 10 requests in the last 24 hours.
+              code: '19287'
+    500_internal_server_error:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+              detail: Backend system not available.
+              code: '19287'
+    501_not_implemented:
+      description: Not implemented
+    503_come_back_later:
+      description: Service Unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          examples:
+            service_unavailable:
+              $ref: '#/components/examples/service_unavailable'
+  parameters:
+    afterDate:
+      name: afterDate
+      in: query
+      description: Return only items that were chreated or modified after the date.
+      schema:
+        type: string
+      example: '2020-10-29'
+    brand:
+      name: brand
+      in: query
+      description: Filter the brand
+      schema:
+        type: string
+      example: Tire Company
+    country:
+      name: country
+      in: query
+      description: Filter the country
+      schema:
+        $ref: '#/components/schemas/countryCode'
+      example: DE
+    cursor:
+      name: cursor
+      in: query
+      description: The cursor is an identifier string defined by the server to identify a filtered and / or sorted list of results by a consumer at a specific moment in time. It devides a result list to everything before the cursor, everything after the cursor and, optionally, a specific record "on" the cursor.
+      schema:
+        type: string
+      example: w1nnnii8GGasdhkjasd2
+    fileType:
+      name: fileType
+      in: query
+      description: Filter the image file type
+      schema:
+        $ref: '#/components/schemas/fileType'
+      example: png
+    language:
+      name: language
+      in: query
+      description: Filter the language
+      schema:
+        $ref: '#/components/schemas/languageCode'
+      example: de
+    pageSize:
+      name: pageSize
+      in: query
+      description: Defines the maximim size of returned records per page. Default value and max value = 50
+      schema:
+        type: integer
+    textFormat:
+      name: textFormat
+      in: query
+      description: Select the format of the provided textual information.
+      required: true
+      allowEmptyValue: false
+      schema:
+        $ref: '#/components/schemas/textFormatCode'
+      example: HTML
+    vehicleType:
+      name: vehicleType
+      in: query
+      description: Select the type of vehicle as filter criteria
+      required: false
+      allowEmptyValue: false
+      schema:
+        $ref: '#/components/schemas/vehicleType'
+      example: T0
+    seasonality:
+      name: seasonality
+      in: query
+      description: Select the applicable seasonality as filter criteria
+      required: false
+      allowEmptyValue: false
+      schema:
+        $ref: '#/components/schemas/seasonality'
+      example: 03
+    treadDesign1:
+      name: treadDesign1
+      in: query
+      description: |
+        The treadDesign1 represents the overall design, regardless of any optical differences / specifics.
+        A single treadDesign1 can consist of multiple treadDesignVariants.
+      schema:
+        type: string
+      example: Tyre Lorem Ipsum 1
+  examples:
+    invalid_parameter_id:
+      description: Error response with invalid parameter id
+      value:
+        errors:
+          - id: '86032cbe-a804-4c3b-86ce-ec3041e3effc'
+            detail: Invalid value(s) in request input
+            code: '19283'
+            source:
+              parameter: id
+    invalid_id:
+      description: Error response with invalid id
+      value:
+        errors:
+          - id: '86032cbe-a804-4c3b-86ce-ec3041e3effc'
+            detail: No resource found with provided id
+            code: '19283'
+            source:
+              parameter: id
+    field_length_exceeded:
+      description: Field length exceeded error
+      value:
+        errors:
+          - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+            detail: Input value(s) exceeded maximum length
+            code: '19284'
+            source:
+              pointer: '#/name'
+    only_json_supported:
+      description: Only application/json is supported
+      value:
+        errors:
+          - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+            detail: Only application/json is supported
+            code: '19284'
+    only_json_xml_supported:
+      description: Only application/json or text/xml is supported
+      value:
+        errors:
+          - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+            detail: Only application/json or text/xml is supported
+            code: '19284'
+    only_images_supported:
+      description: Only specific file formats are supported
+      value:
+        errors:
+          - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+            detail: Only image/jpeg, application/postscript,  or image/png are supported
+            code: '19284'
+    service_unavailable:
+      description: The service is unavailable due to maintenance.
+      value:
+        errors:
+          - id: '45786a8f-452e-492f-a779-801b5d0bd0a7'
+            detail: 'The service is unavailable due to maintenance. Come back at 15:00CEST.'
+            code: '19284'
+  links:
+    TreadDesignVariant_images:
+      operationId: getTreadDesignVariantImages
+      parameters:
+        ID: '$response.body#/TreadDesignVariant'
+      description: Get the images for a specific TreadDesignVariant
+    TreadDesignVariant_languageDependentData:
+      operationId: getTreadDesignVariantLanguageDependentData
+      parameters:
+        ID: '$response.body#/TreadDesignVariant'
+      description: Gets the languageDependentData for a TreadDesignVariant
+tags:
+  - name: Administration
+    description: Generic administrative API functions.
+  - name: Marketing Catalogue
+    description: The marketing catalogue provides all necessary information for a representation of given TreadDesignVariants in the web. In includes images as well as languagage dependent information.
+  - name: Suppliers
+    description: The EDIWheel API supports handling of supplier parties as well. An example application is an information provider. The information provider offers the TreadDesignVariants to all tire manufacturers over a single platform solution. This way a party can be a manufacturer or a customer of the service provider as well.
+  - name: Unsupported Operation
+    description: The following services are explicitly not supported. Nevertheless they are defined to be compliant to the UN/CEFACT OpenAPI NDR guideline.

@@ -1,0 +1,1765 @@
+openapi: 3.0.0
+# The info section contains API information
+info:
+  # A machine and human readable detail of the API
+  description: API provided to customers worldwide to track status of their orders
+  # API implementation version
+  version: 1.2.0
+  # Title of API
+  title: EDIWHEEL Order Status API
+  # Contact details of API Producer
+  contact:
+    # Name of API Producer
+    name: API Support
+    email: devportal.support@michelin.com
+    url: "https://developer.michelin.com/en/contact"
+  license:
+    name: Michelin
+    url: https://developer.michelin.com/en/terms-and-conditions-use
+# The servers section specifies the API server and base URL
+servers:
+  # Type of server(Dev/Indus/Sandbox/Production)
+  - url: "https://api.michelin.com/order"
+    description: Production
+  - url: "https://sandbox.api.michelin.com/order"
+    description: Sandbox
+
+# A declaration of which security mechanisms can be used across the API. Each name must correspond to a security scheme which is declared in the Security Schemes under the Components Object.
+security:
+  - BasicAuth: []
+tags:
+  - name: EDIWheel A2.5
+    description: Get the order status in A2.5 norm
+  - name: EDIWheel C1.0
+    description: Get the order status in C1.0 norm
+  - name: EDIWheel C1.1
+    description: Get the order status in C1.1 norm
+paths:
+  # Name of the resource to append to the basepath
+  /A2_5/status:
+    parameters:
+        - $ref: '#/components/parameters/Apikey'
+    post:
+      tags:
+        - Order Status EDIWheel A2.5
+      description: Find your orders by date or by reference number.
+      operationId: orderStatusA25POST
+      summary: >-
+        Find your orders by date or by reference number.
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/orderStatusRequestA2"
+      responses:
+        # HTTP status code
+        "200":
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/orderStatusA2"
+        # HTTP status code
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Invalid ApiKey",
+                        "detail": {
+                            "errorcode": "oauth.v2.InvalidApiKey"
+                        }
+                    }
+                }
+        # HTTP status code
+        "403":
+          description: Forbidden
+        # HTTP status code
+        "404":
+          description: Not Found
+        # HTTP status code
+        "500":
+          # Description of status code
+          description: Server error
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example:
+                "fault":
+                  {
+                    "faultstring": "Internal server error occured",
+                    "detail": { "errorcode": "500" },
+                  }
+
+        # HTTP status code
+        "503":
+          # Description of status code
+          description: Service unavailable
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                   "fault": {
+                      "faultstring": "The Service is temporarily unavailable", 
+                      "detail": {
+                           "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable"
+                       }
+                    }
+                }
+
+        # HTTP status code
+        "504":
+          # Description of status code
+          description: Gateway timeout. A response was not available to send within the stipulated time limit.
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+  /C1_0/status:
+    parameters:
+        - $ref: '#/components/parameters/Apikey'
+    post:
+      tags:
+        - Order Status EDIWheel C1.0
+      description: Find your orders by date or by reference number.
+      operationId: orderStatusC1POST
+      summary: >-
+        Find your orders by date or by reference number.
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/orderStatusRequestC1"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/orderStatusRequestC1"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/orderStatusC1"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/orderStatusC1"
+        # HTTP status code
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Invalid ApiKey",
+                        "detail": {
+                            "errorcode": "oauth.v2.InvalidApiKey"
+                        }
+                    }
+                }
+        # HTTP status code
+        "403":
+          description: Forbidden
+        # HTTP status code
+        "404":
+          description: Not Found
+        # HTTP status code
+        "500":
+          # Description of status code
+          description: Server error
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example:
+                "fault":
+                  {
+                    "faultstring": "Internal server error occured",
+                    "detail": { "errorcode": "500" },
+                  }
+
+        # HTTP status code
+        "503":
+          # Description of status code
+          description: Service unavailable
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                   "fault": {
+                      "faultstring": "The Service is temporarily unavailable", 
+                      "detail": {
+                           "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable"
+                       }
+                    }
+                }
+
+        # HTTP status code
+        "504":
+          # Description of status code
+          description: Gateway timeout. A response was not available to send within the stipulated time limit.
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+  /C1_1/status:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/Apikey'
+      tags:
+        - Order Status EDIWheel C1.1
+      description: Find your orders by date or by reference number.
+      operationId: orderStatusC11POST
+      summary: >-
+        Find your orders by date or by reference number.
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/orderStatusRequestC11"
+          application/json:
+            schema:
+              $ref: "#/components/schemas/orderStatusRequestC11"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/orderStatusC11"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/orderStatusC11"
+        # HTTP status code
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Invalid ApiKey",
+                        "detail": {
+                            "errorcode": "oauth.v2.InvalidApiKey"
+                        }
+                    }
+                }
+        # HTTP status code
+        "403":
+          description: Forbidden
+        # HTTP status code
+        "404":
+          description: Not Found
+        # HTTP status code
+        "500":
+          # Description of status code
+          description: Server error
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example:
+                "fault":
+                  {
+                    "faultstring": "Internal server error occured",
+                    "detail": { "errorcode": "500" },
+                  }
+        # HTTP status code
+        "503":
+          # Description of status code
+          description: Service unavailable
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                   "fault": {
+                      "faultstring": "The Service is temporarily unavailable", 
+                      "detail": {
+                           "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable"
+                       }
+                    }
+                }
+        # HTTP status code
+        "504":
+          # Description of status code
+          description: Gateway timeout. A response was not available to send within the stipulated time limit.
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+externalDocs:
+  description: Learn more about Ediwheel
+  url: https://ediwheel.net
+components:
+  parameters:
+    Apikey:
+      name: apikey
+      in: header
+      schema:
+        type: string
+      required: true
+      description: API key is a code used to identify and authenticate an application or user.
+  schemas:
+    # Name of request/response object
+    ProxyErrorResponse:
+      # Data type of the schema (object)
+      type: object
+      properties:
+        # Field Name
+        fault:
+          # Field Data type
+          type: object
+          properties:
+            # Field Name
+            faultstring:
+              # Field Data type
+              type: string
+            # Field Name
+            detail:
+              # Field Data type
+              type: object
+              properties:
+                # Field Name
+                errorcode:
+                  # Field Data type
+                  type: string
+    orderStatusRequestA2:
+      type: object
+      properties:
+        documentID:
+          type: string
+          enum:
+            - A2
+          xml:
+            name: DocumentID
+        variant:
+          type: string
+          enum:
+            - "5"
+          xml:
+            name: Variant
+        orderDateFrom:
+          $ref: "#/components/schemas/orderDateFrom"
+        orderDateTo:
+          $ref: "#/components/schemas/orderDateTo"
+        orderingMethod:
+          $ref: "#/components/schemas/orderingMethod"
+        orderStatusIndicator:
+          $ref: "#/components/schemas/orderStatusIndicator"
+        buyerParty:
+          $ref: "#/components/schemas/buyerParty"
+        orderingParty:
+          $ref: "#/components/schemas/orderingParty"
+        consignee:
+          $ref: "#/components/schemas/consignee"
+        referencedOrder:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/referencedOrderRequestA2"
+          xml:
+            name: ReferencedOrder
+      required:
+        - documentID
+        - buyerParty
+        - variant
+      xml:
+        name: order_status_request_A2
+        prefix: ew
+        namespace: "http://www.reifen.net"
+    orderStatusA2:
+      type: object
+      xml:
+        name: order_status_A2
+        prefix: ew
+        namespace: "http://www.reifen.net"
+      properties:
+        documentID:
+          type: string
+          enum:
+            - A2
+          xml:
+            name: DocumentID
+        variant:
+          type: string
+          enum:
+            - "5"
+          xml:
+            name: Variant
+        orderDateFrom:
+          $ref: "#/components/schemas/orderDateFrom"
+        orderDateTo:
+          $ref: "#/components/schemas/orderDateTo"
+        orderStatusIndicator:
+          $ref: "#/components/schemas/orderStatusIndicator"
+        errorHead:
+          type: object
+          properties:
+            errorCode:
+              $ref: "#/components/schemas/errorCodeOrderStatusHeader"
+          required:
+            - errorCode
+          xml:
+            name: ErrorHead
+        buyerParty:
+          $ref: "#/components/schemas/buyerParty"
+        orderingParty:
+          $ref: "#/components/schemas/orderingParty"
+        consignee:
+          $ref: "#/components/schemas/consignee"
+        referencedOrder:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/referencedOrderResponseA2"
+          xml:
+            name: ReferencedOrder
+    despatchAdviceReference:
+      type: object
+      properties:
+        documentID:
+          type: string
+          xml:
+            name: DocumentID
+        lineID:
+          $ref: "#/components/schemas/lineID"
+      required:
+        - documentID
+      xml:
+        name: DespatchAdviceReference
+    orderDate:
+      type: string
+      format: date
+      xml:
+        name: OrderDate
+    supplierOrderNumber:
+      type: object
+      properties:
+        documentID:
+          type: string
+          xml:
+            name: DocumentID
+      required:
+        - documentID
+      xml:
+        name: SupplierOrderNumber
+    orderReference:
+      type: object
+      properties:
+        documentID:
+          type: string
+          xml:
+            name: DocumentID
+      required:
+        - documentID
+      xml:
+        name: OrderReference
+    additionalCustomerReferenceNumber:
+      type: object
+      properties:
+        documentID:
+          type: string
+          xml:
+            name: DocumentID
+      required:
+        - documentID
+      xml:
+        name: AdditionalCustomerReferenceNumber
+    buyerParty:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: BuyerParty
+    consigneeC1:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+        name:
+          $ref: "#/components/schemas/name"
+        address:
+          $ref: "#/components/schemas/address"
+        informationContact:
+          $ref: "#/components/schemas/informationContact"
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: Consignee
+    consigneeC11:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+        name:
+          $ref: "#/components/schemas/name"
+        address:
+          $ref: "#/components/schemas/addressGeolocationC11"
+        informationContact:
+          $ref: "#/components/schemas/informationContactC11"
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: Consignee
+    orderingParty:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: OrderingParty
+    sellerParty:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: SellerParty
+    sellerPartyC11:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: '#/components/schemas/agencyCode'
+        name:
+          $ref: '#/components/schemas/name'
+        address:
+          $ref: '#/components/schemas/addressResponseC11'
+        informationContact:
+          $ref: '#/components/schemas/informationContactC11'
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: SellerParty
+    supplierPartyC11:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: '#/components/schemas/agencyCode'
+        name:
+          $ref: '#/components/schemas/name'
+        address:
+          $ref: '#/components/schemas/addressC11'
+        informationContact:
+          $ref: '#/components/schemas/informationContactC11'
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: SupplierParty
+    consignee:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+      required:
+        - partyID
+        - agencyCode
+      xml:
+        name: Consignee
+    supplierParty:
+      type: object
+      properties:
+        partyID:
+          type: string
+          xml:
+            name: PartyID
+        agencyCode:
+          $ref: "#/components/schemas/agencyCode"
+      xml:
+        name: SupplierParty
+    agencyCode:
+      type: string
+      enum:
+        - "9"
+        - "91"
+        - "92"
+      xml:
+        name: AgencyCode
+      description: |
+        Applicable Codes:
+          * `9` - EAN (International Article Numbering association)
+          * `91` - Assigned by seller or seller's agent
+          * `92` - Assigned by buyer or buyer's agent
+    name:
+      type: string
+      xml:
+        name: Name
+    informationContact:
+      type: object
+      properties:
+        contactID:
+          type: string
+          xml:
+            name: ContactID
+        name:
+          type: string
+          xml:
+            name: Name
+        telephoneNumber:
+          type: string
+          xml:
+            name: TelephoneNumber
+        telephoneExtension:
+          type: string
+          xml:
+            name: TelephoneExtension
+        faxNumber:
+          type: string
+          xml:
+            name: FaxNumber
+        emailAddress:
+          type: string
+          xml:
+            name: EmailAddress
+        internalMailAddress:
+          type: string
+          xml:
+            name: InternalMailAddress
+      xml:
+        name: InformationContact
+    informationContactC11:
+      type: object
+      properties:
+        contactID:
+          type: string
+          xml:
+            name: ContactID
+        name:
+          type: string
+          xml:
+            name: Name
+        telephoneNumber:
+          type: string
+          xml:
+            name: TelephoneNumber
+        telephoneExtension:
+          type: string
+          xml:
+            name: TelephoneExtension
+        faxNumber:
+          type: string
+          xml:
+            name: FaxNumber
+        emailAddress:
+          type: string
+          xml:
+            name: EmailAddress
+      xml:
+        name: InformationContact
+    address:
+      type: object
+      xml:
+        name: Address
+      properties:
+        street:
+          type: string
+          xml:
+            name: Street
+        city:
+          type: string
+          xml:
+            name: City
+        district:
+          type: string
+          xml:
+            name: District
+        postCode:
+          type: string
+          xml:
+            name: PostCode
+        subCountry:
+          type: string
+          xml:
+            name: SubCountry
+        geolocation:
+          $ref: "#/components/schemas/geolocation"
+    addressGeolocationC11:
+      type: object
+      xml:
+        name: Address
+      properties:
+        street:
+          type: string
+          xml:
+            name: Street
+        city:
+          type: string
+          xml:
+            name: City
+        district:
+          type: string
+          xml:
+            name: District
+        postCode:
+          type: string
+          xml:
+            name: PostCode
+        subCountry:
+          type: string
+          xml:
+            name: SubCountry
+        countryCode:
+          type: string
+          xml:
+            name: CountryCode
+        geolocation:
+          $ref: "#/components/schemas/geolocation"
+    addressC11:
+      type: object
+      xml:
+        name: Address
+      properties:
+        street:
+          type: string
+          xml:
+            name: Street
+        city:
+          type: string
+          xml:
+            name: City
+        district:
+          type: string
+          xml:
+            name: District
+        postCode:
+          type: string
+          xml:
+            name: PostCode
+        subCountry:
+          type: string
+          xml:
+            name: SubCountry
+        countryCode:
+          type: string
+          xml:
+            name: CountryCode
+    addressResponseC11:
+      type: object
+      xml:
+        name: Address
+      properties:
+        street:
+          type: string
+          xml:
+            name: Street
+        city:
+          type: string
+          xml:
+            name: City
+        district:
+          type: string
+          xml:
+            name: District
+        postCode:
+          type: string
+          xml:
+            name: PostCode
+        subCountry:
+          type: string
+          xml:
+            name: SubCountry
+        countryCode:
+          type: string
+          xml:
+            name: CountryCode
+        addressLineText:
+          type: string
+          xml: 
+            name: AddressLineText
+    geolocation:
+      type: object
+      properties:
+        latitute:
+          type: string
+          xml:
+            name: Latitude
+        longitude:
+          type: string
+          xml:
+            name: Longitude
+      xml:
+        name: Geolocation
+    orderingMethod:
+      type: string
+      enum:
+        - "A"
+        - "C"
+        - "E"
+        - "I"
+        - "W"
+      xml:
+        name: OrderingMethod
+      description: |
+        Applicable Codes:
+          * `A` - Ad hoc orders
+          * `C` - Conventional orders (fax, letter, phone, e.g. by call center)
+          * `E` - EDI orders
+          * `I` - All electronic orders except conventional orders
+          * `W` - Web portal orders
+    orderStatusIndicator:
+      type: string
+      enum:
+        - "0"
+        - "1"
+        - "2"
+      xml:
+        name: OrderStatusIndicator
+      description: |
+        Applicable Codes:
+          * `0` - Open Orders
+          * `1` - Open orders and cancelled orders
+          * `2` - Open orders, cancelled orders and delivered orders
+    transportPriority:
+      type: string
+      enum:
+        - "REPL"
+        - "RUSH"
+        - "SEAS"
+      xml:
+        name: TransportPriority
+      description: |
+        Applicable Codes:
+          * `REPL` - Replenishment
+          * `RUSH` - Rush Order
+          * `SEAS` - Seasonal order
+
+    referencedOrderRequestA2:
+      type: object
+      properties:
+        supplierOrderNumber:
+          $ref: "#/components/schemas/supplierOrderNumber"
+        orderReference:
+          $ref: "#/components/schemas/orderReference"
+    referencedOrderRequestC1:
+      type: object
+      properties:
+        supplierOrderNumber:
+          $ref: "#/components/schemas/supplierOrderNumber"
+        orderReference:
+          $ref: "#/components/schemas/orderReference"
+        contract:
+          $ref: "#/components/schemas/contract"
+        orderedArticle:
+          $ref: "#/components/schemas/orderedArticleRequestC1"
+
+    orderedArticleRequestC1:
+      type: object
+      xml:
+        name: OrderedArticle
+      properties:
+        articleIdentification:
+          $ref: "#/components/schemas/articleIdentification"
+    contract:
+      type: object
+      properties:
+        documentID:
+          type: string
+          xml:
+            name: DocumentID
+      required:
+        - documentID
+      xml:
+        name: Contract
+    referencedOrderResponseA2:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              $ref: "#/components/schemas/errorCodeOrderStatusLine"
+            errorText:
+              $ref: "#/components/schemas/errorText"
+          required:
+            - errorCode
+          xml:
+            name: Error
+        supplierOrderNumber:
+          $ref: "#/components/schemas/supplierOrderNumber"
+        orderingMethod:
+          $ref: "#/components/schemas/orderingMethod"
+        orderReference:
+          $ref: "#/components/schemas/orderReference"
+        orderLine:
+          $ref: "#/components/schemas/orderLineOrderA2"
+      required:
+        - error
+
+    referencedOrderResponseC1:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              $ref: "#/components/schemas/errorCodeOrderStatusLine"
+            errorText:
+              $ref: "#/components/schemas/errorText"
+          required:
+            - errorCode
+          xml:
+            name: Error
+        orderDate:
+          $ref: "#/components/schemas/orderDate"
+        supplierOrderNumber:
+          $ref: "#/components/schemas/supplierOrderNumber"
+        orderingMethod:
+          $ref: "#/components/schemas/orderingMethod"
+        orderReference:
+          $ref: "#/components/schemas/orderReference"
+        pickUp:
+          $ref: '#/components/schemas/pickUp'
+        deliveryOption:
+          $ref: '#/components/schemas/deliveryOption'
+        sellerParty:
+          $ref: "#/components/schemas/sellerParty"
+        supplierParty:
+          $ref: "#/components/schemas/supplierParty"
+        contract:
+          $ref: "#/components/schemas/contract"
+        orderLine:
+          $ref: "#/components/schemas/orderLineOrderC1"
+      required:
+        - error
+    referencedOrderResponseC11:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            errorCode:
+              $ref: "#/components/schemas/errorCodeOrderStatusLine"
+            errorText:
+              $ref: "#/components/schemas/errorText"
+          required:
+            - errorCode
+          xml:
+            name: Error
+        orderDate:
+          $ref: "#/components/schemas/orderDate"
+        supplierOrderNumber:
+          $ref: "#/components/schemas/supplierOrderNumber"
+        orderingMethod:
+          $ref: "#/components/schemas/orderingMethod"
+        orderReference:
+          $ref: "#/components/schemas/orderReference"
+        pickUp:
+          $ref: '#/components/schemas/pickUp'
+        deliveryOption:
+          $ref: '#/components/schemas/deliveryOption'
+        sellerParty:
+          $ref: "#/components/schemas/sellerPartyC11"
+        supplierParty:
+          $ref: "#/components/schemas/supplierPartyC11"
+        contract:
+          $ref: "#/components/schemas/contract"
+        orderLine:
+          $ref: "#/components/schemas/orderLineOrderC11"
+      required:
+        - error
+    orderLineOrderA2:
+      type: object
+      properties:
+        lineID:
+          $ref: "#/components/schemas/lineID"
+        customerLineItemNumber:
+          $ref: "#/components/schemas/customerLineItemNumber"
+        additionalCustomerReferenceNumber:
+          $ref: "#/components/schemas/additionalCustomerReferenceNumber"
+        orderedArticle:
+          $ref: "#/components/schemas/orderedArticleOrderA2"
+      required:
+        - lineID
+        - orderedArticle
+      xml:
+        name: OrderLine
+    orderLineOrderC1:
+      type: object
+      properties:
+        lineID:
+          $ref: "#/components/schemas/lineID"
+        customerLineItemNumber:
+          $ref: "#/components/schemas/customerLineItemNumber"
+        additionalCustomerReferenceNumber:
+          $ref: "#/components/schemas/additionalCustomerReferenceNumber"
+        orderedArticle:
+          $ref: "#/components/schemas/orderedArticleOrderC1"
+      required:
+        - lineID
+        - orderedArticle
+      xml:
+        name: OrderLine
+    orderLineOrderC11:
+      type: object
+      properties:
+        lineID:
+          $ref: "#/components/schemas/lineID"
+        customerLineItemNumber:
+          $ref: "#/components/schemas/customerLineItemNumber"
+        additionalCustomerReferenceNumber:
+          $ref: "#/components/schemas/additionalCustomerReferenceNumber"
+        transportPriority:
+          $ref: "#/components/schemas/transportPriority"
+        pickUp:
+          $ref: '#/components/schemas/pickUp'
+        deliveryOption:
+          $ref: '#/components/schemas/deliveryOption'
+        sellerParty:
+          $ref: "#/components/schemas/sellerPartyC11"
+        supplierParty:
+          $ref: "#/components/schemas/supplierPartyC11"
+        orderedArticle:
+          $ref: "#/components/schemas/orderedArticleOrderC11"
+      required:
+        - lineID
+        - orderedArticle
+      xml:
+        name: OrderLine
+    pickUp:
+      type: string
+      enum:
+        - 'Y'
+      description: |
+        Applicable Codes:
+          * `Y` - Yes
+      xml:
+        name: PickUp
+    deliveryOption:
+      type: string
+      xml:
+        name: DeliveryOption
+    lineID:
+      type: string
+      maxLength: 6
+      example: "000001"
+      xml:
+        name: LineID
+    customerLineItemNumber:
+      type: string
+      maxLength: 6
+      example: "000001"
+      xml:
+        name: CustomerLineItemNumber
+    articleIdentification:
+      type: object
+      properties:
+        buyersArticleID:
+          type: string
+          xml:
+            name: BuyersArticleID
+        manufacturersArticleID:
+          type: string
+          xml:
+            name: ManufacturersArticleID
+        eanuccArticleID:
+          type: string
+          xml:
+            name: EANUCCArticleID
+      xml:
+        name: ArticleIdentification
+    orderedArticleOrderA2:
+      type: object
+      properties:
+        articleIdentification:
+          $ref: "#/components/schemas/articleIdentification"
+        articleDescription:
+          $ref: "#/components/schemas/articleDescription"
+        requestedDeliveryDate:
+          $ref: "#/components/schemas/requestedDeliveryDate"
+        articleComment:
+          $ref: "#/components/schemas/articleComment"
+        scheduleDetails:
+          type: array
+          minItems: 0
+          items:
+            type: object
+            properties:
+              deliveryDate:
+                $ref: "#/components/schemas/deliveryDate"
+              confirmedQuantity:
+                $ref: "#/components/schemas/confirmedQuantity"
+              cancelledQuantity:
+                $ref: "#/components/schemas/cancelledQuantity"
+              openQuantity:
+                $ref: "#/components/schemas/openQuantity"
+              scheduledArticleDespatchDetails:
+                $ref: "#/components/schemas/scheduledArticleDespatchDetails"
+          xml:
+            name:
+              ScheduleDetails
+        orderedQuantity:
+          $ref: "#/components/schemas/orderedQuantity"
+      xml:
+        name: OrderedArticle
+      required:
+        - articleIdentification
+        - orderReference
+        - error
+        - orderedQuantity
+    orderedArticleOrderC1:
+      type: object
+      properties:
+        articleIdentification:
+          $ref: "#/components/schemas/articleIdentification"
+        articleDescription:
+          $ref: "#/components/schemas/articleDescription"
+        requestedDeliveryDate:
+          $ref: "#/components/schemas/requestedDeliveryDate"
+        requestedDeliveryTime:
+          $ref: '#/components/schemas/requestedDeliveryTime'
+        articleComment:
+          $ref: "#/components/schemas/articleComment"
+        scheduleDetails:
+          type: array
+          minItems: 0
+          items:
+            type: object
+            properties:
+              deliveryDate:
+                $ref: "#/components/schemas/deliveryDate"
+              deliveryTime:
+                $ref: "#/components/schemas/deliveryTime"
+              confirmedQuantity:
+                $ref: "#/components/schemas/confirmedQuantity"
+              cancelledQuantity:
+                $ref: "#/components/schemas/cancelledQuantity"
+              openQuantity:
+                $ref: "#/components/schemas/openQuantity"
+              scheduledArticleDespatchDetails:
+                $ref: "#/components/schemas/scheduledArticleDespatchDetails"
+          xml:
+            name: ScheduleDetails
+        orderedQuantity:
+          $ref: "#/components/schemas/orderedQuantity"
+      xml:
+        name: OrderedArticle
+    orderedArticleOrderC11:
+      type: object
+      properties:
+        articleIdentification:
+          $ref: "#/components/schemas/articleIdentification"
+        articleDescription:
+          $ref: "#/components/schemas/articleDescription"
+        requestedDeliveryDate:
+          $ref: "#/components/schemas/requestedDeliveryDate"
+        requestedDeliveryTime:
+          $ref: '#/components/schemas/requestedDeliveryTime'
+        articleComment:
+          $ref: "#/components/schemas/articleComment"
+        scheduleDetails:
+          type: array
+          minItems: 0
+          items:
+            type: object
+            properties:
+              deliveryDate:
+                $ref: "#/components/schemas/deliveryDate"
+              deliveryTime:
+                $ref: "#/components/schemas/deliveryTime"
+              backorderedQuantity:
+                $ref: "#/components/schemas/backorderedQuantity"
+              confirmedQuantity:
+                $ref: "#/components/schemas/confirmedQuantity"
+              cancelledQuantity:
+                $ref: "#/components/schemas/cancelledQuantity"
+              openQuantity:
+                $ref: "#/components/schemas/openQuantity"
+              scheduledQuantity:
+                $ref: "#/components/schemas/scheduledQuantity"
+              shippedDetails:
+                $ref: "#/components/schemas/shippedDetails"
+              sellerParty:
+                $ref: "#/components/schemas/sellerPartyC11"
+              supplierParty:
+                $ref: "#/components/schemas/supplierPartyC11"
+              transportPriority:
+                $ref: "#/components/schemas/transportPriority"
+              pickUp:
+                $ref: '#/components/schemas/pickUp'
+              deliveryOption:
+                $ref: '#/components/schemas/deliveryOption'
+          xml:
+            name: ScheduleDetails
+        orderedQuantity:
+          $ref: "#/components/schemas/orderedQuantity"
+      xml:
+        name: OrderedArticle
+      required:
+        - articleIdentification
+        - orderReference
+        - error
+        - orderedQuantity
+    scheduledArticleDespatchDetails:
+      type: array
+      minItems: 0
+      items:
+        type: object
+        properties:
+          despatchDate:
+            $ref: "#/components/schemas/despatchDate"
+          despatchAdviceReference:
+            $ref: "#/components/schemas/despatchAdviceReference"
+          despatchedQuantity:
+            $ref: "#/components/schemas/despatchedQuantity"
+        required:
+          - despatchDate
+          - despatchAdviceReference
+          - despatchedQuantity
+      xml:
+        name: ScheduledArticleDespatchDetails   
+    confirmedQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: ConfirmedQuantity
+    orderedQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: OrderedQuantity
+    cancelledQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: CancelledQuantity
+    openQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: OpenQuantity
+    backorderedQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: BackorderedQuantity
+    scheduledQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: ScheduledQuantity
+    shippedQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: ShippedQuantity
+    shippedDetails:
+      type: object
+      properties:
+        shippedQuantity:
+          $ref: "#/components/schemas/shippedQuantity"
+        despatchedDetails:
+          $ref: "#/components/schemas/despatchedDetails"
+      xml:
+        name: ShippedDetails
+    despatchedDetails:
+      type: object
+      properties:
+        scheduledArticleDespatchDetails:
+          $ref: "#/components/schemas/scheduledArticleDespatchDetails"
+      xml:
+        name: DespatchedDetails
+    despatchedQuantity:
+      type: object
+      properties:
+        quantityValue:
+          type: number
+          format: int32
+          minimum: 1
+          xml:
+            name: QuantityValue
+      required:
+        - QuantityValue
+      xml:
+        name: DespatchedQuantity
+
+    orderDateFrom:
+      type: string
+      format: date
+      xml:
+        name: OrderDateFrom
+    orderDateTo:
+      type: string
+      format: date
+      xml:
+        name: OrderDateTo
+    deliveryDate:
+      type: string
+      format: date
+      xml:
+        name: DeliveryDate
+    requestedDeliveryDate:
+      type: string
+      format: date
+      xml:
+        name: RequestedDeliveryDate
+    requestedDeliveryTime:
+      type: string
+      format: time
+      example: '18:00:00Z'
+      xml:
+        name: RequestedDeliveryTime
+    deliveryTime:
+      type: string
+      format: time
+      example: '18:00:00Z'
+      xml:
+        name: DeliveryTime
+    despatchDate:
+      type: string
+      format: date
+      xml:
+        name: DespatchDate
+
+    articleDescription:
+      type: object
+      properties:
+        articleDescriptionText:
+          type: string
+          xml:
+            name: ArticleDescriptionText
+      required:
+        - articleDescriptionText
+      xml:
+        name: ArticleDescription
+    articleComment:
+      type: string
+      xml:
+        name: ArticleComment
+
+    orderStatusRequestC1:
+      type: object
+      properties:
+        documentID:
+          type: string
+          enum:
+            - C1
+          xml:
+            name: DocumentID
+        variant:
+          type: string
+          enum:
+            - "0"
+          xml:
+            name: Variant
+        orderDateFrom:
+          $ref: "#/components/schemas/orderDateFrom"
+        orderDateTo:
+          $ref: "#/components/schemas/orderDateTo"
+        orderingMethod:
+          $ref: "#/components/schemas/orderingMethod"
+        orderStatusIndicator:
+          $ref: "#/components/schemas/orderStatusIndicator"
+        buyerParty:
+          $ref: "#/components/schemas/buyerParty"
+        orderingParty:
+          $ref: "#/components/schemas/orderingParty"
+        sellerParty:
+          $ref: "#/components/schemas/sellerParty"
+        consignee:
+          $ref: "#/components/schemas/consigneeC1"
+        supplierParty:
+          $ref: "#/components/schemas/supplierParty"
+        referencedOrder:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/referencedOrderRequestC1"
+          xml:
+            name: ReferencedOrder
+      required:
+        - documentID
+        - buyerParty
+        - variant
+      xml:
+        name: order_status_request
+        prefix: ew
+        namespace: "http://www.reifen.net"
+
+    orderStatusRequestC11:
+      type: object
+      properties:
+        documentID:
+          type: string
+          enum:
+            - C1
+          xml:
+            name: DocumentID
+        variant:
+          type: string
+          enum:
+            - "1"
+          xml:
+            name: Variant
+        orderDateFrom:
+          $ref: "#/components/schemas/orderDateFrom"
+        orderDateTo:
+          $ref: "#/components/schemas/orderDateTo"
+        orderingMethod:
+          $ref: "#/components/schemas/orderingMethod"
+        orderStatusIndicator:
+          $ref: "#/components/schemas/orderStatusIndicator"
+        buyerParty:
+          $ref: "#/components/schemas/buyerParty"
+        orderingParty:
+          $ref: "#/components/schemas/orderingParty"
+        sellerParty:
+          $ref: "#/components/schemas/sellerParty"
+        consignee:
+          $ref: "#/components/schemas/consigneeC11"
+        supplierParty:
+          $ref: "#/components/schemas/supplierParty"
+        referencedOrder:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/referencedOrderRequestC1"
+          xml:
+            name: ReferencedOrder
+      required:
+        - documentID
+        - buyerParty
+        - variant
+      xml:
+        name: order_status_request
+        prefix: ew
+        namespace: "http://www.reifen.net"
+
+    orderStatusC1:
+      type: object
+      properties:
+        documentID:
+          type: string
+          enum:
+            - C1
+          xml:
+            name: DocumentID
+        variant:
+          type: string
+          enum:
+            - "0"
+          xml:
+            name: Variant
+        orderDateFrom:
+          $ref: "#/components/schemas/orderDateFrom"
+        orderDateTo:
+          $ref: "#/components/schemas/orderDateTo"
+        orderStatusIndicator:
+          $ref: "#/components/schemas/orderStatusIndicator"
+        errorHead:
+          type: object
+          properties:
+            errorCode:
+              $ref: "#/components/schemas/errorCodeOrderStatusHeader"
+          required:
+            - errorCode
+          xml:
+            name: ErrorHead
+        buyerParty:
+          $ref: "#/components/schemas/buyerParty"
+        orderingParty:
+          $ref: "#/components/schemas/orderingParty"
+        consignee:
+          $ref: "#/components/schemas/consignee"
+        referencedOrder:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/referencedOrderResponseC1"
+          xml:
+            name: ReferencedOrder
+      xml:
+        name: order_status
+        prefix: ew
+        namespace: http://www.reifen.net
+
+    orderStatusC11:
+      type: object
+      properties:
+        documentID:
+          type: string
+          enum:
+            - C1
+          xml:
+            name: DocumentID
+        variant:
+          type: string
+          enum:
+            - "1"
+          xml:
+            name: Variant
+        orderDateFrom:
+          $ref: "#/components/schemas/orderDateFrom"
+        orderDateTo:
+          $ref: "#/components/schemas/orderDateTo"
+        orderStatusIndicator:
+          $ref: "#/components/schemas/orderStatusIndicator"
+        transportPriority:
+          $ref: "#/components/schemas/transportPriority"
+        errorHead:
+          type: object
+          properties:
+            errorCode:
+              $ref: "#/components/schemas/errorCodeOrderStatusHeader"
+          required:
+            - errorCode
+          xml:
+            name: ErrorHead
+        buyerParty:
+          $ref: "#/components/schemas/buyerParty"
+        orderingParty:
+          $ref: "#/components/schemas/orderingParty"
+        sellerParty:
+          $ref: "#/components/schemas/sellerParty"
+        consignee:
+          $ref: "#/components/schemas/consigneeC11"
+        supplierParty:
+          $ref: "#/components/schemas/supplierParty"
+        referencedOrder:
+          type: array
+          minItems: 0
+          items:
+            $ref: "#/components/schemas/referencedOrderResponseC11"
+          xml:
+            name: ReferencedOrder
+      xml:
+        name: order_status
+        prefix: ew
+        namespace: http://www.reifen.net
+    errorText:
+      type: string
+      maxLength: 60
+      example: No errors occurred
+      xml:
+        name: ErrorText
+    errorCodeOrderStatusHeader:
+      type: string
+      maxLength: 3
+      enum:
+        - "0"
+        - "1"
+        - "303"
+        - "304"
+        - "399"
+        - "405"
+        - "499"
+        - "901"
+        - "913"
+        - "914"
+        - "915"
+        - "916"
+        - "917"
+        - "920"
+        - "921"
+        - "924"
+        - "925"
+        - "926"
+        - "927"
+        - "932"
+        - "936"
+        - "937"
+        - "946"
+        - "947"
+        - "948"
+        - "949"
+        - "950"
+        - "951"
+        - "952"
+        - "953"
+        - "970"
+        - "971"
+        - "999"
+      xml:
+        name: ErrorCode
+    errorCodeOrderStatusLine:
+      type: string
+      maxLength: 3
+      enum:
+        - "0"
+        - "1"
+        - "953"
+        - "999"
+      xml:
+        name: ErrorCode
+  securitySchemes:
+    # Name of the securitySchemes
+    BasicAuth:
+      scheme: basic
+      type: http

@@ -1,0 +1,1109 @@
+openapi: 3.1.0
+# The info section contains API information
+info:
+  # Detail of the API
+  description: API provided to customers worldwide to get AR transactions
+  # API implementation version
+  version: 1.0.0
+  # Title of API
+  title: EDIWHEEL INVOICE
+  # Contact details of API Producer
+  contact:
+    name: API Support
+    email: devportal.support@michelin.com
+    url: 'https://developer.michelin.com/en/contact'
+  license:
+    name: Michelin
+    url: https://developer.michelin.com/en/terms-and-conditions-use
+# The servers section specifies the API server and base URL
+servers:
+  - url: "https://api.michelin.com/invoice"
+    description: Production
+  - url: "https://sandbox.api.michelin.com/invoice"
+    description: Sandbox
+
+# A declaration of which security mechanisms can be used across the API. Each name must correspond to a security scheme which is declared in the Security Schemes under the Components Object.
+security:
+  - BasicAuth: []
+tags:
+  - name: Invoice Ediwheel B3.3
+    description: Get AR Transactions
+  - name: Invoice Ediwheel B3.4
+    description: Coming Soon
+paths:
+  # Name of the resource to append to the basepath
+  /B3_3/invoices:
+    parameters:
+      - $ref: "#/components/parameters/Apikey"
+    post:
+      tags:
+        - Invoice Ediwheel B3.3
+      description: Find your orders by date or by reference number.
+      operationId: invoiceB33POST
+      summary: >-
+        Find your invoices by date or by reference.
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/InvoiceRequestB33"
+      responses:
+        # HTTP status code
+        "200":
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/InvoiceListB33"
+        # HTTP status code
+        "400":
+          description: Bad request
+        # HTTP status code
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Invalid ApiKey",
+                        "detail": {
+                            "errorcode": "oauth.v2.InvalidApiKey"
+                        }
+                    }
+                }
+        # HTTP status code
+        "403":
+          description: Forbidden
+        # HTTP status code
+        "404":
+          description: Not Found
+        # HTTP status code
+        "415":
+          description: Unsupported Media Type
+        # HTTP status code
+        "429":
+          description: Too Many Requests
+        # HTTP status code
+        "500":
+          # Description of status code
+          description: Server error
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                  "code": "500",
+                  "message": "Internal server error"
+                }
+
+        # HTTP status code
+        "503":
+          # Description of status code
+          description: Service unavailable
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                   "fault": {
+                      "faultstring": "The Service is temporarily unavailable", 
+                      "detail": {
+                           "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable"
+                       }
+                    }
+                }
+
+        # HTTP status code
+        "504":
+          # Description of status code
+          description: Gateway timeout. A response was not available to send within the stipulated time limit.
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: "#/components/schemas/ProxyErrorResponse"
+              # Example value
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+          # HTTP status code
+        default:
+          description: Unexpected error
+  /B3_4/invoices:
+    post:
+      tags:
+        - Invoice Ediwheel B3.4
+      operationId: invoiceB34POST
+      description: Coming Soon.
+      summary: >-
+        Coming Soon
+externalDocs:
+  description: Learn more about Ediwheel
+  url: https://ediwheel.net
+components:
+  parameters:
+    Apikey:
+      name: apikey
+      in: header
+      schema:
+        type: string
+        pattern: "^[0-9a-zA-Z]{1,50}$"
+        maxlength: 50
+        examples: ['agcf1bw4AjcsetwHsVKEdASy4oGcNmM4', 'ag2097w4AjcsetwHsVKEdASy4oGcNmM4']
+      required: true
+      description: API key is a code used to identify and authenticate an application or user.
+  schemas:
+    InvoiceRequestB33:
+      type: object
+      xml:
+        name: InvoiceRequest
+        prefix: ew
+        namespace: "http://www.reifen.net"
+      properties:
+        DocumentID:
+          type: string
+          enum:
+            - B3
+        Variant:
+          type: string
+          enum:
+            - "3" 
+        invoice: 
+          type: array
+          items: 
+            type: object
+            properties:
+              InvoiceIssueFromDate: 
+                $ref: "#/components/schemas/InvoiceIssueFromDate"
+              InvoiceIssueToDate: 
+                $ref: "#/components/schemas/InvoiceIssueToDate"
+              DocumentTypeCode: 
+                $ref: "#/components/schemas/DocumentTypeCode"
+              DocumentFunctionCode: 
+                $ref: "#/components/schemas/DocumentFunctionCode"
+              References: 
+                $ref: "#/components/schemas/ReferencesRequest"
+              BuyerParty: 
+                $ref: "#/components/schemas/BuyerParty"
+              InvoiceIssuerParty: 
+                $ref: "#/components/schemas/InvoiceIssuerParty"
+              InvoiceeParty: 
+                $ref: "#/components/schemas/InvoiceeParty"
+              OrderingParty: 
+                $ref: "#/components/schemas/OrderingParty"
+              Consignee: 
+                $ref: "#/components/schemas/Consignee"
+              SupplierParty: 
+                $ref: "#/components/schemas/SupplierParty"
+              SellerParty: 
+                $ref: "#/components/schemas/SellerParty"
+              Contract: 
+                $ref: "#/components/schemas/Contract"
+      required:
+      - DocumentID
+      - invoice
+    # Name of request/response object
+    ProxyErrorResponse:
+      # Data type of the schema (object)
+      type: object
+      properties:
+        # Field Name
+        fault:
+          # Field Data type
+          type: object
+          properties:
+            # Field Name
+            faultstring:
+              # Field Data type
+              type: string
+            # Field Name
+            detail:
+              # Field Data type
+              type: object
+              properties:
+                # Field Name
+                errorcode:
+                  # Field Data type
+                  type: string
+    Contract: 
+      type: object
+      properties: 
+        DocumentID: 
+          $ref: "#/components/schemas/DocumentID"
+    AgencyCode:
+      type: string
+      enum:
+        - "9"
+        - "91"
+        - "92"
+      description: |
+        Applicable Codes:
+          * `9` - EAN (International Article Numbering association)
+          * `91` - Assigned by seller or seller's agent
+          * `92` - Assigned by buyer or buyer's agent
+    LineID:
+      type: string
+      maxlength: 6
+    PartyID:
+      type: string
+      maxlength: 17
+    DocumentID:
+      type: string
+      maxlength: 35
+    BuyerParty:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        AgencyCode:
+          $ref: "#/components/schemas/AgencyCode"
+    InvoiceIssuerParty:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        agencyCode:
+            $ref: "#/components/schemas/AgencyCode"
+    InvoiceeParty:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        agencyCode:
+            $ref: "#/components/schemas/AgencyCode"
+    OrderingParty:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        agencyCode:
+            $ref: "#/components/schemas/AgencyCode"
+    Consignee:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        agencyCode:
+            $ref: "#/components/schemas/AgencyCode"
+    SupplierParty:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        agencyCode:
+            $ref: "#/components/schemas/AgencyCode"
+    SellerParty:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        agencyCode:
+            $ref: "#/components/schemas/AgencyCode"
+    InvoiceIssueFromDate: 
+      type: string
+      pattern: '\d{4}-\d{2}-\d{2}'
+    InvoiceIssueToDate: 
+      type: string
+      pattern: '\d{4}-\d{2}-\d{2}'
+    DocumentTypeCode: 
+      type: string
+      enum:
+        - "67"
+        - "82"
+        - "83"
+        - "84"
+        - "130"
+        - "261"
+        - "262"
+        - "308"
+        - "325"
+        - "380"
+        - "381"
+        - "382"
+        - "383"
+        - "384"
+        - "385"
+        - "386"
+        - "388"
+        - "389"
+        - "390"
+        - "393"
+        - "527"
+        - "ZZ1"
+        - "ZZ2"
+        - "ZZ3"
+        - "ZZ4"
+        - "ZZZ"
+      description: |
+        Applicable Codes:
+          * `67` - Commercial dispute
+          * `82` - Metered services invoice
+          * `83` - Credit note related to financial adjustments
+          * `84` - Debit note related to financial adjustments
+          * `130` - Invoicing data sheet
+          * `261` - Self billing credit note
+          * `262` - Consolidated credit note goods and services
+          * `308` - Delcredere credit note
+          * `325` - Proforma invoice
+          * `380` - Commercial invoice
+          * `381` - Credit note
+          * `382` - Commission note
+          * `383` - Debit note goods and services
+          * `384` - Corrected invoice
+          * `385` - Consolidated invoice
+          * `386` - Prepayment invoice
+          * `388` - Tax invoice
+          * `389` - Self billing invoice
+          * `390` - Delcredere invoice
+          * `393` - Factored invoice
+          * `527` - Self billed debit note
+          * `ZZ1` - Debit Note related to technical claims
+          * `ZZ2` - Credit Note related to deferred bonus
+          * `ZZ3` - Debit Note related to deferred bonus
+          * `ZZ4` - Rebate credit note
+          * `ZZZ` - Credit Note related to technical claims
+    DocumentFunctionCode: 
+      type: string
+      enum:
+        - "9"
+        - "31"
+      description: |
+        Applicable Codes:
+          * `9` - Original Initial transmission related to a given transaction
+          * `31` - Copy Indicates that the message is a copy of an original message that has been sent
+    ReferencesRequest: 
+      type: object
+      properties: 
+        ReferenceTypeCode: 
+          type: string
+          enum:
+            - "1AA"
+            - "BM"
+            - "DQ"
+            - "IV"
+            - "ON"
+            - "VN"
+          description: |
+            Applicable Codes:
+              *  `1AA` - Delivery list
+              *  `BM` - Bill of lading number
+              *  `DQ` - Delivery note number
+              *  `IV` - Invoice number
+              *  `ON` - Order number purchase
+              *  `VN` - Order number vendor
+        DocumentID: 
+          $ref: "#/components/schemas/DocumentID"
+    IssueDate:
+      type: string
+      format: date
+      pattern: '\d{4}-\d{2}-\d{2}'
+    DocumentNumber:
+      type: string
+      maxlength: 17
+    DocumentTypeCodeResponse: 
+      type: string
+      enum:
+        - "83"
+        - "84"
+        - "380"
+        - "381"
+        - "ZZ1"
+        - "ZZ2"
+        - "ZZ3"
+        - "ZZ4"
+        - "ZZZ"
+      description: |
+        Applicable Codes:
+          * `83` - Credit note related to financial adjustments
+          * `84` - Debit note related to financial adjustments
+          * `380` - Commercial invoice
+          * `381` - Credit note
+          * `ZZ1` - Debit Note related to technical claims
+          * `ZZ2` - Credit Note related to deferred bonus
+          * `ZZ3` - Debit Note related to deferred bonus
+          * `ZZ4` - Rebate credit note
+          * `ZZZ` - Credit Note related to technical claims
+    DocumentFunctionText:
+      type: string
+      enum: 
+        - 'COPY'
+    Name:
+      type: string
+      maxlength: 40
+    TaxRegistrationID:
+      type: string
+      maxlength: 17
+    VATRegistrationID:
+      type: string
+      maxlength: 17
+    AddressDetailed:
+      type: object
+      properties:
+        Street:
+          type: string
+        City:
+          type: string
+        District:
+          type: string
+        PostCode:
+          type: string
+        PostBoxCode:
+          type: string
+        SubCountry:
+          type: string
+        CountryCode:
+          type: string
+    PartyDetailed:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        AgencyCode:
+          $ref: "#/components/schemas/AgencyCode"
+        Name: 
+          $ref: "#/components/schemas/Name"
+        Address:
+          $ref: "#/components/schemas/AddressDetailed"
+        TaxRegistrationID:
+          $ref: "#/components/schemas/TaxRegistrationID"
+        VATRegistrationID:
+          $ref: "#/components/schemas/VATRegistrationID"
+    BuyersArticleID:
+      type: string
+      description: Identification of the article, assigned by the buyer 
+    ManufacturersArticleID:
+      type: string
+      xml:
+        name: ManufacturersArticleID
+      description: Identification of the article, assigned by the manufacturer
+    EanuccArticleID:
+      type: string
+      xml:
+        name: EANUCCArticleID
+      description: 13 digit GTIN (Global Trade Item Number)
+    ArticleDescription:
+      type: object
+      properties:
+        ArticleDescriptionText:
+          type: string
+      required:
+        - ArticleDescriptionText
+    AmountValue:
+      type: number
+      format: float
+    AmountType:
+      type: object
+      properties:
+        AmountValue:
+          $ref: '#/components/schemas/AmountValue'
+    PriceAmount:
+      type: number
+      format: float
+    HeaderReferences:
+      type: object
+      properties:
+        CustomerReference:
+          type: object
+          properties:
+            DocumentID:
+              $ref: "#/components/schemas/DocumentID"
+          description: EDIFACT code is CR. CR may only be used, if the DocumentTypeCode indicates that the document is an invoice (code 380)
+        DeliveryNoteReference:
+          type: object
+          properties:
+            DocumentID:
+              $ref: "#/components/schemas/DocumentID"
+            IssueDate:
+              $ref: "#/components/schemas/IssueDate"
+            CompletionDate:
+              type: string
+          description: EDIFACT code is CR. If the document is a goods invoice, then it is mandatory to send both a delivery note number and the completion date
+        SuppliersOrderReference:
+          description: EDIFACT code is VN. If the DocumentTypeCode indicates that the document is an invoice (code 380), then code VN must be used.
+          $ref: '#/components/schemas/ReferenceDetails'
+        AssociatedInvoiceReference:
+          description: EDIFACT code is AFL. The code AFL may only be used, if the DocumentTypeCode indicates that the document is a credit note (code 381, 83, ZZZ).
+          $ref: '#/components/schemas/ReferenceDetails'
+        BlanketOrderReference:
+          description: EDIFACT code is BO.
+          $ref: '#/components/schemas/ReferenceDetails'
+        BuyerOrderReference:
+          description: EDIFACT code is ON.
+          $ref: '#/components/schemas/ReferenceDetails'
+        DeliveryListReference:
+          description: The DeliveryListReference is the reference to an accompanying paper document that is provided by some suppliers together with the goods.
+          $ref: '#/components/schemas/ReferenceDetails'
+        SellerReference:
+          description: EDIFACT code is SS and it is used for instance for a reference to a list of invoices.
+          $ref: '#/components/schemas/ReferenceDetails'
+        ReturnDeliveryNoticeReference:
+          description: EDIFACT code is ALQ.
+          $ref: '#/components/schemas/ReferenceDetails'
+        SEPACreditorReference:
+          type: object
+          properties:
+            DocumentID:
+              $ref: "#/components/schemas/DocumentID"
+        SupplierClaimNumber:
+          $ref: "#/components/schemas/ReferenceDetailsWithLineId"
+        CustomerClaimNumber:
+          $ref: "#/components/schemas/ReferenceDetailsWithLineId"
+        WarrantyNumber:
+          $ref: "#/components/schemas/ReferenceDetailsWithLineId"
+        FleetReference:
+          type: array
+          items:
+            type: object
+            properties:
+              ReferenceTypeCode:
+                type: string
+              DocumentID:
+                $ref: "#/components/schemas/DocumentID"
+    ReferenceDetails:
+      type: object
+      properties:
+        DocumentID:
+          $ref: "#/components/schemas/DocumentID"
+        IssueDate:
+          $ref: "#/components/schemas/IssueDate"
+    CustomerReferenceLine:
+      type: object
+      properties:
+        DocumentID:
+          $ref: "#/components/schemas/DocumentID"
+        LineID:
+          $ref: "#/components/schemas/LineID"
+    ReferenceDetailsWithLineId:
+      type: object
+      properties:
+        DocumentID:
+          $ref: "#/components/schemas/DocumentID"
+        LineID:
+          $ref: "#/components/schemas/LineID"
+        IssueDate:
+          $ref: "#/components/schemas/IssueDate"
+    ErrorHead:
+      type: object
+      properties:
+        ErrorCode:
+          type: string
+    PartyInfoDetailed:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        AgencyCode:
+          $ref: "#/components/schemas/AgencyCode"
+        Name:
+          $ref: "#/components/schemas/Name"
+        LegalName:
+          type: string
+        Address:
+          $ref: "#/components/schemas/AddressDetailed"
+        TaxRegistrationID:
+          $ref: "#/components/schemas/TaxRegistrationID"
+        VATRegistrationID:
+          $ref: "#/components/schemas/VATRegistrationID"
+        SIRENNumber:
+          type: string
+        TribunalRegistrationNumber:
+          type: string
+        CompanyLegalForm:
+          type: string
+        CompanyRegisteredCapital:
+          type: string
+    ConsigneeResponse:
+      type: object
+      properties:
+        PartyID:
+          $ref: "#/components/schemas/PartyID"
+        AgencyCode:
+          $ref: "#/components/schemas/AgencyCode"
+        Name:
+          $ref: "#/components/schemas/Name"
+        Address:
+          $ref: "#/components/schemas/AddressDetailed"
+    PaymentTerms:
+      type: array
+      items:
+        type: object
+        properties:
+          PaymentNet:
+            type: array
+            items:
+              type: object
+              properties:
+                PaymentDueDate:
+                  type: string
+                InstalmentAmount:
+                  type: object
+                  properties:
+                    AmountValue:
+                      $ref: '#/components/schemas/AmountValue'
+                    CurrencyCode:
+                      type: string
+          PaymentDiscount:
+            type: array
+            items:
+              type: object
+              properties:
+                DiscountPercent:
+                  type: string
+                PaymentDueDate:
+                  type: string
+                FinancialDiscount:
+                  type: object
+                  properties:
+                    TextLine:
+                      type: string
+                DiscountAmount:
+                  $ref: '#/components/schemas/AmountType'
+    eInvoicingID:
+      type: array
+      items:
+        type: object
+        properties:
+          eInvoicingIDQualifier:
+            type: string
+            enum:
+              - "0037"
+              - "0088"
+              - "0202"
+              - "0204"
+              - "E001"
+              - "E002"
+              - "E003"
+              - "E004"
+              - "E005"
+            description: To uniquely identify an ISO 6523 compliant organization identification scheme.
+          ID:
+            type: string
+    HeaderNote:
+      type: object
+      properties:
+        LanguageCode:
+          type: string
+        Note:
+          type: string
+    ReferencesLine:
+      type: object
+      properties:
+        CustomerReference:
+          $ref: '#/components/schemas/CustomerReferenceLine'
+        DeliveryNoteReference:
+          type: object
+          properties:
+            DocumentID:
+              $ref: "#/components/schemas/DocumentID"
+            LineID:
+              $ref: "#/components/schemas/LineID"
+            IssueDate:
+              $ref: "#/components/schemas/IssueDate"
+            CompletionDate:
+              type: string
+        SuppliersOrderReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        AssociatedInvoiceReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        BlanketOrderReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        BuyerOrderReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        DeliveryListReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        SellerReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        ReturnDeliveryNoticeReference:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        ReturnSalesOrderNoteReference:
+          type: object
+          properties:
+            DocumentID:
+              $ref: "#/components/schemas/DocumentID"
+        SupplierClaimNumber:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        CustomerClaimNumber:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        WarrantyNumber:
+          $ref: '#/components/schemas/ReferenceDetailsWithLineId'
+        CustomsDeclarationNumber:
+          type: array
+          items:
+            type: object
+            properties:
+              DocumentID:
+                $ref: "#/components/schemas/DocumentID"
+        FleetReference:
+          type: array
+          items:
+            type: object
+            properties:
+              ReferenceTypeCode:
+                type: string
+              DocumentID:
+                $ref: "#/components/schemas/DocumentID"
+    LineItemNetAmount:
+      type: object
+      properties:
+        AmountValue:
+          $ref: '#/components/schemas/AmountValue'
+    ArticleCharacteristics:
+      type: object
+      properties:
+        NoisePerformance:
+          type: string
+        NoiseClassType:
+          type: integer
+          format: int32
+        RollingResistance:
+          type: string
+        VehicleClass:
+          type: string
+        WetGrip:
+          type: string
+        EUDirectiveNumber:
+          type: string
+        ThreePMSFMark:
+          type: string
+        IceGripPICT:
+          type: string
+        URL5:
+          type: string
+    InvoicedQuantity:
+      type: object
+      properties:
+        QuantityValue:
+          type: integer
+          format: int32
+        MeasureUnitCode:
+          type: string
+    PriceDetails:
+      type: object
+      properties:
+        GrossUnitPrice:
+          type: object
+          properties:
+            PriceAmount:
+              $ref: '#/components/schemas/PriceAmount'
+        NetUnitPrice:
+          type: object
+          properties:
+            PriceAmount:
+              $ref: '#/components/schemas/PriceAmount'
+        FixedPrice:
+          type: object
+          properties:
+            PriceAmount:
+              $ref: '#/components/schemas/PriceAmount'
+    TaxDetails:
+      type: object
+      properties:
+        TaxCategoryCode:
+          type: string
+        TaxTypeCode:
+          type: string
+        TaxRate:
+          type: integer
+          format: int32
+        TaxAmount:
+          $ref: '#/components/schemas/AmountType'
+    AllowanceOrCharge:
+      type: array
+      minItems: 0
+      maxItems: 10
+      items:
+        type: object
+        properties:
+          AllowanceOrChargeTypeCode:
+            type: string
+          OtherChargeTypeCode:
+            type: string
+          AgencyCode:
+            type: string
+          AllowanceOrChargeNumber:
+            type: string
+          AllowanceOrChargeName:
+            type: string
+          AllowanceOrChargePercent:
+            type: string
+          AllowanceOrChargeAmount:
+            $ref: '#/components/schemas/AmountType'
+          TaxDetails:
+            type: array
+            items:
+              type: object
+              properties:
+                TaxCategoryCode:
+                  type: string
+                TaxTypeCode:
+                  type: string
+                TaxRate:
+                  type: string
+    ArticleIdentification:
+      type: object
+      properties:
+        BuyersArticleID:
+          $ref: '#/components/schemas/BuyersArticleID'
+        ManufacturersArticleID:
+          $ref: '#/components/schemas/ManufacturersArticleID'
+        EanuccArticleID:
+          $ref: '#/components/schemas/EanuccArticleID'
+    TracingInformation:
+      type: array
+      items:
+        type: object
+        properties:
+          TracingID:
+            type: string
+          SerialNumber:
+            type: string
+    LineNote:
+      type: object
+      properties:
+        LanguageCode:
+          type: string
+        Note:
+          type: string
+
+    Controls:
+      type: object
+      properties:
+        NumberOfLineItems:
+          type: integer
+          format: int32
+        TotalQuantityValues:
+          type: integer
+          format: int32
+    Summary:
+      type: object
+      properties:
+        AllowanceOrCharge:
+          type: array
+          minItems: 0
+          maxItems: 100
+          items:
+            type: object
+            properties:
+              AllowanceOrChargeTypeCode:
+                type: string
+              OtherChargeTypeCode:
+                type: string
+              AgencyCode:
+                type: string
+              AllowanceOrChargeAmount:
+                $ref: '#/components/schemas/AmountType'
+              TaxDetails:
+                type: object
+                properties:
+                  TaxCategoryCode:
+                    type: string
+                  TaxTypeCode:
+                    type: string
+                  TaxRate:
+                    type: integer
+                    format: int32
+        TotalAmount:
+          $ref: '#/components/schemas/AmountType'
+        TaxableAmount:
+          $ref: '#/components/schemas/AmountType'
+        TaxAmount:
+          $ref: '#/components/schemas/AmountType'
+        TotalLineItemsAmount:
+          $ref: '#/components/schemas/AmountType'
+        TotalChargeAmount:
+          $ref: '#/components/schemas/AmountType'
+        TaxDetails:
+          type: array
+          minItems: 0
+          maxItems: 10
+          items:
+            type: object
+            properties:
+              TaxCategoryCode:
+                type: string
+              TaxTypeCode:
+                type: string
+              TaxRate:
+                type: integer
+                format: int32
+              VATExemptionClause:
+                type: string
+              GeneralDiscountClause:
+                type: string
+              TaxAmount:
+                $ref: '#/components/schemas/AmountType'
+              TaxableAmount:
+                $ref: '#/components/schemas/AmountType'
+    Attachments:
+      type: array
+      minItems: 0
+      items:
+        type: object
+        properties:
+          DocumentNumber:
+            type: string
+          EncodingScheme:
+            type: string
+          MimeType:
+            type: string
+          Data:
+            type: string
+    OrderingMethod:
+      type: string
+    Article:
+      type: object
+      properties:
+        ArticleIdentification:
+          $ref: '#/components/schemas/ArticleIdentification'
+        ArticleDescription:
+          $ref: '#/components/schemas/ArticleDescription'
+        ArticleCharacteristics:
+          $ref: '#/components/schemas/ArticleCharacteristics'
+        InvoicedQuantity:
+          $ref: '#/components/schemas/InvoicedQuantity'
+        PriceDetails:
+          $ref: '#/components/schemas/PriceDetails'
+        TaxDetails:
+          $ref: '#/components/schemas/TaxDetails'
+        AllowanceOrCharge:
+          $ref: '#/components/schemas/AllowanceOrCharge'
+        LineItemTotalAmount:
+          $ref: '#/components/schemas/AmountType'
+        Consignee:
+          $ref: '#/components/schemas/ConsigneeResponse'
+        OrderingParty:
+          $ref: '#/components/schemas/OrderingParty'
+        TracingInformation:
+          $ref: '#/components/schemas/TracingInformation'
+        LineNote:
+          $ref: '#/components/schemas/LineNote'
+    LineLevel:
+      type: array
+      items:
+        type: object
+        properties:
+          LineID:
+            $ref: "#/components/schemas/LineID"
+          OrderingMethod:
+            $ref: "#/components/schemas/OrderingMethod"
+          References:
+            $ref: "#/components/schemas/ReferencesLine"
+          LineItemNetAmount:
+            $ref: '#/components/schemas/LineItemNetAmount'
+          Article:
+            $ref: '#/components/schemas/Article'
+    EnvironmentRegisterID:
+      type: string
+      maxLength: 70
+    GoodsServiceIDCode:
+      type: string
+      enum:
+        - "01"
+        - "02"
+        - "03"
+      description: |
+        Applicable Codes:
+          * `01` - Goods
+          * `02` - Service
+          * `03` - Adjustment
+    GoodsServiceIndication:
+      type: string
+      description: Use 'Goods Invoice' or 'Service Invoice' or 'Goods credit note' or 'Service credit note' or 'Adjustment credit note' or 'Debit note'.
+    DocumentCurrency:
+      type: string
+      description: Use ISO 3alpha Code list.
+    InvoiceListB33:
+      type: object
+      xml:
+        name: invoice_list
+        prefix: ew
+        namespace: "http://www.reifen.net"
+      properties:
+        DocumentID:
+          type: string
+          enum:
+            - B3
+        Variant:
+          type: string
+          enum:
+            - "3"
+        NumberOfMessages:
+          type: string
+        ErrorHead:
+          $ref: "#/components/schemas/ErrorHead"
+        invoice:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              IssueDate:
+                $ref: "#/components/schemas/IssueDate"
+              DocumentNumber:
+                $ref: "#/components/schemas/DocumentNumber"
+              DocumentTypeCode:
+                $ref: "#/components/schemas/DocumentTypeCodeResponse"
+              DocumentFunctionCode:
+                $ref: "#/components/schemas/DocumentFunctionCode"
+              DocumentFunctionText:
+                $ref: "#/components/schemas/DocumentFunctionText"
+              eInvoicingID:
+                $ref: '#/components/schemas/eInvoicingID'
+              EnvironmentRegisterID:
+                $ref: '#/components/schemas/EnvironmentRegisterID'
+              GoodsServiceIDCode:
+                $ref: '#/components/schemas/GoodsServiceIDCode'
+              GoodsServiceIndication:
+                $ref: '#/components/schemas/GoodsServiceIndication'
+              DocumentCurrency:
+                $ref: '#/components/schemas/DocumentCurrency'
+              References:
+                $ref: '#/components/schemas/HeaderReferences'
+              BuyerParty:
+                $ref: "#/components/schemas/PartyDetailed"
+              InvoiceIssuerParty:
+                $ref: '#/components/schemas/PartyInfoDetailed'
+              InvoiceeParty:
+                $ref: "#/components/schemas/PartyDetailed"
+              Consignee:
+                $ref: "#/components/schemas/ConsigneeResponse"
+              SellerParty:
+                $ref: "#/components/schemas/PartyInfoDetailed"
+              PaymentTerms:
+                $ref: '#/components/schemas/PaymentTerms'
+              HeaderNote:
+                $ref: '#/components/schemas/HeaderNote'
+              LineLevel:
+                $ref: '#/components/schemas/LineLevel'
+              Controls:
+                $ref: '#/components/schemas/Controls'
+              Summary:
+                $ref: '#/components/schemas/Summary'
+              Attachments:
+                $ref: '#/components/schemas/Attachments'
+  securitySchemes:
+    # Name of the securitySchemes
+    BasicAuth:
+      scheme: basic
+      type: http

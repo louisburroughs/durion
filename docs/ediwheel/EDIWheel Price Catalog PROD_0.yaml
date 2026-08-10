@@ -1,0 +1,789 @@
+openapi: 3.0.0
+# The info section contains API information
+info:
+  # A machine and human readable details of the API
+  description: API provided to customers worldwide to get information on all the products they are authorized to purchase
+  # API implementation version 
+  version: 1.2.0
+  # Title of API
+  title: EDIWheel Price Catalog
+  # Contact details of API Producer
+  contact: 
+    # Name of API Producer
+    name: API Support
+    email: devportal.support@michelin.com
+    url: 'https://developer.michelin.com/en/contact'
+  license:
+    name: Michelin
+    url: https://developer.michelin.com/en/terms-and-conditions-use
+# The servers section specifies the API server and base URL
+servers:
+     # Type of server(Dev/Indus/Sandbox/Production)
+  - url: 'https://api.michelin.com'
+    description: Production
+  - url: 'https://sandbox.api.michelin.com'
+    description: Sandbox
+     
+# A declaration of which security mechanisms can be used across the API. Each name must correspond to a security scheme which is declared in the Security Schemes under the Components Object.
+security:
+  - BasicAuth: []
+
+tags:
+  - name: Pricat EDIWheel B4.0
+    description: Get the list of items you are authorized to purchase
+
+paths:
+  # Name of the resource to append to the basepath
+  /catalog/B4_0/pricat:
+    get:
+      parameters:
+        - $ref: '#/components/parameters/Apikey'
+        - $ref: '#/components/parameters/BuyerParty'
+        - $ref: '#/components/parameters/AgencyCode'
+        - $ref: '#/components/parameters/EAN'
+      responses:
+        # HTTP status code
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/catalog'
+              examples:
+                catalog_EU:
+                  summary: Example pricat response EU
+                  value:
+                    articles:
+                    - pos: 1
+                      ean: '3528709999083'
+                      supplierCode: '999908'
+                      description1: 255/55R19 111VXL PS4 SUV
+                      description2: ''
+                      reserved: '10'
+                      msMark: N
+                      3pmsfMark: N
+                      brand: '002'
+                      brandText: MICHELIN
+                      prodGrp2: EV
+                      groupDescription: ENVELOPPE
+                      weight: '14.569'
+                      rimInch: '19'
+                      prodCycle: W2
+                      thirdParty: ''
+                      pl: Y
+                      tel: Y
+                      edi: Y
+                      adhoc: N
+                      plId: ''
+                      url1: www.michelin.se
+                      url4: https://www.tyrelabelling.eu/EU/2020-740/en/999908_fcs_en.pdf
+                      url5: https://eprel.ec.europa.eu/qr/413198
+                      widthMm: '255'
+                      widthInch: ''
+                      aspectRatio: '55'
+                      ovlDiameter: '763.1'
+                      construction1: R
+                      construction2: ''
+                      usage: ''
+                      li1: '111'
+                      sp1: V
+                      tltt: N
+                      rfd: XL
+                      rimMm: ''
+                      sidewall: FQ
+                      design1: PILOT SPORT 4 SUV
+                      productType: '110'
+                      vehicleType: CB
+                      condGrp: ''
+                      taxId: ''
+                      tax: '25'
+                      grossPriceValidFrom: '20210101'
+                      netValue: ''
+                      netValueValidFrom: ''
+                      recyclingFee: ''
+                      noisePerformance: '72'
+                      noiseClassType: B
+                      rollingResistance: C
+                      wetGrip: A
+                      ecVehicleClass: C1
+                      euDirectiveNumber: 2020/740
+                      directional: N
+                      asymetric: Y
+                      xReferenceCode: ''
+                      marketCompliance: ''
+                      wheelPosition: ''
+                      priceReferenceMaterial: ''
+                      recommendedReplacementArticle: ''
+                      nonGradingEligibility: N
+                      designVariant: MIPILOT SPORT 4 SUV
+                    envelopeHeader:
+                      documentId: PRICAT-4046266_202305120844
+                      date: '202305120844'
+                      receiverId: '4046266'
+                      currency: SEK
+                      countryCode: SE
+                      ediwheelVersion: B4.0
+                      errorCode: '0'
+                catalog_JP:
+                  summary: Sample pricat response JP 
+                  value:
+                    articles:
+                    - pos: 1
+                      ean: '3528709990998'
+                      prodGrp1: MIMIC999099
+                      supplierCode: '999099'
+                      description1: 235/45 R18 98H XL TL X-ICE SNOW  MI
+                      description2: ''
+                      msMark: Y
+                      3pmsfMark: Y
+                      brand: '002'
+                      brandText: MICHELIN
+                      prodGrp2: ''
+                      weight: '11.106'
+                      rimInch: '18.00'
+                      prodCycle: W2
+                      thirdParty: ''
+                      pl: ''
+                      tel: ''
+                      edi: ''
+                      adhoc: ''
+                      plId: ''
+                      url1: https://www.michelin.co.jp
+                      url2: ''
+                      url3: ''
+                      url4: ''
+                      url5: ''
+                      widthMm: '235'
+                      widthInch: ''
+                      aspectRatio: '45'
+                      ovlDiameter: '668.700'
+                      construction1: R
+                      construction2: ''
+                      usage: ''
+                      depth: ''
+                      li1: '98'
+                      li2: ''
+                      li3: ''
+                      li4: ''
+                      sp1: H
+                      sp2: ''
+                      tltt: N
+                      flank: ''
+                      pr: ''
+                      rfd: XL
+                      sizePrefix: ''
+                      commMark: ''
+                      rimMm: ''
+                      runFlat: ''
+                      sidewall: ''
+                      design1: X-ICE SNOW
+                      design2: ''
+                      productType: '210'
+                      vehicleType: CC
+                      condGrp: ''
+                      taxId: ''
+                      tax: '10'
+                      suggestedPrice: ''
+                      grossPrice: '53800'
+                      grossPriceValidFrom: 2022/08/01
+                      netValue: ''
+                      netValueValidFrom: ''
+                      recyclingFee: ''
+                      noisePerformance: ''
+                      noiseClassType: ''
+                      rollingResistance: ''
+                      wetGrip: ''
+                      ecVehicleClass: ''
+                      euDirectiveNumber: ''
+                      traCode: ''
+                      seal: ''
+                      specialCompound: ''
+                      directional: Y
+                      asymetric: N
+                      xReferenceCode: ''
+                      marketCompliance: ''
+                      wheelPosition: ''
+                      priceReferenceMaterial: ''
+                      recommendedReplacementArticle: ''
+                      nonGradingEligibility: Y
+                      rfid: ''
+                      designVariant: MIX-ICE SNOW
+                    envelopeHeader:
+                      documentId: PROCAT-300157948_202305120912
+                      date: '202305120912'
+                      receiverId: '300157948'
+                      countryCode: JP
+                      ediwheelVersion: B4.0
+                      errorCode: '0'
+                catalog_TW:
+                  summary: Sample pricat response TW
+                  value:
+                    articles:
+                    - pos: 1
+                      prodGrp1: '124196'
+                      description1: 245/45 R19 98Y TL PRIMACY 3 ZP * S1 GRNX MI
+                      brand: MI
+                      rimInch: '19'
+                      widthMm: '245'
+                      aspectRatio: '45'
+                      li1: '98'
+                      sp1: Y
+                      tltt: N
+                      design1: PRIMACY 3
+                      productType: '100'
+                      vehicleType: C0
+                    envelopeHeader:
+                      documentId: PROCAT-8861030270_202305121615
+                      date: '202305121615'
+                      receiverId: '8861030270'
+                      countryCode: TW
+                      ediwheelVersion: B4.0
+                      errorCode: '0'
+        # HTTP status code
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'  
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Invalid ApiKey",
+                        "detail": {
+                            "errorcode": "oauth.v2.InvalidApiKey"
+                        }
+                    }
+                }
+        # HTTP status code  
+        '403':
+          description: Forbidden
+        # HTTP status code  
+        '404':
+          description: Not Found
+        # HTTP status code
+        '500':
+          # Description of status code
+          description: Server error
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              # Example value
+              example:
+                "fault":
+                  {
+                    "faultstring": "Internal server error occured",
+                    "detail": { "errorcode": "500" },
+                  }
+        # HTTP status code
+        '503':
+          # Description of status code
+          description: Service unavailable
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              # Example value
+              example: 
+                {
+                   "fault": {
+                      "faultstring": "The Service is temporarily unavailable", 
+                      "detail": {
+                           "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable"
+                       }
+                    }
+                }
+                
+        # HTTP status code
+        '504':
+          # Description of status code
+          description: Gateway timeout. A response was not available to send within the stipulated time limit.
+          # Media type
+          content:
+            application/json:
+              # Object definition
+              schema:
+                # Reference to object definition
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              # Example value
+              example: 
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+    
+      tags:
+        - Pricat EDIWheel B4.0
+      description: Get the list of items you are authorized to purchase
+      operationId: pricatGET
+      summary: Get the list of items you are authorized to purchase.
+
+externalDocs:
+  description: Learn more about Ediwheel
+  url: https://ediwheel.net
+  
+components:
+  parameters:
+    Apikey:
+      name: apikey
+      in: header
+      schema:
+        type: string
+        default: AY9jLwxBUANYYZv05PV44Gn8AYPIZ9vR
+      required: true
+      description: API key is a code used to identify and authenticate an application or user.
+    BuyerParty:
+      name: buyerParty
+      in: query
+      description: Identifier of the customer for which the catalog is requested
+      required: true
+      schema:
+        type: string
+      example: 30012456
+    AgencyCode:
+      name: agencyCode
+      in: query
+      description: Code identifying the agency responsible for an identifier
+      required: true
+      schema:
+        $ref: '#/components/schemas/agencyCode'
+    EAN:
+      name: ean
+      in: query
+      description: To filter the response on the EAN
+      required: false
+      schema:
+        type: string
+      example: 3528700607031
+   # Defines a security scheme that can be used by the operations
+  securitySchemes:
+    # Name of the securitySchemes
+    BasicAuth:
+      scheme: basic
+      type: http
+  schemas:
+    agencyCode:
+      type: string
+      enum:
+        - '91'
+        - '92'
+        - '9'
+      xml:
+        name: AgencyCode
+      description: |
+        Applicable Codes:
+          * `91` - Assigned by seller or seller's agent
+          * `92` - Assigned by buyer or buyer's agent
+          * `9`  - EAN (International Article Numbering Association)
+    catalog:
+      type: object
+      properties:
+        envelopeHeader:
+          $ref: '#/components/schemas/envelopeHeader'
+        articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/article'
+    envelopeHeader:
+      type: object
+      properties:
+        documentId:
+          type: string
+        date:
+          type: string
+        receiverId:
+          type: string
+        # currency:
+        #   type: string
+        countryCode:
+          type: string
+        ediwheelVersion:
+          type: string
+          enum:
+            - 'B4.0'
+        errorCode:
+          type: string
+    article:
+      type: object
+      properties:
+        pos:
+          type: number
+          format: int32
+          minimum: 1
+          description: Number to reference an item line.
+        ean:
+          type: string
+          description: EAN code of product e.g.-EAN in EAN-market
+        prodGrp1:
+          type: string
+          description: Manufacturer specific classification.
+        supplierCode:
+          type: string
+          description: Supplier product code. Recommended to use EAN.
+        description1:
+          type: string
+          description: Product Description
+        description2: 
+          type: string
+          description: Second part of the product description
+        # reserved: 
+        #   type: string        
+        msMark:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: M+S mark indicates winter capability of tires
+        3pmsfMark:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Three Peak Mountain Snow Flake indicates winter capability of tires
+        brand:
+          type: string
+          description: Brand key according to Supplier. Please contact your supplier for a code list.
+        brandText:
+          type: string
+          description: Brand text according to Supplier
+        prodGrp2:
+          type: string
+          description: Manufacturer product classification code 
+        # groupDescription: 
+        #   type: string            
+        weight:
+          type: string
+          description: Unit net weight in kilogram, Integer or decimal value
+        rimInch:
+          type: string
+          description: RIM diameter in inch. Integer or decimal value
+        prodCycle:
+          type: string
+          enum:
+            - 'W0'
+            - 'W1'
+            - 'W2'
+            - 'W3'
+          description: >
+            Product Lifecycle:
+             * `W0` - No information available
+             * `W1` - In preparation
+             * `W2` - Active
+             * `W3` - Announcement of phase out
+        thirdParty:
+          type: string
+          description: Third party supplied
+        pl:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Part of printed pricelist
+        tel:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Ability to order via Phone
+        edi:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Ability to order via classic edi
+        adhoc:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Ability to order via adhoc edi
+        plId:
+          type: string
+          description: Price list group Id. This could be the identification code of the pricelist type used by the supplier
+        url1:
+          type: string
+          description: URL for the website of the supplier related to the brand.
+        url2:
+          type: string
+          description: URL for the address where pictures or other information’s could be available.
+        url3:
+          type: string
+          description: Reserved
+        url4:
+          type: string
+          description: Reserved. This url can be used to provide supplier own Tire Label reproduction facility. Valid only starting from EU directive 2020/740 or subsequent ones.
+        url5:
+          type: string
+          description: Reserved. This url will be used to provide a link to the dataset of the appropriate item in EC Commission EPREL(European Product Registry for Energy Labelling) or similar databases of other countries. Valid only starting from EU directive 2020/740 or subsequent ones.
+        widthMm:
+          type: string
+          description: Section width in mm (EU Standard)
+        widthInch:
+          type: string
+          description: Section width in inch (US Standard)
+        aspectRatio:
+          type: string
+          description: Aspect ratio (EU Standard)
+        ovlDiameter:
+          type: string
+          description: Over all diameter in inch (US Standard)
+        construction1:
+          type: string
+          description: Construction 1, e.g. R for radial or - for Bias
+        construction2:
+          type: string
+          description: Reserved for future use
+        usage:
+          type: string
+          description: Recommended tyre
+        depth:
+          type: string
+          description: Tread depth in mm
+        li1:
+          type: string
+          description: Load index single tyre 1
+        li2:
+          type: string
+          description: Load index single tyre 2
+        li3:
+          type: string
+          description: Load index twin tyre 1
+        li4:
+          type: string
+          description: Load index twin tyre 2
+        sp1:
+          type: string
+          description: Speed index 1
+        sp2:
+          type: string
+          description: Speed index 2
+        tltt:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: >
+            Tube characteristic:
+              * `Y` - Yes (Tubetype, TT)
+              * `N` - No (Tubeless, TL)
+        flank:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: If there is a flank protection
+        pr:
+          type: string
+          description: Ply rate
+        rfd:
+          type: string
+          description: Freetext. If it is filled then there is a Reinforced.
+        sizePrefix:
+          type: string
+          enum:
+            - 'P'
+            - 'LT'
+            - 'T'
+          description: >
+            Size prefix:
+              * `P` - Passenger
+              * `LT` - Light Truck
+              * `T` - Truck
+        commMark:
+          type: string
+          description: Commercial van mark
+        rimMm:
+          type: string
+          description: Rim diameter in mm
+        runFlat:
+          type: string
+          description: Free text. If it is filled then there is a Runflat.
+        sidewall:
+          type: string
+          description: Free text. If it is filled then there is a Sidewall.
+        design1:
+          type: string
+          description: Tread design
+        design2:
+          type: string
+          description: Tread design sequel
+        productType:
+          type: string
+          description: Product Type. Check codelist
+        vehicleType:
+          type: string
+          enum:
+            - 'CB'
+            - 'C0'
+            - 'L0'
+            - 'L4'
+            - 'LS'
+            - 'T0'
+            - 'TT'
+            - 'TB'
+            - 'E0'
+            - 'I0'
+            - 'F0'
+            - 'M0'
+            - 'MM'
+            - 'MQ'
+            - 'MK'
+            - 'MS'
+            - 'MP'
+            - 'MB'
+            - 'X0'
+          description: Vechicle Type
+        condGrp:
+          type: string
+          description: Supplier pricing group classification
+        taxId:
+          type: string
+          description: Reduced Tax Rate
+        tax:
+          type: string
+          description: The field must be indicated if the Tax Rate ID is filled.
+        suggestedPrice:
+          type: string
+          description: Suggested Retail Price
+        grossPrice:
+          type: string
+          description: Gross Price
+        grossPriceValidFrom:
+          type: string
+          description: Gross Price Date valid from, FORMAT="YYYYMMDD"
+        netValue:
+          type: string
+          description: Net Value
+        netValueValidFrom:
+          type: string
+          description: Net value date valid from, FORMAT="YYYYMMDD"
+        recyclingFee:
+          type: string
+          description: Recycling fee expressed in amount
+        noisePerformance:
+          type: string
+          description: Expressed in dB(A)
+        noiseClassType:
+          type: string
+          enum:
+            - 'A'
+            - 'B'
+            - 'C'
+          description: >
+            Noise Class:
+             * `A` - Low
+             * `B` - Medium
+             * `C` - High
+        rollingResistance:
+          type: string
+          description: Expressed by a grade letter (from A to G)
+        wetGrip:
+          type: string
+          description: Expressed by a grade letter (from A to G)
+        ecVehicleClass:
+          type: string
+          enum:
+            - 'C1'
+            - 'C2'
+            - 'C3'
+          description: Expressed by Vehicle Class
+        euDirectiveNumber:
+          type: string
+          description: EU directive number
+        traCode:
+          type: string
+          enum:
+            - 'C-1' 
+            - 'C-2' 
+            - 'E-1' 
+            - 'E-2' 
+            - 'E-3' 
+            - 'E-4' 
+            - 'E-7' 
+            - 'G-1' 
+            - 'G-2' 
+            - 'G-3' 
+            - 'L-2' 
+            - 'L-3' 
+            - 'L-4' 
+            - 'L-5' 
+            - 'L-3S' 
+            - 'L-4S' 
+            - 'L-5S'
+          description: OTR-Tire classification according to ETRTO (or Tires and Rims Association)
+        seal:
+          type: string
+          description: Self Repairing Filling in Tires
+        specialCompound:
+          type: string
+          description: Indicates if special compound e.g to be applicable for extreme temperatures, e.g. ICE, HCT
+        directional:
+          type: string
+          description: Indicates directional tread pattern of tire
+        asymetric:
+          type: string
+          description: Indicates asymetric tread pattern of tire
+        xReferenceCode:
+          type: string
+          description: UPC in EAN-world or EAN in UPC-world. Unique product identfication. Related to content of field 003 EAN/UPC code.
+        marketCompliance:
+          type: string
+          description: Indicates compliance of tire to specific international legal market requirement.
+        wheelPosition:
+          type: string
+          description: Wheel Position
+        priceReferenceMaterial:
+          type: string
+          description: EAN of main-component of assembly (Tires)
+        recommendedReplacementArticle:
+          type: string
+          description: In case of non availibility of the article, this field can be used to determine an alternative.
+        nonGradingEligibility:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Y = not relevant for grading, N = relevant for grading
+        rfid:
+          type: string
+          enum:
+            - 'Y'
+            - 'N'
+          description: Indicates if RFID is applied in tire
+        designVariant:
+          type: string
+          description: Unique code per tire manufacturer related to visual tread design.
+    # Name of request/response object
+    ProxyErrorResponse:
+      # Data type of the schema (object)
+      type: object
+      properties:
+        # Field Name
+        fault: 
+          # Field Data type
+          type: object
+          properties: 
+            # Field Name
+            faultstring: 
+              # Field Data type
+              type: string
+            # Field Name
+            detail: 
+              # Field Data type
+              type: object
+              properties: 
+                # Field Name
+                errorcode: 
+                  # Field Data type
+                  type: string

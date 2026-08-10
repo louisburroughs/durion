@@ -1,0 +1,1688 @@
+openapi: 3.0.0
+
+info:
+  description: This is an AI-powered API to extracts tire specifications and car make/model from a picture of a full & partial tire.
+  version: 1.0.0
+  title: Tiresnap - Sidewall Scanner API
+  contact:
+    name: API Support
+    email: difapiteam@michelin.com
+    url: 'https://developer.michelin.com/en/contact'
+    
+servers:
+  - url: https://api.michelin.com/tire-size-recognition/v1
+    description: Prod
+    
+security:
+    - OAuth2Prod: [rft-tire-size-recognition]    
+    
+tags:
+  - name: TyreSnapFullTyre
+    description: Extracts tire specifications and car make/model from a picture of a full & partial tire.
+    
+paths:
+  /score:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/ApiKey'
+        - name: mode
+          in: query
+          required: false
+          description: This mode enables customized response
+          schema:
+            type: string
+            enum:
+              - ts
+              - ts-debug
+              - debug
+            description: >
+              * ts - Response from tyresnap Only (Tiresnap - Sidewall Scanner API)
+              * ts-debug - Response from tyresnap & elapsed_time_sec,  start_time, stop_time and status_code details
+              * debug - Response from tiresnap, tyremotion and Orchestrator API
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                requester_name:
+                  type: string
+                unique_request_id:
+                  type: string
+                  format: uuid
+                  minLength: 21
+                  maxLength: 23
+                tire_image:
+                  type: string
+                  format: binary
+                  description: 
+                    • Frontal image should be taken with as little angle with tyre as possible.<br>
+                    • Image should be taken in daylight for best results. Indoor parking/low lighting results may not be good     
+        description: Image upload request body
+        required: true
+      responses:
+        '200':
+          description: Success response containing tyre specifications,car model and zone coordinates extracted from image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComboSuccessResponse'
+              examples:
+                Image quality check passed:
+                  "$ref": "#/components/examples/tyre_recognition_pass"
+                Image angle is not proper:
+                  "$ref": "#/components/examples/tyre_recognition_fail_1"
+                Image distance is not proper:
+                  "$ref": "#/components/examples/tyre_recognition_fail_2"
+                Image not clear or blurrd:
+                  "$ref": "#/components/examples/tyre_recognition_fail_3"
+                Poor Brightness::
+                  "$ref": "#/components/examples/tyre_recognition_fail_4"
+                High Brightness:
+                  "$ref": "#/components/examples/tyre_recognition_fail_5"
+                Invalid file type:
+                  "$ref": "#/components/examples/tyre_recognition_fail_6"
+                Default response:  
+                  "$ref": "#/components/examples/tyre_recognition_fail_7"
+                
+                 
+        '401':
+          description: Unauthorised error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              example: |-
+                {
+                    "fault": {
+                        "faultstring": "Invalid ApiKey",
+                        "detail": {
+                            "errorcode": "oauth.v2.InvalidApiKey"
+                        }
+                    }
+                }
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              example: |-
+                {
+                    "fault": {
+                        "faultstring": "Spike arrest violation.",
+                        "detail": {
+                            "errorcode": "policies.ratelimit.SpikeArrestViolation"
+                        }
+                    }
+                }
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              example: |-
+                {
+                   "fault": {
+                      "faultstring": "The Service is temporarily unavailable", 
+                      "detail": {
+                           "errorcode": "messaging.adaptors.http.flow.ServiceUnavailable"
+                       }
+                    }
+                }
+        '504':
+          description: >-
+            Gateway timeout. A response was not available to send within the
+            stipulated time limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+              example: |-
+                {
+                    "fault": {
+                        "faultstring": "Gateway Timeout",
+                        "detail": {
+                            "errorcode": "messaging.adaptors.http.flow.GatewayTimeout"
+                        }
+                    }
+                }
+      tags:
+        - TyreSnapFullTyre
+      description: Returns tire specifications and car make/model from a picture of the full tire.
+      operationId: scorePOST
+      summary: Returns tire specifications and car make/model from a picture of the full tire.
+    x-swagger-router-controller: TyreSnapFullTyre
+    
+components:
+  parameters:
+    ApiKey:
+      name: apikey
+      in: header
+      schema:
+        type: string
+      required: true
+  securitySchemes:
+    OAuth2Prod:
+      type: oauth2
+      description: This is the OAuth2 security scheme for the Prod environment
+      flows:
+        clientCredentials:
+          tokenUrl: >-
+            https://api.michelin.com/idp/v1/internal/oauth/token/accesstoken?grant_type=client_credentials
+          scopes:
+            rft-tire-size-recognition: This scope grants access to the tire-size-recognition API
+  schemas:
+    tyreCoordinateAlignedBboxSchema:
+      type: array
+      items:
+        type: object
+        properties:
+          x_min:
+            type: integer
+          x_max:
+            type: integer
+          y_min:
+            type: integer
+          y_max:
+            type: integer
+    tyreCoordinateRotatedBboxSchema:
+      type: array
+      items: 
+        oneOf: 
+          - $ref: '#/components/schemas/tyreCoordinateRotatedBbox_FirstObjectSchema'
+          - $ref: '#/components/schemas/tyreCoordinateRotatedBbox_AngleDirSchema'
+          - $ref: '#/components/schemas/tyreCoordinateRotatedBbox_BboxAngleSchema'
+    tyreCoordinateRotatedBbox_FirstObjectSchema:
+      type: object
+      properties:
+        x_1:
+          type: integer
+        y_1:
+          type: integer
+        x_2:
+          type: integer
+        y_2:
+          type: integer
+        x_3:
+          type: integer
+        y_3:
+          type: integer
+        x_4:
+          type: integer
+        y_4:
+          type: integer
+    tyreCoordinateRotatedBbox_AngleDirSchema:
+      type: object
+      properties:
+        angle_dir:
+          type: array
+          items: 
+            type: string
+            example: "ccw"
+    tyreCoordinateRotatedBbox_BboxAngleSchema:
+      type: object
+      properties:
+        bbox_angle:
+          type: array
+          items: 
+            type: number
+            example: 39
+    tyreCoordinateSchema:
+      type: object
+      properties:
+        aligned_bbox:
+          $ref: '#/components/schemas/tyreCoordinateAlignedBboxSchema'
+        rotated_bbox:
+          $ref: '#/components/schemas/tyreCoordinateRotatedBboxSchema'
+    tyreDimensionSchema:
+      type: object
+      properties:
+        tyresize:
+          type: string
+        height:
+          type: string
+        width:
+          type: string
+        structure:
+          type: string
+        diameter:
+          type: string
+        load_index:
+          type: string
+        speed_index:
+          type: string
+        original_equipment_marking:
+          type: string
+        special_marking:
+          type: object
+          properties:
+            run_flat:
+              type: string
+            xl:
+              type: string
+            m_plus_s:
+              type: string
+    ComboSuccessResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+              format: int32
+            message:
+              type: string
+        result:
+          type: object
+          properties:
+            car_models_matches:
+              type: integer
+              format: int32
+            car_models:
+              type: array
+              items:
+                type: object
+                properties:
+                  tyre_details:
+                    type: object
+                    properties:
+                      tyre_line:
+                        type: string
+                      tyre_brand:
+                        type: string
+                      dot:
+                        type: object
+                        properties:
+                          details:
+                            type: object
+                            properties:
+                              dimension_code:
+                                type: string
+                              dot_literal:
+                                type: string
+                              manufacturing_code:
+                                type: string
+                              manufacturing_date:
+                                type: string
+                              optional_code:
+                                type: string
+                          summary:
+                            type: string
+                  brand:
+                    type: string
+                  model:
+                    type: string
+                  wheel_cover:
+                    type: string
+                  start_year:
+                    type: string
+                  end_year:
+                    type: string
+                  tyre_dimensions:
+                    type: object
+                    properties:
+                      same_front_and_rear_dimension:
+                        type: boolean
+                      front:
+                        $ref: '#/components/schemas/tyreDimensionSchema'
+                      rear:
+                        $ref: '#/components/schemas/tyreDimensionSchema'
+            zone_coords:
+              type: object
+              properties:
+                tyredim:
+                  $ref: '#/components/schemas/tyreCoordinateSchema'
+                tyre_brand:
+                  $ref: '#/components/schemas/tyreCoordinateSchema'
+                tyre_line:
+                  $ref: '#/components/schemas/tyreCoordinateSchema'
+                rim:
+                  type: object
+                  properties:
+                   rim_centroid:
+                    type: array
+                    items:
+                      type: integer
+                      example : 1252
+    ProxyErrorResponse:
+      type: object
+      properties:
+        fault:
+          type: object
+          properties:
+            faultstring:
+              type: string
+            detail:
+              type: object
+              properties:
+                errorcode:
+                  type: string
+                  
+  examples:
+    tyre_recognition_pass:
+      summary: Image quality check passed
+      description: Success response with tire Specifications from image
+      value:
+        {
+          "error": {
+            "code": 0,
+            "message": "Success"
+          },
+          "result": {
+            "car_models_matches": 1,
+            "car_models": [
+              {
+                "tyre_dimensions": {
+                  "same_front_and_rear_dimension": true,
+                  "front": {
+                    "tyresize": "215/60 R 17 C 109/107T",
+                    "height": "60",
+                    "width": "215",
+                    "diameter": "17",
+                    "load_index": "109/107",
+                    "speed_index": "T",
+                    "special_marking": {
+                      "runflat": "",
+                      "xl": "",
+                      "m_plus_s": ""
+                    },
+                    "structure": "C",
+                    "original_equipment_marking": ""
+                  },
+                  "rear": {
+                    "tyresize": "215/60 R 17 C 109/107T",
+                    "height": "60",
+                    "width": "215",
+                    "diameter": "17",
+                    "load_index": "109/107",
+                    "speed_index": "T",
+                    "special_marking": {
+                      "runflat": "",
+                      "xl": "",
+                      "m_plus_s": ""
+                    },
+                    "structure": "C",
+                    "original_equipment_marking": ""
+                  }
+                },
+                "brand": "RENAULT",
+                "model": "TRAFIC",
+                "wheel_cover": "W",
+                "start_year": "2014",
+                "end_year": "",
+                "tyre_details": {
+                  "tyre_line": "ECONODRIVE",
+                  "tyre_brand": "DUNLOP",
+                  "dot": {
+                    "details": {
+                      "dimension_code": "YP",
+                      "dot_literal": "DOT",
+                      "manufacturing_code": "HC",
+                      "manufacturing_date": "1621",
+                      "optional_code": "031X"
+                    },
+                    "summary": "D0THCYP031X1621"
+                  }
+                }
+              }
+            ],
+            "zone_coords": {
+              "tyredim": {
+                "aligned_bboxes": [
+                  {
+                    "x_min": 257,
+                    "x_max": 947,
+                    "y_min": 348,
+                    "y_max": 1081
+                  },
+                  {
+                    "x_min": 2339,
+                    "x_max": 2657,
+                    "y_min": 851,
+                    "y_max": 1606
+                  }
+                ],
+                "rotated_bboxes": [
+                  {
+                    "x_1": 257,
+                    "y_1": 971,
+                    "x_2": 827,
+                    "y_2": 348,
+                    "x_3": 947,
+                    "y_3": 458,
+                    "x_4": 377,
+                    "y_4": 1081
+                  },
+                  {
+                    "x_1": 2335,
+                    "y_1": 883,
+                    "x_2": 2484,
+                    "y_2": 835,
+                    "x_3": 2724,
+                    "y_3": 1570,
+                    "x_4": 2575,
+                    "y_4": 1618
+                  },
+                  {
+                    "angle_dir": [
+                      "cw",
+                      "ccw"
+                    ]
+                  },
+                  {
+                    "bbox_angle": [
+                      39,
+                      70
+                    ]
+                  }
+                ]
+              },
+              "tyre_brand": {
+                "aligned_bboxes": [
+                  {
+                    "x_min": 179,
+                    "x_max": 644,
+                    "y_min": 378,
+                    "y_max": 966
+                  },
+                  {
+                    "x_min": 1454,
+                    "x_max": 1930,
+                    "y_min": 1368,
+                    "y_max": 1888
+                  }
+                ],
+                "rotated_bboxes": [
+                {
+                  "x_1": 179,
+                  "y_1": 892,
+                  "x_2": 537,
+                  "y_2": 378,
+                  "x_3": 644,
+                  "y_3": 452,
+                  "x_4": 287,
+                  "y_4": 966
+                },
+                {
+                  "x_1": 1454,
+                  "y_1": 1809,
+                  "x_2": 1840,
+                  "y_2": 1368,
+                  "x_3": 1930,
+                  "y_3": 1447,
+                  "x_4": 1544,
+                  "y_4": 1888
+                },
+                {
+                  "angle_dir": [
+                    "cw",
+                    "ccw"
+                  ]
+                },
+                {
+                  "bbox_angle": [
+                    56,
+                    124
+                  ]
+                }
+                ]
+              },
+              "tyre_line": {
+                "aligned_bboxes": [
+                  {
+                    "x_min": 1014,
+                    "x_max": 1459,
+                    "y_min": 1820,
+                    "y_max": 1975
+                  }
+                ],
+                "rotated_bboxes": [
+                  {
+                    "x_1": 1014,
+                    "y_1": 1903,
+                    "x_2": 1445,
+                    "y_2": 1820,
+                    "x_3": 1459,
+                    "y_3": 1892,
+                    "x_4": 1028,
+                    "y_4": 1975
+                  },
+                  {
+                    "angle_dir": [
+                      "ccw"
+                    ]
+                  },
+                  {
+                    "bbox_angle": [
+                      156
+                    ]
+                  }
+                ]
+              },
+              "rim": {
+                "rim_centroid": [
+                  1252,
+                  1553
+                ]
+              }
+            }
+          }
+        }
+        
+    tyre_recognition_fail_1:
+      summary: Image angle is not proper
+      description: If the picture angle is not correct
+      value:
+          {
+            "error": {
+                 "code": 101,
+                 "message": "The picture angle is not correct. Camera should face tyre properly."
+            },
+            "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          }
+    
+    tyre_recognition_fail_2:
+      summary: Image distance is not proper
+      description: If the wheel distance is not correct
+      value:
+          {
+            "error": {
+                 "code": 102,
+                 "message": "The wheel distance is not correct. Camera should face tyre properly."
+            },
+             "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          }   
+          
+    tyre_recognition_fail_3:
+      summary: Image not clear or blurrd
+      description: If the image is blur
+      value:
+          {
+            "error": {
+                 "code": 102,
+                 "message": "The wheel distance is not correct. Camera should face tyre properly."
+            },
+             "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          } 
+          
+          
+    tyre_recognition_fail_4:
+      summary: Poor Brightness
+      description: If the image is with poor brightness
+      value:
+          {
+            "error": {
+                 "code": 104,
+                 "message": "The picture is taken in darkness. Please click again with heigher brightness."
+            },
+            "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          }      
+    
+    tyre_recognition_fail_5:
+      summary: High Brightness
+      description: If the image is with high brightness
+      value:
+          {
+            "error": {
+                 "code": 105,
+                 "message": "The picture is taken with high brightness. Please click again."
+            },
+            "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          }      
+          
+    tyre_recognition_fail_6:
+      summary: Invalid file type
+      description: If the attached file is invalid
+      value:
+          {
+            "error": {
+                 "code": 106,
+                 "message": "Invalid attachment, Attach JPEG/PNG/JPG/BMP/WEBP Image."
+            },
+             "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          }
+          
+    tyre_recognition_fail_7:
+      summary: Default response
+      description: Default response for invalid images.
+      value:
+          {
+            "error": {
+                 "code": 300,
+                 "message": "Recognition Failed, Please try again."
+            },
+            "result": {
+              "car_models_matches": 0,
+              "car_models": [
+                {
+                  "tyre_dimensions": {
+                    "same_front_and_rear_dimension": "",
+                    "front": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    },
+                    "rear": {
+                      "tyresize": "",
+                      "height": "",
+                      "width": "",
+                      "diameter": "",
+                      "load_index": "",
+                      "speed_index": "",
+                      "special_marking": {
+                        "runflat": "",
+                        "xl": "",
+                        "m_plus_s": ""
+                      },
+                      "structure": "",
+                      "original_equipment_marking": ""
+                    }
+                  },
+                  "brand": "",
+                  "model": "",
+                  "wheel_cover": "",
+                  "start_year": "",
+                  "end_year": "",
+                  "tyre_details": {
+                    "tyre_line": "",
+                    "tyre_brand": "",
+                    "dot": {
+                      "details": {
+                        "dimension_code": "",
+                        "dot_literal": "",
+                        "manufacturing_code": "",
+                        "manufacturing_date": "",
+                        "optional_code": ""
+                      },
+                      "summary": ""
+                    }
+                  }
+                }
+              ],
+              "zone_coords": {
+                "tyredim": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_brand": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "tyre_line": {
+                  "aligned_bboxes": [
+                    {
+                      "x_min": null,
+                      "x_max": null,
+                      "y_min": null,
+                      "y_max": null
+                    }
+                  ],
+                  "rotated_bboxes": [
+                    {
+                      "x_1": null,
+                      "y_1": null,
+                      "x_2": null,
+                      "y_2": null,
+                      "x_3": null,
+                      "y_3": null,
+                      "x_4": null,
+                      "y_4": null
+                    },
+                    {
+                      "angle_dir": []
+                    },
+                    {
+                      "bbox_angle": []
+                    }
+                  ]
+                },
+                "rim": {
+                  "rim_centroid": []
+                }
+              }
+            }
+          }      
+  
