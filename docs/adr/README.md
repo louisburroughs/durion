@@ -113,6 +113,10 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0046   | Environment Log Level Policy                           | PROPOSED              | 2026-07-12 |
 | 0047   | Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals | ACCEPTED | 2026-07-17 |
 | 0048   | Inventory-Owned Valuation with Configurable Costing Method | ACCEPTED | 2026-07-23 |
+| 0049   | Supplier Integration Module Boundary and Event Contracts (pos-supplier) | PROPOSED | 2026-08-10 |
+| 0050   | Supplier Vendor Profile Configuration Model            | PROPOSED              | 2026-08-10 |
+| 0051   | Supplier Protocol Adapter and Codec Versioning Policy  | PROPOSED              | 2026-08-10 |
+| 0052   | Supplier Outbound Idempotency and Duplicate-Order Prevention | PROPOSED | 2026-08-10 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -168,6 +172,10 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0046 | Log level changes in any `application-{profile}.yml`, adding/removing logger overrides, temporary troubleshooting verbosity in deployed environments (alpha WARN; indus/prod ERROR; prod INFO+ needs Tech Lead signoff) | Planner, Coder, Orchestrator |
 | 0047 | Accounting parity decisions about ledger tamper-evidence non-goals and fiscal-position non-goals, including revisit triggers and accounting-scope guardrails | Planner, Coder, Test, Orchestrator |
 | 0048 | Inventory valuation ownership, cost-bearing inventory facts, costing-method configurability, and the J1/K1 boundary between inventory valuation and accounting posting | Planner, Coder, Test, Orchestrator |
+| 0049 | Supplier connectivity ownership: pos-supplier as the single module holding vendor credentials/wire formats, canonical supplier model, `supplier.*` event contract set, and the single approved synchronous stock-inquiry read surface | Planner, Coder, Test, Orchestrator |
+| 0050 | Vendor profile configuration: capability bindings (absent = disabled), secret-reference-only credentials, canonical billing/delivery account roles with per-location delivery mapping, sandbox overlays, profile audit/permissions | Planner, Coder, Test, Orchestrator |
+| 0051 | Supplier protocol adapters and codecs: adapter-per-wire-format-family, registry keyed (capability, protocolFamily, version), norm-version coexistence, unmapped-field audit, golden-file test obligations | Planner, Coder, Test, Orchestrator |
+| 0052 | Outbound supplier idempotency: deterministic document IDs, transactional outbox for order transmission, status-first reconciliation of ambiguous outcomes (never blind-retry an order create), MANUAL_REVIEW escalation, mandatory crash/retry tests | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 

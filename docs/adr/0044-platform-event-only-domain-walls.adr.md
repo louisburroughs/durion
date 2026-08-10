@@ -210,6 +210,33 @@ reconciliation.
   so retries remain safe. Result events from `pos-invoice` remain useful for audit, analytics, and
   downstream consumers, but they are not the settlement authority for warranty.
 
+### 2026-08-10 — Scoped exception: synchronous supplier stock-inquiry reads from pos-supplier
+
+`pos-supplier` (new domain module for outbound supplier connectivity, durion#372, architecture in
+`docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md`) is added to the
+**Domain** class: its cross-module integration is event-only (`supplier.*` topics) with one scoped
+read exception, approved in the supplier integration review (durion#374, §12 decisions 4–5).
+
+- **Decision.** The positivity Product Detail composition service and `pos-order` (procurement
+  flows) MAY call `pos-supplier`'s `SupplierStockService` **read API** synchronously for live vendor
+  stock availability/quote. No other module may call `pos-supplier` synchronously, `pos-supplier`
+  calls no domain module synchronously, and no write path is included in the exception.
+- **Rationale.** Live vendor availability is an inherently synchronous counter flow: the user is
+  quoting or raising a purchase order and needs the vendor's answer now. The freshness requirement
+  is seconds, not minutes — an event-fed replica of external vendor stock cannot meet it, and
+  pre-fetching entire vendor inventories to simulate liveness would be worse than the call.
+- **Degradation contract.** Callers MUST apply the positivity composition semantics
+  (DECISION-POSITIVITY-004/006/007/011): short per-binding timeouts, `SUPPLIER_UNAVAILABLE` status
+  on failure or open breaker, null (never zero) numeric fields when status is non-OK, and `asOf`
+  timestamps on all values. A `pos-supplier` outage MUST degrade the calling screen's supplier
+  component only — never fail the composition.
+- **Enforcement.** Encoded in `DomainWallsTest` (pos-archunit) as a per-consumer exception map
+  entry: {positivity composition module, `pos-order`} → `pos-supplier` read API only, added with
+  the CAP-319 implementation (durion-positivity-backend#1225). Widening the caller set or adding a
+  write path requires a further amendment to this ADR.
+- **Boundaries.** All other supplier data flows (price catalog, stock report, order lifecycle,
+  invoices, shipment, workorder authorization) remain event-only per the main decision.
+
 ---
 
 ## Changes required in other ADRs

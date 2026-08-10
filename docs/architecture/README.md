@@ -20,6 +20,10 @@ Use this index to find the current architectural source before consulting older 
 - [Backend Contract Global Standards](./api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md) - Normative rules for backend contract guides and OpenAPI source-of-truth boundaries
 - [GitHub Branching Strategy](./branching-strategy.md) - Branch naming, protection, PR flow, and release branching conventions
 
+### Integration
+
+- [Supplier Integration Architecture — EDIWheel and Beyond](./integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md) - Proposed ports-and-adapters architecture for outbound tire-manufacturer connectivity over the EDIWheel standard (Michelin first), with configuration-driven vendor profiles, multi-norm version support, and reuse for non-EDIWheel parts distributors
+
 ### Deployment And Runtime
 
 - [Deployment Architecture Index](./deployment/README.md) - Entry point for deployment-focused architecture and migration planning
