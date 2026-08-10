@@ -117,6 +117,8 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0050   | Supplier Vendor Profile Configuration Model            | ACCEPTED              | 2026-08-10 |
 | 0051   | Supplier Protocol Adapter and Codec Versioning Policy  | ACCEPTED              | 2026-08-10 |
 | 0052   | Supplier Outbound Idempotency and Duplicate-Order Prevention | ACCEPTED | 2026-08-10 |
+| 0053   | Supplier PRICAT Ingestion, Effective Dating, and Price Precedence | PROPOSED | 2026-08-10 |
+| 0054   | Sell-Price System of Record Split (pos-price Quoting, pos-catalog Reference) | ACCEPTED | 2026-08-10 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -176,6 +178,8 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0050 | Vendor profile configuration: capability bindings (absent = disabled), secret-reference-only credentials, canonical billing/delivery account roles with per-location delivery mapping, sandbox overlays, profile audit/permissions | Planner, Coder, Test, Orchestrator |
 | 0051 | Supplier protocol adapters and codecs: adapter-per-wire-format-family, registry keyed (capability, protocolFamily, version), norm-version coexistence, unmapped-field audit, golden-file test obligations | Planner, Coder, Test, Orchestrator |
 | 0052 | Outbound supplier idempotency: deterministic document IDs, transactional outbox for order transmission, status-first reconciliation of ambiguous outcomes (never blind-retry an order create), MANUAL_REVIEW escalation, mandatory crash/retry tests | Planner, Coder, Test, Orchestrator |
+| 0053 | PRICAT supplier-cost policy: pos-catalog owns append-only effective-dated supplier price entries (replacing supplier_item_cost), market-not-location scope, structural no-override of sell prices, deterministic EAN/UPC/MPN matching with quarantine, manifest-chunked import events | Planner, Coder, Test, Orchestrator |
+| 0054 | Sell-price authority routing: pos-price is the transactional quoting SoR, pos-catalog narrows to list/MSRP reference (CUSTOMER_TIER book selection to be finished in the reference role); base-price history retention fix owned here | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 

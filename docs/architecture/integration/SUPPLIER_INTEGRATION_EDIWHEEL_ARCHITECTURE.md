@@ -310,9 +310,15 @@ The real-time stock inquiry is the one place where event-only communication figh
 
 ### 8.1 PRICAT dating and price precedence
 
-- Every ingested PRICAT entry is stamped with the vendor's effective date and Durion's fetch timestamp; "latest" is always decidable, and superseded entries are retained for audit and cost-history queries.
-- **Vendor prices never override service-provider or location-specific prices.** PRICAT data enters the platform as supplier cost / list-price *input* to the pricing domain; sell-price authority remains with pos-price and its location-scoped rules.
-- The detailed pricing data model and how PRICAT feeds it (cost layers, effective-dating, location scoping) requires further investigation with the Pricing domain owners — tracked in [durion#371](https://github.com/louisburroughs/durion/issues/371) and a precondition for the Phase 1 PRICAT consumer landing in pos-price.
+The [durion#371](https://github.com/louisburroughs/durion/issues/371) investigation concluded 2026-08-10; the resulting policy is **[ADR-0053](../../adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md)** (PROPOSED, pending Pricing & Fees / Product & Catalog domain sign-off). Summary:
+
+- Four facts, four owners: received PRICAT lines stage in pos-supplier (exchange state); the supplier cost **business fact** lives in **pos-catalog** as append-only, effective-dated, source-identified supplier price entries replacing the mutable `supplier_item_cost`; valuation cost stays in pos-inventory (ADR-0048); sell prices stay with the sell-price models.
+- Every entry carries the vendor's effective date (`LocalDate`, inclusive start, half-open windows) and Durion's fetch timestamp; "latest" is always decidable and superseded entries are retained for cost-history queries.
+- **Vendor prices never override service-provider or location-specific prices** — structurally: neither sell-price resolver reads supplier price entries. PRICAT suggested retail is reference-only display; net cost may appear as margin context, never as a pricing input.
+- PRICAT scope is buyer account + market (no location parameter); location applicability derives from the vendor profile's delivery mappings — no per-location supplier cost is invented.
+- Product matching is deterministic-only (EAN → UPC cross-reference → manufacturer+MPN), with an EAN/UPC uniqueness prerequisite in pos-catalog and quarantine for the rest; no fuzzy matching, no auto-create.
+- Event contract: manifest-chunked `supplier.pricecatalog.updated` events plus a `supplier.pricecatalog.import.completed` completeness event on `supplier.events.v1` (ADR-0053 §7).
+- The duplicate pos-price / pos-catalog sell-price models were reconciled via [durion#382](https://github.com/louisburroughs/durion/issues/382) → [ADR-0054](../../adr/0054-sell-price-system-of-record-split.adr.md): pos-catalog owns list/MSRP reference, pos-price owns transactional quoting; ADR-0053 is unaffected by design.
 
 ## 9. Cross-Cutting Concerns
 
