@@ -73,12 +73,10 @@ raised **before any network call**.
 
 ### 7. Exchange-payload governance
 
-**Decision:** ✅ **Resolved** *(retention default pending business sign-off — see below)* — Raw request/response payloads in the exchange audit are commercial records and are
-governed as follows:
+**Decision:** ✅ **Resolved** — Raw request/response payloads in the exchange audit are commercial records and are governed as follows:
 
-- **Retention:** default **400 days** (13 months — covers an annual dispute/audit cycle with margin), configurable per deployment; a scheduled job hard-deletes payloads past
-  retention while retaining the exchange metadata row (timings, outcome, correlation ID) for operational history. *The 400-day default requires explicit business/compliance
-  sign-off before this ADR moves to ACCEPTED.*
+- **Retention:** default **400 days** (13 months — covers an annual dispute/audit cycle with margin; accepted 2026-08-10), configurable per deployment; a scheduled job
+  hard-deletes payloads past retention while retaining the exchange metadata row (timings, outcome, correlation ID) for operational history.
 - **Encryption:** payload columns are encrypted at rest.
 - **Minimization:** redaction extends beyond credential headers to configured body fields, driven by data classification (e.g. customer identifiers in fleet workorder
   authorization payloads); redaction configuration lives with the binding.
@@ -99,7 +97,6 @@ ADR-0025).
 location-aware ordering is validated before money moves; payload capture has an explicit lifecycle instead of growing forever.
 **Negative / accepted:** profile schema becomes a contract that adapters depend on; delivery mappings must be maintained as locations change (surfaced in the admin UI as a
 warning); YAML-managed deployments must route profile changes through their configuration pipeline rather than the UI.
-**Pending:** business/compliance confirmation of the 400-day retention default (§7).
 
 ## References
 

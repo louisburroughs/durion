@@ -290,7 +290,7 @@ Design points:
 - **Per-binding schedules** drive the batch capabilities (PRICAT, invoice fetch, stock report) from the orchestration layer's scheduler; real-time capabilities (stock inquiry, order create/status) are request-driven.
 - **Environment overlays** (sandbox vs production URLs, present in every Michelin spec) are part of the profile so promotion between environments is configuration-only, matching the tenant-cell deployment direction.
 - Profile changes are audited (who, when, what) via the standard audit fields policy (ADR-0018/0024); YAML reconciliation is audited under the actor `system:yaml-bootstrap`.
-- **Exchange-payload governance** (ADR-0050 §7): payloads are retained 400 days by default (configurable, pending compliance sign-off), encrypted at rest, redacted by data classification, access-audited under `supplier:audit:read`, and capture is configurable per binding (`FULL` | `REDACTED` | `METADATA_ONLY`).
+- **Exchange-payload governance** (ADR-0050 §7): payloads are retained 400 days by default (configurable per deployment; accepted 2026-08-10), encrypted at rest, redacted by data classification, access-audited under `supplier:audit:read`, and capture is configurable per binding (`FULL` | `REDACTED` | `METADATA_ONLY`).
 
 ## 8. Integration with Durion Domains (ADR-0044 Alignment)
 
