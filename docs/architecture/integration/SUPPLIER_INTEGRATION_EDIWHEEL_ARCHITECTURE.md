@@ -168,7 +168,7 @@ pos-supplier/
 
 Rules:
 
-- `internal.adapter.**` may depend on `internal.spi` and `internal.domain.model`, never the reverse.
+- `internal.adapter..` may depend on `internal.spi..` and `internal.domain.model..`, never the reverse (ArchUnit `..` package notation per ADR-0026).
 - Consuming modules depend only on `com.positivity.supplier.service..` per ADR-0026, and preferentially on **events** per ADR-0044 (§8).
 - Codecs (XML/JSON binding classes generated or hand-written from the C1 PDFs and OpenAPI schemas) live entirely inside their adapter package; canonical DTOs never expose wire types.
 

@@ -38,7 +38,7 @@ after `mark-not-received`, vendor switches), so:
 
 ### 2. Transactional outbox with persisted attempt state
 
-**Decision:** ✅ **Resolved** — Consuming `supplier.order.requested.v1` writes the transmission intent and its outbox row in one transaction (exactly-once-intent). Dispatch
+**Decision:** ✅ **Resolved** — Consuming the `supplier.order.requested` command (on `supplier.commands.v1`, ADR-0049 §3) writes the transmission intent and its outbox row in one transaction (exactly-once-intent). Dispatch
 follows a persisted attempt-state machine whose transitions are committed **before** network I/O:
 
 - `PENDING` — intent recorded, no send attempted. Safe to dispatch.

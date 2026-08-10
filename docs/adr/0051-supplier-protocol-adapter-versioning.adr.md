@@ -37,7 +37,7 @@ All layout references in the architecture document and CAP-317 stories use these
 
 **Decision:** ✅ **Resolved** — One adapter package per protocol family: `EDIWHEEL_A25`, `EDIWHEEL_C1`, `EDIWHEEL_B`, `EDIWHEEL_JSON` (C1.2), `MICHELIN_S2S`, and future
 families for proprietary distributors. Two vendors speaking the same norm share the adapter with different profile bindings. Adapter code may depend on `internal.spi` and
-`internal.domain` model types only; vendor wire types never escape `internal.adapter.**` (ArchUnit-enforced).
+`internal.domain` model types only; vendor wire types never escape `internal.adapter..` (ArchUnit-enforced, `..` package notation per ADR-0026).
 
 ### 3. Registry keyed by (capability, protocolFamily, version)
 
