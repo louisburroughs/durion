@@ -1,6 +1,6 @@
 # Supplier Integration Architecture — EDIWheel and Beyond
 
-**Status:** PROPOSED — awaiting review
+**Status:** ACCEPTED DIRECTION — open questions resolved 2026-08-10 (see §12)
 **Date:** 2026-08-10
 **Author:** Architecture (drafted from `docs/ediwheel/` source specifications)
 **Scope:** Outbound supplier connectivity for tire manufacturers using the EDIWheel standard (Michelin first), designed for reuse with any parts manufacturer or distributor.
@@ -40,7 +40,7 @@ All files live in [`docs/ediwheel/`](../../ediwheel/).
 
 Key observations:
 
-- **Everything currently in scope is outbound.** Durion is the API consumer; no spec in the folder requires Durion to host an inbound endpoint. (Open question 7 below covers the possible exception: vendor-initiated fleet workorders.)
+- **Everything currently in scope is outbound.** Durion is the API consumer; no spec in the folder requires Durion to host an inbound endpoint. Confirmed: workorders are always initiated in the service provider's system. Vendors may push appointment requests, but that is outside current scope (§12, decision 7).
 - **Transport is consistent, payloads are not.** All services are HTTPS request/response, but payloads span three generations: A2.x XML (legacy), B-series JSON/XML report-style, C1.x XML (current guideline, defined in the PDFs), and C1.2 JSON (the emerging `ediwheel.net` resource+message API).
 - **Party identification is a first-class config concern.** Every EDIWheel message carries `BuyerParty`/`PartyID`/`AgencyCode` (and often `SellerParty`, `OrderingParty`, `Consignee`) — these are per-deployment, per-vendor account identifiers.
 - **Auth differs per vendor and even per service** within one vendor (Basic + API key for EDIWheel services; OAuth2 client credentials for the S2S workorder and AI services).
@@ -184,7 +184,9 @@ Rules:
 | `SupplierCatalogPort` | `fetchMarketingCatalog`, `subscribeChanges` | MKCAT (C1.2 JSON) | `ediwheel.net` API |
 | `TireIdentificationPort` | `recognizeDotCode`, `recognizeSidewall` | n/a (vendor value-add AI) | DOT Image Recognition, TireSnap |
 
-Ports accept a `SupplierRef` (the vendor profile key) plus canonical request objects; they return canonical responses plus an `ExchangeMetadata` (correlation ID, norm used, raw-payload audit reference).
+Ports accept a `SupplierRef` (the vendor profile key), a `PartyContext` (billing account plus delivery location, resolved through the profile's account mappings — §7), and canonical request objects; they return canonical responses plus an `ExchangeMetadata` (correlation ID, norm used, raw-payload audit reference).
+
+`TireIdentificationPort` is a **placeholder** in the initial build: DOT scanning is expected to be required by most service providers, so the port and registry slot are defined up front, but no adapter is implemented until the requirement is confirmed (§12, decision 10).
 
 ### 6.2 Multiple versions of one service
 
@@ -211,9 +213,17 @@ supplier:
         connectTimeoutMs: 5000
         readTimeoutMs: 30000
         retry: { maxAttempts: 3, backoff: EXPONENTIAL }
-      party:                       # EDIWheel party identification
-        buyerPartyId: "0000012345"
-        buyerAgencyCode: "31"      # e.g. EAN/GLN agency
+      accounts:                    # commercial account numbers (credentials live in auth)
+        billing:                   # invoicing/settlement account (legal entity
+          accountNumber: "0000012345"      # level, shared across locations)
+          agencyCode: "31"         # e.g. EAN/GLN agency
+        delivery:                  # Durion location -> delivery account number
+          - locationId: 018f6b2e-...-uuid   # pos-location UUID
+            accountNumber: "0000067890"
+            agencyCode: "31"
+          - locationId: 018f6b2e-...-uuid2
+            accountNumber: "0000067891"
+            agencyCode: "31"
         sellerPartyId: "MICHELIN"
         sellerAgencyCode: "91"
       auth:
@@ -269,6 +279,9 @@ Design points:
 
 - **Absent binding = capability disabled** for that vendor in that deployment. The canonical services surface this as an explicit `CAPABILITY_NOT_CONFIGURED` status so callers (and the UI) can degrade gracefully, mirroring the positivity component-status pattern (DECISION-POSITIVITY-004/011).
 - **One vendor, many profiles** is legal (e.g. Michelin EU vs Michelin NA accounts, or two buyer accounts for two store groups).
+- **Credentials and account numbers are separate concerns.** A vendor account has one set of API credentials (userid/password, held in `auth` and shared across the legal entity) and **two account numbers per transaction**: a **billing account number** (invoicing/settlement) and a **delivery account number** (where goods ship). Credentials authenticate the call; the account numbers identify the commercial parties inside the message.
+- **Account roles are canonical; field names are vendor-specific.** The canonical model uses the generic roles *billing* and *delivery*; each adapter maps them onto its vendor's terminology — `billTo`/`shipTo` in the Michelin APIs, `BuyerParty`/`Consignee` in EDIWheel XML norms, whatever a future distributor calls them. Vendor vocabulary never leaks into the canonical layer or the profile schema.
+- **Account resolution is location-aware.** The billing account number is typically fixed per profile (legal entity); the delivery account number varies by location. The profile maps Durion `pos-location` UUIDs to vendor delivery account numbers; callers pass the delivery location in the `PartyContext` and the adapter stamps the correct vendor identities into the wire message. A missing delivery mapping for the requested location is a configuration error surfaced before any network call.
 - **Per-binding schedules** drive the batch capabilities (PRICAT, invoice fetch, stock report) from the orchestration layer's scheduler; real-time capabilities (stock inquiry, order create/status) are request-driven.
 - **Environment overlays** (sandbox vs production URLs, present in every Michelin spec) are part of the profile so promotion between environments is configuration-only, matching the tenant-cell deployment direction.
 - Profile changes are audited (who, when, what) via the standard audit fields policy (ADR-0018/0024).
@@ -279,15 +292,21 @@ Design points:
 
 | Flow | Mechanism | Notes |
 | --- | --- | --- |
-| PRICAT sync results | `supplier.pricecatalog.updated.v1` event; pos-catalog / pos-price consume and upsert supplier cost/eligibility data | Batch, scheduled per binding |
+| PRICAT sync results | `supplier.pricecatalog.updated.v1` event; pos-catalog / pos-price consume and upsert supplier cost/eligibility data | Batch, scheduled per binding; dating and precedence rules in §8.1 |
 | Stock report snapshots | `supplier.stockreport.updated.v1`; pos-inventory consumes for supplier ATP hints | Batch |
-| Order lifecycle | Commands in, results out: consuming domain (purchasing flow) emits `supplier.order.requested.v1`; pos-supplier executes and emits `supplier.order.confirmed.v1` / `supplier.order.rejected.v1` / `supplier.orderstatus.changed.v1` | Command events with result events and pending states, per ADR-0044 |
-| Vendor invoices | `supplier.invoice.received.v1`; accounting consumes for AP reconciliation | Batch |
+| Order lifecycle | Commands in, results out: **pos-order** (purchase-order aggregate owner) emits `supplier.order.requested.v1`; pos-supplier executes and emits `supplier.order.confirmed.v1` / `supplier.order.rejected.v1` / `supplier.orderstatus.changed.v1` | Command events with result events and pending states, per ADR-0044 |
+| Vendor invoices | `supplier.invoice.received.v1`; **pos-accounting** consumes and creates AP vouchers | Batch |
 | Shipment tracking | `supplier.shipment.event.v1`; consumers: purchasing/receiving flows | |
 | Workorder authorization | Workorder flow emits request command; pos-supplier calls S2S API and emits `supplier.workorderauth.granted.v1` / `.denied.v1`; completion approval triggered by workorder completion events | Keeps `workexec` authority over workorder state |
-| Real-time stock inquiry | **Synchronous read exception**: positivity product-detail composition may call `SupplierStockService` directly for live availability/quote, with the standard degradation semantics (component status, null numerics, `asOf`) | Needs ADR-0044 utility-read exception approval — see open question 5 |
+| Real-time stock inquiry | **Synchronous read exception (approved)**: positivity product-detail composition **and pos-order procurement flows** may call `SupplierStockService` directly for live availability/quote, with the standard degradation semantics (component status, null numerics, `asOf`) | Approved 2026-08-10 (§12, decisions 4–5); to be ratified as an ADR-0044 amendment |
 
-The real-time stock inquiry is the one place where event-only communication fights the use case (a counter user wants live vendor availability while quoting). The proposal is to treat `pos-supplier`'s read side like the existing utility-module reads, wrapped in the positivity degradation contract: timeouts are short, failure degrades to `SUPPLIER_UNAVAILABLE` status, and no numeric field is fabricated.
+The real-time stock inquiry is the one place where event-only communication fights the use case (a counter user wants live vendor availability while quoting or raising a purchase order). `pos-supplier`'s read side is treated like the existing utility-module reads, wrapped in the positivity degradation contract: timeouts are short, failure degrades to `SUPPLIER_UNAVAILABLE` status, and no numeric field is fabricated. Live vendor availability surfaces in **both** the Product Detail composition (as an additional degradable component) and the pos-order procurement screens.
+
+### 8.1 PRICAT dating and price precedence
+
+- Every ingested PRICAT entry is stamped with the vendor's effective date and Durion's fetch timestamp; "latest" is always decidable, and superseded entries are retained for audit and cost-history queries.
+- **Vendor prices never override service-provider or location-specific prices.** PRICAT data enters the platform as supplier cost / list-price *input* to the pricing domain; sell-price authority remains with pos-price and its location-scoped rules.
+- The detailed pricing data model and how PRICAT feeds it (cost layers, effective-dating, location scoping) requires further investigation with the Pricing domain owners — tracked in [durion#371](https://github.com/louisburroughs/durion/issues/371) and a precondition for the Phase 1 PRICAT consumer landing in pos-price.
 
 ## 9. Cross-Cutting Concerns
 
@@ -334,34 +353,38 @@ The AI services (DOT recognition, TireSnap) follow the same pattern behind `Tire
 | 2 | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, purchasing events | The commercial core; needs Phase 1 plumbing hardened first |
 | 3 | **Invoice fetch (B3.3)**, **Stock Report (B2.1)**, **Shipment tracking**, accounting/receiving event consumers | Back-office reconciliation |
 | 4 | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim |
-| 5 | MKCAT marketing catalog, DOT / TireSnap AI capabilities | Optional enrichment |
+| 5 | MKCAT marketing catalog; DOT / TireSnap scanning behind the `TireIdentificationPort` placeholder | DOT scanning is expected to be required by most service providers — port defined up front, adapter implemented once confirmed |
 | Next vendor | Second EDIWheel manufacturer via configuration (+ codec gaps only) | Validates the reusability goal; target: zero changes outside `adapter/` + profile data |
+
+**Vendor roadmap:** after Michelin, onboard manufacturers in order of market share, favoring vendors that participate in the EDIWheel standard (they reuse existing adapters; non-participants require a new protocol family).
 
 Each phase should land with provider contract tests per adapter codec (golden-file XML/JSON fixtures derived from the specs and C1 PDFs) and a sandbox smoke suite runnable against vendor sandbox URLs.
 
-## 12. Open Questions
+## 12. Resolved Decisions (2026-08-10)
 
-Answers to these will be folded into this document and, where binding, promoted into ADRs (§13).
+The original open questions were reviewed and resolved as follows. Where binding, they will be promoted into ADRs (§13).
 
-1. **Vendor roadmap.** Michelin is clearly first. Which manufacturer is expected second (Continental, Goodyear, Pirelli, Bridgestone?), and do we hold their spec packs? This determines how soon the C1.2 JSON (`ediwheel.net`) adapter matters versus the Michelin-style A2.5/B/C1 XML family.
-2. **Module name and home.** Is `pos-supplier` acceptable, or is this scoped under an existing module (e.g. extend `pos-order` for purchasing)? Recommendation: new module — supplier connectivity has its own lifecycle, credentials, and audit surface.
-3. **Purchasing ownership.** Which domain owns the purchase-order aggregate that triggers `SupplierOrderPort` — `pos-order`, `pos-inventory` (replenishment), or new purchasing scope inside `pos-supplier`? The proposal assumes the *trigger* lives outside `pos-supplier` and only transmission state lives inside; confirm.
-4. **Real-time stock inquiry UX.** Should live vendor availability appear in the positivity Product Detail composition (as an additional degradable component), in a dedicated procurement screen, or both? Affects the utility-read exception below.
-5. **ADR-0044 exception.** Approve the synchronous read path from positivity composition to `SupplierStockService` (mirroring the existing utility-read set), or must live availability also be event-mediated (pre-fetched/cached)?
-6. **Multi-account topology.** Do deployments need multiple buyer accounts per vendor (per store group / legal entity)? The profile model supports it; confirm whether binding selection needs to be location-aware at call time.
-7. **Inbound flows.** The Michelin S2S workorder spec is modeled here as Durion-initiated. Is there a contract variant where Michelin (fleet manager) *pushes* workorders to the service provider, requiring Durion to host an inbound endpoint? If yes, an inbound receiver component must be added to the design.
-8. **Invoice destination.** Should fetched vendor invoices (B3.3) flow into `pos-accounting` as AP vouchers, or is a lighter reconciliation report sufficient for the first deployments?
-9. **PRICAT merge policy.** When vendor PRICAT data overlaps `pos-catalog`/`pos-price` records, what wins, and is supplier cost data location-scoped? Needs a decision with the Product/Pricing domain owners before Phase 1 lands.
-10. **AI capabilities in scope?** DOT recognition and TireSnap are in the spec folder but are not supply-chain services. Include in the roadmap (Phase 5) or park them?
+1. **Vendor roadmap.** After Michelin, implement manufacturers in order of market share, favoring vendors that participate in the EDIWheel standard.
+2. **Module name.** `pos-supplier` is confirmed as the module name and home.
+3. **Purchasing ownership.** `pos-order` owns the purchase-order aggregate that triggers `SupplierOrderPort`; `pos-supplier` holds only transmission state.
+4. **Real-time stock inquiry UX.** Live vendor stock appears in **both** the positivity Product Detail composition and the pos-order procurement flows.
+5. **ADR-0044 exception.** The synchronous read path to `SupplierStockService` is **approved** (to be ratified as an ADR-0044 amendment).
+6. **Account topology.** Accounts may be shared within a legal entity. Each vendor account has one set of API credentials (userid/password); each order carries **two account numbers, modeled generically as billing and delivery** (Michelin calls them billTo/shipTo). Delivery account numbers are mapped per Durion location in the vendor profile (§7).
+7. **Inbound flows.** None. Workorders are always initiated in the service provider's system. Vendors may push *appointment requests*, but that is explicitly outside current scope.
+8. **Invoice destination.** Fetched vendor invoices (B3.3) become **AP vouchers in pos-accounting**.
+9. **PRICAT policy.** PRICAT data is effective-dated so the latest is always decidable; vendor prices never override service-provider or location-specific prices (§8.1). The deeper investigation of the pricing data model and PRICAT integration is tracked in [durion#371](https://github.com/louisburroughs/durion/issues/371).
+10. **Scanning.** `TireIdentificationPort` stays as a **placeholder** — DOT scanning is likely required for most service providers but is not yet confirmed; no adapter is built until it is.
 
 ## 13. ADR Candidates
 
-Once the open questions are settled, the following should be captured as ADRs:
+With the §12 decisions in place, the following should be captured as ADRs:
 
 - Supplier integration module boundary, canonical model ownership, and event contract set (extends ADR-0044 matrix).
-- Vendor profile / endpoint binding configuration model and secret-indirection rules.
+- **ADR-0044 amendment**: synchronous supplier stock-inquiry read exception for positivity composition and pos-order procurement (§12, decision 5).
+- Vendor profile / endpoint binding configuration model, credential vs account-number separation, and secret-indirection rules.
 - Protocol adapter and codec versioning policy (registry keys, coexistence of norm versions, unmapped-field handling).
 - Outbound idempotency and duplicate-order prevention policy (no blind retry of ambiguous order creates).
+- PRICAT ingestion, effective-dating, and price-precedence policy (after the pricing-data investigation task concludes).
 
 ---
 
