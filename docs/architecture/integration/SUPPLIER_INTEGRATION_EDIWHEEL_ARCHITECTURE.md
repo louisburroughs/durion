@@ -318,7 +318,7 @@ The [durion#371](https://github.com/louisburroughs/durion/issues/371) investigat
 - PRICAT scope is buyer account + market (no location parameter); location applicability derives from the vendor profile's delivery mappings — no per-location supplier cost is invented.
 - Product matching is deterministic-only (EAN → UPC cross-reference → manufacturer+MPN), with an EAN/UPC uniqueness prerequisite in pos-catalog and quarantine for the rest; no fuzzy matching, no auto-create.
 - Event contract: manifest-chunked `supplier.pricecatalog.updated` events plus a `supplier.pricecatalog.import.completed` completeness event on `supplier.events.v1` (ADR-0053 §7).
-- Out of scope but flagged: the duplicate pos-price / pos-catalog sell-price models need their own reconciliation decision; the ADR holds under either outcome.
+- The duplicate pos-price / pos-catalog sell-price models were reconciled via [durion#382](https://github.com/louisburroughs/durion/issues/382) → [ADR-0054](../../adr/0054-sell-price-system-of-record-split.adr.md): pos-catalog owns list/MSRP reference, pos-price owns transactional quoting; ADR-0053 is unaffected by design.
 
 ## 9. Cross-Cutting Concerns
 

@@ -42,7 +42,7 @@ Findings from the durion#371 investigation (as-is analysis in the issue comments
 | Received PRICAT document lines (import staging, unmatched quarantine) | `pos-supplier` | Immutable import records tied to the exchange audit (ADR-0049: exchange state, not a business pricing aggregate) |
 | Supplier catalog/offer cost (the business fact) | `pos-catalog` | Effective-dated supplier price entries (§2), **replacing** mutable `supplier_item_cost` |
 | Inventory valuation cost | `pos-inventory` | Unchanged (ADR-0048); PRICAT never writes valuation |
-| Sell prices | `pos-price` (and the catalog price-book model until §6 reconciliation) | Unchanged; supplier cost participates in **no** sell-price resolver |
+| Sell prices | `pos-price` (transactional quoting; pos-catalog narrows to list/MSRP reference per ADR-0054) | Unchanged; supplier cost participates in **no** sell-price resolver |
 
 `pos-supplier`'s copy is the received-document record (supports audit, latest-selection at import, re-application after late product matches, and the unmatched worklist).
 `pos-catalog`'s entries are the consumable business fact for purchasing, margin context, and reporting.
@@ -88,11 +88,12 @@ profile's catalog. Deployments needing different supplier costs per store group 
 - Unmatched lines stay quarantined in `pos-supplier` (CAP-318's unmatched-lines store) for admin review; when a later catalog fix makes a line matchable, re-application
   happens from the staged import records — no vendor re-fetch required.
 
-### 6. Duplicate sell-price models: flagged, not resolved here
+### 6. Duplicate sell-price models: reconciled by ADR-0054
 
-**Decision:** ✅ **Resolved (scope ruling)** — The overlap between pos-price (base/override/tier) and pos-catalog (price books, MSRP) is a pre-existing conflict that must be
-reconciled by the Pricing & Fees and Product & Catalog domain owners as its own decision (recommended: a dedicated `[CLARIFICATION]` issue and follow-up ADR). This ADR is
-deliberately valid under **either** outcome because supplier cost enters neither resolver (§4).
+**Decision:** ✅ **Resolved** — The overlap between pos-price (base/override/tier) and pos-catalog (price books, MSRP) was raised as clarification durion#382 and decided
+2026-08-10 in **ADR-0054**: pos-catalog owns list/MSRP reference, pos-price owns transactional quoting, each narrowed to a documented non-overlapping role. This ADR was
+drafted to be valid under any outcome (supplier cost enters neither resolver, §4) and is confirmed unaffected; PRICAT suggested retail slots into pos-catalog's reference
+role per ADR-0054 §1.
 
 ### 7. Event contract: manifest-chunked import events
 
@@ -118,11 +119,11 @@ the event model bounds message size while keeping per-aggregate ordering and a c
 **Negative / accepted:** `supplier_item_cost` and its admin/API surface must migrate to the new entries (pre-production, no compatibility shim per platform policy); the
 EAN/UPC uniqueness prerequisite may surface existing dirty catalog data that needs cleanup before CAP-318's consumer lands; two persisted copies (staging in pos-supplier,
 business fact in pos-catalog) are accepted for auditability and re-application.
-**Follow-ups:** `[CLARIFICATION]` issue for the duplicate sell-price model reconciliation (§6); pos-catalog EAN/UPC uniqueness story under CAP-318; chunk-size validation
-against the Michelin sandbox; pos-price base-price retention defect tracked separately with the Pricing domain.
+**Follow-ups:** pos-catalog EAN/UPC uniqueness story under CAP-318 (durion-positivity-backend#1232); chunk-size validation against the Michelin sandbox. The duplicate
+sell-price reconciliation and the pos-price base-price retention defect are resolved/owned by ADR-0054 (durion#382).
 
 ## References
 
 - Investigation: durion#371 (as-is findings in comments, spot-verified 2026-08-10)
 - `docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md` §8.1
-- ADR-0044 §3–§4, ADR-0048, ADR-0049 §3, ADR-0050 §2/§5; `docs/ediwheel/EDIWheel Price Catalog PROD_0.yaml`
+- ADR-0044 §3–§4, ADR-0048, ADR-0049 §3, ADR-0050 §2/§5, ADR-0054 (sell-price split, durion#382); `docs/ediwheel/EDIWheel Price Catalog PROD_0.yaml`
