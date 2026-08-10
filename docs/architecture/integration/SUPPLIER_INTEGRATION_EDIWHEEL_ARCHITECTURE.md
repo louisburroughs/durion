@@ -380,16 +380,17 @@ The original open questions were reviewed and resolved as follows. Where binding
 9. **PRICAT policy.** PRICAT data is effective-dated so the latest is always decidable; vendor prices never override service-provider or location-specific prices (§8.1). The deeper investigation of the pricing data model and PRICAT integration is tracked in [durion#371](https://github.com/louisburroughs/durion/issues/371).
 10. **Scanning.** `TireIdentificationPort` stays as a **placeholder** — DOT scanning is likely required for most service providers but is not yet confirmed; no adapter is built until it is.
 
-## 13. ADR Candidates
+## 13. ADRs
 
-With the §12 decisions in place, the following should be captured as ADRs:
+Drafted 2026-08-10 (PROPOSED status pending review):
 
-- Supplier integration module boundary, canonical model ownership, and event contract set (extends ADR-0044 matrix).
-- **ADR-0044 amendment**: synchronous supplier stock-inquiry read exception for positivity composition and pos-order procurement (§12, decision 5).
-- Vendor profile / endpoint binding configuration model, credential vs account-number separation, and secret-indirection rules.
-- Protocol adapter and codec versioning policy (registry keys, coexistence of norm versions, unmapped-field handling).
-- Outbound idempotency and duplicate-order prevention policy (no blind retry of ambiguous order creates).
-- PRICAT ingestion, effective-dating, and price-precedence policy (after the pricing-data investigation task concludes).
+- [ADR-0049 — Supplier integration module boundary and event contracts](../../adr/0049-supplier-integration-module-boundary.adr.md)
+- **ADR-0044 amendment (2026-08-10)** — synchronous supplier stock-inquiry read exception for positivity composition and pos-order procurement ([ADR-0044 §Amendments](../../adr/0044-platform-event-only-domain-walls.adr.md))
+- [ADR-0050 — Supplier vendor profile configuration model](../../adr/0050-supplier-vendor-profile-configuration.adr.md) (bindings, billing/delivery account roles, secret indirection)
+- [ADR-0051 — Supplier protocol adapter and codec versioning policy](../../adr/0051-supplier-protocol-adapter-versioning.adr.md)
+- [ADR-0052 — Supplier outbound idempotency and duplicate-order prevention](../../adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md)
+
+Still pending: PRICAT ingestion, effective-dating, and price-precedence policy — drafted after the pricing-data investigation ([durion#371](https://github.com/louisburroughs/durion/issues/371)) concludes.
 
 ---
 
