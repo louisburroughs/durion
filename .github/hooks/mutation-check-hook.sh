@@ -129,10 +129,19 @@ JAVA_HOME="$java_home" ./mvnw -o -pl "$module" test \
 test_exit=$?
 set -e
 
-ran=$(grep -cE "Tests run:" "$output_file" || true)
-if [[ "$ran" == "0" ]]; then
-  echo "MUTATION CHECK ABORTED | no tests ran for selector '$test_selector' — check the selector." >&2
-  grep -E "ERROR|BUILD" "$output_file" | head -10 >&2 || true
+# The COUNT must be non-zero, not merely present. Maven prints a "Tests run: 0, Failures: 0" summary
+# even when a selector matched nothing, so grepping for the line's existence accepted a run in which
+# nothing executed — and a run with no tests neither fails nor proves anything, which gate 3 would then
+# report as UNDEFENDED. That is this hook's own failure mode wearing a different hat; it was hit for
+# real on a `Class#method` selector naming a method inside a @Nested class (surefire needs
+# `Class$Nested#method`).
+executed=$(grep -oE "Tests run: [0-9]+" "$output_file" | grep -oE "[0-9]+$" | sort -rn | head -1 || true)
+executed="${executed:-0}"
+if [[ "$executed" == "0" ]]; then
+  echo "MUTATION CHECK ABORTED | no tests actually ran for selector '$test_selector'." >&2
+  echo "  Maven reported 'Tests run: 0'. The selector matched nothing, so NOTHING was proven either" >&2
+  echo "  way. For a method in a @Nested class use 'Outer\$Nested#method'." >&2
+  grep -E "Tests run:|ERROR|BUILD" "$output_file" | head -10 >&2 || true
   rm -f "$output_file"
   exit 1
 fi
