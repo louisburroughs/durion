@@ -113,7 +113,7 @@ Headers and auth notes:
   `409` and `ApiError` code `PRICE_BASE_WINDOW_CONFLICT`; re-submitting the current open window's
   price is an idempotent no-op.
 - Quote resolution is currency-aware (durion-positivity-backend#1239): `calculatePriceQuote`
-  accepts an optional 3-letter `currency`; when omitted, the company default currency applies
+  accepts an optional ISO 4217 `currency` code; when omitted, the company default currency applies
   (`pos.price.default-currency`, default `USD`). Base-price and location-override selection are
   filtered to the resolved currency; customer-tier discounts are percentage-based and
   currency-agnostic. A currency with no applicable base-price window returns `404`
