@@ -207,3 +207,80 @@ Carry-forwards still in force for slice 3: `supplier:audit:read` (bit 445) **mus
 > never committed** (hence `.github/hooks/safe-delete-DP.sh`). `WAVE_PAUSE_STATE.md` is the tracked,
 > durable resume brief. Anything that must survive a session — decisions, gate evidence, follow-ups —
 > belongs **here**, not only in the ledger.
+
+---
+
+## UPDATE — independent review FAIL cleared + slice-3 client foundation started (2026-08-11)
+
+Backend `cap/317-supplier-foundation` @ `cb61886`, pushed. Two commits on top of `9e61d81`.
+
+### Independent Code Review of `5449315..9e61d81`: **FAIL** → now remediated in `cb61886`
+
+The review confirmed all four blocking items plus #5 and #8 as genuinely closed, verified `770666e`
+as truly format-only, confirmed the 500 branch leaks nothing, and independently corroborated the #8
+premise correction (adding that `generate-permissions.py`'s sync functions are strictly append-only,
+so the normalization is durable). It failed on four defects in the annotations added by `a5228d1`.
+
+| # | Defect | Resolution |
+| --- | --- | --- |
+| 1 | All 17 `401`s declared an `ApiError` body no code path sends (`GatewaySecurityConfig:138` is `HttpStatusEntryPoint`, bodiless) | Fixed — **but not by the prescribed method**, see below |
+| 2 | Binding `enabled` `@Schema` copied from `VendorProfileRequest`, describing a supplier-wide kill switch | Fixed in both binding records using their own correct javadoc |
+| 3 | `EndpointBindingRequest` class `@Schema` named `SUPPLIER_CAPABILITY_NOT_CONFIGURED`, not a contract value | Fixed to `CAPABILITY_NOT_CONFIGURED` + a clause naming both and which is which |
+| 4 | `version` example `"2.5"` resolves to nothing (legal keys are `A2_5`…`S2S_V1`); write path does no validation | Fixed to `A2_5`; description now states it is unvalidated on write and lists the shipped keys |
+| 5 | `updateAuthConfig` allowlist guard undefended by any test | Test added; mutation-checked |
+| 7 | `AuthReferenceRules` interpolated the rejected scheme into its message | Now names the field and allowlist only |
+| 6 | Shape note on `SupplierConfigurationCodeMappingTest` | Javadoc pointer added; no restructuring |
+
+### IMPORTANT — the prescribed fix for defect 1 was wrong, and regeneration is what caught it
+
+Dropping `content =` from the 401 annotations does **not** produce a bodiless response. springdoc then
+falls back to the method return type — *the very mechanism that caused the original 4xx defect* — and
+the regenerated spec showed **13 of 17 401s newly typed as the SUCCESS schema**, which is strictly
+worse than the defect being fixed. The working fix is an explicitly empty content:
+`content = @Content(schema = @Schema(hidden = true))`. Verified in the regenerated artifact: 17
+documented 401s, zero declaring a body.
+
+**Generalizable lesson: for this module, "remove the annotation" is never equivalent to "declare no
+body" — absence means inference. Any future response-shape change must be verified in the
+regenerated spec, never reasoned about from the annotation diff alone.**
+
+`403` deliberately **keeps** its `ApiError` body: `@PreAuthorize` denials flow through
+`SupplierExceptionHandler.handleAccessDenied`, which does return an envelope. Verified, not assumed.
+
+### Slice-3 client foundation (`55f8f49`) — first increment, no OpenAPI surface
+
+`internal.client`: `ExchangeOutcome` (ADR-0052 §5 classification — only `PRE_SEND_FAILURE` is
+retryable; idempotent batch reads stay a per-call property rather than widening the constants),
+`ExchangeContext` + `ExchangeObserver` + `ExchangeObserverConfig` no-op default (invoked once per
+attempt **including failures and each retry**, per ADR-0050 §7; carries no credential material),
+`SupplierCorrelationContext` (thread-scoped mirroring `AuditActorContext` — *not* request-scoped,
+because the per-binding scheduler has no servlet scope), and the three auth strategies +
+`SupplierAuthStrategies` dispatcher (fails startup on a missing or duplicated type).
+
+OAuth2 specifics: cache keyed per `authConfigId` (never per token URL, or two profiles sharing an
+endpoint would share a token), expiry-skew refresh so a token cannot expire mid-flight and return an
+indistinguishable 401, and single-flight behind a per-key lock with an in-lock re-check.
+Mutation-checked: removing the re-check fails the concurrency test with "No further requests
+expected". Basic+ApiKey encodes UTF-8 explicitly.
+
+### Gate results at `cb61886`
+
+pos-supplier `-am verify` **BUILD SUCCESS**, **313 tests** 0 failures (287 → 311 → 313);
+pos-openapi-validation **43**; touched-file lint **0 findings**; `spotless:check` **clean**;
+`generate-permissions.sh --sync --check` **exit 0**, CATALOG_VERSION unchanged at v42;
+`openapi-aggregate.yaml` rebuilt with the full 26-module list and **diff-verified byte-identical**.
+`pos-archunit -am test` was re-running at the time of writing (the `-am` form runs every dependency
+module's tests, so it takes >10 min); it was green at `9e61d81` and this pass added no new package.
+
+### Slice-3 constraint carried forward (from the reviewer)
+
+The 409 mapping for `CAPABILITY_NOT_CONFIGURED` is a **safety net, not the contract**. ADR-0050 §3
+requires the capability endpoints to surface that condition as a **typed 200 status**, so slice 3
+must still convert at the service layer. The 409 makes an escaped exception look plausible rather
+than loud — treat any 409 with that code as a defect signal.
+
+### Two more fleet-wide gaps logged as notes (out of scope, same shape as the description gap)
+
+- **No module supplies swagger `@RequestBody` description/required/examples** (ADR-0042 §3).
+- **pos-supplier is now strictly ahead of the fleet** on 401/403 documentation and `ApiError` response
+  typing — pos-warranty documents neither. Scope all three ADR-0042 gaps into one fleet pass.
