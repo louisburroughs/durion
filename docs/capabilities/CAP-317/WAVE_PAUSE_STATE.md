@@ -13,6 +13,10 @@ All slice 1+2 work is committed and pushed: `durion-positivity-backend` branch `
 
 ### Binding arbitration decisions already made (anvil — do NOT re-decide)
 1. **Audit payload encryption**: AES-256-GCM via JPA `AttributeConverter` (`EncryptedPayloadConverter`, bytea columns, envelope = 0x01 version + key-id + 12-byte nonce + ciphertext); key from `pos.supplier.audit.encryption.key` (env-ref, 32-byte base64) + `key-id` (default k1); fail-closed startup in prod/indus/alpha, ephemeral key + WARN in dev/test; decrypt failure → typed `PayloadUnreadableException`. **OPS ESCALATION OPEN**: `SUPPLIER_AUDIT_ENC_KEY` must be provisioned in non-dev secret stores before first deploy.
+
+   **AMENDMENT (2026-08-11, implemented in `a5caf79`, coordinator-endorsed): key rotation is part of this decision, not extra scope.** Decrypt-only keys are supplied as `pos.supplier.audit.encryption.previous-keys` in `keyId:base64` form; the active key seals new payloads while prior keys stay readable. This *completes* the decision's intent rather than exceeding it: the envelope already carries a key id, which is meaningless without a rotation path, and the 400-day retention window of ADR-0050 §7 outlives any sane key lifetime — so without it, rotating a key would silently orphan every stored payload for the rest of the window. An unconfigured key id is reported as `SUPPLIER_AUDIT_PAYLOAD_UNKNOWN_KEY`, distinct from an authentication failure, and its message names `previous-keys` as the remedy.
+
+   **Suppression precedent:** the two GCM sites carry line-scoped `// nosemgrep` for semgrep's audit-category `gcm-detection`. pos-supplier is the first module in the repo doing crypto, so this is the precedent later modules will copy — each suppression states the evidence (the per-call `SecureRandom` nonce, the absence of any derived-nonce path, and `AuditPayloadCipherTest.NonceDiscipline.neverReusesANonceForTheSameKeyAndPayload` by name) and is deliberately never file- or class-wide.
 2. **Test stubs**: MockRestServiceServer for protocol-level; JDK `com.sun.net.httpserver` via a `FaultInjectingHttpServer` fixture for socket-level (connect/read timeout, refused, breaker) — fixture never grows request-verification features.
 3. **Packages**: repo convention wins (`internal.entity/repository/controller/dto/service/client` + ADR-0051's `internal.domain/spi/registry/adapter.<family>`); ADR-0051 §1 errata is a separate doc-only durion PR (not this wave).
 4. **Scheduler lease**: `supplier_schedule_lease` table; atomic compare-and-claim UPDATE using DB `now()` (never JVM time); lease `max(2×run, 10min)` via `pos.supplier.schedule.lease-duration`; heartbeat every lease/3 extends owner-guarded; stolen lease → abort before next page, checkpoint commits in the same tx as the batch page, owner-guarded; release = set lease_until=now.
@@ -555,3 +559,35 @@ ordering trap, the AAD binding, and the 401 invalidation.
 obligation, per the corrected contract); 400-day purge keeping metadata; scheduler per decision 4;
 audit read API behind bit **445**, which must genuinely enforce it (ADR-0025 §4 parity debt) and whose
 payload reads must themselves be audited (ADR-0050 §7).
+
+---
+
+## PATTERN TO WATCH — twice this wave, tests asserted the defect
+
+Recording this because it recurred and the failure mode is subtle: **a test that pins wrong behaviour
+is worse than no test**, because it converts a defect into a defended invariant and the next person to
+fix the code sees a red build and assumes they broke something.
+
+1. **Finding 7 (scheme echo).** `AuthReferenceRulesTest` and `SupplierYamlBootstrapTest` asserted
+   `hasMessageContaining("user:")` — i.e. they required the message to echo the rejected scheme, which
+   for a plaintext credential containing a colon *is* credential text. The tests were half the defect.
+2. **Finding 1 (token-leg transport).** The token-endpoint-500 test asserted
+   `AUTH_CONFIG_MISSING`, pinning exactly the misclassification the review flagged.
+
+Both were corrected to the right contract rather than worked around. When a fix makes an existing test
+fail, check whether the test was asserting the defect before assuming the fix is wrong.
+
+## PATTERN TO WATCH — framework behaviour beats reasoning in this module
+
+Two prescriptions in this wave did not survive contact with actual framework behaviour, and in both
+cases only a regenerated artifact or a real test caught it:
+
+1. **"Drop `content =` to make 401 bodiless"** — springdoc treats an absent `content` as an instruction
+   to *infer from the method return type*, so 13 of 17 401s became typed as the SUCCESS schema, worse
+   than the defect. Fixed with `@Content(schema = @Schema(hidden = true))`.
+2. **"Classify 3xx in the `RestClientResponseException` handler"** — Spring's `retrieve()` raises only
+   for 4xx/5xx, so a redirect arrives on the **success** path. The branch was dead code until a test
+   failed with `expected: CONFIGURATION_ERROR but was: OK`.
+
+**Rule for this module: verify contract- and transport-shape changes against the regenerated spec or a
+real socket, never against the annotation/handler diff alone.**
