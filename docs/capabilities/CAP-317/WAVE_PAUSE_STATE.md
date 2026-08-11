@@ -92,3 +92,27 @@ Substance is sound (ADR-0050 model, YAML-authoritative reconciliation, secret hy
 - `supplier:audit:read` (bit 445) **must** be enforced by the audit read endpoints or removed (ADR-0025 §4 parity is owed); payload reads must themselves be audited (ADR-0050 §7).
 - Any *new* slice-3 permission needs a **second** manual catalog batch (bits 448+), `CATALOG_VERSION` → 43, and updates to `PermissionCodeTest.EXPECTED_PERMISSION_COUNT` + `SecurityGatewayConfigTest` out-of-range guard — `--sync --check` will not catch it.
 - `sellerPartyId`/`sellerAgencyCode` are bound by `SupplierProfileProperties.Accounts` but never persisted — slice 3 must persist them or drop them from the YAML contract.
+
+---
+
+## UPDATE — blocking fix #1 cleared (2026-08-11): routes remapped to `/v1/supplier`
+
+Backend `cap/317-supplier-foundation` @ `5449315`.
+
+**Done**
+- All four admin controllers now map `/v1/supplier/admin/...` (`SupplierProfileAdminController`, `SupplierAccountAdminController`, `SupplierAuthConfigAdminController`, `SupplierEndpointBindingAdminController`) — repo convention `/v1/{domain}/...` restored, prefix-doubling gone. External path is now `/supplier/v1/supplier/admin/profiles`, matching the shape of every other module (e.g. `/customer/v1/customers`).
+- `pos-supplier/openapi.yaml` regenerated from the running app via the `openapi` Maven profile (springdoc + `scripts/sanitize-openapi.py`). Diff is exactly the eight path keys; no schema churn.
+- `pos-api-gateway/docs/openapi-aggregate.yaml` regenerated with the full 26-module list (`scripts/generate-openapi.sh`'s aggregation step). Diff is additive only: the eight supplier paths, the `pos-supplier` tag, and the `x-aggregated-modules` entry — no drift in the other 25 modules. This also clears the aggregate half of blocking fix #2.
+- `SupplierAdminControllersWebMvcTest.BASE` updated; `mvn -pl pos-supplier test` → **214 tests, 0 failures** (same count as before the remap).
+
+**Decided**
+- The route-convention open decision is resolved in favour of the `/v1/supplier/...` remap. No ADR-0011 amendment needed.
+
+**Deliberately not touched (still open)**
+- Gateway `application.yml` needs no change: the `/supplier` prefix it strips with `StripPrefix=1` is the service prefix, not the API version.
+- Blocking #2 remainder: `pos-supplier: mode: STRICT` is still unregistered in `pos-openapi-validation/.../module-inventory.yaml`.
+- Blocking #3 (ADR-0042 response typing) and #4 (secret-scheme allowlist) are untouched — both will require another spec regeneration afterwards.
+- No Angular SDK generated yet, so nothing downstream to re-sync from this remap.
+
+**Noticed, pre-existing**
+- `mvn -pl pos-supplier spotless:check` fails on two files that predate this change and were not part of it: `ArchitectureTest.java` (line-wrap in `resideInAnyPackage`) and `ServiceModelInvariantsTest.java` (lambda wrap in `rejectsBlankAccountNumber`). `mvn -pl pos-supplier spotless:apply` fixes both. Add to the non-blocking queue.
