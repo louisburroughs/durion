@@ -269,8 +269,10 @@ pos-supplier `-am verify` **BUILD SUCCESS**, **313 tests** 0 failures (287 → 3
 pos-openapi-validation **43**; touched-file lint **0 findings**; `spotless:check` **clean**;
 `generate-permissions.sh --sync --check` **exit 0**, CATALOG_VERSION unchanged at v42;
 `openapi-aggregate.yaml` rebuilt with the full 26-module list and **diff-verified byte-identical**.
-`pos-archunit -am test` was re-running at the time of writing (the `-am` form runs every dependency
-module's tests, so it takes >10 min); it was green at `9e61d81` and this pass added no new package.
+`pos-archunit -am test` **BUILD SUCCESS** — confirmed fresh, not inherited: 30 modules, 15:23 min,
+all four rule classes re-run (`ArchitectureTests` 12, `ClasspathVisibilityGuardTest` 2,
+`DomainWallsTest` 1, `EntityStandardsArchitectureTest` 5), 0 failures. Note for future waves: the
+`-am` form runs every dependency module's full test suite, so budget ~15 min and run it detached.
 
 ### Slice-3 constraint carried forward (from the reviewer)
 
