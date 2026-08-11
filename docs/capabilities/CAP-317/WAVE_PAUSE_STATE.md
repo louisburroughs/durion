@@ -62,3 +62,33 @@ Substance is strong (ADR-0050 model, YAML-authoritative reconciliation, secret h
 - `supplier:audit:read` (bit 445) is allocated but enforced nowhere — slice 3 MUST attach it to the audit read endpoints or the permission must be removed (ADR-0025 §4 parity is owed). Payload reads must themselves be audited.
 - Any NEW slice-3 permission needs a **second** manual catalog batch (bits 448+, CATALOG_VERSION → 43) across all four artifacts plus `PermissionCodeTest.EXPECTED_PERMISSION_COUNT` and the `SecurityGatewayConfigTest` out-of-range guard — `--sync --check` cannot detect this because the module uses constant-based `@PreAuthorize` (verified: the generator only diffs string-literal scans and is additive-only).
 - `sellerPartyId`/`sellerAgencyCode` are bound by `SupplierProfileProperties.Accounts` but never persisted — slice 3 must persist them or drop them from the YAML contract.
+
+---
+
+## UPDATE — slice 2 Code Review verdict: **FAIL** (landed after pause was recorded)
+
+Substance is sound (ADR-0050 model, YAML-authoritative reconciliation, secret hygiene, catalog bookkeeping, 214 tests all verified good; the manual bits 445-447 were confirmed mutually consistent across all four artifacts, and the reviewer confirmed `--sync --check` structurally *cannot* detect drift for constant-based `@PreAuthorize` — so the manual entries are the only guarantee and they hold). It fails on contract-shape items that are expensive to reverse after SDK generation.
+
+### Blocking fix queue (must clear before PR)
+1. **[high] Route base unversioned + prefix-doubling.** All four admin controllers map `/supplier/admin/...`; every other module maps `/v1/{domain}/...`. With `Path=/supplier/**` + `StripPrefix=1` the external path becomes `/supplier/supplier/admin/profiles`. Remap to `/v1/supplier/admin/...`, regenerate `pos-supplier/openapi.yaml` **and** `pos-api-gateway/docs/openapi-aggregate.yaml`. **Do this before any SDK generation.**
+2. **[med] OpenAPI CI + discovery gaps.** Register `pos-supplier: mode: STRICT` in `pos-openapi-validation/src/test/resources/openapi/module-inventory.yaml` (currently the module's spec is validated by nothing); regenerate the gateway aggregate.
+3. **[med] ADR-0042 annotation depth.** 4xx `@ApiResponse`s are typed as the success schema (e.g. 404 → `VendorProfileView`); add `@Content(schema = @Schema(implementation = ApiError.class))`, document 401/403, add `@Schema` to `service.model` records, `@Parameter` schema/example — then regenerate spec + SDK.
+4. **[med] Secret-reference scheme allowlist.** `AuthReferenceRules.isWellFormed` validates `scheme:value` shape but not the scheme, so `MYDOMAIN:hunter2` (a plaintext credential) persists and only fails at call time — violates ADR-0050 §4/§6. Validate against supported resolver schemes at write time and in `SupplierYamlBootstrap.validate`; add `"user:hunter2"` tests. Consider a scheme-dispatching composite resolver now (a second `SecretReferenceResolver` bean would make by-type injection ambiguous).
+
+### Non-blocking (fold in during slice 3 or a cleanup pass)
+5. Add `sandboxBaseUrlOverride` + `retryBackoff` to `VendorProfileRequest`/`View` (ADMIN profiles currently cannot express the ADR-0050 §2 sandbox overlay — slice-3 adapters would read null), or document YAML-only ownership in ADR-0050.
+6. Move the 456-line reconciler out of `internal.config` into `internal.service` (`SupplierYamlReconciler`) and extract shared entity mappers — admin and YAML paths currently duplicate field mapping (the `apiKeyHeader` change already had to be applied twice).
+7. Map `SupplierConfigurationException` in `SupplierExceptionHandler` with a code→status table + test (**required before slice 3 exposes the resolver over HTTP**, else `CAPABILITY_NOT_CONFIGURED` becomes a 500); rename `CAPABILITY_NOT_CONFIGURED` → `SUPPLIER_CAPABILITY_NOT_CONFIGURED` for prefix consistency.
+8. Normalise `DownstreamPermissionCatalog.java:545-547` comment spacing to the generator's `", // 445"` form.
+9. Add `pos-supplier/README.md` (admin routes, permissions, full `supplier.profiles` YAML example with `env:` refs, disable-not-delete semantics) and create `durion/domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md` (does not exist).
+10. Consider exposing `version` on profile views + If-Match on PUT (today two operators editing one profile is last-write-wins), or record the decision.
+
+### Open decisions needed (were the reviewer's questions)
+- **Route convention**: confirm the `/v1/supplier/...` remap (recommended — repo-wide convention) vs. an ADR-0011 amendment justifying a new convention. **Decides fix #1.**
+- **Secret-store resolver** (`vault:`/AWS) in slice 3 scope? Should the write-time scheme allowlist be per-deployment configurable?
+- **Exchange-audit FK to `supplier_profile`?** If yes, admin `deleteProfile` (currently a hard delete of profile + children) must become a disable, or the audit must snapshot `supplierRef` — ADR-0050 §6/§7 tension. **Decide before slice 3's Flyway V3.**
+
+### Additional slice-3 carry-forwards from this review
+- `supplier:audit:read` (bit 445) **must** be enforced by the audit read endpoints or removed (ADR-0025 §4 parity is owed); payload reads must themselves be audited (ADR-0050 §7).
+- Any *new* slice-3 permission needs a **second** manual catalog batch (bits 448+), `CATALOG_VERSION` → 43, and updates to `PermissionCodeTest.EXPECTED_PERMISSION_COUNT` + `SecurityGatewayConfigTest` out-of-range guard — `--sync --check` will not catch it.
+- `sellerPartyId`/`sellerAgencyCode` are bound by `SupplierProfileProperties.Accounts` but never persisted — slice 3 must persist them or drop them from the YAML contract.
