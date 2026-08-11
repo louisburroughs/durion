@@ -1074,3 +1074,99 @@ Recorded rather than softened.
    `AuditPayloadCipher` fails closed without a key (finding 10).
 2. Follow-ups: inbound `X-Correlation-Id` filter; cross-instance credential invalidation; fleet ADR-0013
    assigned-id exemption (cosmetic); CAP-318 per-binding redaction and positional-format field maps.
+
+---
+
+## UPDATE — verification queue on `36643e3..82245f7` cleared (2026-08-11)
+
+### The blocker: the published contract still carried the claim F3 was raised about
+
+The *entity* javadoc was corrected from an assertion into a statement about a control. The same unfoundable
+guarantee was still in four other places, one of which is the generated spec — the artifact that is expensive
+to reverse after SDK generation:
+
+| Site | Was | Now |
+| --- | --- | --- |
+| `pos-supplier/openapi.yaml` (generated) | "Credentials travel in headers and never appear here." | describes redaction, and that `METADATA_ONLY` returns the path only |
+| `ExchangeAuditSummary` javadoc + `@Schema` | same claim | same correction |
+| `ExchangeAuditMetadata` | "credentials travel in headers, never here" | "credential-redacted at capture time" |
+| `ExchangeContext` | "never carries credentials" | "this is the RAW value and it may well carry credentials — redaction is the audit writer's job" |
+
+The `ExchangeContext` wording matters most for the next implementer: it is the *input* side, so the honest
+statement is the opposite of a guarantee. Observers must not persist it verbatim.
+
+**And the contract now documents the behaviour change it was silent about:** at `METADATA_ONLY` the returned
+URI has no query string. The meaning of a contract field had changed with no spec change, which is the second
+time this wave failed review on that class. Verified in the regenerated artifact rather than the annotations:
+zero occurrences of the three old claims, `METADATA_ONLY` present on `endpointUri`, redaction present on
+`failureDetail`, and the diff is `ExchangeAuditSummary` descriptions only — no paths or schemas added or
+removed, aggregate byte-identical.
+
+### The three answered questions
+
+**1. `failure_detail` — redacted now, not deferred.** It quotes vendor responses, and a redirect `Location`
+routinely carries a signed URL whose token is a live bearer credential. `PayloadRedactor.redactEmbeddedUris`
+finds URLs in free text and redacts their query credentials and userinfo, at every capture level — an
+operator-facing message has no legitimate need for the token inside a signed URL, so unlike the payload columns
+there is no level at which keeping it is the point. The diagnostic itself survives, which a test asserts.
+
+**2. `baseUrl` userinfo — rejected at write time AND stripped at storage.** ADR-0050 §4 is that plaintext
+credentials never persist, and userinfo in a URL is a plaintext credential.
+`https://apiuser:hunter2@edi.example/a25` previously persisted a password into *configuration* — precisely where
+it would live indefinitely — and from there into the retained `endpoint_uri` of every audit row for that
+binding. `SUPPLIER_URL_CONTAINS_CREDENTIALS` is a 400 at the boundary; the message names the field and does not
+echo the value, because the value is the credential. Storage-side stripping stays as defence in depth, and is
+not redundant: YAML-managed profiles bypass admin validation entirely.
+
+**3. Module `verify` re-run at HEAD** rather than carried forward — recorded against this commit below.
+
+### V5 has not executed against real PostgreSQL — recorded, not fixed
+
+Only H2 in PostgreSQL mode, because this container has no Docker daemon for the Testcontainers-based
+`FlywayMigrationIT`. `ALTER COLUMN … TYPE character varying` widening has direct repo precedent
+(`pos-security-service/V19`), and widening a varchar is a metadata-only operation in PostgreSQL that takes no
+table rewrite, so the risk is low. But low is not proven, and it should be stated as unproven: the first
+execution against real PostgreSQL will be in a deployed environment.
+
+### The rest of the queue
+
+| # | Item | Resolution |
+| --- | --- | --- |
+| med | URI redaction missed `key`, `token`, `api-key`, `sig`, `signature`, `subscription-key` | **Fixed with a URI-ONLY name set**, applied to query strings only. |
+| med | The URI-redaction seam was unproven | **Fixed.** Asserted on persisted rows; both call sites mutation-proven. |
+| med | `isKeyRequired`'s method javadoc stated the reverse of its code | **Fixed.** |
+| med | The parity test was narrower than its javadoc claimed | **Fixed.** Column list derived from the DDL, width parse scoped to the audited table, migrations globbed in version order. |
+| low | "the one audit column in plaintext / exempt from the purge" | **Dropped in all three places.** |
+| low | Two doc nits | **Fixed.** |
+| low | `@Size` boundary test; yaml key coverage | **Both done** — see below. |
+
+**On the URI-only name set:** the reviewer's shaping was right and the reason is asymmetric blast radius.
+`key` and `token` are unambiguous as URL parameters and dangerously ambiguous in a document body — widening the
+shared set would newly redact `<Key>` and `"key"` inside vendor payloads at `REDACTED`, silently destroying
+legitimate commercial content (part keys, sort keys, price keys) in a store that keeps it for 400 days. A test
+pins both halves: the names are redacted in a query string and are *not* redacted in a body.
+
+**On the parity test:** it was load-bearing for a defect class while being narrower than it claimed —
+`unmapped_fields varchar(4000)` was invisible, a V6 narrowing a width would have been invisible, and the width
+map mixed both tables in V3 via `putIfAbsent`. All three closed. It also earned itself twice more during this
+queue: adding URI redaction and then failure-detail redaction each put a comma inside `truncate(...)`, and both
+times it reported the column as unprotected rather than passing quietly. The writer now assigns those values to
+locals so the bounds stay parseable.
+
+**On yaml coverage:** the comment asserted a principle — "a typo in a `@Value` key falls back to the annotation
+default with the suite green" — while covering 3 of 16 keys. Rather than drop the principle, all 16
+`pos.supplier.*` keys are now declared, and a test scans the source for `@Value` keys and requires each to
+appear in `application.yml`, so a new one is caught rather than remembered.
+
+### Gates at this commit
+
+| Gate | Result |
+| --- | --- |
+| `./mvnw -pl pos-supplier -am -DskipTests=false verify` at **this** commit | **BUILD SUCCESS**, 562 tests, and the failsafe `verify` phase actually reached (pos-supplier declares no ITs) |
+| `./mvnw -pl pos-supplier -DskipTests=false test` | **546 tests** (538 to 546); 562 across the `-am` reactor |
+| spec regenerated and **verified as an artifact** | no old claims, `METADATA_ONLY` documented, `ExchangeAuditSummary` descriptions only |
+| aggregate | **byte-identical**, no path keys moved |
+| spotless | **clean** |
+| lint hook, 16 touched files | **PASS**, 113 rules, **0 findings** |
+| `scripts/check-flyway-hygiene.sh` | **passed**, 25 modules |
+| `scripts/generate-permissions.sh --sync --check` | **exit 0**, **CATALOG_VERSION 42 unchanged** |
