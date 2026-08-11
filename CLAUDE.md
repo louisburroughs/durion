@@ -109,6 +109,7 @@ Hook scripts live in `.claude/hooks/` (and the originals in `.github/hooks/`). C
 | `post-test-coverage-commit.sh --repo <path> --story <id> --module <mod> --coverage-before <n> --coverage-after <n>` | Commit coverage improvements                              |
 | `post-code-review-pass-commit.sh`                                                                                   | Commit after code review passes                           |
 | `jacoco-hook.sh`                                                                                                    | Parse JaCoCo coverage report and emit structured evidence |
+| `mutation-check-hook.sh --repo <path> --module <mod> --file <f> --find <text> --replace <text> --test <sel>` | Prove a test defends its guarantee: asserts the mutation applied, requires the test to FAIL, restores the file |
 | `plan-acceptance-hook.sh`                                                                                           | Validate plan acceptance criteria                         |
 | `init-capability-runs-hook.sh`                                                                                      | Initialise capability run tracking                        |
 | `safe-delete-PRP.sh`                                                                                                | Safely delete a processing run artifact                   |
