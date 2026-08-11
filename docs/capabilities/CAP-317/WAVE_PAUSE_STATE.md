@@ -388,3 +388,76 @@ guessed.
 **If a future wave adds health groups**, the alternative shape is to keep this indicator out of the
 default group and expose it at `/actuator/health/suppliers`; the always-UP contract makes that
 optional rather than necessary.
+
+---
+
+## SLICE 3 PROGRESS — client transport layer COMPLETE (2026-08-11)
+
+Backend `cap/317-supplier-foundation` @ `69ef390`, pushed. `55f8f49`, `4a38426`, `69ef390`.
+
+### Done — `internal.client` (13 production classes, 342 module tests)
+
+| Piece | Notes |
+| --- | --- |
+| `ExchangeOutcome` | ADR-0052 §5 classification; only `PRE_SEND_FAILURE` retryable |
+| `ExchangeContext` / `ExchangeObserver` / `ExchangeObserverConfig` | Per attempt incl. failures; no-op default; no credential material |
+| `SupplierCorrelationContext` | Thread-scoped (scheduler has no servlet scope); reuse-or-generate |
+| 3 auth strategies + `SupplierAuthStrategies` | Call-time resolution, never logged; startup validation |
+| `SupplierBreakerRegistry` | Breaker per `(vendorProfileId, capability)`; `minimumNumberOfCalls` guard |
+| `SupplierClientHealthIndicator` | **Always UP**; see the decision section above |
+| `SupplierClientMetrics` | `supplier.client.breaker.state` gauge + `supplier.client.exchanges` timer |
+| `SupplierHttpRequest` / `SupplierHttpResponse` | Transport-level; codecs map to `SupplierExchange` in CAP-318 |
+| `SupplierBaseClient` | The transport itself |
+| `FaultInjectingHttpServer` (test) | Socket-level faults per binding decision 2 |
+
+### Two real defects found by testing, not inspection
+
+1. **`toEntity(String.class)` failed on unexpected content types.** Now reads `byte[]` and decodes
+   UTF-8 — the correct design for a transport that will carry XML, JSON and EDIFACT under assorted
+   (sometimes absent) content types.
+2. **Any `RestClientException` other than the two caught escaped UNCLASSIFIED** to the caller as a raw
+   Spring type — the error leak ADR-0050 §3 forbids. Added a catch-all classified ambiguous, since a
+   conversion failure means a response *was* received and therefore the request *was* sent.
+
+Also, the socket fixture's refused-port helper originally used `HttpServer.create` + `stop`, which
+leaves the port bound with no accept loop: the client connected into the backlog and **read**-timed
+out, silently inverting what the pre-send test proved. Now a plain `ServerSocket`, closed, for a
+genuine `ECONNREFUSED`. Worth remembering — a fixture bug that makes a test pass for the wrong reason
+is worse than a failing test.
+
+### Deliberate conservative choice, recorded
+
+`SocketTimeoutException` covers **both** connect and read timeouts, and the JDK distinguishes them
+only by message text. Any socket timeout is therefore classified `POST_SEND_AMBIGUOUS`. The risk is
+asymmetric: calling a connect timeout ambiguous costs one retry we could safely have made; calling a
+read timeout pre-send costs **a duplicate purchase order at a vendor**. Connection refused, unknown
+host and no route are definitively pre-send and keep their retryable classification. This slightly
+under-retries by design.
+
+### Gate results at `69ef390`
+
+pos-supplier `-am verify` **BUILD SUCCESS**, **342 tests** 0 failures (322 → 342);
+`spotless:check` clean; touched-file lint **0 findings**. Retry tests assert on requests that actually
+reached the wire (`receivedRequests()`), not only on the returned outcome, because an outcome can look
+correct while the client silently re-sent the document.
+
+**Mutation checks now at six**, each confirmed to fail when the guarantee is removed: OAuth2
+single-flight, `updateAuthConfig` allowlist guard, configuration code→status completeness, the
+never-DOWN health guarantee, and the never-retry-ambiguous rule (dropping the idempotent gate fails
+exactly the read-timeout and 5xx tests).
+
+### REMAINING in slice 3 — not started
+
+1. `ExchangeAudit` entity + **Flyway V3** (no FK, snapshot `vendorProfileId` + `supplierRef`,
+   plus `supplier_schedule_lease` per decision 4)
+2. `EncryptedPayloadConverter` per binding decision 1 (AES-256-GCM, bytea, 0x01 version + key-id +
+   12-byte nonce + ciphertext, fail-closed in prod/indus/alpha, ephemeral + WARN in dev/test)
+3. Capture levels `FULL|REDACTED|METADATA_ONLY` + credential-header redaction
+4. 400-day retention purge (delete payloads, keep metadata rows)
+5. Per-binding scheduler per decision 4 (compare-and-claim lease on DB `now()`, heartbeat, owner-guarded
+   checkpoint in the batch transaction)
+6. Audit read API behind bit **445** — must actually enforce `supplier:audit:read` or the permission is
+   removed (ADR-0025 §4 parity debt), and payload reads must themselves be audited (ADR-0050 §7)
+
+The audit writer will be an `ExchangeObserver`, which is why that SPI exists: `SupplierBaseClient`
+never depends on a repository.
