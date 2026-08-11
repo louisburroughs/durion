@@ -461,3 +461,97 @@ exactly the read-timeout and 5xx tests).
 
 The audit writer will be an `ExchangeObserver`, which is why that SPI exists: `SupplierBaseClient`
 never depends on a repository.
+
+---
+
+## UPDATE — client-layer review FAIL cleared; encryption landed (2026-08-11)
+
+Backend `cap/317-supplier-foundation` @ `1f6fc1a`, pushed. Commits since `69ef390`:
+`67dc356` factory switch, `a5caf79` encryption, `585c49c` review queue, `1f6fc1a` token invalidation.
+
+### Independent review of `9e61d81..69ef390`: **FAIL** → cleared
+
+All findings reproduced in the code before fixing. Three HIGH were behavioural, not annotation-deep.
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| 1 | OAuth2 **token-endpoint transport** failure reported as `AUTH_CONFIG_MISSING` → 409, never retried | Split three ways (below) |
+| 2 | `contentType` mandatory on the record, **never sent** — every document went out `text/plain` | Applied and asserted on the wire |
+| 3 | Query params/`pathSuffix` unencoded; `absoluteUri` **outside every try**, so a malformed URI escaped raw with **no observation** | Encoded; URI resolved once inside the observed region |
+| 4 | `ExchangeContext` javadoc claimed bodies "already redacted" — they are not | Corrected on both `ExchangeContext` and `ExchangeObserver` |
+| 6 | Breaker counted **every** exception, laundering permanent rejections into retryables | `recordException(countsAsTransportFailure)` |
+| 5 | never-DOWN guarantee not total (no try/catch, no Boot wrapping) | Wrapped; UP + `detailsUnavailable` |
+| 7/8 | `invalidate` had no caller — a revoked token re-sent for up to an hour | Wired on 401 |
+| 10-13 | Token in record `toString`; two `@NonNull` gaps; fixture leaked its executor | All fixed |
+
+### Finding 1 in detail — the worst defect in the range
+
+`catch (RestClientException)` is the **parent** of both `ResourceAccessException` and
+`RestClientResponseException`, so a refusal, timeout, 503 or 429 on the **token** leg all became
+`AUTH_CONFIG_MISSING` → `CONFIGURATION_ERROR` → 409, blaming the operator for a correct env var.
+Now split:
+
+- **transport failure of the token leg** → new `SupplierAuthTransportException` → classified
+  `PRE_SEND_FAILURE` and **returned**, so a caller can consult `isSafeToRedispatch()`. Nothing reached
+  the vendor's *business* endpoint, so ADR-0052 §5 makes it unambiguously pre-send.
+- **401/403** → new code `SUPPLIER_AUTH_CREDENTIALS_REJECTED` (409). The references resolved; the
+  vendor refused them. Retrying would only hammer the vendor.
+- **2xx with no `access_token`** → new code `SUPPLIER_AUTH_TOKEN_RESPONSE_INVALID` (500-generic). A
+  vendor contract violation, not operator error.
+
+Adding two codes forced two explicit HTTP decisions, because
+`SupplierConfigurationCodeMappingTest` fails on any unmapped code — the guard doing its job. The table
+outgrew `Map.of`'s 10-pair limit and moved to `Map.ofEntries`.
+
+### Rulings applied
+
+- **Finding 6:** fixed *what opens the breaker*, not `isSafeToRedispatch()`. ADR-0052 §3's premise is
+  true for a genuine transport-driven breaker; only the miscount made it misleading.
+- **3xx:** classified `CONFIGURATION_ERROR` naming the redirect target — "fix this profile's baseUrl",
+  not "the vendor permanently refused this order". **Note:** it arrives on the **success** path, since
+  Spring's `retrieve()` raises only for 4xx/5xx. My first attempt put it in the exception handler,
+  where it was dead code until a test caught it.
+
+### Two pre-existing tests asserted the DEFECT and were corrected, not worked around
+
+The token-endpoint-500 test pinned `AUTH_CONFIG_MISSING` — it *was* finding 1. Second time this wave
+that tests were part of the defect (the first was finding 7's scheme-echo tests).
+
+### Encryption (`a5caf79`) — binding decision 1
+
+AES-256-GCM, envelope `0x01 | keyIdLen | keyId | 12-byte nonce | ciphertext+tag`, header as **AAD** so
+version and key id are tag-covered. Key mandatory in prod/indus/alpha (fail closed), ephemeral + WARN
+in dev/test. **Rotation via decrypt-only `previous-keys`** — this is what the key id is *for*: a
+400-day retention window outlives any key lifetime, so without it rotation would orphan every payload.
+`PayloadUnreadableException` keeps malformed / unknown-key / authentication-failed distinct, because a
+failed GCM tag is potential tampering evidence and must not read as routine misconfiguration.
+Converter maps `null`↔`null`: `METADATA_ONLY` bindings and purged rows legitimately have no payload.
+
+Two justified `nosemgrep` suppressions on the GCM sites — `gcm-detection` is an **audit** rule asking a
+human to confirm nonce uniqueness, which the `SecureRandom` per-message nonce and the 500-iteration
+test establish. **pos-supplier is the first module in the repo doing crypto**, so the first to meet
+these rules. Bare form because the local hook derives rule ids from the rules-clone path.
+
+### Gate evidence at `1f6fc1a` — also covers `67dc356`, whose recorded evidence predated it
+
+pos-supplier `-am verify` **BUILD SUCCESS**, **387 tests** 0 failures (342 → 387);
+`spotless:check` clean; touched-file lint **0 findings**; `generate-permissions --sync --check` exit 0,
+CATALOG_VERSION unchanged. **Mutation checks now at ten**, each confirmed failing when its guarantee is
+removed — added this round: breaker `recordException`, the Content-Type header, the connect/read
+ordering trap, the AAD binding, and the 401 invalidation.
+
+### Still open from findings 7/8 — recorded, not silently skipped
+
+- The OAuth2 **token leg runs on the platform-internal `RestClient.Builder`**, whose own javadoc says
+  vendor-facing transport does not run through it, so **per-profile timeouts do not apply to the token
+  call**.
+- **`updateAuthConfig` does not invalidate a cached token** when an operator rotates a secret, so a
+  rotated credential is not picked up until natural expiry.
+
+### REMAINING in slice 3
+
+`ExchangeAudit` entity + **Flyway V3** (no FK, snapshot `vendorProfileId` + `supplierRef`, plus
+`supplier_schedule_lease`); capture levels + credential-header redaction **in the observer** (its
+obligation, per the corrected contract); 400-day purge keeping metadata; scheduler per decision 4;
+audit read API behind bit **445**, which must genuinely enforce it (ADR-0025 §4 parity debt) and whose
+payload reads must themselves be audited (ADR-0050 §7).
