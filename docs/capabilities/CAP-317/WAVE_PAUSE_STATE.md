@@ -116,3 +116,71 @@ Backend `cap/317-supplier-foundation` @ `5449315`.
 
 **Noticed, pre-existing**
 - `mvn -pl pos-supplier spotless:check` fails on two files that predate this change and were not part of it: `ArchitectureTest.java` (line-wrap in `resideInAnyPackage`) and `ServiceModelInvariantsTest.java` (lambda wrap in `rejectsBlankAccountNumber`). `mvn -pl pos-supplier spotless:apply` fixes both. Add to the non-blocking queue.
+
+---
+
+## UPDATE — slice-2 fix wave complete (2026-08-11): all four blocking items cleared
+
+Backend `cap/317-supplier-foundation` @ `9e61d81` (pushed). Five commits on top of `5449315`.
+
+### Blocking queue — CLEARED
+
+| # | Item | Commit | Evidence |
+| --- | --- | --- | --- |
+| 1 | Route remap to `/v1/supplier` | `5449315` (previous session) | 214 tests green |
+| 2 | `pos-supplier: mode: STRICT` in `module-inventory.yaml` | `a5228d1` | 43 validation tests green; mutation-probed |
+| 3 | ADR-0042 annotation depth | `a5228d1` | 17/17 ops: zero 4xx untyped, zero missing 401/403 |
+| 4 | Secret-reference scheme allowlist | `26ed6a6` | AuthReferenceRulesTest 40 → 86 |
+
+### Non-blocking queue
+
+| # | Item | Status |
+| --- | --- | --- |
+| 5 | `sandboxBaseUrlOverride` + `retryBackoff` on profile DTOs | **DONE** (`a5228d1`) — implemented, not deferred to an ADR note |
+| 6 | Move the 456-line reconciler to `internal.service` | **DEFERRED to slice 3, bound** (see decision below) |
+| 7 | Map `SupplierConfigurationException`; rename the code | **DONE** (`d1cfb1d`) |
+| 8 | `DownstreamPermissionCatalog` comment spacing | **DONE** (`9e61d81`) — review's premise corrected, see below |
+| 9 | `pos-supplier/README.md` + `BACKEND_CONTRACT_GUIDE.md` | Out of scope for this wave; close-out |
+| 10 | Optimistic locking / `version` on views | **CLOSED as decided** — last-write-wins accepted |
+
+### What landed, in detail
+
+- **`26ed6a6` secret-scheme allowlist.** `SecretReferenceResolver` now declares `scheme()`; new `SecretSchemeRegistry` collects the resolver beans, dispatches by scheme, and *is* the allowlist. Today `env:` alone. Not deployment-configurable by design. The registry is a distinct type from `SecretReferenceResolver`, so a second resolver never makes by-type injection ambiguous; duplicate/blank scheme claims fail startup. Enforced at admin write time **and** in `SupplierYamlBootstrap.validate`. Rejection messages name the scheme and allowlist but never echo the value.
+- **`d1cfb1d` configuration-exception mapping.** Code → status table: `SUPPLIER_UNKNOWN` 404; `PROFILE_DISABLED` / `CAPABILITY_NOT_CONFIGURED` / `MISSING_BILLING_ACCOUNT` / `MISSING_DELIVERY_MAPPING` / `AUTH_CONFIG_MISSING` 409 (ADR-0017 §2 prefers 409 to 422 for state collisions); the four secret/bootstrap codes 500 with a **generic** message, detail logged server-side only, because those messages name deployment env-var names. `CAPABILITY_NOT_CONFIGURED` value → `SUPPLIER_CAPABILITY_NOT_CONFIGURED`. The identically named `service.model` outcome-enum constants were **not** renamed — different namespace (successful-response status, not `ApiError.code`); renaming them would break the published contract.
+- **`a5228d1` contract pass** (single spec regeneration for #2/#3/#5). All 4xx now `@Content(schema = ApiError)`; 401/403 on every operation; class- and component-level `@Schema` on all 8 admin records; `schema`/`example` on every `@Parameter`. Success responses keep springdoc inference (already correct). `service.model.RetryBackoff` mirror added; `SupplierContractKeyParityTest` now pins **all five** contract/internal enum mirrors — they convert via `valueOf(name())`, so a one-sided constant was previously only a runtime failure.
+
+### Decisions recorded this wave
+
+1. **[#6 reconciler refactor] DEFERRED to slice 3, as a bound precondition — not optional.** Evidence: all **33 of 33** entity setters are used by *both* `SupplierYamlBootstrap` and `SupplierProfileAdminServiceImpl` — the mapping surface is 100 % duplicated, none unique to either path. The tax has now been paid twice in consecutive changes (`apiKeyHeader` in slice 2, `sandboxBaseUrlOverride`/`retryBackoff` in this wave). *Why not now:* the refactor is **not** mechanical — the two paths map to the same fields from *different source types* (YAML `ProfileSpec`/`AuthSpec`/`BindingSpec` vs contract `VendorProfileRequest`/`AuthConfigRequest`/…), so no shared mapper is directly extractable. The real design is to convert YAML specs into the contract request records and route both paths through one request→entity mapper — extending the pattern the bootstrap **already** uses when it builds an `AuthConfigRequest` to reuse `AuthReferenceRules`. That deserves design attention, and it carries semantic subtleties (YAML `enabled` null→true, sandbox nesting, `sourceOfTruth`, disable-not-delete). *Binding mandate:* do it as the **first step** of slice 3's `sellerPartyId`/`sellerAgencyCode` persistence work, which must touch account mapping anyway and would otherwise pay the duplication tax a third time. **The `internal.config` → `internal.service` package move + rename is separately REJECTED** as presentation-only churn: it forces import rewrites across tests and delivers no behavioural or duplication benefit. No ArchUnit rule requires it (pos-archunit and the module's `ArchitectureTest` are green with the reconciler where it is).
+2. **[#8] The review's stated premise was wrong and is corrected.** The target `", // 445"` form is **not** what the generator emits: `generate-permissions.py` pads to `max(1, 45 - len(perm))` — 26 spaces for `supplier:audit:read`. One space is what **palantir-java-format/spotless** produces; spotless collapses trailing-comment padding. That is why the generator-shaped crm batch (bits 438–442) is already one-space in the file. Verified by running `spotless:check` before/after: the supplier lines moved from rewritten to unchanged context.
+3. **Pre-existing defect discovered, deliberately NOT fixed:** bits 443–444 (`pos-people-contact`) carry the same wide padding and are still rewritten by spotless. That dirt is present at base `da21c33`, so `pos-security-common` `spotless:check` was **already failing before CAP-317 touched the file**. Out of this wave's scope, matching the ledger's existing decision not to repair pos-marketing's archunit gaps here. Note spotless is bound to **no** lifecycle phase and **no** CI workflow runs it — it is hygiene, not a gate.
+4. **Pre-existing gap discovered:** `module-inventory.yaml` is missing `pos-marketing`, `pos-people-contact` and `pos-tax` as well (22 entries vs 26 spec-producing modules). Only `pos-supplier` was added, per scope.
+
+### Gate results (all at `9e61d81`)
+
+| Gate | Result |
+| --- | --- |
+| `./mvnw -pl pos-supplier -am -DskipTests=false verify` | **BUILD SUCCESS** — pos-supplier 287 tests, 0 failures (214 → 287) |
+| `./mvnw -pl pos-archunit -am test` | **BUILD SUCCESS** — 20 tests / 4 classes, incl. `EntityStandardsArchitectureTest`, `ClasspathVisibilityGuardTest`, `DomainWallsTest` |
+| `./mvnw -pl pos-openapi-validation test` | **BUILD SUCCESS** — 43 tests, 0 failures |
+| `./mvnw -pl pos-security-common test` | **BUILD SUCCESS** — 28 tests, 0 failures |
+| `scripts/generate-permissions.sh --sync --check` | **exit 0**, all modules up-to-date, **CATALOG_VERSION unchanged (v42)** |
+| `scripts/check-flyway-hygiene.sh` | **passed**, 25 modules |
+| lint hook `--module pos-supplier` | **PASS** — 113 rules / 59 files, 0 findings |
+| lint hook `--module pos-security-common` | **PASS** — 113 rules / 1 file, 0 findings |
+| `./mvnw -pl pos-supplier spotless:check` | **clean** (was failing at `5449315`; `770666e` fixed 38 files, format-only, 214 tests green before and after) |
+| Full-reactor `verify` | **NOT RUN** — close-out gate, and no cross-module consumer exists: only `pos-archunit` references `pos-supplier` (verified by grep + pom scan), and that gate is green |
+
+Spec regeneration was batched once after the contract work: `pos-supplier/openapi.yaml` via the `openapi` Maven profile, then `openapi-aggregate.yaml` rebuilt with the full **26**-module list (the script's own aggregation code, invoked with the complete list — never `generate-openapi.sh pos-supplier`). The aggregate came out **byte-identical**: 773 paths, 26 modules, 8 supplier paths, zero additions/removals — correct, because this pass changed operation *contents*, not path keys, and the aggregate indexes path keys only.
+
+### Process caveat — READ THIS
+
+The executing session had **no subagent-invocation tool**: `API Planner`, `anvil`, `API Surface Coder`, `Domain Data Coder`, `Backend Testing Agent`, `Code Review Agent` and `Documentation Agent` could not be invoked, and `mcp__tokensave-backend__*` was unavailable. All work — planning, implementation, testing and this documentation — was done by the orchestrator directly. **There is therefore NO independent Code Review Agent verdict for this fix wave.** An independent review of `5449315..9e61d81` is still owed before the PR.
+
+### Slice 3 — now unblocked, three binding decisions received
+
+1. **Exchange-audit FK: NO FK.** `ExchangeAudit` stores `vendorProfileId` as a plain UUID column with no FK to `supplier_profile`, plus a denormalised `supplierRef` snapshot for readability. Admin `deleteProfile` **keeps its current hard-delete semantics** — slice 2's behaviour and tests are unchanged, do NOT convert it to a soft disable. Audit rows survive profile deletion, satisfying ADR-0050 §7. `vendorProfileId` remains the identity in audit/event payloads; the `supplierRef` snapshot is descriptive only, never a join/filter key. Design Flyway V3 accordingly.
+2. **Secret-store resolver: `env:` only; allowlist NOT deployment-configurable.** No `vault:`/AWS resolver in slice 3. Already implemented this wave (`26ed6a6`). Explicitly rejected: letting deployments widen the allowlist by property, because a deployment could then allowlist a scheme nothing resolves and push the failure back to call time — the exact defect fix #4 closes.
+3. **Optimistic locking: last-write-wins accepted.** No `@Version` addition, no `version` field on profile views, no `If-Match` on PUT. The admin surface is low-concurrency (a handful of operators) and this avoids a third contract change and spec regeneration in the wave. Item #10 is **closed as decided, not deferred**. (Note: `SupplierProfileEntity` already carries a `@Version` column and the handler already maps `ObjectOptimisticLockingFailureException` → 409; the decision is only that the *version is not exposed on the contract* and `If-Match` is not required.)
+
+Carry-forwards still in force for slice 3: `supplier:audit:read` (bit 445) **must** be enforced by the audit read endpoints or removed; payload reads must themselves be audited; `sellerPartyId`/`sellerAgencyCode` must be persisted or dropped from the YAML contract (and see decision 1 above — do the mapper unification first); **do not bump `CATALOG_VERSION`**; do not touch the route bases; do not run `generate-openapi.sh` with a module filter.
