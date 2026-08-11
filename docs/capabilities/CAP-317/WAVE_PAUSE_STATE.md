@@ -591,3 +591,187 @@ cases only a regenerated artifact or a real test caught it:
 
 **Rule for this module: verify contract- and transport-shape changes against the regenerated spec or a
 real socket, never against the annotation/handler diff alone.**
+
+---
+
+## UPDATE — audit read API delivered (2026-08-11)
+
+Backend `cap/317-supplier-foundation` @ `a61b369`, **not pushed, no PR** (per standing instruction).
+durion `claude/ediwheel-integration-arch-tr3ibn` @ `400422a`.
+
+### The ADR-0025 §4 parity debt is closed
+
+Bit 445 is now genuinely enforced. Five endpoints under `/v1/supplier/admin/audit`, every one
+`@PreAuthorize`-gated on `supplier:audit:read`, and `SupplierExchangeAuditControllerWebMvcTest`
+exercises each three ways — granted, **denied while holding both `supplier:profile:read` and
+`supplier:profile:write`**, and unauthenticated. Mutation-proven: weakening the payload endpoint to
+`PROFILE_READ` fails the separation tests with `403 expected but was 200`.
+
+Endpoints: `GET /exchanges` (windowed, paginated, optional capability filter),
+`GET /exchanges/by-correlation/{id}` (oldest-first — a retry sequence only reads as a sequence in the
+order it happened), `GET /exchanges/{id}`, `GET /exchanges/{id}/payload` (the audited read),
+`GET /exchanges/{id}/accesses`.
+
+**Not nested under `/profiles/{vendorProfileId}`**, and that follows from binding decision 1: audit rows
+carry no FK and `deleteProfile` is a hard delete, so the audit trail of a *deleted* supplier is exactly
+what an investigation asks for. A path implying "child of an existing profile" would promise something
+the data model deliberately refuses. The profile is a query filter.
+
+### Two structural properties, both mutation-proven
+
+**1. Metadata reads never decrypt.** Every listing selects into `ExchangeAuditMetadata` via an explicit
+JPQL constructor expression that does not name the payload columns. Not an interface projection: "no
+plaintext is produced here" is a security property and must not depend on a projection optimisation.
+Three consequences, all wanted — no crypto work on listings, no plaintext in the JVM for a request that
+asked for none, and **a row whose payload cannot be decrypted still lists**. That last one is the point:
+the row an investigation is looking for must not be the row that breaks the listing.
+
+**2. The access record is a precondition of access, not a side effect.** `AuditAccessRecorder` is
+`MANDATORY`, does not catch, and `saveAndFlush`es inside the read's own transaction. If it cannot be
+written, the caller gets nothing.
+
+The counterpart took a second decision: `readPayload` declares
+`noRollbackFor = PayloadUnreadableException.class`. An unreadable payload is a read that **happened** and
+produced nothing usable — the case §7 most wants recorded, because it may be tampering or a mishandled
+rotation. Letting it roll back would delete the evidence of the one event worth investigating.
+
+This forced a design change worth knowing about: **payload content cannot be read through
+`ExchangeAuditEntity`.** Its converter decrypts during Hibernate *hydration*, so a decrypt failure would
+be raised from inside the persistence context with the identity needed to write the access row trapped in
+the load that just failed. Content is therefore read through `ExchangeAuditRawPayloadEntity` — a second,
+`@Immutable` mapping of the same table with **no converter** — and decrypted explicitly in the service.
+Mutation-proven: adding `@Convert` to that entity (the exact mistake its javadoc forbids) fails the
+UNREADABLE test.
+
+### Decisions taken
+
+1. **`payload_outcome`, not `decrypt_outcome`, with three values.** `NOT_CAPTURED` joins
+   `DECRYPTED`/`UNREADABLE` for the legitimately empty cases (METADATA_ONLY, no body, purged). An
+   evidentiary row must not claim a disclosure that never happened. `SupplierContractKeyParityTest` now
+   pins the enums to the V4 CHECK constraint text — that pair has a *third* copy in SQL, and a constant
+   added to the enum alone would surface as a constraint violation on an audit write, i.e. exactly where
+   §7 makes the write a precondition of serving a payload.
+2. **`PayloadUnreadableException` → 500 with its typed code and a generic message.** Handled explicitly,
+   not left to the catch-all, for three reasons: the catch-all would collapse "unconfigured key"
+   (operator error) and "failed GCM tag" (possible tampering) into `INTERNAL_ERROR`; it would log a
+   security-relevant integrity failure as "Unhandled exception"; and with rotation shipped this path is
+   **reachable in normal operation**. The exception's own message names the envelope's key id and the
+   `previous-keys` property — useful in a log, and never returned. `AUTHENTICATION_FAILED` gets its own
+   log line saying what it may mean. Test asserts the response contains neither the key id nor the
+   property name.
+3. **A 403 is not a payload read** — denials stay out of `supplier_audit_access` (schema-pinned by
+   `chk_saccess_kind`), and reading the access trail is not itself recorded, or every audit review would
+   generate the noise the next review has to sift through.
+4. **Access-row retention is permanent**, stated in the migration as a decision. The 400-day payload purge
+   deliberately does not apply: this table holds no payloads, it holds the record of who saw them.
+5. **NO `correlation_id` on the access row.** The only correlation scope this module has is
+   `SupplierCorrelationContext`, established around an **outbound** exchange — it is not in flight during
+   an inbound audit read, so the column could only ever have been null, and a permanently null column reads as
+   "this read had no correlation" rather than "we never captured one". See the follow-up below.
+6. **Half-open query windows** (`from` inclusive, `to` exclusive), replacing `Between`. Adjacent windows
+   tile without listing a boundary attempt twice; `from == to` is a typed 400 rather than a silently empty
+   page. An unknown capability filter is also a typed 400 — a filter that silently matches nothing turns a
+   typo into "this integration was never used".
+7. **`PagedResponse<T>` in `service.model`**, following pos-customer/pos-marketing rather than returning
+   Spring Data's `Page`, whose unstable nested shape would leak into the SDK. Kept free of Spring types;
+   mapping lives on the impl side of the ADR-0026 boundary.
+
+### ArchUnit caught a real defect, not a layering nit
+
+The module cycle check failed on `internal.service → internal.client`, because the recorder read
+`SupplierCorrelationContext`. Investigating rather than relocating the class revealed that scope is
+**never active during an inbound audit read** — the field would have been null in production forever. The
+cycle was removed by deleting an incorrect dependency, not by moving a class to accommodate it.
+
+**FOLLOW-UP (recorded, deliberately not actioned):** `SupplierCorrelationContext`'s javadoc states an
+inbound `X-Correlation-Id` "must be reused so a vendor exchange can be traced back to the operator action
+that caused it". **Nothing in production does this** — only a test calls `withCorrelationId`. Implementing
+it properly means a `OncePerRequestFilter` establishing the scope for every inbound request, which would
+also give outbound vendor calls the operator's correlation id and would let the access row carry an honest
+one. That is a module-wide request-handling change and was not smuggled into this slice.
+
+### Pre-existing breakage found and fixed: pos-archunit was RED
+
+`pos-archunit` had **not** been run after the scheduler-lease commit (`32d8080`) — my verification gap.
+`SupplierScheduleLeaseEntity` was violating four fleet entity rules.
+
+- **ADR-0024** (`@CreatedDate`/`@LastModifiedDate`/`@EntityListeners`): added. Behaviour-neutral for the
+  lease's DB-time guarantee — every *transition* still sets `updated_at = now()` in the atomic UPDATE;
+  the listener applies only at JPA insert, the one moment there is no transition to attribute it to.
+  Nothing about lease safety reads `updated_at`.
+- **ADR-0013** (`@UUIDv7Id` on a UUID `@Id`): added to both `SupplierScheduleLeaseEntity.bindingId` and
+  the new `ExchangeAuditRawPayloadEntity`. **Both are assigned natural-key ids that are never generated.**
+  This is safe only because `UUIDv7HibernateGenerator` returns `currentValue != null ? currentValue :
+  generate()` and reports `allowAssignedIdentifiers() == true` — verified in source, not assumed.
+
+  **Trade-off named rather than hidden:** before the annotation, saving a lease with a null `bindingId`
+  failed loudly on NOT NULL; now it would silently insert a lease keyed to a nonexistent binding, which no
+  constraint catches (valid UUID, no FK). `SupplierScheduleLeaseRepositoryTest`
+  `.assignedBindingIdSurvivesTheIdentifierGenerator` pins assigned-id-wins so a regression fails the
+  build. **DECISION GAP for the fleet:** ADR-0013 governs id *generation*; an assigned natural-key id is
+  outside its scope, and the rule has no exemption for `@Id` fields that are never generated. The correct
+  fix is to amend `EntityStandardsArchitectureTest` to exempt them — a 9-module fleet decision, so the gate
+  was satisfied rather than weakened unilaterally.
+
+### Hook integrity fix (durion `400422a`) — the mutation checker had this wave's own bug
+
+`mutation-check-hook.sh` gate 3 checked that a `Tests run:` line *existed*. Maven prints
+`Tests run: 0, Failures: 0` when a selector matches nothing, so the gate passed on a run where nothing
+executed — and a run with no tests neither fails nor proves anything, which gate 3 then reported as
+**UNDEFENDED**. Hit for real: `Class#method` does not match a method inside a `@Nested` class (surefire
+needs `Class$Nested#method`), so the first check of the `noRollbackFor` guard was reported UNDEFENDED on
+the strength of zero tests. The gate now requires a non-zero count and its abort message names the
+`@Nested` selector form. With the fix the same check reports DEFENDED.
+
+**This is the second time the same failure class has appeared in this wave.** The first produced the hook;
+the second was inside the hook.
+
+### Mutation checks recorded (11, all DEFENDED)
+
+| Mutation | Test that failed |
+| --- | --- |
+| `noRollbackFor` removed from `readPayload` | access record lost on unreadable payload |
+| `MANDATORY` → `REQUIRED` | recorder callable outside a transaction |
+| `@Convert` added to `ExchangeAuditRawPayloadEntity` | access record lost on unreadable payload |
+| access-write failure swallowed | payload served despite unrecordable read |
+| `classify` always returns `DECRYPTED` | `NOT_CAPTURED` outcome |
+| `!to.isAfter(from)` → `to.isBefore(from)` | empty-window rejection |
+| metadata read routed through `findById` (entity hydration) | undecryptable row readable by id |
+| payload endpoint `@PreAuthorize` weakened to `PROFILE_READ` | both permission-separation tests |
+| `NOT_CAPTURED` dropped from the V4 CHECK constraint | enum↔constraint parity |
+| `@CreatedDate` removed from the lease | NOT NULL insert |
+| (plus the pre-fix run that exposed the hook's own gate bug) | — |
+
+### Gate results at `a61b369`
+
+| Gate | Result |
+| --- | --- |
+| `./mvnw -pl pos-supplier -DskipTests=false test` | **499 tests, 0 failures** (313 → 499) |
+| `./mvnw -pl pos-supplier -DskipTests=false verify` | **BUILD SUCCESS** |
+| `./mvnw -pl pos-archunit -am -DskipTests=false test` | **BUILD SUCCESS** (was RED before this slice) |
+| lint hook `--module pos-supplier` | **PASS** — 113 rules / 28 touched files, **0 findings** |
+| `scripts/check-flyway-hygiene.sh` | **passed**, 25 modules |
+| `scripts/check-authz-doc-drift.sh` | **passed**, catalog v42 unchanged |
+| `pos-supplier/openapi.yaml` | regenerated via the `openapi` profile — **+5 paths, +5 schemas, 0 changed, 0 removed** |
+| `pos-api-gateway/docs/openapi-aggregate.yaml` | rebuilt with the full **26**-module list — +10 lines, 773 → 778 paths, **additive-only**, no module dropped |
+| Contract-rule audit of the 5 new operations | 401 bodiless ×5, 403 `ApiError` ×5, every 4xx/5xx `ApiError`, every parameter has schema + description |
+| Full-reactor `verify` | **NOT RUN** — close-out gate |
+
+`check-authz-doc-drift.sh` requires durion as a **sibling** of the backend (`../durion`); in this
+container durion lives elsewhere, so a symlink was needed. Worth knowing before reporting it as broken.
+
+### Still owed before close-out
+
+1. **`updateAuthConfig` / delete / rename → OAuth2 cache invalidation.** NOT IMPLEMENTED. Seam decided:
+   `internal.service` publishes a plain-record application event and `OAuth2ClientCredentialsAuthStrategy`
+   `@EventListener`s it, so no `service → client` compile dependency appears. Put the event in
+   `internal.spi` (framework-clean, already the neutral package for exactly this) — `service → spi` and
+   `client → spi`, no cycle. `SupplierAuthStrategies.invalidateCachedCredential` already exists and is
+   wired for 401s; only the admin-write trigger is missing. Today an operator who rotates a client secret
+   keeps failing until the cached token expires naturally — up to an hour.
+2. **Token-leg timeouts.** NOT IMPLEMENTED. Must come off the existing per-binding client cache; the
+   now-false `RestClientConfig` javadoc needs correcting and the caught cause needs chaining.
+3. **Independent Code Review of the persistence + audit-read range** (`1f6fc1a..HEAD`). Still owed; this
+   session had no subagent-invocation tool, so there is again no independent verdict.
+4. `pos-supplier/README.md` + `BACKEND_CONTRACT_GUIDE.md` (close-out item 9).
+5. The inbound-correlation filter (above), and the fleet ADR-0013 assigned-id exemption decision.
