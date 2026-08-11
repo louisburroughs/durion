@@ -19,8 +19,12 @@ set -euo pipefail
 # considered sufficient evidence, not in string handling — so these cases drive the real hook end to end
 # against real Maven output.
 #
+# This script is mirrored, byte-identical, at .github/hooks/ and .claude/hooks/. Run whichever copy you
+# are reading: it resolves the hook under test as a sibling of itself, so each copy tests the hook that
+# sits beside it.
+#
 # Usage:
-#   ./.github/hooks/mutation-check-selftest.sh [--repo /abs/path/to/durion-positivity-backend]
+#   mutation-check-selftest.sh [--repo /abs/path/to/durion-positivity-backend]
 #
 # Exit codes: 0 = every case behaved as specified
 #             1 = the hook misbehaved (details printed), or the fixture no longer matches the codebase

@@ -18,8 +18,11 @@ set -euo pipefail
 # The original file is restored unconditionally, including on error or interrupt, and the restoration is
 # itself verified byte-for-byte.
 #
+# This script is mirrored, byte-identical, at .github/hooks/ and .claude/hooks/. Run whichever copy you
+# are reading; the self-test resolves its hook as a sibling of itself, so each copy tests itself.
+#
 # Usage:
-#   ./.github/hooks/mutation-check-hook.sh \
+#   mutation-check-hook.sh \
 #     --repo /abs/path/to/durion-positivity-backend \
 #     --file pos-supplier/src/main/java/.../Foo.java \
 #     --find 'the exact source text to remove or change' \
@@ -35,6 +38,11 @@ repo_path=""
 target_file=""
 find_text=""
 replace_text=""
+# Tracked separately from replace_text because an EMPTY replacement is legitimate (deleting the matched
+# text is a common mutation), so emptiness cannot distinguish "--replace ''" from "--replace omitted".
+# Without this, forgetting the flag silently deletes the matched text and reports the result as though
+# the intended mutation had been applied.
+replace_given=""
 module=""
 test_selector=""
 expect_message=""
@@ -47,12 +55,14 @@ while [[ $# -gt 0 ]]; do
     --repo) repo_path="$2"; shift 2 ;;
     --file) target_file="$2"; shift 2 ;;
     --find) find_text="$2"; shift 2 ;;
-    --replace) replace_text="$2"; shift 2 ;;
+    --replace) replace_text="$2"; replace_given=1; shift 2 ;;
     --module) module="$2"; shift 2 ;;
     --test) test_selector="$2"; shift 2 ;;
     --expect-fail-message) expect_message="$2"; shift 2 ;;
     --java-home) java_home="$2"; shift 2 ;;
-    -h|--help) sed -n '3,30p' "$0"; exit 0 ;;
+    # Prints the whole leading comment block. Derived from the file rather than a hard-coded line range,
+    # which silently truncated help whenever the block grew.
+    -h|--help) awk 'NR < 3 { next } /^#/ { sub(/^# ?/, ""); print; started = 1; next } started { exit }' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -63,6 +73,12 @@ for required in repo_path target_file find_text module test_selector; do
     exit 1
   fi
 done
+
+# Checked apart from the loop above: --replace must be PRESENT, but its value may be empty.
+if [[ -z "$replace_given" ]]; then
+  echo "MUTATION CHECK MISUSE | --replace is required; pass --replace '' to delete the matched text" >&2
+  exit 1
+fi
 
 cd "$repo_path"
 if [[ ! -f "$target_file" ]]; then
