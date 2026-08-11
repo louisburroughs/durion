@@ -184,3 +184,26 @@ The executing session had **no subagent-invocation tool**: `API Planner`, `anvil
 3. **Optimistic locking: last-write-wins accepted.** No `@Version` addition, no `version` field on profile views, no `If-Match` on PUT. The admin surface is low-concurrency (a handful of operators) and this avoids a third contract change and spec regeneration in the wave. Item #10 is **closed as decided, not deferred**. (Note: `SupplierProfileEntity` already carries a `@Version` column and the handler already maps `ObjectOptimisticLockingFailureException` → 409; the decision is only that the *version is not exposed on the contract* and `If-Match` is not required.)
 
 Carry-forwards still in force for slice 3: `supplier:audit:read` (bit 445) **must** be enforced by the audit read endpoints or removed; payload reads must themselves be audited; `sellerPartyId`/`sellerAgencyCode` must be persisted or dropped from the YAML contract (and see decision 1 above — do the mapper unification first); **do not bump `CATALOG_VERSION`**; do not touch the route bases; do not run `generate-openapi.sh` with a module filter.
+
+### Follow-ups recorded, deliberately NOT actioned (coordinator-confirmed)
+
+- **Fleet-wide ADR-0042 §1 description-depth gap — NOT pos-supplier's to close alone.** ADR-0042 §1
+  asks for a 7-part, 4–8-sentence tool-invocation description per operation. **No module in the repo
+  follows it.** Median operation description length: pos-warranty 54 chars, pos-accounting 70,
+  pos-people-contact 64, pos-supplier 58. `OpenApiModuleValidator` asserts description *presence*
+  only, so `mode: STRICT` does not enforce depth either. Rewriting pos-supplier's 17 descriptions
+  alone would make it the sole compliant module of 26 — a unilateral divergence in voice. Belongs in
+  its own fleet-wide effort. The four items actually constituting slice-2 review finding #3
+  (4xx → `ApiError`, 401/403 documented, `@Schema` on the admin records, `@Parameter`
+  schema/example) are complete.
+- **`module-inventory.yaml` also misses `pos-marketing`, `pos-people-contact`, `pos-tax`**
+  (22 entries vs 26 spec-producing modules) — their specs are validated by nothing. Only
+  `pos-supplier` was registered, per scope.
+- **`pos-security-common` `spotless:check` already failed at base `da21c33`** on the
+  `pos-people-contact` bits 443–444 comment padding. Pre-existing; not CAP-317's to repair.
+
+> **Note on this file vs `Durion-Processing.md`:** `.gitignore:9` lists `Durion-Processing.md` under
+> "#temp processing document", so the execution ledger is a **transient local run artifact and is
+> never committed** (hence `.github/hooks/safe-delete-DP.sh`). `WAVE_PAUSE_STATE.md` is the tracked,
+> durable resume brief. Anything that must survive a session — decisions, gate evidence, follow-ups —
+> belongs **here**, not only in the ledger.
