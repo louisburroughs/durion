@@ -910,3 +910,167 @@ rule cannot see it.
 2. `pos-supplier/README.md` + `BACKEND_CONTRACT_GUIDE.md`.
 3. Follow-ups: inbound `X-Correlation-Id` filter; cross-instance credential invalidation; fleet ADR-0013
    assigned-id exemption (now cosmetic); CAP-318 per-binding redaction (F6).
+
+---
+
+## UPDATE — final review queue cleared (2026-08-11)
+
+### Accounting correction first
+
+The previous update's F12 row covered **two different items under one heading**, and that is how the
+`endpoint_uri` question disappeared: it read as closed because the row said "Fixed". One row per finding from
+here on. The two items are now separated, and both are resolved below.
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| F12a | Oversized `correlation_id` costing audit rows | **Fixed** — truncated in the writer. |
+| F12b | `endpoint_uri` retained in plaintext, unpurged, at every capture level | **Was never decided.** Now decided: redact. See below. |
+
+### HIGH — `protocol_version` was the one bounded audit column written untruncated
+
+All three legs confirmed: the writer applied no bound, V3 declared `varchar(32)`, and the **source** column on
+`SupplierEndpointBindingEntity` is `varchar(64)` with no `@Size` on the DTO and no registry gate. So an
+operator could PUT a 33–64 character version through the documented admin API and every subsequent audit
+insert for that binding would fail `22001`, be swallowed by the observer, and leave the exchange succeeding.
+Every row for that binding permanently missing from the §7 trail, with an ERROR log as the only trace, and
+`ddl-auto: validate` does not compare widths.
+
+**Fixed by widening, not truncating.** V5 takes the audit column to 64 to match its source, and
+`EndpointBindingRequest.version` gains `@Size(max = 64)`. Truncating would have been wrong in a way the other
+three bounds are not: this value **selects a codec**, so a shortened one would make the row misreport which
+vendor norm built the document. Present-and-wrong is worse than absent-and-logged.
+
+**And the class is closed, not just the instance.** `ExchangeAuditColumnWidthParityTest` parses every
+`truncate(x, N)` bound out of the writer and every column width out of V3 + V5 and requires them to agree, and
+separately requires each bounded, externally-influenced column to be either truncated or a *recorded* exception
+with its reason. That is what stops a third occurrence — this was the second.
+
+Two things worth noting about that test. It caught a real drift immediately: adding URI redaction put a comma
+inside `truncate(...)`, the bound stopped being visible, and the test reported `endpoint_uri` as unprotected
+rather than passing quietly. The writer now assigns the redacted URI to a local so the bound stays greppable.
+And the parse itself is guarded — an empty match set fails, because a parity test that silently stops parsing is
+the exact failure mode it exists to prevent.
+
+### F12b — `endpoint_uri`: redact, don't accept (ADR-0050 §4/§7)
+
+**The decision.** `PayloadRedactor.redactUri` applies the existing form-field patterns to the query string, and
+`METADATA_ONLY` strips the query string **entirely**.
+
+**Why redaction rather than accepting the status quo.** This is the only audit column stored in plaintext at
+every capture level *and* exempt from the 400-day purge, so anything in it is kept permanently and is readable
+by any holder of `supplier:audit:read`. A binding configured to retain nothing retained the full URI forever.
+The entity javadoc asserted that credentials never travel in the URI — true of the three shipped strategies and
+**enforced by nothing**; a fourth strategy or a binding path carrying `?apikey=...` would put a live credential
+into permanent unpurged storage. That javadoc is now a statement of current fact naming the redaction as the
+control, not an assertion about caller behaviour.
+
+**Why `METADATA_ONLY` drops the whole query string** rather than only sensitive names: that level's meaning is
+that no content is retained, and query parameters *are* content — order numbers, part numbers, account
+references, date ranges. Redacting only the sensitive list would leave commercial data in the one column that
+is never purged. The path is always kept; which endpoint was called is metadata and is the point of the trail.
+
+**Not rejected:** query strings in a binding `path`. Vendors legitimately need query parameters and the client
+already supports them.
+
+### The remaining four
+
+| # | Finding | Resolution |
+| --- | --- | --- |
+| 2 [med] | F1's inversion incomplete — `prod,dev` still minted an ephemeral key | **Fixed.** Now **every** active profile must be optional, not merely one of them. A deployment profile always wins. `KeyPolicy` covers `prod,dev`, `dev,prod`, `alpha,test` and `dev,docker`. |
+| 4 [med] | `SupplierHttpClients` javadoc false in its second half | **Doc corrected, code unchanged.** |
+| 5 [med] | The `@EventListener` half of the invalidation seam unproven | **Fixed.** `SupplierCredentialInvalidationWiringTest` publishes through a real `ApplicationEventPublisher` and asserts eviction. Mutation-proven: deleting the annotation fails it. |
+| 6, 7, 8 | Stale/contradictory javadoc | **Fixed** at all three sites. |
+| 9, 10, 11 | Optional hardening | **9 done** (compose and `.env.example` pinned by test). **10** recorded for the owed README. **11** below. |
+
+**On finding 2**, the reversal is deliberate and documented: a developer running `dev,local` must now drop the
+extra profile or supply a key. That is the right side to err on for the only control standing between a real
+deployment and permanently unreadable commercial history — every relaxation of it should be one somebody typed
+on purpose. The old presence-based test was replaced rather than deleted, so the reversal is visible.
+
+**On finding 4**, the reviewer is right and this is the wave's own recurring pattern: the doc claimed the
+factory swap mattered on the token leg because a read timeout may have minted a token server-side and must not
+be retried. The code maps every `RestClientException` to `PRE_SEND_FAILURE` — retryable — and that behaviour is
+correct, because a token-leg failure means nothing reached the vendor's *business* endpoint. A wasted token is
+not a duplicate submission. The doc now says what the swap actually buys: a type-safe timeout distinction and
+refused redirects, the latter mattering more on this leg than the main one, since a followed redirect would
+replay client credentials to whatever host the `Location` header named.
+
+The missing coverage is also closed: `SupplierHttpClientsTest` asserts the factory type, the redirect policy,
+the applied connect timeout, per-pair caching, and — the gap that mattered — that all three
+`pos.supplier.oauth2.*` `@Value` keys are declared in `application.yml`. A typo in one would have silently
+fallen back to the annotation default with the suite green. The properties are now declared explicitly rather
+than left implicit. The constructor check is asserted on parameter **types**, after a first version that
+grepped the source and failed on the comment explaining the fix — a test that breaks when you document
+something is testing prose.
+
+### Finding 11 — the batching decision, recorded explicitly
+
+Spec regeneration is **batched once per wave, after all contract work**, not per commit. Each run boots the
+application (~10 minutes here) and the aggregate must then be rebuilt with the full 26-module list. Running it
+per commit would multiply that cost for intermediate states nobody ships, and the risk it guards against —
+drift between annotations and the generated artifact — is only real at the point the wave is handed over. The
+countervailing risk is that a contract change lands and is not regenerated; that is covered by regenerating
+before every close-out and diffing, which is where this wave found that its module spec had not changed at all.
+
+### Gates at the final commit
+
+| Gate | Result |
+| --- | --- |
+| Full-reactor `./mvnw -DskipTests=false test` | **BUILD SUCCESS — 41 modules**, pos-supplier and pos-archunit green in the same run |
+| Full-reactor `verify` (with ITs) | **RED, and not CAP-317's** — see the section below for the three causes and how each was proven |
+| `./mvnw -pl pos-supplier -am -DskipTests=false verify` | **BUILD SUCCESS** — pos-supplier **538** tests (519 to 538) |
+| `./mvnw -pl pos-archunit -am -DskipTests=false test` | **BUILD SUCCESS** |
+| `./mvnw -pl pos-supplier spotless:check` | **clean** |
+| lint hook, touched files | **PASS**, 113 rules, **0 findings** |
+| `scripts/generate-permissions.sh --sync --check` | **exit 0**, **CATALOG_VERSION 42 unchanged** |
+| `scripts/check-flyway-hygiene.sh` | **passed** |
+| spec + 26-module aggregate | regenerated, diff recorded |
+
+### The full-reactor gate — run, and here is exactly what it says
+
+This was the gate deferred all wave. It was worth running: **two of my assumptions about it were wrong**, and
+only running it showed that.
+
+**`./mvnw -DskipTests=false test` across the whole reactor: BUILD SUCCESS, 41 modules, every unit test in
+every module, with `pos-supplier` and `pos-archunit` both green in the same invocation.** That is the gate
+green and recorded.
+
+**`./mvnw -DskipTests=false verify` across the whole reactor cannot pass in this container**, for three
+reasons, none of them CAP-317's and each established by running something rather than reasoning:
+
+1. **`pos-accounting` `ReportExportRenderingContractBehaviorIT.trialBalanceCsvMatchesJson`** fails with
+   `Table "LATERAL" not found` — the query is `CROSS JOIN LATERAL generate_series(...)`, PostgreSQL-only,
+   executed against H2.
+
+   I first assumed this was pre-existing because pos-accounting is untouched by the branch and has no
+   dependency on pos-supplier. **That reasoning was insufficient and the test caught me**: the branch also
+   touches the root `pom.xml`. So I built a worktree at the branch base `da21c33` and ran it there. The single
+   IT **passes** in isolation at base — which briefly looked like a regression — and the **full pos-accounting
+   module fails identically at base**, same test, same SQL. It only fails when the whole IT suite runs, so
+   there is cross-IT data coupling that makes this test reach a PostgreSQL-only query. Pre-existing, proven,
+   and pos-accounting's to fix.
+
+2. **`FlywayMigrationIT` requires Docker**, which this container does not provide
+   (`DockerDesktopClientProviderStrategy ... no valid configuration was found`). It exists in four modules:
+   `pos-customer`, `pos-people`, `pos-people-contact`, `pos-workorder`. Environmental, not a defect.
+
+3. **`pos-archunit` fails under `verify` but passes under `test`** — and this is expected, documented
+   behaviour, not a regression. `verify` runs `spring-boot:repackage`, so upstream modules become fat jars and
+   ArchUnit cannot see application classes inside `BOOT-INF/classes`. Its own `ClasspathVisibilityGuardTest`
+   detects exactly this and prints the remedy (issue #909): run `-pl pos-archunit -am`. Which is why that has
+   always been its own gate, and why the `test`-phase reactor run has it green.
+
+**What this means for close-out:** the full-reactor `verify` gate needs a CI environment with a Docker daemon,
+and it will still be red until pos-accounting's `generate_series` query is fixed or its ITs are decoupled. That
+is a separate blocker to raise against pos-accounting, not something to fix or work around inside CAP-317.
+Recorded rather than softened.
+
+<!-- Superseded gate rows: the table above listed the full-reactor row as "see below". This section is that row. -->
+
+### Still owed at close-out
+
+1. `pos-supplier/README.md` + `BACKEND_CONTRACT_GUIDE.md` — and the README must note that this module's tests
+   require the `test` Spring profile, activated by a surefire `systemPropertyVariables` entry, because
+   `AuditPayloadCipher` fails closed without a key (finding 10).
+2. Follow-ups: inbound `X-Correlation-Id` filter; cross-instance credential invalidation; fleet ADR-0013
+   assigned-id exemption (cosmetic); CAP-318 per-binding redaction and positional-format field maps.
