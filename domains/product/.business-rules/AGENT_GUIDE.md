@@ -35,6 +35,7 @@ The Product domain owns product/service/non-inventory catalog entities, catalog 
 | DECISION-PRODUCT-008 | Substitutes endpoint is read-only and currently not implemented |
 | DECISION-PRODUCT-009 | IDs are opaque UUID values to clients |
 | DECISION-PRODUCT-010 | Standard error envelope required for future hardening |
+| DECISION-PRODUCT-011 | Catalog pricing surface is list/MSRP reference only (ADR-0054) |
 
 ## Domain Boundaries
 
@@ -88,6 +89,7 @@ The Product domain owns product/service/non-inventory catalog entities, catalog 
 | DECISION-PRODUCT-008 | Substitutes endpoint exists but is intentionally 501 | [ADR-0017](../../../docs/adr/0017-api-controller-http-response-codes.adr.md) |
 | DECISION-PRODUCT-009 | Clients must treat IDs as opaque | [ADR-0013](../../../docs/adr/0013-platform-uuid-identifier-strategy.adr.md) |
 | DECISION-PRODUCT-010 | Standardized error envelope is required as contract hardening follow-up | [ADR-0017](../../../docs/adr/0017-api-controller-http-response-codes.adr.md) |
+| DECISION-PRODUCT-011 | `pos-catalog` prices are reference-only; transactional quoting is owned by `pos-price` (customer pays → `pos-price`; list/MSRP → `pos-catalog`) | [ADR-0054](../../../docs/adr/0054-sell-price-system-of-record-split.adr.md) |
 
 ## Open Questions
 

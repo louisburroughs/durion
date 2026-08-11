@@ -200,6 +200,26 @@ Headers and auth notes:
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
 
+### Reference Price Resolution & Customer-Tier Books (ADR-0054)
+
+- `resolvePrice` (`POST /v1/products/price-books/resolve-price`) resolves **reference/list
+  price data only** — never a transactional sell price. Transactional quoting (what a customer
+  pays) is owned exclusively by `pos-price` (ADR-0054 §1).
+- Candidate price book resolution selects exactly one book in precedence order: explicit
+  `priceBookId` → active `LOCATION` book (`locationId`) → active `CUSTOMER_TIER` book
+  (`customerTierId`) → `COMPANY_DEFAULT` (`isDefault=true`). A supplied context whose book is
+  missing or inactive falls through to the next step (ADR-0054 §3).
+- `customerTierId` (UUID) selects a `CUSTOMER_TIER` book by matching the book's `scopeId`;
+  the separate `customerTier` (string label) matches rule-level `CUSTOMER_TIER` conditions
+  inside the selected book. They are distinct inputs with distinct purposes.
+- Catalog customer-tier books define **reference/list prices for a tier**; `pos-price`
+  customer-tier *discounts* are the applied transactional mechanism. The two are never
+  competing resolvers: pos-price discounting applies on top of, never in competition with,
+  the catalog reference price.
+- Rules inside a selected customer-tier book resolve by the existing SKU → category → global
+  precedence (priority desc, effective-start desc, rule UUID tie-break) — no tier-specific
+  rule semantics.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.

@@ -33,6 +33,7 @@ This document is the normative guide for the Pricing domain. It defines system-o
 | DECISION-PRICING-016 | Deactivation mechanism (status vs effectiveEndAt) |
 | DECISION-PRICING-017 | Product lookup contract for pricing admin screens |
 | DECISION-PRICING-018 | MSRP historical immutability and permissions |
+| DECISION-PRICING-019 | Sell-price system-of-record split (pos-price quoting vs pos-catalog reference) |
 
 ## Domain Boundaries
 
@@ -103,6 +104,7 @@ These are the normative API contract expectations until backend contracts diverg
 | DECISION-PRICING-016 | Prefer `effectiveEndAt` for deactivation; status is derived | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-016--deactivation-mechanism-status-vs-effectiveendat) |
 | DECISION-PRICING-017 | Admin uses Inventory product search API for product selection | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-017--product-lookup-contract-for-pricing-admin-screens) |
 | DECISION-PRICING-018 | Past MSRP records are immutable unless special permission present | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-018--msrp-historical-immutability-and-permissions) |
+| DECISION-PRICING-019 | pos-price owns transactional quoting; pos-catalog owns list/MSRP reference (ADR-0054) | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-pricing-019--sell-price-system-of-record-split-adr-0054) |
 
 ## Open Questions (from source)
 

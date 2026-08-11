@@ -99,6 +99,20 @@ Headers and auth notes:
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
 
+### Base Price Effective Windows (ADR-0054 §4)
+
+- Base prices in `pos-price` are history-retaining: each row is one effective window per
+  (productId, currency); price changes append a new row and close the predecessor's window.
+- Window semantics are half-open on `Instant`: a base price row is effective for instants `t`
+  where `effectiveFrom <= t < effectiveTo`; a null `effectiveTo` means the window is open-ended
+  (inclusive start, exclusive end).
+- Quote resolution (`calculatePriceQuote`) selects the base-price window covering the pricing
+  instant. When no window covers it, the API returns `404` with `ApiError` code
+  `PRICE_BASE_UNAVAILABLE` (replaces the former `PRODUCT_NOT_FOUND` on this path).
+- Base-price writes that would overlap or backdate the latest existing window are rejected with
+  `409` and `ApiError` code `PRICE_BASE_WINDOW_CONFLICT`; re-submitting the current open window's
+  price is an idempotent no-op.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
