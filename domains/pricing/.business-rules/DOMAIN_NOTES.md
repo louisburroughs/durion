@@ -340,7 +340,8 @@ This document is the non-normative rationale and decision log for the Pricing do
 ### DECISION-PRICING-019 — Sell-price system-of-record split (ADR-0054)
 
 - Normative source: `AGENT_GUIDE.md` (Decision ID); ADR-0054 (durion#382, decided 2026-08-10)
-- Decision: `pos-price` owns transactional sell-price resolution (quote chain: base price → location override → customer-tier discount) and is the only source read by quotes, workorder/estimate pricing, and checkout; `pos-catalog` owns list/MSRP reference pricing (price books, MSRP history, reference series including PRICAT suggested retail per ADR-0053 §4), which is displayable and reportable but never a transactional price source.
+- Decision: `pos-price` owns transactional sell-price resolution (quote chain: base price → location override → customer-tier discount) and is the only source read by quotes, workorder/estimate pricing, and checkout.
+  `pos-catalog` owns list/MSRP reference pricing (price books, MSRP history, and reference series including PRICAT suggested retail per ADR-0053 §4); it is displayable and reportable but never a transactional price source.
 - Alternatives considered:
  	- Option A (chosen): Narrow both models to documented, non-overlapping roles
  	- Option B: Retire one of the two sell-price models
