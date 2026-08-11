@@ -286,3 +286,105 @@ than loud — treat any 409 with that code as a defect signal.
 - **No module supplies swagger `@RequestBody` description/required/examples** (ADR-0042 §3).
 - **pos-supplier is now strictly ahead of the fleet** on 401/403 documentation and `ApiError` response
   typing — pos-warranty documents neither. Scope all three ADR-0042 gaps into one fleet pass.
+
+---
+
+## FOLLOW-UP (own PR, NOT this wave) — resilience4j family is half-pinned and resolves split
+
+**Proven, not inferred.** `./mvnw -pl pos-document-helper dependency:tree -Dincludes='io.github.resilience4j:*'`
+and the same for `pos-supplier` both resolve **identically**:
+
+```
+resilience4j-spring-boot4      2.4.0   <- root pom pin
+  resilience4j-spring6         2.3.0
+    resilience4j-annotations   2.3.0
+    resilience4j-consumer      2.3.0
+    resilience4j-framework-common 2.3.0
+  resilience4j-micrometer      2.3.0
+    resilience4j-bulkhead / -ratelimiter / -timelimiter  2.3.0
+resilience4j-retry             2.4.0   <- root pom pin
+  resilience4j-core            2.3.0
+resilience4j-circuitbreaker    2.3.0
+```
+
+So **2.4.0 autoconfiguration and retry sit on a 2.3.0 core / circuitbreaker / spring6 / micrometer
+stack**. `resilience4j-retry:2.4.0` depends on `resilience4j-core:2.3.0`.
+
+### Exact mechanism (traced to the line)
+
+1. Root `pom.xml` imports `spring-cloud-dependencies:${spring-cloud.version}` (2025.1.2).
+2. That transitively imports `spring-cloud-circuitbreaker-dependencies:5.0.2`, which at
+   **line 88** sets `<resilience4j.version>2.3.0</resilience4j.version>` and at **lines 92–98**
+   imports `io.github.resilience4j:resilience4j-bom` at that version — managing the whole family.
+3. Root `pom.xml` `dependencyManagement` then overrides **exactly two** artifacts
+   (`resilience4j-retry`, `resilience4j-spring-boot4`) to `${resilience4j.version}` = **2.4.0**.
+4. **Spring Boot's own BOM (4.1.0) does not manage resilience4j at all** — verified by grepping
+   `spring-boot-dependencies-4.1.0.pom`. The 2.3.0 baseline is Spring Cloud's, not Boot's.
+
+**The defect is the half-pin**, not any single artifact: two members of a family that an imported
+BOM manages as a coherent set are overridden individually.
+
+### Two options
+
+- **A (leaning, and the coordinator's): delete both partial pins** and let the imported
+  `resilience4j-bom` govern the whole family at 2.3.0. Coherent, the combination Spring Cloud
+  ships and tested, zero new downloads. Also removes the `resilience4j.version` property's
+  misleading appearance of controlling the family.
+- **B: import `resilience4j-bom:2.4.0` explicitly** in root `dependencyManagement` *before* the
+  spring-cloud import, moving the whole family up together. Coherent at a newer version, but
+  pulls new artifacts and diverges from what Spring Cloud 2025.1.2 was tested against.
+
+### Why not in this wave
+
+Either change alters what **`pos-document-helper` and `pos-tax`** resolve, so it needs their test
+suites as evidence and belongs in its own PR — not inside a capability wave. `pos-supplier` mirrors
+`pos-document-helper`'s GAVs exactly and inherits the split rather than introducing it (proven: both
+trees are identical).
+
+### Consequence already honoured in pos-supplier
+
+**Do not rely on any resilience4j auto-configured behaviour that differs across 2.3/2.4.** The module
+configures `Retry`/`CircuitBreaker` **programmatically** (matching `DocumentClient`), ships **no**
+resilience4j yaml, and leaves **`registerHealthIndicator` off** — verified: the string appears only in
+explanatory comments, never as a setting.
+
+---
+
+## DECISION — supplier health indicator always reports UP (new repo pattern, justified)
+
+`SupplierClientHealthIndicator` reports breaker state in `details` only and **never DOWN**.
+
+**The hazard it closes.** `docker-compose.yml:1291-1297` gives pos-supplier
+`healthcheck: wget -qO- http://localhost:8080/actuator/health` (`retries: 12`,
+`start_period: 300s`), and `application.yml:20-29` exposes `health` with **no health groups defined**
+and `show-details: when-authorized`. Every contributor therefore lands in the aggregate status the
+container healthcheck reads. Sibling services in the same file gate startup on
+`condition: service_healthy`. So a DOWN on breaker-open would mark the container unhealthy on one
+vendor's outage, Docker would restart it, and dependents would refuse to start — **handing any vendor
+a restart lever over our own service.** A supplier being unreachable is the expected steady state a
+circuit breaker exists to absorb; pos-supplier with every vendor down still serves its admin API and
+audit reads perfectly well.
+
+*Verified nuance:* **nothing currently gates on pos-supplier** (`depends_on` scan found no
+dependents — it is a new module), so today's hazard is the **container restarting itself**; the
+dependent-startup hazard is latent and arrives with the first consumer.
+
+**Constraints honoured**
+- Always `Health.up()`; never `status(open > 0 ? DOWN : UP)`. **Mutation-checked**: applying
+  resilience4j's OPEN→DOWN default fails 3 tests, each naming the restart hazard.
+- `registerHealthIndicator` **not** set on any resilience4j config (its default is this hazard).
+- Keys are `(vendorProfileId, capability)`; breaker name `supplier.<vendorProfileId>.<CAPABILITY>`.
+- Details carry no credential material — a test asserts the rendered details contain no `http://`,
+  `https://`, `Bearer `, `Basic `, `env:` or `apikey`, which matters because
+  `show-details: when-authorized` makes them HTTP-reachable.
+- **Micrometer is the alerting channel** for breaker state; health answers "is this pod serviceable",
+  and it is. A per-key gauge follows with `SupplierClientMetrics`.
+
+New repo pattern (no `HealthIndicator` exists anywhere else in the repo), justified because the
+alternative default would let a vendor outage restart our container. Boot 4 package is
+`org.springframework.boot.health.contributor` — verified against `spring-boot-health-4.1.0.jar`, not
+guessed.
+
+**If a future wave adds health groups**, the alternative shape is to keep this indicator out of the
+default group and expose it at `/actuator/health/suppliers`; the always-UP contract makes that
+optional rather than necessary.
