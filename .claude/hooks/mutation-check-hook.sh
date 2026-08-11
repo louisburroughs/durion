@@ -154,7 +154,39 @@ if [[ "$test_exit" == "0" ]]; then
   exit 1
 fi
 
-if [[ -n "$expect_message" ]] && ! grep -qF "$expect_message" "$output_file"; then
+# ── Gate 4: a Spring-context test MUST name the assertion it expects to fail ───────────
+# A test that boots a Spring context has two ways to fail, and they look the same from out here: the
+# assertion under test firing, or the context failing to start. The second happens for reasons that have
+# nothing to do with the guarantee -- a mutation that breaks a bean definition, a missing property, a
+# constructor signature the mutation invalidated -- and it is indistinguishable from success at the exit-code
+# level. Recording that as DEFENDED would be the same class of false evidence as the "Tests run: 0" bug.
+#
+# So for those tests, --expect-fail-message is required rather than optional. Detected by the annotations
+# actually present in the test source, not by naming convention.
+#
+# Checked AFTER the run rather than before, deliberately: when the selector is also wrong, the
+# 'no tests actually ran' abort above is the more useful message, and reporting a missing argument
+# would mask it.
+if [[ -z "$expect_message" ]]; then
+  test_class="${test_selector%%#*}"
+  test_class="${test_class%%\$*}"
+  context_test_file="$(find . -path ./target -prune -o -name "${test_class}.java" -print 2>/dev/null | head -1)"
+  if [[ -n "$context_test_file" ]] && grep -qE '@(SpringBootTest|DataJpaTest|WebMvcTest|SpringJUnitConfig|ContextConfiguration)' "$context_test_file"; then
+    echo "MUTATION CHECK ABORTED | '$test_class' loads a Spring context, so --expect-fail-message is required." >&2
+    echo "  A context test can fail because the assertion fired OR because the mutation broke context" >&2
+    echo "  startup, and those are indistinguishable by exit code. Without the expected message, a" >&2
+    echo "  DEFENDED verdict would not mean the guarantee is defended." >&2
+    echo "  Pass the text the failure must contain -- note that AssertJ's .as(...) description is NOT" >&2
+    echo "  included when assertThatThrownBy fails because nothing was thrown, so match on the assertion" >&2
+    echo "  text ('Expecting code to raise a throwable', 'expected: ... but was: ...') in that case." >&2
+    rm -f "$output_file"
+    exit 1
+  fi
+fi
+
+# `grep -qF --` : an expected message may start with a dash; without the terminator grep would read it
+# as a flag and report a spurious mismatch.
+if [[ -n "$expect_message" ]] && ! grep -qF -- "$expect_message" "$output_file"; then
   echo "MUTATION CHECK RESULT: FAILED FOR THE WRONG REASON"
   echo "  The test failed, but its output does not contain: $expect_message"
   echo "  It may be failing on setup or an unrelated assertion rather than the guarantee."

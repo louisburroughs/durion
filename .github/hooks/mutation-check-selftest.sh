@@ -62,6 +62,10 @@ fixture_replace='@Transactional'
 fixture_class="SupplierExchangeAuditPersistenceTest"
 fixture_nested="PayloadReads"
 fixture_method="keepsTheAccessRecordWhenTheStoredContentCannotBeDecrypted"
+# What the failure output must contain. Deliberately NOT the AssertJ .as(...) description: when
+# assertThatThrownBy fails because nothing was thrown at all, AssertJ raises before the description is
+# attached, so matching on it would report FAILED FOR THE WRONG REASON on a perfectly good check.
+fixture_expected_message="noRollbackFor must keep this record"
 
 failures=0
 case_number=0
@@ -84,7 +88,9 @@ expect() {
     echo "   FAIL | expected exit ${expected_exit}, got ${actual_exit}"
     ok=false
   fi
-  if ! grep -qF "$expected_text" <<<"$output"; then
+  # `grep -qF --` : the expected text can legitimately start with a dash (an option name being
+  # reported), and without the terminator grep would parse it as its own flag and fail confusingly.
+  if ! grep -qF -- "$expected_text" <<<"$output"; then
     echo "   FAIL | output did not contain: ${expected_text}"
     ok=false
   fi
@@ -137,7 +143,8 @@ expect "the same guard with Class\$Nested#method reports DEFENDED" \
   0 "MUTATION CHECK RESULT: DEFENDED" \
   "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
   --find "$fixture_find" --replace "$fixture_replace" \
-  --test "${fixture_class}\$${fixture_nested}#${fixture_method}"
+  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+  --expect-fail-message "$fixture_expected_message"
 
 # ── Case 4: gate 1 still guards a stale pattern ───────────────────────────────────────
 # The hook's original reason for existing: a search pattern that no longer matches (formatters rewrite
@@ -146,6 +153,17 @@ expect "a pattern that matches nothing aborts before running any test" \
   1 "pattern matched 0 times" \
   "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
   --find 'this text is deliberately absent from the source' --replace 'x' \
+  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+  --expect-fail-message "$fixture_expected_message"
+
+# ── Case 5: a Spring-context test without --expect-fail-message must be refused ────────
+# A context test can fail because the assertion fired or because the mutation broke context startup, and
+# those are indistinguishable by exit code. The fixture is a @DataJpaTest, so omitting the expected message
+# must be refused rather than yielding a verdict that cannot mean what it says.
+expect "a Spring-context test without --expect-fail-message is refused" \
+  1 "--expect-fail-message is required" \
+  "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+  --find "$fixture_find" --replace "$fixture_replace" \
   --test "${fixture_class}\$${fixture_nested}#${fixture_method}"
 
 echo

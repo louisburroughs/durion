@@ -775,3 +775,138 @@ container durion lives elsewhere, so a symlink was needed. Worth knowing before 
    session had no subagent-invocation tool, so there is again no independent verdict.
 4. `pos-supplier/README.md` + `BACKEND_CONTRACT_GUIDE.md` (close-out item 9).
 5. The inbound-correlation filter (above), and the fleet ADR-0013 assigned-id exemption decision.
+
+---
+
+## UPDATE — slice 3 complete: persistence review queue cleared, both owed items landed (2026-08-11)
+
+### Review fix queue
+
+| # | Item | Resolution |
+| --- | --- | --- |
+| F1 | Key-required predicate failed open | **Fixed.** Polarity inverted: an allowlist of where a key is OPTIONAL (`dev`, `test`) instead of a list of where it is required. An empty profile set — the shape compose actually ships — now fails startup. |
+| F2 | `pos.supplier.audit.encryption.*` bound by nothing | **Fixed.** Wired in `application.yml`, `docker-compose.yml` and `.env.example` from `SUPPLIER_AUDIT_ENC_KEY`, the variable the failure message names. |
+| F3 | `REQUIRES_NEW` on the audit write was inert | **Fixed.** Extracted `ExchangeAuditWriter`; the observer delegates through the injected bean. |
+| F4 | Lease mutations joined the page transaction | **Fixed** on the coordinator, plus a recorded `now()` decision. |
+| F5 | V3 CHECK constraints unpinned; `correlation_id` untruncated | **Fixed.** Both constraints pinned to their enums; the client-influenced field is truncated. |
+| F6 | Per-binding configured redaction not implemented | **Recorded, not implemented** — deferred to CAP-318. §7 no longer reads as complete. ADR untouched. |
+| F7 | `JpaRepository` on the converter-bypassing entity | **Fixed.** Narrowed to `Repository` with one declared `findById`. |
+| F8 | `@ConditionalOnMissingBean` racing scan order | **Fixed.** `@Primary` on the audit observer; precedence declared, not raced for. |
+| F9/F10 | "no FK" comment; `@PrePersist` guard | **Settled differently — see below.** |
+| F11 | Purge has no lease | **Documented and tested as safe**, with the lease rejected for a stated reason. |
+| F12 | Oversized values costing audit rows | **Fixed** with F5. |
+| F13 | Raw NUL byte made a test file binary | **Fixed.** Unicode escape instead; git and ripgrep can read it again. |
+
+### F9/F10 — I did not commit the guard you asked for, because it does not work
+
+Two corrections, both found by writing the test rather than by reading the code:
+
+1. **The hazard I reported does not exist.** V3 declares `fk_slease_binding` on `binding_id` with
+   `ON DELETE CASCADE`. A minted lease id references no binding and fails the insert, loudly. My earlier
+   report of "a silent orphan lease no constraint catches" was wrong, and my javadoc said so too. Corrected.
+2. **`@PrePersist` fires AFTER identifier generation.** The guard could never observe a null id — it was dead
+   code that read as protection. Removed.
+
+What is committed instead is the test, repointed at the constraint that actually protects this, and
+mutation-proven: dropping `fk_slease_binding` from V3 makes it fail. The residual concern is now purely that
+an FK violation is a less readable message than a domain one, so the fleet ADR-0013 exemption follow-up is
+cosmetic rather than safety-relevant — as you predicted, for a different reason than either of us had.
+
+### F4 — the `now()` decision, and why it is a correctness issue
+
+**PostgreSQL's `now()` is `transaction_timestamp()`: it does not advance for the transaction's lifetime.**
+`heartbeat`, `stillOwns` and `release` are all called from inside a long-running page, so joining that
+transaction broke each differently: a heartbeat five minutes into a ten-minute page would compute its new
+expiry from the moment the page *started*, so the operation whose entire purpose is keeping a long run's lease
+alive would compute an expiry already in the past and the lease would be stolen mid-run; `stillOwns` would
+compare against the same frozen reading and call an expired lease live; `release` would roll back with a
+failed page.
+
+**Decision: keep `now()`, reject `clock_timestamp()`, move the boundary.** `clock_timestamp()` is
+PostgreSQL-only, so every contention test that establishes this lease's correctness would stop running, and it
+would not fix the release-rollback half at all. `REQUIRES_NEW` fixes both, portably.
+
+**Placed on `SupplierScheduleCoordinator`, not the repository.** On the repository it would additionally stop
+every `@DataJpaTest` of those queries from seeing its own uncommitted fixtures — the tests would have to be
+rewritten around a constraint unrelated to what they prove. `advanceCheckpoint` deliberately stays `REQUIRED`
+(binding decision 4).
+
+**H2 cannot reproduce this** — its `now()` is statement-scoped — so no behavioural test can demonstrate it and
+the boundary is pinned structurally. `SupplierScheduleCoordinatorTest` did have to move to real commit
+boundaries, which is the right shape for a lease test anyway.
+
+### The two owed items
+
+**OAuth2 invalidation.** `internal.service` publishes `SupplierAuthConfigChanged`; `internal.client` listens.
+Event, not a call, because the reverse edge is a package cycle; the record lives in `internal.spi`. Published
+unconditionally on update **including a pure rename**, because rotating a secret changes the value behind an
+unchanged `env:` reference and is invisible from here — over-signalling costs one token request,
+under-signalling costs an hour of failures. A plain `@EventListener`, not `AFTER_COMMIT`, for the same
+asymmetry. `deleteProfile` reads its auth config ids before the bulk delete.
+
+**Known limitation, stated rather than assumed:** an application event does not leave the JVM, so this clears
+the cache only on the instance that served the admin request. Complete for a single instance; a cross-instance
+signal needs the platform event bus. Recorded as a follow-up.
+
+**Token-leg timeouts.** Extracted `SupplierHttpClients` so the token leg shares the vendor transport. It had
+been using the *platform* builder — 2s connect / 5s read budgets meant for in-cluster services, applied to a
+third-party token endpoint, on `SimpleClientHttpRequestFactory`, which cannot distinguish a connect timeout
+from a read timeout. **The token leg still had the exact defect `67dc356` fixed for the main leg.** Its
+timeouts are now its own (`pos.supplier.oauth2.connect-timeout-millis` / `read-timeout-millis`, 5s/15s):
+`apply()` receives only the auth config, and a token endpoint is a different endpoint from the vendor API and
+reasonably budgeted separately. The `RestClientConfig` javadoc claiming vendor transport "does not run through
+this builder" was false by the time OAuth2 shipped, and is corrected. The caught cause was already chained.
+
+### A self-inflicted trap worth reading: test-resources config SHADOWS main config
+
+Activating the `test` profile via `src/test/resources/application.yml` was the first attempt at F1, and it was
+worse than the problem. **A test-classpath `application.yml` replaces the main one entirely**, so the module's
+real configuration stopped being loaded by any test — and a duplicate `pos:` key I introduced in
+`application.yml` survived a fully green **519-test** run, surfacing only when the app was actually started to
+generate the OpenAPI spec. The profile is now activated by a surefire `systemPropertyVariables` entry, so the
+main file loads in tests and `PosSupplierApplicationSmokeTest` is once again a real guard on it.
+
+### The mutation hook, again
+
+Two more findings in the tool itself, both of the same family as the first:
+
+1. **Gate 4 added: `--expect-fail-message` is now mandatory for Spring-context tests.** A context test can
+   fail because the assertion fired or because the mutation broke context startup, and those are
+   indistinguishable by exit code — a DEFENDED verdict would not mean what it says. Detected from the
+   annotations in the test source.
+2. **`grep -qF` without `--`** treated an expected message starting with a dash as its own flag. Fixed in the
+   hook and the self-test.
+
+`mutation-check-selftest.sh` now covers 5 cases and is itself verified against the pre-fix hook: it fails
+there, reproducing the exact false UNDEFENDED, and passes against the fixed one.
+
+Also recorded, because it wasted a cycle: **AssertJ's `.as(...)` description is NOT in the failure output when
+`assertThatThrownBy` fails because nothing was thrown** — the description is attached to the returned assert,
+which never exists. One test was reshaped to assert on the collection rather than on `getFirst()` blowing up,
+so its failure names the guarantee instead of throwing `NoSuchElementException`.
+
+### Gates at the final commit
+
+| Gate | Result |
+| --- | --- |
+| `./mvnw -pl pos-supplier -am -DskipTests=false verify` | **BUILD SUCCESS** — pos-supplier **519** tests (499 to 519) |
+| `./mvnw -pl pos-archunit -am -DskipTests=false test` | **BUILD SUCCESS** |
+| `./mvnw -pl pos-supplier spotless:check` | **clean** |
+| lint hook, 25 touched files | **PASS**, 113 rules, **0 findings** |
+| `scripts/generate-permissions.sh --sync --check` | **exit 0**, all up-to-date, **CATALOG_VERSION 42 unchanged** |
+| `scripts/check-flyway-hygiene.sh` | **passed**, 25 modules |
+| `pos-supplier/openapi.yaml` regenerated | **no change** — this wave altered no contract shape |
+| `openapi-aggregate.yaml` rebuilt, 26 modules | **no change**, 778 paths, no module dropped |
+
+### One new semgrep suppression
+
+`SupplierAuthStrategyTest`: `strategy.supportedType() == SupplierAuthType.BEARER` is an **enum** comparison,
+where `==` is correct and `.equals()` would be worse. Line-scoped, justification names the type and why the
+rule cannot see it.
+
+### Still owed at close-out
+
+1. Independent review of the full remaining range.
+2. `pos-supplier/README.md` + `BACKEND_CONTRACT_GUIDE.md`.
+3. Follow-ups: inbound `X-Correlation-Id` filter; cross-instance credential invalidation; fleet ADR-0013
+   assigned-id exemption (now cosmetic); CAP-318 per-binding redaction (F6).
