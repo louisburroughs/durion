@@ -26,9 +26,9 @@
 
 **Decision:** ✅ **Resolved** — All outbound supplier connectivity lives in one new **domain** module, `pos-supplier` (added to the ADR-0044 §1 Domain classification). It
 owns: the vendor-neutral canonical model (`SupplierPurchaseOrder` transmission state, `SupplierStockInquiry`, `SupplierPriceCatalogEntry`, `SupplierInvoice`,
-`SupplierWorkorderAuthorization`; `SupplierShipmentEvent` was withdrawn 2026-08-14, see Amendments), vendor profiles and endpoint bindings, protocol adapters/codecs, the
-exchange audit log, and supplier-facing orchestration (outbox, retries, schedules). No other module may hold vendor credentials, speak a vendor wire format, or call a
-vendor endpoint.
+`SupplierWorkorderAuthorization`), vendor profiles and endpoint bindings, protocol adapters/codecs, the exchange audit log, and supplier-facing orchestration (outbox,
+retries, schedules). No other module may hold vendor credentials, speak a vendor wire format, or call a vendor endpoint. `SupplierShipmentEvent` was part of this list
+until 2026-08-14, when it was withdrawn with the shipment capability (see Amendments).
 
 ### 2. What pos-supplier does not own
 
