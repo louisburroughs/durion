@@ -97,8 +97,9 @@ convention as `pos-warranty` and `pos-inventory`.
 
 | Capability | Stories | Status |
 | --- | --- | --- |
-| CAP-317 — pos-supplier foundation | #1221 (skeleton/model/SPI/registry), #1222 (vendor profiles + admin API), #1223 (base client, exchange audit, scheduler) | Implemented, reviewed, not yet merged |
-| CAP-318 — protocol codecs | not yet authored | Not started |
+| CAP-317 — pos-supplier foundation | #1221 (skeleton/model/SPI/registry), #1222 (vendor profiles + admin API), #1223 (base client, exchange audit, scheduler) | Merged (PR #1243) |
+| CAP-318 — PRICAT B4.0 price-catalog sync | #1232 (pos-catalog EAN/UPC uniqueness + lookup), #1224 (PRICAT codec, staging, quarantine, events, admin API) | Implemented |
+| CAP-318 — remaining protocol codecs | #1225 (stock inquiry A2.5), #1226 (order C1.0/C1.1), #1227 (invoice B3.3), #1228 (stock report B2.1), #1229 (Michelin S2S), #1230 (MKCAT C1.2) | Not started |
 
 ## Frontend API Lookup
 
@@ -140,6 +141,11 @@ UI notes:
 - `readPayload` writes an access record. Do not call it to pre-populate a list view or on hover; each
   call is a recorded disclosure.
 
+| Trigger a price-catalog import | `POST …/price-catalog/{vendorProfileId}/imports` | `triggerSupplierPriceCatalogImport` | `supplier:pricecatalog:import` |
+| List price-catalog imports | `GET …/price-catalog/{vendorProfileId}/imports` | `listSupplierPriceCatalogImports` | `supplier:pricecatalog:read` |
+| Work the unmatched-line queue | `GET …/price-catalog/{vendorProfileId}/unmatched-lines` | `listSupplierPriceCatalogUnmatchedLines` | `supplier:pricecatalog:read` |
+| Resolve a product by EAN/UPC (pos-catalog) | `GET /v1/products/by-code?codeType=&code=` | `findProductByCode` | `ROLE_CATALOG_VIEW` |
+
 ## Permission Matrix
 
 | Permission | Bit | Grants |
@@ -147,13 +153,19 @@ UI notes:
 | `supplier:profile:read` | 446 | View profiles, auth configs (without references), accounts, bindings |
 | `supplier:profile:write` | 447 | Create/edit/delete profiles, auth configs, accounts, bindings |
 | `supplier:audit:read` | 445 | All five audit operations, including decrypted payload content |
+| `supplier:pricecatalog:read` | 448 | Price-catalog import bookkeeping and the unmatched-line quarantine |
+| `supplier:pricecatalog:import` | 449 | Trigger an on-demand PRICAT import |
 
 `supplier:audit:read` is deliberately **not** implied by profile administration: it exposes commercial
 documents exchanged with vendors, which is a strictly wider disclosure than knowing how a connection is
 configured. A caller holding both profile permissions and not `supplier:audit:read` receives 403 on every
 audit operation, and a test asserts exactly that combination.
 
-`CATALOG_VERSION` is 42 and covers bits 445–447. Because this module uses constant-based `@PreAuthorize`,
+`supplier:pricecatalog:import` is separate from `:read` for the same reason: triggering makes an
+outbound commercial call to a trading partner and publishes an import's worth of events, which is not
+the same authority as looking at what a previous run produced.
+
+`CATALOG_VERSION` is 43 and covers bits 445–449. Because this module uses constant-based `@PreAuthorize`,
 `scripts/generate-permissions.sh --sync --check` structurally cannot detect drift here — the manual
 catalog entries are the only guarantee.
 
@@ -282,7 +294,11 @@ Inbound dependencies: `pos-location` (delivery-location UUIDs on commercial acco
 Outbound: none within the platform. Vendor endpoints are external third parties, so ADR-0014's
 server-to-server rules do not apply to them.
 
-Consumers of this domain do not exist yet. CAP-318 codecs will be the first, through the SPI ports.
+Consumers of this domain start with CAP-318: pos-supplier publishes `supplier.pricecatalog.updated`
+(chunked) and `supplier.pricecatalog.import.completed` on `supplier.events.v1`, aggregated by the import
+manifest, for a pos-catalog consumer that is a separate story. pos-supplier itself calls pos-catalog
+synchronously for product-code resolution (`GET /v1/products/by-code`), which is the only inbound
+platform dependency the price-catalog path has.
 
 #### Contract Test Traceability
 
@@ -316,6 +332,90 @@ be proven applied and the test must fail, or the guarantee is reported `UNDEFEND
   recorded. Two operators editing one profile is last-write-wins.
 - **Non-goals:** wire formats and codecs (CAP-318), order reconciliation for post-send ambiguity
   (CAP-320), secret-store resolvers beyond `env:`.
+
+### CAP-318 — PRICAT B4.0 price-catalog sync
+
+#### Capability Metadata
+
+| Field | Value |
+| --- | --- |
+| Stories | #1232 (pos-catalog prerequisite), #1224 (pos-supplier sync) |
+| Modules | `pos-catalog`, `pos-supplier`, `pos-domain-events` |
+| Branch | `cap/318-supplier-pricat-sync` |
+| Migrations | pos-catalog V8 (duplicate report), V9 (per-type product-code uniqueness); pos-supplier V8 (import manifest, staged lines, unmatched quarantine, event outbox, per-binding chunk size) |
+| New permissions | `supplier:pricecatalog:read` (448), `supplier:pricecatalog:import` (449); `CATALOG_VERSION` 42 → 43 |
+| Governing ADR | ADR-0053 (PRICAT ingestion, effective dating, price precedence) |
+
+#### Scope & Intent
+
+Fetch a vendor's EDIWheel PRICAT B4.0 catalog on a schedule or on demand, stage every received line,
+resolve each line to a catalog product deterministically, and publish the matched lines as
+manifest-chunked events. The story ends at the published events and the staged data; the pos-catalog
+consumer that turns those events into append-only supplier price entries is a separate story.
+
+#### Behavioral Assertions
+
+Product matching (ADR-0053 §5):
+
+1. A given EAN or UPC identifies at most one product — enforced by a database constraint, so
+   deterministic matching is a property of the schema and not of the matching code.
+2. The pre-constraint migration fails safe: duplicates are recorded in `product_code_duplicate_report`
+   and the constraint migration aborts naming them, rather than merging or dropping rows.
+3. Match order is exact EAN, then the line's `xReferenceCode` as a UPC. There is no fuzzy fallback and
+   no product auto-creation.
+4. `supplierCode` is stored as a display alias and is never a match key, never a SKU.
+5. An ambiguous code stops the search rather than falling through to the next identifier: the two
+   identifiers could point at different products.
+
+Import integrity (ADR-0053 §1/§2):
+
+6. Every line the vendor sent is either staged with a matched product or quarantined with a reason;
+   `matched + unmatched + duplicate == fetched` is asserted before an import is marked complete.
+7. Staging is append-only. A failed exchange, an undecodable document, or a zero-line document records a
+   terminal import row and stops — prior entries are never deleted or superseded.
+8. An unreachable pos-catalog quarantines as `CATALOG_UNAVAILABLE`, distinct from `NO_CATALOG_MATCH`,
+   because those lines are re-appliable without a vendor re-fetch.
+9. Duplicate identifiers within one document keep the first occurrence and quarantine the rest with the
+   discrepancy logged.
+10. Effective dating is vendor-local and inclusive: the net price's validity date when a net price is
+    stated, else the gross date, else the document date. Dates are never converted to instants.
+11. Market scope is the buyer account plus country and currency. No per-location supplier cost is
+    invented (ADR-0053 §3).
+
+Events (ADR-0053 §7):
+
+12. The aggregate is the import manifest; `aggregateVersion` is the chunk sequence, and the completion
+    event is sequenced after every chunk.
+13. Chunks carry matched lines only — an unmatched line has no product to apply to.
+14. Chunk size defaults to 500 and may be overridden per binding.
+15. Events are written to a transactional outbox in the staging transaction, so an event exists only if
+    the lines it describes committed.
+16. The completion event carries the counters and a content checksum, so a consumer can prove parity and
+    detect a missing chunk.
+17. `EMPTY` is a valid terminal status and must never be read as an instruction to delete anything.
+
+Precedence (ADR-0053 §4):
+
+18. No synchronous price read exists on the supplier contract, and no sell-price resolver consumes the
+    events — supplier cost stays out of price resolution structurally, not by convention.
+
+#### Status Code Semantics (ADR-0017)
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `SUPPLIER_UNKNOWN` | 404 | No vendor profile with that id |
+| `SUPPLIER_CAPABILITY_NOT_CONFIGURED` | 409 | `PRICE_CATALOG` unbound, disabled, or bound to a norm with no registered codec |
+| `BUSINESS_RULE_VIOLATION` (pos-catalog) | 409 | Product code already carried by another product, or a lookup found more than one |
+| — | 200 | A vendor outage is reported as a `FAILED` import summary, not as an error status |
+
+#### Known Gaps
+
+- Re-application from the quarantine after a catalog fix is manual today: the rows carry the values it
+  needs, but a re-import is what closes them.
+- Manufacturer-part matching (ADR-0053 §5 step 3) awaits a supplier-to-manufacturer mapping on the
+  vendor profile.
+- The 500-line chunk default is still owed a validation against the first Michelin sandbox pull, to be
+  recorded in ADR-0053.
 
 ## Events & Cross-Domain Dependencies
 
