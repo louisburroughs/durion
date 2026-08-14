@@ -1,9 +1,10 @@
 # ADR-0053: Supplier PRICAT Ingestion, Effective Dating, and Price Precedence
 
-**Status:** ACCEPTED 2026-08-10 — Pricing & Fees and Product & Catalog domain sign-off recorded (durion#371)  
+**Status:** ACCEPTED 2026-08-10 — Pricing & Fees and Product & Catalog domain sign-off recorded (durion#371); amended 2026-08-14 (§5 matching path, see Amendments)  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Pricing & Fees Domain, Product & Catalog Domain, Positivity (Integrations) Domain  
-**Affected Issues:** durion#371 (investigation), durion#373 (CAP-318), durion-positivity-backend#1224
+**Affected Issues:** durion#371 (investigation), durion#373 (CAP-318), durion-positivity-backend#1224, durion-positivity-backend#1232,
+durion-positivity-backend#1308, durion-positivity-backend#1309, durion-positivity-backend#1310
 
 ---
 
@@ -85,8 +86,14 @@ profile's catalog. Deployments needing different supplier costs per store group 
   a SKU or used for matching.
 - **Prerequisite (new pos-catalog story under CAP-318):** an indexed, exact-match lookup and per-type uniqueness constraint for EAN/UPC product codes — without it,
   deterministic matching is impossible.
+- **Where the match is evaluated: a local replica, not pos-catalog** (amended 2026-08-14, see Amendments). pos-supplier resolves codes against an `ext_product_code` replica
+  fed by `catalog.product.updated` facts, because ADR-0044 R1 forbids the synchronous call this section originally implied and R3 makes replicas the sanctioned read path.
+  Uniqueness stays pos-catalog's invariant; the replica is a copy of it. **Matching is therefore eventually consistent**: a product created shortly before an import may not
+  be matchable yet, and that line quarantines rather than matching. This is safe by construction — no line is lost — but it is a behavioural property callers must expect,
+  not an implementation detail.
 - Unmatched lines stay quarantined in `pos-supplier` (CAP-318's unmatched-lines store) for admin review; when a later catalog fix makes a line matchable, re-application
-  happens from the staged import records — no vendor re-fetch required.
+  happens from the staged import records — no vendor re-fetch required. Replica lag is one such "later fix": a line unmatched only because the replica had not caught up
+  matches on re-application, which is what keeps eventual consistency from costing data.
 
 ### 6. Duplicate sell-price models: reconciled by ADR-0054
 
@@ -118,9 +125,41 @@ one may be added by ADR-0049 table amendment if margin features need it).
 the event model bounds message size while keeping per-aggregate ordering and a completeness check.
 **Negative / accepted:** `supplier_item_cost` and its admin/API surface must migrate to the new entries (pre-production, no compatibility shim per platform policy); the
 EAN/UPC uniqueness prerequisite may surface existing dirty catalog data that needs cleanup before CAP-318's consumer lands; two persisted copies (staging in pos-supplier,
-business fact in pos-catalog) are accepted for auditability and re-application.
-**Follow-ups:** pos-catalog EAN/UPC uniqueness story under CAP-318 (durion-positivity-backend#1232); chunk-size validation against the Michelin sandbox. The duplicate
-sell-price reconciliation and the pos-price base-price retention defect are resolved/owned by ADR-0054 (durion#382).
+business fact in pos-catalog) are accepted for auditability and re-application; matching is eventually consistent against a replica (§5, amended 2026-08-14), so a newly
+created product is matchable only after its fact has propagated.
+**Follow-ups:** pos-catalog EAN/UPC uniqueness story under CAP-318 (durion-positivity-backend#1232, delivered); chunk-size validation against the Michelin sandbox
+(durion#392); the pos-catalog consumer (durion-positivity-backend#1308); product-fact replay so the replica can be seeded (durion-positivity-backend#1309); quarantine
+re-application (durion-positivity-backend#1310). The duplicate sell-price reconciliation and the pos-price base-price retention defect are resolved/owned by ADR-0054
+(durion#382).
+
+---
+
+## Amendments
+
+### 2026-08-14 — §5 matching resolves against a replica, and is eventually consistent
+
+**What changed.** §5 said matching evaluates EAN/UPC "against catalog product codes" without saying where that evaluation happens, and the natural reading — the one the
+story was written against — was a synchronous lookup from pos-supplier into pos-catalog. That reading is not permitted: ADR-0044 R1 forbids domain-to-domain synchronous
+calls, R3 makes event-fed local replicas the read path, and `DomainWallsTest` in pos-archunit enforces it. The violation was caught by CI on
+durion-positivity-backend#1304, not by review, which is why this is being recorded rather than left as an implementation note.
+
+**Decision.** pos-supplier holds an `ext_product_code` replica fed by `catalog.product.updated`, and matching resolves against it. To make that possible the fact gained
+`productCode` and `productCodeType`, additive within its existing schema v2 (ADR-0044 §3). pos-catalog remains the owner of product identity codes and of the per-type
+uniqueness constraint; `GET /v1/products/by-code` remains its operator- and consumer-facing contract, and is simply not the path PRICAT matching takes.
+
+**The consequence that matters.** Matching is now **eventually consistent**. A product created shortly before an import is not matchable until its fact has propagated, and
+that line quarantines instead. The quarantine is what makes this safe rather than lossy: the line keeps its identifiers and values, and re-application (§5) matches it once
+the replica catches up. Two operational obligations follow, and both are tracked:
+
+- The replica is built only from facts published after its consumer starts, and pos-catalog has no replay mechanism today, so on a first deployment the replica is empty and
+  every line quarantines as `CATALOG_UNAVAILABLE` — durion-positivity-backend#1309. ADR-0044 §4 already required owners to provide replay; this is the first consumer that
+  cannot function without it.
+- Re-application currently requires re-running the import; ADR-0053 §5's "no vendor re-fetch required" is not yet true in the implementation —
+  durion-positivity-backend#1310.
+
+**What was deliberately not decided here.** Whether a domain module may ever expose a synchronous read across the wall — the question the real-time stock inquiry story
+(durion-positivity-backend#1225, durion#374) turns on — is an ADR-0044 amendment, not an ADR-0053 one. It is noted here only because the same wall is the reason this section changed,
+and it should be decided once rather than per capability.
 
 ## References
 
