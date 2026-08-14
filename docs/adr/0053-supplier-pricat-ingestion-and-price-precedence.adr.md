@@ -157,9 +157,10 @@ the replica catches up. Two operational obligations follow, and both are tracked
 - Re-application currently requires re-running the import; ADR-0053 §5's "no vendor re-fetch required" is not yet true in the implementation —
   durion-positivity-backend#1310.
 
-**What was deliberately not decided here.** Whether a domain module may ever expose a synchronous read across the wall — the question the real-time stock inquiry story
-(durion-positivity-backend#1225, durion#374) turns on — is an ADR-0044 amendment, not an ADR-0053 one. It is noted here only because the same wall is the reason this section changed,
-and it should be decided once rather than per capability.
+**Not a precedent against the ratified stock-inquiry exception.** ADR-0044's amendment of 2026-08-10 already permits pos-catalog and pos-order to call
+`SupplierStockService` synchronously for live vendor availability, scoped to a single named client class per caller. Nothing here narrows that: PRICAT matching is a batch
+read of *our own* reference data, where a replica is both permissible and cheaper, while live vendor stock is an external fact with a seconds-level freshness requirement
+that no replica can serve. The two decisions answer different questions and both stand.
 
 ## References
 
