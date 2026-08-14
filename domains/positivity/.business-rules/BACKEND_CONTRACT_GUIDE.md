@@ -296,9 +296,13 @@ server-to-server rules do not apply to them.
 
 Consumers of this domain start with CAP-318: pos-supplier publishes `supplier.pricecatalog.updated`
 (chunked) and `supplier.pricecatalog.import.completed` on `supplier.events.v1`, aggregated by the import
-manifest, for a pos-catalog consumer that is a separate story. pos-supplier itself calls pos-catalog
-synchronously for product-code resolution (`GET /v1/products/by-code`), which is the only inbound
-platform dependency the price-catalog path has.
+manifest, for a pos-catalog consumer that is a separate story.
+
+Inbound, pos-supplier consumes `catalog.product.updated` from `catalog.events.v1` into an
+`ext_product_code` replica and resolves PRICAT lines against it (ADR-0044 R1/R3) — there is no
+synchronous call to pos-catalog. pos-catalog's `GET /v1/products/by-code` exists for operators and
+future consumers, not for this path. The `catalog.product.updated` payload gained `productCode` and
+`productCodeType` for it, additive within schema v2.
 
 #### Contract Test Traceability
 
@@ -342,7 +346,7 @@ be proven applied and the test must fail, or the guarantee is reported `UNDEFEND
 | Stories | #1232 (pos-catalog prerequisite), #1224 (pos-supplier sync) |
 | Modules | `pos-catalog`, `pos-supplier`, `pos-domain-events` |
 | Branch | `cap/318-supplier-pricat-sync` |
-| Migrations | pos-catalog V8 (duplicate report), V9 (per-type product-code uniqueness); pos-supplier V8 (import manifest, staged lines, unmatched quarantine, event outbox, per-binding chunk size) |
+| Migrations | pos-catalog V8 (duplicate report), V9 (per-type product-code uniqueness); pos-supplier V8 (import manifest, staged lines, unmatched quarantine, event outbox, per-binding chunk size), V9 (`ext_product_code` replica) |
 | New permissions | `supplier:pricecatalog:read` (448), `supplier:pricecatalog:import` (449); `CATALOG_VERSION` 42 → 43 |
 | Governing ADR | ADR-0053 (PRICAT ingestion, effective dating, price precedence) |
 
@@ -363,6 +367,10 @@ Product matching (ADR-0053 §5):
    and the constraint migration aborts naming them, rather than merging or dropping rows.
 3. Match order is exact EAN, then the line's `xReferenceCode` as a UPC. There is no fuzzy fallback and
    no product auto-creation.
+3b. Matching reads pos-supplier's local `ext_product_code` replica, never pos-catalog directly
+   (ADR-0044 R1/R3). Replica staleness is absorbed by the quarantine: an unmatched line waits rather
+   than being lost, and an empty replica is reported as `CATALOG_UNAVAILABLE` rather than as a
+   catalog full of misses.
 4. `supplierCode` is stored as a display alias and is never a match key, never a SKU.
 5. An ambiguous code stops the search rather than falling through to the next identifier: the two
    identifiers could point at different products.
@@ -412,6 +420,9 @@ Precedence (ADR-0053 §4):
 
 - Re-application from the quarantine after a catalog fix is manual today: the rows carry the values it
   needs, but a re-import is what closes them.
+- The `ext_product_code` replica has no backfill path: it is built from facts published after the
+  consumer starts, so a first deployment needs pos-catalog to re-emit (ADR-0044 §4 replay) before any
+  PRICAT line can match.
 - Manufacturer-part matching (ADR-0053 §5 step 3) awaits a supplier-to-manufacturer mapping on the
   vendor profile.
 - The 500-line chunk default is still owed a validation against the first Michelin sandbox pull, to be
