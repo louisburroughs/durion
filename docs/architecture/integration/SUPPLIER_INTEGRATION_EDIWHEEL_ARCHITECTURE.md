@@ -1,6 +1,6 @@
 # Supplier Integration Architecture — EDIWheel and Beyond
 
-**Status:** ACCEPTED DIRECTION — open questions resolved 2026-08-10 (see §12)
+**Status:** ACCEPTED DIRECTION — open questions resolved 2026-08-10 (see §12); shipment tracking withdrawn 2026-08-14 (§12, decision 11)
 **Date:** 2026-08-10
 **Author:** Architecture (drafted from `docs/ediwheel/` source specifications)
 **Scope:** Outbound supplier connectivity for tire manufacturers using the EDIWheel standard (Michelin first), designed for reuse with any parts manufacturer or distributor.
@@ -31,7 +31,7 @@ All files live in [`docs/ediwheel/`](../../ediwheel/).
 | `EDIWHEEL STOCK REPORT PROD_0 (1).yaml` | Snapshot of vendor stock at country level | Durion → vendor | B2.1, C1.0 | JSON / XML GET | Basic + API key |
 | `EDIWheel Price Catalog PROD_0.yaml` | Purchasable products and prices (PRICAT) | Durion → vendor | B4.0 | JSON GET | Basic + API key |
 | `EDIWHEEL Invoice PROD_0.yaml` | Retrieve AR transactions (vendor invoices) | Durion → vendor | B3.3 (B3.4 coming) | XML over HTTPS POST | Basic + API key |
-| `ShipmentTrackingOAS_v1.yaml` | Shipment notice / tracking events (LEX) | Durion → vendor (mock today) | v1 | JSON | Bearer |
+| `ShipmentTrackingOAS_v1.yaml` | Shipment notice / tracking events (LEX) | **Neither — reviewed and found not to be a Durion flow** (§12, decision 11) | v1 | JSON | Bearer |
 | `MKCAT_API_1.2.0.yaml` | EDIWheel marketing catalog (tread designs, suppliers, images) with change subscription | Durion → ediwheel.net | C1.2 | JSON REST + message-based | per implementation |
 | `ediwheel-workorder-michelin-implementation_1.json` | S2S workorder authorization (fleet contracts, policies, vehicles, approval) | Durion → vendor | Michelin S2S v1/v2 | JSON REST | OAuth2 |
 | `DOT_Spec_R2_Prod_0.yaml` | AI DOT-code recognition from sidewall image | Durion → vendor | v1 | JSON (base64 image) | OAuth2 + API key |
@@ -41,6 +41,9 @@ All files live in [`docs/ediwheel/`](../../ediwheel/).
 Key observations:
 
 - **Everything currently in scope is outbound.** Durion is the API consumer; no spec in the folder requires Durion to host an inbound endpoint. Confirmed: workorders are always initiated in the service provider's system. Vendors may push appointment requests, but that is outside current scope (§12, decision 7).
+- **One reviewed spec turned out not to be ours at all.** `ShipmentTrackingOAS_v1.yaml` declares a single write operation (`POST /shipment-tracking`) and no read. That is
+  not an omission in the document: EDIWheel shipment tracking runs between logistics providers and suppliers, and a service provider is not a party to it in either
+  direction (§12, decision 11). The spec stays listed above because it was reviewed and the review's conclusion is part of the record.
 - **Transport is consistent, payloads are not.** All services are HTTPS request/response, but payloads span three generations: A2.x XML (legacy), B-series JSON/XML report-style, C1.x XML (current guideline, defined in the PDFs), and C1.2 JSON (the emerging `ediwheel.net` resource+message API).
 - **Party identification is a first-class config concern.** Every EDIWheel message carries `BuyerParty`/`PartyID`/`AgencyCode` (and often `SellerParty`, `OrderingParty`, `Consignee`) — these are per-deployment, per-vendor account identifiers.
 - **Auth differs per vendor and even per service** within one vendor (Basic + API key for EDIWheel services; OAuth2 client credentials for the S2S workorder and AI services).
@@ -50,7 +53,7 @@ Key observations:
 ### Goals
 
 - One canonical, vendor-neutral supplier integration domain inside the Durion backend.
-- Per-capability ports so each vendor can implement any subset (order, stock, price, invoice, shipment, workorder authorization, catalog, tire identification).
+- Per-capability ports so each vendor can implement any subset (order, stock, price, invoice, workorder authorization, catalog, tire identification).
 - Multiple protocol versions of the same capability selectable by configuration.
 - Vendor onboarding = new adapter (only if a new wire format) + new configuration profile. Never a change to consuming domains.
 - Full auditability: every outbound exchange persisted with raw payloads, correlation ID, and outcome.
@@ -59,6 +62,9 @@ Key observations:
 ### Non-Goals
 
 - Building an inbound EDI endpoint (nothing reviewed requires one; revisit if a vendor pushes events to us).
+- **Shipment tracking of any kind.** Not deferred — out of scope, because the EDIWheel service by that name is a logistics-provider-to-supplier exchange Durion is not part
+  of (§12, decision 11). Shipment visibility from a source that does have it — a carrier API, a freight aggregator — would be new scope with its own spec, not a resumption
+  of this one.
 - Implementing classic EDIFACT/X12 file-based EDI (EDIWheel API flavors are HTTP request/response; batch file EDI would be a new adapter family later).
 - Frontend purchasing UX design (referenced only where the integration surfaces data).
 - Selecting a specific integration middleware product; this is in-platform Spring Boot code.
@@ -108,7 +114,7 @@ flowchart LR
 
 ### 4.1 The three layers
 
-1. **Canonical layer (vendor-neutral).** DTOs and services expressing what Durion means: `SupplierPurchaseOrder`, `SupplierStockInquiry`, `SupplierPriceCatalogEntry`, `SupplierInvoice`, `SupplierShipmentEvent`, `SupplierWorkorderAuthorization`. Consuming domains only ever see this layer. Identifiers follow platform UUID policy; vendor-native references (`SupplierOrderNumber`, `DocumentID`) are carried as attributes, never as primary keys.
+1. **Canonical layer (vendor-neutral).** DTOs and services expressing what Durion means: `SupplierPurchaseOrder`, `SupplierStockInquiry`, `SupplierPriceCatalogEntry`, `SupplierInvoice`, `SupplierWorkorderAuthorization`. Consuming domains only ever see this layer. Identifiers follow platform UUID policy; vendor-native references (`SupplierOrderNumber`, `DocumentID`) are carried as attributes, never as primary keys.
 2. **Port (SPI) layer.** One Java interface per capability (§6). Ports are deliberately narrow and asynchronous-friendly. A vendor "supports" a capability if a binding exists for it in its profile — capability discovery is configuration, not reflection.
 3. **Adapter layer.** One adapter per wire-format family, not per vendor. Michelin A2.5 order creation and (hypothetically) Continental A2.5 order creation share the `ediwheel-a25` adapter with different endpoint bindings. A vendor with a proprietary API gets its own adapter implementing the same ports.
 
@@ -131,7 +137,6 @@ pos-supplier/
       SupplierStockService.java
       SupplierPriceCatalogService.java
       SupplierInvoiceService.java
-      SupplierShipmentService.java
       SupplierWorkorderAuthorizationService.java
       SupplierCatalogService.java         # MKCAT marketing catalog
       SupplierProfileAdminService.java
@@ -146,7 +151,6 @@ pos-supplier/
         SupplierStockReportPort.java
         SupplierPriceCatalogPort.java
         SupplierInvoicePort.java
-        SupplierShipmentTrackingPort.java
         SupplierWorkorderAuthorizationPort.java
         SupplierCatalogPort.java
         TireIdentificationPort.java       # DOT / sidewall AI (optional)
@@ -184,7 +188,6 @@ Rules:
 | `SupplierStockReportPort` | `fetchStockSnapshot` | Stock Report (B2.1, C1.0) | `GET /stock/B2_1/report` |
 | `SupplierPriceCatalogPort` | `fetchPriceCatalog` | PRICAT (B4.0) | `GET /catalog/B4_0/pricat` |
 | `SupplierInvoicePort` | `fetchInvoices` | Invoice (B3.3, B3.4 future) | `POST /invoice/B3_3/invoices` |
-| `SupplierShipmentTrackingPort` | `sendShipmentEvents` / `fetchTracking` | Shipment tracking (LEX v1) | `POST /shipment-tracking` |
 | `SupplierWorkorderAuthorizationPort` | `requestAuthorization`, `approveCompletion`, `getVehicle`, `getContracts`, `getPolicies` | Michelin S2S (not an EDIWheel norm) | `POST /api/v1/workOrders`, `PATCH /api/v1/workOrders/{id}/approve`, `GET vehicles/contracts/policies` |
 | `SupplierCatalogPort` | `fetchMarketingCatalog`, `subscribeChanges` | MKCAT (C1.2 JSON) | `ediwheel.net` API |
 | `TireIdentificationPort` | `recognizeDotCode`, `recognizeSidewall` | n/a (vendor value-add AI) | DOT Image Recognition, TireSnap |
@@ -302,7 +305,6 @@ Design points:
 | Stock report snapshots | `supplier.stockreport.updated` fact; pos-inventory consumes for supplier ATP hints | Batch |
 | Order lifecycle | Commands in, results out: **pos-order** (purchase-order aggregate owner) emits `supplier.order.requested` on `supplier.commands.v1`; pos-supplier transmits and emits `supplier.order.confirmed` / `supplier.order.rejected` / `supplier.orderstatus.changed` | Command events with result events and pending states, per ADR-0044; idempotency per ADR-0052 |
 | Vendor invoices | `supplier.invoice.received` fact; **pos-accounting** consumes and creates AP vouchers | Batch |
-| Shipment tracking | `supplier.shipment.event` fact (append-only); consumer: **pos-order** (purchase-order timeline). Additional consumers require an ADR-0049 amendment with exact module names | |
 | Workorder authorization | **pos-workorder** emits `supplier.workorderauth.requested` on `supplier.commands.v1`; pos-supplier calls the S2S API and emits `supplier.workorderauth.granted` / `.denied`; completion approval is triggered by pos-supplier consuming `workorder.completed` on `workorder.events.v1` | Keeps `workexec` authority over workorder state |
 | Real-time stock inquiry | **Synchronous read exception (approved)**: **pos-catalog** (Product Detail composition) **and pos-order procurement flows** may call `SupplierStockService` directly for live availability/quote, with the standard degradation semantics (component status, null numerics, `asOf`) | Ratified as the ADR-0044 amendment dated 2026-08-10, with class-level (named-client) enforcement in `DomainWallsTest` |
 
@@ -368,7 +370,7 @@ The phasing plan is decomposed into capability stories **CAP-317 through CAP-324
 | 1 | CAP-319 ([#374](https://github.com/louisburroughs/durion/issues/374)) | **Stock Inquiry (A2.5)** — live availability in Product Detail and pos-order procurement | Immediately enriches quoting; exercises the approved sync-read exception |
 | 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first |
 | 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation |
-| 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** + **Shipment tracking** with inventory/receiving consumers | Back-office visibility |
+| 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** with an inventory consumer (the shipment-tracking half was withdrawn 2026-08-14 — §12, decision 11) | Back-office visibility |
 | 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim |
 | 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed |
 | Next vendor | — | Second EDIWheel manufacturer via configuration (+ codec gaps only) | Validates the reusability goal; target: zero changes outside `adapter/` + profile data |
@@ -377,9 +379,10 @@ The phasing plan is decomposed into capability stories **CAP-317 through CAP-324
 
 Each phase should land with provider contract tests per adapter codec (golden-file XML/JSON fixtures derived from the specs and C1 PDFs) and a sandbox smoke suite runnable against vendor sandbox URLs.
 
-## 12. Resolved Decisions (2026-08-10)
+## 12. Resolved Decisions (2026-08-10, extended 2026-08-14)
 
-The original open questions were reviewed and resolved as follows. Where binding, they will be promoted into ADRs (§13).
+The original open questions were reviewed and resolved as follows (1–10, 2026-08-10). Decision 11 was added 2026-08-14, when building the capability surfaced a question this
+review had not thought to ask. Where binding, they are promoted into ADRs (§13).
 
 1. **Vendor roadmap.** After Michelin, implement manufacturers in order of market share, favoring vendors that participate in the EDIWheel standard.
 2. **Module name.** `pos-supplier` is confirmed as the module name and home.
@@ -391,12 +394,45 @@ The original open questions were reviewed and resolved as follows. Where binding
 8. **Invoice destination.** Fetched vendor invoices (B3.3) become **AP vouchers in pos-accounting**.
 9. **PRICAT policy.** PRICAT data is effective-dated so the latest is always decidable; vendor prices never override service-provider or location-specific prices (§8.1). The deeper investigation of the pricing data model and PRICAT integration is tracked in [durion#371](https://github.com/louisburroughs/durion/issues/371).
 10. **Scanning.** `TireIdentificationPort` stays as a **placeholder** — DOT scanning is likely required for most service providers but is not yet confirmed; no adapter is built until it is.
+11. **Shipment tracking (added 2026-08-14).** **Not a Durion flow, in either direction.** EDIWheel shipment tracking is an exchange between logistics providers and
+    suppliers; a service provider is not a party to it. The capability is removed from this architecture — no port, no canonical model, no event — rather than deferred.
+    See below.
+
+### 12.1 Decision 11 in full — why shipment tracking is gone rather than pending
+
+This document listed shipment tracking as a capability from the first draft, and §6.1 hedged on what Durion would actually do with it: the port's operations were written as
+`sendShipmentEvents` / `fetchTracking`, two opposite postures, with no decision recorded between them. That hedge is the tell. Nobody had established what Durion's role in
+the exchange was.
+
+Implementation forced the question (durion-positivity-backend#1228, raised as clarification #1313). `docs/ediwheel/ShipmentTrackingOAS_v1.yaml` declares exactly one
+operation — `POST /shipment-tracking`, carrying `eventCode`, `carrier`, `eventSender`, `shipFrom`, `shipTo`. It is a **write**, the notice a sender announces. There is no
+GET and no query by order reference, so the SPI built under CAP-317 — `fetchTrackingEvents(supplierRef, partyContext, orderReference)` — had no operation to call.
+
+Three readings were possible, and each implied a different system: the vendor pushes notices to us (a new inbound posture, contradicting decision 7 and needing
+authentication, replay protection and idempotency design first); we push notices to the vendor (but pos-supplier holds no shipment data — shipments come toward us); or a
+read exists in a spec we were never given.
+
+The Positivity (Integrations) domain resolved it as none of the three: **the EDIWheel services apply between logistics companies and suppliers, not service providers.**
+Durion is neither the carrier announcing movements nor a party the norm gives anything to read. The missing read is therefore not a documentation gap — nothing exists on
+the other side to expose.
+
+Two consequences worth stating plainly, because a reader arriving later will otherwise re-open this:
+
+- **Decision 7 is untouched and un-narrowed.** The inbound-posture question is closed by the same reasoning, not deferred behind it. "Inbound flows. None." still stands on
+  its own terms.
+- **This is not a decision that Durion never tracks shipments.** It is a decision about where that data does not live. A carrier API, a freight aggregator, or a Michelin
+  S2S operation could supply shipment milestones; any of those enters as a new capability with its own spec, its own port, and its own row in the ADR-0049 §3 event table.
+
+Backend effect: `pos-supplier` drops `SupplierShipmentTrackingPort`, `SupplierShipmentService`, `ShipmentEventView`, `SupplierShipmentEvent`, and the `SHIPMENT_TRACKING`
+capability key, whose removal from the endpoint-binding constraint ships as Flyway V12 (durion-positivity-backend#1317). All of it was scaffolding — no codec was ever
+registered against the key, so no exchange ran and nothing was lost. CAP-322 is delivered by its stock-report half alone.
 
 ## 13. ADRs
 
 Drafted 2026-08-10 (PROPOSED status pending review):
 
-- [ADR-0049 — Supplier integration module boundary and event contracts](../../adr/0049-supplier-integration-module-boundary.adr.md)
+- [ADR-0049 — Supplier integration module boundary and event contracts](../../adr/0049-supplier-integration-module-boundary.adr.md) — **amended 2026-08-14**:
+  `supplier.shipment.event` and `SupplierShipmentEvent` withdrawn (§12, decision 11)
 - **ADR-0044 amendment (2026-08-10)** — synchronous supplier stock-inquiry read exception for positivity composition and pos-order procurement ([ADR-0044 §Amendments](../../adr/0044-platform-event-only-domain-walls.adr.md))
 - [ADR-0050 — Supplier vendor profile configuration model](../../adr/0050-supplier-vendor-profile-configuration.adr.md) (bindings, billing/delivery account roles, secret indirection)
 - [ADR-0051 — Supplier protocol adapter and codec versioning policy](../../adr/0051-supplier-protocol-adapter-versioning.adr.md)

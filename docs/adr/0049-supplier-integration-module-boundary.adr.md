@@ -1,9 +1,9 @@
 # ADR-0049: Supplier Integration Module Boundary and Event Contracts (pos-supplier)
 
-**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004; amended 2026-08-14 (§1/§3 shipment tracking withdrawn, see Amendments)  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
-**Affected Issues:** durion#372–#379 (CAP-317..CAP-324), durion#371
+**Affected Issues:** durion#372–#379 (CAP-317..CAP-324), durion#371, durion-positivity-backend#1313
 
 ---
 
@@ -26,8 +26,9 @@
 
 **Decision:** ✅ **Resolved** — All outbound supplier connectivity lives in one new **domain** module, `pos-supplier` (added to the ADR-0044 §1 Domain classification). It
 owns: the vendor-neutral canonical model (`SupplierPurchaseOrder` transmission state, `SupplierStockInquiry`, `SupplierPriceCatalogEntry`, `SupplierInvoice`,
-`SupplierShipmentEvent`, `SupplierWorkorderAuthorization`), vendor profiles and endpoint bindings, protocol adapters/codecs, the exchange audit log, and supplier-facing
-orchestration (outbox, retries, schedules). No other module may hold vendor credentials, speak a vendor wire format, or call a vendor endpoint.
+`SupplierWorkorderAuthorization`), vendor profiles and endpoint bindings, protocol adapters/codecs, the exchange audit log, and supplier-facing orchestration (outbox,
+retries, schedules). No other module may hold vendor credentials, speak a vendor wire format, or call a vendor endpoint. `SupplierShipmentEvent` was part of this list
+until 2026-08-14, when it was withdrawn with the shipment capability (see Amendments).
 
 ### 2. What pos-supplier does not own
 
@@ -51,13 +52,15 @@ Envelope and payload DTOs live in `pos-domain-events`; producers use the transac
 | `supplier.events.v1`   | `supplier.pricecatalog.updated`    | 1             | pos-supplier  | pos-price, pos-catalog | fact                            |
 | `supplier.events.v1`   | `supplier.stockreport.updated`     | 1             | pos-supplier  | pos-inventory          | fact                            |
 | `supplier.events.v1`   | `supplier.invoice.received`        | 1             | pos-supplier  | pos-accounting         | fact                            |
-| `supplier.events.v1`   | `supplier.shipment.event`          | 1             | pos-supplier  | pos-order              | fact (append-only; PO timeline) |
 | `supplier.events.v1`   | `supplier.workorderauth.granted`   | 1             | pos-supplier  | pos-workorder          | result                          |
 | `supplier.events.v1`   | `supplier.workorderauth.denied`    | 1             | pos-supplier  | pos-workorder          | result                          |
 
 Additional inputs pos-supplier **consumes from other domains' topics**: `workorder.completed` on `workorder.events.v1` triggers the fleet completion-approval call (CAP-323)
-— the approval flow needs no dedicated command event. If receiving flows later need shipment events beyond the pos-order timeline, the consumer is added to this table by
-amendment with an exact module name — "receiving consumers" is not a valid ACL subject.
+— the approval flow needs no dedicated command event.
+
+The table listed a tenth event, `supplier.shipment.event`, until 2026-08-14; it was **withdrawn before any implementation** because pos-supplier has no way to learn shipment
+milestones (see Amendments). Any future shipment fact enters this table by amendment, with a producer that can actually source it and an exact consumer module name —
+"receiving consumers" is not a valid ACL subject.
 
 Payload changes within a `schemaVersion` are additive-only; breaking changes increment `schemaVersion` (and, where topic compatibility breaks, take a new topic version with
 dual-publish), per ADR-0044 §3.
@@ -77,6 +80,42 @@ Admin/profile/audit controllers are frontend-facing via the gateway (ADR-0011/00
 **Negative / accepted:** `pos-supplier` becomes a coupling point for supplier-facing flows; batch consumers must tolerate event lag; an extra hop (event) between business
 intent and vendor transmission.
 **Follow-ups:** ADR-0050 (vendor profile configuration), ADR-0051 (adapter/codec versioning), ADR-0052 (outbound idempotency); PRICAT precedence ADR after durion#371.
+
+---
+
+## Amendments
+
+### 2026-08-14 — Shipment tracking is withdrawn: Durion is not a party to that exchange
+
+**What changed.** §1 listed `SupplierShipmentEvent` in the canonical model and §3 listed `supplier.shipment.event` as an append-only fact from pos-supplier to the pos-order
+purchase-order timeline. Both are removed. There is no shipment capability in `pos-supplier`, and no shipment event on `supplier.events.v1`.
+
+**Why the contract could not be honoured.** CAP-322 (durion#377) paired shipment tracking with the stock report, and the SPI written for it under CAP-317 —
+`SupplierShipmentTrackingPort.fetchTrackingEvents(supplierRef, partyContext, orderReference)` — encodes the assumption this ADR's table encodes too: that the vendor holds
+tracking we can read. The referenced spec, `docs/ediwheel/ShipmentTrackingOAS_v1.yaml`, declares exactly one operation — `POST /shipment-tracking`, a **write** whose body
+(`eventCode`, `carrier`, `eventSender`, `shipFrom`, `shipTo`) is a notice the sender announces. There is no GET and no query by order reference. The architecture document's
+own port catalog hedged this, listing the port's operations as `sendShipmentEvents` / `fetchTracking` without deciding which Durion performs; the answer is neither.
+
+**The decision, from the Positivity (Integrations) domain (durion-positivity-backend#1313).** EDIWheel shipment tracking is an exchange between **logistics providers and
+suppliers**. A service provider is not a party to it in either direction: Durion is not the carrier announcing movements, and the norm gives the ordering side nothing to read
+back. So the missing read is not a gap in the documentation we hold — there is nothing for a vendor to expose to us.
+
+**What this is not.** It is not the inbound-posture question. The clarification considered whether the vendor might instead **push** notices to Durion, which would have
+contradicted §12 decision 7 of the architecture document ("Inbound flows. None.") and required an authentication, replay-protection and idempotency design before any code.
+That path is closed by the same reasoning rather than deferred: we would not be a recipient of these notices either. §12 decision 7 stands unchanged and unqualified.
+
+**Consequences.**
+
+- `pos-supplier` drops `SupplierShipmentTrackingPort`, `SupplierShipmentService`, `ShipmentEventView`, `SupplierShipmentEvent` and the `SHIPMENT_TRACKING` capability key;
+  Flyway V12 removes the key from the endpoint-binding CHECK constraint, so the admin API now rejects it with `SUPPLIER_UNKNOWN_CAPABILITY`
+  (durion-positivity-backend#1317). All of it was scaffolding — no codec was ever registered, so no exchange ran and no data is lost.
+- **pos-order loses nothing**, because it never gained anything: no consumer for `supplier.shipment.event` was ever built, and the purchase-order timeline has no shipment
+  section to unwind. Order lifecycle facts (`supplier.orderstatus.changed`) are unaffected and remain the vendor-sourced signal on that timeline.
+- CAP-322 is delivered by its stock-report half alone (durion-positivity-backend#1228, #1314); its shipment half is closed as not-applicable rather than deferred.
+
+**If shipment visibility is wanted later**, it comes from a source that actually has it — a carrier API, a Michelin S2S operation, a freight aggregator — and enters as a
+new capability with its own spec, its own port and a new row in §3. It is not a revival of this key, and this amendment should not be read as a decision that Durion never
+tracks shipments; it is a decision that EDIWheel is not where that data lives.
 
 ## References
 
