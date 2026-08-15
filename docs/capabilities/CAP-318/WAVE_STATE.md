@@ -5,7 +5,7 @@ picking this up later must not re-litigate, and the failures that were nearly sh
 status lives in `docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md` §11.
 
 Capability: **CAP-318** — [durion#373](https://github.com/louisburroughs/durion/issues/373), Michelin
-Price Catalog (B4.0) sync. Governing ADRs: 0044, 0049, 0051, 0052, 0053.
+Price Catalog (B4.0) sync. Governing ADRs: ADR-0044, ADR-0049, ADR-0051, ADR-0052, ADR-0053.
 
 ### Where the wave ended
 
