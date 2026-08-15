@@ -85,6 +85,39 @@ intent and vendor transmission.
 
 ## Amendments
 
+### 2026-08-15 — The purchase order splits: pos-order owns it, pos-inventory keeps a receiving projection
+
+**What changed.** §2 already resolved that "the purchase-order aggregate is **pos-order**", and §3 already names pos-order as the producer of `supplier.order.requested` and
+the consumer of `supplier.order.confirmed`, `supplier.order.rejected` and `supplier.orderstatus.changed`. Neither statement changes. What this amendment adds is the part §2
+left unsaid, and which the code has quietly contradicted since before this ADR existed: **what happens to the purchase order pos-inventory already owns.**
+
+**The contradiction.** `pos-inventory` has held a full commercial purchase order since its V1 baseline — `purchase_order` and `purchase_order_line`, a
+`DRAFT → APPROVED → PARTIALLY_RECEIVED → FULLY_RECEIVED → CLOSED/CANCELLED` lifecycle, approver identity and approval timestamp, currency, subtotal/tax/grand-total,
+payment terms, an encumbrance reference, and `create`/`approve`/`revise`/`cancel`/`receive` operations, with `inventory:purchase_order:{view,create,approve,receive}`
+permissions and an advance-shipping-notice table keyed to the same `vendor_id`. That is not a receiving record. It is the commercial order this ADR assigns to pos-order,
+living in the wrong module. It predates the ADR, and it publishes nothing — which is why CAP-320 could be built end to end in pos-supplier and still be inert: nothing
+anywhere emits `supplier.order.requested`.
+
+**The decision.** The aggregate splits along the line the business actually draws:
+
+- **pos-order owns the commercial purchase order.** What was ordered, from which vendor, at what price, on whose approval — and the supplier transmission that follows it.
+  pos-order publishes `supplier.order.requested` and consumes the three result events, exactly as §3 already states.
+- **pos-inventory keeps the receiving side**, working from an event-fed projection of the order rather than from a local aggregate. Goods receipt, advance shipping notices
+  and the received-quantity arithmetic stay where the stock movements are, because that is inventory's business and the ledger is there.
+- **pos-inventory continues to initiate.** Replenishment scanning, purchase suggestions and vendor selection are demand identification, not ordering. They stay, and they
+  raise a request that pos-order turns into an order.
+
+**Why a projection rather than a synchronous read.** ADR-0044 R3 gives the answer for every other cross-domain read on this platform, and there is no reason for this one to
+be the exception: a receiving clerk needs to know what was ordered, not to be blocked when the ordering domain is briefly unavailable. The projection is an `ext_*` replica
+fed by pos-order facts, with the same idempotency and stale-guard contract as every other replica (ADR-0044 §4).
+
+**What this does not license.** The split is not an invitation to duplicate the order. Exactly one module may accept a change to what was ordered, and that is pos-order; the
+projection is read-only and a receiving flow that wants to alter quantities ordered must go through the owner. Nor does it move receiving into pos-order — the temptation to
+follow the aggregate is real and would put stock movements outside the module that owns the ledger (ADR-0048).
+
+**Consequence for CAP-320.** The capability's supplier half is delivered and inert. It cannot be demonstrated until pos-order has the aggregate and publishes the command;
+that migration is the gating work, not further supplier-side code.
+
 ### 2026-08-14 — Shipment tracking is withdrawn: Durion is not a party to that exchange
 
 **What changed.** §1 listed `SupplierShipmentEvent` in the canonical model and §3 listed `supplier.shipment.event` as an append-only fact from pos-supplier to the pos-order
