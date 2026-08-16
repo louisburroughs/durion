@@ -440,7 +440,8 @@ Two further findings came out of the same work and are worth carrying forward:
   stock report and invoices each route through their own `*Runner` and never reference their port.
   The ports were declared by the CAP-317 foundation and the capabilities that followed did not adopt
   them. Anyone treating `internal/spi` as the module's contract surface should know that today it
-  mostly is not.
+  mostly is not. Whether to adopt or delete them is
+  [#1349](https://github.com/louisburroughs/durion-positivity-backend/issues/1349).
 - **A port signature that cannot express its operation is worse than no port.** The original
   workorder-authorization port took a party context and a workorder id, with nowhere to say how the
   vehicle is identified — so implementing it as written meant inventing a vehicle identifier from an
@@ -485,12 +486,15 @@ Several estimates are owed that same test and cannot be settled before it: the 5
 ([durion#392](https://github.com/louisburroughs/durion/issues/392)), and the poll cadences and
 escalation windows in the order-status machinery. They are recorded as assumptions, not as findings.
 
-**One gap is not tracked by any story.** Purchase-order lines are named to a vendor by EAN only:
-`supplierArticleCode` is never populated, because the vendor's own code is known solely from PRICAT
-price entries in pos-catalog and is not replicated to pos-order. A vendor that identifies articles by
-its own codes rather than EANs cannot be transmitted to at all — every line reports
-`ARTICLE_NOT_IDENTIFIABLE`. This does not affect Michelin, which carries EANs, so it will surface at
-the *second* vendor rather than the first.
+**Known gaps, now each tracked by a story (2026-08-16).** All four were carried as prose here and had
+no owner; they are filed so the next vendor onboarding does not discover them as incidents.
+
+| Gap | Issue | Why it matters, and when |
+| --- | --- | --- |
+| Purchase-order lines are named to a vendor by EAN only — `supplierArticleCode` is never populated, because the vendor's own code lives in PRICAT entries in pos-catalog and is not replicated to pos-order | [#1347](https://github.com/louisburroughs/durion-positivity-backend/issues/1347) | A vendor that identifies articles by its own codes cannot be transmitted to **at all** — every line reports `ARTICLE_NOT_IDENTIFIABLE`. Michelin carries EANs, so this surfaces at the *second* vendor, as a total failure rather than a partial one |
+| Fleet authorization outcomes are published but nothing consumes them | [#1346](https://github.com/louisburroughs/durion-positivity-backend/issues/1346) | CAP-323 deliberately stopped at the domain wall: the mapping onto workexec state is the Workorder Execution domain's to make, and `AWAITING_APPROVAL` already means *customer* approval, which is a different thing |
+| Every codec is tested against payloads written by the codec's own author | [#1348](https://github.com/louisburroughs/durion-positivity-backend/issues/1348) | Verifies self-consistency, not that a vendor's real payload can be read. Sharpest for Michelin S2S, whose request body the spec types as `JsonNode` — those fields are marked `GUESS` in the code precisely so a sandbox run can correct them. Blocked on sandbox credentials |
+| The SPI capability ports are almost entirely unimplemented | [#1349](https://github.com/louisburroughs/durion-positivity-backend/issues/1349) | Eight of nine ports have no implementation; every delivered capability routes through a runner instead. An unimplemented signature is never tested against reality and drifts into being unimplementable — which had already happened to the one CAP-323 needed |
 
 ## 12. Resolved Decisions (2026-08-10, extended 2026-08-14 and 2026-08-16)
 
