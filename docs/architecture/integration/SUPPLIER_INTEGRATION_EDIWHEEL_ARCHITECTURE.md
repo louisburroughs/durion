@@ -376,7 +376,7 @@ gate on further construction.
 | 1 | CAP-318 ([#373](https://github.com/louisburroughs/durion/issues/373)) | Michelin **Price Catalog (B4.0)** sync with effective-dating (blocker [#371](https://github.com/louisburroughs/durion/issues/371) resolved by ADR-0053) | Read-only, low-risk; proves profile + adapter + version machinery | **DELIVERED** — fetch → stage → match → publish → apply, plus all three repair paths. Backend PRs #1304, #1311, #1316, #1322. The consumer is no longer blocked: [#371](https://github.com/louisburroughs/durion/issues/371) is closed, resolved by ADR-0053
 | 1 | CAP-319 ([#374](https://github.com/louisburroughs/durion/issues/374)) | **Stock Inquiry (A2.5)** — live availability in Product Detail and pos-order procurement | Immediately enriches quoting; exercises the approved sync-read exception | **DELIVERED** — stories #1225 (service + Product Detail, PRs #1323/#1325) and #1329 (pos-order procurement, PR #1339). The sync-read grant is scoped by *file name* in `DomainWallsTest`, one entry per approved caller, so a third has to argue its own case |
 | 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first | **DELIVERED** — stories #1226, #1318, and the aggregate split #1333/#1334/#1330 (PRs #1336–#1338). The purchase order now lives in pos-order per the ADR-0049 amendment, and transmission is wired end to end: nothing was asking pos-supplier to send, and nothing was hearing the answers |
-| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **IN PROGRESS** — story #1227. The "waits on Accounting-domain authority" note is retired: pos-accounting already models the AP side as `VendorBill`, with a status flow (`PENDING_RECEIPT_MATCH` → `MATCH_EXCEPTION`/`APPROVED` → `PAID`), a purchase-order linkage, a journal entry, and `findByOriginEventId` — event-driven bill creation was anticipated in the model. The consumer wires a new event source into an existing shape rather than deciding financial meaning |
+| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **DELIVERED** — story #1227 (PR #1342): codec, canonical invoice, `supplier.invoice.received`, and the pos-accounting consumer that records a `VendorBill`. The "waits on Accounting-domain authority" note was retired rather than deferred: pos-accounting already models the AP side, down to `findByOriginEventId`, so the consumer wires a new event source into an existing shape. **Nothing calls the fetch yet** — the schedule and the operator trigger are #1343 |
 | 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** with an inventory consumer (the shipment-tracking half was withdrawn 2026-08-14 — §12, decision 11) | Back-office visibility | **DELIVERED** — producer #1314, pos-inventory consumer #1319, shipment scaffolding removed #1317 |
 | 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim | **NOT STARTED** |
 | 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed | **NOT STARTED** — stories #1230, #1257 wait on Catalog-domain authority for the enrichment attachment model |
@@ -388,16 +388,19 @@ Each phase should land with provider contract tests per adapter codec (golden-fi
 
 ### 11.1 What the delivered phases add up to (2026-08-16)
 
-Five of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
-stock inquiry (CAP-319), purchase orders (CAP-320) and the stock report (CAP-322). That is the whole
-of the vendor conversation except the money: prices come in, availability can be asked for while a
-customer waits, orders go out and their status comes back, and stock reports arrive on a schedule.
-The vendor then sends an invoice and there is nowhere to put it — which is why CAP-321 is the next
-piece rather than one of the two remaining greenfield capabilities.
+Six of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
+stock inquiry (CAP-319), purchase orders (CAP-320), invoices (CAP-321) and the stock report
+(CAP-322). Read together they are the whole commercial conversation with a vendor — prices in,
+availability asked for while a customer waits, orders out, status back, goods received, and the
+invoice that follows.
 
-What remains after it is breadth rather than depth: MKCAT enrichment (CAP-324), a second protocol
-family (CAP-323), and the claim that a second vendor costs configuration plus codec gaps only, which
-stays untested until one is onboarded.
+What remains is breadth rather than depth: MKCAT enrichment (CAP-324), a second protocol family
+(CAP-323), and the claim that a second vendor costs configuration plus codec gaps only, which stays
+untested until one is onboarded.
+
+**Two capabilities are built but uninvoked**, which is a distinct state from unbuilt and worth
+tracking as such. CAP-321's fetch has no schedule and no operator trigger (#1343). Until those land,
+an invoice is only imported if something asks — and nothing does.
 
 **CAP-318 is the one that closed a loop rather than opening one.** Its final shape is fetch → stage →
 match → publish → apply, with three distinct repair paths, and each was added because a specific way
