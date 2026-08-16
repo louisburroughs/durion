@@ -378,7 +378,7 @@ gate on further construction.
 | 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first | **DELIVERED** — stories #1226, #1318, and the aggregate split #1333/#1334/#1330 (PRs #1336–#1338). The purchase order now lives in pos-order per the ADR-0049 amendment, and transmission is wired end to end: nothing was asking pos-supplier to send, and nothing was hearing the answers |
 | 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **DELIVERED** — story #1227 (PR #1342): codec, canonical invoice, `supplier.invoice.received`, and the pos-accounting consumer that records a `VendorBill`. The "waits on Accounting-domain authority" note was retired rather than deferred: pos-accounting already models the AP side, down to `findByOriginEventId`, so the consumer wires a new event source into an existing shape. Story #1343 (PR #1344, in review) supplies the callers: a per-binding cron schedule whose window overlaps its predecessor, and an operator endpoint that fetches an explicit window without moving the checkpoint |
 | 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** with an inventory consumer (the shipment-tracking half was withdrawn 2026-08-14 — §12, decision 11) | Back-office visibility | **DELIVERED** — producer #1314, pos-inventory consumer #1319, shipment scaffolding removed #1317 |
-| 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim | **NOT STARTED** |
+| 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim | **DELIVERED** — story #1229 (PR #1345): OAuth2 adapter, 201/202 + `Location` polling, vehicle/contract/policy lookups, completion approval, `MANUAL_REVIEW` queue. The reuse claim survived with two stated exceptions (§11.2). The workexec-side mapping of outcomes onto workorder state is deliberately not included — it needs Workorder Execution domain authority, and the events are published so workexec only has to subscribe |
 | 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed | **NOT STARTED** — stories #1230, #1257 wait on Catalog-domain authority for the enrichment attachment model |
 | Next vendor | — | Second EDIWheel manufacturer via configuration (+ codec gaps only) | Validates the reusability goal; target: zero changes outside `adapter/` + profile data | **NOT STARTED** — the claim is untested until a second vendor is onboarded |
 
@@ -388,15 +388,16 @@ Each phase should land with provider contract tests per adapter codec (golden-fi
 
 ### 11.1 What the delivered phases add up to (2026-08-16)
 
-Six of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
-stock inquiry (CAP-319), purchase orders (CAP-320), invoices (CAP-321) and the stock report
-(CAP-322). Read together they are the whole commercial conversation with a vendor — prices in,
+Seven of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
+stock inquiry (CAP-319), purchase orders (CAP-320), invoices (CAP-321), the stock report (CAP-322)
+and fleet workorder authorization (CAP-323). Read together they are the whole commercial conversation with a vendor — prices in,
 availability asked for while a customer waits, orders out, status back, goods received, and the
 invoice that follows.
 
-What remains is breadth rather than depth: MKCAT enrichment (CAP-324), a second protocol family
-(CAP-323), and the claim that a second vendor costs configuration plus codec gaps only, which stays
-untested until one is onboarded.
+Seven of the eight are now merged: CAP-323 added the second protocol family. What remains is MKCAT
+enrichment (CAP-324), and the claim that a second *vendor* costs configuration plus codec gaps only —
+which stays untested until one is onboarded. A second *protocol family* has now been tested, and
+§11.2 records what it cost.
 
 **"Built but uninvoked" is a distinct state from unbuilt, and worth tracking as such.** CAP-321 was
 in it: the codec, the canonical invoice and the accounting consumer all existed while nothing ever
@@ -405,6 +406,46 @@ review) closes that with a schedule and an operator endpoint. The lesson general
 is not delivered when its mechanism exists, but when something reaches it on its own — and it is
 worth checking each remaining phase against on the way in, because the gap is invisible from a
 passing test suite.
+
+### 11.2 What the reusability claim actually cost (CAP-323, 2026-08-16)
+
+The architecture's central claim is that a new vendor costs an adapter plus configuration, and
+nothing else. Every adapter before CAP-323 spoke EDIWheel, so the claim had never been tested: a
+design that quietly assumed EDIWheel would have looked reusable right up to the moment it was not.
+
+Michelin S2S is genuinely different — JSON REST over OAuth2 client credentials, with an asynchronous
+acceptance pattern (HTTP 202 plus a `Location` to come back to) that no EDIWheel norm uses. Two
+things outside the adapter package had to change, both in the shared transport, and both because no
+EDIWheel norm had ever needed them:
+
+| Change | Why it was needed | Why it is not Michelin-shaped |
+| --- | --- | --- |
+| `SupplierHttpResponse` gained an allowlisted response-header map | A 202's entire meaning is in `Location`; the transport discarded every response header | Any protocol with an asynchronous acceptance now has it. The allowlist is `Location`, `API-Version`, `Retry-After` — carrying every header would put vendor-controlled strings into an object that is logged and flows toward the audit |
+| `SupplierRequestSpec` / `SupplierHttpRequest` gained per-request headers | The spec requires an `API-Version` header matching the URI version | The EDIWheel norms identify the buyer through credentials and query parameters, so no codec had ever set a header. Any protocol that versions by header now can |
+
+Untouched: the orchestration, the adapter registry, the profile and binding model, the auth strategy
+layer, and every consuming domain. `MichelinS2SReusabilityTest` asserts that no vendor path or wire
+type appears outside `adapter/michelins2s/`, and was verified non-vacuous by temporarily adding a
+violation and watching the build fail.
+
+**The exceptions are recorded rather than waved through, because a reusability claim with no stated
+cost has not been tested — it has been asserted.** Two capability-neutral transport additions is a
+good result for a genuinely foreign protocol; a future family that needs more should be measured
+against this line rather than against zero.
+
+Two further findings came out of the same work and are worth carrying forward:
+
+- **The SPI port layer is almost entirely unused.** `SupplierWorkorderAuthorizationPort` is, as of
+  CAP-323, the only capability port with an implementation. Stock inquiry, orders, price catalogue,
+  stock report and invoices each route through their own `*Runner` and never reference their port.
+  The ports were declared by the CAP-317 foundation and the capabilities that followed did not adopt
+  them. Anyone treating `internal/spi` as the module's contract surface should know that today it
+  mostly is not.
+- **A port signature that cannot express its operation is worse than no port.** The original
+  workorder-authorization port took a party context and a workorder id, with nowhere to say how the
+  vehicle is identified — so implementing it as written meant inventing a vehicle identifier from an
+  account number. That compiles and passes a test and cannot work against a real vendor. The
+  signature was widened to the canonical request.
 
 **CAP-318 is the one that closed a loop rather than opening one.** Its final shape is fetch → stage →
 match → publish → apply, with three distinct repair paths, and each was added because a specific way
