@@ -363,19 +363,20 @@ The AI services (DOT recognition, TireSnap) follow the same pattern behind `Tire
 
 The phasing plan is decomposed into capability stories **CAP-317 through CAP-324** (GitHub issues [durion#372](https://github.com/louisburroughs/durion/issues/372)–[durion#379](https://github.com/louisburroughs/durion/issues/379)).
 
-**Delivery status is recorded in the table below and is current to 2026-08-14.** It records what is
-merged to `main` in `durion-positivity-backend`, not what is running: Kafka is disabled fleet-wide and
-the permission catalogue has not been rolled forward, so none of the event-driven capabilities are
-live in any environment until the prerequisites in [durion#389](https://github.com/louisburroughs/durion/issues/389)
-are met.
+**Delivery status is recorded in the table below and is current to 2026-08-16.** It records what is
+merged to `main` in `durion-positivity-backend`. This is a prototype: the structure is being built out
+first and will be exercised against a live vendor once it is complete, so "delivered" here means the
+capability is built and proven by test, not that it is running anywhere. The deploy prerequisites are
+tracked separately in [durion#389](https://github.com/louisburroughs/durion/issues/389) and are not a
+gate on further construction.
 
 | Phase | Capability | Deliverable | Rationale | Status |
 | --- | --- | --- | --- | --- |
 | 1 | CAP-317 ([#372](https://github.com/louisburroughs/durion/issues/372)) | `pos-supplier` foundation: canonical model, profiles/bindings/accounts, adapter registry, exchange audit, resilience, admin API/UI | The plumbing every later capability plugs into | **DELIVERED** — stories #1221–#1223 |
 | 1 | CAP-318 ([#373](https://github.com/louisburroughs/durion/issues/373)) | Michelin **Price Catalog (B4.0)** sync with effective-dating (blocker [#371](https://github.com/louisburroughs/durion/issues/371) resolved by ADR-0053) | Read-only, low-risk; proves profile + adapter + version machinery | **DELIVERED** — fetch → stage → match → publish → apply, plus all three repair paths. Backend PRs #1304, #1311, #1316, #1322. The consumer is no longer blocked: [#371](https://github.com/louisburroughs/durion/issues/371) is closed, resolved by ADR-0053
-| 1 | CAP-319 ([#374](https://github.com/louisburroughs/durion/issues/374)) | **Stock Inquiry (A2.5)** — live availability in Product Detail and pos-order procurement | Immediately enriches quoting; exercises the approved sync-read exception | **NOT STARTED** — story #1225 is ready for development and unblocked (the ADR-0044 sync-read amendment was ratified 2026-08-10). The only remaining capability whose blocker is engineering rather than a domain decision |
-| 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first | **DELIVERED** — stories #1226, #1318 (issues still open; the code is merged) |
-| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **NOT STARTED** — story #1227 waits on Accounting-domain authority for voucher posting semantics |
+| 1 | CAP-319 ([#374](https://github.com/louisburroughs/durion/issues/374)) | **Stock Inquiry (A2.5)** — live availability in Product Detail and pos-order procurement | Immediately enriches quoting; exercises the approved sync-read exception | **DELIVERED** — stories #1225 (service + Product Detail, PRs #1323/#1325) and #1329 (pos-order procurement, PR #1339). The sync-read grant is scoped by *file name* in `DomainWallsTest`, one entry per approved caller, so a third has to argue its own case |
+| 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first | **DELIVERED** — stories #1226, #1318, and the aggregate split #1333/#1334/#1330 (PRs #1336–#1338). The purchase order now lives in pos-order per the ADR-0049 amendment, and transmission is wired end to end: nothing was asking pos-supplier to send, and nothing was hearing the answers |
+| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **IN PROGRESS** — story #1227. The "waits on Accounting-domain authority" note is retired: pos-accounting already models the AP side as `VendorBill`, with a status flow (`PENDING_RECEIPT_MATCH` → `MATCH_EXCEPTION`/`APPROVED` → `PAID`), a purchase-order linkage, a journal entry, and `findByOriginEventId` — event-driven bill creation was anticipated in the model. The consumer wires a new event source into an existing shape rather than deciding financial meaning |
 | 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** with an inventory consumer (the shipment-tracking half was withdrawn 2026-08-14 — §12, decision 11) | Back-office visibility | **DELIVERED** — producer #1314, pos-inventory consumer #1319, shipment scaffolding removed #1317 |
 | 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim | **NOT STARTED** |
 | 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed | **NOT STARTED** — stories #1230, #1257 wait on Catalog-domain authority for the enrichment attachment model |
@@ -385,13 +386,18 @@ are met.
 
 Each phase should land with provider contract tests per adapter codec (golden-file XML/JSON fixtures derived from the specs and C1 PDFs) and a sandbox smoke suite runnable against vendor sandbox URLs.
 
-### 11.1 What the delivered phases add up to (2026-08-14)
+### 11.1 What the delivered phases add up to (2026-08-16)
 
-Four of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
-purchase orders (CAP-320) and the stock report (CAP-322). Read together they are the batch half of the
-integration — everything that moves on a schedule and travels as events. What is not built is the
-half that answers a question while a customer waits (CAP-319) and the two back-office consumers
-(CAP-321, CAP-324).
+Five of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
+stock inquiry (CAP-319), purchase orders (CAP-320) and the stock report (CAP-322). That is the whole
+of the vendor conversation except the money: prices come in, availability can be asked for while a
+customer waits, orders go out and their status comes back, and stock reports arrive on a schedule.
+The vendor then sends an invoice and there is nowhere to put it — which is why CAP-321 is the next
+piece rather than one of the two remaining greenfield capabilities.
+
+What remains after it is breadth rather than depth: MKCAT enrichment (CAP-324), a second protocol
+family (CAP-323), and the claim that a second vendor costs configuration plus codec gaps only, which
+stays untested until one is onboarded.
 
 **CAP-318 is the one that closed a loop rather than opening one.** Its final shape is fetch → stage →
 match → publish → apply, with three distinct repair paths, and each was added because a specific way
@@ -419,13 +425,24 @@ anything built after them:
    first group's commands. `supplier.commands.v1` therefore has a single listener that dispatches by
    event type.
 
-**Nothing is live.** All of the above is merged to `main` and none of it runs anywhere: the deploy
-prerequisites — Kafka enabled in both modules, the fleet-coordinated `CATALOG_VERSION` roll to 43,
-`SUPPLIER_AUDIT_ENC_KEY` provisioned, the duplicate-EAN check against a production snapshot, and the
-product-fact replay executed before the first import — are tracked in
-[durion#389](https://github.com/louisburroughs/durion/issues/389). The 500-line chunk default remains
-ADR-0053's estimate, still owed a validation against the first Michelin sandbox pull
-([durion#392](https://github.com/louisburroughs/durion/issues/392)).
+**Nothing is live, by plan.** All of the above is merged to `main` and none of it runs anywhere. That
+is the intended order: the structure is built out first and exercised against a live vendor once it is
+complete, so the deploy prerequisites — Kafka enabled in both modules, the fleet-coordinated
+`CATALOG_VERSION` roll, `SUPPLIER_AUDIT_ENC_KEY` provisioned, the duplicate-EAN check against a
+production snapshot, and the product-fact replay executed before the first import
+([durion#389](https://github.com/louisburroughs/durion/issues/389)) — are sequenced ahead of the first
+vendor test rather than gating further construction.
+
+Several estimates are owed that same test and cannot be settled before it: the 500-line chunk default
+([durion#392](https://github.com/louisburroughs/durion/issues/392)), and the poll cadences and
+escalation windows in the order-status machinery. They are recorded as assumptions, not as findings.
+
+**One gap is not tracked by any story.** Purchase-order lines are named to a vendor by EAN only:
+`supplierArticleCode` is never populated, because the vendor's own code is known solely from PRICAT
+price entries in pos-catalog and is not replicated to pos-order. A vendor that identifies articles by
+its own codes rather than EANs cannot be transmitted to at all — every line reports
+`ARTICLE_NOT_IDENTIFIABLE`. This does not affect Michelin, which carries EANs, so it will surface at
+the *second* vendor rather than the first.
 
 ## 12. Resolved Decisions (2026-08-10, extended 2026-08-14)
 
