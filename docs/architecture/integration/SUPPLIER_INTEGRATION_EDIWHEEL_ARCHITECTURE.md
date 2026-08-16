@@ -376,7 +376,7 @@ gate on further construction.
 | 1 | CAP-318 ([#373](https://github.com/louisburroughs/durion/issues/373)) | Michelin **Price Catalog (B4.0)** sync with effective-dating (blocker [#371](https://github.com/louisburroughs/durion/issues/371) resolved by ADR-0053) | Read-only, low-risk; proves profile + adapter + version machinery | **DELIVERED** — fetch → stage → match → publish → apply, plus all three repair paths. Backend PRs #1304, #1311, #1316, #1322. The consumer is no longer blocked: [#371](https://github.com/louisburroughs/durion/issues/371) is closed, resolved by ADR-0053
 | 1 | CAP-319 ([#374](https://github.com/louisburroughs/durion/issues/374)) | **Stock Inquiry (A2.5)** — live availability in Product Detail and pos-order procurement | Immediately enriches quoting; exercises the approved sync-read exception | **DELIVERED** — stories #1225 (service + Product Detail, PRs #1323/#1325) and #1329 (pos-order procurement, PR #1339). The sync-read grant is scoped by *file name* in `DomainWallsTest`, one entry per approved caller, so a third has to argue its own case |
 | 2 | CAP-320 ([#375](https://github.com/louisburroughs/durion/issues/375)) | **Order Create + Order Status** (C1.0 create, C1.1 status), outbox and idempotency machinery, pos-order events | The commercial core; needs Phase 1 plumbing hardened first | **DELIVERED** — stories #1226, #1318, and the aggregate split #1333/#1334/#1330 (PRs #1336–#1338). The purchase order now lives in pos-order per the ADR-0049 amendment, and transmission is wired end to end: nothing was asking pos-supplier to send, and nothing was hearing the answers |
-| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **DELIVERED** — story #1227 (PR #1342): codec, canonical invoice, `supplier.invoice.received`, and the pos-accounting consumer that records a `VendorBill`. The "waits on Accounting-domain authority" note was retired rather than deferred: pos-accounting already models the AP side, down to `findByOriginEventId`, so the consumer wires a new event source into an existing shape. **Nothing calls the fetch yet** — the schedule and the operator trigger are #1343 |
+| 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **DELIVERED** — story #1227 (PR #1342): codec, canonical invoice, `supplier.invoice.received`, and the pos-accounting consumer that records a `VendorBill`. The "waits on Accounting-domain authority" note was retired rather than deferred: pos-accounting already models the AP side, down to `findByOriginEventId`, so the consumer wires a new event source into an existing shape. Story #1343 (PR #1344, in review) supplies the callers: a per-binding cron schedule whose window overlaps its predecessor, and an operator endpoint that fetches an explicit window without moving the checkpoint |
 | 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** with an inventory consumer (the shipment-tracking half was withdrawn 2026-08-14 — §12, decision 11) | Back-office visibility | **DELIVERED** — producer #1314, pos-inventory consumer #1319, shipment scaffolding removed #1317 |
 | 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim | **NOT STARTED** |
 | 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed | **NOT STARTED** — stories #1230, #1257 wait on Catalog-domain authority for the enrichment attachment model |
@@ -398,9 +398,13 @@ What remains is breadth rather than depth: MKCAT enrichment (CAP-324), a second 
 (CAP-323), and the claim that a second vendor costs configuration plus codec gaps only, which stays
 untested until one is onboarded.
 
-**Two capabilities are built but uninvoked**, which is a distinct state from unbuilt and worth
-tracking as such. CAP-321's fetch has no schedule and no operator trigger (#1343). Until those land,
-an invoice is only imported if something asks — and nothing does.
+**"Built but uninvoked" is a distinct state from unbuilt, and worth tracking as such.** CAP-321 was
+in it: the codec, the canonical invoice and the accounting consumer all existed while nothing ever
+called the fetch, so an invoice was only imported if something asked and nothing did. #1343 (in
+review) closes that with a schedule and an operator endpoint. The lesson generalises — a capability
+is not delivered when its mechanism exists, but when something reaches it on its own — and it is
+worth checking each remaining phase against on the way in, because the gap is invisible from a
+passing test suite.
 
 **CAP-318 is the one that closed a loop rather than opening one.** Its final shape is fetch → stage →
 match → publish → apply, with three distinct repair paths, and each was added because a specific way
@@ -447,9 +451,9 @@ its own codes rather than EANs cannot be transmitted to at all — every line re
 `ARTICLE_NOT_IDENTIFIABLE`. This does not affect Michelin, which carries EANs, so it will surface at
 the *second* vendor rather than the first.
 
-## 12. Resolved Decisions (2026-08-10, extended 2026-08-14)
+## 12. Resolved Decisions (2026-08-10, extended 2026-08-14 and 2026-08-16)
 
-The original open questions were reviewed and resolved as follows (1–10, 2026-08-10). Decision 11 was added 2026-08-14, when building the capability surfaced a question this
+The original open questions were reviewed and resolved as follows (1–10, 2026-08-10). Decisions 11 and 12 were added on 2026-08-14 and 2026-08-16, when building the capability surfaced questions this
 review had not thought to ask. Where binding, they are promoted into ADRs (§13).
 
 1. **Vendor roadmap.** After Michelin, implement manufacturers in order of market share, favoring vendors that participate in the EDIWheel standard.
@@ -465,6 +469,14 @@ review had not thought to ask. Where binding, they are promoted into ADRs (§13)
 11. **Shipment tracking (added 2026-08-14).** **Not a Durion flow, in either direction.** EDIWheel shipment tracking is an exchange between logistics providers and
     suppliers; a service provider is not a party to it. The capability is removed from this architecture — no port, no canonical model, no event — rather than deferred.
     See below.
+12. **Invoice fetch windows overlap, and the checkpoint trails the work (added 2026-08-16).** Each scheduled fetch asks for everything since the last committed
+    checkpoint *minus a configurable overlap* (default two days), and the checkpoint advances only inside the same transaction as the import. Both halves answer the
+    same failure. A vendor may date an invoice a day or two before it becomes retrievable, so a window starting exactly where the last one ended steps over it; and a
+    checkpoint advanced over a window that failed halfway means no later run ever asks for those dates again. Re-asking is cheap because the importer recognises an
+    invoice it already holds by the vendor's own identity — the overlap costs duplicate rows in a response and buys immunity to the seam. The failure being bought off
+    is specific: an invoice that is never fetched is not reported missing by anything, and the first anyone hears of it is a vendor asking why it has not been paid.
+    The overlap is configuration rather than a constant because the right value depends on how long a given vendor takes to make an issued invoice retrievable, and
+    that is only learned from a live vendor.
 
 ### 12.1 Decision 11 in full — why shipment tracking is gone rather than pending
 
