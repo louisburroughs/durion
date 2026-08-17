@@ -379,7 +379,7 @@ gate on further construction.
 | 3 | CAP-321 ([#376](https://github.com/louisburroughs/durion/issues/376)) | **Invoice fetch (B3.3)** → AP vouchers in pos-accounting | Back-office reconciliation | **DELIVERED** — story #1227 (PR #1342): codec, canonical invoice, `supplier.invoice.received`, and the pos-accounting consumer that records a `VendorBill`. The "waits on Accounting-domain authority" note was retired rather than deferred: pos-accounting already models the AP side, down to `findByOriginEventId`, so the consumer wires a new event source into an existing shape. Story #1343 (PR #1344, in review) supplies the callers: a per-binding cron schedule whose window overlaps its predecessor, and an operator endpoint that fetches an explicit window without moving the checkpoint |
 | 3 | CAP-322 ([#377](https://github.com/louisburroughs/durion/issues/377)) | **Stock Report (B2.1)** with an inventory consumer (the shipment-tracking half was withdrawn 2026-08-14 — §12, decision 11) | Back-office visibility | **DELIVERED** — producer #1314, pos-inventory consumer #1319, shipment scaffolding removed #1317 |
 | 4 | CAP-323 ([#378](https://github.com/louisburroughs/durion/issues/378)) | **S2S workorder authorization** (fleet flows), second protocol family in production | Exercises the non-EDIWheel reuse claim | **DELIVERED** — story #1229 (PR #1345): OAuth2 adapter, 201/202 + `Location` polling, vehicle/contract/policy lookups, completion approval, `MANUAL_REVIEW` queue. The reuse claim survived with two stated exceptions (§11.2). The workexec-side mapping of outcomes onto workorder state is deliberately not included — it needs Workorder Execution domain authority, and the events are published so workexec only has to subscribe |
-| 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed | **NOT STARTED** — stories #1230, #1257 wait on Catalog-domain authority for the enrichment attachment model |
+| 5 | CAP-324 ([#379](https://github.com/louisburroughs/durion/issues/379)) | MKCAT marketing catalog (C1.2 JSON); DOT / TireSnap scanning stays a dormant `TireIdentificationPort` placeholder | DOT scanning likely required by most service providers — port defined up front, adapter implemented once confirmed | **DELIVERED** — stories #1230 and #1257 (PR #1350): C1.2 codec, subscribe and scheduled-diff modes, staged enrichment, `supplier.catalog.updated.v1`, and artwork fetched into pos-image. Tire identification is now *verified* dormant rather than merely unbuilt. The pos-catalog consumer is not included: unlike CAP-321's blocker it is real, because pos-catalog has no enrichment concept to attach to (§11.3) |
 | Next vendor | — | Second EDIWheel manufacturer via configuration (+ codec gaps only) | Validates the reusability goal; target: zero changes outside `adapter/` + profile data | **NOT STARTED** — the claim is untested until a second vendor is onboarded |
 
 **Vendor roadmap:** after Michelin, onboard manufacturers in order of market share, favoring vendors that participate in the EDIWheel standard (they reuse existing adapters; non-participants require a new protocol family).
@@ -388,16 +388,16 @@ Each phase should land with provider contract tests per adapter codec (golden-fi
 
 ### 11.1 What the delivered phases add up to (2026-08-16)
 
-Seven of the eight capabilities are merged: the foundation (CAP-317), the price catalogue (CAP-318),
-stock inquiry (CAP-319), purchase orders (CAP-320), invoices (CAP-321), the stock report (CAP-322)
-and fleet workorder authorization (CAP-323). Read together they are the whole commercial conversation with a vendor — prices in,
+**All eight capabilities are merged** (2026-08-16): the foundation (CAP-317), the price catalogue
+(CAP-318), stock inquiry (CAP-319), purchase orders (CAP-320), invoices (CAP-321), the stock report
+(CAP-322), fleet workorder authorization (CAP-323) and the marketing catalogue (CAP-324). Read together they are the whole commercial conversation with a vendor — prices in,
 availability asked for while a customer waits, orders out, status back, goods received, and the
 invoice that follows.
 
-Seven of the eight are now merged: CAP-323 added the second protocol family. What remains is MKCAT
-enrichment (CAP-324), and the claim that a second *vendor* costs configuration plus codec gaps only —
-which stays untested until one is onboarded. A second *protocol family* has now been tested, and
-§11.2 records what it cost.
+What remains is not a capability. It is the claim that a second *vendor* costs configuration plus
+codec gaps only, which stays untested until one is onboarded — and the four gaps below, each of which
+now has an owner. A second *protocol family* has been tested twice over: CAP-323 (Michelin S2S,
+OAuth2 JSON) and CAP-324 (C1.2), and §11.2 records what the first cost.
 
 **"Built but uninvoked" is a distinct state from unbuilt, and worth tracking as such.** CAP-321 was
 in it: the codec, the canonical invoice and the accounting consumer all existed while nothing ever
@@ -486,12 +486,42 @@ Several estimates are owed that same test and cannot be settled before it: the 5
 ([durion#392](https://github.com/louisburroughs/durion/issues/392)), and the poll cadences and
 escalation windows in the order-status machinery. They are recorded as assumptions, not as findings.
 
+### 11.3 Two things CAP-324 found that the documents had wrong
+
+**pos-image did not resemble its own description.** Story #1257 specified that MKCAT store artwork in
+pos-image, citing [ADR-0009](../../adr/0009-backend-domain-responsibilities-guide.adr.md), which
+gives that module *"image storage, serving, optimization, and caching"* and entities `Image`,
+`ImageMetadata`, `ImageVariant`. The module was a four-column table — `id, filename, url,
+classification` — served by resolving `url` as a local filesystem path. One entity, no upload
+endpoint, no AWS SDK anywhere in the backend, no security, and nowhere to put bytes.
+
+CAP-324 built the missing half rather than deferring: content-addressed storage keyed by SHA-256, a
+gated write endpoint, and the platform error envelope. Bytes went to Postgres as a *stated default*
+rather than a decision — no ADR covers image storage, and choosing object storage would have meant
+picking a bucket, a credential strategy and a lifecycle policy with nothing to follow, inside a story
+about a marketing catalogue. It sits behind an interface so the real decision can be made and swapped
+in without touching a caller:
+[#1351](https://github.com/louisburroughs/durion-positivity-backend/issues/1351).
+
+The general point is worth keeping: **an ADR describing a module's responsibilities is not evidence
+the module has them.** ADR-0009 was aspirational for pos-image and read as descriptive by a story
+that then depended on it. Any capability that plans to lean on a module it has not opened should
+check the code first.
+
+**A tread design variant has no EAN.** #1230's acceptance criteria assume enrichment matches products
+"by EAN/GTIN or manufacturer identifiers". A variant is a *design*; one design spans many sizes, each
+with its own EAN, and MKCAT carries none of them. The identifiers available are brand, design names
+and the catalogue's own id, so matching is necessarily fuzzier than the story imagined — which is
+part of why the pos-catalog attachment model is a real design problem rather than a wiring task.
+
 **Known gaps, now each tracked by a story (2026-08-16).** All four were carried as prose here and had
 no owner; they are filed so the next vendor onboarding does not discover them as incidents.
 
 | Gap | Issue | Why it matters, and when |
 | --- | --- | --- |
 | Purchase-order lines are named to a vendor by EAN only — `supplierArticleCode` is never populated, because the vendor's own code lives in PRICAT entries in pos-catalog and is not replicated to pos-order | [#1347](https://github.com/louisburroughs/durion-positivity-backend/issues/1347) | A vendor that identifies articles by its own codes cannot be transmitted to **at all** — every line reports `ARTICLE_NOT_IDENTIFIABLE`. Michelin carries EANs, so this surfaces at the *second* vendor, as a total failure rather than a partial one |
+| MKCAT enrichment is published but nothing attaches it to products | [#1352](https://github.com/louisburroughs/durion-positivity-backend/issues/1352) | pos-catalog has no enrichment concept and no image link at all, so there is nothing to attach to. Unlike CAP-321's apparent blocker, which retired on inspection, this one required the Product & Catalog domain to design a model |
+| pos-image does not match ADR-0009 | [#1351](https://github.com/louisburroughs/durion-positivity-backend/issues/1351) | CAP-324 added storage because there was none; the backend choice, variants, cache headers and orphaned-content retention are all still open (§11.3) |
 | Fleet authorization outcomes are published but nothing consumes them | [#1346](https://github.com/louisburroughs/durion-positivity-backend/issues/1346) | CAP-323 deliberately stopped at the domain wall: the mapping onto workexec state is the Workorder Execution domain's to make, and `AWAITING_APPROVAL` already means *customer* approval, which is a different thing |
 | Every codec is tested against payloads written by the codec's own author | [#1348](https://github.com/louisburroughs/durion-positivity-backend/issues/1348) | Verifies self-consistency, not that a vendor's real payload can be read. Sharpest for Michelin S2S, whose request body the spec types as `JsonNode` — those fields are marked `GUESS` in the code precisely so a sandbox run can correct them. Blocked on sandbox credentials |
 | The SPI capability ports are almost entirely unimplemented | [#1349](https://github.com/louisburroughs/durion-positivity-backend/issues/1349) | Eight of nine ports have no implementation; every delivered capability routes through a runner instead. An unimplemented signature is never tested against reality and drifts into being unimplementable — which had already happened to the one CAP-323 needed |
