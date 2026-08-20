@@ -131,6 +131,13 @@ Headers and auth notes:
 **Behavioral assertions:**
 
 - ATP = onHandQuantity - allocatedQuantity (NOT onHand - reservations, per ADR-0001)
+- Quantities are decimal (`number`, not `integer`) since ADR-0055 / backend #1414. Widening the
+  type did **not** make stock divisible: a product's divisibility is the `precision_scale` of its
+  `BASE` row in `product_uom`, and a product declaring scale 0 — or declaring nothing, which is
+  every product until seeding lands — is still refused a fractional quantity on both the demand
+  side (work-order part entry and issue) and the supply side (receiving, ASN, returns, manual
+  stock movements). Compare these values with a decimal comparison, never string or integer
+  equality: the ledger stores `numeric(19,4)`, so `80` and `80.0000` are the same quantity.
 - When no storageLocationId is given, aggregate all child storage locations under the parent locationId
 - When storageLocationId is given, scope computation to that storage location only
 - Return 404 if productSku is not found in the ledger
@@ -183,6 +190,10 @@ Headers and auth notes:
 - RECEIVE movement creates a GOODS_RECEIPT ledger entry (INBOUND)
 - TRANSFER movement creates both TRANSFER_OUT (source location) and TRANSFER_IN (destination location)
 - Adjustment without reasonCode returns 400
+- `quantity` on both bodies is decimal since ADR-0055 / backend #1414, and is checked against the
+  referenced product's declared `precision_scale` before it reaches the ledger. A fractional
+  quantity for a product that declares whole units returns 422 `FRACTIONAL_QUANTITY_NOT_ALLOWED` —
+  the same code the work-order part gate raises, from the same catalog declaration
 - Approved adjustments post a single ADJUSTMENT_IN or ADJUSTMENT_OUT entry depending on quantity sign
 - Negative on-hand resulting from PICK/ISSUE returns 422 INSUFFICIENT_STOCK
 - PRODUCT_NOT_FOUND returns 404; LOCATION_NOT_FOUND returns 404
