@@ -213,15 +213,14 @@ that the family needs `precision_scale > 0` seeded, not that the decision is wro
 
 ---
 
-## Open Questions
+## Open Questions (resolved at acceptance)
 
-- **Bulk shrinkage tolerance.** Must be settled before Stage 2, not before Stage 1. A drum's evaporation, residue and meter variance are real, and
-  `NegativeStockPolicy.forEventType` currently makes `COUNT_VARIANCE_OUT` and `ADJUST_CYCLE_COUNT` `FLOOR_AT_ZERO` — downward variance truncates silently. The question is what
-  tolerance is acceptable and whether it should be visible rather than absorbed.
-- **Billing confirmation from the pricing domain.** Work-order invoicing reads `part.getQuantity()` rather than `quantityIssued`, so constraining quantity also constrains the
-  billed amount. Under the "bill the whole container" policy this is the desired behaviour, but it is a pricing consequence of an inventory decision and warrants explicit
-  confirmation rather than assumption.
-
+- **Bulk shrinkage tolerance.** ✅ Resolved — the owner specified tolerance-based reconciliation (durion-positivity-backend#1414 comments): a physical count and an inventory
+  adjustment are separate transactions; tolerance is configurable per product and storage location (absolute quantity, percentage, or both); within-tolerance counts are
+  accepted without adjustment; exceeding tolerance requires investigation and approval. Implemented in stage 4 (durion-positivity-backend#1421), including the pinned
+  `FLOOR_AT_ZERO` verification.
+- **Billing confirmation from the pricing domain.** ✅ Resolved — accepted under the "bill the whole container" policy (durion-positivity-backend#1365): the invoice reading
+  `part.getQuantity()` is the desired coupling, since the billed quantity and the issued quantity are the same number by policy.
 ---
 
 ## References
@@ -240,21 +239,21 @@ that the family needs `precision_scale > 0` seeded, not that the decision is wro
 
 | Role                       | Name | Date | Notes                                              |
 | -------------------------- | ---- | ---- | -------------------------------------------------- |
-| Architecture               |      |      |                                                    |
-| Inventory Domain           |      |      |                                                    |
-| Workorder Execution Domain |      |      |                                                    |
-| Product & Catalog Domain   |      |      |                                                    |
-| Pricing & Fees Domain      |      |      | Billing coupling confirmation (see Open Questions) |
+| Architecture               | Louis Burroughs (project owner) | 2026-08-20 | Accepted |
+| Inventory Domain           | Louis Burroughs (project owner) | 2026-08-20 | Accepted |
+| Workorder Execution Domain | Louis Burroughs (project owner) | 2026-08-20 | Accepted |
+| Product & Catalog Domain   | Louis Burroughs (project owner) | 2026-08-20 | Accepted |
+| Pricing & Fees Domain      | Louis Burroughs (project owner) | 2026-08-20 | Billing coupling accepted under the "bill the whole container" policy (durion-positivity-backend#1365) |
 
 ---
 
 ## Timeline
 
 - **Proposed**: 2026-08-20
-- **Under Review**: —
-- **Accepted**: —
-- **Implementation Started**: —
-- **Implementation Complete**: —
+- **Under Review**: 2026-08-20
+- **Accepted**: 2026-08-20
+- **Implementation Started**: 2026-08-20 — durion-positivity-backend#1418
+- **Implementation Complete**: 2026-08-20 — durion-positivity-backend#1418, #1419, #1420, #1421 merged; seed prerequisite #1426; first bulk `product_uom` rows #1428
 - **Deployed to Production**: —
 
 ---
@@ -262,3 +261,5 @@ that the family needs `precision_scale > 0` seeded, not that the decision is wro
 ## Changelog
 
 - **2026-08-20**: Initial draft. Records the Option D decision from durion-positivity-backend#1365, superseding the Option A / Option B framing in that issue.
+- **2026-08-20**: Accepted by the project owner. Open questions resolved (bulk shrinkage tolerance per durion-positivity-backend#1414; billing coupling under "bill the whole
+  container"). Implementation merged: durion-positivity-backend#1418–#1421, seed prerequisite #1426, first `product_uom` bulk rows #1428.
