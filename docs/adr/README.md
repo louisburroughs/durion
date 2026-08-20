@@ -119,6 +119,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0052   | Supplier Outbound Idempotency and Duplicate-Order Prevention | ACCEPTED | 2026-08-10 |
 | 0053   | Supplier PRICAT Ingestion, Effective Dating, and Price Precedence | ACCEPTED | 2026-08-10 |
 | 0054   | Sell-Price System of Record Split (pos-price Quoting, pos-catalog Reference) | ACCEPTED | 2026-08-10 |
+| 0055   | Per-Product Inventory Quantity Divisibility | PROPOSED | 2026-08-20 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -180,6 +181,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0052 | Outbound supplier idempotency: deterministic document IDs, transactional outbox for order transmission, status-first reconciliation of ambiguous outcomes (never blind-retry an order create), MANUAL_REVIEW escalation, mandatory crash/retry tests | Planner, Coder, Test, Orchestrator |
 | 0053 | PRICAT supplier-cost policy: pos-catalog owns append-only effective-dated supplier price entries (replacing supplier_item_cost), market-not-location scope, structural no-override of sell prices, deterministic EAN/UPC/MPN matching with quarantine, manifest-chunked import events | Planner, Coder, Test, Orchestrator |
 | 0054 | Sell-price authority routing: pos-price is the transactional quoting SoR, pos-catalog narrows to list/MSRP reference (CUSTOMER_TIER book selection to be finished in the reference role); base-price history retention fix owned here | Planner, Coder, Test, Orchestrator |
+| 0055 | Inventory quantity divisibility declared per product via `product_uom.precision_scale` (undeclared = integral); symmetric demand/supply enforcement, decimal-capable ledger gated by the declaration, UOM on the workorder part line | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 
