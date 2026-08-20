@@ -11,7 +11,7 @@
 
 ### Current State
 
-Inventory quantities are integer end to end. Work-order part demand is not.
+Inventory quantities are integer end to end. Workorder part demand is not.
 
 - **Demand side is fractional.** `workorder_part.quantity`, `quantity_issued`, `quantity_consumed`, `quantity_returned` are `numeric(19,4)`, and `IssuePartRequest` validates `@DecimalMin("0.0001")`.
 - **Supply side is integral.** `inventory_ledger_entry.change_in_quantity` and `quantity_after` are `integer`; so are the reservation, allocation and backorder entities and columns, `ReservationOutcomeV1.requiredQuantity`, the three quantity fields on `InventoryAvailabilityUpdatedV1`, and the `ext_inventory_availability` replicas in pos-order, pos-workorder and pos-catalog.
