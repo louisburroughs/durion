@@ -71,17 +71,24 @@ The signature capture should support a dual format approach:
 public class CustomerApproval {
     // ... other fields
     
-    @Lob
     @Column(name = "signature_image_data", columnDefinition = "TEXT")
     private String signatureImageData; // Base64-encoded PNG
     
-    @Lob
     @Column(name = "signature_json_data", columnDefinition = "TEXT")
     private String signatureJsonData; // JSON stroke data
     
     private String signatureMimeType; // e.g., "image/png"
 }
 ```
+
+> **Do not add `@Lob` to these `String` fields.** On PostgreSQL, `@Lob` on a `String` maps
+> the column to a large-object `oid` rather than `text`, even when `columnDefinition` says
+> otherwise in H2-based tests. Large objects cannot be read in auto-commit mode — Hibernate
+> extracts them during entity hydration, so any load of the entity outside a transaction
+> fails — and they are not deleted with the referencing row, leaking `pg_largeobject`
+> storage on every update and delete. A plain `text` column has neither problem and no
+> length limit. See durion-positivity-backend#1461, which removed this pattern from the
+> platform and added an ArchUnit rule forbidding `@Lob` on `String` fields.
 
 **JSON Structure Example:**
 ```json
