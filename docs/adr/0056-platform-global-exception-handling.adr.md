@@ -1,6 +1,6 @@
 # ADR-0056: Platform Global Exception Handling and Persistence Error Mapping
 
-**Status:** PROPOSED **Date:** 2026-08-23 **Deciders:** Architecture, Backend Lead, API Lead **Affected Issues:** louisburroughs/durion-positivity-backend#1471
+**Status:** ACCEPTED **Date:** 2026-08-23 **Deciders:** Architecture, Backend Lead, API Lead **Affected Issues:** louisburroughs/durion-positivity-backend#1471
 
 ---
 
@@ -166,17 +166,18 @@ gateway error rendering remains its own concern
 
 ## Sign-Off
 
-| Role         | Name | Date | Notes |
-| ------------ | ---- | ---- | ----- |
-| Architecture |      |      |       |
-| Backend Lead |      |      |       |
-| API Lead     |      |      |       |
+| Role         | Name | Date       | Notes |
+| ------------ | ---- | ---------- | ----- |
+| Architecture | LMB  | 2026-08-23 |       |
+| Backend Lead | LMB  | 2026-08-23 |       |
+| API Lead     | LMB  | 2026-08-23 |       |
 
 ---
 
 ## Timeline
 
 - **Proposed**: 2026-08-23
+- **Accepted**: 2026-08-23
 
 ---
 
@@ -184,3 +185,4 @@ gateway error rendering remains its own concern
 
 - **2026-08-23**: Initial draft, authored alongside the implementing change for
   durion-positivity-backend#1471
+- **2026-08-23**: Marked ACCEPTED; implementation merged in durion-positivity-backend#1474

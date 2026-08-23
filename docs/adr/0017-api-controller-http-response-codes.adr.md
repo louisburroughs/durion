@@ -149,3 +149,7 @@ Validation and domain error details:
 
 - **2026-02-17**: Initial draft
 - **2026-02-17**: Marked ACCEPTED and clarified greenfield implementation guidance
+- **2026-08-23**: [ADR-0056](0056-platform-global-exception-handling.adr.md) mandates the platform
+  catch-all implementing §3/§4 and decides the not-null/check `DataIntegrityViolationException`
+  mapping (409 unique/FK, 422 client-supplied not-null/check, enveloped 500 for server-populated
+  audit columns)
