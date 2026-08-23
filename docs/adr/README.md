@@ -120,7 +120,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0053   | Supplier PRICAT Ingestion, Effective Dating, and Price Precedence            | ACCEPTED              | 2026-08-10 |
 | 0054   | Sell-Price System of Record Split (pos-price Quoting, pos-catalog Reference) | ACCEPTED              | 2026-08-10 |
 | 0055   | Per-Product Inventory Quantity Divisibility                                  | ACCEPTED              | 2026-08-20 |
-| 0056   | Platform Global Exception Handling and Persistence Error Mapping             | PROPOSED              | 2026-08-23 |
+| 0056   | Platform Global Exception Handling and Persistence Error Mapping             | ACCEPTED              | 2026-08-23 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
