@@ -168,7 +168,19 @@ former ⚠ OWNER cells were all decided by the product owner on 2026-08-26 and a
 recorded in the matrix; two produced follow-on issues #1521/#1522.) Output: matrix
 updated in place, all cells CONFIRMED.
 **Acceptance:** no VERIFY cells remain.
-**Evidence (per domain group):**
+**Evidence:** 2026-08-26 — COMPLETE. Two read-only research agents verified all targets at
+`3384210` (verbs, params, merged `@PreAuthorize` guards, file:line cites). Matrix rewritten
+in place with confirmed targets. Contradictions found and resolved with the owner same day:
+catalog-items/{type} has no GET (→ products/search?category, the owner's pre-approved
+fallback); price-books collection POST-only (→ by-id GET, matches tool signature);
+event summaries take zero params (→ RESHAPE getEventSummary(window), owner-approved);
+JE list filters only exact entryNumber (→ RESHAPE to general-ledger report, owner-approved);
+/v1/appointments has no GET (→ schedules/view + workexec/wip for shop composes);
+/v1/invoices/search has no customer param (→ items/search?partyId + de-dup);
+pos-people has no employee list (→ DEFERRED #1523, owner-decided);
+promos+price-books have no list GETs (→ RESHAPE searchPricing to lookups, owner-decided);
+price quotes require mandatory customerTierId (→ PRICE-SKU composes MSRP + optional
+location, owner-decided); availability param is productSku not sku.
 
 ### Wave 2 — Mechanical repoints (Bucket A)
 **Agent per workset:** API Surface Coder (config+tool signature), Backend Testing
@@ -202,8 +214,8 @@ multi-expectation tests driven by the WS-0.3 manifest (a composition's manifest 
 lists **all** its downstream calls).
 Worksets (parallel after WS-3.0): **WS-3.FINSUM** · **WS-3.REPORTS** ·
 **WS-3.CUSTHIST** · **WS-3.SHOPSTATUS** · **WS-3.SHOPQUEUE** · **WS-3.PRICE-SKU** ·
-**WS-3.PRICESEARCH** · **WS-3.TAXCALC** (targets in Section 7). WS-3.TAXCALC also
-removes the deferred `getTaxRate` method, its template, and its manifest row (#1522).
+**WS-3.TAXCALC** (targets in Section 7; PRICESEARCH moved to Wave 2 as a lookup reshape).
+WS-3.TAXCALC also removes the deferred `getTaxRate` method, template, and manifest row (#1522).
 **Acceptance per workset:** every downstream leg passes checker v2; tool returns a
 correct composed answer in tests incl. one degraded-leg case; tool `@Tool`
 description updated to describe the composed semantics (the LLM reads it).
@@ -240,65 +252,64 @@ the same manifest as WS-0.3 (one truth for "what does this tool call").
 
 ---
 
-## 7. Disposition matrix (per @Tool method)
+## 7. Disposition matrix (per @Tool method) — CONFIRMED by Wave 1 (2026-08-26)
 
-Legend: **REPOINT** = config/signature change to an existing endpoint · **COMPOSE** =
-multi-call coordination (Wave 3) · **OK** = verified reachable at baseline · **VERIFY** =
-Wave 1 confirms detail · **DEFERRED** = method removed from the live tool surface, follow-on
-issue tracks the real endpoint. All six former ⚠ OWNER cells were decided by the product
-owner on 2026-08-26 (recorded below); none remain open.
-Route prefixes are gateway route ids (`Path=/{route}/**`, StripPrefix=1).
+Legend: **REPOINT** = config/signature change to an existing endpoint · **RESHAPE** = repoint
+plus an owner-approved signature change so the tool matches the real contract · **COMPOSE** =
+multi-call coordination (Wave 3) · **OK** = verified reachable · **DEFERRED** = method removed
+from the live surface, follow-on issue tracks the real endpoint. Guards listed are the
+downstream `@PreAuthorize` codes Wave 4 seeds from (file:line cites are in the Wave 1 agent
+reports). Route prefixes are gateway route ids.
 
-| Tool.method | Configured today (broken unless OK) | Disposition → target |
+| Tool.method | Disposition → confirmed target | Guard(s) |
 | --- | --- | --- |
-| **Accounting.getAccountBalance** | `/accounting/v1/accounting/accounts/{id}/balance` | REPOINT → `/accounting/v1/accounting/gl-accounts/{glAccountId}/balance` |
-| **Accounting.searchJournalEntries** | `.../journal-entries/search?q=` | REPOINT → `/accounting/v1/accounting/journal-entries` (GET; VERIFY filter params) |
-| **Accounting.getFinancialSummary** | `.../summary/{period}` | COMPOSE → income-statement + balance-sheet (+ trial-balance) for period (WS-3.FINSUM) |
-| **Reporting.getSalesReport** | `/accounting/v1/reporting/sales/{period}` | COMPOSE → `/accounting/v1/accounting/reports/financial/income-statement` (revenue section; VERIFY period params) (WS-3.REPORTS) |
-| **Reporting.getInventoryReport** | `.../reporting/inventory/{locationId}` | REPOINT → `/inventory/v1/inventory/locations/{locationId}/inventory-rollup` (cross-domain; base-url note) |
-| **Reporting.getRevenueReport** | `.../reporting/revenue/{period}` | COMPOSE → income-statement revenue lines + aged-receivables (collected vs outstanding) (WS-3.REPORTS) — DECIDED 2026-08-26 |
-| **Catalog.getProduct** | `/catalog/v1/catalog/products/{id}` | REPOINT → `/catalog/v1/products/{productId}` (or `/detail`; VERIFY which serves the NL intent better) |
-| **Catalog.searchCatalog** | `/catalog/v1/catalog/search?q=` | REPOINT → `/catalog/v1/products/search` (VERIFY verb+params; consider also `/v1/products/services/search` as Wave 3 follow-up) |
-| **Catalog.getCatalogByCategory** | `/catalog/v1/catalog/categories/{cat}` | REPOINT → `/catalog/v1/catalog-items/{type}` — DECIDED 2026-08-26; Wave 1 still verifies the type vocabulary reads well for an LLM |
-| **Customer.getCustomer** | `/customer/v1/customers/{id}` | REPOINT → `/customer/v1/crm/accounts/parties/{partyId}` |
-| **Customer.searchCustomers** | `/customer/v1/customers/search?q=` | REPOINT → `/customer/v1/crm/accounts/parties/search` (VERIFY verb/params) |
-| **Customer.getCustomerHistory** | `/customer/v1/customers/{id}/history` | COMPOSE → party interactions + crm snapshot + invoices-by-customer + workorder search (WS-3.CUSTHIST) |
-| **Events.getEventTypes** | `/event-receiver/v1/events/eventTypes` | REPOINT → `/event-receiver/v1/eventTypes/active` |
-| **Events.searchEvents** | `.../events/summary?q=` | REPOINT → `/event-receiver/v1/events/summary/lastDay` family (VERIFY EventSummaryController's query surface) |
-| **Events.getEventHistory** | `.../events/summary?entityId=` | DEFERRED → [#1521](https://github.com/louisburroughs/durion-positivity-backend/issues/1521) (entity-indexed query endpoint in pos-event-receiver); method removed from the live surface in WS-2.EVT — DECIDED 2026-08-26 |
-| **Hr.getEmployee / getEmployeeSchedule** | `/people/...` | OK (route+path verified) |
-| **Hr.searchEmployees** | `/people/v1/people?q=` | REPOINT (false pass — `/v1/people` belongs to people-contact, different route) → `/people/v1/people/employees` (employees only; VERIFY filter params) — DECIDED 2026-08-26 |
-| **Inventory.checkStock** | `/inventory/v1/inventory/stock/{sku}` | REPOINT → `/inventory/v1/inventory/availability/by-sku` (per V36/ADR-0057) |
-| **Inventory.searchInventory** | `.../inventory/search?q=` | REPOINT → `/inventory/v1/inventory/availability/by-sku` (same controller, per V36; VERIFY param mapping) |
-| **Inventory.getLocationStock** | `.../locations/{id}/stock` | REPOINT → `/inventory/v1/inventory/locations/{locationId}/inventory-inquiry` (per V36) |
-| **Invoice.getInvoice / searchInvoices** | — | OK |
-| **Invoice.getInvoicesByCustomer** | `/invoice/v1/invoices/customer/{id}` | REPOINT → `/invoice/v1/invoices/search` with customer filter (VERIFY search params) |
-| **Location.getLocation** | — | OK |
-| **Location.searchLocations** | `/location/v1/locations/search?q=` | REPOINT → `/location/v1/locations` list or `/v1/locations/roster` (VERIFY filter params) |
-| **Location.getLocationInventory** | `/location/v1/locations/{id}/inventory` | REPOINT → `/inventory/v1/inventory/locations/{locationId}/inventory-rollup` (cross-domain) |
-| **Order.getOrder** | `/order/v1/orders/{orderId}` | REPOINT → `/order/v1/orders/carts/{orderId}` |
-| **Order.searchOrders** | `/order/v1/orders/search?q=` | REPOINT → `/order/v1/orders/carts` (GET list; VERIFY filters) |
-| **Pricing.getPriceForSku** | `/price/v1/pricing/sku/{sku}` | COMPOSE → catalog `/v1/products/by-code` → `POST /price/v1/price/quotes` (or catalog effective-price per ADR-0054) (WS-3.PRICE-SKU) |
-| **Pricing.searchPricing** | `/price/v1/pricing/search?q=` | COMPOSE → promotions offers (pos-price) + price-books (pos-catalog), response labeled by source (WS-3.PRICESEARCH) — DECIDED 2026-08-26 |
-| **Pricing.getPriceList** | `/price/v1/pricing/lists/{id}` | REPOINT → `/catalog/v1/products/price-books` (ADR-0054: price books live in catalog; VERIFY by-id shape) |
-| **ShopManager.getShopStatus** | `/shop-manager/v1/shop/{shopId}/status` | COMPOSE → appointments (by location) + `/shop-manager/v1/schedules/view` + workorder search (WS-3.SHOPSTATUS) |
-| **ShopManager.getShopQueue** | `.../shop/{shopId}/queue` | COMPOSE → open workorders at location + upcoming appointments (WS-3.SHOPQUEUE) |
-| **ShopManager.searchShops** | `.../shop/search?q=` | REPOINT → `/location/v1/locations` roster (shops are locations; VERIFY) |
-| **Tax.calculateTax** | GET `/calculate?amount=&locationId=` (direct) | COMPOSE → resolve location→address via `/location/v1/locations/{id}`, then `POST /v1/tax/calculate` (direct client, ADR-0021 body contract) (WS-3.TAXCALC) |
-| **Tax.getTaxRate** | `/rates/{locationId}` (direct) | DEFERRED → [#1522](https://github.com/louisburroughs/durion-positivity-backend/issues/1522) (real rates endpoint in pos-tax, ADR-0021-consistent); method removed from the live surface in WS-3.TAXCALC; calculateTax covers the practical intent meanwhile — DECIDED 2026-08-26 |
-| **Tax.getTaxSummary** | `/summary/{period}` (direct) | REPOINT → `/accounting/v1/accounting/reports/financial/tax-liability` (moves off direct client; gateway-routed) |
-| **Vehicle.getVehicle** | `/customer/v1/vehicles/{id}` | REPOINT → `/vehicle-inventory/v1/vehicle-registry/{vehicleId}` |
-| **Vehicle.searchVehicles** | `/customer/v1/vehicles/search?q=` | REPOINT (false pass — wrong route) → `/vehicle-inventory/v1/vehicles/search` |
-| **Vehicle.getVehiclesByCustomer** | `/customer/v1/vehicles/customer/{id}` | REPOINT → `/customer/v1/crm/accounts/parties/{partyId}/vehicles` (or `/v1/crm/{customerId}/vehicles`; VERIFY id semantics vs ADR-0012) |
-| **Workorder.getWorkorder / searchWorkorders** | — | OK |
-| **Workorder.getWorkorderStatus** | `.../workorders/{id}/status` | REPOINT → `/workorder/v1/workorders/{workorderId}` (status in body; description says "status"; consider `/detail`) |
-| **Admin.* (4 methods)** | `/security-service/...` | OK (`/v1/users/{userId}/permissions` + `/v1/audit/events` verified) — include in WS-0.3 manifest anyway |
-| **ExaWebSearch.webSearch** | external SaaS | OUT OF SCOPE |
+| Accounting.getAccountBalance | REPOINT → `GET /accounting/v1/accounting/gl-accounts/{glAccountId}/balance` (UUID id; no code/name finder exists — description must say UUID) | `accounting:coa:view` |
+| Accounting.searchJournalEntries | RESHAPE (owner 2026-08-26) → `getGeneralLedger(startDate, endDate, accountId?)` → `GET /accounting/v1/accounting/reports/financial/general-ledger` (JE list only filters exact `entryNumber` — unusable for search) | `reporting:view:financial-statements` |
+| Accounting.getFinancialSummary | COMPOSE (WS-3.FINSUM) → income-statement (`startDate`+`endDate`) + balance-sheet (`asOfDate`=endDate) + trial-balance (**`asOf`**=endDate — param name differs!) | `reporting:view:financial-statements` |
+| Reporting.getSalesReport | REPOINT → `GET /accounting/v1/accounting/reports/financial/income-statement?startDate&endDate` (period→range mapping in facade) | `reporting:view:financial-statements` |
+| Reporting.getInventoryReport | REPOINT → `GET /inventory/v1/inventory/locations/{locationId}/inventory-rollup` (parent-location semantics: empty for a bare site — description must say so; site-level inquiry is the fallback) | `inventory:on_hand:view` |
+| Reporting.getRevenueReport | COMPOSE (WS-3.REPORTS, owner 2026-08-26) → income-statement revenue lines + aged-receivables (`asOfDate`=endDate) | `reporting:view:financial-statements` |
+| Catalog.getProduct | REPOINT → `GET /catalog/v1/products/{productId}` (`/detail` requires `location_id` and 400s without it — do not default to it) | `hasRole('ADMIN') or catalog:product:view` |
+| Catalog.searchCatalog | REPOINT → `GET /catalog/v1/products/search?q={query}` (also takes `category`/`sku`/`brand`/`limit`) | same |
+| Catalog.getCatalogByCategory | REPOINT → `GET /catalog/v1/products/search?category={category}` — owner's pre-approved fallback; the chosen `/v1/catalog-items/{type}` has **no GET** (POST/PUT/DELETE only) | same |
+| Customer.getCustomer | REPOINT → `GET /customer/v1/crm/accounts/parties/{partyId}` (identity projection per ADR-0015; thin payload — description sets expectations) | `crm:party:view` |
+| Customer.searchCustomers | REPOINT → `GET /customer/v1/crm/accounts/parties?name={query}` (browse: unified directory incl. individuals, ci-contains, paginated; the POST `/search` is commercial-only and ignores paging) | `crm:party:view` |
+| Customer.getCustomerHistory | COMPOSE (WS-3.CUSTHIST) → snapshot `/v1/crm/snapshot/party/{partyId}` + interactions `/v1/crm/parties/{partyId}/interactions` + invoice lines `/invoice/v1/invoices/items/search?partyId=` (de-dup by invoice) + workorders `/workorder/v1/workorders/search?customerId=` | `crm:party:view`, `crm:interaction:view`, `invoice:manage`, `workorder:workorder:view` |
+| Events.getEventTypes | REPOINT → `GET /event-receiver/v1/eventTypes/active` | none (unauthenticated read; seed `AUTHENTICATED`) |
+| Events.searchEvents | RESHAPE (owner 2026-08-26) → `getEventSummary(window: lastHour|lastDay|lastWeek)` → `GET /event-receiver/v1/events/summary/{window}` (endpoints take zero params) | none (seed `AUTHENTICATED`) |
+| Events.getEventHistory | DEFERRED → [#1521](https://github.com/louisburroughs/durion-positivity-backend/issues/1521); method removed in WS-2.EVT | — |
+| Hr.getEmployee / getEmployeeSchedule | OK (route+path verified) | `people:employee:view` |
+| Hr.searchEmployees | DEFERRED (owner 2026-08-26) → [#1523](https://github.com/louisburroughs/durion-positivity-backend/issues/1523) — pos-people has **no** employee list/search (`/v1/people/employees` is POST-only); method removed in WS-2.HR | — |
+| Inventory.checkStock | REPOINT → `GET /inventory/v1/inventory/availability/by-sku?productSku={sku}` — param is **`productSku`**, not `sku` | `inventory:availability:read` |
+| Inventory.searchInventory | REPOINT → same endpoint (`productSku` + optional `locationId`) | `inventory:availability:read` |
+| Inventory.getLocationStock | REPOINT → `GET /inventory/v1/inventory/locations/{locationId}/inventory-inquiry` | `inventory:on_hand:view` (distinct family per ADR-0057) |
+| Invoice.getInvoice / searchInvoices | OK (note: blank `q` returns empty page, not all) | `invoice:manage` |
+| Invoice.getInvoicesByCustomer | REPOINT → `GET /invoice/v1/invoices/items/search?partyId={customerId}` + de-dup lines by invoice in the facade (`/v1/invoices/search` has no customer param; newest-200-lines bound disclosed in description) | `invoice:manage` |
+| Location.getLocation | OK | `location:read` |
+| Location.searchLocations | REPOINT → `GET /location/v1/locations` (zero params) + in-facade ci name/code contains-filter (roster paginates and would truncate a scan) | `location:read` |
+| Location.getLocationInventory | REPOINT → `GET /inventory/v1/inventory/locations/{locationId}/inventory-inquiry` (cross-domain) | `inventory:on_hand:view` |
+| Order.getOrder | REPOINT → `GET /order/v1/orders/carts/{orderId}` | `isAuthenticated()` + `order:order:view` |
+| Order.searchOrders | RESHAPE → `listOrders(status?, clerkId?, terminalId?)` → `GET /order/v1/orders/carts` (no customer/date/free-text filters exist; description constrains the intent) | `order:order:view` |
+| Pricing.getPriceForSku | COMPOSE (WS-3.PRICE-SKU, owner 2026-08-26: MSRP + optional location) → `GET /catalog/v1/products/search?sku=&detailed=true` → active MSRP; optional `locationId` adds `GET /catalog/v1/products/pricing/effective-price/{locationId}/{productId}`. No tier hop (quotes require mandatory `customerTierId`) | `catalog:product:view`, `catalog:location_price_override:read` |
+| Pricing.searchPricing | RESHAPE (owner 2026-08-26: lookups) → `getPromotionByCode(promoCode)` → `GET /price/v1/promotions/offers/by-code/{promoCode}` + `listPriceRestrictions()` → `GET /price/v1/price/restrictions/rules` (neither promos nor price-books publish a list GET) | `pricing:promotion:view`, `pricing:rule:view` |
+| Pricing.getPriceList | REPOINT → `GET /catalog/v1/products/price-books/{priceBookId}` (by-id exists and matches the tool signature; collection is POST-only; ADR-0054) | `catalog:price_book:read` |
+| ShopManager.getShopStatus | COMPOSE (WS-3.SHOPSTATUS) → `GET /shop-manager/v1/schedules/view?locationId&date` (date defaults to today; `/v1/appointments` has **no GET list**) + `GET /workorder/v1/workexec/wip?locationId=` + `GET /location/v1/locations/{locationId}` | `shop:schedule:view`, `workorder:wip:view`, `location:read` |
+| ShopManager.getShopQueue | COMPOSE (WS-3.SHOPQUEUE) → `GET /workorder/v1/workexec/wip?locationId=` (the only location-filtered open-workorder surface; `/v1/workorders/search` filters neither location nor status) + schedules/view | `workorder:wip:view`, `shop:schedule:view` |
+| ShopManager.searchShops | REPOINT → `GET /location/v1/locations` + in-facade filter (shops are locations) | `location:read` |
+| Tax.calculateTax | COMPOSE (WS-3.TAXCALC) → `GET /location/v1/locations/{locationId}` → map `postalCode`/`country`→`countryCode`/`state`→`regionCode` → direct `POST /v1/tax/calculate` with one synthesized line item (`quantity=1`, `unitPrice=amount`, non-zero enforced). Degraded path when the location has no address (address fields optional in LocationResponseDTO). Use nested `destinationAddress`, never the legacy flat fields | `location:read`, `tax:calculate` |
+| Tax.getTaxRate | DEFERRED → [#1522](https://github.com/louisburroughs/durion-positivity-backend/issues/1522); method removed in WS-3.TAXCALC | — |
+| Tax.getTaxSummary | REPOINT → `GET /accounting/v1/accounting/reports/financial/tax-liability` (moves off the direct client; verify guard in-workset — expected `reporting:view:financial-statements`) | verify in WS-2.TAXSUM |
+| Vehicle.getVehicle | REPOINT → `GET /vehicle-inventory/v1/vehicle-registry/{vehicleId}` (returns deactivated too — check `isActive`) | `isAuthenticated()` + `vehicle-inventory:registry:view` |
+| Vehicle.searchVehicles | REPOINT → `GET /vehicle-inventory/v1/vehicles/search?q={query}` (min 3 chars, 6 when VIN-shaped; GET params are `q`/`enableContains`) | `vehicle-inventory:search:view` |
+| Vehicle.getVehiclesByCustomer | REPOINT → `GET /customer/v1/crm/{customerId}/vehicles` (`customerId` **is** the partyId; the `parties/{partyId}/vehicles` path is POST-only) | `crm:vehicle:view` |
+| Workorder.getWorkorder / searchWorkorders | OK (search filters: `q`/`customerId`/`vehicleId` only) | `workorder:workorder:view` |
+| Workorder.getWorkorderStatus | REPOINT → `GET /workorder/v1/workorders/{workorderId}` (response carries `status`; `/detail` is `isAuthenticated()`-only and 400s on not-found) | `workorder:workorder:view` |
+| Admin.* (4 methods) | OK — verbs verified. Caveat: `/v1/audit/events` applies only `fromDate`/`toDate`/`actorId`/`eventType`/`aggregateId`; other documented params are accepted but ignored — tool description must not advertise them | `security:permission:view`, `security:audit:view` |
+| ExaWebSearch.webSearch | OUT OF SCOPE | — |
 
-**Count note:** with route-aware matching (WS-0.2), the true broken count at baseline
-is ~36 of 45 templates (the #1519 body says 35; the analysis comment corrected to 34;
-both predate discovery of the two route-mismatch false passes). Checker v2 output is
-authoritative; update this note in WS-0.1/WS-0.2.
+**Count note (final):** checker v2 (WS-0.2) is authoritative; Wave 1 confirmed the two
+route-mismatch false passes (vehicles search, HR search), putting the pre-fix broken count at
+~36-37 of 45 including the tax method mismatch.
 
 ## 8. Risks & guardrails
 
