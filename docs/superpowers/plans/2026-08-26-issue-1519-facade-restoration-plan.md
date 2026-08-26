@@ -1,7 +1,7 @@
 # Plan: Restore pos-mcp-server Tool Facades to Their Established Purpose
 
 **Source issue:** [durion-positivity-backend#1519](https://github.com/louisburroughs/durion-positivity-backend/issues/1519) (see the analysis comment for the evidence trail)
-**Status:** REBASED — WS-0.1 complete except the #1499/#1512 merge gate (still open; Wave 4 blocked until merged)
+**Status:** EXECUTING — Wave 0 complete, Wave 1 complete, Wave 2 (+WS-0.3) in flight; #1499/#1512 gate cleared by owner 2026-08-26 (Wave 4 unblocked once Waves 2-3 land)
 **Baseline:** durion-positivity-backend `3384210` (post-#1520 merge; branch restarted from `origin/main` 2026-08-26). Originally authored at `4c2ffb1`; matrix re-verified at `3384210` with no drift.
 **Working branch:** `claude/issue-1519-tool-facade-1o21fs` (both repos)
 
@@ -27,10 +27,9 @@ These were decided by the product owner on 2026-08-26 and govern every workset:
   remains the sanctioned exception (ADR-0014/ADR-0021, #641). All other facades route
   via the gateway (`http://pos-api-gateway` + `/{route}/v1/...`) or documented
   load-balanced routes.
-- **D4 — Preconditions.** #1499 and #1512 (RBAC audit remediation) are assumed
-  **merged before kickoff**; Wave 4 re-derives permission seeds against that merged
-  state. The owner will request a **rebase of the working branches before kickoff**;
-  no workset starts until WS-0.1 records the rebased SHA.
+- **D4 — Preconditions.** #1499 and #1512 (RBAC audit remediation) merged before
+  execution — **confirmed by the owner 2026-08-26**; Wave 4 re-derives permission seeds
+  against that merged state. Rebase performed and recorded in WS-0.1.
 
 ## 2. Governing references (read before coding)
 
@@ -139,7 +138,13 @@ Regenerate `scripts/mcp-facade-paths-baseline.json` with checker v2 output (expe
 ~36 entries once false passes are counted). Add a self-test in the spirit of
 `mutation-check-selftest.sh`.
 **Acceptance:** checker v2 + baseline committed; false passes now reported; self-test green.
-**Evidence:**
+**Evidence:** 2026-08-26 — COMPLETE, commit `10d5bd2`. v2 reports (profile alpha):
+8/45 resolve, **37 breaks = 36 path-not-published + 1 method-mismatch** (tax calculate GET
+vs published post-only). Both route false-passes (vehicles search via /customer, people
+search via /people) now flagged. Baseline `scripts/mcp-facade-paths-baseline.json`
+regenerated (37 entries); `check-mcp-facade-paths-selftest.py` all-pass (route-aware match,
+wrong-module break, direct-base-url tax resolution, method mismatch, baseline gating,
+profile deep-merge).
 
 ### WS-0.3 Single source of truth for expected contracts
 **Agent:** API Surface Coder. **Deps:** WS-0.2.
@@ -219,7 +224,12 @@ WS-3.TAXCALC also removes the deferred `getTaxRate` method, template, and manife
 **Acceptance per workset:** every downstream leg passes checker v2; tool returns a
 correct composed answer in tests incl. one degraded-leg case; tool `@Tool`
 description updated to describe the composed semantics (the LLM reads it).
-**Evidence (per workset):**
+**Evidence:** WS-3.0 COMPLETE 2026-08-26, commit `23d96b8` — `ToolComposition` fluent
+support (named legs, sequential execution inside `render()`, per-leg envelopes:
+ok/not_authorized(403, no body leak)/error(no stack traces), `.require()` → top-level
+ok|degraded status, JSON envelope with `sections` + `sources`). `ToolCompositionTest`
+13/13 green under full quality gates. Remaining Wave 3 worksets code against this API.
+**Evidence (per remaining workset):**
 
 ### Wave 4 — Permission seed re-derivation
 **Agent:** Security & Authorization Domain Agent designs; anvil implements. **Deps:**
