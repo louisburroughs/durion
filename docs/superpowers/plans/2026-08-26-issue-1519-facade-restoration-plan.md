@@ -94,8 +94,8 @@ The issue closes when ALL of the following hold on the rebased branch:
   `seen_node_ids` forward via `exclude_node_ids`.
 - **Escalation:** any workset that discovers its disposition (Section 7) is wrong
   does NOT improvise — it records the finding on its Evidence line, flags the owner,
-  and moves on. Dispositions marked ⚠ OWNER already need explicit sign-off before
-  implementation.
+  and moves on. (All six dispositions that originally required ⚠ OWNER sign-off were
+  decided 2026-08-26 and are recorded in the matrix.)
 
 ---
 
@@ -163,10 +163,11 @@ validates the manifest; a deliberate manifest corruption fails the checker (prov
 Section 7 matrix; Code Review Agent consolidates.
 For each facade: confirm the proposed target endpoint exists on the rebased branch
 (path, verb, query/body params, `@PreAuthorize` guards), and confirm the route
-prefix maps to the serving module. Resolve every cell marked **VERIFY**. Escalate
-every ⚠ OWNER cell as one consolidated question list to the product owner. Output:
-matrix updated in place, all cells either CONFIRMED or owner-decided.
-**Acceptance:** no VERIFY cells remain; ⚠ OWNER cells have recorded decisions.
+prefix maps to the serving module. Resolve every cell marked **VERIFY**. (The six
+former ⚠ OWNER cells were all decided by the product owner on 2026-08-26 and are
+recorded in the matrix; two produced follow-on issues #1521/#1522.) Output: matrix
+updated in place, all cells CONFIRMED.
+**Acceptance:** no VERIFY cells remain.
 **Evidence (per domain group):**
 
 ### Wave 2 — Mechanical repoints (Bucket A)
@@ -201,7 +202,8 @@ multi-expectation tests driven by the WS-0.3 manifest (a composition's manifest 
 lists **all** its downstream calls).
 Worksets (parallel after WS-3.0): **WS-3.FINSUM** · **WS-3.REPORTS** ·
 **WS-3.CUSTHIST** · **WS-3.SHOPSTATUS** · **WS-3.SHOPQUEUE** · **WS-3.PRICE-SKU** ·
-**WS-3.PRICESEARCH** · **WS-3.TAXCALC** · **WS-3.TAXRATE** (targets in Section 7).
+**WS-3.PRICESEARCH** · **WS-3.TAXCALC** (targets in Section 7). WS-3.TAXCALC also
+removes the deferred `getTaxRate` method, its template, and its manifest row (#1522).
 **Acceptance per workset:** every downstream leg passes checker v2; tool returns a
 correct composed answer in tests incl. one degraded-leg case; tool `@Tool`
 description updated to describe the composed semantics (the LLM reads it).
@@ -242,7 +244,9 @@ the same manifest as WS-0.3 (one truth for "what does this tool call").
 
 Legend: **REPOINT** = config/signature change to an existing endpoint · **COMPOSE** =
 multi-call coordination (Wave 3) · **OK** = verified reachable at baseline · **VERIFY** =
-Wave 1 confirms detail · ⚠ OWNER = product sign-off required before implementation.
+Wave 1 confirms detail · **DEFERRED** = method removed from the live tool surface, follow-on
+issue tracks the real endpoint. All six former ⚠ OWNER cells were decided by the product
+owner on 2026-08-26 (recorded below); none remain open.
 Route prefixes are gateway route ids (`Path=/{route}/**`, StripPrefix=1).
 
 | Tool.method | Configured today (broken unless OK) | Disposition → target |
@@ -252,18 +256,18 @@ Route prefixes are gateway route ids (`Path=/{route}/**`, StripPrefix=1).
 | **Accounting.getFinancialSummary** | `.../summary/{period}` | COMPOSE → income-statement + balance-sheet (+ trial-balance) for period (WS-3.FINSUM) |
 | **Reporting.getSalesReport** | `/accounting/v1/reporting/sales/{period}` | COMPOSE → `/accounting/v1/accounting/reports/financial/income-statement` (revenue section; VERIFY period params) (WS-3.REPORTS) |
 | **Reporting.getInventoryReport** | `.../reporting/inventory/{locationId}` | REPOINT → `/inventory/v1/inventory/locations/{locationId}/inventory-rollup` (cross-domain; base-url note) |
-| **Reporting.getRevenueReport** | `.../reporting/revenue/{period}` | COMPOSE → income-statement revenue + AR aging (WS-3.REPORTS) ⚠ OWNER (exact composition) |
+| **Reporting.getRevenueReport** | `.../reporting/revenue/{period}` | COMPOSE → income-statement revenue lines + aged-receivables (collected vs outstanding) (WS-3.REPORTS) — DECIDED 2026-08-26 |
 | **Catalog.getProduct** | `/catalog/v1/catalog/products/{id}` | REPOINT → `/catalog/v1/products/{productId}` (or `/detail`; VERIFY which serves the NL intent better) |
 | **Catalog.searchCatalog** | `/catalog/v1/catalog/search?q=` | REPOINT → `/catalog/v1/products/search` (VERIFY verb+params; consider also `/v1/products/services/search` as Wave 3 follow-up) |
-| **Catalog.getCatalogByCategory** | `/catalog/v1/catalog/categories/{cat}` | REPOINT → `/catalog/v1/catalog-items/{type}` (VERIFY category≈type semantics) ⚠ OWNER if mismatch |
+| **Catalog.getCatalogByCategory** | `/catalog/v1/catalog/categories/{cat}` | REPOINT → `/catalog/v1/catalog-items/{type}` — DECIDED 2026-08-26; Wave 1 still verifies the type vocabulary reads well for an LLM |
 | **Customer.getCustomer** | `/customer/v1/customers/{id}` | REPOINT → `/customer/v1/crm/accounts/parties/{partyId}` |
 | **Customer.searchCustomers** | `/customer/v1/customers/search?q=` | REPOINT → `/customer/v1/crm/accounts/parties/search` (VERIFY verb/params) |
 | **Customer.getCustomerHistory** | `/customer/v1/customers/{id}/history` | COMPOSE → party interactions + crm snapshot + invoices-by-customer + workorder search (WS-3.CUSTHIST) |
 | **Events.getEventTypes** | `/event-receiver/v1/events/eventTypes` | REPOINT → `/event-receiver/v1/eventTypes/active` |
 | **Events.searchEvents** | `.../events/summary?q=` | REPOINT → `/event-receiver/v1/events/summary/lastDay` family (VERIFY EventSummaryController's query surface) |
-| **Events.getEventHistory** | `.../events/summary?entityId=` | REPOINT/VERIFY → entity-filtered summary endpoint; if none, COMPOSE over summary windows ⚠ OWNER |
+| **Events.getEventHistory** | `.../events/summary?entityId=` | DEFERRED → [#1521](https://github.com/louisburroughs/durion-positivity-backend/issues/1521) (entity-indexed query endpoint in pos-event-receiver); method removed from the live surface in WS-2.EVT — DECIDED 2026-08-26 |
 | **Hr.getEmployee / getEmployeeSchedule** | `/people/...` | OK (route+path verified) |
-| **Hr.searchEmployees** | `/people/v1/people?q=` | REPOINT (false pass — `/v1/people` belongs to people-contact, different route) → `/people/v1/people/employees` list (VERIFY params) or `/people-contact/v1/people?q=` ⚠ OWNER (which population: employees vs all people) |
+| **Hr.searchEmployees** | `/people/v1/people?q=` | REPOINT (false pass — `/v1/people` belongs to people-contact, different route) → `/people/v1/people/employees` (employees only; VERIFY filter params) — DECIDED 2026-08-26 |
 | **Inventory.checkStock** | `/inventory/v1/inventory/stock/{sku}` | REPOINT → `/inventory/v1/inventory/availability/by-sku` (per V36/ADR-0057) |
 | **Inventory.searchInventory** | `.../inventory/search?q=` | REPOINT → `/inventory/v1/inventory/availability/by-sku` (same controller, per V36; VERIFY param mapping) |
 | **Inventory.getLocationStock** | `.../locations/{id}/stock` | REPOINT → `/inventory/v1/inventory/locations/{locationId}/inventory-inquiry` (per V36) |
@@ -275,13 +279,13 @@ Route prefixes are gateway route ids (`Path=/{route}/**`, StripPrefix=1).
 | **Order.getOrder** | `/order/v1/orders/{orderId}` | REPOINT → `/order/v1/orders/carts/{orderId}` |
 | **Order.searchOrders** | `/order/v1/orders/search?q=` | REPOINT → `/order/v1/orders/carts` (GET list; VERIFY filters) |
 | **Pricing.getPriceForSku** | `/price/v1/pricing/sku/{sku}` | COMPOSE → catalog `/v1/products/by-code` → `POST /price/v1/price/quotes` (or catalog effective-price per ADR-0054) (WS-3.PRICE-SKU) |
-| **Pricing.searchPricing** | `/price/v1/pricing/search?q=` | COMPOSE/VERIFY → promotions offers list + price-books resolve (WS-3.PRICESEARCH) ⚠ OWNER (intent definition) |
+| **Pricing.searchPricing** | `/price/v1/pricing/search?q=` | COMPOSE → promotions offers (pos-price) + price-books (pos-catalog), response labeled by source (WS-3.PRICESEARCH) — DECIDED 2026-08-26 |
 | **Pricing.getPriceList** | `/price/v1/pricing/lists/{id}` | REPOINT → `/catalog/v1/products/price-books` (ADR-0054: price books live in catalog; VERIFY by-id shape) |
 | **ShopManager.getShopStatus** | `/shop-manager/v1/shop/{shopId}/status` | COMPOSE → appointments (by location) + `/shop-manager/v1/schedules/view` + workorder search (WS-3.SHOPSTATUS) |
 | **ShopManager.getShopQueue** | `.../shop/{shopId}/queue` | COMPOSE → open workorders at location + upcoming appointments (WS-3.SHOPQUEUE) |
 | **ShopManager.searchShops** | `.../shop/search?q=` | REPOINT → `/location/v1/locations` roster (shops are locations; VERIFY) |
 | **Tax.calculateTax** | GET `/calculate?amount=&locationId=` (direct) | COMPOSE → resolve location→address via `/location/v1/locations/{id}`, then `POST /v1/tax/calculate` (direct client, ADR-0021 body contract) (WS-3.TAXCALC) |
-| **Tax.getTaxRate** | `/rates/{locationId}` (direct) | COMPOSE → derive effective rate via canonical `POST /v1/tax/calculate` probe (WS-3.TAXRATE) ⚠ OWNER (semantics of "the rate") |
+| **Tax.getTaxRate** | `/rates/{locationId}` (direct) | DEFERRED → [#1522](https://github.com/louisburroughs/durion-positivity-backend/issues/1522) (real rates endpoint in pos-tax, ADR-0021-consistent); method removed from the live surface in WS-3.TAXCALC; calculateTax covers the practical intent meanwhile — DECIDED 2026-08-26 |
 | **Tax.getTaxSummary** | `/summary/{period}` (direct) | REPOINT → `/accounting/v1/accounting/reports/financial/tax-liability` (moves off direct client; gateway-routed) |
 | **Vehicle.getVehicle** | `/customer/v1/vehicles/{id}` | REPOINT → `/vehicle-inventory/v1/vehicle-registry/{vehicleId}` |
 | **Vehicle.searchVehicles** | `/customer/v1/vehicles/search?q=` | REPOINT (false pass — wrong route) → `/vehicle-inventory/v1/vehicles/search` |
