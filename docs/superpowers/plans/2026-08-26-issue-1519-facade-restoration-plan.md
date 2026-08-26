@@ -1,8 +1,8 @@
 # Plan: Restore pos-mcp-server Tool Facades to Their Established Purpose
 
 **Source issue:** [durion-positivity-backend#1519](https://github.com/louisburroughs/durion-positivity-backend/issues/1519) (see the analysis comment for the evidence trail)
-**Status:** READY FOR KICKOFF (after rebase — see WS-0.1)
-**Baseline:** durion-positivity-backend `4c2ffb1` (post-#1518 merge). This plan's facts were verified at that commit; WS-0.1 refreshes them.
+**Status:** REBASED — WS-0.1 complete except the #1499/#1512 merge gate (still open; Wave 4 blocked until merged)
+**Baseline:** durion-positivity-backend `3384210` (post-#1520 merge; branch restarted from `origin/main` 2026-08-26). Originally authored at `4c2ffb1`; matrix re-verified at `3384210` with no drift.
 **Working branch:** `claude/issue-1519-tool-facade-1o21fs` (both repos)
 
 ---
@@ -108,7 +108,14 @@ The issue closes when ALL of the following hold on the rebased branch:
 3. Re-run the (still-unmodified) checker; diff its output against Section 7's matrix.
    Update the matrix for any drift (new endpoints, moved controllers) in a doc-only commit.
 **Acceptance:** SHA recorded; matrix marked REFRESHED.
-**Evidence:**
+**Evidence:** 2026-08-26 — backend branch restarted at `3384210` (origin/main, post-#1520;
+prior remote branch was deleted on the #1518 merge, so the restart is a clean re-cut, not a
+rebase of unmerged work). durion plan branch based on `a690692` (origin/master). Checker v1
+re-run at `3384210`: output unchanged (10/45 ok, 35 breaks, 0 baselined) — matrix REFRESHED,
+no drift; `4c2ffb1..3384210` touches only gateway permission catalog, security tests and
+`scripts/generate-permissions.py` (Wave 4-relevant, matrix-neutral). **Gate outstanding:**
+#1499 and #1512 are still OPEN as of this refresh (partial remediation merged via
+#1518/#1520). Per D4 they must be merged before Wave 4 executes; Waves 0-3 are not blocked.
 
 ### WS-0.2 Contract checker v2
 **Agent:** anvil. **Deps:** WS-0.1.
