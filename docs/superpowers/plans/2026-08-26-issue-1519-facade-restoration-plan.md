@@ -1,7 +1,7 @@
 # Plan: Restore pos-mcp-server Tool Facades to Their Established Purpose
 
 **Source issue:** [durion-positivity-backend#1519](https://github.com/louisburroughs/durion-positivity-backend/issues/1519) (see the analysis comment for the evidence trail)
-**Status:** EXECUTING — Wave 0 complete, Wave 1 complete, Wave 2 (+WS-0.3) in flight; #1499/#1512 gate cleared by owner 2026-08-26 (Wave 4 unblocked once Waves 2-3 land)
+**Status:** EXECUTING — Waves 0-3 COMPLETE (checker: 51/51 resolve, 0 breaks, baseline empty; 778 tests green); Wave 4 (V37 seeds) and Wave 5 (docs) in flight
 **Baseline:** durion-positivity-backend `3384210` (post-#1520 merge; branch restarted from `origin/main` 2026-08-26). Originally authored at `4c2ffb1`; matrix re-verified at `3384210` with no drift.
 **Working branch:** `claude/issue-1519-tool-facade-1o21fs` (both repos)
 
@@ -243,7 +243,16 @@ support (named legs, sequential execution inside `render()`, per-leg envelopes:
 ok/not_authorized(403, no body leak)/error(no stack traces), `.require()` → top-level
 ok|degraded status, JSON envelope with `sections` + `sources`). `ToolCompositionTest`
 13/13 green under full quality gates. Remaining Wave 3 worksets code against this API.
-**Evidence (per remaining workset):**
+**Evidence (remaining worksets):** 2026-08-26 — ALL COMPLETE, commits `fd149ce` (manifest
+composition entries + ToolComposition.LegFailure), `c75df8b` (FINSUM + REPORTS), `5d4d4c3`
+(CUSTHIST), `eb69546` (SHOPSTATUS/SHOPQUEUE, Clock-injected date), `7523975` (PRICE-SKU,
+dependent-leg flow hand-rolled around ToolComposition with a required replay leg), `209b8dd`
+(TAXCALC + getTaxRate removal per #1522), `59a2e5b` (Spotless + baseline emptied).
+Checker: **51/51 templates resolve, 0 breaks, baseline EMPTY** ("0 new, 0 baselined") —
+Definition-of-done invariant 3's end-state reached. Full suite 778/778 green under all
+quality gates. Every composition has envelope-shape + degraded-leg (403, no body leak)
+tests. Note: `pos.tax.summary-base-url` renamed `pos.tax.gateway-base-url` (backs both
+gateway-routed tax methods; nothing referenced the old name).
 
 ### Wave 4 — Permission seed re-derivation
 **Agent:** Security & Authorization Domain Agent designs; anvil implements. **Deps:**
