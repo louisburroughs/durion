@@ -1,7 +1,7 @@
 # Plan: Restore pos-mcp-server Tool Facades to Their Established Purpose
 
 **Source issue:** [durion-positivity-backend#1519](https://github.com/louisburroughs/durion-positivity-backend/issues/1519) (see the analysis comment for the evidence trail)
-**Status:** EXECUTING — Waves 0-3 COMPLETE (checker: 51/51 resolve, 0 breaks, baseline empty; 778 tests green); Wave 4 (V37 seeds) and Wave 5 (docs) in flight
+**Status:** COMPLETE — all waves executed 2026-08-26. Final validation at combined HEAD `f2282dd`: 51/51 templates resolve, 0 breaks, baseline empty, selftest OK, 778/778 module tests green under full quality gates. Branch pushed; awaiting owner's PR/merge decision.
 **Baseline:** durion-positivity-backend `3384210` (post-#1520 merge; branch restarted from `origin/main` 2026-08-26). Originally authored at `4c2ffb1`; matrix re-verified at `3384210` with no drift.
 **Working branch:** `claude/issue-1519-tool-facade-1o21fs` (both repos)
 
@@ -281,7 +281,13 @@ the same manifest as WS-0.3 (one truth for "what does this tool call").
    fixtures whose expected tools changed semantics.
 4. Full reactor build; PR(s) merged; comment on #1519 summarizing with links; close.
 **Acceptance:** Definition of done (Section 3) fully satisfied.
-**Evidence:**
+**Evidence:** 2026-08-26 — CI gate landed early (`8f9c748`, pr-checks.yml step beside the
+RBAC drift check); baseline emptied at Wave 3 close (`59a2e5b`); README §Facade tools
+rewritten + config-metadata reconciled (`029f8da`: 9 removed / 35 fixed / 5 added, all 75
+pos.* properties covered); eval fixtures updated in-wave where methods changed. Final
+combined-HEAD validation: checker 51/51 / 0 breaks / 0 baselined, selftest OK, 778/778
+tests, BUILD SUCCESS. Issue #1519 left open pending merge of the branch (closing follows
+the merge, not the branch push); summary comment posted.
 
 ---
 
