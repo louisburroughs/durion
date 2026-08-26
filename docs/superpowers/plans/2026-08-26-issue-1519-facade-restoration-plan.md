@@ -157,7 +157,11 @@ this is the loop-closure that makes the #1519 failure mode (test encodes the sam
 assumption as the code) structurally impossible.
 **Acceptance:** all facade tests read expectations from the manifest; checker
 validates the manifest; a deliberate manifest corruption fails the checker (prove once, revert).
-**Evidence:**
+**Evidence:** 2026-08-26 — COMPLETE, commit `b625f55`. `facade-contract.yaml` (one entry per
+@Tool method incl. Admin and wave3-pending), `FacadeContractManifest` loader,
+`FacadeContractManifestTest` locking manifest⇔application.yml and manifest⇔@Tool surface;
+all 15 facade test classes derive MockRestServiceServer expectations from the manifest.
+Loop-closure proven both directions and reverted.
 
 ---
 
@@ -204,7 +208,17 @@ route change customer→vehicle-inventory) · **WS-2.HR** (Hr ×1: searchEmploye
 **WS-2.TAXSUM** (getTaxSummary→accounting tax-liability, moves off the direct client).
 **Acceptance per workset:** checker v2 passes for the domain's templates with
 baseline entries removed; module tests green; Spotless clean.
-**Evidence (per workset):**
+**Evidence:** 2026-08-26 — ALL Wave 2 worksets COMPLETE, commits `9cca1a3`/`85d35a1`/
+`c6b1ffe`/`309cec1` (+ checker enum-expansion `7bab453`). Full module suite 761/761 green
+under quality gates. Checker (alpha): **36/44 resolve; 8 breaks, all wave3-pending**
+(7 path + tax method-mismatch), baseline regenerated to exactly those 8, CI gate green
+("0 new, 8 baselined"). Deferred removals done: getEventHistory (#1521), searchEmployees
+(#1523). Reshapes landed: getEventSummary(window) with in-tool enum validation (checker
+taught expansion annotations), getGeneralLedger, listOrders, searchPricing→by-code +
+restrictions lookups. Cross-domain repoints carry yaml comments (ADR-0054 price-books,
+inventory-inquiry). searchInventory adds sourceType=WAREHOUSE with locationId (endpoint
+400s otherwise — documented deviation). getTaxSummary guard verified
+`reporting:view:financial-statements` (FinancialReportingController.java:525).
 
 ### Wave 3 — Composition facades (Bucket B)
 **Agent per workset:** Domain Data Coder (logic) + API Surface Coder (tool surface) +
