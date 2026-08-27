@@ -8,7 +8,7 @@ guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-location/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+last_updated: 2026-08-27
 api_reference_generated: domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -148,6 +148,8 @@ Headers and auth notes:
 | List bays | `listBays` | GET | `/v1/locations/{locationId}/bays` |
 | List location descendants by parent type | — | GET | `/v1/locations/{locationId}/descendants` |
 | Storage-location topology for a site | — | GET | `/v1/locations/{siteId}/storage-locations/topology` |
+| Create a storage location (accepts its putaway capability) | `createStorageLocation` | POST | `/v1/locations/{siteId}/storage-locations` |
+| Patch a storage location (declare or change its putaway capability) | `patchStorageLocation` | PATCH | `/v1/locations/{siteId}/storage-locations/{storageLocationId}` |
 
 ### Behavioral Assertions
 
@@ -162,6 +164,25 @@ Headers and auth notes:
 - Traversal is cycle-safe (visited set) and depth-capped at 20.
 - `GET /v1/locations/{siteId}/storage-locations/topology` returns the complete, unpaginated storage-location set for a site as `{id, name, type, status, parentStorageLocationId}` with NO status filtering — inventory may still sit in INACTIVE/MAINTENANCE/QUARANTINED locations. (The paged list endpoint is unsuitable for full-topology consumers; use this endpoint.)
 - Consumer contract pin (pos-inventory rollup): fields `id`, `name`, `type`, `status`, `parentStorageLocationId` are stable on both the list and topology responses.
+
+#### Issue #1514 — Storage-Location Putaway Capability
+
+A storage location now carries a **capability** alongside its topological `type`, and the two are independent: a tire rack and a bulk pallet area are both `FLOOR` topologically, but only one should receive tires.
+
+- `type` (`FLOOR`, `SHELF`, `BIN`, `CAGE`, `TRUCK`) is **unchanged**. No value was added, removed or repurposed.
+- `storageCategoryCode` says what the location is fit to *hold*: `TIRE_RACK`, `OIL_STORAGE`, `BATTERY_RACK`, `SMALL_PARTS_BIN`, `BULK_FLOOR`, `STAGING`, `QUARANTINE`, `GENERAL`.
+- `hazardContainment` (boolean) declares that the location provides hazard containment. `BATTERY_RACK` and `OIL_STORAGE` are the containment-bearing classes, and a destination coded as one without declaring containment is refused by pos-inventory's putaway compatibility check.
+- `allowNewProduct` (`MIXED`, `SAME_PRODUCT_ONLY`, `EMPTY_ONLY`) is accepted, stored and published, but is **not yet enforced** by any putaway check. Treat it as declarative until an enforcement point consumes it.
+
+Contract behaviour:
+
+- All three fields are accepted on `createStorageLocation` and `patchStorageLocation`, and returned on the storage-location read paths. They are additive — an existing client that sends none of them is unaffected.
+- `storage_category_code` is **nullable** (V8): "never declared" stays distinguishable from an explicit `GENERAL` in the owner's own table, so pre-#1514 rows need no backfill. Every **read boundary** — response mapping and the published fact — resolves null to `GENERAL` via `StorageCategory.orDefault`, so a consumer never has to reimplement that rule and never sees null for a location whose fact was published after V8.
+- The capability rides the existing `location.storage-location.updated` fact (`StorageLocationUpdatedV1`, schema version 1) additively per ADR-0044. No new synchronous endpoint was added for pos-inventory to read it.
+- Consumer contract pin (pos-inventory putaway): `storageCategoryCode`, `hazardContainment` and `allowNewProduct` are stable on the fact payload and on the storage-location responses.
+- `GENERAL` is permissive and accepts every catalog category. `STAGING` and `QUARANTINE` are putaway *sources*: pos-inventory refuses putaway into them outright.
+
+Rollout note for consumers: the generic `location.outbox.replay-requested` command re-queues already-serialized outbox rows, so it re-emits payloads that predate these fields and cannot hydrate a consumer's replica. A fresh write through the storage-location API (a PATCH declaring the capability) is what publishes a payload carrying them. See `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md` → "Issue #1514: rehydrating the putaway replica columns".
 
 ### Frontend Usage Notes
 
