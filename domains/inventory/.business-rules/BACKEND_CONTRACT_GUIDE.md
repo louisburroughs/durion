@@ -296,12 +296,12 @@ Story #33 — Cross-dock to Workorder:
 | List putaway rules in resolution order | `listPutawayRules` | GET | `/v1/inventory/putaway/rules` |
 | Read one putaway rule before editing it | `getPutawayRule` | GET | `/v1/inventory/putaway/rules/{ruleId}` |
 | Configure where an item class is stored | `createPutawayRule` | POST | `/v1/inventory/putaway/rules` |
-| Retarget, reprioritise, enable or disable a rule | `updatePutawayRule` | PUT | `/v1/inventory/putaway/rules/{ruleId}` |
+| Retarget, reprioritize, enable or disable a rule | `updatePutawayRule` | PUT | `/v1/inventory/putaway/rules/{ruleId}` |
 | Retire a putaway rule permanently | `deletePutawayRule` | DELETE | `/v1/inventory/putaway/rules/{ruleId}` |
 
 ### Behavioral Assertions
 
-Putaway rule resolution (issue #1514):
+Putaway rule resolution (louisburroughs/durion-positivity-backend#1514):
 
 - A putaway rule is resolved **per received line**, not once per receipt. `listPutawayRules` returns
   rules in the order the matcher tries them.
@@ -324,7 +324,7 @@ Putaway rule resolution (issue #1514):
   and putaway tasks already generated keep the destinations they were generated with.
 - Reads require `inventory:putaway_rule:view`; mutations require `inventory:putaway_rule:manage`.
 
-Destination eligibility (issue #1514):
+Destination eligibility (louisburroughs/durion-positivity-backend#1514):
 
 - **A replenishment policy is no longer required for putaway.** The `(itemSKU, locationId)`
   replenishment-policy gates are removed; `ReplenishmentPolicy` remains a restock slotting target
@@ -350,7 +350,7 @@ Rollout dependency:
 - Category matching reads pos-inventory replicas that ship empty (`V41`, no backfill). Until a
   pos-catalog product-fact replay and a pos-location storage-location republish have run,
   `SUBCATEGORY` and `CATEGORY` rules match nothing and every line falls through to `ANY`. See
-  `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md` → "Issue #1514: rehydrating the putaway
+  `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md` → `Issue #1514: rehydrating the putaway
   replica columns".
 
 General:
