@@ -66,7 +66,7 @@ governance hole; **L** = hardening.
 | G16 | No inventory valuation / costing method / COGS                               | `unitCost` snapshots on ledger entries and `costAtTimeOfAdjustment` only; no AVCO/FIFO/standard method, no on-hand value, consumption events carry no cost            | H   | J (decision-first) |
 | G17 | No landed costs                                                              | Nothing distributes freight/duty into item cost                                                                                                                       | L   | J          |
 | G18 | Negative-stock policy implicit                                               | PICK/ISSUE guarded (`InsufficientStockException`); adjustment/receiving/transfer paths' behavior at or below zero undocumented and untested per event type            | L   | K          |
-| G19 | Putaway lacks sublocation strategies and category/attribute matching         | `PutawayRule` = priority + criteria JSON → fixed destination; no last-used/closest-fill strategies; capacity via `maxUnitCapacity` + validation service (adequate)    | L   | K          |
+| G19 | ~~Putaway lacks sublocation strategies and category/attribute matching~~ **CLOSED** | Both halves delivered. Sublocation strategies: `PutawayDestinationStrategy` FIXED/LAST_USED/CLOSEST_AVAILABLE resolved by `PutawayDestinationResolver` (K2). Class matching: `putaway_rule.match_type`/`match_value` (SKU > SUBCATEGORY > CATEGORY > ANY, V42) resolved per line by `PutawayRuleMatcher`, and destination fitness by the `storage_compatibility` matrix (V43) against the location's `storageCategoryCode`/`hazardContainment` (louisburroughs/durion-positivity-backend#1514). **Residual** (tracked below, not reopened as a gap): `allow_new_product` is modeled on the location but unenforced; no per-storage-category weight or per-product capacity dimension; no forecast-aware capacity; package-type matching is an explicit non-goal (§11) | L   | K (done)   |
 | G20 | Receiving shortfall creates variance but no follow-up demand                 | RECEIVED_SHORT + `InventoryVariance` recorded; PO stays PARTIALLY_RECEIVED (acceptable) but nothing surfaces "still owed" as expected supply — folds into G1/G12      | M   | A/G        |
 
 Resolved as explicit non-goals (record; do not build): see §11.
@@ -346,8 +346,31 @@ landed costs. **Gaps**: G16, G17. **This workstream starts with a cross-domain d
   SCRAP — blocked with override; ADJUSTMENT_OUT / COUNT_VARIANCE_OUT — may take on-hand to ≥ 0 only (floor at zero; counts by definition set reality); GOODS_RECEIPT —
   unconstrained. DB-level check is impractical against an append-only ledger — enforce in the single posting path (all ledger writes already funnel through the ledger
   service; assert that with an ArchUnit rule).
-- K2. **Putaway sublocation strategies (G19)**: extend `PutawayRule` with `LAST_USED` and `CLOSEST_AVAILABLE` (capacity-aware, topology-proximity via WS-H) destination
-  strategies alongside fixed destination. Low priority; current rule+validation model is adequate.
+- K2. **Putaway sublocation strategies and item-class matching (G19)** — **DONE**. Two deliveries:
+  - *Sublocation strategies* (the original K2 scope): `PutawayRule.destinationStrategy` carries `FIXED`, `LAST_USED` and `CLOSEST_AVAILABLE`, resolved by
+    `PutawayDestinationResolver` — `CLOSEST_AVAILABLE` is capacity-aware and uses topology proximity via `ProximitySourcingStrategy` (WS-H), and falls back with a
+    recorded `fallbackReason`.
+  - *Item-class matching* (louisburroughs/durion-positivity-backend#1514, the half K2 did not originally cover, and the reason G19 stayed open):
+    `criteria` JSON — which no production code ever read, so rule selection was `findAllByIsEnabledTrue…get(0)`, one rule for every line of every
+    receipt — is replaced by `match_type`/`match_value` (V42) resolved **per line** in the
+    strict precedence `SKU > SUBCATEGORY > CATEGORY > ANY`, matching on catalog **ids**. `SUBCATEGORY` has to outrank `CATEGORY` because `Batteries` is a subcategory of
+    `Electrical System` and category alone cannot express containment. Destination fitness moved off replenishment-policy rows onto a `storage_compatibility` matrix
+    (V43) keyed on catalog category/subcategory id, evaluated against the location's replicated `storageCategoryCode`/`hazardContainment`; `STAGING`/`QUARANTINE` refuse
+    as destinations; an enabled `ANY` rule is the terminal fallback that replaced a hardcoded default-location UUID. Rules are managed over
+    `/v1/inventory/putaway/rules`.
+
+  **Not delivered, and deliberately not reopened as gaps.** Odoo's `stock.storage.category` carries a max weight and per-product / per-package-type quantity capacity,
+  and its capacity checks consider current **+ forecast** quantity per candidate child location. Durion has a single `maxUnitCapacity` per storage location checked
+  against current ledger on-hand — forecast-aware capacity belongs to WS-A (G1), not here. `allow_new_product` (`MIXED` / `SAME_PRODUCT_ONLY` / `EMPTY_ONLY`) is modeled
+  and published by pos-location and replicated by pos-inventory, but no putaway check reads it yet; it is the one piece of the Odoo putaway model that is present as data
+  and absent as behavior. Package-type matching is an explicit non-goal (§11, "Packages/pallets, package types, least-packages removal"). Product-attribute matching
+  beyond the catalog taxonomy — the temperature class the pre-change documentation
+  aspirationally claimed — is not implemented and is not planned; `storage_location.temperature`
+  is published but unconsulted.
+
+  **Rollout dependency**: `V41` adds the replica category and capability columns empty with no backfill, so category matching is inert until a pos-catalog product-fact
+  replay and a pos-location storage-location republish have run. pos-location's generic outbox replay re-emits stored payloads and cannot carry the new fields — a fresh
+  write (PATCH) is required. See `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md` → `Issue #1514: rehydrating the putaway replica columns`.
 - K3. **Reservation-consistency sweep**: scheduled verifier asserting per-allocation `Σ ALLOCATION_CREATED − Σ ALLOCATION_RELEASED ∈ {0, allocatedQuantity}` and
   summary `allocated` reconciliation (Odoo `_clean_reservations` analog; report-only, alerting — never auto-mutate the ledger).
 

@@ -8,7 +8,7 @@ guide_path: domains/inventory/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-inventory/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+last_updated: 2026-08-27
 api_reference_generated: domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -293,8 +293,67 @@ Story #33 — Cross-dock to Workorder:
 | Get adjustment details | `getAdjustment` | GET | `/api/v1/inventory/cycleCountAdjustments/{adjustmentId}` |
 | Operation | `getPlan` | GET | `/api/v1/inventory/cycleCountPlans/{planId}` |
 | Query inventory availability | `getInventoryAvailability` | GET | `/v1/inventory/availability/{productId}` |
+| List putaway rules in resolution order | `listPutawayRules` | GET | `/v1/inventory/putaway/rules` |
+| Read one putaway rule before editing it | `getPutawayRule` | GET | `/v1/inventory/putaway/rules/{ruleId}` |
+| Configure where an item class is stored | `createPutawayRule` | POST | `/v1/inventory/putaway/rules` |
+| Retarget, reprioritize, enable or disable a rule | `updatePutawayRule` | PUT | `/v1/inventory/putaway/rules/{ruleId}` |
+| Retire a putaway rule permanently | `deletePutawayRule` | DELETE | `/v1/inventory/putaway/rules/{ruleId}` |
 
 ### Behavioral Assertions
+
+Putaway rule resolution (louisburroughs/durion-positivity-backend#1514):
+
+- A putaway rule is resolved **per received line**, not once per receipt. `listPutawayRules` returns
+  rules in the order the matcher tries them.
+- Tier precedence is absolute: `SKU` beats `SUBCATEGORY` beats `CATEGORY` beats `ANY`. `priority`
+  only breaks ties **within** a tier, with `ruleId` as the deterministic final key. A higher-priority
+  `CATEGORY` rule never outranks a lower-priority `SKU` rule.
+- `matchValue` is required for `SKU`, `SUBCATEGORY` and `CATEGORY`, and must be omitted for `ANY`;
+  violating either returns `400`. It is matched as a catalog **id**, never as a category name.
+- A tier with no resolvable target for the line — an unclassified SKU, a product whose subcategory
+  has never been published — is skipped rather than treated as a wildcard.
+- **At most one enabled `ANY` rule may exist.** A second one returns `409`
+  (`DUPLICATE_ENABLED_ANY_PUTAWAY_RULE`); a rule never conflicts with itself on update.
+- The enabled `ANY` rule is the terminal fallback: with it, a receipt for a brand-new uncategorised
+  SKU always resolves a destination. Without it, generation fails the line with
+  `NO_PUTAWAY_RULE_MATCH` (422) naming the remedy, rather than routing the task at a bin that does
+  not exist.
+- `updatePutawayRule` is a full replacement, with one exception: omitting `isEnabled` preserves the
+  rule's current enabled state, so retuning a priority cannot silently re-enable a disabled rule.
+- Rule mutations emit `INVENTORY_PUTAWAY_RULE_CREATE` / `_UPDATE` / `_DELETE`. They move no stock,
+  and putaway tasks already generated keep the destinations they were generated with.
+- Reads require `inventory:putaway_rule:view`; mutations require `inventory:putaway_rule:manage`.
+
+Destination eligibility (louisburroughs/durion-positivity-backend#1514):
+
+- **A replenishment policy is no longer required for putaway.** The `(itemSKU, locationId)`
+  replenishment-policy gates are removed; `ReplenishmentPolicy` remains a restock slotting target
+  only. A brand-new SKU can be put away.
+- A destination is refused (`LOCATION_NOT_VALID_FOR_SKU`, 422) when no enabled rule targets it, or
+  when its storage class does not accept the item's catalog class per the `storage_compatibility`
+  matrix.
+- `STAGING` and `QUARANTINE` destinations are refused outright — they are putaway sources.
+- Subcategory compatibility rows **replace** their parent category's rows; they do not supplement
+  them.
+- An item whose every accepted storage class requires hazard containment is refused by any
+  destination that does not declare `hazardContainment`, including a `GENERAL` one.
+- An undeclared destination storage class resolves to `GENERAL` and accepts every catalog category;
+  an item with no catalog classification is accepted only by `GENERAL`.
+- Capacity: an **undeclared** `maxUnitCapacity` is uncapped; a **declared zero** refuses. Nothing
+  falls back to summed replenishment maximums.
+- The `OVERRIDE_LOCATION_COMPATIBILITY` and `OVERRIDE_LOCATION_CAPACITY` override flows, their
+  reason-code and justification requirements, and the `LOCATION_NOT_VALID_FOR_SKU` /
+  `LOCATION_AT_CAPACITY` / `NO_ON_HAND_AT_SOURCE_LOCATION` error codes are **unchanged**.
+
+Rollout dependency:
+
+- Category matching reads pos-inventory replicas that ship empty (`V41`, no backfill). Until a
+  pos-catalog product-fact replay and a pos-location storage-location republish have run,
+  `SUBCATEGORY` and `CATEGORY` rules match nothing and every line falls through to `ANY`. See
+  `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md` → `Issue #1514: rehydrating the putaway
+  replica columns".
+
+General:
 
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
@@ -305,20 +364,36 @@ Story #33 — Cross-dock to Workorder:
 - Use operation IDs above as the stable API integration keys for UI actions.
 - Read request/response payload shapes from generated API reference, not this guide.
 - Surface validation and authorization failures directly to users with trace context.
+- A rule-configuration UI must present `matchType` and `matchValue` together: `matchValue` is a
+  catalog product, subcategory or category **id**, is mandatory for every tier except `ANY`, and must
+  be absent for `ANY`.
 
 ### ADR Constraints
 
 - Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
+- ADR-0044: the product category/subcategory and the storage-location capability reach pos-inventory
+  as additive fields on existing facts. No new synchronous service-to-service call was introduced for
+  putaway matching.
 
 ### Events & Dependencies
 
 - Respect published API/event contracts for all upstream and downstream dependencies.
 - Preserve traceability when integrating across services or asynchronous workflows.
+- Depends on `catalog.product.updated` (`ProductUpdatedV1`, `categoryId`/`category` plus
+  `subcategoryId`/`subcategory` added additively within schema v2) and on
+  `location.storage-location.updated` (`StorageLocationUpdatedV1`, `storageCategoryCode`,
+  `hazardContainment`, `allowNewProduct` added additively within schema v1).
+- Emits `INVENTORY_PUTAWAY_RULE_CREATE`, `INVENTORY_PUTAWAY_RULE_UPDATE`,
+  `INVENTORY_PUTAWAY_RULE_DELETE`.
 
 ### Contract Test Traceability
 
 - Provider tests: `durion-positivity-backend/pos-inventory/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+- Putaway rule matching and compatibility: `PutawayRuleMatcherTest`,
+  `StorageCompatibilityEvaluatorTest`, `PutawayValidationServiceImplTest`,
+  `PutawayRuleServiceImplTest`, `PutawayRuleControllerTest`, and the H2 migration tests
+  `PutawayRuleMatchCriteriaMigrationTest` / `StorageCompatibilityMigrationTest`.
 
 ## CAP-218: [CAP] Picking, Issuing, and Workorder Fulfillment
 
