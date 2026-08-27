@@ -86,7 +86,10 @@ module's own `internal.*` (counted 2026-08-27; durion-positivity-backend#1541). 
 imports, 544 are `internal.dto` types, 53 are `internal.enums`, 41 are `internal.entity` — JPA
 entities named in signatures this ADR calls the cross-module contract, spread over 31 interfaces in
 11 modules — and 11 are `internal.exception`. Six modules have a `service.model` package; the rest
-have nowhere compliant to put a parameter type.
+have nowhere compliant to put a parameter type. Eight of the 292 are not interfaces at all but
+records, exceptions and result types (in pos-events, pos-invoice, pos-mcp-server and pos-price),
+which §1 already disallows and the per-module `service_package_should_define_interfaces_only` rules
+do not currently catch in those modules.
 
 **This is what the clauses produce, not a failure to follow them.** §1 makes `service..` the public
 contract surface. §2 requires every implementation to sit in `internal.service` and implement an
@@ -153,9 +156,10 @@ tidier, but because it is the only module whose `service` package has ever had a
 
 **Why not ratchet down from 226.** A ratchet in the manner of `dtoSuffixMigrationReport`
 (`ArchitectureTests.java:335`) would treat 226 leaking interfaces as the work item. Under D2 the
-work item is different and smaller: 292 interfaces are in the wrong package and one is in the right
-one. Ratcheting the leak count would institutionalise the wrong denominator and leave the platform
-paying DTO-duplication costs to make internal wiring look like a public API.
+work item is different: of the 292 types in the public service packages, exactly one —
+`SupplierStockService` — is granted, and the other 291 are in the wrong package regardless of
+whether they leak. Ratcheting the leak count would institutionalise the wrong denominator and leave
+the platform paying DTO-duplication costs to make internal wiring look like a public API.
 
 **Why not retire `service` entirely.** ADR-0044 grants are live and growing, and each one needs a
 written contract its callers can build against; `SupplierStockService` is that document today. A
