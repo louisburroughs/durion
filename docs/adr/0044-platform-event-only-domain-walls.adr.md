@@ -149,7 +149,9 @@ Events bypass the gateway, so gateway JWT validation and `X-Authorities` ([ADR-0
 - `pos-archunit` gains a cross-module rule: classes in `com.positivity.*.internal.client` MUST NOT target domain services — RestClient base URLs / service-ids are restricted
   to the utility whitelist. Rule ships report-only during migration and flips to build-failing when the final migration phase completes (phasing in the supporting analysis).
 - Per-module `ArchitectureTest` classes gain the mirrored rule plus the `pos-domain-events` import allowance. This extends, and does not alter, the intra-module package
-  boundary rules of [ADR-0026](0026-service-contract-boundary-policy.adr.md).
+  boundary rules of [ADR-0026](0026-service-contract-boundary-policy.adr.md). (ADR-0026 was amended 2026-08-27 — D1–D5: `{domain}.service` is a grant surface, membership by
+  grant, ungranted interfaces live in `internal.service`. The extension relationship stated here is unchanged; the sole grant this ADR names, `SupplierStockService`, is
+  exactly the type that remains on a grant surface.)
 - The utility whitelist lives in one place (a constant list in `pos-archunit`) and changing it requires amending this ADR.
 
 ---
