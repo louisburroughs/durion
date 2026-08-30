@@ -232,6 +232,8 @@ Headers and auth notes:
 
 | Use Case | operationId | Method | Path |
 | --- | --- | --- | --- |
+| List attendance time entries for approval | `listTimeEntries` | GET | `/v1/people/timeEntries` |
+| Get one attendance time entry | `getTimeEntry` | GET | `/v1/people/timeEntries/{timeEntryId}` |
 | Get attendance and job time discrepancy report | `getAttendanceDiscrepancyReport` | GET | `/v1/people/reports/attendanceJobtimeDiscrepancy` |
 | List assignments for person | `getAssignments` | GET | `/v1/people/staffing/assignments` |
 | Get assignment by ID | `getAssignment` | GET | `/v1/people/staffing/assignments/{assignmentId}` |
@@ -241,12 +243,33 @@ Headers and auth notes:
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
+- A time entry is **attendance**: clock-in, clock-out and the break minutes inside that window.
+  It carries no workorder reference, and no operation here answers how long a job took — that is
+  time on task, owned by pos-workorder and covered by CAP-121 below
+  (durion-positivity-backend#1573).
+- `listTimeEntries` filters are each optional and narrow independently: `status`, `workDate`,
+  `employeeId`, `locationId`. Omitting one does not filter on it.
+- `workDate` is a calendar day resolved in the `timeZone` query parameter, which defaults to UTC.
+  The entries store instants, so the day a shift belongs to is only defined once a zone is chosen,
+  and the same entry can fall on different `workDate` values for different zones.
+- The queue is ordered oldest submission first, so a supervisor works entries in the order
+  employees submitted them. An entry not yet submitted sorts last rather than jumping the queue.
+- An entry with no clock-in is not returned by a day-filtered query: it has no day to be approved
+  for.
+- `decisionByUserId` / `decisionAtUtc` carry whichever decision was taken; `status` says which of
+  the two it was, and `rejectionReason` is present only when `status` is `REJECTED`.
+- Both read operations require the `people:timeEntry:view` authority.
 
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
 - Read request/response payload shapes from generated API reference, not this guide.
 - Surface validation and authorization failures directly to users with trace context.
+- The approvals screen selects and acts on `PENDING_APPROVAL` entries; pass
+  `status=PENDING_APPROVAL` to build the queue, and take the `timeEntryId` an approve or reject
+  call needs from the rows it returns.
+- Send the viewer's zone as `timeZone` when the shop does not operate in UTC, or a late shift will
+  appear on the wrong day.
 
 ### ADR Constraints
 
@@ -256,11 +279,16 @@ Headers and auth notes:
 
 - Respect published API/event contracts for all upstream and downstream dependencies.
 - Preserve traceability when integrating across services or asynchronous workflows.
+- Time entries are produced by work-session submission; nothing else writes them today, and a
+  submitted session's timestamp becomes the entry's `submittedAtUtc`.
 
 ### Contract Test Traceability
 
 - Provider tests: `durion-positivity-backend/pos-people/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+- Read surface: `internal/service/TimeEntryQueryServiceTest.java` (window derivation, decision
+  collapsing) and `internal/repository/TimeEntryApprovalQueueTest.java` (filters, ordering, paging
+  against a database).
 
 ## CAP-121: [CAP] Job Time Tracking (Workexec Linkage)
 
