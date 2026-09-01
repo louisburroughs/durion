@@ -230,7 +230,7 @@ External Managed Services (private network / VPC peering or VPN)
   ├── Dedicated PostgreSQL EC2 (db.t3.2xlarge, TimescaleDB)
   │     └── All per-service databases (pos_accounting_db, pos_customer_db, ...)
   ├── Amazon MSK (Managed Kafka)
-  │     └── Topics: workorder-events, vehicle-inventory-events
+  │     └── Topics: workorder.events.v1, vehicle-inventory-events
   ├── Grafana Cloud
   │     └── Receives OTLP metrics + traces from otel-collector
   └── Ollama Cloud (ollama.com hosted) or EC2 GPU instance
@@ -276,7 +276,7 @@ The local Kafka container (used by `pos-workorder` and `pos-vehicle-inventory`) 
 | Broker type    | `kafka.t3.small` (2 brokers, Multi-AZ)         |
 | Kafka version  | 3.5.x                                          |
 | Authentication | SASL/SCRAM or IAM                              |
-| Topics         | `workorder-events`, `vehicle-inventory-events` |
+| Topics         | `workorder.events.v1`, `vehicle-inventory-events` |
 
 Update `.env`:
 

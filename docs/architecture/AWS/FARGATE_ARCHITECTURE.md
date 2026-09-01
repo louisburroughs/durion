@@ -178,7 +178,7 @@ The API gateway and security service scale more aggressively as they handle all 
 | Broker type | `kafka.t3.small` (2 brokers, Multi-AZ) |
 | Kafka version | 3.5.x |
 | Authentication | IAM (no stored credentials) |
-| Topics | `workorder-events`, `vehicle-inventory-events` |
+| Topics | `workorder.events.v1`, `vehicle-inventory-events` |
 
 `SPRING_KAFKA_BOOTSTRAP_SERVERS` is updated to the MSK broker endpoints. No application code changes.
 
