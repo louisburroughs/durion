@@ -17,8 +17,8 @@ existing domain modules. Two of them are money measures over the receivables cyc
 
 - **Current State**: Design decision **D3** in that plan placed both endpoints in `pos-accounting`. Its stated rationale was that "pos-invoice holds only `PaymentIntent` and
   `Receipt` — pre-settlement artifacts," so the settlement picture lived wholly in accounting.
-- **The Problem**: Issue #1605 disputed that premise and was right to. `pos-invoice` also owns settlement-affecting artifacts:
-  `DepositCredit` (`pos-invoice/src/main/java/com/positivity/invoice/internal/entity/DepositCredit.java`), `DepositCreditApplication` (same package), and `RefundRecord`
+- **The Problem**: Issue durion-positivity-backend#1605 disputed that premise and was right to. `pos-invoice` also owns settlement-affecting artifacts:
+  `DepositCredit` (`durion-positivity-backend/pos-invoice/src/main/java/com/positivity/invoice/internal/entity/DepositCredit.java`), `DepositCreditApplication` (same package), and `RefundRecord`
   (same package). A deposit credit is cash taken before the settlement event; a deposit-credit application settles invoice balance without cash; a refund is cash out. All
   three bear on whether and how an invoice is settled, so the original premise is factually false. The ownership conclusion it was used to justify is nonetheless correct —
   but on a different reason, and a false premise left in place invites someone to re-derive the opposite conclusion the next time the artifacts are examined.
@@ -65,7 +65,7 @@ Counting a draw-down as a collection double-counts cash. Two independent lines o
   ordinary invoice → `PaymentSettledV1` → `ReceivablePayment` → `PaymentApplication` path, in the take window. Counting the later draw-down as well would count the same cash
   twice.
 - **GL grounding.** Applying a customer credit posts `Dr 2300 Customer Credit Liability / Cr 1200 Accounts Receivable` — a liability relief against an A/R relief, touching
-  **no cash account** (`durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md:277-283`, issue #992). A movement that touches no cash account is not a cash
+  **no cash account** (`durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md:277-283`, issue durion-positivity-backend#992). A movement that touches no cash account is not a cash
   collection.
 
 E2 already structurally excludes accounting's own `CustomerCreditApplication` draw-downs, so excluding pos-invoice's deposit draw-downs is the **consistent** choice, not a
