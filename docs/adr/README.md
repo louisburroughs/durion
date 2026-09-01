@@ -122,6 +122,8 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0055   | Per-Product Inventory Quantity Divisibility                                  | ACCEPTED              | 2026-08-20 |
 | 0056   | Platform Global Exception Handling and Persistence Error Mapping             | ACCEPTED              | 2026-08-23 |
 | 0057   | Analytics Money-Measure Semantics and Ownership                              | ACCEPTED              | 2026-09-01 |
+| 0058   | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)        | PROPOSED              | 2026-09-01 |
+| 0059   | Labor-Time Naming and Service Operation Taxonomy                             | PROPOSED              | 2026-09-01 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -186,6 +188,8 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0055 | Inventory quantity divisibility declared per product via `product_uom.precision_scale` (undeclared = integral); symmetric demand/supply enforcement, decimal-capable ledger gated by the declaration, UOM on the workorder part line                                                                | Planner, Coder, Test, Orchestrator |
 | 0056 | Exception handling in any `pos-*` service: adding/changing a `@ControllerAdvice`, mapping `DataIntegrityViolationException`, catch-all handlers, error envelope/correlation-id behavior on unmapped failures, or a new controller-bearing module (must depend on pos-web-common or declare its own catch-all) | Planner, Coder, Test, Orchestrator |
 | 0057 | Any analytics endpoint reporting a money measure: ownership follows the ledger not the artifact, `collected` is cash only (deposit/customer-credit draw-downs excluded), movement-basis corrections with no restatement, refunds measured separately (`REFUND` only), deposit-take invoices excluded from `invoiced`/revenue by `depositSourceType` (never netted against the settlement), replica-only cross-module transport under ADR-0044 | Planner, Coder, Test, Orchestrator |
+| 0058 | Estimated service time (book time): pos-catalog `ServiceEntity` + vehicle-keyed `service_labor_standard` as system of record, provider-SPI sourcing inside pos-catalog (mock → aggregator → multi-source), license-gated STORE vs QUERY_ONLY modes, append-and-supersede provenance, timekeeping boundary (variance compares against time on task only)                                          | Planner, Coder, Test, Orchestrator |
+| 0059 | Naming around technician time: three-record taxonomy (time on task / attendance time entry / estimated service time), `work_session` never reused for estimates, `operation_code` shape and vendor-code mapping direction, decimal-hours-in-tenths unit, append-only permission bits                                             | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 
