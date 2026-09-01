@@ -86,6 +86,8 @@ Frontend developer workflow:
 | Find estimate (typeahead) | `searchEstimates` | GET | `/v1/workexec/estimates/search?q=` | `q` matches estimate number, customer name, or estimate id; returns `EstimateSummaryResponse` enriched with `customerName`. Auth `workorder:estimate:view`. |
 | Find workorder (typeahead) | `searchWorkorders` | GET | `/v1/workorders/search?q=` | `q` matches customer name or workorder id; returns `WorkorderSearchResult` `{workorderId,status,customerName,createdAt}`. Auth `workorder:workorder:view`. |
 | View daily dispatch board | `getDashboard` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
+| Record a note about the customer | `addWorkorderNote` | POST | `/v1/workorders/{workorderId}/notes` | Note about the CUSTOMER, not the work; author comes from the authenticated caller. Auth `workorder:note:add`. Publishes `workorder.note.added.v1`, which pos-customer projects onto the party's CRM timeline as a `WORKORDER_NOTE` interaction (durion-positivity-backend#1584). |
+| View a workorder's customer notes | `listWorkorderNotes` | GET | `/v1/workorders/{workorderId}/notes` | One workorder's notes, newest first. Auth `workorder:note:view`. For notes across every workorder for a customer, read the CRM interaction timeline instead. |
 
 Headers and auth notes:
 
