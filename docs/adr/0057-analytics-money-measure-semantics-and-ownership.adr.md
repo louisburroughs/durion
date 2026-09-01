@@ -137,7 +137,7 @@ event, and is **excluded** from `invoiced` (E2) and from every measure that sums
 lands). The exclusion is by deposit-take provenance carried on the invoice document (`depositSourceType` non-null), at the deposit-take document — **never** by netting the
 deposit out of the settlement invoice.
 
-The Accounting Domain ruling that settles the question decisions 2's evidence left open:
+The Accounting Domain ruling that settles the question left open by decision 2's evidence:
 
 - **Two economic events, not one.** A deposit-take "invoice" is an advance payment received before the performance obligation is satisfied — a customer-deposit liability
   (contract liability under ASC 606): `Dr Cash / Cr Customer Deposit Liability`, **no revenue recognized**. The settlement invoice is the actual sale — `Cr Revenue` for the
