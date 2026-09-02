@@ -36,7 +36,7 @@
 
 ### 5. Transport to pos-workorder
 
-**Decision:** PENDING — Proposed split, to be ratified when the consumer side is built: a scoped REST edge (ADR-0044 file-scoped grant, `ServiceLaborTimeService` in `catalog.service`) for vehicle-specific resolution at quote time, plus a `CatalogServiceUpdatedV2` fact carrying only the vehicle-agnostic `default_labor_hours` for degraded-mode replicas. Requires its own ADR-0044 amendment naming the grant before any cross-module code lands.
+**Decision:** ✅ **Resolved** (2026-09-02, with the Phase 1 build) — The proposed split is ratified in two halves. Synchronous half: a scoped REST edge (`ServiceLaborTimeService` in `catalog.service`, `POST /v1/catalog/labor-times/resolve`) answers vehicle-specific resolution at quote time, granted file-scoped to pos-workorder's `CatalogLaborTimeClientImpl` by the ADR-0044 amendment dated 2026-09-02. Event half: the `catalog.service.updated` fact carries the vehicle-agnostic `defaultLaborHours` (with `operationCode`/`operationCategory`) additively at **`schemaVersion: 2`** — an in-place bump of `CatalogServiceUpdatedV1` per the `ProductUpdatedV1` schema-v2 precedent, not a new payload class — feeding a pos-workorder `ext_catalog_service` replica for the degraded/offline path. Vehicle-specific rows never ride the fact (volume + licensing, §4).
 
 ### 6. Timekeeping boundary
 

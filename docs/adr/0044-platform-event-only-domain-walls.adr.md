@@ -1,6 +1,6 @@
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23; see §Amendments)
+**Status:** ACCEPTED — amended 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped); previously amended 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -265,6 +265,36 @@ integration review (durion#374, §12 decisions 4–5).
   (`durion-positivity-backend/docs/adr-0044-event-only-domain-walls.md`).
 - **Boundaries.** All other supplier data flows (price catalog, stock report, order lifecycle,
   invoices, shipment, workorder authorization) remain event-only per the main decision.
+
+### 2026-09-02 — Scoped exception: synchronous catalog labor-time resolution from pos-workorder
+
+Estimated service time (book time) gains its transport per ADR-0058 §5 (durion-positivity-backend#1569,
+sourcing plan §6): a second grant-surface read, `com.positivity.catalog.service.ServiceLaborTimeService`,
+resolved over `POST /v1/catalog/labor-times/resolve`.
+
+- **Decision.** **`pos-workorder`** MAY call `pos-catalog`'s `ServiceLaborTimeService` read API
+  synchronously to resolve the vehicle-specific labor time for a `LABOR` estimate item at quote
+  time. No other module may call it, no write path is included, and `pos-catalog` calls no domain
+  module synchronously as part of serving it.
+- **Rationale.** The vehicle-keyed labor-time matrix cannot ride events: it is large (millions of
+  rows at aggregator scale), licensed (per-source contract terms decide whether times may be
+  replicated at all, and QUERY_ONLY sources may never be persisted — ADR-0058 §4), and
+  query-shaped (a quote needs one answer for one vehicle now). The degraded/offline path is the
+  vehicle-agnostic `defaultLaborHours` carried additively on the `catalog.service.updated` fact
+  at **schemaVersion 2** (the additive in-place bump per ADR-0044 §3, following the
+  `ProductUpdatedV1` schema-v2 precedent; version-1 consumers are unaffected), which
+  pos-workorder replicates — a prefill fallback, never the vehicle-correct answer.
+- **Degradation contract.** The read never throws for a miss or vendor-side failure: typed
+  statuses `RESOLVED | NO_TIME_AVAILABLE | SOURCE_UNAVAILABLE`, with source/revision/match-grade
+  provenance on `RESOLVED`. A pos-catalog outage degrades to the replica default hours, then to a
+  blank prefill the service writer types over — the estimate flow itself must never fail.
+- **Enforcement (class-level, not module-level).** The exception is scoped to the named client
+  class `CatalogLaborTimeClientImpl` under pos-workorder's `internal.client`, expressed in
+  `DomainWallsTest`'s per-source-file exception map; a second pos-workorder client targeting
+  pos-catalog still fails the build. The granted type joins the pos-archunit
+  `GRANTED_GRANT_SURFACE_TYPES` census (ADR-0026 D2/D4).
+- **Boundaries.** Everything else pos-workorder needs from pos-catalog continues to ride the
+  `catalog.service.updated` / `catalog.product.updated` facts.
 
 ---
 
