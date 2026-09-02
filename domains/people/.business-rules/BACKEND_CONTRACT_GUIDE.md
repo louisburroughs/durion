@@ -72,7 +72,7 @@ Frontend developer workflow:
 | Revoke role assignment | *(not in pos-people OpenAPI — no access-assignment revoke endpoint shipped)* | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` | Refer to generated API reference for payload details |
 | Get all people | *(not in pos-people OpenAPI — person ownership moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people` | Refer to generated API reference for payload details |
 | Get people availability | `getPeopleAvailability` | GET | `/v1/people/availability` | Refer to generated API reference for payload details |
-| Get current user's primary location | `getMyPrimaryLocation` | GET | `/v1/people/me/primary-location` | Defaults to the top-level location when no primary assignment exists; see CAP-119 behavioral assertions (backend#1636) |
+| Get current user's primary location | `getMyPrimaryLocation` | GET | `/v1/people/me/primary-location` | Defaults to the top-level location when the caller has no person link or no active primary assignment; see CAP-119 behavioral assertions (backend#1636) |
 | List current user's active location assignments | `listMyLocations` | GET | `/v1/people/me/locations` | Refer to generated API reference for payload details |
 | Get a person's primary location | `getPersonPrimaryLocation` | GET | `/v1/people/{personId}/primary-location` | Strict 404 when no primary assignment — no top-level default |
 | Get employee profile | `getEmployee` | GET | `/v1/people/employees/{employeeId}` | Refer to generated API reference for payload details |
@@ -196,6 +196,7 @@ Headers and auth notes:
 | List exceptions, optional filter by employeeId | `listByEmployee` | GET | `/v1/people/exceptions` |
 | Get approved time entries for accounting export | `getApprovedTimeForExport` | GET | `/v1/people/reports/approvedTime` |
 | Get current user's primary location | `getMyPrimaryLocation` | GET | `/v1/people/me/primary-location` |
+| List current user's active location assignments | `listMyLocations` | GET | `/v1/people/me/locations` |
 | Get a person's primary location | `getPersonPrimaryLocation` | GET | `/v1/people/{personId}/primary-location` |
 
 ### Behavioral Assertions

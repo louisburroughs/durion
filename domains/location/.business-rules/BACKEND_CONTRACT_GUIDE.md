@@ -67,7 +67,7 @@ Frontend developer workflow:
 | Get all locations | `getAllLocations` | GET | `/v1/locations` | Refer to generated API reference for payload details |
 | Get all location parents | `getAllParents` | GET | `/v1/locations/parents` | Refer to generated API reference for payload details |
 | Get location roster | `getRoster` | GET | `/v1/locations/roster` | Refer to generated API reference for payload details |
-| Get the top-level default location | `getTopLevelLocation` | GET | `/v1/locations/top-level` | Platform-wide default; see CAP-136 behavioral assertions (backend#1636) |
+| Get the top-level default location | `getTopLevelLocation` | GET | `/v1/locations/top-level` | Platform-wide default; see CAP-136 behavioral assertions (backend PR #1639) |
 | Get location by ID | `getLocationById` | GET | `/v1/locations/{locationId}` | Refer to generated API reference for payload details |
 | List bays | `listBays` | GET | `/v1/locations/{locationId}/bays` | Refer to generated API reference for payload details |
 | Get bay | `getBay` | GET | `/v1/locations/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
@@ -112,7 +112,7 @@ Headers and auth notes:
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
 
-#### Issue louisburroughs/durion-positivity-backend#1636 — Top-Level Default Location
+#### Backend PR louisburroughs/durion-positivity-backend#1639 — Top-Level Default Location
 
 `GET /v1/locations/top-level` (`location:read`) is the location domain's public definition
 of the platform-wide default location, added so callers (e.g. pos-people's
