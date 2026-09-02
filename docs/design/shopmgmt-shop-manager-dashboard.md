@@ -2,7 +2,8 @@
 
 **Domain:** `shopmgmt` · **Surface:** frontend (`durion-positivity-frontend`) + one new backend read endpoint
 **Route:** `/app/shopmgmt/shop-dashboard`
-**Status:** DRAFT — ready for story extraction
+**Status:** IMPLEMENTED (frontend) — backend aggregate endpoint outstanding
+**Backend prerequisites:** louisburroughs/durion#416, louisburroughs/durion#417
 **Date:** 2026-09-02
 
 ---
@@ -187,9 +188,9 @@ Add to the light `:root` block and the dark theme block, following the existing
 ```css
 /* light */
 --status-ready-bg:   #e4f2f1;
---status-ready-fg:   #17605c;   /* 7.0:1 on its tint */
+--status-ready-fg:   #17605c;   /* measured 6.38:1 on its tint */
 --status-neutral-bg: #eceff1;
---status-neutral-fg: #37474f;   /* 8.9:1 on its tint */
+--status-neutral-fg: #37474f;   /* measured 8.35:1 on its tint */
 
 /* dark */
 --status-ready-bg:   #1e3937;
@@ -198,7 +199,9 @@ Add to the light `:root` block and the dark theme block, following the existing
 --status-neutral-fg: #c3ccd1;
 ```
 
-Every pair must be verified at `>= 4.5:1` in both themes before merge (ADR-0039 §1, §3).
+All four pairs are implemented and measured: light ready 6.38:1, light neutral 8.35:1,
+dark ready 7.46:1, dark neutral 7.97:1 — all clear of the `>= 4.5:1` threshold
+(ADR-0039 §1, §3).
 Header text is 0.8125rem semibold — small text, so the 4.5:1 threshold applies, not 3:1.
 
 ### 4.2 Unknown status
@@ -753,3 +756,65 @@ helper and its CSS classes are shared between them, so a status colour is define
    `rosterScope` parameter rather than an implicit change of meaning.
 6. **Permission name.** `shopmgmt:dashboard:view` is proposed; it must be registered in
    `permissions.yaml` per ADR-0025 before the backend story lands.
+
+---
+
+## 15. As-built notes (frontend, 2026-09-02)
+
+The frontend is implemented and green (66 new tests, full suite 2145 passing, ESLint,
+stylelint, `i18n:check`, `a11y:smoke:strict`, production build). Where the build departs
+from this spec, the spec is wrong and this section is right.
+
+### 15.1 The aggregate endpoint does not exist yet
+
+`GET /v1/shopmgmt/shop-dashboard` (§5.1) is still the target contract; nothing serves it.
+`ShopDashboardService` therefore composes the same view model from what does exist:
+
+| View-model field | Interim source |
+| --- | --- |
+| bay cards, assignment, status | `GET /v1/workexec/dashboard/today` (`bays[]`, `workorders[]`) |
+| mechanic name | same call, `mechanics[]`, joined on `assignedWorkorderId` |
+| bay name / type | `GET /v1/locations/{id}/bays` |
+| mobile-unit cards | `GET /v1/mobile-units` filtered on `baseLocationId` |
+| vehicle year/make/model/VIN | `getWorkorderDetail` → `vehicleId` → `getVehicle` |
+| roster rows | the dispatch call's `workorders[]`, filtered to open statuses |
+
+Both public methods become thin SDK calls when the aggregate endpoint lands; no consumer
+changes. Vehicle resolution is capped at 40 workorders with concurrency 6, and degrades to
+the projection's unstructured `vehicleDescription` on any failure — one bad vehicle record
+cannot blank the dashboard.
+
+### 15.2 Mobile-unit cards always render idle
+
+Per **louisburroughs/durion#416**, no read path resolves a workorder to a mobile unit. The
+cards render from the location inventory and always show the idle band. This is visible,
+tested, and commented at the call site — it is the backend gap, not a defect here.
+
+### 15.3 The roster is date-scoped in the interim
+
+§14 item 5 argued the roster should **not** be filtered by the date picker, because work
+open for three days is exactly what a manager needs to see. The interim build cannot honour
+that: its only source is the per-date dispatch dashboard, so the roster is date-scoped
+today. The aggregate endpoint must decide this deliberately — it is the single most
+user-visible gap between this spec and the shipped page.
+
+`promisedAt` is likewise not implemented: the dispatch projection does not carry it, so
+rows sort unassigned-first and then by workorder number, without the promised-time tier.
+
+### 15.4 Location filter is a native select, not `LocationPickerComponent`
+
+`LocationPickerComponent` loads every location and offers no filtering hook, so it cannot
+express "repair-capable only" (§5.2). The page uses a labelled native `<select>` fed by
+`listRepairLocations()`. Keyboard and screen-reader behaviour come free, and the picker
+stays untouched for the pages that want every location.
+
+### 15.5 `SHOPMGMT.LANDING.HERO_CTA_SCHEDULE` removed
+
+Promoting the dashboard to the hero primary CTA left that key unreferenced. Removed from
+all six locale files per the pre-production no-dead-code policy.
+
+### 15.6 Known warning
+
+The production build reports the initial bundle 1.09 kB over its 1.02 MB budget. It was
+already 866 bytes over before this change; the four new token pairs add ~224 bytes. Worth
+folding into whatever addresses the pre-existing overage, not this story.
