@@ -8,7 +8,7 @@ guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-location/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-08-27
+last_updated: 2026-09-02
 api_reference_generated: domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -67,6 +67,7 @@ Frontend developer workflow:
 | Get all locations | `getAllLocations` | GET | `/v1/locations` | Refer to generated API reference for payload details |
 | Get all location parents | `getAllParents` | GET | `/v1/locations/parents` | Refer to generated API reference for payload details |
 | Get location roster | `getRoster` | GET | `/v1/locations/roster` | Refer to generated API reference for payload details |
+| Get the top-level default location | `getTopLevelLocation` | GET | `/v1/locations/top-level` | Platform-wide default; see CAP-136 behavioral assertions (backend#1636) |
 | Get location by ID | `getLocationById` | GET | `/v1/locations/{locationId}` | Refer to generated API reference for payload details |
 | List bays | `listBays` | GET | `/v1/locations/{locationId}/bays` | Refer to generated API reference for payload details |
 | Get bay | `getBay` | GET | `/v1/locations/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
@@ -103,12 +104,31 @@ Headers and auth notes:
 | Delete a location | `deleteLocation` | DELETE | `/v1/locations/{locationId}` |
 | Get all locations | `getAllLocations` | GET | `/v1/locations` |
 | Get all location parents | `getAllParents` | GET | `/v1/locations/parents` |
+| Get the top-level default location | `getTopLevelLocation` | GET | `/v1/locations/top-level` |
 
 ### Behavioral Assertions
 
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
+
+#### Issue louisburroughs/durion-positivity-backend#1636 — Top-Level Default Location
+
+`GET /v1/locations/top-level` (`location:read`) is the location domain's public definition
+of the platform-wide default location, added so callers (e.g. pos-people's
+primary-location fallback, or the frontend directly) never invent their own default:
+
+- Resolution is deterministic: the **active hierarchy root** — a location that is a parent
+  of at least one `LocationParent` edge but a child of none — ordered by id (UUID v7 is
+  time-ordered), first row wins.
+- A flat deployment (no parent-child edges) falls back to the **oldest active location**
+  (again by UUID v7 id order), so the default stays stable as locations are added.
+- Returns `200` with a full `LocationResponseDTO`; `404` only when no active location
+  exists at all. Read-only; no events emitted.
+- Consumer note: pos-people mirrors these exact semantics over its event-fed
+  `ext_location` / `ext_location_parent` replicas rather than calling this endpoint
+  synchronously (ADR-0044); the endpoint remains the contract of record for the
+  definition.
 
 ### Frontend Usage Notes
 

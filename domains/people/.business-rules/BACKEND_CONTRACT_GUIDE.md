@@ -8,7 +8,7 @@ guide_path: domains/people/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-people/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+last_updated: 2026-09-02
 api_reference_generated: domains/people/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -72,6 +72,9 @@ Frontend developer workflow:
 | Revoke role assignment | *(not in pos-people OpenAPI — no access-assignment revoke endpoint shipped)* | DELETE | `/v1/people/{personUuid}/access/assignments/{roleCode}` | Refer to generated API reference for payload details |
 | Get all people | *(not in pos-people OpenAPI — person ownership moving to pos-people-contact, ADR-0044 §6)* | GET | `/v1/people` | Refer to generated API reference for payload details |
 | Get people availability | `getPeopleAvailability` | GET | `/v1/people/availability` | Refer to generated API reference for payload details |
+| Get current user's primary location | `getMyPrimaryLocation` | GET | `/v1/people/me/primary-location` | Defaults to the top-level location when no primary assignment exists; see CAP-119 behavioral assertions (backend#1636) |
+| List current user's active location assignments | `listMyLocations` | GET | `/v1/people/me/locations` | Refer to generated API reference for payload details |
+| Get a person's primary location | `getPersonPrimaryLocation` | GET | `/v1/people/{personId}/primary-location` | Strict 404 when no primary assignment — no top-level default |
 | Get employee profile | `getEmployee` | GET | `/v1/people/employees/{employeeId}` | Refer to generated API reference for payload details |
 | List exceptions, optional filter by employeeId | `listByEmployee` | GET | `/v1/people/exceptions` | Refer to generated API reference for payload details |
 | Get approved time entries for accounting export | `getApprovedTimeForExport` | GET | `/v1/people/reports/approvedTime` | Refer to generated API reference for payload details |
@@ -192,6 +195,8 @@ Headers and auth notes:
 | Get employee profile | `getEmployee` | GET | `/v1/people/employees/{employeeId}` |
 | List exceptions, optional filter by employeeId | `listByEmployee` | GET | `/v1/people/exceptions` |
 | Get approved time entries for accounting export | `getApprovedTimeForExport` | GET | `/v1/people/reports/approvedTime` |
+| Get current user's primary location | `getMyPrimaryLocation` | GET | `/v1/people/me/primary-location` |
+| Get a person's primary location | `getPersonPrimaryLocation` | GET | `/v1/people/{personId}/primary-location` |
 
 ### Behavioral Assertions
 
@@ -199,11 +204,38 @@ Headers and auth notes:
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
 
+#### Issue louisburroughs/durion-positivity-backend#1636 — Primary Location Top-Level Default
+
+`GET /v1/people/me/primary-location` no longer answers 404 for a caller without an active
+primary staffing assignment. It falls back to the platform's **top-level location**:
+
+- A caller with an active assignment flagged primary today gets that assignment's
+  `locationId` and `defaulted: false`.
+- A caller with **no person link** or **no active primary assignment** gets the top-level
+  default location and `defaulted: true` — the new optional `defaulted` boolean on
+  `PrimaryLocationResponse` is how clients distinguish a real assignment from the
+  substituted default (it is additive; clients that ignore it keep working).
+- 404 remains only when no default can be resolved either (no active location is known to
+  the replica yet — e.g. a brand-new deployment before the first location facts arrive).
+- A missing security context is still an error, never defaulted.
+- **Top-level location** is defined by the location domain (`getTopLevelLocation`,
+  `GET /v1/locations/top-level` on pos-location): the active parent-child hierarchy root
+  (a parent that is no location's child), else the oldest active location; deterministic
+  (ties break on UUID v7 id order).
+- pos-people resolves the same semantics locally from its event-fed `ext_location` and
+  `ext_location_parent` replicas (fed by `location.location.updated` facts on
+  `location.events.v1`, ADR-0044 §6) — no synchronous call to pos-location.
+- `GET /v1/people/{personId}/primary-location` (service-to-service resolution by person id)
+  keeps **strict 404** semantics: it never substitutes the default.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
 - Read request/response payload shapes from generated API reference, not this guide.
 - Surface validation and authorization failures directly to users with trace context.
+- Dispatch board / mechanic availability views: treat `defaulted: true` as "no explicit
+  assignment — showing the platform default"; a 404 from `getMyPrimaryLocation` now means
+  no location exists at all, not merely no assignment.
 
 ### ADR Constraints
 
@@ -213,11 +245,17 @@ Headers and auth notes:
 
 - Respect published API/event contracts for all upstream and downstream dependencies.
 - Preserve traceability when integrating across services or asynchronous workflows.
+- Consumes `location.location.updated` / `location.location.deleted` facts
+  (`location.events.v1`) into `ext_location` and `ext_location_parent` replicas; the
+  parent-edge replica backs the top-level default resolution (backend#1636).
 
 ### Contract Test Traceability
 
 - Provider tests: `durion-positivity-backend/pos-people/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
+- backend#1636 assertions: `PeopleAvailabilityServiceTest` (primary wins / top-level
+  fallback / strict 404 cases), `LocationAndWorkorderEventsListenerTest` (parent-edge
+  replication).
 
 ## CAP-120: [CAP] Timekeeping (Clock, Breaks, Approvals, Export)
 
