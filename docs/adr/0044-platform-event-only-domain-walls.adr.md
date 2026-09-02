@@ -280,8 +280,10 @@ resolved over `POST /v1/catalog/labor-times/resolve`.
   rows at aggregator scale), licensed (per-source contract terms decide whether times may be
   replicated at all, and QUERY_ONLY sources may never be persisted — ADR-0058 §4), and
   query-shaped (a quote needs one answer for one vehicle now). The degraded/offline path is the
-  vehicle-agnostic `defaultLaborHours` carried additively on the `catalog.service.updated` fact,
-  which pos-workorder replicates — a prefill fallback, never the vehicle-correct answer.
+  vehicle-agnostic `defaultLaborHours` carried additively on the `catalog.service.updated` fact
+  at **schemaVersion 2** (the additive in-place bump per ADR-0044 §3, following the
+  `ProductUpdatedV1` schema-v2 precedent; version-1 consumers are unaffected), which
+  pos-workorder replicates — a prefill fallback, never the vehicle-correct answer.
 - **Degradation contract.** The read never throws for a miss or vendor-side failure: typed
   statuses `RESOLVED | NO_TIME_AVAILABLE | SOURCE_UNAVAILABLE`, with source/revision/match-grade
   provenance on `RESOLVED`. A pos-catalog outage degrades to the replica default hours, then to a
