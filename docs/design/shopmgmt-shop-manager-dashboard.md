@@ -34,7 +34,7 @@ answers "what work is outstanding, and what has nowhere to go?"
 
 ### 2.1 Full page
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │  SHOP MANAGEMENT                                                                          │
 │  Shop Manager Dashboard                                          Last updated 10:42 AM ⟳  │
@@ -78,7 +78,7 @@ answers "what work is outstanding, and what has nowhere to go?"
 
 ### 2.2 Open-workorder roster (bottom of page)
 
-```
+```text
 ┌── VEHICLES WITH OPEN WORKORDERS (14) ────────────────────────────────────────────────┐
 │                                                                                       │
 │  Vehicle                    VIN                 Workorder   Status            Unit    │
@@ -96,7 +96,7 @@ answers "what work is outstanding, and what has nowhere to go?"
 
 Under `48rem` the table collapses to stacked rows:
 
-```
+```text
 ┌─────────────────────────────────┐
 │ 2018 Honda Civic                │
 │ VIN 2HGFC2F59JH512260           │
@@ -106,7 +106,7 @@ Under `48rem` the table collapses to stacked rows:
 
 ### 2.3 Card anatomy
 
-```
+```text
 ┌───────────────────────────────────┐
 │▓▓▓▓ ● WORK IN PROGRESS ▓▓▓▓▓▓▓▓▓▓▓│ ← header: status band colour + icon + TEXT
 │ Bay 1 · Alignment                 │
@@ -125,7 +125,7 @@ Under `48rem` the table collapses to stacked rows:
 
 ### 2.4 Idle card
 
-```
+```text
 ┌───────────────────────────────────┐
 │▒▒▒▒ ○ IDLE ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
 │ Bay 3 · Heavy Duty                │
@@ -142,7 +142,7 @@ Under `48rem` the table collapses to stacked rows:
 ## 3. Layout rules
 
 | Viewport | Grid |
-|---|---|
+| --- | --- |
 | `>= 90rem` | 4 columns |
 | `>= 64rem` | 3 columns |
 | `>= 48rem` | 2 columns |
@@ -171,7 +171,7 @@ text always names the **specific** status, so colour is never the sole carrier o
 (ADR-0039 §2, WCAG 1.4.1).
 
 | Band | `WorkorderStatus` values | Icon | Background token | Foreground token |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `idle` | *(no workorder assigned)* | `○` | `--durion-graphite-100` | `--currentTextColor` |
 | `queued` | `DRAFT`, `APPROVED`, `ASSIGNED` | `◔` | `--status-info-bg` | `--status-info-fg` |
 | `active` | `WORK_IN_PROGRESS` | `●` | `--status-success-bg` | `--status-success-fg` |
@@ -226,12 +226,12 @@ No current endpoint carries bay + mobile-unit assignment with structured vehicle
 
 Spec a single aggregate read:
 
-```
+```text
 GET /v1/shopmgmt/shop-dashboard?locationId={uuid}&date={yyyy-MM-dd}
 ```
 
 | Parameter | In | Required | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `locationId` | query | yes | UUID (ADR-0013, ADR-0027) |
 | `date` | query | no | ISO date-only string; defaults to the location's local today (ADR-0038) |
 
@@ -438,7 +438,7 @@ keyed on `locationId()` + `date()`, and every subscription is torn down through 
 (ADR-0033) so a fast location switch cannot land a stale response.
 
 | State | Trigger | Render |
-|---|---|---|
+| --- | --- | --- |
 | `idle` (location-required) | no `locationId` | Picker plus prompt `SHOP_DASHBOARD.LOCATION_REQUIRED` |
 | `loading` | fetch in flight | Skeleton card grid (6 placeholders), `aria-busy="true"` |
 | `ready` + units | 200, `units.length > 0` | Card grid + roster |
@@ -486,7 +486,7 @@ role is enumerated for the other shopmgmt routes; today they carry none, so this
 
 `src/app/features/shopmgmt/pages/landing/shopmgmt-landing.config.ts`:
 
-1. **Hero primary CTA** becomes the dashboard; Dispatch Board moves to the secondary CTA.
+**Hero primary CTA** becomes the dashboard; Dispatch Board moves to the secondary CTA.
 
 ```ts
 primaryCta: {
@@ -500,7 +500,7 @@ secondaryCta: {
 },
 ```
 
-2. **First card** in the existing *Dispatch & Schedule* section, ahead of Dispatch Board:
+**First card** in the existing *Dispatch & Schedule* section, ahead of Dispatch Board:
 
 ```ts
 {
@@ -513,7 +513,7 @@ secondaryCta: {
 },
 ```
 
-```
+```text
 SECTION: Dispatch & Schedule
   ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
   │ 🏭 Shop Manager  │ │ 📋 Dispatch Board│ │ 📅 Schedule      │
@@ -524,8 +524,8 @@ SECTION: Dispatch & Schedule
   └──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
-The existing `HERO_CTA_SCHEDULE` key is retired from the config; it stays in the locale files only
-if still referenced elsewhere, otherwise it is removed (pre-production policy — no dead keys).
+The existing `HERO_CTA_SCHEDULE` key is retired from the config. It proved to be referenced
+nowhere else, so it was removed from all six locale files (pre-production policy — no dead keys).
 
 ### 8.3 Outbound links
 
@@ -567,7 +567,7 @@ Every string via `| translate`. New keys under `SHOPMGMT.SHOP_DASHBOARD.*`, adde
 locale files (`en-US`, `es-US`, `es-MX`, `fr-CA`, `fr-FR`, `qps-ploc`).
 
 | Key | en-US |
-|---|---|
+| --- | --- |
 | `SECTION_LABEL` | Shop Management |
 | `TITLE` | Shop Manager Dashboard |
 | `PANEL_ARIA` | Repair unit status by location |
@@ -621,9 +621,9 @@ Card headers must not truncate translated status text — French and Spanish sta
 
 ## 11. File manifest
 
-**New — `durion-positivity-frontend`**
+### New — `durion-positivity-frontend`
 
-```
+```text
 src/app/features/shopmgmt/
   models/shop-dashboard.models.ts
   services/shop-dashboard.service.ts
@@ -645,18 +645,18 @@ src/app/features/shopmgmt/
     shop-dashboard-page.component.spec.ts
 ```
 
-**Modified — `durion-positivity-frontend`**
+### Modified — `durion-positivity-frontend`
 
-```
+```text
 src/app/features/shopmgmt/shopmgmt.routes.ts               route
 src/app/features/shopmgmt/pages/landing/shopmgmt-landing.config.ts   CTAs + card
 src/styles.css                                             4 new status tokens x 2 themes
 src/assets/i18n/{en-US,es-US,es-MX,fr-CA,fr-FR,qps-ploc}.json
 ```
 
-**New/modified — backend + SDK**
+### New/modified — backend + SDK
 
-```
+```text
 ShopDashboardController (+ OpenAPI annotations)   durion-positivity-backend
 OpenAPI.yaml                                      regenerated
 @durion-sdk/shopmgmt                              regenerated Angular SDK
@@ -671,7 +671,8 @@ helper and its CSS classes are shared between them, so a status colour is define
 
 ## 12. Test plan
 
-**Service** (`shop-dashboard.service.spec.ts`) — every public method, ADR-0035:
+### Service (`shop-dashboard.service.spec.ts`) — every public method, ADR-0035
+
 - `getDashboard` maps a full payload; maps a payload with null `workorder`/`vehicle`/`mechanic`
 - `getDashboard` propagates 403 and 404 distinctly
 - `listRepairLocations` keeps a location with bays only, with mobile units only, and drops one
@@ -679,14 +680,16 @@ helper and its CSS classes are shared between them, so a status colour is define
 - `listRepairLocations` degrades gracefully when the bay call rejects for one location
 - date normalisation never shifts the day across a timezone boundary (ADR-0038)
 
-**Card component**
+### Card component
+
 - Each of the 7 bands renders its expected header class, icon and translated status text
 - Idle card renders the placeholder and no workorder/vehicle/mechanic rows
 - Missing mechanic → `NO_MECHANIC`; missing vehicle → `VEHICLE_UNKNOWN`
 - Unknown status string renders the `queued` band with the raw value
 - Full VIN present in the DOM regardless of visual truncation
 
-**Roster component**
+### Roster component
+
 - Renders one row per `OpenWorkorderRow`, in the order supplied (no client re-sorting)
 - A row with no `unitId` renders the em dash with the `ROSTER.NO_UNIT` accessible label
 - A row with a `unitId` renders the unit name
@@ -696,7 +699,8 @@ helper and its CSS classes are shared between them, so a status colour is define
 - Full VIN present in the DOM at every viewport
 - Table exposes `<caption>`, `<th scope="col">` and `<th scope="row">`
 
-**Page component**
+### Page component
+
 - Renders location-required prompt with no `locationId`
 - `loading` → `ready` transition renders the grid; `state` is `error` before `errorKey` is set
 - Bays and Mobile Units render in separate sections; an empty section is omitted
@@ -717,7 +721,7 @@ helper and its CSS classes are shared between them, so a status colour is define
 ## 13. ADR compliance
 
 | ADR | How it is met |
-|---|---|
+| --- | --- |
 | 0010 frontend domain responsibilities | Page lives in `shopmgmt`; workorder detail stays in `workexec` |
 | 0029 accessibility baseline | §9 — WCAG 2.2 AA, axe smoke gate |
 | 0030 i18n | §10 — six locale files, no hard-coded strings |
