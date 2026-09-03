@@ -64,6 +64,8 @@ Frontend developer workflow:
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
 | Delete a location | `deleteLocation` | DELETE | `/v1/locations/{locationId}` | Refer to generated API reference for payload details |
+| Delete a bay | `deleteBay` | DELETE | `/v1/locations/{locationId}/bays/{bayId}` | Hard delete; publishes `location.bay.deleted` (backend PR #1674) |
+| Delete a mobile unit | `deleteMobileUnit` | DELETE | `/v1/mobile-units/{id}` | Hard delete; also removes coverage rules, publishes `location.mobile-unit.deleted` (backend PR #1674) |
 | Get all locations | `getAllLocations` | GET | `/v1/locations` | Refer to generated API reference for payload details |
 | Get all location parents | `getAllParents` | GET | `/v1/locations/parents` | Refer to generated API reference for payload details |
 | Get location roster | `getRoster` | GET | `/v1/locations/roster` | Refer to generated API reference for payload details |
