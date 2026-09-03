@@ -293,8 +293,9 @@ Headers and auth notes:
   control-account balance at all times, including after partial applications and refunds.
 - An invoice settled by a customer credit is no longer outstanding: accounting's derived invoice
   balance subtracts applied credits, so it cannot be paid or credited a second time.
-- **Deposit draw-downs relieve A/R the same way (issue #1652, ADR-0057 §6).** A deposit-take
-  document is a contract-liability event; the deposit portion applied to the settlement invoice
+- **Deposit draw-downs relieve A/R the same way (issue #1652).** Decided in #1652 by analogy to
+  ADR-0057 §6's ruling that a deposit-take document is a contract-liability event and to the
+  #992 customer-credit treatment above: the deposit portion applied to the settlement invoice
   relieves that liability, not cash, so the derived balance also subtracts posted deposit-credit
   applications (`ext_invoice_deposit_credit_application`):
   `balanceDue = total − (applied − reversed) − postedCreditMemos − appliedCustomerCredits −
