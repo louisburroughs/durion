@@ -300,7 +300,7 @@ Headers and auth notes:
   `balanceDue = total − (applied − reversed) − postedCreditMemos − appliedCustomerCredits −
   appliedDepositCredits`. The replica carries applied facts only; a deposit reversal fact, if
   ever published, must be subtracted symmetrically.
-- **Work-order-less invoices are receivables too (issue #1651).** `ext_invoice.workorder_id` is
+- **Workorder-less invoices are receivables too (issue #1651).** `ext_invoice.workorder_id` is
   nullable: order-fronted / counter-sale, standalone-billing and deposit-settlement invoices
   replicate with no workorder and appear in aged receivables, the A/R book and collections
   analytics like any other `FINALIZED`/`POSTED` invoice. A replica row the database refuses is
