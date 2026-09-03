@@ -424,11 +424,14 @@ vanishing from the board.
 Shop Management persists no unified Unit model; the two halves belong to the location domain.
 
 **Errors** follow ADR-0017 in the standard `ApiError` envelope: `400` for a malformed `locationId`
-or `date`, `403` without `shopmgmt:dashboard:view`, `404` for an unknown location.
+or `date`, `403` without `shop:dashboard:view`, `404` for an unknown location.
 
-**Permission.** `shopmgmt:dashboard:view` (`domain: shop`, `serviceName: pos-shop-manager`),
-registered through the module's existing `PermissionRegistration`. It is a new read-only view and
-supersedes none of the deprecated `shop:*` permissions, which cover mutations.
+**Permission.** `shop:dashboard:view` (`domain: shop`, `serviceName: pos-shop-manager`), bit 506,
+registered through the module's existing `PermissionRegistration` and granted to `ADMIN`,
+`SHOP_MANAGER` and `LOCATION_MANAGER`. It is a new read-only view and supersedes none of the
+deprecated `shop:*` permissions, which cover mutations. The story proposed `shopmgmt:dashboard:view`,
+but the module declares `domain: shop` and every other permission it owns uses the `shop:` prefix,
+so the RBAC tooling classified `shopmgmt:` as cross-domain; it was renamed before merge.
 
 **Consistency.** Every fact behind the response is a local replica of another domain's events, with
 the fail-open, retry-with-backoff semantics already used for the ShopMgmt↔WorkExec status sync. The
