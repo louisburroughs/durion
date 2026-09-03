@@ -481,15 +481,17 @@ was rejected because:
 3. This module already runs four replica consumers over this exact contract, so the replica is the
    cheap option here and the live call the expensive one.
 
-**Honest consequence, recorded deliberately.** `pos-location`'s `LocationFactPublisher` does not
-publish bay or mobile-unit facts yet — it emits `location.location.*` and
-`location.storage-location.updated` only. So `ext_bay` and `ext_mobile_unit` start empty and
-**`units[]` is empty in production today**, while `openWorkorders[]` is fully populated once
-workorder facts flow. A live read would have returned units today at the architectural price above.
-Adding the bay and mobile-unit publishers to `pos-location` is the cross-repo follow-up that closes
-the gap for this module and `pos-workorder` at once. The consumer-side fact contracts are declared
-locally in `com.positivity.shopmanager.internal.dto.location` in the shape they should take in
-`pos-domain-events`, so the move is a package change and nothing more.
+**Honest consequence, recorded deliberately — now closed.** When this decision was taken,
+`pos-location`'s `LocationFactPublisher` emitted `location.location.*` and
+`location.storage-location.updated` only, so `ext_bay` and `ext_mobile_unit` started empty and
+`units[]` was empty in production while `openWorkorders[]` populated normally. The cross-repo
+follow-up landed in backend#1668: `pos-location` now publishes `location.bay.updated` /
+`location.bay.deleted` and `location.mobile-unit.updated` / `location.mobile-unit.deleted` on
+`location.events.v1`, and the fact contracts are the canonical records in `pos-domain-events`
+(`com.positivity.domainevents.location`) — the local mirror package this module carried in the
+interim has been deleted. The replicas still hold nothing for bays and mobile units created before
+#1668 until the owner runs its `location.fact-backfill.requested` command; outbox replay cannot seed
+them, because those rows have no outbox history.
 
 ### Behavioral Assertions
 
