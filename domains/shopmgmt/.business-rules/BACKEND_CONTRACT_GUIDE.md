@@ -383,7 +383,7 @@ controllers. There is no `pos-shopmgmt` module and no `/v1/shopmgmt/...` prefix.
 
 **Request.** `locationId` (UUID, required) and `date` (optional, date-only `yyyy-MM-dd` per
 ADR-0038). `date` defaults to the location's local today, resolved through the shop's recorded
-timezone and falling back to UTC when it is absent or unrecognised.
+timezone and falling back to UTC when it is absent or unrecognized.
 
 **Response shape.**
 
