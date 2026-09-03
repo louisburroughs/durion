@@ -91,7 +91,7 @@ Frontend developer workflow:
 
 Search-filter note for `searchWorkorders` (durion-positivity-backend#1676):
 
-- `status` accepts several values, repeated (`status=A&status=B`) or comma-separated (`status=A,B`), so every open status is one call; an unrecognised value is a 400.
+- `status` accepts several values, repeated (`status=A&status=B`) or comma-separated (`status=A,B`), so every open status is one call; an unrecognized value is a 400.
 - `createdFrom`/`createdTo` are inclusive `YYYY-MM-DD` bounds on `createdAt`, evaluated in UTC; `technicianId` matches a technician who logged a labor entry on the workorder.
 - Returns a page of `WorkorderSearchResult` `{workorderId, workorderNumber, estimateNumber, status, customerId, customerName, vehicleId, vehicleLabel, vin, createdAt}`; default page size 25, hard-capped at 100.
 
