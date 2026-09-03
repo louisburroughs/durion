@@ -84,10 +84,16 @@ Frontend developer workflow:
 | Get estimates by location | `getEstimatesByLocation` | GET | `/v1/workorders/estimates/location/{locationId}` | Refer to generated API reference for payload details |
 | Get estimates by shop | `getEstimatesByShop` | GET | `/v1/workorders/estimates/shop/{locationId}` | Refer to generated API reference for payload details |
 | Find estimate (typeahead) | `searchEstimates` | GET | `/v1/workexec/estimates/search?q=` | `q` matches estimate number, customer name, or estimate id; returns `EstimateSummaryResponse` enriched with `customerName`. Auth `workorder:estimate:view`. |
-| Find workorder (typeahead / filtered search) | `searchWorkorders` | GET | `/v1/workorders/search?q=` | `q` matches customer name or workorder id; optional exact filters `customerId`, `vehicleId`, `technicianId`, `createdFrom`/`createdTo` (YYYY-MM-DD, UTC) and `status`. `status` accepts several values — repeated (`status=A&status=B`) or comma-separated (`status=A,B`) — so every open status is one call; an unrecognised value is 400. Returns a page of `WorkorderSearchResult` `{workorderId,workorderNumber,estimateNumber,status,customerId,customerName,vehicleId,vehicleLabel,vin,createdAt}`, default size 25, hard-capped at 100. Auth `workorder:workorder:view`. (durion-positivity-backend#1676) |
+| Find workorder (typeahead / filtered search) | `searchWorkorders` | GET | `/v1/workorders/search?q=` | `q` matches customer name or workorder id; optional exact filters `customerId`, `vehicleId`, `technicianId`, `createdFrom`/`createdTo` and `status` (one or more values — see the search-filter note below the table). Auth `workorder:workorder:view`. (durion-positivity-backend#1676) |
 | View daily dispatch board | `getDashboard` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 | Record a note about the customer | `addWorkorderNote` | POST | `/v1/workorders/{workorderId}/notes` | Note about the CUSTOMER, not the work; author comes from the authenticated caller. Auth `workorder:note:add`. Publishes `workorder.note.added.v1`, which pos-customer projects onto the party's CRM timeline as a `WORKORDER_NOTE` interaction (durion-positivity-backend#1584). |
 | View a workorder's customer notes | `listWorkorderNotes` | GET | `/v1/workorders/{workorderId}/notes` | One workorder's notes, newest first. Auth `workorder:note:view`. For notes across every workorder for a customer, read the CRM interaction timeline instead. |
+
+Search-filter note for `searchWorkorders` (durion-positivity-backend#1676):
+
+- `status` accepts several values, repeated (`status=A&status=B`) or comma-separated (`status=A,B`), so every open status is one call; an unrecognized value is a 400.
+- `createdFrom`/`createdTo` are inclusive `YYYY-MM-DD` bounds on `createdAt`, evaluated in UTC; `technicianId` matches a technician who logged a labor entry on the workorder.
+- Returns a page of `WorkorderSearchResult` `{workorderId, workorderNumber, estimateNumber, status, customerId, customerName, vehicleId, vehicleLabel, vin, createdAt}`; default page size 25, hard-capped at 100.
 
 Headers and auth notes:
 
