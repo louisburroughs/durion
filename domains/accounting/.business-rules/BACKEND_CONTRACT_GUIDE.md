@@ -293,6 +293,20 @@ Headers and auth notes:
   control-account balance at all times, including after partial applications and refunds.
 - An invoice settled by a customer credit is no longer outstanding: accounting's derived invoice
   balance subtracts applied credits, so it cannot be paid or credited a second time.
+- **Deposit draw-downs relieve A/R the same way (issue #1652).** Decided in #1652 by analogy to
+  ADR-0057 §6's ruling that a deposit-take document is a contract-liability event and to the
+  #992 customer-credit treatment above: the deposit portion applied to the settlement invoice
+  relieves that liability, not cash, so the derived balance also subtracts posted deposit-credit
+  applications (`ext_invoice_deposit_credit_application`):
+  `balanceDue = total − (applied − reversed) − postedCreditMemos − appliedCustomerCredits −
+  appliedDepositCredits`. The replica carries applied facts only; a deposit reversal fact, if
+  ever published, must be subtracted symmetrically.
+- **Workorder-less invoices are receivables too (issue #1651).** `ext_invoice.workorder_id` is
+  nullable: order-fronted / counter-sale, standalone-billing and deposit-settlement invoices
+  replicate with no workorder and appear in aged receivables, the A/R book and collections
+  analytics like any other `FINALIZED`/`POSTED` invoice. A replica row the database refuses is
+  counted on the `replica.persist.failed` meter, logged at ERROR and sent to the container
+  retry/DLQ path — never marked processed.
 - Concurrent applications against the same payment are serialized via optimistic locking:
   the backend retries a conflicting apply exactly once with fresh state and full revalidation
   (`AD-010` preserved); a second consecutive conflict returns `409` and the caller should retry.
