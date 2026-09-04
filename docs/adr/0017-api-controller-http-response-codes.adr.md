@@ -31,21 +31,52 @@ friction.
 - `401 Unauthorized` for missing or invalid authentication credentials.
 - `403 Forbidden` for authenticated callers lacking required permissions.
 - `404 Not Found` when the requested resource does not exist.
-- `409 Conflict` for resource state/version/idempotency conflicts and business state collisions.
-- `422 Unprocessable Entity` for semantically valid requests that violate domain policy and are not representable as a conflict.
+- `409 Conflict` for collisions with the target resource's identity, version, or lifecycle status (closed list in §2).
+- `422 Unprocessable Entity` for well-formed requests refused by documented domain policy; the default for domain refusals (§2).
 - `500 Internal Server Error` for unhandled server-side failures.
 
 `501 Not Implemented` may only be used for explicitly documented stub endpoints.
 
 ### 2. Conflict vs Unprocessable Boundary
 
-**Decision:** ✅ **Resolved** - Prefer `409` for stateful collisions and use `422` sparingly for semantic domain-policy violations.
+**Decision:** ✅ **Resolved** - Classify by what the client must do next, not by whether "state" was involved. Every domain refusal is caused by state somewhere;
+that is not the distinguishing feature. *(Reworded 2026-09-04; see Changelog.)*
 
-Use `409` when the request cannot be applied because of current resource/system state, including optimistic-lock/version mismatch, duplicate-unique constraints, invalid
-lifecycle transition, and idempotency-key payload mismatch.
+Ask three questions in order. The first "yes" wins.
 
-Use `422` when payload shape is valid and resource state is not the primary issue, but the requested operation violates domain policy rules that are explicitly documented in
-the endpoint contract.
+1. **Is the refusal about who the caller is or what they are allowed to do?** → `403`. Includes missing, expired, or invalid step-up credentials
+   (manager-approval tokens, elevation grants) and an authenticated account with no roles or no effective permissions. Put the recovery in `nextAction`
+   (for example `MANAGER_APPROVAL_REQUIRED`). Not `422`: the request is fine, the actor is not.
+2. **Is it a collision with the target resource's identity, version, or lifecycle status?** → `409`. The target resource is the one the request mutates
+   (the URL subject). This list is closed:
+   - optimistic-lock / version mismatch
+   - duplicate unique key or foreign-key reference conflict ([ADR-0056](0056-platform-global-exception-handling.adr.md) §2)
+   - idempotency-key replay with a different payload
+   - lifecycle-transition guard on the *target* resource's status field (for example cancelling an order that has already shipped)
+
+   The client's remedy is to re-read the target and reconsider; the same intent may succeed after another actor's write or after a different transition.
+3. **Otherwise** → `422`. A well-formed request that a documented domain rule refuses, and that will keep failing until the client changes the request or
+   performs a different operation first. This is the default for policy refusals, including those caused by state:
+   - any attribute of the target other than its version or lifecycle status (a claim with no lines, missing required evidence, an amount over a cap)
+   - the state of any *referenced* resource (an inactive tag, an inactive GL account, an unconfigured GL mapping)
+   - cross-field or cross-aggregate business rules
+
+"Resource state" alone never selects `409`. Only the target's version, identity, or lifecycle status does. When in doubt between `409` and `422`, choose
+`422`.
+
+**One condition, one status.** A domain condition maps to exactly one status and code regardless of entry point. Encode the status on the domain exception
+class, not at the throw site, so two callers cannot answer differently. `400` is reserved for request shape and is never a domain-condition answer.
+
+**Worked examples** (from the durion-positivity-backend #1694 sweep, decided in #1725):
+
+| Condition | Target | Cause | Status |
+| --- | --- | --- | --- |
+| Login or refresh: account has no roles | the account | caller's authorization | 403 |
+| Finalize invoice above cap without a valid approval token | the invoice | caller's authorization | 403 |
+| Cancel an order that has already shipped | the order | target lifecycle status | 409 |
+| Assign an inactive tag to a customer | the customer | referenced resource | 422 |
+| Submit a warranty claim with no lines | the claim | target attribute, not status | 422 |
+| Post to an inactive GL account or unconfigured mapping | the journal entry | referenced resource | 422 |
 
 ### 3. Error Envelope Contract
 
@@ -92,7 +123,7 @@ Validation and domain error details:
 
 ### Negative ⚠️
 
-- ⚠️ Teams must consistently classify domain failures as `409` or `422` to avoid semantic drift
+- ⚠️ Teams must apply the §2 three-question test (403 → 409 → 422) to every domain failure; the `409` list is closed and `422` is the default
 - ⚠️ New feature delivery must include status-code and error-envelope contract tests
 
 ### Neutral
@@ -125,6 +156,8 @@ Validation and domain error details:
 - [Work Execution Backend Contract Guide](../../domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md)
 - [ADR-0009: Backend Domain responsibilities](0009-backend-domain-responsibilities-guide.adr.md)
 - [ADR-0014: Gateway Internal Service Security](0014-gateway-internal-service-security.adr.md)
+- [ADR-0056: Platform Global Exception Handling](0056-platform-global-exception-handling.adr.md)
+- [durion-positivity-backend #1725](https://github.com/louisburroughs/durion-positivity-backend/issues/1725) — 409/422/403 boundary decision
 
 ---
 
@@ -153,3 +186,8 @@ Validation and domain error details:
   catch-all implementing §3/§4 and decides the not-null/check `DataIntegrityViolationException`
   mapping (409 unique/FK, 422 client-supplied not-null/check, enveloped 500 for server-populated
   audit columns)
+- **2026-09-04**: §2 reworded to resolve
+  [durion-positivity-backend #1725](https://github.com/louisburroughs/durion-positivity-backend/issues/1725):
+  the "resource state" test is replaced by a remediation-based three-question test (403 → 409 → 422),
+  the 409 list is closed, step-up credentials are 403, one domain condition maps to one status across
+  entry points, and worked examples are added
