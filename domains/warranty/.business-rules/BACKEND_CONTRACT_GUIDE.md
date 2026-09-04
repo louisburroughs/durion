@@ -228,6 +228,8 @@ Intake snapshots:
 | Missing permission | 403 |
 | Entity not found | 404 |
 | Illegal state transition / not editable / not settleable | 409 (`ApiError` with `nextAction`) |
+| Submit attempted with no claim lines (`WARRANTY_CLAIM_MISSING_LINES`) | 422 — well-formed request, but PRD §6 requires at least one claim line before a claim can leave intake |
+| Submit attempted without required photo evidence (`WARRANTY_CLAIM_PHOTO_EVIDENCE_REQUIRED`) | 422 — well-formed request, but the winning policy's `requiresPhotoEvidence` flag (PRD §3.2) is unmet |
 | Replacement workorder could not be resolved (settlement) | 422 |
 | pos-invoice write failed during settlement (recorded as `FAILED`) | 502 |
 
