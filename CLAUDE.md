@@ -90,6 +90,7 @@ Commands live in `.claude/commands/`. Invoke with `/command-name [arguments]`.
 | `/story-extract`         | Extract structured stories from raw capability input                |
 | `/code-exemplars`        | Generate code exemplar blueprints for a pattern                     |
 | `/jpa-plan`              | Produce an autonomous plan for a standalone JPA entity relationship |
+| `/mcp-sweep`             | Autonomously drain the open `pos-mcp-server` issue queue until blocked |
 | `/java-mcp`              | Generate a Java MCP server module                                   |
 | `/hard-questions`        | Run hard-question adversarial review against a spec or design       |
 
