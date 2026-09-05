@@ -311,6 +311,15 @@ Headers and auth notes:
   the backend retries a conflicting apply exactly once with fresh state and full revalidation
   (`AD-010` preserved); a second consecutive conflict returns `409` and the caller should retry.
   Unapplied amount never goes negative under concurrency.
+- **Credit memo responses carry display values, not just ids (issue #1779).** List and detail
+  both answer `creditMemoReference` (`CM-{YYYYMM}-{n}`, assigned from the per-month
+  `accounting_sequence` counter and backfilled for pre-existing memos), `originalInvoiceReference`
+  (the invoice number from accounting's `ext_invoice` replica), `customerDisplayName` and
+  `customerReference` (name and customer number from the `ext_customer_party` replica). All four
+  are **nullable**: accounting answers `null` when it cannot resolve the value, and **never**
+  substitutes the UUID as display text. The existing `creditMemoId`, `originalInvoiceId` and
+  `customerId` are unchanged and remain the identifiers for commands, links and audit
+  traceability.
 
 ### Frontend Usage Notes
 
@@ -335,7 +344,8 @@ Headers and auth notes:
 
 ### Contract Test Traceability
 
-- Provider tests: `InvoicePaymentContractBehaviorIT`, `CreditMemoContractBehaviorIT`
+- Provider tests: `InvoicePaymentContractBehaviorIT`, `CreditMemoContractBehaviorIT`,
+  `CreditMemoDisplayReferenceContractBehaviorIT` (issue #1779 display references)
 - Service tests: `PaymentApplicationServiceTest`, `CreditMemoServiceTest`, `InvoicePaymentStatusServiceTest`,
   `CustomerCreditServiceImplTest`
 - Lifecycle ITs (real Postgres): `CustomerCreditIssuanceGLPostingIT` (issuance leg),
@@ -486,6 +496,20 @@ Headers and auth notes:
 - Event processing status and idempotency outcome are backend-authoritative.
 - Reprocessing attempts must maintain immutable attempt history.
 - Manual retry/reprocess actions require explicit authorization.
+- **The raw event payload is immutable and is never rewritten for display (issue #1778).**
+  `getEvent` (detail only) answers an additional `payloadReferences` array projecting the
+  UUID-backed values recognized inside that payload — invoice, customer, organization, location,
+  journal entry, vendor and vendor bill. Each entry carries `path` (dot/index path locating the
+  value in the raw payload), `referenceType`, `id`, and the nullable `displayName` /
+  `displayReference`. The payload itself is returned byte-identical for audit and diagnostics;
+  `listAccountingEvents` omits the projection.
+- Display values in `payloadReferences` are `null` when accounting cannot resolve the reference,
+  and a UUID is **never** copied into a display field as fallback text. `ORGANIZATION` resolves
+  to `null` in every case today: ADR-0023 retired multi-tenancy and no organization directory
+  exists to name one from. The type is recognized so a future directory is a resolver change
+  rather than a wire-contract change.
+- All display resolution reads accounting's own records and its event-fed `ext_invoice` /
+  `ext_customer_party` replicas — never a synchronous cross-domain call (ADR-0044).
 
 ### Frontend Usage Notes
 
@@ -505,8 +529,9 @@ Headers and auth notes:
 
 ### Contract Test Traceability
 
-- Provider tests: `EventIngestionContractBehaviorIT`, `SuspenseQueueContractBehaviorIT`, `AuditTrailContractBehaviorIT`
-- Service tests: `EventIngestionServiceTest`, `IdempotencyServiceTest`
+- Provider tests: `EventIngestionContractBehaviorIT`, `SuspenseQueueContractBehaviorIT`, `AuditTrailContractBehaviorIT`,
+  `AccountingEventPayloadReferenceContractBehaviorIT` (issue #1778 display projection)
+- Service tests: `EventIngestionServiceTest`, `IdempotencyServiceTest`, `EventPayloadReferenceProjectorTest`
 
 ## CAP-251: Invoice Payment Status Sync (Accounting Coordination)
 
