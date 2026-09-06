@@ -6,9 +6,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-supplier/openapi.yaml
-openapi_commit: dde82cc
-last_verified_utc: 2026-08-11T18:00:00Z
-last_updated: 2026-08-11
+openapi_commit: f1316aa
+last_verified_utc: 2026-09-06T00:00:00Z
+last_updated: 2026-09-06
 api_reference_generated: none — not yet generated for this domain
 traceability:
   capability_manifest_root: docs/capabilities
@@ -99,7 +99,7 @@ convention as `pos-warranty` and `pos-inventory`.
 | --- | --- | --- |
 | CAP-317 — pos-supplier foundation | #1221 (skeleton/model/SPI/registry), #1222 (vendor profiles + admin API), #1223 (base client, exchange audit, scheduler) | Merged (PR #1243) |
 | CAP-318 — PRICAT B4.0 price-catalog sync | #1232 (pos-catalog EAN/UPC uniqueness + lookup), #1224 (PRICAT codec, staging, quarantine, events, admin API) | Implemented |
-| CAP-318 — remaining protocol codecs | #1225 (stock inquiry A2.5), #1226 (order C1.0/C1.1), #1227 (invoice B3.3), #1228 (stock report B2.1), #1229 (Michelin S2S), #1230 (MKCAT C1.2) | Not started |
+| CAP-318 — remaining protocol codecs | #1225 (stock inquiry A2.5), #1226 (order C1.0/C1.1), #1227 (invoice B3.3), #1228 (stock report B2.1), #1229 (Michelin S2S), #1230 (MKCAT C1.2) | Merged — all six codecs delivered; PR #1644 (2026-09-02) additionally delivered the #1637/#1638 contracts documented below |
 
 ## Frontend API Lookup
 
@@ -141,10 +141,45 @@ UI notes:
 - `readPayload` writes an access record. Do not call it to pre-populate a list view or on hover; each
   call is a recorded disclosure.
 
+### Stock Availability, PRICAT, Transmissions, Stock Snapshots & Marketing Catalogue
+
+Added for #1637/#1638 (CAP-320/CAP-321/CAP-324 rows; the guide previously carried none for transmissions, stock
+snapshots or the marketing catalogue).
+
+| UI action | Method & path | operationId | Permission |
+| --- | --- | --- | --- |
+| Live availability for a catalog product | `GET /v1/supplier/stock/availability?productId\|sku&deliveryLocationId&quantity` | `getSupplierStockAvailability` | `supplier:stockavailability:read` |
 | Trigger a price-catalog import | `POST …/price-catalog/{vendorProfileId}/imports` | `triggerSupplierPriceCatalogImport` | `supplier:pricecatalog:import` |
 | List price-catalog imports | `GET …/price-catalog/{vendorProfileId}/imports` | `listSupplierPriceCatalogImports` | `supplier:pricecatalog:read` |
 | Work the unmatched-line queue | `GET …/price-catalog/{vendorProfileId}/unmatched-lines` | `listSupplierPriceCatalogUnmatchedLines` | `supplier:pricecatalog:read` |
+| PRICAT freshness for a vendor profile | `GET …/price-catalog/{vendorProfileId}/freshness` | `getSupplierPriceCatalogFreshness` | `supplier:pricecatalog:read` |
 | Resolve a product by EAN/UPC (pos-catalog) | `GET /v1/products/by-code?codeType=&code=` | `findProductByCode` | `ROLE_CATALOG_VIEW` |
+| Manual-review queue (stuck transmissions) | `GET /v1/supplier/transmissions?attemptState=MANUAL_REVIEW&vendorProfileId&search&dateFrom&dateTo&page&size` | `searchSupplierTransmissions` | `supplier:transmission:read` |
+| One purchase order's transmission history | `GET /v1/supplier/transmissions/purchase-order/{purchaseOrderId}` | `listSupplierTransmissionsForPurchaseOrder` | `supplier:transmission:read` |
+| One transmission's current state | `GET /v1/supplier/transmissions/{transmissionIntentId}` | `getSupplierTransmission` | `supplier:transmission:read` |
+| Resolve a stuck transmission | `POST /v1/supplier/transmissions/{transmissionIntentId}/resolve` | `resolveSupplierTransmission` | `supplier:transmission:resolve` |
+| Latest stock snapshot (metadata) | `GET /v1/supplier/vendor-profiles/{vendorProfileId}/stock-snapshots/latest` | `getLatestSupplierStockSnapshot` | `supplier:stocksnapshot:read` |
+| Snapshot lines | `GET …/stock-snapshots/{snapshotId}/lines?search&page&size` | `listSupplierStockSnapshotLines` | `supplier:stocksnapshot:read` |
+| Import the marketing catalogue on demand | `POST /v1/supplier/mktcat/{supplierRef}/imports` | `importMarketingCatalog` | `supplier:mktcat:import` |
+| Staged marketing variants (supplier-scoped, **not** an unmatched-product queue) | `GET /v1/supplier/mktcat/{supplierRef}/variants?limit[&hasUnresolvedImages]` | `listMarketingCatalogVariants` | `supplier:mktcat:import` |
+
+UI notes:
+
+- `availableQuantity` on `getSupplierStockAvailability` is the A2.5 item/piece count callers render; `null` means
+  the vendor stated nothing and `0` means it explicitly stated it has none — never a unit of measure or warehouse
+  name, since the wire data carries neither. The response echoes the backend-owned `stalenessThreshold`, and each
+  vendor row carries its own `stale` flag judged against it, so every client applies the same freshness rule.
+- `getSupplierPriceCatalogFreshness` keeps `latestEffectiveDate` (the vendor's own catalog document date) and
+  `lastFetchedAt` (this platform's last retrieval attempt, including failed/empty runs) strictly separate — do
+  not collapse them into one "last updated" label.
+- Payables (vendor bills, exceptions) is served by `@durion-sdk/accounting` (`listVendorBills`,
+  `getVendorBillById`), never by pos-supplier — there is no raw-invoice read on this domain.
+- The unlinked-shipment-events surface is retired by owner decision (#1638 decision 3); it is not a pending gap
+  and no placeholder endpoint exists for it.
+- `listMarketingCatalogVariants`'s `hasUnresolvedImages` filter is landing in backend PR-1 (in flight as of this
+  writing); until it merges the parameter is accepted nowhere and every call returns the full staged set.
+- `searchSupplierTransmissions` and `listSupplierTransmissionsForPurchaseOrder` are read-only. Resolving a
+  `MANUAL_REVIEW` row is always `resolveSupplierTransmission`; no endpoint re-sends a transmission.
 
 ## Permission Matrix
 
@@ -155,6 +190,8 @@ UI notes:
 | `supplier:audit:read` | 445 | All five audit operations, including decrypted payload content |
 | `supplier:pricecatalog:read` | 448 | Price-catalog import bookkeeping and the unmatched-line quarantine |
 | `supplier:pricecatalog:import` | 449 | Trigger an on-demand PRICAT import |
+| `supplier:stockavailability:read` | n/a | Product-keyed live availability fan-out (`getSupplierStockAvailability`); no vendor/article mapping is exposed |
+| `supplier:stocksnapshot:read` | n/a | Fetched vendor stock-report snapshots and their lines; no vendor call is made |
 
 `supplier:audit:read` is deliberately **not** implied by profile administration: it exposes commercial
 documents exchanged with vendors, which is a strictly wider disclosure than knowing how a connection is
@@ -168,6 +205,11 @@ the same authority as looking at what a previous run produced.
 `CATALOG_VERSION` is 43 and covers bits 445–449. Because this module uses constant-based `@PreAuthorize`,
 `scripts/generate-permissions.sh --sync --check` structurally cannot detect drift here — the manual
 catalog entries are the only guarantee.
+
+`supplier:stockavailability:read` and `supplier:stocksnapshot:read` are registered in
+`pos-supplier/src/main/resources/permissions.yaml` alongside the others; their catalog bit numbers are assigned
+by `pos-security-service` at registration time and were not re-verified against a live catalog for this edit —
+confirm the bit against the deployed catalog before citing it elsewhere.
 
 ## Capability Sections
 
