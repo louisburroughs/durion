@@ -321,6 +321,31 @@ Headers and auth notes:
   `customerId` are unchanged and remain the identifiers for commands, links and audit
   traceability.
 
+- Invoice revenue recognition (backend#1843, ADR-0044 §6 — event-only inbound/outbound):
+  - Trigger: `invoice.invoice.updated` (`InvoiceUpdatedV1`) on `invoice.events.v1` with `status`
+    `FINALIZED` (or `POSTED`, so manifest replays backfill invoices posted by the retired
+    pos-invoice simulation). Deposit-take invoices (`depositSourceType` non-null), zero/null totals,
+    and events without `finalizedAt` post nothing.
+  - Entry: `Dr Accounts Receivable (total) / Cr Service Revenue (total − tax) / Cr Sales Tax Payable (tax)`,
+    `transactionDate` = the invoice's `finalizedAt` (business time — the entry lands in the invoice's
+    period and redeliveries resolve the same period and effective-dated mapping). Accounts resolve
+    through posting category `INVOICE_REVENUE` and mapping keys `ACCOUNTS_RECEIVABLE`,
+    `SERVICE_REVENUE`, `SALES_TAX_PAYABLE` (seeded to 1200 / 4000 / 2200); never hardcoded.
+  - Idempotency: one open posting per invoice (`invoice_gl_posting`, unique on
+    `(invoice_id, finalized_at)`); deterministic `sourceEventId` per finalization instance.
+  - Reversal: a `DRAFT`/`CANCELLED` update for an invoice with an open posting posts the mirror entry
+    (`Dr Service Revenue / Dr Sales Tax Payable / Cr Accounts Receivable`) dated at the event's
+    `occurredAtUtc` (current open period, like the credit-memo void mirror). A later re-finalization
+    (new `finalizedAt`) posts again.
+  - Outbound fact: `accounting.invoice.gl-posted` (`InvoiceGlPostedV1`, schema 1) on
+    `accounting.events.v1` via accounting's transactional outbox, `postingKind` `POSTED` | `REVERSED`,
+    carrying `invoiceId`, `journalEntryId`, `finalizedAt`, `postedAt`, `reversedJournalEntryId`.
+    pos-invoice consumes it to move the invoice `FINALIZED → POSTED`, recording `journalEntryId` (the
+    canonical posting reference, `AD-011`) as the invoice's `glEntryId`.
+  - Failure handling: missing mapping, closed period, and transient DB errors propagate to the
+    Kafka container error handler (retry → `invoice.events.v1.dlq`); they are never recorded as
+    processed.
+
 ### Frontend Usage Notes
 
 - Payment application UX must show unapplied amount and resulting invoice balances.
@@ -340,6 +365,11 @@ Headers and auth notes:
 ### Events & Dependencies
 
 - Consumes payment-domain events and invoice status data.
+- Consumes `invoice.invoice.updated` (`invoice.events.v1`) both for the `ext_invoice` replica and as the
+  trigger for invoice revenue recognition / reversal (backend#1843).
+- Produces `accounting.invoice.gl-posted` (`accounting.events.v1`, `InvoiceGlPostedV1`) after each
+  invoice revenue posting or reversal, carrying the `journalEntryId`; pos-invoice consumes it for the
+  `FINALIZED → POSTED` transition.
 - Produces accounting-side payment application artifacts and credits.
 
 ### Contract Test Traceability

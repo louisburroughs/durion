@@ -110,6 +110,14 @@ Headers and auth notes:
 
 - Respect published API/event contracts for all upstream and downstream dependencies.
 - Preserve traceability when integrating across services or asynchronous workflows.
+- Invoice lifecycle `DRAFT → FINALIZED → POSTED` (backend#1843): finalization emits
+  `invoice.invoice.updated` (status `FINALIZED`) on `invoice.events.v1`; pos-accounting posts the revenue
+  journal entry and publishes `accounting.invoice.gl-posted` (`InvoiceGlPostedV1`) on
+  `accounting.events.v1`; pos-invoice consumes that fact to transition the invoice to `POSTED`, recording
+  the fact's `journalEntryId` (the canonical posting reference, `AD-011`) as the invoice's `glEntryId`.
+  pos-invoice no longer simulates GL posting in-process. A `FINALIZED → DRAFT` revert (within the
+  finalization revert window enforced by `InvoiceFinalizationService`, before the posted fact arrives) is
+  reversed by accounting on the `DRAFT` update.
 
 ### Contract Test Traceability
 
