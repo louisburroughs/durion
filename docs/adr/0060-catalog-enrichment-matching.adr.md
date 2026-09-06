@@ -1,4 +1,10 @@
-# ADR-0060: Catalog Enrichment Matching and Review (pos-catalog Tread-Design Confidence Tiers)
+---
+title: 'ADR-0060: Catalog Enrichment Matching and Review (pos-catalog Tread-Design Confidence Tiers)'
+created: 2026-09-06
+status: accepted
+---
+
+## ADR-0060: Catalog Enrichment Matching and Review (pos-catalog Tread-Design Confidence Tiers)
 
 **Status:** ACCEPTED 2026-09-06
 **Date:** 2026-09-06
@@ -7,7 +13,7 @@
 
 ---
 
-## Context
+### Context
 
 - **Current State**: #1352 (PR #1359, merged 2026-08-17) already ships a working matcher: `TreadDesignEntity` (plus text/image child tables and `product.tread_design_id`),
   a `SupplierCatalogEnrichmentListener` consuming `supplier.catalog.updated`, a vendor-scoped character-trigram Jaccard `TreadDesignMatcher` at a single threshold of 0.50,
@@ -24,16 +30,16 @@
 
 ---
 
-## Decision
+### Decision
 
-### 1. Identity: a design, not an article
+#### 1. Identity: a design, not an article
 
 **Decision:** ✅ **Resolved** — An MKCAT variant is a marketing design, not a priced, uniquely identified article: it carries no EAN. Matching is never keyed on identifier
 codes. PRICAT's priced-product set (from CAP-318/ADR-0053) is the **candidate scope** a design's matching is narrowed to — a design is only ever matched against products
 the same vendor has actually priced — never the match **key**. This is what #1352 already does structurally; this ADR corrects #1230's EAN assumption and makes the
 candidate-scope rule explicit policy rather than an implementation detail nobody wrote down.
 
-### 2. Confidence tiers and the brand gate
+#### 2. Confidence tiers and the brand gate
 
 **Decision:** ✅ **Resolved** — Matching becomes a two-step decision instead of one threshold. First, a **brand gate**: the design's normalised brand must equal the
 candidate product's normalised brand, or the candidate is not scored at all — brand disagreement is disqualifying, never a partial-credit input to the trigram score.
@@ -49,7 +55,7 @@ The existing single threshold of `0.50` becomes the review floor: nothing that m
 parked for review, which is the point. Both thresholds are configuration (`pos.catalog.enrichment.auto-tier-threshold`, `pos.catalog.enrichment.review-tier-threshold`),
 not hard-coded, so a deployment can retune without a code change.
 
-### 3. Brand normalisation source: YAML, not a table
+#### 3. Brand normalisation source: YAML, not a table
 
 **Decision:** ✅ **Resolved** — Brand aliases are **not** a database table. They are a YAML map, `pos.catalog.enrichment.brand-aliases` (normalised alias → canonical
 brand), loaded as ordinary Spring configuration and consulted by a `BrandNormalizer` alongside the existing lower-case/strip-punctuation/strip-legal-suffix
@@ -57,20 +63,20 @@ normalisation. The originally recommended `brand_alias` table (seeded empty, adm
 form: alias lists change by configuration change and redeploy, not by an admin UI this pass does not build, and there is no runtime-editability requirement driving the
 extra schema and CRUD surface. If a future story needs operators to edit aliases without a deploy, that is a new ADR amendment, not an assumption carried by this one.
 
-### 4. Ambiguity: park, never guess
+#### 4. Ambiguity: park, never guess
 
 **Decision:** ✅ **Resolved** — Ambiguity is decided per matching pass, not per candidate in isolation. A product claimed at **AUTO tier by two different designs** in the
 same pass is parked: neither design attaches to it, both candidate rows are recorded, and the product's designs (if any were REVIEW-tier candidates too) all surface on
 the review worklist. A design whose own top candidates tie across different brands is likewise parked rather than resolved by an arbitrary tie-break. Only an AUTO-tier
 candidate that is the sole AUTO-tier claimant of its product, on a product that is not already MANUAL-attached, is auto-attached.
 
-### 5. MANUAL is sticky
+#### 5. MANUAL is sticky
 
 **Decision:** ✅ **Resolved** — A product whose `tread_design_source` is `MANUAL` (set only by `resolveTreadDesign` ATTACH, §7) is never touched by an automatic matching
 pass, regardless of what score a later design earns against it. An operator's decision is the new fact; a later vendor catalogue update does not get to silently
 disagree with a person. Reassigning a MANUAL attachment is itself a manual act — a further `resolveTreadDesign` ATTACH — never an automatic re-match.
 
-### 6. REJECTED designs re-enter matching on content change
+#### 6. REJECTED designs re-enter matching on content change
 
 **Decision:** ✅ **Resolved** — A design an operator has REJECTED (§7) stays `REJECTED` and out of matching until its `contentHash` changes — i.e., until the vendor sends
 different content for it. At that point it re-enters matching exactly as an `UNMATCHED` design would. The alternative (rejection permanent until an operator explicitly
@@ -80,7 +86,7 @@ new fact the same way a fresh unmatched design is.
 `MATCHED`-by-`MANUAL` designs are the other state left alone by a content-hash change — a MANUAL attachment does not get re-evaluated just because the vendor edited
 unrelated copy on the design record it is attached to (§5 governs it, not this rule).
 
-### 7. Ownership, transport, and the contract surface
+#### 7. Ownership, transport, and the contract surface
 
 **Decision:** ✅ **Resolved** — No change to cross-module transport: pos-supplier publishes `supplier.catalog.updated` (ADR-0049 §3, unchanged); pos-catalog consumes,
 matches, attaches, and owns both the product-scoped read (`getTreadDesignForProduct`) and the whole review/resolve contract, per ADR-0044 R1/R3 and ADR-0049 §2 (business
@@ -105,7 +111,7 @@ Two new operations, both under `/v1/catalog/tread-designs`, both `catalog:tread_
 `catalog:tread_design:resolve` is registered in `pos-catalog/src/main/resources/permissions.yaml` and is deliberately separate from `catalog:tread_design:view` — viewing
 the worklist and asserting a match are different authorities, the same separation ADR-0050/pos-supplier draws between reading and writing.
 
-### 8. Data model
+#### 8. Data model
 
 **Decision:** ✅ **Resolved** — Migration `V20__tread_design_review.sql` in pos-catalog:
 
@@ -121,7 +127,7 @@ brand-gate logic layered on top (`TreadDesignMatcher` gains a `BrandNormalizer` 
 
 ---
 
-## Alternatives Considered
+### Alternatives Considered
 
 - **`brand_alias` database table with deferred admin CRUD** (the original recommendation) — rejected in favour of YAML config (§3); see that decision for the reasoning.
 - **A second worklist operationId** alongside `listUnmatchedTreadDesigns` — rejected (§7): widening the existing, already-generated operation is strictly simpler for SDK
@@ -133,7 +139,7 @@ brand-gate logic layered on top (`TreadDesignMatcher` gains a `BrandNormalizer` 
 
 ---
 
-## Consequences
+### Consequences
 
 **Positive:**
 
@@ -159,7 +165,7 @@ brand-gate logic layered on top (`TreadDesignMatcher` gains a `BrandNormalizer` 
 
 ---
 
-## References
+### References
 
 - **Related Issues**: durion-positivity-backend#1645, durion-positivity-backend#1352 (PR #1359), durion-positivity-backend#1638, durion#1230
 - **Related ADRs**: ADR-0044 §§R1/R3 (event-only domain walls, replica reads), ADR-0049 §2/§3 (pos-supplier module boundary and event contracts),
