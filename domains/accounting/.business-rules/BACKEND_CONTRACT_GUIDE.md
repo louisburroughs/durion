@@ -498,18 +498,29 @@ Headers and auth notes:
 - Manual retry/reprocess actions require explicit authorization.
 - **The raw event payload is immutable and is never rewritten for display (issue #1778).**
   `getEvent` (detail only) answers an additional `payloadReferences` array projecting the
-  UUID-backed values recognized inside that payload — invoice, customer, organization, location,
+  reference values recognized inside that payload — invoice, customer, organization, location,
   journal entry, vendor and vendor bill. Each entry carries `path` (dot/index path locating the
-  value in the raw payload), `referenceType`, `id`, and the nullable `displayName` /
+  value in the raw payload), `referenceType`, `rawValue` (the payload value as written, trimmed —
+  always present, and the key for correlating the entry back to the payload), the nullable `id`
+  (`rawValue` parsed as a UUID, when it is one), and the nullable `displayName` /
   `displayReference`. The payload itself is returned byte-identical for audit and diagnostics;
   `listAccountingEvents` omits the projection.
+- **`LOCATION` is code-keyed, not UUID-backed (issue #1797).** Accounting's location dimension
+  carries a location *code* (`LOC-107`, `LOC_USA`), so a `locationId` / `location_id` value need
+  not parse as a UUID to be projected: any non-blank string up to 100 characters is recognized,
+  and it resolves case-insensitively against `accounting_location_profile.location_code`. For a
+  resolved location, `displayName` is the profile label and `displayReference` is the canonical
+  stored code (the producer's spelling stays in `rawValue`). `id` is `null` for a location
+  reference unless the payload value happens to be UUID-shaped. Every other type still requires a
+  UUID value, and for them `id` is always present.
 - Display values in `payloadReferences` are `null` when accounting cannot resolve the reference,
-  and a UUID is **never** copied into a display field as fallback text. `ORGANIZATION` resolves
-  to `null` in every case today: ADR-0023 retired multi-tenancy and no organization directory
-  exists to name one from. The type is recognized so a future directory is a resolver change
-  rather than a wire-contract change.
-- All display resolution reads accounting's own records and its event-fed `ext_invoice` /
-  `ext_customer_party` replicas — never a synchronous cross-domain call (ADR-0044).
+  and an identifier is **never** copied into a display field as fallback text. `ORGANIZATION`
+  resolves to `null` in every case today: ADR-0023 retired multi-tenancy and no organization
+  directory exists to name one from. The type is recognized so a future directory is a resolver
+  change rather than a wire-contract change.
+- All display resolution reads accounting's own records (including its location profile master
+  data) and its event-fed `ext_invoice` / `ext_customer_party` replicas — never a synchronous
+  cross-domain call (ADR-0044).
 
 ### Frontend Usage Notes
 
@@ -530,8 +541,9 @@ Headers and auth notes:
 ### Contract Test Traceability
 
 - Provider tests: `EventIngestionContractBehaviorIT`, `SuspenseQueueContractBehaviorIT`, `AuditTrailContractBehaviorIT`,
-  `AccountingEventPayloadReferenceContractBehaviorIT` (issue #1778 display projection)
-- Service tests: `EventIngestionServiceTest`, `IdempotencyServiceTest`, `EventPayloadReferenceProjectorTest`
+  `AccountingEventPayloadReferenceContractBehaviorIT` (issues #1778, #1797 display projection)
+- Service tests: `EventIngestionServiceTest`, `IdempotencyServiceTest`, `EventPayloadReferenceProjectorTest`,
+  `DisplayReferenceResolverTest` (issue #1797 code-keyed location resolution)
 
 ## CAP-251: Invoice Payment Status Sync (Accounting Coordination)
 
