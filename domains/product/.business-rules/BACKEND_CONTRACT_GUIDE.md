@@ -6,7 +6,7 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-catalog/openapi.yaml
-openapi_commit: 5c7e840
+openapi_commit: 3d7489d9
 last_verified_utc: 2026-09-06T00:00:00Z
 last_updated: 2026-09-06
 api_reference_generated: domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md
@@ -102,7 +102,9 @@ UI notes for the review flow (#1645):
 - A `REJECTED` design re-enters matching only when the vendor changes the design's content — a reject alone does
   not get retried on its own.
 - Matching thresholds are configurable: `pos.catalog.enrichment.auto-threshold` (default `0.80`),
-  `review-threshold` (default `0.50`), and `brand-aliases` (brand-name normalization map used before scoring).
+  `pos.catalog.enrichment.review-threshold` (default `0.50`), and `pos.catalog.enrichment.brand-aliases`
+  (brand-name normalization map used before scoring). These are the keys `CatalogEnrichmentProperties` binds
+  (ADR-0060 §2–§3 corrected to match).
 
 Headers and auth notes:
 
@@ -409,7 +411,7 @@ Headers and auth notes:
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-catalog/openapi.yaml`
-- OpenAPI source revision: `028ae3f5` (tread-design enrichment reads added #1352; candidates/resolve delivered #1645, PR #1846)
+- OpenAPI source revision: `3d7489d9` (main after PR #1846 merged; tread-design enrichment reads added #1352, candidates/resolve delivered #1645)
 - Last verified UTC: `2026-09-06T00:00:00Z`
 - Generated API reference: `domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md`
 

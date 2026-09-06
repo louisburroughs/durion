@@ -52,7 +52,7 @@ Second, for every candidate that passes the gate, the existing character-trigram
 | `< REVIEW` (default `< 0.50`) | — | No match recorded as a candidate |
 
 The existing single threshold of `0.50` becomes the review floor: nothing that matches today stops matching. Some candidates move from silently auto-attached to
-parked for review, which is the point. Both thresholds are configuration (`pos.catalog.enrichment.auto-tier-threshold`, `pos.catalog.enrichment.review-tier-threshold`),
+parked for review, which is the point. Both thresholds are configuration (`pos.catalog.enrichment.auto-threshold`, `pos.catalog.enrichment.review-threshold`),
 not hard-coded, so a deployment can retune without a code change.
 
 #### 3. Brand normalisation source: YAML, not a table
