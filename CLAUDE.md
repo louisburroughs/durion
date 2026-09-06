@@ -51,6 +51,15 @@ requested.
 
 **Controller changes** — any change to a Controller must propagate through the full contract chain: update the OpenAPI annotations on the controller, regenerate `OpenAPI.yaml`, then update the Angular SDK. Never stop at the Java change — the controller is the API contract source, and the generated spec and SDK must stay in sync or the frontend drifts from the backend.
 
+**OpenAPI or permissions changes → run `API Artifacts Sync`** — any time the OpenAPI documentation or the permissions change (a controller, DTO or `@Operation`/`@Schema` annotation; a `@PreAuthorize` or permission registry; a hand edit to an `openapi.yaml` or `permissions.yaml`), run the `API Artifacts Sync` workflow in `durion-positivity-backend` once the change is pushed. It regenerates the backend specs and permission manifests, both SDKs and the frontend's SDK tarballs, runs the frontend tests against them, and opens a PR per repo with the result (`commit_mode=pull-request`, the default). Trigger it from the Actions tab or:
+
+```bash
+gh workflow run api-artifacts-sync.yml --repo louisburroughs/durion-positivity-backend \
+  --ref <backend-branch> -f modules="pos-order pos-workorder"   # omit modules to regenerate everything
+```
+
+Details: `durion-positivity-backend/docs/DEVELOPMENT_GUIDE.md` → "Generating OpenAPI Specs", Method 3.
+
 ---
 
 ## ADR Compliance (mandatory)
