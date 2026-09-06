@@ -102,6 +102,7 @@ These links are the authoritative backlog items that implement CAP-251 behavior.
 | Execute AP payment | `executePayment` | POST | `http://localhost:8080/v1/accounting/ap/payments` | Track gateway/GL status transitions |
 | Review ingestion queue | `listAccountingEvents` | GET | `http://localhost:8080/v1/accounting/events` | Operational monitoring and reconciliation |
 | Reprocess suspended event | `reprocessSuspendedEvent` | POST | `http://localhost:8080/v1/accounting/events/{eventId}/reprocess` | Requires strict permission gating |
+| Reconcile invoice revenue postings | `reconcileInvoiceRevenue` | POST | `http://localhost:8080/v1/accounting/invoice-revenue/reconcile` | Operator backfill / drift repair; requires `accounting:gl:reconcile`; idempotent; `dryRun` supported |
 | View income statement | `generateIncomeStatement` | GET | `http://localhost:8080/v1/accounting/reports/financial/income-statement` | Reporting workflow |
 | View balance sheet | `generateBalanceSheet` | GET | `http://localhost:8080/v1/accounting/reports/financial/balance-sheet` | Reporting workflow |
 | List accounting periods | `listAccountingPeriods` | GET | `http://localhost:8080/v1/accounting/periods` | Requires `accounting:period:view` |
@@ -268,6 +269,7 @@ Headers and auth notes:
 | Customer credit balances | `listCustomerCredits`, `getCustomerCredit` | GET/GET | `http://localhost:8080/v1/accounting/customer-credits[/{creditId}]` |
 | Apply customer credit to an invoice | `applyCustomerCredit` | POST | `http://localhost:8080/v1/accounting/customer-credits/{creditId}/applications` |
 | Refund customer credit | `refundCustomerCredit` | POST | `http://localhost:8080/v1/accounting/customer-credits/{creditId}/refunds` |
+| Reconcile invoice revenue postings | `reconcileInvoiceRevenue` | POST | `http://localhost:8080/v1/accounting/invoice-revenue/reconcile` |
 
 ### Behavioral Assertions
 
@@ -301,6 +303,18 @@ Headers and auth notes:
   `balanceDue = total − (applied − reversed) − postedCreditMemos − appliedCustomerCredits −
   appliedDepositCredits`. The replica carries applied facts only; a deposit reversal fact, if
   ever published, must be subtracted symmetrically.
+- **Invoice revenue reconciliation (durion-positivity-backend #1851).** Revenue recognition is
+  driven by the `invoice.invoice.updated` fact (#1843), so invoices finalized before that path
+  existed — or while accounting was down — have no revenue posting and no event left to replay.
+  `reconcileInvoiceRevenue` walks accounting's own `ext_invoice` replica for `FINALIZED`/`POSTED`
+  invoices with no open `invoice_gl_posting` and posts each through the same
+  `InvoiceRevenuePostingService` the live path uses: same entries (`Dr 1200 / Cr 4000 / Cr 2200`),
+  dated at `finalized_at`, same skips (deposit-take, zero total), same `(invoice_id, finalized_at)`
+  idempotency key, one transaction per invoice. It is therefore safe to run repeatedly and while
+  the live listener is active; an invoice already on the ledger is reported `ALREADY_POSTED`, a
+  failure is reported per invoice and does not stop the run. Bounds: `finalizedFrom`/`finalizedTo`
+  (half-open), `invoiceIds`, `limit` (oldest first), `dryRun`. Operator-only
+  (`accounting:gl:reconcile`); no module calls it, so ADR-0044's event-only wall stands.
 - **Workorder-less invoices are receivables too (issue #1651).** `ext_invoice.workorder_id` is
   nullable: order-fronted / counter-sale, standalone-billing and deposit-settlement invoices
   replicate with no workorder and appear in aged receivables, the A/R book and collections
