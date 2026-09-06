@@ -340,7 +340,8 @@ Headers and auth notes:
   - Outbound fact: `accounting.invoice.gl-posted` (`InvoiceGlPostedV1`, schema 1) on
     `accounting.events.v1` via accounting's transactional outbox, `postingKind` `POSTED` | `REVERSED`,
     carrying `invoiceId`, `journalEntryId`, `finalizedAt`, `postedAt`, `reversedJournalEntryId`.
-    pos-invoice consumes it to move the invoice `FINALIZED → POSTED` with the real `glEntryId`.
+    pos-invoice consumes it to move the invoice `FINALIZED → POSTED`, recording `journalEntryId` (the
+    canonical posting reference, `AD-011`) as the invoice's `glEntryId`.
   - Failure handling: missing mapping, closed period, and transient DB errors propagate to the
     Kafka container error handler (retry → `invoice.events.v1.dlq`); they are never recorded as
     processed.
@@ -367,7 +368,8 @@ Headers and auth notes:
 - Consumes `invoice.invoice.updated` (`invoice.events.v1`) both for the `ext_invoice` replica and as the
   trigger for invoice revenue recognition / reversal (backend#1843).
 - Produces `accounting.invoice.gl-posted` (`accounting.events.v1`, `InvoiceGlPostedV1`) after each
-  invoice revenue posting or reversal; pos-invoice consumes it for the `FINALIZED → POSTED` transition.
+  invoice revenue posting or reversal, carrying the `journalEntryId`; pos-invoice consumes it for the
+  `FINALIZED → POSTED` transition.
 - Produces accounting-side payment application artifacts and credits.
 
 ### Contract Test Traceability
