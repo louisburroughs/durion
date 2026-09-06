@@ -62,7 +62,7 @@ Frontend developer workflow:
 | CAP-168 | `durion#168` | draft | [CAP] Location Store Pricing (Overrides by Location) |
 | CAP-170 | `durion#170` | draft | [CAP] Availability & Inventory Visibility (Internal + External) |
 | CAP-247 | `durion#247` | draft | [CAP] Catalog Search & Product Viewing (Live Data) |
-| CAP-324 | `durion-positivity-backend#1352`, `#1645` | draft | Vendor tread-design (MKCAT) enrichment matching and review — reads delivered by #1352; review/resolve pending backend PR-4 (#1645, ADR-0060) |
+| CAP-324 | `durion-positivity-backend#1352`, `#1645` | draft | Vendor tread-design (MKCAT) enrichment matching and review — reads delivered by #1352; review/resolve delivered by backend PR-4 (#1645, ADR-0060, PR #1846) |
 
 ## Frontend API Lookup
 
@@ -85,13 +85,24 @@ Frontend developer workflow:
 | Get effective location price | `getEffectiveLocationPrice` | GET | `/v1/products/pricing/effective-price/{locationId}/{productId}` | Refer to generated API reference for payload details |
 | Get a product's vendor tread-design enrichment | `getTreadDesignForProduct` | GET | `/v1/catalog/tread-designs/for-product/{productId}` | `catalog:tread_design:view`; 404 (no body) when the product matches no tread design — an ordinary outcome |
 | Work the unmatched tread-design worklist | `listUnmatchedTreadDesigns` | GET | `/v1/catalog/tread-designs/unmatched` | `catalog:tread_design:view`; see `matchState` filter note below |
-| List a tread design's candidate products *(pending backend PR-4, #1645)* | `listTreadDesignCandidates` | GET | `/v1/catalog/tread-designs/{treadDesignId}/candidates` | `catalog:tread_design:view`; not yet implemented — see ADR-0060 |
-| Resolve a tread design's match *(pending backend PR-4, #1645)* | `resolveTreadDesign` | POST | `/v1/catalog/tread-designs/{treadDesignId}/resolve` | `catalog:tread_design:resolve`; not yet implemented — see ADR-0060 |
+| List a tread design's candidate products | `listTreadDesignCandidates` | GET | `/v1/catalog/tread-designs/{treadDesignId}/candidates` | `catalog:tread_design:view`; 404 when no such design; empty array is a real answer (nothing scored above the review floor) |
+| Resolve a tread design's match | `resolveTreadDesign` | POST | `/v1/catalog/tread-designs/{treadDesignId}/resolve` | `catalog:tread_design:resolve`; body `{action: ATTACH\|REJECT\|DEFER, productIds?, note?, deferUntil?}`; 400 for an action/payload mismatch, 404 for unknown design or product, 409 when a named product is already manually attached to a different design |
 
-`listUnmatchedTreadDesigns` is planned (ADR-0060) to gain a `matchState` filter (multi-value, default
-`UNMATCHED,REVIEW`) and a `vendorProfileId` filter, with response rows additionally carrying `matchState`,
-`matchStateAt` and top candidates (`productId`, `score`, `tier`); until backend PR-4 (#1645) ships, the operation
-returns only the current unmatched set with no state field.
+`listUnmatchedTreadDesigns` gained (ADR-0060, delivered #1645/PR #1846) a `matchState` filter (multi-value, default
+`UNMATCHED,REVIEW`; accepts `UNMATCHED`, `REVIEW`, `MATCHED`, `REJECTED`, `DEFERRED`) and a `vendorProfileId`
+filter, with response rows additionally carrying `matchState`, `matchStateAt` and up to 20 top candidates
+(`productId`, `score`, `tier`).
+
+UI notes for the review flow (#1645):
+
+- The worklist row's age (`matchStateAt`) advances only when the match state actually moves — re-scoring the same
+  state does not bump it.
+- `ATTACH` marks the named products `MANUAL`; a manual attachment is never re-pointed by a later automatic
+  matching pass, so this is how a reviewer's decision is made to stick.
+- A `REJECTED` design re-enters matching only when the vendor changes the design's content — a reject alone does
+  not get retried on its own.
+- Matching thresholds are configurable: `pos.catalog.enrichment.auto-threshold` (default `0.80`),
+  `review-threshold` (default `0.50`), and `brand-aliases` (brand-name normalization map used before scoring).
 
 Headers and auth notes:
 
@@ -398,7 +409,7 @@ Headers and auth notes:
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-catalog/openapi.yaml`
-- OpenAPI source revision: `5c7e840` (tread-design enrichment reads added #1352; candidates/resolve pending #1645)
+- OpenAPI source revision: `028ae3f5` (tread-design enrichment reads added #1352; candidates/resolve delivered #1645, PR #1846)
 - Last verified UTC: `2026-09-06T00:00:00Z`
 - Generated API reference: `domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md`
 

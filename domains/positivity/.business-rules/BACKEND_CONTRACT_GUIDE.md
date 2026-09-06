@@ -176,8 +176,9 @@ UI notes:
   `getVendorBillById`), never by pos-supplier — there is no raw-invoice read on this domain.
 - The unlinked-shipment-events surface is retired by owner decision (#1638 decision 3); it is not a pending gap
   and no placeholder endpoint exists for it.
-- `listMarketingCatalogVariants`'s `hasUnresolvedImages` filter is landing in backend PR-1 (in flight as of this
-  writing); until it merges the parameter is accepted nowhere and every call returns the full staged set.
+- `listMarketingCatalogVariants`'s `hasUnresolvedImages` filter shipped in backend PR-1
+  (`durion-positivity-backend#1844`): omitted, it keeps every staged row regardless of image state; `true`/`false`
+  narrows to variants still missing artwork or not; a non-boolean value returns 400.
 - `searchSupplierTransmissions` and `listSupplierTransmissionsForPurchaseOrder` are read-only. Resolving a
   `MANUAL_REVIEW` row is always `resolveSupplierTransmission`; no endpoint re-sends a transmission.
 
