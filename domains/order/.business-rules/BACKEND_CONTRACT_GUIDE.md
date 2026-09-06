@@ -6,9 +6,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/order/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-order/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-03-07T00:00:00Z
-last_updated: 2026-03-07
+openapi_commit: 1aa6083
+last_verified_utc: 2026-09-06T00:00:00Z
+last_updated: 2026-09-06
 api_reference_generated: domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -73,6 +73,12 @@ Frontend developer workflow:
 | Update cart item | TODO — pending [#21](https://github.com/louisburroughs/durion-positivity-backend/issues/21) | PUT | `/v1/orders/carts/{cartId}/items/{lineId}` | operationId assigned at implementation |
 | Remove cart item | TODO — pending [#21](https://github.com/louisburroughs/durion-positivity-backend/issues/21) | DELETE | `/v1/orders/carts/{cartId}/items/{lineId}` | operationId assigned at implementation |
 | Cancel order | TODO — pending [#19](https://github.com/louisburroughs/durion-positivity-backend/issues/19) | POST | `/v1/orders/{orderId}/cancel` | operationId assigned at implementation; check OpenAPI after issue #19 merges |
+| Purchase order transmission timeline | `listPurchaseOrderTransmissionEvents` | GET | `/v1/orders/purchase-orders/{poId}/transmission-events` | `order:purchase_order:view`; see ordering note below — replaces both the retired shipment-timeline and transmission-history assumptions (#1638) |
+| Live vendor availability for a purchase order | `getPurchaseOrderSupplierAvailability` | GET | `/v1/orders/purchase-orders/{poId}/supplier-availability?vendorProfileId&deliveryLocationId` | `order:purchase_order:availability_view`; asks one named vendor, degrades to `SUPPLIER_UNAVAILABLE` rather than failing |
+
+`listPurchaseOrderTransmissionEvents` ordering note: entries are ordered by the vendor's own clock (`observedAt`
+ascending), tie-broken by platform receipt time (`recordedAt`) and then by event id; any client-supplied `sort`
+parameter is ignored because the ordering is the semantics of the timeline, not a display preference.
 
 Headers and auth notes:
 
@@ -239,8 +245,9 @@ Gateway base URL: `http://localhost:8080` · Service base URL: `http://localhost
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-order/openapi.yaml`
-- OpenAPI source revision: `ca7fadc3` (price-override endpoints; cart and cancel endpoints pending issues #21 and #19)
-- Last verified UTC: `2026-03-07T00:00:00Z`
+- OpenAPI source revision: `1aa6083` (price-override endpoints; transmission-events/supplier-availability added #1637/#1638;
+  cart and cancel endpoints pending issues #21 and #19)
+- Last verified UTC: `2026-09-06T00:00:00Z`
 - Last capability update: CAP-246 (stories #19, #20, #21)
 - Generated API reference: `domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md`
 

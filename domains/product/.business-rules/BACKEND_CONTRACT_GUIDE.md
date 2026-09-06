@@ -6,9 +6,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-catalog/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+openapi_commit: 5c7e840
+last_verified_utc: 2026-09-06T00:00:00Z
+last_updated: 2026-09-06
 api_reference_generated: domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -62,6 +62,7 @@ Frontend developer workflow:
 | CAP-168 | `durion#168` | draft | [CAP] Location Store Pricing (Overrides by Location) |
 | CAP-170 | `durion#170` | draft | [CAP] Availability & Inventory Visibility (Internal + External) |
 | CAP-247 | `durion#247` | draft | [CAP] Catalog Search & Product Viewing (Live Data) |
+| CAP-324 | `durion-positivity-backend#1352`, `#1645` | draft | Vendor tread-design (MKCAT) enrichment matching and review — reads delivered by #1352; review/resolve pending backend PR-4 (#1645, ADR-0060) |
 
 ## Frontend API Lookup
 
@@ -82,6 +83,15 @@ Frontend developer workflow:
 | Get price book | `getPriceBook` | GET | `/v1/products/price-books/{priceBookId}` | Refer to generated API reference for payload details |
 | List price book rules | `listRules` | GET | `/v1/products/price-books/{priceBookId}/rules` | Refer to generated API reference for payload details |
 | Get effective location price | `getEffectiveLocationPrice` | GET | `/v1/products/pricing/effective-price/{locationId}/{productId}` | Refer to generated API reference for payload details |
+| Get a product's vendor tread-design enrichment | `getTreadDesignForProduct` | GET | `/v1/catalog/tread-designs/for-product/{productId}` | `catalog:tread_design:view`; 404 (no body) when the product matches no tread design — an ordinary outcome |
+| Work the unmatched tread-design worklist | `listUnmatchedTreadDesigns` | GET | `/v1/catalog/tread-designs/unmatched` | `catalog:tread_design:view`; see `matchState` filter note below |
+| List a tread design's candidate products *(pending backend PR-4, #1645)* | `listTreadDesignCandidates` | GET | `/v1/catalog/tread-designs/{treadDesignId}/candidates` | `catalog:tread_design:view`; not yet implemented — see ADR-0060 |
+| Resolve a tread design's match *(pending backend PR-4, #1645)* | `resolveTreadDesign` | POST | `/v1/catalog/tread-designs/{treadDesignId}/resolve` | `catalog:tread_design:resolve`; not yet implemented — see ADR-0060 |
+
+`listUnmatchedTreadDesigns` is planned (ADR-0060) to gain a `matchState` filter (multi-value, default
+`UNMATCHED,REVIEW`) and a `vendorProfileId` filter, with response rows additionally carrying `matchState`,
+`matchStateAt` and top candidates (`productId`, `score`, `tier`); until backend PR-4 (#1645) ships, the operation
+returns only the current unmatched set with no state field.
 
 Headers and auth notes:
 
@@ -388,8 +398,8 @@ Headers and auth notes:
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-catalog/openapi.yaml`
-- OpenAPI source revision: `ca7fadc3`
-- Last verified UTC: `2026-02-24T14:23:11Z`
+- OpenAPI source revision: `5c7e840` (tread-design enrichment reads added #1352; candidates/resolve pending #1645)
+- Last verified UTC: `2026-09-06T00:00:00Z`
 - Generated API reference: `domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
