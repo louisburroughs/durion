@@ -189,14 +189,18 @@ several active assignments and no primary exist and are "genuinely ambiguous" �
 is exactly this case.
 
 **Measured** (`scripts/measure-scope-claim-size.py`, reproducing `PermissionBitsetCodec` and the
-`JwtServiceImpl` claim set). Baseline ≈ 650 B; one assigned node **1 001 B** worst case, a
-**+348 B** delta and **1.53%** of the 65 514 B header budget; 999 B for a realistic ADMIN-like
-profile with near-disjoint dimensions, 865 B for a SHOP_MANAGER-like one. Additional nodes:
-2 → 1 053 B, 4 → 1 157 B, 8 → 1 365 B, 16 → 1 781 B. Each bitset is bounded by the catalog at
-86 characters; `loc_scope` grows only with assigned-node count, which hierarchy keeps at 1–2.
+`JwtServiceImpl` claim set, including its multi-valued `aud`). Baseline **648 B**; one assigned
+node **996 B**, a **+348 B** delta and **1.52%** of the 65 536 B `max-http-header-size` limit.
+Additional nodes: 2 → 1 048 B, 4 → 1 152 B, 8 → 1 360 B, 16 → 1 776 B.
+
+Two caveats on that percentage. `max-http-header-size` caps the request line and *all* headers
+together, so it is the token's share rather than headroom reserved for it. And there is no
+per-role breakdown because `BitSet.toByteArray()` is sized by the highest set bit, not the count:
+measured conservatively, a DISPATCHER-like role with 11 permissions costs the same 996 B as ADMIN
+with 387. Token size is independent of permission count and varies only with assigned-node count.
 
 A cap of ~8 assigned nodes is adopted as an **assertion that the hierarchy was modelled
-correctly**, not as a size limit — 16 nodes still costs under 1.8 KB. Exceeding it surfaces as a configuration error; there is no
+correctly**, not as a size limit — 16 nodes still costs well under 2 KB. Exceeding it surfaces as a configuration error; there is no
 `DEFERRED` state and no size-driven runtime fallback.
 
 Rejected: **expanding the hierarchy at issuance**. Putting a Region's member shops in the token
@@ -292,9 +296,9 @@ independently deployable and reversible.
   duplicate permission codes.
 - One source of truth for each half: the role says whether, pos-people says where.
 - No `CATALOG_VERSION` bump, no `perm_bits` change, no flag-day.
-- Token growth is bounded — +204 B for one assigned node, 1.31% of the header budget — and
-  independent of how many locations lie beneath that node, because hierarchy is evaluated at
-  check time rather than expanded into the token.
+- Token growth is bounded — +348 B for one assigned node, 1.52% of the `max-http-header-size`
+  limit — independent of permission count, and independent of how many locations lie beneath
+  that node, because hierarchy is evaluated at check time rather than expanded into the token.
 - Middle management is expressible: a Region or HQ assignment reaches every location beneath it.
 - Retiring `check-permission` removes a third, unused authorization path.
 
