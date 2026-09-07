@@ -189,9 +189,10 @@ accounting one, and must not be swept into `FINANCIAL` by a name match on "CONTR
 assigned node, not its members, so a Region manager holds one id whether the region has 3 shops
 or 300. `ExtLocationReplica` gains the ancestor set, fed by the existing `LocationEventsListener` —
 new work in every module: only pos-people, pos-invoice and pos-workorder replicate locations at
-all (18 of the 77 endpoints), pos-inventory's `ExtStorageLocationReplica` models intra-site
-storage rather than the site hierarchy, and **no replica carried materialised ancestor sets**
-(pos-people already stored the direct parent edges from V12; pos-invoice and pos-workorder did not).
+all (18 of the 77 endpoints) — pos-inventory does too, into `location_ref` with direct parent
+edges in `ext_location_parent`, alongside its separate intra-site `ExtStorageLocationReplica`
+(an earlier revision missed this) — and **no replica carried materialised ancestor sets**
+(pos-people and pos-inventory already stored the direct parent edges; pos-invoice and pos-workorder did not).
 Two deliberate consequences: the claim stays small, and hierarchy edits take effect on the next
 request with no token re-issue — correct for an org-chart change, but it makes hierarchy edits
 security-relevant operations needing tight permissions and an audit trail. pos-location must
