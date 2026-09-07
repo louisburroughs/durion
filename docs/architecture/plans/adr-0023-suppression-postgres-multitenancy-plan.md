@@ -1,6 +1,6 @@
 # ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
 
-**Version:** 0.1 **Status:** Proposed **Last Updated:** 2026-09-07
+**Version:** 0.2 **Status:** Proposed **Last Updated:** 2026-09-07
 **Related:** ADR-0023 Remove `tenantId` (to be superseded), ADR-0011, ADR-0013, ADR-0024, ADR-0040, ADR-0044, ADR-0045,
 Foundation-First Tenant Cell Deployment Architecture
 
@@ -115,6 +115,7 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
 | Tenant identifier | `tenant_id UUID NOT NULL` (UUID v7 per ADR-0013); a human `slug` lives only on the tenant registry row |
 | Relationship to `organizationId` | Unchanged from ADR-0023 §2: `organizationId` remains an in-tenant business concept (see accounting's "NULL means global default" GL mappings). Tenant is the isolation and billing boundary. Never conflate them |
 | Where tenant context comes from | The validated JWT only. Never from a request body, query parameter, or client-supplied header (keeps DECISION-INVENTORY-008) |
+| Database credentials | One shared `pos_app` role for all 26 databases, no superuser, no `BYPASSRLS`, no ownership; the owner credential is used by Flyway only. No per-tenant or per-service roles; customers never hold a database credential |
 | Global (non-tenant) data | Explicitly whitelisted per module with a `@TenantGlobal` marker and no RLS policy: vehicle reference data (NHTSA, CarAPI), fitment, tax rate tables, the permission catalog, Flyway history, tenant replicas |
 | Deployment | Same images for pooled and dedicated cells; tenancy is a data property, not a build property |
 
@@ -132,14 +133,23 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
 1. **Database (authoritative).** Every tenant-scoped table has `tenant_id UUID NOT NULL`, `ENABLE ROW LEVEL SECURITY`,
    `FORCE ROW LEVEL SECURITY`, and a policy `USING (tenant_id = current_setting('app.current_tenant', true)::uuid)
    WITH CHECK (same)`. With no setting bound the predicate is NULL and the table reads as empty: fail closed.
-2. **Database roles.** Each service gets two roles: `pos_<svc>_app` (no ownership, no `BYPASSRLS`, used by the
-   request path and per-tenant jobs) and `pos_<svc>_platform` (`BYPASSRLS`, used by Flyway, the outbox poller, and
-   tenant-iteration jobs through a second, small Hikari pool). The superuser is no longer a runtime credential.
+2. **Database roles.** One shared application role, `pos_app`, is created once for the Postgres instance (roles are
+   cluster-wide) and granted `CONNECT` on all 26 databases plus DML on every table and sequence, with
+   `ALTER DEFAULT PRIVILEGES` so tables created by later migrations inherit the grants. `pos_app` is not a superuser,
+   has no `BYPASSRLS`, and owns nothing, so every policy applies to it. The existing `POSTGRES_USER` superuser keeps
+   ownership and is used only by Flyway (`spring.flyway.user`), never by the application datasource. There is no
+   per-tenant and no per-service database credential, and no runtime role that can bypass RLS. Customers never
+   receive a database credential of any kind; tenants exist only as rows.
 3. **Connection binding.** A `TenantAwareDataSource` wrapper in a new `pos-tenancy-common` library runs
    `SELECT set_config('app.current_tenant', ?, false)` on checkout and `RESET app.current_tenant` on return.
    Session-level (not `SET LOCAL`) is chosen because services connect to Postgres directly today. If PgBouncer
    transaction pooling is adopted later, this must switch to `SET LOCAL` inside mandatory transactions; note it in
    the ADR as a known constraint.
+   Cross-tenant work never bypasses RLS. Jobs that need every tenant iterate the tenant registry and bind each tenant
+   in turn; tables a platform job must read without a tenant bound (outbox, processed-event ledger, `ext_tenant`
+   replica) are global tables that carry `tenant_id` as plain data and have no policy. A job that runs with no
+   tenant bound and touches a scoped table reads zero rows and cannot insert, so a misclassified job is a no-op,
+   not a leak.
 4. **Hibernate.** A `TenantScopedEntity` `@MappedSuperclass` carries `@TenantId private UUID tenantId`, and a
    `CurrentTenantIdentifierResolver` reads `TenantContext`. Hibernate then appends `tenant_id = ?` to derived and
    JPQL queries and rejects inserts whose tenant does not match the bound context. This is defense in depth and also
@@ -148,6 +158,35 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
    `@TenantGlobal`; no `nativeQuery = true` on a tenant-scoped entity's repository without a `@TenantAudited`
    annotation and a reviewer note. A schema-conformance IT per module asserts every non-whitelisted table has the
    column, RLS enabled, RLS forced, and a policy.
+
+### How an entity gets its tenant
+
+Application code never sets `tenantId`; Hibernate stamps it from a request-scoped context that is filled from the
+validated JWT. The base class and resolver live once in `pos-tenancy-common`; every scoped entity only extends the
+base class.
+
+```java
+@MappedSuperclass
+public abstract class TenantScopedEntity {
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private UUID tenantId;   // no setter; ArchUnit forbids assigning it
+}
+
+public class TenantContextIdentifierResolver
+        implements CurrentTenantIdentifierResolver<UUID>, HibernatePropertiesCustomizer {
+    public UUID resolveCurrentTenantIdentifier() { return TenantContext.require(); }
+    public boolean validateExistingCurrentSessions() { return true; }
+    public void customize(Map<String, Object> props) {
+        props.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER, this);
+    }
+}
+```
+
+With the resolver registered, Hibernate (7.x, shipped with Spring Boot 4.1) writes the bound tenant into the
+`@TenantId` field on persist, appends `tenant_id = ?` to every derived and JPQL query, and rejects an update whose
+row belongs to another tenant. `TenantContext.require()` throws when nothing is bound, so a code path that forgot
+to bind fails loudly; if it somehow reaches the database anyway, RLS returns zero rows and refuses the insert.
 
 ### Request path
 
@@ -163,7 +202,7 @@ Browser (slug.durion.app or login form tenant field)
 
 ```text
 Producer: DomainEventEnvelope.tenantId (required) + Kafka header `tenantId`
-  -> outbox row carries tenant_id; poller runs on the platform pool and publishes all tenants
+  -> outbox is a global table carrying tenant_id as data; the unbound poller publishes every tenant's rows
   -> Consumer RecordInterceptor reads the header, binds TenantContext, then invokes the @KafkaListener
   -> consumer DB work is scoped exactly like a request
 ```
@@ -174,8 +213,9 @@ Every one of the 62 `@Scheduled` methods is classified as one of:
 
 - **Per-tenant**: wrapped in `TenantIterator.forEachActiveTenant(tenantId -> ...)`, which reads the module's
   `ext_tenant` replica and binds context per iteration. This is the default.
-- **Platform-scoped**: annotated `@PlatformScoped`, runs on the `BYPASSRLS` pool, and is listed in the module README.
-  Outbox pollers, processed-event cleanup, and replica maintenance fall here.
+- **Platform-scoped**: annotated `@PlatformScoped`, runs with no tenant bound, may touch only global tables, and is
+  listed in the module README. Outbox pollers, processed-event cleanup, and replica maintenance fall here. RLS makes
+  scoped tables invisible to such a job, which is the intended fail-closed behaviour.
 
 ### Tenant registry and propagation
 
@@ -208,10 +248,10 @@ API Orchestrator workflow.
 | ID | Workstream | Repo | Effort (eng-weeks) | Depends on |
 | --- | --- | --- | --- | --- |
 | WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog | durion | 1 | none |
-| WS1 | Tenancy platform core: `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`), DB role split, generic RLS migration template, schema-conformance IT, ArchUnit rules | backend | 2 - 3 | WS0 |
+| WS1 | Tenancy platform core: `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`), shared `pos_app` role and grants, Flyway on the owner credential, generic RLS migration template, schema-conformance IT, ArchUnit rules | backend | 2 - 3 | WS0 |
 | WS2 | Identity: tenant aggregate and registry, `users.tenant_id`, per-tenant username uniqueness, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, tenant events and `ext_tenant` replica handler, platform-admin API and OpenAPI | backend | 2 - 3 | WS1 |
 | WS3 | Per-module retrofit x 26: table classification (scoped vs global), tenancy migration, unique-constraint rewrite, composite indexes, entity superclass retrofit (scripted), native/`JdbcTemplate` query audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 14 - 18 | WS1, WS2 |
-| WS4 | Async platform: envelope `tenantId`, Kafka header, consumer `RecordInterceptor`, outbox poller on the platform pool, producer signature change (31 sites) | backend | 1 - 2 | WS1 |
+| WS4 | Async platform: envelope `tenantId`, Kafka header, consumer `RecordInterceptor`, outbox as a global table with `tenant_id` data, producer signature change (31 sites) | backend | 1 - 2 | WS1 |
 | WS5 | Test infrastructure: move the 25 H2-tested modules' database tests to Testcontainers Postgres; CI runner Docker availability; shared `TenantTestSupport` fixture | backend | 2 - 3 | WS1, overlaps WS3 |
 | WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping, per-tenant export tooling for offboarding (replaces per-cell `pg_dump`), Compose/alpha runbook role changes | backend, durion | 2 - 3 | WS1 |
 | WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` | frontend, sdk | 2 - 3 | WS2 |
@@ -246,13 +286,14 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 ### R-B1 Tenancy library (`pos-tenancy-common`)
 
 - `TenantContext`: thread-bound (and Reactor-context-bound for the gateway) holder with `bind`, `current`,
-  `runAs(tenantId, Runnable)`, and `runAsPlatform(Runnable)`. Absent context on a `/v1/**` request is a 401
+  `require`, and `runAs(tenantId, Runnable)`. Absent context on a `/v1/**` request is a 401
   (ADR-0017 envelope), never a silent unscoped query.
-- `TenantAwareDataSource`: wraps the module `DataSource`; sets and resets `app.current_tenant` per checkout;
-  throws if a tenant-scoped repository is used with no bound tenant and no platform scope.
-- Second `DataSource`/Hikari pool bound to the `pos_<svc>_platform` role, exposed only through `runAsPlatform`.
-- `TenantScopedEntity` (`@MappedSuperclass`, `@TenantId UUID tenantId`), `@TenantGlobal`, `@PlatformScoped`,
-  `@TenantAudited` (for reviewed native queries), `TenantIterator`.
+- `TenantAwareDataSource`: wraps the module's single Hikari `DataSource`; sets and resets `app.current_tenant` per
+  checkout; leaves it unset for `@PlatformScoped` work so RLS hides every scoped table.
+- Datasource credentials: the application pool connects as `pos_app`; Flyway is configured with the owner
+  credential via `spring.flyway.user` / `spring.flyway.password`. No second pool and no `BYPASSRLS` role exist.
+- `TenantScopedEntity` (`@MappedSuperclass`, `@TenantId UUID tenantId`, no setter), `@TenantGlobal`,
+  `@PlatformScoped`, `@TenantAudited` (for reviewed native queries), `TenantIterator`.
 - `CurrentTenantIdentifierResolver` auto-configured in every JPA module; `hibernate.tenant_identifier_resolver`.
 - Tenant propagation for `@Async`, `CompletableFuture`, and `TaskDecorator` so background threads inherit context.
 
@@ -267,8 +308,12 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 - Migration shape: one new `V<next>__tenancy.sql` per module generated from a shared template that iterates
   `information_schema.tables` minus the global list, plus hand-written unique-constraint and index rewrites.
   Existing migrations are not edited.
-- `postgres/init-databases.sql` and Compose create the two roles per database and grant table privileges to the
-  app role without ownership. Flyway runs as the platform role.
+- `postgres/init-databases.sql` creates the single `pos_app` role and, per database, grants `CONNECT`, schema
+  `USAGE`, DML on tables, `USAGE` on sequences, and `ALTER DEFAULT PRIVILEGES FOR ROLE <owner>` so tables created
+  by later migrations are covered. Compose and the alpha runbook inject `pos_app` for `SPRING_DATASOURCE_*` and
+  the owner credential for `SPRING_FLYWAY_*`.
+- Global tables (`@TenantGlobal`) that platform jobs read without a tenant bound still carry `tenant_id` as data
+  where it is meaningful (outbox, processed events) so events and audit records stay attributable.
 
 ### R-B3 Identity and gateway
 
@@ -288,6 +333,8 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 
 - `DomainEventEnvelope` gains `@NonNull UUID tenantId`; `of(...)` reads it from `TenantContext` when not supplied.
 - Kafka header `tenantId` set by the outbox publisher; consumer `RecordInterceptor` binds and clears context.
+- The outbox table is `@TenantGlobal` with a `tenant_id` data column; the poller runs unbound and publishes every
+  tenant's rows with the `tenantId` header taken from the row.
 - Every `@Scheduled` method is annotated either `@PlatformScoped` or wrapped in `TenantIterator`; an ArchUnit rule
   fails the build on an unclassified scheduler.
 
@@ -313,7 +360,8 @@ superclass retrofit are what keep the small modules at days rather than weeks.
   assertion helper.
 - Per module: a `TenantIsolationIT` that writes as tenant A, reads as tenant B through the repository and through a
   raw `JdbcTemplate`, and expects nothing both times (proves RLS, not just Hibernate).
-- Per module: `TenancySchemaConformanceIT` reading the global-table whitelist.
+- Per module: `TenancySchemaConformanceIT` reading the global-table whitelist, and asserting that the application
+  connection is `pos_app` with `rolsuper = false`, `rolbypassrls = false`, and no table ownership.
 - `pos-archunit`: entity classification rule, scheduler classification rule, native-query annotation rule.
 - OpenAPI regeneration and `API Artifacts Sync` for `pos-security-service` (and any module whose DTOs change).
 
@@ -377,9 +425,9 @@ superclass retrofit are what keep the small modules at days rather than weeks.
    two seeded tenants, and the cross-tenant smoke test runs in CI against it.
 
 Exit criterion for the whole effort: the integration cell serves two tenants from one Postgres instance, every
-module's `TenantIsolationIT` and `TenancySchemaConformanceIT` pass on Testcontainers, no runtime credential is a
-table owner or superuser, and a scripted cross-tenant probe (login as tenant A, request every listed GET with tenant
-B's ids) returns only 404s.
+module's `TenantIsolationIT` and `TenancySchemaConformanceIT` pass on Testcontainers, every service connects as
+`pos_app`, and a scripted cross-tenant probe (login as tenant A, request every listed GET with tenant B's ids)
+returns only 404s.
 
 ---
 
@@ -387,10 +435,10 @@ B's ids) returns only 404s.
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Superuser/owner runtime credential silently bypasses RLS | Complete loss of isolation while every test passes | Role split is in WS1 and the conformance IT asserts the connected role is not `BYPASSRLS` and not owner |
+| A service is deployed with the owner/superuser credential instead of `pos_app` | Complete loss of isolation while every test passes | `pos_app` is created in WS1; the conformance IT and a startup check assert the connected role is `pos_app`, not superuser, not `BYPASSRLS`, not owner |
 | H2 test profiles hide missing tenancy | False green builds | WS5 makes Testcontainers mandatory for any test that touches a repository |
 | Native SQL and `JdbcTemplate` bypass Hibernate | Cross-tenant read if RLS is misconfigured on that table | Conformance IT plus `@TenantAudited` review marker; RLS is authoritative regardless |
-| Scheduler runs unscoped and reads nothing (fail closed) or, on the platform pool, everything | Silent no-op jobs or cross-tenant side effects | Mandatory classification enforced by ArchUnit; platform-scoped jobs are listed in module READMEs |
+| Scheduler runs unscoped and reads nothing (fail closed) | Silent no-op jobs | Mandatory classification enforced by ArchUnit; platform-scoped jobs are listed in module READMEs; a metric counts rows processed per job so a permanently-zero job is visible |
 | Kafka consumer processes an event without binding context | Writes rejected by RLS `WITH CHECK`, event lands in DLQ | Interceptor is auto-configured; envelope `tenantId` is non-null so producers cannot omit it |
 | Table classification mistakes (scoped data marked global) | Data shared across tenants | Classification is a reviewed artifact per module; default is scoped, global needs a justification line |
 | Session-level `set_config` versus a future PgBouncer | Context leaks across pooled transactions | Documented constraint; switch to `SET LOCAL` with mandatory transactions before adopting PgBouncer |
@@ -409,13 +457,16 @@ Context: ADR-0023 removed tenantId because the platform did not implement tenanc
   organizations at high volume on shared Postgres without one deployment per customer.
 Decision:
   1. Tenancy model: shared database and schema; tenant_id UUID v7 discriminator on every tenant-scoped table.
-  2. Enforcement: Postgres RLS (enabled + forced, app role without ownership or BYPASSRLS) is authoritative;
+  2. Enforcement: Postgres RLS (enabled + forced) is authoritative; every service connects as the single shared
+     `pos_app` role, which owns nothing and cannot bypass RLS; the owner credential is used by Flyway only;
      Hibernate @TenantId is defense in depth; ArchUnit and schema-conformance tests are the build gate.
+     Customers never hold a database credential; tenants are rows, not roles.
   3. Context source: the validated JWT `tid` claim only; gateway injects X-Tenant-Id; clients never supply it.
   4. Naming: tenantId and organizationId remain distinct (ADR-0023 §2 carried forward).
   5. Global data: explicit per-module whitelist annotated @TenantGlobal.
   6. Async: tenantId is a required envelope field and Kafka header; consumers bind before processing.
-  7. Jobs: per-tenant by default; platform-scoped only with @PlatformScoped and a BYPASSRLS pool.
+  7. Jobs: per-tenant by default; @PlatformScoped jobs run unbound and may touch only global tables. No runtime
+     path bypasses RLS.
   8. Deployment: tenant cells may be pooled (many tenants) or dedicated (one tenant) from the same images.
 Amends: FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md ("Decisions This Architecture Locks In"),
   ADR-0045 (cost model per pooled cell), ADR-0040 (tid claim), ADR-0011 (X-Tenant-Id header), ADR-0044 (envelope).
@@ -429,7 +480,8 @@ Consequences: breaking contract change (no bridge, alpha); all DB tests on Postg
 - [ ] Retrofit entities: scoped entities extend `TenantScopedEntity`; global entities carry `@TenantGlobal`.
 - [ ] Audit native `@Query` and `JdbcTemplate` usage; annotate `@TenantAudited` with a one-line reason.
 - [ ] Replace shared counters or sequences used for business numbering with per-tenant counters.
-- [ ] Add `tenant_id` to the outbox table; verify the poller runs on the platform pool.
+- [ ] Add `tenant_id` as a data column to the outbox table, mark it `@TenantGlobal`, and verify the poller sets the
+      Kafka `tenantId` header from the row.
 - [ ] Classify every `@Scheduled` method; wrap per-tenant jobs in `TenantIterator`.
 - [ ] Add the `ext_tenant` replica handler if the module iterates tenants.
 - [ ] Convert database tests to Testcontainers; add `TenantIsolationIT` and `TenancySchemaConformanceIT`.
