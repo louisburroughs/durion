@@ -1,6 +1,6 @@
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped); previously amended 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
+**Status:** ACCEPTED — amended 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped); previously amended 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -295,6 +295,43 @@ resolved over `POST /v1/catalog/labor-times/resolve`.
   `GRANTED_GRANT_SURFACE_TYPES` census (ADR-0026 D2/D4).
 - **Boundaries.** Everything else pos-workorder needs from pos-catalog continues to ride the
   `catalog.service.updated` / `catalog.product.updated` facts.
+
+### 2026-09-07 — Scoped exception: synchronous labor-rate resolution from pos-workorder to pos-price
+
+Tier 0 of durion-positivity-backend#1575 adds the other operand of a labor line. A third
+grant-surface read, `com.positivity.price.service.ShopLaborRateService`, is resolved over
+`POST /v1/labor-rates/quote`.
+
+- **Decision.** **`pos-workorder`** MAY call `pos-price`'s `ShopLaborRateService` read API
+  synchronously to resolve the hourly labor rate, with the shop labor matrix applied, for a
+  `LABOR` estimate item at quote time. No other module may call it, no write path is included,
+  and `pos-price` calls no domain module synchronously as part of serving it.
+- **Rationale.** The rate is a *sell price* and belongs in pos-price under
+  [ADR-0054](0054-sell-price-system-of-record-split.adr.md); pos-catalog owns how long an
+  operation takes and pos-price owns what an hour of it costs. The two grants are deliberately
+  a matched pair rather than one combined edge, so either half can change source or shape
+  without dragging the other.
+- **Why not an event.** The matrix makes the answer a function of the quote — which conditions
+  (corrosion, restricted access, after-hours, a fleet contract) the writer agreed apply, and in
+  which order those steps compound — not a value that can be broadcast and cached. A replica
+  would have to carry every location's rate and matrix table and then re-implement the
+  compounding, which is precisely the derivation this edge exists to own; two implementations of
+  it is two answers to what a customer is charged.
+- **Degradation contract.** The read never throws for a miss: typed statuses
+  `RESOLVED | NO_RATE_AVAILABLE`, with the answering row's scope, id and effective-from as
+  provenance, and each applied matrix step itemised with the rate it produced so an invoice can
+  show its derivation. A pos-price outage degrades to a blank price the service writer types
+  over — the estimate flow itself must never fail. There is deliberately no replica fallback
+  here, unlike the labor-time edge: a stale rate is a wrong number on an invoice, where a stale
+  vehicle-agnostic *time* is only a less precise prefill.
+- **Enforcement (class-level, not module-level).** The exception is scoped to the named client
+  class `PriceLaborRateClientImpl` under pos-workorder's `internal.client`, expressed in
+  `DomainWallsTest`'s per-source-file exception map; pos-workorder now holds two file-scoped
+  grants and a third client targeting either module still fails the build. The granted type
+  joins the pos-archunit `GRANTED_GRANT_SURFACE_TYPES` census (ADR-0026 D2/D4).
+- **Boundaries.** Everything else pos-workorder needs from pos-price continues to ride events.
+  Nothing in this amendment permits pos-price to be written from pos-workorder, and rate
+  *authoring* stays a human-facing pos-price API behind `pricing:labor_rate:manage`.
 
 ---
 
