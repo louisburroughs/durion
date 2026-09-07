@@ -268,7 +268,7 @@ are `durion-positivity-backend/scripts/fixtures/seed/alpha/price/labor-rate*.csv
 
 - OpenAPI source: `durion-positivity-backend/pos-price/openapi.yaml`
 - OpenAPI source revision: `0937c73e` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1575 Tier 0 labor-rate surface and its two bulk-ingest operations)
-- Last verified UTC: `2026-09-07T02:20:00Z`
+- Last verified UTC: `2026-09-07T15:30:00Z`
 - Generated API reference: `domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References

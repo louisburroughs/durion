@@ -519,7 +519,7 @@ is removable in one statement.
   `durion-positivity-backend/scripts/fixtures/seed/alpha/catalog/tier0-*.csv`.
 - The bulk operations answer `200` even when rows fail: read `successCount`, `failureCount` and the
   per-row `results`, not the HTTP status. A row the catalog refused names the reason; a row lost to
-  a server-side fault carries only `INTERNAL_ERROR` and a correlation id.
+  a server-side fault carries only `errorCode: INTERNAL_ERROR` and a `correlationId` to quote.
 - They upsert on the natural key — operation code, package code, `(package, operation)`, and for a
   labor standard the vehicle key plus source and revision. Re-running a pack converges; it does not
   duplicate. A standard already active under the same revision is a no-op, and a new revision
@@ -573,7 +573,7 @@ is removable in one statement.
 
 - OpenAPI source: `durion-positivity-backend/pos-catalog/openapi.yaml`
 - OpenAPI source revision: `0937c73e` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1569 labor-standard surface, #1575 Tier 0 service packages, and the four Tier 0 bulk-ingest operations)
-- Last verified UTC: `2026-09-07T02:20:00Z`
+- Last verified UTC: `2026-09-07T15:30:00Z`
 - Generated API reference: `domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
