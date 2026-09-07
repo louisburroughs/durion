@@ -826,7 +826,8 @@ folding into whatever addresses the pre-existing overage, not this story.
 
 #### 15.7 Bay cards come from the location inventory, not the dispatch projection
 
-**durion-positivity-frontend#221** — every location rendered with no bays at all.
+Reported directly by the product owner: every location rendered with no bays at all.
+Fixed in louisburroughs/durion-positivity-frontend#222.
 
 `DashboardResponse.bays[]` is served from pos-workorder's own event-fed replica of the
 location domain, and a bay whose replica row has not arrived is **omitted from the array**,
