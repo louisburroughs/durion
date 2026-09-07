@@ -39,6 +39,7 @@ Use this index to find the current architectural source before consulting older 
 ### Security And Auth Plans
 
 - [Roles, JWT, and Permissions Implementation Plan](./plans/roles-jwt-permissions-implementation-plan.md) - Cross-repo execution tracker for ADR-0040 token and authorization alignment
+- [ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan](./plans/adr-0023-suppression-postgres-multitenancy-plan.md) - Effort assessment and cross-repo plan to supersede ADR-0023 with shared-database tenancy enforced by Postgres RLS
 
 ### Cloud And Infrastructure References
 
