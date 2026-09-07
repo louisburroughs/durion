@@ -190,7 +190,8 @@ assigned node, not its members, so a Region manager holds one id whether the reg
 or 300. `ExtLocationReplica` gains the ancestor set, fed by the existing `LocationEventsListener` —
 new work in every module: only pos-people, pos-invoice and pos-workorder replicate locations at
 all (18 of the 77 endpoints), pos-inventory's `ExtStorageLocationReplica` models intra-site
-storage rather than the site hierarchy, and **no replica carries a parent link today**.
+storage rather than the site hierarchy, and **no replica carried materialised ancestor sets**
+(pos-people already stored the direct parent edges from V12; pos-invoice and pos-workorder did not).
 Two deliberate consequences: the claim stays small, and hierarchy edits take effect on the next
 request with no token re-issue — correct for an org-chart change, but it makes hierarchy edits
 security-relevant operations needing tight permissions and an audit trail. pos-location must
@@ -343,7 +344,7 @@ independently deployable and reversible.
   trail on the location tree.
 - `ExtLocationReplica` must carry a materialised ancestor set, and pos-location must guarantee
   acyclicity at the `Location` level (it does not today). This is new replication work in
-  **every** module on the critical path: 3 modules replicate locations, none with a parent link,
+  **every** module on the critical path: 3 modules replicate locations, none with ancestor sets,
   and 35 of the 77 endpoints sit in modules with no location replica at all.
 
 #### Neutral
