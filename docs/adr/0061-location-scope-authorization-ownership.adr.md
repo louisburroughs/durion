@@ -166,7 +166,7 @@ are the same whichever security role is exercised — only the traversal differs
 
 **The hierarchy is multi-dimensional, and the dimension is a property of the role.** `Location`
 holds `Set<LocationParent> parents`, unique on `(child_id, parent_type)` — several overlapping
-trees, one parent per dimension. `ParentType` has seven values; both traversal APIs take one and
+trees, one parent per dimension. `ParentType` has eight values; both traversal APIs take one and
 `getDescendantsDto` defaults to `PHYSICAL`, which is wrong for authorization.
 
 `roles` therefore gains `location_hierarchy` alongside `location_scope`:
@@ -174,15 +174,15 @@ trees, one parent per dimension. `ParentType` has seven values; both traversal A
 | `location_hierarchy` | Traverses | Roles |
 | --- | --- | --- |
 | `FINANCIAL` | the `FINANCIAL` parent chain | accounting and general-manager roles — `ACCOUNT_MANAGER`, `ACCOUNTANT`, `CONTROLLER`, `GENERAL_MANAGER` |
-| `OTHER` | the union of the six non-financial types (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `PHYSICAL`, `ORGANIZATIONAL`) | every other role |
+| `OTHER` | the union of the seven non-financial types (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `PHYSICAL`, `ORGANIZATIONAL`, `SHIPPING`) | every other role |
 
 A financial rollup and an operational rollup answer different questions — who owns the numbers
-for a site is not who runs it — so they stay distinct. Traversing all seven types
+for a site is not who runs it — so they stay distinct. Traversing all eight types
 indiscriminately would be the union of every rollup the business has.
 
 Two consequences for implementation: `INVENTORY_CONTROLLER` is an inventory role, not an
 accounting one, and must not be swept into `FINANCIAL` by a name match on "CONTROLLER"; and
-`OTHER` branches, being a union of six dimensions, so its ancestor closure is a DAG while
+`OTHER` branches, being a union of seven dimensions, so its ancestor closure is a DAG while
 `FINANCIAL` alone is a chain.
 
 **Hierarchy is evaluated at check time, never expanded at issuance.** The token carries the
@@ -194,8 +194,11 @@ storage rather than the site hierarchy, and **no replica carries a parent link t
 Two deliberate consequences: the claim stays small, and hierarchy edits take effect on the next
 request with no token re-issue — correct for an org-chart change, but it makes hierarchy edits
 security-relevant operations needing tight permissions and an audit trail. pos-location must
-guarantee acyclicity or ancestor materialisation does not terminate — `StorageLocationServiceImpl`
-has `wouldCreateCycle` / `existsCycleForParent`, but `LocationServiceImpl` has no equivalent.
+guarantee acyclicity **per dimension** or ancestor materialisation does not terminate. A
+`Location`-level guard did exist (a depth-1 inverse check plus a `WITH RECURSIVE` descendant
+query) but ignored `parent_type`, so it was stricter than this model — it rejected A→B on
+`PHYSICAL` with B→A on `FINANCIAL`, a legal DAG — and surfaced as a 500. #1878 replaced it with a
+per-dimension walk that rejects with 409 `CYCLE_DETECTED`, matching `StorageLocationServiceImpl`.
 
 **Per-permission rather than per-user** because a user may hold both a `LOCATION`-scoped and an
 `ALL`-scoped role. A single user-level flag would let one global role silently widen every
