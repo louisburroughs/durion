@@ -208,11 +208,12 @@ location-scoped role the same user holds.
 global — its bit is set in neither bitset. The broader grant wins, consistent with how
 `perm_bits` already composes.
 
-**Fail closed.** A caller holding `LOCATION`-scoped roles with no resolvable assigned node
-gets scope bits set and `loc_scope` absent, which denies. Absence must never widen to
-unrestricted reach. `V3__backfill_primary_location_assignments.sql` records that employees with
-several active assignments and no primary exist and are "genuinely ambiguous" — that population
-is exactly this case.
+**Fail closed.** A caller holding `LOCATION`-scoped roles with **no** active assignment gets
+scope bits set and `loc_scope` absent, which denies. Absence must never widen to unrestricted
+reach. Under the multi-node amendment this is narrower than first written: the population
+`V3__backfill_primary_location_assignments.sql` calls "genuinely ambiguous" (several active
+assignments, no primary) is **not** denied — it resolves to all of its active nodes, since
+`is_primary` never narrows the set. Only a person with zero active assignments fails closed.
 
 **Measured** (`scripts/measure-scope-claim-size.py`, reproducing `PermissionBitsetCodec` and the
 `JwtServiceImpl` claim set, including its multi-valued `aud`). Baseline **648 B**; one assigned
