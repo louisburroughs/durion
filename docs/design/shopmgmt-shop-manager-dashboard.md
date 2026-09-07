@@ -776,10 +776,11 @@ from this spec, the spec is wrong and this section is right.
 
 | View-model field | Interim source |
 | --- | --- |
-| bay cards, assignment, status | `GET /v1/workexec/dashboard/today` (`bays[]`, `workorders[]`) |
-| mechanic name | same call, `mechanics[]`, joined on `assignedWorkorderId` |
-| bay name / type | `GET /v1/locations/{id}/bays` |
+| bay cards, name / type | `GET /v1/locations/{id}/bays` — the roster of record (see §15.7) |
 | mobile-unit cards | `GET /v1/mobile-units` filtered on `baseLocationId` |
+| live bay status | `GET /v1/workexec/dashboard/today` (`bays[]`), where the replica carries the bay |
+| unit assignment | the dispatch call's `bays[].assignedWorkorderId`, else `workorders[].assignedResourceId` + `resourceType` |
+| mechanic name | same call, `mechanics[]`, joined on `assignedWorkorderId` |
 | vehicle year/make/model/VIN | `getWorkorderDetail` → `vehicleId` → `getVehicle` |
 | roster rows | the dispatch call's `workorders[]`, filtered to open statuses |
 
@@ -822,3 +823,41 @@ all six locale files per the pre-production no-dead-code policy.
 The production build reports the initial bundle 1.09 kB over its 1.02 MB budget. It was
 already 866 bytes over before this change; the four new token pairs add ~224 bytes. Worth
 folding into whatever addresses the pre-existing overage, not this story.
+
+#### 15.7 Bay cards come from the location inventory, not the dispatch projection
+
+Reported directly by the product owner: every location rendered with no bays at all.
+Fixed in louisburroughs/durion-positivity-frontend#222.
+
+`DashboardResponse.bays[]` is served from pos-workorder's own event-fed replica of the
+location domain, and a bay whose replica row has not arrived is **omitted from the array**,
+not listed with a null name. pos-location only began publishing `location.bay.*` /
+`location.mobile-unit.*` facts in backend#1668, and those replicas stay empty for every unit
+created before that until the owner runs `location.fact-backfill.requested` — outbox replay
+cannot seed rows with no outbox history. So on a real site the array is empty, and building
+the cards from it produced an empty bay grid beside a location picker that was, correctly,
+advertising `activeBayCount`.
+
+The fix mirrors what the mobile-unit cards already did: the **location inventory owns bays
+and is complete today**, so `GET /v1/locations/{id}/bays` is the roster and the dispatch
+projection is an overlay.
+
+- A bay present in the dispatch replica takes its assignment and status from that live feed.
+- A bay absent from it takes its assignment from the workorder's own
+  `assignedResourceId` + `resourceType === BAY`.
+- A bay the replica knows but the inventory call did not return is still carried, so a
+  failed or paged-out bays call cannot lose a card either.
+- An `OUT_OF_SERVICE` bay is dropped — it is not capacity, and the counts row would
+  otherwise report it as idle. The test is an explicit match on that one value: an unknown
+  or absent status renders, because omitting a bay is the failure this path exists to fix.
+- On conflict the bay's live claim still wins over a mobile unit's, unchanged.
+
+Two consequences worth recording. The vehicle-lookup budget now reads "is this work on a
+unit?" from the workorder's own `resourceType` as well as the bay status rows — keyed only
+off the latter, it starved every bay card of its vehicle on exactly the sites this fixes.
+And unit cards are now name-ordered with numeric collation ("Bay 10" after "Bay 9"), since
+neither source promises an order.
+
+When the aggregate endpoint (§5.1) lands this all collapses into it — but note that
+`pos-shop-manager` builds `units[]` from replicas of the same facts, so the endpoint
+inherits this gap until the backfill runs.
