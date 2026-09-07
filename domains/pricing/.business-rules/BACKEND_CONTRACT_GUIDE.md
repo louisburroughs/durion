@@ -6,8 +6,8 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-price/openapi.yaml
-openapi_commit: 83164e57
-last_verified_utc: 2026-09-07T02:20:00Z
+openapi_commit: 0937c73e
+last_verified_utc: 2026-09-07T15:30:00Z
 last_updated: 2026-09-07
 api_reference_generated: domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
@@ -171,6 +171,8 @@ costs**, and pos-workorder multiplies them. Neither module needs the other's tab
 | List labor matrix steps | `listLaborRateAdjustments` | GET | `/v1/labor-rates/adjustments` |
 | Create a labor matrix step | `createLaborRateAdjustment` | POST | `/v1/labor-rates/adjustments` |
 | Resolve one job's labor rate | `resolveLaborRate` | POST | `/v1/labor-rates/quote` |
+| Bulk import labor rates | `bulkIngestLaborRates` | POST | `/v1/labor-rates/bulk-ingest` |
+| Bulk import labor matrix steps | `bulkIngestLaborRateAdjustments` | POST | `/v1/labor-rate-adjustments/bulk-ingest` |
 
 ### Behavioral Assertions
 
@@ -210,8 +212,16 @@ Passing the original instant reproduces an old estimate's rate.
 non-positive rate, a bad currency or an inverted window answer `422` naming the field. The V4 CHECK
 constraints are the backstop for direct SQL and concurrent writers, not the user-facing rule.
 
-**Seeded rates are invented.** The reference seed is placeholder pricing, not any shop's real
-rates.
+**Bulk import stores, it does not overwrite.** The two bulk operations exist so a whole rate card
+or a whole matrix loads in one call, with the steps' sequences relative to each other visible. A row
+whose scope, code and `effectiveFrom` are already held is answered with the *stored* row unchanged
+— which is the append-only rule above, not an exception to it, so a changed rate is still a new
+window. They answer `200` even when rows fail: read `successCount`, `failureCount` and the per-row
+`results`, not the HTTP status.
+
+**The Tier 0 rates are invented.** They are placeholder pricing, not any shop's real rates, and
+they arrive through the bulk operations above rather than through a database seed; the fixture packs
+are `durion-positivity-backend/scripts/fixtures/seed/alpha/price/labor-rate*.csv`.
 
 ### Frontend Usage Notes
 
@@ -257,8 +267,8 @@ rates.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-price/openapi.yaml`
-- OpenAPI source revision: `83164e57` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1575 Tier 0 labor-rate surface)
-- Last verified UTC: `2026-09-07T02:20:00Z`
+- OpenAPI source revision: `0937c73e` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1575 Tier 0 labor-rate surface and its two bulk-ingest operations)
+- Last verified UTC: `2026-09-07T15:30:00Z`
 - Generated API reference: `domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References

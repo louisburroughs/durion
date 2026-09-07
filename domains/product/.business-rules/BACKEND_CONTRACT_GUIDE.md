@@ -6,8 +6,8 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-catalog/openapi.yaml
-openapi_commit: 83164e57
-last_verified_utc: 2026-09-07T02:20:00Z
+openapi_commit: 0937c73e
+last_verified_utc: 2026-09-07T15:30:00Z
 last_updated: 2026-09-07
 api_reference_generated: domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
@@ -441,6 +441,10 @@ sourcing plan behind it is `durion-positivity-backend/pos-catalog/docs/service-t
 | Read one service package | `getServicePackage` | GET | `/v1/service-packages/{packageId}` |
 | Add a package member | `addServicePackageMember` | POST | `/v1/service-packages/{packageId}/members` |
 | Remove a package member | `removeServicePackageMember` | DELETE | `/v1/service-packages/{packageId}/members/{memberId}` |
+| Bulk import service operations | `bulkIngestCatalogServices` | POST | `/v1/catalog/services/bulk-ingest` |
+| Bulk import labor standards | `bulkIngestLaborStandards` | POST | `/v1/catalog/labor-standards/bulk-ingest` |
+| Bulk import service packages | `bulkIngestServicePackages` | POST | `/v1/service-packages/bulk-ingest` |
+| Bulk import package membership | `bulkIngestServicePackageMembers` | POST | `/v1/service-package-members/bulk-ingest` |
 
 ### Behavioral Assertions
 
@@ -505,9 +509,21 @@ deterministically by precedence.
   operation appears at most once per package — wanting two is a quantity, and a second membership
   row answers `409`.
 
-**Seeded Tier 0 data is invented and labelled.** Every seeded Tier 0 labor standard carries
-`sourceRevision = 'tier0-fake-2026-09'`. It is reference data, not a licensed guide, and is
-removable in one statement.
+**Tier 0 data is invented, labelled, and loaded through the API.** Every Tier 0 labor standard
+carries `sourceRevision = 'tier0-fake-2026-09'`. It is placeholder data, not a licensed guide, and
+is removable in one statement.
+
+- It arrives through the bulk-ingest operations above rather than through a database seed, because
+  a direct insert publishes no fact and would leave every consumer's catalog replica cold against
+  exactly these operations. The fixture packs are
+  `durion-positivity-backend/scripts/fixtures/seed/alpha/catalog/tier0-*.csv`.
+- The bulk operations answer `200` even when rows fail: read `successCount`, `failureCount` and the
+  per-row `results`, not the HTTP status. A row the catalog refused names the reason; a row lost to
+  a server-side fault carries only `errorCode: INTERNAL_ERROR` and a `correlationId` to quote.
+- They upsert on the natural key — operation code, package code, `(package, operation)`, and for a
+  labor standard the vehicle key plus source and revision. Re-running a pack converges; it does not
+  duplicate. A standard already active under the same revision is a no-op, and a new revision
+  supersedes the active row rather than editing it, so the audit trail above still holds.
 
 ### Frontend Usage Notes
 
@@ -556,8 +572,8 @@ removable in one statement.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-catalog/openapi.yaml`
-- OpenAPI source revision: `83164e57` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1569 labor-standard surface and #1575 Tier 0 service packages)
-- Last verified UTC: `2026-09-07T02:20:00Z`
+- OpenAPI source revision: `0937c73e` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1569 labor-standard surface, #1575 Tier 0 service packages, and the four Tier 0 bulk-ingest operations)
+- Last verified UTC: `2026-09-07T15:30:00Z`
 - Generated API reference: `domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
