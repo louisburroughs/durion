@@ -6,9 +6,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/pricing/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-price/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+openapi_commit: 83164e57
+last_verified_utc: 2026-09-07T02:20:00Z
+last_updated: 2026-09-07
 api_reference_generated: domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -57,6 +57,7 @@ Frontend developer workflow:
 | Capability | Parent Issue | Contract Status | Primary Scope |
 | --- | --- | --- | --- |
 | CAP-TBD | `None` | draft | Pricing Capability Backlog |
+| Tier 0 | `durion-positivity-backend#1575`, `#1569` | draft | Shop labor rates and the labor matrix — the price half of a labor line |
 
 ## Frontend API Lookup
 
@@ -67,6 +68,11 @@ Frontend developer workflow:
 | Operation | `calculatePriceQuote` | POST | `/v1/price/quotes` | Refer to generated API reference for payload details |
 | Evaluate price restrictions | `evaluateRestrictions` | POST | `/v1/price/restrictions:evaluate` | Refer to generated API reference for payload details |
 | Override price restrictions | `overrideRestrictions` | POST | `/v1/price/restrictions:override` | Refer to generated API reference for payload details |
+| List labor rates | `listLaborRates` | GET | `/v1/labor-rates` | The whole table, including closed windows |
+| Create a labor rate | `createLaborRate` | POST | `/v1/labor-rates` | Rates are never edited; a change opens a new window |
+| List labor matrix steps | `listLaborRateAdjustments` | GET | `/v1/labor-rates/adjustments` | In application order |
+| Create a labor matrix step | `createLaborRateAdjustment` | POST | `/v1/labor-rates/adjustments` | Sequence changes the resulting rate |
+| Price one job's labor | `resolveLaborRate` | POST | `/v1/labor-rates/quote` | Service-to-service edge; pos-workorder only |
 
 Headers and auth notes:
 
@@ -139,6 +145,109 @@ Headers and auth notes:
 - Provider tests: `durion-positivity-backend/pos-price/src/test/...`
 - Add or update tests that cover each behavioral assertion above when behavior changes.
 
+## Tier 0: Shop Labor Rates & The Labor Matrix
+
+### Capability Metadata
+
+- Capability ID: Tier 0 (issue-driven; no capability manifest)
+- Parent Issue: `durion-positivity-backend#1575` (sourcing tiers), `durion-positivity-backend#1569`
+  (estimated service time — this closes its hand-typed price operand)
+- Capability Status: draft
+- OpenAPI Source: `durion-positivity-backend/pos-price/openapi.yaml`
+- ADRs: ADR-0054 (sell-price system-of-record split), ADR-0044 amendment 2026-09-07 (the quote
+  edge), ADR-0026 (grant surface)
+
+#1569's gap analysis ended with *"book time x rate would still have one input hand-typed on the
+line"*, because pos-price modelled no hourly rate at all. This is that rate. The split follows
+ADR-0054: **pos-catalog owns how long an operation takes, pos-price owns what an hour of it
+costs**, and pos-workorder multiplies them. Neither module needs the other's table.
+
+### API Operation References (OpenAPI Source of Truth)
+
+| Use Case | operationId | Method | Path |
+| --- | --- | --- | --- |
+| List labor rates | `listLaborRates` | GET | `/v1/labor-rates` |
+| Create a labor rate | `createLaborRate` | POST | `/v1/labor-rates` |
+| List labor matrix steps | `listLaborRateAdjustments` | GET | `/v1/labor-rates/adjustments` |
+| Create a labor matrix step | `createLaborRateAdjustment` | POST | `/v1/labor-rates/adjustments` |
+| Resolve one job's labor rate | `resolveLaborRate` | POST | `/v1/labor-rates/quote` |
+
+### Behavioral Assertions
+
+**Rate scope narrows before category.** Resolution picks the narrowest row in force at the
+requested instant: `(location, category)`, then `(location, null)`, then `(null, category)`, then
+the platform default `(null, null)`. A location's own general rate therefore beats the platform's
+category rate — which is the ordering a shop expects once it has priced its own work. The
+answering row's `scope` is returned so a caller can see which applied.
+
+**Rates are never edited in place.** There is no update or delete. A rate that has priced an
+invoice cannot be edited away without making that invoice unexplainable, so a change closes the
+current window and opens a new row — the same append-and-supersede reasoning as
+`service_labor_standard` in pos-catalog. Windows are half-open `[effectiveFrom, effectiveTo)`;
+a null `effectiveTo` is open-ended.
+
+**The matrix is ordered, and the order is part of the answer.** Steps are opt-in: a quote names
+the `adjustmentCodes` the writer agreed apply. They are applied in `sequence` order, `PERCENT`
+compounding on the running rate and `FIXED` adding to it. Order is stored rather than assumed
+because percentages compound — +15% then -10% is not -10% then +15%, and a fleet discount
+sequenced last is a discount off the *adjusted* rate, which is what the contract says.
+
+**Every step is itemised in the response.** `steps[]` returns each applied code, its type, its
+configured value and the running rate it produced, alongside `baseHourlyRate` and the final
+`hourlyRate`. A charge whose derivation a customer cannot see is a charge they will dispute.
+
+**Degradation is typed, and forgiving on the way in.** `resolveLaborRate` answers
+`RESOLVED | NO_RATE_AVAILABLE` and never throws for a miss. An unrecognised `operationCategory`
+widens to the category-agnostic rate and an `adjustmentCode` the shop has not priced is simply not
+applied — both are hints from a caller in another module, and vocabulary drift should cost
+precision, not availability. A discount deeper than the rate clamps at zero rather than inverting
+the charge.
+
+**Re-quoting is reproducible.** `at` prices the job at a stated instant; omitted, it means now.
+Passing the original instant reproduces an old estimate's rate.
+
+**Authoring validates in the service layer, not at the constraint.** An unknown category, a
+non-positive rate, a bad currency or an inverted window answer `422` naming the field. The V4 CHECK
+constraints are the backstop for direct SQL and concurrent writers, not the user-facing rule.
+
+**Seeded rates are invented.** The reference seed is placeholder pricing, not any shop's real
+rates.
+
+### Frontend Usage Notes
+
+- Use the operation IDs above as the stable integration keys; read payload shapes from the
+  generated API reference.
+- Render `steps[]` as the derivation of the charged rate — base rate, each named adjustment, the
+  result. That is the artifact a service advisor defends at the counter.
+- `NO_RATE_AVAILABLE` is not an error state: leave the price for the writer to type.
+- `listLaborRates` returns closed windows too; filter by `effectiveTo` when showing "current".
+
+### ADR Constraints
+
+- ADR-0054: the hourly rate is a sell price and belongs to pos-price. pos-catalog must not carry it.
+- ADR-0044 amendment 2026-09-07: `resolveLaborRate` is granted file-scoped to pos-workorder's
+  `PriceLaborRateClientImpl`. No other caller, no write path, and no replica fallback behind it —
+  a stale rate is a wrong number on an invoice.
+- ADR-0026: `ShopLaborRateService` is the only granted type in `price.service`.
+
+### Events & Dependencies
+
+- Event ids: `PRICE_LABOR_RATE_CREATE`, `PRICE_LABOR_RATE_LIST`,
+  `PRICE_LABOR_RATE_ADJUSTMENT_CREATE`, `PRICE_LABOR_RATE_ADJUSTMENT_LIST`,
+  `PRICE_LABOR_RATE_QUOTE`.
+- Permissions: `pricing:labor_rate:manage`, `pricing:labor_rate:view`, `pricing:labor_rate:quote`.
+  The quote permission is separate on purpose — listing what a shop charges and pricing a specific
+  job are different powers, and the edge's holder is a service account.
+- The operation category on a quote comes from pos-workorder's local `ext_catalog_service` replica,
+  not from a second call into pos-catalog. pos-price publishes no new events for this surface.
+
+### Contract Test Traceability
+
+- Provider tests: `durion-positivity-backend/pos-price/src/test/java/com/positivity/price/internal/service/`
+  — `LaborRateResolutionServiceImplTest` (scope ladder, matrix arithmetic, typed misses),
+  `LaborRateAdminServiceImplTest` (authoring validation).
+- Add or update tests covering each behavioral assertion above when behavior changes.
+
 ## Events & Cross-Domain Dependencies
 
 - This domain exchanges data with other services only through REST APIs and message/event contracts.
@@ -148,8 +257,8 @@ Headers and auth notes:
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-price/openapi.yaml`
-- OpenAPI source revision: `ca7fadc3`
-- Last verified UTC: `2026-02-24T14:23:11Z`
+- OpenAPI source revision: `83164e57` (branch `claude/tier-0-spec-implementation-o5j539`; adds the #1575 Tier 0 labor-rate surface)
+- Last verified UTC: `2026-09-07T02:20:00Z`
 - Generated API reference: `domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
