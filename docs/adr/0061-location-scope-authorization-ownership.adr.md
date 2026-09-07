@@ -1,6 +1,6 @@
 # ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating
 
-**Status:** PROPOSED — §2 dimension decision outstanding
+**Status:** PROPOSED
 **Date:** 2026-09-07
 **Deciders:** Chief Architect, Security & Authorization Domain, People & Roles Domain, Platform Engineering
 **Affected Issues:** [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), #1372, #1373, #1499, #1512
@@ -113,26 +113,48 @@ unchanged and `CATALOG_VERSION` is **not** bumped.
 | Claim | Value |
 | --- | --- |
 | `perm_bits` | unchanged — every permission the caller holds |
-| `loc_bits` | the subset of `perm_bits` granted *only* by `LOCATION`-scoped roles |
-| `loc_scope` | discriminated: `"ALL"`, or the assigned node ids; omitted when `loc_bits` is empty |
+| `loc_fin_bits` | permissions location-scoped along the `FINANCIAL` dimension |
+| `loc_oth_bits` | permissions location-scoped along the `OTHER` dimension |
+| `loc_scope` | discriminated: `"ALL"`, or the assigned node ids; omitted when both bitsets are empty |
 
-`loc_bits` reuses `PermissionBitsetCodec` and the same bit indexes as `perm_bits`, so it is
-covered by the existing `perm_ver` and needs no catalog version bump.
+Both bitsets reuse `PermissionBitsetCodec` and the same bit indexes as `perm_bits`, so they are
+covered by the existing `perm_ver` and need no catalog version bump.
 
-**Enforcement rule.** At an endpoint checking permission `P` for location `L`:
-`P ∉ loc_bits` → allow (grant is global); else `loc_scope == ALL` → allow; else
-`loc_scope ∩ ancestors(L) ≠ ∅` → allow; else deny. `ancestors(L)` is the materialised ancestor
-set of `L` **inclusive of `L`**, so a directly assigned node matches without a special case.
+**Enforcement rule.** At an endpoint checking permission `P` for location `L`: `P` in neither
+bitset → allow (grant is global); `loc_scope == ALL` → allow; `P ∈ loc_fin_bits` and
+`loc_scope ∩ ancestors(L, FINANCIAL) ≠ ∅` → allow; `P ∈ loc_oth_bits` and
+`loc_scope ∩ ancestors(L, OTHER) ≠ ∅` → allow; else deny. `ancestors(L, dim)` is the
+materialised ancestor set on that dimension **inclusive of `L`**, so a directly assigned node
+matches without a special case.
 
-**The hierarchy is multi-dimensional, and scope must name its dimension.** `Location` holds
-`Set<LocationParent> parents`, unique on `(child_id, parent_type)` — several overlapping trees,
-one parent per dimension. `ParentType` has seven values (`HOME_OFFICE`, `HEADQUARTERS`,
-`REGION`, `DISTRICT`, `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`); both traversal APIs take one
-and `getDescendantsDto` defaults to `PHYSICAL`. "Covers descendants" is undefined until the
-authorization dimension is chosen, and the default is wrong for this purpose — `FINANCIAL`
-would grant reach along a reporting line, `PHYSICAL` along a building's geography, and the union
-of all seven is the broadest possible reading. **This decision is deferred and blocks
-enforcement; it is not settled by this ADR.**
+**Two independent bitsets, not one bitset plus a dimension flag.** A permission may be granted
+by a `FINANCIAL` role *and* an `OTHER` role, in which case either reach satisfies the check; a
+single flag per permission cannot express that.
+
+**The assigned nodes are not partitioned by dimension.** `EmployeeLocationAssignment.role` is
+free-text staffing metadata (`"TECHNICIAN"`), not a security role, so a person's assigned nodes
+are the same whichever security role is exercised — only the traversal differs.
+
+**The hierarchy is multi-dimensional, and the dimension is a property of the role.** `Location`
+holds `Set<LocationParent> parents`, unique on `(child_id, parent_type)` — several overlapping
+trees, one parent per dimension. `ParentType` has seven values; both traversal APIs take one and
+`getDescendantsDto` defaults to `PHYSICAL`, which is wrong for authorization.
+
+`roles` therefore gains `location_hierarchy` alongside `location_scope`:
+
+| `location_hierarchy` | Traverses | Roles |
+| --- | --- | --- |
+| `FINANCIAL` | the `FINANCIAL` parent chain | accounting and general-manager roles — `ACCOUNT_MANAGER`, `ACCOUNTANT`, `CONTROLLER`, `GENERAL_MANAGER` |
+| `OTHER` | the union of the six non-financial types (`HOME_OFFICE`, `HEADQUARTERS`, `REGION`, `DISTRICT`, `PHYSICAL`, `ORGANIZATIONAL`) | every other role |
+
+A financial rollup and an operational rollup answer different questions — who owns the numbers
+for a site is not who runs it — so they stay distinct. Traversing all seven types
+indiscriminately would be the union of every rollup the business has.
+
+Two consequences for implementation: `INVENTORY_CONTROLLER` is an inventory role, not an
+accounting one, and must not be swept into `FINANCIAL` by a name match on "CONTROLLER"; and
+`OTHER` branches, being a union of six dimensions, so its ancestor closure is a DAG while
+`FINANCIAL` alone is a chain.
 
 **Hierarchy is evaluated at check time, never expanded at issuance.** The token carries the
 assigned node, not its members, so a Region manager holds one id whether the region has 3 shops
@@ -146,28 +168,29 @@ security-relevant operations needing tight permissions and an audit trail. pos-l
 guarantee acyclicity or ancestor materialisation does not terminate — `StorageLocationServiceImpl`
 has `wouldCreateCycle` / `existsCycleForParent`, but `LocationServiceImpl` has no equivalent.
 
-**Two claims rather than one** because a user may hold both a `LOCATION`-scoped and an
+**Per-permission rather than per-user** because a user may hold both a `LOCATION`-scoped and an
 `ALL`-scoped role. A single user-level flag would let one global role silently widen every
-location-scoped role the same user holds. `loc_bits` keeps the distinction per permission.
+location-scoped role the same user holds.
 
 **Union semantics.** A permission granted by both a `LOCATION` role and an `ALL` role is
-global — its bit is not set in `loc_bits`. The broader grant wins, consistent with how
+global — its bit is set in neither bitset. The broader grant wins, consistent with how
 `perm_bits` already composes.
 
 **Fail closed.** A caller holding `LOCATION`-scoped roles with no resolvable assigned node
-gets `loc_bits` set and `loc_scope` absent, which denies. Absence must never widen to
+gets scope bits set and `loc_scope` absent, which denies. Absence must never widen to
 unrestricted reach. `V3__backfill_primary_location_assignments.sql` records that employees with
 several active assignments and no primary exist and are "genuinely ambiguous" — that population
 is exactly this case.
 
 **Measured** (`scripts/measure-scope-claim-size.py`, reproducing `PermissionBitsetCodec` and the
-`JwtServiceImpl` claim set). Baseline ≈ 650 B; one assigned node **857 B**, a **+204 B** delta
-and **1.31%** of the 65 514 B header budget. Additional nodes: 2 → 909 B, 4 → 1 013 B,
-8 → 1 221 B, 16 → 1 637 B. `loc_bits` is bounded by the catalog at 86 characters; `loc_scope`
-grows only with assigned-node count, which hierarchy keeps at 1–2.
+`JwtServiceImpl` claim set). Baseline ≈ 650 B; one assigned node **1 001 B** worst case, a
+**+348 B** delta and **1.53%** of the 65 514 B header budget; 999 B for a realistic ADMIN-like
+profile with near-disjoint dimensions, 865 B for a SHOP_MANAGER-like one. Additional nodes:
+2 → 1 053 B, 4 → 1 157 B, 8 → 1 365 B, 16 → 1 781 B. Each bitset is bounded by the catalog at
+86 characters; `loc_scope` grows only with assigned-node count, which hierarchy keeps at 1–2.
 
 A cap of ~8 assigned nodes is adopted as an **assertion that the hierarchy was modelled
-correctly**, not as a size limit. Exceeding it surfaces as a configuration error; there is no
+correctly**, not as a size limit — 16 nodes still costs under 1.8 KB. Exceeding it surfaces as a configuration error; there is no
 `DEFERRED` state and no size-driven runtime fallback.
 
 Rejected: **expanding the hierarchy at issuance**. Putting a Region's member shops in the token
@@ -229,9 +252,9 @@ moment `loc_scope` gates access, so this ships with §2, not after it.
 
 **Decision:** ✅ **Resolved** — additive and per-module. No flag-day deploy.
 
-Because `loc_bits` and `loc_scope` are new claims rather than a change to `perm_bits`, a service
-that does not read them behaves exactly as today. Order: add `roles.location_scope` and the replicated ancestor set → issue
-the claims → pass them through the gateway → adopt per module → remove the pos-security-service scope columns and
+Because the scope claims are new claims rather than a change to `perm_bits`, a service that does
+not read them behaves exactly as today. Order: add `roles.location_scope` + `location_hierarchy` and the
+replicated ancestor sets → issue the claims → pass them through the gateway → adopt per module → remove the pos-security-service scope columns and
 `check-permission` once no reader remains. Each step is
 independently deployable and reversible.
 
@@ -297,7 +320,9 @@ independently deployable and reversible.
   fit one subtree. Whether such cases should instead get a dedicated group node — keeping
   assignment at a single node — is a modelling question left open. The multi-dimensional model
   offers a third option: a second `LocationParent` row on a different `parent_type`.
-- **Which `ParentType` dimension(s) authorization traverses** is deferred and blocks enforcement.
+- **Per-role dimension seeding.** Every seeded role needs a recorded `location_hierarchy` value;
+  the four financial roles above are named, the rest default to `OTHER` by decision, not by
+  omission.
 
 ---
 
