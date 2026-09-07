@@ -1,15 +1,38 @@
 ---
 title: 'ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating'
 created: 2026-09-07
-status: proposed
+status: accepted
 ---
 
 ## ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating
 
-**Status:** PROPOSED
+**Status:** ACCEPTED 2026-09-07
 **Date:** 2026-09-07
 **Deciders:** Chief Architect, Security & Authorization Domain, People & Roles Domain, Platform Engineering
 **Affected Issues:** [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), #1372, #1373, #1499, #1512
+
+---
+
+### Amendment (2026-09-07 — node granularity, closes #1876)
+
+Irregular coverage that does not fit one subtree is expressed as **multi-node assignment**: the
+employee holds several `employee_location_assignment` rows and `loc_scope` carries several node
+ids. Group nodes are **not** introduced.
+
+Rationale: multi-node assignment is what the design already supports and needs no pos-location
+change. A group node would turn the per-dimension trees into something closer to a DAG if a
+location could belong to a group *and* a district, which interacts directly with the
+per-`parent_type` acyclicity guard and the ancestor materialisation. The multi-dimensional model
+already offers a group-like escape hatch — a second `LocationParent` row on a different
+`parent_type` — without a new node kind.
+
+Consequences: the ~8 assigned-node cap (§2) is enforced as an assertion in the token issuer —
+WARN and a metric on breach, never truncation. `is_primary` is preserved on the assignment but
+is **not** used to narrow the assigned-node set.
+
+Two seeding defaults recorded as decisions rather than omissions: `MANAGER`, `SHOP_MANAGER` and
+`LOCATION_MANAGER` are `OTHER`; only `ACCOUNT_MANAGER`, `ACCOUNTANT`, `CONTROLLER` and
+`GENERAL_MANAGER` are `FINANCIAL`.
 
 ---
 
@@ -326,10 +349,8 @@ independently deployable and reversible.
 - **Scoped administration** — whether assignment at a parent should also confer the right to
   *grant* scope within that subtree — is a separate concern on the role-assignment surface, and
   is where privilege escalation would live. Not addressed here.
-- **Node granularity for irregular coverage.** Multi-node assignment handles a set that does not
-  fit one subtree. Whether such cases should instead get a dedicated group node — keeping
-  assignment at a single node — is a modelling question left open. The multi-dimensional model
-  offers a third option: a second `LocationParent` row on a different `parent_type`.
+- **Node granularity for irregular coverage** — decided by amendment (2026-09-07): multi-node
+  assignment, no group nodes.
 - **Per-role dimension seeding.** Every seeded role needs a recorded `location_hierarchy` value;
   the four financial roles above are named, the rest default to `OTHER` by decision, not by
   omission.
@@ -351,6 +372,7 @@ independently deployable and reversible.
 
 | Role | Name | Date | Decision |
 | --- | --- | --- | --- |
+| Repository owner | louisburroughs | 2026-09-07 | Accepted — directed implementation of the specification |
 | Chief Architect | | | |
 | Security & Authorization Domain | | | |
 | People & Roles Domain | | | |
@@ -364,3 +386,4 @@ independently deployable and reversible.
 | 2026-08-19 | #1375 opened — spike requested |
 | 2026-08-26 | Evidence added from the #1499/#1512 RBAC audit |
 | 2026-09-07 | Spike executed; findings and this ADR proposed |
+| 2026-09-07 | Accepted; node-granularity amendment recorded; implementation of #1867–#1878 begun |

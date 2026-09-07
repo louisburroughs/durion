@@ -125,7 +125,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0058   | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)        | PROPOSED              | 2026-09-01 |
 | 0059   | Labor-Time Naming and Service Operation Taxonomy                             | PROPOSED              | 2026-09-01 |
 | 0060   | Catalog Enrichment Matching and Review (pos-catalog Tread Designs)           | ACCEPTED              | 2026-09-06 |
-| 0061   | Location Scope Authorization: Ownership, Token Shape, Effective Dating       | PROPOSED              | 2026-09-07 |
+| 0061   | Location Scope Authorization: Ownership, Token Shape, Effective Dating       | ACCEPTED              | 2026-09-07 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
