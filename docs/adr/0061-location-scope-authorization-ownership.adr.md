@@ -1,4 +1,10 @@
-# ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating
+---
+title: 'ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating'
+created: 2026-09-07
+status: proposed
+---
+
+## ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating
 
 **Status:** PROPOSED
 **Date:** 2026-09-07
@@ -7,9 +13,9 @@
 
 ---
 
-## Context
+### Context
 
-### Current State
+#### Current State
 
 Two models describe a user's location reach, and they disagree about which one matters.
 
@@ -27,7 +33,7 @@ bitset. A `LOCATION`-scoped assignment therefore grants the same authority every
 availability and staffing code, and already emits `PEOPLE_STAFFING_ASSIGNMENT_CREATE` /
 `_UPDATE` / `_END` events plus `PeopleEventPublisher.publishStaffingAssignmentUpdated`.
 
-### The Problem
+#### The Problem
 
 Location scope is enforced **nowhere in the platform**. A spike against the current tree
 (`durion-positivity-backend/docs/location-scope-effective-dating-spike-2026-09.md`) found
@@ -44,7 +50,7 @@ The scope model is also unexercised: zero `LOCATION`-scoped rows exist in any mi
 `role_assignment_scope_locations` is never populated, so nothing demonstrates even the
 existing model working.
 
-### Drivers
+#### Drivers
 
 - Multi-location operation is a live near-term requirement, so "do nothing" is not available.
 - INVENTORY_MANAGER and INVENTORY_CONTROLLER hold identical grants **by design** (#1373), on
@@ -53,7 +59,7 @@ existing model working.
 - Sustaining two divergent answers to "which locations does this person cover" is the
   two-model problem #1372 removed from `role_permissions`, reappearing one table over.
 
-### Scope
+#### Scope
 
 `pos-security-service`, `pos-people`, `pos-api-gateway`, `pos-security-common`, and the 15
 modules exposing location-parameterised endpoints. Amends [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md)
@@ -61,9 +67,9 @@ modules exposing location-parameterised endpoints. Amends [ADR-0040](0040-roles-
 
 ---
 
-## Decision
+### Decision
 
-### 1. Ownership of location scope
+#### 1. Ownership of location scope
 
 **Decision:** ✅ **Resolved** — scope is split between two owners, and
 `role_assignments.scope_type` / `role_assignment_scope_locations` are retired.
@@ -105,7 +111,7 @@ delegation is a separate concern on the role-assignment surface and is out of sc
 This ends the condition #1375 set out to end — a scope model in the schema enforced nowhere —
 by deleting it rather than by building a second enforcement path for it.
 
-### 2. Token shape
+#### 2. Token shape
 
 **Decision:** ✅ **Resolved** — two new **additive** claims. `perm_bits` semantics are
 unchanged and `CATALOG_VERSION` is **not** bumped.
@@ -213,7 +219,7 @@ location-touching domains, so this more than doubles a 510-code catalog; per the
 finding it still would not enforce the narrow case; and it is strictly worse than
 `roles.location_scope`, which states the same distinction once per role.
 
-### 3. Enforcement boundary
+#### 3. Enforcement boundary
 
 **Decision:** ✅ **Resolved** — the owning service enforces the intersection; the gateway does not.
 
@@ -231,7 +237,7 @@ stays true. Scope answers "…here", a second check applied only where a `locati
 pos-security-service calls it today either. Leaving it in place would preserve a third,
 unused way to ask an authorization question. Removal is folded into the cleanup issue.
 
-### 4. Effective dating
+#### 4. Effective dating
 
 **Decision:** ✅ **Resolved** — clamp token lifetime, and revoke on assignment change.
 
@@ -248,7 +254,7 @@ unused way to ask an authorization question. Removal is folded into the cleanup 
 Today's 3 600 s window is harmless because nothing reads scope. It stops being harmless the
 moment `loc_scope` gates access, so this ships with §2, not after it.
 
-### 5. Migration
+#### 5. Migration
 
 **Decision:** ✅ **Resolved** — additive and per-module. No flag-day deploy.
 
@@ -260,7 +266,7 @@ independently deployable and reversible.
 
 ---
 
-## Alternatives Considered
+### Alternatives Considered
 
 | Alternative | Why not |
 | --- | --- |
@@ -277,9 +283,9 @@ independently deployable and reversible.
 
 ---
 
-## Consequences
+### Consequences
 
-### Positive ✅
+#### Positive ✅
 
 - Location scope becomes enforceable for the first time; the INVENTORY_MANAGER /
   INVENTORY_CONTROLLER distinction becomes real, expressed by one column rather than by
@@ -292,7 +298,7 @@ independently deployable and reversible.
 - Middle management is expressible: a Region or HQ assignment reaches every location beneath it.
 - Retiring `check-permission` removes a third, unused authorization path.
 
-### Negative ⚠️
+#### Negative ⚠️
 
 - 77 endpoints need a scope check added, module by module — the long tail of the work.
 - pos-security-service takes a new dependency on pos-people's staffing events (mitigated: it
@@ -309,7 +315,7 @@ independently deployable and reversible.
   **every** module on the critical path: 3 modules replicate locations, none with a parent link,
   and 35 of the 77 endpoints sit in modules with no location replica at all.
 
-### Neutral
+#### Neutral
 
 - `is_primary` as an implied default location for endpoints that currently require an explicit
   `locationId` is a UX question left open.
@@ -326,7 +332,7 @@ independently deployable and reversible.
 
 ---
 
-## References
+### References
 
 - Spike findings: `durion-positivity-backend/docs/location-scope-effective-dating-spike-2026-09.md`
 - Measurement: `durion-positivity-backend/scripts/measure-scope-claim-size.py`
@@ -337,7 +343,7 @@ independently deployable and reversible.
 
 ---
 
-## Sign-Off
+### Sign-Off
 
 | Role | Name | Date | Decision |
 | --- | --- | --- | --- |
@@ -347,7 +353,7 @@ independently deployable and reversible.
 
 ---
 
-## Timeline
+### Timeline
 
 | Date | Event |
 | --- | --- |
