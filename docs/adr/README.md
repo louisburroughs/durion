@@ -125,6 +125,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0058   | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)        | PROPOSED              | 2026-09-01 |
 | 0059   | Labor-Time Naming and Service Operation Taxonomy                             | PROPOSED              | 2026-09-01 |
 | 0060   | Catalog Enrichment Matching and Review (pos-catalog Tread Designs)           | ACCEPTED              | 2026-09-06 |
+| 0061   | Location Scope Authorization: Ownership, Token Shape, Effective Dating       | PROPOSED              | 2026-09-07 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -192,6 +193,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0058 | Estimated service time (book time): pos-catalog `ServiceEntity` + vehicle-keyed `service_labor_standard` as system of record, provider-SPI sourcing inside pos-catalog (mock → aggregator → multi-source), license-gated STORE vs QUERY_ONLY modes, append-and-supersede provenance, timekeeping boundary (variance compares against time on task only)                                          | Planner, Coder, Test, Orchestrator |
 | 0059 | Naming around technician time: three-record taxonomy (time on task / attendance time entry / estimated service time), `work_session` never reused for estimates, `operation_code` shape and vendor-code mapping direction, decimal-hours-in-tenths unit, append-only permission bits                                             | Planner, Coder, Test, Orchestrator |
 | 0060 | Vendor tread-design (MKCAT) enrichment matching or review: confidence tiers and brand gate over the trigram score, YAML-config brand aliases, ambiguity parking, MANUAL-attachment stickiness, REJECTED re-entry on content-hash change, widened worklist plus candidates/resolve contract          | Planner, Coder, Test, Orchestrator |
+| 0061 | Location scope authorization: role-level `location_scope` (ALL/LOCATION) and `location_hierarchy` (FINANCIAL/OTHER), node assignment covering descendants at check time, additive `loc_fin_bits`/`loc_oth_bits`/`loc_scope` claims with no `CATALOG_VERSION` bump, owning-service enforcement, `exp` clamped to assignment expiry | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 
