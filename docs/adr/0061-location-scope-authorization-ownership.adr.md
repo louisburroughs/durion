@@ -1,6 +1,6 @@
 # ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating
 
-**Status:** PROPOSED
+**Status:** PROPOSED — §2 dimension decision outstanding
 **Date:** 2026-09-07
 **Deciders:** Chief Architect, Security & Authorization Domain, People & Roles Domain, Platform Engineering
 **Affected Issues:** [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), #1372, #1373, #1499, #1512
@@ -72,7 +72,7 @@ modules exposing location-parameterised endpoints. Amends [ADR-0040](0040-roles-
 | --- | --- |
 | Is this role location-scoped? | pos-security-service — new `roles.location_scope` (`ALL` \| `LOCATION`) |
 | Which node(s) is this employee assigned to? | pos-people — `employee_location_assignment` |
-| What lies beneath a node? | pos-location — the tree, replicated as a materialised ancestor set |
+| What lies beneath a node? | pos-location — the hierarchy, replicated as a materialised ancestor set |
 
 `role_assignments` keeps effective-dated user→role assignment. Scope leaves it entirely.
 
@@ -124,13 +124,27 @@ covered by the existing `perm_ver` and needs no catalog version bump.
 `loc_scope ∩ ancestors(L) ≠ ∅` → allow; else deny. `ancestors(L)` is the materialised ancestor
 set of `L` **inclusive of `L`**, so a directly assigned node matches without a special case.
 
+**The hierarchy is multi-dimensional, and scope must name its dimension.** `Location` holds
+`Set<LocationParent> parents`, unique on `(child_id, parent_type)` — several overlapping trees,
+one parent per dimension. `ParentType` has seven values (`HOME_OFFICE`, `HEADQUARTERS`,
+`REGION`, `DISTRICT`, `PHYSICAL`, `ORGANIZATIONAL`, `FINANCIAL`); both traversal APIs take one
+and `getDescendantsDto` defaults to `PHYSICAL`. "Covers descendants" is undefined until the
+authorization dimension is chosen, and the default is wrong for this purpose — `FINANCIAL`
+would grant reach along a reporting line, `PHYSICAL` along a building's geography, and the union
+of all seven is the broadest possible reading. **This decision is deferred and blocks
+enforcement; it is not settled by this ADR.**
+
 **Hierarchy is evaluated at check time, never expanded at issuance.** The token carries the
 assigned node, not its members, so a Region manager holds one id whether the region has 3 shops
-or 300. `ExtLocationReplica` gains the ancestor set, fed by the existing `LocationEventsListener`.
+or 300. `ExtLocationReplica` gains the ancestor set, fed by the existing `LocationEventsListener` —
+new work in every module: only pos-people, pos-invoice and pos-workorder replicate locations at
+all (18 of the 77 endpoints), pos-inventory's `ExtStorageLocationReplica` models intra-site
+storage rather than the site hierarchy, and **no replica carries a parent link today**.
 Two deliberate consequences: the claim stays small, and hierarchy edits take effect on the next
 request with no token re-issue — correct for an org-chart change, but it makes hierarchy edits
 security-relevant operations needing tight permissions and an audit trail. pos-location must
-guarantee the tree is acyclic or ancestor materialisation does not terminate.
+guarantee acyclicity or ancestor materialisation does not terminate — `StorageLocationServiceImpl`
+has `wouldCreateCycle` / `existsCycleForParent`, but `LocationServiceImpl` has no equivalent.
 
 **Two claims rather than one** because a user may hold both a `LOCATION`-scoped and an
 `ALL`-scoped role. A single user-level flag would let one global role silently widen every
@@ -268,7 +282,9 @@ independently deployable and reversible.
   can see it on the next request, with no token re-issue. Needs tight permissions and an audit
   trail on the location tree.
 - `ExtLocationReplica` must carry a materialised ancestor set, and pos-location must guarantee
-  the tree is acyclic. That is new replication work on the critical path.
+  acyclicity at the `Location` level (it does not today). This is new replication work in
+  **every** module on the critical path: 3 modules replicate locations, none with a parent link,
+  and 35 of the 77 endpoints sit in modules with no location replica at all.
 
 ### Neutral
 
@@ -279,7 +295,9 @@ independently deployable and reversible.
   is where privilege escalation would live. Not addressed here.
 - **Node granularity for irregular coverage.** Multi-node assignment handles a set that does not
   fit one subtree. Whether such cases should instead get a dedicated group node — keeping
-  assignment at a single node — is a modelling question left open.
+  assignment at a single node — is a modelling question left open. The multi-dimensional model
+  offers a third option: a second `LocationParent` row on a different `parent_type`.
+- **Which `ParentType` dimension(s) authorization traverses** is deferred and blocks enforcement.
 
 ---
 
