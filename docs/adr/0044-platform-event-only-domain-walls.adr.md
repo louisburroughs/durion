@@ -303,9 +303,9 @@ grant-surface read, `com.positivity.price.service.ShopLaborRateService`, is reso
 `POST /v1/labor-rates/quote`.
 
 - **Decision.** **`pos-workorder`** MAY call `pos-price`'s `ShopLaborRateService` read API
-  synchronously to resolve the hourly labor rate, with the shop labor matrix applied, for a
-  `LABOR` estimate item at quote time. No other module may call it, no write path is included,
-  and `pos-price` calls no domain module synchronously as part of serving it.
+  synchronously (from `PriceLaborRateClientImpl` only) to resolve the hourly labor rate, with the
+  shop labor matrix applied, for a `LABOR` estimate item at quote time. No other module may call
+  it without its own explicit ADR-0044 amendment/grant, no write path is included, and `pos-price` calls no domain module synchronously as part of serving it.
 - **Rationale.** The rate is a *sell price* and belongs in pos-price under
   [ADR-0054](0054-sell-price-system-of-record-split.adr.md); pos-catalog owns how long an
   operation takes and pos-price owns what an hour of it costs. The two grants are deliberately
