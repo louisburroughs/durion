@@ -144,7 +144,7 @@ unchanged and `CATALOG_VERSION` is **not** bumped.
 | `perm_bits` | unchanged — every permission the caller holds |
 | `loc_fin_bits` | permissions location-scoped along the `FINANCIAL` dimension |
 | `loc_oth_bits` | permissions location-scoped along the `OTHER` dimension |
-| `loc_scope` | discriminated: `"ALL"`, or the assigned node ids; omitted when both bitsets are empty |
+| `loc_scope` | `{"v":1,"nodes":[<uuid>,…]}` — the assigned node ids under a version discriminator; **omitted** when both bitsets are empty (global reach needs no claim) and omitted when a bitset is non-empty but there are no nodes (fail closed). There is no `"ALL"` value. |
 
 Both bitsets reuse `PermissionBitsetCodec` and the same bit indexes as `perm_bits`, so they are
 covered by the existing `perm_ver` and need no catalog version bump.
@@ -256,8 +256,10 @@ finding it still would not enforce the narrow case; and it is strictly worse tha
 
 **Decision:** ✅ **Resolved** — the owning service enforces the intersection; the gateway does not.
 
-The gateway passes both claims through as `X-Loc-Bits` and `X-Loc-Scope` and strips inbound
-copies alongside the existing identity headers. It has no domain knowledge of which request
+The gateway passes the three claims through as `X-Loc-Fin-Bits`, `X-Loc-Oth-Bits` (verbatim,
+set even when empty so a post-rollout unscoped user is distinguishable from a pre-rollout token)
+and `X-Loc-Scope` (unpadded Base64URL of the claim's compact JSON; omitted when the claim is
+absent, never synthesised), and strips inbound copies alongside the existing identity headers. It has no domain knowledge of which request
 parameter denotes a location, so it cannot make the decision. `pos-security-common` provides one
 shared helper (`LocationScope.covers(permission, locationId)`) so 77 endpoints do not each
 invent one.
