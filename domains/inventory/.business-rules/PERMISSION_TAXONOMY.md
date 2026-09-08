@@ -15,13 +15,14 @@ Naming pattern:
 - Scope: location-specific (`locationId`) unless marked global
 
 Registration pattern (pos-security-service):
-- Register: `POST /api/permissions/register { name: "inventory:...", description }`
-- Assign to role: `PUT /api/roles/permissions { roleId, permissionNames: [] }`
+- Register: `POST /v1/permissions/register { name: "inventory:...", description }`
+- Assign to role: `PUT /v1/roles/permissions { roleId, permissionNames: [] }`
 - Check: in the owning service, never over HTTP. The gateway decodes the JWT permission
   bitset into authorities, `@PreAuthorize` gates the permission, and location reach is
   evaluated from the token's `loc_fin_bits` / `loc_oth_bits` / `loc_scope` claims via
   `LocationScope.covers` in `pos-security-common` (ADR-0061). The former
-  `GET /v1/roles/check-permission` probe was removed in #1875.
+  `GET /v1/roles/check-permission` probe was removed in
+  [#1875](https://github.com/louisburroughs/durion-positivity-backend/issues/1875).
 
 ---
 

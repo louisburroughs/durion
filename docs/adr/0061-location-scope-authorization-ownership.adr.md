@@ -9,11 +9,11 @@ status: accepted
 **Status:** ACCEPTED 2026-09-07
 **Date:** 2026-09-07
 **Deciders:** Chief Architect, Security & Authorization Domain, People & Roles Domain, Platform Engineering
-**Affected Issues:** [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), #1372, #1373, #1499, #1512
+**Affected Issues:** [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372), [#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373), [#1499](https://github.com/louisburroughs/durion-positivity-backend/issues/1499), [#1512](https://github.com/louisburroughs/durion-positivity-backend/issues/1512)
 
 ---
 
-### Amendment (2026-09-07 — node granularity, closes #1876)
+### Amendment (2026-09-07 — node granularity, closes [#1876](https://github.com/louisburroughs/durion-positivity-backend/issues/1876))
 
 Irregular coverage that does not fit one subtree is expressed as **multi-node assignment**: the
 employee holds several `employee_location_assignment` rows and `loc_scope` carries several node
@@ -49,7 +49,7 @@ uses it. **None of it reaches an enforcement point.** `UserServiceImpl.resolveEf
 collapses scoped and unscoped assignments into one `Set<String>` of role names before
 `RoleAuthorityService` resolves grants and `JwtServiceImpl` encodes a single flat `perm_bits`
 bitset. A `LOCATION`-scoped assignment therefore grants the same authority everywhere as a
-`GLOBAL` one. #1372 documented this; documenting it did not enforce it.
+`GLOBAL` one. [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372) documented this; documenting it did not enforce it.
 
 `pos-people.EmployeeLocationAssignment` carries `person_id → location_id` with `is_primary`,
 `effective_from` / `effective_to` and `status`. It is populated, queried in production by
@@ -76,11 +76,11 @@ existing model working.
 #### Drivers
 
 - Multi-location operation is a live near-term requirement, so "do nothing" is not available.
-- INVENTORY_MANAGER and INVENTORY_CONTROLLER hold identical grants **by design** (#1373), on
+- INVENTORY_MANAGER and INVENTORY_CONTROLLER hold identical grants **by design** ([#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373)), on
   the stated understanding that `scope_type` distinguishes them. Because it does not, the two
   roles are indistinguishable in every code path — a correctness defect in the role model.
 - Sustaining two divergent answers to "which locations does this person cover" is the
-  two-model problem #1372 removed from `role_permissions`, reappearing one table over.
+  two-model problem [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372) removed from `role_permissions`, reappearing one table over.
 
 #### Scope
 
@@ -105,7 +105,7 @@ modules exposing location-parameterised endpoints. Amends [ADR-0040](0040-roles-
 
 `role_assignments` keeps effective-dated user→role assignment. Scope leaves it entirely.
 
-**Why the discriminator belongs on the role.** #1373's INVENTORY_MANAGER /
+**Why the discriminator belongs on the role.** [#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373)'s INVENTORY_MANAGER /
 INVENTORY_CONTROLLER pair holds identical grants on purpose; the roles differ by *reach*, not
 by *grants*. One column on `roles` expresses that once, where the existing seed comment already
 says the distinction lives. Encoding it per permission (`*_all_locations` twins) would say the
@@ -117,7 +117,7 @@ event-published, and its locations are resolvable — `ExtLocationReplica`, fed 
 an event-consistent location view. pos-security-service has no location replica, and seeding a
 scoped assignment there would require hardcoding pos-location's UUIDs — invisible cross-service
 coupling with no referential guarantee, which is why the `felicia.grant` fixture was deferred
-during #1512.
+during [#1512](https://github.com/louisburroughs/durion-positivity-backend/issues/1512).
 
 **Scope is assigned to a location node and covers that node and every descendant.** A role
 assigned at HQ or Region level can call location-scoped APIs targeting any child location
@@ -131,7 +131,7 @@ subtree, but hierarchy is expected to carry the normal case so counts stay at on
 against descendants. It confers no administrative right to grant scope to others; scoped
 delegation is a separate concern on the role-assignment surface and is out of scope for this ADR.
 
-This ends the condition #1375 set out to end — a scope model in the schema enforced nowhere —
+This ends the condition [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375) set out to end — a scope model in the schema enforced nowhere —
 by deleting it rather than by building a second enforcement path for it.
 
 #### 2. Token shape
@@ -149,12 +149,16 @@ unchanged and `CATALOG_VERSION` is **not** bumped.
 Both bitsets reuse `PermissionBitsetCodec` and the same bit indexes as `perm_bits`, so they are
 covered by the existing `perm_ver` and need no catalog version bump.
 
-**Enforcement rule.** At an endpoint checking permission `P` for location `L`: `P` in neither
-bitset → allow (grant is global); `loc_scope == ALL` → allow; `P ∈ loc_fin_bits` and
-`loc_scope ∩ ancestors(L, FINANCIAL) ≠ ∅` → allow; `P ∈ loc_oth_bits` and
-`loc_scope ∩ ancestors(L, OTHER) ≠ ∅` → allow; else deny. `ancestors(L, dim)` is the
-materialised ancestor set on that dimension **inclusive of `L`**, so a directly assigned node
-matches without a special case.
+**Enforcement rule.** At an endpoint checking permission `P` for location `L`, in this order:
+the claims are absent → allow (a pre-rollout token behaves exactly as it does today); `P` in
+neither bitset → allow (the grant is global); `loc_scope` carries no nodes → deny (fail
+closed); `L` does not parse as a UUID, or the module supplies no `LocationAncestorResolver` →
+deny; `P ∈ loc_fin_bits` and `nodes ∩ ancestors(L, FINANCIAL) ≠ ∅` → allow; `P ∈ loc_oth_bits`
+and `nodes ∩ ancestors(L, OTHER) ≠ ∅` → allow; else deny. `nodes` is the node list inside
+`loc_scope`, and `ancestors(L, dim)` is the materialised ancestor set on that dimension
+**inclusive of `L`**, so a directly assigned node matches without a special case. There is no
+`ALL` short-circuit: a caller with global reach carries no `loc_scope` at all and is allowed by
+the second clause.
 
 **Two independent bitsets, not one bitset plus a dimension flag.** A permission may be granted
 by a `FINANCIAL` role *and* an `OTHER` role, in which case either reach satisfies the check; a
@@ -199,7 +203,7 @@ security-relevant operations needing tight permissions and an audit trail. pos-l
 guarantee acyclicity **per dimension** or ancestor materialisation does not terminate. A
 `Location`-level guard did exist (a depth-1 inverse check plus a `WITH RECURSIVE` descendant
 query) but ignored `parent_type`, so it was stricter than this model — it rejected A→B on
-`PHYSICAL` with B→A on `FINANCIAL`, a legal DAG — and surfaced as a 500. #1878 replaced it with a
+`PHYSICAL` with B→A on `FINANCIAL`, a legal DAG — and surfaced as a 500. [#1878](https://github.com/louisburroughs/durion-positivity-backend/issues/1878) replaced it with a
 per-dimension walk that rejects with 409 `CYCLE_DETECTED`, matching `StorageLocationServiceImpl`.
 
 **Per-permission rather than per-user** because a user may hold both a `LOCATION`-scoped and an
@@ -306,7 +310,7 @@ independently deployable and reversible.
 | Alternative | Why not |
 | --- | --- |
 | Keep scope in `role_assignments`, enforce it | Needs a location replica and event listener in pos-security-service, seed fixtures that cannot reference pos-location's UUIDs without invisible coupling, and an admin surface duplicating staffing assignment. Leaves two divergent answers to the same question. |
-| `location_scope` on the employee rather than the role | Reach is a property of what a role authorises, not of who holds it. #1373's identical-grant role pair differs by reach; an employee-level flag cannot express that a person is global in one role and confined in another. |
+| `location_scope` on the employee rather than the role | Reach is a property of what a role authorises, not of who holds it. [#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373)'s identical-grant role pair differs by reach; an employee-level flag cannot express that a person is global in one role and confined in another. |
 | A single user-level scope flag (any `ALL` role wins) | Smallest claim (+68 B), but over-grants: one global role silently widens every location-scoped role the same user holds. Rejected on correctness, not size. |
 | Forbid users from holding both `ALL` and `LOCATION` roles | Keeps the claim simple, but constrains role design for an implementation convenience and needs a migration sweep for users who already mix. |
 | Expanding a parent assignment into member shops at issuance | Reintroduces token bloat (1 385 B at 25 shops) and makes hierarchy edits require token re-issue rather than taking effect on the next request. |
@@ -314,7 +318,7 @@ independently deployable and reversible.
 | Per-location permission bitset map | 86 011 B at 500 locations, breaching the 64 KB header cap; forces catalog-version lockstep across 1 086 `@PreAuthorize` sites. |
 | Catalog encoding (`*_all_locations` twins) | Up to 357 new codes against a 510-code catalog; does not enforce the narrow case (see `WipController`); says once per permission what `roles.location_scope` says once per role; cannot express hierarchy at all. |
 | `check-permission` on every location-scoped endpoint | A synchronous security-service hop on 77 endpoints; availability coupling and latency on the common path. |
-| Do nothing | Not available: multi-location is a live requirement, and #1373's role pair is already a correctness defect. |
+| Do nothing | Not available: multi-location is a live requirement, and [#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373)'s role pair is already a correctness defect. |
 
 ---
 
@@ -372,7 +376,7 @@ independently deployable and reversible.
 - [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md) — amended by §2
 - [ADR-0016](0016-location-entity-semantics.adr.md) — location entity semantics
 - `durion-positivity-backend/docs/rbac-permission-role-audit-2026-08.md`
-- Issues #1375, #1372, #1373, #1499, #1512
+- Issues [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372), [#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373), [#1499](https://github.com/louisburroughs/durion-positivity-backend/issues/1499), [#1512](https://github.com/louisburroughs/durion-positivity-backend/issues/1512)
 
 ---
 
@@ -391,7 +395,7 @@ independently deployable and reversible.
 
 | Date | Event |
 | --- | --- |
-| 2026-08-19 | #1375 opened — spike requested |
-| 2026-08-26 | Evidence added from the #1499/#1512 RBAC audit |
+| 2026-08-19 | [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375) opened — spike requested |
+| 2026-08-26 | Evidence added from the [#1499](https://github.com/louisburroughs/durion-positivity-backend/issues/1499)/[#1512](https://github.com/louisburroughs/durion-positivity-backend/issues/1512) RBAC audit |
 | 2026-09-07 | Spike executed; findings and this ADR proposed |
-| 2026-09-07 | Accepted; node-granularity amendment recorded; implementation of #1867–#1878 begun |
+| 2026-09-07 | Accepted; node-granularity amendment recorded; implementation of the eleven backend sub-issues begun |
