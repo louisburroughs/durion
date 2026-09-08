@@ -76,7 +76,6 @@ Frontend developer workflow:
 | Validate permission name format | `validatePermissionName` | GET | `/v1/permissions/validate/{permissionName}` | Refer to generated API reference for payload details |
 | Get all roles | `getAllRoles` | GET | `/v1/roles` | Refer to generated API reference for payload details |
 | Get user role assignments | `getUserRoleAssignments` | GET | `/v1/roles/assignments/user/{userId}` | Refer to generated API reference for payload details |
-| Check user permission | `checkUserPermission` | GET | `/v1/roles/check-permission` | Refer to generated API reference for payload details |
 | Get user permissions | `getUserPermissions` | GET | `/v1/roles/permissions/user/{userId}` | Refer to generated API reference for payload details |
 
 Headers and auth notes:
