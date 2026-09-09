@@ -393,4 +393,10 @@ pointing back here):
   tenancy; the existing `organizationId` fields are recorded as a remnant (§4); alternatives 6 and 8 added.
 - **2026-09-09:** Accepted. ADR-0023 marked SUPERSEDED BY ADR-0062; its removal checklist closed.
 - **2026-09-09:** WS0 applied: every row of the "Amends" table carries its amendment.
-- **2026-09-09:** Schema landed ahead of WS1: the backend's 25 persisting modules were flattened to one `V1__baseline_<module>.sql` each, generated from the migrated schema with `tenant_id`, forced RLS and the `tenant_isolation` policy, tenant-leading unique constraints and composite foreign keys folded in, plus a per-module `tenancy-global-tables.txt`; the WS3 "tenancy migration" step is therefore closed for existing tables. The `pos_app` role exists but services still connect as the owner, which carries a transitional `app.current_tenant` default until `TenantAwareDataSource` (WS1). Conventions: `durion-positivity-backend/docs/TENANCY_SCHEMA.md`.
+- **2026-09-09:** Schema landed ahead of WS1: the backend's 25 persisting modules were flattened to one
+  `V1__baseline_<module>.sql` each, generated from the migrated schema with `tenant_id`, forced RLS and the
+  `tenant_isolation` policy, tenant-leading unique constraints and composite foreign keys folded in, plus a
+  per-module `tenancy-global-tables.txt`; the WS3 "tenancy migration" step is therefore closed for existing
+  tables. The `pos_app` role exists but services still connect as the owner, which carries a transitional
+  `app.current_tenant` default until `TenantAwareDataSource` (WS1). Conventions:
+  `durion-positivity-backend/docs/TENANCY_SCHEMA.md`.
