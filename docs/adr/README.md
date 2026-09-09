@@ -126,6 +126,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0059   | Labor-Time Naming and Service Operation Taxonomy                             | PROPOSED              | 2026-09-01 |
 | 0060   | Catalog Enrichment Matching and Review (pos-catalog Tread Designs)           | ACCEPTED              | 2026-09-06 |
 | 0061   | Location Scope Authorization: Ownership, Token Shape, Effective Dating       | ACCEPTED              | 2026-09-07 |
+| 0062   | Postgres Row-Level Multitenancy (supersedes 0023 on acceptance)              | PROPOSED              | 2026-09-09 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -194,6 +195,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0059 | Naming around technician time: three-record taxonomy (time on task / attendance time entry / estimated service time), `work_session` never reused for estimates, `operation_code` shape and vendor-code mapping direction, decimal-hours-in-tenths unit, append-only permission bits                                             | Planner, Coder, Test, Orchestrator |
 | 0060 | Vendor tread-design (MKCAT) enrichment matching or review: confidence tiers and brand gate over the trigram score, YAML-config brand aliases, ambiguity parking, MANUAL-attachment stickiness, REJECTED re-entry on content-hash change, widened worklist plus candidates/resolve contract          | Planner, Coder, Test, Orchestrator |
 | 0061 | Location scope authorization: role-level `location_scope` (ALL/LOCATION) and `location_hierarchy` (FINANCIAL/OTHER), node assignment covering descendants at check time, additive `loc_fin_bits`/`loc_oth_bits`/`loc_scope` claims with no `CATALOG_VERSION` bump, owning-service enforcement, `exp` clamped to assignment expiry | Planner, Coder, Test, Orchestrator |
+| 0062 | Multitenancy: `tenant_id` discriminator + Postgres RLS (authoritative) with Hibernate `@TenantId` as defense in depth, single `pos_app` role, `tid` claim and `X-Tenant-Id`, `@TenantGlobal` whitelist, tenant-scoped roles from a platform template, reserved platform tenant, per-tenant or `@PlatformScoped` jobs, composite `(tenant_id, id)` foreign keys, Testcontainers for every DB test | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 
