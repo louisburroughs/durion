@@ -51,11 +51,9 @@ Frontend developer workflow:
 - Mutating operations require explicit permission enforcement and auditable outcomes.
 - Error responses and correlation headers must be deterministic and traceable across requests.
 - Cross-domain interactions must go through API/event contracts, not direct data coupling.
-- **Target contract (ADR-0061 amendment 2026-09-09; phased in `durion-positivity-backend#1914`):** a user holds a role only through an effective-dated
-  `role_assignments` row, with no undated grant, and token issuance, `getUserPermissions`, the assignments listing and the person-decision must resolve the same
-  effective set for the same user and instant. Not yet shipped: until #1914 phase 1 lands the decision points read different stores, and until phase 2 lands
-  `createUser`, bulk ingest, self-registration and the operational seed still write the undated `user_roles` table, which token issuance unions with the
-  effective assignments.
+- A user holds a role only through an effective-dated `role_assignments` row, with no undated grant, and token issuance, `getUserPermissions`, the
+  assignments listing and the person-decision resolve the same effective set for the same user and instant (ADR-0061 amendment 2026-09-09; implemented in
+  `durion-positivity-backend#1916`).
 
 ## Capability Index
 
@@ -113,17 +111,16 @@ Headers and auth notes:
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
-- Role assignments are to be the only way a user holds a role (pending `durion-positivity-backend#1914` phase 2). Every grant path (`createUser` with roles, bulk
-  user ingest, self-registration, the operational seed, `PUT /v1/users/{username}/roles`, `assignUserRole`, `createRoleAssignment`) must produce an
-  effective-dated `role_assignments` row; `PUT /v1/users/{username}/roles` keeps its replace contract and reconciles assignments (assigns what is missing, revokes
-  what is absent). Today the first four of those still write `user_roles`.
+- Role assignments are the only way a user holds a role (`durion-positivity-backend#1916`). Every grant path (`createUser` with roles, bulk user ingest,
+  self-registration, the operational seed, `PUT /v1/users/{username}/roles`, `assignUserRole`, `createRoleAssignment`) produces an effective-dated
+  `role_assignments` row; `PUT /v1/users/{username}/roles` keeps its replace contract and reconciles assignments (assigns what is missing, revokes what is
+  absent); `assignUserRole` is idempotent when an effective assignment for the pair already exists.
 - The assignment window is half-open, `[effectiveStartDate, effectiveEndDate)`, evaluated against the current instant. A revocation stops the assignment
-  contributing at the next authorization decision, and (pending `durion-positivity-backend#1914` phase 3) revokes the holder's live tokens and is reflected in
-  access-token `exp`.
-- `getPersonAuthorizationDecision` must evaluate the person's linked user against the same effective assignments as token issuance, honouring the window
-  (pending `durion-positivity-backend#1914` phase 1; today it reads the undated `user_roles` store alone and ignores the window).
-- `assignPrincipalRole` and `getAuthorizationDecision` (the string-keyed principal matrix) are retired and must not be integrated against; removal is pending
-  `durion-positivity-backend#1914` phase 4.
+  contributing at the next authorization decision, revokes the holder's live tokens once the revocation commits, and the next token issued carries an `exp`
+  clamped to the earliest remaining assignment end.
+- `getPersonAuthorizationDecision` evaluates the person's linked user against the same effective assignments as token issuance, honouring the window.
+- `assignPrincipalRole` and `getAuthorizationDecision` (the string-keyed principal matrix) were removed in `durion-positivity-backend#1916` and no longer
+  exist in the API or the SDKs.
 
 ### Frontend Usage Notes
 
