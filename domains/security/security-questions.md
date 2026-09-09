@@ -215,13 +215,13 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
   - [x] No client-side ID validation
     - **✅ CONFIRMED:** All IDs treated as opaque; presence check only
 
-- [x] **Task 2.7 — Organization scoping and auth context (Both Issues)**
-  - [x] Confirm organization scoping enforced via trusted auth
-    - **Current:** Single-organization (organizationId inferred from auth context, not modeled)
-    - **Pattern:** No user input for scoping per DECISION-INVENTORY-008
-    - **Future:** Multi-tenant support deferred to Phase 4+
-  - [x] Confirm multi-organization admin scenarios
-    - **Not yet designed:** Global admin vs organization-specific admin distinction not modeled
+- [x] **Task 2.7 — Tenant scoping and auth context (Both Issues)**
+  - [x] Confirm tenant scoping enforced via trusted auth
+    - **Current (ADR-0062, accepted 2026-09-09):** Multi-tenant. Tenant comes only from the validated JWT `tid` claim and the gateway-injected `X-Tenant-Id`; Postgres RLS on `tenant_id` is authoritative, Hibernate `@TenantId` is defense in depth
+    - **Pattern:** No user input for scoping per DECISION-INVENTORY-008 (no request body, query parameter, or client header ever names a tenant)
+    - **Roles:** tenant-scoped rows provisioned from a platform template; the permission catalog stays global (ADR-0062 §6)
+  - [x] Confirm multi-tenant admin scenarios
+    - **Resolved (ADR-0062 §7):** platform operators are users of the reserved platform tenant; `ROLE_PLATFORM_ADMIN` and the `platform:tenant:*` / `platform:account:*` permission families exist only there. There is no "see every tenant" mode; the tenant registry is a global replica and `pos-tenant`'s own rows belong to the platform tenant
 
 - [x] **Task 2.8 — Cross-domain permission scoping (Location-based RBAC)**
   - [x] Confirm GLOBAL vs LOCATION scope model
@@ -566,7 +566,7 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 - **DECISION-INVENTORY-002**: Permission-gated route/menu visibility (applies to both issues)
 - **DECISION-INVENTORY-006**: Permission registry is code-first read-only (Issue #66)
 - **DECISION-INVENTORY-007**: Principal-role assignment UI deferred in v1 (Issue #66)
-- **DECISION-INVENTORY-008**: Tenant scoping via trusted auth context (applies to both issues)
+- **DECISION-INVENTORY-008**: Tenant scoping via trusted auth context only — JWT `tid` → `X-Tenant-Id` → `TenantContext` → RLS; never client-supplied (applies to both issues; implemented per ADR-0062)
 - **DECISION-INVENTORY-012**: Financial exception audit owned by `audit` domain (Issue #65 label question)
 - **DECISION-INVENTORY-013**: Sensitive data redaction policy (Issue #65)
 - **DECISION-INVENTORY-014**: Approval workflows owned by workflow domain (Issue #65 out-of-scope)
@@ -577,7 +577,7 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 - REST path convention: `/api/v1/{domain}/{resource}`
 - Error envelope shape: `{ code, message, correlationId, fieldErrors?, details? }`
 - Pagination envelope: `{ items[], pageIndex, pageSize, totalCount }`
-- Tenant scoping: auto-scoped via auth context, no user input
+- Tenant scoping: auto-scoped via auth context (`tid` claim, ADR-0062), no user input; the `tenantId` field never appears in a request or response body
 
 ### Permission Taxonomy (Examples)
 **Security Domain:**
@@ -610,7 +610,7 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 - [ ] Security audit log structure (Issue #66)
 - [ ] Audit entry structure (Issue #65)
 - [ ] Identifier types (both issues)
-- [ ] Tenant scoping (both issues)
+- [x] Tenant scoping (both issues) — resolved by ADR-0062
 
 ### Phase 3 Status
 - [ ] Validation rules (both issues)

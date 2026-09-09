@@ -1,9 +1,44 @@
 # ADR-0045: Autonomous Environment Lifecycle Management
 
-**Status:** ACCEPTED
+**Status:** ACCEPTED — amended 2026-09-09 (pooled tenant cells, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
 **Date:** 2026-07-10
 **Deciders:** Platform Owner, Chief Architect
 **Affected Issues:** [#341](https://github.com/louisburroughs/durion/issues/341), [#342](https://github.com/louisburroughs/durion/issues/342), [#343](https://github.com/louisburroughs/durion/issues/343), [#344](https://github.com/louisburroughs/durion/issues/344), [#345](https://github.com/louisburroughs/durion/issues/345), [#346](https://github.com/louisburroughs/durion/issues/346), [#347](https://github.com/louisburroughs/durion/issues/347), [#348](https://github.com/louisburroughs/durion/issues/348) (implementation stories, `docs/stories/devops-*.md`)
+
+---
+
+## Amendment (2026-09-09 — pooled tenant cells, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
+
+ADR-0062 makes a tenant cell host one *or more* tenants, isolated by `tenant_id` and Postgres row-level security,
+from the same images. This ADR was written when a cell meant one customer. Nothing in §1–§7 is superseded; the
+following tighten what "per cell" means when a cell is pooled.
+
+1. **The cell stays the unit of operation; cost is per pooled cell.** The Cell Operations Agent, the peak-class
+   calendar, right-sizing, grooming, and warm-up all act on the cell. The cost objective (§2) is now cost per pooled
+   cell divided across its tenants; the after-action records and digests gain a `tenant_count` field and the
+   monthly cost delta is reported per cell and per tenant-month. Nothing is sized or scheduled per tenant.
+2. **The peak-class calendar of a pooled cell is the union of its tenants' windows.** Each tenant registers its
+   business hours through `pos-tenant`; the calendar merges them, so the warm floor of a pooled cell is the widest
+   window any of its tenants needs. A cell whose tenants span time zones may never leave the warm floor; that is
+   the cost signal for splitting the pool, and the forecaster reports it as `pooled_overlap_ratio`.
+3. **Postgres grooming runs as the owner, never as `pos_app`.** VACUUM, ANALYZE, reindex, and WAL pruning need
+   table-owner privileges. The COA's substrate adapter uses the owner credential that ADR-0062 reserves for Flyway,
+   through a dedicated maintenance connection that is never handed to an application. It never binds
+   `app.current_tenant`, never reads or writes business rows, and its statements are limited to the maintenance
+   catalog. ADR-0044's rule that the COA consumes operational metadata only is unchanged.
+4. **Warm-up is tenant-bound.** A cache warm-up job that replays business reads runs under `TenantIterator` for each
+   active tenant in the cell, or is `@PlatformScoped` and touches only global tables; an unbound job warms nothing
+   and reads zero rows. Warm sets are declared per domain, not per tenant; the iterator supplies the tenant.
+5. **Per-tenant export replaces per-cell `pg_dump` as the offboarding unit.** The grooming catalog's WAL and backup
+   pruning still protects the per-cell dump chain, which now covers every tenant in the cell and remains the
+   disaster-recovery mechanism. Offboarding, cloning, and single-tenant restore use the logical per-tenant export
+   (plan WS6); the verified-restore gate is extended to verify one tenant's export can be re-imported into an empty
+   cell.
+6. **Metrics carry `tenant_id` as a bounded dimension.** Recording rules that feed decisions stay per cell and per
+   service. Tenant-labelled series exist for attribution and noisy-neighbour detection with a bounded top-N, never
+   as high-cardinality decision inputs.
+7. **Dedicated cells are pooled cells with one tenant.** No separate policy set; the same adapters and catalogs
+   apply.
 
 ---
 
@@ -17,9 +52,10 @@
 - **The Problem**: The platform needs to run as lean as possible during off-peak periods
   while guaranteeing full peak performance, without adding recurring human operations toil
   per cell. As tenant-cell count grows, per-cell manual operation does not scale.
-- **Drivers**: cost per tenant cell, peak-hour POS counter latency, single-host disk/memory
-  fragility, and the agent-operated delivery model (operations should produce
-  machine-readable evidence like everything else in the platform).
+- **Drivers**: cost per tenant cell (per *pooled* cell since the 2026-09-09 amendment),
+  peak-hour POS counter latency, single-host disk/memory fragility, and the agent-operated
+  delivery model (operations should produce machine-readable evidence like everything else in
+  the platform).
 - **Scope**: all tenant cells (integration, prototype, production) on both substrates.
   Full specification: [DevOps Framework](../architecture/deployment/devops-framework/DEVOPS_FRAMEWORK.md).
 
@@ -142,7 +178,8 @@ only on anomalies and critical events
 - Prometheus becomes decision infrastructure, not just observability — recording rules gain
   a compatibility obligation.
 - The peak-class calendar is new per-cell configuration that must be maintained as tenants'
-  business hours change.
+  business hours change; in a pooled cell it is the union of the tenants' windows (Amendment
+  2026-09-09 §2).
 
 ---
 
@@ -195,3 +232,6 @@ only on anomalies and critical events
 
 - **2026-07-10**: Initial draft from platform-owner requirements interview
 - **2026-07-10**: Accepted by platform owner as written
+- **2026-09-09**: Amended for pooled tenant cells under ADR-0062: cost per pooled cell, union
+  calendar, owner-credential grooming, tenant-bound warm-up, per-tenant export as the
+  offboarding unit, bounded `tenant_id` metric dimension

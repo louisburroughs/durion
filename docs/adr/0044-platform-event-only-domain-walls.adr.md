@@ -1,6 +1,6 @@
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped); previously amended 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
+**Status:** ACCEPTED — amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)); previously amended 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped), 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -82,6 +82,7 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
   "sourceService": "pos-customer",
   "correlationId": "<propagated from the initiating request when available>",
   "actor": "<user id or service name, for audit only>",
+  "tenantId": "<UUID of the tenant the aggregate belongs to; required since 2026-09-09, ADR-0062>",
   "payload": {}
 }
 ```
@@ -174,6 +175,33 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-09-09 — Tenant context on the event channel ([ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
+
+ADR-0062 makes every domain row tenant-scoped under Postgres RLS. The event channel carries the tenant so that a
+consumer's replica write lands in the right tenant and never in none:
+
+- **Envelope.** `tenantId` (UUID) is a required envelope field (§3). `DomainEventEnvelope.of(...)` fills it from the
+  bound `TenantContext` when the producer does not pass it; an unbound producer cannot build an envelope.
+- **Kafka header.** The outbox publisher also sets a `tenantId` record header from the outbox row, so a consumer can
+  bind before deserialising the payload.
+- **Consumer binding.** A `RecordInterceptor` shipped in `pos-tenancy-common` binds `TenantContext` from the header
+  before every `@KafkaListener` and clears it after. A record without the header is not processed; it goes to
+  `{topic}.dlq` (§4) and alerts. Consumer database work is then scoped exactly like a request; a replica write for
+  another tenant is rejected by RLS `WITH CHECK`.
+- **Outbox and ledger tables are global with tenant data.** `event_outbox` and `processed_events` are `@TenantGlobal`
+  tables carrying `tenant_id` as a plain column, because the poller and the idempotency check run unbound. They are
+  the only place a module handles more than one tenant's rows in one statement.
+- **Reconciliation is per tenant.** Manifests on `{domain}.manifest.v1` are emitted per tenant by iterating the
+  owner's `ext_tenant` replica; re-emit requests carry `tenantId`.
+- **Module classification (§1).** `pos-tenant` is a domain module that owns the tenant registry and the owning
+  `account`. It publishes `tenant.created`, `tenant.provisioned`, `tenant.updated`, `tenant.suspended`,
+  `tenant.reactivated`, and `tenant.decommissioned` on `tenant.events.v1` with the public projection only (`id`,
+  `slug`, `display_name`, `status`); `pos-security-service` publishes `tenant.provisioned` on the same topic once
+  the role template and initial administrator are seeded. Every module keeps a global `ext_tenant` replica of that
+  projection and never calls `pos-tenant` synchronously.
+- **Security model (§5).** Unchanged: the `tenantId` header is trusted because the broker is internal and producers
+  are service identities. It is a scoping value, not an authorization one; `actor` remains audit-only.
 
 ### 2026-07-16 — Scoped exception: pos-warranty v1 synchronous clients
 
