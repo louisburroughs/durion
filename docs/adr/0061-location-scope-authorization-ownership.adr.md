@@ -480,3 +480,4 @@ independently deployable and reversible.
 | 2026-09-07 | Spike executed; findings and this ADR proposed |
 | 2026-09-07 | Accepted; node-granularity amendment recorded; implementation of the eleven backend sub-issues begun |
 | 2026-09-09 | [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) found two further role stores and undated person-decisions; one-store amendment recorded |
+| 2026-09-09 | One-store amendment implemented and merged in all four phases ([durion-positivity-backend#1916](https://github.com/louisburroughs/durion-positivity-backend/pull/1916)) |
