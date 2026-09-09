@@ -14,6 +14,7 @@ It is implementation-authoritative for runtime behavior and should be read with:
 - [API Security Architecture](./API_SECURITY_ARCHITECTURE.md) for the broader trust boundary
 - [ADR-0040](../adr/0040-roles-jwt-permission-governance-policy.adr.md) for policy intent
 - [ADR-0011](../adr/0011-api-gateway-security-architecture.adr.md) for the gateway ownership decision
+- [ADR-0061](../adr/0061-location-scope-authorization-ownership.adr.md) for location scope, effective dating, and (amendment of 2026-09-09) the single store of a user's roles
 
 Code is the final authority when this document and older docs disagree. The runtime classes that currently define the contract are:
 
@@ -30,8 +31,9 @@ Code is the final authority when this document and older docs disagree. The runt
 
 - **User**: the login account in `pos-security-service`.
 - **Person**: the stable human identity record linked to a user account when available.
-- **Role**: a coarse assignment label such as `ADMIN` or `MANAGER`. Roles are used by the frontend for UX gating and by token issuance as the starting point for authority
-  expansion.
+- **Role**: a bundle that delivers permission grants (ADR-0040 §1), such as `ADMIN` or `MANAGER`. A user holds a role only through an effective-dated row in
+  `role_assignments` (ADR-0061, amendment 2026-09-09). Roles are used by the frontend for coarse UX gating and by token issuance as the starting point for authority
+  expansion; they are not an authorization input anywhere else.
 - **Permission**: a canonical `domain:resource:action` API authorization unit such as `security:user:create`.
 - **Authority**: the Spring Security string checked by downstream `@PreAuthorize` rules. In current services this is usually the plain permission string, not a role.
 - **`perm_bits`**: Base64URL-encoded permission bitset stored in access tokens.
@@ -79,7 +81,7 @@ The normal credential flow is `POST /v1/auth/login` in `AuthController`.
 
 1. The caller sends username and password.
 2. The authentication service authenticates the user.
-3. Effective roles are resolved from both directly assigned roles and active role assignments.
+3. Effective roles are resolved from the user's currently effective role assignments (see [Step 1](#step-1-effective-roles-are-resolved)).
 4. `JwtServiceImpl.generateTokenPair(...)` issues an access token and a refresh token.
 
 ### Token pair issuance endpoint
@@ -104,6 +106,18 @@ Refresh validation currently checks:
 - persistence in the JWT token table
 
 The old token pair is revoked as part of refresh.
+
+### Role-assignment change
+
+Decided by the ADR-0061 amendment of 2026-09-09 (§4 applied to role assignments); **pending
+[#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) phase 3**:
+
+- access-token `exp` is clamped to `min(now + 3600s, earliest effective_end_date among the role assignments contributing to the token)`, extending the clamp
+  `JwtServiceImpl` already applies for location reach
+- revoking a role assignment revokes the holder's live tokens through `TokenRevocationManager` and the `jwt_token` table, per `jti`
+
+Until that lands, a revoked assignment stops contributing at the next token issuance, not before: the gateway and downstream services trust `perm_bits` for the
+remainder of the access token's lifetime.
 
 ### Validate
 
@@ -161,22 +175,33 @@ Refresh tokens do not include `roles`, `perm_bits`, or `perm_ver`.
 
 ### Step 1: effective roles are resolved
 
-`UserServiceImpl.resolveEffectiveRoleNames(...)` and `CustomUserDetailsService.loadUserByUsername(...)` both merge:
+`role_assignments` is the only store of a user's roles (ADR-0061 §1, amendment 2026-09-09). A user's effective roles at an instant are the roles of the assignments
+whose half-open window `[effective_start_date, effective_end_date)` contains that instant. One resolver in `pos-security-service` computes that set and the permissions
+it carries, and every decision point goes through it:
 
-- direct user roles from `user.roles`
-- active role assignments from `role_assignments`
+- `CustomUserDetailsService.loadUserByUsername` — granted authorities on every authenticated request to the security service
+- login and refresh token issuance (`UserServiceImpl`)
+- `AuthorizationServiceImpl.authorizePerson` — the off-session approver check behind `GET /v1/users/authorization/person-decision`
+- `RoleManagementServiceImpl.userHasPermission` and `getUserPermissions`
 
-That merged set is the role input used for login and refresh token issuance.
+Only the resolver may call the effective-assignment query (an ArchUnit rule), and an agreement test asserts the permission set from each decision point is identical
+for the same user and instant.
+
+**Current state — pending [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) phases 1 and 2.** Today
+`UserServiceImpl.resolveEffectiveRoleNames(...)` and `CustomUserDetailsService` merge `user.roles`
+(the undated `user_roles` join table) with the effective assignments, `authorizePerson` reads `user.roles` alone, and `userHasPermission` / `getUserPermissions`
+read `role_assignments` alone. `user_roles` is retired: existing rows migrate to open-ended assignments and every provisioning path (`createUser`, bulk ingest,
+self-registration, `PUT /v1/users/{username}/roles` as a reconcile) writes assignments. See [Known Drift](#known-drift-and-open-risks) item 5.
 
 ### Step 2: roles are expanded to authorities
 
 `RoleAuthorityServiceImpl` is the runtime expansion layer. It:
 
-- preserves each role as a `ROLE_*` authority
-- adds hardcoded permission authorities for known business roles
-- includes full admin security authorities for `ADMIN`
+- preserves each role as a `ROLE_*` authority (still consumed by the frontend's coarse `ROLE_ADMIN` fallback; not an API authorization input)
+- adds the permission authorities granted to each role in the persisted `role_permissions` table (`RoleRepository.findPermissionNamesByRoleNames`)
 
-This hardcoded expansion is what drives `perm_bits` in issued access tokens today.
+Since [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372) the persisted `role_permissions` table is the only source of role grants; an
+unknown role, or a role with no grants, contributes nothing and the user fails closed. There is no hardcoded expansion table.
 
 ### Step 3: permissions are encoded
 
@@ -233,8 +258,9 @@ The codebase currently contains two authorization models at once.
 
 - persisted `roles`
 - persisted `role_permissions`
-- persisted `role_assignments`
-- scope-aware assignments (`GLOBAL`, `LOCATION`)
+- persisted `role_assignments` — the only store of a user's roles (ADR-0061 amendment 2026-09-09)
+- `roles.location_scope` (`ALL` | `LOCATION`) — location reach is a property of the role, evaluated against pos-people's staffing assignment (ADR-0061 §1); the former
+  per-assignment `scope_type` is retired
 - effective dating and revocation history
 - permission queries such as `getUserPermissions(...)` and `userHasPermission(...)`
 
@@ -242,25 +268,23 @@ This is the data-driven RBAC model many older docs describe.
 
 ### Runtime token-emission model
 
-`JwtServiceImpl` does not currently derive token permissions from persisted `role_permissions`. It derives them from `RoleAuthorityServiceImpl`, which is a hardcoded
-role-to-authority expansion table.
-
-That means:
-
-- the token payload used by the gateway is not solely driven by persisted role-permission data
-- docs that describe the system as fully data-driven are ahead of current runtime behavior
-- changes to persisted role permissions do not automatically imply matching token content unless the hardcoded expansion also matches
-
-This is the main reason prior docs drifted.
+`JwtServiceImpl` derives token permissions from `RoleAuthorityServiceImpl`, which reads the persisted `role_permissions` table
+([#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372)). A change to a role's grants is reflected in the next token issued; tokens already
+issued carry the permissions they were issued with until they expire or are revoked.
 
 ## Legacy And Non-Primary Paths
 
-Two controllers can be confused with the primary request-authorization path but are not the main runtime model:
+`AuthorizationController.getPersonDecision` (`GET /v1/users/authorization/person-decision`) answers "does the user linked to this person hold this permission now"
+for off-session approvers — for example pos-invoice's manager-override check, where the approver is not the authenticated caller. It resolves through the same
+effective-assignment resolver as token issuance and is not a request-authorization path.
 
-- `PrincipalRoleController`
-- `AuthorizationController`
+The string-keyed principal matrix — `PrincipalRoleController` (`assignPrincipalRole`), `AuthorizationController.getDecision` (`getAuthorizationDecision`), the
+`PrincipalRole` entity and the `principal_roles` table — is **retired** (ADR-0061 amendment 2026-09-09, extending §3; removal pending
+[#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) phase 4).
+It mapped an unvalidated principal string to roles that no user or assignment operation wrote, and nothing outside pos-security-service's own contract tests called
+it. Do not integrate against it. Service actors assert permissions directly through `X-Authorities`.
 
-These expose specialized or legacy RBAC-matrix style operations. They are not how ordinary API requests are authorized at runtime. Normal request authorization is:
+Normal request authorization is:
 
 1. token issuance in `pos-security-service`
 2. token validation and authority derivation in `pos-api-gateway`
@@ -311,7 +335,8 @@ scripts/generate-permissions.sh --sync --check
 
 #### Step 3: Assign roles
 
-Add the permission to `RoleAuthorityServiceImpl` for any roles that should receive it automatically at token issuance.
+Grant the permission to the roles that should carry it: in the `role_permissions` seed (`R__seed_role_permissions.sql`) for baseline roles, or through the
+role-permission admin API (`PUT /v1/roles/{roleId}/permissions/{permission}`) at runtime. Token issuance reads the persisted grants; there is no code table to edit.
 
 ---
 
@@ -358,7 +383,8 @@ This scans the updated source and adds the new permission string to the owning m
 
 #### Step 4: Assign roles
 
-Add the permission to `RoleAuthorityServiceImpl` for any roles that should receive it automatically at token issuance.
+Grant the permission to the roles that should carry it: in the `role_permissions` seed (`R__seed_role_permissions.sql`) for baseline roles, or through the
+role-permission admin API (`PUT /v1/roles/{roleId}/permissions/{permission}`) at runtime. Token issuance reads the persisted grants; there is no code table to edit.
 
 ---
 
@@ -371,7 +397,16 @@ Add the permission to `RoleAuthorityServiceImpl` for any roles that should recei
 
 ## Known Drift And Open Risks
 
-All four tracked items have been resolved. No open documentation drift remains.
+One item is open; the four earlier items are resolved.
+
+### Open
+
+5. **Three stores decide a user's roles, and only one is effective-dated**
+   ([#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914)). `role_assignments` (dated), `user_roles` (undated, written by every
+   provisioning path) and `principal_roles` (a matrix nothing else reads) are read by eight decision points in four different combinations. Decided by the ADR-0061
+   amendment of 2026-09-09: `role_assignments` only, one resolver behind every decision point, `principal_roles` retired, §4's token clamp and revocation applied to
+   role assignments. Implementation is phased: reads through one resolver, then the write store and `user_roles` migration, then token reach, then the principal
+   retirement. Sections above describe the decided model and mark what is pending.
 
 ### Resolved
 
@@ -381,13 +416,15 @@ All four tracked items have been resolved. No open documentation drift remains.
 3. ~~Some older docs described access tokens as carrying an `authorities` claim rather than `perm_bits` plus `perm_ver`.~~ Fixed: `AUTH_TOKEN_USAGE_GUIDE.md`,
    `permissions-encoding.md`, and `security-service-guide.md` now describe the `perm_bits`/`perm_ver` contract exclusively. The legacy `authorities` claim path in the gateway
    is documented as a read-only fallback for pre-migration tokens only.
-4. ~~Some older docs described the authorization model as fully data-driven.~~ Fixed: `security-service-guide.md` now explicitly states that token permissions are emitted from
-   `RoleAuthorityServiceImpl`, a hardcoded role expansion layer. The migration from hardcoded expansion to persisted `role_permissions` data has not yet begun and is tracked
-   separately.
+4. ~~Some older docs described the authorization model as fully data-driven.~~ Resolved the other way round: since
+   [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372) `RoleAuthorityServiceImpl` reads the persisted `role_permissions` table and the
+   hardcoded expansion is gone, so the model is data-driven and this document now says so.
 
 ## Related Documents
 
 - [API Security Architecture](./API_SECURITY_ARCHITECTURE.md)
 - [ADR-0040: Roles, JWT Claims, and Permission Governance Policy](../adr/0040-roles-jwt-permission-governance-policy.adr.md)
 - [ADR-0011: API Gateway Security Architecture](../adr/0011-api-gateway-security-architecture.adr.md)
+- [ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating](../adr/0061-location-scope-authorization-ownership.adr.md), including the
+  2026-09-09 amendment on the single store of a user's roles
 - `durion-positivity-backend/pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md`
