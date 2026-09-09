@@ -1,8 +1,30 @@
 # Foundation-First Tenant Cell Deployment Architecture
 
 Created: 2026-03-29
+Amended: 2026-09-09 ([ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) — pooled tenant cells)
 Status: Draft reference architecture
 Scope: Prototype launch foundation for Durion frontend and backend
+
+## Amendment (2026-09-09 — ADR-0062, pooled and dedicated tenant cells)
+
+[ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) (ACCEPTED 2026-09-09, superseding ADR-0023) changes the unit of tenant isolation in this document. The
+original text locked in "one isolated deployment per organization" and "deliberately avoids a shared multi-tenant
+database model". Both are withdrawn. What replaces them:
+
+- The **unit of isolation is the `tenant_id` column plus Postgres row-level security**, enforced on every
+  tenant-scoped table and mirrored by Hibernate `@TenantId`. Every service connects as one non-owner `pos_app` role
+  that cannot bypass RLS; the owner credential is used by Flyway only.
+- A **tenant cell hosts one or more tenants**. A *pooled* cell serves many customers from one runtime and one
+  Postgres instance; a *dedicated* cell serves one customer who needs physical isolation. Both run the same images
+  and the same release definition; tenancy is a data property, not a build property.
+- The **tenant registry** is the `pos-tenant` module (master `tenant` table plus the `account` that owns each
+  tenancy). Provisioning a tenant into a pooled cell is a row and an event, not an infrastructure action. Provisioning
+  a cell remains an infrastructure action and keeps its human approval.
+- **Per-tenant export** (logical, by `tenant_id`) is the offboarding and cloning unit. Per-cell `pg_dump` remains the
+  disaster-recovery unit for the whole cell.
+
+Sections below are edited in place where the original wording contradicted this; where a section is unchanged, read
+"tenant cell" as "pooled or dedicated tenant cell" and "tenant" as "a tenant row within a cell".
 
 ## Purpose
 
@@ -12,7 +34,7 @@ The goal is to support:
 
 - prototype launch with realistic end-to-end testing
 - durable persistent storage
-- tenant isolation by organization
+- tenant isolation by `tenant_id` and Postgres RLS inside a cell, with physical isolation by dedicated cell where a customer requires it
 - accelerated-clock simulation for realistic temporal data generation
 - a true CI/CD lifecycle with controlled promotion
 - growth from a single Docker host to a more managed AWS platform without re-architecting the product model
@@ -29,25 +51,31 @@ Because of that, the deployment target should be modeled as a repeatable tenant 
 
 ## Architectural Position
 
-Durion should be deployed as an **organization-isolated tenant cell**.
+Durion should be deployed as a **tenant cell**: a repeatable runtime unit that hosts one or more tenants.
 
-Each paying customer receives a dedicated runtime instance consisting of:
+Each cell consists of:
 
 - one frontend runtime
 - one API entry layer
-- a dedicated set of backend service containers
-- tenant-scoped persistent storage
-- tenant-scoped secrets and configuration
-- tenant-scoped observability identity
-- tenant-scoped backup and recovery boundary
+- one set of backend service containers
+- one Postgres instance holding the per-service databases, every tenant-scoped table carrying `tenant_id` under
+  row-level security (ADR-0062)
+- cell-scoped secrets and configuration
+- cell-scoped observability identity, with `tenant_id` as a mandatory signal dimension
+- cell-scoped backup and recovery boundary, with per-tenant logical export for offboarding and cloning
 
-This architecture deliberately avoids a shared multi-tenant database model.
+A **pooled cell** hosts many customers. A **dedicated cell** hosts one customer who needs physical isolation, and
+is the same cell definition with one tenant row. The shared-schema model is the default; a dedicated cell is a
+premium or regulatory option, not the only option. Isolation between tenants in a pooled cell is enforced by the
+database, not by the deployment boundary.
 
 ## Primary Design Principles
 
 1. **Tenant isolation first**
-   - The organization boundary is the core deployment boundary.
-   - Compute, configuration, secrets, and persistence must all be attributable to one tenant cell.
+   - The `tenant_id` column plus Postgres RLS is the isolation boundary inside a cell; the cell is the operational
+     boundary.
+   - Compute, configuration, secrets, and persistence must all be attributable to one cell; every business row,
+     event, log line, and trace must be attributable to one tenant.
 
 2. **Immutable application artifacts**
    - Frontend and backend services are built once into versioned artifacts and promoted across environments.
@@ -61,8 +89,9 @@ This architecture deliberately avoids a shared multi-tenant database model.
    - Accelerated time must be consistent across the tenant cell.
    - No service should have an independent view of simulated time.
 
-5. **Persistent state is tenant-scoped and recoverable**
-   - Every tenant cell must support backup, restore, migration tracking, and auditability.
+5. **Persistent state is tenant-attributable and recoverable**
+   - Every cell must support backup, restore, migration tracking, and auditability.
+   - Every tenant must be exportable from its cell without the other tenants' data.
 
 6. **Promotion beats direct deployment**
    - CI proves change quality.
@@ -93,7 +122,8 @@ The control plane may initially be lightweight, but it must exist conceptually f
 
 ### Layer 2: Tenant Cell
 
-A tenant cell is the smallest independently provisioned Durion runtime unit.
+A tenant cell is the smallest independently provisioned Durion runtime unit. It hosts one or more tenants; the
+tenant registry (`pos-tenant`) records which tenants live in which cell.
 
 Each cell contains:
 
@@ -102,8 +132,10 @@ Each cell contains:
 - required backend domain services
 - service discovery if still required by the platform design
 - eventing components required by the selected feature set
-- tenant database runtime and storage attachment, or tenant-dedicated managed data service endpoints
-- tenant-scoped observability metadata
+- the `pos-tenant` registry service alongside the domain services
+- one Postgres runtime (or managed data service endpoint) holding the per-service databases; tenant rows are
+  separated by `tenant_id` and RLS, not by database or schema
+- cell-scoped observability metadata carrying `tenant_id` on every signal
 
 Each cell has its own:
 
@@ -166,7 +198,7 @@ Durion should be modeled with at least the following logical environments:
    - should be close to production in topology and controls
 
 4. **Production tenant cells**
-   - one cell per paying customer
+   - pooled cells hosting many paying customers; dedicated cells for customers who require physical isolation
    - controlled promotion only
 
 Prototype cells should not be treated as disposable sandboxes if they are being used to uncover functional design holes through realistic workflows.
@@ -193,16 +225,26 @@ The target architecture should remain portable toward a managed AWS container ru
 
 ### Tenant Data Boundary
 
-A production organization must not share its primary database with other organizations.
+Tenants in a cell share the cell's Postgres instance and the per-service databases and schemas. Isolation between
+them is enforced by the database (ADR-0062):
 
-Recommended boundary:
+- every tenant-scoped table carries `tenant_id UUID NOT NULL`, has row-level security enabled and forced, and a
+  single `tenant_isolation` policy on `current_setting('app.current_tenant')`; with nothing bound a table reads as
+  empty and refuses inserts
+- every service connects as the one shared, non-owner `pos_app` role, which cannot bypass RLS; the owner credential
+  is used by Flyway only and never by an application datasource
+- Hibernate `@TenantId` on every scoped entity is the second, independent layer; ArchUnit and a per-module
+  schema-conformance test are the build gate
+- global reference data (vehicle reference, fitment, tax rates, the permission catalog, tenant replicas) is an
+  explicit per-module whitelist with no policy
+- there is no per-tenant database, schema, credential, or role; customers never hold a database credential
 
-- one tenant-specific Postgres instance or one tenant-dedicated Postgres service boundary
-- separate credentials per tenant
-- separate backup chain per tenant
-- separate migration tracking per tenant
+Per cell, not per tenant: credentials, the backup chain, and Flyway migration tracking. Per tenant: a logical export
+by `tenant_id` for offboarding and cloning, and attributable audit and telemetry.
 
-For the prototype phase, the main rule is not “use the perfect managed database immediately.” The rule is “do not normalize a shared-database production model that you already know you do not want.”
+A customer who requires physical isolation gets a dedicated cell: the same definition, one tenant row. The rule for
+the prototype phase is now the inverse of the original: do not build anything that assumes one database per
+customer, because the pooled cell is the production model.
 
 ### Storage Categories
 
@@ -227,7 +269,8 @@ The architecture should support:
 - point-in-time restore objectives appropriate to prototype operations
 - versioned schema migrations
 - seeded environment rebuilds
-- exportability for tenant offboarding or cloning
+- per-tenant logical export (by `tenant_id`, across every service database) for offboarding or cloning; per-cell
+  `pg_dump` for disaster recovery
 - explicit retention rules for simulated data
 
 ## Time Simulation Architecture
@@ -340,7 +383,8 @@ Each tenant cell deployment must emit observability signals with enough metadata
 
 Minimum required observability dimensions:
 
-- tenant identifier
+- tenant identifier (from the bound tenant context, never from a client-supplied value; MDC `tenantId`)
+- cell identifier
 - environment
 - service name
 - artifact version
@@ -362,7 +406,12 @@ No environment should rely on manually edited long-lived secrets on the host as 
 
 ## Provisioning and Lifecycle Model
 
-Each tenant cell should move through a standard lifecycle:
+Cells and tenants have separate lifecycles. A tenant's lifecycle (`PENDING` → `ACTIVE` ⇄ `SUSPENDED` →
+`DECOMMISSIONED`) is owned by `pos-tenant` and driven through its platform-admin API and `tenant.events.v1`;
+provisioning a tenant into a pooled cell creates a row, seeds the tenant's roles and initial administrator in
+`pos-security-service`, and lets each domain module seed its own defaults from the event. No infrastructure changes.
+
+Each cell should move through a standard lifecycle:
 
 1. **Provisioned**
    - infrastructure, secrets, storage, DNS, and baseline manifests created
@@ -403,24 +452,28 @@ Humans retain explicit approval at these boundaries:
 
 - production promotion
 - destructive schema or data operations
-- tenant provisioning and retirement
+- cell provisioning and retirement (tenant provisioning into a pooled cell is a platform-admin business action
+  with its own audit trail, not an infrastructure approval)
 - secret creation and rotation
 - clock mode changes in shared or business-visible environments
 - backup restore into an active environment
 
 ## Decisions This Architecture Locks In
 
-- Durion is a per-organization isolated deployment model.
+- Durion is a tenant-cell deployment model with pooled and dedicated cells built from the same images; tenancy is
+  a data property enforced by `tenant_id` and Postgres RLS (ADR-0062). The earlier "per-organization isolated
+  deployment model" and "deliberately avoids a shared multi-tenant database model" decisions are withdrawn.
 - The platform will be release-driven, not host-shell-driven.
 - Time simulation is part of the platform contract.
-- Persistent storage is tenant-scoped.
-- Prototype launch environments should resemble production cells structurally.
+- Persistent storage is cell-scoped and tenant-attributable; every tenant is exportable on its own.
+- Prototype launch environments should resemble production cells structurally: the alpha cell is rebuilt as a
+  pooled cell with at least two seeded tenants.
 
 ## Open Design Questions For The Next Document
 
 The follow-on phased plan should resolve:
 
-1. **RESOLVED — Alpha: tenant-dedicated Postgres container on host.** The alpha cell runs `postgres:16-alpine` as a Docker container with a named volume (`postgres-data`) attached to the host. Data persists outside container layers. Credentials are injected via environment variables. Port binding is restricted to `127.0.0.1:5432` to prevent external exposure. All backend services reach Postgres through the internal `pos-network` bridge only. Migration path to managed Postgres (RDS or equivalent) is a configuration-only change to `SPRING_DATASOURCE_URL` — no schema or application changes required. A backup policy must be defined before prototype-phase business data is written (see question 7).
+1. **RESOLVED — Alpha: cell-scoped Postgres container on host** *(label amended 2026-09-09; originally "tenant-dedicated", which the pooled-cell model above withdraws)*. The alpha cell runs `postgres:16-alpine` as a Docker container with a named volume (`postgres-data`) attached to the host. Data persists outside container layers. Credentials are injected via environment variables. Port binding is restricted to `127.0.0.1:5432` to prevent external exposure. All backend services reach Postgres through the internal `pos-network` bridge only. Migration path to managed Postgres (RDS or equivalent) is a configuration-only change to `SPRING_DATASOURCE_URL` — no schema or application changes required. A backup policy must be defined before prototype-phase business data is written (see question 7). *Amended 2026-09-09 (ADR-0062):* the application services connect as the non-owner `pos_app` role (`SPRING_DATASOURCE_*`); the `POSTGRES_USER` owner credential is injected for Flyway only (`SPRING_FLYWAY_*`). On managed Postgres there is no superuser, so seed migrations that write tenant-scoped rows bind `app.current_tenant` inside the migration transaction; the migration template does this from day one.
 2. **RESOLVED — Alpha: retain Eureka in the runtime cell.** "Simplified" would mean removing Eureka and replacing all `lb://SERVICE-NAME` gateway route URIs with static Docker Compose DNS URIs (`http://pos-service:8080`), relying on Compose-native hostname resolution instead of a service registry. This is viable on a single host because there is never more than one instance of each service to balance across. However, removal is deferred for alpha because: (1) it requires touching every service `application.yml` and all gateway routes simultaneously at high change cost; (2) Eureka provides health-aware deregistration — a crashed service stops receiving traffic before the Docker healthcheck removes it; (3) the existing `depends_on: condition: service_healthy` chain already serializes startup correctly. **Revisit for ECS migration**, where Eureka is genuinely redundant and AWS Cloud Map or ALB target-group health management replaces it at the platform level.
 3. **RESOLVED — Release definitions live in the `durion` repo under a dedicated deployment path.** `durion` is the master coordination project and is the natural control-plane source of truth for versioned tenant-cell release definitions. A release definition is a versioned manifest that pins one frontend image tag, one set of backend service image tags, environment configuration references, secret references, clock mode, and migration version expectations. Frontend and backend CI pipelines each publish a versioned image artifact; the release definition in `durion` composes those independent artifact versions into a single deployable unit. This keeps application repositories responsible for building and testing their own artifacts, while `durion` is responsible for assembly, promotion, and tenant-cell targeting. The existing `docs/architecture/deployment/manifests/` directory is the initial home for these definitions.
 4. **RESOLVED — Alpha production uses default UTC wall clock; shared clock authority is deferred to Phase 4.** The current state is:
@@ -469,7 +522,8 @@ The follow-on phased plan should resolve:
    - **Restore procedure**: manual operator step — stop the stack, drop and recreate the database, restore from the target dump file with `aws s3 cp ... | gunzip | psql`, restart the stack. No automated restore tooling required for prototype.
    - **Recovery objective**: best-effort. For a prototype cell running simulated scenarios, losing up to 24 hours of data is acceptable. No RTO/RPO SLA applies until a paying customer's data is at risk.
    - **Production policy**: formal RTO/RPO targets, point-in-time recovery, automated restore drills, and tenant offboarding exports are Phase 5 deliverables and are not defined here.
+   - *Amended 2026-09-09 (ADR-0062):* the per-cell `pg_dump` remains the disaster-recovery mechanism and now covers every tenant in a pooled cell at once. Offboarding, cloning, and single-tenant restore are a **per-tenant logical export** by `tenant_id` across all service databases (plan WS6); restoring one tenant from a cell dump is not a supported operation. Customers who need physical restore semantics take a dedicated cell.
 
 ## Summary
 
-The correct foundation for Durion is not a single shared application environment. It is a tenant-cell platform where each organization receives an isolated runtime bundle, isolated persistence, controlled time semantics, and a release lifecycle that can mature from one Docker host into a broader AWS operating model without changing the product's core deployment assumptions.
+The correct foundation for Durion is a tenant-cell platform: a repeatable runtime bundle with controlled time semantics and a release lifecycle that can mature from one Docker host into a broader AWS operating model without changing the product's core deployment assumptions. Within a cell, tenants are isolated by `tenant_id` and Postgres row-level security (ADR-0062); a pooled cell hosts many customers, a dedicated cell hosts one, and both are the same definition.

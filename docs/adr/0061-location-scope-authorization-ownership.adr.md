@@ -34,6 +34,25 @@ Two seeding defaults recorded as decisions rather than omissions: `MANAGER`, `SH
 `LOCATION_MANAGER` are `OTHER`; only `ACCOUNT_MANAGER`, `ACCOUNTANT`, `CONTROLLER` and
 `GENERAL_MANAGER` are `FINANCIAL`.
 
+### Amendment (2026-09-09 — tenant scope, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
+
+ADR-0062 makes roles tenant-scoped rows and every location a tenant-scoped row. Four consequences for this ADR;
+the decision table in §2 and the enforcement boundary in §3 are unchanged.
+
+1. **`location_scope` and `location_hierarchy` are attributes of a tenant's role row.** They are seeded from the
+   platform role template at tenant provisioning (the `FINANCIAL` / `OTHER` defaults recorded in the node-granularity
+   amendment are template values) and may be changed per tenant on custom roles; template roles keep their names
+   but a tenant may still re-point a template role's hierarchy dimension.
+2. **Location ids in `loc_scope` are tenant-scoped UUIDs.** `employee_location_assignment` and the location
+   hierarchy in pos-location carry `tenant_id`; the token issuer runs bound to the user's tenant, so a `loc_scope`
+   can only ever name that tenant's nodes.
+3. **Ancestor replicas are tenant-scoped, so a foreign id denies.** Each module's `ext_location` and
+   `ext_location_parent` replicas are tenant-scoped tables fed by tenant-tagged events (ADR-0044 amendment of the
+   same date). A location id from another tenant resolves to no ancestor sets under RLS and therefore denies, which
+   is the row the §2 table already specifies for "L unknown to the resolver".
+4. **`LocationAncestorResolver` needs no tenant parameter.** It reads the replica through the bound
+   `TenantContext`; the module's scope check stays exactly as written.
+
 ### Amendment (2026-09-09 — one store for a user's roles, closes [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914))
 
 §1 states that `role_assignments` keeps effective-dated user→role assignment. Confirming that
@@ -481,3 +500,4 @@ independently deployable and reversible.
 | 2026-09-07 | Accepted; node-granularity amendment recorded; implementation of the eleven backend sub-issues begun |
 | 2026-09-09 | [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) found two further role stores and undated person-decisions; one-store amendment recorded |
 | 2026-09-09 | One-store amendment implemented and merged in all four phases ([durion-positivity-backend#1916](https://github.com/louisburroughs/durion-positivity-backend/pull/1916)) |
+| 2026-09-09 | ADR-0062 accepted; tenant-scope amendment recorded (role attributes on tenant-scoped role rows, tenant-scoped location ids and replicas) |

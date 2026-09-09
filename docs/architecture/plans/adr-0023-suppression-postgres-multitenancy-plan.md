@@ -318,7 +318,7 @@ API Orchestrator workflow.
 
 | ID | Workstream | Repo | Effort (eng-weeks) | Depends on |
 | --- | --- | --- | --- | --- |
-| WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog | durion | 1 | none |
+| WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog. **Done 2026-09-09** (ADR-0062 accepted; every row of its "Amends" table applied) | durion | 1 | none |
 | WS1 | Tenancy platform core: `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`), shared `pos_app` role and grants, Flyway on the owner credential, generic RLS migration template, schema-conformance IT, ArchUnit rules | backend | 2 - 3 | WS0 |
 | WS2a | Registry: new `pos-tenant` module (account, contacts, billing profile, tenant, status machine, platform tenant bootstrap, `tenant.events.v1` producer, platform-admin API and OpenAPI, `/tenant/v1/**` route, module wiring in the reactor, Compose, and `init-databases.sql`) | backend | 1.5 - 2 | WS1 |
 | WS2b | Identity: `ext_tenant` consumer, `users.tenant_id`, per-tenant username uniqueness, tenant-scoped `roles`/`role_permissions`/`role_assignments` with the role template and provisioning handler, `tenant.provisioned` producer, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, `/v1/tenants/me` | backend | 2.5 - 3 | WS1, WS2a |
@@ -505,7 +505,7 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 
 ## Sequencing
 
-1. **WS0** ADR accepted; tenant-cell doc and ADR-0045 amended.
+1. **WS0** ADR accepted; tenant-cell doc and ADR-0045 amended. *Done 2026-09-09.*
 2. **WS1 + WS4** land together on a single pilot module (`pos-location` is small, has schedulers, listeners, and an
    outbox) to prove the whole path end to end, including the Testcontainers isolation IT.
 3. **WS2a** `pos-tenant`, then **WS2b** identity and gateway; from this point every request in the integration cell

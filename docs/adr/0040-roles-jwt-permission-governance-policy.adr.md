@@ -15,6 +15,23 @@ This ADR's permission model governs **synchronous API authorization only**. For 
 
 ---
 
+## Amendment (2026-09-09 — [ADR-0062](0062-postgres-row-level-multitenancy.adr.md), tenant-scoped roles and the `tid` claim)
+
+ADR-0062 §3 and §6 tighten three sections of this ADR. Nothing else changes.
+
+- **§1 Roles vs Permissions.** Roles are **tenant-scoped rows**: `roles`, `role_permissions`, and `role_assignments` carry `tenant_id`, and `roles.name` is unique per
+  `(tenant_id, name)`. A tenant's roles are provisioned from a platform role template (today's seed migrations, held as data in the platform tenant); template roles keep
+  `template_key NOT NULL` and reject rename and delete, because the frontend gates on role names (§6). A tenant may change a template role's permission grants and add
+  custom roles. The **permission catalog stays global**: code-first, versioned by `CATALOG_VERSION`, encoded into `perm_bits` exactly as today.
+- **§2 Access token.** `tid` (tenant id, UUID) is a **required** claim. `roles` carries the tenant's role names; `perm_bits`, `perm_ver`, and the ADR-0061 location-scope
+  claims derive from the tenant's rows and are unchanged in shape. The gateway injects `X-Tenant-Id` from `tid` and strips any inbound copy ([ADR-0011](0011-api-gateway-security-architecture.adr.md)).
+- **§3 Refresh token.** `tid` is added to the identity/lifecycle claims a refresh token may carry, so a refresh exchange cannot change tenant. It remains the only
+  authorization-adjacent value on a refresh token; `roles`, `perm_bits`, and `perm_ver` stay excluded.
+- **Platform operators** are users of the reserved platform tenant (ADR-0062 §7); `ROLE_PLATFORM_ADMIN` and the `platform:*` permission families exist only in that
+  tenant's template.
+
+---
+
 ## Context
 
 The platform currently uses two distinct authorization concepts:
@@ -60,6 +77,7 @@ Required access-token claims:
 
 - `iss`, `aud`, `sub`, `jti`, `iat`, `exp`
 - `uid` (stable user identifier)
+- `tid` (tenant identifier, UUID; required since the 2026-09-09 amendment, ADR-0062 §3)
 - `perm_bits` (Base64URL permission bitset)
 - `perm_ver` (permission catalog version)
 
@@ -84,7 +102,7 @@ Refresh tokens must **not** include:
 - `perm_bits`
 - `perm_ver`
 
-Refresh tokens may include only identity/lifecycle claims needed for refresh exchange (`sub`, `uid`, `type=refresh`, `jti`, `iat`, `exp`, plus issuer/audience claims).
+Refresh tokens may include only identity/lifecycle claims needed for refresh exchange (`sub`, `uid`, `tid`, `type=refresh`, `jti`, `iat`, `exp`, plus issuer/audience claims).
 
 ### 4. Authorities Claim Policy
 
@@ -215,3 +233,4 @@ See [Authorization Model](../architecture/AUTHORIZATION_MODEL.md) for the curren
 ## Timeline
 
 - **Proposed**: 2026-04-12
+- **Amended**: 2026-07-08 (ADR-0044, event channel), 2026-09-09 (ADR-0062, tenant-scoped roles and `tid`)

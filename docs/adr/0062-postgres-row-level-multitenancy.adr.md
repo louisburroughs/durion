@@ -229,9 +229,9 @@ ids, expect only 404s) runs in CI against the integration cell.
 
 ### Amends
 
-These documents change as follows. ADR-0023 and its checklist are updated in the same change that accepted this
-ADR; the remaining rows are the first task of WS0 in the plan and are tracked on
-[louisburroughs/durion#438](https://github.com/louisburroughs/durion/issues/438):
+These documents change as follows. ADR-0023 and its checklist were updated in the change that accepted this ADR;
+every other row was applied on 2026-09-09 as plan WS0 (each amended document carries a dated amendment block
+pointing back here):
 
 | Document | Change |
 | --- | --- |
@@ -392,3 +392,4 @@ ADR; the remaining rows are the first task of WS0 in the plan and are tracked on
   new `pos-tenant` module that also owns the `account`, contacts, and billing profile of the customer owning each
   tenancy; the existing `organizationId` fields are recorded as a remnant (§4); alternatives 6 and 8 added.
 - **2026-09-09:** Accepted. ADR-0023 marked SUPERSEDED BY ADR-0062; its removal checklist closed.
+- **2026-09-09:** WS0 applied: every row of the "Amends" table carries its amendment.

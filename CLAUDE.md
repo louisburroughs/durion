@@ -66,8 +66,8 @@ Details: `durion-positivity-backend/docs/DEVELOPMENT_GUIDE.md` → "Generating O
 
 Before writing or modifying code, identify applicable ADRs in `docs/adr/` and confirm the approach aligns with `ACCEPTED` status records.
 
-Minimum for backend work: ADR-0011, ADR-0013, ADR-0014, ADR-0017, ADR-0018, ADR-0023, ADR-0024, ADR-0026, ADR-0027. Minimum for frontend work: ADR-0010, ADR-0029, ADR-0030,
-ADR-0031, ADR-0032, ADR-0033, ADR-0034, ADR-0035, ADR-0037, ADR-0038.
+Minimum for backend work: ADR-0011, ADR-0013, ADR-0014, ADR-0017, ADR-0018, ADR-0024, ADR-0026, ADR-0027, ADR-0062. Minimum for frontend work: ADR-0010, ADR-0029, ADR-0030,
+ADR-0031, ADR-0032, ADR-0033, ADR-0034, ADR-0035, ADR-0037, ADR-0038, ADR-0062.
 
 ---
 

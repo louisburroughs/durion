@@ -82,5 +82,8 @@
 
 ## MISC
 
-- tenantId: Deprecated multi-tenant convention; not implemented in the current platform.
-- organizationId: Explicit organization-scope identifier when organization scoping is required.
+- tenantId: The isolation boundary of the platform (ADR-0062). Every tenant-scoped row carries `tenant_id`, enforced by Postgres row-level security and mirrored by Hibernate `@TenantId`; it reaches a service only through the validated JWT `tid` claim and the gateway-injected `X-Tenant-Id` header. Registry: `pos-tenant`.
+- tenant: A row in the `pos-tenant` registry (`id`, `slug`, `display_name`, `status`) hosted in a pooled or dedicated tenant cell. Never a database, schema, or role.
+- account: The customer of Durion that owns one or more tenancies (`pos-tenant`: `account`, `account_contact`, `billing_profile`). Never called an "organization".
+- platform tenant: The reserved tenant (slug `platform`) whose users are platform operators; the only tenant whose role template carries `ROLE_PLATFORM_ADMIN`.
+- organizationId: Remnant of an earlier model with no owning aggregate (accounting GL mapping defaults, a customer-module address replica, a location parent type). Not tenancy, not account; do not introduce new uses (ADR-0062 §4). Removal is separate cleanup.

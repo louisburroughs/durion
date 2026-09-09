@@ -1,11 +1,13 @@
 # ADR-0011: API Gateway Security Architecture
 
-**Status:** ACCEPTED **Date:** 2026-02-01 **Last Updated:** 2026-03-17 **Deciders:** Backend Architecture, Security Team **Affected Issues:** Cross-service authentication and
+**Status:** ACCEPTED **Date:** 2026-02-01 **Last Updated:** 2026-09-09 **Deciders:** Backend Architecture, Security Team **Affected Issues:** Cross-service authentication and
 authorization
 
 ---
 
-## Amendment
+## Amendments
+
+### 2026-03-17 — Claim contract superseded by ADR-0040
 
 This ADR still records the gateway ownership decision, but it is no longer the live claim-contract reference.
 
@@ -13,6 +15,21 @@ This ADR still records the gateway ownership decision, but it is no longer the l
   [Authorization Model](../architecture/AUTHORIZATION_MODEL.md).
 - Current runtime behavior uses `perm_bits` plus `perm_ver` as the primary authority payload, with a temporary legacy `authorities` fallback in gateway code for older tokens.
 - Read this ADR for trust-boundary and ownership intent, not for the exact access-token field contract.
+
+### 2026-09-09 — Tenant headers ([ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
+
+The gateway is also the tenant-context boundary:
+
+- **Injected downstream:** `X-Tenant-Id`, taken only from the validated access token's `tid` claim (required since
+  the ADR-0040 amendment of the same date). On the login route only, `X-Tenant-Slug` derived from the `Host`
+  header, so `pos-security-service` can resolve the tenant before the credential check.
+- **Stripped inbound:** `X-Tenant-Id` and `X-Tenant-Slug` join `X-User`, `X-User-Id`, `X-Authorities`, `X-Roles`,
+  `X-Perm-Bits`, `X-Perm-Ver`, and the `X-Loc-*` headers in `GatewayAuthProperties.stripInboundIdentityHeaders`
+  and in `GatewaySecurityConstants`. A client can never name a tenant.
+- **Downstream contract:** `GatewayAuthoritiesFilter` binds the request's `TenantContext` from `X-Tenant-Id`; a
+  `/v1/**` request without it is a 401 in the standard error envelope, never an unscoped query.
+- **Claim list (§2):** `tid` is required. The `organizationId` optional claim is removed; it was a remnant (ADR-0062
+  §4) and was never issued.
 
 **2026-07-08 — [ADR-0044](0044-platform-event-only-domain-walls.adr.md):** the gateway trust model in this ADR governs **synchronous/client traffic only**. Module-to-module communication now flows over the asynchronous Kafka channel, which is governed by the trust model in ADR-0044 §5: internal-only broker, producer identity via `sourceService` (plus broker ACLs where supported), and an `actor` field that is audit metadata only — never an authorization input. Token and header semantics for synchronous traffic are unchanged.
 
@@ -91,13 +108,13 @@ Claims:
 - exp: <expiration timestamp>
 - iat: <issued-at timestamp>
 - jti: <unique token identifier>
-- authorities: [list of canonical authority strings]
+- tid: <tenant identifier, UUID>            (required since 2026-09-09, ADR-0062)
+- authorities: [list of canonical authority strings]   (superseded by perm_bits/perm_ver, see Amendment above)
 
 Optional (as needed):
 - roles
 - locationId / storeId
 - sessionId
-- organizationId
 ```
 
 ### 3. Role and Permission Management Boundary
@@ -121,7 +138,8 @@ Rules:
 4. Perform replay/revocation checks where configured
 5. Resolve canonical authorities from token (and mapped policy rules if configured)
 6. Create authenticated principal in gateway security context
-7. Forward authenticated request with security headers/context to downstream service
+7. Forward authenticated request with security headers/context to downstream service, including `X-Tenant-Id`
+   from `tid` (2026-09-09 amendment)
 
 Gateway consumer requests should consistently use:
 
@@ -261,3 +279,4 @@ modules.
 - **Proposed**: 2026-02-01
 - **Accepted**: 2026-02-01
 - **Updated**: 2026-03-17
+- **Amended**: 2026-09-09 (tenant headers, ADR-0062)

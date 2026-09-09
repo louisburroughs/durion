@@ -22,7 +22,7 @@
 * [0020-documents-centralized-creation](0020-documents-centralized-creation.md) - Pointer concept for the canonical ADR
 * [0021-tax-api-consumption-and-internal-access-policy](0021-tax-api-consumption-and-internal-access-policy.md) - Pointer concept for the canonical ADR
 * [0022-audit-stable-person-identifier-claim-policy](0022-audit-stable-person-identifier-claim-policy.md) - Pointer concept for the canonical ADR
-* [0023-remove-tenantid-single-organization-context](0023-remove-tenantid-single-organization-context.md) - Pointer concept for the canonical ADR
+* [0023-remove-tenantid-single-organization-context](0023-remove-tenantid-single-organization-context.md) - Pointer concept for the canonical ADR (superseded by 0062)
 * [0024-entity-createdat-updatedat-population-policy](0024-entity-createdat-updatedat-population-policy.md) - Pointer concept for the canonical ADR
 * [0025-permissions-yaml-registration-policy](0025-permissions-yaml-registration-policy.md) - Pointer concept for the canonical ADR
 * [0026-service-contract-boundary-policy](0026-service-contract-boundary-policy.md) - Pointer concept for the canonical ADR
@@ -54,4 +54,5 @@
 * [0052-supplier-outbound-idempotency-duplicate-order-prevention](0052-supplier-outbound-idempotency-duplicate-order-prevention.md) - Pointer concept for the canonical ADR
 * [0053-supplier-pricat-ingestion-and-price-precedence](0053-supplier-pricat-ingestion-and-price-precedence.md) - Pointer concept for the canonical ADR
 * [0054-sell-price-system-of-record-split](0054-sell-price-system-of-record-split.md) - Pointer concept for the canonical ADR
+* [0062-postgres-row-level-multitenancy](0062-postgres-row-level-multitenancy.md) - Pointer concept for the canonical ADR (supersedes 0023)
 * [TEMPLATE](TEMPLATE.md) - Pointer concept for the canonical ADR
