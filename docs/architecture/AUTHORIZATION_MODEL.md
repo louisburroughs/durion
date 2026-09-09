@@ -21,6 +21,8 @@ Code is the final authority when this document and older docs disagree. The runt
 - `pos-security-service/.../JwtServiceImpl`
 - `pos-security-service/.../RoleAuthorityServiceImpl`
 - `pos-security-service/.../RoleManagementServiceImpl`
+- `pos-security-service/.../EffectiveGrantResolverImpl`
+- `pos-security-service/.../UserRoleGrantServiceImpl`
 - `pos-security-service/.../UserServiceImpl`
 - `pos-security-service/.../CustomUserDetailsService`
 - `pos-api-gateway/.../SecurityGatewayConfig`
@@ -38,9 +40,12 @@ Code is the final authority when this document and older docs disagree. The runt
 - **Authority**: the Spring Security string checked by downstream `@PreAuthorize` rules. In current services this is usually the plain permission string, not a role.
 - **`perm_bits`**: Base64URL-encoded permission bitset stored in access tokens.
 - **`perm_ver`**: integer permission-catalog version used when decoding `perm_bits`.
-- **`X-Perm-Bits`**: compact Base64URL-encoded permission bitset forwarded by the gateway to downstream services. Replaces the verbose `X-Authorities` CSV for gateway-to-service traffic. Decoded by `GatewayAuthoritiesFilter` using `DownstreamPermissionCatalog`.
-- **`X-Perm-Ver`**: integer permission-catalog version accompanying `X-Perm-Bits`. Must equal `DownstreamPermissionCatalog.CATALOG_VERSION` for the filter to use the compact decode path.
-- **`X-Authorities`**: legacy/fallback comma-separated authority header. Still used by service-to-service REST clients (which inject 1–3 plain permission strings) and integration tests. Recognised by `GatewayAuthoritiesFilter` as a fallback when `X-Perm-Bits` is absent. Not the primary gateway-to-service forwarding mechanism.
+- **`X-Perm-Bits`**: compact Base64URL-encoded permission bitset forwarded by the gateway to downstream services. Replaces the verbose `X-Authorities` CSV for
+  gateway-to-service traffic. Decoded by `GatewayAuthoritiesFilter` using `DownstreamPermissionCatalog`.
+- **`X-Perm-Ver`**: integer permission-catalog version accompanying `X-Perm-Bits`. Must equal `DownstreamPermissionCatalog.CATALOG_VERSION` for the filter to use the compact
+  decode path.
+- **`X-Authorities`**: legacy/fallback comma-separated authority header. Still used by service-to-service REST clients (which inject 1–3 plain permission strings) and
+  integration tests. Recognised by `GatewayAuthoritiesFilter` as a fallback when `X-Perm-Bits` is absent. Not the primary gateway-to-service forwarding mechanism.
 - **`X-Roles`**: trusted comma-separated normalized role header injected by the gateway after token validation.
 
 ## High-Level Flow
@@ -109,15 +114,17 @@ The old token pair is revoked as part of refresh.
 
 ### Role-assignment change
 
-Decided by the ADR-0061 amendment of 2026-09-09 (§4 applied to role assignments); **pending
-[#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) phase 3**:
+Decided by the ADR-0061 amendment of 2026-09-09 (§4 applied to role assignments) and implemented in
+[durion-positivity-backend#1916](https://github.com/louisburroughs/durion-positivity-backend/pull/1916):
 
 - access-token `exp` is clamped to `min(now + 3600s, earliest effective_end_date among the role assignments contributing to the token)`, extending the clamp
   `JwtServiceImpl` already applies for location reach
 - revoking a role assignment revokes the holder's live tokens through `TokenRevocationManager` and the `jwt_token` table, per `jti`
 
-Until that lands, a revoked assignment stops contributing at the next token issuance, not before: the gateway and downstream services trust `perm_bits` for the
-remainder of the access token's lifetime.
+Revocation reaches the token layer through a `RoleAssignmentRevokedEvent` handled after the revoking transaction commits
+(`RoleAssignmentTokenRevocationListener`), so a rolled-back revocation never revokes a token and a committed one always does. The internal token-pair endpoint,
+which takes client-supplied roles, gets no assignment clamp. Redis unavailability keeps `TokenRevocationManager`'s existing behaviour: the cache fails open, the
+`jwt_token` row is still deleted, so the bearer path refuses the token.
 
 ### Validate
 
@@ -187,11 +194,11 @@ it carries, and every decision point goes through it:
 Only the resolver may call the effective-assignment query (an ArchUnit rule), and an agreement test asserts the permission set from each decision point is identical
 for the same user and instant.
 
-**Current state — pending [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) phases 1 and 2.** Today
-`UserServiceImpl.resolveEffectiveRoleNames(...)` and `CustomUserDetailsService` merge `user.roles`
-(the undated `user_roles` join table) with the effective assignments, `authorizePerson` reads `user.roles` alone, and `userHasPermission` / `getUserPermissions`
-read `role_assignments` alone. `user_roles` is retired: existing rows migrate to open-ended assignments and every provisioning path (`createUser`, bulk ingest,
-self-registration, `PUT /v1/users/{username}/roles` as a reconcile) writes assignments. See [Known Drift](#known-drift-and-open-risks) item 5.
+Implemented in [durion-positivity-backend#1916](https://github.com/louisburroughs/durion-positivity-backend/pull/1916): `EffectiveGrantResolver` is the
+one resolver, `EffectiveGrantAgreementIT` is the agreement test, and the module's `ArchitectureTest` carries the rule. The undated `user_roles` join table
+was migrated into open-ended assignments and dropped by `V40`; every provisioning path (`createUser`, bulk ingest, self-registration, the operational seed,
+`PUT /v1/users/{username}/roles` as a reconcile, `assignUserRole`) writes assignments through `UserRoleGrantService`, and `assignUserRole` is idempotent on an
+already-effective pair.
 
 ### Step 2: roles are expanded to authorities
 
@@ -238,8 +245,10 @@ issuance is not supposed to rely on this.
 Important behavior:
 
 - it uses a two-path authority resolution with explicit precedence:
-  1. **Preferred path**: if both `X-Perm-Bits` and `X-Perm-Ver` are present and `X-Perm-Ver` equals `DownstreamPermissionCatalog.CATALOG_VERSION`, the filter decodes the bitset using `DownstreamPermissionCatalog` to recover authorities.
-  2. **Fallback path**: if `X-Perm-Bits` is absent, the filter falls back to parsing the `X-Authorities` CSV. This covers service-to-service REST clients and integration tests that inject plain permission strings directly.
+  1. **Preferred path**: if both `X-Perm-Bits` and `X-Perm-Ver` are present and `X-Perm-Ver` equals `DownstreamPermissionCatalog.CATALOG_VERSION`, the filter decodes the
+     bitset using `DownstreamPermissionCatalog` to recover authorities.
+  2. **Fallback path**: if `X-Perm-Bits` is absent, the filter falls back to parsing the `X-Authorities` CSV. This covers service-to-service REST clients and integration
+     tests that inject plain permission strings directly.
 - it trusts `X-Roles` and `X-User` from the gateway in both paths
 - it parses the bearer token payload to recover `uid`
 - each `PERM_<code>` authority decoded from the bitset is expanded into both:
@@ -279,10 +288,10 @@ for off-session approvers — for example pos-invoice's manager-override check, 
 effective-assignment resolver as token issuance and is not a request-authorization path.
 
 The string-keyed principal matrix — `PrincipalRoleController` (`assignPrincipalRole`), `AuthorizationController.getDecision` (`getAuthorizationDecision`), the
-`PrincipalRole` entity and the `principal_roles` table — is **retired** (ADR-0061 amendment 2026-09-09, extending §3; removal pending
-[#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) phase 4).
-It mapped an unvalidated principal string to roles that no user or assignment operation wrote, and nothing outside pos-security-service's own contract tests called
-it. Do not integrate against it. Service actors assert permissions directly through `X-Authorities`.
+`PrincipalRole` entity and the `principal_roles` table — was **removed** in
+[durion-positivity-backend#1916](https://github.com/louisburroughs/durion-positivity-backend/pull/1916) (ADR-0061 amendment 2026-09-09, extending §3; `V41`
+dropped the table). It mapped an unvalidated principal string to roles that no user or assignment operation wrote, and nothing outside
+pos-security-service's own contract tests called it. Service actors assert permissions directly through `X-Authorities`.
 
 Normal request authorization is:
 
@@ -397,16 +406,7 @@ role-permission admin API (`PUT /v1/roles/{roleId}/permissions/{permission}`) at
 
 ## Known Drift And Open Risks
 
-One item is open; the four earlier items are resolved.
-
-### Open
-
-5. **Three stores decide a user's roles, and only one is effective-dated**
-   ([#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914)). `role_assignments` (dated), `user_roles` (undated, written by every
-   provisioning path) and `principal_roles` (a matrix nothing else reads) are read by eight decision points in four different combinations. Decided by the ADR-0061
-   amendment of 2026-09-09: `role_assignments` only, one resolver behind every decision point, `principal_roles` retired, §4's token clamp and revocation applied to
-   role assignments. Implementation is phased: reads through one resolver, then the write store and `user_roles` migration, then token reach, then the principal
-   retirement. Sections above describe the decided model and mark what is pending.
+All five tracked items have been resolved. No open documentation drift remains.
 
 ### Resolved
 
@@ -419,6 +419,11 @@ One item is open; the four earlier items are resolved.
 4. ~~Some older docs described the authorization model as fully data-driven.~~ Resolved the other way round: since
    [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372) `RoleAuthorityServiceImpl` reads the persisted `role_permissions` table and the
    hardcoded expansion is gone, so the model is data-driven and this document now says so.
+5. ~~Three stores decided a user's roles, and only one was effective-dated~~
+   ([#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914)). `role_assignments` (dated), `user_roles` (undated, written by every
+   provisioning path) and `principal_roles` (a matrix nothing else read) were read by eight decision points in four different combinations. Fixed by the ADR-0061
+   amendment of 2026-09-09 and [durion-positivity-backend#1916](https://github.com/louisburroughs/durion-positivity-backend/pull/1916):
+   `role_assignments` only, one resolver behind every decision point, `principal_roles` removed, §4's token clamp and revocation applied to role assignments.
 
 ## Related Documents
 

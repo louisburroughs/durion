@@ -16,7 +16,7 @@ Sources used:
 | `pos-security-service` | `users` | At least one active user is needed for authenticated access. |
 | `pos-security-service` | `roles` | Authorization model depends on roles; defaults are auto-initialized, but roles must exist. |
 | `pos-security-service` | `permissions` | Token authorization (`perm_bits`) depends on registered permissions. |
-| `pos-security-service` | `role_assignments` | Users need an effective-dated role assignment to receive permission bits. `user_roles` and `principal_roles` are retired (ADR-0061 amendment 2026-09-09); until `durion-positivity-backend#1914` phase 2 lands, the operational seed still writes `user_roles` and issuance unions it. |
+| `pos-security-service` | `role_assignments` | Users need an effective-dated role assignment to receive permission bits. `user_roles` and `principal_roles` were retired and dropped (ADR-0061 amendment 2026-09-09, `durion-positivity-backend#1916`); the operational seed writes `role_assignments`. |
 | `pos-event-receiver` | `event_type` | Event emitters register against this catalog at startup; event telemetry/audit flows rely on valid event types. |
 | `pos-accounting` | `override_policy_threshold` | Price override authorization fails when no active policy exists for role. |
 | `pos-accounting` | `refund_policy_config` | Refund authorization expects an active policy. |
