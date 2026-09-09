@@ -1,13 +1,13 @@
 ---
 title: 'ADR-0062: Postgres Row-Level Multitenancy'
 created: 2026-09-09
-status: proposed
+status: ACCEPTED
 supersedes: ADR-0023
 ---
 
 ## ADR-0062: Postgres Row-Level Multitenancy
 
-**Status:** PROPOSED
+**Status:** ACCEPTED
 **Date:** 2026-09-09
 **Deciders:** Chief Architect, Security & Authorization Domain, Platform Engineering, Domain Leads
 **Affected Issues:** [louisburroughs/durion#438](https://github.com/louisburroughs/durion/issues/438) (epic)
