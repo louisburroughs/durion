@@ -87,7 +87,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0020   | Centralized Document Creation                                                | ACCEPTED              | 2026-02-19 |
 | 0021   | Tax API Consumption and Internal Access                                      | ACCEPTED              | 2026-02-21 |
 | 0022   | Audit Stable Person Identifier Claim Policy                                  | ACCEPTED              | 2026-02-21 |
-| 0023   | Remove tenantId / Single-Organization Context                                | ACCEPTED              | 2026-02-21 |
+| 0023   | Remove tenantId / Single-Organization Context                                | SUPERSEDED BY 0062    | 2026-02-21 |
 | 0024   | Entity createdAt/updatedAt Population Policy                                 | ACCEPTED              | 2026-02-23 |
 | 0025   | Permissions YAML Registration Policy                                         | ACCEPTED              | 2026-02-26 |
 | 0026   | Service Contract Boundary Policy                                             | ACCEPTED              | 2026-02-26 |
@@ -122,10 +122,11 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0055   | Per-Product Inventory Quantity Divisibility                                  | ACCEPTED              | 2026-08-20 |
 | 0056   | Platform Global Exception Handling and Persistence Error Mapping             | ACCEPTED              | 2026-08-23 |
 | 0057   | Analytics Money-Measure Semantics and Ownership                              | ACCEPTED              | 2026-09-01 |
-| 0058   | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)        | PROPOSED              | 2026-09-01 |
-| 0059   | Labor-Time Naming and Service Operation Taxonomy                             | PROPOSED              | 2026-09-01 |
+| 0058   | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)        | ACCEPTED              | 2026-09-01 |
+| 0059   | Labor-Time Naming and Service Operation Taxonomy                             | ACCEPTED              | 2026-09-01 |
 | 0060   | Catalog Enrichment Matching and Review (pos-catalog Tread Designs)           | ACCEPTED              | 2026-09-06 |
 | 0061   | Location Scope Authorization: Ownership, Token Shape, Effective Dating       | ACCEPTED              | 2026-09-07 |
+| 0062   | Postgres Row-Level Multitenancy (supersedes 0023)                            | ACCEPTED              | 2026-09-09 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -155,7 +156,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0020 | Document creation ownership and service boundaries                                                                                                                                                                                                                                                  | Planner, Coder, Test, Orchestrator |
 | 0021 | Tax API integration boundaries and internal access policy                                                                                                                                                                                                                                           | Coder, Test, Planner, Orchestrator |
 | 0022 | Stable person identifier claims in audit/event payloads                                                                                                                                                                                                                                             | Coder, Test, Planner               |
-| 0023 | tenantId removal and single-org assumptions across contracts/data                                                                                                                                                                                                                                   | Coder, Test, Planner, Orchestrator |
+| 0023 | Superseded by 0062; historical only. Do not apply single-org assumptions to new work                                                                                                                                                                                                                                   | Coder, Test, Planner, Orchestrator |
 | 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control                                                                                                                                                                                                                     | Coder, Test, Planner               |
 | 0025 | Permission registration source-of-truth, `permissions.yaml` schema, and rollout                                                                                                                                                                                                                     | Coder, Test, Planner, Orchestrator |
 | 0026 | Service interface-only public API boundary and internal implementation encapsulation                                                                                                                                                                                                                | Coder, Test, Planner, Orchestrator |
@@ -194,6 +195,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0059 | Naming around technician time: three-record taxonomy (time on task / attendance time entry / estimated service time), `work_session` never reused for estimates, `operation_code` shape and vendor-code mapping direction, decimal-hours-in-tenths unit, append-only permission bits                                             | Planner, Coder, Test, Orchestrator |
 | 0060 | Vendor tread-design (MKCAT) enrichment matching or review: confidence tiers and brand gate over the trigram score, YAML-config brand aliases, ambiguity parking, MANUAL-attachment stickiness, REJECTED re-entry on content-hash change, widened worklist plus candidates/resolve contract          | Planner, Coder, Test, Orchestrator |
 | 0061 | Location scope authorization: role-level `location_scope` (ALL/LOCATION) and `location_hierarchy` (FINANCIAL/OTHER), node assignment covering descendants at check time, additive `loc_fin_bits`/`loc_oth_bits`/`loc_scope` claims with no `CATALOG_VERSION` bump, owning-service enforcement, `exp` clamped to assignment expiry | Planner, Coder, Test, Orchestrator |
+| 0062 | Multitenancy: `tenant_id` discriminator + Postgres RLS (authoritative) with Hibernate `@TenantId` as defense in depth, single `pos_app` role, `tid` claim and `X-Tenant-Id`, `@TenantGlobal` whitelist, tenant-scoped roles from a platform template, reserved platform tenant, new `pos-tenant` module owning the master tenant table and the owning `account` (contacts, billing), per-tenant or `@PlatformScoped` jobs, composite `(tenant_id, id)` foreign keys, Testcontainers for every DB test | Planner, Coder, Test, Orchestrator |
 
 ### Agent role shorthand
 

@@ -1,8 +1,24 @@
-# ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
+---
+title: 'ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan'
+created: 2026-09-07
+updated: 2026-09-09
+status: active
+---
 
-**Version:** 0.2 **Status:** Proposed **Last Updated:** 2026-09-07
-**Related:** ADR-0023 Remove `tenantId` (to be superseded), ADR-0011, ADR-0013, ADR-0024, ADR-0040, ADR-0044, ADR-0045,
+## ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
+
+**Version:** 0.3 **Status:** Active (ADR-0062 accepted 2026-09-09) **Last Updated:** 2026-09-09
+**Related:** [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) (proposed, supersedes ADR-0023),
+ADR-0023 Remove `tenantId` (to be superseded), ADR-0011, ADR-0013, ADR-0024, ADR-0040, ADR-0044, ADR-0045, ADR-0061,
 Foundation-First Tenant Cell Deployment Architecture
+
+**v0.3 (2026-09-09):** the tenant registry moves to a new `pos-tenant` module that also owns the `account`
+(contacts, billing profile) behind each tenancy, with `pos-security-service` as a consumer; WS2 splits into WS2a and
+WS2b; the owning customer is an `account`, never an "organization". Also corrections from a verification pass against Hibernate 7.4.5 and the current code: superseding
+ADR renumbered to ADR-0062 (0061 was taken the same day by location scope), RLS policy cast fixed, superuser-owner and
+managed-Postgres note, verified `@TenantId` semantics, `X-Tenant-*` added to the gateway strip list, composite foreign
+keys made the default, Spring cache scoping, **roles are tenant-scoped** (decision taken 2026-09-09), and the footprint
+re-measured.
 
 ---
 
@@ -43,8 +59,10 @@ The recommended resolution is not to discard the tenant-cell architecture but to
   security (RLS). Dedicated cells then become a premium/regulatory option instead of the only option.
 
 This must be recorded as a new ADR that supersedes ADR-0023 and amends the tenant-cell document and ADR-0045.
-A draft decision outline is in the appendix. Nothing in the workstreams below should start before that ADR is ACCEPTED,
-because the choice between pooled and dedicated cells changes the operations, backup, and provisioning work.
+That ADR is [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md), ACCEPTED 2026-09-09; Appendix A keeps
+the outline it was written from. WS0 (amending the tenant-cell document, ADR-0045, and the other rows of ADR-0062's
+"Amends" table) is now the first task, because the choice between pooled and dedicated cells changes the operations,
+backup, and provisioning work.
 
 ---
 
@@ -52,6 +70,12 @@ because the choice between pooled and dedicated cells changes the operations, ba
 
 Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positivity-frontend`, and
 `durion-positivity-sdk-angular` on their default branches.
+
+**Re-measured 2026-09-09** (same method where the method is stated; two days of merges): `@Entity` classes 474 to 493,
+`@KafkaListener` methods 108 to 116, `@Scheduled` methods 62 to 67, Flyway migrations 394 to 415, files with native
+`@Query` or `JdbcTemplate` 19 to 21, and 51 `@Modifying` bulk JPQL statements (not counted in v0.2; see "Hibernate"
+under Enforcement layers). The footprint grows by roughly one small module's worth every few days, so the WS3 figures
+below are a floor: re-measure at WS3 kickoff and re-baseline the per-module class table.
 
 ### Backend persistence footprint
 
@@ -67,14 +91,16 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
 | `CREATE SEQUENCE`/`nextval` | 7 | Human-readable numbering (order, invoice, workorder numbers, 136 files reference them) is mostly application-side and must become per-tenant |
 | TimescaleDB hypertable | 1 (`pos-event-receiver`) | Hypertables support RLS but need `tenant_id` in the partitioning design |
 | Database role | All 26 databases owned by the `POSTGRES_USER` superuser | Superusers and table owners bypass RLS; a non-owner application role is a prerequisite |
+| Spring cache users | `pos-customer` (`CacheConfig`), `pos-catalog` (`@Cacheable` in `ProductDetailServiceImpl`), Redis in gateway and security-service (token revocation) | Cache keys must carry the tenant or a cached row leaks across tenants |
 
 ### Backend runtime and integration footprint
 
 | Measure | Value | Why it matters |
 | --- | --- | --- |
-| Gateway-injected headers | `X-User`, `X-User-Id`, `X-Roles`, `X-Perm-Bits`, `X-Perm-Ver` (`GatewaySecurityConstants`) | Add `X-Tenant-Id`, sourced only from the validated JWT |
+| Gateway-injected headers | `X-User`, `X-User-Id`, `X-Roles`, `X-Perm-Bits`, `X-Perm-Ver`, `X-Loc-Fin-Bits`, `X-Loc-Oth-Bits`, `X-Loc-Scope` (`GatewaySecurityConstants`, ADR-0061) | Add `X-Tenant-Id`, sourced only from the validated JWT, to both the inject list and the `stripInboundIdentityHeaders` list in `GatewayAuthProperties` |
 | Access-token claims | `sub`, `uid`, `username`, `roles`, `perm_bits`, `perm_ver`, optional `person_id` (`JwtServiceImpl`) | Add `tid`; refresh token also carries `tid` |
 | `users.username` | globally `UNIQUE` (`pos-security-service` V1) | Becomes unique per tenant; login must resolve the tenant before the credential check |
+| `roles` / `role_permissions` / `role_assignments` | `roles.name` globally `UNIQUE`; seeded by V3, V8, V24 and `R__seed_reference_security.sql`; `role_assignments` is the only store of a user's roles since the ADR-0061 amendment of 2026-09-09 | Roles become tenant-scoped rows (decision below); the seed migrations become a per-tenant role template applied at provisioning; the `permissions` catalog stays global |
 | Domain event envelope | `DomainEventEnvelope` record, no tenant field | Add a required `tenantId`; also emit it as a Kafka header |
 | `@KafkaListener` methods | 108 across 17 modules | One record interceptor binds tenant context before every listener; individual listeners need no edits unless they open their own transactions oddly |
 | Outbox implementations | 18 modules | Outbox rows carry `tenant_id`; the poller is a platform-scoped (cross-tenant) job |
@@ -114,6 +140,9 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
 | Isolation strategy | **Shared database, shared schema, `tenant_id` discriminator column on every tenant-scoped table, enforced by Postgres RLS and mirrored by Hibernate's `@TenantId` filter** |
 | Tenant identifier | `tenant_id UUID NOT NULL` (UUID v7 per ADR-0013); a human `slug` lives only on the tenant registry row |
 | Relationship to `organizationId` | Unchanged from ADR-0023 §2: `organizationId` remains an in-tenant business concept (see accounting's "NULL means global default" GL mappings). Tenant is the isolation and billing boundary. Never conflate them |
+| Owning customer | An **`account`** in the new `pos-tenant` module (ADR-0062 §7): legal name, contacts, billing profile; one account may own several tenants. The word "organization" is not used for tenancy; the existing in-tenant `organizationId` fields are a remnant with no owner and are left for separate cleanup |
+| Roles | **Tenant-scoped.** `roles`, `role_permissions`, and `role_assignments` carry `tenant_id`; `roles.name` is unique per `(tenant_id, name)`. The `permissions` catalog (code-first, `perm_bits` bitset, `CATALOG_VERSION`) stays global. Provisioning applies a platform role template (today's seed migrations) to the new tenant; the canonical seeded role names (`ROLE_ADMIN`, `ROLE_CONTROLLER`, ...) are immutable per tenant because the frontend gates on them (ADR-0040 §6), and a tenant may add custom roles beyond the template |
+| Platform operators | Users of one reserved **platform tenant** (slug `platform`, bootstrapped by a `pos-tenant` migration under a constant id published by `pos-tenancy-common`). `ROLE_PLATFORM_ADMIN` exists only in that tenant's template. `pos-tenant`'s rows all belong to the platform tenant, so its endpoints work under normal RLS binding; there is no unbound or root session |
 | Where tenant context comes from | The validated JWT only. Never from a request body, query parameter, or client-supplied header (keeps DECISION-INVENTORY-008) |
 | Database credentials | One shared `pos_app` role for all 26 databases, no superuser, no `BYPASSRLS`, no ownership; the owner credential is used by Flyway only. No per-tenant or per-service roles; customers never hold a database credential |
 | Global (non-tenant) data | Explicitly whitelisted per module with a `@TenantGlobal` marker and no RLS policy: vehicle reference data (NHTSA, CarAPI), fitment, tax rate tables, the permission catalog, Flyway history, tenant replicas |
@@ -131,8 +160,13 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
 ### Enforcement layers
 
 1. **Database (authoritative).** Every tenant-scoped table has `tenant_id UUID NOT NULL`, `ENABLE ROW LEVEL SECURITY`,
-   `FORCE ROW LEVEL SECURITY`, and a policy `USING (tenant_id = current_setting('app.current_tenant', true)::uuid)
-   WITH CHECK (same)`. With no setting bound the predicate is NULL and the table reads as empty: fail closed.
+   `FORCE ROW LEVEL SECURITY`, and a policy
+   `USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid) WITH CHECK (same)`.
+   With no setting bound the predicate is NULL and the table reads as empty: fail closed. The `NULLIF` matters:
+   `current_setting(..., true)` returns `''`, not NULL, for a setting that was set and later cleared with
+   `set_config(name, '', ...)`, and `''::uuid` raises a cast error instead of hiding rows. Connections are therefore
+   returned with `RESET app.current_tenant`, and the policy tolerates `''` anyway. `current_setting` is `STABLE`, so
+   the planner evaluates it once per query and keeps using the `(tenant_id, ...)` indexes.
 2. **Database roles.** One shared application role, `pos_app`, is created once for the Postgres instance (roles are
    cluster-wide) and granted `CONNECT` on all 26 databases plus DML on every table and sequence, with
    `ALTER DEFAULT PRIVILEGES` so tables created by later migrations inherit the grants. `pos_app` is not a superuser,
@@ -140,6 +174,12 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
    ownership and is used only by Flyway (`spring.flyway.user`), never by the application datasource. There is no
    per-tenant and no per-service database credential, and no runtime role that can bypass RLS. Customers never
    receive a database credential of any kind; tenants exist only as rows.
+   Two consequences of the owner being a superuser today: `FORCE ROW LEVEL SECURITY` has no effect on it (superusers
+   always bypass RLS), so Flyway seed migrations that insert scoped rows keep working on Compose and the alpha host
+   without binding a tenant. On managed Postgres (RDS, Cloud SQL) there is no superuser, `FORCE` then applies to the
+   owner too, and every seed migration that writes a scoped table must bind `app.current_tenant` per tenant first.
+   The migration template does this from day one (`SELECT set_config('app.current_tenant', :tenant, true)` inside
+   the migration transaction) so the alpha host and a managed host behave the same.
 3. **Connection binding.** A `TenantAwareDataSource` wrapper in a new `pos-tenancy-common` library runs
    `SELECT set_config('app.current_tenant', ?, false)` on checkout and `RESET app.current_tenant` on return.
    Session-level (not `SET LOCAL`) is chosen because services connect to Postgres directly today. If PgBouncer
@@ -154,6 +194,20 @@ Figures are from a fresh checkout of `durion-positivity-backend`, `durion-positi
    `CurrentTenantIdentifierResolver` reads `TenantContext`. Hibernate then appends `tenant_id = ?` to derived and
    JPQL queries and rejects inserts whose tenant does not match the bound context. This is defense in depth and also
    what makes H2-based unit tests see *some* tenancy behaviour.
+   Verified against the shipped `hibernate-core` 7.4.5.Final (Spring Boot 4.1.1) on 2026-09-09:
+   - `TenantIdBinder` registers the `_tenantId` filter with `applyToLoadByKey = true`, so `find()`,
+     `getReferenceById()` and lazy loads by id are tenant-filtered too (715 such call sites today). Older Hibernate
+     left load-by-key unfiltered; that gap is closed.
+   - The SQM converter attaches the filter restriction to bulk HQL `update` and `delete` statements as well
+     (51 `@Modifying` queries today). RLS still owns the final word.
+   - The filter is **not** `autoEnabled`; the session enables it when a resolver is registered and
+     `resolver.isRoot(tenant)` is false. `isRoot` is a Hibernate-level bypass and is never implemented on Durion:
+     RLS would still hide the rows and the two layers would disagree. The resolver returns `false` unconditionally,
+     and an ArchUnit rule pins that.
+   - `spring-boot-hibernate` 4.1.1 does not auto-register a `CurrentTenantIdentifierResolver` bean, so the
+     `HibernatePropertiesCustomizer` shown below is required, not optional.
+   - Hibernate forces the `@TenantId` property non-updatable and non-optional at boot, so Lombok `@Builder` and
+     `@AllArgsConstructor` on subclasses need no change; the scripted retrofit stays mechanical.
 5. **Build.** ArchUnit rules in `pos-archunit`: every `@Entity` either extends `TenantScopedEntity` or is annotated
    `@TenantGlobal`; no `nativeQuery = true` on a tenant-scoped entity's repository without a `@TenantAudited`
    annotation and a reviewer note. A schema-conformance IT per module asserts every non-whitelisted table has the
@@ -177,6 +231,7 @@ public class TenantContextIdentifierResolver
         implements CurrentTenantIdentifierResolver<UUID>, HibernatePropertiesCustomizer {
     public UUID resolveCurrentTenantIdentifier() { return TenantContext.require(); }
     public boolean validateExistingCurrentSessions() { return true; }
+    public boolean isRoot(UUID tenantId) { return false; }   // never a Hibernate-level bypass; RLS would disagree
     public void customize(Map<String, Object> props) {
         props.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER, this);
     }
@@ -219,13 +274,29 @@ Every one of the 62 `@Scheduled` methods is classified as one of:
 
 ### Tenant registry and propagation
 
-- `pos-security-service` owns the `tenant` aggregate (`id`, `slug`, `display_name`, `status`, timestamps) and
-  platform-admin endpoints under `/v1/platform/tenants` guarded by a new `platform:tenant:*` permission family.
-- It emits `tenant.created` / `tenant.updated` / `tenant.suspended` on `security.events.v1`.
-- Every module keeps an `ext_tenant` replica (global table) fed by those events, consistent with ADR-0044's
-  event-only domain walls. Modules never call security synchronously to resolve tenants.
-- Provisioning a tenant seeds per-tenant defaults (roles assignments, chart of accounts, GL mapping defaults) by
-  event-driven handlers in each owning module, not by cross-domain writes.
+- A new **`pos-tenant`** module (package `com.positivity.tenant`, database `pos_tenant_db`, Eureka `TENANT`,
+  gateway route `/tenant/v1/**`, built on the `pos-location` skeleton) owns the master `tenant` table (`id`, `slug`,
+  `display_name`, `status`, `account_id`, cell or region, lifecycle timestamps) and the customer that owns each
+  tenancy: `account`, `account_contact` (`OWNER` / `BILLING` / `TECHNICAL`), and `billing_profile` (billing address,
+  payment terms, invoicing email, payment-processor token; never a card number). One account may own several
+  tenants. Plans and subscriptions attach to `tenant` later.
+- `pos-tenant` runs inside the platform tenant: every row carries the platform tenant's id, so RLS protects account,
+  contact, and billing data like any other table. Platform-admin endpoints (`/v1/platform/tenants`,
+  `/v1/platform/accounts`) are guarded by the `platform:tenant:*` and `platform:account:*` permission families,
+  which exist only in the platform tenant's role template.
+- It emits `tenant.created`, `tenant.provisioned`, `tenant.updated`, `tenant.suspended`, `tenant.reactivated`, and
+  `tenant.decommissioned` on `tenant.events.v1`, carrying the public projection only (`id`, `slug`, `display_name`,
+  `status`). Status machine: `PENDING` → `ACTIVE` (on `tenant.provisioned` from security-service) ⇄ `SUSPENDED`,
+  `DECOMMISSIONED` terminal. Login for a tenant that is not `ACTIVE` returns the bad-credentials 401.
+- Every module keeps an `ext_tenant` replica (global table) of that projection, consistent with ADR-0044's
+  event-only domain walls. Modules never call `pos-tenant` synchronously to resolve tenants; `pos-security-service`
+  serves `GET /v1/tenants/me` and login slug resolution from its replica.
+- Provisioning is a `pos-security-service` handler of `tenant.created` that runs under
+  `TenantContext.runAs(newTenantId)`: it applies the role template (the roles, their permissions, persona fields and
+  ADR-0061 location-scope attributes), creates the initial administrator user named in the create request, writes
+  the first `role_assignments` row, and emits `tenant.provisioned`. Other modules seed their per-tenant defaults
+  (chart of accounts, GL mapping defaults) from the same `tenant.created` event, inside their own domain, not by
+  cross-domain writes. Every handler is idempotent on tenant id.
 
 ### Performance notes for high volume
 
@@ -249,15 +320,16 @@ API Orchestrator workflow.
 | --- | --- | --- | --- | --- |
 | WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog | durion | 1 | none |
 | WS1 | Tenancy platform core: `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`), shared `pos_app` role and grants, Flyway on the owner credential, generic RLS migration template, schema-conformance IT, ArchUnit rules | backend | 2 - 3 | WS0 |
-| WS2 | Identity: tenant aggregate and registry, `users.tenant_id`, per-tenant username uniqueness, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, tenant events and `ext_tenant` replica handler, platform-admin API and OpenAPI | backend | 2 - 3 | WS1 |
-| WS3 | Per-module retrofit x 26: table classification (scoped vs global), tenancy migration, unique-constraint rewrite, composite indexes, entity superclass retrofit (scripted), native/`JdbcTemplate` query audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 14 - 18 | WS1, WS2 |
+| WS2a | Registry: new `pos-tenant` module (account, contacts, billing profile, tenant, status machine, platform tenant bootstrap, `tenant.events.v1` producer, platform-admin API and OpenAPI, `/tenant/v1/**` route, module wiring in the reactor, Compose, and `init-databases.sql`) | backend | 1.5 - 2 | WS1 |
+| WS2b | Identity: `ext_tenant` consumer, `users.tenant_id`, per-tenant username uniqueness, tenant-scoped `roles`/`role_permissions`/`role_assignments` with the role template and provisioning handler, `tenant.provisioned` producer, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, `/v1/tenants/me` | backend | 2.5 - 3 | WS1, WS2a |
+| WS3 | Per-module retrofit x 27 (`pos-tenant` is born scoped): table classification (scoped vs global), tenancy migration, unique-constraint rewrite, composite indexes, entity superclass retrofit (scripted), native/`JdbcTemplate` query audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 14 - 18 | WS1, WS2 |
 | WS4 | Async platform: envelope `tenantId`, Kafka header, consumer `RecordInterceptor`, outbox as a global table with `tenant_id` data, producer signature change (31 sites) | backend | 1 - 2 | WS1 |
 | WS5 | Test infrastructure: move the 25 H2-tested modules' database tests to Testcontainers Postgres; CI runner Docker availability; shared `TenantTestSupport` fixture | backend | 2 - 3 | WS1, overlaps WS3 |
 | WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping, per-tenant export tooling for offboarding (replaces per-cell `pg_dump`), Compose/alpha runbook role changes | backend, durion | 2 - 3 | WS1 |
-| WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` | frontend, sdk | 2 - 3 | WS2 |
-| WS8 | Seed and bulk load: alpha seed data tenant-tagged, `pos-bulk-loader` tenant-aware, provisioning defaults per module, documentation | backend, durion | 1 - 2 | WS2, WS3 |
+| WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant and account pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` and generate `sdk-tenant` | frontend, sdk | 2 - 3 | WS2a, WS2b |
+| WS8 | Seed and bulk load: alpha seed data tenant-tagged, `pos-bulk-loader` tenant-aware, provisioning defaults per module, documentation | backend, durion | 1 - 2 | WS2b, WS3 |
 
-**Total: roughly 27 - 38 engineer-weeks; about 30 is the planning figure.** With three backend engineers, one frontend
+**Total: roughly 29 - 40 engineer-weeks; about 32 is the planning figure.** With three backend engineers, one frontend
 engineer, and agent-run module waves, that is on the order of 10 - 12 calendar weeks, dominated by WS3.
 
 ### How WS3 is sized
@@ -301,8 +373,13 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 
 - Tenant-scoped table: `tenant_id UUID NOT NULL`, RLS enabled and forced, one policy named `tenant_isolation`,
   composite index `(tenant_id, <existing leading column>)` where a hot query exists, unique constraints re-scoped to
-  include `tenant_id`, foreign keys between tenant-scoped tables optionally widened to `(tenant_id, id)` where the
-  domain wants referential isolation, not only read isolation.
+  include `tenant_id`, and foreign keys between two tenant-scoped tables widened to `(tenant_id, id)` **by default**.
+  Foreign-key checks run with the owner's privileges and bypass RLS, so a single-column FK can be satisfied by another
+  tenant's row; the composite key is what makes the reference itself tenant-safe. Each scoped table therefore also
+  carries `UNIQUE (tenant_id, id)` as the FK target. Hibernate maps the association with `@JoinColumns` on
+  `(tenant_id, <fk>)`, with the `tenant_id` join column `insertable = false, updatable = false`; the retrofit script
+  emits this for every `@ManyToOne`/`@OneToOne` whose target extends `TenantScopedEntity`. A single-column FK stays
+  only where the target is `@TenantGlobal`.
 - Global table: listed in the module's `tenancy-global-tables.txt`, annotated `@TenantGlobal` on the entity, no
   `tenant_id`, no policy. The schema-conformance IT reads that file.
 - Migration shape: one new `V<next>__tenancy.sql` per module generated from a shared template that iterates
@@ -317,17 +394,24 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 
 ### R-B3 Identity and gateway
 
-- `tenant` table and `Tenant` entity in `pos-security-service`; `users.tenant_id NOT NULL`;
-  `UNIQUE (tenant_id, username)`; `jwt_token.tenant_id`.
+- `ext_tenant` replica in `pos-security-service` fed by `tenant.events.v1` (the master `tenant` table lives in
+  `pos-tenant`); `users.tenant_id NOT NULL`; `UNIQUE (tenant_id, username)`; `jwt_token.tenant_id`.
+- Roles are tenant-scoped: `roles.tenant_id NOT NULL`, `UNIQUE (tenant_id, name)`; `role_permissions` and
+  `role_assignments` carry `tenant_id` and composite foreign keys to `roles (tenant_id, id)`; `permissions` stays a
+  global table. The existing seed migrations (V3, V8, V24, `R__seed_reference_security.sql`) are rewritten into a
+  role-template table in the platform tenant plus the provisioning handler above; the canonical seeded role names are
+  read-only per tenant, custom roles are not. The `roles` claim and `perm_bits` derivation are unchanged in shape.
 - Login resolves the tenant from, in order: the gateway-supplied `X-Tenant-Slug` derived from the `Host` header, or
   an optional `tenantSlug` on `LoginRequest`. Unknown slug returns the same 401 as bad credentials.
 - Access and refresh tokens carry `tid`. ADR-0040's claim contract gains `tid` as required.
-- Gateway: strip inbound `X-Tenant-Id`/`X-Tenant-Slug`, inject `X-Tenant-Id` from `tid`, and add `X-Tenant-Slug`
-  only for the `/auth/login` route. `GatewayAuthoritiesFilter` binds `TenantContext` from `X-Tenant-Id`.
-- Platform-admin endpoints (`/v1/platform/tenants`) with a `platform:tenant:{create,read,update,suspend}` permission
-  family registered per ADR-0025 and added to the permission bitset catalog (version bump, fleet-coordinated).
-- Tenant events on `security.events.v1`; consumer handler template for the `ext_tenant` replica shipped in
-  `pos-tenancy-common`.
+- Gateway: add `X-Tenant-Id` and `X-Tenant-Slug` to the six headers `GatewayAuthProperties.stripInboundIdentityHeaders`
+  already strips, inject `X-Tenant-Id` from `tid`, and add `X-Tenant-Slug` only for the `/auth/login` route.
+  `GatewaySecurityConstants` gains both names. `GatewayAuthoritiesFilter` binds `TenantContext` from `X-Tenant-Id`.
+- Platform-admin endpoints in `pos-tenant` (`/v1/platform/tenants`, `/v1/platform/accounts`) with the
+  `platform:tenant:{create,read,update,suspend,reactivate}` and `platform:account:{create,read,update}` permission
+  families registered per ADR-0025 and added to the permission bitset catalog (version bump, fleet-coordinated).
+- Tenant events on `tenant.events.v1` from `pos-tenant`; `tenant.provisioned` from `pos-security-service` on the
+  same topic; consumer handler template for the `ext_tenant` replica shipped in `pos-tenancy-common`.
 
 ### R-B4 Events and jobs
 
@@ -351,6 +435,10 @@ superclass retrofit are what keep the small modules at days rather than weeks.
   context, never from the request.
 - `pos-mcp-server` conversations, tool traces, and any cached LLM context are tenant-scoped rows; agent tools receive
   the bound tenant and cannot be asked to switch.
+- Spring cache: every `@Cacheable`/`@CacheEvict` key is prefixed with the bound tenant through a shared
+  `TenantKeyGenerator` in `pos-tenancy-common`; `pos-customer`'s `CacheConfig` and `pos-catalog`'s
+  `ProductDetailServiceImpl` are the two users today. Gateway and security-service Redis token-revocation keys are
+  already keyed by token id and need no change.
 - MDC key `tenantId` on every log line; OpenTelemetry resource attribute on spans; bounded tenant label on metrics.
 
 ### R-B7 Tests and verification gates
@@ -380,8 +468,8 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 ### R-F2 Auth state
 
 - `JwtClaims` gains `tid: string` (required for new tokens; optional in the type only until the SDK is regenerated).
-- `AuthService` exposes `currentTenantId` and, after a `GET /v1/tenants/me` call via `@durion-sdk/security`, a
-  `currentTenant` signal with `slug` and `displayName`.
+- `AuthService` exposes `currentTenantId` and, after a `GET /v1/tenants/me` call via `@durion-sdk/security` (served
+  from security-service's `ext_tenant` replica), a `currentTenant` signal with `slug` and `displayName`.
 - On login, if the stored token's `tid` differs from the new one, clear all `localStorage`/`sessionStorage` keys
   the app owns before storing the new pair. Cached roles are keyed per tenant.
 - The mock-auth token includes a fixed `tid` so `mockAuth: true` still exercises tenant-aware code paths.
@@ -389,9 +477,10 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 ### R-F3 UI surfaces
 
 - Shell header shows the tenant display name next to the user; no switcher in v1.
-- New platform-admin feature area under `/app/admin/tenants` (list, create, suspend, detail), gated by
-  `ROLE_PLATFORM_ADMIN` via `rolesChildGuard`, following the four-file page layout and the two-signal state
-  machine (`state` + `errorKey`, ADR-0031, ADR-0033).
+- New platform-admin feature area under `/app/admin/tenants` (list, create, suspend, reactivate, detail) and
+  `/app/admin/accounts` (list, create, detail with contacts and billing profile), gated by `ROLE_PLATFORM_ADMIN` via
+  `rolesChildGuard`, following the four-file page layout and the two-signal state machine (`state` + `errorKey`,
+  ADR-0031, ADR-0033). These pages consume `@durion-sdk/tenant`.
 - No domain page ever sends a tenant identifier. The two existing `organizationId` usages (CRM integration events,
   accounting ingestion submit) stay as they are; they are organization scoping, not tenancy.
 
@@ -406,9 +495,11 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 
 ### R-F5 SDK
 
-- `@durion-sdk/security` regenerates with `LoginRequest.tenantSlug?`, `TenantResponse`, `TenantCreateRequest`, and the
-  platform tenant API service. The other 24 packages regenerate with no shape change. Run `API Artifacts Sync` once
-  the backend branch is pushed; the frontend consumes only generated SDK types (ADR-0041).
+- `@durion-sdk/security` regenerates with `LoginRequest.tenantSlug?` and `TenantMeResponse`. A new
+  `@durion-sdk/tenant` package is generated from `pos-tenant` (`TenantResponse`, `TenantCreateRequest`,
+  `AccountResponse`, `AccountCreateRequest`, contacts, billing profile, the platform tenant and account API services).
+  The other packages regenerate with no shape change. Run `API Artifacts Sync` once the backend branch is pushed; the
+  frontend consumes only generated SDK types (ADR-0041).
 
 ---
 
@@ -417,10 +508,11 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 1. **WS0** ADR accepted; tenant-cell doc and ADR-0045 amended.
 2. **WS1 + WS4** land together on a single pilot module (`pos-location` is small, has schedulers, listeners, and an
    outbox) to prove the whole path end to end, including the Testcontainers isolation IT.
-3. **WS2** identity and gateway; from this point every request in the integration cell is tenant-bound.
+3. **WS2a** `pos-tenant`, then **WS2b** identity and gateway; from this point every request in the integration cell
+   is tenant-bound.
 4. **WS3 + WS5** module waves, largest first, using the pilot as the exemplar. Each wave: classify, migrate, retrofit,
    audit queries, classify schedulers, convert tests, prove isolation, regenerate OpenAPI where DTOs changed.
-5. **WS7** frontend and SDK can start as soon as WS2's OpenAPI is published; it does not wait for WS3.
+5. **WS7** frontend and SDK can start as soon as WS2a's and WS2b's OpenAPI is published; it does not wait for WS3.
 6. **WS6 + WS8** operations, storage, seed, and docs close the loop; the alpha cell is rebuilt as a pooled cell with
    two seeded tenants, and the cross-tenant smoke test runs in CI against it.
 
@@ -441,6 +533,8 @@ returns only 404s.
 | Scheduler runs unscoped and reads nothing (fail closed) | Silent no-op jobs | Mandatory classification enforced by ArchUnit; platform-scoped jobs are listed in module READMEs; a metric counts rows processed per job so a permanently-zero job is visible |
 | Kafka consumer processes an event without binding context | Writes rejected by RLS `WITH CHECK`, event lands in DLQ | Interceptor is auto-configured; envelope `tenantId` is non-null so producers cannot omit it |
 | Table classification mistakes (scoped data marked global) | Data shared across tenants | Classification is a reviewed artifact per module; default is scoped, global needs a justification line |
+| A tenant renames or deletes a seeded role | Frontend role gating (ADR-0040 §6) and `ROLE_*` checks break for that tenant | Seeded role names are read-only per tenant (`roles.template_key NOT NULL` rows reject rename/delete); custom roles are unrestricted |
+| Cached rows keyed without the tenant | Cross-tenant read through the cache while every database test passes | `TenantKeyGenerator` is the only key generator; an ArchUnit rule forbids `@Cacheable` without it |
 | Session-level `set_config` versus a future PgBouncer | Context leaks across pooled transactions | Documented constraint; switch to `SET LOCAL` with mandatory transactions before adopting PgBouncer |
 | Permission catalog version bump for `platform:tenant:*` | Fleet-coordinated deploy, same trap as `CATALOG_VERSION` 41 to 42 (issue #389) | Sequence gateway, security-service, and consumers in one release definition |
 | Per-tenant backup/restore is no longer a `pg_dump` | Offboarding and point-in-time restore for one tenant need tooling | WS6 delivers a logical per-tenant export; dedicated cells remain available for customers who need physical restore |
@@ -449,8 +543,12 @@ returns only 404s.
 
 ## Appendix A: Draft Outline for the Superseding ADR
 
+The full draft is [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md). The outline below is what it was
+written from; the number changed from 0061 to 0062 because ADR-0061 (location scope authorization) was accepted the
+same day this plan was written.
+
 ```text
-ADR-0061: Postgres Row-Level Multitenancy (supersedes ADR-0023)
+ADR-0062: Postgres Row-Level Multitenancy (supersedes ADR-0023)
 
 Status: PROPOSED
 Context: ADR-0023 removed tenantId because the platform did not implement tenancy. The platform must now host many
@@ -464,6 +562,11 @@ Decision:
   3. Context source: the validated JWT `tid` claim only; gateway injects X-Tenant-Id; clients never supply it.
   4. Naming: tenantId and organizationId remain distinct (ADR-0023 §2 carried forward).
   5. Global data: explicit per-module whitelist annotated @TenantGlobal.
+  5a. Roles are tenant-scoped rows provisioned from a platform template; the permissions catalog stays global;
+      platform operators are users of a reserved platform tenant.
+  5b. A new pos-tenant module owns the master tenant table and the account (contacts, billing profile) that owns
+      each tenancy; security-service consumes tenant.events.v1. The owning customer is an account, never an
+      "organization"; existing organizationId fields are a remnant.
   6. Async: tenantId is a required envelope field and Kafka header; consumers bind before processing.
   7. Jobs: per-tenant by default; @PlatformScoped jobs run unbound and may touch only global tables. No runtime
      path bypasses RLS.
@@ -490,11 +593,12 @@ Consequences: breaking contract change (no bridge, alpha); all DB tests on Postg
 
 ## Appendix C: Documents To Update When the ADR Is Accepted
 
-- `docs/adr/0023-remove-tenantid-single-organization-context.adr.md` (Status: SUPERSEDED by ADR-0061)
+- `docs/adr/0023-remove-tenantid-single-organization-context.adr.md` (Status: SUPERSEDED by ADR-0062)
 - `docs/adr/0023-tenantid-removal-checklist.md` (Status: CLOSED, superseded)
 - `docs/architecture/deployment/FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md`
 - `docs/adr/0045-autonomous-environment-lifecycle-management.adr.md`
-- `docs/adr/0011-api-gateway-security-architecture.adr.md`, `docs/adr/0040-roles-jwt-permission-governance-policy.adr.md`
+- `docs/adr/0011-api-gateway-security-architecture.adr.md`, `docs/adr/0040-roles-jwt-permission-governance-policy.adr.md`,
+  `docs/adr/0061-location-scope-authorization-ownership.adr.md` (role attributes live on tenant-scoped role rows)
 - `docs/architecture/API_SECURITY_ARCHITECTURE.md`, `docs/architecture/AUTHORIZATION_MODEL.md`
 - `.ai/GLOSSARY.md`, `domains/security/security-questions.md`, `knowledge-catalog/adr/index.md`
 - `durion-positivity-backend/AGENTS.md`, `durion-positivity-frontend/AGENTS.md`, and `CLAUDE.md` ADR minimum lists
