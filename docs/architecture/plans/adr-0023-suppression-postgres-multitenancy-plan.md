@@ -322,7 +322,7 @@ API Orchestrator workflow.
 | WS1 | Tenancy platform core: `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`), shared `pos_app` role and grants, Flyway on the owner credential, generic RLS migration template, schema-conformance IT, ArchUnit rules | backend | 2 - 3 | WS0 |
 | WS2a | Registry: new `pos-tenant` module (account, contacts, billing profile, tenant, status machine, platform tenant bootstrap, `tenant.events.v1` producer, platform-admin API and OpenAPI, `/tenant/v1/**` route, module wiring in the reactor, Compose, and `init-databases.sql`) | backend | 1.5 - 2 | WS1 |
 | WS2b | Identity: `ext_tenant` consumer, `users.tenant_id`, per-tenant username uniqueness, tenant-scoped `roles`/`role_permissions`/`role_assignments` with the role template and provisioning handler, `tenant.provisioned` producer, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, `/v1/tenants/me` | backend | 2.5 - 3 | WS1, WS2a |
-| WS3 | Per-module retrofit x 27 (`pos-tenant` is born scoped): table classification (scoped vs global), tenancy migration, unique-constraint rewrite, composite indexes, entity superclass retrofit (scripted), native/`JdbcTemplate` query audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 14 - 18 | WS1, WS2 |
+| WS3 | Per-module retrofit x 27 (`pos-tenant` is born scoped): ~~table classification (scoped vs global), tenancy migration, unique-constraint rewrite, composite indexes~~ **done 2026-09-09 for all 25 persisting modules by the baseline flatten** (`V1__baseline_<module>.sql` carries `tenant_id`, RLS, scoped uniques and composite keys; `tenancy-global-tables.txt` per module; `durion-positivity-backend/docs/TENANCY_SCHEMA.md`); remaining: entity superclass retrofit (scripted), native/`JdbcTemplate` query audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 8 - 11 (was 14 - 18) | WS1, WS2 |
 | WS4 | Async platform: envelope `tenantId`, Kafka header, consumer `RecordInterceptor`, outbox as a global table with `tenant_id` data, producer signature change (31 sites) | backend | 1 - 2 | WS1 |
 | WS5 | Test infrastructure: move the 25 H2-tested modules' database tests to Testcontainers Postgres; CI runner Docker availability; shared `TenantTestSupport` fixture | backend | 2 - 3 | WS1, overlaps WS3 |
 | WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping, per-tenant export tooling for offboarding (replaces per-cell `pg_dump`), Compose/alpha runbook role changes | backend, durion | 2 - 3 | WS1 |
@@ -578,8 +578,8 @@ Consequences: breaking contract change (no bridge, alpha); all DB tests on Postg
 
 ## Appendix B: Per-Module Wave Checklist (WS3)
 
-- [ ] Classify every table: scoped (default) or global (justified line in `tenancy-global-tables.txt`).
-- [ ] Generate `V<next>__tenancy.sql` from the template; add hand-written unique-constraint and index rewrites.
+- [x] Classify every table: scoped (default) or global (justified line in `tenancy-global-tables.txt`). *Done for every module by the 2026-09-09 flatten; re-check when a table is added.*
+- [x] ~~Generate `V<next>__tenancy.sql` from the template; add hand-written unique-constraint and index rewrites.~~ *The flattened `V1__baseline_<module>.sql` already carries the tenancy schema, so there is no per-module tenancy migration; a new table follows `docs/TENANCY_SCHEMA.md` in the baseline itself.*
 - [ ] Retrofit entities: scoped entities extend `TenantScopedEntity`; global entities carry `@TenantGlobal`.
 - [ ] Audit native `@Query` and `JdbcTemplate` usage; annotate `@TenantAudited` with a one-line reason.
 - [ ] Replace shared counters or sequences used for business numbering with per-tenant counters.
