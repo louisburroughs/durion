@@ -359,6 +359,7 @@ On acceptance, these documents change as follows:
   [Foundation-First Tenant Cell Deployment Architecture](../architecture/deployment/FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md)
 - **External Resources:** [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/16/ddl-rowsecurity.html),
   [Hibernate ORM 7 User Guide: Multitenancy](https://docs.jboss.org/hibernate/orm/7.0/userguide/html_single/Hibernate_User_Guide.html#multitenacy)
+  (the `#multitenacy` fragment is the guide's own anchor id, spelled that way upstream; do not "correct" it)
 
 ---
 

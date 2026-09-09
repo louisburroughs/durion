@@ -1,4 +1,10 @@
-# ADR-0023: Remove `tenantId` and Adopt Single-Organization Context
+---
+title: 'ADR-0023: Remove tenantId and Adopt Single-Organization Context'
+created: 2026-02-21
+status: accepted
+---
+
+## ADR-0023: Remove `tenantId` and Adopt Single-Organization Context
 
 **Status:** ACCEPTED (supersession proposed by [ADR-0062](0062-postgres-row-level-multitenancy.adr.md), 2026-09-09; becomes SUPERSEDED BY ADR-0062 on its acceptance)  
 **Date:** 2026-02-21  

@@ -1,4 +1,11 @@
-# ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
+---
+title: 'ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan'
+created: 2026-09-07
+updated: 2026-09-09
+status: proposed
+---
+
+## ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
 
 **Version:** 0.3 **Status:** Proposed **Last Updated:** 2026-09-09
 **Related:** [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) (proposed, supersedes ADR-0023),
