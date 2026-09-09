@@ -170,9 +170,14 @@ owns each tenancy. `pos-security-service` does not own the registry; it consumes
   `tenant.created` under `TenantContext.runAs(newTenantId)`: applies the role template (§6), creates the initial
   administrator, writes the first `role_assignments` row, and emits `tenant.provisioned`. Other modules seed their
   own per-tenant defaults (chart of accounts, GL mapping defaults) from `tenant.created`, inside their own domain.
-- **Platform tenant.** A `pos-tenant` migration bootstraps one reserved tenant (slug `platform`) under a constant
-  UUID published by `pos-tenancy-common`, so `pos-security-service` can bootstrap its own platform users and role
-  template before the first event flows. That tenant's role template is the only one containing
+- **Platform tenant.** A `pos-tenant` migration bootstraps one reserved tenant (slug `platform`) under the constant
+  UUID **`01930000-0000-7000-8000-000000000001`**, so `pos-security-service` can bootstrap its own platform users
+  and role template before the first event flows. The value is arbitrary but fixed: it is UUID v7-shaped for
+  consistency with [ADR-0013](0013-platform-uuid-identifier-strategy.adr.md) and was chosen when the migration
+  flatten needed a concrete default. `pos-tenancy-common` publishes it as `PLATFORM_TENANT_ID` (plan WS1) and that
+  constant, not a repeated literal, is what code and new migrations must reference. It already appears as the
+  temporary `tenant_id` column default across the flattened baselines and in the seed migrations; WS1 drops those
+  defaults once Hibernate stamps the column. That tenant's role template is the only one containing
   `ROLE_PLATFORM_ADMIN` and the `platform:tenant:{create,read,update,suspend,reactivate}` and
   `platform:account:{create,read,update}` permission families ([ADR-0025](0025-permissions-yaml-registration-policy.adr.md)).
   There is no unbound session, no root tenant, and no "see every tenant" mode anywhere in the runtime; platform
@@ -393,6 +398,7 @@ pointing back here):
   tenancy; the existing `organizationId` fields are recorded as a remnant (§4); alternatives 6 and 8 added.
 - **2026-09-09:** Accepted. ADR-0023 marked SUPERSEDED BY ADR-0062; its removal checklist closed.
 - **2026-09-09:** WS0 applied: every row of the "Amends" table carries its amendment.
+- **2026-09-09:** §7 records the platform tenant's constant UUID, fixed by the migration flatten.
 - **2026-09-09:** Schema landed ahead of WS1: the backend's 25 persisting modules were flattened to one
   `V1__baseline_<module>.sql` each, generated from the migrated schema with `tenant_id`, forced RLS and the
   `tenant_isolation` policy, tenant-leading unique constraints and composite foreign keys folded in, plus a

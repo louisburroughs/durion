@@ -366,6 +366,9 @@ superclass retrofit are what keep the small modules at days rather than weeks.
   credential via `spring.flyway.user` / `spring.flyway.password`. No second pool and no `BYPASSRLS` role exist.
 - `TenantScopedEntity` (`@MappedSuperclass`, `@TenantId UUID tenantId`, no setter), `@TenantGlobal`,
   `@PlatformScoped`, `@TenantAudited` (for reviewed native queries), `TenantIterator`.
+- `PLATFORM_TENANT_ID = 01930000-0000-7000-8000-000000000001` (ADR-0062 §7), the reserved platform tenant. The
+  2026-09 migration flatten already writes this value as the temporary `tenant_id` column default across every
+  baseline and as a literal in the seed migrations; WS1 publishes the constant and drops those defaults.
 - `CurrentTenantIdentifierResolver` auto-configured in every JPA module; `hibernate.tenant_identifier_resolver`.
 - Tenant propagation for `@Async`, `CompletableFuture`, and `TaskDecorator` so background threads inherit context.
 
