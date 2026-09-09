@@ -87,7 +87,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0020   | Centralized Document Creation                                                | ACCEPTED              | 2026-02-19 |
 | 0021   | Tax API Consumption and Internal Access                                      | ACCEPTED              | 2026-02-21 |
 | 0022   | Audit Stable Person Identifier Claim Policy                                  | ACCEPTED              | 2026-02-21 |
-| 0023   | Remove tenantId / Single-Organization Context                                | ACCEPTED              | 2026-02-21 |
+| 0023   | Remove tenantId / Single-Organization Context                                | SUPERSEDED BY 0062    | 2026-02-21 |
 | 0024   | Entity createdAt/updatedAt Population Policy                                 | ACCEPTED              | 2026-02-23 |
 | 0025   | Permissions YAML Registration Policy                                         | ACCEPTED              | 2026-02-26 |
 | 0026   | Service Contract Boundary Policy                                             | ACCEPTED              | 2026-02-26 |
@@ -126,7 +126,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0059   | Labor-Time Naming and Service Operation Taxonomy                             | PROPOSED              | 2026-09-01 |
 | 0060   | Catalog Enrichment Matching and Review (pos-catalog Tread Designs)           | ACCEPTED              | 2026-09-06 |
 | 0061   | Location Scope Authorization: Ownership, Token Shape, Effective Dating       | ACCEPTED              | 2026-09-07 |
-| 0062   | Postgres Row-Level Multitenancy (supersedes 0023 on acceptance)              | PROPOSED              | 2026-09-09 |
+| 0062   | Postgres Row-Level Multitenancy (supersedes 0023)                            | ACCEPTED              | 2026-09-09 |
 
 ## ADR Decision Matrix (When to Invoke + Agent Ownership)
 
@@ -156,7 +156,7 @@ Use this matrix during planning, implementation, and review to quickly decide wh
 | 0020 | Document creation ownership and service boundaries                                                                                                                                                                                                                                                  | Planner, Coder, Test, Orchestrator |
 | 0021 | Tax API integration boundaries and internal access policy                                                                                                                                                                                                                                           | Coder, Test, Planner, Orchestrator |
 | 0022 | Stable person identifier claims in audit/event payloads                                                                                                                                                                                                                                             | Coder, Test, Planner               |
-| 0023 | tenantId removal and single-org assumptions across contracts/data                                                                                                                                                                                                                                   | Coder, Test, Planner, Orchestrator |
+| 0023 | Superseded by 0062; historical only. Do not apply single-org assumptions to new work                                                                                                                                                                                                                                   | Coder, Test, Planner, Orchestrator |
 | 0024 | createdAt/updatedAt population rules, auditing policy, Clock-based time control                                                                                                                                                                                                                     | Coder, Test, Planner               |
 | 0025 | Permission registration source-of-truth, `permissions.yaml` schema, and rollout                                                                                                                                                                                                                     | Coder, Test, Planner, Orchestrator |
 | 0026 | Service interface-only public API boundary and internal implementation encapsulation                                                                                                                                                                                                                | Coder, Test, Planner, Orchestrator |

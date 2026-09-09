@@ -1,17 +1,17 @@
 ---
 title: 'ADR-0062: Postgres Row-Level Multitenancy'
 created: 2026-09-09
-status: proposed
+status: accepted
 supersedes: ADR-0023
 ---
 
 ## ADR-0062: Postgres Row-Level Multitenancy
 
-**Status:** PROPOSED
+**Status:** ACCEPTED 2026-09-09
 **Date:** 2026-09-09
 **Deciders:** Chief Architect, Security & Authorization Domain, Platform Engineering, Domain Leads
 **Affected Issues:** [louisburroughs/durion#438](https://github.com/louisburroughs/durion/issues/438) (epic)
-**Supersedes:** [ADR-0023](0023-remove-tenantid-single-organization-context.adr.md) on acceptance
+**Supersedes:** [ADR-0023](0023-remove-tenantid-single-organization-context.adr.md)
 **Plan:** [ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan](../architecture/plans/adr-0023-suppression-postgres-multitenancy-plan.md) (v0.3)
 
 ---
@@ -229,7 +229,9 @@ ids, expect only 404s) runs in CI against the integration cell.
 
 ### Amends
 
-On acceptance, these documents change as follows:
+These documents change as follows. ADR-0023 and its checklist are updated in the same change that accepted this
+ADR; the remaining rows are the first task of WS0 in the plan and are tracked on
+[louisburroughs/durion#438](https://github.com/louisburroughs/durion/issues/438):
 
 | Document | Change |
 | --- | --- |
@@ -376,8 +378,8 @@ On acceptance, these documents change as follows:
 ### Timeline
 
 - **Proposed:** 2026-09-09
-- **Under Review:** —
-- **Accepted:** —
+- **Under Review:** 2026-09-09 (PR [louisburroughs/durion#444](https://github.com/louisburroughs/durion/pull/444))
+- **Accepted:** 2026-09-09
 - **Implementation Started:** —
 
 ---
@@ -389,3 +391,4 @@ On acceptance, these documents change as follows:
 - **2026-09-09 (amendment, same day):** §7 rewritten: the tenant registry moves from `pos-security-service` to a
   new `pos-tenant` module that also owns the `account`, contacts, and billing profile of the customer owning each
   tenancy; the existing `organizationId` fields are recorded as a remnant (§4); alternatives 6 and 8 added.
+- **2026-09-09:** Accepted. ADR-0023 marked SUPERSEDED BY ADR-0062; its removal checklist closed.

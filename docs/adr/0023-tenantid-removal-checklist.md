@@ -1,7 +1,7 @@
 # ADR 0023 Remediation Checklist: Remove `tenantId`
 
-Status: ACTIVE
-Last Updated: 2026-02-21
+Status: CLOSED (superseded by [ADR-0062](0062-postgres-row-level-multitenancy.adr.md), 2026-09-09; the open items below are moot because `tenantId` is being reintroduced by design)
+Last Updated: 2026-09-09
 Owner: Platform + Domain Teams
 Related ADR: `0023-remove-tenantid-single-organization-context.adr.md`
 

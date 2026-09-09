@@ -2,12 +2,12 @@
 title: 'ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan'
 created: 2026-09-07
 updated: 2026-09-09
-status: proposed
+status: active
 ---
 
 ## ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
 
-**Version:** 0.3 **Status:** Proposed **Last Updated:** 2026-09-09
+**Version:** 0.3 **Status:** Active (ADR-0062 accepted 2026-09-09) **Last Updated:** 2026-09-09
 **Related:** [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) (proposed, supersedes ADR-0023),
 ADR-0023 Remove `tenantId` (to be superseded), ADR-0011, ADR-0013, ADR-0024, ADR-0040, ADR-0044, ADR-0045, ADR-0061,
 Foundation-First Tenant Cell Deployment Architecture
@@ -59,9 +59,10 @@ The recommended resolution is not to discard the tenant-cell architecture but to
   security (RLS). Dedicated cells then become a premium/regulatory option instead of the only option.
 
 This must be recorded as a new ADR that supersedes ADR-0023 and amends the tenant-cell document and ADR-0045.
-That ADR is drafted as [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) (PROPOSED); Appendix A keeps
-the outline it was written from. Nothing in the workstreams below should start before ADR-0062 is ACCEPTED, because the
-choice between pooled and dedicated cells changes the operations, backup, and provisioning work.
+That ADR is [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md), ACCEPTED 2026-09-09; Appendix A keeps
+the outline it was written from. WS0 (amending the tenant-cell document, ADR-0045, and the other rows of ADR-0062's
+"Amends" table) is now the first task, because the choice between pooled and dedicated cells changes the operations,
+backup, and provisioning work.
 
 ---
 
