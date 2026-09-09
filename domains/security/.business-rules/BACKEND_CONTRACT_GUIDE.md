@@ -51,6 +51,11 @@ Frontend developer workflow:
 - Mutating operations require explicit permission enforcement and auditable outcomes.
 - Error responses and correlation headers must be deterministic and traceable across requests.
 - Cross-domain interactions must go through API/event contracts, not direct data coupling.
+- **Target contract (ADR-0061 amendment 2026-09-09; phased in `durion-positivity-backend#1914`):** a user holds a role only through an effective-dated
+  `role_assignments` row, with no undated grant, and token issuance, `getUserPermissions`, the assignments listing and the person-decision must resolve the same
+  effective set for the same user and instant. Not yet shipped: until #1914 phase 1 lands the decision points read different stores, and until phase 2 lands
+  `createUser`, bulk ingest, self-registration and the operational seed still write the undated `user_roles` table, which token issuance unions with the
+  effective assignments.
 
 ## Capability Index
 
@@ -108,16 +113,32 @@ Headers and auth notes:
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
+- Role assignments are to be the only way a user holds a role (pending `durion-positivity-backend#1914` phase 2). Every grant path (`createUser` with roles, bulk
+  user ingest, self-registration, the operational seed, `PUT /v1/users/{username}/roles`, `assignUserRole`, `createRoleAssignment`) must produce an
+  effective-dated `role_assignments` row; `PUT /v1/users/{username}/roles` keeps its replace contract and reconciles assignments (assigns what is missing, revokes
+  what is absent). Today the first four of those still write `user_roles`.
+- The assignment window is half-open, `[effectiveStartDate, effectiveEndDate)`, evaluated against the current instant. A revocation stops the assignment
+  contributing at the next authorization decision, and (pending `durion-positivity-backend#1914` phase 3) revokes the holder's live tokens and is reflected in
+  access-token `exp`.
+- `getPersonAuthorizationDecision` must evaluate the person's linked user against the same effective assignments as token issuance, honouring the window
+  (pending `durion-positivity-backend#1914` phase 1; today it reads the undated `user_roles` store alone and ignores the window).
+- `assignPrincipalRole` and `getAuthorizationDecision` (the string-keyed principal matrix) are retired and must not be integrated against; removal is pending
+  `durion-positivity-backend#1914` phase 4.
 
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
 - Read request/response payload shapes from generated API reference, not this guide.
 - Surface validation and authorization failures directly to users with trace context.
+- To show or change what a user holds, use the assignment operations (`getUserRoleAssignments`, `assignUserRole`, `revokeUserRole`, `createRoleAssignment`,
+  `revokeRoleAssignment`) or the People access surface that fronts them; there is no separate "direct roles" view.
 
 ### ADR Constraints
 
 - Follow domain decision constraints in `AGENT_GUIDE.md` and repository ADRs.
+- ADR-0040 §1: roles are bundles that deliver permission grants; backend authorization is permission-based.
+- ADR-0061 §1, §3, §4 and the 2026-09-09 amendment: `role_assignments` is the only store of a user's roles; the principal matrix is retired; token lifetime is
+  clamped to, and live tokens revoked on, role-assignment change.
 
 ### Events & Dependencies
 

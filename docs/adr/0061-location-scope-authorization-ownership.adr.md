@@ -34,6 +34,81 @@ Two seeding defaults recorded as decisions rather than omissions: `MANAGER`, `SH
 `LOCATION_MANAGER` are `OTHER`; only `ACCOUNT_MANAGER`, `ACCOUNTANT`, `CONTROLLER` and
 `GENERAL_MANAGER` are `FINANCIAL`.
 
+### Amendment (2026-09-09 — one store for a user's roles, closes [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914))
+
+§1 states that `role_assignments` keeps effective-dated user→role assignment. Confirming that
+while closing [#1910](https://github.com/louisburroughs/durion-positivity-backend/issues/1910)
+found the code honouring two more stores — `user_roles` (`User.roles`, undated, written by
+every provisioning path) and `principal_roles` (a string-keyed matrix nothing
+writes or reads outside its own endpoints) — and eight decision points reading four different
+subsets of the three. A role granted through `user_roles` could not be revoked and never
+expired; `AuthorizationServiceImpl.authorizePerson` read `user_roles` alone and ignored
+effective dating; `userHasPermission`, `getUserPermissions` and the assignments listing read
+`role_assignments` alone and did not see the grants most accounts actually held. This block
+records the decision that closes the gap. Nothing in §1–§5 is superseded; each point below
+tightens a statement the section already makes.
+
+**1. `role_assignments` is the only store of a user's roles (tightens §1).** A role is a
+bundle that delivers permission grants ([ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md) §1), so "user holds role R" means "user
+was granted R's permissions from T1 until T2" — an effective-dated assignment by definition.
+An undated membership row is a grant that cannot be revoked, which is the one shape a
+grant-and-revoke model must not contain. `user_roles` and `User.roles` are retired:
+
+- Existing rows migrate to open-ended assignments — `effective_start_date = users.created_at`
+  so history reads honestly, `created_by` naming the migration, and any (user, role) pair that
+  already holds an effective assignment skipped — then the table is dropped.
+- Every provisioning path writes assignments: `createUser` and the bulk/CSV loaders built on
+  it, self-registration, the operational seed, and `PUT /v1/users/{username}/roles`, which
+  keeps its replace contract as a reconcile (assign what is missing, revoke what is absent).
+- Issued permission sets do not change: token issuance already unioned both stores. The
+  migration only adds, to the permission views and the People access view, the grants they
+  were failing to show.
+
+**2. One resolver.** Every decision point — `CustomUserDetailsService`, login and refresh
+context, `authorizePerson`, `userHasPermission`, `getUserPermissions` — resolves
+(user, evaluation instant) → effective roles → permissions through a single component in
+pos-security-service, and only that component may call the effective-assignment query. This is
+enforced structurally (an ArchUnit rule) and behaviourally (an agreement test asserting the
+**permission set** from each decision point is identical across undated, future, expired,
+revoked-today and bounded fixtures), so two decision points cannot disagree by construction.
+Roles remain an output of the resolver: the `roles` claim (ADR-0040 §2, still the frontend's
+coarse fallback), the per-role composition of the scope bitsets (§2 above), and the
+no-roles refusal at login all need the name.
+
+**3. `principal_roles` is retired (extends §3).** §3 retired `check-permission` as a third,
+unused way to ask an authorization question. `PrincipalRoleController`,
+`AuthorizationController.getDecision`, the `PrincipalRole` entity and the `principal_roles`
+table are the same category: a free-form, unvalidated principal string mapped to roles that no
+assignment or user operation writes, consulted by nothing outside pos-security-service's own
+contract tests. Service actors already assert permissions directly through `X-Authorities`, so
+no principal type remains for it to serve. It is removed, not deprecated.
+
+**4. Effective dating applies to role assignments (extends §4).** §4 resolved "clamp token
+lifetime, and revoke on assignment change", worded for staffing assignments and pos-people's
+events. The assignment the token's `perm_bits` are actually built from was not named, and no
+role-assignment revocation touches issued tokens today. The same decision applies, with no
+event hop:
+
+- `exp = min(now + 3600s, earliest effective_end_date among the role assignments contributing
+  to the token)`, extending the clamp `JwtServiceImpl` already applies for location reach.
+- Revoking a role assignment revokes the holder's live tokens via the existing
+  `TokenRevocationManager` + `jwt_token` path, per-`jti`, in the same transaction boundary as
+  the revocation.
+
+Without this, one store gives "revocation takes effect at the next issuance" rather than
+"revocation takes effect", and §4's promise is kept for location scope only.
+
+Consequences: the EAGER `user_roles` join on every authenticated request goes away. Dropping
+`user_roles` is destructive and is safe only because the migration precedes the drop in the
+same Flyway chain and issuance already unioned the stores; both must be re-verified at
+execution time. Role-assignment revocation becomes a second trigger for the Redis
+fail-open/fail-closed policy already listed under Negative. The person-decision consulted by
+pos-invoice's manager-override check moves from `user_roles` to dated assignments, so its
+documented provisioning note changes. The principal endpoints leave the security OpenAPI and
+the SDKs; no consumer exists. Sequenced as: resolver and reads first, then the write store and
+migration, then token reach, then the principal retirement — each independently shippable and
+the last independent of the middle two.
+
 ---
 
 ### Context
@@ -363,6 +438,8 @@ independently deployable and reversible.
   is where privilege escalation would live. Not addressed here.
 - **Node granularity for irregular coverage** — decided by amendment (2026-09-07): multi-node
   assignment, no group nodes.
+- **One store for a user's roles** — decided by amendment (2026-09-09): `role_assignments`
+  only; `user_roles` and `principal_roles` retired; §4 extended to role assignments.
 - **Per-role dimension seeding.** Every seeded role needs a recorded `location_hierarchy` value;
   the four financial roles above are named, the rest default to `OTHER` by decision, not by
   omission.
@@ -376,6 +453,9 @@ independently deployable and reversible.
 - [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md) — amended by §2
 - [ADR-0016](0016-location-entity-semantics.adr.md) — location entity semantics
 - `durion-positivity-backend/docs/rbac-permission-role-audit-2026-08.md`
+- [Authorization Model](../architecture/AUTHORIZATION_MODEL.md) — runtime shape, brought into line with the 2026-09-09 amendment
+- Issues [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914),
+  [#1910](https://github.com/louisburroughs/durion-positivity-backend/issues/1910) — one store for a user's roles (amendment 2026-09-09)
 - Issues [#1375](https://github.com/louisburroughs/durion-positivity-backend/issues/1375), [#1372](https://github.com/louisburroughs/durion-positivity-backend/issues/1372), [#1373](https://github.com/louisburroughs/durion-positivity-backend/issues/1373), [#1499](https://github.com/louisburroughs/durion-positivity-backend/issues/1499), [#1512](https://github.com/louisburroughs/durion-positivity-backend/issues/1512)
 
 ---
@@ -399,3 +479,4 @@ independently deployable and reversible.
 | 2026-08-26 | Evidence added from the [#1499](https://github.com/louisburroughs/durion-positivity-backend/issues/1499)/[#1512](https://github.com/louisburroughs/durion-positivity-backend/issues/1512) RBAC audit |
 | 2026-09-07 | Spike executed; findings and this ADR proposed |
 | 2026-09-07 | Accepted; node-granularity amendment recorded; implementation of the eleven backend sub-issues begun |
+| 2026-09-09 | [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914) found two further role stores and undated person-decisions; one-store amendment recorded |
