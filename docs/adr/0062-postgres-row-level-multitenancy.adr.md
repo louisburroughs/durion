@@ -30,9 +30,9 @@ supersedes: ADR-0023
   organizations from one runtime and one Postgres instance without a shared-schema leak becoming possible.
 - **Drivers.** Cost per customer; provisioning time; a single fleet to operate and upgrade; the alpha stage, which
   allows breaking contract changes with no data migration (every database is dropped and recreated between builds).
-- **Scope.** Every persisting backend module, `pos-security-service` and `pos-api-gateway` in particular,
-  `pos-domain-events`, the frontend and `@durion-sdk/security`, the tenant-cell deployment architecture, and the
-  documents listed under "Amends".
+- **Scope.** Every persisting backend module, `pos-security-service` and `pos-api-gateway` in particular, a new
+  `pos-tenant` module, `pos-domain-events`, the frontend and the `@durion-sdk/security` and `@durion-sdk/tenant`
+  packages, the tenant-cell deployment architecture, and the documents listed under "Amends".
 
 The plan referenced above measured the footprint, compared the isolation strategies, and sized the work at roughly
 28 to 39 engineer-weeks across eight workstreams. This ADR records the decisions the plan asked for; the plan holds
@@ -100,19 +100,26 @@ Login resolves the tenant from the gateway-supplied slug or an optional `tenantS
 and shared preview hosts). An unknown slug returns the same 401 as bad credentials. Access and refresh tokens carry
 `tid`; [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md)'s claim contract gains `tid` as required.
 
-#### 4. Naming: `tenantId` and `organizationId` stay distinct
+#### 4. Naming: `tenant`, `account`, and the `organizationId` remnant
 
-**Decision:** ✅ **Resolved** - ADR-0023 §2 is carried forward unchanged. `tenantId` is the isolation and billing
-boundary. `organizationId` remains an in-tenant business concept (for example accounting's GL mapping defaults) and
-is never populated from, or mapped onto, the tenant.
+**Decision:** ✅ **Resolved** - `tenantId` is the isolation boundary. The customer that owns one or more tenancies
+is an **`account`** (§7), never an "organization". ADR-0023 §2 is carried forward in its prohibition: nothing is
+ever populated from, or mapped onto, the tenant under another name.
+
+The `organizationId` fields that exist today (accounting GL mapping defaults and event DTOs, the customer module's
+`ext_organization_postal_address` replica, the location `ORGANIZATIONAL` parent type) are a remnant of an earlier
+model, not a designed concept: no module owns an organization aggregate and nothing provisions one. They are not
+tenancy, not account, and are not touched by this ADR. Their removal is separate cleanup, tracked outside this
+decision, and no new `organizationId` field is introduced anywhere.
 
 #### 5. Global data is an explicit whitelist
 
 **Decision:** ✅ **Resolved** - A table is tenant-scoped by default. A module lists its global tables in
 `tenancy-global-tables.txt` with a one-line justification, and the entity carries `@TenantGlobal`. Global tables
 have no `tenant_id` requirement and no policy. Expected members: vehicle reference data (NHTSA, CarAPI), fitment,
-tax rate tables, the `permissions` catalog, Flyway history, the `tenant` registry, `ext_tenant` replicas, and the
-outbox and processed-event ledgers, which carry `tenant_id` as plain data so events stay attributable.
+tax rate tables, the `permissions` catalog, Flyway history, the `ext_tenant` replicas (the public projection of the
+registry, §7), and the outbox and processed-event ledgers, which carry `tenant_id` as plain data so events stay
+attributable. The registry's own tables in `pos-tenant` are not global; see §7.
 
 #### 6. Roles are tenant-scoped
 
@@ -134,18 +141,44 @@ code-first, versioned by `CATALOG_VERSION`, and encoded into `perm_bits` ([ADR-0
   `role_assignments` remains the only store of a user's roles (ADR-0061 amendment of 2026-09-09).
 - **Foreign keys.** `role_permissions` and `role_assignments` reference `roles (tenant_id, id)`; see §9.
 
-#### 7. Platform operators are users of a reserved platform tenant
+#### 7. Tenant registry: the `pos-tenant` module, accounts, and the platform tenant
 
-**Decision:** ✅ **Resolved** - The tenancy bootstrap migration creates one reserved tenant (slug `platform`). Its
-role template is the only one that contains `ROLE_PLATFORM_ADMIN` and the `platform:tenant:{create,read,update,suspend}`
-permission family. The `tenant` registry is a global table, so platform-admin endpoints (`/v1/platform/tenants`)
-work under a normally bound session. There is no unbound session, no root tenant, and no "see every tenant" mode
-anywhere in the runtime.
+**Decision:** ✅ **Resolved** - A new domain module **`pos-tenant`** (package `com.positivity.tenant`, database
+`pos_tenant_db`, Eureka `TENANT`, gateway route `/tenant/v1/**`) owns the master tenant table and the account that
+owns each tenancy. `pos-security-service` does not own the registry; it consumes it.
 
-Provisioning is a `pos-security-service` handler of its own `tenant.created` event running under
-`TenantContext.runAs(newTenantId)`: apply the role template, create the initial administrator, write the first
-`role_assignments` row. Other modules seed their per-tenant defaults (chart of accounts, GL mapping defaults) from
-the same event, inside their own domain, consistent with [ADR-0044](0044-platform-event-only-domain-walls.adr.md).
+- **Aggregates.** `account` (the customer of Durion: legal name, trading name, status, tax id, home country and
+  currency), `account_contact` (name, role `OWNER` / `BILLING` / `TECHNICAL`, email, phone; several per account),
+  `billing_profile` (billing address, payment terms, invoicing email, payment-processor customer token; never a card
+  number), and `tenant` (`id`, `slug`, `display_name`, `status`, `account_id`, cell or region, and timestamps for
+  created, activated, suspended, decommissioned). One account may own several tenants. Plans and subscriptions
+  attach to `tenant` later without changing this shape.
+- **Access posture.** `pos-tenant` runs inside the platform tenant: every one of its rows carries `tenant_id` equal
+  to the platform tenant's id, so RLS protects account, contact, and billing data by the same mechanism as every
+  other table, and there is still no unbound path. Only platform staff can reach it. A tenant reading
+  `GET /v1/tenants/me` is served from the `ext_tenant` replica in `pos-security-service`, never from `pos-tenant`.
+  Tenant self-service edits to contacts or billing are out of scope for v1; if added, they arrive as command
+  events on `tenant.commands.v1`, not as tenant-bound reads of platform rows.
+- **Public projection and events.** `tenant.events.v1` (keyed by tenant id, [ADR-0044](0044-platform-event-only-domain-walls.adr.md))
+  carries `tenant.created`, `tenant.provisioned`, `tenant.updated`, `tenant.suspended`, `tenant.reactivated`, and
+  `tenant.decommissioned` with the public projection only: `id`, `slug`, `display_name`, `status`. Every module keeps
+  that projection in a global `ext_tenant` replica. Account, contact, and billing data never leave `pos-tenant`.
+- **Status machine.** `PENDING` on create; `ACTIVE` once `pos-security-service` has emitted `tenant.provisioned`;
+  `SUSPENDED` and back to `ACTIVE`; `DECOMMISSIONED` is terminal. Login for a tenant that is not `ACTIVE` returns the
+  same 401 as bad credentials. Every handler is idempotent on tenant id, so retries are safe.
+- **Provisioning.** The create request carries the initial administrator's email. `pos-security-service` handles
+  `tenant.created` under `TenantContext.runAs(newTenantId)`: applies the role template (§6), creates the initial
+  administrator, writes the first `role_assignments` row, and emits `tenant.provisioned`. Other modules seed their
+  own per-tenant defaults (chart of accounts, GL mapping defaults) from `tenant.created`, inside their own domain.
+- **Platform tenant.** A `pos-tenant` migration bootstraps one reserved tenant (slug `platform`) under a constant
+  UUID published by `pos-tenancy-common`, so `pos-security-service` can bootstrap its own platform users and role
+  template before the first event flows. That tenant's role template is the only one containing
+  `ROLE_PLATFORM_ADMIN` and the `platform:tenant:{create,read,update,suspend,reactivate}` and
+  `platform:account:{create,read,update}` permission families ([ADR-0025](0025-permissions-yaml-registration-policy.adr.md)).
+  There is no unbound session, no root tenant, and no "see every tenant" mode anywhere in the runtime; platform
+  work reads platform-tenant rows and global replicas under a normal binding.
+- **Frontend.** The platform-admin pages (`/app/admin/tenants`, and accounts alongside them) consume a generated
+  `@durion-sdk/tenant` package; `@durion-sdk/security` changes only for `tid` and `tenantSlug`.
 
 #### 8. Asynchronous work and scheduled jobs
 
@@ -209,7 +242,7 @@ On acceptance, these documents change as follows:
 | [ADR-0044](0044-platform-event-only-domain-walls.adr.md) | Envelope gains required `tenantId`; Kafka header contract |
 | [ADR-0061](0061-location-scope-authorization-ownership.adr.md) | Role attributes (`location_scope`, `location_hierarchy`) live on tenant-scoped role rows; location ids in `loc_scope` are tenant-scoped |
 | `.ai/GLOSSARY.md`, `domains/security/security-questions.md`, `knowledge-catalog/adr/index.md` | `tenantId` is implemented; DECISION-INVENTORY-008 wording updated |
-| `durion-positivity-backend/AGENTS.md`, `durion-positivity-frontend/AGENTS.md`, `CLAUDE.md` minimum ADR lists | Add ADR-0062 |
+| `durion-positivity-backend/AGENTS.md`, `durion-positivity-frontend/AGENTS.md`, `CLAUDE.md` minimum ADR lists | Add ADR-0062; add `pos-tenant` to the module tables |
 
 ---
 
@@ -230,10 +263,16 @@ On acceptance, these documents change as follows:
 5. **A root or platform tenant that sees every row (Hibernate `isRoot`, a `BYPASSRLS` role).** Rejected: any
    unbound path is a leak waiting for a misclassified job; platform work reads global tables under a normal
    binding instead (§7).
-6. **Global roles with per-tenant assignments.** Rejected in favour of §6: tenants need their own roles, custom
+6. **Registry inside `pos-security-service`.** Rejected in favour of §7: account, contact, and billing data is a
+   vendor-side bounded context with its own callers and change cadence, security-service is already one of the
+   heaviest retrofit targets, and every module needs an event-fed `ext_tenant` replica regardless of who owns the
+   source. Security-service becomes one more consumer.
+7. **Global roles with per-tenant assignments.** Rejected in favour of §6: tenants need their own roles, custom
    roles, persona attributes, and location-scope settings without a platform release; a global catalog would force
    every tenant onto one role set and make `roles` the one table that cannot be provisioned or exported per tenant.
-7. **Mapping `organizationId` onto `tenantId`.** Rejected, as in ADR-0023: semantic mismatch and audit confusion.
+8. **Naming the owning customer an "organization", or mapping `organizationId` onto `tenantId`.** Rejected, as in
+   ADR-0023: the existing `organizationId` fields are a remnant with no owner, and reusing the word would tie a new
+   aggregate to them. The owning customer is an `account` (§4, §7).
 
 ---
 
@@ -280,13 +319,16 @@ On acceptance, these documents change as follows:
 ### Implementation Notes
 
 - **Components.** New `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`,
-  `@TenantGlobal`, `@PlatformScoped`, `@TenantAudited`, `TenantIterator`, `TenantKeyGenerator`, the resolver and its
-  `HibernatePropertiesCustomizer`, the Kafka `RecordInterceptor`, the `ext_tenant` replica handler template);
-  `pos_app` role and grants in `postgres/init-databases.sql`; `tenant` aggregate, role template, and provisioning
-  handler in `pos-security-service`; gateway header changes; `DomainEventEnvelope.tenantId`.
+  `@TenantGlobal`, `@PlatformScoped`, `@TenantAudited`, `TenantIterator`, `TenantKeyGenerator`, the platform tenant
+  id constant, the resolver and its `HibernatePropertiesCustomizer`, the Kafka `RecordInterceptor`, the `ext_tenant`
+  replica handler template); new `pos-tenant` module (account, contact, billing profile, tenant, status machine,
+  `tenant.events.v1` producer, platform-admin API) built on the `pos-location` skeleton; `pos_app` role and grants
+  in `postgres/init-databases.sql`; `ext_tenant` consumer, role template, and provisioning handler in
+  `pos-security-service`; gateway header changes and the `/tenant/v1/**` route; `DomainEventEnvelope.tenantId`.
 - **Configuration.** `SPRING_DATASOURCE_*` = `pos_app`; `SPRING_FLYWAY_USER` / `SPRING_FLYWAY_PASSWORD` = owner;
   `environment.tenantResolution: 'host' | 'form'` in the frontend.
-- **Sequencing.** WS0 (this ADR and the amendments) → WS1 + WS4 on the `pos-location` pilot → WS2 identity →
+- **Sequencing.** WS0 (this ADR and the amendments) → WS1 + WS4 on the `pos-location` pilot → WS2a `pos-tenant`
+  and WS2b identity →
   WS3 + WS5 module waves, largest first → WS7 frontend as soon as WS2's OpenAPI is published → WS6 + WS8. Detail in
   the plan.
 - **Exit criterion.** The integration cell serves two tenants from one Postgres instance; every module's
@@ -294,7 +336,7 @@ On acceptance, these documents change as follows:
   the cross-tenant probe returns only 404s.
 - **Monitoring.** MDC `tenantId` on every log line; rows-processed-per-job metric so a permanently zero
   `@PlatformScoped` or per-tenant job is visible; `auth.header.strip.count` already covers stripped tenant headers.
-- **Permission catalog.** `platform:tenant:*` is a `CATALOG_VERSION` bump and ships fleet-coordinated, the same trap
+- **Permission catalog.** `platform:tenant:*` and `platform:account:*` are a `CATALOG_VERSION` bump and ships fleet-coordinated, the same trap
   as the 41 to 42 bump in [#389](https://github.com/louisburroughs/durion-positivity-backend/issues/389).
 
 ---
@@ -343,3 +385,6 @@ On acceptance, these documents change as follows:
 
 - **2026-09-09:** Initial draft from the plan's Appendix A, with the 2026-09-09 decisions: roles tenant-scoped,
   reserved platform tenant, composite foreign keys by default, `NULLIF` policy, verified Hibernate 7.4.5 semantics.
+- **2026-09-09 (amendment, same day):** §7 rewritten: the tenant registry moves from `pos-security-service` to a
+  new `pos-tenant` module that also owns the `account`, contacts, and billing profile of the customer owning each
+  tenancy; the existing `organizationId` fields are recorded as a remnant (§4); alternatives 6 and 8 added.
