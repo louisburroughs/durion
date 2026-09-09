@@ -577,7 +577,7 @@ This document addresses **2 unresolved security domain issues** with `blocked:cl
 - REST path convention: `/api/v1/{domain}/{resource}`
 - Error envelope shape: `{ code, message, correlationId, fieldErrors?, details? }`
 - Pagination envelope: `{ items[], pageIndex, pageSize, totalCount }`
-- Tenant scoping: auto-scoped via auth context (`tid` claim, ADR-0062), no user input; the `tenantId` field never appears in a request or response body
+- Tenant scoping: auto-scoped via auth context (`tid` claim, ADR-0062), no user input; no REST request or response body carries a `tenantId` field. (The asynchronous event envelope does carry a required `tenantId` per the ADR-0044 amendment of 2026-09-09; that is the internal event channel, not the REST contract.)
 
 ### Permission Taxonomy (Examples)
 **Security Domain:**

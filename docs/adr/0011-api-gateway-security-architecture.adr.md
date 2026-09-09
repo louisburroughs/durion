@@ -5,7 +5,9 @@ authorization
 
 ---
 
-## Amendment
+## Amendments
+
+### 2026-03-17 — Claim contract superseded by ADR-0040
 
 This ADR still records the gateway ownership decision, but it is no longer the live claim-contract reference.
 
@@ -14,7 +16,7 @@ This ADR still records the gateway ownership decision, but it is no longer the l
 - Current runtime behavior uses `perm_bits` plus `perm_ver` as the primary authority payload, with a temporary legacy `authorities` fallback in gateway code for older tokens.
 - Read this ADR for trust-boundary and ownership intent, not for the exact access-token field contract.
 
-## Amendment (2026-09-09 — tenant headers, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
+### 2026-09-09 — Tenant headers ([ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
 
 The gateway is also the tenant-context boundary:
 
