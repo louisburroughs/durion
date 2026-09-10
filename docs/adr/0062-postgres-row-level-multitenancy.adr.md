@@ -415,3 +415,10 @@ pointing back here):
   `platform:tenant:*` / `platform:account:*` families (§7 now lists `platform:tenant:decommission` for the terminal
   move), and a 403 `PLATFORM_TENANT_REQUIRED` guard so the registry is reachable from the platform tenant
   only. Producing `tenant.provisioned` (pos-security-service) and the `ext_tenant` replicas remain WS2b.
+- **2026-09-10:** WS2b part 1 landed (louisburroughs/durion-positivity-backend#1926): `pos-security-service` adopted
+  the runtime (`pos_app`, scoped entities, outbox `tenant_id`, isolation IT); the `ext_tenant` replica consumes
+  `tenant.events.v1`; §3's login resolution reads the gateway's host-derived `X-Tenant-Slug` or the form's
+  `tenantSlug` against that replica (unknown or inactive is a plain 401); both tokens carry `tid`, the refresh
+  exchange is bound to the refresh token's tenant, and the gateway injects `X-Tenant-Id` from `tid` (malformed is
+  401). `pos.tenancy.unenforced-paths` lets the login route run unbound in strict mode. The provisioning handler,
+  role template, `tenant.provisioned` producer and `ROLE_PLATFORM_ADMIN` remain.
