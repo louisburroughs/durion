@@ -181,8 +181,11 @@ approved by ADR amendment.
 ADR-0062 makes every domain row tenant-scoped under Postgres RLS. The event channel carries the tenant so that a
 consumer's replica write lands in the right tenant and never in none:
 
-- **Envelope.** `tenantId` (UUID) is a required envelope field (§3). `DomainEventEnvelope.of(...)` fills it from the
-  bound `TenantContext` when the producer does not pass it; an unbound producer cannot build an envelope.
+- **Envelope.** `tenantId` (UUID) is a required envelope field (§3). The module's outbox writer stamps it from the
+  bound tenant as it queues the envelope (`DomainEventEnvelope.stampedWith`), the same tenant it writes on the outbox
+  row and the Kafka header, and refuses an envelope already built for a different tenant; a sender that bypasses the
+  outbox (a reconciliation manifest) passes it explicitly. An unbound producer cannot publish. Consumers tolerate a
+  missing field only on messages published before it existed (2026-09-10).
 - **Kafka header.** The outbox publisher also sets a `tenantId` record header from the outbox row, so a consumer can
   bind before deserialising the payload.
 - **Consumer binding.** A `RecordInterceptor` shipped in `pos-tenancy-common` binds `TenantContext` from the header
