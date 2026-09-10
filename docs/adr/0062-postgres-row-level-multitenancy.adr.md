@@ -504,3 +504,13 @@ pointing back here):
   `pos-security-service` unable to connect.
   Left in WS3: `pos-mcp-server`; `pos-event-receiver` needs the emitter (`pos-events`) to carry the tenant first;
   `pos-bulk-loader` is WS8.
+- **2026-09-10:** WS3 waves 12-13 landed (louisburroughs/durion-positivity-backend#1935): `pos-mcp-server` and
+  `pos-event-receiver` run on the runtime, which leaves only `pos-bulk-loader` (WS8) outside it. In `pos-mcp-server`
+  the conversation entities (session, request, intent, write plan, audit event) are tenant-scoped and the platform
+  catalogs (tools, screens, chat rules, prompts, LLM configuration, RAG bookkeeping) are `@TenantGlobal`; tool priority
+  tuning and eval-trace retention run per tenant, discovery refresh and role-persona sync are platform-scoped, and the
+  role-events consumer takes its tenant from the record header. In `pos-event-receiver` `emitted_event` is tenant-scoped
+  under row-level security on the hypertable, the event-type registry and the hourly continuous aggregate stay global
+  (per-tenant observability is WS6), and the batched ingest captures the request's tenant with each queued event so the
+  platform-scoped flush saves every group under the tenant it arrived with; the tenant comes from the gateway-injected
+  `X-Tenant-Id` on the POST, so no change to the emitter (`pos-events`) was needed.
