@@ -408,3 +408,10 @@ pointing back here):
   and the ArchUnit rules; `pos-location` is the pilot, connecting as `pos_app` with Flyway on the owner
   credential and proving isolation on Testcontainers. §9's transitional default now lives in
   `pos.tenancy.default-tenant-id` for adopted modules; the gateway strips inbound `X-Tenant-Id`.
+- **2026-09-10:** WS2a landed (louisburroughs/durion-positivity-backend#1924): the `pos-tenant` module of §7 with
+  `account`, `account_contact`, `billing_profile` and `tenant`, the status machine, the platform tenant bootstrapped
+  under `PlatformTenant.ID` (published by `pos-tenancy-common`), `tenant.events.v1` facts through the outbox
+  (`TenantCreatedV1`, `TenantProjectionV1`) and the `tenant.provisioned` consumer, the platform-admin API behind the
+  `platform:tenant:*` / `platform:account:*` families (with `platform:tenant:decommission` added to the family for the
+  terminal move), and a 403 `PLATFORM_TENANT_REQUIRED` guard so the registry is reachable from the platform tenant
+  only. `tenant.provisioned` and the `ext_tenant` replicas remain WS2b.
