@@ -528,3 +528,11 @@ pointing back here):
   stamps from the bound request on every row and names in every query. The single enforcement layer for this one
   table is the tenant predicate in `EmittedEventRepository`; `TenantIsolationIT` proves the premise and the
   safeguard. Per-tenant hourly statistics (WS6) will group the continuous aggregate by `tenant_id`.
+- **2026-09-10:** Platform support access decided (WS2b-4): there is no role that reads across tenants, and none is
+  added. A platform operator reaches a customer tenant only through an impersonation token: `ROLE_PLATFORM_ADMIN`
+  (seeded as `PLATFORM_ADMIN`) gains `platform:tenant:impersonate`, and `pos-security-service` mints its holder a
+  short-lived access token (15 minutes, no refresh) with `tid` set to the target tenant, `act` naming the operator,
+  and the target tenant's fixed `SUPPORT` role, emitting an audit event upon issuance. The gateway keeps injecting
+  `X-Tenant-Id` from `tid`, so no module changes and
+  §3's rule that tenant context comes from the validated token only still holds; an override header for platform
+  tokens was considered and rejected.
