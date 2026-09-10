@@ -519,3 +519,12 @@ pointing back here):
   loaded into the platform tenant join the template, which `reconcileTemplate` propagates to existing tenants;
   outbox manifests become per tenant; hourly event statistics and MCP tool priorities gain a tenant dimension with
   global rollups.
+- **2026-09-10:** One exception to row-level security (louisburroughs/durion-positivity-backend#1937): the event
+  receiver's `emitted_event` hypertable. TimescaleDB refuses compression and continuous aggregates on a table with
+  row security (`compression cannot be used on table with row security`, `cannot create continuous aggregate on
+  hypertable with row security`), so every fresh receiver database failed `V2` since the flatten. Decided: the
+  telemetry stream keeps both features; `V1_1` drops the policy (out of order where `V2` already ran), the table is
+  whitelisted, `EmittedEvent` is `@TenantGlobal`, and `tenant_id` stays a `NOT NULL` data column that the receiver
+  stamps from the bound request on every row and names in every query. The single enforcement layer for this one
+  table is the tenant predicate in `EmittedEventRepository`; `TenantIsolationIT` proves the premise and the
+  safeguard. Per-tenant hourly statistics (WS6) will group the continuous aggregate by `tenant_id`.
