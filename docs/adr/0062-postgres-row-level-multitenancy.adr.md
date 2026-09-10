@@ -472,3 +472,9 @@ pointing back here):
   test class, so the second tenancy IT class ran against a stopped container through Spring's cached context
   (`TenancySchemaConformanceIT` red in every module while `TenantIsolationIT` passed); the base now starts one
   container per test JVM and never stops it.
+- **2026-09-10:** WS3 wave 5 landed (louisburroughs/durion-positivity-backend#1931): `pos-shop-manager` (30 scoped
+  entities, one global table, no outbox, no scheduled job, no native query) and `pos-order` (28 scoped entities, the
+  outbox row carries the producing tenant as data (V2) and `OutboxPublisher` stamps it on the record header; the
+  purchase-order number sequence read carries `@TenantAudited`). The mechanics seed already binds the alpha default
+  tenant for its own transaction. Seven of the 27 modules remain on the owner-role default; the medium ones follow
+  largest first.
