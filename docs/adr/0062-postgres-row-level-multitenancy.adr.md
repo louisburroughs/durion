@@ -422,3 +422,11 @@ pointing back here):
   exchange is bound to the refresh token's tenant, and the gateway injects `X-Tenant-Id` from `tid` (malformed is
   401). `pos.tenancy.unenforced-paths` lets the login route run unbound in strict mode. The provisioning handler,
   role template, `tenant.provisioned` producer and `ROLE_PLATFORM_ADMIN` remain.
+- **2026-09-10:** WS2b part 2 landed (louisburroughs/durion-positivity-backend#1927): §6's template is data in the
+  platform tenant (`roles.template_key`; `R__seed_tenant_template.sql` copies the Flyway floor roles, grants and
+  location scope from alpha), template roles reject delete (409 `ROLE_TEMPLATE_IMMUTABLE`); §7's provisioning
+  handler applies the template under the new tenant's binding, creates the initial administrator on `ADMIN` with a
+  generated and discarded password, writes the first assignment and answers `tenant.provisioned`; `PLATFORM_ADMIN`
+  and `admin.platform` are seeded in the platform tenant as the only holders of `platform:*`, and alpha's `ADMIN`
+  lost those grants. Open: the administrator's first credential needs a reset or invite flow (no event carries it);
+  bulk-loaded roles join the template in WS8.
