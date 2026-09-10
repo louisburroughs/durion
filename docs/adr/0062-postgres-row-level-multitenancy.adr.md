@@ -512,3 +512,10 @@ pointing back here):
   (per-tenant observability is WS6), and the batched ingest captures the request's tenant with each queued event so the
   platform-scoped flush saves every group under the tenant it arrived with; the tenant comes from the gateway-injected
   `X-Tenant-Id` on the POST, so no change to the emitter (`pos-events`) was needed.
+- **2026-09-10:** Five open points decided for the remaining workstreams (plan "Decision summary"): the first
+  administrator of a new tenant receives an operator-delivered, one-time activation token and sets the password on
+  an unauthenticated activate endpoint (no mail dependency); `TenantIterator` reads a cached REST lookup against
+  `pos-tenant` rather than a per-module `ext_tenant` replica; `pos-bulk-loader` targets a tenant per job and roles
+  loaded into the platform tenant join the template, which `reconcileTemplate` propagates to existing tenants;
+  outbox manifests become per tenant; hourly event statistics and MCP tool priorities gain a tenant dimension with
+  global rollups.
