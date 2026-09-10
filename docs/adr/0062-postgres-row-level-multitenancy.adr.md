@@ -476,5 +476,11 @@ pointing back here):
   entities, one global table, no outbox, no scheduled job, no native query) and `pos-order` (28 scoped entities, the
   outbox row carries the producing tenant as data (V2) and `OutboxPublisher` stamps it on the record header; the
   purchase-order number sequence read carries `@TenantAudited`). The mechanics seed already binds the alpha default
-  tenant for its own transaction. Seven of the 27 modules remain on the owner-role default; the medium ones follow
-  largest first.
+  tenant for its own transaction.
+- **2026-09-10:** WS3 wave 6 landed in the same PR (louisburroughs/durion-positivity-backend#1931): `pos-customer`
+  (23 scoped entity classes; `AbstractParty`, the `TABLE_PER_CLASS` base, carries the tenant column for both party
+  subclasses; the outbox row carries the producing tenant (V2) and `OutboxPublisher` stamps it on the record header;
+  the outbox and manifest publishers are platform-scoped and the service-due reminder run iterates the registry;
+  the customer-number sequence read carries `@TenantAudited`). Its Postgres `pg` profile is strict now, the last
+  transitional pool binding of the flatten gone. Seven of the 27 modules remain on the owner-role default; the
+  medium ones follow largest first.
