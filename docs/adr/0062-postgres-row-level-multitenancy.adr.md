@@ -430,3 +430,12 @@ pointing back here):
   and `admin.platform` are seeded in the platform tenant as the only holders of `platform:*`, and alpha's `ADMIN`
   lost those grants. Open: the administrator's first credential needs a reset or invite flow (no event carries it);
   bulk-loaded roles join the template in WS8.
+- **2026-09-10:** WS3 wave 1 landed (louisburroughs/durion-positivity-backend#1928): `pos-inventory`, the largest
+  module, runs on the runtime: 63 scoped entities, the outbox row carries `tenant_id` and stamps the record
+  header, two platform-scoped and seven per-tenant schedulers (each per-tenant pass opens its read-only
+  transaction inside the binding), six native queries under `@TenantAudited`, `pos_app` with Flyway on the owner,
+  and the isolation and conformance ITs. Per-tenant jobs iterate the static registry until the per-module
+  `ext_tenant` replica lands. Same PR: `event_outbox.tenant_id` added by migration where the flattened baseline
+  lacked it (`pos-security-service` V5, `pos-inventory` V3; the WS2b entity change had outrun the schema), and the
+  Postgres ITs of not-yet-adopted modules bind the transitional tenant on their pool (`pos-accounting`), which the
+  baseline flatten had left unbound.
