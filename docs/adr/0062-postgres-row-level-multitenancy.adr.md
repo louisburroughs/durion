@@ -439,3 +439,12 @@ pointing back here):
   lacked it (`pos-security-service` V5, `pos-inventory` V3; the WS2b entity change had outrun the schema), and the
   Postgres ITs of not-yet-adopted modules bind the transitional tenant on their pool (`pos-accounting`), which the
   baseline flatten had left unbound.
+- **2026-09-10:** WS3 wave 2 landed (louisburroughs/durion-positivity-backend#1929): `pos-accounting` runs on the
+  runtime: 59 scoped entities (three implement `Persistable`), three global tables. Both outboxes carry the producing
+  tenant as data (V3): `OutboxPublisher` stamps each `kafka_event_outbox` row's tenant on the record header, and
+  `OutboxProcessor` binds each `event_outbox` row's tenant before dispatching its Spring event, so the GL-posting handlers write that tenant's
+  journal entries; a global-table poller that dispatches per-row work is the pattern for any module with an in-process
+  outbox. The startup policy seeder (`DataInitializationServiceImpl`) runs per tenant of the registry inside a
+  `TransactionTemplate`; a tenant created after startup is seeded on the next start until WS8 seeds at provisioning.
+  The six Postgres ITs no longer bind the transitional tenant on their pool (the wave 1 stopgap): the runtime binds
+  the default tenant on every checkout.
