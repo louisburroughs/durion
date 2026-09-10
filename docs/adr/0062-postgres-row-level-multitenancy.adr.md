@@ -500,6 +500,7 @@ pointing back here):
   campaign drain, tax re-commit) is per tenant with its transaction inside the binding; `pos-price` re-binds the request
   tenant on its virtual-thread evaluation; `pos-tax`'s native lifecycle insert names the tenant explicitly. The fitment
   and vehicle reference modules are `@TenantGlobal` throughout. The alpha deploy now reconciles the `pos_app` role on
-  every run (#1933) after the volume that predates `init-tenancy.sh` left `pos-security-service` unable to connect.
+  every run (louisburroughs/durion-positivity-backend#1933) after the volume that predates `init-tenancy.sh` left
+  `pos-security-service` unable to connect.
   Left in WS3: `pos-mcp-server`; `pos-event-receiver` needs the emitter (`pos-events`) to carry the tenant first;
   `pos-bulk-loader` is WS8.
