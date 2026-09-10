@@ -502,8 +502,6 @@ pointing back here):
   and vehicle reference modules are `@TenantGlobal` throughout. The alpha deploy now reconciles the `pos_app` role on
   every run (louisburroughs/durion-positivity-backend#1933) after the volume that predates `init-tenancy.sh` left
   `pos-security-service` unable to connect.
-  Left in WS3: `pos-mcp-server`; `pos-event-receiver` needs the emitter (`pos-events`) to carry the tenant first;
-  `pos-bulk-loader` is WS8.
 - **2026-09-10:** WS3 waves 12-13 landed (louisburroughs/durion-positivity-backend#1935): `pos-mcp-server` and
   `pos-event-receiver` run on the runtime, which leaves only `pos-bulk-loader` (WS8) outside it. In `pos-mcp-server`
   the conversation entities (session, request, intent, write plan, audit event) are tenant-scoped and the platform
