@@ -457,3 +457,9 @@ pointing back here):
   `app.current_tenant` anyway, so an unbound session stays fail-closed on both layers while
   `TenantResolver.resolve()` still answers empty. §3's "no unbound session" holds as a property of what such a
   session can see or write, not of whether Hibernate will open one.
+- **2026-09-10:** WS3 wave 3 landed (louisburroughs/durion-positivity-backend#1930): `pos-workorder` runs on the
+  runtime: 45 scoped entities, two global tables, the outbox row carries the producing tenant (V2) and
+  `OutboxPublisher` stamps it on the record header; the outbox publisher, manifest publisher and outbox purge are
+  platform-scoped, the approval-expiry and fleet-authorization resource-release sweeps run per tenant of the
+  registry; no native queries. The module's existing Postgres `FlywayMigrationIT` moved onto the strict `pg`
+  profile next to the new isolation and conformance ITs, so its transitional pool binding is gone too.
