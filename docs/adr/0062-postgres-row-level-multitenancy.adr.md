@@ -448,11 +448,12 @@ pointing back here):
   `TransactionTemplate`; a tenant created after startup is seeded on the next start until WS8 seeds at provisioning.
   The six Postgres ITs no longer bind the transitional tenant on their pool (the wave 1 stopgap): the runtime binds
   the default tenant on every checkout.
-  Same PR, a runtime repair the `main` ITs exposed: Hibernate 7 refuses to open a session with no tenant once any
-  entity carries `@TenantId`, so in strict mode Spring Data could not derive its queries at boot (the pos-location
-  and pos-inventory tenancy ITs had failed to load their context on every `main` run since WS1) and a
-  `@PlatformScoped` job could not read a global table through JPA. The resolver now answers the nil UUID
-  (`NO_TENANT`) for an unbound session: it matches no scoped row, no policy's `WITH CHECK` accepts it, and the pool
-  has RESET `app.current_tenant` anyway, so an unbound session stays fail-closed on both layers while
+  The same PR carries a runtime repair the `main` ITs exposed. Hibernate 7 refuses to open a session with no tenant
+  once any entity carries `@TenantId`, so in strict mode Spring Data could not derive its queries at boot (the
+  `pos-location` and `pos-inventory` tenancy ITs had failed to load their context on every `main` run since WS1),
+  and a `@PlatformScoped` job could not read a global table through JPA. The resolver now answers the nil UUID
+  (`00000000-0000-0000-0000-000000000000`, the `TenantContextIdentifierResolver.NO_TENANT` constant) for an
+  unbound session. That tenant matches no scoped row, no policy's `WITH CHECK` accepts it, and the pool has RESET
+  `app.current_tenant` anyway, so an unbound session stays fail-closed on both layers while
   `TenantResolver.resolve()` still answers empty. §3's "no unbound session" holds as a property of what such a
   session can see or write, not of whether Hibernate will open one.
