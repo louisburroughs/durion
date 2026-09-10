@@ -144,7 +144,7 @@ code-first, versioned by `CATALOG_VERSION`, and encoded into `perm_bits` ([ADR-0
 #### 7. Tenant registry: the `pos-tenant` module, accounts, and the platform tenant
 
 **Decision:** ✅ **Resolved** - A new domain module **`pos-tenant`** (package `com.positivity.tenant`, database
-`pos_tenant_db`, Eureka `TENANT`, gateway route `/tenant/v1/**`) owns the master tenant table and the account that
+`pos_tenant_db`, Eureka `TENANT`, gateway route `/tenant/**`) owns the master tenant table and the account that
 owns each tenancy. `pos-security-service` does not own the registry; it consumes it.
 
 - **Aggregates.** `account` (the customer of Durion: legal name, trading name, status, tax id, home country and
@@ -173,7 +173,7 @@ owns each tenancy. `pos-security-service` does not own the registry; it consumes
 - **Platform tenant.** A `pos-tenant` migration bootstraps one reserved tenant (slug `platform`) under a constant
   UUID published by `pos-tenancy-common`, so `pos-security-service` can bootstrap its own platform users and role
   template before the first event flows. That tenant's role template is the only one containing
-  `ROLE_PLATFORM_ADMIN` and the `platform:tenant:{create,read,update,suspend,reactivate}` and
+  `ROLE_PLATFORM_ADMIN` and the `platform:tenant:{create,read,update,suspend,reactivate,decommission}` and
   `platform:account:{create,read,update}` permission families ([ADR-0025](0025-permissions-yaml-registration-policy.adr.md)).
   There is no unbound session, no root tenant, and no "see every tenant" mode anywhere in the runtime; platform
   work reads platform-tenant rows and global replicas under a normal binding.
@@ -326,7 +326,7 @@ pointing back here):
   replica handler template); new `pos-tenant` module (account, contact, billing profile, tenant, status machine,
   `tenant.events.v1` producer, platform-admin API) built on the `pos-location` skeleton; `pos_app` role and grants
   in `postgres/init-databases.sql`; `ext_tenant` consumer, role template, and provisioning handler in
-  `pos-security-service`; gateway header changes and the `/tenant/v1/**` route; `DomainEventEnvelope.tenantId`.
+  `pos-security-service`; gateway header changes and the `/tenant/**` route; `DomainEventEnvelope.tenantId`.
 - **Configuration.** `SPRING_DATASOURCE_*` = `pos_app`; `SPRING_FLYWAY_USER` / `SPRING_FLYWAY_PASSWORD` = owner;
   `environment.tenantResolution: 'host' | 'form'` in the frontend.
 - **Sequencing.** WS0 (this ADR and the amendments) → WS1 + WS4 on the `pos-location` pilot → WS2a `pos-tenant`
@@ -408,3 +408,10 @@ pointing back here):
   and the ArchUnit rules; `pos-location` is the pilot, connecting as `pos_app` with Flyway on the owner
   credential and proving isolation on Testcontainers. §9's transitional default now lives in
   `pos.tenancy.default-tenant-id` for adopted modules; the gateway strips inbound `X-Tenant-Id`.
+- **2026-09-10:** WS2a landed (louisburroughs/durion-positivity-backend#1924): the `pos-tenant` module of §7 with
+  `account`, `account_contact`, `billing_profile` and `tenant`, the status machine, the platform tenant bootstrapped
+  under `PlatformTenant.ID` (published by `pos-tenancy-common`), `tenant.events.v1` facts through the outbox
+  (`TenantCreatedV1`, `TenantProjectionV1`) and the `tenant.provisioned` consumer, the platform-admin API behind the
+  `platform:tenant:*` / `platform:account:*` families (§7 now lists `platform:tenant:decommission` for the terminal
+  move), and a 403 `PLATFORM_TENANT_REQUIRED` guard so the registry is reachable from the platform tenant
+  only. Producing `tenant.provisioned` (pos-security-service) and the `ext_tenant` replicas remain WS2b.
