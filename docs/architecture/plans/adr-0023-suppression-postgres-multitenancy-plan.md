@@ -319,11 +319,11 @@ API Orchestrator workflow.
 | ID | Workstream | Repo | Effort (eng-weeks) | Depends on |
 | --- | --- | --- | --- | --- |
 | WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog. **Done 2026-09-09** (ADR-0062 accepted; every row of its "Amends" table applied) | durion | 1 | none |
-| WS1 | Tenancy platform core: `pos-tenancy-common` (`TenantContext`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`), shared `pos_app` role and grants, Flyway on the owner credential, generic RLS migration template, schema-conformance IT, ArchUnit rules | backend | 2 - 3 | WS0 |
+| WS1 | **Done 2026-09-10** (backend #1921, piloted on `pos-location` with WS4's async path). `pos-tenancy-common`: `TenantContext`, `TenantContextFilter`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`, Hibernate resolver, Kafka interceptor, `pos_app` on the pilot, isolation and conformance ITs, ArchUnit rules | backend | 2 - 3 (spent ~1) | WS0 |
 | WS2a | Registry: new `pos-tenant` module (account, contacts, billing profile, tenant, status machine, platform tenant bootstrap, `tenant.events.v1` producer, platform-admin API and OpenAPI, `/tenant/v1/**` route, module wiring in the reactor, Compose, and `init-databases.sql`) | backend | 1.5 - 2 | WS1 |
 | WS2b | Identity: `ext_tenant` consumer, `users.tenant_id`, per-tenant username uniqueness, tenant-scoped `roles`/`role_permissions`/`role_assignments` with the role template and provisioning handler, `tenant.provisioned` producer, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, `/v1/tenants/me` | backend | 2.5 - 3 | WS1, WS2a |
 | WS3 | Per-module retrofit x 27 (`pos-tenant` is born scoped). **Schema half done 2026-09-09 by the baseline flatten** (classification, tenancy migration, unique constraints, composite keys; Appendix B). Remaining: entity superclass retrofit (scripted), native/`JdbcTemplate` audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 8 - 11 | WS1, WS2 |
-| WS4 | Async platform: envelope `tenantId`, Kafka header, consumer `RecordInterceptor`, outbox as a global table with `tenant_id` data, producer signature change (31 sites) | backend | 1 - 2 | WS1 |
+| WS4 | *Pilot half done with WS1 (Kafka header, consumer interceptor, outbox `tenant_id` data column on `pos-location`); the envelope field and the producer signature change remain.* Async platform: envelope `tenantId`, Kafka header, consumer `RecordInterceptor`, outbox as a global table with `tenant_id` data, producer signature change (31 sites) | backend | 1 - 2 | WS1 |
 | WS5 | Test infrastructure: move the 25 H2-tested modules' database tests to Testcontainers Postgres; CI runner Docker availability; shared `TenantTestSupport` fixture | backend | 2 - 3 | WS1, overlaps WS3 |
 | WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping, per-tenant export tooling for offboarding (replaces per-cell `pg_dump`), Compose/alpha runbook role changes | backend, durion | 2 - 3 | WS1 |
 | WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant and account pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` and generate `sdk-tenant` | frontend, sdk | 2 - 3 | WS2a, WS2b |
@@ -507,7 +507,9 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 
 1. **WS0** ADR accepted; tenant-cell doc and ADR-0045 amended. *Done 2026-09-09.*
 2. **WS1 + WS4** land together on a single pilot module (`pos-location` is small, has schedulers, listeners, and an
-   outbox) to prove the whole path end to end, including the Testcontainers isolation IT.
+   outbox) to prove the whole path end to end, including the Testcontainers isolation IT. *Done 2026-09-10:
+   `pos-tenancy-common`, `pos-location` on `pos_app` with `TenantIsolationIT` and `TenancySchemaConformanceIT`;
+   the transitional `pos.tenancy.default-tenant-id` stays until WS2b.*
 3. **WS2a** `pos-tenant`, then **WS2b** identity and gateway; from this point every request in the integration cell
    is tenant-bound.
 4. **WS3 + WS5** module waves, largest first, using the pilot as the exemplar. Each wave: classify, migrate, retrofit,
