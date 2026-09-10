@@ -492,3 +492,15 @@ pointing back here):
   every active tenant; the stock-availability fan-out re-binds the request tenant on each virtual-thread leg, since
   virtual threads do not inherit the binding. The H2 slices keep a fixed-default `tenant_id` (`V21`) standing in for
   `app_current_tenant()`; isolation is proven on Postgres only.
+- **2026-09-10:** WS3 waves 8-11 landed (louisburroughs/durion-positivity-backend#1934): twelve more modules run on the
+  runtime. `pos-warranty` (wave 8), `pos-people` + `pos-invoice` (wave 9), `pos-marketing` + `pos-vehicle-inventory` +
+  `pos-price` + `pos-vehicle-fitment` (wave 10), `pos-people-contact` + `pos-tax` + `pos-image` +
+  `pos-vehicle-reference-nhtsa` + `pos-vehicle-reference-carapi` (wave 11). Outbox rows carry the producing tenant;
+  outbox and manifest publishers are platform-scoped; every other sweep (time-period rollover, invoice party backfill,
+  campaign drain, tax re-commit) is per tenant with its transaction inside the binding; `pos-price` re-binds the request
+  tenant on its virtual-thread evaluation; `pos-tax`'s native lifecycle insert names the tenant explicitly. The fitment
+  and vehicle reference modules are `@TenantGlobal` throughout. The alpha deploy now reconciles the `pos_app` role on
+  every run (louisburroughs/durion-positivity-backend#1933) after the volume that predates `init-tenancy.sh` left
+  `pos-security-service` unable to connect.
+  Left in WS3: `pos-mcp-server`; `pos-event-receiver` needs the emitter (`pos-events`) to carry the tenant first;
+  `pos-bulk-loader` is WS8.
