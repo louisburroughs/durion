@@ -484,3 +484,11 @@ pointing back here):
   the customer-number sequence read carries `@TenantAudited`). Its Postgres `pg` profile is strict now, the last
   transitional pool binding of the flatten gone. Seven of the 27 modules remain on the owner-role default; the
   medium ones follow largest first.
+- **2026-09-10:** WS3 wave 7 landed (louisburroughs/durion-positivity-backend#1932): `pos-supplier` runs on the
+  runtime (20 scoped entities; `processed_events` and `supplier_event_outbox` global, the outbox row carrying the
+  producing tenant, `V2`). Every scheduled sweep but the outbox drain is per tenant (MKCAT, PRICAT, stock-report,
+  invoice, image retry, quarantine re-application, the three order-transmission polls, the two workorder authorization
+  polls, the exchange-audit purge with its transaction inside the binding); the YAML profile bootstrap reconciles into
+  every active tenant; the stock-availability fan-out re-binds the request tenant on each virtual-thread leg, since
+  virtual threads do not inherit the binding. The H2 slices keep a fixed-default `tenant_id` (`V21`) standing in for
+  `app_current_tenant()`; isolation is proven on Postgres only.
