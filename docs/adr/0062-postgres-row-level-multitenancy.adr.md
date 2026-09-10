@@ -463,3 +463,12 @@ pointing back here):
   platform-scoped, the approval-expiry and fleet-authorization resource-release sweeps run per tenant of the
   registry; no native queries. The module's existing Postgres `FlywayMigrationIT` moved onto the strict `pg`
   profile next to the new isolation and conformance ITs, so its transitional pool binding is gone too.
+- **2026-09-10:** WS3 wave 4 landed in the same PR (louisburroughs/durion-positivity-backend#1930): `pos-catalog` runs on the
+  runtime: 42 scoped entities, two global tables, the outbox row carries the producing tenant (V2) and
+  `OutboxPublisher` stamps it on the record header; both jobs (outbox publisher, manifest publisher) are
+  platform-scoped; no per-tenant scheduler and no native query. The repeatable reference seeds already bind the
+  alpha default tenant for their own transaction, so they run unchanged on the owner credential. Same PR, a test
+  repair the first fully-loading `main` run exposed: the shared `PostgresTenancyTestBase` declared its container per
+  test class, so the second tenancy IT class ran against a stopped container through Spring's cached context
+  (`TenancySchemaConformanceIT` red in every module while `TenantIsolationIT` passed); the base now starts one
+  container per test JVM and never stops it.
