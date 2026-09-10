@@ -275,7 +275,7 @@ Every one of the 62 `@Scheduled` methods is classified as one of:
 ### Tenant registry and propagation
 
 - A new **`pos-tenant`** module (package `com.positivity.tenant`, database `pos_tenant_db`, Eureka `TENANT`,
-  gateway route `/tenant/v1/**`, built on the `pos-location` skeleton) owns the master `tenant` table (`id`, `slug`,
+  gateway route `/tenant/**`, built on the `pos-location` skeleton) owns the master `tenant` table (`id`, `slug`,
   `display_name`, `status`, `account_id`, cell or region, lifecycle timestamps) and the customer that owns each
   tenancy: `account`, `account_contact` (`OWNER` / `BILLING` / `TECHNICAL`), and `billing_profile` (billing address,
   payment terms, invoicing email, payment-processor token; never a card number). One account may own several
@@ -408,7 +408,7 @@ superclass retrofit are what keep the small modules at days rather than weeks.
   already strips, inject `X-Tenant-Id` from `tid`, and add `X-Tenant-Slug` only for the `/auth/login` route.
   `GatewaySecurityConstants` gains both names. `GatewayAuthoritiesFilter` binds `TenantContext` from `X-Tenant-Id`.
 - Platform-admin endpoints in `pos-tenant` (`/v1/platform/tenants`, `/v1/platform/accounts`) with the
-  `platform:tenant:{create,read,update,suspend,reactivate}` and `platform:account:{create,read,update}` permission
+  `platform:tenant:{create,read,update,suspend,reactivate,decommission}` and `platform:account:{create,read,update}` permission
   families registered per ADR-0025 and added to the permission bitset catalog (version bump, fleet-coordinated).
 - Tenant events on `tenant.events.v1` from `pos-tenant`; `tenant.provisioned` from `pos-security-service` on the
   same topic; consumer handler template for the `ext_tenant` replica shipped in `pos-tenancy-common`.
