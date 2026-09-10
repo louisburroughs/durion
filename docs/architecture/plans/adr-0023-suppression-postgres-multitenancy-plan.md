@@ -1,13 +1,13 @@
 ---
 title: 'ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan'
 created: 2026-09-07
-updated: 2026-09-09
+updated: 2026-09-10
 status: active
 ---
 
 ## ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan
 
-**Version:** 0.3 **Status:** Active (ADR-0062 accepted 2026-09-09) **Last Updated:** 2026-09-09
+**Version:** 0.3 **Status:** Active (ADR-0062 accepted 2026-09-09) **Last Updated:** 2026-09-10
 **Related:** [ADR-0062](../../adr/0062-postgres-row-level-multitenancy.adr.md) (proposed, supersedes ADR-0023),
 ADR-0023 Remove `tenantId` (to be superseded), ADR-0011, ADR-0013, ADR-0024, ADR-0040, ADR-0044, ADR-0045, ADR-0061,
 Foundation-First Tenant Cell Deployment Architecture
@@ -319,7 +319,7 @@ API Orchestrator workflow.
 | ID | Workstream | Repo | Effort (eng-weeks) | Depends on |
 | --- | --- | --- | --- | --- |
 | WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog. **Done 2026-09-09** (ADR-0062 accepted; every row of its "Amends" table applied) | durion | 1 | none |
-| WS1 | **Done 2026-09-10** (backend #1923, piloted on `pos-location` with WS4's async path). `pos-tenancy-common`: `TenantContext`, `TenantContextFilter`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`, Hibernate resolver, Kafka interceptor, `pos_app` on the pilot, isolation and conformance ITs, ArchUnit rules | backend | 2 - 3 (spent ~1) | WS0 |
+| WS1 | **Done 2026-09-10** (backend #1923, piloted on `pos-location` with WS4's async path). `pos-tenancy-common`: `TenantContext`, `TenantContextFilter`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`, Hibernate resolver, Kafka interceptor; `pos_app` on the pilot; isolation/conformance ITs; ArchUnit rules | backend | 2 - 3 (spent ~1) | WS0 |
 | WS2a | Registry: new `pos-tenant` module (account, contacts, billing profile, tenant, status machine, platform tenant bootstrap, `tenant.events.v1` producer, platform-admin API and OpenAPI, `/tenant/v1/**` route, module wiring in the reactor, Compose, and `init-databases.sql`) | backend | 1.5 - 2 | WS1 |
 | WS2b | Identity: `ext_tenant` consumer, `users.tenant_id`, per-tenant username uniqueness, tenant-scoped `roles`/`role_permissions`/`role_assignments` with the role template and provisioning handler, `tenant.provisioned` producer, login tenant resolution (host and form), `tid` claim, `X-Tenant-Id` at the gateway, `JwtToken` scoping, `/v1/tenants/me` | backend | 2.5 - 3 | WS1, WS2a |
 | WS3 | Per-module retrofit x 27 (`pos-tenant` is born scoped). **Schema half done 2026-09-09 by the baseline flatten** (classification, tenancy migration, unique constraints, composite keys; Appendix B). Remaining: entity superclass retrofit (scripted), native/`JdbcTemplate` audit, per-tenant numbering, outbox column, scheduler classification, isolation IT | backend | 8 - 11 | WS1, WS2 |
