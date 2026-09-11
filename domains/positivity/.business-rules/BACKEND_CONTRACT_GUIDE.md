@@ -6,9 +6,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-supplier/openapi.yaml
-openapi_commit: f1316aa
-last_verified_utc: 2026-09-06T00:00:00Z
-last_updated: 2026-09-06
+openapi_commit: 55e6e0e4
+last_verified_utc: 2026-09-11T18:00:00Z
+last_updated: 2026-09-11
 api_reference_generated: none — not yet generated for this domain
 traceability:
   capability_manifest_root: docs/capabilities
@@ -470,6 +470,88 @@ Precedence (ADR-0053 §4):
   vendor profile.
 - The 500-line chunk default is still owed a validation against the first Michelin sandbox pull, to be
   recorded in ADR-0053.
+
+## Cross-Cutting Tenant-Scoping Additions (ADR-0062)
+
+Not part of the `pos-supplier` contract above — two ADR-0062 (multitenancy) changes shipped against other
+modules, and each backend PR body promised "entry to follow in the durion docs PR." Neither module has a
+domain guide of its own, and this is the nearest existing contract guide, so both are recorded here rather
+than left undocumented. Verified against `durion-positivity-backend` at `55e6e0e4` (`main`).
+
+**Owning OpenAPI sources.** The front matter's `openapi_source` names `pos-supplier/openapi.yaml` only, and
+the guide validator loads that single source, so the operationIds in this section cannot be resolved through
+it. Look them up in their own module's spec instead:
+
+| Section | Owning module | OpenAPI source |
+| --- | --- | --- |
+| (a) Event summary | `pos-event-receiver` | `durion-positivity-backend/pos-event-receiver/openapi.yaml` |
+| (b) NLTI sessions | `pos-mcp-server` | `durion-positivity-backend/pos-mcp-server/openapi.yaml` |
+
+If either module later gains a domain guide of its own, these two subsections move there wholesale and this
+cross-reference goes away.
+
+### (a) Event summary endpoints gain a tenant dimension — `pos-event-receiver` (PR #1951, WS6-a)
+
+| UI action | Method & path | operationId | Notes |
+| --- | --- | --- | --- |
+| Last hour's event counts | `GET /v1/events/summary/lastHour?tenantId=` | `getEventSummaryLastHour` | See scope rule below |
+| Last day's event counts | `GET /v1/events/summary/lastDay?tenantId=` | `getEventSummaryLastDay` | See scope rule below |
+| Last week's event counts | `GET /v1/events/summary/lastWeek?tenantId=` | `getEventSummaryLastWeek` | See scope rule below |
+
+`tenantId` is a new, optional query parameter (`EventSummaryController`); the response shape
+(`EventSummaryResponse[]`) is unchanged. Scope rule, enforced in `EventSummaryServiceImpl.summarize`:
+
+- Omitted: a caller bound to an ordinary tenant reads its own tenant's counts; a caller bound to the
+  platform tenant reads the global rollup (the sum across every tenant).
+- Named: only a platform-tenant-bound caller may name `tenantId`, and it selects that one tenant's counts.
+  A caller bound to any other tenant naming `tenantId` — even its own id — is refused, so a tenant can never
+  distinguish "reading myself explicitly" from "reading someone else" in the response.
+
+#### Status Code Semantics
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| — | 200 | Summary returned (possibly an empty list) |
+| `TENANT_REQUIRED` | 401 | No tenant could be bound to the request; raised by `TenantContextFilter` before the controller runs. Not reachable in `pos-event-receiver` today — see below |
+| *(no `ApiError` code; reason string only)* | 403 | `tenantId` named by a caller that is not the platform tenant (`TenantScopeForbiddenException`, reason `"tenantId may be requested from the platform tenant only"`) |
+
+On the 401: `TenantContextFilter` refuses a request whose `X-Tenant-Id` is malformed, and a request with no
+`X-Tenant-Id` at all only when no transitional default is configured. **It is therefore not reachable in
+`pos-event-receiver` today** — that module's `application.yml` sets `pos.tenancy.default-tenant-id`, so an
+unbound call binds the default tenant and reads that tenant's counts with a 200. The 401 becomes reachable
+when the transitional default is removed (ADR-0062 §9).
+
+These endpoints sit behind the same shared-secret `EventsApiSecurityFilter` as the rest of
+`pos-event-receiver`'s GET surface (GET bypasses it entirely per existing policy), not a
+`pos-security-service` permission — the tenant-scope check above is the only access control layered on top.
+
+### (b) NLTI session endpoints become tenant-scoped — `pos-mcp-server` (PR #1956, WS6-b)
+
+All four NLTI operations live in `pos-mcp-server`'s spec (`NltiController`):
+
+| UI action | Method & path | operationId |
+| --- | --- | --- |
+| Submit a natural-language request | `POST /v1/nlt/requests` | `submitNltiRequest` |
+| Set the session workflow state | `POST /v1/nlt/sessions/{sessionId}/workflow-state` | `setSessionWorkflowState` |
+| Confirm a previewed write plan | `POST /v1/nlt/requests/{requestId}/confirm` | `confirmWritePlan` |
+| Cancel a previewed write plan | `POST /v1/nlt/requests/{requestId}/cancel` | `cancelWritePlan` |
+
+`setSessionWorkflowState`, `confirmWritePlan` and `cancelWritePlan` resolve `sessionId` through
+`NltiSessionAccess`, which runs strictly inside the bound tenant (Hibernate `@TenantId` plus row-level
+security, then a defence-in-depth check on the loaded row's own `tenantId`). A session id belonging to
+another tenant is therefore indistinguishable from one that never existed:
+
+- 404 `SESSION_NOT_FOUND` — the bound tenant has no such session; covers both an unknown id and another
+  tenant's id alike (was previously 403 for a cross-tenant id).
+- 403 `SESSION_ACCESS_DENIED` — the session exists in the bound tenant but is owned by a different
+  authenticated subject.
+
+`POST /v1/nlt/requests` (`submitNltiRequest`) keeps its existing contract unchanged: a `sessionId` the
+caller's tenant does not have — unknown, or another tenant's — silently starts a fresh session for the
+caller, exactly as an omitted `sessionId` does, never a 404 or a cross-tenant read. A `sessionId` that
+exists in the caller's own tenant but is owned by a different subject is still a 403
+(`SessionOwnershipViolationException`). No new request/response field on any of the four operations, and
+the permission (`nlti:request:submit`, all four) is unchanged.
 
 ## Events & Cross-Domain Dependencies
 
