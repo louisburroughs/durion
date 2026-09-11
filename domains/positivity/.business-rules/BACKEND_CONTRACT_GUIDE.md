@@ -6,8 +6,8 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-supplier/openapi.yaml
-openapi_commit: f1316aa
-last_verified_utc: 2026-09-06T00:00:00Z
+openapi_commit: 55e6e0e4
+last_verified_utc: 2026-09-11T18:00:00Z
 last_updated: 2026-09-11
 api_reference_generated: none — not yet generated for this domain
 traceability:
@@ -478,6 +478,18 @@ modules, and each backend PR body promised "entry to follow in the durion docs P
 domain guide of its own, and this is the nearest existing contract guide, so both are recorded here rather
 than left undocumented. Verified against `durion-positivity-backend` at `55e6e0e4` (`main`).
 
+**Owning OpenAPI sources.** The front matter's `openapi_source` names `pos-supplier/openapi.yaml` only, and
+the guide validator loads that single source, so the operationIds in this section cannot be resolved through
+it. Look them up in their own module's spec instead:
+
+| Section | Owning module | OpenAPI source |
+| --- | --- | --- |
+| (a) Event summary | `pos-event-receiver` | `durion-positivity-backend/pos-event-receiver/openapi.yaml` |
+| (b) NLTI sessions | `pos-mcp-server` | `durion-positivity-backend/pos-mcp-server/openapi.yaml` |
+
+If either module later gains a domain guide of its own, these two subsections move there wholesale and this
+cross-reference goes away.
+
 ### (a) Event summary endpoints gain a tenant dimension — `pos-event-receiver` (PR #1951, WS6-a)
 
 | UI action | Method & path | operationId | Notes |
@@ -500,8 +512,14 @@ than left undocumented. Verified against `durion-positivity-backend` at `55e6e0e
 | Code | Status | Meaning |
 | --- | --- | --- |
 | — | 200 | Summary returned (possibly an empty list) |
-| `TENANT_REQUIRED` | 401 | No tenant could be bound to the request — `TenantContextFilter` refuses a malformed or (with no transitional default) missing `X-Tenant-Id`, before the controller runs. **Not reachable in `pos-event-receiver` today:** its `application.yml` sets `pos.tenancy.default-tenant-id`, so an unbound call binds the default tenant and reads that tenant's counts. It becomes reachable when the transitional default is removed |
+| `TENANT_REQUIRED` | 401 | No tenant could be bound to the request; raised by `TenantContextFilter` before the controller runs. Not reachable in `pos-event-receiver` today — see below |
 | *(no `ApiError` code; reason string only)* | 403 | `tenantId` named by a caller that is not the platform tenant (`TenantScopeForbiddenException`, reason `"tenantId may be requested from the platform tenant only"`) |
+
+On the 401: `TenantContextFilter` refuses a request whose `X-Tenant-Id` is malformed, and a request with no
+`X-Tenant-Id` at all only when no transitional default is configured. **It is therefore not reachable in
+`pos-event-receiver` today** — that module's `application.yml` sets `pos.tenancy.default-tenant-id`, so an
+unbound call binds the default tenant and reads that tenant's counts with a 200. The 401 becomes reachable
+when the transitional default is removed (ADR-0062 §9).
 
 These endpoints sit behind the same shared-secret `EventsApiSecurityFilter` as the rest of
 `pos-event-receiver`'s GET surface (GET bypasses it entirely per existing policy), not a
@@ -509,8 +527,16 @@ These endpoints sit behind the same shared-secret `EventsApiSecurityFilter` as t
 
 ### (b) NLTI session endpoints become tenant-scoped — `pos-mcp-server` (PR #1956, WS6-b)
 
-`POST /v1/nlt/sessions/{sessionId}/workflow-state` (`setSessionWorkflowState`) and the write-plan
-`POST /v1/nlt/requests/{requestId}/confirm` / `.../cancel` operations resolve `sessionId` through
+All four NLTI operations live in `pos-mcp-server`'s spec (`NltiController`):
+
+| UI action | Method & path | operationId |
+| --- | --- | --- |
+| Submit a natural-language request | `POST /v1/nlt/requests` | `submitNltiRequest` |
+| Set the session workflow state | `POST /v1/nlt/sessions/{sessionId}/workflow-state` | `setSessionWorkflowState` |
+| Confirm a previewed write plan | `POST /v1/nlt/requests/{requestId}/confirm` | `confirmWritePlan` |
+| Cancel a previewed write plan | `POST /v1/nlt/requests/{requestId}/cancel` | `cancelWritePlan` |
+
+`setSessionWorkflowState`, `confirmWritePlan` and `cancelWritePlan` resolve `sessionId` through
 `NltiSessionAccess`, which runs strictly inside the bound tenant (Hibernate `@TenantId` plus row-level
 security, then a defence-in-depth check on the loaded row's own `tenantId`). A session id belonging to
 another tenant is therefore indistinguishable from one that never existed:

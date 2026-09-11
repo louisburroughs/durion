@@ -6,9 +6,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/security/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-security-service/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+openapi_commit: 55e6e0e4
+last_verified_utc: 2026-09-11T18:00:00Z
+last_updated: 2026-09-11
 api_reference_generated: domains/security/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -83,15 +83,40 @@ Frontend developer workflow:
 
 ### Platform Provisioning & Support (ADR-0062 WS2b-3, WS2b-4, WS8)
 
-Added 2026-09-11 (backend #1950, #1954, #1955). Platform-tenant-only operations, not part of a tenant's own
-`/v1/**` surface.
+Added 2026-09-11 (backend #1950, #1954, #1955). The mint, impersonation and reconciliation operations
+below are platform-tenant-only and are not part of a tenant's own `/v1/**` surface. `POST /v1/auth/activate`
+is the exception: it is the public redemption step, deliberately unauthenticated and tenant-unbound, because
+the administrator redeeming the token has no credential to authenticate with yet.
 
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
-| Mint a first-administrator activation token | *(operationId not stated in source PR body)* | POST | `/v1/platform/tenants/{tenantId}/administrators/{userId}/activation-token` | Requires `platform:tenant:provision`, platform-tenant binding only (403 `PLATFORM_TENANT_REQUIRED`). Refuses a user not `awaiting_activation` with 409 `USER_NOT_AWAITING_ACTIVATION`. Returns `{token, expiresAt}` once; token is one-time, 72-hour, hashed at rest |
-| Activate the first administrator | `activate` | POST | `/v1/auth/activate` | Unauthenticated (`permitAll`); `{token, newPassword}`. Unknown/expired/used token is 401 `ACTIVATION_TOKEN_INVALID` |
-| Mint a platform support (impersonation) token | `mintImpersonationToken` | POST | `/v1/platform/tenants/{tenantId}/impersonation-token` | Requires `platform:tenant:impersonate`, platform-tenant binding only. Target must be `ACTIVE`, not the platform tenant (409 `TENANT_NOT_IMPERSONABLE`). Returns a 15-minute, no-refresh token scoped to the target tenant's read-only `SUPPORT` role; audited in both tenants |
-| Reconcile a tenant's roles against the platform template | `reconcileTemplate` | POST | `/v1/platform/tenants/{tenantId}/roles/reconcile-template` | Requires `platform:tenant:provision`, platform-tenant binding only. Creates missing template roles and unions new template grants onto existing roles; never removes a tenant's own edits; idempotent. Guarded by `PlatformGrantGuard` (added across review): a role cannot be marked template (`template_key` set) while it holds a `platform:*` permission, and a row named `PLATFORM_ADMIN` is refused outright regardless of its grants — either would otherwise have its grants copied into every tenant by this endpoint and by provisioning. Both refusals also apply to `provisionTemplateRole` (the platform bulk-load path that marks `roles.csv` rows as template); both answer 400 `VALIDATION_ERROR` |
+| Mint a first-administrator activation token | `mintAdministratorActivationToken` | POST | `/v1/platform/tenants/{tenantId}/administrators/{userId}/activation-token` | See (a) below |
+| Activate the first administrator | `activateAccount` | POST | `/v1/auth/activate` | See (b) below |
+| Mint a platform support (impersonation) token | `mintImpersonationToken` | POST | `/v1/platform/tenants/{tenantId}/impersonation-token` | See (c) below |
+| Reconcile a tenant's roles against the platform template | `reconcileRoleTemplate` | POST | `/v1/platform/tenants/{tenantId}/roles/reconcile-template` | See (d) below |
+
+**(a) Mint an activation token.** Requires `platform:tenant:provision` and a platform-tenant binding (403
+`PLATFORM_TENANT_REQUIRED`). Refuses a user who is not `awaiting_activation` with 409
+`USER_NOT_AWAITING_ACTIVATION`, so a live account is never overwritten. Returns `{token, expiresAt}` exactly
+once; the token is one-time, valid 72 hours, and stored hashed at rest.
+
+**(b) Activate the first administrator.** Unauthenticated (`permitAll`); body `{token, newPassword}`. An
+unknown, expired or already-used token is 401 `ACTIVATION_TOKEN_INVALID` — the three are deliberately
+indistinguishable.
+
+**(c) Mint a platform support (impersonation) token.** Requires `platform:tenant:impersonate` and a
+platform-tenant binding. The target must be `ACTIVE` and must not be the platform tenant itself (409
+`TENANT_NOT_IMPERSONABLE`). Returns a 15-minute, no-refresh token scoped to the target tenant's read-only
+`SUPPORT` role; the mint is audited in both the target and the platform tenant.
+
+**(d) Reconcile a tenant's roles against the platform template.** Requires `platform:tenant:provision` and a
+platform-tenant binding. Creates missing template roles and unions new template grants onto existing roles;
+it never removes a tenant's own edits, and it is idempotent. Guarded by `PlatformGrantGuard` (added across
+WS8's review rounds): a role cannot be marked template (`template_key` set) while it holds a `platform:*`
+permission, and a row named `PLATFORM_ADMIN` is refused outright whatever its grants — either would
+otherwise have its grants copied into every tenant by this endpoint and by provisioning. Both refusals apply
+equally to `provisionTemplateRole`, the platform bulk-load path that marks `roles.csv` rows as template, and
+both answer 400 `VALIDATION_ERROR`.
 
 ### Tenant Registry — Internal Only (ADR-0062 WS4-2)
 

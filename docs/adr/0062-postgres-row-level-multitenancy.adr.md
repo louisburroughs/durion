@@ -552,7 +552,7 @@ pointing back here):
   never collide. Consumers compare drift and request replay per tenant. A manifest published before the field
   existed carries no tenant and is skipped by every listener, logged at WARN and counted as
   `replica.manifest.skipped{reason="missing_tenant"}`: reading it as one tenant's record would compare an
-  all-tenant count against a single-tenant scan and report drift for ever. `processed_events` rows recorded
+  all-tenant count against a single-tenant scan and report drift forever. `processed_events` rows recorded
   before its new `tenant_id` column existed carry no tenant, do not self-heal on replay, and need the
   backfill the runbook documents.
 - **2026-09-11:** WS6 landed. WS6-a (backend #1951): `emitted_event_hourly` grouped by `tenant_id`, a
@@ -580,7 +580,9 @@ pointing back here):
   this ADR.
 - **2026-09-11:** WS8 landed (backend #1955): `pos-bulk-loader` adopts the tenancy runtime as the last
   persisting module (§10 "every persisting module is adopted"), and `pos-security-service` gains
-  `reconcileTemplate`. `POST /v1/bulk-jobs` gains a required `tenantId`, echoed on the response, resolved by
+  `reconcileTemplate`. `POST /v1/bulk-jobs` gains a `tenantId`, echoed on the response and required *unless*
+  the transitional default tenant (`pos.tenancy.default-tenant-id`, §9) is configured — with a default set an
+  omitted `tenantId` falls back to it with a WARN, and only with no default is omission refused. It is resolved by
   `BulkLoadTenantBinding.resolveTarget` and carrying five distinct refusals that five review rounds produced
   (all as a `BulkLoadTenantException` mapped to the ADR-0017 `ApiError` envelope):
 
@@ -590,7 +592,13 @@ pointing back here):
   | `BULK_JOB_TENANT_UNKNOWN` | 400 | The named tenant is neither an active tenant of this module's `TenantRegistry` nor the platform tenant |
   | `BULK_JOB_TENANT_FORBIDDEN` | 403 | The caller is bound to a tenant other than the one named — for every caller, the platform operator included; a job runs under its creating caller's own binding and operator id, so one created in another tenant would be unreachable afterwards |
   | `BULK_JOB_TENANT_UNBOUND_TARGET_FORBIDDEN` | 403 | The caller has no `tid` on its token yet and still named a target explicitly; an unbound caller may only omit `tenantId` and fall back to the transitional default, never pick a tenant for itself |
-  | `BULK_JOB_TENANT_DOMAIN_FORBIDDEN` | 403 | The target resolved to the platform tenant but `domainType` is not one of the two role-template packs (`SECURITY_ROLE`, `SECURITY_ROLE_PERMISSION`) the platform tenant accepts |
+  | `BULK_JOB_TENANT_DOMAIN_FORBIDDEN` | 403 | The target resolved to the platform tenant but `domainType` is not one of the two role-template packs (`SECURITY_ROLE`, `SECURITY_ROLE_PERMISSION`) the platform tenant accepts. See the note below on its status code |
+
+  **On `BULK_JOB_TENANT_DOMAIN_FORBIDDEN`'s status code.** ADR-0017 makes 422 the default for a well-formed
+  request refused by domain policy and reserves 403 for caller authorization, and this refusal is a policy
+  restriction on `domainType` rather than a statement about the caller. The shipped code answers 403. This
+  ADR does not grant an exception: the discrepancy is recorded here as a known inconsistency to settle with
+  a follow-up that either aligns the endpoint with ADR-0017 or records a deliberate override there.
 
   A bound caller may therefore only ever load into its own tenant; there is deliberately no path (in WS8) for
   a platform operator to load data into another tenant on its behalf — that needs a genuine impersonation

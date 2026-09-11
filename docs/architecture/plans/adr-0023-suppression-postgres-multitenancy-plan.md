@@ -147,12 +147,12 @@ below are a floor: re-measure at WS3 kickoff and re-baseline the per-module clas
 | Database credentials | One shared `pos_app` role for all 26 databases, no superuser, no `BYPASSRLS`, no ownership; the owner credential is used by Flyway only. No per-tenant or per-service roles; customers never hold a database credential |
 | Global (non-tenant) data | Explicitly whitelisted per module with a `@TenantGlobal` marker and no RLS policy: vehicle reference data (NHTSA, CarAPI), fitment, tax rate tables, the permission catalog, Flyway history, tenant replicas; and one RLS exception (2026-09-10): the receiver's `emitted_event` hypertable, as TimescaleDB excludes row security from compression and caggs |
 | Deployment | Same images for pooled and dedicated cells; tenancy is a data property, not a build property |
-| First administrator credential (decided 2026-09-10) | **Operator-delivered activation token.** Provisioning leaves the first `ADMIN` credential-expired; a `platform:tenant:provision` caller mints a one-time 72-hour token via a narrow `pos-security-service` endpoint; unauthenticated `POST /v1/auth/activate` sets the password. No mail needed; the same token later drives e-mail reset. **Delivered 2026-09-11 (backend #1950, WS2b-3):** as decided, plus an explicit `users.awaiting_activation` marker (mint refuses any other state with 409 `USER_NOT_AWAITING_ACTIVATION`) and a hashed, single-use `user_activation_tokens` row; a live account is never overwritten |
-| Platform support access (decided 2026-09-10) | **Impersonation token, never a cross-tenant role.** `ROLE_PLATFORM_ADMIN` gains `platform:tenant:impersonate`; `pos-security-service` mints its holder a 15-minute, no-refresh token with `tid` = the target tenant, `act` = the operator and a fixed tenant `SUPPORT` role, audited upon issuance; gateway and modules unchanged (WS2b-4). **Delivered 2026-09-11 (backend #1954):** `SUPPORT` is seeded into every tenant's role template as a read-only floor role (`*:*:view`/`*:*:read` plus `location:read`, minus the platform and MCP/PII carve-outs); `perm_bits` at mint time is the target tenant's `SUPPORT` grants intersected with that read-only ceiling, so a widened `SUPPORT` role can never mint a write; the mint is audited in both the target and platform tenants |
-| Tenant registry behind `TenantIterator` (decided 2026-09-10) | **Cached REST lookup against `pos-tenant`.** The library's `RemoteTenantRegistry` polls an internal, shared-secret `pos-tenant` list endpoint, keeps the last good snapshot through outages, and starts from the static list. Accepted: a runtime dependency on `pos-tenant` and one service secret; no per-module `ext_tenant` replica. **Delivered 2026-09-11 (backend #1949, WS4-2):** `GET /internal/v1/tenants[?status=ACTIVE]`, `@Hidden`, secret-guarded; no module is switched to `REMOTE` yet, so runtime behaviour is unchanged until one is configured. Both `StaticTenantRegistry` and `RemoteTenantRegistry` filter `PlatformTenant.ID` out of `activeTenantIds()` — the invariant and a known `pos-security-service` exception are recorded in ADR-0062's 2026-09-11 `TenantRegistry.activeTenantIds()` changelog entry |
-| Bulk-loaded roles and the template (decided 2026-09-10) | **Loader targets the platform tenant; provisioning reconciles.** `pos-bulk-loader` takes a target tenant per job; a role loaded into the platform tenant gets `template_key` and joins the template; `reconcileTemplate(tenant)` adds new template roles and grants to existing tenants, leaving tenant-local edits alone. **Delivered 2026-09-11 (backend #1955, WS8):** a bound caller loads only into the tenant its own token names and no other — the platform operator included, so there is no path for it to target a different tenant on that tenant's behalf (403 `BULK_JOB_TENANT_FORBIDDEN`); an unbound caller may omit `tenantId` for the transitional default but is refused for naming one explicitly (403 `BULK_JOB_TENANT_UNBOUND_TARGET_FORBIDDEN`). Full five-code table: ADR-0062 changelog, 2026-09-11 WS8 entry |
-| Outbox manifests (decided 2026-09-10) | **Per tenant.** Manifest records carry `tenantId`, publishers emit one manifest per tenant per window, consumers track drift and request replay per tenant (WS4). **Delivered 2026-09-11 (backend #1952, WS4-3):** closes the WS4-1 interim exception to ADR-0044 §4; a manifest published before the field existed carries no tenant and is skipped by every listener with a WARN and a `replica.manifest.skipped{reason="missing_tenant"}` count, rather than being read as one tenant's record, and `processed_events` rows recorded before its `tenant_id` column existed do not self-heal on replay and need the documented backfill |
-| Per-tenant observability (decided 2026-09-10) | **Tenant dimension with global rollups.** `emitted_event_hourly` grouped by `tenant_id` (global view is the sum); `pos-mcp-server` keeps a per-tenant tool-priority overlay tuned from that tenant's invocation log, falling back to the global priority (WS6). **Delivered 2026-09-11 (backend #1951 event stats, #1956 MCP priorities):** as decided; per-tenant export tooling for offboarding is not part of either delivery |
+| First administrator credential (decided 2026-09-10) | **Operator-delivered activation token.** Provisioning leaves the first `ADMIN` credential-expired; a `platform:tenant:provision` caller mints a one-time 72-hour token via a narrow `pos-security-service` endpoint; unauthenticated `POST /v1/auth/activate` sets the password; the same token later drives e-mail reset. Delivered: (1). |
+| Platform support access (decided 2026-09-10) | **Impersonation token, never a cross-tenant role.** `ROLE_PLATFORM_ADMIN` gains `platform:tenant:impersonate`; `pos-security-service` mints its holder a 15-minute, no-refresh token with `tid` = the target tenant, `act` = the operator and a fixed tenant `SUPPORT` role, audited upon issuance; gateway and modules unchanged (WS2b-4). Delivered: (2). |
+| Tenant registry behind `TenantIterator` (decided 2026-09-10) | **Cached REST lookup against `pos-tenant`.** The library's `RemoteTenantRegistry` polls an internal, shared-secret `pos-tenant` list endpoint, keeps the last good snapshot through outages, and starts from the static list. Accepted: a runtime dependency on `pos-tenant` and one service secret. Delivered: (3). |
+| Bulk-loaded roles and the template (decided 2026-09-10) | **Loader targets the platform tenant; provisioning reconciles.** `pos-bulk-loader` takes a target tenant per job; a role loaded into the platform tenant gets `template_key` and joins the template; `reconcileTemplate(tenant)` adds new template roles and grants to existing tenants, leaving tenant-local edits alone. Delivered: (4). |
+| Outbox manifests (decided 2026-09-10) | **Per tenant.** Manifest records carry `tenantId`, publishers emit one manifest per tenant per window, consumers track drift and request replay per tenant (WS4). Delivered: (5). |
+| Per-tenant observability (decided 2026-09-10) | **Tenant dimension with global rollups.** `emitted_event_hourly` grouped by `tenant_id` (global view is the sum); `pos-mcp-server` keeps a per-tenant tool-priority overlay tuned from that tenant's invocation log, falling back to the global priority (WS6). Delivered: (6). |
 
 ### Why shared schema plus RLS, not the alternatives
 
@@ -327,13 +327,13 @@ API Orchestrator workflow.
 | WS0 | Governance: new ADR superseding ADR-0023; amend tenant-cell doc, ADR-0045, glossary, security decisions, knowledge catalog. **Done 2026-09-09** (ADR-0062 accepted; every row of its "Amends" table applied) | durion | 1 | none |
 | WS1 | **Done 2026-09-10** (backend #1923, piloted on `pos-location` with WS4's async path). `pos-tenancy-common`: `TenantContext`, `TenantContextFilter`, `TenantAwareDataSource`, `TenantScopedEntity`, `@TenantGlobal`, `@PlatformScoped`, `TenantIterator`, Hibernate resolver, Kafka interceptor; `pos_app` on the pilot; isolation/conformance ITs; ArchUnit rules | backend | 2 - 3 (spent ~1) | WS0 |
 | WS2a | **Done 2026-09-10** (backend #1924). `pos-tenant`: account, contacts, billing profile, tenant, status machine, platform tenant bootstrap (`PlatformTenant.ID`), `tenant.events.v1` outbox producer + `tenant.provisioned` consumer, platform-admin API behind `platform:*`, `/tenant/**` route, `PlatformTenantGuard`, OpenAPI, reactor/Compose/deploy wiring | backend | 1.5 - 2 (spent ~0.5) | WS1 |
-| WS2b | **Done 2026-09-10** (backend #1926 identity: `ext_tenant`, login tenant resolution, `tid`, `X-Tenant-Id`, `/v1/tenants/me`; backend #1927 provisioning: `template_key`, platform role template + `PLATFORM_ADMIN` seed, `tenant.created` handler, `tenant.provisioned`, `platform:*` off `ADMIN`). **Done 2026-09-11** (backend #1950, WS2b-3: first-administrator activation token — `users.awaiting_activation`, `user_activation_tokens`, mint + `POST /v1/auth/activate`, permission `platform:tenant:provision`; backend #1954, WS2b-4: platform impersonation token — `platform:tenant:impersonate`, tenant-seeded `SUPPORT` role, `PlatformImpersonationController`, 15-minute no-refresh token). Bulk-loaded roles join the template in WS8 | backend | 2.5 - 3 (spent ~1.5) | WS1, WS2a |
+| WS2b | Delivered: (7). | backend | 2.5 - 3 (spent ~1.5) | WS1, WS2a |
 | WS3 | Per-module retrofit x 27. Schema done 2026-09-09 (Appendix B). Done 2026-09-10: waves 1-11 (backend #1928-#1932, #1934; 20 modules), **waves 12-13 (backend #1935): `pos-mcp-server`, `pos-event-receiver`** (batched ingest saves each event under the tenant it was queued with). Left: `pos-bulk-loader` (WS8); per-tenant event stats and tool priorities are WS6 | backend | 8 - 11 (spent ~2) | WS1, WS2 |
-| WS4 | *Done: Kafka header, consumer interceptor and outbox `tenant_id` (WS1, WS3); envelope `tenantId` stamped by every outbox writer, reconciliation manifests as platform-tenant records as an interim exception to ADR-0044 §4 (2026-09-10, backend #1948).* **Done 2026-09-11** (backend #1949, WS4-2: `RemoteTenantRegistry`, cached shared-secret REST lookup against `pos-tenant`'s internal `GET /internal/v1/tenants`, `STATIC` default unchanged; backend #1952, WS4-3: per-tenant reconciliation manifests — `ReconciliationManifestV1.tenantId`, one manifest per tenant per window, `processed_events.tenant_id`, per-tenant replay, closing the ADR-0044 §4 interim exception) | backend | 1 - 2 | WS1 |
+| WS4 | *Done: Kafka header, consumer interceptor and outbox `tenant_id` (WS1, WS3); envelope `tenantId` stamped by every outbox writer, reconciliation manifests as platform-tenant records as an interim exception to ADR-0044 §4 (2026-09-10, backend #1948).* Delivered: (8). | backend | 1 - 2 | WS1 |
 | WS5 | Test infrastructure: move the 25 H2-tested modules' database tests to Testcontainers Postgres; CI runner Docker availability; shared `TenantTestSupport` fixture | backend | 2 - 3 | WS1, overlaps WS3 |
-| WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping and per-tenant tool priorities, `emitted_event_hourly` by tenant with global rollups (decided 2026-09-10), per-tenant export tooling for offboarding (replaces per-cell `pg_dump`), Compose/alpha runbook role changes. **Done 2026-09-11** (backend #1951, WS6-a: `emitted_event_hourly` grouped by `tenant_id` with a platform-tenant global rollup; `GET /v1/events/summary/{lastHour,lastDay,lastWeek}?tenantId=` refuses an ordinary tenant naming one, 403; every log line carries `tenantId` in the MDC correlation pattern (`pos-tenancy-common`'s `TenantLogPatternEnvironmentPostProcessor`, 29 modules); Promtail/Loki `tenant` label and dashboard variable. backend #1956, WS6-b: `pos-mcp-server` per-tenant tool-priority overlay (`mcp_tool_priority`, RLS) tuned per tenant with a global-rollup recompute; NLTI session scoping — another tenant's session id is now 404 `SESSION_NOT_FOUND`, not 403; chat-memory and rate-limit keys partitioned by tenant. #1956 also carries a `StaticTenantRegistry` fix from its own review rounds: see the WS4-2 row's `TenantRegistry` note below). Left, not in either PR body: documents/images tenant-prefixed paths, per-tenant export tooling for offboarding, Compose/alpha runbook role changes | backend, durion | 2 - 3 (spent ~1.5) | WS1 |
-| WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant and account pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` and generate `sdk-tenant`. **Done 2026-09-11** (frontend #246): tenant-aware login (host-derived slug or form `tenantSlug`), `AuthService.tenantId()/tenant()/isPlatformTenant()`, shell header tenant name, `/app/platform` tenant list/detail/create gated on `platform:*` permissions. `@durion-sdk/tenant` does not exist yet, so the platform pages call `ApiBaseService` directly with hand-typed models pending `API Artifacts Sync` for `pos-tenant`/`pos-security-service` | frontend, sdk | 2 - 3 (spent ~2) | WS2a, WS2b |
-| WS8 | Seed and bulk load: alpha seed data tenant-tagged, `pos-bulk-loader` with a target tenant per job, platform-tenant roles join the template via `reconcileTemplate(tenant)`, first-administrator activation token and platform impersonation token (decided 2026-09-10); provisioning defaults per module, documentation. **Done 2026-09-11** (backend #1955): `pos-bulk-loader` adopts the runtime as the last persisting module; `tenantId` required on `POST /v1/bulk-jobs`, and every bound caller — the platform operator included — may load only into the tenant its own token names (403 `BULK_JOB_TENANT_FORBIDDEN` otherwise), plus four more review-round refusals (`BULK_JOB_TENANT_REQUIRED`, `_UNKNOWN`, `_UNBOUND_TARGET_FORBIDDEN`, `_DOMAIN_FORBIDDEN`; full table in ADR-0062's 2026-09-11 WS8 changelog entry); `reconcileTemplate(tenant)` (`POST /v1/platform/tenants/{tenantId}/roles/reconcile-template`) unions new template grants onto existing tenant roles without removing tenant-local edits; roles bulk-ingested under the platform binding join the template | backend, durion | 1 - 2 (spent ~1.5) | WS2b, WS3 |
+| WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping and per-tenant tool priorities, `emitted_event_hourly` by tenant with global rollups (decided 2026-09-10), per-tenant export tooling for offboarding, Compose/alpha runbook role changes. Delivered: (9). | backend, durion | 2 - 3 (spent ~1.5) | WS1 |
+| WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant and account pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` and generate `sdk-tenant`. Delivered: (10). | frontend, sdk | 2 - 3 (spent ~2) | WS2a, WS2b |
+| WS8 | Seed and bulk load: alpha seed data tenant-tagged, `pos-bulk-loader` with a target tenant per job, platform-tenant roles join the template via `reconcileTemplate(tenant)`, first-administrator activation token and platform impersonation token (decided 2026-09-10); provisioning defaults per module, documentation. Delivered: (11). | backend, durion | 1 - 2 (spent ~1.5) | WS2b, WS3 |
 
 **Total: roughly 29 - 40 engineer-weeks; about 32 is the planning figure.** With three backend engineers, one frontend
 engineer, and agent-run module waves, that is on the order of 10 - 12 calendar weeks, dominated by WS3.
@@ -623,3 +623,77 @@ Consequences: breaking contract change (no bridge, alpha); all DB tests on Postg
 - `docs/architecture/API_SECURITY_ARCHITECTURE.md`, `docs/architecture/AUTHORIZATION_MODEL.md`
 - `.ai/GLOSSARY.md`, `domains/security/security-questions.md`, `knowledge-catalog/adr/index.md`
 - `durion-positivity-backend/AGENTS.md`, `durion-positivity-frontend/AGENTS.md`, and `CLAUDE.md` ADR minimum lists
+
+## Delivery notes
+
+Moved out of the tables above so each row stays inside the repository's 400-character Markdown line limit
+(`.github/instructions/markdown.instructions.md` §7).
+
+**(1) First administrator credential (decided 2026-09-10).** **Delivered 2026-09-11 (backend #1950, WS2b-3):** as decided,
+plus an explicit `users.awaiting_activation` marker (mint refuses any other state with 409
+`USER_NOT_AWAITING_ACTIVATION`) and a hashed, single-use `user_activation_tokens` row; a live account is never
+overwritten.
+
+**(2) Platform support access (decided 2026-09-10).** **Delivered 2026-09-11 (backend #1954):** `SUPPORT` is seeded into
+every tenant's role template as a read-only floor role (`*:*:view`/`*:*:read` plus `location:read`, minus the platform
+and MCP/PII carve-outs); `perm_bits` at mint time is the target tenant's `SUPPORT` grants intersected with that
+read-only ceiling, so a widened `SUPPORT` role can never mint a write; the mint is audited in both the target and
+platform tenants.
+
+**(3) Tenant registry behind `TenantIterator` (decided 2026-09-10).** **Delivered 2026-09-11 (backend #1949, WS4-2):**
+`GET /internal/v1/tenants[?status=ACTIVE]`, `@Hidden`, secret-guarded; no module is switched to `REMOTE` yet, so
+runtime behaviour is unchanged until one is configured. Both `StaticTenantRegistry` and `RemoteTenantRegistry` filter
+`PlatformTenant.ID` out of `activeTenantIds()` — the invariant and a known `pos-security-service` exception are
+recorded in ADR-0062's 2026-09-11 `TenantRegistry.activeTenantIds()` changelog entry.
+
+**(4) Bulk-loaded roles and the template (decided 2026-09-10).** **Delivered 2026-09-11 (backend #1955, WS8):** a bound
+caller loads only into the tenant its own token names and no other — the platform operator included, so there is no
+path for it to target a different tenant on that tenant's behalf (403 `BULK_JOB_TENANT_FORBIDDEN`); an unbound caller
+may omit `tenantId` for the transitional default but is refused for naming one explicitly (403
+`BULK_JOB_TENANT_UNBOUND_TARGET_FORBIDDEN`). Full five-code table: ADR-0062 changelog, 2026-09-11 WS8 entry.
+
+**(5) Outbox manifests (decided 2026-09-10).** **Delivered 2026-09-11 (backend #1952, WS4-3):** closes the WS4-1 interim
+exception to ADR-0044 §4; a manifest published before the field existed carries no tenant and is skipped by every
+listener with a WARN and a `replica.manifest.skipped{reason="missing_tenant"}` count, rather than being read as one
+tenant's record, and `processed_events` rows recorded before its `tenant_id` column existed do not self-heal on replay
+and need the documented backfill.
+
+**(6) Per-tenant observability (decided 2026-09-10).** **Delivered 2026-09-11 (backend #1951 event stats, #1956 MCP
+priorities):** as decided; per-tenant export tooling for offboarding is not part of either delivery.
+
+**(7) WS2b.** **Done 2026-09-10** (backend #1926 identity: `ext_tenant`, login tenant resolution, `tid`, `X-Tenant-Id`,
+`/v1/tenants/me`; backend #1927 provisioning: `template_key`, platform role template + `PLATFORM_ADMIN` seed,
+`tenant.created` handler, `tenant.provisioned`, `platform:*` off `ADMIN`). **Done 2026-09-11** (backend #1950, WS2b-3:
+first-administrator activation token — `users.awaiting_activation`, `user_activation_tokens`, mint + `POST
+/v1/auth/activate`, permission `platform:tenant:provision`; backend #1954, WS2b-4: platform impersonation token —
+`platform:tenant:impersonate`, tenant-seeded `SUPPORT` role, `PlatformImpersonationController`, 15-minute no-refresh
+token). Bulk-loaded roles join the template in WS8.
+
+**(8) WS4.** **Done 2026-09-11** (backend #1949, WS4-2: `RemoteTenantRegistry`, cached shared-secret REST lookup against
+`pos-tenant`'s internal `GET /internal/v1/tenants`, `STATIC` default unchanged; backend #1952, WS4-3: per-tenant
+reconciliation manifests — `ReconciliationManifestV1.tenantId`, one manifest per tenant per window,
+`processed_events.tenant_id`, per-tenant replay, closing the ADR-0044 §4 interim exception)
+
+**(9) WS6.** **Partly done 2026-09-11** (the scope left over is listed at the end of this note) (backend #1951, WS6-a: `emitted_event_hourly` grouped by `tenant_id` with a
+platform-tenant global rollup; `GET /v1/events/summary/{lastHour,lastDay,lastWeek}?tenantId=` refuses an ordinary
+tenant naming one, 403; every log line carries `tenantId` in the MDC correlation pattern (`pos-tenancy-common`'s
+`TenantLogPatternEnvironmentPostProcessor`, 29 modules); Promtail/Loki `tenant` label and dashboard variable. backend
+#1956, WS6-b: `pos-mcp-server` per-tenant tool-priority overlay (`mcp_tool_priority`, RLS) tuned per tenant with a
+global-rollup recompute; NLTI session scoping — another tenant's session id is now 404 `SESSION_NOT_FOUND`, not 403;
+chat-memory and rate-limit keys partitioned by tenant. #1956 also carries a `StaticTenantRegistry` fix from its own
+review rounds: see the WS4-2 row's `TenantRegistry` note above). Left, not in either PR body: documents/images
+tenant-prefixed paths, per-tenant export tooling for offboarding, Compose/alpha runbook role changes.
+
+**(10) WS7.** **Partly done 2026-09-11** (the SDK half is still outstanding) (frontend #246): tenant-aware login (host-derived slug or form `tenantSlug`),
+`AuthService.tenantId()/tenant()/isPlatformTenant()`, shell header tenant name, `/app/platform` tenant
+list/detail/create gated on `platform:*` permissions. `@durion-sdk/tenant` does not exist yet, so the platform pages
+call `ApiBaseService` directly with hand-typed models pending `API Artifacts Sync` for
+`pos-tenant`/`pos-security-service`.
+
+**(11) WS8.** **Done 2026-09-11** (backend #1955): `pos-bulk-loader` adopts the runtime as the last persisting module;
+`tenantId` on `POST /v1/bulk-jobs` (required unless the transitional default is configured), and every bound caller — the platform operator included — may load only
+into the tenant its own token names (403 `BULK_JOB_TENANT_FORBIDDEN` otherwise), plus four more review-round refusals
+(`BULK_JOB_TENANT_REQUIRED`, `_UNKNOWN`, `_UNBOUND_TARGET_FORBIDDEN`, `_DOMAIN_FORBIDDEN`; full table in ADR-0062's
+2026-09-11 WS8 changelog entry); `reconcileTemplate(tenant)` (`POST
+/v1/platform/tenants/{tenantId}/roles/reconcile-template`) unions new template grants onto existing tenant roles
+without removing tenant-local edits; roles bulk-ingested under the platform binding join the template.
