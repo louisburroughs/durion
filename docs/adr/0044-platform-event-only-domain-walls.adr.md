@@ -203,8 +203,13 @@ consumer's replica write lands in the right tenant and never in none:
   gains a required `tenantId`; each `ManifestPublisher` groups a closed window's rows by tenant and publishes one
   manifest per tenant (zero-count manifests included); consumers compare drift and request replay per tenant. This
   closes the WS4-1 interim exception, under which the owner had summarised every tenant's rows of a window into one
-  platform-tenant record. A manifest published before the field existed is still read as the platform tenant's
-  record for compatibility.
+  platform-tenant record. A manifest published before the field existed carries no tenant and is **skipped**, not
+  read as the platform tenant's record: an earlier review round found that reading it that way compares an all-tenant
+  count against a single-tenant ledger scan and reports drift forever, and the replay it would trigger can only
+  requeue one tenant's events anyway. Every listener instead logs a WARN and counts
+  `replica.manifest.skipped{reason="missing_tenant"}` on such a manifest (verified in, e.g.,
+  `pos-inventory`'s `CatalogManifestListener`); the corresponding `processed_events` rows recorded before their
+  `tenant_id` column existed do not self-heal on replay and need the backfill the runbook documents.
 - **Module classification (§1).** `pos-tenant` is a domain module that owns the tenant registry and the owning
   `account`. It publishes `tenant.created`, `tenant.provisioned`, `tenant.updated`, `tenant.suspended`,
   `tenant.reactivated`, and `tenant.decommissioned` on `tenant.events.v1` with the public projection only (`id`,
