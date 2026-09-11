@@ -81,6 +81,26 @@ Frontend developer workflow:
 | Get user role assignments | `getUserRoleAssignments` | GET | `/v1/roles/assignments/user/{userId}` | Refer to generated API reference for payload details |
 | Get user permissions | `getUserPermissions` | GET | `/v1/roles/permissions/user/{userId}` | Refer to generated API reference for payload details |
 
+### Platform Provisioning & Support (ADR-0062 WS2b-3, WS2b-4, WS8)
+
+Added 2026-09-11 (backend #1950, #1954, #1955). Platform-tenant-only operations, not part of a tenant's own
+`/v1/**` surface.
+
+| UI Task | operationId | Method | Path | Notes |
+| --- | --- | --- | --- | --- |
+| Mint a first-administrator activation token | *(operationId not stated in source PR body)* | POST | `/v1/platform/tenants/{tenantId}/administrators/{userId}/activation-token` | Requires `platform:tenant:provision`, platform-tenant binding only (403 `PLATFORM_TENANT_REQUIRED`). Refuses a user not `awaiting_activation` with 409 `USER_NOT_AWAITING_ACTIVATION`. Returns `{token, expiresAt}` once; token is one-time, 72-hour, hashed at rest |
+| Activate the first administrator | `activate` | POST | `/v1/auth/activate` | Unauthenticated (`permitAll`); `{token, newPassword}`. Unknown/expired/used token is 401 `ACTIVATION_TOKEN_INVALID` |
+| Mint a platform support (impersonation) token | `mintImpersonationToken` | POST | `/v1/platform/tenants/{tenantId}/impersonation-token` | Requires `platform:tenant:impersonate`, platform-tenant binding only. Target must be `ACTIVE`, not the platform tenant (409 `TENANT_NOT_IMPERSONABLE`). Returns a 15-minute, no-refresh token scoped to the target tenant's read-only `SUPPORT` role; audited in both tenants |
+| Reconcile a tenant's roles against the platform template | `reconcileTemplate` | POST | `/v1/platform/tenants/{tenantId}/roles/reconcile-template` | Requires `platform:tenant:provision`, platform-tenant binding only. Creates missing template roles and unions new template grants onto existing roles; never removes a tenant's own edits; idempotent |
+
+### Tenant Registry — Internal Only (ADR-0062 WS4-2)
+
+`GET /internal/v1/tenants[?status=ACTIVE]` is served by `pos-tenant`, not `pos-security-service`. It is
+`@Hidden` (excluded from the public OpenAPI document and the Angular SDK), guarded by a shared-secret header
+(`X-Tenant-Registry-Secret`), and is **internal/mesh-only**: the gateway does not route any `/<service>/internal/**`
+path, so it is unreachable from outside the cluster. Used only by `pos-tenancy-common`'s `RemoteTenantRegistry`
+for service-to-service tenant lookups; no frontend or external caller should reference it.
+
 Headers and auth notes:
 
 - Always propagate `X-Correlation-Id`.

@@ -536,3 +536,19 @@ pointing back here):
   `X-Tenant-Id` from `tid`, so no module changes and
   §3's rule that tenant context comes from the validated token only still holds; an override header for platform
   tokens was considered and rejected.
+- **2026-09-11:** First administrator activation landed (WS2b-3, backend #1950). Provisioning's initial
+  administrator (§7) is left `awaiting_activation`: an explicit `users.awaiting_activation` marker, credentials
+  expired, and a generated password that is discarded, so a login attempt fails the password check itself and
+  answers the ordinary 401 `INVALID_CREDENTIALS` — the account state is not enumerable. A `platform:tenant:provision`
+  caller mints a one-time, hashed, 72-hour token (`POST /v1/platform/tenants/{tenantId}/administrators/{userId}/activation-token`,
+  `user_activation_tokens`); mint is refused with 409 `USER_NOT_AWAITING_ACTIVATION` for any user not in that state,
+  so a live account is never overwritten. Unauthenticated `POST /v1/auth/activate` consumes the token (single use,
+  guarded against concurrent redemption and against a concurrent mint) and sets the password. No mail dependency;
+  the same token mechanism is intended to later drive e-mail reset.
+- **2026-09-11:** Per-tenant reconciliation manifests landed (WS4-3, backend #1952), closing the WS4-1 interim
+  exception to ADR-0044 §4. `ReconciliationManifestV1` gains a required `tenantId`; each of the 9 `ManifestPublisher`s
+  groups a closed window's outbox rows by tenant and publishes one manifest per tenant (zero-count manifests
+  included, so absence alerting still holds per tenant), keyed so distinct tenants' manifests of the same window
+  never collide. Consumers compare drift and request replay per tenant. A manifest published before the field
+  existed is read as the platform tenant's record for compatibility; `processed_events` rows recorded before its
+  new `tenant_id` column existed carry no tenant and do not self-heal on replay.
