@@ -550,5 +550,8 @@ pointing back here):
   groups a closed window's outbox rows by tenant and publishes one manifest per tenant (zero-count manifests
   included, so absence alerting still holds per tenant), keyed so distinct tenants' manifests of the same window
   never collide. Consumers compare drift and request replay per tenant. A manifest published before the field
-  existed is read as the platform tenant's record for compatibility; `processed_events` rows recorded before its
-  new `tenant_id` column existed carry no tenant and do not self-heal on replay.
+  existed carries no tenant and is skipped by every listener, logged at WARN and counted as
+  `replica.manifest.skipped{reason="missing_tenant"}`: reading it as one tenant's record would compare an
+  all-tenant count against a single-tenant scan and report drift for ever. `processed_events` rows recorded
+  before its new `tenant_id` column existed carry no tenant, do not self-heal on replay, and need the
+  backfill the runbook documents.
