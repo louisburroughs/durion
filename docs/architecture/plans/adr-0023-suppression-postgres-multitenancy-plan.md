@@ -104,7 +104,7 @@ below are a floor: re-measure at WS3 kickoff and re-baseline the per-module clas
 | Domain event envelope | `DomainEventEnvelope` record, no tenant field | Add a required `tenantId`; also emit it as a Kafka header |
 | `@KafkaListener` methods | 108 across 17 modules | One record interceptor binds tenant context before every listener; individual listeners need no edits unless they open their own transactions oddly |
 | Outbox implementations | 18 modules | Outbox rows carry `tenant_id`; the poller is a platform-scoped (cross-tenant) job |
-| Event producer call sites | 41 `DomainEventEnvelope.of(...)` callers (2026-09-10) | None: every one publishes through its module's outbox writer, which stamps the tenant (done 2026-09-10) |
+| Event producer call sites | 41 envelope constructions (2026-09-10): 30 `DomainEventEnvelope.of(...)` and 11 positional `new DomainEventEnvelope<>(...)`, all queued through an outbox writer; plus 9 reconciliation `ManifestPublisher`s that send straight to Kafka | None for the 41: the outbox writer stamps the tenant (done 2026-09-10). The 9 direct senders pass the tenant explicitly (the platform tenant until WS4-3) |
 | `@Scheduled` jobs | 62 across 19 modules (supplier 12, inventory 10, workorder 7) | Each job is either per-tenant (iterate the tenant registry) or platform-scoped (explicitly bypasses RLS) |
 | Gateway routes | 23 explicit routes (ADR-0014) | Per-tenant rate limiting is optional follow-up work |
 
@@ -329,7 +329,7 @@ API Orchestrator workflow.
 | WS2a | **Done 2026-09-10** (backend #1924). `pos-tenant`: account, contacts, billing profile, tenant, status machine, platform tenant bootstrap (`PlatformTenant.ID`), `tenant.events.v1` outbox producer + `tenant.provisioned` consumer, platform-admin API behind `platform:*`, `/tenant/**` route, `PlatformTenantGuard`, OpenAPI, reactor/Compose/deploy wiring | backend | 1.5 - 2 (spent ~0.5) | WS1 |
 | WS2b | **Done 2026-09-10** (backend #1926 identity: `ext_tenant`, login tenant resolution, `tid`, `X-Tenant-Id`, `/v1/tenants/me`; backend #1927 provisioning: `template_key`, platform role template + `PLATFORM_ADMIN` seed, `tenant.created` handler, `tenant.provisioned`, `platform:*` off `ADMIN`). Bulk-loaded roles join the template in WS8 | backend | 2.5 - 3 (spent ~1.5) | WS1, WS2a |
 | WS3 | Per-module retrofit x 27. Schema done 2026-09-09 (Appendix B). Done 2026-09-10: waves 1-11 (backend #1928-#1932, #1934; 20 modules), **waves 12-13 (backend #1935): `pos-mcp-server`, `pos-event-receiver`** (batched ingest saves each event under the tenant it was queued with). Left: `pos-bulk-loader` (WS8); per-tenant event stats and tool priorities are WS6 | backend | 8 - 11 (spent ~2) | WS1, WS2 |
-| WS4 | *Done: Kafka header, consumer interceptor and outbox `tenant_id` (WS1, WS3); envelope `tenantId` stamped by every outbox writer, reconciliation manifests as platform-tenant records (2026-09-10, backend #1948).* Left: per-tenant manifests and replay (WS4-3); `RemoteTenantRegistry` (WS4-2, decided 2026-09-10) | backend | 1 - 2 | WS1 |
+| WS4 | *Done: Kafka header, consumer interceptor and outbox `tenant_id` (WS1, WS3); envelope `tenantId` stamped by every outbox writer, reconciliation manifests as platform-tenant records as an interim exception to ADR-0044 §4 (2026-09-10, backend #1948).* Left: per-tenant manifests and replay (WS4-3, closes the exception); `RemoteTenantRegistry` (WS4-2, decided 2026-09-10) | backend | 1 - 2 | WS1 |
 | WS5 | Test infrastructure: move the 25 H2-tested modules' database tests to Testcontainers Postgres; CI runner Docker availability; shared `TenantTestSupport` fixture | backend | 2 - 3 | WS1, overlaps WS3 |
 | WS6 | Storage, observability, operations: documents/images tenant-prefixed paths, MDC and trace tenant tag, `pos-mcp-server` session scoping and per-tenant tool priorities, `emitted_event_hourly` by tenant with global rollups (decided 2026-09-10), per-tenant export tooling for offboarding (replaces per-cell `pg_dump`), Compose/alpha runbook role changes | backend, durion | 2 - 3 | WS1 |
 | WS7 | Frontend and SDK: tenant resolution, `tid` in `JwtClaims`, `AuthService` tenant signal, storage hygiene, header tenant name, platform-admin tenant and account pages, mock-auth token, i18n x 4 locales, specs; regenerate `sdk-security` and generate `sdk-tenant` | frontend, sdk | 2 - 3 | WS2a, WS2b |
@@ -424,8 +424,9 @@ superclass retrofit are what keep the small modules at days rather than weeks.
 - `DomainEventEnvelope` gains `tenantId`, required on the wire (done 2026-09-10): the module's outbox writer stamps it
   from the bound tenant as it queues the envelope (`stampedWith`, refusing an envelope built for another tenant), so
   envelope, outbox row and Kafka header always agree; a sender that bypasses the outbox (reconciliation manifests)
-  passes it explicitly. `of(...)` itself stays tenant-free: `pos-domain-events` is a contract library with no
-  dependency on `pos-tenancy-common`.
+  passes it explicitly through a ten-argument `of(...)` overload. The nine-argument `of(...)` stays tenant-free and
+  reads nothing from `TenantContext`: `pos-domain-events` is a contract library with no dependency on
+  `pos-tenancy-common`.
 - Kafka header `tenantId` set by the outbox publisher; consumer `RecordInterceptor` binds and clears context.
 - The outbox table is `@TenantGlobal` with a `tenant_id` data column; the poller runs unbound and publishes every
   tenant's rows with the `tenantId` header taken from the row.

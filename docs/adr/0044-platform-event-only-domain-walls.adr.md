@@ -183,9 +183,12 @@ consumer's replica write lands in the right tenant and never in none:
 
 - **Envelope.** `tenantId` (UUID) is a required envelope field (§3). The module's outbox writer stamps it from the
   bound tenant as it queues the envelope (`DomainEventEnvelope.stampedWith`), the same tenant it writes on the outbox
-  row and the Kafka header, and refuses an envelope already built for a different tenant; a sender that bypasses the
-  outbox (a reconciliation manifest) passes it explicitly. An unbound producer cannot publish. Consumers tolerate a
-  missing field only on messages published before it existed (2026-09-10).
+  row and the Kafka header, and refuses an envelope already built for a different tenant (`pos-workorder`'s writer,
+  which builds the envelope itself, passes that tenant to the ten-argument `of(...)` directly). A sender that bypasses
+  the outbox (a reconciliation manifest, sent under `@PlatformScoped` with no bound tenant) passes the tenant
+  explicitly. So a producer without a bound tenant cannot publish through the outbox, and no path publishes an
+  envelope without a tenant. Messages published before the field existed (2026-09-10) carry none; consumers read the
+  field as nullable for that compatibility and must not depend on its absence for anything else.
 - **Kafka header.** The outbox publisher also sets a `tenantId` record header from the outbox row, so a consumer can
   bind before deserialising the payload.
 - **Consumer binding.** A `RecordInterceptor` shipped in `pos-tenancy-common` binds `TenantContext` from the header
@@ -195,8 +198,11 @@ consumer's replica write lands in the right tenant and never in none:
 - **Outbox and ledger tables are global with tenant data.** `event_outbox` and `processed_events` are `@TenantGlobal`
   tables carrying `tenant_id` as a plain column, because the poller and the idempotency check run unbound. They are
   the only place a module handles more than one tenant's rows in one statement.
-- **Reconciliation is per tenant.** Manifests on `{domain}.manifest.v1` are emitted per tenant by iterating the
-  owner's `ext_tenant` replica; re-emit requests carry `tenantId`.
+- **Reconciliation is per tenant.** Manifests on `{domain}.manifest.v1` are emitted per tenant, one per tenant per
+  window, and re-emit requests carry `tenantId` (plan WS4-3). *Interim, since 2026-09-10 (WS4-1): the owner
+  summarises every tenant's rows of a window in one manifest and publishes it as a platform-tenant record
+  (`PlatformTenant.ID` on the envelope and the header), so the consumer compares it against its global ledger under
+  the platform tenant; this exception ends when WS4-3 lands.*
 - **Module classification (§1).** `pos-tenant` is a domain module that owns the tenant registry and the owning
   `account`. It publishes `tenant.created`, `tenant.provisioned`, `tenant.updated`, `tenant.suspended`,
   `tenant.reactivated`, and `tenant.decommissioned` on `tenant.events.v1` with the public projection only (`id`,
