@@ -155,11 +155,9 @@ screen exists it should **prefill the seed and let the operator edit it** rather
 silently. Until such a screen exists, operators call the API with an explicit `displayName` and the
 seed only catches the case where they do not.
 
-> **Remaining cosmetic choice.** Whether a single-tenant account's name should read
-> `Acme Tire & Auto LLC` (specified) or `Acme Tire & Auto LLC #1` (always suffixed). The unsuffixed
-> form is specified because `#1` is noise for the common single-tenant account. Because the seed is
-> fallback-only and the policy is freely changeable (§4.5), this is a one-line change in
-> `TenantDisplayNameAllocator` at any time.
+**A single-tenant account never carries a suffix** (confirmed). `Acme Tire & Auto LLC`, not
+`Acme Tire & Auto LLC #1` — `#1` is noise for the common case, and a number only appears once there
+is something to disambiguate from.
 
 ### 4.5 What must be decided now, and what can wait
 
