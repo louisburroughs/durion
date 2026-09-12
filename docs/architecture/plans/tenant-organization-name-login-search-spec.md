@@ -26,15 +26,12 @@ want the browser to remember the choice.
 | D1 | New `organization_name` column? | **No.** The existing `tenant.display_name` is the human-readable name. No schema rename, no second column. The name `organization_name` does not enter the codebase. |
 | D2 | What the user sees | The login form labels the field **"Organization"**. The label is a translation string only; the API field stays `displayName` everywhere. |
 | D3 | Login input | The **search field replaces the typed slug**. The user types part of the organization name, picks a match from a result list, and the form submits the matched tenant. |
-| D4 | Uniqueness | Display names must be unique across the registry, because the user now identifies a tenant by one. Where a collision would occur, a short disambiguating suffix is appended (`Acme Tire & Auto - 2`). |
-| D5 | Default value | On tenant registration the display name defaults to the **owning account's legal name**, with the ordinal suffix from D4 when the account already owns a tenant. |
+| D4 | Uniqueness | Display names are unique across the registry, because the user now identifies a tenant by one. The constraint lands **now**; see §4.5 for why. |
+| D5 | Default value | Seeded from the owning **account's legal name** (not the trading name — §4.3), with a `#N` suffix only where that would collide. The seed is a fallback, not a final assignment: the operator is expected to set a meaningful name at registration. |
 | D6 | "Stored so users don't look it up" | **Browser `localStorage` only.** No server-side per-user preference. A tenant-bearing `Host` still wins and renders the field read-only, as today. |
-| D7 | Who may edit | **Both.** Platform operators edit any tenant via the existing platform route; tenant `ADMIN` and `SYSTEM_ADMINISTRATOR` edit their **own** tenant via a new self-service route. |
+| D7 | Who may edit | **Platform operators only, for now.** Tenant self-service is deferred to the account-setup flow, which does not yet exist (§5.5). No new permissions are introduced by this change. |
 
-## 3. Concerns to settle before build
-
-Two items in this design cut against invariants that ADR-0062 currently states. Neither blocks the
-work, but both are decisions the team should take deliberately rather than discover in review.
+## 3. Concerns to settle
 
 ### 3.1 The search endpoint is a tenant-enumeration surface (§5.3)
 
@@ -54,24 +51,29 @@ change: it keeps answering the uniform 401.
 design at the login edge"), and default `auth.tenant-search.enabled` to **off** in `prod` until
 someone owns that decision for production, leaving it on in `dev`/`docker`/`alpha`.
 
-### 3.2 Tenant-admin self-service collides with two pos-tenant invariants
+### 3.2 Tenant self-service is deferred — recorded here so it is not rediscovered
 
-`pos-tenant` is platform-only in two independent layers:
+Letting a tenant's own administrator rename their organization is **out of scope** for this change
+(D7); it belongs to the account-setup flow when that is built. The analysis below is kept because
+that work will hit both of these on day one, and neither is obvious from the outside.
 
-1. `PlatformTenantGuard` (`pos-tenant/src/main/java/com/positivity/tenant/internal/config/PlatformTenantGuard.java:70`)
+`pos-tenant` is platform-only in two *independent* layers:
+
+1. `PlatformTenantGuard`
+   (`pos-tenant/src/main/java/com/positivity/tenant/internal/config/PlatformTenantGuard.java:70`)
    rejects any request bound to a non-platform tenant with `403 PLATFORM_TENANT_REQUIRED`, before
    any handler runs.
 2. Every registry row's `tenant_id` **is** the platform tenant, under RLS. A request bound to tenant
    X reads `public.tenant` as **empty** and cannot update it — the guard is not the only thing in
    the way; the database is.
 
-So a tenant admin cannot simply be granted a permission and pointed at the existing route. §5.5
-specifies the narrow mechanism: a single dedicated path, exempt from the guard, whose service method
-captures the caller's bound tenant, then performs the registry read/write inside
-`TenantContext.callAs(PlatformTenant.ID, ...)` **hard-scoped to that one captured id**. This is the
-same "application code binds a tenant itself" exception ADR-0062 already carves out for the platform
-tenant, and it is the only privilege-sensitive code in this specification — §7.5 lists the tests
-that must defend it.
+So a tenant administrator cannot be given self-service by granting a permission and pointing them at
+the existing route. It requires a dedicated path exempt from the guard, whose service captures the
+caller's bound tenant and then performs the registry read/write inside
+`TenantContext.callAs(PlatformTenant.ID, ...)` **hard-scoped to that one captured id** — the same
+"application code binds a tenant itself" exception ADR-0062 carves out for the platform tenant. That
+is privilege-sensitive code and needs its own test set. **None of it is built by this
+specification.**
 
 ---
 
@@ -98,42 +100,100 @@ for free — no exception to `docs/TENANCY_SCHEMA.md` is needed.
 
 A create or update that would collide answers `409` with code `TENANT_DISPLAY_NAME_TAKEN`.
 
-### 4.3 Default and disambiguation
+### 4.3 Seed value: legal name, not trading name
+
+`account` carries two names, and the choice between them is not cosmetic:
+
+| | `legal_name` | `trading_name` |
+|---|---|---|
+| Meaning | "Registered legal name" (`AccountCreateRequest.java:25`) | "Trading name, when different" (`AccountCreateRequest.java:30`) — the DBA name |
+| Example | `Acme Tire & Auto LLC` | `Acme Tire` |
+| Required | **Yes**, `NOT NULL` | No, nullable |
+| Unique | **Yes**, globally (`account_legal_name_key`, `V1__baseline_tenant.sql:106`) | **No constraint at all** (`V1__baseline_tenant.sql:21`) |
+
+The trading name is the better *label* — it is the name on the sign above the shop, the one an
+employee recognizes. It is the worse *seed*, for three reasons:
+
+1. **It is usually absent.** It is only filled in "when different", so most accounts have none and
+   the rule would fall back to the legal name anyway — producing a mixed population where some
+   tenants are seeded from the DBA name and some from the LLC name, with no rule a user can predict.
+2. **The legal name is the account's identity of record.** The tenant registry is an
+   ownership/billing registry; seeding from the field that legally identifies the account is
+   coherent, seeding from an optional marketing alias is not.
+3. **Trading names collide; legal names cannot.** Two unrelated accounts may both trade as
+   `Bob's Tires` and nothing stops them. Seeding from the trading name therefore *manufactures* the
+   cross-account collision problem — the `Bob's Tires #3` whose `#1` and `#2` belong to strangers.
+   Seeding from the legal name cannot produce that, because legal names are already unique: the only
+   counter ever needed is for **one account's own** tenants, where the numbering is coherent because
+   every number in the sequence belongs to the same account.
+
+**Decision: seed from `legal_name`.** The trading name is not used by this rule.
+
+### 4.4 Seeding and disambiguation
 
 On `POST /platform/tenants` with `displayName` **omitted or blank**:
 
 ```
-base = normalize-for-display(account.legal_name)      // NFKC + trim + collapse, original casing kept
-n    = (count of tenants already registered under this account, any status) + 1
-candidate = n == 1 ? base : base + " - " + n
-while candidate's key is taken:  n++; candidate = base + " - " + n     // max 50 attempts
+base = normalize-for-display(account.legal_name)   // NFKC + trim + collapse, original casing kept
+candidate = base
+n = 1
+while candidate's key is taken:  n++; candidate = base + " #" + n     // max 50 attempts
 ```
 
-* `account.legal_name` is already unique across the registry
-  (`account_legal_name_key UNIQUE (tenant_id, legal_name)`, `V1__baseline_tenant.sql:106`), so the
-  first tenant of an account never needs a suffix and the loop is a guard against *edited* names
-  colliding, not against the common path.
-* `base` is truncated so `base + " - " + n` fits 200 characters.
+* An account's first tenant gets the bare legal name; the second gets `Acme Tire & Auto LLC #2`, the
+  third `#3`. The suffix reads as "the second one", so no number in an account's sequence is ever
+  missing — which was the objection to a globally-allocated counter.
+* `base` is truncated so `base + " #" + n` fits 200 characters.
 * After 50 attempts the request fails `409 TENANT_DISPLAY_NAME_TAKEN` rather than looping.
+* An explicitly supplied `displayName` is **never** auto-suffixed — it is validated and rejected on
+  collision, so the operator sees exactly what they typed.
 
-> **Assumption to confirm.** The first tenant of an account gets the bare account name
-> (`Acme Tire & Auto`) and only the second onward is suffixed (`Acme Tire & Auto - 2`). The
-> requirement's example (`"Display Name - Acct 1"`) could also be read as suffixing *every* tenant
-> including the first. The unsuffixed-first reading is specified here because it is the better
-> default for the single-tenant account, which is the common case. Changing it is a one-line change
-> in `TenantDisplayNameAllocator`.
+**The seed is a fallback, not the intended outcome.** A multi-tenant account almost never wants
+ordinals; it wants something meaningful — `Acme Tire — Tucson`, `Acme Tire — Phoenix`. So the
+operator registering a tenant is expected to supply `displayName`, and once a platform registration
+screen exists it should **prefill the seed and let the operator edit it** rather than assign it
+silently. Until such a screen exists, operators call the API with an explicit `displayName` and the
+seed only catches the case where they do not.
 
-An explicitly supplied `displayName` is **never** auto-suffixed — it is validated and rejected on
-collision, so the operator sees what they typed.
+> **Remaining cosmetic choice.** Whether a single-tenant account's name should read
+> `Acme Tire & Auto LLC` (specified) or `Acme Tire & Auto LLC #1` (always suffixed). The unsuffixed
+> form is specified because `#1` is noise for the common single-tenant account. Because the seed is
+> fallback-only and the policy is freely changeable (§4.5), this is a one-line change in
+> `TenantDisplayNameAllocator` at any time.
 
-### 4.4 Editability and propagation
+### 4.5 What must be decided now, and what can wait
+
+The naming **policy** and the uniqueness **invariant** have opposite migration costs, and separating
+them is what keeps this change from painting us into a corner.
+
+**Cheap to change at any time — do not over-think today:**
+
+* the seed source, the suffix format, whether the first tenant is suffixed, and whether operators
+  are *required* to supply a name rather than being offered a default.
+
+`display_name` has no foreign keys, no external contract and no role in authentication — login
+resolves by slug, which stays immutable. A rename propagates automatically through `tenant.updated`
+on `tenant.events.v1`, and the three `ext_tenant` replicas (`pos-security-service`, `pos-catalog`,
+`pos-image`) self-heal from it. Renaming tenants later is a UX decision, not a migration.
+
+**Expensive to defer — decide now:**
+
+* the **unique constraint** on `display_name_key`.
+
+Adding it today is one line of DDL against an empty-to-tiny registry. Adding it after tenants exist
+means renaming live tenants to break collisions that users have already learned. Dropping it later,
+if enforced uniqueness turns out to be the wrong call, is free.
+
+**So: land the constraint in this change, and leave the naming policy adjustable.**
+
+### 4.6 Editability and propagation
 
 * Display name is editable for any tenant not in a terminal status (unchanged from today's
-  `TenantServiceImpl.update`).
+  `TenantServiceImpl.update`), by a platform operator.
 * A rename publishes `tenant.updated` on `tenant.events.v1`, which already carries `displayName` in
-  its projection (`TenantProjectionEvent`), so every module's `ext_tenant` replica — including the
-  one the search reads — converges with no new event type.
-* Renames are **not** retroactive to anything: no other module stores the name, only the replica.
+  its projection (`TenantProjectionEvent`), so every `ext_tenant` replica — including the one the
+  search reads — converges with no new event type.
+* Renames are not retroactive to anything: no other module stores the name, only the replica.
 * The slug is still immutable and still the identifier the login API takes.
 
 ---
@@ -150,7 +210,7 @@ ALTER TABLE public.tenant
         GENERATED ALWAYS AS (lower(btrim(regexp_replace(display_name, '\s+', ' ', 'g')))) STORED;
 
 -- de-duplicate pre-existing rows before the constraint lands (alpha data; suffix the later row)
--- ... see migration body: a DO block appending ' - <n>' by created_at order ...
+-- ... see migration body: a DO block appending ' #<n>' by created_at order ...
 
 ALTER TABLE ONLY public.tenant
     ADD CONSTRAINT tenant_display_name_key UNIQUE (tenant_id, display_name_key);
@@ -166,18 +226,19 @@ unbypassable, not the normalizer of record.
 
 | Change | Detail |
 |---|---|
-| `TenantCreateRequest.displayName` | Becomes **optional** (`requiredMode = NOT_REQUIRED`, drop `@NotBlank`, keep `@Size(max = 200)`). Omitted ⇒ §4.3 default. |
-| `TenantDisplayNameAllocator` (new, `internal/service`) | Implements §4.1 and §4.3. Pure and unit-testable; takes the account, the tenant count and a "key is taken" predicate. |
-| `TenantServiceImpl.create` | Allocates the default when blank; normalizes; catches `tenant_display_name_key` violation ⇒ `DuplicateResourceException` with code `TENANT_DISPLAY_NAME_TAKEN` (mirrors the existing `isSlugCollision` path, `TenantServiceImpl.java:63`). |
+| `TenantCreateRequest.displayName` | Becomes **optional** (`requiredMode = NOT_REQUIRED`, drop `@NotBlank`, keep `@Size(max = 200)`). Omitted ⇒ §4.4 seed. The `@Schema` description states that the seed is a fallback and that an explicit, meaningful name is preferred. |
+| `TenantDisplayNameAllocator` (new, `internal/service`) | Implements §4.1 and §4.4. Pure and unit-testable; takes the account's legal name and a "key is taken" predicate. |
+| `TenantServiceImpl.create` | Allocates the seed when blank; normalizes; catches `tenant_display_name_key` violation ⇒ `DuplicateResourceException` with code `TENANT_DISPLAY_NAME_TAKEN` (mirrors the existing `isSlugCollision` path, `TenantServiceImpl.java:63`). |
 | `TenantServiceImpl.update` | Same collision handling on rename. |
 | `TenantResponse` | Unchanged shape; `displayName` now guaranteed non-null and unique. |
-| `PlatformTenantController` | `@Operation` text updated: display name optional on create, defaulting rule stated, new `409` documented. |
+| `PlatformTenantController` | `@Operation` text updated: display name optional on create, seeding rule stated, new `409` documented. |
 
 ### 5.3 `pos-security-service` — public organization search
 
 **Route:** `GET /security-service/v1/auth/tenants?q={query}` — under `auth.auth-path-prefix`, so the
-gateway already bypasses JWT validation for it (`pos-api-gateway/src/main/resources/application.yml:240`).
-No gateway route change; only the new config keys in §5.4.
+gateway already bypasses JWT validation for it
+(`pos-api-gateway/src/main/resources/application.yml:240`). No gateway route change; only the new
+config keys in §5.4.
 
 **Source:** the `ext_tenant` replica, which already holds `display_name` and `status`
 (`V3__ext_tenant.sql:5`). New migration `V4__ext_tenant_display_name_search.sql` adds the same
@@ -189,7 +250,7 @@ generated `display_name_key` column plus
 | Rule | Value |
 |---|---|
 | Minimum `q` length after normalization | **3** characters; shorter ⇒ `200` with an empty list (never an error — the field is typed into character by character) |
-| Match | Prefix of the whole normalized name **or** prefix of any word in it (`key LIKE :q || '%' OR key LIKE '% ' || :q || '%'`). Never an unanchored substring. |
+| Match | Prefix of the whole normalized name **or** prefix of any word in it (`key LIKE :q \|\| '%' OR key LIKE '% ' \|\| :q \|\| '%'`). Never an unanchored substring. |
 | Status filter | `ACTIVE` only |
 | Result cap | **10**, ordered by name length then name (shortest, most exact first) |
 | Response item | `{ "slug": "acme-tire", "displayName": "Acme Tire & Auto" }` — nothing else. No tenant id, no status, no account, no counts. |
@@ -215,58 +276,24 @@ record, `ExtTenantRepository.searchActiveByDisplayNameKey(...)`.
 The frontend learns whether search is available by calling it: a `404` switches the form to the
 existing slug input. No new bootstrap/config endpoint.
 
-### 5.5 `pos-tenant` — tenant-admin self-service
+### 5.5 Tenant self-service — deferred
 
-**Route:** `PATCH /tenant/v1/tenants/current`, body `{ "displayName": "..." }`.
-**Read companion:** `GET /tenant/v1/tenants/current` (so the admin screen can show the current
-value) returning `{ tenantId, slug, displayName }` — slug included because it is not a secret from
-a session already bound to that tenant.
+Not built here. Renaming an organization from inside a tenant belongs to the **account-setup flow**,
+which does not yet exist. This change introduces **no new permissions**: `tenant:profile:read` /
+`tenant:profile:update` are not added, `TenantPermissionRegistration` is unchanged, and
+`R__seed_tenant_template.sql` is not touched.
 
-**Permissions** (new, in `TenantPermissions`; tenant-scoped, *not* `platform:*`):
+Two consequences worth stating so nothing is built on a wrong assumption:
 
-```java
-public static final String TENANT_PROFILE_READ   = "tenant:profile:read";
-public static final String TENANT_PROFILE_UPDATE = "tenant:profile:update";
-```
+* `PlatformTenantGuard` keeps its current blanket rule — **no path in `pos-tenant` is exempt**. The
+  module stays platform-callers-only exactly as ADR-0062 §7 describes.
+* Whoever builds account setup must read §3.2 first; the guard and RLS both stand in the way, and the
+  mechanism needed there is privilege-sensitive.
 
-Registered through the existing `TenantPermissionRegistration`, and granted to the `ADMIN` and
-`SYSTEM_ADMINISTRATOR` template roles in
-`pos-security-service/src/main/resources/db/migration/R__seed_tenant_template.sql`. Because that
-file is a repeatable migration that fans template grants out to existing tenants
-(`R__seed_tenant_template.sql:97`, the platform-template fan-out block), already-provisioned tenants pick the grants up on the next
-startup — no backfill script.
+### 5.6 Platform route — the only edit path
 
-**Guard exemption.** `PlatformTenantFilter` gains an exact-path allowlist containing
-`/v1/tenants/current` only (not a prefix, not a wildcard). Every other path in the module stays
-platform-only.
-
-**Tenant binding.** `TenantSelfServiceImpl`:
-
-```java
-UUID caller = TenantContext.current().orElseThrow(...);        // bound by TenantContextFilter from X-Tenant-Id
-if (PlatformTenant.isPlatform(caller)) throw ...;              // platform sessions use the platform route
-return TenantContext.callAs(PlatformTenant.ID, () -> {
-    TenantEntity t = tenantRepository.findById(caller).orElseThrow(...);   // id is the captured caller, never a parameter
-    ... apply displayName, collision check, save, factPublisher.tenantUpdated(t) ...
-});
-```
-
-Non-negotiable properties, each with a test in §7.5:
-
-* the tenant id operated on comes **only** from `TenantContext`, never from the path, body or a
-  header — there is no parameter that could name another tenant;
-* the elevated scope wraps the smallest possible block and is always unwound (`callAs`, not manual
-  `set`/`clear`);
-* only `displayName` is writable here — `cell`, `slug`, `accountId`, `status` and
-  `initialAdminEmail` are not in the request DTO at all;
-* `@EmitEvent(id = "TENANT_SELF_UPDATE", apiVersion = "1")`, preset `write`, added to
-  `TenantEventTypes`;
-* the same `409 TENANT_DISPLAY_NAME_TAKEN` and terminal-status rules as the platform route.
-
-### 5.6 Platform route
-
-`PATCH /tenant/v1/platform/tenants/{id}` is unchanged in shape. It gains the `409` collision
-response and updated `@Operation` text.
+`PATCH /tenant/v1/platform/tenants/{id}` is unchanged in shape and remains the sole way to rename a
+tenant. It gains the `409 TENANT_DISPLAY_NAME_TAKEN` response and updated `@Operation` text.
 
 ---
 
@@ -331,22 +358,23 @@ New keys under `AUTH.LOGIN`, added to **every** file in `src/assets/i18n/`
 `TENANT_SLUG*` keys are **retained** — the fallback path in §6.1 still uses them. `npm run i18n:check`
 must pass.
 
-### 6.4 Tenant-admin settings screen
+### 6.4 No tenant-admin settings screen
 
-A small form exposing `GET`/`PATCH /tenant/v1/tenants/current`, visible to holders of
-`tenant:profile:update`, placed with the other tenant-level administration screens. Two-signal state
-machine, `state.set('error')` before `errorKey.set(...)`, co-located `*.service.spec.ts` — the
-standard page conventions in `AGENTS.md`.
+Deferred with §5.5. There is no in-tenant organization-name screen in this change; renaming is a
+platform-operator action only.
 
 ---
 
 ## 7. Testing
 
 ### 7.1 `pos-tenant` unit
-* `TenantDisplayNameAllocator`: first tenant unsuffixed; second gets ` - 2`; a taken candidate skips
-  to ` - 3`; base truncation keeps the result ≤ 200 chars; the 50-attempt ceiling throws.
+* `TenantDisplayNameAllocator`: an account's first tenant gets the bare legal name; the second gets
+  ` #2`; a taken candidate skips to ` #3`; base truncation keeps the result ≤ 200 chars; the
+  50-attempt ceiling throws.
+* The allocator reads `legal_name` and **never** `trading_name`, including when a trading name is
+  present and differs (§4.3).
 * Normalization: NFKC, trim, internal-whitespace collapse, case-fold; `Acme  Tire` ≡ `acme tire`.
-* `TenantServiceImpl.create`: blank/absent `displayName` defaults; explicit value is never
+* `TenantServiceImpl.create`: blank/absent `displayName` seeds; an explicit value is never
   auto-suffixed; collision ⇒ `TENANT_DISPLAY_NAME_TAKEN`.
 * `TenantServiceImpl.update`: rename collision ⇒ 409; unchanged name ⇒ no event published (the
   existing `changed` guard, `TenantServiceImpl.java:98`).
@@ -365,8 +393,6 @@ standard page conventions in `AGENTS.md`.
   `auth.tenant-search.enabled=false` ⇒ `404`.
 * `LoginTenantResolver` behaviour is **unchanged** — the existing uniform-401 tests must still pass
   untouched.
-* `R__seed_tenant_template.sql` grants `tenant:profile:*` to `ADMIN` and `SYSTEM_ADMINISTRATOR` and
-  to no other template role, and to no role in the platform tenant's `platform:*` families.
 
 ### 7.4 Frontend
 * Combobox: debounce, `switchMap` cancellation, subscription cleaned up in `onCleanup()`.
@@ -378,18 +404,9 @@ standard page conventions in `AGENTS.md`.
 * A tenant-bearing host overrides a remembered value.
 * `npm run i18n:check`, `npm run a11y:smoke:strict`, `npx ng test --no-watch`.
 
-### 7.5 Security tests (§3.2 — these are the ones that matter)
-* A session bound to tenant X calling `PATCH /v1/tenants/current` updates **only** tenant X.
-* No request shape — path, query, body or header — makes the self-service route touch another
-  tenant's row. Assert by construction: the DTO has one field and the repository lookup takes the
-  captured id.
-* A caller without `tenant:profile:update` gets `403`.
-* A platform-bound session is refused on the self-service route (it has the platform route).
-* After `callAs` returns, `TenantContext.current()` is back to the caller's tenant — including on the
-  exception path.
-* Every other `pos-tenant` path still answers `403 PLATFORM_TENANT_REQUIRED` for a non-platform
-  caller; the allowlist is exact-match and does not admit `/v1/tenants/current/anything` or
-  `/v1/tenants/currentX`.
+### 7.5 Boundary regression
+* Every `pos-tenant` path still answers `403 PLATFORM_TENANT_REQUIRED` for a non-platform caller —
+  no allowlist, no exemption, no new permission (§5.5).
 * `TenancyArchitectureTest` and the module `ArchitectureTest` pass.
 
 ---
@@ -399,27 +416,23 @@ standard page conventions in `AGENTS.md`.
 | # | Work | Repo / module | Depends on |
 |---|---|---|---|
 | 1 | `V3__tenant_display_name_key.sql` + entity mapping + de-dup | backend / `pos-tenant` | — |
-| 2 | `TenantDisplayNameAllocator`, create/update defaulting and collision handling | backend / `pos-tenant` | 1 |
+| 2 | `TenantDisplayNameAllocator`, create/update seeding and collision handling | backend / `pos-tenant` | 1 |
 | 3 | `TenantCreateRequest.displayName` optional; OpenAPI text; 409 responses | backend / `pos-tenant` | 2 |
 | 4 | `V4__ext_tenant_display_name_search.sql` + repository query | backend / `pos-security-service` | — |
 | 5 | Public search endpoint, config keys, rate limit, event type | backend / `pos-security-service` | 4 |
-| 6 | `tenant:profile:*` permissions + template grants | backend / both modules | — |
-| 7 | Self-service `GET`/`PATCH /v1/tenants/current`, guard allowlist, `callAs` scoping | backend / `pos-tenant` | 2, 6 |
-| 8 | **Run `API Artifacts Sync`** (regenerates specs, permission manifests, both SDKs, frontend tarballs) | backend workflow | 3, 5, 7 |
-| 9 | Login combobox + fallback + a11y | frontend | 8 |
-| 10 | `last-tenant.service.ts` + SSR guards | frontend | — |
-| 11 | i18n keys in all six locale files | frontend | 9 |
-| 12 | Tenant-admin settings screen | frontend | 8 |
-| 13 | ADR-0062 addendum recording §3.1 and §3.2 | `durion` / `docs/adr` | 5, 7 |
+| 6 | **Run `API Artifacts Sync`** (regenerates specs, permission manifests, both SDKs, frontend tarballs) | backend workflow | 3, 5 |
+| 7 | Login combobox + fallback + a11y | frontend | 6 |
+| 8 | `last-tenant.service.ts` + SSR guards | frontend | — |
+| 9 | i18n keys in all six locale files | frontend | 7 |
+| 10 | ADR-0062 addendum recording §3.1 | `durion` / `docs/adr` | 5 |
 
-Steps 3, 5 and 7 all change controllers, DTOs and permissions, so step 8 is **mandatory** before any
-frontend work begins — per `CLAUDE.md`, the controller is the contract source and the SDK must not
-drift.
+Steps 3 and 5 change controllers and DTOs, so step 6 is **mandatory** before any frontend work
+begins — per `CLAUDE.md`, the controller is the contract source and the SDK must not drift.
 
 ## 9. Acceptance criteria
 
-1. Registering a tenant without a display name yields the account's legal name; a second tenant on
-   the same account yields `<legal name> - 2`.
+1. Registering a tenant without a display name yields the owning account's **legal** name; a second
+   tenant on the same account yields `<legal name> #2`. The trading name is never used.
 2. Two tenants cannot hold the same display name, differing only in case or internal whitespace;
    the attempt answers `409 TENANT_DISPLAY_NAME_TAKEN`.
 3. On a host with no tenant suffix, the login form shows an **Organization** search field; typing
@@ -427,17 +440,18 @@ drift.
    credentials signs the user in.
 4. The next visit to the login page on the same browser pre-selects the last organization signed in
    with, and the user can clear it.
-5. A tenant `ADMIN` or `SYSTEM_ADMINISTRATOR` can rename their own organization and cannot reach any
-   other tenant's record; a platform operator can rename any tenant.
-6. A rename is reflected in the login search within one `tenant.events.v1` round trip.
-7. The login endpoint still answers one indistinguishable `401` for a wrong password, an unknown
+5. A platform operator can rename any tenant, and the rename is reflected in the login search within
+   one `tenant.events.v1` round trip. No in-tenant caller can reach any `pos-tenant` route.
+6. The login endpoint still answers one indistinguishable `401` for a wrong password, an unknown
    tenant and an inactive tenant.
-8. `./mvnw -DskipTests=false clean test`, `./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test`,
+7. `./mvnw -DskipTests=false clean test`, `./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test`,
    `npx ng test --no-watch`, `npm run i18n:check` and `npm run a11y:smoke:strict` all pass.
 
 ## 10. Out of scope
 
 * Renaming the column or the API field to `organization_name` (D1).
+* **Tenant self-service renaming and the permissions it would need** — deferred to the account-setup
+  flow (D7, §5.5); the obstacles it will face are recorded in §3.2.
 * Server-side per-user tenant memory (D6) — circular at login: the tenant must be resolved before
   the user can be looked up.
 * Fuzzy/typo-tolerant matching, trigram or full-text search. Prefix matching first; revisit if the
