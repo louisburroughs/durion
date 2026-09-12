@@ -41,15 +41,36 @@ login route" (`LoginTenantResolver` javadoc). A public organization search endpo
 same information directly: it must be reachable before authentication, because it feeds the login
 form.
 
-This is an accepted, deliberate trade — the feature is not buildable without it — but it should be
-recorded as such. §5.3 specifies the controls that bound the exposure (minimum query length,
-prefix-only matching, result cap, `ACTIVE`-only, rate limit, per-environment kill switch, and no
-field in the response beyond what the form needs). The login route's own behaviour does **not**
-change: it keeps answering the uniform 401.
+This trade is **inherent to the feature, not incidental to it**: there is no version of "the user
+picks their organization from a list" in which the list is also secret. The question is therefore
+not whether to disclose the directory but how tightly to bound the disclosure. §5.3 specifies those
+bounds — minimum query length, prefix-only matching (never an unanchored substring), a ten-result
+cap, `ACTIVE`-only, a per-IP rate limit, no total count, and a response carrying nothing beyond the
+two fields the form needs. The login route's own behaviour does **not** change: it keeps answering
+the uniform 401, so nothing here makes it easier to confirm a *credential*.
 
-**Recommended:** treat this as an ADR-0062 addendum ("the tenant directory is public by
-design at the login edge"), and default `auth.tenant-search.enabled` to **off** in `prod` until
-someone owns that decision for production, leaving it on in `dev`/`docker`/`alpha`.
+**Search is enabled by default in every profile, production included.** An earlier draft of this
+specification proposed defaulting it off in `prod`. That was wrong, and the reason is worth
+recording so it is not re-proposed: it assumed production resolves the tenant from a per-tenant
+hostname, leaving search a convenience. It does not. `auth.tenant-host-suffix` reads
+`${AUTH_TENANT_HOST_SUFFIX:}` (`pos-api-gateway/src/main/resources/application.yml:246`) and that
+variable is set in **no** profile, `.env.example` or compose file — blank disables host derivation,
+so `hostTenantSlug()` is null everywhere and the tenant field always renders. Disabling search in
+production would reduce it to today's type-the-slug login, which is the problem this change exists
+to solve.
+
+`auth.tenant-search.enabled` remains, with a narrower purpose:
+
+* an **incident lever** — if the directory is scraped, it can be turned off without a deploy, and
+  login still works for anyone who knows their slug (§6.1's fallback);
+* a **per-deployment choice** for an installation that should not publish a directory at all.
+
+**Revisit if** `AUTH_TENANT_HOST_SUFFIX` is ever configured. Once production serves tenants from
+per-tenant hostnames, the field renders read-only from the `Host` header, search stops being the
+login path, and turning it off in production becomes close to free.
+
+**Recommended:** record the trade as an ADR-0062 addendum — "the tenant directory is public by
+design at the login edge, bounded by the §5.3 controls."
 
 ### 3.2 Tenant self-service is deferred — recorded here so it is not rediscovered
 
@@ -266,7 +287,7 @@ record, `ExtTenantRepository.searchActiveByDisplayNameKey(...)`.
 
 | Key | Default | Where |
 |---|---|---|
-| `auth.tenant-search.enabled` | `true` in `dev`/`docker`/`alpha`, **`false` in `prod`** (see §3.1) | `pos-security-service` |
+| `auth.tenant-search.enabled` | **`true` in every profile, production included** (see §3.1); an incident lever, not a production default | `pos-security-service` |
 | `auth.tenant-search.min-query-length` | `3` | `pos-security-service` |
 | `auth.tenant-search.max-results` | `10` | `pos-security-service` |
 | `auth.tenant-search.rate-limit-per-minute` | `60` | `pos-security-service` |
@@ -387,8 +408,8 @@ platform-operator action only.
 * Search: below the minimum length ⇒ empty list, no query; word-prefix and whole-prefix both match;
   unanchored substring does **not** match; `PENDING`/`SUSPENDED`/`DECOMMISSIONED` excluded; results
   capped at 10; response carries exactly `slug` + `displayName`.
-* Search reachable without a token; rate limit answers `429` with an `ApiError`;
-  `auth.tenant-search.enabled=false` ⇒ `404`.
+* Search reachable without a token; rate limit answers `429` with an `ApiError`; search is enabled
+  by default in every profile, and `auth.tenant-search.enabled=false` ⇒ `404` (the incident lever).
 * `LoginTenantResolver` behaviour is **unchanged** — the existing uniform-401 tests must still pass
   untouched.
 
@@ -422,7 +443,7 @@ platform-operator action only.
 | 7 | Login combobox + fallback + a11y | frontend | 6 |
 | 8 | `last-tenant.service.ts` + SSR guards | frontend | — |
 | 9 | i18n keys in all six locale files | frontend | 7 |
-| 10 | ADR-0062 addendum recording §3.1 | `durion` / `docs/adr` | 5 |
+| 10 | ADR-0062 addendum recording §3.1 (public tenant directory at the login edge) | `durion` / `docs/adr` | 5 |
 
 Steps 3 and 5 change controllers and DTOs, so step 6 is **mandatory** before any frontend work
 begins — per `CLAUDE.md`, the controller is the contract source and the SDK must not drift.
