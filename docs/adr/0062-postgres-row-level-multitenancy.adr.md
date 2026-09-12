@@ -536,3 +536,76 @@ pointing back here):
   `X-Tenant-Id` from `tid`, so no module changes and
   §3's rule that tenant context comes from the validated token only still holds; an override header for platform
   tokens was considered and rejected.
+- **2026-09-11:** First administrator activation landed (WS2b-3, backend #1950). Provisioning's initial
+  administrator (§7) is left `awaiting_activation`: an explicit `users.awaiting_activation` marker, credentials
+  expired, and a generated password that is discarded, so a login attempt fails the password check itself and
+  answers the ordinary 401 `INVALID_CREDENTIALS` — the account state is not enumerable. A `platform:tenant:provision`
+  caller mints a one-time, hashed, 72-hour token (`POST /v1/platform/tenants/{tenantId}/administrators/{userId}/activation-token`,
+  `user_activation_tokens`); mint is refused with 409 `USER_NOT_AWAITING_ACTIVATION` for any user not in that state,
+  so a live account is never overwritten. Unauthenticated `POST /v1/auth/activate` consumes the token (single use,
+  guarded against concurrent redemption and against a concurrent mint) and sets the password. No mail dependency;
+  the same token mechanism is intended to later drive e-mail reset.
+- **2026-09-11:** Per-tenant reconciliation manifests landed (WS4-3, backend #1952), closing the WS4-1 interim
+  exception to ADR-0044 §4. `ReconciliationManifestV1` gains a required `tenantId`; each of the 9 `ManifestPublisher`s
+  groups a closed window's outbox rows by tenant and publishes one manifest per tenant (zero-count manifests
+  included, so absence alerting still holds per tenant), keyed so distinct tenants' manifests of the same window
+  never collide. Consumers compare drift and request replay per tenant. A manifest published before the field
+  existed carries no tenant and is skipped by every listener, logged at WARN and counted as
+  `replica.manifest.skipped{reason="missing_tenant"}`: reading it as one tenant's record would compare an
+  all-tenant count against a single-tenant scan and report drift forever. `processed_events` rows recorded
+  before its new `tenant_id` column existed carry no tenant, do not self-heal on replay, and need the
+  backfill the runbook documents.
+- **2026-09-11:** WS6 landed. WS6-a (backend #1951): `emitted_event_hourly` grouped by `tenant_id`, a
+  platform-tenant global rollup, and the new optional `tenantId` on `GET /v1/events/summary/{lastHour,lastDay,lastWeek}`
+  (§11) — an ordinary tenant naming it is refused with 403, the platform tenant reads the rollup by default
+  or one named tenant; every log line carries `tenantId` in the MDC pattern across 29 modules. WS6-b (backend
+  #1956, superseding an earlier #1953 of the same PR that needed further review rounds): `pos-mcp-server`'s
+  per-tenant tool-priority overlay with a global-rollup fallback, and NLTI session scoping — a session id of
+  another tenant now answers 404 `SESSION_NOT_FOUND`, indistinguishable from an unknown id, rather than the
+  403 an earlier draft used; `submitNltiRequest` is unchanged (an id the caller's tenant does not have still
+  silently starts a fresh session). Left for later: documents/images tenant-prefixed paths, per-tenant export
+  tooling, Compose/alpha runbook role changes.
+- **2026-09-11:** `TenantRegistry.activeTenantIds()` (§8, `pos-tenancy-common`) is documented to **never
+  include the platform tenant**: it is control-plane data owned by `pos-tenant`, and its only consumer,
+  `TenantIterator`, must never run a per-tenant scheduled sweep under it (`@PlatformScoped` exists precisely
+  so platform work is swept separately). `StaticTenantRegistry` filters it out of both `pos.tenancy.tenants`
+  and the transitional default tenant (a review round on WS6-b, backend #1956, tightened this after finding
+  the default-tenant fallback path had not been filtered); `RemoteTenantRegistry` filters it out of its
+  static seed and every fetched page. A module that supplies its own `TenantRegistry` must uphold the same
+  invariant. **Known exception, not yet fixed:** `pos-security-service`'s `ExtTenantRegistry` is backed by
+  the `ext_tenant` replica, and that replica's seed migration (`V3__ext_tenant.sql`) inserts the platform
+  tenant as `ACTIVE`, so `ExtTenantRegistry.activeTenantIds()` violates the invariant today. Harmless in
+  practice because `pos-security-service` has no `TenantIterator` consumer, but it is a latent inconsistency
+  and a trap for the next per-tenant scheduler added to that module; tracked as a follow-up, not fixed by
+  this ADR.
+- **2026-09-11:** WS8 landed (backend #1955): `pos-bulk-loader` adopts the tenancy runtime as the last
+  persisting module (§10 "every persisting module is adopted"), and `pos-security-service` gains
+  `reconcileTemplate`. `POST /v1/bulk-jobs` gains a `tenantId`, echoed on the response and required *unless*
+  the transitional default tenant (`pos.tenancy.default-tenant-id`, §9) is configured — with a default set an
+  omitted `tenantId` falls back to it with a WARN, and only with no default is omission refused. It is resolved by
+  `BulkLoadTenantBinding.resolveTarget` and carrying five distinct refusals that five review rounds produced
+  (all as a `BulkLoadTenantException` mapped to the ADR-0017 `ApiError` envelope):
+
+  | Code | Status | Meaning |
+  | --- | --- | --- |
+  | `BULK_JOB_TENANT_REQUIRED` | 400 | No `tenantId` on the request and no transitional default tenant configured |
+  | `BULK_JOB_TENANT_UNKNOWN` | 400 | The named tenant is neither an active tenant of this module's `TenantRegistry` nor the platform tenant |
+  | `BULK_JOB_TENANT_FORBIDDEN` | 403 | The caller is bound to a tenant other than the one named — for every caller, the platform operator included; a job runs under its creating caller's own binding and operator id, so one created in another tenant would be unreachable afterwards |
+  | `BULK_JOB_TENANT_UNBOUND_TARGET_FORBIDDEN` | 403 | The caller has no `tid` on its token yet and still named a target explicitly; an unbound caller may only omit `tenantId` and fall back to the transitional default, never pick a tenant for itself |
+  | `BULK_JOB_TENANT_DOMAIN_FORBIDDEN` | 403 | The target resolved to the platform tenant but `domainType` is not one of the two role-template packs (`SECURITY_ROLE`, `SECURITY_ROLE_PERMISSION`) the platform tenant accepts. See the note below on its status code |
+
+  **On `BULK_JOB_TENANT_DOMAIN_FORBIDDEN`'s status code.** ADR-0017 makes 422 the default for a well-formed
+  request refused by domain policy and reserves 403 for caller authorization, and this refusal is a policy
+  restriction on `domainType` rather than a statement about the caller. The shipped code answers 403. This
+  ADR does not grant an exception: the discrepancy is recorded here as a known inconsistency to settle with
+  a follow-up that either aligns the endpoint with ADR-0017 or records a deliberate override there.
+
+  A bound caller may therefore only ever load into its own tenant; there is deliberately no path (in WS8) for
+  a platform operator to load data into another tenant on its behalf — that needs a genuine impersonation
+  credential, not yet built. `reconcileTemplate` (`POST /v1/platform/tenants/{tenantId}/roles/reconcile-template`,
+  `platform:tenant:provision`, platform-tenant binding only) unions new template grants onto an existing
+  tenant's roles without touching the tenant's own edits, and is guarded by the same `platform:*`-grant and
+  named-`PLATFORM_ADMIN` refusals as `provisionTemplateRole` (§7; `PlatformGrantGuard`), so a role that itself
+  holds a `platform:*` permission can never join a tenant template and have that grant copied fleet-wide.
+  This module and endpoint have no `domains/bulk-import` (or similar) contract guide in the durion repo yet;
+  recorded here rather than inventing a new domain directory for it.
