@@ -262,14 +262,19 @@ interface ResolvePriceResponse {
   currency: string; // ISO 4217
   source: 'PRICE_BOOK_RULE' | 'MSRP' | 'UNAVAILABLE';
   sourceRuleId?: string | null; // rule that produced price
-  fallbackReason?: string | null; // e.g. "MSRP_FALLBACK", "MISSING_BASE_DATA"
+  fallbackReason?: string | null; // e.g. "MSRP_FALLBACK", "PRICE_BASE_DATA_MISSING"
 }
 ```
 
 Behavioral assertions for price resolution (key rules):
 - Precedence: SKU/product rule > Category rule > Global rule > MSRP fallback.
 - Deterministic tie-breaking: when rules have identical precedence and priority, implementations MUST apply a deterministic tie-breaker (e.g., lexicographic `ruleId`) and document it.
-- Missing base data handling: where base data required by a rule is absent, the response MUST carry an explicit state rather than a silently incorrect price. Implemented as `source: UNAVAILABLE` with `fallbackReason: PRICE_BASE_DATA_MISSING`, returned when neither a price-book rule nor an MSRP applies. This is the sole form: the alternative this contract once offered, a `NOT_APPLICABLE_MISSING_BASE` rule status, was never implemented and has been removed — the condition belongs to a price resolution, not to a rule.
+- Missing base data handling: where base data required by a rule is absent, the response MUST carry an explicit
+  state rather than a silently incorrect price. Implemented as `source: UNAVAILABLE` with
+  `fallbackReason: PRICE_BASE_DATA_MISSING`, returned when neither a price-book rule nor an MSRP applies.
+  This is the sole form: the alternative this contract once offered, a `NOT_APPLICABLE_MISSING_BASE` rule
+  status, was never implemented and has been removed — the condition belongs to a price resolution, not to
+  a rule.
 
 ContractBehaviorIT hints:
 - CP-NNN: SKU rule present -> resolved price from SKU rule.
