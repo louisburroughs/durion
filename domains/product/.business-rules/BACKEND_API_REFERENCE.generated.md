@@ -287,7 +287,6 @@ public enum Status {
 
 - `ACTIVE`
 - `INACTIVE`
-- `NOT_APPLICABLE_MISSING_BASE`
 
 #### PriceBookRuleDto.targetType
 

@@ -228,7 +228,7 @@ ContractBehaviorIT hints:
 #### DELETE /v1/products/price-books/{priceBookId}/rules/{ruleId}
 
 - Method: DELETE
-- Purpose: Deactivate the rule or mark `status` -> `INACTIVE`/`NOT_APPLICABLE_MISSING_BASE` depending on reason.
+- Purpose: Deactivate the rule — `status` -> `INACTIVE`. (An earlier draft of this contract also offered a `NOT_APPLICABLE_MISSING_BASE` status "depending on reason"; deactivation has only one reason at this endpoint, and missing base data is reported on `resolve-price` instead, so that status was never implemented and has been removed from `PriceBookRuleStatus`.)
 - Responses: `204 No Content`, `404 Not Found`.
 - Persist `CATALOG_PRICE_BOOK_RULE_DEACTIVATE` event.
 
@@ -262,14 +262,19 @@ interface ResolvePriceResponse {
   currency: string; // ISO 4217
   source: 'PRICE_BOOK_RULE' | 'MSRP' | 'UNAVAILABLE';
   sourceRuleId?: string | null; // rule that produced price
-  fallbackReason?: string | null; // e.g. "MSRP_FALLBACK", "MISSING_BASE_DATA"
+  fallbackReason?: string | null; // e.g. "MSRP_FALLBACK", "PRICE_BASE_DATA_MISSING"
 }
 ```
 
 Behavioral assertions for price resolution (key rules):
 - Precedence: SKU/product rule > Category rule > Global rule > MSRP fallback.
 - Deterministic tie-breaking: when rules have identical precedence and priority, implementations MUST apply a deterministic tie-breaker (e.g., lexicographic `ruleId`) and document it.
-- Missing base data handling: where base data required by a rule is absent, implementers should return an explicit state (e.g., `source: UNAVAILABLE` or `fallbackReason: NOT_APPLICABLE_MISSING_BASE`) and avoid returning silently incorrect prices.
+- Missing base data handling: where base data required by a rule is absent, the response MUST carry an explicit
+  state rather than a silently incorrect price. Implemented as `source: UNAVAILABLE` with
+  `fallbackReason: PRICE_BASE_DATA_MISSING`, returned when neither a price-book rule nor an MSRP applies.
+  This is the sole form: the alternative this contract once offered, a `NOT_APPLICABLE_MISSING_BASE` rule
+  status, was never implemented and has been removed — the condition belongs to a price resolution, not to
+  a rule.
 
 ContractBehaviorIT hints:
 - CP-NNN: SKU rule present -> resolved price from SKU rule.
@@ -303,7 +308,7 @@ interface PriceBookRuleDto {
   priority: number;
   effectiveStartAt: string;
   effectiveEndAt?: string | null;
-  status: 'ACTIVE' | 'INACTIVE' | 'NOT_APPLICABLE_MISSING_BASE';
+  status: 'ACTIVE' | 'INACTIVE';
   createdByUserId?: string;
   createdAt?: string;
   updatedAt?: string;
