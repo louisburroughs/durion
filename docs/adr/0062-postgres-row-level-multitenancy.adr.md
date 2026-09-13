@@ -100,6 +100,40 @@ Login resolves the tenant from the gateway-supplied slug or an optional `tenantS
 and shared preview hosts). An unknown slug returns the same 401 as bad credentials. Access and refresh tokens carry
 `tid`; [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md)'s claim contract gains `tid` as required.
 
+**Amendment 2026-09-13 — the tenant directory is public at the login edge.** A slug is an infrastructure
+identifier. Users do not know it, cannot guess it, and on any host that carries no tenant suffix they were being
+asked to supply one to sign in. `GET /security-service/v1/auth/tenants?q=` therefore answers, without
+authentication, the organizations whose display name starts with a query, so the login form can offer names and
+submit the matched slug. The login contract is unchanged: the form still sends `tenantSlug`.
+
+This is a deliberate, unavoidable disclosure, and is recorded as one rather than left implicit. The paragraph
+above makes login answer the same 401 for a wrong password, an unknown tenant and an inactive one, precisely so
+the route cannot be used to enumerate tenants; a directory the login form can search hands out that same fact
+directly. There is no version of "pick your organization from a list" in which the list is secret, so the
+question is not whether to disclose it but how tightly to bound each query. The bounds are: a three-character
+minimum; matching only a prefix of the name or of a word within it, never an unanchored substring; `LIKE`
+wildcards in the query escaped, so `%` matches that character rather than returning everything; at most ten
+results; `ACTIVE` tenants only; a response carrying the display name and the slug and nothing else; no total,
+since a total says how much is left to enumerate; and a per-client rate limit at the gateway. **Login's own
+behaviour does not change** — the uniform 401 stands, so nothing here makes it easier to confirm a credential.
+
+`auth.tenant-search.enabled` is an incident lever, not a production default: it is **on in every profile,
+production included**, because no tenant-bearing host is configured anywhere (`AUTH_TENANT_HOST_SUFFIX` is unset
+in every profile), so the search *is* the login path and disabling it returns every user to typing a slug.
+Turned off, the endpoint answers 404 and the form falls back to the slug field. Should per-tenant hostnames ever
+be configured, the tenant resolves from `Host`, the field renders read-only, and switching the directory off in
+production becomes close to free — that is the point at which this decision is worth revisiting.
+
+The gateway's rate limiter **fails open**. A limiter sharing the Redis that the revocation check already treats
+as fail-open (whose health indicator is disabled on purpose so an outage cannot take ingress out of rotation)
+would, if it failed closed, turn a Redis blip into a total login outage — strictly worse than the enumeration it
+slows down.
+
+Display names become the thing users identify a tenant by, so §7's registry makes them unique across the
+registry, case- and whitespace-insensitively, under a normalized key. The normalization is shared
+(`pos-tenancy-common`), because the key the registry writes and the key the search matches on drifting apart
+would make a tenant silently unfindable at login.
+
 #### 4. Naming: `tenant`, `account`, and the `organizationId` remnant
 
 **Decision:** ✅ **Resolved** - `tenantId` is the isolation boundary. The customer that owns one or more tenancies
@@ -609,3 +643,17 @@ pointing back here):
   holds a `platform:*` permission can never join a tenant template and have that grant copied fleet-wide.
   This module and endpoint have no `domains/bulk-import` (or similar) contract guide in the durion repo yet;
   recorded here rather than inventing a new domain directory for it.
+
+- **2026-09-13:** §3 amended (louisburroughs/durion-positivity-backend `claude/determined-franklin-w8hzqs`): the
+  tenant directory is public at the login edge. `GET /v1/auth/tenants?q=` lets the login form offer organization
+  names instead of demanding a slug, bounded by a minimum query length, prefix-only matching with escaped `LIKE`
+  wildcards, a ten-result cap, `ACTIVE`-only, a two-field response, no total, and a gateway rate limiter that
+  fails open. Login keeps its uniform 401. Enabled in every profile including production, because no
+  tenant-bearing host is configured and the search is therefore the login path; the flag is an incident lever.
+  §7's registry gains a unique normalized display-name key, seeded on registration from the owning account's
+  legal name — required and already unique — suffixed `#2`, `#3` only on collision; the trading name is not used,
+  being optional and unconstrained, so seeding from it would manufacture collisions between unrelated accounts.
+  The normalization lives in `pos-tenancy-common` so the registry and every `ext_tenant` replica cannot drift.
+  Tenant-side self-service renaming is **not** part of this: it belongs to the account-setup flow, and whoever
+  builds it must handle both `PlatformTenantGuard` and the registry's own RLS, since every registry row belongs
+  to the platform tenant and a request bound to another tenant reads `public.tenant` as empty.

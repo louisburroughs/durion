@@ -1,6 +1,6 @@
 # Specification — Organization name on the login form
 
-**Status:** Draft for review
+**Status:** Implemented (2026-09-13) — see §11 for where the build departed from this specification
 **Date:** 2026-09-12
 **Owner:** Platform / Tenancy
 **Affects:** `pos-tenant`, `pos-security-service`, `pos-api-gateway` (config only),
@@ -119,7 +119,11 @@ the operator's original casing and spacing; only the key is normalized.
 platform tenant, the tenancy-schema convention `UNIQUE (tenant_id, <cols>)` yields global uniqueness
 for free — no exception to `docs/TENANCY_SCHEMA.md` is needed.
 
-A create or update that would collide answers `409` with code `TENANT_DISPLAY_NAME_TAKEN`.
+A create or update that would collide answers `409` through `DuplicateResourceException`, the same envelope the
+slug collision already produces. (An earlier draft promised a distinct `TENANT_DISPLAY_NAME_TAKEN` code. The
+`ApiError` envelope derives `code` from the HTTP status — `frameworkErrorCode(status)` in
+`GlobalApiExceptionHandler` — so there is no per-exception code mechanism today, and the slug collision does not
+emit `TENANT_SLUG_TAKEN` either. Inventing one for this change alone was out of scope.)
 
 ### 4.3 Seed value: legal name, not trading name
 
@@ -525,3 +529,37 @@ begins — per `CLAUDE.md`, the controller is the contract source and the SDK mu
   registry grows past a few thousand tenants.
 * Changing the slug's role as the API identifier, or making it mutable.
 * Per-tenant login branding (logo, colours) — a natural follow-on, not this change.
+
+
+---
+
+## 11. What shipped, and where it departed from this specification
+
+Implemented 2026-09-13 on `claude/determined-franklin-w8hzqs` in all three repos. Four deliberate departures,
+each found while building and each an improvement on what was written here.
+
+1. **The normalizer is shared, not duplicated.** §7 R4 offered "share the implementation, or duplicate with a
+   test asserting agreement". Sharing won: `TenantDisplayName` lives in `pos-tenancy-common`, which `pos-tenant`
+   and `pos-security-service` already depend on, so the risk of the registry's key and the search's key drifting
+   apart is designed out rather than tested for.
+
+2. **No distinct error code** (§4.2 above). The envelope derives `code` from the status; the module's existing
+   convention is a `DuplicateResourceException` with a clear message, and this follows it.
+
+3. **The migration tidies `display_name`, not just the key.** Running V3 against a real PostgreSQL 16 showed
+   de-duplicated rows keeping their untidied text (`bobs   tires #3`), which would have left migrated rows
+   differing from anything the application writes afterwards. The backfill now applies the same display form.
+
+4. **Rate limiting is new work at the gateway** (§5.4a), not a reuse of `LockoutService`, which is per-user and
+   has nothing to key an anonymous request on.
+
+**Verified, not assumed.** The two risks this plan called out as needing proof both have tests that exercise the
+real component: the gateway limiter is driven against a Redis template that errors and asserted to still allow
+the request (R1), and the key resolver is asserted to give two clients behind one proxy two buckets (R2). The
+`LIKE`-wildcard escape is exercised against a real database, not a mock.
+
+**Not verified here.** The Testcontainers integration tests (`TenantIsolationIT`,
+`TenancySchemaConformanceIT`) could not run in the build environment — the Docker image registry was unreachable
+— so both Flyway migrations were instead applied to a local PostgreSQL 16 in order, including a fixture of four
+tenants colliding by case and whitespace with `#2` already taken. That covers this change's schema work; the
+ITs themselves still need a CI run.
