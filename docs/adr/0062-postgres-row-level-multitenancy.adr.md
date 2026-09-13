@@ -615,13 +615,22 @@ pointing back here):
   needing a way in: they previously held a generated password returned to no one, so the only door was an
   operator-minted activation token per account, and twenty-five of those is not a flow anyone follows.
   Decided: those accounts are created awaiting activation with credentials already expired — the same
-  `users.awaiting_activation` marker §7's first-administrator flow uses — holding the bcrypt hash in
-  `SECURITY_STARTER_PASSWORD_HASH` when one is configured. The starter password is deliberately **not a
-  credential**: login checks account state before it compares a password, so `POST /v1/auth/login` answers
-  `CREDENTIALS_EXPIRED` for these accounts whatever is presented, and the only thing the shared password
-  opens is unauthenticated `POST /v1/auth/activate-starter`, which trades it for a password of the account's
-  own and **returns no token**. The caller then signs in normally. A shared secret therefore never becomes a
-  session, and no window exists in which an unclaimed account is usable.
+  `users.awaiting_activation` marker §7's first-administrator flow uses — with the bcrypt hash of
+  `SECURITY_STARTER_PASSWORD_HASH`, when one is configured, held in `users.starter_password_hash`. The
+  starter password is deliberately **not a credential**: `password` keeps the discarded random value the
+  first administrator's account also holds, so login has nothing to match and answers the same
+  `INVALID_CREDENTIALS` for every password including the starter, exactly as §7 describes. The only thing
+  the shared password opens is unauthenticated `POST /v1/auth/activate-starter`, which trades it for a
+  password of the account's own and **returns no token**. The caller then signs in normally. A shared secret
+  therefore never becomes a session, and no window exists in which an unclaimed account is usable.
+
+  The separate column is the point, not an implementation detail. Storing the starter hash in `password`
+  was the first shape of this and was wrong: Spring Security's `DaoAuthenticationProvider` compares the
+  password in `additionalAuthenticationChecks` and only then runs `postAuthenticationChecks`, where
+  credentials expiry lives, so a correct starter password answered `CREDENTIALS_EXPIRED` while a wrong one
+  answered `INVALID_CREDENTIALS`. Login failed either way, but the difference told an unauthenticated caller
+  both that its guess was the real starter and that the account was still unclaimed — and it put this flow
+  at odds with §7 for no reason. Held apart, the two flows are indistinguishable at login.
 
   Rejected: letting the starter password authenticate once and flagging the account must-change. It reads
   closer to "expires after the first login", but a shared password would yield a real session, and any client
@@ -631,17 +640,23 @@ pointing back here):
 
   The exchange clears the marker, so a starter password works once per account and a live account's password
   is never overwritten through it — the same rule the token path enforces with `USER_NOT_AWAITING_ACTIVATION`.
-  Every failure (unknown username, wrong starter password, an account the loader did not provision, one
-  already claimed, an unresolvable tenant) answers the identical 401 `ACTIVATION_TOKEN_INVALID`, so an
-  unauthenticated caller cannot enumerate accounts. With no starter password configured the behaviour is
+  Every *exchange* failure (unknown username, wrong starter password, an account the loader did not
+  provision, one already claimed, an unresolvable tenant) answers the identical 401
+  `ACTIVATION_TOKEN_INVALID`, so an unauthenticated caller cannot enumerate accounts. A malformed request —
+  a blank field, an invalid `tenantSlug` — is rejected by bean validation with 400 before the exchange runs,
+  per ADR-0017; the single-401 rule is about outcomes, not request shape. With no starter password configured the behaviour is
   unchanged from §7's: a generated password nobody holds, openable only by activation token; that is the
   default and `.env.example` ships it blank.
 
-  Two constraints worth carrying forward. The starter hash is stored in the `password` column, which is what
-  lets the exchange verify it with the ordinary encoder — safe **only** because of the state-before-password
-  ordering above, so a change that relaxed that ordering would silently turn a shared password into a working
-  login. And rotating `SECURITY_STARTER_PASSWORD_HASH` affects only accounts provisioned after the change,
-  since it is stamped per account at load time rather than read at exchange time.
+  The exchange locks the user row (`findByIdForUpdate`) before reading anything it decides on, revokes every
+  token for the username on success, and resets the lockout counters — the three things §7's token exchange
+  already does, for the reasons recorded there: concurrent claims, a token minted before activation that
+  would start authenticating the moment `credentialsNonExpired` flips true, and failed attempts counted
+  against an account while it was still unclaimed.
+
+  One constraint worth carrying forward: rotating `SECURITY_STARTER_PASSWORD_HASH` affects only accounts
+  provisioned after the change, since it is stamped per account at load time rather than read at exchange
+  time. Rotating for accounts already loaded means re-provisioning them or minting activation tokens.
 
   `admin.alpha` is untouched: it is seeded by the tier 1 `R__seed_reference_security.sql` from
   `SECURITY_SEED_ADMIN_PASSWORD_HASH`, which is what keeps a reset database reachable and is the account the
