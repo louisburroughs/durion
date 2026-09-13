@@ -609,3 +609,42 @@ pointing back here):
   holds a `platform:*` permission can never join a tenant template and have that grant copied fleet-wide.
   This module and endpoint have no `domains/bulk-import` (or similar) contract guide in the durion repo yet;
   recorded here rather than inventing a new domain directory for it.
+- **2026-09-12:** Bulk-provisioned accounts gain a starter password that cannot log in (backend #1968).
+  The 25 demo users `pos-security-service` seeded through Flyway are retired in favour of
+  `scripts/fixtures/seed/alpha/security/users.csv`, which leaves the accounts the fixture pack provisions
+  needing a way in: they previously held a generated password returned to no one, so the only door was an
+  operator-minted activation token per account, and twenty-five of those is not a flow anyone follows.
+  Decided: those accounts are created awaiting activation with credentials already expired — the same
+  `users.awaiting_activation` marker §7's first-administrator flow uses — holding the bcrypt hash in
+  `SECURITY_STARTER_PASSWORD_HASH` when one is configured. The starter password is deliberately **not a
+  credential**: login checks account state before it compares a password, so `POST /v1/auth/login` answers
+  `CREDENTIALS_EXPIRED` for these accounts whatever is presented, and the only thing the shared password
+  opens is unauthenticated `POST /v1/auth/activate-starter`, which trades it for a password of the account's
+  own and **returns no token**. The caller then signs in normally. A shared secret therefore never becomes a
+  session, and no window exists in which an unclaimed account is usable.
+
+  Rejected: letting the starter password authenticate once and flagging the account must-change. It reads
+  closer to "expires after the first login", but a shared password would yield a real session, and any client
+  ignoring the flag would keep using it indefinitely. Also rejected: a distinct generated password per user
+  reported in the load output — strongest isolation, but it puts twenty-five live credentials at rest in a job
+  result someone has to carry around and distribute.
+
+  The exchange clears the marker, so a starter password works once per account and a live account's password
+  is never overwritten through it — the same rule the token path enforces with `USER_NOT_AWAITING_ACTIVATION`.
+  Every failure (unknown username, wrong starter password, an account the loader did not provision, one
+  already claimed, an unresolvable tenant) answers the identical 401 `ACTIVATION_TOKEN_INVALID`, so an
+  unauthenticated caller cannot enumerate accounts. With no starter password configured the behaviour is
+  unchanged from §7's: a generated password nobody holds, openable only by activation token; that is the
+  default and `.env.example` ships it blank.
+
+  Two constraints worth carrying forward. The starter hash is stored in the `password` column, which is what
+  lets the exchange verify it with the ordinary encoder — safe **only** because of the state-before-password
+  ordering above, so a change that relaxed that ordering would silently turn a shared password into a working
+  login. And rotating `SECURITY_STARTER_PASSWORD_HASH` affects only accounts provisioned after the change,
+  since it is stamped per account at load time rather than read at exchange time.
+
+  `admin.alpha` is untouched: it is seeded by the tier 1 `R__seed_reference_security.sql` from
+  `SECURITY_SEED_ADMIN_PASSWORD_HASH`, which is what keeps a reset database reachable and is the account the
+  seed run itself authenticates as. The same change retires seven more demo-data Flyway seeds across
+  customer, people-contact, vehicle-inventory, shop-manager and catalog, so a fresh database now carries no
+  demo data until the API-driven pipeline runs (`durion-positivity-backend/docs/DATA_SEED_STRATEGY.md` §4-5).
