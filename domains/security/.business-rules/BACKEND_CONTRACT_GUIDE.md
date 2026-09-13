@@ -73,6 +73,7 @@ Frontend developer workflow:
 | Extract roles from JWT token | `getRoles` | GET | `/v1/auth/roles` | Refer to generated API reference for payload details |
 | Extract subject from JWT token | `getSubject` | GET | `/v1/auth/subject` | Refer to generated API reference for payload details |
 | Validate JWT token | `validateToken` | GET | `/v1/auth/validate` | Refer to generated API reference for payload details |
+| Find the organization to sign in to | `searchTenants` | GET | `/v1/auth/tenants` | Anonymous. Feeds the login form's Organization field so a user need not know their tenant slug; the form submits the matched `slug` as `tenantSlug` on `loginUser`. See (c) below |
 | Get all registered permissions | `listPermissions_1` | GET | `/v1/permissions` | Refer to generated API reference for payload details |
 | Get permissions by domain | `getPermissionsByDomain` | GET | `/v1/permissions/domain/{domain}` | Refer to generated API reference for payload details |
 | Check if permission exists | `permissionExists` | GET | `/v1/permissions/exists/{permissionName}` | Refer to generated API reference for payload details |
@@ -80,6 +81,14 @@ Frontend developer workflow:
 | Get all roles | `getAllRoles` | GET | `/v1/roles` | Refer to generated API reference for payload details |
 | Get user role assignments | `getUserRoleAssignments` | GET | `/v1/roles/assignments/user/{userId}` | Refer to generated API reference for payload details |
 | Get user permissions | `getUserPermissions` | GET | `/v1/roles/permissions/user/{userId}` | Refer to generated API reference for payload details |
+
+(c) `searchTenants` is the organization directory the login form searches (ADR-0062 §3). It is anonymous by
+necessity — choosing the organization is what binds a tenant — and is therefore a deliberate, bounded disclosure
+of which tenants exist: a three-character minimum, matching only a prefix of the name or of a word within it,
+at most ten results, `ACTIVE` tenants only, a response of `slug` + `displayName` and nothing else, and no total.
+`loginUser` is unchanged and still answers one indistinguishable 401 for a wrong password, an unknown tenant and
+an inactive one, so this must not be used to check whether an organization exists. A `404` means the directory is
+switched off in that deployment, and the form falls back to asking for the tenant slug.
 
 ### Platform Provisioning & Support (ADR-0062 WS2b-3, WS2b-4, WS8)
 
@@ -208,6 +217,7 @@ Headers and auth notes:
 | Extract authorities from JWT token | *(not in OpenAPI — nearest shipped: `getRoles`, `getSubject`)* | GET | `/v1/auth/authorities` |
 | Extract roles from JWT token | `getRoles` | GET | `/v1/auth/roles` |
 | Extract subject from JWT token | `getSubject` | GET | `/v1/auth/subject` |
+| Find the organization to sign in to | `searchTenants` | GET | `/v1/auth/tenants` |
 
 ### Behavioral Assertions
 
