@@ -34,6 +34,25 @@ friction.
 - `409 Conflict` for collisions with the target resource's identity, version, or lifecycle status (closed list in §2).
 - `422 Unprocessable Entity` for well-formed requests refused by documented domain policy; the default for domain refusals (§2).
 - `500 Internal Server Error` for unhandled server-side failures.
+- `503 Service Unavailable` when a module cannot yet judge a request because data it consumes
+  asynchronously has not arrived — an [ADR-0044](0044-platform-event-only-domain-walls.adr.md) R3
+  replica that has not caught up with its owner. The response MUST carry a `Retry-After` at least
+  as long as any wait the service already spent internally, and a domain `code` naming what is
+  pending. *(Added 2026-09-14 by
+  [durion-positivity-backend #1987](https://github.com/louisburroughs/durion-positivity-backend/issues/1987).)*
+
+  This is not a substitute for `404`. Use it only where the module genuinely cannot distinguish
+  "this id does not exist" from "this id has not replicated here yet", which is the normal case for
+  a replica read: Kafka orders per aggregate rather than globally, and the owner's outbox may not
+  have published at all, so a consumer holds no local signal that its replica is current. A module
+  MUST NOT infer absence from an event-fed replica being empty or incomplete and answer `404` on
+  that basis — that conflation is the defect this entry exists to prevent. Where a negative *is*
+  provable without consulting the owner (a malformed identifier, for instance, which
+  [ADR-0027](0027-uuid-typed-id-contract-policy.adr.md) makes a client error), answer it directly
+  and do not defer it.
+
+  Bulk-ingest endpoints, whose row outcomes are reported inside a `200` body, carry the same
+  distinction as the shared `REPLICATION_PENDING` row code rather than as a status.
 
 `501 Not Implemented` may only be used for explicitly documented stub endpoints.
 
@@ -186,6 +205,10 @@ Validation and domain error details:
   catch-all implementing §3/§4 and decides the not-null/check `DataIntegrityViolationException`
   mapping (409 unique/FK, 422 client-supplied not-null/check, enveloped 500 for server-populated
   audit columns)
+- **2026-09-14**: §1 gains `503 Service Unavailable` for a replica that has not caught up, with
+  `Retry-After` and a domain code, and an explicit prohibition on inferring `404` from an
+  incomplete event-fed replica
+  ([durion-positivity-backend #1987](https://github.com/louisburroughs/durion-positivity-backend/issues/1987))
 - **2026-09-04**: §2 reworded to resolve
   [durion-positivity-backend #1725](https://github.com/louisburroughs/durion-positivity-backend/issues/1725):
   the "resource state" test is replaced by a remediation-based three-question test (403 → 409 → 422),

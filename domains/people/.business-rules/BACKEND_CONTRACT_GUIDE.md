@@ -205,6 +205,20 @@ Headers and auth notes:
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
 
+#### Issue louisburroughs/durion-positivity-backend#1987 — Person existence comes from the employee row
+
+Staffing-assignment writes establish that a person exists from pos-people's **own** `Employee`
+row, never from the `ext_people_contact_person` replica. pos-people mints the `personId` and
+writes the employee row against it before asking pos-people-contact to create the person, so the
+employee row is the record that caused the person to exist; the replica is a copy of the identity
+attributes that arrives over `people-contact.events.v1` a moment later. Gating on the replica made
+a lag on that round trip indistinguishable from a person who was never created.
+
+- `createStaffingAssignment` / `updateStaffingAssignment` answer `404` when the person holds no
+  employee record here, and `400` when the employee exists but is not `ACTIVE`. Those are two
+  different remediations and no longer share a status.
+- Neither operation can fail for replication lag: there is nothing asynchronous left on the path.
+
 #### Issue louisburroughs/durion-positivity-backend#1636 — Primary Location Top-Level Default
 
 `GET /v1/people/me/primary-location` no longer answers 404 for a caller without an active

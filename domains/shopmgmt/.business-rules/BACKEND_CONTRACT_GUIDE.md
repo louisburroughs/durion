@@ -208,6 +208,24 @@ Headers and auth notes:
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
 
+#### Issue louisburroughs/durion-positivity-backend#1987 — Mechanic skills and replication lag
+
+Mechanic rows are projected from ACTIVE TECHNICIAN staffing assignments arriving on
+`people.events.v1`, so a mechanic created moments ago in pos-people is real and not yet visible
+here. `replaceMechanicSkills` waits briefly for that projection before answering.
+
+- Where no mechanic exists once the wait is spent, the answer is `503`
+  `MECHANIC_REPLICATION_PENDING` with a `Retry-After`, **never** `404`. This service holds no
+  signal that its replica is current, so it cannot distinguish an unreplicated mechanic from a
+  person who has no active TECHNICIAN assignment at all, and it does not pretend to
+  ([ADR-0017](../../../docs/adr/0017-api-controller-http-response-codes.adr.md) §1).
+- A `personId` that is not a UUID is refused `400` immediately, without spending the wait: per
+  [ADR-0027](../../../docs/adr/0027-uuid-typed-id-contract-policy.adr.md) it can never name a
+  person, which makes it the one negative this service can prove.
+- `bulkIngestMechanicSkills` reports the same condition per row as `REPLICATION_PENDING`, which
+  marks the row worth resubmitting unchanged. The wait is spent at most once per request, so a
+  batch of unresolvable rows cannot multiply it by the row count.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
