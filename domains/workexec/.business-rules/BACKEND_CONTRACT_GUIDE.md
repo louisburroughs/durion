@@ -90,12 +90,25 @@ Frontend developer workflow:
 | View daily dispatch board | `getDashboard` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 | Record a note about the customer | `addWorkorderNote` | POST | `/v1/workorders/{workorderId}/notes` | Note about the CUSTOMER, not the work; author comes from the authenticated caller. Auth `workorder:note:add`. Publishes `workorder.note.added.v1`, which pos-customer projects onto the party's CRM timeline as a `WORKORDER_NOTE` interaction (durion-positivity-backend#1584). |
 | View a workorder's customer notes | `listWorkorderNotes` | GET | `/v1/workorders/{workorderId}/notes` | One workorder's notes, newest first. Auth `workorder:note:view`. For notes across every workorder for a customer, read the CRM interaction timeline instead. |
+| Dispatch a workorder to a bay, mobile unit or parking | `assignServicePosition` | PUT | `/v1/workorders/{workorderId}/position` | Assign or change the position. Body `{resourceType: BAY\|MOBILE_UNIT\|HOLD, resourceId?, reason?}`; `resourceId` is required for BAY/MOBILE_UNIT and omitted for HOLD (the server parks the workorder at its own site). Auth `workorder:operationalContext:override`. 409 `RESOURCE_OCCUPIED` when another open workorder holds the position (its id is in `referenceId`), 409 `WORKORDER_CLOSED` when the workorder is COMPLETED or CANCELLED, 422 `SERVICE_POSITION_INVALID` for an unknown position or one at another site. (durion-positivity-backend#1983, #1984) |
+| Take a workorder off its position | `releaseServicePosition` | DELETE | `/v1/workorders/{workorderId}/position?reason=` | Leaves the workorder deliberately unplaced and frees the bay. Idempotent when it holds none. Auth `workorder:operationalContext:override`. (durion-positivity-backend#1983) |
+| Show where a workorder is and who is on it | `getServicePosition` | GET | `/v1/workorders/{workorderId}/position` | Current position, current technician, workorder status, and the full position history newest first. Auth `workorder:workorder:view`. Prefer this over `getOperationalContext`, which answers the position half only and carries no history. (durion-positivity-backend#1983) |
+| Assign the first technician | `assignTechnician` | POST | `/v1/workorders/{workorderId}/technician` | Only for a workorder with no current technician: 409 `TECHNICIAN_ALREADY_ASSIGNED` otherwise, with the incumbent in `referenceId`. Auth `workorder:workorder:assign-technician`. (durion-positivity-backend#1985) |
+| Hand a workorder to a different technician | `reassignTechnician` | PUT | `/v1/workorders/{workorderId}/technician` | Requires a current technician and a reason; 409 `TECHNICIAN_NOT_ASSIGNED` without one — it is not silently promoted to an assign. Auth `workorder:workorder:assign-technician`. (durion-positivity-backend#1985) |
+| Take the technician off a workorder | `releaseTechnician` | DELETE | `/v1/workorders/{workorderId}/technician?reason=` | 204; idempotent when none is assigned. Auth `workorder:workorder:assign-technician`. (durion-positivity-backend#1983) |
 
 Search-filter note for `searchWorkorders` (durion-positivity-backend#1676):
 
 - `status` accepts several values, repeated (`status=A&status=B`) or comma-separated (`status=A,B`), so every open status is one call; an unrecognized value is a 400.
 - `createdFrom`/`createdTo` are inclusive `YYYY-MM-DD` bounds on `createdAt`, evaluated in UTC; `technicianId` matches a technician who logged a labor entry on the workorder.
 - Returns a page of `WorkorderSearchResult` `{workorderId, workorderNumber, estimateNumber, status, customerId, customerName, vehicleId, vehicleLabel, vin, createdAt}`; default page size 25, hard-capped at 100.
+
+Service position and technician assignment (durion-positivity-backend#1983, #1984, #1985):
+
+- Position and technician are **independent** assignments of the same workorder. Either may be unset, changing one never changes the other, and every change is kept as history with who, when and why. `getServicePosition` returns both together.
+- A `BAY` or `MOBILE_UNIT` holds **at most one open workorder**; a second is 409 `RESOURCE_OCCUPIED`. `HOLD` — the site's parking lot — has no capacity limit, and an unset position is always allowed. A parked workorder carries `resourceType: HOLD` with `resourceId` equal to its own `locationId`, so the UI should render HOLD as "parked at this site" rather than looking the id up as a bay.
+- Open means any status other than COMPLETED and CANCELLED, a reopened COMPLETED workorder included. Completing or cancelling a workorder **frees its position automatically** — the UI does not need to release it first.
+- A workorder has **at most one current technician**. Assign is for the first one, reassign changes hands and takes a reason, release takes the technician off without naming a replacement. Both rules are enforced by database constraints, not only by the service, so two simultaneous dispatchers cannot both win.
 
 Headers and auth notes:
 
