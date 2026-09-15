@@ -199,29 +199,31 @@ expect "a --java-home that does not exist aborts naming the JDK, not the selecto
 
 # ── Case 7: the wrong Java is a distinct, named failure ───────────────────────────────
 # The other half. A JDK that exists but is too old fails on the enforcer with output that looks
-# nothing like a version problem, so the version is checked here rather than inferred from Maven.
-# Skipped when no non-25 JDK is on this machine — there is nothing to point the hook at.
-older_jdk=""
-while IFS= read -r candidate; do
-  [[ -x "$candidate/bin/javac" ]] || continue
-  if ! "$candidate/bin/javac" -version 2>&1 | grep -q '^javac 25'; then
-    older_jdk="$candidate"
-    break
-  fi
-done < <(ls -d /usr/lib/jvm/*/ 2>/dev/null | sed 's:/$::')
+# nothing like a version problem, so gate 0 checks the version rather than letting Maven imply it.
+#
+# Driven against a stub rather than a real JDK found on the machine. An earlier revision hunted
+# /usr/lib/jvm for a non-25 JDK and skipped when it found none — but the hook's candidates also
+# include $JAVA_HOME, $HOME/.jdk and /opt, so on a host whose only older JDK sits in one of those
+# the case skipped while a perfectly good subject was sitting there, and the suite still printed
+# PASS (PARTIAL). A skip that depends on where someone happens to have installed a JDK is not a
+# precondition, it is a hole. Gate 0 reads nothing but `javac -version`, so a stub exercises the
+# real contract, always runs, and says the same thing on every machine.
+wrong_major_jdk="$(mktemp -d)"
+mkdir -p "$wrong_major_jdk/bin"
+cat > "$wrong_major_jdk/bin/javac" <<'STUB'
+#!/bin/sh
+echo "javac 21.0.10"
+STUB
+chmod +x "$wrong_major_jdk/bin/javac"
+trap 'rm -rf "$wrong_major_jdk"' EXIT
 
-if [[ -n "$older_jdk" ]]; then
-  expect "a --java-home on the wrong major aborts naming the version" \
-    1 "but the backend enforcer requires Java 25" \
-    "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
-    --find "$fixture_find" --replace "$fixture_replace" \
-    --java-home "$older_jdk" \
-    --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
-    --expect-fail-message "$fixture_expected_message"
-else
-  skipped=$((skipped + 1))
-  echo "── case skipped: no non-25 JDK on this machine to point --java-home at"
-fi
+expect "a --java-home on the wrong major aborts naming the version" \
+  1 "but the backend enforcer requires Java 25" \
+  "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+  --find "$fixture_find" --replace "$fixture_replace" \
+  --java-home "$wrong_major_jdk" \
+  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+  --expect-fail-message "$fixture_expected_message"
 
 echo
 if [[ "$failures" == "0" ]]; then
