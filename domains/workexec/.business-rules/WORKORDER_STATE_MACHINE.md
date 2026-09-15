@@ -20,13 +20,14 @@ The clarification responses from Issue #304 specified:
 The FSM is implemented in `WorkOrderStatus` enum with explicit allowed state transitions:
 
 ```
-DRAFT → APPROVED → (ASSIGNED or WORK_IN_PROGRESS) → (AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED) → COMPLETED
+DRAFT → APPROVED ⇄ ASSIGNED → WORK_IN_PROGRESS → (AWAITING_PARTS, AWAITING_APPROVAL, READY_FOR_PICKUP, COMPLETED) → COMPLETED
                                                  ↘ CANCELLED (from any state)
 ```
 
 **Key States:**
 - `DRAFT`: Initial creation state
-- `APPROVED`: Work order approved but not started
+- `APPROVED`: Work order approved but not yet ready to be worked — it is missing a technician, a bay or mobile
+  unit, or both (durion-positivity-backend#2011)
 - `ASSIGNED`: Work order assigned to mechanic
 - `WORK_IN_PROGRESS`: Active work being performed
 - `AWAITING_PARTS`: Work paused waiting for parts
@@ -35,7 +36,10 @@ DRAFT → APPROVED → (ASSIGNED or WORK_IN_PROGRESS) → (AWAITING_PARTS, AWAIT
 - `COMPLETED`: Work order fully completed
 - `CANCELLED`: Work order cancelled
 
-**Start-Eligible Statuses**: `APPROVED`, `ASSIGNED`
+**Start-Eligible Statuses**: `ASSIGNED` only (durion-positivity-backend#2011). `APPROVED → WORK_IN_PROGRESS` was
+removed: `ASSIGNED` means the work order holds a current technician **and** a `BAY` or `MOBILE_UNIT`, so requiring
+it is what makes "work starts when there is somebody to do it and somewhere to do it" true on every path. The
+reverse transition `ASSIGNED → APPROVED` was added, for when either half is released.
 
 **In-Progress Sub-Statuses**: `WORK_IN_PROGRESS`, `AWAITING_PARTS`, `AWAITING_APPROVAL`
 
@@ -76,7 +80,7 @@ Request Body: {
 }
 Response: {
   "workorderId": 1,
-  "previousStatus": "APPROVED",
+  "previousStatus": "ASSIGNED",
   "currentStatus": "WORK_IN_PROGRESS",
   "transitionedAt": "2026-01-11T10:00:00Z",
   "message": "Work order started successfully"
@@ -84,7 +88,9 @@ Response: {
 ```
 
 **Validation:**
-- Work order must be in start-eligible status (`APPROVED` or `ASSIGNED`)
+- Work order must be `ASSIGNED` — and still hold both halves of the pair, which the start gate rechecks rather
+  than trusting the status. Starting an `APPROVED` work order is 409 and the message names what is missing: a
+  technician, a bay or mobile unit, or both (durion-positivity-backend#2011)
 - No pending change requests with status `AWAITING_ADVISOR_REVIEW`
 
 ### Get Transition History
@@ -94,7 +100,7 @@ Response: [
   {
     "id": 1,
     "workorderId": 1,
-    "fromStatus": "APPROVED",
+    "fromStatus": "ASSIGNED",
     "toStatus": "WORK_IN_PROGRESS",
     "transitionedAt": "2026-01-11T10:00:00Z",
     "transitionedBy": 123,
