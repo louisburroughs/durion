@@ -72,6 +72,7 @@ fixture_method="keepsTheAccessRecordWhenTheStoredContentCannotBeDecrypted"
 fixture_expected_message="noRollbackFor must keep this record"
 
 failures=0
+skipped=0
 case_number=0
 
 # Runs the hook and asserts an expected exit code and an expected substring in its output.
@@ -143,12 +144,25 @@ expect "the abort message names the \$Nested selector form" \
   --test "${fixture_class}#${fixture_method}"
 
 # ── Case 3: the same check, addressed correctly, must reach a real verdict ─────────────
-expect "the same guard with Class\$Nested#method reports DEFENDED" \
-  0 "MUTATION CHECK RESULT: DEFENDED" \
-  "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
-  --find "$fixture_find" --replace "$fixture_replace" \
-  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
-  --expect-fail-message "$fixture_expected_message"
+# The only case that needs a working Docker daemon: the fixture is a Testcontainers-backed
+# @DataJpaTest, so without one the context never starts and the test errors before reaching the
+# assertion. Skipped rather than failed, and announced rather than quietly dropped — this is the
+# case that proves a real DEFENDED verdict, so a run without it has not tested the hook's main
+# claim. (The hook itself behaves correctly here: --expect-fail-message catches the infrastructure
+# error and reports FAILED FOR THE WRONG REASON instead of a verdict it cannot support.)
+if docker info >/dev/null 2>&1; then
+  expect "the same guard with Class\$Nested#method reports DEFENDED" \
+    0 "MUTATION CHECK RESULT: DEFENDED" \
+    "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+    --find "$fixture_find" --replace "$fixture_replace" \
+    --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+    --expect-fail-message "$fixture_expected_message"
+else
+  skipped=$((skipped + 1))
+  echo "── case skipped: no usable Docker daemon, so the Testcontainers fixture cannot start."
+  echo "   This is the case that proves a real DEFENDED verdict. Re-run where Docker works"
+  echo "   before trusting a pass from this script."
+fi
 
 # ── Case 4: gate 1 still guards a stale pattern ───────────────────────────────────────
 # The hook's original reason for existing: a search pattern that no longer matches (formatters rewrite
@@ -170,9 +184,55 @@ expect "a Spring-context test without --expect-fail-message is refused" \
   --find "$fixture_find" --replace "$fixture_replace" \
   --test "${fixture_class}\$${fixture_nested}#${fixture_method}"
 
+# ── Case 6: a JDK that is not there is named as such, not as a selector problem ────────
+# The regression this guards: the hook defaulted --java-home to /opt/jdk25, a path nothing creates.
+# Maven then died on the enforcer having run nothing, and gate 3 reported "no tests actually ran" —
+# which reads as a bad --test selector and sends the next person to debug a selector that is fine.
+# Gate 0 must catch it first, and must say the JDK is the problem.
+expect "a --java-home that does not exist aborts naming the JDK, not the selector" \
+  1 "no runnable bin/javac" \
+  "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+  --find "$fixture_find" --replace "$fixture_replace" \
+  --java-home /nonexistent/jdk25 \
+  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+  --expect-fail-message "$fixture_expected_message"
+
+# ── Case 7: the wrong Java is a distinct, named failure ───────────────────────────────
+# The other half. A JDK that exists but is too old fails on the enforcer with output that looks
+# nothing like a version problem, so the version is checked here rather than inferred from Maven.
+# Skipped when no non-25 JDK is on this machine — there is nothing to point the hook at.
+older_jdk=""
+while IFS= read -r candidate; do
+  [[ -x "$candidate/bin/javac" ]] || continue
+  if ! "$candidate/bin/javac" -version 2>&1 | grep -q '^javac 25'; then
+    older_jdk="$candidate"
+    break
+  fi
+done < <(ls -d /usr/lib/jvm/*/ 2>/dev/null | sed 's:/$::')
+
+if [[ -n "$older_jdk" ]]; then
+  expect "a --java-home on the wrong major aborts naming the version" \
+    1 "but the backend enforcer requires Java 25" \
+    "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+    --find "$fixture_find" --replace "$fixture_replace" \
+    --java-home "$older_jdk" \
+    --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+    --expect-fail-message "$fixture_expected_message"
+else
+  skipped=$((skipped + 1))
+  echo "── case skipped: no non-25 JDK on this machine to point --java-home at"
+fi
+
 echo
 if [[ "$failures" == "0" ]]; then
-  echo "SELFTEST PASS | ${case_number} cases, the hook behaves as specified"
+  if [[ "$skipped" == "0" ]]; then
+    echo "SELFTEST PASS | ${case_number} cases, the hook behaves as specified"
+  else
+    # Never just "PASS": a skipped case is an untested claim, and the whole point of this script is
+    # that an untested claim is not allowed to read as a proven one.
+    echo "SELFTEST PASS (PARTIAL) | ${case_number} cases ran, ${skipped} skipped for missing"
+    echo "  prerequisites (listed above). Every case that ran behaves as specified."
+  fi
   exit 0
 fi
 echo "SELFTEST FAIL | ${failures} of ${case_number} cases misbehaved" >&2

@@ -29,10 +29,24 @@ set -euo pipefail
 #     --replace 'what to put in its place (may be empty)' \
 #     --module pos-supplier \
 #     --test 'FooTest#theGuaranteeUnderTest' \
-#     [--expect-fail-message 'substring the failure output must contain']
+#     [--expect-fail-message 'substring the failure output must contain'] \
+#     [--java-home /path/to/jdk25]
+#
+# THE JDK IS CHECKED FIRST, before anything is mutated. The backend enforcer requires Java 25, and a
+# run under an older JDK dies on the enforcer having executed no tests — which gate 3 then reports as
+# "no tests actually ran", pointing at the --test selector. That message is right for a bad selector
+# and badly wrong for a missing JDK, and it has already cost someone a debugging session on a selector
+# that was fine. Gate 0 therefore names the real problem. Resolution order:
+#
+#   --java-home  ->  $MUTATION_CHECK_JAVA_HOME  ->  discovery
+#
+# Discovery looks at $JAVA_HOME, $HOME/.jdk/jdk-25*, /opt/jdk25 and /usr/lib/jvm/*25*, and takes the
+# first that really is Java 25. An inherited $JAVA_HOME is a candidate, never a default: the cloud
+# image ships JDK 21 and exports it, so trusting it blindly reintroduces exactly the failure above.
+# An explicitly passed JDK is never second-guessed for a path, only checked for its version.
 #
 # Exit codes: 0 = mutation applied AND the test failed (the guarantee is defended)
-#             1 = misuse, pattern problem, or the test PASSED under mutation (guarantee undefended)
+#             1 = misuse, no usable JDK, pattern problem, or the test PASSED under mutation
 
 repo_path=""
 target_file=""
@@ -46,9 +60,13 @@ replace_given=""
 module=""
 test_selector=""
 expect_message=""
-# The backend enforcer requires Java 25. An inherited JAVA_HOME pointing at an older JDK makes every
-# run fail on the enforcer, which the gates below would report as "no tests ran" rather than a result.
-java_home="${MUTATION_CHECK_JAVA_HOME:-/opt/jdk25}"
+# Resolved at gate 0, not here — see the header. This default used to be a bare /opt/jdk25, a path
+# nothing in either repo creates: durion-positivity-backend's scripts/setup-jdk25.sh installs to
+# $HOME/.jdk/jdk-25*. So the hook overrode a perfectly good ambient JAVA_HOME with a directory that
+# did not exist, and reported the resulting empty Maven run as a selector problem.
+java_home="${MUTATION_CHECK_JAVA_HOME:-}"
+java_home_source="${MUTATION_CHECK_JAVA_HOME:+MUTATION_CHECK_JAVA_HOME}"
+required_java_major="${MUTATION_CHECK_JAVA_MAJOR:-25}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -59,7 +77,7 @@ while [[ $# -gt 0 ]]; do
     --module) module="$2"; shift 2 ;;
     --test) test_selector="$2"; shift 2 ;;
     --expect-fail-message) expect_message="$2"; shift 2 ;;
-    --java-home) java_home="$2"; shift 2 ;;
+    --java-home) java_home="$2"; java_home_source="--java-home"; shift 2 ;;
     # Prints the whole leading comment block. Derived from the file rather than a hard-coded line range,
     # which silently truncated help whenever the block grew.
     -h|--help) awk 'NR < 3 { next } /^#/ { sub(/^# ?/, ""); print; started = 1; next } started { exit }' "$0"; exit 0 ;;
@@ -85,6 +103,56 @@ if [[ ! -f "$target_file" ]]; then
   echo "MUTATION CHECK MISUSE | file not found: $target_file" >&2
   exit 1
 fi
+
+# ── Gate 0: a usable JDK, established before anything is touched ──────────────────────
+# Ordered first on purpose. Every later gate reads Maven's output, and Maven cannot say anything
+# useful about a mutation it never got far enough to test.
+jdk_major() {
+  local home="$1"
+  [[ -x "$home/bin/javac" ]] || return 1
+  # Only the `javac N.N.N` line is parsed; JAVA_TOOL_OPTIONS prints a banner to the same stream.
+  "$home/bin/javac" -version 2>&1 | sed -n 's/^javac \([0-9][0-9]*\).*/\1/p'
+}
+
+if [[ -n "$java_home" ]]; then
+  found_major="$(jdk_major "$java_home" || true)"
+  if [[ -z "$found_major" ]]; then
+    echo "MUTATION CHECK ABORTED | ${java_home_source} points at ${java_home}, which has no runnable bin/javac." >&2
+    echo "  Nothing was mutated. Pass --java-home for a real JDK ${required_java_major}, or omit it and let" >&2
+    echo "  this hook find one." >&2
+    exit 1
+  fi
+  if [[ "$found_major" != "$required_java_major" ]]; then
+    echo "MUTATION CHECK ABORTED | ${java_home_source} points at Java ${found_major} (${java_home})," >&2
+    echo "  but the backend enforcer requires Java ${required_java_major}. Nothing was mutated." >&2
+    exit 1
+  fi
+else
+  searched=()
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    searched+=("$candidate")
+    if [[ "$(jdk_major "$candidate" || true)" == "$required_java_major" ]]; then
+      java_home="$candidate"
+      java_home_source="discovery"
+      break
+    fi
+  done < <(
+    # $JAVA_HOME first so an already-correct environment is used as-is, then the places a JDK 25
+    # actually gets installed. -Vr puts the newest patch release of a glob ahead of its siblings.
+    printf '%s\n' "${JAVA_HOME:-}"
+    ls -d "$HOME"/.jdk/jdk-"$required_java_major"* "/opt/jdk${required_java_major}" \
+          /usr/lib/jvm/*"$required_java_major"* 2>/dev/null | sort -Vr
+  )
+  if [[ -z "$java_home" ]]; then
+    echo "MUTATION CHECK ABORTED | no Java ${required_java_major} found. Nothing was mutated." >&2
+    echo "  Looked at: ${searched[*]:-<nothing on any candidate path>}" >&2
+    echo "  Pass --java-home, or set MUTATION_CHECK_JAVA_HOME. In a Claude Code web session," >&2
+    echo "  durion-positivity-backend's scripts/setup-jdk25.sh installs one and exports it." >&2
+    exit 1
+  fi
+fi
+echo "Java ${required_java_major} at ${java_home} (${java_home_source})"
 
 backup="$(mktemp)"
 cp "$target_file" "$backup"
