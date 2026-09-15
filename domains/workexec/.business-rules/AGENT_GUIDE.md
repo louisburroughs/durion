@@ -30,6 +30,12 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | DECISION-INVENTORY-014 | Audit visibility strategy (substitutes + overrides) |
 | DECISION-INVENTORY-015 | Event ingestion mechanism + failure handling |
 | DECISION-INVENTORY-016 | Timezone semantics for shop UX |
+| DECISION-INVENTORY-017 | Position assignment never defaults the technician |
+| DECISION-INVENTORY-018 | Technician must be staffed at the workorder's site; no override |
+| DECISION-INVENTORY-019 | pos-people owns technician-to-SITE staffing, not technician-to-bay/mobile-unit |
+| DECISION-INVENTORY-020 | No cap on concurrent workorders per technician |
+| DECISION-INVENTORY-021 | One technician per workorder, one technician per mobile unit; no crew |
+| DECISION-INVENTORY-022 | Assignment-ownership boundary: pos-shop-manager plans, pos-workorder records |
 
 ## Domain Boundaries
 
@@ -40,6 +46,7 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Estimate editing/approval flows implemented in `durion-workexec` screens/services
 - Runtime substitution apply behavior for estimate/workorder line items (including immutable substitution history)
 - Execution-facing read models owned by work execution when derived from workexec-owned data
+- Per-workorder technician assignment (`technician_assignment`) — the single current technician of record — and per-workorder position assignment (`service_position_assignment`, bay or mobile unit); each is workexec-owned and the two are independent of each other (DECISION-INVENTORY-017, -019, -021)
 
 ### What Work Execution does *not* own
 
@@ -47,7 +54,9 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Inventory availability/on-hand/reservations (inventory domain)
 - Appointment authoring/scheduling and operational schedule truth (shop management domain)
 - Dispatch board data, mechanic assignments, and reschedule workflows (shop management domain per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md)); WorkExec consumes read-only projections only
-- People directory and availability (people domain)
+- People directory and availability (people domain); technician-to-SITE staffing is pos-people's owned fact, consumed by workexec only via the `ext_people_staffing_assignment` replica — never a synchronous call (DECISION-INVENTORY-018, -019)
+- Technician-to-bay and technician-to-mobile-unit relations — these are not modeled anywhere and will not be (bays are pooled; DECISION-INVENTORY-017, -019)
+- The PLANNED assignment (who is expected to work an appointment, including any multi-mechanic LEAD/ASSIST shape) — that stays shop management's fact; workexec owns only the ACTUAL CURRENT technician (DECISION-INVENTORY-022)
 - Permission policy definitions (security domain; workexec enforces only)
 
 ## Key Entities / Concepts
@@ -60,6 +69,11 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | Substitution history | Append-only record created when a substitute is applied to a workorder/estimate line. |
 | Appointment (`durion.shopmgr.DurShopAppointment`) | Shop scheduling entity; workorders may reference via `appointmentId`. |
 | Dispatch board view | ShopMgmt-owned read-only projection of scheduling data that WorkExec consumes for execution context (per [ADR-0006](../../../docs/adr/0006-workexec-domain-ownership-boundaries.adr.md)). |
+| `technician_assignment` | pos-workorder-owned; the single current technician of record for a workorder. Independent of position; never defaulted from position staffing (DECISION-INVENTORY-017, -021). |
+| `service_position_assignment` | pos-workorder-owned; a workorder's bay or mobile-unit position. Independent of `technician_assignment`; a repeated save of the same current position is a no-op that writes no history (DECISION-INVENTORY-017). |
+| `ext_people_staffing_assignment` | pos-workorder's replica of pos-people's technician-to-SITE staffing fact (ADR-0044 R1/R3/R6). Read-only; queried by the assign/reassign technician endpoints to refuse on a positive site contradiction (DECISION-INVENTORY-018). |
+| `Assignment` / `AssignmentMechanic(LEAD\|ASSIST)` | shopmgmt-owned PLANNED assignment, including any multi-mechanic shape kept for scheduling. Consumed by workexec only as an event input (`AssignmentUpdatedEvent`); stops at the boundary and is never mirrored into `technician_assignment` (DECISION-INVENTORY-022). |
+| `mechanic_ids` / `assignedMechanics` | pos-workorder-owned but **legacy** (#1658); the `Workorder.mechanic_ids` JSON column, exposed as `assignedMechanics` on `OperationalContextResponse`/`OperationalContextOverrideRequest`. Still written by the assignment-context event and `overrideOperationalContext`; reconciled with the current `technician_assignment` (current technician first, then unnamed legacy ids) by `WorkorderFactPublisher` for the published `mechanicIds` fact (#2015). Not a crew model and not a second technician of record — do not build new features on it (DECISION-INVENTORY-021). |
 
 ## Invariants / Business Rules
 
@@ -69,6 +83,15 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - Mutation operations must be safe for double-submit (idempotency) and stale edits (conflict).
 - Dispatch board feed is provided by ShopMgmt and is read-only for WorkExec consumers; partial failures (People availability) must not block core view.
 - Identifier generation for new WorkExec-owned entities follows the platform UUID v7 standard per [ADR-0013](../../../docs/adr/0013-platform-uuid-identifier-strategy.adr.md); treat IDs as opaque strings across contracts.
+
+### Technician & position assignment rules (issue #1990, #2000)
+
+- **Position never defaults the technician.** Bays are pooled — no technician owns a bay, no technician-to-bay relation exists or will be created, and the same holds for mobile units. Assigning/moving/releasing a position never reads or writes `technician_assignment`, and vice versa; `GET /v1/workorders/{workorderId}/position` returning both together is presentation only (DECISION-INVENTORY-017).
+- **A technician must be staffed at the workorder's site — no override exists.** `POST`/`PUT /v1/workorders/{workorderId}/technician` refuse with 422 `TECHNICIAN_NOT_STAFFED_AT_SITE` when the technician has one or more ACTIVE `ext_people_staffing_assignment` rows effective today and none is at the workorder's site. `is_primary` and role are not filtered on. A technician with **no** active staffing rows is allowed through — the check refuses only a positive contradiction, never absence of data (ADR-0044 R3). There is no override permission or reason code; do not add one. **"The workorder's site" is resource-specific** (`TechnicianAssignmentServiceImpl.resolveSiteId`): for `MOBILE_UNIT`, compare staffing against `ExtMobileUnitReplica.baseLocationId`; for `BAY`, `HOLD`, and no position, use the workorder's own `locationId`. `ServicePositionServiceImpl.requireSameSite` forces those two values equal today, so the branch is currently a no-op — it is written explicitly so the check does not silently break if a mobile workorder ever carries the customer's site instead of the unit's (DECISION-INVENTORY-018).
+- **Ownership split:** pos-people owns technician-to-SITE staffing (system of record, replicated to workexec as `ext_people_staffing_assignment`, never called synchronously); pos-location owns bay/mobile-unit identity and capability (asset configuration, not staffing); pos-workorder owns only `technician_assignment` and `service_position_assignment` (DECISION-INVENTORY-019).
+- **No cap on concurrent workorders per technician.** A technician may hold any number of open/in-progress workorders. Concurrency is constrained at the clock, not the assignment: `WorkexecTimeTrackingServiceImpl.startTimer` refuses a second concurrent timer for the same technician (409 `TIMER_ALREADY_ACTIVE`), keyed on technician, not workorder. Do not add a per-technician WIP cap (DECISION-INVENTORY-020).
+- **One technician per workorder; one technician per mobile unit; no crew.** `technician_assignment_one_current_uniq` means exactly one technician **of record** — no LEAD/ASSIST, no crew table in workexec. Mobile-unit exclusivity (at most one *open* workorder per mobile unit) falls out of `workorder_open_position_uniq` + `technician_assignment_one_current_uniq` once `ServicePositionServiceImpl.releaseOnClose`, the `HOLD` resource-id rule, and the null-`resource_id` handling close the leak paths; do not relax `ResourceType.isExclusive()` or `workorder_open_position_uniq`. Per-person labor time (`WorkorderLaborEntry.technicianId`, incl. `workorder:labor:add_on_behalf`) and per-segment travel (`TravelSegment.technicianId`) are not exceptions to this — they log whose time was spent, not who the technician of record is. Neither is `mechanic_ids`/`assignedMechanics` (see Key Entities): it is a legacy multi-valued list (#1658), still written by the assignment-context event and `overrideOperationalContext`, and it confers no second technician of record; nothing new is to be built on it, and it is not authority for a crew (DECISION-INVENTORY-021).
+- **Planning vs. recording boundary.** pos-shop-manager owns the PLANNED assignment (`Assignment` + `AssignmentMechanic(LEAD|ASSIST)`, which may be multi-mechanic for scheduling purposes). pos-workorder owns the ACTUAL CURRENT technician — exactly one person. shopmgmt's `AssignmentUpdatedEvent` is an input `WorkorderAssignmentEventListener` may act on, never a second system of record; `AssignmentMechanic` roles stop at the shopmgmt/workorder boundary and must never be mirrored into `technician_assignment` (DECISION-INVENTORY-022).
 
 ## Mapping: Decisions → Notes
 
@@ -90,6 +113,12 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | DECISION-INVENTORY-014 | Audit metadata by default; optional audit endpoints | [DOMAIN_NOTES.md](#decision-inventory-014---audit-visibility-strategy-substitutes--overrides) |
 | DECISION-INVENTORY-015 | Inbox + async processing; DLQ + ops view | [DOMAIN_NOTES.md](#decision-inventory-015---event-ingestion-mechanism--failure-handling) |
 | DECISION-INVENTORY-016 | Display user TZ; bucket by shop TZ | [DOMAIN_NOTES.md](#decision-inventory-016---timezone-semantics-for-shop-ux) |
+| DECISION-INVENTORY-017 | Position assignment never defaults the technician | [DOMAIN_NOTES.md](#decision-inventory-017---position-assignment-never-defaults-the-technician) |
+| DECISION-INVENTORY-018 | Technician must be staffed at the workorder's site; no override | [DOMAIN_NOTES.md](#decision-inventory-018---a-technician-must-be-staffed-at-the-workorders-site-no-override) |
+| DECISION-INVENTORY-019 | pos-people owns technician-to-SITE staffing only | [DOMAIN_NOTES.md](#decision-inventory-019---pos-people-owns-technician-to-site-staffing-not-technician-to-bay-or-technician-to-mobile-unit) |
+| DECISION-INVENTORY-020 | No cap on concurrent workorders per technician | [DOMAIN_NOTES.md](#decision-inventory-020---no-cap-on-concurrent-workorders-per-technician) |
+| DECISION-INVENTORY-021 | One technician per workorder/mobile unit; no crew | [DOMAIN_NOTES.md](#decision-inventory-021---one-technician-per-workorder-one-technician-per-mobile-unit-no-crew) |
+| DECISION-INVENTORY-022 | pos-shop-manager plans, pos-workorder records | [DOMAIN_NOTES.md](#decision-inventory-022---assignment-ownership-boundary-pos-shop-manager-plans-pos-workorder-records) |
 
 ## Open Questions (from source)
 
@@ -381,14 +410,14 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Q: “Team” definition: Is team represented by `assignedMechanics[]` only or separate team entity?
 
-- Answer: Team is represented as assigned mechanic(s) on the workorder; no separate team entity is required for v1.
+- Answer: Superseded by DECISION-INVENTORY-021. There is no team/crew concept in workexec: `technician_assignment_one_current_uniq` means exactly one technician of record per workorder, full stop — no LEAD/ASSIST roles, no crew table. `assignedMechanics[]` already exists (it is `Workorder.mechanic_ids`, #1658) but is a legacy multi-valued field, not a team model: it confers no second technician of record, and nothing new is to be built on it.
 - Assumptions:
-- Most workorders have one primary mechanic.
+- Every workorder has exactly one technician of record; `assignedMechanics[]`/`mechanic_ids` is legacy bookkeeping the assignment-context event and `overrideOperationalContext` still write, reconciled against the current technician by `WorkorderFactPublisher` (#2015), not a second assignment mechanism.
 - Rationale:
-- Keep model lightweight.
+- Single assignment preserves the accountability chain (DECISION-INVENTORY-020, -021); planned multi-mechanic shapes stay in shopmgmt's `AssignmentMechanic` and stop at the boundary (DECISION-INVENTORY-022); the legacy `mechanic_ids` list is constrained by the same rule, not exempted from it.
 - Impact:
-- If multi-mechanic assignment is added, represent as a list.
-- Decision ID: DECISION-INVENTORY-005
+- Do not introduce a crew entity; do not extend `mechanic_ids`/`assignedMechanics` into a real multi-mechanic assignment model, and do not treat it or shopmgmt's `AssignmentMechanic(LEAD|ASSIST)` as authority to give a workorder two technicians of record. A future multi-mechanic story needs a new decision record.
+- Decision ID: DECISION-INVENTORY-021 (supersedes DECISION-INVENTORY-005 on this question)
 
 ### Q: Substitute audit trail API: Is there an API to fetch `SubstituteAudit` entries for display? If not, should UI show only created/updated metadata?
 
