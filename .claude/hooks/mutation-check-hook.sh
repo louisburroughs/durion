@@ -107,24 +107,55 @@ fi
 # ── Gate 0: a usable JDK, established before anything is touched ──────────────────────
 # Ordered first on purpose. Every later gate reads Maven's output, and Maven cannot say anything
 # useful about a mutation it never got far enough to test.
-jdk_major() {
-  local home="$1"
-  [[ -x "$home/bin/javac" ]] || return 1
-  # Only the `javac N.N.N` line is parsed; JAVA_TOOL_OPTIONS prints a banner to the same stream.
-  "$home/bin/javac" -version 2>&1 | sed -n 's/^javac \([0-9][0-9]*\).*/\1/p'
+# The major version $1/bin/$2 reports, empty when that binary is missing or fails.
+#
+# The command's status is captured BEFORE parsing. Piping javac straight into sed took sed's
+# status, which is 0 whatever the compiler did, so a broken JDK that printed a version banner and
+# then died read as perfectly usable — the hook would mutate the file and let Maven discover it.
+binary_major() {
+  local home="$1" binary="$2" output
+  [[ -x "$home/bin/$binary" ]] || return 1
+  output="$("$home/bin/$binary" -version 2>&1)" || return 1
+  # Only the version line is parsed; JAVA_TOOL_OPTIONS prints a banner to the same stream. Covers
+  # `javac 25.0.4`, `openjdk version "25.0.4"` and the legacy `java version "1.8.0_x"`, whose major
+  # is the second component — the 1.x expression is first so head -1 prefers it.
+  sed -n -e 's/^javac \([0-9][0-9]*\).*/\1/p' \
+         -e 's/^[A-Za-z()]* *version "1\.\([0-9][0-9]*\).*/\1/p' \
+         -e 's/^[A-Za-z()]* *version "\([0-9][0-9]*\).*/\1/p' <<<"$output" | head -1
+}
+
+# Describes what is wrong with the JDK at $1, or returns 1 when nothing is.
+#
+# BOTH binaries are checked, not just the compiler. Gate 3 launches Maven with JAVA_HOME and the
+# wrapper runs "$JAVA_HOME/bin/java" (mvnw line 53), so a mixed or partial JDK — a Java 25 javac
+# beside a missing or older java — would clear a compiler-only check and still die before any test
+# body ran. That is the misleading gate-3 diagnosis this gate exists to prevent, arriving by a
+# different door.
+jdk_problem() {
+  local home="$1" binary major
+  for binary in javac java; do
+    major="$(binary_major "$home" "$binary" || true)"
+    if [[ -z "$major" ]]; then
+      echo "has no runnable bin/${binary}"
+      return 0
+    fi
+    if [[ "$major" != "$required_java_major" ]]; then
+      echo "reports Java ${major} from bin/${binary}"
+      return 0
+    fi
+  done
+  return 1
 }
 
 if [[ -n "$java_home" ]]; then
-  found_major="$(jdk_major "$java_home" || true)"
-  if [[ -z "$found_major" ]]; then
-    echo "MUTATION CHECK ABORTED | ${java_home_source} points at ${java_home}, which has no runnable bin/javac." >&2
-    echo "  Nothing was mutated. Pass --java-home for a real JDK ${required_java_major}, or omit it and let" >&2
-    echo "  this hook find one." >&2
-    exit 1
-  fi
-  if [[ "$found_major" != "$required_java_major" ]]; then
-    echo "MUTATION CHECK ABORTED | ${java_home_source} points at Java ${found_major} (${java_home})," >&2
-    echo "  but the backend enforcer requires Java ${required_java_major}. Nothing was mutated." >&2
+  if problem="$(jdk_problem "$java_home")"; then
+    echo "MUTATION CHECK ABORTED | ${java_home_source} points at ${java_home}, which ${problem}." >&2
+    if [[ "$problem" == reports* ]]; then
+      echo "  The backend enforcer requires Java ${required_java_major}. Nothing was mutated." >&2
+    else
+      echo "  Nothing was mutated. Pass --java-home for a complete JDK ${required_java_major}, or omit it" >&2
+      echo "  and let this hook find one." >&2
+    fi
     exit 1
   fi
 else
@@ -132,7 +163,7 @@ else
   while IFS= read -r candidate; do
     [[ -n "$candidate" ]] || continue
     searched+=("$candidate")
-    if [[ "$(jdk_major "$candidate" || true)" == "$required_java_major" ]]; then
+    if ! jdk_problem "$candidate" >/dev/null; then
       java_home="$candidate"
       java_home_source="discovery"
       break

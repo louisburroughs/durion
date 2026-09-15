@@ -208,20 +208,49 @@ expect "a --java-home that does not exist aborts naming the JDK, not the selecto
 # PASS (PARTIAL). A skip that depends on where someone happens to have installed a JDK is not a
 # precondition, it is a hole. Gate 0 reads nothing but `javac -version`, so a stub exercises the
 # real contract, always runs, and says the same thing on every machine.
-wrong_major_jdk="$(mktemp -d)"
-mkdir -p "$wrong_major_jdk/bin"
-cat > "$wrong_major_jdk/bin/javac" <<'STUB'
-#!/bin/sh
-echo "javac 21.0.10"
-STUB
-chmod +x "$wrong_major_jdk/bin/javac"
-trap 'rm -rf "$wrong_major_jdk"' EXIT
+stub_root="$(mktemp -d)"
+trap 'rm -rf "$stub_root"' EXIT
+
+# A fake JDK whose bin/javac and bin/java print what the caller asks and exit with the given codes.
+# stub_jdk <name> <javac-line> <javac-exit> <java-line> <java-exit>; echoes the JAVA_HOME to use.
+stub_jdk() {
+  local home="${stub_root}/$1"
+  mkdir -p "$home/bin"
+  printf '#!/bin/sh\necho %s\nexit %s\n' "$(printf '%q' "$2")" "$3" > "$home/bin/javac"
+  printf '#!/bin/sh\necho %s 1>&2\nexit %s\n' "$(printf '%q' "$4")" "$5" > "$home/bin/java"
+  chmod +x "$home/bin/javac" "$home/bin/java"
+  echo "$home"
+}
 
 expect "a --java-home on the wrong major aborts naming the version" \
-  1 "but the backend enforcer requires Java 25" \
+  1 "reports Java 21 from bin/javac" \
   "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
   --find "$fixture_find" --replace "$fixture_replace" \
-  --java-home "$wrong_major_jdk" \
+  --java-home "$(stub_jdk old 'javac 21.0.10' 0 'openjdk version "21.0.10" 2026-01-20' 0)" \
+  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+  --expect-fail-message "$fixture_expected_message"
+
+# ── Case 8: a mixed JDK is caught on the runtime, not just the compiler ───────────────
+# Gate 3 launches Maven with JAVA_HOME and the wrapper runs "$JAVA_HOME/bin/java" (mvnw line 53),
+# so a compiler-only check would pass a Java 25 javac sitting beside an older java — and the run
+# would still die before any test body, back to the diagnosis gate 0 exists to replace.
+expect "a JDK whose java is the wrong major is caught, not just its javac" \
+  1 "reports Java 21 from bin/java" \
+  "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+  --find "$fixture_find" --replace "$fixture_replace" \
+  --java-home "$(stub_jdk mixed 'javac 25.0.4' 0 'openjdk version "21.0.10" 2026-01-20' 0)" \
+  --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
+  --expect-fail-message "$fixture_expected_message"
+
+# ── Case 9: a binary that prints a good version and then fails is not usable ──────────
+# The parse used to pipe javac straight into sed, which took sed's exit status — always 0. A
+# compiler that printed "javac 25" and then died read as usable, and the file was mutated before
+# Maven found out. The status is now captured before the output is parsed.
+expect "a javac that prints Java 25 and then exits non-zero is rejected" \
+  1 "has no runnable bin/javac" \
+  "$hook" --repo "$repo_path" --module "$fixture_module" --file "$fixture_file" \
+  --find "$fixture_find" --replace "$fixture_replace" \
+  --java-home "$(stub_jdk lying 'javac 25.0.4' 1 'openjdk version "25.0.4" 2026-08-18' 0)" \
   --test "${fixture_class}\$${fixture_nested}#${fixture_method}" \
   --expect-fail-message "$fixture_expected_message"
 
