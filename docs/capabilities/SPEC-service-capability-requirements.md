@@ -481,6 +481,79 @@ authoritative" is **unimplementable as written**. It needs `LocationUpdatedV1` a
 pattern `#2023` uses for buffers and with the same backfill requirement (`#1668`).
 Coordinate with `#2023` rather than adding a second path.
 
+### D13 — the vehicle carries a GVWR class 1–8; competence keys on a class range
+
+Settled 2026-09-16. Resolves both of CAP-327's open questions and supersedes the
+`LIGHT | MEDIUM_HEAVY` token used in D5 and D8's first drafts.
+
+**GVWR and duty class are vehicle characteristics.** GVWR is manufacturer-assigned
+and stamped on the vehicle; duty class is derived from it. So the value lives on the
+**vehicle record**, with the NHTSA/fitment layer supplying only the decode and the
+operator supplying the override. CAP-327's "CRM vehicle record versus fitment layer"
+question is answered: the vehicle record holds it.
+
+**Store the class, not a category.** The vehicle carries `gvwr_class ∈ 1..8` — the
+objective, manufacturer-derived fact — and `duty_category` is a derived view of it,
+never the stored value. A two-value light/heavy flag would bake a contested line
+into the data; "light duty" is ambiguous on its own, since EPA/CARB use 8,500 lb for
+emissions purposes while FHWA uses 10,000 lb for light/medium.
+
+| Duty category | Class | GVWR | Typical |
+|---|---|---|---|
+| **Light** | 1 | 0–6,000 lb | Small pickups, minivans, sedans |
+| | 2 | 6,001–10,000 lb | Full-size pickups (F-150), large passenger vans |
+| | 3 | 10,001–14,000 lb | Heavy-duty consumer pickups (F-350 SRW), large cargo vans |
+| **Medium** | 4 | 14,001–16,000 lb | City delivery trucks, heavier utility cutaways |
+| | 5 | 16,001–19,500 lb | Bucket trucks, large walk-in delivery vans |
+| | 6 | 19,501–26,000 lb | Single-axle box trucks, school buses, beverage trucks |
+| **Heavy** | 7 | 26,001–33,000 lb | City transit buses, heavy refuse/dump trucks |
+| | 8 | 33,001+ lb | Semi-tractor trailers, cement mixers, heavy fire apparatus |
+
+Note this grouping places **Class 3 in Light-Duty**. Some FHWA-derived tables group
+Class 3 as Medium-Duty (Light = 1–2, Medium = 3–6). The grouping above is Durion's,
+and it is the correct one for this platform for the reason below — cite it as ours,
+not as FHWA's.
+
+**Why the Class 4 line is the right one here: it is exactly where ASE's T-series
+begins.** ASE scopes its Medium/Heavy Truck tests (T1–T8) to **Class 4 through
+Class 8**; the Automobile tests (A1–A8) cover the rest. So the duty boundary that
+matters for eligibility is not a weight threshold chosen for road policy — it is the
+line the certification bodies themselves draw, and this grouping coincides with it.
+Under the alternative grouping, Class 3 would sit above ASE's truck scope and below
+"automobile", claimed by neither series. It is not an orphan here.
+
+**So `applies_to_duty_class` on the skill requirement, and `duty_class` on the skill
+registry, are expressed as a class range rather than a token:**
+
+| Skill series | Applies to | Registry rows |
+|---|---|---|
+| ASE A-series | `gvwr_class` 1–3 | `A1`–`A8` cross-reference onto the light-duty rows |
+| ASE T-series | `gvwr_class` 4–8 | `T1`–`T8` cross-reference onto the medium/heavy rows |
+
+Expressing it as a range makes the A/T split **one row of data** rather than a
+threshold compiled into a decode, so moving Class 3 later is a data change. D5's
+`max_duty_class` on a bay is likewise a **class ceiling** (`gvwr_class`), not a
+token: a bay rated to Class 3 takes an F-350 and refuses a box truck.
+
+**Verified ASE test titles**, so CAP-328's registry seed is sourced rather than
+recalled: A1 Engine Repair, A2 Automatic Transmission/Transaxle, A3 Manual
+Drivetrain & Axles, A4 Suspension & Steering, A5 Brakes, A6 Electrical/Electronic
+Systems, A7 Heating & Air Conditioning, A8 Engine Performance; T1 Gasoline Engines,
+T2 Diesel Engines, T3 Drive Train, T4 Brakes, T5 Suspension & Steering,
+T6 Electrical/Electronic Systems, T7 HVAC, T8 Preventive Maintenance Inspection.
+The fixture's codes map cleanly onto these. Master status in the truck series is
+**T2–T8, excluding T1** — a real credential the model could carry if proficiency
+ever needs to mean something, in preference to the invented 1–5 scale D7 drops.
+
+**Open, and it needs one live call this environment cannot make.** The exact vPIC
+`GVWR` serialization is unconfirmed: one source describes vPIC as capturing "the
+lower bound of GVWR range", which suggests a band or a from/to pair rather than a
+number, and the egress policy here blocks `vpic.nhtsa.dot.gov`. If GVWR returns a
+band string it needs parsing, and a `gvwr_class` derivation has to be specified
+against the real format. Settle it with
+`GET https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/<VIN>?format=json`
+from an unrestricted network **before CAP-327 is written**, not during.
+
 ### D11 — an opening names the constraints that were actually evaluated
 
 Because the submit-time enforcement tier does not exist and is contractually the
@@ -603,8 +676,8 @@ Unique `(tenant_id, code)`. Mirrors `ExtBayReplica`'s shape
 
 ### 4.3 `pos-location` — bay gains a duty-class ceiling (D5)
 
-`bays` gains `max_duty_class` (`LIGHT | MEDIUM_HEAVY`, nullable meaning
-unconstrained), alongside the existing `service_capability_ids`. `BayType` becomes
+`bays` gains `max_duty_class` — a `gvwr_class` **ceiling** per D13 (nullable meaning
+unconstrained), not a token — alongside the existing `service_capability_ids`. `BayType` becomes
 display-only.
 
 The existing `service_capability_ids` column and its JSON-text `List<String>`
@@ -673,7 +746,7 @@ CREATE TABLE public.service_skill_requirement (
     id uuid NOT NULL,
     service_id uuid NOT NULL,                        -- FK to the profile (§4.1)
     skill_id uuid NOT NULL,
-    applies_to_duty_class character varying(16) NOT NULL,   -- LIGHT|MEDIUM_HEAVY|ANY
+    applies_to_duty_class    -- a gvwr_class range per D13, or ANY
     …
 );
 ```
