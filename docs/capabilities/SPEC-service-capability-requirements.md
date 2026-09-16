@@ -545,7 +545,17 @@ The fixture's codes map cleanly onto these. Master status in the truck series is
 **T2–T8, excluding T1** — a real credential the model could carry if proficiency
 ever needs to mean something, in preference to the invented 1–5 scale D7 drops.
 
-#### D13.1 — the vPIC derivation, settled
+#### D13.1 — the vPIC derivation *(researched; DEFERRED — no real VINs exist)*
+
+> **Scope note, 2026-09-16.** There are no real VINs in the database, so a VIN decode
+> cannot be exercised or tested. **CAP-327 ships `gvwr_class` as an operator-set
+> field with no decode at all.** The decode is a later addition for when real
+> vehicle data exists. Everything below is settled research, kept so it does not
+> have to be redone — it is not in CAP-327's scope.
+>
+> This is consistent with D13's own principle: a decode was always a *default*, and
+> the operator override was never optional. Removing the default first is the
+> smaller, testable half.
 
 vPIC's `DecodeVIN` returns **two** weight variables, and the field is not named
 `GVWR`:
@@ -571,7 +581,10 @@ Keep both fields on the vehicle: the numeric one drives eligibility, the string 
 explains the answer. An operator overriding a decode should be able to see the
 manufacturer band the decode reported.
 
-### D16 — `pos-vehicle-reference-nhtsa` is the right home, and it needs three things first
+### D16 — `pos-vehicle-reference-nhtsa` findings *(DEFERRED with D13.1, except the defect)*
+
+> **Scope note.** Deferred along with the decode, with one exception: finding 2 is a
+> live defect in shipped code and stays on the housekeeping list (§9.2) regardless.
 
 CAP-327's decode belongs in `pos-vehicle-reference-nhtsa`: it owns the vPIC
 `RestClient`, the caching pattern and the reference entities. But it has no VIN
@@ -1246,7 +1259,7 @@ Beyond the per-AC coverage in the stories:
 |---|---|---|
 | **CAP-325** | Bay eligibility axis, **as reduced by D14**: the specialty map (D14.1) in `pos-location` with an `ext_catalog_service` replica to validate its codes, `max_duty_class` on the bay (D13), the `BayResponse` `@Schema` and rename fixes. **No per-service configuration, no per-bay equipment authoring.** | Nothing. **Ready** |
 | **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references (DDL at `DOMAIN_NOTES.md:161-185`, audit queries at `:260-268`), **operating hours and holiday closures added to `LocationUpdatedV1` and `ExtLocationReplica` first (D12)**, bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the two new SOFT/`SKILL` rules of D10.1 (`COMPETENT_MECHANIC_UNAVAILABLE`, `NO_COMPETENT_MECHANIC_ROSTERED`). `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
-| **CAP-327** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
+| **CAP-327** | Vehicle duty class, **reduced**: `gvwr_class` as an operator-set field, plus `max_duty_class` on the bay if CAP-325 has not already landed it. **No VIN decode** — there are no real VINs to decode, so it is untestable and deferred (D13.1). The decode is a later addition | Nothing |
 | **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing. `#2035` confirms expiry still matters: a SOFT warning must know whether the credential behind it has lapsed |
 | **CAP-329** | `service_skill_requirement` in catalog, on `ServiceDto` and the fact | CAP-327, CAP-328 |
 | **`#2022`** | Duration-aware opening search | CAP-326, CAP-329. Ships before them only under D11, stating what it did not evaluate |
@@ -1273,6 +1286,12 @@ Beyond the per-AC coverage in the stories:
 - Re-key or delete `shop_service.service_entity_id` (§1.1†).
 - Collapse the `Mechanic`/`Technician` dual identity (§1.2†) — subsumed by CAP-328.
 - Delete the duplicate `AssignmentStatus` enum — subsumed by CAP-326.
+- **Fix `pos-vehicle-reference-nhtsa`'s vPIC base URL.**
+  `VehicleReferenceService.java:29` uses `https://vpic.nhtsa.dot.gov/v1/vehicles`;
+  the current base is `/api/vehicles`, so all six of the module's calls 404 and it
+  has never run against live vPIC. One line, plus a test that does not mock the
+  client into agreeing with a wrong URL. **Independent of every capability here** —
+  it survives D13.1's deferral because it is a defect, not a design.
 
 ### 9.3 Open items
 
