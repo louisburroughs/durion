@@ -16,6 +16,35 @@ Guidance hierarchy: workspace → project → module. Closer scope wins on confl
 
 ---
 
+## Knowledge Catalog — first stop for navigation
+
+`knowledge-catalog/` is the OKF navigation layer over the workspace: one entry per ADR, domain, and
+backend module, each carrying YAML frontmatter (`type`, `title`, `description`, `resource`, `tags`)
+that points at the authoritative source. Use it to work out **where** something lives before reading
+it; the entry is a pointer, not a copy — follow `resource:` for the real content.
+
+| Path | Indexes |
+| ---- | ------- |
+| `knowledge-catalog/index.md` | Catalog root — links the three sub-indexes |
+| `knowledge-catalog/adr/` | Every ADR in `docs/adr/` |
+| `knowledge-catalog/domains/` | Every domain folder in `domains/` |
+| `knowledge-catalog/backend/` | Every `pos-*` module in `../durion-positivity-backend` |
+
+```bash
+cat knowledge-catalog/index.md                  # catalog root
+grep -Rl "type: Domain" knowledge-catalog/      # all domain entries
+grep -Rn "tags:.*pricing" knowledge-catalog/    # entries touching a topic
+```
+
+Sibling repos reach it as `../durion/knowledge-catalog/`.
+
+**Do not re-run `scripts/generate-knowledge-catalog.py`.** It bootstrapped the catalog on 2026-08-19
+and is not idempotent-safe: it hardcodes one developer's absolute paths and unconditionally rewrites
+every entry, `index.md`, and `log.md` back to stub text, discarding any curation. Edit entries by
+hand and record structural changes in `knowledge-catalog/log.md`.
+
+---
+
 ## Code Intelligence (TokenSave) — server routing
 
 This workspace is cross-repo, so **two** TokenSave MCP servers are configured. Pick by which repo's code you are querying:
@@ -71,9 +100,16 @@ ADR-0031, ADR-0032, ADR-0033, ADR-0034, ADR-0035, ADR-0037, ADR-0038, ADR-0062.
 
 ---
 
-## Available Slash Commands
+## Available Skills and Slash Commands
 
-Commands live in `.claude/commands/`. Invoke with `/command-name [arguments]`.
+Every command in the table below is backed by a skill of the same name in
+`.claude/skills/<name>/SKILL.md`, with a thin invocation wrapper in `.claude/commands/<name>.md`.
+Invoke with `/command-name [arguments]`. Two skills ship without a command wrapper and are invoked
+by name: `babysit-pr` (drive a PR to green) and `token-stack` (token-usage machine setup).
+
+**These skills load only when `durion` is a session root.** A session opened on
+`durion-positivity-backend` or `durion-positivity-frontend` alone does not see them — open
+`durion.code-workspace`, or add the `durion` repo to the session, before relying on them.
 
 | Command                  | Purpose                                                             |
 | ------------------------ | ------------------------------------------------------------------- |
