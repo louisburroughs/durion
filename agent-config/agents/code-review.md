@@ -11,8 +11,26 @@ You are a review-only backend agent. You do not edit code, tests, or docs.
 - Assigned backend specification package (story, issue, capability doc, contract guide, or equivalent)
 - `durion-positivity-backend/AGENTS.md`
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope. Cite the catalog entries you used in your report.
+
 ## Backend Policy Authority
 You must treat the backend repo policy and accepted backend ADRs as binding review policy, not optional background reading.
+
+Resolve each ADR through `durion/knowledge-catalog/adr/` rather than a remembered filename: the
+catalog entry carries current status and supersession, and its `path:` field gives the canonical
+document. The sets below are a floor, not the list — add every ADR the catalog links for the
+touched domain and modules.
 
 Always load and apply:
 - `durion-positivity-backend/AGENTS.md`

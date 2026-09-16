@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0008: Inventory/Accounting - Cost Maintenance Architecture - Visual Guide - Clarification Response'
 description: Which domain(s) maintain the cost structure for the system?
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0008-cost-maintenance-clarification.adr.md
+path: durion/docs/adr/0008-cost-maintenance-clarification.adr.md
 tags: [adr, accounting, inventory]
 status: stable
 sources: [docs/adr/0008-cost-maintenance-clarification.adr.md]

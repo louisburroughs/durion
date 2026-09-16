@@ -19,6 +19,26 @@ Advance frontend delivery one wave at a time. Each wave targets approved work li
 - Style guide: `durion-positivity-frontend/design/source/durion-style-guide.md`
 - Theme tokens: `durion-positivity-frontend/docs/theme-tokens.md`
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source or
+planning work:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope.
+
+When delegating, put this in the agent prompt — a subagent does not inherit this runbook:
+
+> Resolve modules, ADRs, and domains through `durion/knowledge-catalog/` (`backend/`, `adr/`,
+> `domains/`) before reading source. Read at the entry's `path:` field — the ADR file itself, or the
+> module or domain directory — and cite the catalog entries you used in your report.
+
 ## Repository Target Override (Mandatory)
 
 - Frontend implementation MUST occur in `durion-positivity-frontend`.

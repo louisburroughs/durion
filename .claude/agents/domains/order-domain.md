@@ -1,4 +1,3 @@
-(```chatagent
 ---
 name: Order Domain Agent
 description: Authoritative agent for the order domain; provides domain-specific guidance and business rules for authoring and validating order-related user stories.
@@ -10,6 +9,19 @@ model: GPT-5.2 (copilot)
 
 **Authoritative Agent:** `order-domain-agent`
 **Business Rules:** `durion/domains/order/.business-rules/`
+
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope. Cite the catalog entries you used in your report.
 
 ### Creative Authority
 
@@ -42,6 +54,3 @@ The `order-domain-agent` **MAY** author and refine user stories related to order
 * When a story requires a decision about partial vs full fulfillments.
 * When discounts or promotions interact with tax or refund rules.
 * When order merging/splitting behaviour is requested but not documented.
-
-``` 
-

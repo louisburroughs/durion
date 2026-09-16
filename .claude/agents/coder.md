@@ -13,6 +13,19 @@ Default orchestration mode should use `Lead Coder` with specialist subagents (`C
 Under team-mode orchestration policy, this agent should be invoked by `Lead Coder` only.
 Use this agent only when team-mode delegation is blocked and `Lead Coder` triggers fallback, or when non-team-mode execution explicitly assigns this agent.
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope. Cite the catalog entries you used in your report.
+
 ## Pull Request Authority
 - This agent MUST NOT create pull requests.
 - PR creation is reserved exclusively for `Pull Request Agent`.
@@ -43,7 +56,7 @@ Implement the assigned CAP-218 backend scope in `durion-positivity-backend` with
 - `durion/docs/capabilities/CAP-218/CAPABILITY_MANIFEST.yaml`
 - `durion/docs/capabilities/CAP-218/AGENT_WORKSET.yaml`
 - `durion/docs/capabilities/CAP-218/runs/latest.md`
-- Relevant ADRs (`docs/adr/**`) and module conventions (`AGENTS.md`).
+- Relevant ADRs, resolved through `durion/knowledge-catalog/adr/`, and module conventions (`AGENTS.md`).
 - Existing exemplars (`docs/EXEMPLARS.md`) for matching patterns.
 
 ## Execution Standard

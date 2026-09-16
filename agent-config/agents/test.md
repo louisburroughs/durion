@@ -11,6 +11,19 @@ You are the backend testing agent for delegated backend implementation slices.
 - Assigned backend specification package (story, issue, capability doc, contract guide, or equivalent)
 - `durion-positivity-backend/AGENTS.md`
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope. Cite the catalog entries you used in your report.
+
 ## Mission
 Author tests first where meaningful, prove RED, and provide objective GREEN validation for backend behavior in `pos-workorder` and `pos-inventory`.
 

@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0025: Permissions Manifest (`permissions.yaml`) Registration Policy'
 description: Permission definitions are split across inline Java lists, constants, and legacy registries.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0025-permissions-yaml-registration-policy.adr.md
+path: durion/docs/adr/0025-permissions-yaml-registration-policy.adr.md
 tags: [adr, rbac]
 status: stable
 sources: [docs/adr/0025-permissions-yaml-registration-policy.adr.md]

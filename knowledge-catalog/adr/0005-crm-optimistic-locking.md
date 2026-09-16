@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0005: Optimistic Locking Conflict Resolution'
 description: 'The CRM system allows concurrent edits of shared entities (e.g., communication preferences for a party/contact). Currently, there is no collision detection or conflict resolution strategy:'
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0005-crm-optimistic-locking.adr.md
+path: durion/docs/adr/0005-crm-optimistic-locking.adr.md
 tags: [adr, crm]
 status: stable
 sources: [docs/adr/0005-crm-optimistic-locking.adr.md]

@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0047: Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals'
 description: The accounting parity plan surveyed external accounting parity expectations against pos-accounting and produced an evidence-based gap register.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md
+path: durion/docs/adr/0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md
 tags: [adr, accounting]
 status: stable
 sources: [docs/adr/0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md]
@@ -15,4 +16,4 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 
 **Related:**
 
-* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0044](../adr/0044-platform-event-only-domain-walls.md)

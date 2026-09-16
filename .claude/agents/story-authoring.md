@@ -26,6 +26,19 @@ The agent **SHALL NOT emit STOP** as the final state.
 
 ---
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope. Cite the catalog entries you used in your report.
+
 ## 1. Purpose
 
 The **Story Authoring Agent (SAA)** is responsible for writing, updating, and maintaining **implementation-ready user stories stored as GitHub issues**.

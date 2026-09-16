@@ -3,6 +3,7 @@ type: Domain
 title: audit
 description: This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export. It is authoritative for permission gating, guardrails, and
 resource: https://github.com/louisburroughs/durion/blob/master/domains/audit
+path: durion/domains/audit/
 tags: [domain, audit]
 sources: [domains/audit/]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}

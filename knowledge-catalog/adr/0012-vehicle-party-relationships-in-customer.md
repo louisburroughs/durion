@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0012: Vehicle-Party Relationships Belong in pos-customer'
 description: 'During implementation of CAP:091 (Vehicle Registry), a decision arose about where to place vehicle-party association logic:'
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0012-vehicle-party-relationships-in-customer.adr.md
+path: durion/docs/adr/0012-vehicle-party-relationships-in-customer.adr.md
 tags: [adr, crm]
 status: stable
 sources: [docs/adr/0012-vehicle-party-relationships-in-customer.adr.md]
@@ -15,4 +16,4 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 
 **Related:**
 
-* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0044](../adr/0044-platform-event-only-domain-walls.md)

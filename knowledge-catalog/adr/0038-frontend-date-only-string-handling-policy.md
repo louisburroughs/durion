@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0038: Frontend Date-Only String Handling Policy'
 description: During PR review of Wave I-b (PR
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0038-frontend-date-only-string-handling-policy.adr.md
+path: durion/docs/adr/0038-frontend-date-only-string-handling-policy.adr.md
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0038-frontend-date-only-string-handling-policy.adr.md]

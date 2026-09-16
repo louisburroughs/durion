@@ -261,15 +261,15 @@ def adr_note(record: dict, owner_by_module: dict[str, str]) -> str:
         dated = f" since {record['created']}" if record["created"] else ""
         facts.append(f"**Status:** {state}{dated}")
     if record["supersedes"]:
-        facts.append(f"**Supersedes:** [{record['supersedes']}](/adr/{slug_for(record['supersedes'])}.md)")
+        facts.append(f"**Supersedes:** [{record['supersedes']}](../adr/{slug_for(record['supersedes'])}.md)")
     if record["superseded_by"]:
-        facts.append(f"**Superseded by:** [{record['superseded_by']}](/adr/{slug_for(record['superseded_by'])}.md)")
+        facts.append(f"**Superseded by:** [{record['superseded_by']}](../adr/{slug_for(record['superseded_by'])}.md)")
     if facts:
         sections.append("\n".join(facts))
 
     if record["related"]:
         # One link per line: a single joined line reached 380 characters on ADR-0011.
-        links = "\n".join(f"* [{r}](/adr/{slug_for(r)}.md)" for r in record["related"][:8])
+        links = "\n".join(f"* [{r}](../adr/{slug_for(r)}.md)" for r in record["related"][:8])
         sections.append(f"**Related:**\n\n{links}")
     return "\n\n".join(sections)
 
@@ -289,8 +289,8 @@ def domain_note(record: dict) -> str:
     if record["documentation_index"]:
         sections.append(f"[Canonical documentation index]({resource}/index.md) — authority, current guidance, and historical records")
     if record["modules"]:
-        links = ", ".join(f"[{m}](/backend/{m}.md)" for m in record["modules"])
-        sections.append(f"**Implemented by:** {links}")
+        links = [f"[{m}](../backend/{m}.md)" for m in record["modules"]]
+        sections.append(soft_wrap("**Implemented by:**", links))
     if record["guides"]:
         # Every guide, linked and typed: these are the documents an agent opens next,
         # so a bare filename list made the note a dead end.
@@ -317,7 +317,7 @@ def module_note(record: dict, owner: str) -> str:
     resource = f"{GITHUB}/durion-positivity-backend/blob/main/{record['name']}"
     lines = [f"[Module directory]({resource}) — `{record['name']}/`", "", f"**Kind:** {record['kind']}"]
     if owner:
-        lines.append(f"**Domain:** [{owner}](/domains/{owner}.md)")
+        lines.append(f"**Domain:** [{owner}](../domains/{owner}.md)")
         if has_documentation_index(REPO / "domains" / owner):
             lines.append(f"**Documentation:** [Canonical {owner} index]({GITHUB}/durion/blob/{DURION_BRANCH}/domains/{owner}/index.md)")
     if record["openapi"]:
@@ -347,6 +347,26 @@ def wrapped_item(prefix: str, trailer: str = "") -> str:
         else:
             current = candidate
     lines.append(current.rstrip())
+    return "\n".join(lines)
+
+
+def soft_wrap(prefix: str, items: list[str], limit: int = MAX_LINE) -> str:
+    """A comma-separated run broken across source lines at the line limit.
+
+    Markdown renders a soft break as a space, so the paragraph reads identically and
+    only the source obeys MD013 — which a domain implemented by four modules did not,
+    once the links became relative.
+    """
+    lines, current = [], prefix
+    for index, item in enumerate(items):
+        piece = item + ("," if index < len(items) - 1 else "")
+        candidate = f"{current} {piece}" if current else piece
+        if current and len(candidate) > limit:
+            lines.append(current)
+            current = piece
+        else:
+            current = candidate
+    lines.append(current)
     return "\n".join(lines)
 
 
@@ -422,6 +442,7 @@ def main() -> int:
             "title": adr["title"],
             "description": adr["description"],
             "resource": f"{GITHUB}/durion/blob/{DURION_BRANCH}/docs/adr/{adr['path'].name}",
+            "path": f"durion/docs/adr/{adr['path'].name}",
             "tags": adr["tags"],
             "status": adr["status"],
             "sources": [f"docs/adr/{adr['path'].name}"],
@@ -435,6 +456,7 @@ def main() -> int:
             "title": domain["name"],
             "description": domain["description"],
             "resource": f"{GITHUB}/durion/blob/{DURION_BRANCH}/domains/{domain['name']}",
+            "path": f"durion/domains/{domain['name']}/",
             "tags": ["domain", domain["name"]],
             "sources": [f"domains/{domain['name']}/"],
             "generated": {"by": "script:generate-knowledge-catalog.py", "at": last_touched(domain["path"], REPO)},
@@ -448,6 +470,7 @@ def main() -> int:
             "title": module["name"],
             "description": module["description"],
             "resource": f"{GITHUB}/durion-positivity-backend/blob/main/{module['name']}",
+            "path": f"durion-positivity-backend/{module['name']}/",
             "tags": ["backend", module["kind"].lower(), *([owner] if owner else [])],
             "sources": [f"durion-positivity-backend/{module['name']}/"],
             "generated": {"by": "script:generate-knowledge-catalog.py", "at": last_touched(module["path"], BACKEND)},
@@ -474,9 +497,9 @@ def main() -> int:
         "# Durion Knowledge Catalog\n\n"
         "Generated from the canonical documents in this workspace and the backend module suite. "
         "Do not hand-edit: run `python3 scripts/generate-knowledge-catalog.py`.\n\n"
-        f"* [ADRs](/adr/index.md) — {len(adrs)} architecture decision records\n"
-        f"* [Domains](/domains/index.md) — {len(domains)} business domains\n"
-        f"* [Backend Modules](/backend/index.md) — {len(modules)} modules in durion-positivity-backend\n"
+        f"* [ADRs](adr/index.md) — {len(adrs)} architecture decision records\n"
+        f"* [Domains](domains/index.md) — {len(domains)} business domains\n"
+        f"* [Backend Modules](backend/index.md) — {len(modules)} modules in durion-positivity-backend\n"
     )
     write(CATALOG / "index.md", render({"okf_version": OKF_VERSION}, root_body), state)
 
@@ -485,11 +508,23 @@ def main() -> int:
     today = dt.date.today().isoformat()
     log_path = CATALOG / "log.md"
     previous = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
-    entries = {date: body.rstrip() for date, body in re.findall(r"^## (\S+)\s*\n+((?:\*.*\n)+)", previous, re.M)}
-    entries[today] = (
+    # A bullet may soft-wrap onto indented continuation lines, which are part of it.
+    entries = {
+        date: body.rstrip()
+        for date, body in re.findall(r"^## (\S+)\s*\n+((?:\*.*\n(?:[ \t]+\S.*\n)*)+)", previous, re.M)
+    }
+    regenerated = (
         f"* **Regenerated**: {len(adrs)} ADR, {len(domains)} domain, and {len(modules)} module concepts "
         f"from `docs/adr/`, `domains/`, and the backend module suite."
     )
+    # Only the Regenerated bullet is ours to rewrite. A hand-written note recording a
+    # structural change, added the same day, is kept rather than overwritten.
+    kept = [
+        bullet
+        for bullet in re.split(r"\n(?=\* )", entries.get(today, ""))
+        if bullet.strip() and not bullet.startswith("* **Regenerated**:")
+    ]
+    entries[today] = "\n".join([regenerated, *kept])
     rendered = "# Directory Update Log\n\n" + "\n\n".join(
         f"## {date}\n\n{body}" for date, body in sorted(entries.items(), reverse=True)
     )

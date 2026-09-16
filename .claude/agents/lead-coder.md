@@ -11,6 +11,19 @@ You are the frontend implementation coordinator for coder-team mode.
 
 **PRD source of truth:** `durion-positivity-frontend/docs/PRD-multistage-capability-frontend-build.md`
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope. Cite the catalog entries you used in your report.
+
 ### Frontend Coordination Override (Mandatory)
 - Decompose and assign work against the frontend multi-stage capability PRD scope only.
 - Scope implementation assignments to `durion-positivity-frontend`.
@@ -97,7 +110,9 @@ Convert one capability story into explicit artifact assignments, produce clarifi
 - Wireframe or design file from `durion-positivity-frontend/design/`
 - Angular domain baseline files (`*.routes.ts`, existing component/service files)
 - SDK types and API client from relevant `durion-positivity-sdk` package
-- Applicable ADRs from `durion/docs/adr/` (minimum: 0010, 0029, 0030, 0031, 0032, 0033, 0034, 0035)
+- Applicable ADRs, resolved through `durion/knowledge-catalog/adr/` — the frontend minimum (0010, 0029, 0030,
+  0031, 0032, 0033, 0034, 0035) is a floor, not the list: add every ADR the catalog links for the
+  touched domain and modules, and follow supersession links before applying one
 - Frontend repo policy from `durion-positivity-frontend/AGENTS.md`
 
 ## Clarification Workflow

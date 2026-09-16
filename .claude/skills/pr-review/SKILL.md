@@ -9,6 +9,7 @@ Use this runbook to coordinate PR review and remediation.
 - `REPO`: `<owner/repo>` (required)
 - `PR`: `<number or URL>` (optional; discover if missing - look in CAPABILITY_MANIFEST.yaml)
 - `REVIEW_TRACK`: `auto|backend|frontend` (default `auto`; infer from changed files/repo when `auto`)
+- `CATALOG_ROOT`: `durion/knowledge-catalog` (default; resolve modules, ADRs, and domains here first)
 - `ADR_ROOT`: `durion/docs/adr` (default)
 - `CONTRACT_GUIDE_PATH`: `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` (behavior source)
 - `API_REFERENCE_PATH`: `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md` (schema reference)
@@ -21,6 +22,26 @@ Use this runbook to coordinate PR review and remediation.
 - `CODER_AGENT`: `PR Fix Coder` (recommended)
 - `TEST_AGENT`: `PR Test Fixer` (recommended)
 - `CODE_REVIEW_AGENT`: `PR Code Reviewer` (recommended)
+
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `CATALOG_ROOT` before opening source or planning work:
+
+- Module → `<CATALOG_ROOT>/backend/<pos-module>.md`
+- ADR → `<CATALOG_ROOT>/adr/index.md`, then the matching entry
+- Domain → `<CATALOG_ROOT>/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope.
+
+When delegating, put this in the agent prompt — a subagent does not inherit this runbook:
+
+> Resolve modules, ADRs, and domains through `<CATALOG_ROOT>` (`backend/`, `adr/`, `domains/`) before
+> reading source — expand `CATALOG_ROOT` to its value when writing the prompt. Read at the entry's
+> `path:` field — the ADR file itself, or the module or domain directory — and cite the catalog
+> entries you used in your report.
 
 ## Objective
 Review one pull request end-to-end, validate it against issues and ADRs, evaluate test quality/status, and delegate fixes until verification is complete.

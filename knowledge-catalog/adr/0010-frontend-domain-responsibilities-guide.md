@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0010: Frontend Domain Responsibilities Guide'
 description: The previous version of this ADR described a Moqui + Vue/Quasar multi-component frontend model. That no longer reflects the active implementation.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0010-frontend-domain-responsibilities-guide.adr.md
+path: durion/docs/adr/0010-frontend-domain-responsibilities-guide.adr.md
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0010-frontend-domain-responsibilities-guide.adr.md]
