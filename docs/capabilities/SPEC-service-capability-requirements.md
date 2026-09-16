@@ -313,18 +313,33 @@ rostered-absence: booked, nobody here can do it, waiting on a transfer, a hire o
 training. DECISION-SHOPMGMT-010 defined that state deliberately; making ROSTERED
 HARD at booking contradicts the record that supplies the mechanism.
 
-**Rule codes and response reason codes are separate namespaces.** The owner's
-wording for the response is `NO_CERTIFIED_TECHNICIAN_ROSTERED` /
-`NO_CERTIFIED_TECHNICIAN_AVAILABLE`; the `conflict_rule.code` values above avoid
-"AVAILABLE" so they do not re-collide with the `MECHANIC_UNAVAILABLE` semantics
-answer 5 separated. Map between the two rather than forcing them to share strings —
-`TIRE_SERVICE` meaning three different things in three modules (§1.1) is what
-happens otherwise.
+**One namespace: the response uses these exact codes.** A `conflict_rule.code` and
+the reason code the API returns for it are the same string, so there is no mapping
+table and no way for the two to drift. `staffingAdvisory.code` is
+`NO_COMPETENT_MECHANIC_ROSTERED`; a per-opening `AWAITING` is caused by
+`COMPETENT_MECHANIC_UNAVAILABLE`.
+
+This **retires** the wording carried in `#2022`'s original contract and in `#2035`
+answer 5's phrasing — `NO_CERTIFIED_TECHNICIAN_ROSTERED` and
+`NO_CERTIFIED_TECHNICIAN_AVAILABLE`. Two deliberate changes from those strings:
+
+- **`MECHANIC`, not `TECHNICIAN`.** DECISION-SHOPMGMT-002's existing rules are
+  `MECHANIC_UNAVAILABLE` and `MECHANIC_OVERTIME`, and `conflict_resource_type` has a
+  `MECHANIC` member. The new rules join that vocabulary rather than starting a
+  second one. (`Mechanic` and `Technician` are also two different entities in
+  `pos-shop-manager` today — §1.2† — so the word is not free of meaning.)
+- **`COMPETENT_MECHANIC_UNAVAILABLE`, not `NO_CERTIFIED_TECHNICIAN_AVAILABLE`.**
+  Putting the qualifier first keeps it from reading as a variant of
+  `MECHANIC_UNAVAILABLE`, which is the HARD rule for *nobody present* that
+  answer 5 took pains to keep separate. The prefix is what distinguishes them:
+  `MECHANIC_UNAVAILABLE` means no mechanic; `COMPETENT_MECHANIC_UNAVAILABLE` means a
+  mechanic, not a competent one.
 
 ### D10.2 — rostered-absence is a response-level advisory, not a `noOpeningReason` and not a per-opening flag
 
-`#2022`'s `NO_CERTIFIED_TECHNICIAN_ROSTERED` is withdrawn **from that field**, and
-the reason matters: not because the condition is unreal, but because
+`#2022`'s rostered-absence reason — originally spelled
+`NO_CERTIFIED_TECHNICIAN_ROSTERED`, now `NO_COMPETENT_MECHANIC_ROSTERED` per D10.1 —
+is withdrawn **from that field**, and the reason matters: not because the condition is unreal, but because
 `noOpeningReason` is defined as "set only when openings is empty", and **skill never
 empties the list, so it can never be the cause.** `noOpeningReason` keeps three
 values: `NO_ELIGIBLE_BAY_AT_LOCATION`, `ALL_ELIGIBLE_BAYS_BOOKED`,
@@ -346,7 +361,7 @@ it and falsely implies it could differ between them.
   }],
   "noOpeningReason": null,                    // three values only
   "staffingAdvisory": {                       // response-level; only when a required skill is unheld
-    "code": "NO_COMPETENT_TECHNICIAN_ROSTERED",
+    "code": "NO_COMPETENT_MECHANIC_ROSTERED",
     "missingSkillCodes": ["A4-SUSPENSION", "T5-STEERING"],
     "absenceScope": "NOT_AT_THIS_LOCATION"    // | "NOT_ROSTERED_THIS_DAY"
   }
@@ -699,8 +714,11 @@ not hold a competence requirement — the service does.
 - **Add `constraintsEvaluated`** to every opening (D11).
 - **Add `skillFulfillment: CERTIFIED | AWAITING`** and the unmet skill codes,
   ranked certified-first (D10 — settled).
-- **Move `NO_CERTIFIED_TECHNICIAN_ROSTERED` out of `noOpeningReason` — the condition
-  is real, the field was wrong.** It is not unreachable: nobody-competent-rostered
+- **Move the rostered-absence condition out of `noOpeningReason` — the condition is
+  real, the field was wrong.** It is reported as
+  `staffingAdvisory.code = NO_COMPETENT_MECHANIC_ROSTERED`, which retires the
+  original `NO_CERTIFIED_TECHNICIAN_ROSTERED` spelling (D10.1: one namespace shared
+  with `conflict_rule.code`). It is not unreachable: nobody-competent-rostered
   happens today at CLT-MAIN-001 and CLT-NORTH-001 (D10.2). But `noOpeningReason` is
   "set only when openings is empty", and a skill shortfall never empties the list,
   so it can never be the cause. It surfaces instead as a response-level
@@ -855,8 +873,8 @@ Beyond the per-AC coverage in the stories:
 | Credential renewed | New row; the superseded row remains queryable for "qualified on date X" (D7) |
 | HR sync omitting skills entirely | Existing credentials preserved, per the null-vs-empty rule already at `MechanicSyncServiceImpl.java:177-185` |
 | HR sync sending an unresolvable source code | Fails the xref loudly; no phantom skill |
-| **Rostered-absence with a non-empty list** | `WHEEL-ALIGNMENT-4-WHEEL` at CLT-MAIN-001: openings returned, `noOpeningReason` null, `staffingAdvisory` present with `absenceScope: NOT_AT_THIS_LOCATION` |
-| **Contention, not absence** | A competent technician rostered but busy: the opening is returned flagged `AWAITING`, with no `staffingAdvisory` |
+| **Rostered-absence with a non-empty list** | `WHEEL-ALIGNMENT-4-WHEEL` at CLT-MAIN-001: openings returned, `noOpeningReason` null, `staffingAdvisory` present, `code: NO_COMPETENT_MECHANIC_ROSTERED`, `absenceScope: NOT_AT_THIS_LOCATION` |
+| **Contention, not absence** | A competent technician rostered but busy: the opening is returned flagged `AWAITING` (cause `COMPETENT_MECHANIC_UNAVAILABLE`), with no `staffingAdvisory` |
 | **Zero technicians is not a competence failure** | ATX-RIV-001 raises `MECHANIC_UNAVAILABLE` and **no** competence rule (#2035 answer 5) |
 | **Scope narrowing** | A location-scoped caller sees `NOT_AT_THIS_LOCATION`, never `NOT_IN_TENANT` (DECISION-SHOPMGMT-012) |
 | Seed rerun | Idempotent; no duplicate rows, no id churn |
