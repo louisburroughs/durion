@@ -2,14 +2,14 @@
 type: ADR
 title: 'ADR-0018: Audit Actor Fields from Security Context as Strings'
 description: 'Backend services currently use mixed patterns for audit actor fields (createdBy, updatedBy, changedBy):'
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0018-audit-actor-fields-from-security-context.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0018-audit-actor-fields-from-security-context.adr.md
 tags: [adr, audit, security]
 status: stable
 sources: [docs/adr/0018-audit-actor-fields-from-security-context.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0018-audit-actor-fields-from-security-context.adr.md) — `docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0018-audit-actor-fields-from-security-context.adr.md) — `docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
 
 **Status:** Accepted since 2026-02-18
 

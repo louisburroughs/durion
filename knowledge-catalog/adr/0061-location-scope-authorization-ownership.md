@@ -2,14 +2,14 @@
 type: ADR
 title: 'ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating'
 description: Two models describe a user's location reach, and they disagree about which one matters.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0061-location-scope-authorization-ownership.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0061-location-scope-authorization-ownership.adr.md
 tags: [adr, location]
 status: stable
 sources: [docs/adr/0061-location-scope-authorization-ownership.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0061-location-scope-authorization-ownership.adr.md) — `docs/adr/0061-location-scope-authorization-ownership.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0061-location-scope-authorization-ownership.adr.md) — `docs/adr/0061-location-scope-authorization-ownership.adr.md`
 
 **Status:** Accepted since 2026-09-07
 

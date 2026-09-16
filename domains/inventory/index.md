@@ -45,4 +45,4 @@ For inventory ledger and tenancy boundaries, read [ADR-0001](../../docs/adr/0001
 ## Maintaining this documentation
 
 Add canonical documentation here and link it from this index. Do not add substantive documentation to the backend `pos-inventory/docs/` directory; it is a navigation pointer
-only. Do not run the knowledge-catalog generator: it is not idempotent-safe. Update the inventory catalog entry manually when this index gains an authoritative document.
+only. Regenerate the knowledge catalog with `python3 scripts/generate-knowledge-catalog.py` when this index gains an authoritative document.

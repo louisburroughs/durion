@@ -5,7 +5,7 @@ description: The Accounting domain is responsible for authoritative financial ca
 resource: https://github.com/louisburroughs/durion/blob/master/domains/accounting
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:18-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (77 documents)

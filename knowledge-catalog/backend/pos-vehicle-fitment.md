@@ -12,4 +12,5 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T00:12:12
 
 **Kind:** Service
 **Domain:** [inventory](/domains/inventory.md)
+**Documentation:** [Canonical inventory index](https://github.com/louisburroughs/durion/blob/master/domains/inventory/index.md)
 **API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-fitment/openapi.yaml)

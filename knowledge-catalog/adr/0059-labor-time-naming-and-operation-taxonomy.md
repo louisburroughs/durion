@@ -2,16 +2,16 @@
 type: ADR
 title: 'ADR-0059: Labor-Time Naming and Service Operation Taxonomy'
 description: 'Two permanent work_session tables exist — pos-workorder''s (a technician''s task clock: time on task) and pos-people''s (a person''s attendance clock feeding time_entry).'
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md
 tags: [adr]
-status: draft
+status: stable
 sources: [docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:50:14-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md) — `docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md) — `docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md`
 
-**Status:** Proposed since 2026-09-01
+**Status:** Accepted since 2026-09-01
 
 **Related:**
 

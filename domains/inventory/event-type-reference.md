@@ -12,8 +12,11 @@ Does this event represent physical inventory movement?
 │   │   ├── ADJUSTMENT_IN
 │   │   └── COUNT_VARIANCE_IN
 │   │
+│   ├── Paired location movement? → PUTAWAY (- source, + destination)
+│   │
 │   └── Inventory going OUT? → OUTBOUND event (subtracts from On-Hand)
 │       ├── GOODS_ISSUE
+│       ├── WORKORDER_CONSUMPTION
 │       ├── TRANSFER_OUT
 │       ├── SCRAP_OUT
 │       ├── ADJUSTMENT_OUT
@@ -36,8 +39,10 @@ Does this event represent physical inventory movement?
 | RETURN_TO_STOCK                   | INBOUND   | ✅ Yes           | ✅ Yes       | +1   | Customer return accepted                 |
 | ADJUSTMENT_IN                     | INBOUND   | ✅ Yes           | ✅ Yes       | +1   | Positive adjustment (found inventory)    |
 | COUNT_VARIANCE_IN                 | INBOUND   | ✅ Yes           | ✅ Yes       | +1   | Cycle count found more than expected     |
+| PUTAWAY                           | PAIRED    | ✅ Yes           | ✅ Yes       | +/-  | Paired source/destination movement       |
 | **OUTBOUND EVENTS**               |           |                  |              |      |                                          |
 | GOODS_ISSUE                       | OUTBOUND  | ✅ Yes           | ✅ Yes       | -1   | Issued to workorder/production           |
+| WORKORDER_CONSUMPTION             | OUTBOUND  | ✅ Yes           | ✅ Yes       | -1   | Consumed by a workorder                  |
 | TRANSFER_OUT                      | OUTBOUND  | ✅ Yes           | ✅ Yes       | -1   | Transfer shipped to another location     |
 | SCRAP_OUT                         | OUTBOUND  | ✅ Yes           | ✅ Yes       | -1   | Write-off (damage/obsolete/shrink)       |
 | ADJUSTMENT_OUT                    | OUTBOUND  | ✅ Yes           | ✅ Yes       | -1   | Negative adjustment (lost/damaged)       |
@@ -73,6 +78,8 @@ SUM(
   END
 )
 ```
+
+`PUTAWAY` posts paired ledger entries: the source location contributes a negative delta and the destination location contributes a positive delta.
 
 ### Allocated Quantity
 
@@ -145,6 +152,6 @@ Result: On-Hand = 95 (corrected), ATP -= 5
 
 ## Reference
 
-- **ADR**: [ADR-0001: Inventory Ledger ATP Computation](/docs/adr/0001-inventory-ledger-atp-computation.md)
+- **ADR**: [ADR-0001: Inventory Ledger ATP Computation](/docs/adr/0001-inventory-ledger-atp-computation.adr.md)
 - **Implementation Guide**: [Inventory Ledger ATP Guide](inventory-ledger-atp.md)
 - **Enum Source**: `com.positivity.inventory.model.InventoryLedgerEventType`

@@ -57,6 +57,7 @@ REPO = Path(__file__).resolve().parents[1]
 BACKEND = Path(os.environ.get("DURION_BACKEND", REPO.parent / "durion-positivity-backend"))
 CATALOG = REPO / "knowledge-catalog"
 GITHUB = "https://github.com/louisburroughs"
+DURION_BRANCH = "master"
 OKF_VERSION = "0.2"
 RESERVED = {"index.md", "log.md"}
 
@@ -248,7 +249,7 @@ def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
 
 
 def adr_note(record: dict, owner_by_module: dict[str, str]) -> str:
-    resource = f"{GITHUB}/durion/blob/main/docs/adr/{record['path'].name}"
+    resource = f"{GITHUB}/durion/blob/{DURION_BRANCH}/docs/adr/{record['path'].name}"
     sections = [f"[Canonical ADR]({resource}) — `docs/adr/{record['path'].name}`"]
 
     facts = []
@@ -278,7 +279,7 @@ def slug_for(adr_id: str) -> str:
 
 
 def domain_note(record: dict) -> str:
-    resource = f"{GITHUB}/durion/blob/master/domains/{record['name']}"
+    resource = f"{GITHUB}/durion/blob/{DURION_BRANCH}/domains/{record['name']}"
     # Sections are joined, not hand-spaced: a domain with no modules used to emit two
     # blank lines in a row.
     sections = [f"[Domain folder]({resource}) — `domains/{record['name']}/` ({record['docs']} documents)"]
@@ -315,7 +316,7 @@ def module_note(record: dict, owner: str) -> str:
     if owner:
         lines.append(f"**Domain:** [{owner}](/domains/{owner}.md)")
         if has_documentation_index(REPO / "domains" / owner):
-            lines.append(f"**Documentation:** [Canonical {owner} index]({GITHUB}/durion/blob/master/domains/{owner}/index.md)")
+            lines.append(f"**Documentation:** [Canonical {owner} index]({GITHUB}/durion/blob/{DURION_BRANCH}/domains/{owner}/index.md)")
     if record["openapi"]:
         lines.append(f"**API contract:** [`openapi.yaml`]({resource}/openapi.yaml)")
     return "\n".join(lines)
@@ -417,7 +418,7 @@ def main() -> int:
             "type": "ADR",
             "title": adr["title"],
             "description": adr["description"],
-            "resource": f"{GITHUB}/durion/blob/main/docs/adr/{adr['path'].name}",
+            "resource": f"{GITHUB}/durion/blob/{DURION_BRANCH}/docs/adr/{adr['path'].name}",
             "tags": adr["tags"],
             "status": adr["status"],
             "sources": [f"docs/adr/{adr['path'].name}"],
@@ -430,7 +431,7 @@ def main() -> int:
             "type": "Domain",
             "title": domain["name"],
             "description": domain["description"],
-            "resource": f"{GITHUB}/durion/blob/master/domains/{domain['name']}",
+            "resource": f"{GITHUB}/durion/blob/{DURION_BRANCH}/domains/{domain['name']}",
             "tags": ["domain", domain["name"]],
             "sources": [f"domains/{domain['name']}/"],
             "generated": {"by": "script:generate-knowledge-catalog.py", "at": last_touched(domain["path"], REPO)},

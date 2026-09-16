@@ -7,50 +7,46 @@ This document provides implementation guidance for computing On-Hand and Availab
 ## Architecture Decision Record
 
 All architectural decisions for this feature are documented in:
-- **ADR**: [docs/adr/0001-inventory-ledger-atp-computation.md](/docs/adr/0001-inventory-ledger-atp-computation.md)
+
+- **ADR**: [docs/adr/0001-inventory-ledger-atp-computation.adr.md](/docs/adr/0001-inventory-ledger-atp-computation.adr.md)
 
 Please review the ADR for complete context and rationale.
 
 ## Availability vs On-Hand — the firm definition
 
-They are two different questions, and since **ADR-0057** (issue #1494) they carry two different
-permission families. Neither implies the other.
+They are two different questions, and since **ADR-0057** (issue #1494) they carry two different permission families. Neither implies the other.
 
-| | Question | Reads | Permissions |
-| --- | --- | --- | --- |
-| **On-hand** | *What is physically there?* | The stock record itself: counted quantity, lot and serial detail, location contents, ledger-derived counts, rollups. Uncommitted-for. | `inventory:on_hand:view` (one location) / `inventory:on_hand:search` (across locations) |
-| **Availability** | *What can I promise, and when?* | The derived projection: on-hand **net of prior commitments** — hard allocations, soft reservations on the per-location projection, expired ACTIVE lot on-hand — plus the incoming/outgoing forecast. | `inventory:availability:read` (scope-limited) / `inventory:availability:search` (per-location breakdown) |
+|                  | Question                        | Reads                                                                                                                                                                                                | Permissions                                                                                              |
+| ---------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **On-hand**      | _What is physically there?_     | The stock record itself: counted quantity, lot and serial detail, location contents, ledger-derived counts, rollups. Uncommitted-for.                                                                | `inventory:on_hand:view` (one location) / `inventory:on_hand:search` (across locations)                  |
+| **Availability** | _What can I promise, and when?_ | The derived projection: on-hand **net of prior commitments** — hard allocations, soft reservations on the per-location projection, expired ACTIVE lot on-hand — plus the incoming/outgoing forecast. | `inventory:availability:read` (scope-limited) / `inventory:availability:search` (per-location breakdown) |
 
-On-hand is the raw input; availability is the answer computed from it. A technician holding
-`inventory:availability:read` can ask whether a part can be committed to the job in front of them —
-and, naming a location, whether it can be committed *there* — without holding any authority over the
-inventory record. Enumerating which locations hold the SKU is a wider disclosure and takes
-`inventory:availability:search`, mirroring `on_hand:view` vs `on_hand:search`.
+On-hand is the raw input; availability is the answer computed from it. A technician holding `inventory:availability:read` can ask whether a part can be committed to the job in
+front of them — and, naming a location, whether it can be committed _there_ — without holding any authority over the inventory record. Enumerating which locations hold the SKU
+is a wider disclosure and takes `inventory:availability:search`, mirroring `on_hand:view` vs `on_hand:search`.
 
 Endpoint mapping:
 
-| Operation | Path | Requires |
-| --- | --- | --- |
-| `getAvailabilityBySku` | `GET /v1/inventory/availability/by-sku` | `inventory:availability:read` |
-| `listAvailabilityBySku` | `GET /v1/inventory/availability` | `inventory:availability:read` |
-| `getInventoryLeadTime` | `GET /v1/inventory/availability/lead-time` | `inventory:availability:read` |
-| `getAvailabilityByProduct` | `GET /v1/inventory/availability/{productId}` | `inventory:availability:search` |
-| `getLocationInventory`, `listLocationInventoryItems`, the site/location rollups, lot and serial-unit reads, replenishment evaluations, purchase suggestions | various | `inventory:on_hand:view` |
+| Operation                                                                                                                                                   | Path                                         | Requires                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------- |
+| `getAvailabilityBySku`                                                                                                                                      | `GET /v1/inventory/availability/by-sku`      | `inventory:availability:read`   |
+| `listAvailabilityBySku`                                                                                                                                     | `GET /v1/inventory/availability`             | `inventory:availability:read`   |
+| `getInventoryLeadTime`                                                                                                                                      | `GET /v1/inventory/availability/lead-time`   | `inventory:availability:read`   |
+| `getAvailabilityByProduct`                                                                                                                                  | `GET /v1/inventory/availability/{productId}` | `inventory:availability:search` |
+| `getLocationInventory`, `listLocationInventoryItems`, the site/location rollups, lot and serial-unit reads, replenishment evaluations, purchase suggestions | various                                      | `inventory:on_hand:view`        |
 
-The `asOf` historical variants additionally require `inventory:ledger:view`, independently of the
-above, because they expose ledger history.
+The `asOf` historical variants additionally require `inventory:ledger:view`, independently of the above, because they expose ledger history.
 
 ## Quick Reference
 
 ### ATP Formula (v1)
+
 ```
 ATP = On-Hand - Allocations
 ```
 
-**Note**: The ATP definition itself is unchanged — expected receipts do NOT enter ATP.
-Since odoo-parity A2 (issue #1028) expected receipts surface as separate additive **forecast
-fields** on the availability endpoints and the `InventoryAvailabilityUpdatedV1` fact
-(schema v2):
+**Note**: The ATP definition itself is unchanged — expected receipts do NOT enter ATP. Since odoo-parity A2 (issue #1028) expected receipts surface as separate additive
+**forecast fields** on the availability endpoints and the `InventoryAvailabilityUpdatedV1` fact (schema v2):
 
 ```
 incomingQty        = open approved-PO line quantity + un-received ASN remainder
@@ -58,18 +54,17 @@ outgoingQty        = unallocated reservation remainders + released-not-picked pi
 projectedAvailable = On-Hand + incomingQty - outgoingQty   (Odoo virtual_available)
 ```
 
-Forecast quantities are computed on read from open documents (never stored on
-`inventory_stock_summary`) and accept an optional `horizon` query parameter bounding supply by
-PO `expectedDeliveryDate` / ASN `expectedArrivalDate` and reservation demand by `dueDateTime`;
-documents without an expected date are included unbounded and excluded when a horizon is given.
-When a purchase order is closed or cancelled with remaining open quantity, the dropped supply
-is announced via the `ExpectedSupplyDroppedV1` fact.
+Forecast quantities are computed on read from open documents (never stored on `inventory_stock_summary`) and accept an optional `horizon` query parameter bounding supply by PO
+`expectedDeliveryDate` / ASN `expectedArrivalDate` and reservation demand by `dueDateTime`; documents without an expected date are included unbounded and excluded when a
+horizon is given. When a purchase order is closed or cancelled with remaining open quantity, the dropped supply is announced via the `ExpectedSupplyDroppedV1` fact.
 
 ### Unit of Measure (UOM)
+
 - All calculations and responses use the product's **base UOM**
 - UOM conversion is out of scope for v1
 
 ### Performance SLA
+
 - **P95**: < 200ms (single product, single location)
 - **P50**: < 80ms
 - **P99**: < 400ms
@@ -79,20 +74,25 @@ is announced via the `ExpectedSupplyDroppedV1` fact.
 #### Events INCLUDED in On-Hand Calculation
 
 **Inbound (Positive)**:
+
 - `GOODS_RECEIPT`
 - `TRANSFER_IN`
 - `RETURN_TO_STOCK`
 - `ADJUSTMENT_IN`
 - `COUNT_VARIANCE_IN`
+- `PUTAWAY` (paired source decrement and destination increment)
 
 **Outbound (Negative)**:
+
 - `GOODS_ISSUE`
+- `WORKORDER_CONSUMPTION`
 - `TRANSFER_OUT`
 - `SCRAP_OUT`
 - `ADJUSTMENT_OUT`
 - `COUNT_VARIANCE_OUT`
 
 #### Events EXCLUDED from On-Hand (Affect ATP Only)
+
 - `RESERVATION_CREATED` / `RESERVATION_RELEASED`
 - `ALLOCATION_CREATED` / `ALLOCATION_RELEASED`
 - `BACKORDER_CREATED` / `BACKORDER_RESOLVED`
@@ -100,23 +100,26 @@ is announced via the `ExpectedSupplyDroppedV1` fact.
 
 #### Negative-Stock Policy
 
-Whether a posting may take on-hand below zero is governed per event type by the
-negative-stock policy matrix — see [negative-stock-policy.md](negative-stock-policy.md) (odoo-parity K1, #1027).
+Whether a posting may take on-hand below zero is governed per event type by the negative-stock policy matrix — see [negative-stock-policy.md](negative-stock-policy.md)
+(odoo-parity K1, #1027).
 
 ## API Contract (Proposed)
 
-### GET /api/inventory/availability
+### GET /v1/inventory/availability
 
 #### Request
+
 ```
-GET /api/inventory/availability?productId={productId}&locationId={locationId}
+GET /v1/inventory/availability?productId={productId}&locationId={locationId}
 ```
 
 **Query Parameters**:
+
 - `productId` (UUID, required): Product identifier
 - `locationId` (UUID, required): Location identifier
 
 #### Response (200 OK)
+
 ```json
 {
   "productId": "550e8400-e29b-41d4-a716-446655440000",
@@ -130,6 +133,7 @@ GET /api/inventory/availability?productId={productId}&locationId={locationId}
 ```
 
 **Response Fields**:
+
 - `onHandQty`: Net sum of physical stock movements
 - `allocatedQty`: Sum of active allocations (hard commitments)
 - `atpQty`: On-Hand - Allocations
@@ -139,6 +143,7 @@ GET /api/inventory/availability?productId={productId}&locationId={locationId}
 ### Error Responses
 
 #### 404 Not Found
+
 ```json
 {
   "error": "PRODUCT_NOT_FOUND",
@@ -147,6 +152,7 @@ GET /api/inventory/availability?productId={productId}&locationId={locationId}
 ```
 
 #### 400 Bad Request
+
 ```json
 {
   "error": "INVALID_REQUEST",
@@ -159,6 +165,7 @@ GET /api/inventory/availability?productId={productId}&locationId={locationId}
 ### Database Schema
 
 **InventoryLedgerEvent Table** (Proposed):
+
 ```sql
 CREATE TABLE inventory_ledger_event (
     event_id UUID PRIMARY KEY,
@@ -173,7 +180,7 @@ CREATE TABLE inventory_ledger_event (
     reference_type VARCHAR(50),
     reference_id UUID,
     notes TEXT,
-    
+
     INDEX idx_product_location (product_id, location_id),
     INDEX idx_event_type (event_type),
     INDEX idx_event_timestamp (event_timestamp)
@@ -181,6 +188,7 @@ CREATE TABLE inventory_ledger_event (
 ```
 
 **InventoryAllocation Table** (Proposed):
+
 ```sql
 CREATE TABLE inventory_allocation (
     allocation_id UUID PRIMARY KEY,
@@ -193,7 +201,7 @@ CREATE TABLE inventory_allocation (
     expires_at TIMESTAMP,
     order_id UUID,
     order_line_id UUID,
-    
+
     INDEX idx_product_location_status (product_id, location_id, status)
 );
 ```
@@ -201,21 +209,22 @@ CREATE TABLE inventory_allocation (
 ### Computing On-Hand
 
 **SQL Query Pattern**:
+
 ```sql
-SELECT 
+SELECT
     product_id,
     location_id,
     SUM(
-        CASE 
-            WHEN event_type IN ('GOODS_RECEIPT', 'TRANSFER_IN', 'RETURN_TO_STOCK', 
+        CASE
+            WHEN event_type IN ('GOODS_RECEIPT', 'TRANSFER_IN', 'RETURN_TO_STOCK',
                                 'ADJUSTMENT_IN', 'COUNT_VARIANCE_IN') THEN quantity
-            WHEN event_type IN ('GOODS_ISSUE', 'TRANSFER_OUT', 'SCRAP_OUT', 
+            WHEN event_type IN ('GOODS_ISSUE', 'TRANSFER_OUT', 'SCRAP_OUT',
                                 'ADJUSTMENT_OUT', 'COUNT_VARIANCE_OUT') THEN -quantity
             ELSE 0
         END
     ) as on_hand_qty
 FROM inventory_ledger_event
-WHERE product_id = ? 
+WHERE product_id = ?
   AND location_id = ?
 GROUP BY product_id, location_id;
 ```
@@ -223,8 +232,9 @@ GROUP BY product_id, location_id;
 ### Computing Allocations
 
 **SQL Query Pattern**:
+
 ```sql
-SELECT 
+SELECT
     product_id,
     location_id,
     SUM(quantity) as allocated_qty
@@ -238,12 +248,13 @@ GROUP BY product_id, location_id;
 ### Computing ATP
 
 **Service Layer**:
+
 ```java
 public InventoryAvailability getAvailability(UUID productId, UUID locationId) {
     BigDecimal onHand = ledgerRepository.calculateOnHand(productId, locationId);
     BigDecimal allocated = allocationRepository.calculateAllocated(productId, locationId);
     BigDecimal atp = onHand.subtract(allocated);
-    
+
     return InventoryAvailability.builder()
         .productId(productId)
         .locationId(locationId)
@@ -259,16 +270,19 @@ public InventoryAvailability getAvailability(UUID productId, UUID locationId) {
 ## Testing Strategy
 
 ### Unit Tests
+
 - Verify On-Hand calculation with various event type combinations
 - Test ATP calculation: On-Hand - Allocations
 - Validate edge cases: zero inventory, negative adjustments, large quantities
 
 ### Integration Tests
+
 - End-to-end API tests with real database
 - Verify performance SLA compliance (P95 < 200ms)
 - Test concurrent reads/writes to ledger
 
 ### Performance Tests
+
 - Load test with 1000 concurrent requests
 - Measure P50, P95, P99 latencies
 - Verify query performance with large ledger tables (millions of events)
@@ -276,25 +290,28 @@ public InventoryAvailability getAvailability(UUID productId, UUID locationId) {
 ## Monitoring and Observability
 
 ### Metrics to Track
+
 - API response time (P50, P95, P99)
 - Query execution time for On-Hand and Allocation queries
 - Cache hit/miss rates (if caching is implemented)
 - Error rates by error type
 
 ### Alerts
+
 - P95 latency > 200ms (Warning)
 - P95 latency > 400ms (Critical)
 - Error rate > 1% (Warning)
 - Database connection pool exhaustion (Critical)
 
 ### Consistency Sweeps
-- Allocation/reservation consistency (odoo-parity K3, #1032): see [allocation-consistency.md](allocation-consistency.md) — report-only; corrections are new ledger entries per DECISION-INVENTORY-005.
+
+- Allocation/reservation consistency (odoo-parity K3, #1032): see [allocation-consistency.md](allocation-consistency.md) — report-only; corrections are new ledger entries per
+  DECISION-INVENTORY-005.
 
 ## Future Enhancements (Out of Scope for v1)
 
-1. ~~**Expected Receipts**~~ — delivered as forecast quantities (odoo-parity A2, issue #1028);
-   surfaced as `incomingQty`/`outgoingQty`/`projectedAvailable`, ATP formula untouched (see
-   Quick Reference above)
+1. ~~**Expected Receipts**~~ — delivered as forecast quantities (odoo-parity A2, issue #1028); surfaced as `incomingQty`/`outgoingQty`/`projectedAvailable`, ATP formula
+   untouched (see Quick Reference above)
 
 2. **UOM Conversion**: Support queries in different units
    - Requires Product/UOM service integration
@@ -312,4 +329,4 @@ public InventoryAvailability getAvailability(UUID productId, UUID locationId) {
 
 - **Story**: [#36 - Ledger: Compute On-hand and Available-to-Promise by Location/Storage](https://github.com/louisburroughs/durion-positivity-backend/issues/36)
 - **Clarification**: [#233 - Clarification for Story #36](https://github.com/louisburroughs/durion-positivity-backend/issues/233)
-- **ADR**: [ADR-0001: Inventory Ledger ATP Computation](/docs/adr/0001-inventory-ledger-atp-computation.md)
+- **ADR**: [ADR-0001: Inventory Ledger ATP Computation](/docs/adr/0001-inventory-ledger-atp-computation.adr.md)

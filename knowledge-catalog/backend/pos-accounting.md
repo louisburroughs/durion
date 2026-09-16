@@ -5,7 +5,7 @@ description: POS Accounting module
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting
 tags: [backend, service, accounting]
 sources: [durion-positivity-backend/pos-accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T02:14:34+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:27:46-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting) — `pos-accounting/`

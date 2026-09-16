@@ -2,14 +2,14 @@
 type: ADR
 title: 'ADR-0011: API Gateway Security Architecture'
 description: The backend platform requires a single, consistent ownership model for authentication and authorization.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0011-api-gateway-security-architecture.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0011-api-gateway-security-architecture.adr.md
 tags: [adr, api-contract, gateway, security]
 status: stable
 sources: [docs/adr/0011-api-gateway-security-architecture.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:33:51-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0011-api-gateway-security-architecture.adr.md) — `docs/adr/0011-api-gateway-security-architecture.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0011-api-gateway-security-architecture.adr.md) — `docs/adr/0011-api-gateway-security-architecture.adr.md`
 
 **Status:** Accepted since 2026-02-01
 

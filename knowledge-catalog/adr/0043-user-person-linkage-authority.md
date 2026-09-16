@@ -2,14 +2,14 @@
 type: ADR
 title: 'ADR-0043: User–Person Linkage Authority and Translation'
 description: ADR-0015 §3 requires that *"a User must be linked to a Person"* and §7 (I5–I7) makes that enforceable. ADR-0022 requires tokens to carry a stable personId claim for audit identity.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0043-user-person-linkage-authority.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0043-user-person-linkage-authority.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0043-user-person-linkage-authority.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0043-user-person-linkage-authority.adr.md) — `docs/adr/0043-user-person-linkage-authority.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0043-user-person-linkage-authority.adr.md) — `docs/adr/0043-user-person-linkage-authority.adr.md`
 
 **Status:** Accepted since 2026-06-19
 
