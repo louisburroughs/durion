@@ -554,6 +554,160 @@ against the real format. Settle it with
 `GET https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/<VIN>?format=json`
 from an unrestricted network **before CAP-327 is written**, not during.
 
+### D14 — bay eligibility is specialty-by-exception; general is the default *(settled)*
+
+Settled 2026-09-16, and it supersedes D4's tri-state and §7.2's bootstrap table.
+This is the largest simplification in the spec and it removes the one blocker that
+could not be authored from data.
+
+**The rule, in full:**
+
+1. **A small set of `operationCode`s are specialty** and name the `BayType` that can
+   perform them. That mapping is the entire configuration.
+2. **Everything else is general work** and is performed in a `GENERAL_SERVICE` bay.
+3. **`GENERAL_SERVICE` bays declare nothing.** Their equipment is not asserted,
+   inventoried, or inferred from a type name.
+
+**Why this is better than what it replaces.** The prior model had every service
+declare `requiredCapabilityCodes` against a 20-row registry, and every bay declare
+which of those it held. That required asserting what eight `GENERAL_SERVICE` bays
+can do — which is not in any data, was the one acceptance criterion that could not
+be authored honestly, and which the earlier bootstrap table got wrong in both
+directions (granting a general bay refrigerant-recovery and welding work while
+denying it routine fleet PM).
+
+Specialty-by-exception asserts only what is actually knowable: an alignment rack is
+in the alignment bay. What a general bay can do is then *defined* as "the rest"
+rather than enumerated, which is both true and maintenance-free.
+
+**It also dissolves the churn objection to the operationCode vocabulary.** The
+original concern was that a bay enumerating services would go stale on every catalog
+addition. Under a default, a new service is general unless someone declares it
+specialty — so the common case needs no bay edit at all. This vindicates the
+`serviceCapabilityIds`-as-operationCodes reading first proposed on `#2024`.
+
+**Consequence: D4's tri-state collapses to two states.** Absence from the specialty
+map is now a *definite answer* ("this is general work"), not an unknown. So:
+
+- `service_requirement_profile` and its header/detail dance are **withdrawn**. There
+  is nothing to configure per service.
+- `#2022`'s `SERVICE_REQUIREMENTS_NOT_CONFIGURED` reason is **withdrawn** —
+  unreachable for the same reason. `noOpeningReason` keeps two values:
+  `NO_ELIGIBLE_BAY_AT_LOCATION`, `ALL_ELIGIBLE_BAYS_BOOKED`.
+- The frontend's `eligibilityIsApproximate` banner can die **without any per-service
+  configuration pass at all**.
+
+The residual risk moves rather than disappearing, and it is worth naming: a new
+*specialty* service added to the catalog that nobody adds to the map silently reads
+as general and can be booked into a bay that cannot perform it. That is a smaller
+and more visible failure than the one it replaces, but it is real. Mitigate by
+reviewing the map whenever a service is added in a category that already has
+specialty members — not by reintroducing a per-service configured flag.
+
+**Two questions this raises, answered here rather than left to an implementer:**
+
+- **May a specialty bay perform general work?** Yes, and it must be **eligible but
+  ranked last**. Physically an alignment bay can do an oil change; making it
+  ineligible would manufacture "shop is full" answers, which is the exact failure
+  mode D9 and D10 exist to prevent. Ranking it last keeps the rack free for
+  alignment work without lying about capacity.
+- **`WASH_DETAIL` is the exception to the default.** It is a specialty bay whose
+  specialty set is currently empty, because the catalog seeds no wash services. It
+  must **not** absorb general mechanical work. So the default in rule 2 is
+  specifically `GENERAL_SERVICE`, not "any bay without a specialty claim".
+
+**`HEAVY_DUTY` is not a specialty equipment set.** Per D13 it is a `gvwr_class`
+ceiling. It carries no specialty `operationCode`s and takes general work within its
+class range like any other bay.
+
+#### D14.1 — the specialty map
+
+Derived from `scripts/fixtures/seed/alpha/catalog/tier0-services.csv`. Specialty
+means *the work cannot be done without equipment specific to that bay*, not merely
+that it is customarily done there.
+
+| `BayType` | Specialty `operationCode`s | Equipment that makes it specialty |
+|---|---|---|
+| `ALIGNMENT` | `WHEEL-ALIGNMENT-4-WHEEL` | Alignment rack and heads |
+| `TIRE_SERVICE` | `TIRE-INSTALL-SET-4`, `TIRE-INSTALL-LT-SET-4`, `TIRE-INSTALL-COMMERCIAL-SINGLE`, `TIRE-REPAIR-PATCH-PLUG`, `WHEEL-BALANCE-SET-4`, `ROAD-FORCE-BALANCE-SET-4`, `NITROGEN-FILL-SET-4`, `TPMS-SENSOR-SERVICE`, `TPMS-SENSOR-REPLACE-SINGLE` | Mounting machine, balancer; road-force balancer; N₂ generator. All require dismounting a tire |
+| `INSPECTION` | `DOT-ANNUAL-INSPECTION` | Inspection lane and the shop's inspection authority |
+| `HEAVY_DUTY` | *(none — a `gvwr_class` ceiling per D13)* | — |
+| `WASH_DETAIL` | *(none seeded — no wash services in the catalog)* | Not a mechanical bay; excluded from the general default |
+| `GENERAL_SERVICE` | *(declares nothing — receives the default)* | — |
+
+**General by default, and deliberately so** — the remaining 17 of 28:
+`OIL-CHANGE-FULL-SYNTHETIC`, `BRAKE-PAD-REPLACE-FRONT`, `BRAKE-PAD-REPLACE-REAR`,
+`COOLANT-SYSTEM-FLUSH`, `TRANSMISSION-SERVICE`, `BATTERY-REPLACEMENT`,
+`FLEET-PM-A-SERVICE`, `FLEET-PM-B-SERVICE`, `AIR-FILTER-REPLACEMENT`,
+`CABIN-AIR-FILTER-REPLACEMENT`, `SPARK-PLUG-REPLACEMENT`, `WIPER-BLADE-REPLACEMENT`,
+`TIRE-ROTATION`, `LUG-TORQUE-RECHECK`, `FLEET-TREAD-DEPTH-AUDIT`,
+`MICHELIN-CASING-INSPECTION`, `MICHELIN-RETREAD-EVALUATION`.
+
+Three judgement calls in that list, flagged rather than buried:
+
+- **`TIRE-ROTATION`, `LUG-TORQUE-RECHECK`** need a lift and a torque wrench, not a
+  tire machine. General.
+- **`FLEET-TREAD-DEPTH-AUDIT`, `MICHELIN-CASING-INSPECTION`,
+  `MICHELIN-RETREAD-EVALUATION`** are gauge-and-eye inspections. General. A tire
+  shop will do them in the tire bay by habit, which the ranking rule accommodates
+  without making them specialty.
+- **`TRANSMISSION-SERVICE`** needs a fluid-exchange machine, which is arguably
+  specialty equipment — but there is no bay type for it, and inventing one to hold a
+  single service is worse than treating it as general. If a shop confines
+  transmission work to specific bays, that is a new `BayType` and a new map row.
+
+#### D14.2 — what this removes from the plan
+
+| Withdrawn | Was |
+|---|---|
+| `service_requirement_profile` (§4.1) | Header/detail to distinguish unconstrained from unconfigured |
+| `service_capability_requirement` (§4.1) | Per-service capability rows |
+| `ext_service_capability` replica (§4.2) | Catalog validating codes against a location-owned registry |
+| `location.service-capability.updated` fact (§5) | Publishing that registry |
+| `PUT /v1/products/services/{id}/requirements` (§6.1) | Per-service configuration endpoint |
+| `requiredCapabilityCodes` on `ServiceDto` (§6.1) | Per-service declaration on the read model |
+| §7.1's catalog seed | Mapping 24 services onto registry codes |
+| §7.2's bay bootstrap and per-bay authoring | Asserting equipment for 24 bays |
+| `SERVICE_REQUIREMENTS_NOT_CONFIGURED` | A third `noOpeningReason` value |
+
+What survives, and is now the whole of CAP-325's capability axis: the specialty map
+of D14.1, `max_duty_class` on the bay (D13), the `BayResponse` `@Schema` and rename
+fixes, and `GET /v1/service-capabilities` **only if** the 20-row registry is still
+wanted as a display vocabulary — it is no longer load-bearing for eligibility, and
+CAP-325 should say explicitly whether it is kept or retired.
+
+**The specialty map lives in `pos-location`**, keyed `(bay_type, operation_code)`,
+because bay types are `pos-location`'s and the map is a statement about bays. It
+holds catalog `operationCode`s, so `pos-location` needs an `ext_catalog_service`
+replica off the existing `catalog.service.updated` fact to validate them — the one
+piece of new cross-module plumbing that survives.
+
+### D15 — credentials are re-ingested with real dates, not migrated *(settled)*
+
+Settled 2026-09-16. The 23 rows in
+`scripts/fixtures/seed/alpha/shop-manager/mechanic-skills.csv` carry no issuer and no
+dates, and `person_credential.issued_on` is `NOT NULL` (§4.4), so there was a choice
+between a sentinel date, a nullable column, and re-ingestion.
+
+**Re-ingest.** The fixture gains `issuer`, `certifiedDate` and `expirationDate` with
+real values, and the dateless rows are replaced rather than carried forward with a
+fabricated `issued_on`. A sentinel would have been indistinguishable from a real
+date to every downstream reader, and the whole point of D7's credential aggregate is
+that "was this person qualified on date X" has a true answer — a sentinel makes it
+confidently wrong instead of absent.
+
+Requirements on the re-ingest:
+
+- `issuer` is `ASE` for all 23 existing rows; the ASE cycle is five years, so
+  `expirationDate` is `certifiedDate` + 5 years unless deliberately varied.
+- **At least one deliberately expired row**, so `#2022` AC8 (now CAP-328's) has
+  something to bite on rather than passing against empty data.
+- At least one row with a **null** `expirationDate`, exercising "does not expire".
+- Dates spread across technicians rather than uniform, so an expiry-boundary test is
+  not accidentally testing one date.
+- No `person_credential` row is created without an `issued_on` — the column stays
+  `NOT NULL` and needs no migration shim, per the pre-production policy.
+
 ### D11 — an opening names the constraints that were actually evaluated
 
 Because the submit-time enforcement tier does not exist and is contractually the
@@ -1011,7 +1165,7 @@ Beyond the per-AC coverage in the stories:
 
 | | Capability | Blocked on |
 |---|---|---|
-| **CAP-325** | Bay capability axis: §4.1–§4.3, §5 rows 1 and 3–4, §6.1–§6.2, §7.1–§7.2 | Nothing. **Ready, with §7.2 as revised** |
+| **CAP-325** | Bay eligibility axis, **as reduced by D14**: the specialty map (D14.1) in `pos-location` with an `ext_catalog_service` replica to validate its codes, `max_duty_class` on the bay (D13), the `BayResponse` `@Schema` and rename fixes. **No per-service configuration, no per-bay equipment authoring.** | Nothing. **Ready** |
 | **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references (DDL at `DOMAIN_NOTES.md:161-185`, audit queries at `:260-268`), **operating hours and holiday closures added to `LocationUpdatedV1` and `ExtLocationReplica` first (D12)**, bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the two new SOFT/`SKILL` rules of D10.1 (`COMPETENT_MECHANIC_UNAVAILABLE`, `NO_COMPETENT_MECHANIC_ROSTERED`). `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
 | **CAP-327** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
 | **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing. `#2035` confirms expiry still matters: a SOFT warning must know whether the credential behind it has lapsed |
@@ -1061,9 +1215,18 @@ Beyond the per-AC coverage in the stories:
   template on `tenant.created`, rather than deferring the decision to the moment it
   becomes expensive. The `skill` registry, being `@TenantGlobal`, has no such
   problem — which is a further argument for D2.
-- **Map maintenance.** §7.1 covers the 28 services that exist. Service 29 gets no
-  profile and correctly reads as *not configured*, but the map is hand-maintained
-  until §6.1's write endpoint has a UI. Needs an owner.
+- **Specialty-map maintenance** (D14). The map is small and hand-maintained. A new
+  *specialty* service that nobody adds to it reads as general and can be booked into
+  a bay that cannot do it. Review the map whenever a service is added in a category
+  that already has specialty members. Needs an owner; does **not** need a
+  per-service configured flag, which is what D14 removed.
+- **Is the 20-row `service_location_capabilities` registry kept or retired?** D14
+  removes its role in eligibility. It may still be wanted as a display vocabulary.
+  CAP-325 states which, explicitly, rather than leaving it in place unused.
+- **`TRANSMISSION-SERVICE`** (D14.1) is general today despite needing a
+  fluid-exchange machine, because no bay type exists for it. If a shop confines that
+  work, it is a new `BayType` and a new map row — not a reason to invent a bay type
+  for one service now.
 
 ---
 
