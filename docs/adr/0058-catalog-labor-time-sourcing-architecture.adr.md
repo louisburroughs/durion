@@ -1,28 +1,35 @@
 ---
 type: ADR
-title: 'ADR-0058: Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)'
-description: Nothing in the platform stores an estimated service time. WorkorderSummary.estimatedLaborHours is declared and always null; workorder_service has quantity and price but no hours; the pos-catalog service table carried onl...
-status: draft
-adr_status: proposed
-created: '2026-09-01'
+title: "ADR-0058: Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)"
+description:
+  Nothing in the platform stores an estimated service time. WorkorderSummary.estimatedLaborHours is declared and always null; workorder_service has quantity and price but no
+  hours; the pos-catalog service table carried onl...
+status: stable
+adr_status: accepted
+created: "2026-09-01"
 related: [ADR-0026, ADR-0044, ADR-0049, ADR-0050, ADR-0053, ADR-0059]
 tags: [adr, product]
 ---
+
 # ADR-0058: Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)
 
-**Status:** PROPOSED
-**Date:** 2026-09-01
-**Deciders:** Architecture, Backend Lead, Pricing & Fees Domain, Workorder Execution Domain
-**Affected Issues:** durion-positivity-backend#1569, durion-positivity-backend#1573, durion-positivity-backend#1575
+**Status:** ACCEPTED **Date:** 2026-09-15 **Deciders:** Architecture, Backend Lead, Pricing & Fees Domain, Workorder Execution Domain **Affected Issues:**
+durion-positivity-backend#1569, durion-positivity-backend#1573, durion-positivity-backend#1575
 
 ---
 
 ## Context
 
-- **Current State**: Nothing in the platform stores an estimated service time. `WorkorderSummary.estimatedLaborHours` is declared and always null; `workorder_service` has quantity and price but no hours; the pos-catalog `service` table carried only naming until V17. Actual technician time (time on task) already flows — `WorkorderLaborEntry.hoursWorked` sums into `totalLaborHours` — but there is no estimate to compare it against.
-- **The Problem**: Book time (flat-rate time) is per operation *and* per vehicle, comes from licensable third-party guides (MOTOR, Mitchell 1, ALLDATA), OEM warranty manuals and parts-manufacturer tables, and must be defensible on an invoice — which requires source and revision attribution. A single scalar column models none of that.
-- **Drivers**: Estimate defaulting for `LABOR` estimate items; estimate-vs-actual variance; scheduling capacity input; licensing terms that differ per source and constrain persistence and replication; ADR-0026/ADR-0044 module walls.
-- **Scope**: Where estimated service times live, how they are sourced, and how consumers reach them. The full worked plan is `durion-positivity-backend/pos-catalog/docs/service-time-sourcing-plan.md`; this ADR fixes its load-bearing decisions. The owner-confirmed three-record taxonomy on #1569 (time on task, attendance time entry, estimated service time) bounds this ADR to the third record only.
+- **Current State**: Nothing in the platform stores an estimated service time. `WorkorderSummary.estimatedLaborHours` is declared and always null; `workorder_service` has
+  quantity and price but no hours; the pos-catalog `service` table carried only naming until V17. Actual technician time (time on task) already flows —
+  `WorkorderLaborEntry.hoursWorked` sums into `totalLaborHours` — but there is no estimate to compare it against.
+- **The Problem**: Book time (flat-rate time) is per operation _and_ per vehicle, comes from licensable third-party guides (MOTOR, Mitchell 1, ALLDATA), OEM warranty manuals
+  and parts-manufacturer tables, and must be defensible on an invoice — which requires source and revision attribution. A single scalar column models none of that.
+- **Drivers**: Estimate defaulting for `LABOR` estimate items; estimate-vs-actual variance; scheduling capacity input; licensing terms that differ per source and constrain
+  persistence and replication; ADR-0026/ADR-0044 module walls.
+- **Scope**: Where estimated service times live, how they are sourced, and how consumers reach them. The full worked plan is
+  `durion-positivity-backend/pos-catalog/docs/service-time-sourcing-plan.md`; this ADR fixes its load-bearing decisions. The owner-confirmed three-record taxonomy on #1569
+  (time on task, attendance time entry, estimated service time) bounds this ADR to the third record only.
 
 ---
 
@@ -30,27 +37,45 @@ tags: [adr, product]
 
 ### 1. System of record and vehicle keying
 
-**Decision:** ✅ **Resolved** — pos-catalog's `ServiceEntity` is the system of record for estimated service time (owner decision recorded on #1569, 2026-08-29). Vehicle-specific times live in a **vehicle-keyed child table inside pos-catalog** (`service_labor_standard`: year/make/model/submodel/engine key with null-as-wildcard, decimal hours in tenths, time type, overlap and included-operation metadata, source + revision provenance, append-and-supersede lifecycle). The rejected alternative — a service-fitment analogue of `PartFitmentEntity` in pos-vehicle-fitment — would re-split the record and put a second cross-module hop on the quote path; pos-vehicle-fitment contributes vehicle *vocabulary*, not rows.
+**Decision:** ✅ **Resolved** — pos-catalog's `ServiceEntity` is the system of record for estimated service time (owner decision recorded on #1569, 2026-08-29).
+Vehicle-specific times live in a **vehicle-keyed child table inside pos-catalog** (`service_labor_standard`: year/make/model/submodel/engine key with null-as-wildcard, decimal
+hours in tenths, time type, overlap and included-operation metadata, source + revision provenance, append-and-supersede lifecycle). The rejected alternative — a
+service-fitment analogue of `PartFitmentEntity` in pos-vehicle-fitment — would re-split the record and put a second cross-module hop on the quote path; pos-vehicle-fitment
+contributes vehicle _vocabulary_, not rows.
 
 ### 2. Operation taxonomy
 
-**Decision:** ✅ **Resolved** — `service` gains `operation_code` (Durion-owned identity, unique when present; vendor codes map onto ours, never the reverse), `operation_category` (REPAIR | DIAGNOSTIC | MAINTENANCE | TIRE_SERVICE) and `default_labor_hours` (vehicle-agnostic fallback only, deliberately second-class to the standards table). Naming rules are in ADR-0059.
+**Decision:** ✅ **Resolved** — `service` gains `operation_code` (Durion-owned identity, unique when present; vendor codes map onto ours, never the reverse),
+`operation_category` (REPAIR | DIAGNOSTIC | MAINTENANCE | TIRE_SERVICE) and `default_labor_hours` (vehicle-agnostic fallback only, deliberately second-class to the standards
+table). Naming rules are in ADR-0059.
 
 ### 3. Sourcing pattern
 
-**Decision:** ✅ **Resolved** — Adopt the pos-supplier shape (ADR-0049/ADR-0050): a provider SPI (`LaborTimeProviderPort`) with vendor adapters *inside pos-catalog*, config-driven per-source profiles with sandbox base-url override, typed degradation statuses, chunked-manifest ingestion cloned from the ADR-0053 supplier-price import. Per-vendor microservices are rejected — the dead `pos-vehicle-reference-*` modules demonstrate that failure mode. Phasing: a local mock provider proves the whole pipeline first, then one licensed aggregator, then multi-source (OEM/manufacturer primary, aggregator backstop) with a data-driven precedence policy.
+**Decision:** ✅ **Resolved** — Adopt the pos-supplier shape (ADR-0049/ADR-0050): a provider SPI (`LaborTimeProviderPort`) with vendor adapters _inside pos-catalog_,
+config-driven per-source profiles with sandbox base-url override, typed degradation statuses, chunked-manifest ingestion cloned from the ADR-0053 supplier-price import.
+Per-vendor microservices are rejected — the dead `pos-vehicle-reference-*` modules demonstrate that failure mode. Phasing: a local mock provider proves the whole pipeline
+first, then one licensed aggregator, then multi-source (OEM/manufacturer primary, aggregator backstop) with a data-driven precedence policy.
 
 ### 4. Licensing gates persistence and transport
 
-**Decision:** ✅ **Resolved** — Each source's license terms are settled **before** its adapter is built, and select one of two modes: **STORE** (feed ingested into `service_labor_standard` with import-manifest bookkeeping) or **QUERY_ONLY** (live SPI call, TTL-bounded cache, never persisted). Whether any licensed-derived value may ride a Kafka fact is likewise a per-source license question.
+**Decision:** ✅ **Resolved** — Each source's license terms are settled **before** its adapter is built, and select one of two modes: **STORE** (feed ingested into
+`service_labor_standard` with import-manifest bookkeeping) or **QUERY_ONLY** (live SPI call, TTL-bounded cache, never persisted). Whether any licensed-derived value may ride a
+Kafka fact is likewise a per-source license question.
 
 ### 5. Transport to pos-workorder
 
-**Decision:** ✅ **Resolved** (2026-09-02, with the Phase 1 build) — The proposed split is ratified in two halves. Synchronous half: a scoped REST edge (`ServiceLaborTimeService` in `catalog.service`, `POST /v1/catalog/labor-times/resolve`) answers vehicle-specific resolution at quote time, granted file-scoped to pos-workorder's `CatalogLaborTimeClientImpl` by the ADR-0044 amendment dated 2026-09-02. Event half: the `catalog.service.updated` fact carries the vehicle-agnostic `defaultLaborHours` (with `operationCode`/`operationCategory`) additively at **`schemaVersion: 2`** — an in-place bump of `CatalogServiceUpdatedV1` per the `ProductUpdatedV1` schema-v2 precedent, not a new payload class — feeding a pos-workorder `ext_catalog_service` replica for the degraded/offline path. Vehicle-specific rows never ride the fact (volume + licensing, §4).
+**Decision:** ✅ **Resolved** (2026-09-02, with the Phase 1 build) — The proposed split is ratified in two halves. Synchronous half: a scoped REST edge
+(`ServiceLaborTimeService` in `catalog.service`, `POST /v1/catalog/labor-times/resolve`) answers vehicle-specific resolution at quote time, granted file-scoped to
+pos-workorder's `CatalogLaborTimeClientImpl` by the ADR-0044 amendment dated 2026-09-02. Event half: the `catalog.service.updated` fact carries the vehicle-agnostic
+`defaultLaborHours` (with `operationCode`/`operationCategory`) additively at **`schemaVersion: 2`** — an in-place bump of `CatalogServiceUpdatedV1` per the `ProductUpdatedV1`
+schema-v2 precedent, not a new payload class — feeding a pos-workorder `ext_catalog_service` replica for the degraded/offline path. Vehicle-specific rows never ride the fact
+(volume + licensing, §4).
 
 ### 6. Timekeeping boundary
 
-**Decision:** ✅ **Resolved** — Estimated service time never reads or writes `work_session`, `time_entry`, or `TimekeepingEntry` (owner ruling on #1573: time entry is clock-in/out and breaks; workorder time comes from service times). The only contact is variance reporting, which compares the estimate total against the already-computed time-on-task `totalLaborHours` in pos-workorder.
+**Decision:** ✅ **Resolved** — Estimated service time never reads or writes `work_session`, `time_entry`, or `TimekeepingEntry` (owner ruling on #1573: time entry is
+clock-in/out and breaks; workorder time comes from service times). The only contact is variance reporting, which compares the estimate total against the already-computed
+time-on-task `totalLaborHours` in pos-workorder.
 
 ---
 
