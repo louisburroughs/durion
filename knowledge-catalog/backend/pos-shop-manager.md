@@ -13,4 +13,5 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T12:28:26
 
 **Kind:** Service
 **Domain:** [shopmgmt](../domains/shopmgmt.md)
+**Documentation:** [Canonical shopmgmt index](https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt/index.md)
 **API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shop-manager/openapi.yaml)
