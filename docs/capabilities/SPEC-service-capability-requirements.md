@@ -898,6 +898,85 @@ housekeeping list (§9.2):**
   the decision record gets no idempotency at all. Not CAP-326's — amend the record to
   ratify the header, or add the field.
 
+### D18 — the conflict model's three open points, ruled during implementation
+
+Put to the Shop Management domain agent 2026-09-16 while CAP-326's model was being
+built; every checkable claim was verified against the repository.
+
+**D18.1 — the HOURS rules are seeded; the catalog is eight rows, not six.**
+`#483` asks for both "six rules exactly as named" and "booking outside operating
+hours is rejected HARD". A persisted conflict needs a `conflict_rule` row to
+reference, and DECISION-SHOPMGMT-002's own DDL reserved `HOURS` in
+`conflict_resource_type` for exactly this. Two rules join on the footing the two
+`SKILL` rows already have — an extension of the seeded rules, not an amendment:
+
+| `conflict_rule.code` | Resource | Severity | Fires when | Remedy |
+|---|---|---|---|---|
+| `OUTSIDE_OPERATING_HOURS` | `HOURS` | HARD | the window falls outside the day's open–close, or spans midnight | move the time |
+| `FACILITY_CLOSED` | `HOURS` | HARD | the local date has no window (weekday closed, `"[]"` configured-closed) or is a dated closure | move the day |
+
+One rule for both closure kinds because D10.1's test is remedy, and a Sunday and a
+holiday share one. `FACILITY_CLOSED` rather than DECISION-008's illustrative
+`FACILITY_CLOSED_HOLIDAY` because the same rule covers a plain closed weekday, and a
+misnamed code in a one-namespace contract is permanent. A booking on a closed day is
+refused as closed, never as full: 409, one HARD `FACILITY_CLOSED`, a
+`scheduling_conflict` row with `appointment_id NULL`, no appointment. HOURS is
+evaluated before BAY so a closed day never reaches the exclusion constraint. Time is
+facility-local via `ExtLocationReplica.timezone` (DECISION-015). The parsing already in
+`ScheduleCapacityServiceImpl` (`parseOperatingHours`, `parseHolidayClosures`) is
+extracted and shared, not copied.
+
+*Owner's call, default given:* hours never published, timezone blank or no replica
+row — the HOURS rules do not fire, a WARN is logged, no conflict row is written. An
+unknown fact is not a confirmed closure (the capacity read's own principle, and D11);
+DECISION-008's "warning mode first" tolerates it. Never report the unknown case as
+`FACILITY_CLOSED`.
+
+**D12 is corrected:** operating hours *do* reach `pos-shop-manager` now — `#2023`'s
+delivery (`V2__schedule_capacity_replica_columns.sql`) added `timezone`,
+`operating_hours` and `holiday_closures` to `ext_location`, and the listener merges
+them. The prerequisite D12 recorded is met.
+
+**D18.2 — `conflict_rule` is platform reference data: `@TenantGlobal`.** One row set
+for every tenant, no `tenant_id`, no RLS, listed in `tenancy-global-tables.txt`. The
+rule code is the API contract and severity is a property of the rule (D10); a
+tenant-scoped catalog would let a tenant deactivate `BAY_DOUBLE_BOOKED` while the
+exclusion constraint kept enforcing it, and the audit query would join against rows a
+tenant could edit. It is the same kind of thing as the permission catalog, and D2
+settled the analogous question for the skill registry. A later per-tenant toggle is an
+additive overlay table, never a re-scoping. `scheduling_conflict` and
+`conflict_override` stay tenant-scoped; their FK to `conflict_rule` is single-column.
+
+**D18.3 — `override_record` is retired; `ConflictOverrideService` writes
+`conflict_override`.** Two override tables would be the parallel path `#483` forbids,
+and the old one is the one whose audit cannot run (no severity, no rule). Its gate
+was also wrong under D12: `shop:schedule:edit OR appointments:reschedule` is held by
+`DISPATCHER`, so a non-manager can override today. The endpoint keeps its path and
+post-hoc shape — a SOFT conflict at create/reschedule warns and allows, its rows are
+persisted with `appointment_id` set, and the manager records the override against
+them afterwards — with the body becoming `{conflictIds, overrideReason}`. Every
+`conflictId` must belong to the appointment (400 otherwise) and be SOFT and not yet
+overridden (409 with the DECISION-002 envelope otherwise, and no row — which is what
+keeps "HARD with override = zero" true). Single-actor approval: `approved_by =
+overridden_by`, `approved_at = created_at`, so DECISION-002's second audit query holds
+without a two-step flow. Rows are immutable (DECISION-007); no separate
+`conflict_override_audit` table — the join carries every column it lists.
+`appointment.is_conflict_override` and `reschedule_history.conflict_overridden` are
+dropped: the first is read by no response, the second is written unconditionally
+`false` and never read. Gate: `shop:conflict:override` plus the ADR-0061 location-scope
+guard, on controller and service interface both.
+
+*Owner's call, default given:* a refused HARD attempt writes no row; the event stream
+records it. A nullable `outcome` column is the later addition if rejected attempts
+must be queryable.
+
+**D17 is corrected:** the exclusion-constraint migration is not `V4`; `V5` is the
+assignment-status migration, so the conflict tables and the constraint land at `V6+`.
+And the role grants: `SHOP_MANAGER`'s goes in `R__seed_role_permissions.sql`;
+`LOCATION_MANAGER`'s and `GENERAL_MANAGER`'s go in
+`scripts/fixtures/seed/alpha/security/role-permissions.csv`, per that seed file's own
+scope rule (#1613 D8) — `generate-permissions.sh --sync --grant` writes both.
+
 ### D11 — an opening names the constraints that were actually evaluated
 
 Because the submit-time enforcement tier does not exist and is contractually the
