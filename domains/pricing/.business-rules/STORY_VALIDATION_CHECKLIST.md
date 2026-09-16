@@ -1,3 +1,10 @@
+---
+type: Checklist
+title: Pricing Checklist
+description: This checklist validates implementations in the Pricing domain across UI, API contracts, security, and observability. It incorporates the resolved open questions from the Pricing domain docs into t...
+domain: pricing
+tags: [domain, pricing, checklist]
+---
 
 # STORY_VALIDATION_CHECKLIST.md
 

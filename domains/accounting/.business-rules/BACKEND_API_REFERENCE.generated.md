@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Accounting API Reference
+description: Generated API reference for the Accounting domain, rendered from the module's OpenAPI spec.
+domain: accounting
+tags: [domain, accounting, api-reference]
+---
+
 # Accounting Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

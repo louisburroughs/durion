@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Product Catalog Backend Contract Guide
 domain: product
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-07
 api_reference_generated: domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Product Catalog domain behavior.
+tags: [domain, product, backend-contract]
 ---
 
 # Product Catalog Backend Contract Guide

@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Work Execution Domain Notes
+description: This document is the non-normative rationale and decision log for the workexec domain. It expands the decisions in AGENT_GUIDE.md with alternatives, tradeoffs, and validation guidance for architect...
+domain: workexec
+tags: [domain, workexec, domain-notes]
+---
+
 # WORKEXEC_DOMAIN_NOTES.md
 
 ## Summary

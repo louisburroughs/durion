@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Product API Reference
+description: Generated API reference for the Product domain, rendered from the module's OpenAPI spec.
+domain: product
+tags: [domain, product, api-reference]
+---
+
 # Product Catalog Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

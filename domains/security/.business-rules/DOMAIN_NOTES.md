@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Security Domain Notes
+description: This document is non-normative and exists to explain the rationale, tradeoffs, and audit/operations implications behind the Security domain’s normative rules. It mirrors the decisions listed in AGE...
+domain: security
+tags: [domain, security, domain-notes]
+---
+
 # SECURITY_DOMAIN_NOTES.md
 
 ## Summary

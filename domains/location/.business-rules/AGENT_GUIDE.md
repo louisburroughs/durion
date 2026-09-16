@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Location Agent Guide
+description: The Location domain is the system of record for shop Locations and their Location-owned sub-resources (Bays, Mobile Units, Coverage Rules, Travel Buffer Policies). This update resolves previously o...
+domain: location
+tags: [domain, location, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

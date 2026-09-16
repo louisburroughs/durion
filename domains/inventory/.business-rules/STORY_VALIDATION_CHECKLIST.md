@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Inventory Checklist
+description: Validation checklist for inventory-domain stories. Use this alongside AGENT_GUIDE.md and the decision set DECISION-INVENTORY-###.
+domain: inventory
+tags: [domain, inventory, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

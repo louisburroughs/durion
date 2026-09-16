@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Inventory Management Backend Contract Guide
 domain: inventory
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-08-27
 api_reference_generated: domains/inventory/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Inventory Management domain behavior.
+tags: [domain, inventory, backend-contract]
 ---
 
 # Inventory Management Backend Contract Guide

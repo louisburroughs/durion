@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Shop Management Backend Contract Guide
 domain: shopmgmt
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-02-24
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Shop Management domain behavior.
+tags: [domain, shopmgmt, backend-contract]
 ---
 
 # Shop Management Backend Contract Guide

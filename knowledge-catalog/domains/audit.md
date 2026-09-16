@@ -10,4 +10,9 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-19T09:45:41-0
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/audit) — `domains/audit/` (4 documents)
 
-**Business rules:** `AGENT_GUIDE.md`, `DOMAIN_NOTES.md`, `STORY_VALIDATION_CHECKLIST.md`
+
+**Business rules:**
+
+* [AGENT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/audit/.business-rules/AGENT_GUIDE.md) — Agent Guide
+* [DOMAIN_NOTES.md](https://github.com/louisburroughs/durion/blob/main/domains/audit/.business-rules/DOMAIN_NOTES.md) — Domain Notes
+* [STORY_VALIDATION_CHECKLIST.md](https://github.com/louisburroughs/durion/blob/main/domains/audit/.business-rules/STORY_VALIDATION_CHECKLIST.md) — Checklist

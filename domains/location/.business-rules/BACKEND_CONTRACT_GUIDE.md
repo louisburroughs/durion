@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Location Management Backend Contract Guide
 domain: location
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-02
 api_reference_generated: domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Location Management domain behavior.
+tags: [domain, location, backend-contract]
 ---
 
 # Location Management Backend Contract Guide

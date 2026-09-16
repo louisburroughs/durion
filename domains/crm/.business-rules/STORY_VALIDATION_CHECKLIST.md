@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: CRM Checklist
+description: This checklist validates CRM-domain story implementations for correctness, security, operational visibility, and contract fidelity. It incorporates resolved open questions from the prior CRM docs b...
+domain: crm
+tags: [domain, crm, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

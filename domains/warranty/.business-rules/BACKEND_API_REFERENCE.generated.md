@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Warranty API Reference
+description: Generated API reference for the Warranty domain, rendered from the module's OpenAPI spec.
+domain: warranty
+tags: [domain, warranty, api-reference]
+---
+
 # Warranty Claims Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

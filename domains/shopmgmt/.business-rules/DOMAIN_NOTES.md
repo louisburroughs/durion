@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Shop Management Domain Notes
+description: This document provides comprehensive rationale and decision logs for the Shop Management (shopmgmt) domain. Shopmgmt manages appointment scheduling, resource assignment (bays/mobile units/mechanics...
+domain: shopmgmt
+tags: [domain, shopmgmt, domain-notes]
+---
+
 # SHOPMGMT_DOMAIN_NOTES.md
 
 ## Summary

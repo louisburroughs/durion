@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Positivity Checklist
+description: This checklist is used to validate that changes in the positivity domain are implementable, testable, and safe across POS backend and frontend integration points. It incorporates previously open qu...
+domain: positivity
+tags: [domain, positivity, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Security Backend Contract Guide
 domain: security
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-11
 api_reference_generated: domains/security/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Security domain behavior.
+tags: [domain, security, backend-contract]
 ---
 
 # Security Backend Contract Guide

@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Product Agent Guide
+description: This guide defines the Product domain's normative backend rules for the Durion platform. In implementation, this domain maps to durion-positivity-backend/pos-catalog.
+domain: product
+tags: [domain, product, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

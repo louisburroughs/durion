@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Work Execution Checklist
+description: This checklist validates WorkExec-domain story implementations for correctness, security, operational visibility, and contract fidelity. It mirrors patterns from accounting and CRM validation check...
+domain: workexec
+tags: [domain, workexec, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

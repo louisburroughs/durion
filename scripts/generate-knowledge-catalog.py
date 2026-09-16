@@ -206,7 +206,12 @@ def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
             or first_prose(rules / "BACKEND_CONTRACT_GUIDE.md")
             or DOMAIN_FALLBACK.get(domain.name, "")
         )
-        guides = sorted(p.name for p in rules.glob("*.md")) if rules.exists() else []
+        # (filename, type) so the note can say what each guide is, read from the
+        # guide's own frontmatter rather than guessed at here.
+        guides = []
+        for guide in sorted(rules.glob("*.md")) if rules.exists() else []:
+            guide_keys = existing_keys(split_frontmatter(guide.read_text(encoding="utf-8", errors="replace"))[0])
+            guides.append((guide.name, guide_keys.get("type", "Domain Document")))
         records.append(
             {
                 "name": domain.name,
@@ -254,8 +259,12 @@ def domain_note(record: dict) -> str:
         links = ", ".join(f"[{m}](/backend/{m}.md)" for m in record["modules"])
         lines.append(f"**Implemented by:** {links}")
     if record["guides"]:
-        named = ", ".join(f"`{g}`" for g in record["guides"][:6])
-        lines.append(f"**Business rules:** {named}")
+        # Every guide, linked and typed: these are the documents an agent opens next,
+        # so a bare filename list made the note a dead end.
+        lines += ["", "**Business rules:**", ""]
+        base = f"{resource}/.business-rules"
+        for name, kind in record["guides"]:
+            lines.append(f"* [{name}]({base}/{name}) — {kind}")
     return "\n".join(lines)
 
 

@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Work Execution API Reference
+description: Generated API reference for the Work Execution domain, rendered from the module's OpenAPI spec.
+domain: workexec
+tags: [domain, workexec, api-reference]
+---
+
 # Work Order Execution Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

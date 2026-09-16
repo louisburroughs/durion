@@ -11,4 +11,9 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T17:11:24+0
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/product) — `domains/product/` (9 documents)
 
 **Implemented by:** [pos-catalog](/backend/pos-catalog.md), [pos-price](/backend/pos-price.md)
-**Business rules:** `AGENT_GUIDE.md`, `BACKEND_API_REFERENCE.generated.md`, `BACKEND_CONTRACT_GUIDE.md`
+
+**Business rules:**
+
+* [AGENT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/product/.business-rules/AGENT_GUIDE.md) — Agent Guide
+* [BACKEND_API_REFERENCE.generated.md](https://github.com/louisburroughs/durion/blob/main/domains/product/.business-rules/BACKEND_API_REFERENCE.generated.md) — API Reference
+* [BACKEND_CONTRACT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/product/.business-rules/BACKEND_CONTRACT_GUIDE.md) — Backend Contract

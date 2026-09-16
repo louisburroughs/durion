@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: CRM Agent Guide
+description: This document is the normative agent guide for the CRM domain: system-of-record boundaries, invariants, and integration rules for CRM UI and services. It resolves prior CLARIFY/TODO items by making...
+domain: crm
+tags: [domain, crm, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Accounting Domain Notes
+description: This document captures why accounting decisions were made, what alternatives were considered, and what risks remain.
+domain: accounting
+tags: [domain, accounting, domain-notes]
+---
+
 # ACCOUNTING_DOMAIN_NOTES.md
 
 *(Non-Normative — Exploratory & Rationale)*

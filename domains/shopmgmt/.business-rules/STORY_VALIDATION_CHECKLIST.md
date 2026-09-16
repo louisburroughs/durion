@@ -1,3 +1,10 @@
+---
+type: Checklist
+title: Shop Management Checklist
+description: This checklist validates shopmgmt story implementations across UI (Moqui screens) and backend contracts.
+domain: shopmgmt
+tags: [domain, shopmgmt, checklist]
+---
 
 # STORY_VALIDATION_CHECKLIST.md
 

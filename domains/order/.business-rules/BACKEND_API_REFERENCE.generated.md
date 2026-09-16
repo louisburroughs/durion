@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Order API Reference
+description: Generated API reference for the Order domain, rendered from the module's OpenAPI spec.
+domain: order
+tags: [domain, order, api-reference]
+---
+
 # Order Management Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

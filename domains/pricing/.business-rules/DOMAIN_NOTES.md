@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Pricing Domain Notes
+description: This document is the non-normative rationale and decision log for the Pricing domain. It explains why the normative decisions in AGENT_GUIDE.md were chosen, what alternatives were considered, and w...
+domain: pricing
+tags: [domain, pricing, domain-notes]
+---
+
 # PRICING_DOMAIN_NOTES.md
 
 ## Summary

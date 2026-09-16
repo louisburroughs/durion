@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Order Agent Guide
+description: This guide defines the Order domain’s normative rules for order cancellation orchestration in the Durion Positivity ETSMS platform. It resolves the prior “open questions”
+domain: order
+tags: [domain, order, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

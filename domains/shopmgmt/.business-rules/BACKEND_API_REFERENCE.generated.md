@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Shop Management API Reference
+description: Generated API reference for the Shop Management domain, rendered from the module's OpenAPI spec.
+domain: shopmgmt
+tags: [domain, shopmgmt, api-reference]
+---
+
 # Shop Management Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

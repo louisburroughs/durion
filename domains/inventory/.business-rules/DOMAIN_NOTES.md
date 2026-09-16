@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Inventory Domain Notes
+description: This document records the rationale, tradeoffs, and audit guidance behind the Inventory domain’s normative rules in AGENT_GUIDE.md.
+domain: inventory
+tags: [domain, inventory, domain-notes]
+---
+
 # INVENTORY_DOMAIN_NOTES.md
 
 ## Summary

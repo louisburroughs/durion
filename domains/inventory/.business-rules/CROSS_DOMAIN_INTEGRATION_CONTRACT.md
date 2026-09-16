@@ -1,3 +1,11 @@
+---
+type: Integration Contract
+title: Inventory Integration Contract
+description: This document defines the integration contracts between the Inventory domain and the
+domain: inventory
+tags: [domain, inventory, integration-contract]
+---
+
 # Inventory Cross-Domain Integration Contracts
 
 **Version:** 1.0  

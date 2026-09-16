@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Inventory API Reference
+description: Generated API reference for the Inventory domain, rendered from the module's OpenAPI spec.
+domain: inventory
+tags: [domain, inventory, api-reference]
+---
+
 # Inventory Management Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

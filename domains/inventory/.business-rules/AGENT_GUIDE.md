@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Inventory Agent Guide
+description: This guide defines the normative business rules and frontend-facing contracts for the Inventory domain in Durion.
+domain: inventory
+tags: [domain, inventory, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

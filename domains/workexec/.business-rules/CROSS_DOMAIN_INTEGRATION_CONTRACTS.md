@@ -1,3 +1,11 @@
+---
+type: Integration Contract
+title: Work Execution Integration Contract
+description: This document defines the API contracts between the WorkExec domain and external domains required to implement WorkExec stories. Each contract specifies the service/endpoint, request/response schem...
+domain: workexec
+tags: [domain, workexec, integration-contract]
+---
+
 # WorkExec Cross-Domain Integration Contracts
 
 **Version:** 1.0  

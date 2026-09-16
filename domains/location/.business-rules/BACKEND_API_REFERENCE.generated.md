@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Location API Reference
+description: Generated API reference for the Location domain, rendered from the module's OpenAPI spec.
+domain: location
+tags: [domain, location, api-reference]
+---
+
 # Location Management Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

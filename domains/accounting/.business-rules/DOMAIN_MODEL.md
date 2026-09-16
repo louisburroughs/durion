@@ -1,6 +1,9 @@
 ---
+type: Domain Model
 title: Accounting Domain Model
 description: Entity definitions, relationships, state machines, and business rules for the accounting domain
+domain: accounting
+tags: [domain, accounting, domain-model]
 ---
 
 ## Overview

@@ -1,3 +1,10 @@
+---
+type: Agent Guide
+title: Pricing Agent Guide
+description: This document is the normative guide for the Pricing domain. It defines system-of-record boundaries, core invariants, and the decision set that the UI and services must follow to keep pricing deter...
+domain: pricing
+tags: [domain, pricing, agent-guide]
+---
 
 # AGENT_GUIDE.md
 

@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: People API Reference
+description: Generated API reference for the People domain, rendered from the module's OpenAPI spec.
+domain: people
+tags: [domain, people, api-reference]
+---
+
 # People & Human Resources Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

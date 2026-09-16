@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Security Checklist
+description: This checklist validates implementations of Security domain stories (RBAC admin, provisioning orchestration, and security-owned audit) against the normative decisions in AGENT_GUIDE.md. It also inc...
+domain: security
+tags: [domain, security, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

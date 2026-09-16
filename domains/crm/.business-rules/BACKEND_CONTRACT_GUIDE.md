@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Customer Relationship Management Backend Contract Guide
 domain: crm
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-02-24
 api_reference_generated: domains/crm/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Customer Relationship Management domain behavior.
+tags: [domain, crm, backend-contract]
 ---
 
 # Customer Relationship Management Backend Contract Guide

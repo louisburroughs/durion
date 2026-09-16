@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: CRM Domain Notes
+description: This document is non-normative rationale and decision detail for the CRM domain’s agent guide. It explains why decisions were made, what alternatives were considered, and what to audit/inspect oper...
+domain: crm
+tags: [domain, crm, domain-notes]
+---
+
 # CRM_DOMAIN_NOTES.md
 
 ## Summary

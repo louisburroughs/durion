@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: People Backend Contract Guide
 domain: people
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-02
 api_reference_generated: domains/people/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for People domain behavior.
+tags: [domain, people, backend-contract]
 ---
 
 # People Backend Contract Guide

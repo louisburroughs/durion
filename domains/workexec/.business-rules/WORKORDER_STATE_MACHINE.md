@@ -1,3 +1,11 @@
+---
+type: State Machine
+title: Work Execution State Machine
+description: This implementation addresses Issue #304 (Clarification for Issue #160: Start Workorder and Track Status) by implementing a Finite State Machine (FSM) pattern with comprehensive audit trail and sna...
+domain: workexec
+tags: [domain, workexec, state-machine]
+---
+
 # WorkOrder State Machine Implementation
 
 ## Overview

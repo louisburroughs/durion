@@ -11,4 +11,10 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-11T18:16:51+0
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/positivity) — `domains/positivity/` (5 documents)
 
 **Implemented by:** [pos-supplier](/backend/pos-supplier.md), [pos-catalog](/backend/pos-catalog.md), [pos-event-receiver](/backend/pos-event-receiver.md)
-**Business rules:** `AGENT_GUIDE.md`, `BACKEND_CONTRACT_GUIDE.md`, `DOMAIN_NOTES.md`, `STORY_VALIDATION_CHECKLIST.md`
+
+**Business rules:**
+
+* [AGENT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/positivity/.business-rules/AGENT_GUIDE.md) — Agent Guide
+* [BACKEND_CONTRACT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md) — Backend Contract
+* [DOMAIN_NOTES.md](https://github.com/louisburroughs/durion/blob/main/domains/positivity/.business-rules/DOMAIN_NOTES.md) — Domain Notes
+* [STORY_VALIDATION_CHECKLIST.md](https://github.com/louisburroughs/durion/blob/main/domains/positivity/.business-rules/STORY_VALIDATION_CHECKLIST.md) — Checklist
