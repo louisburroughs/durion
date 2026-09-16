@@ -412,10 +412,34 @@ Neither blocks the capability. Both are recorded so they are not lost.
   `T6-ELECTRICAL`, `T7-HVAC`, `T8-PMI`). No endpoint lists valid codes.
 - `BayEntity.skillRequirementIds` is copied through with no lookup and no
   normalization (`BayServiceImpl.java:91-92`, `:178-179`).
-- `conflict_resource_type` already includes `SKILL` and `AssignmentStatusEnum`
-  already includes `AWAITING_SKILL_FULFILLMENT` (`domains/shopmgmt/.business-rules/DOMAIN_NOTES.md:154`,
-  DECISION-SHOPMGMT-010), so the domain anticipated skill eligibility without
-  defining the match.
+- **A second competence table already exists**: `certification(tenant_id, id,
+  technician_id, ase_code, description)` (`pos-shop-manager/.../V1__baseline_shop_manager.sql:116-124`,
+  `Certification.java:36`), reachable from `Technician.certifications`, with an
+  empty `CertificationRepository` (`:7`), zero seeded rows and zero writers. It
+  is named for the ASE taxonomy and carries **no dates at all**. So ASE codes have
+  already been modelled once as *certifications held by a technician* rather than
+  *skills on a mechanic* — half-built and abandoned. `#2024` F6's claim that
+  "there is no skill registry anywhere in the platform" is wrong.
+- `MechanicSkill` hangs off `Mechanic` (`personId` is a `String`,
+  `Mechanic.java:41`) while `Certification` hangs off `Technician` (`personId` is
+  a `UUID`, `Technician.java:40`), and the roster query joins the two with
+  `mechanic.personId = CAST(technician.personId AS string)` in a comma cross-join
+  (`TechnicianRepository.java:20-32`). Competence is reachable by two graphs with
+  no guarantee they agree.
+- **The domain anticipated skill eligibility in its decision records but not in
+  code, and the spec must not conflate the two.** DECISION-SHOPMGMT-010's
+  `AWAITING_SKILL_FULFILLMENT` is **not** in the shipped enum:
+  `AssignmentStatusEnum` is `CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED`
+  (`AssignmentStatusEnum.java:4-8`), duplicated verbatim at
+  `internal/service/enums/AssignmentStatus.java:3-7`. Likewise
+  `conflict_resource_type` including `SKILL` exists only in `DOMAIN_NOTES.md:154`'s
+  **proposed** DDL — `V1__baseline_shop_manager.sql` contains zero `CREATE TYPE`
+  statements and no `conflict_rule`, `scheduling_conflict` or `conflict_override`
+  table. DECISION-SHOPMGMT-002's seeded rules cover `BAY_DOUBLE_BOOKED`,
+  `MECHANIC_UNAVAILABLE`, `MECHANIC_OVERTIME` and `FACILITY_NEAR_CAPACITY`, and
+  **assign no severity to a SKILL conflict at all**. The severity of a skill
+  mismatch is therefore undecided by the domain, and neither this spec nor a story
+  author may assume one.
 
 The substantive question, which the capability axis does not answer: an ASE
 certification is not the same kind of thing as "can perform service X". A
