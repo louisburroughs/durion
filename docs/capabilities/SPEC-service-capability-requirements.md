@@ -11,7 +11,7 @@ now disagrees with `louisburroughs/durion-positivity-backend#2024` or `#2022`, t
 spec is the later word and the stories need amending.
 
 Capabilities: **CAP-325** (bay capability axis — the only part ready to execute),
-with **CAP-A** through **CAP-D** specified here and sequenced in §9.
+with **CAP-326** through **CAP-329** specified here and sequenced in §9.
 Modules: `pos-catalog`, `pos-location`, `pos-shop-manager`, `pos-people`,
 `pos-domain-events`.
 
@@ -23,7 +23,7 @@ Where this spec chooses, it chooses inside those.
 
 **One decision here is escalated, not made.** The severity of a skill mismatch is
 undecided by the Shop Management domain and is not a story author's to settle —
-`louisburroughs/durion-positivity-backend#2035`. Everything in §6.4 and §9 CAP-D
+`louisburroughs/durion-positivity-backend#2035`. Everything in §6.4 and §9 CAP-329
 is written against the recommended answer and is marked where it depends on it.
 
 ---
@@ -144,7 +144,7 @@ Instead, header/detail. `service_requirement_profile(service_id, configured_at, 
 is the header; capability and skill requirements are its children. Absent header =
 not configured; header with no children = unconstrained. The distinction is a
 property of the service, which is where it belongs, and the same header serves the
-skill requirement when CAP-D lands. `null` versus `[]` on the DTO and the fact then
+skill requirement when CAP-329 lands. `null` versus `[]` on the DTO and the fact then
 has no in-band encoding anywhere.
 
 ### D5 — a bay declares equipment classes **and** a duty-class ceiling *(revised)*
@@ -276,7 +276,7 @@ record's six members.
 
 **This is a recommendation pending `#2035`, not a settled rule.** DECISION-SHOPMGMT-002
 assigns no severity to a `SKILL` conflict, and assigning one is neither this spec's
-nor a story author's call. If the answer is HARD-blocks-booking, §6.4 and CAP-D's
+nor a story author's call. If the answer is HARD-blocks-booking, §6.4 and CAP-329's
 acceptance criteria change; nothing else in this spec does.
 
 ### D11 — an opening names the constraints that were actually evaluated
@@ -288,7 +288,7 @@ that did not run. Every opening carries
 
 This is the honest form of "ship the axis unenforced": an advertised omission rather
 than an unenforced column. It is also what lets CAP-325 and `#2022` deliver value
-before CAP-A and CAP-C land, without either claiming enforcement it does not have.
+before CAP-326 and CAP-328 land, without either claiming enforcement it does not have.
 
 ---
 
@@ -379,7 +379,7 @@ CREATE TABLE public.service_capability_requirement (
   against the replica of §4.2, because the vocabulary is owned by another module.
   With the sentinel gone, that statement now holds without exception.
 - Tenant-scoped per `docs/TENANCY_SCHEMA.md`; not a `tenancy-global-tables.txt` entry.
-- `service_skill_requirement` (§4.5) is the profile's second child, added by CAP-D.
+- `service_skill_requirement` (§4.5) is the profile's second child, added by CAP-329.
 
 ### 4.2 `pos-catalog` — capability replica
 
@@ -409,7 +409,7 @@ The existing `service_capability_ids` column and its JSON-text `List<String>`
 treatment stay as they are; the field and its `@Schema` examples are renamed and
 corrected per §6.2.
 
-### 4.4 Skill registry and credentials *(CAP-C)*
+### 4.4 Skill registry and credentials *(CAP-328)*
 
 ```sql
 -- platform reference data, @TenantGlobal (D2); precedent VehicleType.java:16
@@ -463,7 +463,7 @@ or by a daily job — never trusted from the feed.
 `certification`**. Pre-production policy (`CLAUDE.md`) permits the removal without a
 shim.
 
-### 4.5 `pos-catalog` — skill requirement *(CAP-D)*
+### 4.5 `pos-catalog` — skill requirement *(CAP-329)*
 
 ```sql
 CREATE TABLE public.service_skill_requirement (
@@ -505,11 +505,11 @@ consumers treat the fields as absent on old events.
 | Fact | Change |
 |---|---|
 | `CatalogServiceUpdatedV1` → **v3** | Append `requirementsConfiguredAt: @Nullable Instant` and `requiredCapabilityCodes: @Nullable List<String>`. Null `configuredAt` = not configured; present with an empty list = unconstrained (D4). No sentinel to collapse. The delete tombstone publishes nulls |
-| `CatalogServiceUpdatedV1` → **v4** *(CAP-D)* | Append `requiredSkills: List<{skillId, appliesToDutyClass}>` |
+| `CatalogServiceUpdatedV1` → **v4** *(CAP-329)* | Append `requiredSkills: List<{skillId, appliesToDutyClass}>` |
 | `location.service-capability.updated` | **New.** `LocationServiceCapabilityUpdatedV1(capabilityId, code, name, active, createdAt, updatedAt)` on `location.events.v1`, with the same delete-tombstone convention as `CatalogServiceUpdatedV1` |
 | `BayUpdatedV1` | Append `serviceCapabilityCodes`, `maxConcurrentVehicles`, `maxDutyClass`. `bayType` is already published and currently dropped by `ExtBayReplica`. Backfill/replay so existing bays fill (`#1668` precedent) |
-| `people.person-credential.updated` | **New** *(CAP-C)*. Carries the credential aggregate, including `expiresOn` and `status` |
-| `skill` registry facts | **New** *(CAP-C)*. `@TenantGlobal` reference data; consumers hold a replica |
+| `people.person-credential.updated` | **New** *(CAP-328)*. Carries the credential aggregate, including `expiresOn` and `status` |
+| `skill` registry facts | **New** *(CAP-328)*. `@TenantGlobal` reference data; consumers hold a replica |
 
 Kafka checks (`scripts/generate-kafka-topics.py --check`,
 `scripts/check-kafka-topic-drift.sh`) must pass.
@@ -550,7 +550,7 @@ Also independent: `BayResponse.serviceCapabilityIds` and `.skillRequirementIds`
 are codes — `BayController.java:50` shows the truth, `["ALIGNMENT"]`. Fix the
 examples and rename the fields to `serviceCapabilityCodes` /
 `skillRequirementCodes`; the pre-production policy permits the rename without a
-shim. `skillRequirementCodes` is then **removed** when CAP-C lands, since a bay does
+shim. `skillRequirementCodes` is then **removed** when CAP-328 lands, since a bay does
 not hold a competence requirement — the service does.
 
 ### 6.3 `#2022` — contract corrections
@@ -589,7 +589,7 @@ that the inspection is lawful.
 ### 6.5 Contract chain
 
 Regenerate `pos-catalog/openapi.yaml`, `pos-location/openapi.yaml`,
-`pos-shop-manager/openapi.yaml` and, for CAP-C, `pos-people/openapi.yaml`; update
+`pos-shop-manager/openapi.yaml` and, for CAP-328, `pos-people/openapi.yaml`; update
 `permissions.yaml` (ADR-0025); run `API Artifacts Sync` for the touched modules;
 update the Angular SDK.
 
@@ -677,7 +677,7 @@ Changes from the first revision, and why:
   produces unfulfillable bookings — a silent one. The first revision erred the wrong
   way for a third of the fleet.
 
-### 7.3 Skill registry, xref and credentials *(CAP-C)*
+### 7.3 Skill registry, xref and credentials *(CAP-328)*
 
 - Seed the `skill` registry with one row per (competence, duty class) covering the
   12 fixture codes, **plus the four real ASE certifications the truck-heavy fixture
@@ -722,23 +722,23 @@ Beyond the per-AC coverage in the stories:
 | | Capability | Blocked on |
 |---|---|---|
 | **CAP-325** | Bay capability axis: §4.1–§4.3, §5 rows 1 and 3–4, §6.1–§6.2, §7.1–§7.2 | Nothing. **Ready, with §7.2 as revised** |
-| **CAP-A** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted. `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | `#2035` |
-| **CAP-B** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
-| **CAP-C** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing, though `#2035` shapes what consumes it |
-| **CAP-D** | `service_skill_requirement` in catalog, on `ServiceDto` and the fact | CAP-B, CAP-C |
-| **`#2022`** | Duration-aware opening search | CAP-A, CAP-D. Ships before them only under D11, stating what it did not evaluate |
+| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted. `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | `#2035` |
+| **CAP-327** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
+| **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing, though `#2035` shapes what consumes it |
+| **CAP-329** | `service_skill_requirement` in catalog, on `ServiceDto` and the fact | CAP-327, CAP-328 |
+| **`#2022`** | Duration-aware opening search | CAP-326, CAP-329. Ships before them only under D11, stating what it did not evaluate |
 
 ### 9.1 `#2022` amendments required
 
 - **AC2 splits.** The bay ∩ duration ∩ buffer ∩ unbroken-in-one-bay half is
   deliverable now and is most of the story's value. The certification half moves to
-  CAP-D's consuming story.
-- **AC8 moves to CAP-C.** It is not merely unimplemented, it is unimplementable
+  CAP-329's consuming story.
+- **AC8 moves to CAP-328.** It is not merely unimplemented, it is unimplementable
   until the HR payload is widened. Shipping it as a checkbox against columns nothing
   writes yields a test that passes on empty data and a guarantee that is false in
   production. Cutting AC8 while leaving AC2 whole is the worst of the three options:
   the story would then claim to check certification while knowingly ignoring expiry.
-- **AC10** (the `ConflictDetectionService` stub) moves to CAP-A, where the decision
+- **AC10** (the `ConflictDetectionService` stub) moves to CAP-326, where the decision
   belongs.
 - The contract corrections of §6.3.
 
@@ -748,8 +748,8 @@ Beyond the per-AC coverage in the stories:
   both sides. **A silent wrong answer today, one line, needed regardless of which
   model wins.**
 - Re-key or delete `shop_service.service_entity_id` (§1.1†).
-- Collapse the `Mechanic`/`Technician` dual identity (§1.2†) — subsumed by CAP-C.
-- Delete the duplicate `AssignmentStatus` enum — subsumed by CAP-A.
+- Collapse the `Mechanic`/`Technician` dual identity (§1.2†) — subsumed by CAP-328.
+- Delete the duplicate `AssignmentStatus` enum — subsumed by CAP-326.
 
 ### 9.3 Open items
 
@@ -770,7 +770,7 @@ Beyond the per-AC coverage in the stories:
 
 | Artifact | Reference |
 |---|---|
-| Capability issue | `louisburroughs/durion#482` (CAP-325) |
+| Capability issues | `louisburroughs/durion#482` (CAP-325), `#483` (CAP-326 conflict tier), `#484` (CAP-327 vehicle duty class), `#485` (CAP-328 credential model), `#486` (CAP-329 service skill requirement) |
 | Clarification | `louisburroughs/durion-positivity-backend#2035` (SKILL severity) |
 | Catalog declaration story | `louisburroughs/durion-positivity-backend#2024` |
 | Opening search story | `louisburroughs/durion-positivity-backend#2022` — see §9.1 |
