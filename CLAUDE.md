@@ -21,8 +21,8 @@ Guidance hierarchy: workspace → project → module. Closer scope wins on confl
 `knowledge-catalog/` is the OKF navigation layer over the workspace: one entry per ADR, domain, and
 backend module, each carrying YAML frontmatter (`type`, `title`, `description`, `resource`, `path`,
 `tags`) that points at the authoritative source. Use it to work out **where** something lives before
-reading it; the entry is a pointer, not a copy — follow `path:` (workspace-relative, for reading the
-file) or `resource:` (the GitHub URL) for the real content.
+reading it; the entry is a pointer, not a copy — follow `path:` (workspace-relative: the ADR file
+itself, or the module or domain directory) or `resource:` (the GitHub URL) for the real content.
 
 | Path | Indexes |
 | ---- | ------- |

@@ -28,15 +28,16 @@ planning work:
 - ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
 - Domain → `durion/knowledge-catalog/domains/<domain>.md`
 
-An entry's `path:` field is the workspace-relative location of the canonical document; open that
-rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
-implementing modules, superseding and related ADRs) before fixing scope.
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope.
 
 When delegating, put this in the agent prompt — a subagent does not inherit this runbook:
 
 > Resolve modules, ADRs, and domains through `durion/knowledge-catalog/` (`backend/`, `adr/`,
-> `domains/`) before reading source. Open the canonical document at the entry's `path:` field, and
-> cite the catalog entries you used in your report.
+> `domains/`) before reading source. Read at the entry's `path:` field — the ADR file itself, or the
+> module or domain directory — and cite the catalog entries you used in your report.
 
 ## Repository Target Override (Mandatory)
 

@@ -25,22 +25,23 @@ Use this runbook to coordinate PR review and remediation.
 
 ## Navigation — Knowledge Catalog (mandatory first step)
 
-Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source or
-planning work:
+Resolve every module, ADR, and domain through `CATALOG_ROOT` before opening source or planning work:
 
-- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
-- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
-- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+- Module → `<CATALOG_ROOT>/backend/<pos-module>.md`
+- ADR → `<CATALOG_ROOT>/adr/index.md`, then the matching entry
+- Domain → `<CATALOG_ROOT>/domains/<domain>.md`
 
-An entry's `path:` field is the workspace-relative location of the canonical document; open that
-rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
-implementing modules, superseding and related ADRs) before fixing scope.
+An entry's `path:` field is the workspace-relative location of its source — the ADR file itself for
+an ADR, the module or domain directory for those. Read there rather than at a guessed path, and
+follow the entry's links to neighbouring concepts (owning domain, implementing modules, superseding
+and related ADRs) before fixing scope.
 
 When delegating, put this in the agent prompt — a subagent does not inherit this runbook:
 
-> Resolve modules, ADRs, and domains through `durion/knowledge-catalog/` (`backend/`, `adr/`,
-> `domains/`) before reading source. Open the canonical document at the entry's `path:` field, and
-> cite the catalog entries you used in your report.
+> Resolve modules, ADRs, and domains through `<CATALOG_ROOT>` (`backend/`, `adr/`, `domains/`) before
+> reading source — expand `CATALOG_ROOT` to its value when writing the prompt. Read at the entry's
+> `path:` field — the ADR file itself, or the module or domain directory — and cite the catalog
+> entries you used in your report.
 
 ## Objective
 Review one pull request end-to-end, validate it against issues and ADRs, evaluate test quality/status, and delegate fixes until verification is complete.

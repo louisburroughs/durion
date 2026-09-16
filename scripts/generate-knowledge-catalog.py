@@ -508,11 +508,23 @@ def main() -> int:
     today = dt.date.today().isoformat()
     log_path = CATALOG / "log.md"
     previous = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
-    entries = {date: body.rstrip() for date, body in re.findall(r"^## (\S+)\s*\n+((?:\*.*\n)+)", previous, re.M)}
-    entries[today] = (
+    # A bullet may soft-wrap onto indented continuation lines, which are part of it.
+    entries = {
+        date: body.rstrip()
+        for date, body in re.findall(r"^## (\S+)\s*\n+((?:\*.*\n(?:[ \t]+\S.*\n)*)+)", previous, re.M)
+    }
+    regenerated = (
         f"* **Regenerated**: {len(adrs)} ADR, {len(domains)} domain, and {len(modules)} module concepts "
         f"from `docs/adr/`, `domains/`, and the backend module suite."
     )
+    # Only the Regenerated bullet is ours to rewrite. A hand-written note recording a
+    # structural change, added the same day, is kept rather than overwritten.
+    kept = [
+        bullet
+        for bullet in re.split(r"\n(?=\* )", entries.get(today, ""))
+        if bullet.strip() and not bullet.startswith("* **Regenerated**:")
+    ]
+    entries[today] = "\n".join([regenerated, *kept])
     rendered = "# Directory Update Log\n\n" + "\n\n".join(
         f"## {date}\n\n{body}" for date, body in sorted(entries.items(), reverse=True)
     )
