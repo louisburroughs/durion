@@ -774,6 +774,30 @@ holds catalog `operationCode`s, so `pos-location` needs an `ext_catalog_service`
 replica off the existing `catalog.service.updated` fact to validate them — the one
 piece of new cross-module plumbing that survives.
 
+#### D14.3 — how the map and the per-bay list relate *(set during implementation)*
+
+The map (D14.1) is type-level configuration; the per-bay `serviceCapabilityCodes`
+is what consumers read from the fact. They relate by **defaulting**, with the
+platform's usual null-versus-empty discipline:
+
+| Caller sends | Result |
+|---|---|
+| `serviceCapabilityCodes` **absent** (null) on create | The bay takes its type's rows from the map. An `ALIGNMENT` bay gets `WHEEL-ALIGNMENT-4-WHEEL`; a `GENERAL_SERVICE`, `HEAVY_DUTY` or `WASH_DETAIL` bay gets nothing, because the seed gives those types no rows — which is exactly "declares nothing" |
+| An **explicit list**, including an explicit `[]` | The caller's own claim, validated code-by-code against `ext_catalog_service` (active codes only), stored uppercased. An explicit `[]` on an `ALIGNMENT` bay means "this alignment bay has no working rack" and is honoured |
+| A **patch that changes `bayType`** without stating codes | The bay **re-defaults** to the new type's rows. Otherwise a bay retyped to `GENERAL_SERVICE` would keep an alignment claim it no longer has the rack for, violating D14 rule 3 |
+| A patch stating codes, with or without a type change | The stated list wins, validated as above |
+
+Why defaulting rather than deriving at read time: the fact must carry a concrete
+per-bay list so consumers never need the map, and a shop whose equipment differs
+from its type's default (a tire bay with no balancer) needs somewhere to say so.
+Deriving at read time would make the second impossible; storing without a default
+would make every bay creation a data-entry task the map exists to remove.
+
+Validation resolves against `ExtCatalogServiceReplicaRepository
+.findByOperationCodeInAndActiveIsTrue`, so a code whose service pos-catalog has
+retired fails the same way an unknown one does, while the replica keeps the
+tombstoned row so the two remain distinguishable to anyone who asks.
+
 ### D15 — credentials are re-ingested with real dates, not migrated *(settled)*
 
 Settled 2026-09-16. The 23 rows in
