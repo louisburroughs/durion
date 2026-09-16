@@ -800,6 +800,80 @@ Requirements on the re-ingest:
 - No `person_credential` row is created without an `issued_on` — the column stays
   `NOT NULL` and needs no migration shim, per the pre-production policy.
 
+### D17 — the three CAP-326 items the mechanism ruling escalated, answered
+
+The Shop Management domain agent ruled on the `BAY_DOUBLE_BOOKED` concurrency
+mechanism (exclusion constraint as enforcement, the existing pre-check reshaped as
+reporting — recorded in `durion#483`) and escalated three items. At the owner's
+request it then drafted answers for ratification. Every checkable claim below was
+verified against the repository.
+
+**Item 1 — `maxConcurrentVehicles` is a physical attribute of the bay, not a booking
+multiplicity.** *Recommendation for ratification; default if not ruled.* Every bay is
+exactly one exclusive booking resource, `BAY_DOUBLE_BOOKED` is N=1 for all bays, and a
+shop wanting two independently bookable stalls registers two bays. The DTO's wording
+("serviced concurrently", example `2`) leans two-slot; everything else says one
+resource: all 24 fixture bays are capacity 1, pos-location uses the value only for
+`>= 1` validation and never publishes it, every shopmgmt record treats capacity as
+facility-level and SOFT, and DECISION-SHOPMGMT-003 chose exclusive assignment *in
+order to* keep capacity a facility count. When a field's name and its ecosystem
+disagree, the ecosystem is the better witness. Under this reading the constraint is
+correct for every bay forever; under the two-slot reading it would over-refuse a
+capacity-N bay — fail-closed, visible, and no such bay exists. Tighten the pos-location
+`@Schema` to: *"Number of vehicles the bay physically accommodates at once. A bay is a
+single bookable resource regardless of this value; register separate bays for
+independently bookable stalls."*
+
+**Item 2 — "deterministically" means exactly one winner, not a specified winner.**
+*Recommendation; default if not ruled.* No ordering rule or ordering key exists
+anywhere: zero hits for priority, seniority or tie-break across the decision records
+and `AppointmentsServiceImpl`; the request carries no priority field; the headers carry
+roles, not rank. A specified winner would need a key nobody defined, a serialization
+point on every write path, and a UI that discloses another advisor's booking to explain
+a millisecond race. Every interleaving yields a permitted state (one booking), so which
+party holds it is not an invariant the domain stated. `durion#483`'s criterion is
+reworded: *"Two advisors booking the same bay and an overlapping window concurrently:
+exactly one appointment is created. The other is refused with a HARD
+`BAY_DOUBLE_BOOKED` conflict and no appointment row. Which wins is whichever commits
+first; no ordering is specified or guaranteed."*
+
+**Item 3 — the keyless exact resubmission was a latent double-booking. Decided.**
+`AppointmentsServiceImpl.differsFromRequestedSlot` (`:246-255`) deliberately let a
+same-bay, same-window resubmission without an `Idempotency-Key` create a **second
+appointment** — the pinning test (`AppointmentsServiceNewBehaviorsTest:556-597`)
+asserts a new id. It was a PR-review coverage follow-up with no story and no
+recoverable rationale, and it produces exactly the outcome DECISION-SHOPMGMT-014
+exists to prevent ("duplicates must not create duplicates … resilience to UI
+double-submits"). **Delete the carve-out. A keyless exact duplicate replays the existing
+appointment with 200** — not a new row, not a 409, and not a `BAY_DOUBLE_BOOKED`
+conflict, which would tell an advisor their own booking blocks them and write a
+phantom self-collision into the audit DECISION-002's override monitor reads. The
+identity tuple is (location, resource, customer, vehicle, window, workorderLinkRef,
+normalized serviceRequestIds) — the comparison `ensureIdempotentRequestMatches`
+already makes, minus the key. In the `23P01` handler, re-query for an exact match in a
+fresh transaction before writing a conflict row, so two simultaneous identical
+keyless submits also replay rather than collide. Tests: invert the pinning test to
+`never().save()` + existing id; retarget the five overlap tests from
+`AppointmentValidationException` to `SchedulingConflictException(BAY_DOUBLE_BOOKED)`;
+add non-terminal-status widening and Testcontainers coverage of the constraint.
+
+**Three adjacent defects surfaced by item 3, all verified, all CAP-326's or on the
+housekeeping list (§9.2):**
+
+- **`SchedulingConflictException` is unmapped.** `GlobalExceptionHandler`
+  (`internal/controller/`) handles `AppointmentValidationException` at `:86` and has no
+  handler for the conflict exception, so it falls through to a 500 despite the create
+  javadoc promising 409. CAP-326 adds the 409 mapping with the DECISION-002 envelope,
+  and remaps a reused key with a *different* body from 400 to 409 — a conflict, not
+  malformed input.
+- **`Idempotency-Key` is optional** (`AppointmentsController:154`, `required = false`),
+  and nothing in-repo sends one, so keyless is the common path, not the edge.
+- **DECISION-SHOPMGMT-014 chose a body `clientRequestId`; the code implemented the
+  rejected header option**, has no retention window, and
+  `AppointmentCreateRequest:17` documents a field that does not exist. A client built to
+  the decision record gets no idempotency at all. Not CAP-326's — amend the record to
+  ratify the header, or add the field.
+
 ### D11 — an opening names the constraints that were actually evaluated
 
 Because the submit-time enforcement tier does not exist and is contractually the
@@ -1292,6 +1366,12 @@ Beyond the per-AC coverage in the stories:
   has never run against live vPIC. One line, plus a test that does not mock the
   client into agreeing with a wrong URL. **Independent of every capability here** —
   it survives D13.1's deferral because it is a defect, not a design.
+- **Map `SchedulingConflictException` to 409** in `pos-shop-manager`'s
+  `GlobalExceptionHandler` (D17). Today it falls through to a 500. CAP-326 owns it, but
+  it is a one-handler fix and a live wrong status code.
+- **Reconcile DECISION-SHOPMGMT-014 with the code** (D17): body `clientRequestId` in
+  the record, `Idempotency-Key` header in the code, a phantom field in the DTO javadoc.
+  Owner's call which way; either is one small change.
 
 ### 9.3 Open items
 
