@@ -13,7 +13,8 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:18
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-accounting](../backend/pos-accounting.md), [pos-tax](../backend/pos-tax.md), [pos-invoice](../backend/pos-invoice.md), [pos-workorder](../backend/pos-workorder.md)
+**Implemented by:** [pos-accounting](../backend/pos-accounting.md), [pos-tax](../backend/pos-tax.md), [pos-invoice](../backend/pos-invoice.md),
+[pos-workorder](../backend/pos-workorder.md)
 
 **Business rules:**
 

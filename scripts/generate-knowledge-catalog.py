@@ -289,8 +289,8 @@ def domain_note(record: dict) -> str:
     if record["documentation_index"]:
         sections.append(f"[Canonical documentation index]({resource}/index.md) — authority, current guidance, and historical records")
     if record["modules"]:
-        links = ", ".join(f"[{m}](../backend/{m}.md)" for m in record["modules"])
-        sections.append(f"**Implemented by:** {links}")
+        links = [f"[{m}](../backend/{m}.md)" for m in record["modules"]]
+        sections.append(soft_wrap("**Implemented by:**", links))
     if record["guides"]:
         # Every guide, linked and typed: these are the documents an agent opens next,
         # so a bare filename list made the note a dead end.
@@ -347,6 +347,26 @@ def wrapped_item(prefix: str, trailer: str = "") -> str:
         else:
             current = candidate
     lines.append(current.rstrip())
+    return "\n".join(lines)
+
+
+def soft_wrap(prefix: str, items: list[str], limit: int = MAX_LINE) -> str:
+    """A comma-separated run broken across source lines at the line limit.
+
+    Markdown renders a soft break as a space, so the paragraph reads identically and
+    only the source obeys MD013 — which a domain implemented by four modules did not,
+    once the links became relative.
+    """
+    lines, current = [], prefix
+    for index, item in enumerate(items):
+        piece = item + ("," if index < len(items) - 1 else "")
+        candidate = f"{current} {piece}" if current else piece
+        if current and len(candidate) > limit:
+            lines.append(current)
+            current = piece
+        else:
+            current = candidate
+    lines.append(current)
     return "\n".join(lines)
 
 

@@ -11,7 +11,8 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/crm) — `domains/crm/` (29 documents)
 
-**Implemented by:** [pos-customer](../backend/pos-customer.md), [pos-marketing](../backend/pos-marketing.md), [pos-price](../backend/pos-price.md), [pos-shop-manager](../backend/pos-shop-manager.md)
+**Implemented by:** [pos-customer](../backend/pos-customer.md), [pos-marketing](../backend/pos-marketing.md), [pos-price](../backend/pos-price.md),
+[pos-shop-manager](../backend/pos-shop-manager.md)
 
 **Business rules:**
 

@@ -11,7 +11,8 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/warranty) — `domains/warranty/` (3 documents)
 
-**Implemented by:** [pos-warranty](../backend/pos-warranty.md), [pos-invoice](../backend/pos-invoice.md), [pos-catalog](../backend/pos-catalog.md), [pos-vehicle-inventory](../backend/pos-vehicle-inventory.md)
+**Implemented by:** [pos-warranty](../backend/pos-warranty.md), [pos-invoice](../backend/pos-invoice.md), [pos-catalog](../backend/pos-catalog.md),
+[pos-vehicle-inventory](../backend/pos-vehicle-inventory.md)
 
 **Business rules:**
 

@@ -13,7 +13,8 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T11:04:02
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/inventory/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-inventory](../backend/pos-inventory.md), [pos-location](../backend/pos-location.md), [pos-catalog](../backend/pos-catalog.md), [pos-workorder](../backend/pos-workorder.md)
+**Implemented by:** [pos-inventory](../backend/pos-inventory.md), [pos-location](../backend/pos-location.md), [pos-catalog](../backend/pos-catalog.md),
+[pos-workorder](../backend/pos-workorder.md)
 
 **Business rules:**
 

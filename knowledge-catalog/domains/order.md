@@ -11,7 +11,8 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/order) — `domains/order/` (13 documents)
 
-**Implemented by:** [pos-order](../backend/pos-order.md), [pos-invoice](../backend/pos-invoice.md), [pos-workorder](../backend/pos-workorder.md), [pos-inventory](../backend/pos-inventory.md)
+**Implemented by:** [pos-order](../backend/pos-order.md), [pos-invoice](../backend/pos-invoice.md), [pos-workorder](../backend/pos-workorder.md),
+[pos-inventory](../backend/pos-inventory.md)
 
 **Business rules:**
 

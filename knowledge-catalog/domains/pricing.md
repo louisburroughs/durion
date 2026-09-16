@@ -11,7 +11,8 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/pricing) — `domains/pricing/` (21 documents)
 
-**Implemented by:** [pos-price](../backend/pos-price.md), [pos-workorder](../backend/pos-workorder.md), [pos-order](../backend/pos-order.md), [pos-catalog](../backend/pos-catalog.md)
+**Implemented by:** [pos-price](../backend/pos-price.md), [pos-workorder](../backend/pos-workorder.md), [pos-order](../backend/pos-order.md),
+[pos-catalog](../backend/pos-catalog.md)
 
 **Business rules:**
 
