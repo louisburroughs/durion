@@ -3,6 +3,7 @@ type: Domain
 title: people
 description: This guide defines the People domain’s normative business rules for identity/lifecycle, roles and assignments, and timekeeping-oriented People workflows (breaks,
 resource: https://github.com/louisburroughs/durion/blob/master/domains/people
+path: durion/domains/people/
 tags: [domain, people]
 sources: [domains/people/]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
@@ -12,7 +13,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/people/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-people](/backend/pos-people.md), [pos-people-contact](/backend/pos-people-contact.md), [pos-accounting](/backend/pos-accounting.md)
+**Implemented by:** [pos-people](../backend/pos-people.md), [pos-people-contact](../backend/pos-people-contact.md), [pos-accounting](../backend/pos-accounting.md)
 
 **Business rules:**
 

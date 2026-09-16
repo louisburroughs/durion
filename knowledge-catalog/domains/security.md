@@ -3,6 +3,7 @@ type: Domain
 title: security
 description: 'This guide defines the normative, implementation-ready business rules for the security domain: RBAC (roles, permissions, assignments), authorization decisions, and user provisioning orchestration. ...'
 resource: https://github.com/louisburroughs/durion/blob/master/domains/security
+path: durion/domains/security/
 tags: [domain, security]
 sources: [domains/security/]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
@@ -10,7 +11,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/security) — `domains/security/` (22 documents)
 
-**Implemented by:** [pos-security-service](/backend/pos-security-service.md), [pos-accounting](/backend/pos-accounting.md)
+**Implemented by:** [pos-security-service](../backend/pos-security-service.md), [pos-accounting](../backend/pos-accounting.md)
 
 **Business rules:**
 

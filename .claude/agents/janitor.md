@@ -7,6 +7,19 @@ description: 'Perform janitorial tasks on any codebase including cleanup, simpli
 
 Clean any codebase by eliminating tech debt. Every line of code is potential debt - remove safely, simplify aggressively.
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of the canonical document — open that
+rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
+implementing modules, superseding and related ADRs) before fixing scope. Cite the catalog entries
+you used in your report.
+
 ## Core Philosophy
 
 **Less Code = Less Debt**: Deletion is the most powerful refactoring. Simplicity beats complexity.

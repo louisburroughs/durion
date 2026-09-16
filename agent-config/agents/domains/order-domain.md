@@ -11,6 +11,19 @@ model: GPT-5.2 (copilot)
 **Authoritative Agent:** `order-domain-agent`
 **Business Rules:** `durion/domains/order/.business-rules/`
 
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of the canonical document — open that
+rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
+implementing modules, superseding and related ADRs) before fixing scope. Cite the catalog entries
+you used in your report.
+
 ### Creative Authority
 
 The `order-domain-agent` **MAY** author and refine user stories related to order creation, modification, fulfillment, and cancellation provided that:

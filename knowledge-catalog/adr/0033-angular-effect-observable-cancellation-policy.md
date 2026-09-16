@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0033: Angular Effect Observable Cancellation Policy'
 description: Angular Signals' effect() function re-executes its body whenever a reactive dependency (signal read) changes.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md
+path: durion/docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md]

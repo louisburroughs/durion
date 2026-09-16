@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0001: Inventory Ledger ATP Computation'
 description: 'This ADR documents the architectural decisions made to resolve clarification issue #233, which blocked the implementation of user story #36: "Ledger: Compute On-hand and Available-to-Promise by Location/Storage".'
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0001-inventory-ledger-atp-computation.adr.md
+path: durion/docs/adr/0001-inventory-ledger-atp-computation.adr.md
 tags: [adr, inventory]
 status: stable
 sources: [docs/adr/0001-inventory-ledger-atp-computation.adr.md]

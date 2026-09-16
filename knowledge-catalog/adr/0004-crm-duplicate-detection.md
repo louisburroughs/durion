@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0004: Duplicate Detection UX Strategy'
 description: 'When users create a party (commercial account), the backend performs duplicate detection to prevent duplicate records. Currently, there is no clear UX for handling this scenario:'
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0004-crm-duplicate-detection.adr.md
+path: durion/docs/adr/0004-crm-duplicate-detection.adr.md
 tags: [adr, crm]
 status: stable
 sources: [docs/adr/0004-crm-duplicate-detection.adr.md]

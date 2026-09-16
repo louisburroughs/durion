@@ -3,6 +3,7 @@ type: ADR
 title: 'ADR-0037: Frontend SPA Navigation Policy'
 description: 'During PR review of Wave I-b (PR #15), four newly added components used bare HTML href attributes to navigate between Angular routes:'
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0037-frontend-spa-navigation-policy.adr.md
+path: durion/docs/adr/0037-frontend-spa-navigation-policy.adr.md
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0037-frontend-spa-navigation-policy.adr.md]

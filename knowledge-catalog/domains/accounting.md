@@ -3,6 +3,7 @@ type: Domain
 title: accounting
 description: The Accounting domain is responsible for authoritative financial calculations, invoice adjustments, issuance finalization ingestion visibility, chart of accounts
 resource: https://github.com/louisburroughs/durion/blob/master/domains/accounting
+path: durion/domains/accounting/
 tags: [domain, accounting]
 sources: [domains/accounting/]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:18-04:00'}
@@ -12,7 +13,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:18
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-accounting](/backend/pos-accounting.md), [pos-tax](/backend/pos-tax.md), [pos-invoice](/backend/pos-invoice.md), [pos-workorder](/backend/pos-workorder.md)
+**Implemented by:** [pos-accounting](../backend/pos-accounting.md), [pos-tax](../backend/pos-tax.md), [pos-invoice](../backend/pos-invoice.md), [pos-workorder](../backend/pos-workorder.md)
 
 **Business rules:**
 

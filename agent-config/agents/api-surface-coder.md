@@ -10,7 +10,21 @@ You are responsible for the API contract layer in backend team-mode implementati
 ## Active Inputs
 - Assigned backend specification package (story, issue, capability doc, contract guide, or equivalent)
 - `durion-positivity-backend/AGENTS.md`
-- Applicable ADRs in `durion/docs/adr/`
+- Applicable ADRs, resolved through `durion/knowledge-catalog/adr/` (the catalog entry carries status and
+  supersession; open the canonical document at its `path:` field)
+
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of the canonical document — open that
+rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
+implementing modules, superseding and related ADRs) before fixing scope. Cite the catalog entries
+you used in your report.
 
 ### Backend API-Surface Override (Mandatory)
 - Implement API-facing artifacts and contract alignment from the assigned backend specification.

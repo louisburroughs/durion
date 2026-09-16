@@ -261,15 +261,15 @@ def adr_note(record: dict, owner_by_module: dict[str, str]) -> str:
         dated = f" since {record['created']}" if record["created"] else ""
         facts.append(f"**Status:** {state}{dated}")
     if record["supersedes"]:
-        facts.append(f"**Supersedes:** [{record['supersedes']}](/adr/{slug_for(record['supersedes'])}.md)")
+        facts.append(f"**Supersedes:** [{record['supersedes']}](../adr/{slug_for(record['supersedes'])}.md)")
     if record["superseded_by"]:
-        facts.append(f"**Superseded by:** [{record['superseded_by']}](/adr/{slug_for(record['superseded_by'])}.md)")
+        facts.append(f"**Superseded by:** [{record['superseded_by']}](../adr/{slug_for(record['superseded_by'])}.md)")
     if facts:
         sections.append("\n".join(facts))
 
     if record["related"]:
         # One link per line: a single joined line reached 380 characters on ADR-0011.
-        links = "\n".join(f"* [{r}](/adr/{slug_for(r)}.md)" for r in record["related"][:8])
+        links = "\n".join(f"* [{r}](../adr/{slug_for(r)}.md)" for r in record["related"][:8])
         sections.append(f"**Related:**\n\n{links}")
     return "\n\n".join(sections)
 
@@ -289,7 +289,7 @@ def domain_note(record: dict) -> str:
     if record["documentation_index"]:
         sections.append(f"[Canonical documentation index]({resource}/index.md) — authority, current guidance, and historical records")
     if record["modules"]:
-        links = ", ".join(f"[{m}](/backend/{m}.md)" for m in record["modules"])
+        links = ", ".join(f"[{m}](../backend/{m}.md)" for m in record["modules"])
         sections.append(f"**Implemented by:** {links}")
     if record["guides"]:
         # Every guide, linked and typed: these are the documents an agent opens next,
@@ -317,7 +317,7 @@ def module_note(record: dict, owner: str) -> str:
     resource = f"{GITHUB}/durion-positivity-backend/blob/main/{record['name']}"
     lines = [f"[Module directory]({resource}) — `{record['name']}/`", "", f"**Kind:** {record['kind']}"]
     if owner:
-        lines.append(f"**Domain:** [{owner}](/domains/{owner}.md)")
+        lines.append(f"**Domain:** [{owner}](../domains/{owner}.md)")
         if has_documentation_index(REPO / "domains" / owner):
             lines.append(f"**Documentation:** [Canonical {owner} index]({GITHUB}/durion/blob/{DURION_BRANCH}/domains/{owner}/index.md)")
     if record["openapi"]:
@@ -422,6 +422,7 @@ def main() -> int:
             "title": adr["title"],
             "description": adr["description"],
             "resource": f"{GITHUB}/durion/blob/{DURION_BRANCH}/docs/adr/{adr['path'].name}",
+            "path": f"durion/docs/adr/{adr['path'].name}",
             "tags": adr["tags"],
             "status": adr["status"],
             "sources": [f"docs/adr/{adr['path'].name}"],
@@ -435,6 +436,7 @@ def main() -> int:
             "title": domain["name"],
             "description": domain["description"],
             "resource": f"{GITHUB}/durion/blob/{DURION_BRANCH}/domains/{domain['name']}",
+            "path": f"durion/domains/{domain['name']}/",
             "tags": ["domain", domain["name"]],
             "sources": [f"domains/{domain['name']}/"],
             "generated": {"by": "script:generate-knowledge-catalog.py", "at": last_touched(domain["path"], REPO)},
@@ -448,6 +450,7 @@ def main() -> int:
             "title": module["name"],
             "description": module["description"],
             "resource": f"{GITHUB}/durion-positivity-backend/blob/main/{module['name']}",
+            "path": f"durion-positivity-backend/{module['name']}/",
             "tags": ["backend", module["kind"].lower(), *([owner] if owner else [])],
             "sources": [f"durion-positivity-backend/{module['name']}/"],
             "generated": {"by": "script:generate-knowledge-catalog.py", "at": last_touched(module["path"], BACKEND)},
@@ -474,9 +477,9 @@ def main() -> int:
         "# Durion Knowledge Catalog\n\n"
         "Generated from the canonical documents in this workspace and the backend module suite. "
         "Do not hand-edit: run `python3 scripts/generate-knowledge-catalog.py`.\n\n"
-        f"* [ADRs](/adr/index.md) — {len(adrs)} architecture decision records\n"
-        f"* [Domains](/domains/index.md) — {len(domains)} business domains\n"
-        f"* [Backend Modules](/backend/index.md) — {len(modules)} modules in durion-positivity-backend\n"
+        f"* [ADRs](adr/index.md) — {len(adrs)} architecture decision records\n"
+        f"* [Domains](domains/index.md) — {len(domains)} business domains\n"
+        f"* [Backend Modules](backend/index.md) — {len(modules)} modules in durion-positivity-backend\n"
     )
     write(CATALOG / "index.md", render({"okf_version": OKF_VERSION}, root_body), state)
 

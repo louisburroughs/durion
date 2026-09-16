@@ -12,9 +12,29 @@ Advance backend delivery one wave at a time. Each wave targets approved work lis
 
 ## Active Inputs
 
+- Navigation layer: `durion/knowledge-catalog/` (modules, ADRs, domains)
 - Backend repo policy: `durion-positivity-backend/AGENTS.md`
 - Assigned execution tracking source
 - Supporting specifications and source materials: `durion/docs/capabilities/`
+
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source or
+planning work:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of the canonical document; open that
+rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
+implementing modules, superseding and related ADRs) before fixing scope.
+
+When delegating, put this in the agent prompt — a subagent does not inherit this runbook:
+
+> Resolve modules, ADRs, and domains through `durion/knowledge-catalog/` (`backend/`, `adr/`,
+> `domains/`) before reading source. Open the canonical document at the entry's `path:` field, and
+> cite the catalog entries you used in your report.
 
 ## Repository Target Override (Mandatory)
 
@@ -143,6 +163,7 @@ Forbidden:
 4. Read backend AGENTS policy, required ADRs, the assigned execution tracking source, and affected backend module baselines.
 5. Delegate ambiguity/tradeoff resolution to `anvil` when policy/ADR guidance is insufficient.
 6. Load source hierarchy for each work item in the wave, in order:
+   - catalog entries for the touched modules, ADRs, and domains in `durion/knowledge-catalog/`
    - story markdown in `durion/docs/capabilities/<CAP-*>/`
    - domain contract guide from `durion/domains/<domain>/`
    - applicable backend policy/ADR references
@@ -291,11 +312,12 @@ If a command fails, do not proceed to PR creation until:
 
 Resolve context in this order:
 
-1. Backend AGENTS policy in `durion-positivity-backend/AGENTS.md`
-2. Assigned execution tracking source and applicable `CAP-*` story files
-3. Domain contract guide and generated backend reference docs
-4. Mandatory backend ADRs (0011, 0014, 0017, 0018)
-5. Affected backend module baselines and existing tests
+1. Catalog entries in `durion/knowledge-catalog/` for every touched module, ADR, and domain
+2. Backend AGENTS policy in `durion-positivity-backend/AGENTS.md`
+3. Assigned execution tracking source and applicable `CAP-*` story files
+4. Domain contract guide and generated backend reference docs
+5. Mandatory backend ADRs (0011, 0014, 0017, 0018)
+6. Affected backend module baselines and existing tests
 
 Fallbacks:
 

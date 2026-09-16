@@ -10,6 +10,7 @@ Use this runbook to coordinate PR review and remediation.
 - `REPO`: `<owner/repo>` (required)
 - `PR`: `<number or URL>` (optional; discover if missing - look in CAPABILITY_MANIFEST.yaml)
 - `REVIEW_TRACK`: `auto|backend|frontend` (default `auto`; infer from changed files/repo when `auto`)
+- `CATALOG_ROOT`: `durion/knowledge-catalog` (default; resolve modules, ADRs, and domains here first)
 - `ADR_ROOT`: `durion/docs/adr` (default)
 - `CONTRACT_GUIDE_PATH`: `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` (behavior source)
 - `API_REFERENCE_PATH`: `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md` (schema reference)
@@ -22,6 +23,25 @@ Use this runbook to coordinate PR review and remediation.
 - `CODER_AGENT`: `PR Fix Coder` (recommended)
 - `TEST_AGENT`: `PR Test Fixer` (recommended)
 - `CODE_REVIEW_AGENT`: `PR Code Reviewer` (recommended)
+
+## Navigation — Knowledge Catalog (mandatory first step)
+
+Resolve every module, ADR, and domain through `durion/knowledge-catalog/` before opening source or
+planning work:
+
+- Module → `durion/knowledge-catalog/backend/<pos-module>.md`
+- ADR → `durion/knowledge-catalog/adr/index.md`, then the matching entry
+- Domain → `durion/knowledge-catalog/domains/<domain>.md`
+
+An entry's `path:` field is the workspace-relative location of the canonical document; open that
+rather than a guessed path, and follow the entry's links to neighbouring concepts (owning domain,
+implementing modules, superseding and related ADRs) before fixing scope.
+
+When delegating, put this in the agent prompt — a subagent does not inherit this runbook:
+
+> Resolve modules, ADRs, and domains through `durion/knowledge-catalog/` (`backend/`, `adr/`,
+> `domains/`) before reading source. Open the canonical document at the entry's `path:` field, and
+> cite the catalog entries you used in your report.
 
 ## Objective
 Review one pull request end-to-end, validate it against issues and ADRs, evaluate test quality/status, and delegate fixes until verification is complete.
