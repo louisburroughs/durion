@@ -428,6 +428,48 @@ override of a regulatory credential documents the decision; it does not satisfy 
 shop's 49 CFR 396.19 obligation to retain evidence that the inspector was qualified.
 The override record is not the qualification.
 
+### D12 — override authority resolves from the existing role headers; two prerequisites CAP-326 was missing
+
+Established 2026-09-16 while assessing executability. Both were absent from this
+spec's earlier revisions.
+
+**Manager authority needs no new mechanism.** The gateway already propagates roles:
+`X-Roles` carries `ROLE_ADMIN,ROLE_MANAGER` and `X-Authorities` carries roles and
+permissions together, `ROLE_`-prefixed
+(`pos-security-common/.../GatewaySecurityConstants.java:40, 47, 49`), with
+`ROLE_PREFIX` at `:122` and `SecurityContextHelper.hasRole()` at `:277` handling the
+prefix. `pos-security-service` seeds `LOCATION_MANAGER`, `GENERAL_MANAGER`,
+`SHOP_MANAGER` and `MANAGER`, so `hasRole('LOCATION_MANAGER')` works today and
+`hasRole('ADMIN')` is already the pattern on the catalog read endpoints
+(`CatalogPermissions.java:59` usage).
+
+Two open choices, both CAP-326's to record rather than this spec's to make:
+
+- **Role check or permission.** `hasRole('LOCATION_MANAGER') or
+  hasRole('GENERAL_MANAGER')` needs nothing new. A `shop:conflict:override`
+  permission granted to those roles matches the platform's code-first convention
+  (ADR-0025, `{Module}PermissionRegistry`) and lets the grant be re-delegated
+  without a code change. **Recommend the permission** — who may override a booking
+  conflict is exactly the grant that gets moved around.
+- **Which managers.** `LOCATION_MANAGER` is location-scoped and fits a per-facility
+  override, aligning with the ADR-0061 location-scope guard `#2022` already uses;
+  `GENERAL_MANAGER` reads tenant-wide; `SHOP_MANAGER` also exists. Whether all three
+  may override, or only the facility's own manager, is a business decision.
+
+**Operating hours do not reach `pos-shop-manager`, so DECISION-SHOPMGMT-008 has no
+data path.** `ExtLocationReplica` carries `locationId`, `code`, `name`, `active`,
+`aggregateVersion`, `syncedAt` and two ancestor sets — and nothing else
+(`ExtLocationReplica.java:49-80`). The only operating-hours references anywhere in
+the module are the no-op `ConflictDetectionService`, its implementation and two DTOs.
+`#2023` adds the check-in and cleanup buffers to `LocationUpdatedV1` and the replica
+but not the hours or holiday closures.
+
+So CAP-326's "booking outside operating hours is rejected HARD, Location
+authoritative" is **unimplementable as written**. It needs `LocationUpdatedV1` and
+`ExtLocationReplica` extended with operating hours and holiday closures, on the same
+pattern `#2023` uses for buffers and with the same backfill requirement (`#1668`).
+Coordinate with `#2023` rather than adding a second path.
+
 ### D11 — an opening names the constraints that were actually evaluated
 
 Because the submit-time enforcement tier does not exist and is contractually the
@@ -886,7 +928,7 @@ Beyond the per-AC coverage in the stories:
 | | Capability | Blocked on |
 |---|---|---|
 | **CAP-325** | Bay capability axis: §4.1–§4.3, §5 rows 1 and 3–4, §6.1–§6.2, §7.1–§7.2 | Nothing. **Ready, with §7.2 as revised** |
-| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the two new SOFT/`SKILL` rules of D10.1 (`COMPETENT_MECHANIC_UNAVAILABLE`, `NO_COMPETENT_MECHANIC_ROSTERED`). `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
+| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references (DDL at `DOMAIN_NOTES.md:161-185`, audit queries at `:260-268`), **operating hours and holiday closures added to `LocationUpdatedV1` and `ExtLocationReplica` first (D12)**, bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the two new SOFT/`SKILL` rules of D10.1 (`COMPETENT_MECHANIC_UNAVAILABLE`, `NO_COMPETENT_MECHANIC_ROSTERED`). `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
 | **CAP-327** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
 | **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing. `#2035` confirms expiry still matters: a SOFT warning must know whether the credential behind it has lapsed |
 | **CAP-329** | `service_skill_requirement` in catalog, on `ServiceDto` and the fact | CAP-327, CAP-328 |
@@ -924,6 +966,12 @@ Beyond the per-AC coverage in the stories:
 - **`alternateLocations[]` and `NOT_IN_TENANT`** (D10.2) need the
   DECISION-SHOPMGMT-012 scope-filtering design and belong in their own story. The
   `absenceScope` field ships now so that story is additive.
+- **Override gate: role check or permission, and which managers** (D12). Mechanism
+  is settled; the policy is CAP-326's to record.
+- **Concurrency on a contended bay and window.** "One must lose, deterministically"
+  is stated as an edge case with no mechanism. Optimistic `@Version`, a Postgres
+  advisory lock and an exclusion constraint on (bay, window) are three designs with
+  different failure modes. CAP-326 proposes one; it is not a business decision.
 - **Tenant provisioning.** Both `service` and `service_location_capabilities` are
   tenant-scoped, so requirements are per-tenant. Seed them from the platform
   template on `tenant.created`, rather than deferring the decision to the moment it
