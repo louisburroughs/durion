@@ -285,6 +285,9 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
       (gen_random_uuid(), 'BAY_DOUBLE_BOOKED', 'HARD', 'BAY', 'Bay {bayName} is already booked', true),
       (gen_random_uuid(), 'MECHANIC_UNAVAILABLE', 'HARD', 'MECHANIC', 'Mechanic {mechanicName} is not available', true),
       (gen_random_uuid(), 'MECHANIC_OVERTIME', 'SOFT', 'MECHANIC', 'Mechanic will exceed 40 hours this week', true),
+      -- Seeded is_active = false in pos-shop-manager: no timekeeping input exists for the evaluator to
+      -- fire it from, and an active rule that is never evaluated advertises enforcement that does not
+      -- exist (durion-positivity-backend#2045 review). Flipped when weekly hours arrive.
       (gen_random_uuid(), 'FACILITY_NEAR_CAPACITY', 'SOFT', 'CAPACITY', 'Facility is at 90% capacity', true),
       -- Extensions of the seeded rules, not amendments to the record (CAP-326, durion#483).
       -- SKILL rows per durion-positivity-backend#2035 and spec D10.1; HOURS rows per spec D18.1.
