@@ -128,6 +128,9 @@ def module_mentions() -> tuple[dict[str, list[str]], dict[str, str]]:
     for domain in sorted(p for p in (REPO / "domains").iterdir() if p.is_dir()):
         counts: collections.Counter = collections.Counter()
         for doc in domain.rglob("*.md"):
+            relative = doc.relative_to(domain)
+            if "archive" in relative.parts:
+                continue
             for name in re.findall(r"\bpos-[a-z-]+\b", doc.read_text(encoding="utf-8", errors="replace")):
                 counts[name] += 1
         per_domain[domain.name] = counts

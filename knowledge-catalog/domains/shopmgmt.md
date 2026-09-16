@@ -5,7 +5,7 @@ description: The shopmgmt domain manages appointment scheduling and resource ass
 resource: https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt
 tags: [domain, shopmgmt]
 sources: [domains/shopmgmt/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T17:23:13+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt) — `domains/shopmgmt/` (14 documents)

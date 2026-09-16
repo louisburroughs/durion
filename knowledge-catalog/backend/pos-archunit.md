@@ -5,7 +5,7 @@ description: Architecture testing aggregator for all POS domain modules using Ar
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-archunit
 tags: [backend, service]
 sources: [durion-positivity-backend/pos-archunit/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-11T17:16:31+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T16:27:58+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-archunit) — `pos-archunit/`

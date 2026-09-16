@@ -5,7 +5,7 @@ description: This guide defines the normative business rules and frontend-facing
 resource: https://github.com/louisburroughs/durion/blob/master/domains/inventory
 tags: [domain, inventory]
 sources: [domains/inventory/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:26-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T11:04:02-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/inventory) — `domains/inventory/` (51 documents)

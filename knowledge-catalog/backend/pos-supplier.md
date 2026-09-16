@@ -5,7 +5,7 @@ description: POS Supplier integration module (outbound supplier connectivity, AD
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-supplier
 tags: [backend, service, positivity]
 sources: [durion-positivity-backend/pos-supplier/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T01:21:16+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T16:27:58+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-supplier) — `pos-supplier/`
