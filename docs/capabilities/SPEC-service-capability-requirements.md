@@ -545,14 +545,70 @@ The fixture's codes map cleanly onto these. Master status in the truck series is
 **T2–T8, excluding T1** — a real credential the model could carry if proficiency
 ever needs to mean something, in preference to the invented 1–5 scale D7 drops.
 
-**Open, and it needs one live call this environment cannot make.** The exact vPIC
-`GVWR` serialization is unconfirmed: one source describes vPIC as capturing "the
-lower bound of GVWR range", which suggests a band or a from/to pair rather than a
-number, and the egress policy here blocks `vpic.nhtsa.dot.gov`. If GVWR returns a
-band string it needs parsing, and a `gvwr_class` derivation has to be specified
-against the real format. Settle it with
-`GET https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/<VIN>?format=json`
-from an unrestricted network **before CAP-327 is written**, not during.
+#### D13.1 — the vPIC derivation, settled
+
+vPIC's `DecodeVIN` returns **two** weight variables, and the field is not named
+`GVWR`:
+
+| vPIC variable | Example | Use |
+|---|---|---|
+| `GrossVehicleWeightRating` | `"Class 1D: 5,001 - 6,000 lb (2,268 - 2,722 kg)"` | **Display and audit only** — what the decode said, shown to an operator considering an override |
+| `GrossVehicleWeightRatingFrom` | `5001` | **The derivation input** — numeric lower bound, mapped onto `gvwr_class` by D13's ranges |
+
+**Derive from `GrossVehicleWeightRatingFrom`, never by parsing the string.** The
+string carries vPIC's own sub-classes — NHTSA subdivides the lighter FHWA classes
+into much tighter bands (`Class 1A`…`1H`, `2A`…`2G` and so on) — which are finer
+than FHWA 1–8 and do not map onto them one-to-one. A numeric lower bound mapped
+against D13's table is stable, testable, and immune to label changes.
+
+Because vPIC's sub-classes **nest inside** the FHWA classes rather than spanning
+them, a lower bound lands in exactly one `gvwr_class` and the straddle case raised
+earlier largely dissolves. Verify that nesting against the enumerated values rather
+than assuming it — see the task in D16, which the platform can answer from its own
+cache.
+
+Keep both fields on the vehicle: the numeric one drives eligibility, the string one
+explains the answer. An operator overriding a decode should be able to see the
+manufacturer band the decode reported.
+
+### D16 — `pos-vehicle-reference-nhtsa` is the right home, and it needs three things first
+
+CAP-327's decode belongs in `pos-vehicle-reference-nhtsa`: it owns the vPIC
+`RestClient`, the caching pattern and the reference entities. But it has no VIN
+decode today, and there are three findings to handle before extending it.
+
+**1. There is no VIN decode anywhere in the platform.** The module calls six vPIC
+*catalog* endpoints — `GetVehicleVariableList`, `GetVehicleVariableValuesList/{id}`,
+`getallmanufacturers`, `GetMakeForManufacturer/{id}`, `GetModelsForMakeId/{id}`,
+`GetVehicleTypesForMakeId/{id}` (`VehicleReferenceService.java:45-183`). All six
+fetch the vPIC *dictionary*: which manufacturers, makes, models and vehicle types
+exist, and which variables exist. A repo-wide grep for `DecodeVin` and for `GVWR`
+returns **nothing**. So CAP-327 adds a decode capability; it does not call one.
+
+**2. The vPIC base URL appears to be wrong.**
+`VehicleReferenceService.java:29` sets
+`NHTSA_API_BASE = "https://vpic.nhtsa.dot.gov/v1/vehicles"`. The documented vPIC
+base is `https://vpic.nhtsa.dot.gov/api/vehicles`; `/v1/` is not a vPIC path. If so,
+all six calls 404 and the module has never run against live vPIC — which is
+consistent with nothing in the repo having ever seen a GVWR value. **Not confirmed
+by a live call** (the authoring environment's egress policy blocks the host), so
+verify with one request before changing it. Fix it in CAP-327, or sooner as
+standalone housekeeping, since it is a one-line defect in shipped code rather than
+anything this spec introduces.
+
+**3. The module can answer D13.1's remaining question from its own cache.**
+`VehicleVariable` and `VehicleVariableValue` already model vPIC's variable
+dictionary, and the module already calls `GetVehicleVariableValuesList/{variableId}`.
+So the **enumerated list of GVWR bands is obtainable from vPIC itself** — fetch the
+values list for the `GrossVehicleWeightRating` variable and build the band →
+`gvwr_class` mapping from it, rather than hardcoding a table from a web page. That
+also confirms or refutes the nesting assumption in D13.1. Do this first; it is the
+cheapest way to get the derivation right.
+
+**One boundary oddity to resolve while in there**, not introduced by this work:
+the module is `pos-vehicle-reference-nhtsa` but its controller is
+`@RequestMapping("/v1/vehicle-fitment")` (`VehicleReferenceController.java:14`) —
+`pos-vehicle-fitment`'s path space. Either the path or the module is misnamed.
 
 ### D14 — bay eligibility is specialty-by-exception; general is the default *(settled)*
 
@@ -1220,9 +1276,15 @@ Beyond the per-AC coverage in the stories:
   a bay that cannot do it. Review the map whenever a service is added in a category
   that already has specialty members. Needs an owner; does **not** need a
   per-service configured flag, which is what D14 removed.
-- **Is the 20-row `service_location_capabilities` registry kept or retired?** D14
-  removes its role in eligibility. It may still be wanted as a display vocabulary.
-  CAP-325 states which, explicitly, rather than leaving it in place unused.
+- ~~Is the 20-row `service_location_capabilities` registry kept or retired?~~
+  **Retired, settled 2026-09-16.** D14 removed its role in eligibility and it is not
+  wanted as a display vocabulary. CAP-325 drops the table, its entity, its
+  repository, its 20 seeded rows and the `GET /v1/service-capabilities` endpoint that
+  was going to expose it — the pre-production policy permits removal without a shim.
+  `BayEntity.serviceCapabilityIds` holds catalog `operationCode`s under D14, so
+  `BayServiceImpl`'s `findByCodeIn` validation against the registry
+  (`:298-300`, `:322-330`) is replaced by validation against the
+  `ext_catalog_service` replica.
 - **`TRANSMISSION-SERVICE`** (D14.1) is general today despite needing a
   fluid-exchange machine, because no bay type exists for it. If a shop confines that
   work, it is a new `BayType` and a new map row — not a reason to invent a bay type
