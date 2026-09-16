@@ -6,6 +6,7 @@
 * **Structure**: every concept now carries a workspace-relative `path:` beside the remote `resource:`, and
   cross-entry links are relative so they resolve when the catalog is read as files rather than served. A
   domain's implementing-module list soft-wraps, which the relative links pushed past the line limit.
+* **Moved**: pos-mcp-server docs from the backend into `domains/general/mcp-server/`; `general` owns `pos-mcp-server` via `MODULE_DOMAIN`.
 
 ## 2026-09-15
 

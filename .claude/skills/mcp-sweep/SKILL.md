@@ -103,8 +103,11 @@ Repeat for the head of the queue:
 5. **Repair budget:** two attempts to get validation green. On the third failure, revert the
    branch, re-bucket the issue as `BLOCKED_DECISION` with the exact failing output, and continue
    to the next item. Do not sink the session into one issue.
-6. **Docs:** if behaviour visible to the model, an operator, or an API caller changed, update
-   `pos-mcp-server/README.md` (it is the authoritative module document) in the same commit.
+6. **Docs:** if behaviour visible to the model, an operator, or an API caller changed, update the
+   canonical documentation in durion `domains/general/mcp-server/` (`architecture.md` for design,
+   `operations/` for alerts, dashboards and runbooks) in a companion durion PR, and
+   `pos-mcp-server/README.md` in the same commit when endpoints, configuration or startup behaviour
+   changed. Link the two PRs.
 7. **Commit** with `fix(mcp): <what changed> (#<issue>)` or `feat(mcp): ...`, following the
    existing `git log` style. Push with `git push -u origin <branch>`.
 8. **PR** via the Pull Request agent / `.github/pull_request_template.md`, title

@@ -39,10 +39,15 @@ grep -Rn "tags:.*pricing" knowledge-catalog/    # entries touching a topic
 
 Sibling repos reach it as `../durion/knowledge-catalog/`.
 
-**Do not re-run `scripts/generate-knowledge-catalog.py`.** It bootstrapped the catalog on 2026-08-19
-and is not idempotent-safe: it hardcodes one developer's absolute paths and unconditionally rewrites
-every entry, `index.md`, and `log.md` back to stub text, discarding any curation. Edit entries by
-hand and record structural changes in `knowledge-catalog/log.md`.
+**Regenerate, never hand-edit.** Entries are build output of `scripts/generate-knowledge-catalog.py`
+(needs PyYAML and the sibling `durion-positivity-backend` checkout, or `DURION_BACKEND=<path>`). It is
+idempotent: `generated.at` follows each source's last commit, so a rerun with no upstream change
+writes nothing. Run `--dry-run` first and `--check` before pushing. Curate the sources instead: ADR
+frontmatter, `.business-rules/` guides, and a domain's `index.md` (`type: Domain Guide` opts the
+domain into document indexing). Module ownership is inferred from how often a domain's documents name
+it; cross-domain folders (`CROSS_DOMAIN`) are not counted and `MODULE_DOMAIN` pins an owner. Record
+structural changes as a bullet under today's heading in `knowledge-catalog/log.md`; a same-day rerun
+keeps them.
 
 ---
 
