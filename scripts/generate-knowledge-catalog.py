@@ -23,6 +23,10 @@ Usage:
     python3 scripts/generate-knowledge-catalog.py --dry-run  # report without writing
 
 Override the backend checkout with DURION_BACKEND=/path/to/durion-positivity-backend.
+
+A domain index with frontmatter `type: Domain Guide` opts into recursive indexing
+of visible Markdown documents. Hidden business-rule guides keep their own section;
+other hidden artifacts are reached through the canonical domain index.
 """
 
 from __future__ import annotations
@@ -189,6 +193,14 @@ def module_records() -> list[dict]:
     return records
 
 
+def has_documentation_index(domain: Path) -> bool:
+    index = domain / "index.md"
+    if not index.exists():
+        return False
+    keys = parse_frontmatter(split_frontmatter(index.read_text(encoding="utf-8"))[0])
+    return keys.get("type") == "Domain Guide"
+
+
 def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
     records = []
     for domain in sorted(p for p in (REPO / "domains").iterdir() if p.is_dir()):
@@ -204,12 +216,27 @@ def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
         for guide in sorted(rules.glob("*.md")) if rules.exists() else []:
             guide_keys = parse_frontmatter(split_frontmatter(guide.read_text(encoding="utf-8", errors="replace"))[0])
             guides.append((guide.name, str(guide_keys.get("type") or "Domain Document")))
+        documents = []
+        documentation_index = has_documentation_index(domain)
+        if documentation_index:
+            for doc in sorted(domain.rglob("*.md")):
+                relative = doc.relative_to(domain)
+                if doc == domain / "index.md" or any(part.startswith(".") for part in relative.parts):
+                    continue
+                frontmatter, body = split_frontmatter(doc.read_text(encoding="utf-8", errors="replace"))
+                keys = parse_frontmatter(frontmatter)
+                heading = re.search(r"^#\s+(.+)$", body, re.M)
+                title = str(keys.get("title") or (heading.group(1) if heading else doc.stem))
+                details = " · ".join(str(keys[key]) for key in ("type", "status") if keys.get(key))
+                documents.append((relative.as_posix(), title, details))
         records.append(
             {
                 "name": domain.name,
                 "path": domain,
                 "description": description or f"The {domain.name} domain.",
                 "guides": guides,
+                "documentation_index": documentation_index,
+                "documents": documents,
                 "modules": domain_modules.get(domain.name, []),
                 "docs": len(list(domain.rglob("*.md"))),
             }
@@ -251,10 +278,12 @@ def slug_for(adr_id: str) -> str:
 
 
 def domain_note(record: dict) -> str:
-    resource = f"{GITHUB}/durion/blob/main/domains/{record['name']}"
+    resource = f"{GITHUB}/durion/blob/master/domains/{record['name']}"
     # Sections are joined, not hand-spaced: a domain with no modules used to emit two
     # blank lines in a row.
     sections = [f"[Domain folder]({resource}) — `domains/{record['name']}/` ({record['docs']} documents)"]
+    if record["documentation_index"]:
+        sections.append(f"[Canonical documentation index]({resource}/index.md) — authority, current guidance, and historical records")
     if record["modules"]:
         links = ", ".join(f"[{m}](/backend/{m}.md)" for m in record["modules"])
         sections.append(f"**Implemented by:** {links}")
@@ -264,6 +293,19 @@ def domain_note(record: dict) -> str:
         base = f"{resource}/.business-rules"
         listed = "\n".join(wrapped_item(f"* [{name}]({base}/{name})", kind) for name, kind in record["guides"])
         sections.append(f"**Business rules:**\n\n{listed}")
+    if record["documents"]:
+        items, references = [], []
+        for number, (path, title, details) in enumerate(record["documents"], start=1):
+            url = f"{resource}/{path}"
+            prefix = f"* [{title}]({url})"
+            if len(prefix) + (3 if details else 0) > MAX_LINE:
+                label = f"document-{number}"
+                prefix = f"* [{title}][{label}]"
+                references.append(f"[{label}]: {url}")
+            items.append(wrapped_item(prefix, details))
+        sections.append("**Documentation:**\n\n" + "\n".join(items))
+        if references:
+            sections.append("\n".join(references))
     return "\n\n".join(sections)
 
 
@@ -272,6 +314,8 @@ def module_note(record: dict, owner: str) -> str:
     lines = [f"[Module directory]({resource}) — `{record['name']}/`", "", f"**Kind:** {record['kind']}"]
     if owner:
         lines.append(f"**Domain:** [{owner}](/domains/{owner}.md)")
+        if has_documentation_index(REPO / "domains" / owner):
+            lines.append(f"**Documentation:** [Canonical {owner} index]({GITHUB}/durion/blob/master/domains/{owner}/index.md)")
     if record["openapi"]:
         lines.append(f"**API contract:** [`openapi.yaml`]({resource}/openapi.yaml)")
     return "\n".join(lines)
@@ -386,7 +430,7 @@ def main() -> int:
             "type": "Domain",
             "title": domain["name"],
             "description": domain["description"],
-            "resource": f"{GITHUB}/durion/blob/main/domains/{domain['name']}",
+            "resource": f"{GITHUB}/durion/blob/master/domains/{domain['name']}",
             "tags": ["domain", domain["name"]],
             "sources": [f"domains/{domain['name']}/"],
             "generated": {"by": "script:generate-knowledge-catalog.py", "at": last_touched(domain["path"], REPO)},

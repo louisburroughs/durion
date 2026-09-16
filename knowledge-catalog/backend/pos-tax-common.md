@@ -12,3 +12,4 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-27T09:50:12
 
 **Kind:** Library
 **Domain:** [accounting](/domains/accounting.md)
+**Documentation:** [Canonical accounting index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md)

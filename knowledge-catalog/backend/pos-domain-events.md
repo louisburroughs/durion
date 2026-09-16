@@ -5,10 +5,11 @@ description: Shared domain event contracts (envelope, topic naming, versioned pa
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events
 tags: [backend, library, accounting]
 sources: [durion-positivity-backend/pos-domain-events/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-11T08:42:43+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T23:55:44+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events) — `pos-domain-events/`
 
 **Kind:** Library
 **Domain:** [accounting](/domains/accounting.md)
+**Documentation:** [Canonical accounting index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md)

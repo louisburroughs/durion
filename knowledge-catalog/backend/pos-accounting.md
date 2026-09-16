@@ -12,4 +12,5 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T02:14:34
 
 **Kind:** Service
 **Domain:** [accounting](/domains/accounting.md)
+**Documentation:** [Canonical accounting index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md)
 **API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting/openapi.yaml)
