@@ -450,11 +450,22 @@ Two open choices, both CAP-326's to record rather than this spec's to make:
   permission granted to those roles matches the platform's code-first convention
   (ADR-0025, `{Module}PermissionRegistry`) and lets the grant be re-delegated
   without a code change. **Recommend the permission** — who may override a booking
-  conflict is exactly the grant that gets moved around.
-- **Which managers.** `LOCATION_MANAGER` is location-scoped and fits a per-facility
-  override, aligning with the ADR-0061 location-scope guard `#2022` already uses;
-  `GENERAL_MANAGER` reads tenant-wide; `SHOP_MANAGER` also exists. Whether all three
-  may override, or only the facility's own manager, is a business decision.
+  conflict is exactly the grant that gets moved around, and with three roles holding
+  it a permission is one `@PreAuthorize` and three template grants rather than a
+  three-way `hasRole` disjunction repeated at every override site.
+- **Which managers — settled 2026-09-16: all three.** `LOCATION_MANAGER`,
+  `GENERAL_MANAGER` and `SHOP_MANAGER` may each override a SOFT conflict.
+  Consequences to implement rather than re-decide:
+  - **The role grants the capability; location scope still constrains where.** A
+    `LOCATION_MANAGER` of one facility does not thereby override a conflict at
+    another — DECISION-SHOPMGMT-012 is deny-by-default and the ADR-0061
+    location-scope guard `#2022` already uses applies to the override endpoint too.
+    `GENERAL_MANAGER`, being tenant-wide, is bounded only by the tenant.
+  - The seeded role list also contains a generic **`MANAGER`**, plus
+    `ACCOUNT_MANAGER` and `INVENTORY_MANAGER`. The latter two are other domains and
+    are out. Generic `MANAGER` is **excluded** on the reading that "all three" named
+    the three shop-facing roles; if it is meant to be included, say so — it is one
+    grant, not a redesign.
 
 **Operating hours do not reach `pos-shop-manager`, so DECISION-SHOPMGMT-008 has no
 data path.** `ExtLocationReplica` carries `locationId`, `code`, `name`, `active`,
