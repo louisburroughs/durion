@@ -28,7 +28,7 @@ not prompt- or model-quality issues, and reduce to six gaps:
 | Gap | Summary | Evidence |
 |---|---|---|
 | G1 | No aggregate anywhere in the platform is dimensioned by customer, employee, technician, or vendor — only GL-account-shaped reports exist | `pos-accounting` `FinancialReportingController.java:69–560` |
-| G2 | All 16 facade tools are `getX(uuid)` or free-text `search(q)`; none accept a date range, group-by, sort, or limit | `internal/orchestration/tools/` |
+| G2 | All 16 facade tools at the 2026-08-30 baseline were `getX(uuid)` or free-text `search(q)`; none accept a date range, group-by, sort, or limit | `internal/orchestration/tools/` |
 | G3 | Tool descriptions promise filters the backing API lacks (e.g. `searchInvoices` claims status/date/amount filtering; controller accepts only `q`) | `InvoiceFacadeTool.java:41`, `pos-invoice` `InvoiceSearchController.java:77` |
 | G4 | Candidate tool set is embedded once per turn and capped at 8; the agent cannot discover a tool mid-reasoning | `OpenApiToolProvider.java:206–222`, `application-alpha.yml:222` |
 | G5 | No compute primitive — every sum, ratio, and date bucket happens in-context over raw JSON | no aggregation tool exists |
@@ -88,7 +88,7 @@ Deterministic seed spanning **25 months** (YoY questions need 24; +1 for month-b
 safety), sized so every ground truth is hand-checkable:
 
 - 3 technicians, 6 customers (2 commercial, 4 individual), 3 vendors, 1 location.
-- ~120 work orders with known creation/completion/reopen timestamps (Q3 needs ≥2 reopens
+- ~120 workorders with known creation/completion/reopen timestamps (Q3 needs ≥2 reopens
   inside 7 days for one specific technician; Q4 needs a known monthly drift in WO→invoice lag).
 - ~150 invoices with line-level labor/parts split, known payment applications at controlled
   lags (populate all four Q12 cohorts), and a designed 60+-days-past-due balance for exactly
@@ -107,7 +107,7 @@ the agent. No backend changes.
 
 ### W1.1 Facade description honesty audit (G3)
 
-- Audit all 16 facade tools: diff every `@Tool`/`@ToolParam` description against the backing
+- Audit all 16 facade tools that existed at the baseline (18 today, after `DateWindow` and `Glossary`): diff every `@Tool`/`@ToolParam` description against the backing
   controller's actual signature. Produce the diff table in the PR description.
 - Known fixes: `searchInvoices` (claims status/customer/date/amount; reality: free-text `q`
   only), `searchWorkorders` (claims customer/status/vehicle criteria; reality: free-text `q` —
@@ -242,7 +242,7 @@ Wave 3's `groupBy`.
 
 **E4 promoted to a facade (#1660, V44).** W2.3 originally promoted only E1/E5/E8, leaving E4
 discovery-only; with no facade to reach, Q4 fell into `searchInvoices` (a free-text lookup with no
-work-order-creation timestamp) and could not answer the question at all. `InvoiceFacadeTool` now
+workorder-creation timestamp) and could not answer the question at all. `InvoiceFacadeTool` now
 carries `getInvoicingLag(startDate, endDate)` alongside `getRevenueByCustomer`.
 
 ### W2.2 Cross-cutting requirements (every endpoint)
@@ -277,7 +277,7 @@ the E-table above has been updated accordingly.
   `WorkorderLaborEntry` (pos-workorder) carries `technicianId` and `hoursWorked` but **no rate
   and no amount**, so rate × hours cannot be computed in-module. Labor revenue exists only
   invoice-side: `InvoiceItem.type` discriminates labor from parts, `InvoiceItem.lineTotal`
-  carries the money, and `Invoice.workorderId` joins back to the work order. pos-workorder's
+  carries the money, and `Invoice.workorderId` joins back to the workorder. pos-workorder's
   existing `ExtInvoiceReplica` carries only subtotal/tax/total — no labor/parts split.
   **Decision:** extend that existing replica with `laborTotal`/`partsTotal` (event-fed, ADR-0044
   §6 precedent) rather than building a new replica. E5 then serves hours and revenue from one

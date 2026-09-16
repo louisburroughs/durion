@@ -101,7 +101,7 @@ populated yet, the rule states the substitute signal it fires on today.
      and NltiRoutingMixShift (rule 5) would fire continuously and truthfully — on a condition that
      is the intended configuration, not an incident. The flag is not visible to LogQL, so the
      expression cannot self-gate. Unsilence when `MCP_MODEL_SIMPLE` names a real smaller model and
-     `MCP_MODEL_TIERING_ENABLED=true` goes back on (see docs/gate4-tiered-router-design.md).
+     `MCP_MODEL_TIERING_ENABLED=true` goes back on (see [the archived Gate 4 design](../../archive/gate4-tiered-router-design.md)).
 
 7. Name: NltiModelFallbackRateHigh
    - Trigger: **Today** — Loki log rule on the tier resolver:

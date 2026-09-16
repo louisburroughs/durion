@@ -8,7 +8,7 @@ tags: [mcp-server, general]
 
 # NL Interface — Phase-Gate Execution Checklist
 
-> **Companion to:** `domains/general/mcp-server/archive/implementation_phase_gates.md` (gate definitions) and `docs/nl-interface-design.md` (design).
+> **Companion to:** `domains/general/mcp-server/archive/implementation_phase_gates.md` (gate definitions) and [`nl-interface-design.md`](nl-interface-design.md) (design).
 > **Purpose:** A living execution log. Check items off **only with evidence**. Each gate ends with a sign-off block recording metrics, decision, and approver. Guards against silent tech debt and scope drift.
 >
 > **Rules of use:**

@@ -20,7 +20,7 @@ parentheses):
   aggregate discovery cycle, leaving that cycle partial (#1632). Incremented by the number of failed
   routing prefixes each partial cycle.
 
-Both are **cumulative counters** that only ever advance, incrementing during each discovery run
+All three are **cumulative counters** that only ever advance, incrementing during each discovery run
 (startup + each refresh cycle). Their raw values are not comparable across time — alert on their
 *change over a window* with `increase(...)`, never on the raw value or a raw difference (which stays
 permanently true after the first-ever failure).
@@ -85,6 +85,8 @@ permanently true after the first-ever failure).
 
 - Grace-period thresholds (e.g. 15m) should exceed startup discovery time plus Eureka registration
   lag on the target environment; tune per environment.
-- Alerts 1–4 are metric-based (Prometheus). Alert 5 is log-based (Loki/CloudWatch Logs) — key off the
+- Alerts 1–4 are metric-based (Prometheus). Alerts 5 and 6 are log-based (Loki/CloudWatch Logs) — key off the
   fixed log phrases in `ToolRegistrationServiceImpl` / `OpenApiDocumentFetcher`.
+- None of these six is provisioned (checked 2026-09-16): `observability/prometheus.yml` loads no `rule_files`, and
+  `observability/loki/rules/nlti-alerts.yml` carries only NLTI rules. This document states intent until they are.
 - Connect each alert to the on-call rotation and notification channels.

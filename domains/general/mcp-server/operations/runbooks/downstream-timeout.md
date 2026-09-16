@@ -22,12 +22,12 @@ Runbook for downstream service timeouts encountered during NLTI execution.
 ## Symptoms
 
 - NLTI requests hang or fail with timeout errors
-- `nlt.execution.latency` and `nlt.request.latency_ms` increase
+- `nlt.request.latency_ms` and the telemetry `latency.totalMs` increase (`nlt.execution.latency` is never sampled)
 - Traces show long wait on downstream HTTP/gRPC calls
 
 ## Detection
 
-- Alert: `NLTIPlanningOrExecutionLatencyAnomaly` or `HighNLTIRequestLatency` firing
+- Alert: `HighNLTIRequestLatency` firing (`NLTIPlanningOrExecutionLatencyAnomaly` cannot fire; see the status note)
 - Traces in distributed tracing showing downstream spans with high duration
 - Metrics: increased 5xx or timeout counters on downstream clients
 

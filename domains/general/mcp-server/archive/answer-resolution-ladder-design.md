@@ -144,8 +144,8 @@ generalizes to unseen phrasings instead of needing a question→URL table.
 CREATE TABLE mcp_screen_registry (
     id             uuid PRIMARY KEY,
     screen_key      text NOT NULL UNIQUE,      -- 'workorders.list'
-    title           text NOT NULL,             -- 'Work Orders'
-    description     text NOT NULL,             -- embedded; 'open/closed work orders, filter by status/location'
+    title           text NOT NULL,             -- 'Workorders'
+    description     text NOT NULL,             -- embedded; 'open/closed workorders, filter by status/location'
     domain          text NOT NULL,             -- rag scope, aligns with RouterClassification.domain
     url_template    text NOT NULL,             -- '/workorders?status={status}&location={locationId}'
     required_perm   text,                      -- gate a link the caller can't open

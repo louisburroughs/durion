@@ -28,12 +28,14 @@ Runbook for handling confirmation token mismatches or cross-user confirmation at
 ## Detection
 
 - Application logs with confirmation validation failures and correlation IDs
-- `nlt.error.count` with `confirmation=403` tag rising
+- HTTP 403s on the confirmation endpoints (`http_server_requests_seconds_count{status="403"}`), correlated with the
+  validation-failure log lines above (`nlt.error.count` is untagged and cannot isolate confirmation failures)
 - Possible security alerts for suspicious cross-user attempts
 
 ## Immediate Actions
 
-1. Collect request IDs, tokens (if available) and user IDs involved; redact sensitive tokens before sharing.
+1. Collect request IDs, correlation IDs, session IDs and user IDs. Never copy raw confirmation or bearer tokens into an
+   incident record; when correlation needs a token, use an approved fingerprint (for example a truncated hash).
 2. Verify if token expiration is expected behavior or indicates misrouted confirmation.
 3. If suspicious activity detected, block offending sessions and escalate to Security.
 4. Inform user-facing support teams with safe guidance to re-initiate confirmation flow.

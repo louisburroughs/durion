@@ -8,6 +8,10 @@ tags: [mcp-server, general]
 
 # Wave 2 gate runs — PENDING
 
+> **Archived.** This placeholder predates the recorded runs. The runs that followed are in this directory:
+> [2026-09-02](2026-09-02-chat-path-gate-run.md) (0/12), [2026-09-03 re-run](2026-09-03-chat-path-gate-rerun.md) (4/12) and
+> [2026-09-03 window-shape evidence](2026-09-03-window-shape-evidence.md) (4/12, 4/12, 5/12). None records a full Wave 2 exit-gate pass.
+
 Issue: #1601 (W2.3, Wave 2 exit gate) · analytics-capability-plan.md §4 "Wave 2 exit gate"
 
 ## Status: not run in this sandbox

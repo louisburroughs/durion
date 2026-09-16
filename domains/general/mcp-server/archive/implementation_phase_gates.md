@@ -503,7 +503,7 @@ This phase is complete only when:
 
 ## Correctness tests
 
-- Exact work order, invoice, PO, VIN, SKU, account-code, and claim-code fixtures improve recall.
+- Exact workorder, invoice, PO, VIN, SKU, account-code, and claim-code fixtures improve recall.
 - Admin-only documents are never returned to non-admin fixtures.
 - Permission-elevated users retrieve according to permissions, not nominal role.
 - RAG recall@k improves or remains within approved threshold.

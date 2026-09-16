@@ -50,7 +50,7 @@ for `searchWorkorders` is updated on the same branch name in `durion`.
    fixture still sits in `tool-selection-pending/` marked "Blocked on W2 E4". The plan matrix
    requires q04 to pass via a ≤ 6-call loop over E4 — impossible today. This, not a transient
    fault, is why q04 spent 71 s in `searchInvoices`: a free-text search fans out to pos-customer
-   and pos-workorder for id resolution, returns one page of 25 invoices with no work-order
+   and pos-workorder for id resolution, returns one page of 25 invoices with no workorder
    creation timestamps, and cannot produce a by-month lag whatever it returns.
 2. **Facade HTTP calls carry no timeout.** `McpServerConfiguration.loadBalancedRestClientBuilder`
    builds a bare `RestClient.builder()` and `ToolRestClientSupport` adds only a timing
@@ -193,7 +193,7 @@ the window stated in each answer; q01/q03 unchanged; every dated analytics call 
    the user a choice of partial answers when the complete plan fits within the call budget."
    (Lands after A1 so the two `SystemPromptDefaults` edits do not race.)
 2. `GET /workorders/search`: accept a repeated/comma-separated `status` so one call per customer
-   returns every open work order server-side. Full contract chain (controller annotations →
+   returns every open workorder server-side. Full contract chain (controller annotations →
    regenerated `openapi.yaml` → Angular SDK). Update the `searchWorkorders` tool description to
    drop the "loops once per open status" plan and name the multi-status form; update the
    `facade-contract.yaml` template if the query shape changes.

@@ -8,6 +8,9 @@ tags: [mcp-server, general]
 
 # pos-mcp-server — Spring AI Issues Delivery Plan
 
+> **Archived (historical).** Every issue this plan sequences (#645, #778–#785) is closed. The "ACTIVE" status and
+> the open-issue queue below describe the plan as it stood on 2026-07-24, not current backlog.
+
 > **Status:** ACTIVE. Minimal-wave delivery plan for the open MCP-server issues
 > (#645, #778–#785), re-grounded against the current **Spring AI** architecture
 > (LangChain4j removed; in-process ChatClient / ToolCallback orchestration, pgvector

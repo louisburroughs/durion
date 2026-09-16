@@ -176,7 +176,7 @@ Each phase is independently useful; phase 1 alone surfaces refusals against real
 
 - Parent: #1124 (corpus growth + flip threshold)
 - Hybrid retrieval: #1123; broad Gate-5 design `domains/general/mcp-server/archive/gate5-rag-hybrid-design.md` and
-  the #784 lexical-hybrid implementation design `pos-mcp-server/docs/rag-hybrid-lexical-784-design.md`
+  the #784 lexical-hybrid implementation design [`rag-hybrid-lexical-784-design.md`](rag-hybrid-lexical-784-design.md)
 - Retrieval-quality gate: #783 (`scripts/eval_live.py`, `rag_lexical_hybrid_784`,
   `scripts/eval-cron.sh`)
 - Corpus: `pos-mcp-server/src/main/resources/rag/*.md`; fixtures

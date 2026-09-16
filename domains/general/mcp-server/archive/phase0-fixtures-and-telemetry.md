@@ -9,7 +9,7 @@ tags: [mcp-server, general]
 # Phase 0 Deliverable — Eval Fixture Format & Telemetry Event Schema
 
 > **Status:** DRAFT / design-only. Concrete schemas for the Phase 0 measurement foundation.
-> **Parent:** `docs/nl-interface-design.md` §5 (telemetry) and §6 (evaluation).
+> **Parent:** [`nl-interface-design.md`](nl-interface-design.md) §5 (telemetry) and §6 (evaluation).
 > **Goal:** define the exact on-disk fixture formats and the runtime telemetry event shape so every later phase is measurable against a fixed baseline.
 
 This document specifies four artifacts:

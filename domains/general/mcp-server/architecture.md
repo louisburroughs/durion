@@ -7,8 +7,6 @@ status: current
 tags: [mcp-server, general]
 ---
 
-# pos-mcp-server Architecture
-
 Canonical design documentation for the `pos-mcp-server` module in `durion-positivity-backend`. Setup, endpoints, configuration
 and startup behavior stay in the [module README](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-mcp-server/README.md).
 Paths in backticks (`src/...`, `scripts/...`, `docs/...`) are relative to the backend repository or module.

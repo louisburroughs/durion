@@ -21,13 +21,14 @@ Runbook for NLTI planning engine failures or cases where the planner returns an 
 
 ## Symptoms
 
-- `nlt.planning.latency` spikes or planner returns errors
-- Increased `nlt.error.count` with planning-stage tags
+- Planner errors in the logs, or chat turns ending without a plan
+- Increased `nlt.error.count`; it is untagged, so attribute the stage from logs and the `nlti.request.telemetry` stream
+  (`nlt.planning.latency` is registered but never sampled)
 - Responses indicating inability to generate plan or prompts for clarification repeatedly
 
 ## Detection
 
-- Alert: `NLTIPlanningOrExecutionLatencyAnomaly` or `HighNLTIErrorRate` with planning stage
+- Alert: the Gate 7 Loki rules in the alert guide that route here (`HighNLTIErrorRate` is not provisioned)
 - Planner logs showing exceptions, model rate limits, or invalid input errors
 - Telemetry: `nlt.intent.clarification.count` abnormal rise
 

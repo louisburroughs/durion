@@ -28,7 +28,8 @@ Runbook for handling an authorization (AuthZ) service outage that causes the NLT
 ## Detection
 
 - Alert: `HighNLTIErrorRate` firing
-- Grafana panel: `nlt.request.count` with 503 status tag spike
+- Grafana panel: the HTTP requests panel on `http_server_requests_seconds_count{status="503"}` (`nlt.request.count` is
+  untagged and cannot split by status)
 - Check logs for `AuthZ` timeout or `403->503` mapping
 
 ## Immediate Actions
@@ -46,7 +47,8 @@ Runbook for handling an authorization (AuthZ) service outage that causes the NLT
 ## Rollback / Recovery
 
 - If a recent AuthZ deploy caused regression, coordinate rollback with AuthZ owners.
-- If temporary whitelist or fallback auth token is available, use per-org emergency overrides following policy.
+- Recovery means restoring AuthZ. Do not bypass authorization with a fallback token or allow-list; if access cannot wait,
+  use only an explicitly approved, scoped, time-boxed and audited break-glass procedure owned by the Security team.
 
 ## Post-Incident Notes
 
