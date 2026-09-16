@@ -21,10 +21,10 @@ facts), ADR-0026 (module boundaries), ADR-0027 (UUID identifiers), ADR-0059 §3
 (Durion-owned codes, vendor codes cross-referenced onto them), ADR-0062 (tenancy).
 Where this spec chooses, it chooses inside those.
 
-**One decision here is escalated, not made.** The severity of a skill mismatch is
-undecided by the Shop Management domain and is not a story author's to settle —
-`louisburroughs/durion-positivity-backend#2035`. Everything in §6.4 and §9 CAP-329
-is written against the recommended answer and is marked where it depends on it.
+**The one escalated decision is now answered.** The severity of a skill mismatch was
+undecided by the Shop Management domain and not a story author's to settle; it was
+resolved by `louisburroughs/durion-positivity-backend#2035` on 2026-09-16 and is
+recorded at D10. Nothing in this spec is now pending an external decision.
 
 ---
 
@@ -72,7 +72,7 @@ claims made in `#2024`, `#2022` or this spec's first revision.
 |---|---|
 | **†** `AWAITING_SKILL_FULFILLMENT` is not in the code | `AssignmentStatusEnum.java:4-8` is `CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED`, duplicated verbatim at `internal/service/enums/AssignmentStatus.java:3-7`. DECISION-SHOPMGMT-010's six members are not implemented and the state exists only in the decision record. **This spec's first revision asserted otherwise** |
 | **†** `conflict_resource_type` is not in the schema | It exists only in `DOMAIN_NOTES.md:154`'s proposed DDL. `V1__baseline_shop_manager.sql` has zero `CREATE TYPE` statements and no `conflict_rule`, `scheduling_conflict` or `conflict_override` table. **This spec's first revision asserted otherwise** |
-| **†** DECISION-SHOPMGMT-002 assigns no severity to `SKILL` | Its seeded rules are `BAY_DOUBLE_BOOKED`/HARD/BAY, `MECHANIC_UNAVAILABLE`/HARD/MECHANIC, `MECHANIC_OVERTIME`/SOFT/MECHANIC, `FACILITY_NEAR_CAPACITY`/SOFT/CAPACITY. The severity every design in flight assumes was never granted → `#2035` |
+| **†** DECISION-SHOPMGMT-002 assigns no severity to `SKILL` | Its seeded rules are `BAY_DOUBLE_BOOKED`/HARD/BAY, `MECHANIC_UNAVAILABLE`/HARD/MECHANIC, `MECHANIC_OVERTIME`/SOFT/MECHANIC, `FACILITY_NEAR_CAPACITY`/SOFT/CAPACITY. The severity every design in flight assumed was never granted. Resolved by `#2035`: SOFT, warning-only, advisor-overridable, with a new `MECHANIC_NOT_CERTIFIED` rule — see D10 |
 | **†** The decision's own audit is unrunnable | `override_record` (`:298-308`) records `override_reason`, `conflict_details`, `overridden_by_user_id` — neither a severity nor a rule reference. "Find HARD conflicts with overrides; should be zero" cannot be executed |
 | Conflict detection is a no-op with no caller | `ConflictDetectionServiceImpl.java:16-41` — all four methods; `isWithinOperatingHours` returns `true` unconditionally. Only reference anywhere is `InternalServiceImplementationsTest.java:28`. Appointment creation performs no operating-hours, bay double-booking or mechanic check |
 | **†** And a pre-check is contractually advisory | DECISION-SHOPMGMT-011: *"Canonical contract is 'conflicts returned on submit'. A separate pre-check may exist for UX but must not be required for correctness."* So `#2022`'s opening search is advisory **by the domain's own definition** until the submit-time tier exists |
@@ -256,28 +256,61 @@ shortcut. `service → required capability → required skill` fails on four cou
 What survives from it, and is kept: no skill vocabulary on `ServiceDto` until a
 registry exists, and the module owning competence data owns the resolution.
 
-### D10 — a skill shortfall is returned flagged, not excluded *(depends on `#2035`)*
+### D10 — a skill mismatch is SOFT, warns only, and is advisor-overridable *(settled)*
 
-DECISION-SHOPMGMT-010's transitions are `ASSIGNED → AWAITING_SKILL_FULFILLMENT` and
-`AWAITING_SKILL_FULFILLMENT → {ASSIGNED, CANCELLED}` — never `→ IN_PROGRESS`. Read
-literally, the domain's position is that a skill shortfall **parks an assignment; it
-does not block booking.** Work is bookable before competence is resolved, and the
-resolution path is re-assignment.
+**Answered by `louisburroughs/durion-positivity-backend#2035`, 2026-09-16.** No
+longer a recommendation.
 
-A hard eligibility filter contradicts that: it removes the advisor's ability to book
-the bay now and staff it before the date. Combined with D9's false negatives, the
-customer is turned away.
+| Question | Answer |
+|---|---|
+| Severity of a skill mismatch | **SOFT** |
+| Does a shortfall block anything? | **No.** It produces a warning and prevents nothing |
+| Override authority | **A Service Advisor, without manager approval** |
+| DOT inspection authority | **A unique credential**, distinct from any PM competence |
+| Does `MECHANIC_UNAVAILABLE` cover "rostered but not competent"? | **No.** `MECHANIC_UNAVAILABLE` means no mechanic is present. Not-competent needs its own rule |
 
-So an opening with no certified technician is **returned and flagged** —
-`skillFulfillment: CERTIFIED | AWAITING` plus the unmet skill codes, ranked
-certified-first — and booking it creates the assignment in
-`AWAITING_SKILL_FULFILLMENT`, which requires the enum corrected to the decision
-record's six members.
+Consequences, in order of how much they change:
 
-**This is a recommendation pending `#2035`, not a settled rule.** DECISION-SHOPMGMT-002
-assigns no severity to a `SKILL` conflict, and assigning one is neither this spec's
-nor a story author's call. If the answer is HARD-blocks-booking, §6.4 and CAP-329's
-acceptance criteria change; nothing else in this spec does.
+1. **An opening is never withheld for want of a certified technician.** It is
+   returned with `skillFulfillment: CERTIFIED | AWAITING` and the unmet skill codes,
+   ranked certified-first. Every design that filtered on competence — `#2022` AC2 as
+   written, and D9's rejected model — is wrong in the same direction, and the answer
+   confirms D9's objection was about the right failure mode: the false negative was
+   never acceptable because the exclusion itself is not wanted.
+2. **`#2022`'s `NO_CERTIFIED_TECHNICIAN_ROSTERED` reason is withdrawn.** It cannot
+   occur. A skill shortfall never empties a result set, so it can never be the reason
+   one is empty. `noOpeningReason` keeps three values:
+   `NO_ELIGIBLE_BAY_AT_LOCATION`, `ALL_ELIGIBLE_BAYS_BOOKED`,
+   `SERVICE_REQUIREMENTS_NOT_CONFIGURED`.
+3. **A new conflict rule is needed, and it is not a variant of an existing one.**
+   Answer 5 is explicit that absence and incompetence are different conditions.
+   `MECHANIC_UNAVAILABLE` stays HARD/`MECHANIC` and means not present;
+   **`MECHANIC_NOT_CERTIFIED`** is new, SOFT, resource type `SKILL`. This is the
+   `SKILL` row DECISION-SHOPMGMT-002's seeded rule table was missing, and CAP-326
+   ships it.
+4. **DECISION-SHOPMGMT-002's SOFT tier needs an override-authority attribute.** The
+   decision defines SOFT as *"warning, can override with manager approval"*, and
+   answer 3 grants a Service Advisor the override on this rule specifically. So
+   override authority is a **property of the rule, not of the severity**:
+   `conflict_rule` gains `override_authority ∈ { ADVISOR, MANAGER }`, with
+   `MECHANIC_NOT_CERTIFIED` = `ADVISOR` and `MECHANIC_OVERTIME` /
+   `FACILITY_NEAR_CAPACITY` = `MANAGER`. Alternatively SKILL becomes a third
+   severity — rejected as a worse fit, since everything else about it is SOFT.
+   Either way DECISION-SHOPMGMT-002 needs amending rather than merely extending, and
+   CAP-326's PR should say so.
+   The override remains **audited** per DECISION-SHOPMGMT-007: answer 3 lowers who
+   may override, not whether the override is recorded.
+5. **`AWAITING_SKILL_FULFILLMENT` keeps its purpose.** Booking an `AWAITING` opening
+   creates the assignment in that state, so the shortfall is tracked on the
+   assignment where DECISION-SHOPMGMT-010 puts it, and re-assignment resolves it.
+   This still requires the enum corrected to the decision record's six members
+   (CAP-326) — it is the one part of DECISION-SHOPMGMT-010 the answer leaves intact
+   rather than reinterprets.
+
+What the answer does **not** change: D1–D9 and D11 stand as written. The credential
+model (CAP-328) is unaffected — a SOFT warning still has to know *what* is unmet and
+whether the credential behind it has expired, so expiry and the registry matter
+exactly as much as before.
 
 ### D11 — an opening names the constraints that were actually evaluated
 
@@ -564,10 +597,12 @@ not hold a competence requirement — the service does.
   the response states that the class was not determined.
 - **Add `constraintsEvaluated`** to every opening (D11).
 - **Add `skillFulfillment: CERTIFIED | AWAITING`** and the unmet skill codes,
-  ranked certified-first (D10, pending `#2035`).
-- **`noOpeningReason`** keeps its four values; `SERVICE_REQUIREMENTS_NOT_CONFIGURED`
-  is now answerable from the profile header rather than from a null-versus-empty
-  guess.
+  ranked certified-first (D10 — settled).
+- **Withdraw `NO_CERTIFIED_TECHNICIAN_ROSTERED`.** Per D10 a skill shortfall never
+  withholds an opening, so it can never be the reason a result set is empty.
+  `noOpeningReason` keeps three values: `NO_ELIGIBLE_BAY_AT_LOCATION`,
+  `ALL_ELIGIBLE_BAYS_BOOKED`, `SERVICE_REQUIREMENTS_NOT_CONFIGURED` — the last now
+  answerable from the profile header rather than from a null-versus-empty guess.
 
 ### 6.4 DOT inspection authority
 
@@ -722,9 +757,9 @@ Beyond the per-AC coverage in the stories:
 | | Capability | Blocked on |
 |---|---|---|
 | **CAP-325** | Bay capability axis: §4.1–§4.3, §5 rows 1 and 3–4, §6.1–§6.2, §7.1–§7.2 | Nothing. **Ready, with §7.2 as revised** |
-| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted. `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | `#2035` |
+| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the new `MECHANIC_NOT_CERTIFIED` rule and `override_authority` of D10. `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
 | **CAP-327** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
-| **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing, though `#2035` shapes what consumes it |
+| **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing. `#2035` confirms expiry still matters: a SOFT warning must know whether the credential behind it has lapsed |
 | **CAP-329** | `service_skill_requirement` in catalog, on `ServiceDto` and the fact | CAP-327, CAP-328 |
 | **`#2022`** | Duration-aware opening search | CAP-326, CAP-329. Ships before them only under D11, stating what it did not evaluate |
 
@@ -753,8 +788,9 @@ Beyond the per-AC coverage in the stories:
 
 ### 9.3 Open items
 
-- **`#2035`** — the severity of a skill mismatch, and whether a shortfall blocks
-  booking or only assignment. D10 is written against the recommended answer.
+- ~~**`#2035`** — the severity of a skill mismatch.~~ **Answered 2026-09-16; see
+  D10.** Remaining consequence to carry into CAP-326: DECISION-SHOPMGMT-002 needs
+  amending for per-rule override authority, not merely extending with a new rule.
 - **Tenant provisioning.** Both `service` and `service_location_capabilities` are
   tenant-scoped, so requirements are per-tenant. Seed them from the platform
   template on `tenant.created`, rather than deferring the decision to the moment it
@@ -771,7 +807,7 @@ Beyond the per-AC coverage in the stories:
 | Artifact | Reference |
 |---|---|
 | Capability issues | `louisburroughs/durion#482` (CAP-325), `#483` (CAP-326 conflict tier), `#484` (CAP-327 vehicle duty class), `#485` (CAP-328 credential model), `#486` (CAP-329 service skill requirement) |
-| Clarification | `louisburroughs/durion-positivity-backend#2035` (SKILL severity) |
+| Clarification | `louisburroughs/durion-positivity-backend#2035` (SKILL severity) — **answered 2026-09-16**, recorded at D10 |
 | Catalog declaration story | `louisburroughs/durion-positivity-backend#2024` |
 | Opening search story | `louisburroughs/durion-positivity-backend#2022` — see §9.1 |
 | Bay roster / per-date window / buffers | `louisburroughs/durion-positivity-backend#2023` |
