@@ -21,6 +21,12 @@ grep -R "type: Domain\|type: ADR" knowledge-catalog
 - `knowledge-catalog/` — OKF-based navigation layer for docs and modules
 - `AGENTS.md` — cross-repo quick-reference guidance
 
+The catalog is generated: run `python3 scripts/generate-knowledge-catalog.py` after changing canonical sources,
+and `python3 scripts/generate-knowledge-catalog.py --check` to validate OKF structure. A domain's `index.md` can declare
+`type: Domain Guide` in frontmatter to include its visible Markdown documents recursively, with titles and lifecycle
+status, in the generated domain entry. Hidden business rules keep their existing section; link other hidden artifacts
+from the domain index. See the [accounting documentation index](domains/accounting/index.md) for this convention.
+
 ## Related Repos
 
 - `../durion-positivity-backend/` — Java/Spring Boot services

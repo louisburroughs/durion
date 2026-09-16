@@ -2,16 +2,16 @@
 type: ADR
 title: 'ADR-0058: Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time)'
 description: Nothing in the platform stores an estimated service time. WorkorderSummary.estimatedLaborHours is declared and always null; workorder_service has quantity and price but no hours; the pos-catalog service table carried onl...
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md
 tags: [adr, product]
-status: draft
+status: stable
 sources: [docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:50:14-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md) — `docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md) — `docs/adr/0058-catalog-labor-time-sourcing-architecture.adr.md`
 
-**Status:** Proposed since 2026-09-01
+**Status:** Accepted since 2026-09-01
 
 **Related:**
 

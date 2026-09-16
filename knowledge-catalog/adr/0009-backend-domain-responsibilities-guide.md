@@ -2,14 +2,14 @@
 type: ADR
 title: 'ADR-0009: Backend Domain Responsibilities Guide'
 description: The durion-positivity-backend project has grown to include multiple Spring Boot microservices (pos-accounting, pos-inventory, pos-people, pos-workorder, pos-customer, etc.).
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0009-backend-domain-responsibilities-guide.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0009-backend-domain-responsibilities-guide.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0009-backend-domain-responsibilities-guide.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0009-backend-domain-responsibilities-guide.adr.md) — `docs/adr/0009-backend-domain-responsibilities-guide.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0009-backend-domain-responsibilities-guide.adr.md) — `docs/adr/0009-backend-domain-responsibilities-guide.adr.md`
 
 **Status:** Accepted since 2026-01-29
 

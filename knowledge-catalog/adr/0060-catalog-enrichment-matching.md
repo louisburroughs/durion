@@ -2,14 +2,14 @@
 type: ADR
 title: 'ADR-0060: Catalog Enrichment Matching and Review (pos-catalog Tread-Design Confidence Tiers)'
 description: Every candidate scoring ≥ 0.50 is auto-attached, and a later import that scores higher against a different design silently re-points the product — last write wins, with no review step and no memory of the decision.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0060-catalog-enrichment-matching.adr.md
+resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0060-catalog-enrichment-matching.adr.md
 tags: [adr, product]
 status: stable
 sources: [docs/adr/0060-catalog-enrichment-matching.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
 ---
 
-[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0060-catalog-enrichment-matching.adr.md) — `docs/adr/0060-catalog-enrichment-matching.adr.md`
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0060-catalog-enrichment-matching.adr.md) — `docs/adr/0060-catalog-enrichment-matching.adr.md`
 
 **Status:** Accepted since 2026-09-06
 

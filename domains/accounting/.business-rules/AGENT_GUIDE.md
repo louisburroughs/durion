@@ -8,6 +8,8 @@ tags: [domain, accounting, agent-guide]
 
 # AGENT_GUIDE.md — Accounting Domain (Normative)
 
+> Documentation navigation: [canonical accounting index](../index.md), including reconciled implementation references and historical records.
+
 ---
 
 ## Purpose
