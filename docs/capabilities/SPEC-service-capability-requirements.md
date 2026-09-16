@@ -798,6 +798,31 @@ Validation resolves against `ExtCatalogServiceReplicaRepository
 retired fails the same way an unknown one does, while the replica keeps the
 tombstoned row so the two remain distinguishable to anyone who asks.
 
+### D14.2 — the location-owned capability registry is retired; mobile units claim operation codes *(ruled 2026-09-16)*
+
+D14.1 left one question open: whether `service_location_capabilities` (the 20-row
+registry `R__seed_location_1_reference.sql` seeded) survives as a display vocabulary.
+It does not. Ruled on `#482` by the owner:
+
+- **Retired.** `service_location_capabilities`, `mobile_unit_capabilities` and the
+  registry's seed block are dropped (pos-location V5). Nothing scheduled against the
+  registry once bays moved to the specialty map; a vocabulary nothing reads drifts.
+- **Mobile units claim catalog operation codes**, exactly as bays do:
+  `MobileUnitRequest/Response.serviceCapabilityCodes`, validated against the
+  `ext_catalog_service` replica by the same `ServiceCapabilityCodeValidator` (active
+  code, UPPER-DASH, case-insensitive; unknown or retired → 422), now also a PATCH key so
+  an incomplete unit can be completed after creation. `MobileUnitUpdatedV1` is schema v2
+  with the codes, additively (ADR-0044 §3); a consumer reads null as "claims nothing".
+- **Existing unit claims are not carried across.** A registry capability
+  (`BRAKE_SERVICE`) is coarser than an operation code; inventing the mapping in a
+  migration would assert equipment nobody declared. The alpha seeder re-declares each
+  unit's codes from `location/mobile-units.csv`, rewritten to Tier 0 operation codes a
+  van can actually perform on site — alignment, transmission and DOT annual inspection
+  registry codes were dropped rather than mapped, and the seeder's test pins every code
+  to `tier0-services.csv`.
+- **One vocabulary for "what can this resource perform".** When mobile units become
+  schedulable, D14's eligibility rule applies to them unchanged.
+
 ### D15 — credentials are re-ingested with real dates, not migrated *(settled)*
 
 Settled 2026-09-16. The 23 rows in
