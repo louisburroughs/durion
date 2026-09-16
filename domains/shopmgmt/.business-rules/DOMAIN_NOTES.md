@@ -285,8 +285,18 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
       (gen_random_uuid(), 'BAY_DOUBLE_BOOKED', 'HARD', 'BAY', 'Bay {bayName} is already booked', true),
       (gen_random_uuid(), 'MECHANIC_UNAVAILABLE', 'HARD', 'MECHANIC', 'Mechanic {mechanicName} is not available', true),
       (gen_random_uuid(), 'MECHANIC_OVERTIME', 'SOFT', 'MECHANIC', 'Mechanic will exceed 40 hours this week', true),
-      (gen_random_uuid(), 'FACILITY_NEAR_CAPACITY', 'SOFT', 'CAPACITY', 'Facility is at 90% capacity', true);
+      (gen_random_uuid(), 'FACILITY_NEAR_CAPACITY', 'SOFT', 'CAPACITY', 'Facility is at 90% capacity', true),
+      -- Extensions of the seeded rules, not amendments to the record (CAP-326, durion#483).
+      -- SKILL rows per durion-positivity-backend#2035 and spec D10.1; HOURS rows per spec D18.1.
+      -- The code is the API reason code verbatim: one namespace, no mapping table.
+      (gen_random_uuid(), 'COMPETENT_MECHANIC_UNAVAILABLE', 'SOFT', 'SKILL', 'A mechanic holding {skills} works here but none is free for {start}–{end}', true),
+      (gen_random_uuid(), 'NO_COMPETENT_MECHANIC_ROSTERED', 'SOFT', 'SKILL', 'No mechanic at this location holds {skills}', true),
+      (gen_random_uuid(), 'OUTSIDE_OPERATING_HOURS', 'HARD', 'HOURS', '{start}–{end} falls outside the location''s operating hours for that day', true),
+      (gen_random_uuid(), 'FACILITY_CLOSED', 'HARD', 'HOURS', 'The location is closed on {date}{reason}', true);
     ```
+
+    Shipped by `pos-shop-manager`'s `R__seed_shop_manager_1_conflict_rules.sql` (md5-derived ids,
+    `ON CONFLICT (code) DO UPDATE`); `conflict_rule` is platform-global there (spec D18.2).
 
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain with Operations oversight
