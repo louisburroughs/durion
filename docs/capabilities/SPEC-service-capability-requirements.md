@@ -256,61 +256,162 @@ shortcut. `service → required capability → required skill` fails on four cou
 What survives from it, and is kept: no skill vocabulary on `ServiceDto` until a
 registry exists, and the module owning competence data owns the resolution.
 
-### D10 — a skill mismatch is SOFT, warns only, and is advisor-overridable *(settled)*
+### D10 — a skill mismatch is SOFT, warns only, and is manager-overridable *(settled)*
 
-**Answered by `louisburroughs/durion-positivity-backend#2035`, 2026-09-16.** No
-longer a recommendation.
+**Answered by `louisburroughs/durion-positivity-backend#2035`, 2026-09-16**, with a
+revision to answer 3 and a refinement to answer 2 the same day.
 
 | Question | Answer |
 |---|---|
 | Severity of a skill mismatch | **SOFT** |
-| Does a shortfall block anything? | **No.** It produces a warning and prevents nothing |
-| Override authority | **A Service Advisor, without manager approval** |
+| Does a shortfall block anything? | **No** at scheduling. It warns. See D10.1 for assignment |
+| Override authority | **MANAGER.** Answer 3's advisor-level override was withdrawn "for simplification" |
 | DOT inspection authority | **A unique credential**, distinct from any PM competence |
-| Does `MECHANIC_UNAVAILABLE` cover "rostered but not competent"? | **No.** `MECHANIC_UNAVAILABLE` means no mechanic is present. Not-competent needs its own rule |
+| Does `MECHANIC_UNAVAILABLE` cover "rostered but not competent"? | **No.** It means no mechanic is present. Not-competent needs its own rule |
 
-Consequences, in order of how much they change:
+**Severity is a property of the rule, not of the (rule, operation) pair**, and **no
+decision record needs amending.** With the override back at manager level,
+DECISION-SHOPMGMT-002's own definition of SOFT — *"warning, can override with
+manager approval"* — is satisfied literally. The variation across operations is a
+matter of **surface**, not severity, and falls out of which decision record governs
+each operation:
 
-1. **An opening is never withheld for want of a certified technician.** It is
-   returned with `skillFulfillment: CERTIFIED | AWAITING` and the unmet skill codes,
-   ranked certified-first. Every design that filtered on competence — `#2022` AC2 as
-   written, and D9's rejected model — is wrong in the same direction, and the answer
-   confirms D9's objection was about the right failure mode: the false negative was
-   never acceptable because the exclusion itself is not wanted.
-2. **`#2022`'s `NO_CERTIFIED_TECHNICIAN_ROSTERED` reason is withdrawn.** It cannot
-   occur. A skill shortfall never empties a result set, so it can never be the reason
-   one is empty. `noOpeningReason` keeps three values:
-   `NO_ELIGIBLE_BAY_AT_LOCATION`, `ALL_ELIGIBLE_BAYS_BOOKED`,
-   `SERVICE_REQUIREMENTS_NOT_CONFIGURED`.
-3. **A new conflict rule is needed, and it is not a variant of an existing one.**
-   Answer 5 is explicit that absence and incompetence are different conditions.
-   `MECHANIC_UNAVAILABLE` stays HARD/`MECHANIC` and means not present;
-   **`MECHANIC_NOT_CERTIFIED`** is new, SOFT, resource type `SKILL`. This is the
-   `SKILL` row DECISION-SHOPMGMT-002's seeded rule table was missing, and CAP-326
-   ships it.
-4. **DECISION-SHOPMGMT-002's SOFT tier needs an override-authority attribute.** The
-   decision defines SOFT as *"warning, can override with manager approval"*, and
-   answer 3 grants a Service Advisor the override on this rule specifically. So
-   override authority is a **property of the rule, not of the severity**:
-   `conflict_rule` gains `override_authority ∈ { ADVISOR, MANAGER }`, with
-   `MECHANIC_NOT_CERTIFIED` = `ADVISOR` and `MECHANIC_OVERTIME` /
-   `FACILITY_NEAR_CAPACITY` = `MANAGER`. Alternatively SKILL becomes a third
-   severity — rejected as a worse fit, since everything else about it is SOFT.
-   Either way DECISION-SHOPMGMT-002 needs amending rather than merely extending, and
-   CAP-326's PR should say so.
-   The override remains **audited** per DECISION-SHOPMGMT-007: answer 3 lowers who
-   may override, not whether the override is recorded.
-5. **`AWAITING_SKILL_FULFILLMENT` keeps its purpose.** Booking an `AWAITING` opening
-   creates the assignment in that state, so the shortfall is tracked on the
-   assignment where DECISION-SHOPMGMT-010 puts it, and re-assignment resolves it.
-   This still requires the enum corrected to the decision record's six members
-   (CAP-326) — it is the one part of DECISION-SHOPMGMT-010 the answer leaves intact
-   rather than reinterprets.
+| Operation | Behaviour | Governed by |
+|---|---|---|
+| (a) `GET /v1/schedules/openings` | Never withhold. Contention → per-opening flag; rostered-absence → response-level advisory (D10.2) | DECISION-SHOPMGMT-002 (SOFT = warn) |
+| (b) Create the appointment | Warn, allow, manager override recorded per DECISION-SHOPMGMT-007. Never block | DECISION-SHOPMGMT-002 (SOFT) |
+| (c) Assign a technician to the workorder | Cannot complete when no competent candidate exists — the **candidate set is empty**. The assignment goes to `AWAITING_SKILL_FULFILLMENT` | DECISION-SHOPMGMT-010 |
 
-What the answer does **not** change: D1–D9 and D11 stand as written. The credential
-model (CAP-328) is unaffected — a SOFT warning still has to know *what* is unmet and
-whether the credential behind it has expired, so expiry and the registry matter
-exactly as much as before.
+DECISION-SHOPMGMT-002 governs *scheduling*; DECISION-SHOPMGMT-010 governs
+*assignment*, which is a state-machine transition it never claimed. That is why a
+rostered-absence can stop an assignment while the rule stays SOFT and while
+"prevents nothing" remains true: **there is nothing to override to.** An empty
+candidate set needs no severity to be empty. Answers 1, 2 and revised 3 all hold
+simultaneously.
+
+### D10.1 — ROSTERED and AVAILABLE are two rules, both SOFT, manager override on both
+
+The two conditions differ in remedy and in consequence at assignment, so one rule
+cannot carry both. Answer 5's instruction that absence and incompetence need
+separate rules applies one level down: *absent* competence and *contended*
+competence are separate rules.
+
+| `conflict_rule.code` | Resource | Severity | Override | (a) search | (b) booking | (c) assignment |
+|---|---|---|---|---|---|---|
+| `COMPETENT_MECHANIC_UNAVAILABLE` | `SKILL` | SOFT | MANAGER | per-opening `skillFulfillment: AWAITING` | warn, allow | assignable to a non-certified technician |
+| `NO_COMPETENT_MECHANIC_ROSTERED` | `SKILL` | SOFT | MANAGER | response-level `staffingAdvisory` | warn, allow | candidate set empty → `AWAITING_SKILL_FULFILLMENT` |
+
+**ROSTERED is deliberately not HARD.** Two reasons. First, the manager gate already
+supplies the friction: a manager may legitimately book work nobody at the location
+can staff — send it to the other branch tomorrow, call a contractor, book knowing
+the certified technician returns Thursday. All three are correct business decisions
+and a HARD block forbids all three. Second and more decisive, **a HARD ROSTERED
+would render `AWAITING_SKILL_FULFILLMENT` dead for its most important case.** If a
+competent technician is merely busy you barely need a parked state — you book and
+assign later the same day. The case that most needs a parked assignment is exactly
+rostered-absence: booked, nobody here can do it, waiting on a transfer, a hire or
+training. DECISION-SHOPMGMT-010 defined that state deliberately; making ROSTERED
+HARD at booking contradicts the record that supplies the mechanism.
+
+**Rule codes and response reason codes are separate namespaces.** The owner's
+wording for the response is `NO_CERTIFIED_TECHNICIAN_ROSTERED` /
+`NO_CERTIFIED_TECHNICIAN_AVAILABLE`; the `conflict_rule.code` values above avoid
+"AVAILABLE" so they do not re-collide with the `MECHANIC_UNAVAILABLE` semantics
+answer 5 separated. Map between the two rather than forcing them to share strings —
+`TIRE_SERVICE` meaning three different things in three modules (§1.1) is what
+happens otherwise.
+
+### D10.2 — rostered-absence is a response-level advisory, not a `noOpeningReason` and not a per-opening flag
+
+`#2022`'s `NO_CERTIFIED_TECHNICIAN_ROSTERED` is withdrawn **from that field**, and
+the reason matters: not because the condition is unreal, but because
+`noOpeningReason` is defined as "set only when openings is empty", and **skill never
+empties the list, so it can never be the cause.** `noOpeningReason` keeps three
+values: `NO_ELIGIBLE_BAY_AT_LOCATION`, `ALL_ELIGIBLE_BAYS_BOOKED`,
+`SERVICE_REQUIREMENTS_NOT_CONFIGURED`.
+
+Nor is it a per-opening flag. Every other finding in the conflict model is a
+**contention** and depends on the proposed window — `BAY_DOUBLE_BOOKED` on (bay,
+window), `MECHANIC_OVERTIME` on (person, week), competent-but-busy on (person set,
+window). Rostered-absence depends on (location, required skills) and is **invariant
+across the whole search**. Stamping it onto every opening across 30 days duplicates
+it and falsely implies it could differ between them.
+
+```jsonc
+{
+  "openings": [{ "…": "…",
+    "skillFulfillment": "CERTIFIED",          // | "AWAITING" — per-opening, contention
+    "unmetSkillCodes": [],
+    "constraintsEvaluated": ["BAY","DURATION","BUFFER","ROSTER"]   // D11
+  }],
+  "noOpeningReason": null,                    // three values only
+  "staffingAdvisory": {                       // response-level; only when a required skill is unheld
+    "code": "NO_COMPETENT_TECHNICIAN_ROSTERED",
+    "missingSkillCodes": ["A4-SUSPENSION", "T5-STEERING"],
+    "absenceScope": "NOT_AT_THIS_LOCATION"    // | "NOT_ROSTERED_THIS_DAY"
+  }
+}
+```
+
+**The fixture proves the condition is live, and with a non-empty openings list.**
+Cross-referencing `scripts/fixtures/seed/alpha/people/staffing-assignments.csv`
+against `scripts/fixtures/seed/alpha/shop-manager/mechanic-skills.csv`:
+
+| Location | Technicians | Alignment competence | Alignment bay |
+|---|---|---|---|
+| CLT-MAIN-001 | EMP-0005/6/7 | **none** | **yes** (Bay 02) |
+| CLT-NORTH-001 | EMP-0010/11 | **none** | **yes** (Bay 04) |
+| CLT-SOUTH-001 | EMP-0008/9 | `A4-SUSPENSION` + `T5-STEERING` (EMP-0008) — but **no brake competence at all** | no |
+| ATX-RIV-001 | **zero** | — | no |
+
+So `WHEEL-ALIGNMENT-4-WHEEL` at CLT-MAIN-001 today: the rack is free, openings are
+returned, and nobody at that location can ever do the work. ATX-RIV-001 with zero
+technicians is the genuine `MECHANIC_UNAVAILABLE` case and must **not** fire a
+competence rule. The Charlotte locations have complementary gaps, so "CLT-SOUTH-001
+has an alignment technician" is a correct, actionable answer computable from seeded
+data now.
+
+**`absenceScope` carries the remedy**, and one enum covers both the structural and
+the daily case so the rule table stays at two:
+
+| `absenceScope` | Meaning | Remedy |
+|---|---|---|
+| `NOT_ROSTERED_THIS_DAY` | A holder works here, not scheduled that day | Offer another day |
+| `NOT_AT_THIS_LOCATION` | Nobody here holds it, ever | Offer another branch |
+| `NOT_IN_TENANT` | Nobody employed anywhere holds it | Hire, train, subcontract, decline |
+
+**`NOT_IN_TENANT` and an `alternateLocations[]` suggestion are out of scope for
+CAP-325 and `#2022`.** DECISION-SHOPMGMT-012 makes facility scoping deny-by-default,
+so naming another branch tells the caller that a facility exists and how it is
+staffed. A **location-scoped caller must see `NOT_AT_THIS_LOCATION` for both cases**
+or the staffing profile of facilities they cannot see leaks. Shipping the field now
+makes that story additive rather than a contract break.
+
+**Computing the split is an optimisation, not a cost.** Per §1.2's grain finding,
+whether anyone at this location holds the required skills is window-invariant:
+compute it **once per search, before enumerating any days**, and short-circuit the
+expensive per-candidate minute-grain availability work when it fails. The bleakest
+locations are the ones the search stops working on soonest. Under the current model
+that query runs through `TechnicianRepository`'s un-indexable cast cross-join
+(§1.2†) on every search, which is the strongest single argument for CAP-328
+preceding `#2022`.
+
+### D10.3 — what the answer leaves untouched
+
+D1–D9 and D11 stand as written. **No amendment to DECISION-SHOPMGMT-002 or -010 is
+needed** — worth stating so nobody opens one.
+
+The credential model (CAP-328) is unaffected: a SOFT warning still has to name
+*what* is unmet and know whether the credential behind it has lapsed, so expiry and
+the registry matter exactly as much as under a hard filter. Answer 4 **ratifies**
+the earlier recommendation not to collapse `DOT_INSPECTION` and `PM_SERVICE` onto
+`T8-PMI`, so CAP-328 cites answer 4 as authority for two registry rows rather than
+carrying it as a recommendation.
+
+One forward note for CAP-328's DOT story, nothing to decide now: a *manager*
+override of a regulatory credential documents the decision; it does not satisfy the
+shop's 49 CFR 396.19 obligation to retain evidence that the inspector was qualified.
+The override record is not the qualification.
 
 ### D11 — an opening names the constraints that were actually evaluated
 
@@ -598,11 +699,17 @@ not hold a competence requirement — the service does.
 - **Add `constraintsEvaluated`** to every opening (D11).
 - **Add `skillFulfillment: CERTIFIED | AWAITING`** and the unmet skill codes,
   ranked certified-first (D10 — settled).
-- **Withdraw `NO_CERTIFIED_TECHNICIAN_ROSTERED`.** Per D10 a skill shortfall never
-  withholds an opening, so it can never be the reason a result set is empty.
+- **Move `NO_CERTIFIED_TECHNICIAN_ROSTERED` out of `noOpeningReason` — the condition
+  is real, the field was wrong.** It is not unreachable: nobody-competent-rostered
+  happens today at CLT-MAIN-001 and CLT-NORTH-001 (D10.2). But `noOpeningReason` is
+  "set only when openings is empty", and a skill shortfall never empties the list,
+  so it can never be the cause. It surfaces instead as a response-level
+  `staffingAdvisory` returned **alongside a non-empty openings list**.
   `noOpeningReason` keeps three values: `NO_ELIGIBLE_BAY_AT_LOCATION`,
   `ALL_ELIGIBLE_BAYS_BOOKED`, `SERVICE_REQUIREMENTS_NOT_CONFIGURED` — the last now
   answerable from the profile header rather than from a null-versus-empty guess.
+- **Add `staffingAdvisory { code, missingSkillCodes[], absenceScope }`** at the
+  response level (D10.2).
 
 ### 6.4 DOT inspection authority
 
@@ -748,6 +855,10 @@ Beyond the per-AC coverage in the stories:
 | Credential renewed | New row; the superseded row remains queryable for "qualified on date X" (D7) |
 | HR sync omitting skills entirely | Existing credentials preserved, per the null-vs-empty rule already at `MechanicSyncServiceImpl.java:177-185` |
 | HR sync sending an unresolvable source code | Fails the xref loudly; no phantom skill |
+| **Rostered-absence with a non-empty list** | `WHEEL-ALIGNMENT-4-WHEEL` at CLT-MAIN-001: openings returned, `noOpeningReason` null, `staffingAdvisory` present with `absenceScope: NOT_AT_THIS_LOCATION` |
+| **Contention, not absence** | A competent technician rostered but busy: the opening is returned flagged `AWAITING`, with no `staffingAdvisory` |
+| **Zero technicians is not a competence failure** | ATX-RIV-001 raises `MECHANIC_UNAVAILABLE` and **no** competence rule (#2035 answer 5) |
+| **Scope narrowing** | A location-scoped caller sees `NOT_AT_THIS_LOCATION`, never `NOT_IN_TENANT` (DECISION-SHOPMGMT-012) |
 | Seed rerun | Idempotent; no duplicate rows, no id churn |
 
 ---
@@ -757,7 +868,7 @@ Beyond the per-AC coverage in the stories:
 | | Capability | Blocked on |
 |---|---|---|
 | **CAP-325** | Bay capability axis: §4.1–§4.3, §5 rows 1 and 3–4, §6.1–§6.2, §7.1–§7.2 | Nothing. **Ready, with §7.2 as revised** |
-| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the new `MECHANIC_NOT_CERTIFIED` rule and `override_authority` of D10. `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
+| **CAP-326** | HARD-conflict tier at submit: DECISION-SHOPMGMT-002's three tables *with* severity and rule references, operating hours (-008), bay double-booking, `AssignmentStatusEnum` corrected to -010's six members, duplicate enum deleted, the two new SOFT/`SKILL` rules of D10.1 (`COMPETENT_MECHANIC_UNAVAILABLE`, `NO_COMPETENT_MECHANIC_ROSTERED`). `ConflictDetectionServiceImpl` implemented **or** deleted — never a third thing beside it | Nothing — `#2035` answered |
 | **CAP-327** | Vehicle duty class: VIN-decoded default (the NHTSA module already holds the reference data) **plus** an operator-settable override, because upfits, GVWR derates and re-registration make decodes wrong, and pre-1981 and trailer VINs do not decode. Plus `max_duty_class` on bay if CAP-325 has not already landed it | Nothing |
 | **CAP-328** | Credential model: `skill` registry (`@TenantGlobal`), `skill_code_xref`, `person_credential` in `pos-people`; `mechanic_skill` and `certification` deleted from shop-manager; HR payload widened; delete-then-reinsert replaced with upsert-and-supersede; roster projection stops flattening. **`#2022` AC8 moves here** | Nothing. `#2035` confirms expiry still matters: a SOFT warning must know whether the credential behind it has lapsed |
 | **CAP-329** | `service_skill_requirement` in catalog, on `ServiceDto` and the fact | CAP-327, CAP-328 |
@@ -789,8 +900,12 @@ Beyond the per-AC coverage in the stories:
 ### 9.3 Open items
 
 - ~~**`#2035`** — the severity of a skill mismatch.~~ **Answered 2026-09-16; see
-  D10.** Remaining consequence to carry into CAP-326: DECISION-SHOPMGMT-002 needs
-  amending for per-rule override authority, not merely extending with a new rule.
+  D10.** No consequence outstanding: with the override at manager level, no decision
+  record needs amending, and CAP-326 extends DECISION-SHOPMGMT-002's rule table with
+  two rows rather than altering the record.
+- **`alternateLocations[]` and `NOT_IN_TENANT`** (D10.2) need the
+  DECISION-SHOPMGMT-012 scope-filtering design and belong in their own story. The
+  `absenceScope` field ships now so that story is additive.
 - **Tenant provisioning.** Both `service` and `service_location_capabilities` are
   tenant-scoped, so requirements are per-tenant. Seed them from the platform
   template on `tenant.created`, rather than deferring the decision to the moment it
