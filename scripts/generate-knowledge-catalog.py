@@ -64,8 +64,16 @@ RESERVED = {"index.md", "log.md"}
 # Domains whose folder carries no prose to quote. Stated here rather than left blank,
 # and short enough that a reader can tell a human wrote them.
 DOMAIN_FALLBACK = {
-    "general": "Workspace bucket for cross-domain UI artifacts that no business domain owns.",
+    "general": "Cross-domain platform documentation (pos-mcp-server) and UI artifacts that no business domain owns.",
     "warranty": "Warranty claim lifecycle: eligibility, settlement, reimbursement, and part returns.",
+}
+# Domains whose documents are about the whole platform. Their prose names nearly every module
+# (pos-mcp-server's facades reach all of them), so counting those mentions would hand them
+# ownership of modules a business domain owns. They own only what MODULE_DOMAIN assigns.
+CROSS_DOMAIN = {"general"}
+# Modules whose owning domain is stated rather than inferred from mention counts.
+MODULE_DOMAIN = {
+    "pos-mcp-server": "general",
 }
 MODULE_FALLBACK = {
     "pos-agent-framework": "Placeholder module directory; no build file or README yet.",
@@ -122,11 +130,15 @@ def module_mentions() -> tuple[dict[str, list[str]], dict[str, str]]:
 
     Derived from how often a domain's own docs name a module. It is a reading of
     the prose, not a contract: modules named fewer than five times are ignored,
-    and a module with no clear majority domain gets none.
+    and a module with no clear majority domain gets none. Cross-domain folders are not
+    counted, and MODULE_DOMAIN overrides whatever the counts say.
     """
     per_domain: dict[str, collections.Counter] = {}
     for domain in sorted(p for p in (REPO / "domains").iterdir() if p.is_dir()):
         counts: collections.Counter = collections.Counter()
+        if domain.name in CROSS_DOMAIN:
+            per_domain[domain.name] = counts
+            continue
         for doc in domain.rglob("*.md"):
             relative = doc.relative_to(domain)
             if "archive" in relative.parts:
@@ -140,6 +152,14 @@ def module_mentions() -> tuple[dict[str, list[str]], dict[str, str]]:
         ranked = sorted(((counts[module], d) for d, counts in per_domain.items()), reverse=True)
         if ranked and ranked[0][0] >= 5:
             owner[module] = ranked[0][1]
+    for module, domain_name in MODULE_DOMAIN.items():
+        previous = owner.get(module)
+        if previous and previous != domain_name and module in domain_modules.get(previous, []):
+            domain_modules[previous].remove(module)
+        owner[module] = domain_name
+        domain_modules.setdefault(domain_name, [])
+        if module not in domain_modules[domain_name]:
+            domain_modules[domain_name].insert(0, module)
     return domain_modules, owner
 
 
@@ -197,21 +217,29 @@ def module_records() -> list[dict]:
     return records
 
 
-def has_documentation_index(domain: Path) -> bool:
+def documentation_index_keys(domain: Path) -> dict:
+    """Frontmatter of the domain's index.md when it is a Domain Guide, else empty."""
     index = domain / "index.md"
     if not index.exists():
-        return False
+        return {}
     keys = parse_frontmatter(split_frontmatter(index.read_text(encoding="utf-8"))[0])
-    return keys.get("type") == "Domain Guide"
+    return keys if keys.get("type") == "Domain Guide" else {}
+
+
+def has_documentation_index(domain: Path) -> bool:
+    return bool(documentation_index_keys(domain))
 
 
 def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
     records = []
     for domain in sorted(p for p in (REPO / "domains").iterdir() if p.is_dir()):
         rules = domain / ".business-rules"
+        # A domain without business-rules guides (general) is best described by its own
+        # Domain Guide index, which a human keeps current; the fallback text is last.
         description = (
             first_prose(rules / "AGENT_GUIDE.md")
             or first_prose(rules / "BACKEND_CONTRACT_GUIDE.md")
+            or str(documentation_index_keys(domain).get("description") or "")
             or DOMAIN_FALLBACK.get(domain.name, "")
         )
         # (filename, type) so the note can say what each guide is, read from the

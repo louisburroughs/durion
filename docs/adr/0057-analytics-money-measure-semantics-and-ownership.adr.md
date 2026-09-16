@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: 'ADR-0057: Analytics Money-Measure Semantics and Ownership'
-description: The analytics capability plan (durion-positivity-backend/pos-mcp-server/docs/analytics-capability-plan.md) specifies a set of read-only analytics endpoints served by the existing domain modules.
+description: The analytics capability plan (domains/general/mcp-server/analytics-capability-plan.md) specifies a set of read-only analytics endpoints served by the existing domain modules.
 status: stable
 adr_status: accepted
 created: '2026-09-01'
@@ -19,7 +19,7 @@ tags: [adr]
 
 ## Context
 
-The analytics capability plan (`durion-positivity-backend/pos-mcp-server/docs/analytics-capability-plan.md`) specifies a set of read-only analytics endpoints served by the
+The analytics capability plan (`domains/general/mcp-server/analytics-capability-plan.md`) specifies a set of read-only analytics endpoints served by the
 existing domain modules. Two of them are money measures over the receivables cycle:
 
 - **E2** — `GET /v1/accounting/analytics/collections`, returning `invoiced`, `collected`, and `collectionRatePct` for a window;
@@ -288,7 +288,7 @@ These are acceptance conditions, not advice. An analytics endpoint reporting a m
 
 - **Related Issues:** durion-positivity-backend#1605 (disputed the D3 premise; source of decisions 1–5), durion-positivity-backend#992 (customer-credit liability lifecycle
   and its GL postings), durion-positivity-backend#1623 (deposit-take double-count in `invoiced`; source of decision 6, ruled by the Accounting Domain)
-- **Related Plans:** `durion-positivity-backend/pos-mcp-server/docs/analytics-capability-plan.md` — §W2.4 decision D3 and its 2026-09-01 premise correction,
+- **Related Plans:** `domains/general/mcp-server/analytics-capability-plan.md` — §W2.4 decision D3 and its 2026-09-01 premise correction,
   §W2.5 decisions D5–D8 (D8 is the plan-side record of decision 6), §W3.1 `groupBy` periodization
 - **Related ADRs:**
   - [ADR-0044: Event-Only Domain Walls and Module Communication Policy](0044-platform-event-only-domain-walls.adr.md) — R1 (no domain-to-domain synchronous calls), R3
