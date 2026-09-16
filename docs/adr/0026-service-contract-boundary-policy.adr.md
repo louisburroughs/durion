@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0026: Service Contract Boundary Policy (All Backend Modules)'
+description: A module-specific ADR in pos-inventory documented this pattern locally, but the rule applies platform-wide and should be governed centrally.
+status: stable
+adr_status: accepted
+created: 2026-02-26
+related: [ADR-0009, ADR-0044]
+tags: [adr]
+---
 # ADR-0026: Service Contract Boundary Policy (All Backend Modules)
 
 **Status:** ACCEPTED (amended 2026-08-27 — see §Amendments, D1–D5)  

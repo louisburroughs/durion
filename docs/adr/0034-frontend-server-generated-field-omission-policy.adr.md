@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0034: Frontend Server-Generated Field Omission Policy'
+description: The Durion backend populates certain timestamp and audit fields automatically at write time (e.g., createdAt, updatedAt, requestedAt, approvedAt, issuedAt).
+status: stable
+adr_status: accepted
+created: 2026-03-29
+related: [ADR-0024]
+tags: [adr, frontend]
+---
 # ADR-0034: Frontend Server-Generated Field Omission Policy
 
 **Status:** ACCEPTED **Date:** 2026-03-29 **Deciders:** Frontend Architecture Team, Backend Contract Team **Affected Issues:** PR #12 review finding — thread r3006417708;

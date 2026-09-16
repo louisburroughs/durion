@@ -1,10 +1,14 @@
 ---
 type: Module
-title: Bulk Loader
-description: Pointer concept for the Bulk Loader backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader
-tags: [backend, module, pos-bulk-loader]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-bulk-loader
+description: Bulk data import service for Durion POS
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader'
+tags: [backend, service]
+sources: [durion-positivity-backend/pos-bulk-loader/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-14T14:18:23+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader) — `pos-bulk-loader/`
+
+**Kind:** Service
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader/openapi.yaml)

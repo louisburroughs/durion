@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0002: CRM Domain Permission Taxonomy and Authorization Model'
+description: 'The CRM domain has five frontend stories requiring explicit permission gates (Issues #176, #173, #172, #171, #169). Without a defined permission taxonomy:'
+status: deprecated
+adr_status: deprecated
+created: 2026-01-23
+superseded_by: ADR-0025
+tags: [adr, crm, rbac]
+---
 # ADR 0002: CRM Domain Permission Taxonomy and Authorization Model
 
 **Status:** DEPRECATED (SUPERSEDED BY ADR-0025)  

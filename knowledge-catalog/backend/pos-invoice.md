@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Invoice
-description: Pointer concept for the Invoice backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice
-tags: [backend, module, pos-invoice]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-invoice
+description: POS Invoice module
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice'
+tags: [backend, service, order]
+sources: [durion-positivity-backend/pos-invoice/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T13:07:56+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice) — `pos-invoice/`
+
+**Kind:** Service
+**Domain:** [order](/domains/order.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice/openapi.yaml)

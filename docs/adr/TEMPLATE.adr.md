@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-NNNN: [Brief Decision Title]'
+description: [One sentence stating the decision and why it was needed.]
+status: draft
+adr_status: pending
+created: YYYY-MM-DD
+tags: [adr]
+---
 # ADR-NNNN: [Brief Decision Title]
 
 **Status:** PENDING DECISION *(or PROPOSED, ACCEPTED, DEPRECATED, SUPERSEDED)*  

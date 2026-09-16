@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0051: Supplier Protocol Adapter and Codec Versioning Policy'
+description: The same business service exists in multiple EDIWheel norm generations (order in A2.5 and C1.0; order status in A2.5, C1.0, and C1.1; stock report in B2.1 and C1.0; the emerging C1.2 JSON API), and vendors support differ...
+status: stable
+adr_status: accepted
+created: 2026-08-10
+related: [ADR-0026, ADR-0049, ADR-0050]
+tags: [adr]
+---
 # ADR-0051: Supplier Protocol Adapter and Codec Versioning Policy
 
 **Status:** ACCEPTED 2026-08-10 — revised for PRCR-009  

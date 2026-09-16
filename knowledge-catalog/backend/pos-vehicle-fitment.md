@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Vehicle Fitment
-description: Pointer concept for the Vehicle Fitment backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-fitment
-tags: [backend, module, pos-vehicle-fitment]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-vehicle-fitment
+description: Vehicle Fitment Module
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-fitment'
+tags: [backend, service, inventory]
+sources: [durion-positivity-backend/pos-vehicle-fitment/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T00:12:12+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-fitment) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-fitment) — `pos-vehicle-fitment/`
+
+**Kind:** Service
+**Domain:** [inventory](/domains/inventory.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-fitment/openapi.yaml)

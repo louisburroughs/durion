@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0033 Angular Effect Observable Cancellation Policy
-description: Pointer to the canonical ADR for 0033 Angular Effect Observable Cancellation Policy.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: 'ADR-0033: Angular Effect Observable Cancellation Policy'
+description: Angular Signals' effect() function re-executes its body whenever a reactive dependency (signal read) changes.
+resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md'
+tags: [adr, frontend]
+status: stable
+sources: [docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-04-22T20:37:56-04:00 }
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md) — `docs/adr/0033-angular-effect-observable-cancellation-policy.adr.md`
+
+**Status:** Accepted since 2026-03-29

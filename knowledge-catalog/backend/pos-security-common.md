@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Security Common
-description: Pointer concept for the Security Common backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-common
-tags: [backend, module, pos-security-common]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-security-common
+description: Shared security components for gateway-based JWT authentication
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-common'
+tags: [backend, library]
+sources: [durion-positivity-backend/pos-security-common/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-11T01:20:56+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-common) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-common) — `pos-security-common/`
+
+**Kind:** Library

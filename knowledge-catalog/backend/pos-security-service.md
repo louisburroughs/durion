@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Security Service
-description: Pointer concept for the Security Service backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service
-tags: [backend, module, pos-security-service]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-security-service
+description: POS Security Service Module for IAM and JWT management
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service'
+tags: [backend, service, security]
+sources: [durion-positivity-backend/pos-security-service/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T16:09:19+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service) — `pos-security-service/`
+
+**Kind:** Service
+**Domain:** [security](/domains/security.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service/openapi.yaml)

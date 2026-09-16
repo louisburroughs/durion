@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0010 Frontend Domain Responsibilities Guide
-description: Pointer to the canonical ADR for 0010 Frontend Domain Responsibilities Guide.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0010-frontend-domain-responsibilities-guide.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: 'ADR-0010: Frontend Domain Responsibilities Guide'
+description: The previous version of this ADR described a Moqui + Vue/Quasar multi-component frontend model. That no longer reflects the active implementation.
+resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0010-frontend-domain-responsibilities-guide.adr.md'
+tags: [adr, frontend]
+status: stable
+sources: [docs/adr/0010-frontend-domain-responsibilities-guide.adr.md]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-03-28T06:23:49-04:00 }
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0010-frontend-domain-responsibilities-guide.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0010-frontend-domain-responsibilities-guide.adr.md) — `docs/adr/0010-frontend-domain-responsibilities-guide.adr.md`
+
+**Status:** Accepted since 2026-03-28

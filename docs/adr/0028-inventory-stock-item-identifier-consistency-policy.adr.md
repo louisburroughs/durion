@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0028: Inventory Stock Item Identifier Consistency Policy'
+description: 'Inventory flows currently mix identifier meaning and naming across contracts and persistence:'
+status: stable
+adr_status: accepted
+created: 2026-02-28
+related: [ADR-0013, ADR-0027]
+tags: [adr, inventory]
+---
 # ADR-0028: Inventory Stock Item Identifier Consistency Policy
 
 **Status:** ACCEPTED  

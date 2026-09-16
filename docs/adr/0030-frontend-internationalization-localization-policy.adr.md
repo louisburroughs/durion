@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0030: Frontend Internationalization and Localization Policy'
+description: The Angular frontend currently has a baseline language configuration, but long-term product execution requires predictable internationalization (i18n) and localization (l10n) behavior across features.
+status: stable
+adr_status: accepted
+created: 2026-03-28
+tags: [adr, frontend]
+---
 # ADR-0030: Frontend Internationalization and Localization Policy
 
 **Status:** ACCEPTED **Date:** 2026-03-28 **Deciders:** Frontend Architecture Team, Product Lead, UX Content Lead **Affected Issues:** Multi-locale readiness, translation

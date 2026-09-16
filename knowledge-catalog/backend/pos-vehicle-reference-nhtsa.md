@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Vehicle Reference Nhtsa
-description: Pointer concept for the Vehicle Reference Nhtsa backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-nhtsa
-tags: [backend, module, pos-vehicle-reference-nhtsa]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-vehicle-reference-nhtsa
+description: Vehicle reference module for NHTSA
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-nhtsa'
+tags: [backend, service]
+sources: [durion-positivity-backend/pos-vehicle-reference-nhtsa/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-10T11:41:01+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-nhtsa) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-nhtsa) — `pos-vehicle-reference-nhtsa/`
+
+**Kind:** Service

@@ -1,10 +1,15 @@
 ---
 type: ADR
-title: 0046 Environment Log Level Policy
-description: Pointer to the canonical ADR for 0046 Environment Log Level Policy.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0046-environment-log-level-policy.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: 'ADR-0046: Environment Log Level Policy'
+description: 'Every pos-* module in durion-positivity-backend sets logging.level.root: INFO in its base application.yml.'
+resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0046-environment-log-level-policy.adr.md'
+tags: [adr]
+status: stable
+sources: [docs/adr/0046-environment-log-level-policy.adr.md]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-07-12T16:36:04-04:00 }
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0046-environment-log-level-policy.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0046-environment-log-level-policy.adr.md) — `docs/adr/0046-environment-log-level-policy.adr.md`
+
+**Status:** Accepted since 2026-07-12
+**Related:** [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md), [ADR-0045](/adr/0045-autonomous-environment-lifecycle-management.md)

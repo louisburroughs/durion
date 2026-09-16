@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Openapi Validation
-description: Pointer concept for the Openapi Validation backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-openapi-validation
-tags: [backend, module, pos-openapi-validation]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-openapi-validation
+description: OpenAPI validation policy support module
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-openapi-validation'
+tags: [backend, library]
+sources: [durion-positivity-backend/pos-openapi-validation/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-10T01:49:07+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-openapi-validation) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-openapi-validation) — `pos-openapi-validation/`
+
+**Kind:** Library

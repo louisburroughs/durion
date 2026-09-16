@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0015: Person, Customer, and User Entity Semantics and Relationships'
+description: 'The Durion platform manages several core identity and relationship concepts: Person, Customer, and User. These entities are referenced across multiple modules:'
+status: stable
+adr_status: accepted
+created: 2026-02-17
+related: [ADR-0009, ADR-0013, ADR-0043, ADR-0044]
+tags: [adr]
+---
 # ADR-0015: Person, Customer, and User Entity Semantics and Relationships
 
 **Status:** ACCEPTED  

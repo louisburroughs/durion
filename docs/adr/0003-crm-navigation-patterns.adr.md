@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0003: CRM Navigation Patterns'
+description: 'The CRM frontend requires consistent, predictable navigation patterns for entity views and post-creation flows. Currently, there are no canonical routes or screen layouts defined for:'
+status: stable
+adr_status: accepted
+created: 2026-01-23
+tags: [adr, crm]
+---
 # ADR-CRM-001: CRM Navigation Patterns
 
 **Status:** ACCEPTED - 2026-01-24 

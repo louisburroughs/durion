@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Vehicle Reference Carapi
-description: Pointer concept for the Vehicle Reference Carapi backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-carapi
-tags: [backend, module, pos-vehicle-reference-carapi]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-vehicle-reference-carapi
+description: CarAPI vehicle reference integration
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-carapi'
+tags: [backend, service]
+sources: [durion-positivity-backend/pos-vehicle-reference-carapi/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-10T10:04:58+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-carapi) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-reference-carapi) — `pos-vehicle-reference-carapi/`
+
+**Kind:** Service

@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0044: Event-Only Domain Walls and Module Communication Policy'
+description: Backend domain modules are coupled by ~24 synchronous REST clients across 10 modules (full call matrix in durion-positivity-backend/docs/module-coupling/issue-823-event-only-domain-walls-assessment.md).
+status: stable
+adr_status: accepted
+created: 2026-07-08
+related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062]
+tags: [adr, events, platform]
+---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
 **Status:** ACCEPTED — amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)); previously amended 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped), 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments

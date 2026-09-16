@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0047: Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals'
+description: The accounting parity plan surveyed external accounting parity expectations against pos-accounting and produced an evidence-based gap register.
+status: stable
+adr_status: accepted
+created: 2026-07-17
+related: [ADR-0044]
+tags: [adr, accounting]
+---
 # ADR-0047: Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals
 
 **Status:** ACCEPTED **Date:** 2026-07-17 **Deciders:** Architecture, Backend Lead, Accounting Domain **Affected Issues:** durion#357 (story A4 of the accounting parity plan;

@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0036: Frontend Security Audit Model Ownership Boundary'
+description: 'These interfaces are consumed exclusively by:'
+status: stable
+adr_status: accepted
+created: 2026-03-30
+related: [ADR-0010]
+tags: [adr, audit, frontend, security]
+---
 # ADR-0036: Frontend Security Audit Model Ownership Boundary
 
 **Status:** ACCEPTED

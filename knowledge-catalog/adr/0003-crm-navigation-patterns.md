@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0003 Crm Navigation Patterns
-description: Pointer to the canonical ADR for 0003 Crm Navigation Patterns.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0003-crm-navigation-patterns.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: 'ADR-0003: CRM Navigation Patterns'
+description: 'The CRM frontend requires consistent, predictable navigation patterns for entity views and post-creation flows. Currently, there are no canonical routes or screen layouts defined for:'
+resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0003-crm-navigation-patterns.adr.md'
+tags: [adr, crm]
+status: stable
+sources: [docs/adr/0003-crm-navigation-patterns.adr.md]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-03-28T06:23:49-04:00 }
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0003-crm-navigation-patterns.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0003-crm-navigation-patterns.adr.md) — `docs/adr/0003-crm-navigation-patterns.adr.md`
+
+**Status:** Accepted since 2026-01-23

@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Marketing
-description: Pointer concept for the Marketing backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-marketing
-tags: [backend, module, pos-marketing]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-marketing
+description: 'POS Marketing module: campaigns, templates, audience binding, and send orchestration'
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-marketing'
+tags: [backend, service, crm]
+sources: [durion-positivity-backend/pos-marketing/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T00:12:12+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-marketing) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-marketing) — `pos-marketing/`
+
+**Kind:** Service
+**Domain:** [crm](/domains/crm.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-marketing/openapi.yaml)

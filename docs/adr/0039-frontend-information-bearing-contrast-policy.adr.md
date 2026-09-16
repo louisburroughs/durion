@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0039: Frontend Information-Bearing Contrast Policy'
+description: Frontend delivery needs an explicit, testable contrast policy for information-bearing UI elements to avoid inconsistent interpretations of accessibility expectations during implementation and review.
+status: stable
+adr_status: accepted
+created: 2026-04-11
+related: [ADR-0029]
+tags: [adr, frontend]
+---
 # ADR-0039: Frontend Information-Bearing Contrast Policy
 
 **Status:** ACCEPTED  

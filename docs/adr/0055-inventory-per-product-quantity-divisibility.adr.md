@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0055: Per-Product Inventory Quantity Divisibility'
+description: Inventory quantities are integers end-to-end. Workorder part demand is not.
+status: stable
+adr_status: accepted
+created: 2026-08-20
+related: [ADR-0044, ADR-0048]
+tags: [adr, inventory]
+---
 # ADR-0055: Per-Product Inventory Quantity Divisibility
 
 **Status:** ACCEPTED **Date:** 2026-08-20 **Deciders:** Architecture, Inventory Domain, Workorder Execution Domain, Product & Catalog Domain **Affected Issues:**

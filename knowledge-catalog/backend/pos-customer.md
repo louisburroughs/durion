@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Customer
-description: Pointer concept for the Customer backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-customer
-tags: [backend, module, pos-customer]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-customer
+description: POS Customer Module
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-customer'
+tags: [backend, service, crm]
+sources: [durion-positivity-backend/pos-customer/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-13T22:24:53+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-customer) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-customer) — `pos-customer/`
+
+**Kind:** Service
+**Domain:** [crm](/domains/crm.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-customer/openapi.yaml)

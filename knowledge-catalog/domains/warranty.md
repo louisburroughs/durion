@@ -1,10 +1,14 @@
 ---
 type: Domain
-title: Warranty
-description: Pointer concept for the Warranty domain in the workspace.
-resource: https://github.com/louisburroughs/durion/blob/main/domains/warranty
+title: warranty
+description: This is the curated contract guide for Warranty domain behavior (module pos-warranty, Eureka name WARRANTY, package com.positivity.warranty).
+resource: 'https://github.com/louisburroughs/durion/blob/main/domains/warranty'
 tags: [domain, warranty]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+sources: [domains/warranty/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-04T15:46:18-04:00 }
 ---
 
-See the [domain folder](https://github.com/louisburroughs/durion/blob/main/domains/warranty) for domain docs and capability definitions.
+[Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/warranty) — `domains/warranty/` (3 documents)
+
+**Implemented by:** [pos-warranty](/backend/pos-warranty.md), [pos-invoice](/backend/pos-invoice.md), [pos-catalog](/backend/pos-catalog.md), [pos-vehicle-inventory](/backend/pos-vehicle-inventory.md)
+**Business rules:** `BACKEND_API_REFERENCE.generated.md`, `BACKEND_CONTRACT_GUIDE.md`

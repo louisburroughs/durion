@@ -1,10 +1,15 @@
 ---
 type: ADR
-title: 0026 Service Contract Boundary Policy
-description: Pointer to the canonical ADR for 0026 Service Contract Boundary Policy.
-resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0026-service-contract-boundary-policy.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: 'ADR-0026: Service Contract Boundary Policy (All Backend Modules)'
+description: A module-specific ADR in pos-inventory documented this pattern locally, but the rule applies platform-wide and should be governed centrally.
+resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0026-service-contract-boundary-policy.adr.md'
+tags: [adr]
+status: stable
+sources: [docs/adr/0026-service-contract-boundary-policy.adr.md]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-01T09:05:18-04:00 }
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0026-service-contract-boundary-policy.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0026-service-contract-boundary-policy.adr.md) — `docs/adr/0026-service-contract-boundary-policy.adr.md`
+
+**Status:** Accepted since 2026-02-26
+**Related:** [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)

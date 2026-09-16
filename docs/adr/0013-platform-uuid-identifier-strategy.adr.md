@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0013: UUID v7 Identifier Strategy for Platform Entities'
+description: The Durion platform consists of multiple microservices (durion-positivity-backend) and a frontend that must coordinate entity identification across distributed systems.
+status: stable
+adr_status: accepted
+created: 2026-02-07
+related: [ADR-0009, ADR-0010, ADR-0011]
+tags: [adr, identifiers, platform]
+---
 # ADR-0013: UUID v7 Identifier Strategy for Platform Entities
 
 **Status:** ACCEPTED  

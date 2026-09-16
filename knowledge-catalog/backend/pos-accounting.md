@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Accounting
-description: Pointer concept for the Accounting backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting
-tags: [backend, module, pos-accounting]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-accounting
+description: POS Accounting module
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting'
+tags: [backend, service, accounting]
+sources: [durion-positivity-backend/pos-accounting/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T02:14:34+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting) — `pos-accounting/`
+
+**Kind:** Service
+**Domain:** [accounting](/domains/accounting.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-accounting/openapi.yaml)

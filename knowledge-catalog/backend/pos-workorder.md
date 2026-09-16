@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Workorder
-description: Pointer concept for the Workorder backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-workorder
-tags: [backend, module, pos-workorder]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-workorder
+description: Module to manage workorders for a shop
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-workorder'
+tags: [backend, service, workexec]
+sources: [durion-positivity-backend/pos-workorder/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T23:39:25+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-workorder) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-workorder) — `pos-workorder/`
+
+**Kind:** Service
+**Domain:** [workexec](/domains/workexec.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-workorder/openapi.yaml)

@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Archunit
-description: Pointer concept for the Archunit backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-archunit
-tags: [backend, module, pos-archunit]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-archunit
+description: Architecture testing aggregator for all POS domain modules using ArchUnit
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-archunit'
+tags: [backend, service]
+sources: [durion-positivity-backend/pos-archunit/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-11T17:16:31+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-archunit) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-archunit) — `pos-archunit/`
+
+**Kind:** Service

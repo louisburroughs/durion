@@ -1,10 +1,13 @@
 ---
 type: Domain
-title: Audit
-description: Pointer concept for the Audit domain in the workspace.
-resource: https://github.com/louisburroughs/durion/blob/main/domains/audit
+title: audit
+description: This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export. It is authoritative for permission gating, guardrails, and
+resource: 'https://github.com/louisburroughs/durion/blob/main/domains/audit'
 tags: [domain, audit]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+sources: [domains/audit/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-19T09:45:41-04:00 }
 ---
 
-See the [domain folder](https://github.com/louisburroughs/durion/blob/main/domains/audit) for domain docs and capability definitions.
+[Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/audit) — `domains/audit/` (4 documents)
+
+**Business rules:** `AGENT_GUIDE.md`, `DOMAIN_NOTES.md`, `STORY_VALIDATION_CHECKLIST.md`

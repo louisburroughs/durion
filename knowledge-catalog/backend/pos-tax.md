@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Tax
-description: Pointer concept for the Tax backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax
-tags: [backend, module, pos-tax]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-tax
+description: Tax calculation service with external API passthrough and test mode support
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax'
+tags: [backend, service, accounting]
+sources: [durion-positivity-backend/pos-tax/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T13:07:56+00:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax) — `pos-tax/`
+
+**Kind:** Service
+**Domain:** [accounting](/domains/accounting.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax/openapi.yaml)

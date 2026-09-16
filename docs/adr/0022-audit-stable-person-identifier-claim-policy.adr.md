@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0022: Audit Stable Person Identifier Claim Policy'
+description: ADR-0018 established that audit actor fields must be sourced from authenticated security context and stored as strings. Current JWT usage commonly includes username, but username can change over time.
+status: stable
+adr_status: accepted
+created: 2026-02-21
+related: [ADR-0014, ADR-0018]
+tags: [adr, audit]
+---
 # ADR-0022: Audit Stable Person Identifier Claim Policy
 
 **Status:** ACCEPTED  

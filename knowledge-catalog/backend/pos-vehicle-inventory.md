@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Vehicle Inventory
-description: Pointer concept for the Vehicle Inventory backend module.
-resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory
-tags: [backend, module, pos-vehicle-inventory]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+title: pos-vehicle-inventory
+description: POS Vehicle module
+resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory'
+tags: [backend, service, warranty]
+sources: [durion-positivity-backend/pos-vehicle-inventory/]
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-13T14:17:49-04:00 }
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory) — `pos-vehicle-inventory/`
+
+**Kind:** Service
+**Domain:** [warranty](/domains/warranty.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory/openapi.yaml)
