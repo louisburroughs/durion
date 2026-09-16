@@ -5,7 +5,7 @@ description: Module to manage people
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-people
 tags: [backend, service, people]
 sources: [durion-positivity-backend/pos-people/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-14T16:18:05+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T14:40:29-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-people) — `pos-people/`

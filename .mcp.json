@@ -16,6 +16,10 @@
         "AWS_DOCUMENTATION_PARTITION": "aws"
       }
     },
+    "tokensave": {
+      "command": "tokensave",
+      "args": ["serve"]
+    },
     "sonarqube": {
       "command": "docker",
       "args": [
