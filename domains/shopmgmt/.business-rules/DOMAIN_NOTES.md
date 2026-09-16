@@ -791,7 +791,11 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - **Components affected:**
     - Override service: Creates audit records
     - Audit UI: Displays override history
-  - **Database schema:**
+  - **Database schema** *(superseded, CAP-326 / spec D18.3: the separate audit table below
+    is retired. `conflict_override` itself is the immutable record — append-only by
+    repository design, `overridden_by`, `override_reason`, `approved_by`, `approved_at`,
+    `created_at`, one row per conflict — and the reporting queries join it directly. The
+    original design is kept here as the decision's history, not as schema to build.)*:
 
     ```sql
     CREATE TABLE conflict_override_audit (

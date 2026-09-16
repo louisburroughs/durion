@@ -1,4 +1,12 @@
-# SPEC: Scheduling Eligibility Model
+---
+title: "SPEC: Scheduling Eligibility Model — service capability requirements (CAP-325..329)"
+updated_utc: "2026-09-16T17:20:00Z"
+generated_by: "Shop Management domain review, recorded by Claude Code"
+capabilities: ["CAP-325", "CAP-326", "CAP-327", "CAP-328", "CAP-329"]
+stories: ["louisburroughs/durion#482", "louisburroughs/durion#483", "louisburroughs/durion#484", "louisburroughs/durion#485", "louisburroughs/durion#486"]
+---
+
+## SPEC: Scheduling Eligibility Model
 
 Specifies how the platform answers "can this bay and this technician do this job",
 so that eligibility becomes a data join rather than an inference.
@@ -468,7 +476,10 @@ Two open choices, both CAP-326's to record rather than this spec's to make:
     grant, not a redesign.
 
 **Operating hours do not reach `pos-shop-manager`, so DECISION-SHOPMGMT-008 has no
-data path.** `ExtLocationReplica` carries `locationId`, `code`, `name`, `active`,
+data path** *(historical — the finding as made on 2026-09-16; superseded by D18.1, which
+records that `#2023` and CAP-326 carried `timezone`, `operating_hours` and
+`holiday_closures` onto `LocationUpdatedV1` and `ExtLocationReplica`, so the D12
+prerequisite is met and the HOURS rules evaluate)*. `ExtLocationReplica` carries `locationId`, `code`, `name`, `active`,
 `aggregateVersion`, `syncedAt` and two ancestor sets — and nothing else
 (`ExtLocationReplica.java:49-80`). The only operating-hours references anywhere in
 the module are the no-op `ConflictDetectionService`, its implementation and two DTOs.
@@ -681,8 +692,12 @@ specialty — so the common case needs no bay edit at all. This vindicates the
 **Consequence: D4's tri-state collapses to two states.** Absence from the specialty
 map is now a *definite answer* ("this is general work"), not an unknown. So:
 
-- `service_requirement_profile` and its header/detail dance are **withdrawn**. There
-  is nothing to configure per service.
+- `service_requirement_profile` **as a capability header** — the per-service
+  capability list and its `service_capability_requirement` child — is **withdrawn**.
+  There is nothing to configure per service on the *bay* axis. The profile itself is
+  **not** withdrawn: CAP-329 keeps it as the header for `service_skill_requirement`
+  (§4.1, §4.5), because skill requirements are per service by nature and D4's
+  "not configured is not requires nothing" still applies to them.
 - `#2022`'s `SERVICE_REQUIREMENTS_NOT_CONFIGURED` reason is **withdrawn** —
   unreachable for the same reason. `noOpeningReason` keeps two values:
   `NO_ELIGIBLE_BAY_AT_LOCATION`, `ALL_ELIGIBLE_BAYS_BOOKED`.
@@ -748,11 +763,11 @@ Three judgement calls in that list, flagged rather than buried:
   single service is worse than treating it as general. If a shop confines
   transmission work to specific bays, that is a new `BayType` and a new map row.
 
-#### D14.2 — what this removes from the plan
+#### D14.1.1 — what the specialty map removes from the plan
 
 | Withdrawn | Was |
 |---|---|
-| `service_requirement_profile` (§4.1) | Header/detail to distinguish unconstrained from unconfigured |
+| `service_requirement_profile` (§4.1) **as a capability header** | Header/detail to distinguish unconstrained from unconfigured *on the bay axis* — the profile stays as CAP-329's skill-requirements header |
 | `service_capability_requirement` (§4.1) | Per-service capability rows |
 | `ext_service_capability` replica (§4.2) | Catalog validating codes against a location-owned registry |
 | `location.service-capability.updated` fact (§5) | Publishing that registry |
@@ -1078,12 +1093,21 @@ than by nature: the registry has `ENGINE_DIAGNOSTICS` but no engine *repair* row
 ```sql
 CREATE TABLE public.service_requirement_profile (
     tenant_id uuid DEFAULT public.app_current_tenant() NOT NULL,
-    service_id uuid NOT NULL,          -- PK, 1:1 with service
+    service_id uuid NOT NULL,          -- 1:1 with service
     configured_at timestamp with time zone NOT NULL,
-    configured_by uuid,
+    configured_by character varying(255),
     created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL
+    updated_at timestamp with time zone NOT NULL,
+    CONSTRAINT service_requirement_profile_pkey PRIMARY KEY (service_id),
+    -- The tenant-scoped key every child and §7.1's ON CONFLICT (tenant_id, service_id) use.
+    CONSTRAINT service_requirement_profile_tenant_key UNIQUE (tenant_id, service_id),
+    CONSTRAINT service_requirement_profile_service_id_fkey
+        FOREIGN KEY (tenant_id, service_id) REFERENCES public.service(tenant_id, id) ON DELETE CASCADE
 );
+-- As shipped: pos-catalog V5__service_requirement_profile.sql. Children reference
+-- (tenant_id, service_id) — service_skill_requirement carries
+-- FOREIGN KEY (tenant_id, service_id) REFERENCES service_requirement_profile(tenant_id, service_id)
+-- and UNIQUE (tenant_id, service_id, skill_id).
 
 CREATE TABLE public.service_capability_requirement (
     tenant_id uuid DEFAULT public.app_current_tenant() NOT NULL,
