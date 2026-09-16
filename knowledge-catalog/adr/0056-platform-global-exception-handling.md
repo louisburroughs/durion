@@ -12,4 +12,11 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0056-platform-global-exception-handling.adr.md) — `docs/adr/0056-platform-global-exception-handling.adr.md`
 
 **Status:** Accepted since 2026-08-23
-**Related:** [ADR-0011](/adr/0011-api-gateway-security-architecture.md), [ADR-0017](/adr/0017-api-controller-http-response-codes.md), [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md), [ADR-0024](/adr/0024-entity-createdat-updatedat-population-policy.md), [ADR-0046](/adr/0046-environment-log-level-policy.md)
+
+**Related:**
+
+* [ADR-0011](/adr/0011-api-gateway-security-architecture.md)
+* [ADR-0017](/adr/0017-api-controller-http-response-codes.md)
+* [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md)
+* [ADR-0024](/adr/0024-entity-createdat-updatedat-population-policy.md)
+* [ADR-0046](/adr/0046-environment-log-level-policy.md)

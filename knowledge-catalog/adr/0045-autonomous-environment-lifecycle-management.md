@@ -12,4 +12,9 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0045-autonomous-environment-lifecycle-management.adr.md) — `docs/adr/0045-autonomous-environment-lifecycle-management.adr.md`
 
 **Status:** Accepted since 2026-07-10
-**Related:** [ADR-0019](/adr/0019-platform-short-lived-operational-state-persistence.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md), [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)
+
+**Related:**
+
+* [ADR-0019](/adr/0019-platform-short-lived-operational-state-persistence.md)
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)

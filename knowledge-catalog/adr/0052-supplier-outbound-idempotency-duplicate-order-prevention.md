@@ -12,4 +12,10 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md) — `docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md`
 
 **Status:** Accepted since 2026-08-10
-**Related:** [ADR-0013](/adr/0013-platform-uuid-identifier-strategy.md), [ADR-0040](/adr/0040-roles-jwt-permission-governance-policy.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md), [ADR-0049](/adr/0049-supplier-integration-module-boundary.md)
+
+**Related:**
+
+* [ADR-0013](/adr/0013-platform-uuid-identifier-strategy.md)
+* [ADR-0040](/adr/0040-roles-jwt-permission-governance-policy.md)
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0049](/adr/0049-supplier-integration-module-boundary.md)

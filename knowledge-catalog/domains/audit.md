@@ -5,11 +5,10 @@ description: This guide defines the audit domain’s normative business rules fo
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/audit'
 tags: [domain, audit]
 sources: [domains/audit/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-19T09:45:41-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/audit) — `domains/audit/` (4 documents)
-
 
 **Business rules:**
 

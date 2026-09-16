@@ -12,4 +12,8 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md) — `docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md`
 
 **Status:** Accepted since 2026-07-23
-**Related:** [ADR-0044](/adr/0044-platform-event-only-domain-walls.md), [ADR-0047](/adr/0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.md)
+
+**Related:**
+
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0047](/adr/0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.md)

@@ -5,7 +5,7 @@ description: This is the curated contract guide for Warranty domain behavior (mo
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/warranty'
 tags: [domain, warranty]
 sources: [domains/warranty/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-04T15:46:18-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/warranty) — `domains/warranty/` (3 documents)

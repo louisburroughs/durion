@@ -12,4 +12,7 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0036-frontend-security-audit-model-ownership-boundary.adr.md) — `docs/adr/0036-frontend-security-audit-model-ownership-boundary.adr.md`
 
 **Status:** Accepted since 2026-03-30
-**Related:** [ADR-0010](/adr/0010-frontend-domain-responsibilities-guide.md)
+
+**Related:**
+
+* [ADR-0010](/adr/0010-frontend-domain-responsibilities-guide.md)

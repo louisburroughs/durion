@@ -12,4 +12,7 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0016-location-entity-semantics.adr.md) — `docs/adr/0016-location-entity-semantics.adr.md`
 
 **Status:** Accepted since 2026-02-17
-**Related:** [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md)
+
+**Related:**
+
+* [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md)

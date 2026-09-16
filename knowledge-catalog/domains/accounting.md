@@ -5,7 +5,7 @@ description: The Accounting domain is responsible for authoritative financial ca
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/accounting'
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-06T15:34:34-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/accounting) — `domains/accounting/` (69 documents)
@@ -15,9 +15,11 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-06T15:34:34-0
 **Business rules:**
 
 * [AGENT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/AGENT_GUIDE.md) — Agent Guide
-* [BACKEND_API_REFERENCE.generated.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md) — API Reference
+* [BACKEND_API_REFERENCE.generated.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md) —
+  API Reference
 * [BACKEND_CONTRACT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md) — Backend Contract
-* [CROSS_DOMAIN_INTEGRATION_CONTRACTS.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md) — Integration Contract
+* [CROSS_DOMAIN_INTEGRATION_CONTRACTS.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md) —
+  Integration Contract
 * [DIMENSION_SCHEMA.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/DIMENSION_SCHEMA.md) — Schema
 * [DOMAIN_MODEL.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/DOMAIN_MODEL.md) — Domain Model
 * [DOMAIN_NOTES.md](https://github.com/louisburroughs/durion/blob/main/domains/accounting/.business-rules/DOMAIN_NOTES.md) — Domain Notes

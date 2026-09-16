@@ -12,4 +12,11 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0043-user-person-linkage-authority.adr.md) — `docs/adr/0043-user-person-linkage-authority.adr.md`
 
 **Status:** Accepted since 2026-06-19
-**Related:** [ADR-0013](/adr/0013-platform-uuid-identifier-strategy.md), [ADR-0015](/adr/0015-identity-entity-relationships.md), [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md), [ADR-0022](/adr/0022-audit-stable-person-identifier-claim-policy.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+
+**Related:**
+
+* [ADR-0013](/adr/0013-platform-uuid-identifier-strategy.md)
+* [ADR-0015](/adr/0015-identity-entity-relationships.md)
+* [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md)
+* [ADR-0022](/adr/0022-audit-stable-person-identifier-claim-policy.md)
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)

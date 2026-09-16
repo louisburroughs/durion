@@ -12,4 +12,7 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0012-vehicle-party-relationships-in-customer.adr.md) — `docs/adr/0012-vehicle-party-relationships-in-customer.adr.md`
 
 **Status:** Accepted since 2026-02-03
-**Related:** [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+
+**Related:**
+
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)

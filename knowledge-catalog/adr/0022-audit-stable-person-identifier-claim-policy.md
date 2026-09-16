@@ -12,4 +12,8 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0022-audit-stable-person-identifier-claim-policy.adr.md) — `docs/adr/0022-audit-stable-person-identifier-claim-policy.adr.md`
 
 **Status:** Accepted since 2026-02-21
-**Related:** [ADR-0014](/adr/0014-gateway-internal-service-security.md), [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md)
+
+**Related:**
+
+* [ADR-0014](/adr/0014-gateway-internal-service-security.md)
+* [ADR-0018](/adr/0018-audit-actor-fields-from-security-context.md)

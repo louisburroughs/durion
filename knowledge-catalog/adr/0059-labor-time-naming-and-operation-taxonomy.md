@@ -12,4 +12,7 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md) — `docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md`
 
 **Status:** Proposed since 2026-09-01
-**Related:** [ADR-0058](/adr/0058-catalog-labor-time-sourcing-architecture.md)
+
+**Related:**
+
+* [ADR-0058](/adr/0058-catalog-labor-time-sourcing-architecture.md)

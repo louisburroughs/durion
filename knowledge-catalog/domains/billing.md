@@ -5,7 +5,7 @@ description: This guide defines the Billing domain’s normative business rules 
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/billing'
 tags: [domain, billing]
 sources: [domains/billing/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-06T15:44:56+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/billing) — `domains/billing/` (6 documents)

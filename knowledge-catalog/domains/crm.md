@@ -5,7 +5,7 @@ description: 'This document is the normative agent guide for the CRM domain: sys
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/crm'
 tags: [domain, crm]
 sources: [domains/crm/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-19T09:45:41-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/crm) — `domains/crm/` (29 documents)
@@ -17,7 +17,8 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-19T09:45:41-0
 * [AGENT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/AGENT_GUIDE.md) — Agent Guide
 * [BACKEND_API_REFERENCE.generated.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/BACKEND_API_REFERENCE.generated.md) — API Reference
 * [BACKEND_CONTRACT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/BACKEND_CONTRACT_GUIDE.md) — Backend Contract
-* [CROSS_DOMAIN_INTEGRATION_CONTRACTS.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md) — Integration Contract
+* [CROSS_DOMAIN_INTEGRATION_CONTRACTS.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md) —
+  Integration Contract
 * [DOMAIN_NOTES.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/DOMAIN_NOTES.md) — Domain Notes
 * [PERMISSION_TAXONOMY.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/PERMISSION_TAXONOMY.md) — Permission Taxonomy
 * [STORY_VALIDATION_CHECKLIST.md](https://github.com/louisburroughs/durion/blob/main/domains/crm/.business-rules/STORY_VALIDATION_CHECKLIST.md) — Checklist

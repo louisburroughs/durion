@@ -1,5 +1,13 @@
 {
   "dependencies": {
     "output": "^0.0.0"
+  },
+  "devDependencies": {
+    "markdownlint-cli": "^0.49.1"
+  },
+  "scripts": {
+    "lint:md": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore \"knowledge-catalog/**/*.md\"",
+    "lint:md:all": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore \"docs/**/*.md\" \"domains/**/*.md\" \"knowledge-catalog/**/*.md\" \"*.md\"",
+    "lint:md:fix": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore --fix"
   }
 }

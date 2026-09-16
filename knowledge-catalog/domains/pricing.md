@@ -5,7 +5,7 @@ description: This document is the normative guide for the Pricing domain. It def
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/pricing'
 tags: [domain, pricing]
 sources: [domains/pricing/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-07T15:35:44+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/pricing) — `domains/pricing/` (21 documents)

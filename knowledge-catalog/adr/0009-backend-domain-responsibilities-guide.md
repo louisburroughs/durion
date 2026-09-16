@@ -12,4 +12,9 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0009-backend-domain-responsibilities-guide.adr.md) — `docs/adr/0009-backend-domain-responsibilities-guide.adr.md`
 
 **Status:** Accepted since 2026-01-29
-**Related:** [ADR-0001](/adr/0001-inventory-ledger-atp-computation.md), [ADR-0008](/adr/0008-cost-maintenance-clarification.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+
+**Related:**
+
+* [ADR-0001](/adr/0001-inventory-ledger-atp-computation.md)
+* [ADR-0008](/adr/0008-cost-maintenance-clarification.md)
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)

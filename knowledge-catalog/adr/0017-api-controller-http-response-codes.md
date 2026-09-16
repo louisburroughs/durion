@@ -12,4 +12,11 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0017-api-controller-http-response-codes.adr.md) — `docs/adr/0017-api-controller-http-response-codes.adr.md`
 
 **Status:** Accepted since 2026-02-17
-**Related:** [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md), [ADR-0014](/adr/0014-gateway-internal-service-security.md), [ADR-0027](/adr/0027-uuid-typed-id-contract-policy.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md), [ADR-0056](/adr/0056-platform-global-exception-handling.md)
+
+**Related:**
+
+* [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md)
+* [ADR-0014](/adr/0014-gateway-internal-service-security.md)
+* [ADR-0027](/adr/0027-uuid-typed-id-contract-policy.md)
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0056](/adr/0056-platform-global-exception-handling.md)

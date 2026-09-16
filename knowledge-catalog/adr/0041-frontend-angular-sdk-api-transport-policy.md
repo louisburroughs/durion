@@ -12,4 +12,8 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0041-frontend-angular-sdk-api-transport-policy.adr.md) — `docs/adr/0041-frontend-angular-sdk-api-transport-policy.adr.md`
 
 **Status:** Accepted since 2026-04-25
-**Related:** [ADR-0010](/adr/0010-frontend-domain-responsibilities-guide.md), [ADR-0035](/adr/0035-frontend-service-method-minimum-test-coverage.md)
+
+**Related:**
+
+* [ADR-0010](/adr/0010-frontend-domain-responsibilities-guide.md)
+* [ADR-0035](/adr/0035-frontend-service-method-minimum-test-coverage.md)

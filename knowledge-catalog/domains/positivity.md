@@ -5,7 +5,7 @@ description: This document defines the normative rules for the positivity domain
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/positivity'
 tags: [domain, positivity]
 sources: [domains/positivity/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-11T18:16:51+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/positivity) — `domains/positivity/` (5 documents)

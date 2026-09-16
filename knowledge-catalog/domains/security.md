@@ -5,7 +5,7 @@ description: 'This guide defines the normative, implementation-ready business ru
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/security'
 tags: [domain, security]
 sources: [domains/security/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-13T20:53:17+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/security) — `domains/security/` (22 documents)

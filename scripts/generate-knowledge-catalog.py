@@ -230,19 +230,25 @@ def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
 
 def adr_note(record: dict, owner_by_module: dict[str, str]) -> str:
     resource = f"{GITHUB}/durion/blob/main/docs/adr/{record['path'].name}"
-    lines = [f"[Canonical ADR]({resource}) — `docs/adr/{record['path'].name}`", ""]
+    sections = [f"[Canonical ADR]({resource}) — `docs/adr/{record['path'].name}`"]
+
+    facts = []
     if record["adr_status"]:
         state = record["adr_status"].capitalize()
         dated = f" since {record['created']}" if record["created"] else ""
-        lines.append(f"**Status:** {state}{dated}")
+        facts.append(f"**Status:** {state}{dated}")
     if record["supersedes"]:
-        lines.append(f"**Supersedes:** [{record['supersedes']}](/adr/{slug_for(record['supersedes'])}.md)")
+        facts.append(f"**Supersedes:** [{record['supersedes']}](/adr/{slug_for(record['supersedes'])}.md)")
     if record["superseded_by"]:
-        lines.append(f"**Superseded by:** [{record['superseded_by']}](/adr/{slug_for(record['superseded_by'])}.md)")
+        facts.append(f"**Superseded by:** [{record['superseded_by']}](/adr/{slug_for(record['superseded_by'])}.md)")
+    if facts:
+        sections.append("\n".join(facts))
+
     if record["related"]:
-        links = ", ".join(f"[{r}](/adr/{slug_for(r)}.md)" for r in record["related"][:8])
-        lines.append(f"**Related:** {links}")
-    return "\n".join(lines)
+        # One link per line: a single joined line reached 380 characters on ADR-0011.
+        links = "\n".join(f"* [{r}](/adr/{slug_for(r)}.md)" for r in record["related"][:8])
+        sections.append(f"**Related:**\n\n{links}")
+    return "\n\n".join(sections)
 
 
 SLUGS: dict[str, str] = {}
@@ -254,18 +260,19 @@ def slug_for(adr_id: str) -> str:
 
 def domain_note(record: dict) -> str:
     resource = f"{GITHUB}/durion/blob/main/domains/{record['name']}"
-    lines = [f"[Domain folder]({resource}) — `domains/{record['name']}/` ({record['docs']} documents)", ""]
+    # Sections are joined, not hand-spaced: a domain with no modules used to emit two
+    # blank lines in a row.
+    sections = [f"[Domain folder]({resource}) — `domains/{record['name']}/` ({record['docs']} documents)"]
     if record["modules"]:
         links = ", ".join(f"[{m}](/backend/{m}.md)" for m in record["modules"])
-        lines.append(f"**Implemented by:** {links}")
+        sections.append(f"**Implemented by:** {links}")
     if record["guides"]:
         # Every guide, linked and typed: these are the documents an agent opens next,
         # so a bare filename list made the note a dead end.
-        lines += ["", "**Business rules:**", ""]
         base = f"{resource}/.business-rules"
-        for name, kind in record["guides"]:
-            lines.append(f"* [{name}]({base}/{name}) — {kind}")
-    return "\n".join(lines)
+        listed = "\n".join(wrapped_item(f"* [{name}]({base}/{name})", kind) for name, kind in record["guides"])
+        sections.append(f"**Business rules:**\n\n{listed}")
+    return "\n\n".join(sections)
 
 
 def module_note(record: dict, owner: str) -> str:
@@ -278,11 +285,35 @@ def module_note(record: dict, owner: str) -> str:
     return "\n".join(lines)
 
 
+MAX_LINE = 175  # .markdownlint.jsonc MD013
+
+
+def wrapped_item(prefix: str, trailer: str = "") -> str:
+    """A list item whose text soft-wraps instead of running past the line limit.
+
+    Markdown treats an indented continuation as part of the same item, so the text
+    stays whole and renders identically; only the source line breaks.
+    """
+    if not trailer:
+        return prefix
+    if len(prefix) + 3 + len(trailer) <= MAX_LINE:
+        return f"{prefix} — {trailer}"
+    lines, current = [f"{prefix} —"], "  "
+    for word in trailer.split():
+        candidate = f"{current} {word}".replace("   ", "  ", 1) if current.strip() else f"  {word}"
+        if len(candidate) > MAX_LINE:
+            lines.append(current.rstrip())
+            current = f"  {word}"
+        else:
+            current = candidate
+    lines.append(current.rstrip())
+    return "\n".join(lines)
+
+
 def index_note(heading: str, rows: list[tuple[str, str, str]]) -> str:
     lines = [f"# {heading}", ""]
     for name, link, description in rows:
-        summary = f" — {description}" if description else ""
-        lines.append(f"* [{name}]({link}){summary}")
+        lines.append(wrapped_item(f"* [{name}]({link})", description))
     return "\n".join(lines) + "\n"
 
 
@@ -410,17 +441,20 @@ def main() -> int:
     )
     write(CATALOG / "index.md", render({"okf_version": OKF_VERSION}, root_body), state)
 
+    # The log is re-rendered rather than prepended to, so spacing stays consistent as
+    # entries accumulate: one entry per day, newest first, blank line under each heading.
     today = dt.date.today().isoformat()
-    entry = (
-        f"## {today}\n"
-        f"* **Regenerated**: {len(adrs)} ADR, {len(domains)} domain, and {len(modules)} module concepts "
-        f"from `docs/adr/`, `domains/`, and the backend module suite.\n"
-    )
     log_path = CATALOG / "log.md"
-    previous = log_path.read_text(encoding="utf-8") if log_path.exists() else "# Directory Update Log\n"
-    previous = re.sub(rf"## {today}\n(?:\*.*\n)+", "", previous)  # one entry per day
-    header, _, rest = previous.partition("\n")
-    write(log_path, f"{header}\n\n{entry}{rest.lstrip()}", state)
+    previous = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
+    entries = {date: body.rstrip() for date, body in re.findall(r"^## (\S+)\s*\n+((?:\*.*\n)+)", previous, re.M)}
+    entries[today] = (
+        f"* **Regenerated**: {len(adrs)} ADR, {len(domains)} domain, and {len(modules)} module concepts "
+        f"from `docs/adr/`, `domains/`, and the backend module suite."
+    )
+    rendered = "# Directory Update Log\n\n" + "\n\n".join(
+        f"## {date}\n\n{body}" for date, body in sorted(entries.items(), reverse=True)
+    )
+    write(log_path, rendered + "\n", state)
 
     verb = "would write" if args.dry_run else "wrote"
     print(f"{verb} {len(state['written'])} file(s); {state['unchanged']} unchanged")

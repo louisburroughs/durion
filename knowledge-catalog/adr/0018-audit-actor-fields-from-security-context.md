@@ -12,4 +12,9 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0018-audit-actor-fields-from-security-context.adr.md) — `docs/adr/0018-audit-actor-fields-from-security-context.adr.md`
 
 **Status:** Accepted since 2026-02-18
-**Related:** [ADR-0011](/adr/0011-api-gateway-security-architecture.md), [ADR-0013](/adr/0013-platform-uuid-identifier-strategy.md), [ADR-0014](/adr/0014-gateway-internal-service-security.md)
+
+**Related:**
+
+* [ADR-0011](/adr/0011-api-gateway-security-architecture.md)
+* [ADR-0013](/adr/0013-platform-uuid-identifier-strategy.md)
+* [ADR-0014](/adr/0014-gateway-internal-service-security.md)

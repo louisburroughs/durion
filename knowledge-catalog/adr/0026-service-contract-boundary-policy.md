@@ -12,4 +12,8 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0026-service-contract-boundary-policy.adr.md) — `docs/adr/0026-service-contract-boundary-policy.adr.md`
 
 **Status:** Accepted since 2026-02-26
-**Related:** [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md), [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+
+**Related:**
+
+* [ADR-0009](/adr/0009-backend-domain-responsibilities-guide.md)
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)

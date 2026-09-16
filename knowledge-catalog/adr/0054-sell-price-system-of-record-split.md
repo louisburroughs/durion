@@ -12,4 +12,9 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0054-sell-price-system-of-record-split.adr.md) — `docs/adr/0054-sell-price-system-of-record-split.adr.md`
 
 **Status:** Accepted since 2026-08-10
-**Related:** [ADR-0044](/adr/0044-platform-event-only-domain-walls.md), [ADR-0048](/adr/0048-inventory-owned-valuation-configurable-costing-method.md), [ADR-0053](/adr/0053-supplier-pricat-ingestion-and-price-precedence.md)
+
+**Related:**
+
+* [ADR-0044](/adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0048](/adr/0048-inventory-owned-valuation-configurable-costing-method.md)
+* [ADR-0053](/adr/0053-supplier-pricat-ingestion-and-price-precedence.md)

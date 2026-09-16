@@ -5,7 +5,7 @@ description: This guide defines the Product domain's normative backend rules for
 resource: 'https://github.com/louisburroughs/durion/blob/main/domains/product'
 tags: [domain, product]
 sources: [domains/product/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T17:11:24+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/product) — `domains/product/` (9 documents)

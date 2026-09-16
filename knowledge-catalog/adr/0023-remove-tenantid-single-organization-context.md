@@ -13,4 +13,7 @@ generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-0
 
 **Status:** Superseded since 2026-02-21
 **Superseded by:** [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)
-**Related:** [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)
+
+**Related:**
+
+* [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)
