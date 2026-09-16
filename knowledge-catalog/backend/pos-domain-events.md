@@ -2,10 +2,10 @@
 type: Module
 title: pos-domain-events
 description: Shared domain event contracts (envelope, topic naming, versioned payload DTOs) per ADR-0044
-resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events'
+resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events
 tags: [backend, library, accounting]
 sources: [durion-positivity-backend/pos-domain-events/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-11T08:42:43+00:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-11T08:42:43+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events) — `pos-domain-events/`

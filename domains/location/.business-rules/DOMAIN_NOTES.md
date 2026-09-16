@@ -1,7 +1,7 @@
 ---
 type: Domain Notes
 title: Location Domain Notes
-description: Normative source: AGENT_GUIDE.md (Decision ID)
+description: 'Normative source: AGENT_GUIDE.md (Decision ID)'
 domain: location
 tags: [domain, location, domain-notes]
 ---

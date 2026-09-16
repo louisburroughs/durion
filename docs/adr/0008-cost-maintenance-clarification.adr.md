@@ -4,7 +4,7 @@ title: 'ADR-0008: Inventory/Accounting - Cost Maintenance Architecture - Visual 
 description: Which domain(s) maintain the cost structure for the system?
 status: stable
 adr_status: accepted
-created: 2026-01-13
+created: '2026-01-13'
 tags: [adr, accounting, inventory]
 ---
 # ADR: 0008 - Inventory/Accounting - Cost Maintenance Architecture - Visual Guide - Clarification Response

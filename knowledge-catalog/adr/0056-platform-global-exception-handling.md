@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0056: Platform Global Exception Handling and Persistence Error Mapping'
 description: ADR-0017 requires every non-2xx response to carry the ApiError envelope (code, message, status, timestamp, correlationId) and to echo/generate X-Correlation-Id.
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0056-platform-global-exception-handling.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0056-platform-global-exception-handling.adr.md
 tags: [adr, platform]
 status: stable
 sources: [docs/adr/0056-platform-global-exception-handling.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0056-platform-global-exception-handling.adr.md) — `docs/adr/0056-platform-global-exception-handling.adr.md`

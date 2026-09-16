@@ -8,6 +8,6 @@
   "scripts": {
     "lint:md": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore \"knowledge-catalog/**/*.md\"",
     "lint:md:all": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore \"docs/**/*.md\" \"domains/**/*.md\" \"knowledge-catalog/**/*.md\" \"*.md\"",
-    "lint:md:fix": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore --fix"
+    "lint:md:fix": "markdownlint --config .markdownlint.jsonc --ignore-path .markdownlintignore --fix \"docs/**/*.md\" \"domains/**/*.md\" \"knowledge-catalog/**/*.md\" \"*.md\""
   }
 }

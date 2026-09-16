@@ -4,7 +4,7 @@ title: 'ADR-0031: Frontend Mutation Error State Convention'
 description: The Angular frontend uses a state = signal<PageState>('idle' | 'loading' | 'empty' | 'ready' | 'error') pattern in feature components. The page error banner is only rendered when state() === 'error'.
 status: stable
 adr_status: accepted
-created: 2026-03-29
+created: '2026-03-29'
 related: [ADR-0029]
 tags: [adr, frontend]
 ---

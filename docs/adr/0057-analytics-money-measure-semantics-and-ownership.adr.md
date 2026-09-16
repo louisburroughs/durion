@@ -4,7 +4,7 @@ title: 'ADR-0057: Analytics Money-Measure Semantics and Ownership'
 description: The analytics capability plan (durion-positivity-backend/pos-mcp-server/docs/analytics-capability-plan.md) specifies a set of read-only analytics endpoints served by the existing domain modules.
 status: stable
 adr_status: accepted
-created: 2026-09-01
+created: '2026-09-01'
 related: [ADR-0044, ADR-0047]
 tags: [adr]
 ---

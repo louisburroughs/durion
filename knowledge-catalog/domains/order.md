@@ -2,10 +2,10 @@
 type: Domain
 title: order
 description: This guide defines the Order domain’s normative rules for order cancellation orchestration in the Durion Positivity ETSMS platform. It resolves the prior “open questions”
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/order'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/order
 tags: [domain, order]
 sources: [domains/order/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/order) — `domains/order/` (13 documents)

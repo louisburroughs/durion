@@ -4,7 +4,7 @@ title: 'ADR-0048: Inventory-Owned Valuation with Configurable Costing Method'
 description: 'The plan and spec already constrain the solution:'
 status: stable
 adr_status: accepted
-created: 2026-07-23
+created: '2026-07-23'
 related: [ADR-0044, ADR-0047]
 tags: [adr, inventory]
 ---

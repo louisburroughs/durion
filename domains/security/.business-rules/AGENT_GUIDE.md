@@ -1,7 +1,7 @@
 ---
 type: Agent Guide
 title: Security Agent Guide
-description: This guide defines the normative, implementation-ready business rules for the security domain: RBAC (roles, permissions, assignments), authorization decisions, and user provisioning orchestration. ...
+description: 'This guide defines the normative, implementation-ready business rules for the security domain: RBAC (roles, permissions, assignments), authorization decisions, and user provisioning orchestration. ...'
 domain: security
 tags: [domain, security, agent-guide]
 ---

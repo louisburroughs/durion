@@ -2,10 +2,10 @@
 type: Module
 title: pos-bulk-loader
 description: Bulk data import service for Durion POS
-resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader'
+resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader
 tags: [backend, service]
 sources: [durion-positivity-backend/pos-bulk-loader/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-14T14:18:23+00:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-14T14:18:23+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-bulk-loader) — `pos-bulk-loader/`

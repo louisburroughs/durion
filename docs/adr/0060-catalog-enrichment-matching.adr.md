@@ -4,7 +4,7 @@ title: 'ADR-0060: Catalog Enrichment Matching and Review (pos-catalog Tread-Desi
 description: Every candidate scoring ≥ 0.50 is auto-attached, and a later import that scores higher against a different design silently re-points the product — last write wins, with no review step and no memory of the decision.
 status: stable
 adr_status: accepted
-created: 2026-09-06
+created: '2026-09-06'
 related: [ADR-0017, ADR-0025, ADR-0044, ADR-0049, ADR-0050, ADR-0053]
 tags: [adr, product]
 ---

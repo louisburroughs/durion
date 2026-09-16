@@ -4,7 +4,7 @@ title: 'ADR-0018: Audit Actor Fields from Security Context as Strings'
 description: 'Backend services currently use mixed patterns for audit actor fields (createdBy, updatedBy, changedBy):'
 status: stable
 adr_status: accepted
-created: 2026-02-18
+created: '2026-02-18'
 related: [ADR-0011, ADR-0013, ADR-0014]
 tags: [adr, audit, security]
 ---

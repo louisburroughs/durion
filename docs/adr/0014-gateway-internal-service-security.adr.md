@@ -2,7 +2,7 @@
 type: ADR
 title: 'ADR-0014: Internal Service Security via Gateway Route Control'
 description: The Durion Positivity Backend uses a microservices architecture where some services are intended for public access (e.g., pos-order, pos-catalog) while others are strictly internal (e.g., pos-tax, pos-events).
-created: 2026-02-14
+created: '2026-02-14'
 related: [ADR-0044]
 tags: [adr, gateway, security]
 ---

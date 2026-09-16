@@ -2,10 +2,10 @@
 type: Domain
 title: warranty
 description: This is the curated contract guide for Warranty domain behavior (module pos-warranty, Eureka name WARRANTY, package com.positivity.warranty).
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/warranty'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/warranty
 tags: [domain, warranty]
 sources: [domains/warranty/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/warranty) — `domains/warranty/` (3 documents)

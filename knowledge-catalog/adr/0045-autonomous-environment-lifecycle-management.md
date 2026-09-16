@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0045: Autonomous Environment Lifecycle Management'
 description: Durion tenant cells run at static capacity around the clock. The alpha substrate is a single EC2 host running all services as Docker containers; the target substrate is ECS Fargate.
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0045-autonomous-environment-lifecycle-management.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0045-autonomous-environment-lifecycle-management.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0045-autonomous-environment-lifecycle-management.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0045-autonomous-environment-lifecycle-management.adr.md) — `docs/adr/0045-autonomous-environment-lifecycle-management.adr.md`

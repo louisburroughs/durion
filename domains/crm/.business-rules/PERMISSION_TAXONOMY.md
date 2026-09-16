@@ -1,7 +1,7 @@
 ---
 type: Permission Taxonomy
 title: CRM Permission Taxonomy
-description: This document defines the complete permission taxonomy required to implement CRM domain stories. All permissions follow the standardized format: domain:resource:action per PERMISSION_REGISTRY.md.
+description: 'This document defines the complete permission taxonomy required to implement CRM domain stories. All permissions follow the standardized format: domain:resource:action per PERMISSION_REGISTRY.md.'
 domain: crm
 tags: [domain, crm, permission-taxonomy]
 ---

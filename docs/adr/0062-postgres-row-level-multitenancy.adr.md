@@ -4,7 +4,7 @@ title: 'ADR-0062: Postgres Row-Level Multitenancy'
 description: ADR-0023 (2026-02-21) removed tenantId from every contract and declared the platform single-organization.
 status: stable
 adr_status: accepted
-created: 2026-09-09
+created: '2026-09-09'
 supersedes: ADR-0023
 related: [ADR-0011, ADR-0013, ADR-0017, ADR-0025, ADR-0040, ADR-0044, ADR-0045, ADR-0061]
 tags: [adr, multitenancy]

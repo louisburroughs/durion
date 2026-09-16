@@ -4,7 +4,7 @@ title: 'ADR-0029: Frontend Accessibility Baseline Policy'
 description: The Angular frontend has multiple implemented and in-flight feature domains with varying UI maturity.
 status: stable
 adr_status: accepted
-created: 2026-03-28
+created: '2026-03-28'
 tags: [adr, accessibility, frontend]
 ---
 # ADR-0029: Frontend Accessibility Baseline Policy

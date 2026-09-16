@@ -2,10 +2,10 @@
 type: Domain
 title: billing
 description: This guide defines the Billing domain’s normative business rules and system-of-record boundaries for invoice lifecycle, BillingRules, checkout enforcement, receipts, and billing-orchestrated payments.
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/billing'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/billing
 tags: [domain, billing]
 sources: [domains/billing/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/billing) — `domains/billing/` (6 documents)

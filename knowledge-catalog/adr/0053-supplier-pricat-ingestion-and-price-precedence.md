@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0053: Supplier PRICAT Ingestion, Effective Dating, and Price Precedence'
 description: 'Findings from the durion#371 investigation (as-is analysis in the issue comments, spot-verified against the backend source):'
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md) — `docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md`

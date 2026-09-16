@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0042: OpenAPI Annotation Standards for Backend Services'
 description: 'All Durion backend REST APIs MUST follow comprehensive OpenAPI annotation standards to ensure:'
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0042-openapi-annotation-standards.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0042-openapi-annotation-standards.adr.md
 tags: [adr, api-contract]
 status: stable
 sources: [docs/adr/0042-openapi-annotation-standards.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0042-openapi-annotation-standards.adr.md) — `docs/adr/0042-openapi-annotation-standards.adr.md`

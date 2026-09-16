@@ -4,7 +4,7 @@ title: 'ADR-0046: Environment Log Level Policy'
 description: 'Every pos-* module in durion-positivity-backend sets logging.level.root: INFO in its base application.yml.'
 status: stable
 adr_status: accepted
-created: 2026-07-12
+created: '2026-07-12'
 related: [ADR-0018, ADR-0045]
 tags: [adr]
 ---

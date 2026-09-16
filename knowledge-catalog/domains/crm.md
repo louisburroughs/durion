@@ -2,10 +2,10 @@
 type: Domain
 title: crm
 description: 'This document is the normative agent guide for the CRM domain: system-of-record boundaries, invariants, and integration rules for CRM UI and services. It resolves prior CLARIFY/TODO items by making...'
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/crm'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/crm
 tags: [domain, crm]
 sources: [domains/crm/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/crm) — `domains/crm/` (29 documents)

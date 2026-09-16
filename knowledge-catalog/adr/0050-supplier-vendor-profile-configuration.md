@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0050: Supplier Vendor Profile Configuration Model'
 description: Every deployment of the platform is expected to wire a custom set of vendors, capabilities, endpoints, norm versions, credentials, and account numbers.
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0050-supplier-vendor-profile-configuration.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0050-supplier-vendor-profile-configuration.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0050-supplier-vendor-profile-configuration.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0050-supplier-vendor-profile-configuration.adr.md) — `docs/adr/0050-supplier-vendor-profile-configuration.adr.md`

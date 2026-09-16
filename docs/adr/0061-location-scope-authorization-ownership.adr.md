@@ -4,7 +4,7 @@ title: 'ADR-0061: Location Scope Authorization — Ownership, Token Shape, and E
 description: Two models describe a user's location reach, and they disagree about which one matters.
 status: stable
 adr_status: accepted
-created: 2026-09-07
+created: '2026-09-07'
 related: [ADR-0016, ADR-0040, ADR-0044, ADR-0062]
 tags: [adr, location]
 ---

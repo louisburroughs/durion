@@ -2,10 +2,10 @@
 type: Domain
 title: pricing
 description: This document is the normative guide for the Pricing domain. It defines system-of-record boundaries, core invariants, and the decision set that the UI and services must follow to keep pricing deter...
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/pricing'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/pricing
 tags: [domain, pricing]
 sources: [domains/pricing/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/pricing) — `domains/pricing/` (21 documents)

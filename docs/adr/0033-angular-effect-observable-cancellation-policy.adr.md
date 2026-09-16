@@ -4,7 +4,7 @@ title: 'ADR-0033: Angular Effect Observable Cancellation Policy'
 description: Angular Signals' effect() function re-executes its body whenever a reactive dependency (signal read) changes.
 status: stable
 adr_status: accepted
-created: 2026-03-29
+created: '2026-03-29'
 tags: [adr, frontend]
 ---
 # ADR-0033: Angular Effect Observable Cancellation Policy

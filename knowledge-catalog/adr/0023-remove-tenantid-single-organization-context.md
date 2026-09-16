@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0023: Remove tenantId and Adopt Single-Organization Context'
 description: The platform currently includes optional tenantId fields in some contracts and docs.
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md
 tags: [adr, multitenancy]
 status: deprecated
 sources: [docs/adr/0023-remove-tenantid-single-organization-context.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md) — `docs/adr/0023-remove-tenantid-single-organization-context.adr.md`

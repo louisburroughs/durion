@@ -4,7 +4,7 @@ title: 'ADR-0025: Permissions Manifest (`permissions.yaml`) Registration Policy'
 description: Permission definitions are split across inline Java lists, constants, and legacy registries.
 status: stable
 adr_status: accepted
-created: 2026-02-26
+created: '2026-02-26'
 tags: [adr, rbac]
 ---
 # ADR-0025: Permissions Manifest (`permissions.yaml`) Registration Policy

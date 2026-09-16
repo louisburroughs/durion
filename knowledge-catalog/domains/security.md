@@ -2,10 +2,10 @@
 type: Domain
 title: security
 description: 'This guide defines the normative, implementation-ready business rules for the security domain: RBAC (roles, permissions, assignments), authorization decisions, and user provisioning orchestration. ...'
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/security'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/security
 tags: [domain, security]
 sources: [domains/security/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/security) — `domains/security/` (22 documents)

@@ -4,7 +4,7 @@ title: 'ADR-0050: Supplier Vendor Profile Configuration Model'
 description: Every deployment of the platform is expected to wire a custom set of vendors, capabilities, endpoints, norm versions, credentials, and account numbers.
 status: stable
 adr_status: accepted
-created: 2026-08-10
+created: '2026-08-10'
 related: [ADR-0013, ADR-0018, ADR-0025, ADR-0027, ADR-0040, ADR-0049, ADR-0051]
 tags: [adr]
 ---

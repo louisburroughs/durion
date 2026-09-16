@@ -4,7 +4,7 @@ title: 'ADR-0058: Labor-Time Sourcing Architecture (pos-catalog Estimated Servic
 description: Nothing in the platform stores an estimated service time. WorkorderSummary.estimatedLaborHours is declared and always null; workorder_service has quantity and price but no hours; the pos-catalog service table carried onl...
 status: draft
 adr_status: proposed
-created: 2026-09-01
+created: '2026-09-01'
 related: [ADR-0026, ADR-0044, ADR-0049, ADR-0050, ADR-0053, ADR-0059]
 tags: [adr, product]
 ---

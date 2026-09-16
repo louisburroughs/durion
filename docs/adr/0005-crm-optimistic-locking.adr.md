@@ -4,7 +4,7 @@ title: 'ADR-0005: Optimistic Locking Conflict Resolution'
 description: 'The CRM system allows concurrent edits of shared entities (e.g., communication preferences for a party/contact). Currently, there is no collision detection or conflict resolution strategy:'
 status: stable
 adr_status: accepted
-created: 2026-01-24
+created: '2026-01-24'
 tags: [adr, crm]
 ---
 # ADR-CRM-003: Optimistic Locking Conflict Resolution

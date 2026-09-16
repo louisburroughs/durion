@@ -4,7 +4,7 @@ title: 'ADR-0049: Supplier Integration Module Boundary and Event Contracts (pos-
 description: The platform has no outbound supplier connectivity. Tire manufacturers (Michelin first) expose supplier APIs over the EDIWheel standard in multiple norm generations (A2.5/B-series/C1.x XML, C1.2 JSON) plus vendor-proprie...
 status: stable
 adr_status: accepted
-created: 2026-08-10
+created: '2026-08-10'
 related: [ADR-0011, ADR-0013, ADR-0026, ADR-0044, ADR-0048, ADR-0050, ADR-0051, ADR-0052]
 tags: [adr, events]
 ---

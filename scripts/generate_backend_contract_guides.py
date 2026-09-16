@@ -168,7 +168,7 @@ description: Generated API reference for the {domain_title} domain, rendered fro
 domain: {domain}
 doc_type: api_reference
 tags: [domain, {domain}, api-reference]
-generated: {{ by: script:generate_backend_contract_guides.py, at: {today} }}
+generated: {{ by: script:generate_backend_contract_guides.py }}
 ---
 
 # {domain_title} Backend API Reference (Generated)

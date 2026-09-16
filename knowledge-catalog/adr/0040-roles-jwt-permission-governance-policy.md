@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0040: Roles, JWT Claims, and Permission Governance Policy'
 description: 'The platform currently uses two distinct authorization concepts:'
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0040-roles-jwt-permission-governance-policy.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0040-roles-jwt-permission-governance-policy.adr.md
 tags: [adr, rbac]
 status: stable
 sources: [docs/adr/0040-roles-jwt-permission-governance-policy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0040-roles-jwt-permission-governance-policy.adr.md) — `docs/adr/0040-roles-jwt-permission-governance-policy.adr.md`

@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: 'ADR-NNNN: [Brief Decision Title]'
-description: [One sentence stating the decision and why it was needed.]
+description: '[One sentence stating the decision and why it was needed.]'
 status: draft
 adr_status: pending
 created: YYYY-MM-DD

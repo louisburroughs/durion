@@ -4,7 +4,7 @@ title: 'ADR-0040: Roles, JWT Claims, and Permission Governance Policy'
 description: 'The platform currently uses two distinct authorization concepts:'
 status: stable
 adr_status: accepted
-created: 2026-04-12
+created: '2026-04-12'
 related: [ADR-0010, ADR-0011, ADR-0014, ADR-0018, ADR-0022, ADR-0025, ADR-0044, ADR-0061, ADR-0062]
 tags: [adr, rbac]
 ---

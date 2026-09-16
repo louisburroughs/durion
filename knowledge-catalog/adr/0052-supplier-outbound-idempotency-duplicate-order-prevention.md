@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0052: Supplier Outbound Idempotency and Duplicate-Order Prevention'
 description: CAP-320 transmits purchase orders to vendors over EDIWheel order creation. Vendor order APIs are not idempotent by default; a timeout after send is ambiguous (the vendor may or may not have accepted the order).
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md
 tags: [adr, order]
 status: stable
 sources: [docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md) — `docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md`

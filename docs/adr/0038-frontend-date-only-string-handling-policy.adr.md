@@ -1,10 +1,10 @@
 ---
 type: ADR
 title: 'ADR-0038: Frontend Date-Only String Handling Policy'
-description: During PR review of Wave I-b (PR #15), two components mishandled date-only strings (ISO 8601 YYYY-MM-DD format) in ways that produce incorrect results for users in non-UTC timezones.
+description: During PR review of Wave I-b (PR
 status: stable
 adr_status: accepted
-created: 2026-04-02
+created: '2026-04-02'
 tags: [adr, frontend]
 ---
 # ADR-0038: Frontend Date-Only String Handling Policy

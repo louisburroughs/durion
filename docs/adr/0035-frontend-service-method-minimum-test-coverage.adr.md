@@ -4,7 +4,7 @@ title: 'ADR-0035: Frontend Service Method Minimum Test Coverage'
 description: 'During PR review of Wave I-a (PR #12), two public service methods introduced by the PR had zero unit tests:'
 status: stable
 adr_status: accepted
-created: 2026-03-29
+created: '2026-03-29'
 tags: [adr, frontend]
 ---
 # ADR-0035: Frontend Service Method Minimum Test Coverage

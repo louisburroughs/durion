@@ -4,7 +4,7 @@ title: 'ADR-0027: UUID-Typed Identifier Contract Policy'
 description: Across backend modules, identifier fields are not consistently typed. Some IDs are modeled as String in service contracts or DTOs even when the underlying identifier is a platform UUID.
 status: stable
 adr_status: accepted
-created: 2026-02-28
+created: '2026-02-28'
 related: [ADR-0013]
 tags: [adr, identifiers]
 ---

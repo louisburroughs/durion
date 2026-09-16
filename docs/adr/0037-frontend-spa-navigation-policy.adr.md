@@ -4,7 +4,7 @@ title: 'ADR-0037: Frontend SPA Navigation Policy'
 description: 'During PR review of Wave I-b (PR #15), four newly added components used bare HTML href attributes to navigate between Angular routes:'
 status: stable
 adr_status: accepted
-created: 2026-04-02
+created: '2026-04-02'
 tags: [adr, frontend]
 ---
 # ADR-0037: Frontend SPA Navigation Policy

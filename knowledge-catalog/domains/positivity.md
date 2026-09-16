@@ -2,10 +2,10 @@
 type: Domain
 title: positivity
 description: This document defines the normative rules for the positivity domain, which owns POS-facing orchestration (notably Order cancellation) and composed read models (notably Product Detail). It reconcile...
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/positivity'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/positivity
 tags: [domain, positivity]
 sources: [domains/positivity/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/positivity) — `domains/positivity/` (5 documents)

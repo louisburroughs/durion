@@ -4,7 +4,7 @@ title: 'ADR-0007: WorkExec - Digital Customer Approval - Clarification Response'
 description: This document captures the clarification decisions for the Digital Customer Approval feature.
 status: stable
 adr_status: accepted
-created: 2026-01-08
+created: '2026-01-08'
 tags: [adr, workexec]
 ---
 # ADR: 0007 - WorkExec - Digital Customer Approval - Clarification Response

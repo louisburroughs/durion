@@ -16,6 +16,7 @@ on:
       - 'scripts/adr_okf_frontmatter.py'
       - 'scripts/domain_okf_frontmatter.py'
       - 'scripts/generate-knowledge-catalog.py'
+      - 'scripts/generate_backend_contract_guides.py'
       - 'package.json'
       - 'package-lock.json'
       - '.markdownlint.jsonc'
@@ -30,6 +31,7 @@ on:
       - 'scripts/adr_okf_frontmatter.py'
       - 'scripts/domain_okf_frontmatter.py'
       - 'scripts/generate-knowledge-catalog.py'
+      - 'scripts/generate_backend_contract_guides.py'
   workflow_dispatch:
 
 permissions:
@@ -45,6 +47,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # The conformance gates parse each frontmatter block with a real YAML parser:
+      # a regex that only looks for a `type` key accepts blocks YAML rejects.
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet pyyaml
 
       - uses: actions/setup-node@v4
         with:

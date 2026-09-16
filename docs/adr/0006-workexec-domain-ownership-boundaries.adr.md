@@ -4,7 +4,7 @@ title: 'ADR-0006: WorkExec - Domain Ownership Boundaries for WorkExec Features'
 description: This ADR clarifies domain ownership boundaries for features that appear in WorkExec user stories but are actually owned by other domains.
 status: stable
 adr_status: accepted
-created: 2026-01-25
+created: '2026-01-25'
 tags: [adr, workexec]
 ---
 # ADR: 0006 - WorkExec - Domain Ownership Boundaries for WorkExec Features

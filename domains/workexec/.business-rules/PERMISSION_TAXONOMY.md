@@ -1,7 +1,7 @@
 ---
 type: Permission Taxonomy
 title: Work Execution Permission Taxonomy
-description: This document defines the complete permission taxonomy required to implement WorkExec domain stories. All permissions follow the standardized format: domain:resource:action per PERMISSION_REGISTRY.md.
+description: 'This document defines the complete permission taxonomy required to implement WorkExec domain stories. All permissions follow the standardized format: domain:resource:action per PERMISSION_REGISTRY.md.'
 domain: workexec
 tags: [domain, workexec, permission-taxonomy]
 ---

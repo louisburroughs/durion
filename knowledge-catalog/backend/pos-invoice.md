@@ -2,10 +2,10 @@
 type: Module
 title: pos-invoice
 description: POS Invoice module
-resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice'
+resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice
 tags: [backend, service, order]
 sources: [durion-positivity-backend/pos-invoice/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T13:07:56+00:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T13:07:56+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice) — `pos-invoice/`

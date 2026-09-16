@@ -2,10 +2,10 @@
 type: Domain
 title: location
 description: The Location domain is the system of record for shop Locations and their Location-owned sub-resources (Bays, Mobile Units, Coverage Rules, Travel Buffer Policies). This update resolves previously o...
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/location'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/location
 tags: [domain, location]
 sources: [domains/location/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/location) — `domains/location/` (17 documents)

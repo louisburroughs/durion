@@ -2,10 +2,10 @@
 type: Domain
 title: workexec
 description: This document is the normative guide for the workexec (Work Execution) domain. It defines ownership boundaries, canonical concepts, and the required invariants for workorder execution, estimate flo...
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/workexec'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/workexec
 tags: [domain, workexec]
 sources: [domains/workexec/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/workexec) — `domains/workexec/` (54 documents)

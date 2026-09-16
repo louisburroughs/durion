@@ -4,7 +4,7 @@ title: 'ADR-0020: Centralized Document Creation via pos-documents Service'
 description: 'As the Durion platform expands, multiple modules need to generate documents (PDFs, reports, invoices, estimates, etc.). Without centralized governance, modules were at risk of:'
 status: stable
 adr_status: accepted
-created: 2026-02-19
+created: '2026-02-19'
 related: [ADR-0014, ADR-0018]
 tags: [adr]
 ---

@@ -28,8 +28,25 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from adr_okf_frontmatter import delink, existing_keys, split_frontmatter  # noqa: E402
+from adr_okf_frontmatter import (  # noqa: E402
+    delink,
+    existing_keys,
+    frontmatter_problem,
+    render_frontmatter,
+    split_frontmatter,
+)
+
+
+def scalar(value: str) -> str:
+    """One `key: value` line, quoted the way YAML needs it.
+
+    Descriptions carry text like `Normative source: AGENT_GUIDE.md` and
+    `domain:resource:action`; writing those raw produced six blocks no parser reads.
+    """
+    return yaml.safe_dump(value, allow_unicode=True, default_flow_style=None, width=10_000).strip()
 
 REPO = Path(__file__).resolve().parents[1]
 DOMAINS = REPO / "domains"
@@ -55,6 +72,10 @@ TYPES = {
     "UI_UX_PATTERNS_PLAN.md": "Plan",
     "accounting.md": "Reference Notes",
 }
+
+# The keys this script writes. A block containing only these was authored here and
+# may be rebuilt; anything else is curated and is only ever added to.
+SCRIPT_OWNED_KEYS = {"type", "title", "description", "domain", "tags"}
 
 DOMAIN_TITLES = {
     "crm": "CRM",
@@ -102,31 +123,41 @@ def build(path: Path) -> str:
     domain = path.parent.parent.name
     kind = TYPES.get(path.name, "Domain Document")
 
-    if not frontmatter:
-        lines = [
-            "---",
-            f"type: {kind}",
-            f"title: {keys.get('title') or f'{domain_title(domain)} {kind}'}",
-            f"description: {describe(path, domain, kind, body)}",
-            f"domain: {domain}",
-            f"tags: [domain, {domain}, {kind.lower().replace(' ', '-')}]",
-            "---",
-        ]
-        return "\n".join(lines) + "\n\n" + body.lstrip("\n")
+    tags = ["domain", domain, kind.lower().replace(" ", "-")]
 
-    # Insert into the existing block so nested values (traceability:) stay intact.
+    # A block this script wrote under the old unquoted renderer can be unparseable
+    # (`description: Normative source: AGENT_GUIDE.md`). Inserting keys into it would
+    # leave it broken, so it is rebuilt through the renderer instead. Only blocks whose
+    # keys are all ones this script owns qualify: a curated block is never rebuilt.
+    if frontmatter and frontmatter_problem(frontmatter) and set(keys) <= SCRIPT_OWNED_KEYS:
+        frontmatter, keys = "", {}
+
+    if not frontmatter:
+        fields = {
+            "type": kind,
+            "title": keys.get("title") or f"{domain_title(domain)} {kind}",
+            "description": describe(path, domain, kind, body),
+            "domain": domain,
+            "tags": tags,
+        }
+        return render_frontmatter(fields) + "\n" + body.lstrip("\n")
+
+    # Insert into the existing block rather than re-rendering it. A decode-and-dump
+    # round trip rewrites hand-written values — `last_verified_utc: 2026-02-24T14:23:11Z`
+    # comes back as `2026-02-24 14:23:11+00:00` — and those 14 contract guides are
+    # curated. Only the values added here are rendered, and they are quoted properly.
     existing_lines = frontmatter.splitlines()
     additions = []
     if "type" not in keys:
-        existing_lines.insert(0, f"type: {kind}")
+        existing_lines.insert(0, f"type: {scalar(kind)}")
     if "title" not in keys:
-        additions.append(f"title: {domain_title(domain)} {kind}")
+        additions.append(f"title: {scalar(f'{domain_title(domain)} {kind}')}")
     if "description" not in keys:
-        additions.append(f"description: {describe(path, domain, kind, body)}")
+        additions.append(f"description: {scalar(describe(path, domain, kind, body))}")
     if "domain" not in keys:
-        additions.append(f"domain: {domain}")
+        additions.append(f"domain: {scalar(domain)}")
     if "tags" not in keys:
-        additions.append(f"tags: [domain, {domain}, {kind.lower().replace(' ', '-')}]")
+        additions.append(f"tags: [{', '.join(tags)}]")
     block = "\n".join(["---", *existing_lines, *additions, "---"])
     return block + "\n" + body
 
@@ -146,8 +177,9 @@ def main() -> int:
         current = path.read_text(encoding="utf-8")
         if args.check:
             frontmatter, _ = split_frontmatter(current)
-            if not frontmatter or not existing_keys(frontmatter).get("type"):
-                offenders.append(str(path.relative_to(REPO)))
+            problem = frontmatter_problem(frontmatter)
+            if problem:
+                offenders.append(f"{path.relative_to(REPO)}: {problem}")
             continue
         wanted = build(path)
         if wanted != current:

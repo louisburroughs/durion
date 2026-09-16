@@ -4,7 +4,7 @@ title: 'ADR-0044: Event-Only Domain Walls and Module Communication Policy'
 description: Backend domain modules are coupled by ~24 synchronous REST clients across 10 modules (full call matrix in durion-positivity-backend/docs/module-coupling/issue-823-event-only-domain-walls-assessment.md).
 status: stable
 adr_status: accepted
-created: 2026-07-08
+created: '2026-07-08'
 related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062]
 tags: [adr, events, platform]
 ---

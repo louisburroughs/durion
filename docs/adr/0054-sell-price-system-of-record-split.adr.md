@@ -4,7 +4,7 @@ title: 'ADR-0054: Sell-Price System of Record Split (pos-price Quoting, pos-cata
 description: 'The durion#371 PRICAT investigation surfaced a pre-existing conflict, formalized as clarification durion#382: two sell-price models coexist with overlapping authority.'
 status: stable
 adr_status: accepted
-created: 2026-08-10
+created: '2026-08-10'
 related: [ADR-0044, ADR-0048, ADR-0053]
 tags: [adr, product]
 ---

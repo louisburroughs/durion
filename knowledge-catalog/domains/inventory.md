@@ -2,10 +2,10 @@
 type: Domain
 title: inventory
 description: This guide defines the normative business rules and frontend-facing contracts for the Inventory domain in Durion.
-resource: 'https://github.com/louisburroughs/durion/blob/main/domains/inventory'
+resource: https://github.com/louisburroughs/durion/blob/main/domains/inventory
 tags: [domain, inventory]
 sources: [domains/inventory/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:43:29-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/inventory) — `domains/inventory/` (44 documents)

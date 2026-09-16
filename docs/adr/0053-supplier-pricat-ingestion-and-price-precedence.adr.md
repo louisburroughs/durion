@@ -4,7 +4,7 @@ title: 'ADR-0053: Supplier PRICAT Ingestion, Effective Dating, and Price Precede
 description: 'Findings from the durion#371 investigation (as-is analysis in the issue comments, spot-verified against the backend source):'
 status: stable
 adr_status: accepted
-created: 2026-08-10
+created: '2026-08-10'
 related: [ADR-0044, ADR-0048, ADR-0049, ADR-0050, ADR-0054]
 tags: [adr]
 ---

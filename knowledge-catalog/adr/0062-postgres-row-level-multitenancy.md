@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0062: Postgres Row-Level Multitenancy'
 description: ADR-0023 (2026-02-21) removed tenantId from every contract and declared the platform single-organization.
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0062-postgres-row-level-multitenancy.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0062-postgres-row-level-multitenancy.adr.md
 tags: [adr, multitenancy]
 status: stable
 sources: [docs/adr/0062-postgres-row-level-multitenancy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0062-postgres-row-level-multitenancy.adr.md) — `docs/adr/0062-postgres-row-level-multitenancy.adr.md`

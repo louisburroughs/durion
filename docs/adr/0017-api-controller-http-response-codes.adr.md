@@ -4,7 +4,7 @@ title: 'ADR-0017: API Controller HTTP Response Codes Standard'
 description: 'Backend domain contract guides define overlapping HTTP response conventions, but there are inconsistencies that create implementation drift across controllers and tests:'
 status: stable
 adr_status: accepted
-created: 2026-02-17
+created: '2026-02-17'
 related: [ADR-0009, ADR-0014, ADR-0027, ADR-0044, ADR-0056]
 tags: [adr, api-contract]
 ---

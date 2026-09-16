@@ -2,11 +2,11 @@
 type: ADR
 title: 'ADR-0049: Supplier Integration Module Boundary and Event Contracts (pos-supplier)'
 description: The platform has no outbound supplier connectivity. Tire manufacturers (Michelin first) expose supplier APIs over the EDIWheel standard in multiple norm generations (A2.5/B-series/C1.x XML, C1.2 JSON) plus vendor-proprie...
-resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0049-supplier-integration-module-boundary.adr.md'
+resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0049-supplier-integration-module-boundary.adr.md
 tags: [adr, events]
 status: stable
 sources: [docs/adr/0049-supplier-integration-module-boundary.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0049-supplier-integration-module-boundary.adr.md) — `docs/adr/0049-supplier-integration-module-boundary.adr.md`

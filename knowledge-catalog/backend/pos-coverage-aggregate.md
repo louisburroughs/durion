@@ -2,10 +2,10 @@
 type: Module
 title: pos-coverage-aggregate
 description: Aggregate JaCoCo report for full-repository SonarCloud analysis.
-resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-coverage-aggregate'
+resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-coverage-aggregate
 tags: [backend, library]
 sources: [durion-positivity-backend/pos-coverage-aggregate/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-10T01:41:38+00:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-10T01:41:38+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-coverage-aggregate) — `pos-coverage-aggregate/`

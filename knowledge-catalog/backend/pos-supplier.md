@@ -2,10 +2,10 @@
 type: Module
 title: pos-supplier
 description: POS Supplier integration module (outbound supplier connectivity, ADR-0049..0052)
-resource: 'https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-supplier'
+resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-supplier
 tags: [backend, service, positivity]
 sources: [durion-positivity-backend/pos-supplier/]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-12T01:21:16+00:00 }
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T01:21:16+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-supplier) — `pos-supplier/`

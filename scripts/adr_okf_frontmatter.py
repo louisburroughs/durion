@@ -19,7 +19,11 @@ states in its body, so the records stay the single source and nothing is invente
     related       other ADR ids the body links to
     tags          [adr] plus domain and topic tags derived from name and title
 
-Existing frontmatter always wins: a value a human wrote is never overwritten.
+Hand-written `title`, `description`, `created` and `supersedes` are kept as they
+stand. `status`, `adr_status`, `related` and `tags` are derived on every run: they
+restate what the record says, and a value left behind by an earlier run must not
+outlive the rule that produced it.
+
 The script is idempotent — running it twice produces the same bytes.
 
 Usage:
@@ -35,6 +39,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 ADR_DIR = REPO / "docs" / "adr"
@@ -295,25 +301,70 @@ def derive_tags(path: Path, title: str) -> list[str]:
     return ["adr", *tags]
 
 
+def parse_frontmatter(block: str) -> dict[str, object]:
+    """Decode a frontmatter block into real values.
+
+    Reading raw text and re-emitting it escapes an already-escaped value a second
+    time: ADR-0059 says `workorder''s`, and copying that spelling into another
+    single-quoted scalar produced `workorder''''s` for consumers. Decoding first
+    and re-quoting on the way out keeps one level of escaping.
+    """
+    try:
+        data = yaml.safe_load(block) if block.strip() else {}
+    except yaml.YAMLError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def frontmatter_problem(block: str) -> str:
+    """Why this frontmatter is not conformant, or '' when it is.
+
+    OKF asks for a parseable block carrying a non-empty `type`. Checking for the
+    key with a regex accepts blocks YAML rejects — six guides shipped with an
+    unquoted `Normative source: AGENT_GUIDE.md` description that no parser reads.
+    """
+    if not block.strip():
+        return "missing frontmatter"
+    try:
+        data = yaml.safe_load(block)
+    except yaml.YAMLError as error:
+        return f"frontmatter is not parseable YAML ({str(error).splitlines()[0]})"
+    if not isinstance(data, dict):
+        return "frontmatter is not a mapping"
+    if not str(data.get("type", "")).strip():
+        return "frontmatter has no non-empty type"
+    return ""
+
+
 def render_frontmatter(fields: dict[str, object]) -> str:
-    lines = ["---"]
-    for key, value in fields.items():
-        if value in ("", None, []):
-            continue
-        if isinstance(value, list):
-            lines.append(f"{key}: [{', '.join(value)}]")
-        elif isinstance(value, str) and (":" in value or value.startswith(("'", '"'))):
-            lines.append(f"{key}: '{value.replace(chr(39), chr(39) * 2)}'")
-        else:
-            lines.append(f"{key}: {value}")
-    lines.append("---")
-    return "\n".join(lines) + "\n"
+    """Emit a frontmatter block, letting the YAML writer handle quoting.
+
+    Hand-rolled quoting is what produced unparseable blocks: a description
+    containing `domain:resource:action` or `Normative source: AGENT_GUIDE.md` needs
+    quoting that a "contains a colon" test gets wrong in both directions.
+    """
+    populated = {k: v for k, v in fields.items() if v not in ("", None, [])}
+    if not populated:
+        return "---\n---\n"
+    # `None` keeps short sequences inline (`tags: [adr, multitenancy]`), which is how
+    # frontmatter reads everywhere else here — but it also collapses a one-key mapping
+    # to `{okf_version: '0.2'}`, a whole block on one line. Block style for that case.
+    flow_style = False if len(populated) == 1 else None
+    body = yaml.safe_dump(
+        populated,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=flow_style,
+        width=10_000,
+    )
+    return f"---\n{body}---\n"
 
 
 def build(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     raw_frontmatter, body = split_frontmatter(text)
     existing = existing_keys(raw_frontmatter)
+    decoded = parse_frontmatter(raw_frontmatter)
     number = re.match(r"(\d+)", path.name).group(1) if re.match(r"(\d+)", path.name) else "NNNN"
 
     title = derive_title(number, existing.get("title", ""), body)
@@ -322,7 +373,8 @@ def build(path: Path) -> str:
     fields: dict[str, object] = {
         "type": "ADR",
         "title": title,
-        "description": derive_description(body, title),
+        # A hand-written description is kept; only a missing one is derived.
+        "description": str(decoded.get("description") or "").strip() or derive_description(body, title),
         "status": OKF_STATUS.get(adr_status, ""),
         "adr_status": adr_status,
         "created": derive_created(path, existing, body),
@@ -419,8 +471,9 @@ def main() -> int:
         current = path.read_text(encoding="utf-8")
         if args.check:
             frontmatter, _ = split_frontmatter(current)
-            if not frontmatter or not existing_keys(frontmatter).get("type"):
-                offenders.append(path.name)
+            problem = frontmatter_problem(frontmatter)
+            if problem:
+                offenders.append(f"{path.name}: {problem}")
             continue
         if wanted != current:
             changed.append(path.name)

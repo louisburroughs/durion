@@ -43,6 +43,9 @@ from adr_okf_frontmatter import (  # noqa: E402  (path set above)
     derive_description,
     derive_title,
     existing_keys,
+    frontmatter_problem,
+    parse_frontmatter,
+    render_frontmatter,
     split_frontmatter,
 )
 
@@ -92,21 +95,8 @@ def first_prose(path: Path, minimum: int = 45) -> str:
 
 
 def render(fields: dict[str, object], body: str) -> str:
-    lines = ["---"]
-    for key, value in fields.items():
-        if value in ("", None, []):
-            continue
-        if isinstance(value, list):
-            lines.append(f"{key}: [{', '.join(str(v) for v in value)}]")
-        elif isinstance(value, dict):
-            inner = ", ".join(f"{k}: {v}" for k, v in value.items())
-            lines.append(f"{key}: {{ {inner} }}")
-        elif isinstance(value, str) and (":" in value or value.startswith(("'", '"', "["))):
-            lines.append(f"{key}: '{value.replace(chr(39), chr(39) * 2)}'")
-        else:
-            lines.append(f"{key}: {value}")
-    lines.append("---")
-    return "\n".join(lines) + "\n\n" + body.rstrip("\n") + "\n"
+    """Frontmatter plus body, with quoting left to the shared YAML renderer."""
+    return render_frontmatter(fields) + "\n" + body.rstrip("\n") + "\n"
 
 
 def write(path: Path, content: str, state: dict) -> None:
@@ -152,23 +142,25 @@ def adr_records() -> list[dict]:
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         frontmatter, body = split_frontmatter(text)
-        keys = existing_keys(frontmatter)
+        # Decoded, not raw: copying a raw spelling re-escapes it, so ADR-0059's
+        # `workorder''s` reached consumers as `workorder''''s`.
+        keys = {k: ("" if v is None else v) for k, v in parse_frontmatter(frontmatter).items()}
         number = re.match(r"(\d+)", path.name).group(1)
-        title = keys.get("title", "").strip("'\"") or derive_title(number, "", body)
+        title = str(keys.get("title", "")) or derive_title(number, "", body)
         records.append(
             {
                 "number": number,
                 "slug": path.stem.replace(".adr", ""),
                 "path": path,
                 "title": title,
-                "description": keys.get("description", "").strip("'\"") or derive_description(body, title),
-                "status": keys.get("status", ""),
-                "adr_status": keys.get("adr_status", ""),
-                "created": keys.get("created", ""),
-                "supersedes": keys.get("supersedes", ""),
-                "superseded_by": keys.get("superseded_by", ""),
-                "related": [r.strip() for r in keys.get("related", "").strip("[]").split(",") if r.strip()],
-                "tags": [t.strip() for t in keys.get("tags", "").strip("[]").split(",") if t.strip()] or ["adr"],
+                "description": str(keys.get("description", "")) or derive_description(body, title),
+                "status": str(keys.get("status", "")),
+                "adr_status": str(keys.get("adr_status", "")),
+                "created": str(keys.get("created", "")),
+                "supersedes": str(keys.get("supersedes", "")),
+                "superseded_by": str(keys.get("superseded_by", "")),
+                "related": list(keys.get("related") or []),
+                "tags": list(keys.get("tags") or []) or ["adr"],
             }
         )
     return records
@@ -210,8 +202,8 @@ def domain_records(domain_modules: dict[str, list[str]]) -> list[dict]:
         # guide's own frontmatter rather than guessed at here.
         guides = []
         for guide in sorted(rules.glob("*.md")) if rules.exists() else []:
-            guide_keys = existing_keys(split_frontmatter(guide.read_text(encoding="utf-8", errors="replace"))[0])
-            guides.append((guide.name, guide_keys.get("type", "Domain Document")))
+            guide_keys = parse_frontmatter(split_frontmatter(guide.read_text(encoding="utf-8", errors="replace"))[0])
+            guides.append((guide.name, str(guide_keys.get("type") or "Domain Document")))
         records.append(
             {
                 "name": domain.name,
@@ -330,21 +322,20 @@ def check_bundle() -> list[str]:
     for path in sorted(CATALOG.rglob("*.md")):
         relative = path.relative_to(CATALOG)
         frontmatter, _ = split_frontmatter(path.read_text(encoding="utf-8", errors="replace"))
-        keys = existing_keys(frontmatter)
+        keys = parse_frontmatter(frontmatter)
         if path.name in RESERVED:
             if "okf_version" in keys and relative != Path("index.md"):
                 problems.append(f"{relative}: okf_version may only appear in the bundle-root index.md")
             if frontmatter and relative != Path("index.md"):
                 problems.append(f"{relative}: reserved file must not carry frontmatter")
             continue
-        if not frontmatter:
-            problems.append(f"{relative}: missing frontmatter")
-        elif not keys.get("type"):
-            problems.append(f"{relative}: frontmatter has no non-empty type")
+        problem = frontmatter_problem(frontmatter)
+        if problem:
+            problems.append(f"{relative}: {problem}")
     root = CATALOG / "index.md"
     if not root.exists():
         problems.append("index.md: bundle root index is missing")
-    elif "okf_version" not in existing_keys(split_frontmatter(root.read_text(encoding="utf-8"))[0]):
+    elif "okf_version" not in parse_frontmatter(split_frontmatter(root.read_text(encoding="utf-8"))[0]):
         problems.append("index.md: bundle root must declare okf_version")
     return problems
 
