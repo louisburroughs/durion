@@ -585,16 +585,39 @@ fetch the vPIC *dictionary*: which manufacturers, makes, models and vehicle type
 exist, and which variables exist. A repo-wide grep for `DecodeVin` and for `GVWR`
 returns **nothing**. So CAP-327 adds a decode capability; it does not call one.
 
-**2. The vPIC base URL appears to be wrong.**
+**2. The vPIC base URL is wrong — confirmed.**
 `VehicleReferenceService.java:29` sets
-`NHTSA_API_BASE = "https://vpic.nhtsa.dot.gov/v1/vehicles"`. The documented vPIC
-base is `https://vpic.nhtsa.dot.gov/api/vehicles`; `/v1/` is not a vPIC path. If so,
-all six calls 404 and the module has never run against live vPIC — which is
-consistent with nothing in the repo having ever seen a GVWR value. **Not confirmed
-by a live call** (the authoring environment's egress policy blocks the host), so
-verify with one request before changing it. Fix it in CAP-327, or sooner as
-standalone housekeeping, since it is a one-line defect in shipped code rather than
-anything this spec introduces.
+`NHTSA_API_BASE = "https://vpic.nhtsa.dot.gov/v1/vehicles"`. The current vPIC base
+is `https://vpic.nhtsa.dot.gov/api/vehicles` — confirmed against a working request
+of the form
+`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/5UXWX7C5*BA?format=xml&modelyear=2011`.
+`/v1/` is not a vPIC path.
+
+So **all six of the module's calls 404**, and the module has never run against live
+vPIC — which is consistent with nothing in the repo having ever seen a GVWR value.
+The fix is one line:
+
+```java
+private static final String NHTSA_API_BASE = "https://vpic.nhtsa.dot.gov/api/vehicles";
+```
+
+Worth doing as **standalone housekeeping ahead of CAP-327** rather than inside it: it
+is a defect in shipped code, it unblocks finding 3, and it wants its own test that
+does not mock the client into agreeing with a wrong URL — which is presumably how it
+survived.
+
+**Use `DecodeVinValues`, not `DecodeVin`.** The two variants differ in shape and it
+matters for D13.1:
+
+| Endpoint | Returns | Cost to this design |
+|---|---|---|
+| `DecodeVin/{vin}` | A **list** of `{Variable, VariableId, Value, ValueId}` rows | Must scan for the row whose `Variable` is `"Gross Vehicle Weight Rating From"`, matching on a display label or a magic `VariableId` |
+| `DecodeVinValues/{vin}` | A **single flat object** with named keys, including `GrossVehicleWeightRating` and `GrossVehicleWeightRatingFrom` | Direct field access; the names in D13.1 are exactly these keys |
+
+Use `DecodeVinValues/{vin}?format=json`, matching the module's existing
+`?format=json` convention and its Jackson setup — the `format=xml` in the confirming
+request above is incidental. Pass `&modelyear=` when decoding a **partial** VIN
+(the `*` wildcard form), since year disambiguates the decode.
 
 **3. The module can answer D13.1's remaining question from its own cache.**
 `VehicleVariable` and `VehicleVariableValue` already model vPIC's variable
