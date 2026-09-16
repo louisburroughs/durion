@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0048-inve
 tags: [adr, inventory]
 status: stable
 sources: [docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-07-23T10:54:54-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md) — `docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md`

@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0061-loca
 tags: [adr, location]
 status: stable
 sources: [docs/adr/0061-location-scope-authorization-ownership.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-09T18:47:47+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0061-location-scope-authorization-ownership.adr.md) — `docs/adr/0061-location-scope-authorization-ownership.adr.md`

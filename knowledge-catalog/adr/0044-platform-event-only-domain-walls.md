@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0044-plat
 tags: [adr, events, platform]
 status: stable
 sources: [docs/adr/0044-platform-event-only-domain-walls.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-11T18:04:15+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0044-platform-event-only-domain-walls.adr.md) — `docs/adr/0044-platform-event-only-domain-walls.adr.md`

@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0036-fron
 tags: [adr, audit, frontend, security]
 status: stable
 sources: [docs/adr/0036-frontend-security-audit-model-ownership-boundary.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-03-30T03:46:27-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0036-frontend-security-audit-model-ownership-boundary.adr.md) — `docs/adr/0036-frontend-security-audit-model-ownership-boundary.adr.md`

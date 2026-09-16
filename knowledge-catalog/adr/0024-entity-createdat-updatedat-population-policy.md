@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0024-enti
 tags: [adr]
 status: stable
 sources: [docs/adr/0024-entity-createdat-updatedat-population-policy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-21T09:21:35-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0024-entity-createdat-updatedat-population-policy.adr.md) — `docs/adr/0024-entity-createdat-updatedat-population-policy.adr.md`

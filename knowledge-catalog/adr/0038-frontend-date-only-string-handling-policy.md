@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0038-fron
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0038-frontend-date-only-string-handling-policy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-04-22T20:37:56-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0038-frontend-date-only-string-handling-policy.adr.md) — `docs/adr/0038-frontend-date-only-string-handling-policy.adr.md`

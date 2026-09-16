@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0027-uuid
 tags: [adr, identifiers]
 status: stable
 sources: [docs/adr/0027-uuid-typed-id-contract-policy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-02-27T21:04:54-05:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0027-uuid-typed-id-contract-policy.adr.md) — `docs/adr/0027-uuid-typed-id-contract-policy.adr.md`

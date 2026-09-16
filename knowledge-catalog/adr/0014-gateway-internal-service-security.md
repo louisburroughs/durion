@@ -5,7 +5,7 @@ description: The Durion Positivity Backend uses a microservices architecture whe
 resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0014-gateway-internal-service-security.adr.md'
 tags: [adr, gateway, security]
 sources: [docs/adr/0014-gateway-internal-service-security.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-07-08T12:26:00+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0014-gateway-internal-service-security.adr.md) — `docs/adr/0014-gateway-internal-service-security.adr.md`

@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remo
 tags: [adr, multitenancy]
 status: deprecated
 sources: [docs/adr/0023-remove-tenantid-single-organization-context.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-09T17:28:43+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md) — `docs/adr/0023-remove-tenantid-single-organization-context.adr.md`

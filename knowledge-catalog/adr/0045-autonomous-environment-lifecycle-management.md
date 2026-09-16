@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0045-auto
 tags: [adr]
 status: stable
 sources: [docs/adr/0045-autonomous-environment-lifecycle-management.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-09T18:27:39+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0045-autonomous-environment-lifecycle-management.adr.md) — `docs/adr/0045-autonomous-environment-lifecycle-management.adr.md`

@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0062-post
 tags: [adr, multitenancy]
 status: stable
 sources: [docs/adr/0062-postgres-row-level-multitenancy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-13T21:12:12+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0062-postgres-row-level-multitenancy.adr.md) — `docs/adr/0062-postgres-row-level-multitenancy.adr.md`

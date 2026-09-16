@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0053-supp
 tags: [adr]
 status: stable
 sources: [docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-14T07:53:47-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md) — `docs/adr/0053-supplier-pricat-ingestion-and-price-precedence.adr.md`

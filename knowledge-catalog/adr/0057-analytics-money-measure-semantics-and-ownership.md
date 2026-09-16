@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0057-anal
 tags: [adr]
 status: stable
 sources: [docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-01T13:27:15-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.md) — `docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.md`

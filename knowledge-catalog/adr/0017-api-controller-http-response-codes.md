@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0017-api-
 tags: [adr, api-contract]
 status: stable
 sources: [docs/adr/0017-api-controller-http-response-codes.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-14T12:59:49-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0017-api-controller-http-response-codes.adr.md) — `docs/adr/0017-api-controller-http-response-codes.adr.md`

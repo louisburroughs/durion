@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0013-plat
 tags: [adr, identifiers, platform]
 status: stable
 sources: [docs/adr/0013-platform-uuid-identifier-strategy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-03-02T15:49:14-05:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0013-platform-uuid-identifier-strategy.adr.md) — `docs/adr/0013-platform-uuid-identifier-strategy.adr.md`

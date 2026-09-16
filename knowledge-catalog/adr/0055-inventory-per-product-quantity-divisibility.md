@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0055-inve
 tags: [adr, inventory]
 status: stable
 sources: [docs/adr/0055-inventory-per-product-quantity-divisibility.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-20T15:28:49+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0055-inventory-per-product-quantity-divisibility.adr.md) — `docs/adr/0055-inventory-per-product-quantity-divisibility.adr.md`

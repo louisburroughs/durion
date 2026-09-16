@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0020-docu
 tags: [adr]
 status: stable
 sources: [docs/adr/0020-documents-centralized-creation.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-02-19T13:55:27-05:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0020-documents-centralized-creation.adr.md) — `docs/adr/0020-documents-centralized-creation.adr.md`

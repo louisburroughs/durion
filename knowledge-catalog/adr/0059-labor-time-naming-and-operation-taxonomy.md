@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0059-labo
 tags: [adr]
 status: draft
 sources: [docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-01T21:00:06+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md) — `docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md`

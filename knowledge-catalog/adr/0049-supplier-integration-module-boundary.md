@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0049-supp
 tags: [adr, events]
 status: stable
 sources: [docs/adr/0049-supplier-integration-module-boundary.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-15T14:17:53-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0049-supplier-integration-module-boundary.adr.md) — `docs/adr/0049-supplier-integration-module-boundary.adr.md`

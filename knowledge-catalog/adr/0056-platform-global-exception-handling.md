@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0056-plat
 tags: [adr, platform]
 status: stable
 sources: [docs/adr/0056-platform-global-exception-handling.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-23T19:22:02+00:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0056-platform-global-exception-handling.adr.md) — `docs/adr/0056-platform-global-exception-handling.adr.md`

@@ -6,7 +6,7 @@ resource: 'https://github.com/louisburroughs/durion/blob/main/docs/adr/0052-supp
 tags: [adr, order]
 status: stable
 sources: [docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md]
-generated: { by: script:generate-knowledge-catalog.py, at: 2026-08-10T16:37:38-04:00 }
+generated: { by: script:generate-knowledge-catalog.py, at: 2026-09-15T21:10:50-04:00 }
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md) — `docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md`
