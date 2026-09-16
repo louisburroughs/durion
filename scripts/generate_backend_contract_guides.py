@@ -158,7 +158,20 @@ def generate_api_reference_content(
 
     today = datetime.now().strftime('%Y-%m-%d')
     
-    content = f"""# {domain_title} Backend API Reference (Generated)
+    # OKF v0.2 frontmatter: the catalog's domain notes reference this file, and a
+    # concept file must carry a parseable block with a non-empty `type`. Emitted here
+    # so regeneration keeps it rather than dropping what a later pass added.
+    content = f"""---
+type: API Reference
+title: {domain_title} Backend API Reference
+description: Generated API reference for the {domain_title} domain, rendered from the module's OpenAPI spec.
+domain: {domain}
+doc_type: api_reference
+tags: [domain, {domain}, api-reference]
+generated: {{ by: script:generate_backend_contract_guides.py }}
+---
+
+# {domain_title} Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  
 **Audience:** Backend developers, Frontend developers, API consumers  

@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Billing Backend Contract Guide
 domain: billing
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-02-24
 api_reference_generated: domains/billing/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Billing domain behavior.
+tags: [domain, billing, backend-contract]
 ---
 
 # Billing Backend Contract Guide

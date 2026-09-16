@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Pricing Backend Contract Guide
 domain: pricing
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-07
 api_reference_generated: domains/pricing/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Pricing domain behavior.
+tags: [domain, pricing, backend-contract]
 ---
 
 # Pricing Backend Contract Guide

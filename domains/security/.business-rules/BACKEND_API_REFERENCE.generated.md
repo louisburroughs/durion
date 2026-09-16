@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Security API Reference
+description: Generated API reference for the Security domain, rendered from the module's OpenAPI spec.
+domain: security
+tags: [domain, security, api-reference]
+---
+
 # Security & Authentication Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

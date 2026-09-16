@@ -1,3 +1,11 @@
+---
+type: Permission Taxonomy
+title: Accounting Permission Taxonomy
+description: 'This document defines the complete permission taxonomy required to implement Accounting domain stories. All permissions follow the standardized format: domain:resource:action per PERMISSION_REGISTR...'
+domain: accounting
+tags: [domain, accounting, permission-taxonomy]
+---
+
 # Accounting Domain Permission Taxonomy
 
 > **Purpose:** Define explicit permission keys for Accounting domain operations  

@@ -1,3 +1,10 @@
+---
+type: Checklist
+title: Order Checklist
+description: This checklist validates Order-domain cancellation UI and service work for correctness, safety, and determinism. It incorporates resolved open questions into testable acceptance criteria, with a bi...
+domain: order
+tags: [domain, order, checklist]
+---
 
 # STORY_VALIDATION_CHECKLIST.md
 

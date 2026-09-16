@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0007 Approval Workflow Clarification
-description: Pointer to the canonical ADR for 0007 Approval Workflow Clarification.
+title: 'ADR-0007: WorkExec - Digital Customer Approval - Clarification Response'
+description: This document captures the clarification decisions for the Digital Customer Approval feature.
 resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0007-approval-workflow-clarification.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [adr, workexec]
+status: stable
+sources: [docs/adr/0007-approval-workflow-clarification.adr.md]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0007-approval-workflow-clarification.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0007-approval-workflow-clarification.adr.md) — `docs/adr/0007-approval-workflow-clarification.adr.md`
+
+**Status:** Accepted since 2026-01-08

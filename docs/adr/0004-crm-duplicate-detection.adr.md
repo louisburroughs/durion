@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0004: Duplicate Detection UX Strategy'
+description: 'When users create a party (commercial account), the backend performs duplicate detection to prevent duplicate records. Currently, there is no clear UX for handling this scenario:'
+status: stable
+adr_status: accepted
+created: '2026-01-23'
+tags: [adr, crm]
+---
 # ADR-CRM-002: Duplicate Detection UX Strategy
 
 **Status:** ACCEPTED  

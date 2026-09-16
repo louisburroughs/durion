@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Billing Checklist
+description: This checklist validates implementations within the Billing domain (billing rules, invoice draft creation, invoice issuance, traceability/artifacts, AP vendor payments, checkout PO enforcement, rec...
+domain: billing
+tags: [domain, billing, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

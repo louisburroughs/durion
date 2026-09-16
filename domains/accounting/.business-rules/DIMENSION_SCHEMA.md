@@ -1,3 +1,11 @@
+---
+type: Schema
+title: Accounting Schema
+description: This document defines the complete dimension schema used in GL mappings and journal entry lines. Dimensions provide multi-dimensional analysis of financial transactions across business units, locat...
+domain: accounting
+tags: [domain, accounting, schema]
+---
+
 # Accounting Dimension Schema
 
 **Version:** 1.0  

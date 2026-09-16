@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Location Checklist
+description: This checklist is intended for engineers and reviewers to validate story implementations within the location domain. It covers key aspects from scope to documentation to ensure secure, consistent, ...
+domain: location
+tags: [domain, location, checklist]
+---
+
 # Location Domain Story Validation Checklist
 
 This checklist is intended for engineers and reviewers to validate story implementations within the `location` domain. It covers key aspects from scope to documentation to ensure secure, consistent, and high-quality delivery across the new frontend admin screens (Locations CRUD, Bays, Mobile Units/Coverage/Policies, Site Default Locations, and Location Sync roster/logs).

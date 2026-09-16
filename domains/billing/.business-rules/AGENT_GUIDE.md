@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Billing Agent Guide
+description: This guide defines the Billing domain’s normative business rules and system-of-record boundaries for invoice lifecycle, BillingRules, checkout enforcement, receipts, and billing-orchestrated payments.
+domain: billing
+tags: [domain, billing, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

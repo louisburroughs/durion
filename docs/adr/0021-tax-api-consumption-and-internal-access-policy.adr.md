@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0021: Tax API Consumption and Internal Access Policy'
+description: Callers may treat address validation as best-effort and not handle hard validation failures.
+status: stable
+adr_status: accepted
+created: '2026-02-21'
+related: [ADR-0014]
+tags: [adr, accounting, api-contract]
+---
 # ADR-0021: Tax API Consumption and Internal Access Policy
 
 **Status:** ACCEPTED  

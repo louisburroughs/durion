@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0019: Persistence Strategy for Short-Lived Operational State'
+description: Multiple backend workflows create high-churn operational records that are usually short-lived (for example active sessions, transient workflow state, and in-flight process markers).
+status: stable
+adr_status: accepted
+created: '2026-02-19'
+related: [ADR-0013, ADR-0014, ADR-0018]
+tags: [adr, platform]
+---
 # ADR-0019: Persistence Strategy for Short-Lived Operational State
 
 **Status:** ACCEPTED  

@@ -1,10 +1,15 @@
 ---
 type: Module
-title: People
-description: Pointer concept for the People backend module.
+title: pos-people
+description: Module to manage people
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-people
-tags: [backend, module, pos-people]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, service, people]
+sources: [durion-positivity-backend/pos-people/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-14T16:18:05+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-people) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-people) — `pos-people/`
+
+**Kind:** Service
+**Domain:** [people](/domains/people.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-people/openapi.yaml)

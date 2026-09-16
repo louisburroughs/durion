@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Coverage Aggregate
-description: Pointer concept for the Coverage Aggregate backend module.
+title: pos-coverage-aggregate
+description: Aggregate JaCoCo report for full-repository SonarCloud analysis.
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-coverage-aggregate
-tags: [backend, module, pos-coverage-aggregate]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, library]
+sources: [durion-positivity-backend/pos-coverage-aggregate/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-10T01:41:38+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-coverage-aggregate) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-coverage-aggregate) — `pos-coverage-aggregate/`
+
+**Kind:** Library

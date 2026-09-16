@@ -1,10 +1,11 @@
 ---
 type: Domain
-title: General
-description: Pointer concept for the General domain in the workspace.
+title: general
+description: Workspace bucket for cross-domain UI artifacts that no business domain owns.
 resource: https://github.com/louisburroughs/durion/blob/main/domains/general
 tags: [domain, general]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+sources: [domains/general/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-19T09:45:41-04:00'}
 ---
 
-See the [domain folder](https://github.com/louisburroughs/durion/blob/main/domains/general) for domain docs and capability definitions.
+[Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/general) — `domains/general/` (2 documents)

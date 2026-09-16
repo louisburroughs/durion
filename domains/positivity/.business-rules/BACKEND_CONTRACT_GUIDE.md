@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Positivity (Supplier Integrations) Backend Contract Guide
 domain: positivity
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-11
 api_reference_generated: none — not yet generated for this domain
 traceability:
   capability_manifest_root: docs/capabilities
+description: Curated contract guide for the supplier-integration domain (module pos-supplier, Eureka name
+tags: [domain, positivity, backend-contract]
 ---
 
 # Positivity (Supplier Integrations) Backend Contract Guide

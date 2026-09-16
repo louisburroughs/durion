@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Accounting Backend Contract Guide
 domain: accounting
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-07-18
 api_reference_generated: domains/accounting/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Accounting domain behavior.
+tags: [domain, accounting, backend-contract]
 ---
 
 # Accounting Backend Contract Guide

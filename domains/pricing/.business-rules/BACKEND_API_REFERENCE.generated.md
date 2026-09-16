@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Pricing API Reference
+description: Generated API reference for the Pricing domain, rendered from the module's OpenAPI spec.
+domain: pricing
+tags: [domain, pricing, api-reference]
+---
+
 # Pricing & Price Management Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

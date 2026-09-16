@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Shop Management Agent Guide
+description: The shopmgmt domain manages appointment scheduling and resource assignment within the modular POS system for automotive service shops. It is responsible for creating, rescheduling, and displaying a...
+domain: shopmgmt
+tags: [domain, shopmgmt, agent-guide]
+---
+
 # AGENT_GUIDE.md — shopmgmt Domain
 
 ---

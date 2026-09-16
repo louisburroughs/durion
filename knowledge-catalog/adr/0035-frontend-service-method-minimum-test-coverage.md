@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0035 Frontend Service Method Minimum Test Coverage
-description: Pointer to the canonical ADR for 0035 Frontend Service Method Minimum Test Coverage.
+title: 'ADR-0035: Frontend Service Method Minimum Test Coverage'
+description: 'During PR review of Wave I-a (PR #12), two public service methods introduced by the PR had zero unit tests:'
 resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [adr, frontend]
+status: stable
+sources: [docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md) — `docs/adr/0035-frontend-service-method-minimum-test-coverage.adr.md`
+
+**Status:** Accepted since 2026-03-29

@@ -1,10 +1,14 @@
 ---
 type: Module
-title: Domain Events
-description: Pointer concept for the Domain Events backend module.
+title: pos-domain-events
+description: Shared domain event contracts (envelope, topic naming, versioned payload DTOs) per ADR-0044
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events
-tags: [backend, module, pos-domain-events]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, library, accounting]
+sources: [durion-positivity-backend/pos-domain-events/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-11T08:42:43+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-domain-events) — `pos-domain-events/`
+
+**Kind:** Library
+**Domain:** [accounting](/domains/accounting.md)

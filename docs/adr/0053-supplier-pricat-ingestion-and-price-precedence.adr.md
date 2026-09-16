@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0053: Supplier PRICAT Ingestion, Effective Dating, and Price Precedence'
+description: 'Findings from the durion#371 investigation (as-is analysis in the issue comments, spot-verified against the backend source):'
+status: stable
+adr_status: accepted
+created: '2026-08-10'
+related: [ADR-0044, ADR-0048, ADR-0049, ADR-0050, ADR-0054]
+tags: [adr]
+---
 # ADR-0053: Supplier PRICAT Ingestion, Effective Dating, and Price Precedence
 
 **Status:** ACCEPTED 2026-08-10 — Pricing & Fees and Product & Catalog domain sign-off recorded (durion#371); amended 2026-08-14 (§5 matching path, see Amendments)  

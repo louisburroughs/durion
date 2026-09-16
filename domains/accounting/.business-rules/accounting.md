@@ -1,3 +1,11 @@
+---
+type: Reference Notes
+title: Accounting Reference Notes
+description: Create products, services, and inventory items
+domain: accounting
+tags: [domain, accounting, reference-notes]
+---
+
 # Accounting workflows - Quickbooks
 * Create an invoice
 * Create products, services, and inventory items

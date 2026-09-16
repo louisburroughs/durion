@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Accounting Agent Guide
+description: The Accounting domain is responsible for authoritative financial calculations, invoice adjustments, issuance finalization ingestion visibility, chart of accounts
+domain: accounting
+tags: [domain, accounting, agent-guide]
+---
+
 # AGENT_GUIDE.md — Accounting Domain (Normative)
 
 ---

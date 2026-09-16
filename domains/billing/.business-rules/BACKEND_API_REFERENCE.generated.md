@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: Billing API Reference
+description: Generated API reference for the Billing domain, rendered from the module's OpenAPI spec.
+domain: billing
+tags: [domain, billing, api-reference]
+---
+
 # Billing & Invoicing Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

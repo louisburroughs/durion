@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0032: Frontend Test Fixture Interface Conformity'
+description: 'During PR review of Wave I-a (PR #12), 4 of 18 review threads identified spec mock objects using field names that do not exist on the corresponding TypeScript interface:'
+status: stable
+adr_status: accepted
+created: '2026-03-29'
+tags: [adr, frontend]
+---
 # ADR-0032: Frontend Test Fixture Interface Conformity
 
 **Status:** ACCEPTED **Date:** 2026-03-29 **Deciders:** Frontend Architecture Team, QA Lead **Affected Issues:** PR #12 review findings — threads r3006417688, r3006417693,

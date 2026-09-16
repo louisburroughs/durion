@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Positivity Domain Notes
+description: This document is a non-normative rationale and decision log for the positivity
+domain: positivity
+tags: [domain, positivity, domain-notes]
+---
+
 # POSITIVITY_DOMAIN_NOTES.md
 
 ## Summary

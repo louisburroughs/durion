@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Order Domain Notes
+description: This document provides non-normative, verbose rationale and decision logs for the Order domain within the Durion Positivity system, focusing primarily on order cancellation
+domain: order
+tags: [domain, order, domain-notes]
+---
+
 # ORDER_DOMAIN_NOTES.md
 
 ## Summary

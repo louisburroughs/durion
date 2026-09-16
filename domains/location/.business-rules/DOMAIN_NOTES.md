@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Location Domain Notes
+description: 'Normative source: AGENT_GUIDE.md (Decision ID)'
+domain: location
+tags: [domain, location, domain-notes]
+---
+
 # LOCATION_DOMAIN_NOTES.md
 
 ## Summary

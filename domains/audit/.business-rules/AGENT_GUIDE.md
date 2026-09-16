@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Audit Agent Guide
+description: This guide defines the audit domain’s normative business rules for ingestion, immutability, search, and export. It is authoritative for permission gating, guardrails, and
+domain: audit
+tags: [domain, audit, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

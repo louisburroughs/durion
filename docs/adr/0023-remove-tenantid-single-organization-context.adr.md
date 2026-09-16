@@ -1,10 +1,14 @@
 ---
+type: ADR
 title: 'ADR-0023: Remove tenantId and Adopt Single-Organization Context'
-created: 2026-02-21
-status: superseded
+description: The platform currently includes optional tenantId fields in some contracts and docs.
+status: deprecated
+adr_status: superseded
+created: '2026-02-21'
 superseded_by: ADR-0062
+related: [ADR-0062]
+tags: [adr, multitenancy]
 ---
-
 ## ADR-0023: Remove `tenantId` and Adopt Single-Organization Context
 
 **Status:** SUPERSEDED BY [ADR-0062](0062-postgres-row-level-multitenancy.adr.md) (2026-09-09)  

@@ -1,3 +1,11 @@
+---
+type: Plan
+title: CRM Plan
+description: This document outlines the work required to establish consistent UI/UX patterns for the CRM domain frontend. These patterns are prerequisites for implementing Issues #176, #172, #171, and #169 in t...
+domain: crm
+tags: [domain, crm, plan]
+---
+
 # CRM UI/UX Patterns – Priority 4 Implementation Plan
 
 **Version:** 1.0  

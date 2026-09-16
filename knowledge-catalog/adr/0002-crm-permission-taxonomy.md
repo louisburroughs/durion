@@ -1,10 +1,15 @@
 ---
 type: ADR
-title: 0002 Crm Permission Taxonomy
-description: Pointer to the canonical ADR for 0002 Crm Permission Taxonomy.
+title: 'ADR-0002: CRM Domain Permission Taxonomy and Authorization Model'
+description: 'The CRM domain has five frontend stories requiring explicit permission gates (Issues #176, #173, #172, #171, #169). Without a defined permission taxonomy:'
 resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0002-crm-permission-taxonomy.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [adr, crm, rbac]
+status: deprecated
+sources: [docs/adr/0002-crm-permission-taxonomy.adr.md]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0002-crm-permission-taxonomy.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0002-crm-permission-taxonomy.adr.md) — `docs/adr/0002-crm-permission-taxonomy.adr.md`
+
+**Status:** Deprecated since 2026-01-23
+**Superseded by:** [ADR-0025](/adr/0025-permissions-yaml-registration-policy.md)

@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0038: Frontend Date-Only String Handling Policy'
+description: During PR review of Wave I-b (PR
+status: stable
+adr_status: accepted
+created: '2026-04-02'
+tags: [adr, frontend]
+---
 # ADR-0038: Frontend Date-Only String Handling Policy
 
 **Status:** ACCEPTED **Date:** 2026-04-02 **Deciders:** Frontend Architecture Team **Affected Issues:** PR #15 review findings — threads r3027589778 (UTC off-by-one in

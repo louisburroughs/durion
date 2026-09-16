@@ -31,3 +31,6 @@ docs/capabilities/stories
 .playwright-mcp
 
 *.png
+
+# Node tooling (markdownlint)
+node_modules/

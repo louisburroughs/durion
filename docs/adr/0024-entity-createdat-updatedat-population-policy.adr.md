@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0024: Entity createdAt/updatedAt Population Policy'
+description: Entities in durion-positivity-backend once populated timestamps inconsistently — Instant.now() in @PrePersist, in @PreUpdate, or only one field tracked.
+status: stable
+adr_status: accepted
+created: '2026-02-23'
+tags: [adr]
+---
 # ADR-0024: Entity createdAt/updatedAt Population Policy
 
 **Status:** ACCEPTED — amended 2026-08-21 (see §Amendment Log)  

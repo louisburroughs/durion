@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Inventory
-description: Pointer concept for the Inventory backend module.
+title: pos-inventory
+description: POS Inventory module
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-inventory
-tags: [backend, module, pos-inventory]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, service, inventory]
+sources: [durion-positivity-backend/pos-inventory/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T16:37:18+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-inventory) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-inventory) — `pos-inventory/`
+
+**Kind:** Service
+**Domain:** [inventory](/domains/inventory.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-inventory/openapi.yaml)

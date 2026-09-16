@@ -1,3 +1,11 @@
+---
+type: API Reference
+title: CRM API Reference
+description: Generated API reference for the CRM domain, rendered from the module's OpenAPI spec.
+domain: crm
+tags: [domain, crm, api-reference]
+---
+
 # Customer Relationship Management (CRM) Backend API Reference (Generated)
 
 **Document Type:** Generated API Reference  

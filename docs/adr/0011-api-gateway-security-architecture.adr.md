@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0011: API Gateway Security Architecture'
+description: The backend platform requires a single, consistent ownership model for authentication and authorization.
+status: stable
+adr_status: accepted
+created: '2026-02-01'
+related: [ADR-0009, ADR-0014, ADR-0025, ADR-0040, ADR-0044, ADR-0062]
+tags: [adr, api-contract, gateway, security]
+---
 # ADR-0011: API Gateway Security Architecture
 
 **Status:** ACCEPTED **Date:** 2026-02-01 **Last Updated:** 2026-09-09 **Deciders:** Backend Architecture, Security Team **Affected Issues:** Cross-service authentication and

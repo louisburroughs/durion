@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: Audit Checklist
+description: This checklist validates audit-domain story implementations for correctness, security, auditability, and operational robustness.
+domain: audit
+tags: [domain, audit, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

@@ -1,10 +1,14 @@
 ---
 type: Module
-title: Tax Common
-description: Pointer concept for the Tax Common backend module.
+title: pos-tax-common
+description: Shared DTOs and validation types for consuming POS Tax APIs
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax-common
-tags: [backend, module, pos-tax-common]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, library, accounting]
+sources: [durion-positivity-backend/pos-tax-common/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-27T09:50:12+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax-common) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax-common) — `pos-tax-common/`
+
+**Kind:** Library
+**Domain:** [accounting](/domains/accounting.md)

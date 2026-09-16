@@ -1,3 +1,12 @@
+---
+type: ADR
+title: 'ADR-0001: Inventory Ledger ATP Computation'
+description: 'This ADR documents the architectural decisions made to resolve clarification issue #233, which blocked the implementation of user story #36: "Ledger: Compute On-hand and Available-to-Promise by Location/Storage".'
+status: stable
+adr_status: accepted
+created: '2026-01-12'
+tags: [adr, inventory]
+---
 # ADR 0001: Inventory Ledger ATP Computation
 
 ## Status

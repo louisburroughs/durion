@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0016: Location Entity Semantics and Definitions'
+description: 'The Durion platform references the concept of "Location" in multiple domains, including inventory, service, logistics, and CRM. The term "Location" is overloaded and used to mean:'
+status: stable
+adr_status: accepted
+created: '2026-02-17'
+related: [ADR-0009]
+tags: [adr, location]
+---
 # ADR-0016: Location Entity Semantics and Definitions
 
 **Status:** ACCEPTED  

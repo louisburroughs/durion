@@ -1,3 +1,11 @@
+---
+type: Workflow
+title: Work Execution Workflow
+description: This document describes the implementation of the additional work request and approval workflow for managing out-of-scope work identified during work order execution.
+domain: workexec
+tags: [domain, workexec, workflow]
+---
+
 # Change Request Workflow Implementation
 
 This document describes the implementation of the additional work request and approval workflow for managing out-of-scope work identified during work order execution.

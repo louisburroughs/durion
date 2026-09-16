@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Audit Domain Notes
+description: This document captures the rationale, alternatives, and auditor-facing explanations behind the audit domain’s normative decisions.
+domain: audit
+tags: [domain, audit, domain-notes]
+---
+
 # AUDIT_DOMAIN_NOTES.md
 
 ## Summary

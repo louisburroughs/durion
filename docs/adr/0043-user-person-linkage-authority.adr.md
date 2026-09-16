@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0043: User–Person Linkage Authority and Translation'
+description: ADR-0015 §3 requires that *"a User must be linked to a Person"* and §7 (I5–I7) makes that enforceable. ADR-0022 requires tokens to carry a stable personId claim for audit identity.
+status: stable
+adr_status: accepted
+created: '2026-06-19'
+related: [ADR-0013, ADR-0015, ADR-0018, ADR-0022, ADR-0044]
+tags: [adr]
+---
 # ADR-0043: User–Person Linkage Authority and Translation
 
 **Status:** ACCEPTED

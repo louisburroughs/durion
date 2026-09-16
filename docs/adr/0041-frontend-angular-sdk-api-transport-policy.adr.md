@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0041: Frontend Angular SDK API Transport Policy'
+description: The active frontend is an Angular 21 application and the platform now has an Angular-native SDK in durion-positivity-sdk-angular.
+status: stable
+adr_status: accepted
+created: '2026-04-25'
+related: [ADR-0010, ADR-0035]
+tags: [adr, api-contract, frontend]
+---
 # ADR-0041: Frontend Angular SDK API Transport Policy
 
 **Status:** ACCEPTED **Date:** 2026-04-25 **Deciders:** Frontend Architecture Team, SDK Maintainers, Platform Lead **Affected Repos:** `durion`, `durion-positivity-frontend`,

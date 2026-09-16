@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Work Execution Agent Guide
+description: This document is the normative guide for the workexec (Work Execution) domain. It defines ownership boundaries, canonical concepts, and the required invariants for workorder execution, estimate flo...
+domain: workexec
+tags: [domain, workexec, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

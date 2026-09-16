@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0001 Inventory Ledger Atp Computation
-description: Pointer to the canonical ADR for 0001 Inventory Ledger Atp Computation.
+title: 'ADR-0001: Inventory Ledger ATP Computation'
+description: 'This ADR documents the architectural decisions made to resolve clarification issue #233, which blocked the implementation of user story #36: "Ledger: Compute On-hand and Available-to-Promise by Location/Storage".'
 resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0001-inventory-ledger-atp-computation.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [adr, inventory]
+status: stable
+sources: [docs/adr/0001-inventory-ledger-atp-computation.adr.md]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0001-inventory-ledger-atp-computation.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0001-inventory-ledger-atp-computation.adr.md) — `docs/adr/0001-inventory-ledger-atp-computation.adr.md`
+
+**Status:** Accepted since 2026-01-12

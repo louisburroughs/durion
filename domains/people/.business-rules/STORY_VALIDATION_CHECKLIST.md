@@ -1,3 +1,11 @@
+---
+type: Checklist
+title: People Checklist
+description: This checklist validates People-domain story implementations (People/HR, Users,
+domain: people
+tags: [domain, people, checklist]
+---
+
 # STORY_VALIDATION_CHECKLIST.md
 
 ## Summary

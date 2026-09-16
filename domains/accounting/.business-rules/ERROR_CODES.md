@@ -1,3 +1,11 @@
+---
+type: Error Catalog
+title: Accounting Error Catalog
+description: This document defines the complete error code taxonomy for the Accounting domain. All backend services and frontend wrappers MUST use these error codes consistently for predictable error handling a...
+domain: accounting
+tags: [domain, accounting, error-catalog]
+---
+
 # Accounting Domain Error Codes
 
 **Version:** 1.2  

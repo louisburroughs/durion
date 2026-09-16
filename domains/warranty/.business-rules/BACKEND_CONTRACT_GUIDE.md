@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Warranty Backend Contract Guide
 domain: warranty
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-07-16
 api_reference_generated: domains/warranty/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Warranty domain behavior (module pos-warranty, Eureka name WARRANTY, package com.positivity.warranty).
+tags: [domain, warranty, backend-contract]
 ---
 
 # Warranty Backend Contract Guide

@@ -1,10 +1,21 @@
 ---
 type: Domain
-title: Shopmgmt
-description: Pointer concept for the Shopmgmt domain in the workspace.
+title: shopmgmt
+description: The shopmgmt domain manages appointment scheduling and resource assignment within the modular POS system for automotive service shops. It is responsible for creating, rescheduling, and displaying a...
 resource: https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt
 tags: [domain, shopmgmt]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+sources: [domains/shopmgmt/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
-See the [domain folder](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt) for domain docs and capability definitions.
+[Domain folder](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt) — `domains/shopmgmt/` (14 documents)
+
+**Implemented by:** [pos-shop-manager](/backend/pos-shop-manager.md)
+
+**Business rules:**
+
+* [AGENT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt/.business-rules/AGENT_GUIDE.md) — Agent Guide
+* [BACKEND_API_REFERENCE.generated.md](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md) — API Reference
+* [BACKEND_CONTRACT_GUIDE.md](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md) — Backend Contract
+* [DOMAIN_NOTES.md](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt/.business-rules/DOMAIN_NOTES.md) — Domain Notes
+* [STORY_VALIDATION_CHECKLIST.md](https://github.com/louisburroughs/durion/blob/main/domains/shopmgmt/.business-rules/STORY_VALIDATION_CHECKLIST.md) — Checklist

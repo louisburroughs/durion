@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Shared Dtos
-description: Pointer concept for the Shared Dtos backend module.
+title: pos-shared-dtos
+description: Shared DTO library for cross-module communication
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shared-dtos
-tags: [backend, module, pos-shared-dtos]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, library]
+sources: [durion-positivity-backend/pos-shared-dtos/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-05T14:24:28+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shared-dtos) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shared-dtos) — `pos-shared-dtos/`
+
+**Kind:** Library

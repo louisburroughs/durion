@@ -1,10 +1,13 @@
 ---
 type: Module
-title: Agent Framework
-description: Pointer concept for the Agent Framework backend module.
+title: pos-agent-framework
+description: Placeholder module directory; no build file or README yet.
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-agent-framework
-tags: [backend, module, pos-agent-framework]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, library]
+sources: [durion-positivity-backend/pos-agent-framework/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-19T10:07:38-04:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-agent-framework) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-agent-framework) — `pos-agent-framework/`
+
+**Kind:** Library

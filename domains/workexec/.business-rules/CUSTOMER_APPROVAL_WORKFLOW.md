@@ -1,3 +1,11 @@
+---
+type: Workflow
+title: Work Execution Workflow
+description: This document describes the implementation of the customer approval workflow based on the clarifications provided in issue #206.
+domain: workexec
+tags: [domain, workexec, workflow]
+---
+
 # Customer Approval Workflow Implementation
 
 This document describes the implementation of the customer approval workflow based on the clarifications provided in issue #206.

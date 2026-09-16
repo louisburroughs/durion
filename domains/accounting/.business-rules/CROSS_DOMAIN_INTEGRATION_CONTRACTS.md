@@ -1,3 +1,11 @@
+---
+type: Integration Contract
+title: Accounting Integration Contract
+description: This document defines the integration contracts between the Accounting domain and other domains (Organization, Billing, Order, Inventory, People). These contracts establish canonical data flows, ev...
+domain: accounting
+tags: [domain, accounting, integration-contract]
+---
+
 # Cross-Domain Integration Contracts – Durion Accounting Domain
 
 ## Overview

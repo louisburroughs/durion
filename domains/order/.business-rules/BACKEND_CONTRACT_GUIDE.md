@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Order Management Backend Contract Guide
 domain: order
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-06
 api_reference_generated: domains/order/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Order Management domain behavior.
+tags: [domain, order, backend-contract]
 ---
 
 # Order Management Backend Contract Guide

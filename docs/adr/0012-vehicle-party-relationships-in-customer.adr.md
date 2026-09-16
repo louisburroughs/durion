@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0012: Vehicle-Party Relationships Belong in pos-customer'
+description: 'During implementation of CAP:091 (Vehicle Registry), a decision arose about where to place vehicle-party association logic:'
+status: stable
+adr_status: accepted
+created: '2026-02-03'
+related: [ADR-0044]
+tags: [adr, crm]
+---
 # ADR 0012: Vehicle-Party Relationships Belong in pos-customer
 
 **Date**: 2026-02-03  

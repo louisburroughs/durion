@@ -1,10 +1,19 @@
 ---
 type: ADR
-title: 0023 Remove Tenantid Single Organization Context
-description: Pointer to the canonical ADR for 0023 Remove Tenantid Single Organization Context (SUPERSEDED BY ADR-0062 on 2026-09-09).
+title: 'ADR-0023: Remove tenantId and Adopt Single-Organization Context'
+description: The platform currently includes optional tenantId fields in some contracts and docs.
 resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [adr, multitenancy]
+status: deprecated
+sources: [docs/adr/0023-remove-tenantid-single-organization-context.adr.md]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md) for the decision record and rationale. Superseded by [ADR-0062](0062-postgres-row-level-multitenancy.md); do not apply its single-organization assumptions to new work.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0023-remove-tenantid-single-organization-context.adr.md) — `docs/adr/0023-remove-tenantid-single-organization-context.adr.md`
+
+**Status:** Superseded since 2026-02-21
+**Superseded by:** [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)
+
+**Related:**
+
+* [ADR-0062](/adr/0062-postgres-row-level-multitenancy.md)

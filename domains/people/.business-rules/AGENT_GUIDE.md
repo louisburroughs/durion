@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: People Agent Guide
+description: This guide defines the People domain’s normative business rules for identity/lifecycle, roles and assignments, and timekeeping-oriented People workflows (breaks,
+domain: people
+tags: [domain, people, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

@@ -1,4 +1,5 @@
 ---
+type: Backend Contract
 title: Work Order Execution Backend Contract Guide
 domain: workexec
 doc_type: backend_contract
@@ -12,6 +13,8 @@ last_updated: 2026-09-15
 api_reference_generated: domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
+description: This is the curated contract guide for Work Order Execution domain behavior.
+tags: [domain, workexec, backend-contract]
 ---
 
 # Work Order Execution Backend Contract Guide

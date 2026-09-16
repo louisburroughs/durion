@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: People Domain Notes
+description: This document provides non-normative, verbose rationale and decision logs for the People domain within the Durion Positivity system. It supports auditors, architects, and engineers by documenting d...
+domain: people
+tags: [domain, people, domain-notes]
+---
+
 # PEOPLE_DOMAIN_NOTES.md
 
 ## Summary

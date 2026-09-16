@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Price
-description: Pointer concept for the Price backend module.
+title: pos-price
+description: POS Price module
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-price
-tags: [backend, module, pos-price]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, service, pricing]
+sources: [durion-positivity-backend/pos-price/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T11:38:07+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-price) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-price) — `pos-price/`
+
+**Kind:** Service
+**Domain:** [pricing](/domains/pricing.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-price/openapi.yaml)

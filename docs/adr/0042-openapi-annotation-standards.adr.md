@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0042: OpenAPI Annotation Standards for Backend Services'
+description: 'All Durion backend REST APIs MUST follow comprehensive OpenAPI annotation standards to ensure:'
+status: stable
+adr_status: accepted
+created: '2026-05-12'
+related: [ADR-0014, ADR-0017, ADR-0018, ADR-0044]
+tags: [adr, api-contract]
+---
 # ADR: OpenAPI Annotation Standards for Backend Services
 
 **Status:** ACCEPTED  

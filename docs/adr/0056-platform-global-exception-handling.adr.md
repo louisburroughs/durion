@@ -1,3 +1,13 @@
+---
+type: ADR
+title: 'ADR-0056: Platform Global Exception Handling and Persistence Error Mapping'
+description: ADR-0017 requires every non-2xx response to carry the ApiError envelope (code, message, status, timestamp, correlationId) and to echo/generate X-Correlation-Id.
+status: stable
+adr_status: accepted
+created: '2026-08-23'
+related: [ADR-0011, ADR-0017, ADR-0018, ADR-0024, ADR-0046]
+tags: [adr, platform]
+---
 # ADR-0056: Platform Global Exception Handling and Persistence Error Mapping
 
 **Status:** ACCEPTED **Date:** 2026-08-23 **Deciders:** Architecture, Backend Lead, API Lead **Affected Issues:** louisburroughs/durion-positivity-backend#1471

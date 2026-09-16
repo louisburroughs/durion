@@ -1,3 +1,11 @@
+---
+type: Agent Guide
+title: Positivity Agent Guide
+description: This document defines the normative rules for the positivity domain, which owns POS-facing orchestration (notably Order cancellation) and composed read models (notably Product Detail). It reconcile...
+domain: positivity
+tags: [domain, positivity, agent-guide]
+---
+
 # AGENT_GUIDE.md
 
 ## Summary

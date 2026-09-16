@@ -1,3 +1,11 @@
+---
+type: Integration Contract
+title: CRM Integration Contract
+description: This document defines the API contracts between the CRM domain and external domains (Billing, People/Contacts, Vehicle Fitment) that are required to implement CRM stories. Each contract specifies t...
+domain: crm
+tags: [domain, crm, integration-contract]
+---
+
 # CRM Cross-Domain Integration Contracts
 
 **Version:** 1.0  

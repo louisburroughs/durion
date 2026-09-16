@@ -1,10 +1,14 @@
 ---
 type: ADR
-title: 0008 Cost Maintenance Clarification
-description: Pointer to the canonical ADR for 0008 Cost Maintenance Clarification.
+title: 'ADR-0008: Inventory/Accounting - Cost Maintenance Architecture - Visual Guide - Clarification Response'
+description: Which domain(s) maintain the cost structure for the system?
 resource: https://github.com/louisburroughs/durion/blob/main/docs/adr/0008-cost-maintenance-clarification.adr.md
-tags: [adr, governance, architecture]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [adr, accounting, inventory]
+status: stable
+sources: [docs/adr/0008-cost-maintenance-clarification.adr.md]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:10:50-04:00'}
 ---
 
-See the [canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0008-cost-maintenance-clarification.adr.md) for the decision record and rationale.
+[Canonical ADR](https://github.com/louisburroughs/durion/blob/main/docs/adr/0008-cost-maintenance-clarification.adr.md) — `docs/adr/0008-cost-maintenance-clarification.adr.md`
+
+**Status:** Accepted since 2026-01-13

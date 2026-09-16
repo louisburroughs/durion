@@ -1,3 +1,11 @@
+---
+type: Permission Taxonomy
+title: Inventory Permission Taxonomy
+description: This document standardizes Inventory permission names and scope rules. It follows DECISION-INVENTORY-010 (colon-separated naming) and the RBAC framework used across Durion. All inventory actions ar...
+domain: inventory
+tags: [domain, inventory, permission-taxonomy]
+---
+
 # Inventory Permission Taxonomy
 
 **Version:** 1.0  

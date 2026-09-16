@@ -1,3 +1,11 @@
+---
+type: Schema
+title: Accounting Schema
+description: Authoritative schema for the rulesDefinition JSON stored on a
+domain: accounting
+tags: [domain, accounting, schema]
+---
+
 # Posting Rules Definition Schema
 
 Authoritative schema for the `rulesDefinition` JSON stored on a

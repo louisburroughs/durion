@@ -1,10 +1,15 @@
 ---
 type: Module
-title: Shop Manager
-description: Pointer concept for the Shop Manager backend module.
+title: pos-shop-manager
+description: Module to manage vehicle repair shops
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shop-manager
-tags: [backend, module, pos-shop-manager]
-generated: { by: human:louisburroughs, at: 2026-08-19T00:00:00Z }
+tags: [backend, service, shopmgmt]
+sources: [durion-positivity-backend/pos-shop-manager/]
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-14T16:34:35+00:00'}
 ---
 
-See the [module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shop-manager) for implementation details, docs, and build configuration.
+[Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shop-manager) — `pos-shop-manager/`
+
+**Kind:** Service
+**Domain:** [shopmgmt](/domains/shopmgmt.md)
+**API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shop-manager/openapi.yaml)

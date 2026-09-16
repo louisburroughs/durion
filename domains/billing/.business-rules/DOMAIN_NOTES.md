@@ -1,3 +1,11 @@
+---
+type: Domain Notes
+title: Billing Domain Notes
+description: This document provides rationale, tradeoffs, and audit/security considerations for the Billing domain’s normative decisions.
+domain: billing
+tags: [domain, billing, domain-notes]
+---
+
 # BILLING_DOMAIN_NOTES.md
 
 ## Summary
