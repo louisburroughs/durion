@@ -1,0 +1,76 @@
+name: Docs OKF Checks
+
+# The knowledge catalog and the records it is built from are machine-checkable:
+# every concept file must carry OKF frontmatter with a non-empty `type`, the ADR
+# table in docs/adr/README.md is generated from that frontmatter, and the catalog
+# is lint-clean. These gates catch a hand edit, or a new ADR or guide that was
+# never run through the generators.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'docs/adr/**'
+      - 'domains/**'
+      - 'knowledge-catalog/**'
+      - 'scripts/adr_okf_frontmatter.py'
+      - 'scripts/domain_okf_frontmatter.py'
+      - 'scripts/generate-knowledge-catalog.py'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.markdownlint.jsonc'
+      - '.markdownlintignore'
+      - '.github/workflows/docs-okf.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'docs/adr/**'
+      - 'domains/**'
+      - 'knowledge-catalog/**'
+      - 'scripts/adr_okf_frontmatter.py'
+      - 'scripts/domain_okf_frontmatter.py'
+      - 'scripts/generate-knowledge-catalog.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  okf:
+    name: OKF conformance and markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install markdownlint
+        run: npm ci
+
+      # Every ADR carries frontmatter with a type, and the Current ADRs table in
+      # docs/adr/README.md matches what that frontmatter says.
+      - name: ADR frontmatter and generated table
+        run: python3 scripts/adr_okf_frontmatter.py --check
+
+      # Every domain business-rules guide carries frontmatter with a type.
+      - name: Domain guide frontmatter
+        run: python3 scripts/domain_okf_frontmatter.py --check
+
+      # The bundle satisfies OKF v0.2: parseable frontmatter with a non-empty type
+      # on every concept, reserved files shaped correctly, okf_version only at the root.
+      # This validates the committed bundle; it does not regenerate, which would need
+      # the durion-positivity-backend checkout for the module concepts.
+      - name: Knowledge catalog conformance
+        run: python3 scripts/generate-knowledge-catalog.py --check
+
+      # The generated bundle stays lint-clean. docs/ and domains/ are not linted here:
+      # they carry ~74k violations in hand-written documents (see npm run lint:md:all).
+      - name: Markdown lint (generated bundle)
+        run: npm run lint:md
