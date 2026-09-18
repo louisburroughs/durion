@@ -79,7 +79,8 @@ it("URL-encodes the sku parameter", () => {
 ### 3. PR Review Gate
 
 **Decision:** ✅ **Resolved** — A missing test for a public service method introduced in the PR is a **blocking** finding. No waiver is permitted on the grounds of "covered by
-integration tests" unless the integration test explicitly tests the method in question and is part of the same PR.
+integration tests" unless the integration test explicitly tests the method in question and is part of the same PR. A missing **load-bearing test** for a new guard, branch,
+or negative case (§5) is likewise a blocking finding, not merely a suggestion.
 
 ### 4. Scope
 
@@ -93,6 +94,46 @@ Exclusions:
 - Private methods (not part of the public API contract)
 - Lifecycle hooks (`ngOnInit`, `ngOnDestroy`) tested indirectly via component specs
 - Simple passthrough getters that have no assertion value
+
+### 5. Load-Bearing Tests
+
+**Decision:** ✅ **Resolved** — Every guard, branch, or negative case introduced by a change — and every fix for a review finding — must have a test that is shown to fail
+when that fix or guard is reverted (a manual mutation check: revert the change, run the test, confirm it goes red, restore the change). A test that exists but does not
+observably fail under the mutation it claims to defend does not satisfy §1 or §5. For a review-finding fix, state in the PR description that this check was performed
+(e.g. "reverted the lockout condition, confirmed `should reject after 5 attempts` fails, restored it").
+
+Evidence (PR review, Sept 2026): a mutation audit on the dispatch board found 11 of 22 deliberate production breakages survived the entire suite — the tests that were
+supposed to guard those branches passed whether or not the guard existed. In the same audit, one test encoded a lockout bug as intended behavior; because no one had
+reverted the fix and watched the test fail, the test asserted the bug rather than the guarantee.
+
+### 6. Asynchronous Collaborators in Ordering Tests
+
+**Decision:** ✅ **Resolved** — Any test of a sequence guard, stale-response guard, pending/in-flight guard, focus restoration after a readback, or settlement behavior
+must drive the async dependency through an RxJS `Subject` (or another deferred-emission construct), never a synchronous `of(...)`. A synchronous stub resolves before the
+guard under test can ever observe the "pending" state, making the guard unreachable by the test. Synchronous stubs remain acceptable only where ordering is irrelevant to
+the assertion.
+
+Evidence: 28 of 65 tests in the same audit stubbed an async read with `of(...)`, silently making every ordering guard in those specs unreachable.
+
+### 7. Both Halves of a Split
+
+**Decision:** ✅ **Resolved** — When behavior branches on a discriminator (permission A vs. permission B, read answered vs. read failed, today vs. another day, user told
+vs. not told, etc.), tests must assert **both** branches, including the negative one. A test suite that only pins the positive half of a split has not tested the split.
+
+Evidence: a permission split in the same audit was pinned only on its positive half, leaving the negative (denied) branch unverified.
+
+### 8. Copy Assertions Use Real Bundles
+
+**Decision:** ✅ **Resolved** — An assertion about what a user-facing string says or claims must load the real `src/assets/i18n/*.json` bundle files, not a copy of locale
+strings pasted into the spec. `TranslateModule.forRoot()` configured with no loader renders translation keys verbatim, so a "rendered text" assertion made against a
+spec-local copy of the strings is a key assertion by construction — it does not verify the copy shown to users, and drifts silently if the real bundle changes.
+
+**Exemplar:** `dispatch-board-page.i18n.spec.ts`.
+
+### 9. SDK Call Shape
+
+**Decision:** ✅ **Resolved** — When a service method calls a generated SDK method using positional arguments, at least one test must assert the full argument list (not
+just the return value). An unasserted positional argument list lets an inserted or reordered parameter shift silently through the call with no test failure.
 
 ---
 
@@ -139,3 +180,14 @@ Exclusions:
   ```bash
   npx ng test --include="src/app/features/<domain>/**/*.spec.ts" --no-watch
   ```
+
+- A frontend mutation-check helper — analogous to `durion/.claude/hooks/mutation-check-hook.sh` for the backend — that reverts a guard, runs the targeted spec, confirms
+  red, and restores the file is a recommended follow-up to automate the §5 load-bearing-test check.
+
+---
+
+## Changelog
+
+- **2026-09-18**: Added §5 (Load-Bearing Tests), §6 (Asynchronous Collaborators in Ordering Tests), §7 (Both Halves of a Split), §8 (Copy Assertions Use Real Bundles), and
+  §9 (SDK Call Shape) based on a September 2026 mutation audit of the dispatch board PR (11 of 22 breakages survived the suite); updated §3 to make a missing load-bearing
+  test a blocking finding.
