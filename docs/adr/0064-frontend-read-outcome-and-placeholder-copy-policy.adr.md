@@ -76,18 +76,16 @@ on `clockIsActionable()`.
 **Decision:** ✅ **Resolved** — A 404 is read as absence only on the single request whose documented contract makes that promise, never on a `forkJoin`,
 which cannot tell which leg 404'd. `CapacityCalendarService.loadSchedules` is the pattern: `isScheduleAbsent` is checked per date inside the fan-out's
 per-request `catchError`, counting `ABSENT` vs `FAILED` separately (`ScheduleLoad.absent` / `.failed`). Partial absence (`isPartiallyAbsent`) is
-**degraded**, not valid; only `absent === total` is unambiguous (`locationHasNoSchedule`). `WorkexecService.getWorkorderPickList`'s `forkJoin({ header,
-tasks })` does not yet catch either leg's 404; bringing it into line means catching 404 on `header` alone (the leg whose contract means "no pick list") and
-leaving `tasks` 404s as errors:
+**degraded**, not valid; only `absent === total` is unambiguous (`locationHasNoSchedule`). `WorkexecService.getWorkorderPickList` (PR #289,
+`workexec.service.ts:1141-1142`) implements this pattern: catches 404 on the header request alone (the leg whose contract means "no pick list") inside the
+`forkJoin`, leaving task-leg 404s as errors:
 
 ```typescript
-// CORRECT — 404 caught only on the leg whose contract means "absent"; tasks' 404 stays an error
+// CORRECT — 404 caught only on the header leg whose contract means "absent"; tasks' 404 stays an error
 header: this.workorderPickFacade.getWorkorderPickList(workorderId).pipe(
-  map(header => ({ header, ok: true as const })),
-  catchError((e: unknown) => e instanceof HttpErrorResponse && e.status === 404
-    ? of({ header: undefined, ok: true as const, absent: true as const })
-    : of({ header: undefined, ok: false as const })),
+  catchError(err => (err?.status === 404 ? of(null) : throwError(() => err))),
 ),
+tasks: this.workorderPickFacade.getPickTasks(workorderId),
 ```
 
 ### 4. Sentinel truthfulness: one message key, one true claim
@@ -188,8 +186,8 @@ Add to `durion-positivity-frontend/AGENTS.md` PR checklist under Reads & Placeho
 and `dispatch-board.service.ts` (`TechnicianRoster.ok`, `ClockRead.ok`) are the reference implementations of sections 1 and 3 — copy their shape for new
 degradable reads. `dispatch-board-page.component.ts` (`rosterRead`, `clockRead`, `clockIsActionable`, `freeHoursReasonKey`, `binNoteKey`, `clockHintKey`)
 is the reference implementation of sections 2 and 4. `dispatch-board-page.i18n.spec.ts` is the reference implementation of section 7's copy-claim testing;
-new placeholder keys get an equivalent assertion in their feature's i18n contract spec. `workexec.service.ts`'s `getWorkorderPickList` does not yet
-implement section 3's per-leg 404 handling — bring its `forkJoin({ header, tasks })` into line as a follow-up.
+new placeholder keys get an equivalent assertion in their feature's i18n contract spec. `workexec.service.ts`'s `getWorkorderPickList` (PR #289,
+https://github.com/louisburroughs/durion-positivity-frontend/pull/289) is the existing exemplar of section 3's per-leg 404 handling.
 
 ---
 
@@ -201,6 +199,6 @@ implement section 3's per-leg 404 handling — bring its `forkJoin({ header, tas
 - ADR-0063 — related frontend policy
 - `src/app/features/shopmgmt/services/capacity-calendar.service.ts`, `src/app/features/shopmgmt/services/dispatch-board.service.ts`
 - `src/app/features/shopmgmt/pages/dispatch-board/dispatch-board-page.component.ts`, `dispatch-board-page.i18n.spec.ts`
-- `src/app/features/workexec/services/workexec.service.ts` — `getWorkorderPickList` follow-up target
+- `src/app/features/workexec/services/workexec.service.ts` — `getWorkorderPickList` header-leg 404 exemplar (PR #289)
 - durion#474 — the per-day `viewSchedule` fan-out section 3's degradation applies to
 
