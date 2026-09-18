@@ -47,6 +47,7 @@ Secondary scope only when explicitly assigned:
 - Prefer tonal separation and layout rhythm over box-heavy UI.
 - Ensure responsive behavior on desktop and mobile.
 - Avoid decorative markup that does not improve clarity or accessibility.
+- Use the mechanics in ADR-0029 §8 (native `dialog[appModalDialog]` for every modal, global `.sr-only`, `aria-describedby` for hints, 24×24 targets, Label in Name in every locale, deliberate focus moves when the focused control is removed).
 
 ## Required Handoff
 - files changed

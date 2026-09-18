@@ -138,6 +138,59 @@ private isDateOnOrAfterToday(dateInput: string): boolean {
 When constructing dates **for server submission** (API request bodies, `requestedAt` fields), UTC semantics may be appropriate and `new Date(dateInput)` or `Date.UTC(...)` is
 permitted. This ADR governs **display and local validation** only.
 
+### 6. "Today" Is Reactive
+
+**Decision:** ✅ **Resolved** — Any component that compares a selected date with today (e.g. `isViewingToday()`) must hold today as a signal that is refreshed on the
+component's poll or a timer, never computed once at construction and reused. A board left open across a local midnight rollover must re-evaluate its today-only gates
+(actions enabled only "for today", today-highlighting, etc.) without requiring a page reload.
+
+```typescript
+// WRONG — computed once, stale after local midnight
+private readonly today = new Date();
+
+// CORRECT — refreshed alongside the board's own poll/timer
+private readonly today = signal(startOfLocalDay(new Date()));
+// ...on each poll tick:
+this.today.set(startOfLocalDay(new Date()));
+```
+
+Evidence: dispatch board [PR #282](https://github.com/louisburroughs/durion-positivity-frontend/pull/282) round 1 — a board opened before midnight kept treating "today"
+as the previous calendar day until the page was manually reloaded.
+
+### 7. Tests Never Depend on the Wall Clock
+
+**Decision:** ✅ **Resolved** — Specs must derive "today", "yesterday", and "rolled-over day" from an injected or component-held date (e.g. `selectedDate` plus or minus
+one day) rather than from a literal date string or a bare `new Date()` compared against a literal. A test written against today's literal date is a test that expires.
+
+```typescript
+// WRONG — expires the day after it's written
+const today = new Date("2026-09-17");
+
+// CORRECT — derived, never expires
+const today = component.selectedDate();
+const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+```
+
+Evidence: a literal-date test in the dispatch board passed on 2026-09-17 and failed on every PR opened from 2026-09-18 onward, including the API Artifacts Sync runs
+(fixed in [PR #284](https://github.com/louisburroughs/durion-positivity-frontend/pull/284)).
+
+### 8. Calendar Buckets
+
+**Decision:** ✅ **Resolved** — Day/week grouping of timestamps (e.g. chat history grouping, activity feeds) uses local calendar arithmetic — `new Date(year, month, day -
+n)` or `.setDate(...)` — never fixed 24-hour millisecond subtraction (`timestamp - n * 86400000`). Millisecond subtraction drifts by an hour across a DST transition,
+placing timestamps in the wrong day bucket.
+
+```typescript
+// WRONG — drifts across DST
+const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+// CORRECT — local calendar arithmetic
+const dayAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+```
+
+Evidence: chat history grouping ([PR #288](https://github.com/louisburroughs/durion-positivity-frontend/pull/288)) placed messages in the wrong day bucket across a DST
+boundary because it subtracted a fixed 24-hour millisecond offset instead of using local date arithmetic.
+
 ---
 
 ## Alternatives Considered
@@ -179,6 +232,9 @@ Add to `durion-positivity-frontend/AGENTS.md` PR checklist under Dates:
 - [ ] No `new Date(YYYY-MM-DD)` for local-date semantics — use `new Date(y, m-1, d)` split
 - [ ] Angular `DatePipe` is NOT applied directly to raw YYYY-MM-DD strings — append `T00:00:00` or pre-convert
 - [ ] "Today" boundary tests use local-time date construction (`getFullYear()/getMonth()+1/getDate()`), NOT `toISOString()`
+- [ ] A component comparing against "today" (e.g. `isViewingToday()`) holds today as a signal refreshed on poll/timer, not computed once at construction
+- [ ] Date-comparison specs derive today/yesterday/rolled-over-day from an injected or component-held date, never a literal date string or bare `new Date()`
+- [ ] Day/week bucketing uses local `Date(year, month, day - n)` / `setDate(...)` arithmetic, never fixed 24-hour millisecond subtraction
 
 ### Common Violations
 
@@ -187,3 +243,13 @@ Add to `durion-positivity-frontend/AGENTS.md` PR checklist under Dates:
 | `new Date(dateInput)` where dateInput is YYYY-MM-DD           | `const [y,m,d] = dateInput.split('-').map(Number); new Date(y, m-1, d)`           |
 | `{{ item.scheduledDate \| date: 'mediumDate' }}`              | `{{ (item.scheduledDate + 'T00:00:00') \| date: 'mediumDate' }}`                  |
 | `const today = new Date().toISOString().slice(0,10)` in tests | `const d = new Date(); todayStr = \`${d.getFullYear()}-...\`` using local getters |
+| `private readonly today = new Date();` computed once at construction | `today` held as a signal, refreshed on the component's poll/timer |
+| Test compares against a literal date string (e.g. `new Date('2026-09-17')`) | Derive today/yesterday/rolled-over day from an injected or component-held date |
+| `new Date(now.getTime() - 24 * 60 * 60 * 1000)` for "yesterday"/bucketing | `new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)` (drifts across DST otherwise) |
+
+---
+
+## Changelog
+
+- **2026-09-18**: Added §6 ("Today" Is Reactive), §7 (Tests Never Depend on the Wall Clock), and §8 (Calendar Buckets), plus corresponding PR Checklist and Common
+  Violations entries, based on dispatch board PR #282 (stale "today"), PR #284 (wall-clock-dependent test), and PR #288 (DST bucketing drift).

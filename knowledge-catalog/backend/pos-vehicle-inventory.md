@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-vehicle-inventory/
 tags: [backend, service, warranty]
 sources: [durion-positivity-backend/pos-vehicle-inventory/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T17:31:40+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T14:13:00-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory) — `pos-vehicle-inventory/`

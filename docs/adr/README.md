@@ -125,11 +125,14 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0055 | Per-Product Inventory Quantity Divisibility | ACCEPTED | '2026-08-20' |
 | 0056 | Platform Global Exception Handling and Persistence Error Mapping | ACCEPTED | '2026-08-23' |
 | 0057 | Analytics Money-Measure Semantics and Ownership | ACCEPTED | '2026-09-01' |
-| 0058 | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time) | ACCEPTED | "2026-09-01" |
-| 0059 | Labor-Time Naming and Service Operation Taxonomy | ACCEPTED | "2026-09-01" |
+| 0058 | Labor-Time Sourcing Architecture (pos-catalog Estimated Service Time) | ACCEPTED | '2026-09-01' |
+| 0059 | Labor-Time Naming and Service Operation Taxonomy | ACCEPTED | '2026-09-01' |
 | 0060 | Catalog Enrichment Matching and Review (pos-catalog Tread-Design Confidence Tiers) | ACCEPTED | '2026-09-06' |
 | 0061 | Location Scope Authorization — Ownership, Token Shape, and Effective Dating | ACCEPTED | '2026-09-07' |
 | 0062 | Postgres Row-Level Multitenancy | ACCEPTED (supersedes 0023) | '2026-09-09' |
+| 0063 | Frontend Async Result Ownership Policy | ACCEPTED | '2026-09-18' |
+| 0064 | Frontend Read Outcome and Placeholder Copy Policy | ACCEPTED | '2026-09-18' |
+| 0065 | Frontend Untrusted Content and Browser Persistence Policy | ACCEPTED | '2026-09-18' |
 
 <!-- adr-table:end -->
 

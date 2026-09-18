@@ -47,6 +47,7 @@ Typical responsibilities:
 - Keep UI state explicit: loading, empty, error, and success.
 - Preserve Angular lazy-loaded domain structure under `/app`.
 - Coordinate with `HTML Specialist`; do not rewrite their template/style work unless the orchestrator reassigns scope.
+- Before writing a new page or service, read every sibling service and page in the same `features/<domain>/` folder and `durion-positivity-frontend/docs/EXEMPLARS.md`; import existing helpers (page size constants, placeholder rules, sequence guards, `{ data, ok }` reads, idempotency keys) rather than re-deriving them, and list the precedents reused in the handoff.
 
 ## Required Handoff
 - files changed

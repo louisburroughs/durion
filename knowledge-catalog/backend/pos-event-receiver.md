@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-event-receiver/
 tags: [backend, service, positivity]
 sources: [durion-positivity-backend/pos-event-receiver/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-11T15:56:23-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T14:13:00-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-event-receiver) — `pos-event-receiver/`

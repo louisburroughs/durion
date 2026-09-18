@@ -101,6 +101,52 @@ Required for completion:
 - Error announcements verified for changed forms
 - No new critical accessibility violations
 
+### 8. Repository Mechanics (Angular implementation rules)
+
+**Decision:** ✅ **Resolved** - The following concrete rules apply to every Angular implementation in `durion-positivity-frontend`, each motivated by a specific PR review
+finding (PRs #275, #282, #288, #289, Sept 2026):
+
+1. Every modal, including one nested inside another modal, uses the repository's native `dialog[appModalDialog]` directive
+   (`src/app/shared/modal-dialog.directive.ts`) — its `showModal()` call supplies top-layer promotion, backdrop, focus trap, and Escape-to-close via `(modalCancel)`.
+   `aria-modal` on a `div` implements nothing; a nested dialog rendered outside the parent's trap lets Tab escape the parent and lets Escape close both dialogs at once.
+2. `.sr-only` is the single global visually-hidden utility, defined once in `src/styles.css`; components do not redefine it locally and never apply the class without
+   confirming it resolves against the global rule (labels rendered visibly in PR #288 because the rule was scoped to specific component selectors instead of global).
+3. `aria-label` on an element replaces its descendant text in the accessible name computation: never put a visible value or an `sr-only` hint inside an `aria-label`led
+   control expecting it to also be announced. Attach hints and caveats via `aria-describedby` pointing at unique ids, placed on the control itself, and — for disabled
+   controls that cannot receive focus — on the enclosing group instead.
+4. `title` is never the only channel for conveying information; it reaches neither keyboard-only nor touch users.
+5. Interactive targets are at least 24×24 CSS px (WCAG 2.2 SC 2.5.8), enforced with `min-inline-size`/`min-block-size`; do not assume the spacing exception applies.
+6. Label in Name (WCAG 2.2 SC 2.5.3): every ARIA accessible name for a control that shows visible text must start with that visible text, in every shipped locale and
+   across named and unnamed variants alike — assert this against the real locale bundles under `src/assets/i18n/`, not hardcoded English strings.
+7. Focus is moved deliberately whenever an action removes, replaces, or disables the focused control: a rename moves focus to the input, a confirm-delete moves focus to
+   the confirmation, a card moved to another rail carries focus with it, and a control disabled while an action is pending must have its focus handled explicitly.
+   Focus restoration is scheduled after the render that removes the control (driven from the readback, not from the write).
+8. Live regions survive rebuilds: dynamic banners keep `aria-live="polite"`, refusals use `role="alert"`, and a pending/typing indicator carries real visually-hidden
+   text rather than an `aria-label` on a `div`.
+9. `aria-current` (`"true"` for an in-page view, `"page"` only for an actual route) marks the active item in a bar of buttons; `aria-selected`/`role="tab"` is used only
+   inside a real tablist with arrow-key handling; no `aria-controls` may point at an element that is conditionally absent from the DOM.
+10. A toggle's accessible name and `title` describe the action that will happen now (e.g., "Open" vs "Close"), not the current state.
+11. Every interactive control keeps a visible `:focus-visible` indicator; setting `outline: none` requires a token-based replacement focus ring on the same element or a
+    wrapping element.
+12. Accessible names of controls inside a list must name their target (e.g., row number, mechanic name) — a parent's `aria-label` is not inherited by its descendants.
+13. Every drag interaction has a pointer-free equivalent; drag handles are labelled as handles and point at the keyboard route for the same operation.
+
+### 9. Automated Evidence for What Axe Cannot See
+
+**Decision:** ✅ **Resolved** - Because implementing agents cannot run NVDA/VoiceOver, unit specs must carry the automated evidence a screen-reader smoke pass would
+otherwise provide.
+
+Required assertions in component/page specs:
+
+- Focus movement (the specific element that receives focus after an action, not just "focus changed").
+- `dialog.matches(':modal')` for every `appModalDialog` dialog, proving the native modal state was actually entered.
+- Computed accessible names, resolved the way `aria-label`/`aria-describedby` compose them, not just presence of the attribute.
+- Live-region presence (`aria-live`, `role="alert"`) on the elements that carry dynamic status.
+- Focus-indicator rules (no bare `outline: none` without a replacement ring).
+
+The PR template's manual smoke-test items (keyboard-only pass, screen-reader pass) stay unticked unless a human actually ran them — an agent completing automated
+checks does not tick manual items on their behalf.
+
 ---
 
 ## Consequences
@@ -128,6 +174,8 @@ Required for completion:
 - Standardize reusable accessible patterns in shared shell/components.
 - Track accessibility defects with severity and SLA.
 - Prefer fixing root reusable components over per-page workarounds.
+- The repository mechanics in §8-9 are also listed with concrete file paths in `durion-positivity-frontend/AGENTS.md` and `durion-positivity-frontend/docs/EXEMPLARS.md`;
+  those are the canonical place to look up the current exemplar implementation of each rule.
 
 ---
 
@@ -138,3 +186,12 @@ Required for completion:
 - MDN Accessibility: <https://developer.mozilla.org/en-US/docs/Web/Accessibility>
 - Section 508: <https://www.section508.gov/>
 - EN 301 549: <https://www.etsi.org/deliver/etsi_en/301500_301599/301549/>
+
+---
+
+## Changelog
+
+- **2026-09-18**: Added §8 (Repository Mechanics) and §9 (Automated Evidence for What Axe Cannot See), codifying concrete Angular implementation rules drawn from
+  `durion-positivity-frontend` PR review findings (PRs #275, #282, #288, #289, Sept 2026), including native `dialog[appModalDialog]` usage for nested modals, the
+  single global `.sr-only` utility, `aria-label`/`aria-describedby` name composition, target size, Label in Name, deliberate focus management, live-region survival,
+  `aria-current`/tab semantics, toggle naming, focus-visible indicators, list-item naming, and keyboard-equivalent drag interactions.

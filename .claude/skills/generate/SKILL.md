@@ -1192,7 +1192,7 @@ Merge & Deploy
 - **Performance**: [performance-optimization.instructions.md](.github/instructions/performance-optimization.instructions.md)
 - **Backend Java**: [java.instructions.md](.github/instructions/java.instructions.md)
 - **Frontend Vue**: [vuejs3.instructions.md](.github/instructions/vuejs3.instructions.md)
-- **TypeScript**: [typescript-5-es2022.instructions.md](.github/instructions/typescript-5-es2022.instructions.md)
+- **TypeScript**: [typescript.md](.claude/instructions/typescript.md)
 
 ### Project Copilot Instructions
 - [durion-moqui-frontend](../durion-moqui-frontend/.github/copilot-instructions.md)

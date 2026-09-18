@@ -7,7 +7,7 @@ Inputs:
 - DOMAIN_DIR: ~/IdeaProjects/durion/domains/inventory/.ui
 - FRONTEND_ROOT: ~/IdeaProjects/<new-angular-frontend>
 - STORY_SELECTOR: *.wf.md (or a subset)
-- REQUIRED_LOCALES: en, fr-CA, es
+- REQUIRED_LOCALES: en-US, es-US, es-MX, fr-CA, fr-FR (qps-ploc regenerated)
 
 Requirements:
 1. Parse each wireframe pair: `*.wf.md` + `*.wf.meta.json`.

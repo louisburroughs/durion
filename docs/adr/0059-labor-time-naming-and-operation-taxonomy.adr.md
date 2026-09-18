@@ -1,15 +1,13 @@
 ---
 type: ADR
-title: "ADR-0059: Labor-Time Naming and Service Operation Taxonomy"
-description:
-  "Two permanent work_session tables exist — pos-workorder's (a technician's task clock: time on task) and pos-people's (a person's attendance clock feeding time_entry)."
+title: 'ADR-0059: Labor-Time Naming and Service Operation Taxonomy'
+description: 'Two permanent work_session tables exist — pos-workorder''s (a technician''s task clock: time on task) and pos-people''s (a person''s attendance clock feeding time_entry).'
 status: stable
 adr_status: accepted
-created: "2026-09-01"
+created: '2026-09-01'
 related: [ADR-0058]
 tags: [adr]
 ---
-
 # ADR-0059: Labor-Time Naming and Service Operation Taxonomy
 
 **Status:** ACCEPTED **Date:** 2026-09-15 **Deciders:** Architecture, Backend Lead, Workorder Execution Domain, People & Roles Domain **Affected Issues:**

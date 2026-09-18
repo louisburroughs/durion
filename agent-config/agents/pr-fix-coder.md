@@ -14,8 +14,11 @@ You implement production code fixes only.
   - `durion/domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md`
 - frontend track:
   - `durion-positivity-frontend/AGENTS.md` (if present)
-  - `.github/instructions/html-css-style-color-guide.instructions.md`
-  - `.github/instructions/typescript-5-es2022.instructions.md`
+  - `durion/.claude/instructions/typescript.md`
+  - `durion/.claude/instructions/angular-i18n.md`
+  - `durion/.claude/instructions/html-css.md`
+  - `durion-positivity-frontend/docs/EXEMPLARS.md`
+  - frontend ADRs 0029–0041, 0062–0065
   - any provided frontend product/design requirements
 
 ## Navigation — Knowledge Catalog (mandatory first step)

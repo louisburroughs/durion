@@ -140,6 +140,29 @@ Refresh tokens may include only identity/lifecycle claims needed for refresh exc
   - backend-driven capability responses/403 outcomes, or
   - a shared permission-decoding contract based on `perm_bits`/`perm_ver`.
 
+### 6a. Frontend Write-Control Gating
+
+**Decision:** ✅ **Resolved** - A route's read permission never enables a write. Every mutation surface in the frontend gates independently on the write permission
+named for that operation.
+
+1. A route's read permission never enables a write. Every mutation path — button, drag/drop target, picker option, clear/× control, undo, keyboard shortcut, and the
+   method body itself — gates on the write permission named for that operation in `src/app/core/security/route-permissions.ts` (e.g. `WORKEXEC_PAGE.workorderAssign`,
+   `WORKEXEC_PAGE.positionAssign`, `SHOPMGMT_PAGE.bayAssign`, `SHOPMGMT_PAGE.mechanicClock`), checked through `AuthService.hasAnyPermission`.
+2. The permission code the frontend gates on must be the code the backend endpoint actually enforces, verified against the domain's `BACKEND_CONTRACT_GUIDE.md` /
+   OpenAPI before the PR merges. Two endpoints can share intent but diverge on the enforced authority — `positionAssign`'s doc comment in `route-permissions.ts`
+   records that both endpoints bind to `workorder:position:assign`, distinct from `shop:bay:assign`, which governs appointment dispatch in `pos-shop-manager`. PR #275
+   gated bay writes on `shop:bay:assign` while the endpoint enforced a different code; PR #284 repointed it to `workorder:position:assign`.
+3. A token with no `perm_bits` claim leaves permissions unknown; the gate must follow the existing `canAccess()` legacy behavior for that case (as
+   `dispatch-board-page.component.ts` does: `!this.auth.permissionsKnown() || this.auth.hasAnyPermission(...)`), and this fallback is documented at the gate.
+4. Undo and retry re-check permission at click time, not at the time the original action armed them — `dispatch-board-page.component.ts`'s `undo()` re-derives the
+   applicable guard (`canTakeMechanic`/`canClearMechanic`/`canTakeBay`/`canClearBay`) from the current row state before replaying the step, rather than trusting a
+   guard decision captured when the undo was offered.
+5. Tests: for each gate, a granted case, a denied case (control disabled AND method body refuses independently), the split case when two authorities exist for related
+   operations, and the unknown-`perm_bits`-claim case; when a permission is repointed to a different code, the old code gets an explicit negative test (PR #284
+   finding) so a regression back to the wrong authority fails a test rather than shipping silently.
+6. Docblocks and comments naming the authority are updated with the code whenever it changes — grep for prose spellings of the permission (e.g. "bay assign
+   permission"), not only the literal code string, since a stale comment can reference the old authority after the guard itself was repointed.
+
 ---
 
 ## Alternatives Considered
@@ -199,6 +222,8 @@ See [Authorization Model](../architecture/AUTHORIZATION_MODEL.md) for the curren
 - Continue role-based route/nav gating via `roles`.
 - Migrate direct `claims.authorities` usage to backend-driven checks.
 - Do not introduce new dependencies on raw `authorities` token claims.
+- Apply §6a's write-control gating checklist to every mutation surface; the PR checklist in `durion-positivity-frontend/AGENTS.md` enumerates the same gate/test/
+  docblock requirements with file paths and is the working reference during implementation and review.
 
 ### Testing and Contract Alignment
 
@@ -244,3 +269,13 @@ See [Authorization Model](../architecture/AUTHORIZATION_MODEL.md) for the curren
 
 - **Proposed**: 2026-04-12
 - **Amended**: 2026-07-08 (ADR-0044, event channel), 2026-09-09 (ADR-0062, tenant-scoped roles and `tid`)
+
+---
+
+## Changelog
+
+- **2026-09-18**: Added §6a (Frontend Write-Control Gating), codifying that a route's read permission never enables a write, that the frontend's gated permission code
+  must match what the backend endpoint actually enforces (verified against `BACKEND_CONTRACT_GUIDE.md`/OpenAPI), the `perm_bits`-unknown fallback to legacy
+  `canAccess()` behavior, click-time re-checks for undo/retry, the required granted/denied/split/unknown-claim test matrix plus a negative test on any repointed
+  permission code, and keeping docblocks/comments in sync with the enforced authority — drawn from `durion-positivity-frontend` PR #275 (bay-write gated on the wrong
+  authority) and PR #284 (repointed to `workorder:position:assign`).

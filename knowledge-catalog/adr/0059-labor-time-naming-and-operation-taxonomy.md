@@ -7,7 +7,7 @@ path: durion/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:50:14-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T17:55:12+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md) — `docs/adr/0059-labor-time-naming-and-operation-taxonomy.adr.md`
