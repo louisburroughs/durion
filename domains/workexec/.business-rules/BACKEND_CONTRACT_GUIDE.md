@@ -7,9 +7,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-workorder/openapi.yaml
-openapi_commit: 383be15e
-last_verified_utc: 2026-09-15T16:45:00Z
-last_updated: 2026-09-15
+openapi_commit: 05e092cc
+last_verified_utc: 2026-09-18T06:27:00Z
+last_updated: 2026-09-18
 api_reference_generated: domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -93,8 +93,8 @@ Frontend developer workflow:
 | View daily dispatch board | `getDashboard` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 | Record a note about the customer | `addWorkorderNote` | POST | `/v1/workorders/{workorderId}/notes` | Note about the CUSTOMER, not the work; author comes from the authenticated caller. Auth `workorder:note:add`. Publishes `workorder.note.added.v1`, which pos-customer projects onto the party's CRM timeline as a `WORKORDER_NOTE` interaction (durion-positivity-backend#1584). |
 | View a workorder's customer notes | `listWorkorderNotes` | GET | `/v1/workorders/{workorderId}/notes` | One workorder's notes, newest first. Auth `workorder:note:view`. For notes across every workorder for a customer, read the CRM interaction timeline instead. |
-| Dispatch a workorder to a position | `assignServicePosition` | PUT | `/v1/workorders/{workorderId}/position` | Body `{resourceType: BAY\|MOBILE_UNIT\|HOLD, resourceId?, reason?}`. An inactive BAY/MOBILE_UNIT is 422 `SERVICE_POSITION_INACTIVE`. Auth `workorder:operationalContext:override`. Rules below. (durion-positivity-backend#1983, #1984, #2001) |
-| Take a workorder off its position | `releaseServicePosition` | DELETE | `/v1/workorders/{workorderId}/position?reason=` | Leaves the workorder deliberately unplaced and frees the bay. Idempotent when it holds none. Auth `workorder:operationalContext:override`. (durion-positivity-backend#1983) |
+| Dispatch a workorder to a position | `assignServicePosition` | PUT | `/v1/workorders/{workorderId}/position` | Body `{resourceType: BAY\|MOBILE_UNIT\|HOLD, resourceId?, reason?}`. An inactive BAY/MOBILE_UNIT is 422 `SERVICE_POSITION_INACTIVE`. Auth `workorder:position:assign`. Rules below. (durion-positivity-backend#1983, #1984, #2001, #2059) |
+| Take a workorder off its position | `releaseServicePosition` | DELETE | `/v1/workorders/{workorderId}/position?reason=` | Leaves the workorder deliberately unplaced and frees the bay. Idempotent when it holds none. Auth `workorder:position:assign`. (durion-positivity-backend#1983, #2059) |
 | Show where a workorder is and who is on it | `getServicePosition` | GET | `/v1/workorders/{workorderId}/position` | Current position, current technician, workorder status, and the full position history newest first. Auth `workorder:workorder:view`. Prefer this over `getOperationalContext`, which answers the position half only and carries no history. (durion-positivity-backend#1983) |
 | Assign the first technician | `assignTechnician` | POST | `/v1/workorders/{workorderId}/technician` | Only for a workorder with no current technician: 409 `TECHNICIAN_ALREADY_ASSIGNED` otherwise, with the incumbent in `referenceId`. Auth `workorder:workorder:assign-technician`. (durion-positivity-backend#1985) |
 | Hand a workorder to a different technician | `reassignTechnician` | PUT | `/v1/workorders/{workorderId}/technician` | Requires a current technician: 409 `TECHNICIAN_NOT_ASSIGNED` without one — it is not silently promoted to an assign. `reason` is optional and is recorded on the outgoing assignment. Auth `workorder:workorder:assign-technician`. (durion-positivity-backend#1985) |
@@ -106,8 +106,11 @@ Search-filter note for `searchWorkorders` (durion-positivity-backend#1676):
 - `createdFrom`/`createdTo` are inclusive `YYYY-MM-DD` bounds on `createdAt`, evaluated in UTC; `technicianId` matches a technician who logged a labor entry on the workorder.
 - Returns a page of `WorkorderSearchResult` `{workorderId, workorderNumber, estimateNumber, status, customerId, customerName, vehicleId, vehicleLabel, vin, createdAt}`; default page size 25, hard-capped at 100.
 
-Service position and technician assignment (durion-positivity-backend#1983, #1984, #1985, #2001, #2010, #2011):
+Service position and technician assignment (durion-positivity-backend#1983, #1984, #1985, #2001, #2010, #2011, #2059):
 
+- **Placing work is its own authority** (durion-positivity-backend#2059). `assignServicePosition` and `releaseServicePosition` both require `workorder:position:assign` — one code for both, because freeing a bay is the same decision as filling one, and a dispatcher who may place work must be able to unplace it.
+- That code is seeded to ADMIN, DISPATCHER, LOCATION_MANAGER and SHOP_MANAGER: the roles that already hold `shop:bay:assign`, and so the roles expected to work the board. Both endpoints reused the manager override grant until #2059, which is why a dispatcher could hand a job to a technician but not put it in a bay.
+- `workorder:operationalContext:override` is **not** accepted on those two endpoints and is no longer needed to call them. It stays on `overrideOperationalContext`, the manager exception path that also rewrites a workorder's mechanics and location.
 - Position and technician are **independent** assignments of the same workorder. Either may be unset, neither write touches the other's rows, and every change is kept as history with who, when and why. `getServicePosition` returns both together. They do decide one thing jointly — the `ASSIGNED` status, below.
 - On `assignServicePosition`, `HOLD` defaults `resourceId` to the workorder's own `locationId`; any other value is a 422.
 - A `BAY` or `MOBILE_UNIT` holds **at most one open workorder**; a second is 409 `RESOURCE_OCCUPIED`. `HOLD` — the site's parking lot — has no capacity limit, and an unset position is always allowed. A parked workorder carries `resourceType: HOLD` with `resourceId` equal to its own `locationId`, so the UI should render HOLD as "parked at this site" rather than looking the id up as a bay.
@@ -608,8 +611,8 @@ need an upstream source before they can be wired.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-workorder/openapi.yaml`
-- OpenAPI source revision: `383be15e` (branch `main`; carries durion-positivity-backend#2012 — the `SERVICE_POSITION_INACTIVE` refusal and the `ASSIGNED` pair rule documented above)
-- Last verified UTC: `2026-09-15T16:45:00Z`
+- OpenAPI source revision: `05e092cc` (branch `claude/dazzling-gates-mp8sms`, durion-positivity-backend#2067 — carries #2059, the `workorder:position:assign` gate on `assignServicePosition` and `releaseServicePosition` documented above, on top of #2012's `SERVICE_POSITION_INACTIVE` refusal and `ASSIGNED` pair rule)
+- Last verified UTC: `2026-09-18T06:27:00Z`
 - Generated API reference: `domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
