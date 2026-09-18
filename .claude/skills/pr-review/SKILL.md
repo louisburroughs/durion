@@ -14,7 +14,7 @@ Use this runbook to coordinate PR review and remediation.
 - `CONTRACT_GUIDE_PATH`: `domains/<domain>/.business-rules/BACKEND_CONTRACT_GUIDE.md` (behavior source)
 - `API_REFERENCE_PATH`: `domains/<domain>/.business-rules/BACKEND_API_REFERENCE.generated.md` (schema reference)
 - `OPENAPI_PATH`: `durion-positivity-backend/pos-<module>/openapi.yaml` (authoritative schema source)
-- `FRONTEND_POLICY_PATHS`: optional list for frontend PRs (examples: `durion-positivity-frontend/AGENTS.md`, `.github/instructions/html-css-style-color-guide.instructions.md`, `.github/instructions/typescript-5-es2022.instructions.md`)
+- `FRONTEND_POLICY_PATHS`: optional list for frontend PRs (examples: `durion-positivity-frontend/AGENTS.md`, `durion/.claude/instructions/typescript.md`, `durion/.claude/instructions/angular-i18n.md`, `durion/.claude/instructions/html-css.md`, `durion-positivity-frontend/docs/EXEMPLARS.md`, frontend ADRs 0029–0041, 0062–0065)
 - `FRONTEND_REQUIREMENTS_PATHS`: optional list of product/design requirements for frontend behavior and UX acceptance
 - `PROCESSING_FILE`: `PR-Review-Processing.md` (required run log file)
 - `PLANNER_AGENT`: `PR Review Planner` (recommended)
@@ -61,6 +61,9 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
    - frontend PRs: accessibility, responsive behavior, and user-flow impact expectations
    - frontend PRs: policy guidance from `FRONTEND_POLICY_PATHS` when provided
    - current test status (failing/passing signals)
+   - Read the BODY of every review submitted by `copilot-pull-request-reviewer[bot]`: its "Suppressed
+     comments" section lists findings that are never posted as threads and never trigger a webhook;
+     treat each as a finding with a `comment_ref` of the review id.
 3. Delegate plan creation to `PLANNER_AGENT`.
    - Require planner to write `## Plan` to `PROCESSING_FILE`.
 4. Delegate review to `REVIEWER_AGENT` with full evidence pack.
@@ -77,6 +80,10 @@ Review one pull request end-to-end, validate it against issues and ADRs, evaluat
    - if `CODE_REVIEW_AGENT` returns `PASS`, exit loop
    - if `CODE_REVIEW_AGENT` returns `FAIL`, split findings and start next cycle
    - if reviewer continues returning `FAIL` without safe progress, mark blocked and include unresolved findings in final summary
+   - after two incremental fix rounds that each drew a new review round, stop patching thread by
+     thread: run one whole-diff adversarial review of the current head (a second reviewer agent with
+     no prior context), fix every confirmed finding as one change set, verify each fix is load-bearing
+     (revert, red, restore), and push once
 7. If tooling supports thread resolution, resolve addressed threads; otherwise post explicit follow-up status comments.
 8. Produce final summary.
    - Delegate final outcome write to `PLANNER_AGENT` in `mode: write_final_summary` under `## Final Summary` in `PROCESSING_FILE`.

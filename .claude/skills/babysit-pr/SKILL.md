@@ -39,9 +39,19 @@ Execute a polling loop (suggested interval: every 2 to 5 minutes) to watch the P
 #### B. Handle Reviewer Feedback
 * Fetch recent review comments using the GitHub API (`GET /repos/{owner}/{repo}/pulls/{number}/comments`).
 * Filter for unresolved comments or requests for changes.
+* Read the BODY of every review submitted by `copilot-pull-request-reviewer[bot]` via
+  `gh api repos/{owner}/{repo}/pulls/{number}/reviews`: its "Suppressed comments" section lists
+  findings that are never posted as threads and never trigger a webhook — treat each as a finding in
+  its own right.
 * Parse the feedback:
   * For minor style adjustments, documentation updates, or straightforward fixes, modify the local files, verify changes, and push a commit.
   * For structural or architectural disputes that require human design choices, pause the loop and ping the user with a summary.
+  * After two incremental fix rounds that each drew a new review round, stop patching thread by
+    thread: run one whole-diff adversarial review of the current head (a second reviewer agent with no
+    prior context), fix every confirmed finding as one change set, verify each fix is load-bearing
+    (revert, red, restore), and push once.
+  * Never tick a PR-template checklist item that was not actually performed; re-verify each ticked
+    item and each description claim against the final diff before the last push.
 
 #### C. Review & Merge Evaluation
 * Check if the PR satisfies the repository's branch protection rules (e.g., minimum required approvals, signed commits).

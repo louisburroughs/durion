@@ -75,10 +75,10 @@ Use this artifact ownership map when producing instruction cards for Orchestrato
 - Error handler order is mandatory: `this.state.set('error')` BEFORE `this.errorKey.set(...)`.
 - Server-generated fields (`id`, `createdAt`, `updatedAt`, `requestedAt`) must be `readonly?` in interfaces and omitted from create/update payloads.
 - All user-facing strings use `| translate` — no hard-coded copy in templates or component TS.
-- New translation keys must land in all 4 locale files: `en-US.json`, `es-US.json`, `fr-CA.json`, `qps-ploc.json`.
+- New translation keys must land in all five human locale files: `en-US.json`, `es-US.json`, `es-MX.json`, `fr-CA.json`, `fr-FR.json`; `qps-ploc.json` is regenerated via `npm run i18n:pseudo:generate`, never hand-edited.
 - All inputs must have an associated `<label>` (visible or `sr-only`).
 - Test fixtures must be explicitly typed as the exact domain interface (no `any`, no untyped literals).
-- Required ADR review set before sign-off: 0010, 0029, 0030, 0031, 0032, 0033, 0034, 0035.
+- Required ADR review set before sign-off: 0010, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0037, 0038, 0039, 0041, 0062, 0063, 0064, 0065.
 
 ## Mission
 Convert one capability story into explicit artifact assignments, produce clarified specialist instruction cards, and validate returned evidence against acceptance criteria and ADR constraints.
@@ -111,8 +111,9 @@ Convert one capability story into explicit artifact assignments, produce clarifi
 - Angular domain baseline files (`*.routes.ts`, existing component/service files)
 - SDK types and API client from relevant `durion-positivity-sdk` package
 - Applicable ADRs, resolved through `durion/knowledge-catalog/adr/` — the frontend minimum (0010, 0029, 0030,
-  0031, 0032, 0033, 0034, 0035) is a floor, not the list: add every ADR the catalog links for the
-  touched domain and modules, and follow supersession links before applying one
+  0031, 0032, 0033, 0034, 0035, 0037, 0038, 0039, 0041, 0062, 0063, 0064, 0065) is a floor, not the list:
+  add every ADR the catalog links for the touched domain and modules, and follow supersession links
+  before applying one
 - Frontend repo policy from `durion-positivity-frontend/AGENTS.md`
 
 ## Clarification Workflow

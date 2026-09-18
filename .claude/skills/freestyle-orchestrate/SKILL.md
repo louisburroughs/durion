@@ -12,7 +12,7 @@ Inputs:
 - USER_REQUEST: plain-language feature request, bug report, or enhancement goal
 - FRONTEND_ROOT: ~/IdeaProjects/<angular-frontend>
 - OPTIONAL_ARTIFACTS: wireframes, screenshots, notes, markdown specs, API docs (if provided)
-- REQUIRED_LOCALES: en, fr-CA, es
+- REQUIRED_LOCALES: en-US, es-US, es-MX, fr-CA, fr-FR (qps-ploc regenerated)
 
 Requirements:
 1. Derive implementation scope, user flows, and acceptance criteria from `USER_REQUEST`.
