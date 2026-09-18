@@ -6,7 +6,7 @@ status: stable
 adr_status: accepted
 created: '2026-09-18'
 related: [ADR-0037, ADR-0062]
-tags: [adr, frontend, security]
+tags: [adr, frontend]
 ---
 # ADR-0065: Frontend Untrusted Content and Browser Persistence Policy
 

@@ -5,7 +5,7 @@ description: PR review across four PRs found repeated stale-result, mismatched-k
 status: stable
 adr_status: accepted
 created: '2026-09-18'
-related: [ADR-0031, ADR-0033]
+related: [ADR-0031, ADR-0033, ADR-0035]
 tags: [adr, frontend]
 ---
 # ADR-0063: Frontend Async Result Ownership Policy
