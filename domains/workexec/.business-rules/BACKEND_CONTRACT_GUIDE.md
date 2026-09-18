@@ -7,9 +7,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-workorder/openapi.yaml
-openapi_commit: 383be15e
-last_verified_utc: 2026-09-15T16:45:00Z
-last_updated: 2026-09-15
+openapi_commit: 05e092cc
+last_verified_utc: 2026-09-18T06:27:00Z
+last_updated: 2026-09-18
 api_reference_generated: domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -108,7 +108,9 @@ Search-filter note for `searchWorkorders` (durion-positivity-backend#1676):
 
 Service position and technician assignment (durion-positivity-backend#1983, #1984, #1985, #2001, #2010, #2011, #2059):
 
-- **Placing work is its own authority** (durion-positivity-backend#2059). `assignServicePosition` and `releaseServicePosition` both require `workorder:position:assign` — one code for both, because freeing a bay is the same decision as filling one. It is seeded to ADMIN, DISPATCHER, LOCATION_MANAGER and SHOP_MANAGER: the roles that already hold `shop:bay:assign`, and so the roles expected to work the board. `workorder:operationalContext:override` is **not** accepted on these two endpoints and is no longer needed to use them; it stays on `overrideOperationalContext`, the manager exception path that also rewrites a workorder's mechanics and location. Both endpoints reused the override code until #2059, which is why a dispatcher could hand a job to a technician but not put it in a bay.
+- **Placing work is its own authority** (durion-positivity-backend#2059). `assignServicePosition` and `releaseServicePosition` both require `workorder:position:assign` — one code for both, because freeing a bay is the same decision as filling one, and a dispatcher who may place work must be able to unplace it.
+- That code is seeded to ADMIN, DISPATCHER, LOCATION_MANAGER and SHOP_MANAGER: the roles that already hold `shop:bay:assign`, and so the roles expected to work the board. Both endpoints reused the manager override grant until #2059, which is why a dispatcher could hand a job to a technician but not put it in a bay.
+- `workorder:operationalContext:override` is **not** accepted on those two endpoints and is no longer needed to call them. It stays on `overrideOperationalContext`, the manager exception path that also rewrites a workorder's mechanics and location.
 - Position and technician are **independent** assignments of the same workorder. Either may be unset, neither write touches the other's rows, and every change is kept as history with who, when and why. `getServicePosition` returns both together. They do decide one thing jointly — the `ASSIGNED` status, below.
 - On `assignServicePosition`, `HOLD` defaults `resourceId` to the workorder's own `locationId`; any other value is a 422.
 - A `BAY` or `MOBILE_UNIT` holds **at most one open workorder**; a second is 409 `RESOURCE_OCCUPIED`. `HOLD` — the site's parking lot — has no capacity limit, and an unset position is always allowed. A parked workorder carries `resourceType: HOLD` with `resourceId` equal to its own `locationId`, so the UI should render HOLD as "parked at this site" rather than looking the id up as a bay.
@@ -609,8 +611,8 @@ need an upstream source before they can be wired.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-workorder/openapi.yaml`
-- OpenAPI source revision: `383be15e` (branch `main`; carries durion-positivity-backend#2012 — the `SERVICE_POSITION_INACTIVE` refusal and the `ASSIGNED` pair rule documented above)
-- Last verified UTC: `2026-09-15T16:45:00Z`
+- OpenAPI source revision: `05e092cc` (branch `claude/dazzling-gates-mp8sms`, durion-positivity-backend#2067 — carries #2059, the `workorder:position:assign` gate on `assignServicePosition` and `releaseServicePosition` documented above, on top of #2012's `SERVICE_POSITION_INACTIVE` refusal and `ASSIGNED` pair rule)
+- Last verified UTC: `2026-09-18T06:27:00Z`
 - Generated API reference: `domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
