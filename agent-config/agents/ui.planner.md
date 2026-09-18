@@ -45,7 +45,7 @@ wave status in `CAPABILITY_STATUS_BOARD.md`.
   - blocked: stories with missing backend contract or SDK — skip and record blocker
 - Organize implementation by Angular domain (`src/app/features/<domain>/`) and story.
 - Include `Designer` brief, `Lead Coder` card decomposition, `TypeScript Specialist`, `HTML Specialist`, and `Test Coverage Agent` gates.
-- Include i18n key additions (all 4 locale files) as explicit steps when new UI strings are introduced.
+- Include i18n key additions (the five human locale files `en-US`, `es-US`, `es-MX`, `fr-CA`, `fr-FR`, then `npm run i18n:pseudo:generate` for `qps-ploc`) as explicit steps when new UI strings are introduced.
 - Include review, documentation, and PR creation gates.
 - Include verification using `npm run build`, `npx ng test --no-watch`, and `npx ng lint`.
 

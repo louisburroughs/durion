@@ -200,5 +200,5 @@ https://github.com/louisburroughs/durion-positivity-frontend/pull/289) is the ex
 - `src/app/features/shopmgmt/services/capacity-calendar.service.ts`, `src/app/features/shopmgmt/services/dispatch-board.service.ts`
 - `src/app/features/shopmgmt/pages/dispatch-board/dispatch-board-page.component.ts`, `dispatch-board-page.i18n.spec.ts`
 - `src/app/features/workexec/services/workexec.service.ts` — `getWorkorderPickList` header-leg 404 exemplar (PR #289)
-- durion#474 — the per-day `viewSchedule` fan-out section 3's degradation applies to
+- louisburroughs/durion#474 — the capacity calendar's per-day `viewSchedule` fan-out, the read whose partial-absence handling section 3 governs
 

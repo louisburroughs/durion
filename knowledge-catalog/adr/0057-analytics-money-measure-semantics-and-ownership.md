@@ -7,7 +7,7 @@ path: durion/docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.m
 tags: [adr]
 status: stable
 sources: [docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T17:29:07-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T17:32:59-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.md) — `docs/adr/0057-analytics-money-measure-semantics-and-ownership.adr.md`

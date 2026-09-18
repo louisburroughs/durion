@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-image/
 tags: [backend, service]
 sources: [durion-positivity-backend/pos-image/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-12T00:12:12+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T14:13:00-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-image) — `pos-image/`

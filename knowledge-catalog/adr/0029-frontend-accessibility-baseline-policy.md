@@ -7,7 +7,7 @@ path: durion/docs/adr/0029-frontend-accessibility-baseline-policy.adr.md
 tags: [adr, accessibility, frontend]
 status: stable
 sources: [docs/adr/0029-frontend-accessibility-baseline-policy.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T17:50:23+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0029-frontend-accessibility-baseline-policy.adr.md) — `docs/adr/0029-frontend-accessibility-baseline-policy.adr.md`

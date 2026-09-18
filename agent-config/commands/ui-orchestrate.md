@@ -55,7 +55,7 @@ When delegating, put this in the agent prompt — a subagent does not inherit th
 - Inside `effect()` bodies: use `onCleanup(() => sub.unsubscribe())` — never `takeUntilDestroyed`.
 - Outside `effect()` bodies (mutations etc.): use `takeUntilDestroyed(this.destroyRef)`.
 - All user-facing strings must use `| translate` pipe — no hard-coded copies in templates.
-- New translation keys must be added to all 4 locale files: `en-US.json`, `es-US.json`, `fr-CA.json`, `qps-ploc.json`.
+- New translation keys must be added to all five human locale files: `en-US.json`, `es-US.json`, `es-MX.json`, `fr-CA.json`, `fr-FR.json`; `qps-ploc.json` is then regenerated via `npm run i18n:pseudo:generate`, never hand-edited.
 - Server-generated fields (`id`, `createdAt`, `updatedAt`, `requestedAt`, etc.) are `readonly?` in model interfaces and must be omitted from create/update payloads.
 - All inputs need associated `<label>` (visible or `sr-only`). Error messages via `role="alert"` or `aria-live`.
 - Every component mutation error handler must call `this.state.set('error')` BEFORE `this.errorKey.set(...)`.
@@ -308,7 +308,7 @@ Resolve context in this order:
 1. Frontend AGENTS policy in `durion-positivity-frontend/AGENTS.md`
 2. Assigned execution tracking source and applicable `CAP-*` story files
 3. Design references: `design/DESIGN.md`, wireframes, theme tokens
-4. Applicable ADRs from `durion/docs/adr/` (frontend ADRs 0010, 0029–0038 are mandatory)
+4. Applicable ADRs from `durion/docs/adr/` (frontend ADRs 0010, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0037, 0038, 0039, 0041, 0062, 0063, 0064, 0065 are mandatory)
 5. SDK package types and API clients from `durion-positivity-sdk`
 
 Fallbacks:

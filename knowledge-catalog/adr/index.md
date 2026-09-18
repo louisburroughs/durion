@@ -122,3 +122,9 @@
   Two models describe a user's location reach, and they disagree about which one matters.
 * [ADR-0062: Postgres Row-Level Multitenancy](0062-postgres-row-level-multitenancy.md) —
   ADR-0023 (2026-02-21) removed tenantId from every contract and declared the platform single-organization.
+* [ADR-0063: Frontend Async Result Ownership Policy](0063-frontend-async-result-ownership-policy.md) —
+  PR review across four PRs found repeated stale-result, mismatched-key, and dropped-obligation bugs that ADR-0033's clea…
+* [ADR-0064: Frontend Read Outcome and Placeholder Copy Policy](0064-frontend-read-outcome-and-placeholder-copy-policy.md) —
+  Degradable reads must return an outcome, not an empty collection, and placeholder copy may only state what a read actua…
+* [ADR-0065: Frontend Untrusted Content and Browser Persistence Policy](0065-frontend-untrusted-content-and-browser-persistence-policy.md) —
+  PR review on the assistant chat surface found unsafe rendering of model-generated content and tenant-unsafe browser sto…
