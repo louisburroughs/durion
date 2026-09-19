@@ -140,6 +140,8 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-016 | Notifications toggles + partial success semantics |
 | DECISION-SHOPMGMT-017 | Audit visibility + PII-safe fields for UI |
 | DECISION-SHOPMGMT-018 | Degraded-day semantics for capacity reads (unknown hours vs closed) |
+| DECISION-SHOPMGMT-019 | Booking horizon (configurable, 180-day default) |
+| DECISION-SHOPMGMT-020 | Work may start before the planned window |
 
 ## Domain Boundaries
 
@@ -193,6 +195,11 @@ and defines what must be treated as backend-authoritative vs UI hints.
   schedule out of hours.
 - A date that degrades is reported, never omitted, and affects no other date's numbers.
 - A degraded read may withhold a number; it may never invent one, nor place one on a date reporting `OK`.
+- An appointment may be booked at most a configured number of days ahead (default 180); beyond it is a policy
+  failure on write, not a read-side filter.
+- A workorder's `workStartedAt` may precede the planned `startAt`. Occupancy follows the effective window
+  (each end falling back independently: actual where known, planned otherwise), and starting early is
+  not a reschedule.
 - Reschedule requires:
   - reason enum
   - notes when reason is OTHER
@@ -224,6 +231,8 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-016 | Notification toggles are backend-owned. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-017 | Audit UI is permission-gated and redacted. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-018 | An unknown operating window is not a closure, and a degraded date affects only itself. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-019 | How far ahead a booking may sit is configuration, defaulting to 180 days. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-020 | An early start is legitimate; occupancy follows the effective window. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 
 ## Open Questions (from source)
 
@@ -521,6 +530,39 @@ and defines what must be treated as backend-authoritative vs UI hints.
   - UI: `UNAVAILABLE` must render distinguishably from `CLOSED`/`HOLIDAY`.
 - Decision ID: DECISION-SHOPMGMT-018
 
+### Q: How far in advance may an appointment be booked?
+
+- Answer: at most a bounded number of facility-local days ahead of the booking, the bound being deployment configuration with a default of **180 days**. A create or reschedule beyond it is a policy failure (422), not a syntactic one. There is no separate "placeholder" booking type, so the same bound governs a loosely-held future slot.
+- Assumptions:
+  - The horizon is enforced on the write path, so an out-of-horizon appointment never reaches the database.
+  - Enforcement is not in `pos-shop-manager` yet; it is tracked as its own implementation issue.
+- Rationale:
+  - The right horizon differs by trade, so the number is configuration; the existence of a horizon is not optional, since an unbounded book lets a mistyped year hold a bay indefinitely.
+- Impact:
+  - APIs: create and reschedule gain a policy rejection with a machine-readable code.
+  - Config: one value under `pos.shop-manager.*`, with the usual environment override.
+- Decision ID: DECISION-SHOPMGMT-019
+
+### Q: May a workorder's actual start precede its appointment's planned start?
+
+- Answer: yes, and it must not be rejected. Three rules follow:
+  - `workStartedAt < startAt` is a normal shop-floor outcome — a bay frees up, a customer arrives early, or
+    the shop starts a job booked for later in the week.
+  - Occupancy is computed from the effective window, whose ends fall back independently: the actual start
+    where known else the planned start, the actual finish where known else the planned finish. A job that
+    has started but not finished is therefore held to its planned finish, never open-ended. The planned
+    window survives as the promise.
+  - Starting early is not a reschedule and must not consume a reschedule allowance.
+- Assumptions:
+  - `workStartedAt`/`completedAt` are Workorder Execution facts, consumed here through the replica.
+  - The planned window is retained, never rewritten to match the actual.
+- Rationale:
+  - Walk-ins are a first-class intake channel, and reschedules are rationed (DECISION-SHOPMGMT-004) — a domain that expected the plan to be rewritten on every early start would penalise its most accurate shops.
+- Impact:
+  - APIs: no validation may impose a planned-versus-actual ordering.
+  - Reads: a range read must admit rows by their effective window, not their planned one.
+- Decision ID: DECISION-SHOPMGMT-020
+
 ## Todos Reconciled
 
 - Original todo: "CLARIFY exact appointment status enums" → Resolution: Resolved (backend-owned enum + recommended set) | Decision: DECISION-SHOPMGMT-013
@@ -532,6 +574,8 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - Original todo: "CLARIFY timezone standard" → Resolution: Resolved (facility timezone) | Decision: DECISION-SHOPMGMT-015
 - Original todo: "CLARIFY audit visibility + PII" → Resolution: Resolved (redacted audit endpoint) | Decision: DECISION-SHOPMGMT-017
 - Escalation from durion-positivity-backend#2096: "CLARIFY unknown operating hours vs closed" → Resolution: Resolved (unknown is its own fact; consumes time, emits nothing, contained to its own date) | Decision: DECISION-SHOPMGMT-018
+- Escalation from durion-positivity-backend#2094: "CLARIFY booking horizon" → Resolution: Resolved (configurable, 180-day default; enforcement tracked separately) | Decision: DECISION-SHOPMGMT-019
+- Escalation from durion-positivity-backend#2095: "CLARIFY workStartedAt vs planned startAt" → Resolution: Resolved (early start is legitimate; effective window governs occupancy; not a reschedule) | Decision: DECISION-SHOPMGMT-020
 
 ## End
 

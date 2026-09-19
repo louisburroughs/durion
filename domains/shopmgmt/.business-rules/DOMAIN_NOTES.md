@@ -14,7 +14,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
 ## Completed items
 
-- [x] Documented 18 key shopmgmt decisions
+- [x] Documented 20 key shopmgmt decisions
 - [x] Provided alternatives analysis
 - [x] Included architectural schemas
 - [x] Added auditor SQL queries
@@ -1461,6 +1461,159 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - **Owner:** Shopmgmt domain, with Location domain coordination — Location owns the hours that make a day knowable (DECISION-SHOPMGMT-008)
   - **Policy:** a degraded read withholds; it does not estimate. Any proposal to fill an unknown day with an assumed window amends this decision rather than implementing around it.
   - **Monitoring:** alert on a sustained rate of `UNAVAILABLE` dates for a location — it means the hours facts are not arriving, and every such date is capacity the shop cannot see.
+
+### DECISION-SHOPMGMT-019 — Booking Horizon (How Far Ahead an Appointment May Be Booked)
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-019)
+- **Decision:** An appointment may be scheduled at most a bounded number of facility-local days ahead of the moment the booking is made. The bound is **configuration, not a constant**, and its default is **180 days**. A create or reschedule whose `startAt` falls beyond the horizon is a policy failure (422 with a machine-readable code), not a syntactic one. The horizon applies to every appointment alike: the domain has no separate "placeholder" booking type today, so a loosely-held future slot is an ordinary appointment and is bounded by the same number.
+- **Alternatives considered:**
+  - **Option A (Chosen):** a configurable horizon with a 180-day default, enforced on write
+    - Pros: a shop that books seasonal work a season ahead can raise it; every read that wants to know how far the book runs has one number to consult; the bound is enforced where the bad data would enter
+    - Cons: one more setting to operate, and a deployment that never revisits it inherits a number chosen here
+  - **Option B:** a hard-coded constant
+    - Pros: simplest; no configuration surface
+    - Cons: the right horizon genuinely differs by trade — a tyre shop and a restoration shop do not book alike — and a constant makes that a code change
+  - **Option C:** no limit at all
+    - Pros: nothing to enforce, nothing to explain
+    - Cons: leaves every forward-looking read unbounded in principle, and lets a typo'd year sit in the book as a real appointment with a bay held in 2124
+  - **Option D:** a limit per location, stored on the location record
+    - Pros: the most faithful to how shops actually differ
+    - Cons: Location is authoritative for hours (DECISION-SHOPMGMT-008) but has no scheduling-policy surface, and nothing today asks for per-location variation. Revisit if a tenant does.
+- **Reasoning and evidence:**
+  - The question was escalated from `durion-positivity-backend#2094` while fixing `durion-positivity-backend#2085`: a candidate fix there needed to know how far ahead a booking could sit and still be a job that might start today, and no such number existed anywhere in `durion/`.
+  - The fix that shipped does not depend on it — it bounds itself by the set of jobs actually in progress rather than by a day count — but the question survives the fix: the next thing that reasons about the length of the book needs an answer, and an inference made twice in two places will eventually be made two different ways.
+  - 180 days is a default, chosen to be comfortably longer than any normal service interval and short enough that a mistyped year fails at the point of entry. It is not a claim about any particular shop; that is what the configuration is for.
+  - A horizon belongs on the **write** path. Rejecting a booking at creation gives the advisor an error they can act on with the customer in front of them, while a read-side filter would leave a real, bay-holding appointment in the database that some reads honour and others silently drop.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-shop-manager` appointment create and reschedule validation
+    - Deployment configuration (`pos.shop-manager.*`, per the module's existing convention, with a `POS_SHOP_MANAGER_*` environment override)
+  - **Three different numbers, deliberately not shared.** The booking horizon is a write policy and is unrelated to the two read bounds already in the module. Do not collapse them:
+
+    | Bound | What it limits | Where it lives |
+    | --- | --- | --- |
+    | Booking horizon (this decision) | how far ahead an appointment may be **booked** | configuration, default 180 days |
+    | Opening-search horizon | how far forward one availability **search** may scan | `OpeningSearchServiceImpl.MAX_HORIZON_DAYS` (30) |
+    | Capacity range limit | the span of one capacity **read** | `ScheduleCapacityServiceImpl.MAX_RANGE_DAYS` (42) |
+
+  - **Not yet implemented.** As of this decision `pos-shop-manager` validates only that `startAt` precedes `endAt`; nothing bounds how far ahead `startAt` may be. The enforcement is tracked as its own implementation issue rather than assumed.
+  - Reschedule is a write too, so a reschedule that moves an appointment past the horizon is refused on the same rule.
+- **Auditor-facing explanation:**
+  - **What to inspect:** that no appointment is scheduled further ahead than the configured horizon allowed at the time it was booked, and that the rejection is a policy error rather than a silent truncation.
+  - **Query example:**
+
+    ```sql
+    -- Two queries, because the horizon is measured from each WRITE, not from now().
+    -- Both assume the 180-day default; substitute the configured value where a
+    -- deployment sets one. Where the value has changed over time, neither query can
+    -- see that, and a real audit needs the configuration history alongside them.
+
+    -- (1) Never-rescheduled appointments, measured from creation.
+    SELECT a.appointment_id, a.location_id, a.created_at, a.start_at,
+           (a.start_at::date - a.created_at::date) AS days_ahead
+    FROM appointment a
+    WHERE NOT EXISTS (SELECT 1 FROM reschedule_history r
+                       WHERE r.appointment_id = a.appointment_id)
+      AND a.start_at::date - a.created_at::date > 180
+    ORDER BY days_ahead DESC;
+
+    -- (2) Rescheduled appointments, measured from each reschedule's own write time.
+    -- Creation is the wrong baseline here: a legitimate reschedule of a year-old
+    -- appointment would read as a violation against created_at.
+    SELECT a.appointment_id, a.location_id, r.rescheduled_at, r.new_start_at,
+           (r.new_start_at::date - r.rescheduled_at::date) AS days_ahead
+    FROM appointment a
+    JOIN reschedule_history r ON r.appointment_id = a.appointment_id
+    WHERE r.new_start_at::date - r.rescheduled_at::date > 180
+    ORDER BY days_ahead DESC;
+    ```
+
+  - **Expected outcome:** once enforcement ships, no rows beyond the horizon in force when each row was created. Rows predating enforcement are grandfathered and are evidence of the gap, not of a violation.
+- **Migration & backward-compatibility notes:**
+  - Existing appointments beyond the horizon are not rewritten or cancelled. The rule governs new writes; a legacy row stays valid and readable.
+  - Raising the horizon is always safe. Lowering it can strand existing bookings, so a deployment that lowers it should audit with the query above first.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain
+  - **Policy:** the horizon is a number a deployment may set; the *existence* of a horizon is not optional. A deployment that wants effectively no limit sets a large number rather than disabling the check.
+  - **Review cadence:** revisit if a tenant asks for per-location horizons (Option D), which is the one alternative this decision leaves genuinely open.
+
+### DECISION-SHOPMGMT-020 — Work May Start Before the Planned Window
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-020)
+- **Decision:** A workorder's actual `workStartedAt` may precede its appointment's planned `startAt`. This is a normal shop-floor outcome, not a data defect. Three rules follow:
+  1. `workStartedAt < startAt` must never be rejected — not by validation, not by a constraint, and not by a read that quietly drops the row.
+  2. Occupancy is computed from the **effective** window, whose two ends fall back **independently**: the actual start where one is known, else the planned start; the actual finish where one is known, else the planned finish. So a job that has started but not finished is held from its actual start to its *planned* finish — a running job is never an open-ended hold, and its end is never `expectedEndAt` and never synthesised from the current time. The planned window survives as the promise, for promise-versus-reality reporting.
+  3. Starting early is **not** a reschedule. It must not consume a reschedule allowance, require `APPROVE_RESCHEDULE`, or demand a reason code (DECISION-SHOPMGMT-004).
+- **Alternatives considered:**
+  - **Option A (Chosen):** early starts are legitimate; occupancy follows the effective window
+    - Pros: the board shows the bay as held when it is actually held; the shop is not punished for accurate reporting
+    - Cons: planned and actual can diverge without any audit trail saying why, so "why did this start Wednesday?" is answerable only from the actuals themselves
+  - **Option B:** require the planned window to be rescheduled to match before work may start
+    - Pros: planned always equals actual; one window to reason about
+    - Cons: rationed by DECISION-SHOPMGMT-004, so a shop that starts early twice in a week needs an approval to keep its own records straight. It converts an operational nicety into an authorization problem, and the predictable outcome is that nobody reschedules and the data rots.
+  - **Option C:** reject `workStartedAt < startAt` as invalid
+    - Pros: a clean-looking invariant, and the one a reviewer is most likely to propose
+    - Cons: it contradicts how the shop works, and it is exactly the regression this decision exists to prevent
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2095`. The behaviour was relied on by the `durion-positivity-backend#2085` fix but written down nowhere, and the concrete risk named there is the one to keep in view: someone later adds a `workStartedAt >= startAt` validation, it looks obviously correct in isolation, and it silently re-breaks the case #2085 fixed.
+  - Two documented facts already imply it, which is why this decision records rather than invents:
+    - Walk-ins are a first-class intake channel and the advisor is expected to fit them into the schedule (`domains/shopmgmt/archive/shop-management-guidelines.md`). A shop that absorbs walk-ins will start booked work early whenever a bay frees up.
+    - Rescheduling is rationed (DECISION-SHOPMGMT-004: two free, then `APPROVE_RESCHEDULE` plus a reason). A domain that expected the planned window to be rewritten on every early start would be penalising its most accurate shops.
+  - The operational case is ordinary: a bay frees up, a customer arrives early, or the shop simply starts a job booked for later in the week. `durion-positivity-backend#2085` is the read-side consequence — a job planned Friday whose work began Wednesday was invisible to a Monday-to-Thursday capacity request, so Thursday reported a bay free that had been held since Wednesday afternoon.
+  - Nothing here licenses the *reverse* inference: a planned window is still a commitment to the customer, and a habitual gap between promise and actual is a scheduling-quality problem. It is a reporting question, not a validation one.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-shop-manager` capacity and schedule reads (effective-window occupancy)
+    - Appointment validation — must **not** grow a planned-versus-actual ordering rule
+    - Reschedule counting (DECISION-SHOPMGMT-004) — an early start is not an event it counts
+  - **The effective window, stated once:**
+
+    | Known | Effective start | Effective end |
+    | --- | --- | --- |
+    | no actuals | planned `startAt` | planned `endAt` |
+    | started, not finished | `workStartedAt` | planned `endAt` — *not* `expectedEndAt`, and never "now" |
+    | started and finished | `workStartedAt` | `completedAt` |
+
+  - A read that filters appointments by planned columns alone will miss a job that started outside its planned window. Any range read over occupancy has to admit rows by their effective window, not their planned one — this is precisely the defect `durion-positivity-backend#2085` reported.
+  - The planned window is never mutated to match the actual. Both are kept; the effective window is derived, not stored.
+- **Auditor-facing explanation:**
+  - **What to inspect:** that early starts exist and are unremarkable, and that none of them consumed a reschedule allowance.
+  - **Query example:**
+
+    ```sql
+    -- (1) Informational: jobs that began before their planned window.
+    -- These are expected, not exceptions. A bare count of reschedule_history rows
+    -- would prove nothing here — an appointment may be rescheduled for reasons that
+    -- have nothing to do with starting early.
+    SELECT a.appointment_id, a.location_id, a.start_at AS planned_start, w.work_started_at
+    FROM appointment a
+    JOIN work_order_appointment_mapping m ON m.appointment_id = a.appointment_id
+    JOIN ext_workorder w ON w.workorder_id = m.work_order_id
+    WHERE w.work_started_at < a.start_at
+    ORDER BY (a.start_at - w.work_started_at) DESC;
+
+    -- (2) The actual check: a reschedule written to make the plan match an early
+    -- start. Its new window opens at the actual start, and it was recorded at or
+    -- after work began. Rule 3 says this must never happen.
+    SELECT a.appointment_id, r.rescheduled_at, r.previous_start_at, r.new_start_at,
+           w.work_started_at
+    FROM appointment a
+    JOIN work_order_appointment_mapping m ON m.appointment_id = a.appointment_id
+    JOIN ext_workorder w ON w.workorder_id = m.work_order_id
+    JOIN reschedule_history r ON r.appointment_id = a.appointment_id
+    WHERE w.work_started_at < r.previous_start_at
+      AND r.rescheduled_at >= w.work_started_at
+      AND r.new_start_at = w.work_started_at;
+    ```
+
+  - **Expected outcome:** query (1) returns rows, and that is healthy. Query (2) returns none; each row it does return is a reschedule that was spent recording an early start, against rule 3.
+- **Migration & backward-compatibility notes:**
+  - No schema or contract change. This decision forbids a future validation rather than requiring a new one.
+  - A reviewer proposing a `workStartedAt >= startAt` constraint should be pointed here; the ordering is intentional and load-bearing.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain, with Workorder Execution coordination — `workStartedAt` and `completedAt` are that domain's facts, consumed here through the replica
+  - **Policy:** planned and actual are two different facts and both are kept. Do not reconcile one into the other.
+  - **Monitoring:** a persistent gap between planned and actual starts at one location is worth a look as a scheduling-accuracy signal — never as a validation failure.
 
 ## End
 
