@@ -139,6 +139,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-015 | Timezone semantics for scheduling + display |
 | DECISION-SHOPMGMT-016 | Notifications toggles + partial success semantics |
 | DECISION-SHOPMGMT-017 | Audit visibility + PII-safe fields for UI |
+| DECISION-SHOPMGMT-018 | Degraded-day semantics for capacity reads (unknown hours vs closed) |
 
 ## Domain Boundaries
 
@@ -187,6 +188,11 @@ and defines what must be treated as backend-authoritative vs UI hints.
   - HARD conflicts block scheduling and are not overridable.
   - SOFT conflicts may be overridden only with explicit permission + reason and are always audited.
 - Operating hours are enforced server-side; the UI must not infer hours.
+- Capacity and schedule reads keep a **known** absence of hours (`CLOSED`/`HOLIDAY`) distinct from an **unknown**
+  operating window (`UNAVAILABLE`); the two are never collapsed, and an unknown window is not permission to
+  schedule out of hours.
+- A date that degrades is reported, never omitted, and affects no other date's numbers.
+- A degraded read may withhold a number; it may never invent one, nor place one on a date reporting `OK`.
 - Reschedule requires:
   - reason enum
   - notes when reason is OTHER
@@ -217,6 +223,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-015 | Facility timezone is source of truth. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-016 | Notification toggles are backend-owned. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-017 | Audit UI is permission-gated and redacted. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-018 | An unknown operating window is not a closure, and a degraded date affects only itself. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 
 ## Open Questions (from source)
 
@@ -493,6 +500,20 @@ and defines what must be treated as backend-authoritative vs UI hints.
   - Process: update variant mapping table to include domain:shopmgmt.
 - Decision ID: DECISION-SHOPMGMT-011
 
+### Q: What does it mean when a date's operating window cannot be determined, and how does that differ from a closure?
+
+- Answer: `UNAVAILABLE` means the operating window is unknown — not closed, and not an idle bay. `CLOSED`/`HOLIDAY` mean the shop is known to have had no operating window that day. An unknown day consumes a running job's time as an open day would, emits no occupancy of its own, and is never the anchor an overrun is measured from. A degraded read may withhold a number but may never invent one, nor place one on a date reporting `OK`, and a date that degrades affects that date only.
+- Assumptions:
+  - A date is degraded because a fact is missing or malformed upstream, not because the shop was shut.
+  - Location remains authoritative for operating hours (DECISION-SHOPMGMT-008); this answers only what happens when that authority fails to deliver.
+- Rationale:
+  - A closure absorbed none of a job's time; an unknown day most likely absorbed all of it. Treating them alike measures an overrun from the wrong day and distributes time that never elapsed.
+  - A confidently wrong number on a day reporting `OK` is a worse failure than a withheld one, because nothing on the board marks it as degraded.
+- Impact:
+  - APIs: per-date status is a four-way fact; `UNAVAILABLE` dates are always present in a range response.
+  - UI: `UNAVAILABLE` must render distinguishably from `CLOSED`/`HOLIDAY`.
+- Decision ID: DECISION-SHOPMGMT-018
+
 ## Todos Reconciled
 
 - Original todo: "CLARIFY exact appointment status enums" → Resolution: Resolved (backend-owned enum + recommended set) | Decision: DECISION-SHOPMGMT-013
@@ -503,6 +524,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - Original todo: "CLARIFY facilityId inferred vs explicit" → Resolution: Resolved (explicit for writes) | Decision: DECISION-SHOPMGMT-012
 - Original todo: "CLARIFY timezone standard" → Resolution: Resolved (facility timezone) | Decision: DECISION-SHOPMGMT-015
 - Original todo: "CLARIFY audit visibility + PII" → Resolution: Resolved (redacted audit endpoint) | Decision: DECISION-SHOPMGMT-017
+- Escalation from durion-positivity-backend#2096: "CLARIFY unknown operating hours vs closed" → Resolution: Resolved (unknown is its own fact; consumes time, emits nothing, contained to its own date) | Decision: DECISION-SHOPMGMT-018
 
 ## End
 

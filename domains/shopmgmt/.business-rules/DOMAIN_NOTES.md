@@ -14,7 +14,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
 ## Completed items
 
-- [x] Documented 17 key shopmgmt decisions
+- [x] Documented 18 key shopmgmt decisions
 - [x] Provided alternatives analysis
 - [x] Included architectural schemas
 - [x] Added auditor SQL queries
@@ -1391,6 +1391,76 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - Add audit endpoints as read-only; evolve fields via versioning.
 - **Governance & owner recommendations:**
   - Security domain reviews redaction changes.
+
+### DECISION-SHOPMGMT-018 — Unknown Operating Window vs Closure in Capacity Reads
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-018)
+- **Decision:** A date whose operating window could not be determined is reported as `UNAVAILABLE` and is a distinct domain fact from a date the shop is known to have been shut (`CLOSED`/`HOLIDAY`). Four rules follow:
+  1. `UNAVAILABLE` means the operating window is **unknown** — it is not a closure, and it is not an idle bay. `CLOSED`/`HOLIDAY` mean the shop is **known** to have had no operating window that day.
+  2. An unknown day consumes a job's time as an open day would. It emits no occupancy of its own, and it must never be the anchor an overrun is measured from.
+  3. A degraded read may withhold a number, but may never invent one, and may never place one on a date reporting `OK`.
+  4. Per-date containment: a date that degrades affects that date only. Every other date in the range answers exactly as it would have had the degraded date assembled cleanly.
+- **Alternatives considered:**
+  - **Option A (Chosen):** Unknown is its own fact; an unknown day silently consumes the job's remaining time and stops the carry-over walk
+    - Pros: never reports a number the read cannot support; the degradation stays visible on the day it belongs to; containment is preserved
+    - Cons: the minutes that day would have reported are reported nowhere — the day says `UNAVAILABLE` instead
+  - **Option B:** Clamp the carried duration to an assumed operating window for the unknown day
+    - Pros: every day still carries a number
+    - Cons: invents the one fact the read has just declared it does not have, and puts a fabricated number on a day reporting `OK`
+  - **Option C:** Decline to carry over across an unknown day at all, reporting the source day's own occupancy only
+    - Pros: the most conservative arithmetic
+    - Cons: also drops the far side of a job that runs through the unknown day and out the other side, so a bay genuinely held reads as free — a wrong-low number in place of a wrong-high one
+  - **Option D:** Treat unknown as closed
+    - Pros: one code path, no new concept
+    - Cons: a closure absorbs none of a job's time and an unknown day probably absorbed all of it; collapsing them is precisely the defect recorded below
+- **Reasoning and evidence:**
+  - DECISION-SHOPMGMT-008 makes Location authoritative for operating hours but is silent on what it means when that authority fails to deliver. This decision covers that gap and does not weaken 008: an unknown window is not permission to schedule out of hours.
+  - The distinction is load-bearing, not cosmetic. Carry-over skips a `CLOSED` day and rolls the overrun forward, because a closed day absorbed none of the job's time. It stops at an `UNAVAILABLE` day the job was running through, because that day was most likely open and absorbed the remaining time, and the read cannot say how much. Same day-status enum, opposite treatment, and the reason is a domain one.
+  - Recorded failure (`durion-positivity-backend#2086`): a location open 08:00–17:00 Mon–Fri with a malformed Tuesday hours entry, and a job running Monday 15:00 → Tuesday 11:00. Tuesday degraded to `UNAVAILABLE` and was skipped, so the overrun was measured from Monday's 17:00 close — 1080 minutes — and distributed across Wednesday (540) and Thursday (540). A three-hour bay hold became two fully booked days, on days reporting `OK`, with no sign of degradation anywhere on the board.
+  - That is a worse failure than the one the degradation exists to avoid, because it is not visibly degraded. Hence rule 3: a withheld number is honest, a confident wrong number is not.
+  - On the dispatch board the asymmetry of rule 2 is deliberate. A bay shown free when it is held produces a promise the shop cannot keep, discovered at the counter. A bay shown busier than it is costs a booking, which is recoverable and which the dispatcher already has an override path for.
+  - `durion-positivity-backend#2023` AC4 stated only that a degraded date is still **present**, marked `UNAVAILABLE`, never omitted. Containment — that the degraded date affects no other date — was an inference from that story's framing rather than an explicit criterion. Rule 4 makes it a stated rule, because #2086 is exactly what happens when it is not written down.
+- **Architectural implications:**
+  - **Components affected:**
+    - Schedule capacity read (`pos-shop-manager`, `ScheduleCapacityServiceImpl`): day-status precedence, the carry-over walk between days
+    - Any future range or eligibility read that reports per-date capacity
+    - Dispatch board UI: `UNAVAILABLE` must render distinguishably from `CLOSED`/`HOLIDAY`
+  - **Day status is a four-way fact, not a two-way one:**
+
+    | Status | Meaning | Absorbs a running job's time | Emits occupancy |
+    | --- | --- | --- | --- |
+    | `OK` | window known and open | yes | yes |
+    | `CLOSED` | known: no window configured for that day | no | no |
+    | `HOLIDAY` | known: dated closure for that date | no | no |
+    | `UNAVAILABLE` | unknown: the window could not be determined | yes (assumed) | no |
+
+  - **Carry-over across an unknown day:** the walk stops at an `UNAVAILABLE` day the job's effective window was still running through, and carries nothing past it. An `UNAVAILABLE` day strictly after the job's effective end cannot have absorbed anything, so it is skipped like a closure. Direct overlap is untouched: a job that overruns into an unknown day and out the other side is still reported in full on the far side, with its real overrun still carrying from there.
+  - **Containment is a property of the assembly, not of a filter.** Per-date assembly is what makes rule 4 hold; any optimisation that shares derived state between dates has to preserve it explicitly.
+  - A permanently unknown day is a data-quality defect in the location's hours payload, not a steady state. It is visible, bounded to its own date, and fixed upstream in the Location domain.
+- **Auditor-facing explanation:**
+  - **What to inspect:** that `UNAVAILABLE` dates are reported rather than omitted; that the numbers on neighbouring `OK` dates do not move when a date degrades; that no closure is being reported as unknown or the reverse.
+  - **Containment check:** read the same range twice, once against a location whose hours payload is intact and once with one date's entry malformed. Every date except the degraded one must be byte-identical.
+  - **Query example:**
+
+    ```sql
+    -- Locations whose replicated hours payload cannot yield a window for some day,
+    -- i.e. the upstream data defect behind an UNAVAILABLE date.
+    SELECT location_id, code, operating_hours, synced_at
+    FROM ext_location
+    WHERE operating_hours IS NULL
+       OR operating_hours::text = '[]'
+       OR timezone IS NULL;
+    ```
+
+  - **Expected outcome:** zero rows in steady state; any row is an upstream Location fix, and every date it degrades is contained to itself.
+- **Migration & backward-compatibility notes:**
+  - No schema, event or contract change. The statuses already exist; this decision states what two of them mean and what each obliges a read to do.
+  - One visible behaviour change where it was adopted: dates following a degraded date report **less** occupancy than before. A board that was reading those saturated days as real load will see them empty. That is the correction, not a regression.
+  - Adopted in `durion-positivity-backend#2086` (PR #2097). Any later read that reports per-date capacity inherits these rules rather than re-deciding them.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain, with Location domain coordination — Location owns the hours that make a day knowable (DECISION-SHOPMGMT-008)
+  - **Policy:** a degraded read withholds; it does not estimate. Any proposal to fill an unknown day with an assumed window amends this decision rather than implementing around it.
+  - **Monitoring:** alert on a sustained rate of `UNAVAILABLE` dates for a location — it means the hours facts are not arriving, and every such date is capacity the shop cannot see.
 
 ## End
 
