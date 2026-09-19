@@ -1,5 +1,9 @@
 # Directory Update Log
 
+## 2026-09-19
+
+* **Updated**: `domains/shopmgmt` — DECISION-SHOPMGMT-018 (unknown operating window vs closure) added to the domain's business rules; the domain entry's stamp follows it. ADR and module concepts were left at their current stamps.
+
 ## 2026-09-18
 
 * **Regenerated**: 65 ADR, 16 domain, and 45 module concepts from `docs/adr/`, `domains/`, and the backend module suite.
