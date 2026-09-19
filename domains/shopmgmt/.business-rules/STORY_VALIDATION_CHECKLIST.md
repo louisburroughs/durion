@@ -79,7 +79,8 @@ idempotency, and timezone handling.
 {
   "status": 409,
   "code": "SCHEDULING_CONFLICT",
-  "conflicts": [{"severity": "HARD", "code": "BAY_DOUBLE_BOOKED", "overridable": false}]
+  "message": "HARD conflicts cannot be overridden",
+  "conflicts": [{"severity": "HARD", "code": "BAY_DOUBLE_BOOKED", "message": "Bay 1 is already booked", "overridable": false}]
 }
 ```
 
@@ -121,7 +122,8 @@ idempotency, and timezone handling.
 ```json
 {
   "status": 400,
-  "errorCode": "VALIDATION_ERROR",
+  "code": "VALIDATION_ERROR",
+  "message": "Request validation failed",
   "fieldErrors": [{"field": "facilityId", "message": "required"}]
 }
 ```
@@ -149,8 +151,9 @@ idempotency, and timezone handling.
 ```json
 {
   "status": 409,
-  "errorCode": "VERSION_MISMATCH",
-  "currentVersion": 4
+  "code": "VERSION_MISMATCH",
+  "message": "The appointment changed since it was read",
+  "nextAction": "Reload the appointment (now version 4) and retry"
 }
 ```
 

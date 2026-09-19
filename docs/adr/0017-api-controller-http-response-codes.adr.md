@@ -82,6 +82,12 @@ Ask three questions in order. The first "yes" wins.
    - duplicate unique key or foreign-key reference conflict ([ADR-0056](0056-platform-global-exception-handling.adr.md) §2)
    - idempotency-key replay with a different payload
    - lifecycle-transition guard on the *target* resource's status field (for example cancelling an order that has already shipped)
+   - reservation collision: a booking whose time window collides with another booking of the same scheduled resource (bay,
+     mechanic, facility slot) — pos-shop-manager's `SCHEDULING_CONFLICT` at appointment create, reschedule and conflict-override
+     (DECISION-SHOPMGMT-002/-011). The target is the slot being reserved; its identity is the resource plus window, so an overlap
+     is an identity collision. The answer itemizes the collisions in `conflicts[]` (§3). DECISION-SHOPMGMT-008 reports an
+     operating-hours violation found in the same submit as a HARD entry in that set, so the client gets one itemized answer; a
+     request whose only problem is operating hours is still a `422`.
 
    The client's remedy is to re-read the target and reconsider; the same intent may succeed after another actor's write or after a different transition.
 3. **Otherwise** → `422`. A well-formed request that a documented domain rule refuses, and that will keep failing until the client changes the request or
@@ -126,8 +132,8 @@ Validation and domain error details:
 
 Itemized conflicts (amended 2026-09-19):
 
-- A `409` whose cause is a set of named conflicts the caller must see individually — to decide
-  whether it may override them, or to pick a different slot — carries them in the envelope itself
+- A `409` for a reservation collision (§2) — a set of named conflicts the caller must see
+  individually, to decide whether it may override them or to pick a different slot — carries them in the envelope itself
   as `conflicts[]` (`severity` HARD|SOFT, `code`, `message`, `overridable`, optional
   `affectedResource`), with optional `suggestedAlternatives[]` (`startDateTime`, `endDateTime`,
   optional `reason`). The envelope's `code` names the class of conflict (e.g.
@@ -241,5 +247,6 @@ Itemized conflicts (amended 2026-09-19):
   entry points, and worked examples are added
 - **2026-09-19**: §3 gains itemized conflicts — optional `conflicts[]` and `suggestedAlternatives[]`
   on the envelope for a 409 caused by named conflicts, replacing pos-shop-manager's separate
-  `ConflictResponse` body so every 4xx/5xx is `ApiError`
+  `ConflictResponse` body so every 4xx/5xx is `ApiError`; §2's closed 409 list gains the
+  reservation collision that answer covers
   ([durion-positivity-backend #1720](https://github.com/louisburroughs/durion-positivity-backend/issues/1720))
