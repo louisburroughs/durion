@@ -1503,12 +1503,28 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - **Query example:**
 
     ```sql
-    -- Appointments booked further ahead than the 180-day default.
-    -- Compare against created_at, not now(): the horizon is measured at booking time.
-    SELECT appointment_id, location_id, created_at, start_at,
-           (start_at::date - created_at::date) AS days_ahead
-    FROM appointment
-    WHERE start_at::date - created_at::date > 180
+    -- Two queries, because the horizon is measured from each WRITE, not from now().
+    -- Both assume the 180-day default; substitute the configured value where a
+    -- deployment sets one. Where the value has changed over time, neither query can
+    -- see that, and a real audit needs the configuration history alongside them.
+
+    -- (1) Never-rescheduled appointments, measured from creation.
+    SELECT a.appointment_id, a.location_id, a.created_at, a.start_at,
+           (a.start_at::date - a.created_at::date) AS days_ahead
+    FROM appointment a
+    WHERE NOT EXISTS (SELECT 1 FROM reschedule_history r
+                       WHERE r.appointment_id = a.appointment_id)
+      AND a.start_at::date - a.created_at::date > 180
+    ORDER BY days_ahead DESC;
+
+    -- (2) Rescheduled appointments, measured from each reschedule's own write time.
+    -- Creation is the wrong baseline here: a legitimate reschedule of a year-old
+    -- appointment would read as a violation against created_at.
+    SELECT a.appointment_id, a.location_id, r.rescheduled_at, r.new_start_at,
+           (r.new_start_at::date - r.rescheduled_at::date) AS days_ahead
+    FROM appointment a
+    JOIN reschedule_history r ON r.appointment_id = a.appointment_id
+    WHERE r.new_start_at::date - r.rescheduled_at::date > 180
     ORDER BY days_ahead DESC;
     ```
 
@@ -1526,7 +1542,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-020)
 - **Decision:** A workorder's actual `workStartedAt` may precede its appointment's planned `startAt`. This is a normal shop-floor outcome, not a data defect. Three rules follow:
   1. `workStartedAt < startAt` must never be rejected — not by validation, not by a constraint, and not by a read that quietly drops the row.
-  2. Occupancy is computed from the **effective** window: the actual start and finish where they are known, the planned window otherwise. Once actuals exist the planned window no longer governs the bay hold; it survives as the promise, for promise-versus-reality reporting.
+  2. Occupancy is computed from the **effective** window, whose two ends fall back **independently**: the actual start where one is known, else the planned start; the actual finish where one is known, else the planned finish. So a job that has started but not finished is held from its actual start to its *planned* finish — a running job is never an open-ended hold, and its end is never `expectedEndAt` and never synthesised from the current time. The planned window survives as the promise, for promise-versus-reality reporting.
   3. Starting early is **not** a reschedule. It must not consume a reschedule allowance, require `APPROVE_RESCHEDULE`, or demand a reason code (DECISION-SHOPMGMT-004).
 - **Alternatives considered:**
   - **Option A (Chosen):** early starts are legitimate; occupancy follows the effective window
@@ -1555,7 +1571,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     | Known | Effective start | Effective end |
     | --- | --- | --- |
     | no actuals | planned `startAt` | planned `endAt` |
-    | started, not finished | `workStartedAt` | still running |
+    | started, not finished | `workStartedAt` | planned `endAt` — *not* `expectedEndAt`, and never "now" |
     | started and finished | `workStartedAt` | `completedAt` |
 
   - A read that filters appointments by planned columns alone will miss a job that started outside its planned window. Any range read over occupancy has to admit rows by their effective window, not their planned one — this is precisely the defect `durion-positivity-backend#2085` reported.
@@ -1565,18 +1581,32 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - **Query example:**
 
     ```sql
-    -- Jobs that began before their planned window. These are expected, not exceptions.
-    SELECT a.appointment_id, a.location_id, a.start_at AS planned_start, w.work_started_at,
-           (SELECT count(*) FROM reschedule_history r
-             WHERE r.appointment_id = a.appointment_id) AS reschedules
+    -- (1) Informational: jobs that began before their planned window.
+    -- These are expected, not exceptions. A bare count of reschedule_history rows
+    -- would prove nothing here — an appointment may be rescheduled for reasons that
+    -- have nothing to do with starting early.
+    SELECT a.appointment_id, a.location_id, a.start_at AS planned_start, w.work_started_at
     FROM appointment a
     JOIN work_order_appointment_mapping m ON m.appointment_id = a.appointment_id
     JOIN ext_workorder w ON w.workorder_id = m.work_order_id
     WHERE w.work_started_at < a.start_at
     ORDER BY (a.start_at - w.work_started_at) DESC;
+
+    -- (2) The actual check: a reschedule written to make the plan match an early
+    -- start. Its new window opens at the actual start, and it was recorded at or
+    -- after work began. Rule 3 says this must never happen.
+    SELECT a.appointment_id, r.rescheduled_at, r.previous_start_at, r.new_start_at,
+           w.work_started_at
+    FROM appointment a
+    JOIN work_order_appointment_mapping m ON m.appointment_id = a.appointment_id
+    JOIN ext_workorder w ON w.workorder_id = m.work_order_id
+    JOIN reschedule_history r ON r.appointment_id = a.appointment_id
+    WHERE w.work_started_at < r.previous_start_at
+      AND r.rescheduled_at >= w.work_started_at
+      AND r.new_start_at = w.work_started_at;
     ```
 
-  - **Expected outcome:** rows are normal. What would be a finding is a `reschedules` count that rises with early starts — that would mean something is recording an early start as a reschedule, against rule 3.
+  - **Expected outcome:** query (1) returns rows, and that is healthy. Query (2) returns none; each row it does return is a reschedule that was spent recording an early start, against rule 3.
 - **Migration & backward-compatibility notes:**
   - No schema or contract change. This decision forbids a future validation rather than requiring a new one.
   - A reviewer proposing a `workStartedAt >= startAt` constraint should be pointed here; the ordering is intentional and load-bearing.

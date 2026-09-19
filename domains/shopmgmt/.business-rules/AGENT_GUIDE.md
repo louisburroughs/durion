@@ -198,7 +198,8 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - An appointment may be booked at most a configured number of days ahead (default 180); beyond it is a policy
   failure on write, not a read-side filter.
 - A workorder's `workStartedAt` may precede the planned `startAt`. Occupancy follows the effective window
-  (actuals where known, planned otherwise), and starting early is not a reschedule.
+  (each end falling back independently: actual where known, planned otherwise), and starting early is
+  not a reschedule.
 - Reschedule requires:
   - reason enum
   - notes when reason is OTHER
@@ -547,8 +548,10 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - Answer: yes, and it must not be rejected. Three rules follow:
   - `workStartedAt < startAt` is a normal shop-floor outcome — a bay frees up, a customer arrives early, or
     the shop starts a job booked for later in the week.
-  - Occupancy is computed from the effective window (actuals where known, planned otherwise); once actuals
-    exist the planned window no longer governs the bay hold, but survives as the promise.
+  - Occupancy is computed from the effective window, whose ends fall back independently: the actual start
+    where known else the planned start, the actual finish where known else the planned finish. A job that
+    has started but not finished is therefore held to its planned finish, never open-ended. The planned
+    window survives as the promise.
   - Starting early is not a reschedule and must not consume a reschedule allowance.
 - Assumptions:
   - `workStartedAt`/`completedAt` are Workorder Execution facts, consumed here through the replica.
