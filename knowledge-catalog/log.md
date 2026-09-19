@@ -2,6 +2,8 @@
 
 ## 2026-09-19
 
+* **Updated**: `domains/shopmgmt` — DECISION-SHOPMGMT-019 (booking horizon) and DECISION-SHOPMGMT-020 (work may
+  start before the planned window) added to the domain's business rules; the domain entry's stamp follows them.
 * **Updated**: `domains/shopmgmt` — DECISION-SHOPMGMT-018 (unknown operating window vs closure) added to the domain's
   business rules; the domain entry's stamp follows it. ADR and module concepts were left at their current stamps.
 
