@@ -124,6 +124,21 @@ Validation and domain error details:
 - Use `fieldErrors[]` as the canonical field-level collection.
 - Use `details[]` only when explicitly required by a documented external contract; otherwise use `fieldErrors[]`.
 
+Itemized conflicts (amended 2026-09-19):
+
+- A `409` whose cause is a set of named conflicts the caller must see individually — to decide
+  whether it may override them, or to pick a different slot — carries them in the envelope itself
+  as `conflicts[]` (`severity` HARD|SOFT, `code`, `message`, `overridable`, optional
+  `affectedResource`), with optional `suggestedAlternatives[]` (`startDateTime`, `endDateTime`,
+  optional `reason`). The envelope's `code` names the class of conflict (e.g.
+  `SCHEDULING_CONFLICT`); each entry's `code` names the individual conflict.
+- These fields are omitted on every other response. They replace any module-specific 409 body: no
+  service returns a separate conflict DTO in place of the envelope. First adopter: pos-shop-manager's
+  appointment create, reschedule and conflict-override (DECISION-SHOPMGMT-002/-011), whose former
+  `ConflictResponse` body (`errorCode` in place of `code`) is retired.
+- New itemized fields are added to the shared envelope by amending this section, not by a
+  per-module body, so the spec validator can keep requiring `ApiError` on every 4xx/5xx.
+
 ### 4. Correlation and Observability
 
 **Decision:** ✅ **Resolved** - Error responses must include and propagate `X-Correlation-Id`.
@@ -224,3 +239,7 @@ Validation and domain error details:
   the "resource state" test is replaced by a remediation-based three-question test (403 → 409 → 422),
   the 409 list is closed, step-up credentials are 403, one domain condition maps to one status across
   entry points, and worked examples are added
+- **2026-09-19**: §3 gains itemized conflicts — optional `conflicts[]` and `suggestedAlternatives[]`
+  on the envelope for a 409 caused by named conflicts, replacing pos-shop-manager's separate
+  `ConflictResponse` body so every 4xx/5xx is `ApiError`
+  ([durion-positivity-backend #1720](https://github.com/louisburroughs/durion-positivity-backend/issues/1720))

@@ -78,7 +78,7 @@ idempotency, and timezone handling.
 ```json
 {
   "status": 409,
-  "errorCode": "SCHEDULING_CONFLICT",
+  "code": "SCHEDULING_CONFLICT",
   "conflicts": [{"severity": "HARD", "code": "BAY_DOUBLE_BOOKED", "overridable": false}]
 }
 ```
