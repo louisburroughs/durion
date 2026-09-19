@@ -502,7 +502,14 @@ and defines what must be treated as backend-authoritative vs UI hints.
 
 ### Q: What does it mean when a date's operating window cannot be determined, and how does that differ from a closure?
 
-- Answer: `UNAVAILABLE` means the operating window is unknown — not closed, and not an idle bay. `CLOSED`/`HOLIDAY` mean the shop is known to have had no operating window that day. An unknown day consumes a running job's time as an open day would, emits no occupancy of its own, and is never the anchor an overrun is measured from. A degraded read may withhold a number but may never invent one, nor place one on a date reporting `OK`, and a date that degrades affects that date only.
+- Answer: an unknown operating window is its own fact, distinct from a known closure. Four rules follow:
+  - `UNAVAILABLE` means the operating window is unknown — not closed, and not an idle bay.
+    `CLOSED`/`HOLIDAY` mean the shop is known to have had no operating window that day.
+  - An unknown day consumes a running job's time as an open day would, emits no occupancy of its
+    own, and is never the anchor an overrun is measured from.
+  - A degraded read may withhold a number, but may never invent one, nor place one on a date
+    reporting `OK`.
+  - A date that degrades affects that date only.
 - Assumptions:
   - A date is degraded because a fact is missing or malformed upstream, not because the shop was shut.
   - Location remains authoritative for operating hours (DECISION-SHOPMGMT-008); this answers only what happens when that authority fails to deliver.
