@@ -9,7 +9,7 @@ kind: Runbook
 status: stable
 doc_status: current
 sources: [durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:26-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T08:11:52-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion-positivity-backend/blob/main/docs/OPERATIONS_RUNBOOK.md) — `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md`

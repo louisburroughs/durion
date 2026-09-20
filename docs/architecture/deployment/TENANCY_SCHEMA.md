@@ -19,6 +19,15 @@ the ADR-0062 row-level multitenancy schema folded in. The decision record is
 > `postgres/init-tenancy.sh`, `docs/runbooks/flyway-baseline-reset.md`, any `pos-*/…`) are relative
 > to the `durion-positivity-backend` checkout, not to this repo.
 
+> **An applied migration is immutable — including its comments.** Every `V…` migration listed here
+> is already applied on alpha, and Flyway validates the checksum of an applied migration at startup:
+> a mismatch fails validation and the service crash-loops. A comment-only edit changes the checksum
+> just as a schema edit does. This is why each baseline header still cites `docs/TENANCY_SCHEMA.md`,
+> the path this document had before it moved here — the stale comment is harmless and correcting it
+> is not. `pos-shop-manager`'s `BaselineMigrationImmutabilityTest` pins its baseline's SHA-256 and is
+> the only automated guard; the other baselines rely on this rule being known. Schema changes go in a
+> new versioned migration; a re-flatten is a deliberate operation with its own runbook.
+
 ## Layout of a module's migrations
 
 | File | What it holds |

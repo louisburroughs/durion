@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-inventory/
 tags: [backend, service, inventory]
 sources: [durion-positivity-backend/pos-inventory/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:26-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T08:46:26-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-inventory) — `pos-inventory/`
