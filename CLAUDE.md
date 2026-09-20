@@ -144,6 +144,7 @@ by name: `babysit-pr` (drive a PR to green) and `token-stack` (token-usage machi
 | `/mcp-sweep`             | Autonomously drain the open `pos-mcp-server` issue queue until blocked |
 | `/java-mcp`              | Generate a Java MCP server module                                   |
 | `/hard-questions`        | Run hard-question adversarial review against a spec or design       |
+| `/knowledge-catalog`     | Maintain, regenerate, or audit the OKF knowledge catalog            |
 
 ---
 

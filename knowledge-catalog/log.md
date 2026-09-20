@@ -1,5 +1,9 @@
 # Directory Update Log
 
+## 2026-09-20
+
+* **Regenerated**: 65 ADR, 16 domain, and 45 module concepts from `docs/adr/`, `domains/`, and the backend module suite.
+
 ## 2026-09-19
 
 * **Updated**: `domains/shopmgmt` — DECISION-SHOPMGMT-019 (booking horizon) and DECISION-SHOPMGMT-020 (work may

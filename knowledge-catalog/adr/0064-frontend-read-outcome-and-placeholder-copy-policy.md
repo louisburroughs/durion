@@ -7,7 +7,7 @@ path: durion/docs/adr/0064-frontend-read-outcome-and-placeholder-copy-policy.adr
 tags: [adr, frontend]
 status: stable
 sources: [docs/adr/0064-frontend-read-outcome-and-placeholder-copy-policy.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T17:57:27+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T18:26:26+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0064-frontend-read-outcome-and-placeholder-copy-policy.adr.md) — `docs/adr/0064-frontend-read-outcome-and-placeholder-copy-policy.adr.md`

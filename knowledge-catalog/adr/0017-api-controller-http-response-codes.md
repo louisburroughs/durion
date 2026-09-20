@@ -7,7 +7,7 @@ path: durion/docs/adr/0017-api-controller-http-response-codes.adr.md
 tags: [adr, api-contract]
 status: stable
 sources: [docs/adr/0017-api-controller-http-response-codes.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-19T16:34:52-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0017-api-controller-http-response-codes.adr.md) — `docs/adr/0017-api-controller-http-response-codes.adr.md`

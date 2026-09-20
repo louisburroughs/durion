@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-tax-common/
 tags: [backend, library, accounting]
 sources: [durion-positivity-backend/pos-tax-common/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-18T14:13:00-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-27T09:50:12+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-tax-common) — `pos-tax-common/`
