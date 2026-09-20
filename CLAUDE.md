@@ -26,10 +26,11 @@ itself, or the module or domain directory) or `resource:` (the GitHub URL) for t
 
 | Path | Indexes |
 | ---- | ------- |
-| `knowledge-catalog/index.md` | Catalog root — links the three sub-indexes |
+| `knowledge-catalog/index.md` | Catalog root — links the four sub-indexes |
 | `knowledge-catalog/adr/` | Every ADR in `docs/adr/` |
 | `knowledge-catalog/domains/` | Every domain folder in `domains/` |
 | `knowledge-catalog/backend/` | Every `pos-*` module in `../durion-positivity-backend` |
+| `knowledge-catalog/platform/` | Architecture, governance, how-to and design-record documents — from **both** repos |
 
 ```bash
 cat knowledge-catalog/index.md                  # catalog root
@@ -45,7 +46,9 @@ idempotent: `generated.at` follows each source's last commit, so a rerun with no
 writes nothing. Run `--dry-run` first and `--check` before pushing. Curate the sources instead: ADR
 frontmatter, `.business-rules/` guides, and a domain's `index.md` (`type: Domain Guide` opts the
 domain into document indexing). Module ownership is inferred from how often a domain's documents name
-it; cross-domain folders (`CROSS_DOMAIN`) are not counted and `MODULE_DOMAIN` pins an owner. Record
+it; cross-domain folders (`CROSS_DOMAIN`) are not counted and `MODULE_DOMAIN` pins an owner. Platform
+documents come from the folders `PLATFORM_AREAS` declares — in **either** repo, so an operating
+procedure stays beside the build it drives and `path:` names the checkout that holds it. Record
 structural changes as a bullet under today's heading in `knowledge-catalog/log.md`; a same-day rerun
 keeps them.
 
