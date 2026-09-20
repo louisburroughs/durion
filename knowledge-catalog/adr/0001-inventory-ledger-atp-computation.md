@@ -13,3 +13,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0001-inventory-ledger-atp-computation.adr.md) — `docs/adr/0001-inventory-ledger-atp-computation.adr.md`
 
 **Status:** Accepted since 2026-01-12
+
+**Related:**
+
+* [ADR-0066](../adr/0066-inventory-availability-vs-on-hand-authority.md)

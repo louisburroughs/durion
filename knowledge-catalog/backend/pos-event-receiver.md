@@ -13,4 +13,5 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-19T23:00:49
 
 **Kind:** Service
 **Domain:** [positivity](../domains/positivity.md)
+**Documentation:** [Canonical positivity index](https://github.com/louisburroughs/durion/blob/master/domains/positivity/index.md)
 **API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-event-receiver/openapi.yaml)

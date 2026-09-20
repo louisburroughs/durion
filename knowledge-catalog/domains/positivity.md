@@ -9,9 +9,12 @@ sources: [domains/positivity/]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
 ---
 
-[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/positivity) — `domains/positivity/` (5 documents)
+[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/positivity) — `domains/positivity/` (6 documents)
 
-**Implemented by:** [pos-supplier](../backend/pos-supplier.md), [pos-catalog](../backend/pos-catalog.md), [pos-event-receiver](../backend/pos-event-receiver.md)
+[Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/positivity/index.md) — authority, current guidance, and historical records
+
+**Implemented by:** [pos-supplier](../backend/pos-supplier.md), [pos-marketing](../backend/pos-marketing.md), [pos-catalog](../backend/pos-catalog.md),
+[pos-event-receiver](../backend/pos-event-receiver.md)
 
 **Business rules:**
 
@@ -19,3 +22,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29
 * [BACKEND_CONTRACT_GUIDE.md](https://github.com/louisburroughs/durion/blob/master/domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md) — Backend Contract
 * [DOMAIN_NOTES.md](https://github.com/louisburroughs/durion/blob/master/domains/positivity/.business-rules/DOMAIN_NOTES.md) — Domain Notes
 * [STORY_VALIDATION_CHECKLIST.md](https://github.com/louisburroughs/durion/blob/master/domains/positivity/.business-rules/STORY_VALIDATION_CHECKLIST.md) — Checklist
+
+**Documentation:**
+
+* [Platform Sender Contract (FI-2)](https://github.com/louisburroughs/durion/blob/master/domains/positivity/PLATFORM_SENDER_CONTRACT.md) — Integration Contract · current
