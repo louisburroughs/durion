@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/superpowers/
 path: durion/docs/superpowers/plans/2026-08-26-issue-1519-facade-restoration-plan.md
 tags: [platform, design-record]
 sources: [durion/docs/superpowers/plans/2026-08-26-issue-1519-facade-restoration-plan.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-26T16:30:18+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/plans/2026-08-26-issue-1519-facade-restoration-plan.md) — `durion/docs/superpowers/plans/2026-08-26-issue-1519-facade-restoration-plan.md`

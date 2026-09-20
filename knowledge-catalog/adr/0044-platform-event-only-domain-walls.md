@@ -7,7 +7,7 @@ path: durion/docs/adr/0044-platform-event-only-domain-walls.adr.md
 tags: [adr, events, platform]
 status: stable
 sources: [docs/adr/0044-platform-event-only-domain-walls.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0044-platform-event-only-domain-walls.adr.md) — `docs/adr/0044-platform-event-only-domain-walls.adr.md`

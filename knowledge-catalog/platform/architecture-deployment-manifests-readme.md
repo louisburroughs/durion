@@ -9,7 +9,7 @@ kind: Index
 status: draft
 doc_status: draft
 sources: [durion/docs/architecture/deployment/manifests/README.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-03-29T15:07:16-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/deployment/manifests/README.md) — `durion/docs/architecture/deployment/manifests/README.md`

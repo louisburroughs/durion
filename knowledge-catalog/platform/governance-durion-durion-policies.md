@@ -9,7 +9,7 @@ kind: Policy
 status: stable
 doc_status: current
 sources: [durion/docs/governance/durion/DURION-POLICIES.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-01-16T07:10:41-05:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:10-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/governance/durion/DURION-POLICIES.md) — `durion/docs/governance/durion/DURION-POLICIES.md`

@@ -9,7 +9,7 @@ kind: Contract
 status: draft
 doc_status: Draft specification
 sources: [durion/docs/architecture/deployment/devops-framework/REPORTING_AND_ROLLBACK_CONTRACT.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-07-10T06:13:04+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/deployment/devops-framework/REPORTING_AND_ROLLBACK_CONTRACT.md) — `durion/docs/architecture/deployment/devops-framework/REPORTING_AND_ROLLBACK_CONTRACT.md`

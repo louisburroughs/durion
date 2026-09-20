@@ -9,7 +9,7 @@ kind: Contract
 status: stable
 doc_status: current
 sources: [durion/docs/architecture/deployment/data-migration/SEED_INPUT_CONTRACT.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-04-06T18:22:48-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/deployment/data-migration/SEED_INPUT_CONTRACT.md) — `durion/docs/architecture/deployment/data-migration/SEED_INPUT_CONTRACT.md`

@@ -9,7 +9,7 @@ kind: Architecture
 status: draft
 doc_status: proposed
 sources: [durion/docs/architecture/AWS/FARGATE_ARCHITECTURE.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-01T13:55:18+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/AWS/FARGATE_ARCHITECTURE.md) — `durion/docs/architecture/AWS/FARGATE_ARCHITECTURE.md`

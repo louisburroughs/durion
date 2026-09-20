@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture
 path: durion/docs/architecture/README.md
 tags: [platform, architecture]
 sources: [durion/docs/architecture/README.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-07T15:02:09+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/README.md) — `durion/docs/architecture/README.md`

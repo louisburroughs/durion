@@ -9,7 +9,7 @@ kind: Policy
 status: deprecated
 doc_status: superseded
 sources: [durion/docs/architecture/branching-strategy.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-02-19T20:07:24-05:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/branching-strategy.md) — `durion/docs/architecture/branching-strategy.md`

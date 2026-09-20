@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/positivit
 path: durion/domains/positivity/
 tags: [domain, positivity]
 sources: [domains/positivity/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/positivity) — `domains/positivity/` (6 documents)

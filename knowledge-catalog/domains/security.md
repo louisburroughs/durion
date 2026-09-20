@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/security
 path: durion/domains/security/
 tags: [domain, security]
 sources: [domains/security/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/security) — `domains/security/` (24 documents)

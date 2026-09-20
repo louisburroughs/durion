@@ -9,7 +9,7 @@ kind: Index
 status: stable
 doc_status: current
 sources: [durion/docs/architecture/deployment/README.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-07-10T06:13:04+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/deployment/README.md) — `durion/docs/architecture/deployment/README.md`

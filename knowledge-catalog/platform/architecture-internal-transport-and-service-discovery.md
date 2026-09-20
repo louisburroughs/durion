@@ -9,7 +9,7 @@ kind: Architecture
 status: stable
 doc_status: Current
 sources: [durion/docs/architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T11:54:34+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md) — `durion/docs/architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md`

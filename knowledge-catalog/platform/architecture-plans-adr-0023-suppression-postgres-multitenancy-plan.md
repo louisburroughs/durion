@@ -9,7 +9,7 @@ kind: Plan
 status: stable
 doc_status: active
 sources: [durion/docs/architecture/plans/adr-0023-suppression-postgres-multitenancy-plan.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-11T18:16:51+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/plans/adr-0023-suppression-postgres-multitenancy-plan.md) — `durion/docs/architecture/plans/adr-0023-suppression-postgres-multitenancy-plan.md`

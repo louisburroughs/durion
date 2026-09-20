@@ -9,7 +9,7 @@ kind: Runbook
 status: stable
 doc_status: current
 sources: [durion/docs/architecture/AWS/ec2-deploy.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-04-26T09:29:08-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/AWS/ec2-deploy.md) — `durion/docs/architecture/AWS/ec2-deploy.md`

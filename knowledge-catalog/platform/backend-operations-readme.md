@@ -9,7 +9,7 @@ kind: Index
 status: stable
 doc_status: current
 sources: [durion-positivity-backend/docs/README.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-07-16T13:36:04-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:26-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion-positivity-backend/blob/main/docs/README.md) — `durion-positivity-backend/docs/README.md`

@@ -7,7 +7,7 @@ path: durion/docs/adr/0066-inventory-availability-vs-on-hand-authority.adr.md
 tags: [adr, inventory, rbac]
 status: stable
 sources: [docs/adr/0066-inventory-availability-vs-on-hand-authority.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T11:54:34+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0066-inventory-availability-vs-on-hand-authority.adr.md) — `docs/adr/0066-inventory-availability-vs-on-hand-authority.adr.md`
