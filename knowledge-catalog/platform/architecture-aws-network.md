@@ -1,15 +1,20 @@
 ---
 type: Platform Document
-title: NETWORK
-description: 'In your AWS Fargate microservices architecture, the Web Application Firewall (WAF) plays a critical security role. Here''s a more detailed explanation of AWS WAF and how it functions in your system:'
+title: AWS WAF and Network Protection
+description: 'How AWS WAF, security groups and the load-balancer edge would protect an ECS Fargate deployment: managed rule groups, rate limiting and the request path through the firewall. Written against the unbuilt Fargate target, not the deployed alpha host.'
 resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture/AWS/NETWORK.md
 path: durion/docs/architecture/AWS/NETWORK.md
 tags: [platform, architecture]
+kind: Research Note
+status: draft
+doc_status: proposed
 sources: [durion/docs/architecture/AWS/NETWORK.md]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-01-16T07:10:41-05:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/AWS/NETWORK.md) — `durion/docs/architecture/AWS/NETWORK.md`
 
+**Kind:** Research Note
 **Area:** Platform architecture
 **Repository:** durion — platform knowledge
+**Document status:** proposed

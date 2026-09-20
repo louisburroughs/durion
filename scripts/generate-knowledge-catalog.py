@@ -96,6 +96,8 @@ PLATFORM_AREAS = [
     ("durion", "docs/superpowers", "design-record"),
     ("backend", "docs", "backend-operations"),
 ]
+# Longest heading accepted as a stand-in title when a document declares none.
+MAX_SCRAPED_TITLE = 120
 # Source documents whose frontmatter failed to parse, reported at the end of a run.
 SOURCE_WARNINGS: list[str] = []
 # OKF allows three lifecycle values; documents here use a wider house vocabulary. The mapping
@@ -278,7 +280,22 @@ def platform_records() -> list[dict]:
             if frontmatter.strip() and not keys:
                 SOURCE_WARNINGS.append(f"{platform_path({'repo': repo_key, 'in_repo': f'{area}/{relative.as_posix()}'})}: frontmatter does not parse as YAML — quote any value containing ': '")
             heading = re.search(r"^#\s+(.+)$", body, re.M)
-            title = str(keys.get("title") or (delink(heading.group(1)) if heading else doc.stem))
+            # A declared title is trusted whatever its length. A scraped H1 is not: several of these
+            # documents are chat transcripts whose H1 is the pasted prompt, and one ran to 451
+            # characters — long enough to push the generated index past the markdown line limit and
+            # fail the bundle's own lint. A heading that long is not a title, so fall back to the
+            # filename and say so.
+            title = str(keys.get("title") or "")
+            if not title and heading:
+                scraped = delink(heading.group(1)).strip()
+                if len(scraped) <= MAX_SCRAPED_TITLE:
+                    title = scraped
+                else:
+                    SOURCE_WARNINGS.append(
+                        f"{platform_path({'repo': repo_key, 'in_repo': f'{area}/{relative.as_posix()}'})}: "
+                        f"first heading is {len(scraped)} characters, too long to be a title — declare `title:` in frontmatter"
+                    )
+            title = title or doc.stem
             doc_status = str(keys.get("status") or "")
             in_repo = f"{area}/{relative.as_posix()}"
             records.append(
