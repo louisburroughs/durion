@@ -36,7 +36,7 @@ When sources disagree, apply this order:
 1. ADRs, reached through `durion/knowledge-catalog/adr/index.md` (primary authority; the entry's
    `path:` field gives the canonical document)
 2. Architecture and development standards docs (for example:
-   - `durion-positivity-backend/docs/ARCHITECTURE_GUIDE.md`
+   - `durion/docs/architecture/BACKEND_ARCHITECTURE_GUIDE.md`
    - `durion-positivity-backend/docs/DEVELOPMENT_GUIDE.md`
    - `durion-positivity-backend/docs/OPERATIONS_RUNBOOK.md`)
 3. Current implementation in code (module/package names, endpoints, configs)

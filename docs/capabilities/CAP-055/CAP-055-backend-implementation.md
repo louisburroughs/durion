@@ -394,7 +394,7 @@ The new event type `ACCOUNTING_EVENT_REPROCESS` is automatically registered on a
 - Backend Issue: https://github.com/louisburroughs/durion-positivity-backend/issues/122
 - Parent Capability: https://github.com/louisburroughs/durion/issues/55
 - Contract Guide: `durion/domains/accounting/.business-rules/BACKEND_CONTRACT_GUIDE.md`
-- Architecture Guide: `durion-positivity-backend/docs/ARCHITECTURE_GUIDE.md`
+- Architecture Guide: `durion/docs/architecture/BACKEND_ARCHITECTURE_GUIDE.md`
 
 ---
 

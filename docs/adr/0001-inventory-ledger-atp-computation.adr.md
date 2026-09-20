@@ -5,6 +5,7 @@ description: 'This ADR documents the architectural decisions made to resolve cla
 status: stable
 adr_status: accepted
 created: '2026-01-12'
+related: [ADR-0066]
 tags: [adr, inventory]
 ---
 # ADR 0001: Inventory Ledger ATP Computation
@@ -158,6 +159,8 @@ These events affect **availability/ATP** but do NOT change physical on-hand:
 
 ## References
 
+- **Related ADR**: [ADR-0066: Availability and On-Hand Are Different Questions, With Different Permissions](0066-inventory-availability-vs-on-hand-authority.adr.md)
+  — gates the ATP computation defined here; availability and on-hand carry separate permission families
 - **Origin Story**: [#36 - Ledger: Compute On-hand and Available-to-Promise by Location/Storage](https://github.com/louisburroughs/durion-positivity-backend/issues/36)
 - **Clarification Issue**: [#233 - Clarification for Story #36](https://github.com/louisburroughs/durion-positivity-backend/issues/233)
 - **Decision Date**: 2026-01-12

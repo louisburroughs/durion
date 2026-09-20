@@ -1,5 +1,7 @@
 ---
+type: Plan
 title: 'ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan'
+description: 'Cross-repo plan and effort assessment for replacing the single-organization decision of ADR-0023 with shared-database multitenancy under ADR-0062: Hibernate @TenantId discrimination plus Postgres row-level security on a per-request tenant GUC, a new pos-tenant module owning the tenant registry and the account behind each tenancy, tenant-scoped roles and Spring caches, gateway stripping of X-Tenant-* headers, composite foreign keys, and the workstream-by-workstream (WS1, WS2a, WS2b, ...) breakdown per repository with measured footprint.'
 created: 2026-09-07
 updated: 2026-09-10
 status: active
@@ -600,7 +602,7 @@ Consequences: breaking contract change (no bridge, alpha); all DB tests on Postg
 - [x] ~~Generate `V<next>__tenancy.sql` from the template; add hand-written unique-constraint and index rewrites.~~
       *Done 2026-09-09 for every module: the flattened `V1__baseline_<module>.sql` already carries `tenant_id`, RLS, the
       `tenant_isolation` policy, tenant-leading unique constraints and composite foreign keys, so there is no per-module
-      tenancy migration. A new table follows `durion-positivity-backend/docs/TENANCY_SCHEMA.md` in the baseline itself.*
+      tenancy migration. A new table follows `durion/docs/architecture/deployment/TENANCY_SCHEMA.md` in the baseline itself.*
 - [ ] Retrofit entities: scoped entities extend `TenantScopedEntity`; global entities carry `@TenantGlobal`.
 - [ ] Audit native `@Query` and `JdbcTemplate` usage; annotate `@TenantAudited` with a one-line reason.
 - [ ] Replace shared counters or sequences used for business numbering with per-tenant counters.

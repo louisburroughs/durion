@@ -1,3 +1,10 @@
+---
+type: Index
+title: Deployment Manifests
+description: 'Index of the versioned tenant-cell deployment manifests and their design notes, starting with the integration cell on the current AWS Docker host. These are the first machine-readable statements of a cell runtime structure, not the final deployment automation format.'
+status: draft
+---
+
 # Deployment Manifests
 
 This directory contains example and reference deployment manifests for Durion tenant cells.

@@ -241,7 +241,7 @@ that the family needs `precision_scale > 0` seeded, not that the decision is wro
   [ADR-0048: Inventory-Owned Valuation with Configurable Costing Method](0048-inventory-owned-valuation-configurable-costing-method.adr.md) — cost basis that decimal
   quantities multiply into
 - **Related Documentation**: [pos-inventory README](../../durion-positivity-backend/pos-inventory/README.md),
-  [pos-workorder README](../../durion-positivity-backend/pos-workorder/README.md), [Error Envelope](../../durion-positivity-backend/docs/ERROR_ENVELOPE.md)
+  [pos-workorder README](../../durion-positivity-backend/pos-workorder/README.md), [Error Envelope](../../durion/docs/architecture/api/ERROR_ENVELOPE.md)
 
 ---
 

@@ -1,12 +1,20 @@
 ---
+type: Architecture
 title: Durion Positivity — AWS Fargate Architecture
-status: reference
+description: 'Target production substrate, not yet built: each pos-* service as an ECS Fargate task behind WAF, ALB and Route 53 across multiple AZs, with Cloud Map service discovery replacing Eureka, RDS Postgres, Amazon MSK for Kafka, Ollama on a dedicated g4dn GPU EC2 instance, Amazon Managed Prometheus and Grafana for observability, per-service application auto-scaling, task execution and task IAM roles, the per-tenant cell model, and a single-cell cost estimate plus the migration path off the single-host EC2 model.'
+status: proposed
 environment: production / scaled tenant cells
 last-updated: 2026-04-14
 scope: ECS Fargate multi-AZ deployment on AWS
 ---
 
 # Durion Positivity — AWS Fargate Architecture
+
+> **Status: target state, not deployed.** No Durion environment runs on ECS or Fargate today; alpha
+> runs the single-host Docker Compose model in [Docker on EC2](./DOCKER_EC2_ARCHITECTURE.md). Adopting
+> this substrate is tracked as the DevOps Fargate substrate adapter
+> (`docs/stories/devops-fargate-substrate-adapter.md`) under
+> [ADR-0045](../../adr/0045-autonomous-environment-lifecycle-management.adr.md).
 
 ## Overview
 

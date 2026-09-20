@@ -268,6 +268,46 @@ public class AdvanceShippingNoticeEntity {
 }
 ```
 
+### 7. Addendum (2026-08-12): Assigned natural keys (`@AssignedIdentifier`)
+
+**Decision:** ✅ **Resolved** - This ADR governs identifier *generation*. Where a UUID `@Id` is a natural
+key supplied by the caller rather than a surrogate the platform is free to invent — a lease keyed by the
+binding it governs, a projection keyed by the aggregate it mirrors — the field declares
+`com.positivity.shared.id.AssignedIdentifier` with a reason instead of `@GeneratedValue` + `@UUIDv7Id`.
+
+```java
+@Id
+@AssignedIdentifier("the binding's own id: a lease on an invented id would be a lease on nothing")
+@Column(name = "binding_id", nullable = false, updatable = false)
+private UUID bindingId;
+```
+
+The marker attaches no generator and changes no runtime behaviour. Its effects are:
+
+- **Documentation at the entity.** The reader sees the intent instead of a generator annotation that
+  contradicts the field.
+- **Exemption from §2/§6.** `EntityStandardsArchitectureTest` no longer requires `@UUIDv7Id` on the field.
+- **A null id fails loudly.** With no generator attached, persisting a null identifier raises
+  `IdentifierGenerationException` rather than silently minting a UUID and keying the row to a value that
+  means nothing.
+
+**Rules, enforced by `pos-archunit`'s `EntityStandardsArchitectureTest`:**
+
+| Rule | Why |
+| --- | --- |
+| Never combine `@AssignedIdentifier` with `@UUIDv7Id` | They make opposite claims, and the generator stays attached |
+| The reason string must be non-blank | An unexplained opt-out from a fleet-wide rule reads as a mistake |
+| Only valid on `@Id` fields | Elsewhere it is decoration that looks significant while doing nothing |
+
+The annotation targets `FIELD` only — unlike `@UUIDv7Id`, which must also target methods because it
+attaches a generator and Hibernate permits property access. The rule inspects `@Id` *fields*, so a marker
+on a getter could exempt nothing while drifting onto unrelated methods; the compiler rules that out.
+
+Use it only for genuine natural keys. If the platform is free to invent the value, it is a surrogate key
+and §6 applies in full. Do **not** reach for a `@PrePersist` null-check as an alternative guard: the
+callback fires *after* identifier generation, so with a generator attached it can never observe a null id.
+That is why the fix is to attach no generator rather than to guard one.
+
 ---
 
 ## Alternatives Considered
@@ -419,7 +459,7 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
   - [ADR-0010: Frontend Domain Responsibilities](0010-frontend-domain-responsibilities-guide.adr.md)
   - [ADR-0011: API Gateway Security Architecture](0011-api-gateway-security-architecture.adr.md)
 - **Related Documentation**:
-  - [Backend Architecture Guide](../../durion-positivity-backend/docs/ARCHITECTURE_GUIDE.md)
+  - [Backend Architecture Guide](../architecture/BACKEND_ARCHITECTURE_GUIDE.md)
   - [Java Instructions](../../.github/instructions/java.instructions.md)
 - **External Resources**:
   - PostgreSQL UUID Documentation: <https://www.postgresql.org/docs/current/datatype-uuid.html>
@@ -450,3 +490,6 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 
 - **2026-02-07**: Initial draft and acceptance—UUID v7 identifier strategy for platform
 - **2026-02-23**: Addendum: standardized generator-based assignment using shared `UUIDv7Generator`
+- **2026-08-12**: Addendum: assigned natural keys opt out with `@AssignedIdentifier`; folded in from
+  durion-positivity-backend `docs/UUID_V7_MIGRATION.md` when that document was retired
+  (durion-positivity-backend#1272)

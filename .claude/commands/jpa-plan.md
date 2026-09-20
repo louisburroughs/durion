@@ -8,14 +8,19 @@ description: 'Execute the remaining standalone-id to JPA relationship migration 
 
 ## Objective
 
-Complete the remaining work in:
-- `durion-positivity-backend/docs/standalone-id-jpa-relationship-autonomous-plan.md`
+The CONVERT_NOW wave of this migration is **complete** (execution finished 2026-03-10). What remains
+is the deferred set, and the standing rule for new entities.
 
-using the candidate inventory in:
-- `durion-positivity-backend/docs/entity-fk-candidates.md`
+Work from the per-field disposition ledger:
+- `durion/docs/architecture/deployment/data-migration/ENTITY_RELATIONSHIP_MIGRATION_LEDGER.md`
 
-and the queue in:
-- `durion-positivity-backend/docs/standalone-id-jpa-relationship-work-queue.md`.
+It records, per column, what converted, what must stay scalar because it crosses a service boundary
+(`KEEP_SCALAR` — never convert these), and what is deferred with the blocker that defers it
+(`DEFER` — TABLE_PER_CLASS inheritance, composite `@IdClass` needing `@MapsId`, cyclic teardown).
+It also carries the two-step dual-mapping recipe and the per-entity conversion checklist.
+
+Take a `DEFER` row only when its stated blocker is actually resolved. The pre-migration candidate
+inventory and the two execution plans were retired once the wave finished; git history holds them.
 
 ## Critical Rules
 
@@ -56,8 +61,7 @@ Repeat until no `CONVERT_NOW` candidates remain:
    - retry validation,
    - after 2 failed repair attempts mark candidate `DEFER` with explicit reason and continue.
 7. Batch closeout:
-   - append execution-log entry in `standalone-id-jpa-relationship-autonomous-plan.md`,
-   - update statuses in `standalone-id-jpa-relationship-work-queue.md`.
+   - update the row's disposition and evidence in `ENTITY_RELATIONSHIP_MIGRATION_LEDGER.md`.
 
 ## Completion Criteria
 

@@ -1,5 +1,7 @@
 ---
+type: Catalog
 title: Grooming Catalog — Off-Peak Environment Hygiene Tasks
+description: 'Enumerates every recurring hygiene task the Cell Operations Agent may run inside a tenant cell GROOMING window — log rotation, temp and dump cleanup, container image/build-cache/volume pruning and a disk watchdog (G-1xx); rolling JVM recycle and connection-pool sweep (G-2xx); Postgres VACUUM/ANALYZE, reindex, WAL and backup-archive pruning, planner statistics refresh (G-3xx); host memory posture and reboot policy (G-4xx) — each specified against the framework action contract (preconditions, execution, health gates, abort class, revert or irreversibility, after-action record), plus the window-planning rules that keep grooming off the same resources as batch workloads.'
 status: Draft specification
 created: 2026-07-10
 parent: ./DEVOPS_FRAMEWORK.md

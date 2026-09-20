@@ -1,3 +1,10 @@
+---
+type: Index
+title: Deployment Architecture
+description: 'Index of the Durion deployment-architecture set: the foundation-first tenant-cell reference architecture, the phased CI/CD and runtime plan, the DevOps framework for autonomous cell lifecycle management, the data-migration material (backend preload tables, Flyway cleanup and entity-gap reports, the seed-input contract) and the tenant-cell manifests. These define the target deployment model that implementation plans, CI/CD workflows and runbooks follow. The same folder also holds the alpha AWS provisioning runbook and the tenancy schema, which this index does not yet list.'
+status: current
+---
+
 # Deployment Architecture
 
 This directory contains deployment-focused architecture documents for Durion.

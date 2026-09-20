@@ -1,6 +1,8 @@
 ---
+type: Architecture
 title: Durion Positivity — Docker on EC2 Architecture
-status: reference
+description: 'Single-host runtime architecture actually in force for the alpha tenant cell: Route 53 and an Elastic IP onto one Amazon Linux EC2 instance where Nginx terminates TLS in front of a Docker Compose stack carrying every pos-* service, Eureka, the Angular SSR frontend, Postgres, Kafka, Ollama and the OTEL/Prometheus/Grafana/Jaeger observability set from ECR images — instance sizing, security-group rules, port map, backup and the managed-services variant that moves Postgres, Kafka, Ollama and Grafana off-host.'
+status: current
 environment: alpha / prototype
 last-updated: 2026-04-14
 scope: Single-host Docker Compose deployment on AWS EC2

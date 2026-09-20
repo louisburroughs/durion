@@ -1,3 +1,10 @@
+---
+type: Contract
+title: Seed Input Contract (`seed-input.yaml`)
+description: 'Field-level contract for the seed-input.yaml consumed by scripts/seed-generator to emit ordered preload SQL: the prod-minimal and staging-demo profiles and what each may synthesise, the datasets the generator derives itself rather than accepting as input (permissions and bit_index from per-module permissions.yaml, event_type from the EventTypes registries, baseline roles from Flyway seeds, accounting policy defaults), the tenant, location, people, catalog, pricing and accounting values an operator must supply, and the numbered idempotent SQL files produced.'
+status: current
+---
+
 # Seed Input Contract (`seed-input.yaml`)
 
 ## Purpose

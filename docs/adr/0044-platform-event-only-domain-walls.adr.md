@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: 'ADR-0044: Event-Only Domain Walls and Module Communication Policy'
-description: Backend domain modules are coupled by ~24 synchronous REST clients across 10 modules (full call matrix in durion-positivity-backend/docs/module-coupling/issue-823-event-only-domain-walls-assessment.md).
+description: Domain modules may not call each other synchronously — cross-domain data moves as events into local replicas — with named scoped exceptions (pos-warranty, pos-order to pos-invoice) enforced by pos-archunit's DomainWallsTest.
 status: stable
 adr_status: accepted
 created: '2026-07-08'
@@ -19,8 +19,8 @@ tags: [adr, events, platform]
 
 ## Context
 
-Backend domain modules are coupled by ~24 synchronous REST clients across 10 modules (full call matrix in
-`durion-positivity-backend/docs/module-coupling/issue-823-event-only-domain-walls-assessment.md`). Reads dominate (customer, location, and people reference data is fetched on
+Backend domain modules are coupled by ~24 synchronous REST clients across 10 modules (full call matrix in the issue-823 coupling assessment that produced this ADR;
+that assessment was retired once this record superseded it, and survives in git history). Reads dominate (customer, location, and people reference data is fetched on
 nearly every workorder/invoice/shop-manager flow), but several edges are writes: accounting applies payments and credit memos against pos-invoice and triggers invoice
 regeneration in pos-workorder; pos-customer performs full vehicle CRUD against pos-vehicle-inventory; pos-security-service writes user↔person links into pos-people and
 pos-customer.
@@ -232,8 +232,9 @@ consumer's replica write lands in the right tenant and never in none:
 ### 2026-07-16 — Scoped exception: pos-warranty v1 synchronous clients
 
 `pos-warranty` (new domain module, durion-positivity-backend#786) is granted a scoped exception to R1 for its v1: synchronous `@LoadBalanced RestClient` calls from
-`com.positivity.warranty.internal.client` to `pos-invoice`, `pos-workorder`, `pos-catalog`, `pos-customer`, and `pos-vehicle-inventory` are permitted, per
-`durion-positivity-backend/docs/PRD-warranty-claims-module.md` §9.4 (approved 2026-07-15). Rationale: candidate-line origin search across invoices/workorders and settlement
+`com.positivity.warranty.internal.client` to `pos-invoice`, `pos-workorder`, `pos-catalog`, `pos-customer`, and `pos-vehicle-inventory` are permitted, per the warranty claims PRD §9.4 (approved 2026-07-15; PRD retired after delivery,
+issue durion-positivity-backend#786 / PR #920, principles carried into
+`domains/warranty/.business-rules/BACKEND_CONTRACT_GUIDE.md`). Rationale: candidate-line origin search across invoices/workorders and settlement
 execution against pos-invoice are inherently synchronous counter flows. The dependency is one-directional: no module calls into pos-warranty synchronously; warranty state
 leaves the module only as `warranty.*` domain events (including a full claim snapshot event for replica builders).
 
@@ -315,8 +316,8 @@ integration review (durion#374, §12 decisions 4–5).
   scoping for this entry (origin module → target module → allowed client source pattern), so any
   other client source in those modules targeting `pos-supplier` still fails the build. Delivered
   with the CAP-319 implementation (durion-positivity-backend#1225), which also refreshes the stale
-  "as of 2026-07-22" enforcement note in the backend-local ADR pointer stub
-  (`durion-positivity-backend/docs/adr-0044-event-only-domain-walls.md`).
+  "as of 2026-07-22" enforcement note that the backend-local pointer stub carried before it
+  was removed in favour of this canonical record.
 - **Boundaries.** All other supplier data flows (price catalog, stock report, order lifecycle,
   invoices, shipment, workorder authorization) remain event-only per the main decision.
 
@@ -423,7 +424,7 @@ Verified against the ADR texts in this directory (2026-07-08).
 
 ### Superseded non-ADR documents
 
-- `durion-positivity-backend/docs/service-discovery-migration/client-policy-matrix.md` — its `direct-discovery` classification no longer authorizes domain→domain calls;
+- `durion/docs/architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md` — its `direct-discovery` classification no longer authorizes domain→domain calls;
   `startup-infra`, `gateway-exception`, `tax-exemption`, and `external` categories remain valid.
 - The javadoc "platform rule" against replicating address data (see ADR-0016 row above).
 
@@ -432,6 +433,6 @@ Verified against the ADR texts in this directory (2026-07-08).
 ## References
 
 - durion-positivity-backend#823 — Create stronger domain walls and looser coupling for certain domains
-- `durion-positivity-backend/docs/module-coupling/issue-823-event-only-domain-walls-assessment.md` — full call-graph scan, feasibility assessment, and five-phase migration
-  plan
-- `durion-positivity-backend/docs/adr-0044-event-only-domain-walls.md` — backend-local copy of this ADR
+- issue-823 coupling assessment — full call-graph scan, feasibility assessment, and five-phase migration plan; retired once this ADR
+  superseded it, available in git history
+- The backend-local copy of this ADR was removed on 2026-09-20; this file is the only canonical record

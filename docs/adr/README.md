@@ -133,6 +133,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0063 | Frontend Async Result Ownership Policy | ACCEPTED | '2026-09-18' |
 | 0064 | Frontend Read Outcome and Placeholder Copy Policy | ACCEPTED | '2026-09-18' |
 | 0065 | Frontend Untrusted Content and Browser Persistence Policy | ACCEPTED | '2026-09-18' |
+| 0066 | Availability and On-Hand Are Different Questions, With Different Permissions | ACCEPTED | '2026-08-24' |
 
 <!-- adr-table:end -->
 

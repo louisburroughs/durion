@@ -1,5 +1,7 @@
 ---
+type: Contract
 title: Reporting and Rollback Contract — Autonomy Safety Mechanics
+description: 'The safety and visibility contract that makes fully autonomous cell operation acceptable: the health-gate probe classes (liveness, synthetic functional, Prometheus statistical, substrate invariant) every action declares before it runs, the soak, auto-revert and quarantine rules that fire when a gate fails, and the reporting surface that substitutes for human approval — per-action after-action records, the daily digest, and the notification thresholds. Binds every grooming, right-sizing and warm-up action in the DevOps framework.'
 status: Draft specification
 created: 2026-07-10
 parent: ./DEVOPS_FRAMEWORK.md

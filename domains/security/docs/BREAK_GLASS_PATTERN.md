@@ -2,7 +2,10 @@
 
 > **Purpose:** Emergency elevated access with maximum auditability  
 > **Risk Level:** CRITICAL  
-> **Status:** Active Pattern  
+> **Status:** Design only — not implemented. `BREAK_GLASS_ACCESS` and `BYPASS_VALIDATIONS` exist as names in
+> `durion-positivity-backend/.github/permissions/permissions_v1.yml:76-79`, but no `PermissionCode`, gateway filter or
+> service enforces them, and no break-glass code exists anywhere in the backend (verified 2026-09-20). Treat everything
+> below as a proposal; the platform has no emergency-elevation capability today.  
 > **Version:** 1.0  
 > **Date:** 2026-01-13
 

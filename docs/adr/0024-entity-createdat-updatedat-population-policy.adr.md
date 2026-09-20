@@ -9,7 +9,7 @@ tags: [adr]
 ---
 # ADR-0024: Entity createdAt/updatedAt Population Policy
 
-**Status:** ACCEPTED — amended 2026-08-21 (see §Amendment Log)  
+**Status:** ACCEPTED — amended 2026-08-21, 2026-09-20 (see §Amendment Log)  
 **Date:** 2026-02-23  
 **Deciders:** Architecture, Backend Leads  
 **Affected Issues:** CAP-214 #39
@@ -83,8 +83,11 @@ Two distinct exemptions. Do not conflate them.
 | Outbox rows (`OutboxEvent`) | `createdAt` | the module's outbox writer — the row's timestamp orders publication, so it must move with application time like the aggregate it describes |
 | Service-written domain timestamps | varies | the owning service — timestamp is domain data, not an audit column |
 
-35 entities across 8 modules sit in categories 2–4 and are compliant. Per-entity inventory:
-`CLOCK_TIMESTAMP_OWNERSHIP.md` §"Entities without audit annotations" — maintained there, not here.
+Categories 2–4 are identified in code, not from a list: replica entities are the `Ext*` classes under a module's
+`internal/entity`, outbox rows are `OutboxEvent`, and service-written timestamps are stamped at the writing call site.
+A per-entity inventory previously lived in durion-positivity-backend `docs/CLOCK_TIMESTAMP_OWNERSHIP.md`; that
+document was absorbed into this ADR (see §Amendment Log) and the inventory is no longer maintained as prose — it went
+stale faster than it was read, and the naming conventions above are the durable test.
 
 ### 6. Enforcement is the build, not review
 
@@ -103,6 +106,18 @@ shared bean.
 
 SQL exceptions live in `DATABASE_TIME_WRITE_ALLOWLIST`, keyed by fully-qualified method name. Every entry MUST carry a
 justification — a separate test fails on a blank one.
+
+**Source-level regression scan.** The five rules above read production *bytecode*. The scan below reads *source*, and
+is the by-hand check when auditing the clock-source half of this policy:
+
+```bash
+rg -n '\b(Instant\.now|LocalDateTime\.now)\(\s*\)' --glob '**/src/main/**' --glob '**/src/test/**' .
+```
+
+`src/main` MUST return zero — that is §2, and the ArchUnit rules hold it there. `src/test` is **not** held at zero and
+is outside §6's enforcement, which scopes to production code; test matches are reviewed against the fixed-`Clock`
+guidance in Implementation Notes rather than failed automatically. Verified 2026-09-20: 0 matches under `src/main`,
+215 across 88 files under `src/test`.
 
 ### 7. Timestamps that stay on real time
 
@@ -187,6 +202,22 @@ Folded into the Decision section above. What changed from the 2026-02-23 text:
 | Post-run data verification added | Implementation Notes |
 | Transitional allowance narrowed to mechanism choice only | §8 |
 
+### 2026-09-20 — Absorbed `CLOCK_TIMESTAMP_OWNERSHIP.md`
+
+durion-positivity-backend `docs/CLOCK_TIMESTAMP_OWNERSHIP.md` and `docs/clock-injection-remediation-baseline.md`
+were retired. Everything they stated that this ADR did not already state is folded into the Decision section above:
+
+| Change | Where |
+| --- | --- |
+| Source-level regression scan added, with the `src/main` = zero / `src/test` unenforced split made explicit | §6 |
+| Per-entity inventory replaced by the naming conventions that identify each category | §5 |
+| Reference repointed from the retired inventory to the accelerated-deployment runbook | References |
+
+Verified as already stated and therefore **not** folded in: the three legitimate mechanisms (§3), the Hibernate
+generator prohibition (§4), the ArchUnit and SQL enforcement (§6), the deliberate real-time reads (§7), and the
+post-run `verify-accelerated-timestamps.sql` check (Implementation Notes). The retired baseline's 793→0 match counts
+were a one-time snapshot and were not carried forward.
+
 ---
 
 ## References
@@ -194,8 +225,9 @@ Folded into the Decision section above. What changed from the 2026-02-23 text:
 - Related ADRs:
   - `0013-platform-uuid-identifier-strategy.adr.md`
   - `0018-audit-actor-fields-from-security-context.adr.md`
-- Operational companion (per-entity inventory; current where this ADR is only policy):
-  - `durion-positivity-backend/docs/CLOCK_TIMESTAMP_OWNERSHIP.md`
+- Operator procedure for running on the accelerated clock (dispatch, anchor verification, teardown, and the
+  convergence arithmetic `virtual(t) = min(virtualStart + scale * (now - realStart), now)`):
+  - `durion-positivity-backend/docs/runbooks/accelerated-alpha-deployment.md`
 - Related code:
   - `pos-events/src/main/java/com/positivity/time/ScaledClock.java`
   - `pos-events/src/main/java/com/positivity/time/TimeSource.java`

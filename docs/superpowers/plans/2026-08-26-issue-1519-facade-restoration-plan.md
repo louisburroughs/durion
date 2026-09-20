@@ -39,7 +39,7 @@ These were decided by the product owner on 2026-08-26 and govern every workset:
 | ADR-0021 | pos-tax internal-only contract; strict `POST /v1/tax/calculate` validation semantics |
 | ADR-0042 | OpenAPI annotations are the REST contract source; `openapi.yaml` per module is the truth facades must match |
 | ADR-0054 | Sell-price system-of-record split (governs where PricingFacadeTool reads from) |
-| ADR-0057 + `V36` migration | Availability vs on-hand permission split; already names InventoryFacadeTool's real targets |
+| ADR-0066 + `V36` migration | Availability vs on-hand permission split; already names InventoryFacadeTool's real targets |
 | `pos-mcp-server/README.md` §Facade tools | V18 seed-derivation procedure (mirror downstream `@PreAuthorize`); Flyway "never edit applied migrations" rule |
 | `pos-api-gateway/src/main/resources/application.yml` | Route table: `Path=/{route}/**` + `StripPrefix=1`; the `{route}→service` mapping is authoritative for which module serves a facade path |
 
@@ -200,7 +200,7 @@ endpoint's contract differs (path variable names, query params), update the
 WS-0.3 manifest row, and let the rewritten test assert the real contract. Remove the
 corresponding baseline entries.
 Worksets: **WS-2.CAT** (Catalog ×3) · **WS-2.CUST** (Customer ×2: get/search) ·
-**WS-2.INV** (Inventory ×3, targets fixed by V36/ADR-0057) · **WS-2.ORD** (Order ×2) ·
+**WS-2.INV** (Inventory ×3, targets fixed by V36/ADR-0066) · **WS-2.ORD** (Order ×2) ·
 **WS-2.EVT** (Events ×3) · **WS-2.LOC** (Location ×2: search + cross-domain inventory) ·
 **WS-2.INVC** (Invoice ×1) · **WS-2.WO** (Workorder ×1) · **WS-2.VEH** (Vehicle ×3,
 route change customer→vehicle-inventory) · **WS-2.HR** (Hr ×1: searchEmployees route fix) ·
@@ -321,7 +321,7 @@ reports). Route prefixes are gateway route ids.
 | Hr.searchEmployees | DEFERRED (owner 2026-08-26) → [#1523](https://github.com/louisburroughs/durion-positivity-backend/issues/1523) — pos-people has **no** employee list/search (`/v1/people/employees` is POST-only); method removed in WS-2.HR | — |
 | Inventory.checkStock | REPOINT → `GET /inventory/v1/inventory/availability/by-sku?productSku={sku}` — param is **`productSku`**, not `sku` | `inventory:availability:read` |
 | Inventory.searchInventory | REPOINT → same endpoint (`productSku` + optional `locationId`) | `inventory:availability:read` |
-| Inventory.getLocationStock | REPOINT → `GET /inventory/v1/inventory/locations/{locationId}/inventory-inquiry` | `inventory:on_hand:view` (distinct family per ADR-0057) |
+| Inventory.getLocationStock | REPOINT → `GET /inventory/v1/inventory/locations/{locationId}/inventory-inquiry` | `inventory:on_hand:view` (distinct family per ADR-0066) |
 | Invoice.getInvoice / searchInvoices | OK (note: blank `q` returns empty page, not all) | `invoice:manage` |
 | Invoice.getInvoicesByCustomer | REPOINT → `GET /invoice/v1/invoices/items/search?partyId={customerId}` + de-dup lines by invoice in the facade (`/v1/invoices/search` has no customer param; newest-200-lines bound disclosed in description) | `invoice:manage` |
 | Location.getLocation | OK | `location:read` |

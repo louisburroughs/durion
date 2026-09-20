@@ -1,5 +1,7 @@
 ---
+type: Catalog
 title: Cache Warm-Up Catalog — Profitable Pre-Loading and Ramp Choreography
+description: 'Specifies the warm-up jobs the Cell Operations Agent runs so a tenant cell reaches PEAK with hot application caches, JIT-compiled paths, a primed Postgres working set and warm SSR/CDN edges, and the ramp choreography that fits them inside the 10-minute ramp SLO — including the benefit/cost profitability model that auto-demotes unprofitable jobs and the critical vs opportunistic classing that decides what is skipped under time pressure. Also governs post-restart warm-up after any process recycle or resize.'
 status: Draft specification
 created: 2026-07-10
 parent: ./DEVOPS_FRAMEWORK.md
