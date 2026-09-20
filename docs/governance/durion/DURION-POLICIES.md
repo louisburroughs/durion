@@ -1,3 +1,10 @@
+---
+type: Policy
+title: Durion Solutions, Inc. – Policies
+description: 'Mandatory corporate conduct policies binding every Durion director, officer, employee and contractor under the perpetual TIOTF mission lock — mission alignment, vendor neutrality and non-discrimination, open-source integrity, cybersecurity and trust, conflicts of interest, sales and marketing ethics, antitrust and competition, and the enforcement path when a commercial decision would trade interoperability or security for revenue.'
+status: current
+---
+
 # Durion Solutions, Inc. – Policies
 
 This document defines mandatory policies governing the conduct, operations, and

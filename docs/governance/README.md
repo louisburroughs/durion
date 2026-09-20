@@ -1,3 +1,10 @@
+---
+type: Index
+title: TIOTF Governance Documents
+description: 'Index of the corporate governance instruments for the Tire Industry Open Technology Foundation (a Delaware 501(c)(6)) and its wholly owned subsidiary Durion Solutions, Inc. — the mission lock, policies, security policy and TIOTF/Durion service boundaries. Corporate and commercial governance, not engineering policy; ADRs and AGENTS.md govern the code.'
+status: current
+---
+
 # TIOTF Governance Documents
 
 This directory contains the formal governance documents for the
