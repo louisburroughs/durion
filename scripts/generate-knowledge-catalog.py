@@ -114,6 +114,8 @@ PLATFORM_STATUS = {
     # that is written but not yet built. Without this row the whole set resolves to no status,
     # which reads as "current" to an agent that only checks for a deprecation marker.
     "draft specification": "draft",
+    "in progress": "draft",
+    "in-progress": "draft",
     "proposed": "draft",
     "wip": "draft",
     "deprecated": "deprecated",
@@ -298,6 +300,14 @@ def platform_records() -> list[dict]:
             title = title or doc.stem
             doc_status = str(keys.get("status") or "")
             in_repo = f"{area}/{relative.as_posix()}"
+            # A status word the map does not know would leave the entry with no OKF `status`, and a
+            # consumer reads a missing lifecycle as `stable` — an in-progress plan presented as
+            # settled. Extend PLATFORM_STATUS rather than let the word through.
+            if doc_status.strip() and doc_status.strip().lower() not in PLATFORM_STATUS:
+                SOURCE_WARNINGS.append(
+                    f"{platform_path({'repo': repo_key, 'in_repo': in_repo})}: "
+                    f"status `{doc_status.strip()}` is not in PLATFORM_STATUS — add a row mapping it to draft, stable or deprecated"
+                )
             records.append(
                 {
                     "slug": f"{tag}-{relative.as_posix()[:-3]}".replace("/", "-").replace("_", "-").lower(),

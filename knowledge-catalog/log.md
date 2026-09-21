@@ -1,5 +1,17 @@
 # Directory Update Log
 
+## 2026-09-21
+
+* **Regenerated**: 66 ADR, 16 domain, 45 module and 84 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
+* **Structure**: `--check` now fails on a platform document whose `status` word is not in `PLATFORM_STATUS`. An
+  unmapped word left the entry with no OKF `status`, which consumers read as `stable`; the 2026-09-06 scope plan's
+  `in-progress` was the case that showed it, and is now mapped to `draft`.
+* **Curated**: the three design records relocated from the backend (`2026-05-14` aggregate-first discovery,
+  `2026-06-09` internal service discovery reconciliation, `2026-08-27` domain interaction diagrams) and the
+  observability reference note gained OKF frontmatter with a lifecycle. The service-discovery record is marked
+  `superseded` and points at `docs/architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md`, which absorbed the
+  three migration-era documents it named as inputs.
+
 ## 2026-09-20
 
 * **Regenerated**: 66 ADR, 16 domain, 45 module and 84 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.

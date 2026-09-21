@@ -1,17 +1,27 @@
-# Domain Interaction Diagrams Refresh Design
+---
+type: Design Record
+title: Domain Interaction Diagrams Refresh Design
+description: 'Design for replacing the backend domain-interaction diagrams with a source-evidenced model of the current module communication topology that carries no planned or target-state edges. Implemented: the resulting model is docs/architecture/DOMAIN_INTERACTION_MODEL.md.'
+status: implemented
+created: 2026-08-27
+tags: [domain-interaction, adr-0044, topology, kafka, restclient, design-record]
+---
 
-**Date:** 2026-08-27
+> Approved for planning on 2026-08-27 and delivered. The canonical model this design called for
+> is [Backend Domain Interaction Model](../../architecture/DOMAIN_INTERACTION_MODEL.md); the
+> `docs/domain-interaction-diagrams*.md` paths named below were its location in the backend
+> repository at the time.
 
-**Status:** Approved for planning
+## Domain Interaction Diagrams Refresh Design
 
-## Goal
+### Goal
 
 Supersede `docs/domain-interaction-diagrams.md` with an exhaustive, source-evidenced
 model of the backend's current module communication topology while preserving the
 existing content as `docs/domain-interaction-diagrams-2026-07-16.md`. The new
 canonical version contains no planned or target-state edges.
 
-## Scope
+### Scope
 
 - Model the current implementation only.
 - Include every proven synchronous, event, and command edge between modules.
@@ -26,7 +36,7 @@ canonical version contains no planned or target-state edges.
   links continue to resolve to the canonical current model.
 - Cross-link the historical and current versions.
 
-## Evidence Rules
+### Evidence Rules
 
 An edge is included only when current Java source or runtime configuration proves
 both endpoints and the transport. Examples include a concrete REST client target,
@@ -39,7 +49,7 @@ rationale but does not create implementation edges.
 Planned, inferred, disabled, and historical edges are omitted. Ambiguous edges are
 listed in caveats rather than drawn.
 
-## Document Structure
+### Document Structure
 
 The canonical current document contains:
 
@@ -58,7 +68,7 @@ The canonical current document contains:
 7. Caveats describing grouped edges and communication surfaces that cannot be
    established from current evidence.
 
-## Diagram Boundaries
+### Diagram Boundaries
 
 Each diagram is organized by transport rather than by lifecycle target state.
 Modules keep a consistent identifier and classification across all three diagrams.
@@ -73,7 +83,7 @@ Repeated topic consumers may share one producer-to-consumers fan-out when the ed
 catalog retains one row per producer/consumer relationship. This keeps the diagrams
 readable without weakening exhaustiveness.
 
-## Data Flow
+### Data Flow
 
 The source inventory is reduced into normalized edges with these fields:
 
@@ -90,7 +100,7 @@ The normalized edge inventory drives both Mermaid connectors and the edge catalo
 Every diagram edge must map to at least one catalog row, and every catalog row must
 appear in exactly one transport diagram.
 
-## Error Handling
+### Error Handling
 
 - Omit edges whose origin, target, or transport cannot be proven.
 - Record ambiguous or configuration-dependent communication in caveats.
@@ -99,7 +109,7 @@ appear in exactly one transport diagram.
 - Do not treat the audit-only `@EmitEvent` pipeline as domain data transport.
 - Do not treat shared-library dependencies as runtime communication edges.
 
-## Validation
+### Validation
 
 - Check the Markdown diff for whitespace and structural errors.
 - Check that all relative file links resolve.
@@ -108,7 +118,7 @@ appear in exactly one transport diagram.
 - Run `./mvnw -pl pos-archunit -am -Dtest=DomainWallsTest test`.
 - Confirm the document contains no planned or target-state connectors.
 
-## Acceptance Criteria
+### Acceptance Criteria
 
 - The unchanged 2026-07-16 content is preserved at
   `docs/domain-interaction-diagrams-2026-07-16.md` with a historical-version

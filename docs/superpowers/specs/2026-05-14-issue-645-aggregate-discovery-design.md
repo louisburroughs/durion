@@ -1,14 +1,23 @@
-# Issue #645 Aggregate-First Discovery Design
+---
+type: Design Record
+title: 'Issue #645 Aggregate-First Discovery Design'
+description: 'First-slice design for pos-mcp-server auto-discovery: fetch one aggregate OpenAPI document from the gateway instead of one spec per Eureka service, so auto-discovered MCP tools carry the paths the gateway actually serves. Implemented; the aggregate spec URL is a pos-mcp-server property.'
+status: implemented
+created: 2026-05-14
+tags: [pos-mcp-server, mcp, discovery, openapi, api-gateway, design-record]
+---
 
-## Problem
+## Issue #645 Aggregate-First Discovery Design
+
+### Problem
 
 Issue #645 is broader than a single implementation pass: it spans aggregate-first discovery, fallback behavior, refresh scheduling, metrics, rollout validation, and operations work. For the first slice, the goal is narrower: replace the current per-service auto-discovery path in `pos-mcp-server` with aggregate-first discovery from the gateway while keeping existing manual facade tools untouched.
 
 This first slice exists to solve the current path mismatch problem that causes 404s in alpha. The gateway aggregate already exposes paths in the form the gateway serves, so it is the right source of truth for auto-discovered MCP tools.
 
-## Scope
+### Scope
 
-### In scope
+#### In scope
 
 - Fetch a single aggregate OpenAPI document from the gateway
 - Replace per-service auto-discovery as the default registration path
@@ -17,7 +26,7 @@ This first slice exists to solve the current path mismatch problem that causes 4
 - Exclude `admin`, `actuator`, and `internal` paths from auto-discovered registration
 - Keep startup alive if aggregate discovery fails, with no auto-discovered tools registered
 
-### Out of scope
+#### Out of scope
 
 - Per-service fallback if aggregate fetch fails
 - Periodic refresh or dynamic re-registration
@@ -25,7 +34,7 @@ This first slice exists to solve the current path mismatch problem that causes 4
 - Alpha rollout verification and operational runbooks
 - Manual facade tool consolidation or removal
 
-## Architecture
+### Architecture
 
 `pos-mcp-server` should keep one discovery pipeline, but switch the document source for auto-discovered tools from “loop over Eureka services and fetch each service spec” to “fetch one aggregate document from the gateway and map tools from it.” This keeps the integration surface small and preserves the existing startup flow.
 
@@ -39,7 +48,7 @@ The component split for the first slice should be:
 
 This avoids introducing a second registration subsystem or a large strategy framework before the aggregate path is proven.
 
-## Data Flow
+### Data Flow
 
 1. `ToolBootstrapRunner` starts tool discovery at application startup.
 2. `ToolRegistrationServiceImpl` requests the aggregate OpenAPI document from the gateway through `OpenApiDocumentFetcher`.
@@ -55,7 +64,7 @@ For naming, the mapper should use the aggregate path as the source of domain ide
 
 The existing name sanitizer can continue normalizing the final MCP tool name.
 
-## Configuration
+### Configuration
 
 The first slice should add only the configuration needed for aggregate-first discovery:
 
@@ -66,7 +75,7 @@ The first slice should add only the configuration needed for aggregate-first dis
 
 This should not introduce full strategy-selection configuration yet. The first slice is a direct cutover of the auto-discovery path, not a permanent dual-mode system.
 
-## Failure Behavior
+### Failure Behavior
 
 Aggregate-first discovery should be fail-soft in this first slice.
 
@@ -79,9 +88,9 @@ If the aggregate spec cannot be fetched or parsed:
 
 This keeps the discovery enhancement from becoming a hard startup dependency before fallback support exists.
 
-## Testing Strategy
+### Testing Strategy
 
-### Aggregate fetch tests
+#### Aggregate fetch tests
 
 Add focused tests for aggregate fetch success and failure behavior:
 
@@ -89,7 +98,7 @@ Add focused tests for aggregate fetch success and failure behavior:
 - parse failure handling for malformed aggregate content
 - timeout or retrieval failure returning the fail-soft registration path
 
-### Mapper tests
+#### Mapper tests
 
 Add tests around aggregate-specific mapping rules:
 
@@ -99,7 +108,7 @@ Add tests around aggregate-specific mapping rules:
 - exclude `admin`, `actuator`, and `internal` paths
 - ignore paths outside configured allowlists
 
-### Registration tests
+#### Registration tests
 
 Add orchestration-level tests for:
 
@@ -108,7 +117,7 @@ Add orchestration-level tests for:
 - fail-soft startup behavior when aggregate fetch fails
 - no regression to manual tool registration behavior
 
-## Success Criteria
+### Success Criteria
 
 - `ToolRegistrationServiceImpl` uses aggregate-first registration as the default auto-discovery path
 - Auto-discovered tool names follow `{domain}_{operationId}`
@@ -117,7 +126,7 @@ Add orchestration-level tests for:
 - Aggregate fetch or parse failure does not stop server startup, but skips auto-discovered registration with clear logging
 - Manual facade tools remain unaffected
 
-## Follow-on Work
+### Follow-on Work
 
 After this slice is complete and verified, later work can layer on:
 

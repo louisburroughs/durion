@@ -205,7 +205,8 @@ gets it wrong, the fix is a generator change or a named constant — with a comm
    standalone claim about what the document governs, never "This document describes…".
 3. A house status word (`reference`, `proposed`, `retired`) is mapped to OKF's `draft`/`stable`/
    `deprecated` through `PLATFORM_STATUS`, and kept verbatim in `doc_status`. Extend the map rather
-   than forcing documents into vocabulary they do not use.
+   than forcing documents into vocabulary they do not use — a word the map does not know fails
+   `--check`, because an entry with no `status` reads as `stable` to every consumer.
 4. To index a folder that is not yet declared, add a `(repo, folder, tag)` triple to
    `PLATFORM_AREAS` and a label to `AREA_LABEL`. Deliberate, not discovered.
 
@@ -245,10 +246,12 @@ upstream change writes nothing. Therefore:
 > the edit was scoped.
 
 `--check` returns non-zero on any conformance problem and prints one line per problem. It validates
-bundle structure, plus one source-side trap: a platform document whose **frontmatter fails to parse**.
-That is the bundle's silent failure — an unquoted `: ` inside a YAML scalar voids the whole block, the
-entry quietly falls back to scraping the first prose line, and a curated description is lost with
-nothing going red. Quote every value containing `: `.
+bundle structure, plus two source-side traps. First, a platform document whose **frontmatter fails
+to parse**: the bundle's silent failure — an unquoted `: ` inside a YAML scalar voids the whole
+block, the entry quietly falls back to scraping the first prose line, and a curated description is
+lost with nothing going red. Quote every value containing `: `. Second, a platform document whose
+**`status` word is not in `PLATFORM_STATUS`**: the entry would carry no OKF `status`, which every
+consumer reads as `stable`, so an in-progress plan would present as settled. Add the word to the map.
 
 Everything else in §3 is your judgment, not the script's.
 

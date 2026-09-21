@@ -1,6 +1,25 @@
-# Internal Service Discovery Reconciliation Design
+---
+type: Design Record
+title: Internal Service Discovery Reconciliation Design
+description: 'The 2026-06-09 design that moved internal runtime HTTP calls off gateway-rooted URLs onto Eureka service ids resolved through a load-balanced RestClient. Historical: the decision shipped, and the standing registry, client categories and exception register now live in docs/architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md.'
+status: superseded
+created: 2026-06-09
+superseded_by: ../../architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md
+tags: [service-discovery, eureka, restclient, api-gateway, design-record]
+---
 
-## Problem
+> **Historical design record.** The decision below shipped, and this document is kept as the
+> reasoning behind it, not as a plan to execute. The three migration-era documents it names as
+> inputs — `docs/service-discovery-loadbalancer-migration-analysis.md`,
+> `docs/service-discovery-migration/client-policy-matrix.md` and
+> `docs/service-discovery-migration/service-id-registry.md` — were consolidated on 2026-09-20 into
+> [Internal Transport And Service Discovery](../../architecture/INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md),
+> which is the current source for the service-id registry, the client categories and the exception
+> register. Those paths no longer exist; the backend repository's git history holds the originals.
+
+## Internal Service Discovery Reconciliation Design
+
+### Problem
 
 Internal service-to-service HTTP calls in `durion-positivity-backend` currently use multiple incompatible routing models:
 
@@ -13,7 +32,7 @@ That inconsistency is now breaking down because many services run on dynamic por
 
 The current model duplicates network truth across caller config, callee config, and deployment manifests. It also treats the API gateway as both the external edge and an internal transport root, which is no longer necessary now that direct service discovery is acceptable for backend-to-backend calls.
 
-## Decision
+### Decision
 
 Adopt direct service discovery as the default pattern for internal runtime HTTP calls.
 
@@ -27,9 +46,9 @@ The target rule is:
 
 This is a deliberate move away from using `http://api-gateway` as the default internal root.
 
-## Scope
+### Scope
 
-### In scope
+#### In scope
 
 - Replace internal runtime gateway-root or fixed-port service calls with direct discovery-based calls
 - Rename ambiguous internal client configuration from `*.base-url` style properties to explicit `*.service-id` and `*.base-path`
@@ -37,7 +56,7 @@ This is a deliberate move away from using `http://api-gateway` as the default in
 - Update service discovery and migration documentation to reflect the new default policy
 - Add verification steps to catch remaining internal `http://api-gateway` assumptions
 
-### Out of scope
+#### Out of scope
 
 - Frontend or SDK base URL changes
 - Public gateway route changes for browser or external consumers
@@ -45,9 +64,9 @@ This is a deliberate move away from using `http://api-gateway` as the default in
 - Changing external third-party API integrations
 - Re-architecting `pos-tax` beyond the already documented exemption boundary
 
-## Policy
+### Policy
 
-### 1. Internal runtime calls
+#### 1. Internal runtime calls
 
 Internal runtime calls should resolve through Eureka plus Spring Cloud LoadBalancer.
 
@@ -68,7 +87,7 @@ This removes gateway prefixes such as `/people/...` or `/inventory/...` from int
 
 The `service-id` value must match the downstream service's `spring.application.name` exactly. Spring Cloud LoadBalancer performs case-insensitive matching against the Eureka registry, but the value in configuration should be lowercase to match the convention used in `docs/service-discovery-migration/service-id-registry.md`.
 
-### 2. Local development
+#### 2. Local development
 
 Local development uses the `eureka-server` service already defined in `docker-compose.yml` as the discovery registry.
 
@@ -79,7 +98,7 @@ The minimum local-dev prerequisite for a module under migration is to have `eure
 
 No additional `spring.cloud.discovery.enabled=false` override or static instance list is required. The existing Docker Compose setup is sufficient.
 
-### 3. Service-to-service authentication
+#### 3. Service-to-service authentication
 
 Direct internal callers do not pass through the API gateway and therefore do not receive a JWT-validated security context from the gateway filter. They authenticate to downstream services by injecting both a service principal header (`X-User`) and a minimal `X-Authorities` header containing only the permissions required for the specific call.
 
@@ -93,7 +112,7 @@ Downstream services accept this via `GatewayAuthoritiesFilter`'s `X-Authorities`
 
 This policy applies to all internal runtime callers converted under this migration. It must not be removed or weakened during the client conversion.
 
-### 4. Direct exceptions
+#### 4. Direct exceptions
 
 Direct or plain clients remain valid only for clearly documented categories:
 
@@ -106,7 +125,7 @@ Direct or plain clients remain valid only for clearly documented categories:
 
 These are exceptions, not parallel defaults.
 
-### 5. Gateway role
+#### 5. Gateway role
 
 `pos-api-gateway` remains:
 
@@ -116,9 +135,9 @@ These are exceptions, not parallel defaults.
 
 `pos-api-gateway` should no longer be treated as the default internal backend mesh root.
 
-## Configuration Model
+### Configuration Model
 
-### Current problem
+#### Current problem
 
 Properties like `pos.people.base-url=http://api-gateway` or `gateway.url=http://api-gateway` mix three separate concerns:
 
@@ -128,7 +147,7 @@ Properties like `pos.people.base-url=http://api-gateway` or `gateway.url=http://
 
 That makes internal callers dependent on environment-specific naming and gateway path structure.
 
-### Target model
+#### Target model
 
 Rename internal runtime client configuration to explicit fields:
 
@@ -151,7 +170,7 @@ This makes the configuration self-describing:
 
 No backward-compatibility layer is required for old property names. However, because backward compatibility is not preserved, **all callers of a given service must be migrated in the same pass**. Partial rollout — where module A has been converted but still calls module B whose properties have not yet been renamed — will leave the deployment broken. The execution plan must sequence changes so each touched module is internally coherent at the end of each commit.
 
-## Path Mapping
+### Path Mapping
 
 The largest implementation risk is converting callers from gateway-prefixed paths to downstream-native paths incorrectly. The gateway rewrites paths at route time (stripping prefixes such as `/people` before forwarding to the `people` service), so the URI a caller sends to `http://api-gateway/people/v1/people/{id}` is not the same as the URI the downstream service actually handles (`/v1/people/{id}`).
 
@@ -163,7 +182,7 @@ For each client being converted:
 
 A starter mapping is maintained in the service ID registry. Any gap found during conversion should be added there as part of the same commit.
 
-## Component Impact
+### Component Impact
 
 The primary impacted areas are the modules already identified in the discovery audit and policy matrix, especially those currently using:
 
@@ -181,18 +200,18 @@ Expected touch points include:
 
 The existing registry in `docs/service-discovery-migration/service-id-registry.md` should remain the source of truth for service ID naming, but its guidance should shift from "gateway path prefix plus target URI" toward "direct discovery default plus documented exceptions."
 
-## Migration Strategy
+### Migration Strategy
 
 The existing `docs/service-discovery-loadbalancer-migration-analysis.md` and `docs/service-discovery-migration/client-policy-matrix.md` represent prior analysis work that classified all runtime clients. Phase 1 begins by updating those documents to reflect the new direct-discovery default rather than the earlier gateway-root-normalization intent. The client policy matrix is not being replaced — its per-client classification rows are reused; only the target pattern and action column descriptions change.
 
-### Phase 1: Policy and inventory alignment
+#### Phase 1: Policy and inventory alignment
 
 - Update `docs/service-discovery-loadbalancer-migration-analysis.md` to state that direct discovery is the default internal runtime model
 - Update `docs/service-discovery-migration/client-policy-matrix.md` categories and actions to reflect direct discovery rather than gateway-root normalization
 - Confirm the authoritative Eureka service ID inventory for all affected modules against the service ID registry
 - Identify all internal runtime clients still rooted at `http://api-gateway`, `localhost`, or fixed service ports
 
-### Phase 2: Configuration rename and client conversion
+#### Phase 2: Configuration rename and client conversion
 
 - Rename internal runtime client properties from `*.base-url` to `*.service-id` and `*.base-path`
 - Refactor client construction to use logical service IDs and downstream-native paths
@@ -200,20 +219,20 @@ The existing `docs/service-discovery-loadbalancer-migration-analysis.md` and `do
 - Keep existing direct-exception clients plain and explicitly documented
 - Update `additional-spring-configuration-metadata.json` for each touched module in the same commit as the property rename
 
-### Phase 3: Tests and verification updates
+#### Phase 3: Tests and verification updates
 
 - Update unit or slice tests that currently assert `http://api-gateway` or gateway-prefixed URIs
 - Add targeted tests around direct-discovery URI construction for representative modules
 - Add repo-level grep verification for stale internal gateway-root defaults where practical
 
-### Phase 4: Documentation cleanup
+#### Phase 4: Documentation cleanup
 
 - Update service discovery migration docs
 - Update impacted module README or configuration guidance where internal callers are documented
 - Update config metadata descriptions and defaults so IDE assistance reflects the new model
 - Remove or rewrite docs that still present `http://api-gateway` as the generic internal service root
 
-## Documentation Impact
+### Documentation Impact
 
 The documentation set must be updated as part of the migration, not after it.
 
@@ -232,9 +251,9 @@ Documentation outcomes should be:
 - no mixed guidance between gateway-root routing and direct discovery for the same client category
 - no examples that require internal callers to know a dynamic port
 
-## Testing Strategy
+### Testing Strategy
 
-### Configuration and client tests
+#### Configuration and client tests
 
 Add or update focused tests that verify:
 
@@ -242,7 +261,7 @@ Add or update focused tests that verify:
 - request URIs use downstream-native paths rather than gateway prefixes
 - renamed properties are wired correctly in Spring configuration
 
-### Regression checks
+#### Regression checks
 
 Run module-targeted tests for every touched module and add a lightweight audit for stale defaults:
 
@@ -252,7 +271,7 @@ Run module-targeted tests for every touched module and add a lightweight audit f
 
 The baseline for the audit is: 25+ `@Value` injections with `http://api-gateway` defaults across 15 modules at the time this spec was written. The target is zero occurrences in runtime `application.yml` defaults and `@Value` fallbacks outside the documented exception list.
 
-### Documentation checks
+#### Documentation checks
 
 Audit the updated docs to ensure:
 
@@ -260,21 +279,21 @@ Audit the updated docs to ensure:
 - service IDs match the registry
 - documented exceptions match the code
 
-## Risks
+### Risks
 
-### Path-shape mistakes
+#### Path-shape mistakes
 
 The biggest implementation risk is converting callers from gateway-prefixed paths to downstream-native paths incorrectly. Each client must be checked against the downstream controller contract, not inferred from the gateway route alone. See the Path Mapping section for the required process.
 
-### Mixed property rollout
+#### Mixed property rollout
 
 Because backward compatibility is intentionally not preserved, partial rollout across modules can leave modules temporarily inconsistent. The execution plan must sequence changes so each touched module is internally coherent in one pass. No module should be left in a state where the property name has been renamed but the client construction has not yet been updated, or vice versa.
 
-### Hidden gateway dependencies
+#### Hidden gateway dependencies
 
 Some internal callers may rely implicitly on gateway behavior such as path rewriting, header mutation, or auth assumptions. Those dependencies must be identified explicitly rather than carried forward by habit. In particular, callers that currently rely on the gateway to inject auth headers must be updated to inject `X-Authorities` directly per the service-to-service authentication policy above.
 
-## Success Criteria
+### Success Criteria
 
 - Internal runtime clients default to direct service discovery rather than gateway-root routing
 - Ambiguous `*.base-url` runtime client properties are replaced by explicit `*.service-id` and `*.base-path` naming
@@ -284,7 +303,7 @@ Some internal callers may rely implicitly on gateway behavior such as path rewri
 - Zero occurrences of `http://api-gateway` in runtime `application.yml` defaults or `@Value` fallbacks outside the approved exception list
 - All converted clients inject `X-Authorities` where downstream endpoints require it
 
-## Non-Goals
+### Non-Goals
 
 - Making frontend consumers discovery-aware
 - Removing the API gateway from the public architecture
