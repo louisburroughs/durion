@@ -147,7 +147,7 @@ All three are now returned on `LocationResponseDTO`, so they appear on every loc
 
 - `timezone` — IANA identifier. This is the zone every entry below is expressed in, and the
   zone scheduling converts an incoming booking instant into. Hours are facility-local by
-  design (DECISION-015), so a client that publishes `08:00-18:00` without a timezone gets
+  design (DECISION-SHOPMGMT-015), so a client that publishes `08:00-18:00` without a timezone gets
   whatever zone the location already carries, not UTC.
 - `operatingHours` — `[{ dayOfWeek, openTime, closeTime }]`, one entry per published day.
 - `holidayClosures` — `[{ date, reason }]`.
