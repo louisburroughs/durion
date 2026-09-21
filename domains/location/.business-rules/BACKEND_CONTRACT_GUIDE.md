@@ -135,6 +135,30 @@ primary-location fallback, or the frontend directly) never invent their own defa
   synchronously (ADR-0044); the endpoint remains the contract of record for the
   definition.
 
+#### Backend PR louisburroughs/durion-positivity-backend#2139 — Scheduling Fields Are Readable
+
+`timezone`, `operatingHours` and `holidayClosures` were write-only: settable on create,
+update and patch, and absent from every read. A caller could publish hours, be refused a
+booking against them with a `409 OUTSIDE_OPERATING_HOURS` quoting a converted time, and
+have no way to read back what the server stored or which zone it reads it in.
+
+All three are now returned on `LocationResponseDTO`, so they appear on every location read
+**and** on the response to the write that set them:
+
+- `timezone` — IANA identifier. This is the zone every entry below is expressed in, and the
+  zone scheduling converts an incoming booking instant into. Hours are facility-local by
+  design (DECISION-015), so a client that publishes `08:00-18:00` without a timezone gets
+  whatever zone the location already carries, not UTC.
+- `operatingHours` — `[{ dayOfWeek, openTime, closeTime }]`, one entry per published day.
+- `holidayClosures` — `[{ date, reason }]`.
+
+`null` and `[]` differ and must not be conflated: `null` means never published, `[]` means
+published as empty (closed all week / no closures), matching the #2023 event contract.
+Stored JSON that cannot be parsed is answered as absent rather than failing the read.
+
+These are response-only shapes (`OperatingHoursResponse`, `HolidayClosureResponse`); the
+write-side request types are deliberately not reused, so the two are free to diverge.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
