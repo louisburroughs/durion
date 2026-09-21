@@ -152,9 +152,9 @@ All three are now returned on `LocationResponseDTO`, so they appear on every loc
 - `operatingHours` — `[{ dayOfWeek, openTime, closeTime }]`, one entry per published day.
 - `holidayClosures` — `[{ date, reason }]`.
 
-`null` and `[]` differ and must not be conflated: `null` means never published, `[]` means
-published as empty (closed all week / no closures), matching the #2023 event contract.
-Stored JSON that cannot be parsed is answered as absent rather than failing the read.
+For valid stored data, `null` and `[]` differ and must not be conflated: `null` means never published, `[]` means
+published as empty (closed all week / no closures), matching the #2023 event contract. Malformed stored JSON is also
+returned as absent rather than failing the read, so `null` alone does not prove that the field was never published.
 
 These are response-only shapes (`OperatingHoursResponse`, `HolidayClosureResponse`); the
 write-side request types are deliberately not reused, so the two are free to diverge.
