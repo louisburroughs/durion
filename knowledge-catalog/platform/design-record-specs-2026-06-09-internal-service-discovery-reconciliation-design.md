@@ -9,7 +9,7 @@ kind: Design Record
 status: deprecated
 doc_status: superseded
 sources: [durion/docs/superpowers/specs/2026-06-09-internal-service-discovery-reconciliation-design.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:04-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:11:47+00:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/specs/2026-06-09-internal-service-discovery-reconciliation-design.md) — `durion/docs/superpowers/specs/2026-06-09-internal-service-discovery-reconciliation-design.md`

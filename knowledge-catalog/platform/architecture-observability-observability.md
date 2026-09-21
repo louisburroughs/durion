@@ -9,7 +9,7 @@ kind: Research Note
 status: draft
 doc_status: proposed
 sources: [durion/docs/architecture/observability/OBSERVABILITY.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-04-22T03:58:40-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:11:47+00:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/observability/OBSERVABILITY.md) — `durion/docs/architecture/observability/OBSERVABILITY.md`
