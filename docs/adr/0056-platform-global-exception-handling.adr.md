@@ -163,8 +163,8 @@ gateway error rendering remains its own concern
   `pos-web-common` module (`GlobalApiExceptionHandler`, `DataIntegrityViolations`,
   `WebCommonErrorAutoConfiguration`), auto-configured for servlet web applications only.
 - Enforcement: `pos-archunit/src/test/java/com/positivity/archunit/GlobalExceptionHandlerEnforcementTest.java`.
-- Envelope codes are documented in durion-positivity-backend `docs/ERROR_ENVELOPE.md`
-  ("Platform Fallback Codes").
+- Envelope codes are documented in the [Error Envelope](../architecture/api/ERROR_ENVELOPE.md)
+  contract ("Platform Fallback Codes").
 - ADR-0017 remains the status-matrix authority; on acceptance, add a changelog line there
   cross-referencing this ADR for the not-null/check mapping.
 

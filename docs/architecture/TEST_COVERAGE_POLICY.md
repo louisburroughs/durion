@@ -1182,7 +1182,7 @@ One defect filed: #1279.
   `pos-vehicle-inventory` had no `@ControllerAdvice` at all, so a wrong-length VIN
   on `@Validated` `GET /vin/{vin}` raised `ConstraintViolationException` and
   surfaced as 500, and no error from the module carried the `ApiError` envelope
-  required by `docs/ERROR_ENVELOPE.md`. `VehicleExceptionHandler` now maps
+  required by the [Error Envelope](./api/ERROR_ENVELOPE.md). `VehicleExceptionHandler` now maps
   constraint violations, body validation, `EntityNotFoundException` and
   `IllegalArgumentException` into the envelope, and the hand-rolled `try/catch`
   blocks in `VehicleRegistryController` and `VehicleController` are gone.
