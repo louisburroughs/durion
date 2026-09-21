@@ -178,6 +178,35 @@ Headers and auth notes:
   - `CREATE_APPOINTMENT` — required to create new appointments (story #12).
 - **Deterministic failures & correlation:** All mutation failures must return deterministic error codes (400/403/409) with `X-Correlation-Id` propagated for tracing.
 
+#### Scheduling Refusal Messages Name Their Frame (backend #2139, #2140)
+
+A `409 SCHEDULING_CONFLICT` lists each blocking check in `conflicts[]` (ADR-0017 §3).
+Two properties of those entries are now contract, because a caller cannot act on a
+refusal whose frame of reference is left to be inferred:
+
+- **Every conflict that quotes a time window names the zone it converted into** — for
+  example `04:00-05:00 America/New_York falls outside the location's operating hours for
+  that day.` Operating hours are facility-local by design (DECISION-SHOPMGMT-015), so an instant
+  sent in UTC is judged in the location's own zone; without the zone in the message the
+  offset can only be deduced. Applies to `OUTSIDE_OPERATING_HOURS`, `BAY_DOUBLE_BOOKED`,
+  `MECHANIC_UNAVAILABLE`, `MECHANIC_OVERTIME`, `FACILITY_NEAR_CAPACITY` and
+  `COMPETENT_MECHANIC_UNAVAILABLE`. Codes that quote no window (`FACILITY_CLOSED`,
+  `NO_COMPETENT_MECHANIC_ROSTERED`) are unaffected.
+- **`MECHANIC_UNAVAILABLE` states the staffing fact it actually checked.** Presence is
+  decided from ACTIVE technician staffing assignments whose effective range covers the
+  requested *date*, so a shop with staff can still have nobody effective on that date.
+  The message distinguishes the two cases rather than saying only that no mechanic is
+  present:
+  `... (7 ACTIVE technician staffing assignments exist at this location, none effective
+  on 2025-12-02)` versus `... (no ACTIVE technician staffing assignment exists at this
+  location)`.
+
+Note for consumers of the dispatch roster: the roster read
+(`findRosterByLocation`) filters ACTIVE technician assignments but does **not**
+date-filter, while this presence check does. A location's roster can therefore list
+technicians that a booking on a given date will not count. That difference is
+deliberate for now and is why the refusal states the date.
+
 ### Events & Dependencies
 
 - Outgoing events produced by this capability: `AppointmentCreatedFromEstimate`, `AppointmentCreatedFromWorkOrder`, `AppointmentRescheduled`, `ASSIGNMENT_UPDATED`.
