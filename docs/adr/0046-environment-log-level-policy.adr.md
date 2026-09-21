@@ -166,7 +166,7 @@ forensic narrative — including the WARN/INFO precursors leading up to a failur
 - **Related ADRs**: [ADR-0018: Audit Actor Fields from Security Context](0018-audit-actor-fields-from-security-context.adr.md) (audit logging must not be suppressed),
   [ADR-0045: Autonomous Environment Lifecycle Management](0045-autonomous-environment-lifecycle-management.adr.md)
 - **Related Documentation**: Observability Guide (`docs/architecture/observability/`), Spring Boot logging documentation (`logging.level.*`, structured logging, actuator
-  loggers endpoint), Google SRE Workbook (alerting on metrics; logs for forensics), `docs/ERROR_ENVELOPE.md` (`correlationId` propagation)
+  loggers endpoint), Google SRE Workbook (alerting on metrics; logs for forensics), [Error Envelope](../architecture/api/ERROR_ENVELOPE.md) (`correlationId` propagation)
 
 ---
 

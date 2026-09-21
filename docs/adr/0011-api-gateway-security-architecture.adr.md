@@ -68,7 +68,7 @@ The platform now also has shared reference artifacts that make this security bou
 - `pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md` for gateway auth, token lifecycle, and required header usage
 - `pos-security-service/docs/permissions-aggregate.yaml` for aggregated canonical permissions across service manifests
 - `pos-api-gateway/docs/openapi-aggregate.yaml` as the aggregate gateway-facing API reference artifact
-- `com.positivity.shared.error.ApiError` and `docs/ERROR_ENVELOPE.md` as the common non-2xx error contract returned by backend APIs
+- `com.positivity.shared.error.ApiError` and the [Error Envelope](../architecture/api/ERROR_ENVELOPE.md) contract as the common non-2xx error contract returned by backend APIs
 
 ---
 
@@ -274,7 +274,7 @@ modules.
   - [Platform Auth and Token Usage Guide](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service/docs/AUTH_TOKEN_USAGE_GUIDE.md)
   - [Aggregated Permissions Catalog](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service/docs/permissions-aggregate.yaml)
   - [Gateway Aggregate API Reference](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-api-gateway/docs/openapi-aggregate.yaml)
-  - [Shared Error Envelope](https://github.com/louisburroughs/durion-positivity-backend/blob/main/docs/ERROR_ENVELOPE.md)
+  - [Shared Error Envelope](https://github.com/louisburroughs/durion/blob/master/docs/architecture/api/ERROR_ENVELOPE.md)
   - [ApiError.java](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-shared-dtos/src/main/java/com/positivity/shared/error/ApiError.java)
 
 - **External Resources**:

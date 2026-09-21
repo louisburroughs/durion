@@ -71,11 +71,13 @@ through ordinary links between concepts; consumers compute reverse links ("cited
 
 ```
 knowledge-catalog/
-├── index.md          okf_version: '0.2' — links the three sub-indexes
+├── index.md          okf_version: '0.2' — links the four sub-indexes
 ├── log.md            hand-written history (append-only)
 ├── adr/              one concept per docs/adr/*.adr.md      type: ADR
 ├── domains/          one concept per domains/<name>/        type: Domain
-└── backend/          one concept per pos-* module           type: Module
+├── backend/          one concept per pos-* module           type: Module
+└── platform/         one concept per curated document in    type: Platform Document
+                      a declared PLATFORM_AREA — in either repo
 ```
 
 Each concept carries **both** locators — keep this straight, they answer different questions:
@@ -102,6 +104,9 @@ read as files, not just served.
 | Module `description` | `pom.xml` `<description>`, else first prose of the module `README.md`, else `MODULE_FALLBACK` | Fix the pom description — one line, reaches every reader |
 | Module `kind` | `Service` if `Dockerfile` or `src/main/resources/application.yml` exists, else `Library` | Structural; do not fake it |
 | Module **API contract** | presence of `openapi.yaml` | Regenerate the spec (see CLAUDE.md contract chain) |
+| Platform doc `title`/`description`/`status` | the document's own frontmatter, else its `# ` heading and first prose sentence | Give the document frontmatter; its opening sentence is extracted verbatim |
+| Which documents become Platform Documents | the `PLATFORM_AREAS` list — `(repo, folder, tag)` triples | Add a folder there to index it; hidden folders and `archive/` are skipped |
+| Platform doc repo and `path:` | the area's repo key — `durion` or `backend` | Move the file to the repo that maintains it; the entry reads the same either way |
 | `generated.at` | the **source document's last commit** | Nothing — this is what makes reruns idempotent |
 
 The generator's exceptions live as named constants at the top of
@@ -189,18 +194,36 @@ Never patch the note. Identify which row of §2's derivation table produced the 
 source, regenerate, and verify the entry changed. If the source is right and the generator still
 gets it wrong, the fix is a generator change or a named constant — with a comment stating why.
 
+### 4.5b A platform document — architecture, operations, governance, design record
+
+1. Put the file in a folder `PLATFORM_AREAS` already declares, in the repo that **maintains** it:
+   platform knowledge in `durion/docs/architecture|governance|howto|superpowers`, operating
+   procedure in `durion-positivity-backend/docs`. The reader never has to know which — `path:`
+   names the checkout.
+2. Give it frontmatter: `type`, `title`, `description`, `status`. Without it the generator falls
+   back to the `# ` heading and the first prose sentence, which is why that sentence must be a
+   standalone claim about what the document governs, never "This document describes…".
+3. A house status word (`reference`, `proposed`, `retired`) is mapped to OKF's `draft`/`stable`/
+   `deprecated` through `PLATFORM_STATUS`, and kept verbatim in `doc_status`. Extend the map rather
+   than forcing documents into vocabulary they do not use — a word the map does not know fails
+   `--check`, because an entry with no `status` reads as `stable` to every consumer.
+4. To index a folder that is not yet declared, add a `(repo, folder, tag)` triple to
+   `PLATFORM_AREAS` and a label to `AREA_LABEL`. Deliberate, not discovered.
+
 ### 4.6 Extending coverage to another repo
 
-The generator indexes **two** repos: `durion` (ADRs, domains) and `durion-positivity-backend`
-(modules). `durion-positivity-frontend`, `durion-positivity-sdk-angular`, and
-`durion-positivity-sdk` are **not indexed** — an agent looking for a frontend feature gets nothing
-from the catalog today. That is the largest known gap.
+The generator indexes **two** repos: `durion` (ADRs, domains, platform documents) and
+`durion-positivity-backend` (modules, plus the operating documents that stay beside the build).
+`durion-positivity-frontend`, `durion-positivity-sdk-angular`, and `durion-positivity-sdk` are
+**not indexed** — an agent looking for a frontend feature gets nothing from the catalog today.
+That is the largest remaining gap.
 
 To close it, follow the existing shape rather than inventing one: a new sub-bundle directory
 (`frontend/`), a `*_records()` inventory function, a `*_note()` renderer, an `index.md`, a `type:`
 for the concept kind, a repo root constant beside `BACKEND` with an env override, and `path:`
-values prefixed with that repo's directory name. Ask before doing this — it is a generator change
-with cross-repo reach, not a content edit.
+values prefixed with that repo's directory name. `platform_records()` is the worked example —
+it already spans both repos. Ask before doing this: it is a generator change with cross-repo
+reach, not a content edit.
 
 ---
 
@@ -223,7 +246,14 @@ upstream change writes nothing. Therefore:
 > the edit was scoped.
 
 `--check` returns non-zero on any conformance problem and prints one line per problem. It validates
-structure only; §3 quality is your judgment, not the script's.
+bundle structure, plus two source-side traps. First, a platform document whose **frontmatter fails
+to parse**: the bundle's silent failure — an unquoted `: ` inside a YAML scalar voids the whole
+block, the entry quietly falls back to scraping the first prose line, and a curated description is
+lost with nothing going red. Quote every value containing `: `. Second, a platform document whose
+**`status` word is not in `PLATFORM_STATUS`**: the entry would carry no OKF `status`, which every
+consumer reads as `stable`, so an in-progress plan would present as settled. Add the word to the map.
+
+Everything else in §3 is your judgment, not the script's.
 
 ---
 

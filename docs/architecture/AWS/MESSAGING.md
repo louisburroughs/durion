@@ -1,3 +1,14 @@
+---
+type: Research Note
+title: SNS and SQS Messaging Topology
+description: 'How SNS topics and SQS queues would carry events between services on an ECS Fargate deployment, including fan-out and dead-letter handling. The platform runs Kafka today; this is target-state exploration, not current messaging.'
+status: proposed
+---
+
+# SNS and SQS Messaging Topology
+
+> **Research note — not current architecture.** Exploratory material for the ECS Fargate target substrate. The deployed alpha runs Docker on a single EC2 host; see [Docker EC2 Architecture](DOCKER_EC2_ARCHITECTURE.md).
+
 ## Amazon SNS (Simple Notification Service)
 
 SNS is a fully managed pub/sub messaging service that enables you to decouple microservices, distributed systems, and serverless applications.

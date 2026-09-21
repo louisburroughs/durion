@@ -27,6 +27,11 @@ Override the backend checkout with DURION_BACKEND=/path/to/durion-positivity-bac
 A domain index with frontmatter `type: Domain Guide` opts into recursive indexing
 of visible Markdown documents. Hidden business-rule guides keep their own section;
 other hidden artifacts are reached through the canonical domain index.
+
+`PLATFORM_AREAS` declares the folders — in either repository — whose curated prose is
+indexed as `Platform Document` concepts. A document belongs where it is maintained, so
+an operating procedure stays beside the build it drives; `path:` names the checkout that
+holds it, and the entry reads the same either way.
 """
 
 from __future__ import annotations
@@ -77,6 +82,45 @@ MODULE_DOMAIN = {
 }
 MODULE_FALLBACK = {
     "pos-agent-framework": "Placeholder module directory; no build file or README yet.",
+}
+# Platform documents: curated prose that is neither a decision record, a domain guide, nor a
+# module — architecture, operations, governance, and the design records that outlived their plans.
+# Both repositories are scanned, because a document belongs where it is maintained: a contract
+# lives with the platform, an operating procedure lives beside the build it drives. The reader
+# should not have to know which, so `path:` names the checkout and the entry reads the same either
+# way. Areas are declared rather than discovered, so a new folder joins the catalog deliberately.
+PLATFORM_AREAS = [
+    ("durion", "docs/architecture", "architecture"),
+    ("durion", "docs/governance", "governance"),
+    ("durion", "docs/howto", "howto"),
+    ("durion", "docs/superpowers", "design-record"),
+    ("backend", "docs", "backend-operations"),
+]
+# Longest heading accepted as a stand-in title when a document declares none.
+MAX_SCRAPED_TITLE = 120
+# Source documents whose frontmatter failed to parse, reported at the end of a run.
+SOURCE_WARNINGS: list[str] = []
+# OKF allows three lifecycle values; documents here use a wider house vocabulary. The mapping
+# records the OKF value and keeps the document's own word in `doc_status`, as ADRs do.
+PLATFORM_STATUS = {
+    "accepted": "stable",
+    "active": "stable",
+    "current": "stable",
+    "implemented": "stable",
+    "reference": "stable",
+    "stable": "stable",
+    "draft": "draft",
+    # The DevOps framework set states its lifecycle as "Draft specification" — a specification
+    # that is written but not yet built. Without this row the whole set resolves to no status,
+    # which reads as "current" to an agent that only checks for a deprecation marker.
+    "draft specification": "draft",
+    "in progress": "draft",
+    "in-progress": "draft",
+    "proposed": "draft",
+    "wip": "draft",
+    "deprecated": "deprecated",
+    "retired": "deprecated",
+    "superseded": "deprecated",
 }
 
 
@@ -217,6 +261,73 @@ def module_records() -> list[dict]:
     return records
 
 
+def platform_records() -> list[dict]:
+    """Every curated document in the declared platform areas, in either repository."""
+    records = []
+    for repo_key, area, tag in PLATFORM_AREAS:
+        root = REPO if repo_key == "durion" else BACKEND
+        base = root / area
+        if not base.exists():
+            continue
+        for doc in sorted(base.rglob("*.md")):
+            relative = doc.relative_to(base)
+            # Hidden folders hold working material, and an archive is kept, not published.
+            if any(part.startswith(".") or part == "archive" for part in relative.parts):
+                continue
+            frontmatter, body = split_frontmatter(doc.read_text(encoding="utf-8", errors="replace"))
+            keys = {k: ("" if v is None else v) for k, v in parse_frontmatter(frontmatter).items()}
+            # A frontmatter block that parses to nothing is the silent failure of this bundle: the
+            # entry quietly falls back to scraping the first prose line, so a curated description is
+            # lost without anything going red. An unquoted `: ` inside a scalar is the usual cause.
+            if frontmatter.strip() and not keys:
+                SOURCE_WARNINGS.append(f"{platform_path({'repo': repo_key, 'in_repo': f'{area}/{relative.as_posix()}'})}: frontmatter does not parse as YAML — quote any value containing ': '")
+            heading = re.search(r"^#\s+(.+)$", body, re.M)
+            # A declared title is trusted whatever its length. A scraped H1 is not: several of these
+            # documents are chat transcripts whose H1 is the pasted prompt, and one ran to 451
+            # characters — long enough to push the generated index past the markdown line limit and
+            # fail the bundle's own lint. A heading that long is not a title, so fall back to the
+            # filename and say so.
+            title = str(keys.get("title") or "")
+            if not title and heading:
+                scraped = delink(heading.group(1)).strip()
+                if len(scraped) <= MAX_SCRAPED_TITLE:
+                    title = scraped
+                else:
+                    SOURCE_WARNINGS.append(
+                        f"{platform_path({'repo': repo_key, 'in_repo': f'{area}/{relative.as_posix()}'})}: "
+                        f"first heading is {len(scraped)} characters, too long to be a title — declare `title:` in frontmatter"
+                    )
+            title = title or doc.stem
+            doc_status = str(keys.get("status") or "")
+            in_repo = f"{area}/{relative.as_posix()}"
+            # A status word the map does not know would leave the entry with no OKF `status`, and a
+            # consumer reads a missing lifecycle as `stable` — an in-progress plan presented as
+            # settled. Extend PLATFORM_STATUS rather than let the word through.
+            if doc_status.strip() and doc_status.strip().lower() not in PLATFORM_STATUS:
+                SOURCE_WARNINGS.append(
+                    f"{platform_path({'repo': repo_key, 'in_repo': in_repo})}: "
+                    f"status `{doc_status.strip()}` is not in PLATFORM_STATUS — add a row mapping it to draft, stable or deprecated"
+                )
+            records.append(
+                {
+                    "slug": f"{tag}-{relative.as_posix()[:-3]}".replace("/", "-").replace("_", "-").lower(),
+                    "path": doc,
+                    "repo": repo_key,
+                    "area": tag,
+                    "in_repo": in_repo,
+                    "title": title,
+                    # The document's own `type` says whether it is executable steps, binding rules or
+                    # a record. OKF's `type` is taken by the concept kind, so it travels as `kind`.
+                    "kind": str(keys.get("type") or ""),
+                    "description": str(keys.get("description") or "") or first_prose(doc) or f"{title}.",
+                    "doc_status": doc_status,
+                    "status": PLATFORM_STATUS.get(doc_status.strip().lower(), ""),
+                    "tags": list(keys.get("tags") or []) or ["platform", tag],
+                }
+            )
+    return records
+
+
 def documentation_index_keys(domain: Path) -> dict:
     """Frontmatter of the domain's index.md when it is a Domain Guide, else empty."""
     index = domain / "index.md"
@@ -353,6 +464,46 @@ def module_note(record: dict, owner: str) -> str:
     return "\n".join(lines)
 
 
+AREA_LABEL = {
+    "architecture": "Platform architecture",
+    "governance": "Governance",
+    "howto": "How-to",
+    "design-record": "Design record",
+    "backend-operations": "Backend operations",
+}
+REPO_NOTE = {
+    "durion": "durion — platform knowledge",
+    "backend": "durion-positivity-backend — kept beside the build it describes",
+}
+
+
+def platform_note(record: dict) -> str:
+    lines = [
+        f"[Document]({platform_resource(record)}) — `{platform_path(record)}`",
+        "",
+    ]
+    if record["kind"]:
+        lines.append(f"**Kind:** {record['kind']}")
+    lines += [
+        f"**Area:** {AREA_LABEL.get(record['area'], record['area'])}",
+        f"**Repository:** {REPO_NOTE[record['repo']]}",
+    ]
+    if record["doc_status"] and record["doc_status"].strip().lower() != record["status"]:
+        lines.append(f"**Document status:** {record['doc_status']}")
+    return "\n".join(lines)
+
+
+def platform_resource(record: dict) -> str:
+    if record["repo"] == "durion":
+        return f"{GITHUB}/durion/blob/{DURION_BRANCH}/{record['in_repo']}"
+    return f"{GITHUB}/durion-positivity-backend/blob/main/{record['in_repo']}"
+
+
+def platform_path(record: dict) -> str:
+    prefix = "durion" if record["repo"] == "durion" else "durion-positivity-backend"
+    return f"{prefix}/{record['in_repo']}"
+
+
 MAX_LINE = 175  # .markdownlint.jsonc MD013
 
 
@@ -446,7 +597,8 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.check:
-        problems = check_bundle()
+        platform_records()  # populates SOURCE_WARNINGS
+        problems = check_bundle() + SOURCE_WARNINGS
         total = len([p for p in CATALOG.rglob("*.md") if p.name not in RESERVED])
         print(f"OKF v{OKF_VERSION} conformance: {total} concepts, {len(problems)} problem(s)")
         for problem in problems:
@@ -463,6 +615,7 @@ def main() -> int:
     SLUGS.update({a["number"]: a["slug"] for a in adrs})
     domains = domain_records(domain_modules)
     modules = module_records()
+    platform = platform_records()
 
     for adr in adrs:
         fields = {
@@ -505,6 +658,25 @@ def main() -> int:
         }
         write(CATALOG / "backend" / f"{module['name']}.md", render(fields, module_note(module, owner)), state)
 
+    for document in platform:
+        fields = {
+            "type": "Platform Document",
+            "title": document["title"],
+            "description": document["description"],
+            "resource": platform_resource(document),
+            "path": platform_path(document),
+            "tags": document["tags"],
+            "kind": document["kind"],
+            "status": document["status"],
+            "doc_status": document["doc_status"],
+            "sources": [platform_path(document)],
+            "generated": {
+                "by": "script:generate-knowledge-catalog.py",
+                "at": last_touched(document["path"], REPO if document["repo"] == "durion" else BACKEND),
+            },
+        }
+        write(CATALOG / "platform" / f"{document['slug']}.md", render(fields, platform_note(document)), state)
+
     write(
         CATALOG / "adr" / "index.md",
         index_note("ADR Index", [(a["title"], f"{a['slug']}.md", trim(a["description"])) for a in adrs]),
@@ -520,6 +692,14 @@ def main() -> int:
         index_note("Backend Module Index", [(m["name"], f"{m['name']}.md", trim(m["description"])) for m in modules]),
         state,
     )
+    write(
+        CATALOG / "platform" / "index.md",
+        index_note(
+            "Platform Document Index",
+            [(p["title"], f"{p['slug']}.md", trim(p["description"])) for p in platform],
+        ),
+        state,
+    )
 
     root_body = (
         "# Durion Knowledge Catalog\n\n"
@@ -528,6 +708,7 @@ def main() -> int:
         f"* [ADRs](adr/index.md) — {len(adrs)} architecture decision records\n"
         f"* [Domains](domains/index.md) — {len(domains)} business domains\n"
         f"* [Backend Modules](backend/index.md) — {len(modules)} modules in durion-positivity-backend\n"
+        f"* [Platform Documents](platform/index.md) — {len(platform)} architecture, operations and governance documents\n"
     )
     write(CATALOG / "index.md", render({"okf_version": OKF_VERSION}, root_body), state)
 
@@ -542,8 +723,9 @@ def main() -> int:
         for date, body in re.findall(r"^## (\S+)\s*\n+((?:\*.*\n(?:[ \t]+\S.*\n)*)+)", previous, re.M)
     }
     regenerated = (
-        f"* **Regenerated**: {len(adrs)} ADR, {len(domains)} domain, and {len(modules)} module concepts "
-        f"from `docs/adr/`, `domains/`, and the backend module suite."
+        f"* **Regenerated**: {len(adrs)} ADR, {len(domains)} domain, {len(modules)} module and "
+        f"{len(platform)} platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, "
+        f"and the declared platform areas."
     )
     # Only the Regenerated bullet is ours to rewrite. A hand-written note recording a
     # structural change, added the same day, is kept rather than overwritten.
@@ -560,6 +742,8 @@ def main() -> int:
 
     verb = "would write" if args.dry_run else "wrote"
     print(f"{verb} {len(state['written'])} file(s); {state['unchanged']} unchanged")
+    for warning in SOURCE_WARNINGS:
+        print(f"  warning: {warning}")
     for name in state["written"][:12]:
         print(f"  {name}")
     if len(state["written"]) > 12:

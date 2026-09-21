@@ -14,7 +14,7 @@ Please review the ADR for complete context and rationale.
 
 ## Availability vs On-Hand — the firm definition
 
-They are two different questions, and since **ADR-0057** (issue #1494) they carry two different permission families. Neither implies the other.
+They are two different questions, and since **ADR-0066** (issue #1494) they carry two different permission families. Neither implies the other.
 
 |                  | Question                        | Reads                                                                                                                                                                                                | Permissions                                                                                              |
 | ---------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |

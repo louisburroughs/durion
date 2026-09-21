@@ -1,3 +1,10 @@
+---
+type: Policy
+title: Durion Solutions, Inc. – Security Policy
+description: 'Corporate security policy binding all Durion people, systems and environments: the Chief Security Officer role and its authority to halt a deployment, secure development practices, infrastructure and operations security, data protection and privacy obligations, identity and access management, incident response and coordinated disclosure timelines, third-party and supply-chain security, mandatory training, compliance auditing, and enforcement. Organisational obligations — the platform mechanisms that implement them live in the ADRs and the authorization-model architecture documents.'
+status: current
+---
+
 # Durion Solutions, Inc. – Security Policy
 
 This Security Policy defines the mandatory security principles, controls, and

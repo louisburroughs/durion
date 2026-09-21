@@ -1,4 +1,17 @@
-# I have a requirement for multiple data storage and retrival structures to be used by java microservices.  These systems must be high perfoming and highly scalable.  I need to be able to access the data using a datasource configured in spring boot.  There will be one data storage per deployment of a microservice with dozens of deployments of each microservice.  The data is related, but a relational database is not required. Rank choices by cost.
+---
+type: Research Note
+title: AWS Data Store Options for Java Microservices
+description: 'Exploratory survey of AWS managed data stores for one-database-per-service Java microservices — Aurora, DynamoDB, ElastiCache, OpenSearch and Timestream weighed on scalability and Spring Boot datasource fit. Research notes for the unbuilt ECS Fargate target, not a record of what alpha runs.'
+status: proposed
+---
+
+# AWS Data Store Options for Java Microservices
+
+> **Research note — not current architecture.** Exploratory material for the ECS Fargate target substrate. The deployed alpha runs Docker on a single EC2 host; see [Docker EC2 Architecture](DOCKER_EC2_ARCHITECTURE.md).
+
+**Requirement as posed:**
+
+> I have a requirement for multiple data storage and retrival structures to be used by java microservices.  These systems must be high perfoming and highly scalable.  I need to be able to access the data using a datasource configured in spring boot.  There will be one data storage per deployment of a microservice with dozens of deployments of each microservice.  The data is related, but a relational database is not required. Rank choices by cost.
 
 Based on your requirements for high-performance, highly scalable data storage for Java microservices with Spring Boot integration, here are the AWS data storage options ranked by cost (lowest to highest):
 

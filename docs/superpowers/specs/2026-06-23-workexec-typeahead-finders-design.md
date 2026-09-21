@@ -1,7 +1,15 @@
-# Design — Workexec typeahead finders (find estimate / workorder by customer name or id)
+---
+type: Design Record
+title: Workexec Typeahead Finders Design
+description: 'Design for replacing raw-UUID entry on the workexec landing with Find Estimate and Find Workorder typeahead finders that search by customer name, estimate or workorder number, or record id, backed by a unified search endpoint per entity in pos-workorder and a stored human workorderNumber. Implemented: the search controllers, workorderNumber and the frontend finders shipped as the chained backend, SDK and frontend PRs the design called for.'
+status: implemented
+created: 2026-06-23
+tags: [workexec, pos-workorder, typeahead, search, frontend, design-record]
+---
 
-**Date:** 2026-06-23 (rev 2026-06-24)
-**Status:** Approved (design) — pending spec review
+## Workexec Typeahead Finders Design
+
+Approved 2026-06-23, revised 2026-06-24, and delivered.
 
 > **Rev 2026-06-24 — scope expansion (confirmed):** dropdown rows now show **customer
 > name + vehicle label + truncated VIN + estimate number + status**, and the
@@ -9,7 +17,7 @@
 > See §"Workorder number" and the revised DTOs below.
 **Repos:** durion-positivity-backend (pos-workorder), durion-positivity-sdk-angular, durion-positivity-frontend
 
-## Context / problem
+### Context / problem
 
 On `/app/workexec`, every entry point currently requires pasting a raw UUID (`workorderId`,
 `estimateId`, and ~12 estimate launch cards). Users don't know UUIDs; they know the **customer** and
@@ -21,7 +29,7 @@ have a human `estimateNumber`; workorders have **no** human number — UUID only
 mastered in `pos-customer` (ADR-0015 §6 I2). `pos-workorder` already enriches id→name via
 `CustomerReferenceService.resolveAll(ids)` (used by WIP); it has no name→id path yet.
 
-## Decisions (confirmed)
+### Decisions (confirmed)
 
 - **Scope:** two unified finders on the landing — **Find Estimate** and **Find Workorder** — not
   per-card inline conversion. Existing raw-id launch cards stay for now.
@@ -30,7 +38,7 @@ mastered in `pos-customer` (ADR-0015 §6 I2). `pos-workorder` already enriches i
 - **Navigation:** estimate → `/app/workexec/estimates/{id}/summary`; workorder → `/app/workexec/workorders/{id}`.
 - **Depth:** standard coverage, shipped as **chained PRs** (backend → SDK → frontend), like CAP-316.
 
-## Workorder number (new, stored)
+### Workorder number (new, stored)
 
 Add a human-readable `workorderNumber` (column on `Workorder`, format `WO-YYYY-NNNN`,
 unique per `locationId` like `estimateNumber`). Populate **at creation** in
@@ -50,7 +58,7 @@ After backfill, number is set on every row. (Pre-production: no compatibility sh
 
 Consequence: workorder search (below) can now match `workorderNumber ILIKE %q%`.
 
-### 1. Backend (pos-workorder)
+#### 1. Backend (pos-workorder)
 
 **Customer name → ids (new client capability).** Add `searchCustomerIdsByName(String q, int limit)` to the
 workorder→customer client (alongside `CustomerValidationClient` / `CustomerReferenceService`), calling
@@ -81,11 +89,11 @@ yields empty (id/number matching still works), consistent with existing resilien
 `customerId IN (:ids)` + `workorderNumber ILIKE` (workorders), both paged. Vehicle/customer enrichment
 is done per result page via the reference services (batch `resolveAll`), as WIP already does. H2-portable.
 
-### 2. SDK (durion-positivity-sdk-angular)
+#### 2. SDK (durion-positivity-sdk-angular)
 Regenerate the `workorder` module: new `q` param on estimate search, new workorder search operation +
 `WorkorderSearchResult`, `customerName` on the estimate summary schema. Build the workorder package.
 
-### 3. Frontend (durion-positivity-frontend)
+#### 3. Frontend (durion-positivity-frontend)
 
 **Reusable `WorkexecSearchTypeaheadComponent` (standalone, OnPush)** under
 `features/workexec/components/search-typeahead/`:
@@ -112,7 +120,7 @@ Existing launch cards unchanged.
 **i18n:** new `WORKEXEC.FINDERS.*` keys in `en-US/es-US/fr-CA/qps-ploc` (en authoritative; placeholders
 elsewhere).
 
-## Components & boundaries
+### Components & boundaries
 
 | Unit | Purpose | Depends on |
 | --- | --- | --- |
@@ -123,7 +131,7 @@ elsewhere).
 | `WorkexecService.searchEstimates/Workorders` | SDK→view-model + call | generated SDK |
 | Landing finders section | wiring + navigation | typeahead component, facade, Router |
 
-## Error / edge handling
+### Error / edge handling
 - `q` < 2 chars → no call (frontend), empty page (backend if hit directly).
 - pos-customer unreachable → name matches empty, number/id matches still returned (fail-soft).
 - No matches → empty-state in dropdown.
@@ -131,7 +139,7 @@ elsewhere).
 - UUID `q` → exact id match branch (both entities).
 - Whole-result caps (~10) — `log` when truncated server-side (no silent cap).
 
-## Testing
+### Testing
 - **Backend:** unit/contract — q matches estimateNumber/workorderNumber; q matches customer name (mocked
   customer client → ids → rows); q as UUID exact match; customerName + vehicleLabel/vin enrichment present;
   pos-customer/pos-vehicle-down fail-soft; permission 403. **Workorder numbering:** prefix-swap from
@@ -141,9 +149,9 @@ elsewhere).
 - **Frontend:** typeahead component spec (debounce, keyboard nav, select emits id, loading/empty/error);
   facade mapping spec; landing wiring (select → navigate). `ng build --configuration alpha`; a11y smoke.
 
-## Out of scope / follow-ups
+### Out of scope / follow-ups
 - Per-card inline typeahead conversion of the remaining launch cards.
 - Relevance ranking, dropdown pagination/load-more, recent/favorites.
 
-## Ship order
+### Ship order
 Backend PR (search + tests) → SDK PR (regen workorder) → frontend PR (finders), merged in order.

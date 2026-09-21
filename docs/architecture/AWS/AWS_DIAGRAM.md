@@ -1,3 +1,14 @@
+---
+type: Research Note
+title: AWS Fargate Architecture Diagram
+description: 'Annotated walkthrough of the ECS Fargate reference diagram — frontend, API Gateway, service and data layers. Target-state material: it depicts a Vue frontend and a Fargate substrate, neither of which the platform uses.'
+status: proposed
+---
+
+# AWS Fargate Architecture Diagram
+
+> **Research note — not current architecture.** Exploratory material for the ECS Fargate target substrate. The deployed alpha runs Docker on a single EC2 host; see [Docker EC2 Architecture](DOCKER_EC2_ARCHITECTURE.md).
+
 ## Architecture Overview
 
 ![AWS Fargate Architecture](aws-fargate-architecture.png)

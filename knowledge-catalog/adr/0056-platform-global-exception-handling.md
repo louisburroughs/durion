@@ -7,7 +7,7 @@ path: durion/docs/adr/0056-platform-global-exception-handling.adr.md
 tags: [adr, platform]
 status: stable
 sources: [docs/adr/0056-platform-global-exception-handling.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:11:47+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0056-platform-global-exception-handling.adr.md) — `docs/adr/0056-platform-global-exception-handling.adr.md`

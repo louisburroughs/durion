@@ -1,9 +1,19 @@
-# Agent Consolidation, Knowledge Catalog, and Doc Slimming — Design
+---
+type: Design Record
+title: Agent Consolidation, Knowledge Catalog, and Doc Slimming Design
+description: 'Four-phase design that made durion the source of truth for shared agent tooling, stood up the OKF v0.2 knowledge catalog over durion and durion-positivity-backend, slimmed AGENTS.md and README.md to quick-start plus links, and gave every module and domain an index.md. Implemented in substance: agent-config, knowledge-catalog, the slimmed guides and the index files exist. The git-submodule exposure to sibling repos was not adopted; the skills load when durion is a session root instead.'
+status: implemented
+created: 2026-08-19
+tags: [knowledge-catalog, okf, agents, documentation, design-record]
+---
 
-**Date:** 2026-08-19
-**Status:** Approved (pending implementation)
+## Agent Consolidation, Knowledge Catalog, and Doc Slimming Design
 
-## 1. Overview & Sequencing
+Approved 2026-08-19 and delivered, with one departure: sibling repositories do not consume
+`agent-config` as a git submodule. The skills and agents load when `durion` is a session root
+(see `CLAUDE.md`), which made the submodule mechanism of phase 1 unnecessary.
+
+### 1. Overview & Sequencing
 
 **Goal:** Consolidate scattered agent/skill/tooling configuration under `durion`, stand up an
 OKF-based (Open Knowledge Format v0.2) knowledge catalog spanning `durion` and
@@ -37,7 +47,7 @@ phases 1–2 to exist as link targets before content can be safely deleted from 
 4's `index.md` files are consumed by phase 2's catalog (module index doubles as OKF index), so it
 lands last, wiring domain → module → catalog together.
 
-## 2. Phase 1 — Agent Consolidation
+### 2. Phase 1 — Agent Consolidation
 
 **Target structure in `durion`:**
 
@@ -71,7 +81,7 @@ durion/
 version *before* any repo starts symlinking, so nothing referenced only by the backend copy is
 silently dropped.
 
-## 3. Phase 2 — Knowledge Catalog
+### 3. Phase 2 — Knowledge Catalog
 
 **Bundle root:** `durion/knowledge-catalog/` (OKF v0.2). Root `index.md` carries
 `okf_version: 0.2`.
@@ -125,20 +135,20 @@ automation in v1 — flagged as a future improvement.
 **Non-goals for v1:** no Attested Computation concepts, no `sources`/credibility signals, no
 cross-org exchange — navigable pointers only.
 
-## 4. Phase 3 — AGENTS.md / README.md Slimming
+### 4. Phase 3 — AGENTS.md / README.md Slimming
 
 **AGENTS.md target shape (per repo):**
 
 ```markdown
 # AGENTS.md — <repo>
 
-## Quick Start
+### Quick Start
 <build/test/run commands only>
 
-## Non-negotiable Rules
+### Non-negotiable Rules
 <bulleted, 1 line each>
 
-## Where to Look
+### Where to Look
 - Shared agent config: `.durion-shared/agent-config/` (phase 1)
 - Domain/module knowledge: `durion/knowledge-catalog/` (phase 2)
 - Module docs: `<module>/index.md` (phase 4)
@@ -165,7 +175,7 @@ skill/catalog concept exists and is committed — never delete-then-create.
 **Scope for v1:** `durion` and `durion-positivity-backend` only; frontend/sdk repos get the same
 treatment as a documented follow-up.
 
-## 5. Phase 4 — Per-Module index.md
+### 5. Phase 4 — Per-Module index.md
 
 **Per `pos-*` module** (e.g. `pos-order/index.md`, no frontmatter per OKF §8):
 
@@ -189,7 +199,7 @@ Generated once by a script walking each module's package tree, then hand-maintai
 to the implementing `pos-*` module(s) and its catalog concept, closing the loop
 domain → module → catalog.
 
-## 6. Validation
+### 6. Validation
 
 - **Phase 1:** submodule resolves in each consumer repo; symlinked `.claude/agents` still loads in
   Claude Code/Copilot CLI (spot-check one agent invocation).
@@ -200,7 +210,7 @@ domain → module → catalog.
 - **Phase 4:** `./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test` still passes (index.md
   files are docs-only, shouldn't affect ArchUnit, but confirms no accidental package disturbance).
 
-## 7. Non-Goals (all phases)
+### 7. Non-Goals (all phases)
 
 No CI enforcement/automation added in v1 — no lint rule requiring `index.md` on new modules, no
 catalog freshness bot, no auto-sync daemon for the submodule. Pure structural/content work now;

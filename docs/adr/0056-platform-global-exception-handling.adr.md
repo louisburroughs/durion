@@ -10,7 +10,7 @@ tags: [adr, platform]
 ---
 # ADR-0056: Platform Global Exception Handling and Persistence Error Mapping
 
-**Status:** ACCEPTED **Date:** 2026-08-23 **Deciders:** Architecture, Backend Lead, API Lead **Affected Issues:** louisburroughs/durion-positivity-backend#1471
+**Status:** ACCEPTED — amended 2026-09-18 (see §Changelog) **Date:** 2026-08-23 **Deciders:** Architecture, Backend Lead, API Lead **Affected Issues:** louisburroughs/durion-positivity-backend#1471, louisburroughs/durion-positivity-backend#2076
 
 ---
 
@@ -56,6 +56,14 @@ The platform implementation is `GlobalApiExceptionHandler` in the shared **pos-w
 - Spring MVC's own web exceptions (unknown path, unsupported method/media type, malformed or unreadable
   request bodies, parameter type mismatches) keep their framework status and gain the envelope, rather
   than collapsing to 500.
+- **A 404 names the layer that answered** (amended 2026-09-18, louisburroughs/durion-positivity-backend#2076):
+  the framework's routing failures (`NoResourceFoundException`, `NoHandlerFoundException`) answer
+  `NO_ENDPOINT` / "No endpoint for the requested path", while a 404 the application itself declared for a
+  record it could not find answers `NOT_FOUND`. Status alone cannot separate the two — both are `404` — so
+  the split is made by exception type. A `ResponseStatusException(NOT_FOUND, …)` always answers the generic
+  "Requested resource was not found": its `reason` is never echoed, because it routinely embeds the id the
+  client supplied. A `@ResponseStatus(NOT_FOUND)` domain exception answers that same message unless the
+  annotation declares a `reason`, which is a compile-time constant and is echoed as authored.
 - 500 bodies stay generic (`INTERNAL_ERROR` / "Unexpected error occurred"); the correlation id is the
   diagnostic handle. Rejected data values are never echoed; only constraint/column identifiers may be
   named on 409/422.
@@ -155,8 +163,8 @@ gateway error rendering remains its own concern
   `pos-web-common` module (`GlobalApiExceptionHandler`, `DataIntegrityViolations`,
   `WebCommonErrorAutoConfiguration`), auto-configured for servlet web applications only.
 - Enforcement: `pos-archunit/src/test/java/com/positivity/archunit/GlobalExceptionHandlerEnforcementTest.java`.
-- Envelope codes are documented in durion-positivity-backend `docs/ERROR_ENVELOPE.md`
-  ("Platform Fallback Codes").
+- Envelope codes are documented in the [Error Envelope](../architecture/api/ERROR_ENVELOPE.md)
+  contract ("Platform Fallback Codes").
 - ADR-0017 remains the status-matrix authority; on acceptance, add a changelog line there
   cross-referencing this ADR for the not-null/check mapping.
 
@@ -171,6 +179,7 @@ gateway error rendering remains its own concern
 - [ADR-0046: Environment Log Level Policy](0046-environment-log-level-policy.adr.md)
 - Issue: louisburroughs/durion-positivity-backend#1471
 - Implementation PR: louisburroughs/durion-positivity-backend#1474
+- 404 amendment issue: louisburroughs/durion-positivity-backend#2076
 
 ---
 
@@ -196,3 +205,7 @@ gateway error rendering remains its own concern
 - **2026-08-23**: Initial draft, authored alongside the implementing change for
   durion-positivity-backend#1471
 - **2026-08-23**: Marked ACCEPTED; implementation merged in durion-positivity-backend#1474
+- **2026-09-18**: Amended §1 — a 404 now names the layer that answered (`NO_ENDPOINT` for framework
+  routing failures, `NOT_FOUND` for an application-declared miss), and a `ResponseStatusException`
+  reason is never echoed. Back-ported from the implementing change for
+  durion-positivity-backend#2076

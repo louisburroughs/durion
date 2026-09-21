@@ -5,7 +5,7 @@ description: Two models describe a user's location reach, and they disagree abou
 status: stable
 adr_status: accepted
 created: '2026-09-07'
-related: [ADR-0016, ADR-0040, ADR-0044, ADR-0062]
+related: [ADR-0016, ADR-0040, ADR-0044, ADR-0062, ADR-0066]
 tags: [adr, location]
 ---
 ## ADR-0061: Location Scope Authorization — Ownership, Token Shape, and Effective Dating
@@ -157,7 +157,7 @@ availability and staffing code, and already emits `PEOPLE_STAFFING_ASSIGNMENT_CR
 #### The Problem
 
 Location scope is enforced **nowhere in the platform**. A spike against the current tree
-(`durion-positivity-backend/docs/location-scope-effective-dating-spike-2026-09.md`) found
+(`durion/domains/security/location-scope-effective-dating-spike-2026-09.md`) found
 **77 endpoints across 15 modules** that accept a caller-supplied `locationId` and authorize it
 with a flat permission carrying no location dimension. None validates the id against anything
 the caller holds.
@@ -471,11 +471,13 @@ independently deployable and reversible.
 
 ### References
 
-- Spike findings: `durion-positivity-backend/docs/location-scope-effective-dating-spike-2026-09.md`
+- Spike findings: `durion/domains/security/location-scope-effective-dating-spike-2026-09.md`
 - Measurement: `durion-positivity-backend/scripts/measure-scope-claim-size.py`
 - [ADR-0040](0040-roles-jwt-permission-governance-policy.adr.md) — amended by §2
 - [ADR-0016](0016-location-entity-semantics.adr.md) — location entity semantics
-- `durion-positivity-backend/docs/rbac-permission-role-audit-2026-08.md`
+- [ADR-0066](0066-inventory-availability-vs-on-hand-authority.adr.md) — inventory availability authority; its
+  `inventory:availability:read` endpoints apply §3 scope narrowing on top of the permission gate
+- `durion/domains/security/rbac-permission-role-audit-2026-08.md`
 - [Authorization Model](../architecture/AUTHORIZATION_MODEL.md) — runtime shape, brought into line with the 2026-09-09 amendment
 - Issues [#1914](https://github.com/louisburroughs/durion-positivity-backend/issues/1914),
   [#1910](https://github.com/louisburroughs/durion-positivity-backend/issues/1910) — one store for a user's roles (amendment 2026-09-09)

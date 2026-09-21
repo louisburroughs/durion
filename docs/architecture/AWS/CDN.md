@@ -1,3 +1,14 @@
+---
+type: Research Note
+title: CloudFront Content Delivery
+description: 'How CloudFront would sit in front of an ECS Fargate deployment: edge caching, origin behaviours, TLS termination and static-asset delivery from S3. Written against the unbuilt Fargate target, not the deployed alpha host.'
+status: proposed
+---
+
+# CloudFront Content Delivery
+
+> **Research note — not current architecture.** Exploratory material for the ECS Fargate target substrate. The deployed alpha runs Docker on a single EC2 host; see [Docker EC2 Architecture](DOCKER_EC2_ARCHITECTURE.md).
+
 In your AWS Fargate microservices architecture, CloudFront plays a crucial role in content delivery. Here's a detailed explanation of how CloudFront functions in your system:
 
 ## Amazon CloudFront

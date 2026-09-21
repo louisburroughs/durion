@@ -18,6 +18,12 @@ Use this index to find the current architectural source before consulting older 
 - [Authorization Model](./AUTHORIZATION_MODEL.md) - Canonical explanation of how roles, permissions, `perm_bits`, token claims, gateway decoding, and downstream `@PreAuthorize` checks work together today
 - [API Security Architecture](./API_SECURITY_ARCHITECTURE.md) - Current frontend, gateway, JWT, role, and permission boundary aligned to ADR-0011, ADR-0014, ADR-0040, and ADR-0041
 - [Backend Contract Global Standards](./api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md) - Normative rules for backend contract guides and OpenAPI source-of-truth boundaries
+- [Internal Transport And Service Discovery](./INTERNAL_TRANSPORT_AND_SERVICE_DISCOVERY.md) - Eureka service-id registry, gateway route table, client categories, and the closed register of clients permitted to bypass discovery
+- [Backend Architecture And Infrastructure Guide](./BACKEND_ARCHITECTURE_GUIDE.md) - Runtime shape of a `pos-*` service: container vs local ports, Dockerfile template, database-per-service, peer-call strategies, `aggregateVersion` event ordering, and the observability stack
+- [Backend Domain Interaction Model](./DOMAIN_INTERACTION_MODEL.md) - Observed cross-module topology: every synchronous REST, Kafka fact, manifest and command edge proved by executable code, with each ADR-0044 exception named
+- [Error Envelope](./api/ERROR_ENVELOPE.md) - The `ApiError` body every backend endpoint returns on 4xx/5xx: required and conditional fields, platform fallback codes, and where per-module codes live
+- [OpenAPI Operation Description Standard](./api/OPENAPI_DESCRIPTION_STANDARD.md) - Sentence order and lead-in phrases an `@Operation` description must use so the MCP server can compare tools, with the validator checks that enforce them
+- [Test Coverage Policy](./TEST_COVERAGE_POLICY.md) - Per-module JaCoCo floors enforced at `verify`: how a floor is derived, what may never lower one, and the record of how the current floors were arrived at
 - [GitHub Branching Strategy](./branching-strategy.md) - Branch naming, protection, PR flow, and release branching conventions
 
 ### Integration
@@ -30,6 +36,8 @@ Use this index to find the current architectural source before consulting older 
 - [Foundation-First Tenant Cell Deployment Architecture](./deployment/FOUNDATION_FIRST_TENANT_CELL_DEPLOYMENT_ARCHITECTURE.md) - Reference target architecture for isolated tenant cells and release boundaries
 - [Phased CI/CD and Runtime Plan](./deployment/PHASED_CICD_AND_RUNTIME_PLAN.md) - Sequenced rollout plan for runtime, deployment, and promotion capabilities
 - [Alpha AWS Provisioning Runbook](./deployment/ALPHA_AWS_PROVISIONING_RUNBOOK.md) - Environment bootstrap runbook for the current AWS provisioning path
+- [Tenancy Schema Conventions (ADR-0062)](./deployment/TENANCY_SCHEMA.md) - The column, policy, index and constraint set a table must carry to be tenant-isolated under Postgres RLS, plus the add-a-table checklist
+- [Entity Relationship Migration Ledger](./deployment/data-migration/ENTITY_RELATIONSHIP_MIGRATION_LEDGER.md) - Per-field record of which entity scalar ids became JPA relationships, which must stay scalar, and which are deferred — with the two-step conversion recipe
 
 ### Observability And Request Tracing
 

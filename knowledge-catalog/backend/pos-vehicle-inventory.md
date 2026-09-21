@@ -4,13 +4,14 @@ title: pos-vehicle-inventory
 description: POS Vehicle module
 resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory
 path: durion-positivity-backend/pos-vehicle-inventory/
-tags: [backend, service, warranty]
+tags: [backend, service, security]
 sources: [durion-positivity-backend/pos-vehicle-inventory/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-19T23:00:49+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T08:46:26-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory) — `pos-vehicle-inventory/`
 
 **Kind:** Service
-**Domain:** [warranty](../domains/warranty.md)
+**Domain:** [security](../domains/security.md)
+**Documentation:** [Canonical security index](https://github.com/louisburroughs/durion/blob/master/domains/security/index.md)
 **API contract:** [`openapi.yaml`](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-vehicle-inventory/openapi.yaml)

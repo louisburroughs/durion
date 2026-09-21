@@ -1,12 +1,19 @@
 ---
+type: Architecture
 title: Durion Positivity — Podman on EC2 Architecture
-status: reference
+description: 'Evaluated but unadopted alternative to the Docker on EC2 host: the same single-instance topology run under rootless daemonless Podman and podman-compose — daemon and CVE-surface comparison against Docker, host setup (enable-linger, podman generate systemd units, unprivileged-port sysctl), rootless networking and podman login to ECR, and the deploy-script substitutions it would require. No Durion environment or workflow uses Podman.'
+status: proposed
 environment: alpha / prototype
 last-updated: 2026-04-14
 scope: Rootless Podman + Podman Compose deployment on AWS EC2
 ---
 
 # Durion Positivity — Podman on EC2 Architecture
+
+> **Status: option not taken.** No Durion environment runs Podman. Alpha deploys Docker Compose
+> (`durion-positivity-backend/deployment/alpha/docker-compose.prod.yml`, applied by
+> `deploy-backend.sh`); see [Docker on EC2](./DOCKER_EC2_ARCHITECTURE.md) for the architecture in
+> force. This document is retained as the comparison record for that choice.
 
 ## Overview
 

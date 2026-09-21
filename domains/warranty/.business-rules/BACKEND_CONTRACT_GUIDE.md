@@ -30,7 +30,7 @@ Authoritative references:
 
 - OpenAPI: `durion-positivity-backend/pos-warranty/openapi.yaml`
 - Generated API reference: `domains/warranty/.business-rules/BACKEND_API_REFERENCE.generated.md`
-- PRD (domain spec): `durion-positivity-backend/docs/PRD-warranty-claims-module.md`
+- PRD (domain spec): retired after delivery — issue durion-positivity-backend#786, shipped by PR #920; its product decisions are carried in this guide
 - Global standards: `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - ADR-0044 (event-only domain walls, incl. the scoped warranty sync-client exception): `docs/adr/0044-platform-event-only-domain-walls.adr.md`
 
@@ -66,7 +66,7 @@ Gateway routing: external path `/warranty/warranty/...` with `X-API-Version: 1` 
 
 | Capability | Parent Issue | Contract Status | Primary Scope |
 | --- | --- | --- | --- |
-| Warranty Claims Module (no `cap:` id — tracked against PRD) | [durion-positivity-backend#786](https://github.com/louisburroughs/durion-positivity-backend/issues/786) | draft | Providers, policies, registrations, claims, settlements, reimbursements, part returns |
+| Warranty Claims Module (no `cap:` id — tracked against issue #786, shipped by [PR #920](https://github.com/louisburroughs/durion-positivity-backend/pull/920)) | [durion-positivity-backend#786](https://github.com/louisburroughs/durion-positivity-backend/issues/786) | draft | Providers, policies, registrations, claims, settlements, reimbursements, part returns |
 
 ## Frontend API Lookup
 
@@ -329,7 +329,7 @@ Non-goals (v1):
 
 ## References
 
-- `durion-positivity-backend/docs/PRD-warranty-claims-module.md`
+- Warranty claims PRD — retired after delivery (issue durion-positivity-backend#786, PR #920)
 - `docs/adr/0044-platform-event-only-domain-walls.adr.md` (§Amendments — pos-warranty v1 exception)
 - `docs/architecture/api/BACKEND_CONTRACT_GLOBAL_STANDARDS.md`
 - [durion-positivity-backend#786](https://github.com/louisburroughs/durion-positivity-backend/issues/786) · [durion-positivity-backend#920](https://github.com/louisburroughs/durion-positivity-backend/pull/920) · [durion#350](https://github.com/louisburroughs/durion/issues/350)

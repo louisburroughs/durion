@@ -1,4 +1,18 @@
+---
+type: Policy
+title: GitHub Branching Strategy
+description: 'Git Flow branching model proposed for the Durion repositories — main plus a develop integration branch, feature/bugfix/hotfix/release branch naming from issue numbers, Conventional Commit format, branch protection and review counts, release tagging, and PR template and workflow examples. The repositories never adopted the develop branch; the branch naming in force is in the workspace CLAUDE.md.'
+status: superseded
+---
+
 # GitHub Branching Strategy
+
+> **Status: not the workflow in use.** No Durion repository has a `develop` branch
+> (`durion` defaults to `master`; `durion-positivity-backend` and `durion-positivity-sdk-angular` to
+> `main`; `durion-positivity-frontend` to `master`), and the repository it names as the frontend
+> (`durion-moqui-frontend`) no longer exists. The branch naming and PR conventions actually in force
+> are `cap/<cap-id>-<slug>` or `feat/<slug>` off the default branch, per the workspace `CLAUDE.md`
+> and `AGENTS.md`. Read this only as the proposed model it remains.
 
 ## Overview
 

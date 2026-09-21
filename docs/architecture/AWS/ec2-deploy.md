@@ -1,3 +1,10 @@
+---
+type: Runbook
+title: EC2 SSM Deployment Setup
+description: 'One-time AWS setup that lets the deploy-alpha job in build-push-ecr.yml reach the alpha EC2 host over Systems Manager instead of SSH: the S3 staging bucket for compose files, the IAM permissions the GitHub OIDC role and the EC2 instance role each need, the GitHub secrets and variables (AWS_ROLE_ARN, ALPHA_EC2_INSTANCE_ID, ALPHA_DEPLOY_BUCKET, AUTO_DEPLOY_ALPHA), the on-instance deploy-backend.sh contract, and how to verify SSM access and trigger a deploy.'
+status: current
+---
+
 # EC2 SSM Deployment Setup
 
 This document covers everything required to enable the `deploy-alpha` job in

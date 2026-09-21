@@ -1,3 +1,10 @@
+---
+type: Governance
+title: Durion Solutions, Inc. – Service Boundaries
+description: 'Draws the commercial line between the TIOTF foundation and its subsidiary Durion Solutions: the services Durion may sell (paid support, managed hosting and cloud operations, integration and custom connectors, data migration, security assessments and incident response, training) and the proprietary commercial modules it may build, against what it may never do — sell or gate access to TIOTF standards, replace required open-source functionality with proprietary alternatives, offer preferential certification, or dictate the technical direction of TIOTF projects. Also fixes the certification, data-and-platform, branding and escalation boundaries. Read before committing to a paid service or a closed-source feature.'
+status: current
+---
+
 # Durion Solutions, Inc. – Service Boundaries
 
 This document defines the operational and commercial boundaries between the Tire

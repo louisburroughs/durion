@@ -1,6 +1,14 @@
-# Observability
+---
+type: Research Note
+title: Observability Reference Architecture
+description: 'Generic OpenTelemetry reference topology — instrumented Spring Boot services, a collector gateway tier and an open-source storage and analysis backend — written as a sketch, not a record of a deployed environment. The observability set alpha actually runs is stated in docs/architecture/AWS/DOCKER_EC2_ARCHITECTURE.md.'
+status: proposed
+tags: [observability, opentelemetry, prometheus, grafana, jaeger, research-note]
+---
 
-## Architecture Overview
+## Observability Reference Architecture
+
+### Architecture Overview
 
 At a high level, the architecture would look like this:
 
@@ -38,9 +46,9 @@ graph TD
     end
 ```
 
-## Detailed Component Breakdown
+### Detailed Component Breakdown
 
-### 1. Spring Boot Microservices (Clients)
+#### 1. Spring Boot Microservices (Clients)
 
 - **Instrumentation:**
   - **OpenTelemetry Java Agent:** The most common and recommended approach for Spring Boot. This Java agent can be attached to the JVM at startup
@@ -67,7 +75,7 @@ graph TD
   - `otel.exporter.otlp.endpoint`: The endpoint of the OpenTelemetry Collector (e.g., `http://otel-collector:4317` for gRPC or `http://otel-collector:4318` for HTTP).
   - `otel.traces.sampler.arg`: Sampling probability (e.g., `1.0` for full sampling in development, `0.1` for 10% sampling in production).
 
-### 2. OpenTelemetry Collector Cluster (Gateway)
+#### 2. OpenTelemetry Collector Cluster (Gateway)
 
 - **Deployment:** Deploy as a scalable cluster (e.g., using Kubernetes StatefulSets or a Docker Compose setup with multiple replicas) to handle the load from hundreds of
   microservices.
@@ -98,7 +106,7 @@ graph TD
 - **Docker Image:** Use the `otel/opentelemetry-collector-contrib` Docker image, which includes a wide range of receivers, processors, and exporters.
 - **Scaling:** Use a container orchestration platform like Kubernetes to automatically scale the Collector cluster based on incoming telemetry load.
 
-### 3. Observability Backend (Storage & Analysis)
+#### 3. Observability Backend (Storage & Analysis)
 
 This layer provides the persistent storage, querying capabilities, and visualization for your telemetry data. All components here are open-source.
 
@@ -131,7 +139,7 @@ This layer provides the persistent storage, querying capabilities, and visualiza
     - **Alerting:** Configure alerts based on metric thresholds or log patterns.
     - **Deployment:** Docker container.
 
-## Deployment Strategy (Example with Docker Compose or Kubernetes)
+### Deployment Strategy (Example with Docker Compose or Kubernetes)
 
 For hundreds of microservices, Kubernetes is the ideal deployment platform for scalability, resilience, and management.
 
@@ -284,7 +292,7 @@ scrape_configs:
       - targets: ["otel-collector:8888"]
 ```
 
-## Key Open Source Principles in the Design
+### Key Open Source Principles in the Design
 
 - **Vendor Neutrality:** OpenTelemetry ensures that you are not locked into a specific vendor for your observability backend. You can swap out Jaeger, Prometheus, or Loki for
   other compatible open-source or commercial tools without re-instrumenting your applications.
@@ -304,27 +312,27 @@ Open Source software and the OpenTelemetry standard.
 
 The image shows a comprehensive AWS Observability Architecture diagram with the following components:
 
-## Application Layer
+### Application Layer
 
 • **Application Services (ECS Fargate)**: Contains three microservices (Service 1, Service 2, and Service 3) running in AWS Fargate containers
 
-## Data Collection Layer
+### Data Collection Layer
 
 • **OpenTelemetry Collector Cluster**: Contains two OpenTelemetry collectors (OTel Collector 1 and OTel Collector 2) that receive telemetry data from the application services
 • The collectors are represented with the OpenTelemetry logo (green hexagon with "N") • Green arrows indicate log data flow, blue arrows indicate trace data flow, and orange
 arrows indicate metrics data flow
 
-## Observability Stack (ECS Fargate)
+### Observability Stack (ECS Fargate)
 
 • **Logging**: Loki for log aggregation and management • **Tracing**: Jaeger for distributed tracing visualization • **Metrics**: Prometheus for metrics collection and
 alerting • **Visualization**: Grafana dashboard that integrates with all three data sources
 
-## Storage Layer
+### Storage Layer
 
 • **Logs Storage**: S3-compatible storage for log data (represented by the S3 bucket icon) • **Traces Storage**: ElastiCache-compatible storage for trace data • **Metrics
 Storage**: DynamoDB-compatible storage for metrics data
 
-## Network Layer
+### Network Layer
 
 • **Application Load Balancer**: Provides external access to the Grafana dashboard
 

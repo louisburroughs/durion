@@ -1,3 +1,14 @@
+---
+type: Research Note
+title: AWS WAF and Network Protection
+description: 'How AWS WAF, security groups and the load-balancer edge would protect an ECS Fargate deployment: managed rule groups, rate limiting and the request path through the firewall. Written against the unbuilt Fargate target, not the deployed alpha host.'
+status: proposed
+---
+
+# AWS WAF and Network Protection
+
+> **Research note — not current architecture.** Exploratory material for the ECS Fargate target substrate. The deployed alpha runs Docker on a single EC2 host; see [Docker EC2 Architecture](DOCKER_EC2_ARCHITECTURE.md).
+
 In your AWS Fargate microservices architecture, the Web Application Firewall (WAF) plays a critical security role. Here's a more detailed explanation of AWS WAF and how it functions in your system:
 
 ## AWS WAF (Web Application Firewall)

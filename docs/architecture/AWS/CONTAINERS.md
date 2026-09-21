@@ -1,4 +1,15 @@
-# What is the recommened way to run a set of docker containers in aws?
+---
+type: Research Note
+title: AWS Container Runtime Options
+description: 'Exploratory comparison of ways to run Docker containers on AWS — ECS, EKS, Fargate, App Runner and plain EC2 — with the trade-offs behind each. Superseded as a decision by the Docker-on-EC2 alpha substrate; kept for the reasoning.'
+status: proposed
+---
+
+# AWS Container Runtime Options
+
+> **Research note — not current architecture.** Exploratory material for the ECS Fargate target substrate. The deployed alpha runs Docker on a single EC2 host; see [Docker EC2 Architecture](DOCKER_EC2_ARCHITECTURE.md).
+
+**Question as posed:** What is the recommened way to run a set of docker containers in aws?
 There are several ways to run Docker containers in AWS, with different services optimized for different use cases. Here are the recommended options:
 
 ## Amazon ECS (Elastic Container Service)

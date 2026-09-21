@@ -437,7 +437,7 @@ pointing back here):
   per-module `tenancy-global-tables.txt`; the WS3 "tenancy migration" step is therefore closed for existing
   tables. The `pos_app` role exists but services still connect as the owner, which carries a transitional
   `app.current_tenant` default until `TenantAwareDataSource` (WS1). Conventions:
-  `durion-positivity-backend/docs/TENANCY_SCHEMA.md`.
+  `durion/docs/architecture/deployment/TENANCY_SCHEMA.md`.
 - **2026-09-10:** WS1 runtime landed (louisburroughs/durion-positivity-backend#1923): `pos-tenancy-common`
   with `TenantContext`, `TenantContextFilter` (401 `TENANT_REQUIRED` in strict mode), `TenantAwareDataSource`
   (`set_config` per checkout, `RESET` on return, PostgreSQL only), `TenantScopedEntity` / `@TenantGlobal` /
