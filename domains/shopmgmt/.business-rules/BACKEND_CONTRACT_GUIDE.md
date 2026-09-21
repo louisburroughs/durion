@@ -186,7 +186,7 @@ refusal whose frame of reference is left to be inferred:
 
 - **Every conflict that quotes a time window names the zone it converted into** — for
   example `04:00-05:00 America/New_York falls outside the location's operating hours for
-  that day.` Operating hours are facility-local by design (DECISION-015), so an instant
+  that day.` Operating hours are facility-local by design (DECISION-SHOPMGMT-015), so an instant
   sent in UTC is judged in the location's own zone; without the zone in the message the
   offset can only be deduced. Applies to `OUTSIDE_OPERATING_HOURS`, `BAY_DOUBLE_BOOKED`,
   `MECHANIC_UNAVAILABLE`, `MECHANIC_OVERTIME`, `FACILITY_NEAR_CAPACITY` and
