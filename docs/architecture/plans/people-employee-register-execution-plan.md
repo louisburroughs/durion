@@ -7,7 +7,9 @@
 **Repos:** `durion-positivity-backend` (all code), `durion-positivity-frontend` (SDK regeneration)
 **Design canvas:** https://claude.ai/artifact/PA1Xk14WRbzb9KP8Pnrz2K
 **Modules:** `pos-people` (most of the work), `pos-security-service` (one new fact)
-**Status:** Not started — all Wave 0 decisions resolved; ready to schedule.
+**Status:** Wave 1 in progress. #2160 and the #2156 permission rename are done, verified and
+pushed on `claude/vigilant-pasteur-dux6jh`. #2157 in progress; #2158 and the #2156 endpoint to
+follow.
 
 ---
 
@@ -136,9 +138,15 @@ propagation, so a fact cannot outlive a rolled-back write) wrapped in `DomainEve
    keys employees by `personId` and its `ExtUserLinkReplica` holds `personId` ↔ `username` with **no
    `userId`**. Without `username` in the payload the consumer cannot resolve the assignment to an
    employee without another cross-service call — which would defeat the whole exercise.
-3. Payload shape, at minimum: `assignmentId`, `userId`, `username`, `roleId`, `roleName`, scope
-   (`GLOBAL` / `LOCATION` + location id, DECISION-PEOPLE-003), `effectiveStartDate`,
-   `effectiveEndDate`, `revokedAt`, `tenantId`.
+3. Payload shape: `assignmentId`, `userId`, `username`, `roleId`, `roleName`,
+   `effectiveStartDate`, `effectiveEndDate`, `revokedAt`, `tenantId`.
+
+   **No scope fields — this plan originally specified them in error.** `RoleAssignment` carries no
+   location scope: the `scope_type` column and `role_assignment_scope_locations` table were dropped
+   by V38 (#1875, folded into the flattened baseline), and location reach is now a property of
+   `Role` (`locationScope`, `locationHierarchy`) combined with pos-people's staffing assignment
+   (ADR-0061 §1). A consumer needing a role's location reach reads it off the role, not off this
+   event.
 4. Emit on assign and on revoke — `UserRoleGrantServiceImpl` is the write path;
    `RoleAssignmentTokenRevocationListener` shows where revokes are already observed in-process.
 5. `RoleAssignment extends TenantScopedEntity`, so tenancy is already handled on the publisher side;
@@ -300,8 +308,10 @@ With §4's facts, this story is smaller than written in every respect but one.
 4. `include=` query parameter; default omits every new field, so `HrFacadeTool.searchEmployees` keeps
    its thin payload untouched.
 5. **Enrich the 25-row window only, never the full `findAll()` list.** See §9.
-6. Role assignments default to active-only (DECISION-PEOPLE-026) and carry their scope
-   (`GLOBAL` / `LOCATION`, DECISION-PEOPLE-003).
+6. Role assignments default to active-only (DECISION-PEOPLE-026). **Scope does not come from the
+   assignment** — see §5. If the register's roles column must show scope (DECISION-PEOPLE-003), it
+   reads `Role.locationScope` / `locationHierarchy`, which means the replica needs the role's scope
+   alongside the assignment. Settle this when the column is built; it is not carried by #2160.
 7. PII gating: omit `email` / `phone` for a caller without `people:employee_pii:view` and return 200,
    never 403 — per #1898, where conflating `people:employee:view` with PII access exposed home
    addresses and emergency contacts to twelve roles including TECHNICIAN.
