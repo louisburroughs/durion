@@ -1,7 +1,7 @@
 # Execution plan — People employee register backend (#2155–#2159)
 
-**Covers:** `durion-positivity-backend` issues #2155, #2156, #2157, #2158, #2159, plus one new
-story to be raised against `pos-security-service` (§5).
+**Covers:** `durion-positivity-backend` issues #2155, #2156, #2157, #2158, #2159, and #2160
+(raised from this plan — the `pos-security-service` fact that #2155 depends on, §5).
 **Date:** 2026-09-22 · **Revised** 2026-09-22 after reading the publisher side of
 `people-contact.events.v1` and `security.events.v1` — see §4.
 **Repos:** `durion-positivity-backend` (all code), `durion-positivity-frontend` (SDK regeneration)
@@ -21,8 +21,8 @@ publishes a fact it does not publish today.
 ```
    ┌──────────────────── Wave 1: parallel, disjoint modules/files ────────────────────┐
    │                                                                                  │
-   A. #2157 jobRole   B. #2158 filter/sort   C. #2156 enable   D. NEW role-assignment │
-      (reference list)   (searchEmployees)      endpoint          fact (security svc) │
+   A. #2157 jobRole   B. #2158 filter/sort   C. #2156 enable   D. #2160 role-assign   │
+      (reference list)   (searchEmployees)      endpoint          fact (sec. svc)     │
         │                      │                    │                    │            │
         └───────────┬──────────┘                    │                    │            │
                     ▼                               │                    │            │
@@ -38,9 +38,8 @@ publishes a fact it does not publish today.
                                   Done ◄─────────────────────────────────────────────┘
 ```
 
-**Critical path:** D → E → F. Track D is the long pole — it is in another module, owned by another
-domain, and #2155's roles column is blocked until it lands. **Start it first**, even though it is
-not one of the five issues.
+**Critical path:** #2160 → #2155 → #2159. Track D is the long pole — another module, another domain
+owner — and #2155's roles column is blocked until it lands. **Start it first.**
 
 **Dependency rationale**
 
@@ -49,8 +48,8 @@ not one of the five issues.
 | #2157 jobRole | — | Independent. Its "include on the register projection" bullet is deferred into #2155. |
 | #2158 filter/sort | — | Independent, but edits `EmployeeServiceImpl#searchEmployees`, which #2155 also edits. Serialized to avoid a conflict, not a logical dependency. |
 | #2156 enable | — | Independent. New endpoint, new service method. |
-| **D. role-assignment fact** | — | Independent, different module. Blocks #2155's roles column. |
-| #2155 projection | #2157, #2158, D | Projects `jobRole`; shares the search method; needs the roles fact to exist. |
+| **#2160 role-assignment fact** | — | Independent, different module, different domain owner. Blocks #2155's roles column. |
+| #2155 projection | #2157, #2158, #2160 | Projects `jobRole`; shares the search method; needs the roles fact to exist. |
 | #2159 allowedActions | #2156, #2155 | Needs `ENABLE` to mean something, needs the register row shape to carry the field. |
 
 ---
@@ -59,7 +58,7 @@ not one of the five issues.
 
 Per `durion/CLAUDE.md` §Git Workflow — one branch and one PR per story, named
 `feat/people-employee-register-<story>` (or `cap/<cap-id>-...` once these get a capability id).
-Track D gets its own branch and PR in `pos-security-service`, raised as its own story.
+#2160 gets its own branch and PR in `pos-security-service`.
 Waves 1 and 2 are separate PRs so the `API Artifacts Sync` gate between them is unambiguous.
 
 ---
@@ -69,7 +68,7 @@ Waves 1 and 2 are separate PRs so the `API Artifacts Sync` gate between them is 
 | Story | Decision | Status |
 | ----- | -------- | ------ |
 | #2157 | Free text vs tenant-scoped reference list for `jobRole` | **Resolved** — tenant-scoped reference list ([#2157 comment](https://github.com/louisburroughs/durion-positivity-backend/issues/2157#issuecomment-5780495842)) |
-| #2155 | How the register gets application roles | **Resolved** — new domain event from `pos-security-service` + replica in `pos-people` (Track D + §5). Not the REST fan-out the issue's cost table implies. |
+| #2155 | How the register gets application roles | **Resolved** — new domain event from `pos-security-service` (#2160) + replica in `pos-people`. Not the REST fan-out the issue's cost table implies. |
 | #2156 | `people:employee:deactivate` vs a new `people:employee:reactivate` | Open — #2159's acceptance criteria assume the former |
 | #2156 | Concurrency token: `EmployeeProfileDto` exposes `updatedAt`, DECISION-PEOPLE-017 names `lastUpdatedStamp` | Open |
 
@@ -130,10 +129,11 @@ Hence Track D.
 
 ---
 
-## 5. Track D (Wave 1) — NEW: role-assignment fact from `pos-security-service`
+## 5. Track D (Wave 1) — #2160: role-assignment fact from `pos-security-service`
 
-**This is not one of the five issues and needs to be raised as its own story**, against
-`pos-security-service`, owned by the security domain. It is the critical path for #2155.
+Raised from this plan as
+[#2160](https://github.com/louisburroughs/durion-positivity-backend/issues/2160), against
+`pos-security-service` and owned by the security domain. It is the critical path for #2155.
 
 The in-repo exemplar is `internal/service/RolePersonaEventEmitter` — the same module already
 publishes a fact to `security.events.v1` through `OutboxEventWriter.publish` (`MANDATORY`
@@ -258,7 +258,7 @@ The frontend needs this SDK to start on the register, which is why the gate sits
 
 With §4's facts, this story is smaller than written in every respect but one.
 
-1. **Roles replica** (needs Track D): `V7__ext_role_assignment_replica.sql` +
+1. **Roles replica** (needs #2160): `V7__ext_role_assignment_replica.sql` +
    `ExtRoleAssignmentReplica` + a `SecurityEventsListener` consuming `security.events.v1`, modelled
    on the existing `PeopleContactEventsListener` — idempotent via `processed_events` in the upsert
    transaction, transient DB errors rethrown for retry/DLQ, malformed payloads logged and skipped,
@@ -284,9 +284,9 @@ With §4's facts, this story is smaller than written in every respect but one.
 `HrFacadeTool.searchEmployees` is unaffected.
 
 > **Note on the roles-permission criterion.** The issue gates the roles column on
-> `people-contact:role:view`. Under Track D the data no longer comes from `pos-people-contact`, so
+> `people-contact:role:view`. Under #2160 the data no longer comes from `pos-people-contact`, so
 > either that permission is re-homed as a `pos-people` check over the replica, or the criterion names
-> the security-domain permission instead. Settle when Track D's payload is agreed.
+> the security-domain permission instead. Settle when #2160's payload is agreed.
 
 ---
 
@@ -334,8 +334,8 @@ story, not a line item here.
 
 | Risk | Severity | Mitigation |
 | ---- | -------- | ---------- |
-| Track D not scheduled — it is in another module, owned by another domain, and is not one of the five issues | **High** — it is the critical path; #2155's roles column cannot ship without it | Raise it as a story first, before Wave 1 starts. Confirm the security domain owns it. |
-| `RoleAssignmentChangedV1` omits `username`, carrying only `userId` | **High** — `pos-people` has no `userId` anywhere; the consumer would need a cross-service call per row, defeating the design | §5 step 2. Fix it in the payload review, not after the replica is built. |
+| #2160 not scheduled — another module, another domain owner | **High** — it is the critical path; #2155's roles column cannot ship without it | Raised as #2160. Confirm the security domain picks it up before Wave 1 starts. |
+| #2160's payload omits `username`, carrying only `userId` | **High** — `pos-people` has no `userId` anywhere; the consumer would need a cross-service call per row, defeating the design | §5 step 2. Fix it in the payload review, not after the replica is built. |
 | Wave 2 enrichment applied before windowing turns an O(n) in-memory scan into O(n) joins per request | **High** — would make the register slower than the 100-request version it replaces | Enrich the window only; the comment left at `findAll()` in Track B is the guard. Test asserting enrichment count equals page size, not total. |
 | #2156 permission decision deferred into implementation | Medium | Wave 0 gate. #2159's criteria are written against one answer; discovering the other mid-Wave-3 invalidates them. |
 | Roles replica lag shows a stale role on the register | Low | Already the accepted tradeoff for names — `EmployeeSummaryDto.firstName` is documented as null "when the replica has not caught up". Same treatment, same documentation. Reconciliation is mandatory per ADR-0044 §4. |
@@ -352,7 +352,7 @@ Per module conventions in `durion-positivity-backend/CLAUDE.md`:
 ./mvnw spotless:apply
 ./mvnw -pl pos-people -am test
 ./mvnw -pl pos-people -am verify                             # *IT.java contract tests
-./mvnw -pl pos-security-service -am test                     # Track D
+./mvnw -pl pos-security-service -am test                     # #2160
 ./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test     # after Track A's new packages
 ```
 
@@ -363,7 +363,7 @@ Per-track evidence:
 - **B** — `?status=DISABLED&page=1` returns the tenant's disabled count in `totalElements`;
   `?sort=lastName,desc` verified across a two-page result, not within one.
 - **C** — all five statuses exercised against `/enable`; the reactivation event observed downstream.
-- **D** — assign and revoke each emit exactly one fact; payload resolves to a person with no
+- **D (#2160)** — assign and revoke each emit exactly one fact; payload resolves to a person with no
   callback; double-apply is a no-op.
 - **Wave 2** — a 25-row page renders every column in one request; the PII-less caller gets 200 with
   fields absent; enrichment count asserted equal to page size.
@@ -375,7 +375,7 @@ Per-track evidence:
 
 Two independent short paths, if the full plan is too long to wait for:
 
-- **Track D first, always.** It is the longest lead and blocks the most.
+- **#2160 first, always.** It is the longest lead and blocks the most.
 - **Track B alone (#2158) makes today's eight-column register correct.** Without it the page's status
   filter and its counts are wrong in a way that looks right — filtering to "Disabled" shows the
   disabled rows out of page 1's 25, not out of all 214. Everything after Track B adds columns;
