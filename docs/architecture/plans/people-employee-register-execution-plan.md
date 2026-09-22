@@ -7,7 +7,7 @@
 **Repos:** `durion-positivity-backend` (all code), `durion-positivity-frontend` (SDK regeneration)
 **Design canvas:** https://claude.ai/artifact/PA1Xk14WRbzb9KP8Pnrz2K
 **Modules:** `pos-people` (most of the work), `pos-security-service` (one new fact)
-**Status:** Not started — two Wave 0 decisions outstanding.
+**Status:** Not started — all Wave 0 decisions resolved; ready to schedule.
 
 ---
 
@@ -69,19 +69,8 @@ Waves 1 and 2 are separate PRs so the `API Artifacts Sync` gate between them is 
 | ----- | -------- | ------ |
 | #2157 | Free text vs tenant-scoped reference list for `jobRole` | **Resolved** — tenant-scoped reference list ([#2157 comment](https://github.com/louisburroughs/durion-positivity-backend/issues/2157#issuecomment-5780495842)) |
 | #2155 | How the register gets application roles | **Resolved** — new domain event from `pos-security-service` (#2160) + replica in `pos-people`. Not the REST fan-out the issue's cost table implies. |
-| #2156 | `people:employee:deactivate` vs a new `people:employee:reactivate` | Open — #2159's acceptance criteria assume the former |
-| #2156 | Concurrency token: `EmployeeProfileDto` exposes `updatedAt`, DECISION-PEOPLE-017 names `lastUpdatedStamp` | Open |
-
-**Recommendations on the two open items**
-
-- **#2156 permission — reuse `people:employee:deactivate`.** It is the symmetric authority over the
-  same `ACTIVE ⇄ DISABLED` edge, and it keeps #2159's acceptance criteria correct as written. A new
-  permission costs a bit assignment and a seed migration for no additional reach control, since any
-  role that may disable an employee may sensibly restore one.
-- **#2156 token — use the existing `updatedAt`.** Adding a second timestamp field whose value always
-  equals an existing one is a contract cost with no behavioural gain. Satisfy DECISION-PEOPLE-017's
-  intent (client submits the token, server returns 409 on mismatch) and say explicitly in the
-  OpenAPI description that `updatedAt` is that token.
+| #2156 | One permission for both directions, or two | **Resolved** — one permission, **renamed to `people:employee:activation`** ([#2156 comment](https://github.com/louisburroughs/durion-positivity-backend/issues/2156#issuecomment-5781631118)). The rename is its own piece of work — §6 Track C. |
+| #2156 | Concurrency token | **Resolved** — use `updatedAt`, and amend DECISION-PEOPLE-017 to accept any last-modified field ([#2156 comment](https://github.com/louisburroughs/durion-positivity-backend/issues/2156#issuecomment-5781656467)). Amendment applied to `durion/domains/people/.business-rules/AGENT_GUIDE.md` and `DOMAIN_NOTES.md`. |
 
 ---
 
@@ -219,6 +208,42 @@ not the page's; `?sort=lastName,desc` orders across the whole result set; caller
 
 ### Track C — #2156 `POST /v1/people/employees/{employeeId}/enable`
 
+Two pieces: a permission rename that reaches well beyond this module, and the endpoint itself. **Do
+the rename first, as its own commit**, so the endpoint lands on the final permission name.
+
+#### C1. Rename `people:employee:deactivate` → `people:employee:activation`
+
+19 references across 8 modules. The permission carries **bit index 119**, and the bit must not move:
+changing it would invalidate every issued token's bitset.
+
+The schema makes this safe if done in the right order. `permissions` is keyed by `id` and
+`role_permissions` references `permission_id`, **not** the name — so renaming the row in place
+preserves every existing grant automatically.
+
+The trap is the repeatable seed. `R__seed_reference_security.sql` upserts with `ON CONFLICT (name)`,
+so editing the name there alone would **insert a second row** rather than rename the first, leaving
+the old permission in place, still granted, and two rows contending for bit 119.
+
+1. `V8__rename_employee_deactivate_to_activation.sql` — `UPDATE permissions SET name =
+   'people:employee:activation', action = 'activation' WHERE name = 'people:employee:deactivate'`.
+   Keeps id `a30123b1-473f-f626-ae28-bb94202f2e8a`, keeps bit 119, keeps every grant.
+2. Then update the repeatable seeds so they stop re-inserting the old name:
+   `R__seed_reference_security.sql`, `R__seed_role_permissions.sql` (three sites).
+3. `PermissionCode.PEOPLE__EMPLOYEE__DEACTIVATE` → `PEOPLE__EMPLOYEE__ACTIVATION`, bit 119 unchanged.
+4. `PeoplePermissions.EMPLOYEE_DEACTIVATE` → `EMPLOYEE_ACTIVATION`; `@PreAuthorize` on
+   `disableEmployee`; the `scopes = {...}` in its OpenAPI annotation.
+5. Catalogs: `GatewayPermissionCatalog`, `DownstreamPermissionCatalog` (both `PERM_`-prefixed),
+   `.github/permissions/permissions_v2.yml`, `pos-people/src/main/resources/permissions.yaml`.
+6. Tests: `pos-people` and **`pos-people-contact`** `BaseIntegrationTest` authority lists.
+7. Generated artifacts (`pos-people/openapi.yaml`, `docs/permissions-report.yaml`,
+   `pos-security-service/docs/permissions-aggregate.yaml`) regenerate — do not hand-edit.
+8. Per pre-production policy, this is a clean rename, not a deprecation. Do **not** use the
+   `deprecated` / `superseded_by` columns to keep the old name alive.
+9. **Check the frontend** for the literal `people:employee:deactivate` — that repo is outside this
+   plan's session scope and was not searched.
+
+#### C2. The endpoint
+
 Mirror `disableEmployee` — controller `internal/controller/EmployeeController.java:273`, service
 `internal/service/EmployeeServiceImpl.java:198`.
 
@@ -228,13 +253,14 @@ Mirror `disableEmployee` — controller `internal/controller/EmployeeController.
    - `ON_LEAVE` / `SUSPENDED` → 409 pointing at the profile update; those carry dates and a reason
      the register's switch does not collect
    - only `DISABLED` proceeds → `ACTIVE`, with a fresh `statusEffectiveAt`
-2. Concurrency token per the Wave 0 decision; 409 on mismatch.
+2. `updatedAt` as the concurrency token; 409 on mismatch; named as the token in the OpenAPI
+   description, per the amended DECISION-PEOPLE-017.
 3. Publish the reactivation counterpart of the disable saga so the replicas notified by #2119 / #2121
    converge without a manual replay.
 4. `@EmitEvent(id = "PEOPLE_EMPLOYEE_ENABLE", apiVersion = "1")`, registered in
    `internal/config/EventTypes.java` with the `write` preset.
-5. `@PreAuthorize` on the Wave 0 permission; ADR-0042 OpenAPI annotations including
-   `x-required-permissions`.
+5. `@PreAuthorize("hasAuthority('" + PeoplePermissions.EMPLOYEE_ACTIVATION + "')")`; ADR-0042
+   OpenAPI annotations including `x-required-permissions`.
 
 **Acceptance (#2156):** `DISABLED → ACTIVE` succeeds and restores authentication;
 `TERMINATED → ACTIVE` is 409, never 200; downstream consumers observe the reactivation without a
@@ -250,7 +276,9 @@ gh workflow run api-artifacts-sync.yml --repo louisburroughs/durion-positivity-b
   --ref <branch> -f modules="pos-people"
 ```
 
-The frontend needs this SDK to start on the register, which is why the gate sits here.
+The frontend needs this SDK to start on the register, which is why the gate sits here. Note that
+C1 changes a permission, which per `CLAUDE.md` independently obliges an `API Artifacts Sync` run —
+this gate covers it.
 
 ---
 
@@ -337,7 +365,9 @@ story, not a line item here.
 | #2160 not scheduled — another module, another domain owner | **High** — it is the critical path; #2155's roles column cannot ship without it | Raised as #2160. Confirm the security domain picks it up before Wave 1 starts. |
 | #2160's payload omits `username`, carrying only `userId` | **High** — `pos-people` has no `userId` anywhere; the consumer would need a cross-service call per row, defeating the design | §5 step 2. Fix it in the payload review, not after the replica is built. |
 | Wave 2 enrichment applied before windowing turns an O(n) in-memory scan into O(n) joins per request | **High** — would make the register slower than the 100-request version it replaces | Enrich the window only; the comment left at `findAll()` in Track B is the guard. Test asserting enrichment count equals page size, not total. |
-| #2156 permission decision deferred into implementation | Medium | Wave 0 gate. #2159's criteria are written against one answer; discovering the other mid-Wave-3 invalidates them. |
+| Permission rename applied to the repeatable seed without the versioned migration first | **High** — `ON CONFLICT (name)` inserts a second row instead of renaming; the old permission survives, still granted, and two rows contend for bit 119 | §6 C1 step 1. The `V8__` migration is not optional and must precede the seed edits. |
+| Bit index 119 moved during the rename | **High** — invalidates the bitset in every issued token | Keep `bit_index` untouched; the rename is a name change only. |
+| Frontend references the old permission literal | Medium | §6 C1 step 9 — that repo was outside this session's scope and was not searched. Check before merging C1. |
 | Roles replica lag shows a stale role on the register | Low | Already the accepted tradeoff for names — `EmployeeSummaryDto.firstName` is documented as null "when the replica has not caught up". Same treatment, same documentation. Reconciliation is mandatory per ADR-0044 §4. |
 | SDK drift between waves | Low | `API Artifacts Sync` after Wave 1 and again after Wave 3. |
 | Tracks A and B conflict in `EmployeeServiceImpl` | Low | Track A's scope cut — it does not touch `searchEmployees`. |
@@ -352,6 +382,7 @@ Per module conventions in `durion-positivity-backend/CLAUDE.md`:
 ./mvnw spotless:apply
 ./mvnw -pl pos-people -am test
 ./mvnw -pl pos-people -am verify                             # *IT.java contract tests
+./mvnw -pl pos-people-contact -am test                       # C1 touches its BaseIntegrationTest
 ./mvnw -pl pos-security-service -am test                     # #2160
 ./mvnw -pl pos-archunit -am -Dtest=ArchitectureTests test     # after Track A's new packages
 ```
@@ -362,7 +393,11 @@ Per-track evidence:
   absent from `src/main/resources/db/tenancy-global-tables.txt`.
 - **B** — `?status=DISABLED&page=1` returns the tenant's disabled count in `totalElements`;
   `?sort=lastName,desc` verified across a two-page result, not within one.
-- **C** — all five statuses exercised against `/enable`; the reactivation event observed downstream.
+- **C1** — after migration, exactly one `permissions` row matches `people:employee:%activation%`,
+  it holds bit 119 and id `a30123b1-…`, and its grant count equals the pre-rename count for
+  `people:employee:deactivate`. No row named `people:employee:deactivate` remains.
+- **C2** — all five statuses exercised against `/enable`; a stale `updatedAt` is 409; the
+  reactivation event observed downstream.
 - **D (#2160)** — assign and revoke each emit exactly one fact; payload resolves to a person with no
   callback; double-apply is a no-op.
 - **Wave 2** — a 25-row page renders every column in one request; the PII-less caller gets 200 with

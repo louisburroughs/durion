@@ -1266,12 +1266,15 @@ This document provides non-normative, verbose rationale and decision logs for th
 - **Rationale:** Allows low-friction entry while enabling richer auditing.
 - **Implications:** UI should prompt for notes but not hard-block.
 
-## DECISION-PEOPLE-017 - Optimistic concurrency default (lastUpdatedStamp)
+## DECISION-PEOPLE-017 - Optimistic concurrency default (last-modified token)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-017)
-- **Decision:** When entities expose a concurrency token (prefer `lastUpdatedStamp`), require clients to submit it on update and return 409 on mismatch.
-- **Rationale:** Prevents lost updates in admin workflows.
-- **Implications:** UI must handle 409 by refreshing and reapplying intended changes.
+- **Decision:** When entities expose a concurrency token, require clients to submit it on update and return 409 on mismatch. Any last-modified timestamp the resource already carries satisfies this — `lastUpdatedStamp`, `updatedAt`, `lastModifiedAt` — and the endpoint names its token in the OpenAPI description.
+- **Rationale:** Prevents lost updates in admin workflows. The field's name is not what protects the update; the round-trip and the 409 are. Naming one field as preferred read as a requirement to add it even where an equivalent already existed.
+- **Implications:**
+  - UI must handle 409 by refreshing and reapplying intended changes.
+  - Endpoints document which field is their concurrency token.
+  - No resource needs a second timestamp field duplicating one it already exposes.
 
 ## DECISION-PEOPLE-018 - Error response schema (400/409)
 
