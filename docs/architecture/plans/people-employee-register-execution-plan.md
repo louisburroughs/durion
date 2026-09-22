@@ -7,9 +7,17 @@
 **Repos:** `durion-positivity-backend` (all code), `durion-positivity-frontend` (SDK regeneration)
 **Design canvas:** https://claude.ai/artifact/PA1Xk14WRbzb9KP8Pnrz2K
 **Modules:** `pos-people` (most of the work), `pos-security-service` (one new fact)
-**Status:** Wave 1 in progress. #2160 and the #2156 permission rename are done, verified and
-pushed on `claude/vigilant-pasteur-dux6jh`. #2157 in progress; #2158 and the #2156 endpoint to
-follow.
+**Status:** **Wave 1 complete** on `claude/vigilant-pasteur-dux6jh` — #2156 (rename + endpoint),
+#2157, #2158 and #2160 all implemented and pushed. `pos-people` runs 670 tests, 0 failures, 29
+errors (all Testcontainers classes needing a Docker daemon the build environment lacks).
+
+One item outstanding, needing a human: `RolePermissionBaselineTest.supportIsReadOnly` fails until
+`('SUPPORT', 'people:jobRole:view')` is added to `R__seed_role_permissions.sql`. SUPPORT's grants
+are derived, not declared — `SupportReadOnlyCeiling` admits every `:view`/`:read` the six floor
+roles hold, and ADMIN is one of them, so granting the permission to anyone forces the SUPPORT row.
+The seed's own comment makes widening SUPPORT a product decision.
+
+Wave 2 (#2155) is next and is unblocked: #2160 has landed.
 
 ---
 
