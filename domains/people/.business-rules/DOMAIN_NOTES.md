@@ -229,10 +229,11 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **SLA:** DLQ items should be resolved within 24 hours of creation
   - **Review cadence:** Monthly review of DLQ patterns and downstream reliability
 
-## DECISION-PEOPLE-003 - Role assignment scopes (GLOBAL vs LOCATION)
+## DECISION-PEOPLE-003 - Role scopes (ALL vs LOCATION)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-003)
-- **Decision:** Role assignments support two scopes: `GLOBAL` (applies across all locations) and `LOCATION` (applies only to specific location). Role definitions declare allowed scopes. A role assignment must specify scope; LOCATION-scoped assignments require a location reference. Multiple location-scoped assignments for the same role are allowed. UI displays effective permissions as the union of all assignments.
+- **Decision (amended 2026-09-23 to match ADR-0061 and the schema):** Location scope has two values, `ALL` (grants apply everywhere) and `LOCATION` (grants apply only at the nodes the holder is assigned to). **Scope is an attribute of the role, not of the role assignment.** Per the ADR-0061 ADR-0062 amendment §1, `location_scope` and `location_hierarchy` are columns on a tenant's role row; `RoleAssignment` has no scope column at all, holding only a user, a role, effective dates and revocation. A `LOCATION`-scoped role resolves its nodes from the holder's `employee_location_assignment` rows in pos-people, which is where the location reference lives — not on the assignment. Multiple location assignments per holder are allowed, and the UI displays effective permissions as the union of all of them.
+- **What this amends:** the original wording said assignments carry two scopes `GLOBAL`/`LOCATION`, that "a role assignment must specify scope", and that "LOCATION-scoped assignments require a location reference". All three drifted from what was built: the enum value is `ALL`, not `GLOBAL`; scope is per-role, not per-assignment; and the location reference is per-holder, not per-assignment. The drift was caught while planning the employee register (durion#501), where it would have sent an implementer looking for a scope field on `RoleAssignment` that does not exist. The decision's substance — explicit scoping with role-level constraints, Option A below — is unchanged; only its account of where the data sits is corrected.
 - **Alternatives considered:**
   - **Option A (Chosen):** Explicit GLOBAL/LOCATION scopes with role-level constraints
     - Pros: Clear semantics, flexible, supports multi-location organizations, explicit modeling
@@ -1266,12 +1267,15 @@ This document provides non-normative, verbose rationale and decision logs for th
 - **Rationale:** Allows low-friction entry while enabling richer auditing.
 - **Implications:** UI should prompt for notes but not hard-block.
 
-## DECISION-PEOPLE-017 - Optimistic concurrency default (lastUpdatedStamp)
+## DECISION-PEOPLE-017 - Optimistic concurrency default (last-modified token)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-017)
-- **Decision:** When entities expose a concurrency token (prefer `lastUpdatedStamp`), require clients to submit it on update and return 409 on mismatch.
-- **Rationale:** Prevents lost updates in admin workflows.
-- **Implications:** UI must handle 409 by refreshing and reapplying intended changes.
+- **Decision:** When entities expose a concurrency token, require clients to submit it on update and return 409 on mismatch. Any last-modified timestamp the resource already carries satisfies this — `lastUpdatedStamp`, `updatedAt`, `lastModifiedAt` — and the endpoint names its token in the OpenAPI description.
+- **Rationale:** Prevents lost updates in admin workflows. The field's name is not what protects the update; the round-trip and the 409 are. Naming one field as preferred read as a requirement to add it even where an equivalent already existed.
+- **Implications:**
+  - UI must handle 409 by refreshing and reapplying intended changes.
+  - Endpoints document which field is their concurrency token.
+  - No resource needs a second timestamp field duplicating one it already exposes.
 
 ## DECISION-PEOPLE-018 - Error response schema (400/409)
 
