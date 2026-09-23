@@ -1244,14 +1244,26 @@ This document provides non-normative, verbose rationale and decision logs for th
   - Backend provides `canX`/`allowedActions` style fields for complex flows.
   - Security service remains the enforcement point.
 
-## DECISION-PEOPLE-014 - Assignment effective dating semantics (exclusive end)
+## DECISION-PEOPLE-014 - Assignment effective dating semantics by range type
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-014)
-- **Decision:** Use half-open intervals for effective dating: `effectiveStartAt` inclusive, `effectiveEndAt` exclusive.
-- **Rationale:** Deterministic overlap checks and no boundary ambiguity.
+- **Decision:** The end rule depends on the range's type.
+  - **Instant ranges** (`effectiveStartAt` / `effectiveEndAt`, e.g. role assignments) are half-open: start inclusive, end **exclusive**.
+  - **Date ranges** (`LocalDate` `effectiveFrom` / `effectiveTo`, e.g. staffing and employee-location
+    assignments) are closed: both bounds **inclusive**. `effectiveTo` is the last day worked, so an assignment
+    with `effectiveFrom == effectiveTo` covers exactly one day. A null bound is open-ended.
+- **Rationale:** Half-open instants give deterministic overlap checks with no boundary ambiguity. A calendar
+  date names a whole day, and "last day worked" is how people state an assignment's end; an exclusive date end
+  would force every writer to add a day and every display to subtract one.
 - **Implications:**
-  - Backend validators and UI validators must match.
-  - Display layers may present “end date” in a user-friendly way, but the stored semantics remain exclusive.
+  - Backend validators and UI validators must match, per range type.
+  - Instant ranges: "active" is `now >= start && (end is null || now < end)`, and the end must be strictly
+    after the start. Display layers may present "end date" in a user-friendly way, but the stored semantics
+    remain exclusive.
+  - Date ranges: "covers date D" is `(from is null || from <= D) && (to is null || to >= D)`, and `to >= from`
+    is valid. Every reader of a staffing or location assignment applies this, including pos-people's own reads
+    and pos-shop-manager's booking presence check, opening search and location technician roster.
+  - Amended 2026-09-23 to record the date-range rule the code already implemented (louisburroughs/durion-positivity-backend#2174).
 
 ## DECISION-PEOPLE-015 - Timezone display standard for People UIs
 

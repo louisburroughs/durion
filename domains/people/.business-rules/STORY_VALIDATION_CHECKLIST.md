@@ -37,8 +37,9 @@ non-leaky authorization).
   - [ ] Range filters: `from <= thru`.
   - [ ] Effective dating: `effectiveStartAt <= effectiveEndAt`.
 - [ ] Enums validated against authoritative values where available.
-- [ ] Effective dating uses half-open interval semantics for “active”
-      determination. (Decision ID: DECISION-PEOPLE-014)
+- [ ] Effective dating follows the range type for “active” determination:
+      half-open for instant ranges, both bounds inclusive for date ranges.
+      (Decision ID: DECISION-PEOPLE-014)
 
 ## API Contract
 
@@ -184,11 +185,12 @@ non-leaky authorization).
   - [ ] Only one primary assignment per person at a time.
   - [ ] UI reflects automatic demotion after refresh.
 
-### 14) Effective end semantics are exclusive
+### 14) Effective end semantics follow the range type
 
 - Decision ID: DECISION-PEOPLE-014
 - Verify:
-  - [ ] “Active” logic uses half-open interval semantics.
+  - [ ] Instant ranges (`effectiveStartAt`/`effectiveEndAt`): “active” logic is half-open (end exclusive).
+  - [ ] Date ranges (`effectiveFrom`/`effectiveTo`): both bounds inclusive; `effectiveTo` is the last day worked.
 
 ### 15) Assignment editability follows end+create preference
 

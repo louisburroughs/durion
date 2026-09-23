@@ -37,7 +37,7 @@ cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NO
 | DECISION-PEOPLE-011 | Mechanic roster storage ownership (SoR vs read model)      |
 | DECISION-PEOPLE-012 | Person↔User cardinality and identifiers                    |
 | DECISION-PEOPLE-013 | Permission naming and UI capability exposure               |
-| DECISION-PEOPLE-014 | Assignment effective-dating semantics (exclusive end)      |
+| DECISION-PEOPLE-014 | Effective dating: instant end exclusive, date inclusive    |
 | DECISION-PEOPLE-015 | Timezone display standard for People UIs                   |
 | DECISION-PEOPLE-016 | Break notes requirement for OTHER                          |
 | DECISION-PEOPLE-017 | Optimistic concurrency default (last-modified token)      |
@@ -109,7 +109,7 @@ cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NO
 | DECISION-PEOPLE-011 | Roster storage ownership                | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-011---mechanic-roster-storage-ownership)                        |
 | DECISION-PEOPLE-012 | Person↔User cardinality                 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-012---person-user-cardinality-and-identifiers)                  |
 | DECISION-PEOPLE-013 | Permission naming + capability exposure | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-013---permission-naming-and-ui-capability-exposure)             |
-| DECISION-PEOPLE-014 | Effective dating semantics              | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-014---assignment-effective-dating-semantics-exclusive-end)      |
+| DECISION-PEOPLE-014 | Effective dating semantics              | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-014---assignment-effective-dating-semantics-by-range-type)      |
 | DECISION-PEOPLE-015 | UI timezone standard                    | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-015---timezone-display-standard-for-people-uis)                 |
 | DECISION-PEOPLE-016 | Break notes for OTHER                   | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-016---break-notes-requirement-for-other)                        |
 | DECISION-PEOPLE-017 | Optimistic concurrency                  | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-017---optimistic-concurrency-default-last-modified-token)          |
@@ -162,13 +162,15 @@ cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NO
 
 ### Q: PersonLocationAssignment primary uniqueness scope and effective end inclusivity?
 
-- Answer: Enforce one primary assignment per person overall (home location). Use half-open intervals: `effectiveStartAt` inclusive, `effectiveEndAt` exclusive.
+- Answer: Enforce one primary assignment per person overall (home location). Instant ranges
+  (`effectiveStartAt`/`effectiveEndAt`) are half-open: start inclusive, end exclusive. Date ranges
+  (`effectiveFrom`/`effectiveTo`) include both bounds: `effectiveTo` is the last day worked.
 - Assumptions:
   - “Primary” maps to payroll/home-location concepts.
 - Rationale:
-  - Half-open intervals avoid overlap ambiguity and simplify validation.
+  - Half-open instant intervals avoid overlap ambiguity and simplify validation; a calendar date names a whole day, so a date range's end is the last day it covers.
 - Impact:
-  - UI “active” display uses `now >= start && now < end`.
+  - UI “active” display for an instant range uses `now >= start && now < end`; for a date range, `from <= today && today <= to`.
 - Decision ID: DECISION-PEOPLE-004, DECISION-PEOPLE-014
 
 ### Q: Is `role` required on PersonLocationAssignment and what are allowed values?

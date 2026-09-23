@@ -9,7 +9,7 @@ guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+last_updated: 2026-09-23
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -202,10 +202,11 @@ refusal whose frame of reference is left to be inferred:
   location)`.
 
 Note for consumers of the dispatch roster: the roster read
-(`findRosterByLocation`) filters ACTIVE technician assignments but does **not**
-date-filter, while this presence check does. A location's roster can therefore list
-technicians that a booking on a given date will not count. That difference is
-deliberate for now and is why the refusal states the date.
+(`findRosterByLocation`) applies the same effective-date coverage as this presence
+check, for its roster `date` (defaulting to facility-local today,
+DECISION-SHOPMGMT-015), so the board and a booking on that date count the same
+technicians (#2140). To see a crew that starts later, pass a future `date`; for the
+shop-wide list regardless of location assignment, use `listMechanics`.
 
 ### Events & Dependencies
 
