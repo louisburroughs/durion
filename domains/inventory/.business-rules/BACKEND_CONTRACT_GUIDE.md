@@ -538,8 +538,8 @@ General:
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
-- Posting location (#2167): an adjustment posts against its task's bin location when the bin holds a location UUID, else the optional `locationId` on the create request. A `locationId` that contradicts the task's bin is refused `400 VALIDATION_ERROR`. The resolved location is returned as `locationId`; absent, the variance posts against the stock item's location-less balance.
-- Negative-stock refusal (#2167): approving (or auto-approving on create) an adjustment whose variance would take on-hand below zero answers `422 NEGATIVE_STOCK_FLOOR_VIOLATION` with the projected on-hand in `message`; the adjustment stays `PENDING_APPROVAL`. The count is wrong, so retrying the approval does not help — recount or reject.
+- Posting location (#2167): an adjustment posts against its task's bin location when the bin holds a location UUID, else the optional `locationId` on the create request. A `locationId` that contradicts the task's bin is refused `400 VALIDATION_ERROR`; a resolved location outside the caller's `inventory:adjustment:create` reach is refused `403 LOCATION_SCOPE_DENIED`. The resolved location is returned as `locationId` and is also the scope of the variance recompute on a `CONFLICT` task; absent, the variance posts against the stock item's location-less balance.
+- Negative-stock refusal (#2167): approving (or auto-approving on create) an adjustment whose variance would take on-hand below zero answers `422 NEGATIVE_STOCK_FLOOR_VIOLATION` with the projected on-hand in `message`. On approval the adjustment stays `PENDING_APPROVAL`; on a below-threshold create, which posts in the same transaction, no adjustment is recorded and the corrected count is resubmitted. The count is wrong, so retrying does not help — recount, or reject the pending adjustment.
 - `500 ADJUSTMENT_LEDGER_POST_FAILED` means only an unexpected posting failure; that is the only adjustment failure worth retrying.
 
 ### Frontend Usage Notes
