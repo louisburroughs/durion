@@ -9,7 +9,7 @@ guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
 openapi_commit: ca7fadc3
 last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-02-24
+last_updated: 2026-09-23
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
