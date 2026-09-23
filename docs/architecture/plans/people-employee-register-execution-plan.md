@@ -1,4 +1,13 @@
-# Execution plan — People employee register backend (#2155–#2159)
+---
+type: Plan
+title: 'People Employee Register Backend Execution Plan (#2155-#2159)'
+description: 'Wave-by-wave execution plan for the pos-people employee register: job roles and the enable endpoint (Wave 1), the register projection fed by a new security.events.v1 role-assignment fact (Wave 2, raising #2160), and allowedActions capability flags (Wave 3). Records the dependency order between #2155-#2159, why the roles column is sourced from a pos-security-service event replica rather than pos-people-contact, where location scope actually lives (on the role, not the assignment), and the open decisions each wave must settle before it can close.'
+created: 2026-09-22
+updated: 2026-09-23
+status: active
+---
+
+## Execution plan — People employee register backend (#2155–#2159)
 
 **Covers:** `durion-positivity-backend` issues #2155, #2156, #2157, #2158, #2159, and #2160
 (raised from this plan — the `pos-security-service` fact that #2155 depends on, §5).
@@ -317,9 +326,18 @@ With §4's facts, this story is smaller than written in every respect but one.
    its thin payload untouched.
 5. **Enrich the 25-row window only, never the full `findAll()` list.** See §9.
 6. Role assignments default to active-only (DECISION-PEOPLE-026). **Scope does not come from the
-   assignment** — see §5. If the register's roles column must show scope (DECISION-PEOPLE-003), it
-   reads `Role.locationScope` / `locationHierarchy`, which means the replica needs the role's scope
-   alongside the assignment. Settle this when the column is built; it is not carried by #2160.
+   assignment** — `RoleAssignment` has no scope column at all; it holds a user, a role, effective
+   dates and revocation. Scope is an attribute of the *role*, per the ADR-0061 ADR-0062 amendment
+   §1: "`location_scope` and `location_hierarchy` are attributes of a tenant's role row."
+   **#2160 carries it.** `RoleAssignmentChangedV1.roleLocationScope` is sourced in
+   `RoleAssignmentEventEmitter` from `assignment.getRole().getLocationScope()`, and
+   `ExtRoleAssignmentReplica.roleLocationScope` stores it — so the register's roles column can show
+   scope (DECISION-PEOPLE-003) off the replica with no second lookup and no call into
+   pos-security-service. This closes the gap an earlier draft left open by deferring the decision.
+   `Role.locationHierarchy` is deliberately *not* carried: it selects which parent dimension a
+   `LOCATION` role is evaluated along (ADR-0061 §2, `FINANCIAL` vs `OTHER`), which is an input to
+   the authorization decision, not something the register displays. Adding it later is a new field
+   on the event, not a change to this one.
 7. PII gating: omit `email` / `phone` for a caller without `people:employee_pii:view` and return 200,
    never 403 — per #1898, where conflating `people:employee:view` with PII access exposed home
    addresses and emergency contacts to twelve roles including TECHNICIAN.
@@ -329,10 +347,19 @@ With §4's facts, this story is smaller than written in every respect but one.
 200; a caller without `people-contact:role:view` gets rows with `roleAssignments` absent;
 `HrFacadeTool.searchEmployees` is unaffected.
 
-> **Note on the roles-permission criterion.** The issue gates the roles column on
-> `people-contact:role:view`. Under #2160 the data no longer comes from `pos-people-contact`, so
-> either that permission is re-homed as a `pos-people` check over the replica, or the criterion names
-> the security-domain permission instead. Settle when #2160's payload is agreed.
+> **Note on the roles-permission criterion — OPEN, and currently unenforced.** The issue gates the
+> roles column on `people-contact:role:view`. Under #2160 the data no longer comes from
+> `pos-people-contact`, so either that permission is re-homed as a `pos-people` check over the
+> replica, or the criterion names the security-domain permission instead. #2160's payload is now
+> settled, so this is ready to decide — and it needs deciding, because **as built the column is not
+> gated at all**: `searchEmployees` carries only
+> `@PreAuthorize(hasAuthority(people:employee:view))`, so any caller who can view employees can
+> pass `?include=ROLE_ASSIGNMENTS` and read every employee's role assignments. That is the precise
+> shape of #1898, which this plan already cites two items above — a structural view permission
+> being taken as permission for the sensitive payload behind it. The acceptance criterion below
+> ("a caller without `people-contact:role:view` gets rows with `roleAssignments` absent") is
+> therefore **not met**. Whichever permission name wins, the check has to exist before #2155
+> closes; picking one is a naming decision, leaving it ungated is a defect.
 
 ---
 

@@ -26,7 +26,7 @@ cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NO
 | ------------------- | ---------------------------------------------------------- |
 | DECISION-PEOPLE-001 | User lifecycle states and soft offboarding                 |
 | DECISION-PEOPLE-002 | Disable user workflow uses saga + DLQ                      |
-| DECISION-PEOPLE-003 | Role assignment scopes (GLOBAL vs LOCATION)                |
+| DECISION-PEOPLE-003 | Role scopes (ALL vs LOCATION)                             |
 | DECISION-PEOPLE-004 | Person-location assignment primary semantics               |
 | DECISION-PEOPLE-005 | TimekeepingEntry ingestion and deduplication               |
 | DECISION-PEOPLE-006 | Time period approval atomicity                             |
@@ -85,7 +85,7 @@ cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NO
 
 - User lifecycle is `ACTIVE`, `DISABLED` (reversible), `TERMINATED` (irreversible); authentication is blocked when not ACTIVE. (Decision ID: DECISION-PEOPLE-001)
 - Disable user is atomic locally then propagated asynchronously via saga; downstream failures do not roll back disable. (Decision ID: DECISION-PEOPLE-002)
-- Role assignments are scope-aware (`GLOBAL`/`LOCATION`) and effective-dated; mutations prefer end+recreate over in-place edits. (Decision ID: DECISION-PEOPLE-003)
+- Location scope (`ALL`/`LOCATION`) is an attribute of the **role**, not of the assignment: `RoleAssignment` carries a user, a role, effective dates and revocation, and nothing else. A `LOCATION`-scoped role resolves its nodes from the holder's `employee_location_assignment` rows. Assignments are effective-dated; mutations prefer end+recreate over in-place edits. (Decision ID: DECISION-PEOPLE-003)
 - Person-location assignments are effective-dated with a single primary “home” assignment per person at a time; primary promotion demotes prior primary atomically. (Decision
   ID: DECISION-PEOPLE-004)
 - TimekeepingEntry ingestion is idempotent by stable source key; no duplicate UI rows. (Decision ID: DECISION-PEOPLE-005)
@@ -98,7 +98,7 @@ cross-domain policy. Each decision is indexed and cross-referenced to `DOMAIN_NO
 | ------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | DECISION-PEOPLE-001 | User lifecycle model                    | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-001---user-lifecycle-states-and-soft-offboarding)               |
 | DECISION-PEOPLE-002 | Disable saga + DLQ                      | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-002---user-disable-workflow-with-saga-pattern)                  |
-| DECISION-PEOPLE-003 | Role scope model                        | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-003---role-assignment-scopes-global-vs-location)                |
+| DECISION-PEOPLE-003 | Role scope model                        | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-003---role-scopes-all-vs-location)                |
 | DECISION-PEOPLE-004 | Primary assignment semantics            | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-004---person-location-assignment-primary-flag-semantics)        |
 | DECISION-PEOPLE-005 | Idempotent ingestion                    | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-005---timekeeping-entry-ingestion-and-deduplication)            |
 | DECISION-PEOPLE-006 | Period-atomic approvals                 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-people-006---time-period-approval-atomicity)                           |

@@ -229,10 +229,11 @@ This document provides non-normative, verbose rationale and decision logs for th
   - **SLA:** DLQ items should be resolved within 24 hours of creation
   - **Review cadence:** Monthly review of DLQ patterns and downstream reliability
 
-## DECISION-PEOPLE-003 - Role assignment scopes (GLOBAL vs LOCATION)
+## DECISION-PEOPLE-003 - Role scopes (ALL vs LOCATION)
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-PEOPLE-003)
-- **Decision:** Role assignments support two scopes: `GLOBAL` (applies across all locations) and `LOCATION` (applies only to specific location). Role definitions declare allowed scopes. A role assignment must specify scope; LOCATION-scoped assignments require a location reference. Multiple location-scoped assignments for the same role are allowed. UI displays effective permissions as the union of all assignments.
+- **Decision (amended 2026-09-23 to match ADR-0061 and the schema):** Location scope has two values, `ALL` (grants apply everywhere) and `LOCATION` (grants apply only at the nodes the holder is assigned to). **Scope is an attribute of the role, not of the role assignment.** Per the ADR-0061 ADR-0062 amendment §1, `location_scope` and `location_hierarchy` are columns on a tenant's role row; `RoleAssignment` has no scope column at all, holding only a user, a role, effective dates and revocation. A `LOCATION`-scoped role resolves its nodes from the holder's `employee_location_assignment` rows in pos-people, which is where the location reference lives — not on the assignment. Multiple location assignments per holder are allowed, and the UI displays effective permissions as the union of all of them.
+- **What this amends:** the original wording said assignments carry two scopes `GLOBAL`/`LOCATION`, that "a role assignment must specify scope", and that "LOCATION-scoped assignments require a location reference". All three drifted from what was built: the enum value is `ALL`, not `GLOBAL`; scope is per-role, not per-assignment; and the location reference is per-holder, not per-assignment. The drift was caught while planning the employee register (durion#501), where it would have sent an implementer looking for a scope field on `RoleAssignment` that does not exist. The decision's substance — explicit scoping with role-level constraints, Option A below — is unchanged; only its account of where the data sits is corrected.
 - **Alternatives considered:**
   - **Option A (Chosen):** Explicit GLOBAL/LOCATION scopes with role-level constraints
     - Pros: Clear semantics, flexible, supports multi-location organizations, explicit modeling
