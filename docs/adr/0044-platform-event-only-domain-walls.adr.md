@@ -109,8 +109,8 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
 
 - **Transactional outbox.** Producers MUST NOT publish directly from business transactions. Each producer module adds an `event_outbox` table (Flyway) written in the same
   transaction as the state change, drained by a background publisher. At-least-once delivery is the guarantee.
-- **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`. The handler's replica update and the `processed_events` mark
-  commit in separate transactions (amended 2026-09-23, see §Amendments), so redelivery MUST be harmless.
+- **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`, written in the same transaction as the replica update; that
+  transaction is the handler's own, not the listener's (amended 2026-09-23, see §Amendments). Redelivery MUST be harmless.
 - **Retry and DLQ.** Transient consumer failures retry with backoff; poison messages go to `{topic}.dlq` and alert. A DLQ'd command MUST surface as a failed/pending item, not
   silently drop.
 - **Bootstrap and backfill.** Owners MUST provide a replay mechanism (snapshot export endpoint or administrative re-emit-all) to seed new replicas and repair drift.
@@ -200,17 +200,19 @@ The consumer shape is now:
 
 - **The listener method is not `@Transactional`.** It parses the record, checks `processed_events`, and drops a record
   that is already marked or malformed, all before any transaction is opened.
-- **The handler runs in its own transaction** (`TransactionTemplate`, `PROPAGATION_REQUIRES_NEW`). A permanent failure
-  rolls back only the handler's own work.
-- **The mark is written afterwards, in a second transaction.** It commits whether the handler succeeded or failed
-  permanently.
-- **Transient failures still propagate.** `TransientDataAccessException` is rethrown from the handler's transaction, so
-  the container retries the record and no mark is written for a record that was not applied.
+- **The handler and its mark commit together, in the handler's own transaction** (`TransactionTemplate`,
+  `PROPAGATION_REQUIRES_NEW`). A success is applied and marked atomically, as §4 intended. A permanent failure rolls
+  back only that transaction.
+- **A permanent failure is recorded, where the consumer records failures, in a transaction of its own.** The catch
+  writes the mark after the handler's transaction has rolled back, so redelivery does not retry the record. A consumer
+  whose contract leaves a failed record unmarked keeps doing so.
+- **Transient failures still propagate.** `TransientDataAccessException` is rethrown, so the container retries the
+  record and no mark is written for a record that was not applied.
 
-The price is an at-least-once window between the two commits. If the mark's commit fails after the handler's
-committed, the redelivered record runs the handler again. Every handler must tolerate that: an `aggregateVersion`
-guard, an upsert, or a state check that turns the second run into a no-op. This is the idempotency §4 already
-required.
+The first cut of this fix, in `pos-inventory`'s `InventoryCommandListener` (#2145), wrote the mark in a second
+transaction after every handler, successful or not. That opens an at-least-once window between the two commits, which
+its pick-command handlers tolerate. Some handlers elsewhere do not: `pos-order` applies goods receipts as deltas and
+appends a timeline row per event, so the shape above is the platform shape and #2145's is the exception.
 
 Each module pins the shape with a Spring-backed test that uses a real transaction manager and a `@Transactional`
 handler that throws, both bare and inside an enclosing transaction. `pos-inventory`'s
