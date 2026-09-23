@@ -10,7 +10,11 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146); previously amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)), 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped), 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
+**Status:** ACCEPTED — amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146);
+previously amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
+2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped),
+2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and
+2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -111,8 +115,10 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
   transaction as the state change, drained by a background publisher. At-least-once delivery is the guarantee.
 - **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`, written in the same transaction as the replica update; that
   transaction is the handler's own, not the listener's (amended 2026-09-23, see §Amendments). Redelivery MUST be harmless.
-- **Retry and DLQ.** Transient consumer failures retry with backoff; poison messages go to `{topic}.dlq` and alert. A DLQ'd command MUST surface as a failed/pending item, not
-  silently drop.
+- **Retry and DLQ.** Transient consumer failures retry with backoff; a record that still fails, or whose failure the consumer lets propagate on purpose, goes to
+  `{topic}.dlq` and alerts. A failure the consumer classifies as permanent (a malformed payload, a business rejection that redelivery cannot fix) is logged and,
+  where the consumer records failures, marked processed instead of dead-lettered (amended 2026-09-23, see §Amendments). Either way a failed command MUST surface to its
+  requester as a failed/pending item, not silently drop.
 - **Bootstrap and backfill.** Owners MUST provide a replay mechanism (snapshot export endpoint or administrative re-emit-all) to seed new replicas and repair drift.
 - **Reconciliation.** A scheduled job per consumer compares replica `aggregateVersion`s (or count/checksum) against the owner and triggers targeted re-sync on drift.
   Duplication without reconciliation is not permitted. Reconciliation itself flows over the event channel: owners publish periodic reconciliation manifests on
