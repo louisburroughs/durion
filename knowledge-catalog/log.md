@@ -2,10 +2,10 @@
 
 ## 2026-09-23
 
-* **Curated**: `docs/architecture/plans/people-employee-register-execution-plan.md` gained OKF frontmatter
-  (`type: Plan`, `status: active`) and its H1 became an H2, per `.github/instructions/markdown.instructions.md`.
-  `docs/architecture` is a declared `PLATFORM_AREA`, so the next regeneration picks it up as a
-  `knowledge-catalog/platform/` concept; until then the plan is undiscoverable through the catalog.
+* **Curated**: `docs/architecture/plans/people-employee-register-execution-plan.md` carries OKF frontmatter
+  (`type: Plan`, `status: active`) with an H2 title, per `.github/instructions/markdown.instructions.md`
+  — added in 3504d5d. `docs/architecture` is a declared `PLATFORM_AREA`, so the next regeneration picks it
+  up as a `knowledge-catalog/platform/` concept; until then the plan is undiscoverable through the catalog.
 * **Not regenerated, deliberately**: the generator reads the sibling backend checkout, which is currently on an
   unmerged feature branch, so a run now would bake branch-only state into the module concepts. A `--dry-run`
   reports 91 files would change — legitimate drift since the 2026-09-21 run plus that branch. Regenerate from a

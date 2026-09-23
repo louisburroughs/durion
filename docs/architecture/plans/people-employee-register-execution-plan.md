@@ -1,12 +1,11 @@
 ---
 type: Plan
-title: 'People Employee Register Backend Execution Plan (#2155-#2159)'
-description: 'Wave-by-wave execution plan for the pos-people employee register: job roles and the enable endpoint (Wave 1), the register projection fed by a new security.events.v1 role-assignment fact (Wave 2, raising #2160), and allowedActions capability flags (Wave 3). Records the dependency order between #2155-#2159, why the roles column is sourced from a pos-security-service event replica rather than pos-people-contact, where location scope actually lives (on the role, not the assignment), and the open decisions each wave must settle before it can close.'
+title: 'People Employee Register Backend Execution Plan'
+description: 'Execution plan for the People employee register backend stories and DECISION-PEOPLE-017 amendment.'
 created: 2026-09-22
 updated: 2026-09-23
 status: active
 ---
-
 ## Execution plan — People employee register backend (#2155–#2159)
 
 **Covers:** `durion-positivity-backend` issues #2155, #2156, #2157, #2158, #2159, and #2160
@@ -380,7 +379,7 @@ Now buildable: `ENABLE` has an endpoint, its permission is settled, the row shap
 `TERMINATED` only. But disable requires status *exactly* `ACTIVE`
 (`EmployeeServiceImpl.java:211-215`: one guard rejects `DISABLED`/`TERMINATED`, a second rejects
 everything that is not `ACTIVE`). So `DISABLE` must also be absent for `ON_LEAVE` and `SUSPENDED`.
-The full expected matrix, for a caller holding the deactivate permission:
+The full expected matrix, for a caller holding the activation permission:
 
 | Status | `DISABLE` | `ENABLE` |
 | ------ | --------- | -------- |
