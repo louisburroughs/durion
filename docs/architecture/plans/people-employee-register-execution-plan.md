@@ -353,7 +353,7 @@ Now buildable: `ENABLE` has an endpoint, its permission is settled, the row shap
 `TERMINATED` only. But disable requires status *exactly* `ACTIVE`
 (`EmployeeServiceImpl.java:211-215`: one guard rejects `DISABLED`/`TERMINATED`, a second rejects
 everything that is not `ACTIVE`). So `DISABLE` must also be absent for `ON_LEAVE` and `SUSPENDED`.
-The full expected matrix, for a caller holding the deactivate permission:
+The full expected matrix, for a caller holding the activation permission:
 
 | Status | `DISABLE` | `ENABLE` |
 | ------ | --------- | -------- |
