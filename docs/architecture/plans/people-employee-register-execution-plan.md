@@ -1,4 +1,12 @@
-# Execution plan — People employee register backend (#2155–#2159)
+---
+type: Plan
+title: 'People Employee Register Backend Execution Plan'
+description: 'Execution plan for the People employee register backend stories and DECISION-PEOPLE-017 amendment.'
+created: 2026-09-22
+updated: 2026-09-22
+status: active
+---
+## Execution plan — People employee register backend (#2155–#2159)
 
 **Covers:** `durion-positivity-backend` issues #2155, #2156, #2157, #2158, #2159, and #2160
 (raised from this plan — the `pos-security-service` fact that #2155 depends on, §5).
