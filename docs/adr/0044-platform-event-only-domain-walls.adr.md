@@ -10,7 +10,7 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)); previously amended 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped), 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
+**Status:** ACCEPTED — amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146); previously amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)), 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped), 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -109,8 +109,8 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
 
 - **Transactional outbox.** Producers MUST NOT publish directly from business transactions. Each producer module adds an `event_outbox` table (Flyway) written in the same
   transaction as the state change, drained by a background publisher. At-least-once delivery is the guarantee.
-- **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId` (checked in the same transaction as the replica update). Redelivery MUST
-  be harmless.
+- **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`. The handler's replica update and the `processed_events` mark
+  commit in separate transactions (amended 2026-09-23, see §Amendments), so redelivery MUST be harmless.
 - **Retry and DLQ.** Transient consumer failures retry with backoff; poison messages go to `{topic}.dlq` and alert. A DLQ'd command MUST surface as a failed/pending item, not
   silently drop.
 - **Bootstrap and backfill.** Owners MUST provide a replay mechanism (snapshot export endpoint or administrative re-emit-all) to seed new replicas and repair drift.
@@ -185,6 +185,37 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-09-23 — Consumer transaction shape (durion-positivity-backend#2146)
+
+§4 originally checked `processed_events` "in the same transaction as the replica update", and the reference consumer
+(#837) implemented that by making the `@KafkaListener` method `@Transactional` and catching the handler's exception
+as a permanent failure before writing the mark. That catch cannot work. The handlers are `@Transactional` services or
+call Spring Data repositories, which are transactional too, so an exception leaving them marks the shared transaction
+rollback-only. The commit after the catch then throws `UnexpectedRollbackException`, the container retries the record
+through its whole back-off and dead-letters it, and the mark is rolled back on every attempt. A failed command held its
+single-partition topic for 31 s this way (#2145).
+
+The consumer shape is now:
+
+- **The listener method is not `@Transactional`.** It parses the record, checks `processed_events`, and drops a record
+  that is already marked or malformed, all before any transaction is opened.
+- **The handler runs in its own transaction** (`TransactionTemplate`, `PROPAGATION_REQUIRES_NEW`). A permanent failure
+  rolls back only the handler's own work.
+- **The mark is written afterwards, in a second transaction.** It commits whether the handler succeeded or failed
+  permanently.
+- **Transient failures still propagate.** `TransientDataAccessException` is rethrown from the handler's transaction, so
+  the container retries the record and no mark is written for a record that was not applied.
+
+The price is an at-least-once window between the two commits. If the mark's commit fails after the handler's
+committed, the redelivered record runs the handler again. Every handler must tolerate that: an `aggregateVersion`
+guard, an upsert, or a state check that turns the second run into a no-op. This is the idempotency §4 already
+required.
+
+Each module pins the shape with a Spring-backed test that uses a real transaction manager and a `@Transactional`
+handler that throws, both bare and inside an enclosing transaction. `pos-inventory`'s
+`InventoryCommandListenerTransactionTest` is the template. Mock-based listener tests cannot see this defect, which is
+why every module's copy of the old shape passed them.
 
 ### 2026-09-09 — Tenant context on the event channel ([ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
 
