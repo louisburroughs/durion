@@ -408,7 +408,11 @@ consumer is absent are never posted — which is the whole point of D3.
   (inventory-owned, not configurable) and ADR-0044 §6 (accounting event-only) contradict it, and ADR-0048 does not mark it superseded (D8).
 - Re-scoping durion-moqui-frontend#184 for the Angular frontend against the real backend (D10).
 - `InventoryAuditEvent` javadoc promises a Kafka forwarder that does not exist; correct it or remove the event once the fact exists.
-- `.claude/agents/domains/accounting-domain.md` requires `domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md`, which does not exist (only inventory has one).
+- `.claude/agents/domains/accounting-domain.md` requires `domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md`, which has never existed in the
+  repository. Twelve other domains carry one (audit, billing, crm, inventory, location, order, people, positivity, pricing, security, shopmgmt, workexec); the
+  audit checklist, the nearest neighbour, is audit-specific (log search, export, retention) and does not stand in for accounting. The product agent's reference
+  to `domains/catalog/.business-rules/STORY_VALIDATION_CHECKLIST.md` dangles the same way. Accounting needs its own checklist authored before its agent contract
+  can be satisfied for story work.
 
 ### 5.7 Suggested issue split
 
