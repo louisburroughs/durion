@@ -21,7 +21,7 @@ tags: [adr, accounting, inventory]
 
 ### High-Level System Overview
 
-```ascii
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                         POS System                              │
 │                                                                 │
@@ -51,7 +51,7 @@ tags: [adr, accounting, inventory]
 
 ### Sequence: How Costs Get Updated
 
-```
+```text
 ┌──────────┐   ┌───────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
 │    PO    │   │  Message  │   │Accounting│   │Inventory │   │  Audit   │
 │  System  │   │   Bus     │   │ Service  │   │ Service  │   │   DB     │
@@ -106,7 +106,7 @@ tags: [adr, accounting, inventory]
 
 ### Clear Boundaries: What Each Domain Owns
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     INVENTORY DOMAIN                            │
 │                                                                 │
@@ -173,7 +173,7 @@ tags: [adr, accounting, inventory]
 
 ### Three Cost Types with Different Update Mechanisms
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │                        Cost Types                               │
 ├────────────────────────────────────────────────────────────────┤
@@ -216,7 +216,7 @@ tags: [adr, accounting, inventory]
 
 ### Who Can Do What?
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     User Roles & Permissions                │
 ├─────────────────────────────────────────────────────────────┤
@@ -249,7 +249,7 @@ tags: [adr, accounting, inventory]
 
 ### Real-World Scenario with Numbers
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  Initial State                                              │
 │  ─────────────                                              │
@@ -335,7 +335,7 @@ tags: [adr, accounting, inventory]
 
 ### Why Dual Ownership Works
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Key Benefits                         │
 ├─────────────────────────────────────────────────────────┤
@@ -360,4 +360,3 @@ tags: [adr, accounting, inventory]
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
-
