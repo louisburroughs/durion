@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/superpowers/
 path: durion/docs/superpowers/plans/2026-08-19-agent-consolidation-knowledge-catalog.md
 tags: [platform, design-record]
 sources: [durion/docs/superpowers/plans/2026-08-19-agent-consolidation-knowledge-catalog.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-19T09:45:41-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/plans/2026-08-19-agent-consolidation-knowledge-catalog.md) — `durion/docs/superpowers/plans/2026-08-19-agent-consolidation-knowledge-catalog.md`

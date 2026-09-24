@@ -192,7 +192,10 @@ pricing.get#ProductCostTiers        or GET /v1/pricing/products/{productId}/cost
 
 **Event Types (align with Accounting catalog):**
 - `inventory.stockReceived`
-- `inventory.inventoryAdjustment`
+- `inventory.scrap.posted` (`ScrapPostedV1` — implemented; consumed by pos-accounting for shrinkage posting)
+- `inventory.adjustment.posted` (`InventoryAdjustedV1` — cycle-count and manual adjustments; specified in
+  `../../accounting/SPEC-inventory-adjustment-gl-posting.md`, durion-positivity-backend#2186; replaces the earlier `inventory.inventoryAdjustment` name)
+- `inventory.product-value.changed` (`ProductValueChangedV1` — producer live, accounting consumer not yet built)
 - `inventory.partsConsumed`
 - `inventory.partsReturned`
 

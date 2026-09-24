@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/howto/drop-r
 path: durion/docs/howto/drop-recreate-db.md
 tags: [platform, howto]
 sources: [durion/docs/howto/drop-recreate-db.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-04-14T05:43:03-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/howto/drop-recreate-db.md) — `durion/docs/howto/drop-recreate-db.md`

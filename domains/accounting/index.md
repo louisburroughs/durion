@@ -64,6 +64,8 @@ All seven former `pos-accounting/docs/` documents have one canonical destination
 
 These existing documents support investigation and delivery planning; comparisons and old completion claims are not current contracts.
 
+- [Inventory adjustment GL posting specification](SPEC-inventory-adjustment-gl-posting.md) — ruling on durion-positivity-backend#2186 and the fact-to-journal-entry
+  flow for cycle-count and manual inventory adjustments (proposed; open decisions pending)
 - [Accounting comparison overview](comp-accounting-overview.md)
 - [Odoo versus pos-accounting](comp-vs-pos-accounting-comparison.md)
 - [Reconciliation internals comparison](comp-reconciliation-internals.md)

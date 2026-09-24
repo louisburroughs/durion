@@ -92,7 +92,8 @@ issues: see §3 issue map. Issue bodies carry the per-story scope/acceptance; th
 - **D2 — Shrinkage GL posting (pos-accounting)** — spec D4. pos-accounting consumes `ScrapPostedV1` → shrinkage journal entry; new posting category + seed; contract
   test against the fact schema. Delivered in #1043: `InventoryEventsListener` → `InventoryShrinkagePostingService`, posting category `INVENTORY_SHRINKAGE`
   (`SHRINKAGE_EXPENSE` → 5100, `INVENTORY_ASSET` → 1300), exactly once per `scrapId`, uncosted facts recorded and skipped. The cycle-count and generic adjustment
-  paths (`COUNT_VARIANCE_IN/OUT`, `ADJUSTMENT_IN/OUT`) emit no fact and reach no GL (durion-positivity-backend#2186). **Effort S · Deps D1.**
+  paths (`COUNT_VARIANCE_IN/OUT`, `ADJUSTMENT_IN/OUT`) emit no fact and reach no GL — specified in
+  [`../accounting/SPEC-inventory-adjustment-gl-posting.md`](../accounting/SPEC-inventory-adjustment-gl-posting.md) (durion-positivity-backend#2186). **Effort S · Deps D1.**
 
 ### Workstream E — Lots, serials, expiry (spec §6; strict phase order)
 
@@ -161,7 +162,9 @@ issues: see §3 issue map. Issue bodies carry the per-story scope/acceptance; th
 - **J2 — Valuation read model & endpoints** — spec J2. Summary `onHandValue`/`unitCostCurrent`; `GET /v1/inventory/valuation` (site-filtered) + as-of variant (pairs with A3);
   new permission `inventory:valuation:view`. **Effort M · Deps J1.**
 - **J3 — Cost-bearing facts & adjustment alignment** — spec J3. Cost on `ConsumptionRecordedV1`, `ScrapPostedV1`, receipt facts (additive, schema-versioned);
-  `costAtTimeOfAdjustment` sourced from the engine; contract-test alignment with pos-accounting consumers. **Effort M · Deps J1.**
+  `costAtTimeOfAdjustment` sourced from the engine; contract-test alignment with pos-accounting consumers. Delivered in #1053 for the cost source
+  (`resolveEngineCost`); the cycle-count / manual adjustment fact itself (`InventoryAdjustedV1`) is still missing — specified in
+  [`../accounting/SPEC-inventory-adjustment-gl-posting.md`](../accounting/SPEC-inventory-adjustment-gl-posting.md) (durion-positivity-backend#2186). **Effort M · Deps J1.**
 - **J4 — Revaluation workflow** — spec J4. Manual standard-price/AVCO correction with approval tier + `ProductValueChangedV1` fact (Odoo `product.value` analog). **Effort M ·
   Deps J1.**
 - **J5 — Landed costs (GATED)** — spec J5. Distribute a cost document across receipts by quantity or value, adjust cost basis, emit revaluation fact. **Build only on confirmed

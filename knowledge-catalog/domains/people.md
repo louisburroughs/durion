@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/people
 path: durion/domains/people/
 tags: [domain, people]
 sources: [domains/people/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T14:40:15-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T19:33:47+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/people) — `domains/people/` (27 documents)
