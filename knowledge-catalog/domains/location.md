@@ -6,13 +6,13 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/location
 path: durion/domains/location/
 tags: [domain, location]
 sources: [domains/location/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T22:07:12-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/location) — `domains/location/` (17 documents)
 
-**Implemented by:** [pos-location](../backend/pos-location.md), [pos-people](../backend/pos-people.md), [pos-customer](../backend/pos-customer.md),
-[pos-shop-manager](../backend/pos-shop-manager.md)
+**Implemented by:** [pos-location](../backend/pos-location.md), [pos-people](../backend/pos-people.md), [pos-shop-manager](../backend/pos-shop-manager.md),
+[pos-customer](../backend/pos-customer.md)
 
 **Business rules:**
 

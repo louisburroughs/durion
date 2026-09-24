@@ -2,14 +2,23 @@
 type: ADR
 title: 'ADR-0008: Inventory/Accounting - Cost Maintenance Architecture - Visual Guide - Clarification Response'
 description: Which domain(s) maintain the cost structure for the system?
-status: stable
-adr_status: accepted
+status: deprecated
+adr_status: superseded
 created: '2026-01-13'
+superseded_by: ADR-0048
+related: [ADR-0044, ADR-0048]
 tags: [adr, accounting, inventory]
 ---
 # ADR: 0008 - Inventory/Accounting - Cost Maintenance Architecture - Visual Guide - Clarification Response
 
-**Status:** ✅ Accepted  
+**Status:** SUPERSEDED BY [ADR-0048](0048-inventory-owned-valuation-configurable-costing-method.adr.md) (2026-09-24)  
+**Carried forward by ADR-0048 §6:** the three cost concepts (standard, latest-receipt "last", weighted average), the weighted-average formula, and the
+authorization split (standard cost set manually only by an authorized inventory role; last and average cost system-derived and never user-editable;
+accounting read-only on item cost).  
+**Retired:** the dual-ownership pattern below — accounting as "logic owner" computing last and average cost, reading and writing costs through inventory REST
+endpoints, cost fields on the Product entity, and an accounting-owned `ItemCostAudit` table. Valuation is inventory-owned and not configurable (ADR-0048 §1),
+accounting is event-only ([ADR-0044](0044-platform-event-only-domain-walls.adr.md) §6), and the audit trail is the inventory ledger, the revaluation and
+method-change records, and the `inventory.product-value.changed` fact. The diagrams below are historical and must not be built from.  
 **Date:** 2026-01-13  
 **Context:** Which domain(s) maintain the cost structure for the system?
 **Stakeholders:** Architecture team, Inventory domain owner, Accounting domain owner, Workexec domain owner

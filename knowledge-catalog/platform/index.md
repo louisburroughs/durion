@@ -79,6 +79,8 @@
 * [X-Correlation-Id Implementation Plan](architecture-plans-x-correlation-id-implementation-plan.md) — *Related:** ADR-0011 Gateway-based Security Architecture
 * [ADR-0023 Suppression: Postgres Row-Level Multitenancy Plan](architecture-plans-adr-0023-suppression-postgres-multitenancy-plan.md) —
   Cross-repo plan and effort assessment for replacing the single-organization decision of ADR-0023 with shared-database m…
+* [People Employee Register Backend Execution Plan](architecture-plans-people-employee-register-execution-plan.md) —
+  Execution plan for the People employee register backend stories and DECISION-PEOPLE-017 amendment.
 * [Roles, JWT, and Permissions Implementation Plan](architecture-plans-roles-jwt-permissions-implementation-plan.md) —
   *Version: 1.0 Status: Active Last Updated: 2026-04-12 Related:** ADR-0040 Roles, JWT Claims, and Permission Governance…
 * [Execution plan — Organization name on the login form](architecture-plans-tenant-organization-name-execution-plan.md) —

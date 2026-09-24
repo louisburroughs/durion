@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture
 path: durion/docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md
 tags: [platform, architecture]
 sources: [durion/docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-06T17:12:10+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md) — `durion/docs/architecture/integration/SUPPLIER_INTEGRATION_EDIWHEEL_ARCHITECTURE.md`

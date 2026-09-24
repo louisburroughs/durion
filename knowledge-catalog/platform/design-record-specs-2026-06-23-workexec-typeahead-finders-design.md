@@ -9,7 +9,7 @@ kind: Design Record
 status: stable
 doc_status: implemented
 sources: [durion/docs/superpowers/specs/2026-06-23-workexec-typeahead-finders-design.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-06-24T08:34:45-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:14:57+00:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/specs/2026-06-23-workexec-typeahead-finders-design.md) — `durion/docs/superpowers/specs/2026-06-23-workexec-typeahead-finders-design.md`

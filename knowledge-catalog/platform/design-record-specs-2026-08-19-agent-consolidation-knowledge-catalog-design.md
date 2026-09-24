@@ -9,7 +9,7 @@ kind: Design Record
 status: stable
 doc_status: implemented
 sources: [durion/docs/superpowers/specs/2026-08-19-agent-consolidation-knowledge-catalog-design.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-08-19T09:36:39-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-21T02:14:57+00:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/specs/2026-08-19-agent-consolidation-knowledge-catalog-design.md) — `durion/docs/superpowers/specs/2026-08-19-agent-consolidation-knowledge-catalog-design.md`

@@ -5,7 +5,7 @@ description: The durion-positivity-backend project has grown to include multiple
 status: stable
 adr_status: accepted
 created: '2026-01-29'
-related: [ADR-0001, ADR-0008, ADR-0044]
+related: [ADR-0001, ADR-0008, ADR-0044, ADR-0048]
 tags: [adr]
 ---
 # ADR-0009: Backend Domain Responsibilities Guide
@@ -452,7 +452,8 @@ GROUP BY l.hierarchy_path
 - **Saga Pattern**: Chris Richardson, Microservices Patterns — "Managing Data Consistency"
 - **Related ADRs**:
   - [ADR-0001: Inventory Ledger ATP Computation](0001-inventory-atp-computation.adr.md)
-  - [ADR-0008: Cost Maintenance Clarification Diagram](0008-cost-maintenance-clarification-diagram.adr.md)
+  - [ADR-0008: Cost Maintenance Clarification Diagram](0008-cost-maintenance-clarification.adr.md) — superseded by
+    [ADR-0048](0048-inventory-owned-valuation-configurable-costing-method.adr.md) for cost ownership
 - **Related Documentation**:
   - `/durion/docs/` — Architecture, governance, and design docs
   - `/durion/domains/` — Domain-specific business rules (by domain)

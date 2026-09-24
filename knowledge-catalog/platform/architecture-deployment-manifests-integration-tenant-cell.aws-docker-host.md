@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture
 path: durion/docs/architecture/deployment/manifests/integration-tenant-cell.aws-docker-host.md
 tags: [platform, architecture]
 sources: [durion/docs/architecture/deployment/manifests/integration-tenant-cell.aws-docker-host.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-03-29T15:07:16-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/deployment/manifests/integration-tenant-cell.aws-docker-host.md) — `durion/docs/architecture/deployment/manifests/integration-tenant-cell.aws-docker-host.md`

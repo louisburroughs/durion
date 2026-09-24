@@ -1,5 +1,12 @@
 # Directory Update Log
 
+## 2026-09-24
+
+* **Regenerated**: 66 ADR, 16 domain, 45 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
+* **Curated**: ADR-0008 (cost maintenance, dual ownership) is superseded by ADR-0048, which gains §6 recording what is retired and what is carried
+  forward (cost types, weighted-average formula, authorization split); ADR-0009's link to ADR-0008 now resolves. Raised by
+  `domains/accounting/SPEC-inventory-adjustment-gl-posting.md` D8 (durion-positivity-backend#2186).
+
 ## 2026-09-23
 
 * **Curated**: `docs/architecture/plans/people-employee-register-execution-plan.md` carries OKF frontmatter
