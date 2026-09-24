@@ -10,7 +10,11 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)); previously amended 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped), 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
+**Status:** ACCEPTED — amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146);
+previously amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
+2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped),
+2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and
+2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
 **Date:** 2026-07-08 (accepted 2026-07-08)
 **Deciders:** Architecture, Backend Lead
 **Affected Issues:** durion-positivity-backend#823, #1002
@@ -109,10 +113,12 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
 
 - **Transactional outbox.** Producers MUST NOT publish directly from business transactions. Each producer module adds an `event_outbox` table (Flyway) written in the same
   transaction as the state change, drained by a background publisher. At-least-once delivery is the guarantee.
-- **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId` (checked in the same transaction as the replica update). Redelivery MUST
-  be harmless.
-- **Retry and DLQ.** Transient consumer failures retry with backoff; poison messages go to `{topic}.dlq` and alert. A DLQ'd command MUST surface as a failed/pending item, not
-  silently drop.
+- **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`, written in the same transaction as the replica update; that
+  transaction is the handler's own, not the listener's (amended 2026-09-23, see §Amendments). Redelivery MUST be harmless.
+- **Retry and DLQ.** Transient consumer failures retry with backoff; a record that still fails, or whose failure the consumer lets propagate on purpose, goes to
+  `{topic}.dlq` and alerts. A failure the consumer classifies as permanent (a malformed payload, a business rejection that redelivery cannot fix) is logged and,
+  where the consumer records failures, marked processed instead of dead-lettered (amended 2026-09-23, see §Amendments). Either way a failed command MUST surface to its
+  requester as a failed/pending item, not silently drop.
 - **Bootstrap and backfill.** Owners MUST provide a replay mechanism (snapshot export endpoint or administrative re-emit-all) to seed new replicas and repair drift.
 - **Reconciliation.** A scheduled job per consumer compares replica `aggregateVersion`s (or count/checksum) against the owner and triggers targeted re-sync on drift.
   Duplication without reconciliation is not permitted. Reconciliation itself flows over the event channel: owners publish periodic reconciliation manifests on
@@ -185,6 +191,39 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-09-23 — Consumer transaction shape (durion-positivity-backend#2146)
+
+§4 originally checked `processed_events` "in the same transaction as the replica update", and the reference consumer
+(#837) implemented that by making the `@KafkaListener` method `@Transactional` and catching the handler's exception
+as a permanent failure before writing the mark. That catch cannot work. The handlers are `@Transactional` services or
+call Spring Data repositories, which are transactional too, so an exception leaving them marks the shared transaction
+rollback-only. The commit after the catch then throws `UnexpectedRollbackException`, the container retries the record
+through its whole back-off and dead-letters it, and the mark is rolled back on every attempt. A failed command held its
+single-partition topic for 31 s this way (#2145).
+
+The consumer shape is now:
+
+- **The listener method is not `@Transactional`.** It parses the record, checks `processed_events`, and drops a record
+  that is already marked or malformed, all before any transaction is opened.
+- **The handler and its mark commit together, in the handler's own transaction** (`TransactionTemplate`,
+  `PROPAGATION_REQUIRES_NEW`). A success is applied and marked atomically, as §4 intended. A permanent failure rolls
+  back only that transaction.
+- **A permanent failure is recorded, where the consumer records failures, in a transaction of its own.** The catch
+  writes the mark after the handler's transaction has rolled back, so redelivery does not retry the record. A consumer
+  whose contract leaves a failed record unmarked keeps doing so.
+- **Transient failures still propagate.** `TransientDataAccessException` is rethrown, so the container retries the
+  record and no mark is written for a record that was not applied.
+
+The first cut of this fix, in `pos-inventory`'s `InventoryCommandListener` (#2145), wrote the mark in a second
+transaction after every handler, successful or not. That opens an at-least-once window between the two commits, which
+its pick-command handlers tolerate. Some handlers elsewhere do not: `pos-order` applies goods receipts as deltas and
+appends a timeline row per event, so the shape above is the platform shape and #2145's is the exception.
+
+Each module pins the shape with a Spring-backed test that uses a real transaction manager and a `@Transactional`
+handler that throws, both bare and inside an enclosing transaction. `pos-inventory`'s
+`InventoryCommandListenerTransactionTest` is the template. Mock-based listener tests cannot see this defect, which is
+why every module's copy of the old shape passed them.
 
 ### 2026-09-09 — Tenant context on the event channel ([ADR-0062](0062-postgres-row-level-multitenancy.adr.md))
 

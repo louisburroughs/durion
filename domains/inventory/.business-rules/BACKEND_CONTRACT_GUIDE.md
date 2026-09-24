@@ -538,6 +538,10 @@ General:
 - Requests must satisfy domain validation rules before state change.
 - Successful mutations must produce deterministic persisted outcomes.
 - Failure responses must be explicit and actionable for callers.
+- Posting location (#2167): an adjustment posts against its task's bin location when the bin holds a location UUID, else the optional `locationId` on the create request. A `locationId` that contradicts the task's bin is refused `400 VALIDATION_ERROR`; a resolved location outside the caller's `inventory:adjustment:create` reach is refused `403 LOCATION_SCOPE_DENIED`. The resolved location is returned as `locationId` and is also the scope of the variance recompute on a `CONFLICT` task; absent, the variance posts against the stock item's location-less balance.
+- Negative-stock refusal (#2167): approving (or auto-approving on create) an adjustment whose variance would take on-hand below zero answers `422 NEGATIVE_STOCK_FLOOR_VIOLATION` with the projected on-hand in `message`. On approval the adjustment stays `PENDING_APPROVAL`; on a below-threshold create, which posts in the same transaction, no adjustment is recorded and the corrected count is resubmitted. The count is wrong, so retrying does not help — recount, or reject the pending adjustment.
+- `500 ADJUSTMENT_LEDGER_POST_FAILED` means only an unexpected posting failure; that is the only adjustment failure worth retrying.
+- Posting failure outcome (#2170): after `500 ADJUSTMENT_LEDGER_POST_FAILED` the partial posting is rolled back and the adjustment is left `FAILED`, with the cause in `errorMessage`; the error `message` names it (`Adjustment <id>: …`). On approval the existing adjustment turns `FAILED`; on a below-threshold create the adjustment is recorded `FAILED` under that id. `FAILED` adjustments are listed by status. Approving a `FAILED` adjustment retries the posting; a successful post clears `errorMessage`. Scrap follows the same rule with `500 SCRAP_LEDGER_POST_FAILED` (`Scrap <id>: …`).
 
 ### Frontend Usage Notes
 
