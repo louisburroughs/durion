@@ -404,15 +404,15 @@ consumer is absent are never posted — which is the whole point of D3.
 ### 5.6 Follow-ups outside this change
 
 - `ProductValueChangedV1` consumer and its counter account (D7).
-- ADR-0008 ("Inventory/Accounting cost maintenance", accepted 2026-01-13) describes accounting maintaining last/average cost and pushing it to inventory; ADR-0048 §1
-  (inventory-owned, not configurable) and ADR-0044 §6 (accounting event-only) contradict it, and ADR-0048 does not mark it superseded (D8).
+- ADR-0008 ("Inventory/Accounting cost maintenance", accepted 2026-01-13) described accounting maintaining last/average cost and pushing it to inventory,
+  contradicting ADR-0048 §1 and ADR-0044 §6. Resolved (D8): [louisburroughs/durion#507](https://github.com/louisburroughs/durion/pull/507) supersedes it by
+  ADR-0048, whose new §6 carries forward the cost types, the weighted-average formula and the authorization split.
 - Re-scoping durion-moqui-frontend#184 for the Angular frontend against the real backend (D10).
 - `InventoryAuditEvent` javadoc promises a Kafka forwarder that does not exist; correct it or remove the event once the fact exists.
-- `.claude/agents/domains/accounting-domain.md` requires `domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md`, which has never existed in the
-  repository. Twelve other domains carry one (audit, billing, crm, inventory, location, order, people, positivity, pricing, security, shopmgmt, workexec); the
-  audit checklist, the nearest neighbour, is audit-specific (log search, export, retention) and does not stand in for accounting. The product agent's reference
-  to `domains/catalog/.business-rules/STORY_VALIDATION_CHECKLIST.md` dangles the same way. Accounting needs its own checklist authored before its agent contract
-  can be satisfied for story work.
+- The platform convention is one `STORY_VALIDATION_CHECKLIST.md` per domain; accounting's had never existed, so its agent contract pointed at a missing file.
+  [`.business-rules/STORY_VALIDATION_CHECKLIST.md`](.business-rules/STORY_VALIDATION_CHECKLIST.md) is authored with this spec, grounded in the `AD-###` decisions,
+  the schema, error, permission and contract guides, and §4 here; the rules the guides leave undecided are listed there as open questions. The product agent's
+  reference to `domains/catalog/.business-rules/STORY_VALIDATION_CHECKLIST.md` still dangles (the domain folder is `product`, and it has no checklist either).
 
 ### 5.7 Suggested issue split
 
@@ -457,7 +457,7 @@ consumer is absent are never posted — which is the whole point of D3.
 | D5 | Should Kafka-consumed posting facts write `AccountingEvent` ingestion records (terminal states only, new `SKIPPED` status)? | **Yes** — it is what AD-007 requires and the only way #184 and the uncosted skip become visible without logs. |
 | D6 | Should inventory refuse to post an uncosted (`costSource = NONE`) count variance or adjustment, or post it and let accounting skip? | **Post and skip in v1, with the skip counted**; tighten to refuse once ADR-0048 IMP-002 is enforced upstream (inventory-domain call). |
 | D7 | Build the `ProductValueChangedV1` revaluation consumer now, and against which counter account? | **Separate issue, next wave**; account decision needed — nothing seeded, "COGS or misc" is the only guidance. *Requires owner confirmation.* |
-| D8 | Mark ADR-0008 superseded by ADR-0048 for cost ownership? | **Yes**, via an ADR-0048 changelog / amendment entry. |
+| D8 | Mark ADR-0008 superseded by ADR-0048 for cost ownership? | **Resolved** — option 1 taken in [louisburroughs/durion#507](https://github.com/louisburroughs/durion/pull/507): ADR-0008 superseded, ADR-0048 §6 records what is retired and carries forward the cost types, the weighted-average formula and the authorization split as ADR-level rules. |
 | D9 | Reason-code-based account routing (e.g. THEFT vs COUNT_ERROR to different accounts) in v1? | **No** — carry `reasonCode` on the JE description only; add a `reasonCode` mapping-key dimension later if finance asks. |
 | D10 | Re-scope #184 to cover both inventory facts in Angular, blocked on D5? | **Yes**; retry stays unsupported for Kafka facts (DLQ replay instead). |
 
@@ -476,6 +476,10 @@ Made with this specification (durion, branch `claude/determined-wright-9s457t`):
 - [`../inventory/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACT.md`](../inventory/.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACT.md) required event types: the same
   rename and additions.
 - [`.business-rules/AGENT_GUIDE.md`](.business-rules/AGENT_GUIDE.md) "Events / Integrations": the three inventory facts and their consumers added.
+- [`.business-rules/STORY_VALIDATION_CHECKLIST.md`](.business-rules/STORY_VALIDATION_CHECKLIST.md): the accounting story-validation checklist, previously
+  missing, authored and linked from the accounting index.
 
-Still to do when the design is accepted: CAP-049 story 184 (durion-moqui-frontend, out of this workspace) re-scoped per D10; ADR-0048 amendment per D8;
-`pos-accounting/README.md` and `pos-inventory/README.md` with the implementation.
+Landed separately: ADR-0008 superseded by ADR-0048 (D8) in [louisburroughs/durion#507](https://github.com/louisburroughs/durion/pull/507).
+
+Still to do when the design is accepted: CAP-049 story 184 (durion-moqui-frontend, out of this workspace) re-scoped per D10; `pos-accounting/README.md` and
+`pos-inventory/README.md` with the implementation.

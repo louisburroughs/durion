@@ -10,6 +10,8 @@
 * **Structure**: the accounting domain's inferred **Implemented by** list now names `pos-inventory` in place of `pos-workorder` — the new
   specification names the producer module often enough to enter the top four by mention count. Module ownership is unchanged
   (`pos-inventory` still belongs to the inventory domain).
+* **Curated**: `domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md` (`type: Checklist`) — the accounting domain's story-validation
+  checklist, previously the one domain guide missing from the one-per-domain set; indexed in the accounting entry's business-rules section.
 
 ## 2026-09-23
 

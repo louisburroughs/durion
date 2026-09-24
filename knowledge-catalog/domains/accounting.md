@@ -6,10 +6,10 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/accountin
 path: durion/domains/accounting/
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:18-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T14:49:29+00:00'}
 ---
 
-[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (78 documents)
+[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (79 documents)
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md) — authority, current guidance, and historical records
 
@@ -30,6 +30,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T09:45:18
 * [ERROR_CODES.md](https://github.com/louisburroughs/durion/blob/master/domains/accounting/.business-rules/ERROR_CODES.md) — Error Catalog
 * [PERMISSION_TAXONOMY.md](https://github.com/louisburroughs/durion/blob/master/domains/accounting/.business-rules/PERMISSION_TAXONOMY.md) — Permission Taxonomy
 * [POSTING_RULES_SCHEMA.md](https://github.com/louisburroughs/durion/blob/master/domains/accounting/.business-rules/POSTING_RULES_SCHEMA.md) — Schema
+* [STORY_VALIDATION_CHECKLIST.md](https://github.com/louisburroughs/durion/blob/master/domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md) — Checklist
 * [accounting.md](https://github.com/louisburroughs/durion/blob/master/domains/accounting/.business-rules/accounting.md) — Reference Notes
 
 **Documentation:**

@@ -27,6 +27,7 @@ override ADR-0062. Existing Moqui-era UI/service guidance also needs checking ag
 ## Business rules and contracts
 
 - [Agent guide and accounting decisions](.business-rules/AGENT_GUIDE.md)
+- [Story validation checklist](.business-rules/STORY_VALIDATION_CHECKLIST.md)
 - [Backend contract guide](.business-rules/BACKEND_CONTRACT_GUIDE.md)
 - [Generated backend API reference](.business-rules/BACKEND_API_REFERENCE.generated.md)
 - [Cross-domain integration contracts](.business-rules/CROSS_DOMAIN_INTEGRATION_CONTRACTS.md)
