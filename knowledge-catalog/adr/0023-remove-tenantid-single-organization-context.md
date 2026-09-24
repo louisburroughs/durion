@@ -12,7 +12,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0023-remove-tenantid-single-organization-context.adr.md) — `docs/adr/0023-remove-tenantid-single-organization-context.adr.md`
 
-**Status:** Superseded since 2026-02-21
+**Status:** Superseded (created 2026-02-21)
 **Superseded by:** [ADR-0062](../adr/0062-postgres-row-level-multitenancy.md)
 
 **Related:**

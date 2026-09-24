@@ -12,5 +12,5 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0002-crm-permission-taxonomy.adr.md) — `docs/adr/0002-crm-permission-taxonomy.adr.md`
 
-**Status:** Deprecated since 2026-01-23
+**Status:** Deprecated (created 2026-01-23)
 **Superseded by:** [ADR-0025](../adr/0025-permissions-yaml-registration-policy.md)

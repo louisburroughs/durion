@@ -7,12 +7,12 @@ path: durion/docs/adr/0008-cost-maintenance-clarification.adr.md
 tags: [adr, accounting, inventory]
 status: deprecated
 sources: [docs/adr/0008-cost-maintenance-clarification.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T10:52:55-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T15:02:58+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0008-cost-maintenance-clarification.adr.md) — `docs/adr/0008-cost-maintenance-clarification.adr.md`
 
-**Status:** Superseded since 2026-01-13
+**Status:** Superseded (created 2026-01-13)
 **Superseded by:** [ADR-0048](../adr/0048-inventory-owned-valuation-configurable-costing-method.md)
 
 **Related:**
