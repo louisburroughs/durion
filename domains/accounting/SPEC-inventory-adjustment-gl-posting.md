@@ -7,7 +7,7 @@ domain: accounting
 tags: [accounting, inventory, events, gl-posting, adr-0044, adr-0048]
 ---
 
-# SPEC — Inventory Adjustment GL Posting
+## SPEC — Inventory Adjustment GL Posting
 
 > Status: PROPOSED · Created 2026-09-24 · Issue: [durion-positivity-backend#2186](https://github.com/louisburroughs/durion-positivity-backend/issues/2186) ·
 > Branch: `claude/determined-wright-9s457t`
@@ -326,7 +326,8 @@ accounting events (status, errors, idempotency outcome, posting references)"; `p
 most need to see — the uncosted skip and the posted JE link — are invisible without log access. Minimal, safe form (D5, because it touches the REST read model):
 
 - At the end of the handler transaction write one `AccountingEvent` row: `eventType` = the fact's event type string (`inventory.adjustment.posted` /
-  `inventory.scrap.posted`), `sourceSystem = "pos-inventory"`, `eventReference` / `domainKeyId` = `adjustmentId` (or `scrapId`), `transactionDate` = business date,
+  `inventory.scrap.posted`), `sourceSystem = "pos-inventory"`, `domainKeyId` = `adjustmentId` (or `scrapId`) — the filter `listAccountingEvents` already exposes —
+  and `eventReference` set to the same value, `transactionDate` = business date,
   `payload` = the curated fact (AD-009 raw-payload policy applies), `journalEntryId` on success, `idempotencyOutcome = NEW | DUPLICATE_IGNORED`, `ingestionId` = envelope
   `eventId`.
 - **Terminal states only.** Add `AccountingEventStatus.SKIPPED` (terminal, not retryable) with `failureReasonCode = UNCOSTED_FACT`; check the `accounting_event.status`
@@ -391,9 +392,12 @@ Minimal and consistent with the `ScrapPostedV1 → InventoryShrinkagePostingServ
 
 ### 5.4 Configuration hardening (D3)
 
-1. Set `pos.accounting.kafka.enabled: true` and `pos.inventory.kafka.enabled: true` in the modules' `application-alpha.yml` and `application-prod.yml`, so an environment
-   variable can only turn the rails on, never silently off.
-2. Add a startup guard in `pos-accounting` (and `pos-inventory`) for non-`dev` profiles: flag false → fail startup (preferred) or health indicator DOWN with an ERROR log.
+1. Set `pos.accounting.kafka.enabled: true` and `pos.inventory.kafka.enabled: true` as literals in the modules' `application-alpha.yml` and `application-prod.yml`,
+   replacing the `${POS_*_KAFKA_ENABLED:false}` default in those profiles. This removes the silent default only: Spring's property precedence and relaxed binding
+   still let `POS_ACCOUNTING_KAFKA_ENABLED=false` (or `POS_INVENTORY_KAFKA_ENABLED=false`) in the environment override the profile value, so an operator can still
+   turn the rails off. Item 2 is what turns that override from a silent state into a refused one.
+2. Add a startup guard in `pos-accounting` (and `pos-inventory`) for non-`dev` profiles that reads the effective property after binding: `false`, however it got
+   there, fails startup with a message naming the property (preferred), or at minimum marks the health indicator DOWN with an ERROR log.
 3. Schedule the Phase 0.4 tier-1 flip (remove the `@ConditionalOnProperty` opt-in for domain flows, per ADR-0044 §4).
 
 ### 5.5 Rollout order
@@ -434,7 +438,8 @@ consumer is absent are never posted — which is the whole point of D3.
   row; the listener transaction test (bare and enclosing) passes for both inventory and order listeners.
 
 **SDK integration (`durion-positivity-sdk`).** Prerequisite: a lookup from adjustment or scrap id to journal entry. Preferred route: the AD-007 ingestion record
-(`listAccountingEvents?eventType=inventory.adjustment.posted`, filter on `eventReference`), which needs no new endpoint. Fallback: a `sourceEventId` filter on
+(`listAccountingEvents?eventType=inventory.adjustment.posted&domainKeyId=<adjustmentId>`, both filters already exposed by the endpoint), which needs no new
+endpoint. Fallback: a `sourceEventId` filter on
 `listJournalEntries` (a controller change, so OpenAPI regeneration and `API Artifacts Sync`), since `findBySourceEvent` already exists.
 
 - Suite E (cycle count): **E11** priced-receipt fixture; create + approve a negative variance; poll until an accounting event `PROCESSED` with `journalEntryId`; assert via

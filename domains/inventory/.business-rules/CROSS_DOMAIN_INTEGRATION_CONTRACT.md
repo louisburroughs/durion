@@ -199,7 +199,50 @@ pricing.get#ProductCostTiers        or GET /v1/pricing/products/{productId}/cost
 - `inventory.partsConsumed`
 - `inventory.partsReturned`
 
-**Event Schema (REST/Message):**
+**`inventory.adjustment.posted` schema** — normative source: `../../accounting/SPEC-inventory-adjustment-gl-posting.md` §4.2 (fields, sign convention,
+cost rule) and §4.6 (posting semantics). Envelope per ADR-0044 §3 (`DomainEventEnvelope` in `pos-domain-events`, `tenantId` stamped by the outbox writer);
+payload `InventoryAdjustedV1`, schema version 1, one fact per posted `COUNT_VARIANCE_*` / `ADJUSTMENT_*` ledger entry, keyed by `adjustmentId`:
+
+```json
+{
+  "eventId": "<uuidv7>",
+  "eventType": "inventory.adjustment.posted",
+  "schemaVersion": 1,
+  "aggregateId": "<adjustmentId>",
+  "aggregateVersion": 1758722719000,
+  "occurredAtUtc": "2026-09-24T14:05:19Z",
+  "sourceService": "pos-inventory",
+  "tenantId": "<tenant uuid>",
+  "correlationId": null,
+  "actor": null,
+  "payload": {
+    "adjustmentId": "<uuidv7>",
+    "adjustmentKind": "CYCLE_COUNT",
+    "ledgerEventType": "COUNT_VARIANCE_OUT",
+    "ledgerEntryId": "<uuidv7>",
+    "sku": "<stockItemId>",
+    "locationId": "<uuid or null>",
+    "taskId": "<uuid or null>",
+    "reasonCode": "<adjustment reason code>",
+    "quantityDelta": -3,
+    "unitCost": 47.3333,
+    "costSource": "AVERAGE",
+    "occurredAt": "2026-09-24T14:05:19Z"
+  }
+}
+```
+
+- `adjustmentKind` is `CYCLE_COUNT` or `MANUAL_ADJUSTMENT`; `ledgerEventType` is `COUNT_VARIANCE_IN` / `COUNT_VARIANCE_OUT` / `ADJUSTMENT_IN` / `ADJUSTMENT_OUT`
+  (traceability only; the consumer does not branch on it).
+- `quantityDelta` is signed and non-zero: positive = gain (on-hand up), negative = loss (on-hand down); decimal-capable per ADR-0055.
+- `unitCost` is the method-derived cost `LedgerCostingService` stamped on the posted ledger row (ADR-0048), `null` when the SKU is uncosted, with `costSource`
+  `STANDARD` / `AVERAGE` / `NONE`. Accounting never infers or recomputes it.
+- Accounting posting (spec §4.6): loss → Dr `ADJUSTMENT_LOSS` / Cr `INVENTORY_ASSET`; gain → Dr `INVENTORY_ASSET` / Cr `ADJUSTMENT_GAIN` (the gain account is
+  owner decision D2); `unitCost` null or ≤ 0 is recorded and skipped, never posted. `aggregateVersion` is the publisher's monotonic per-aggregate sequence
+  (`InventoryFactPublisher` uses the publication instant in epoch milliseconds).
+
+**Event Schema (REST/Message)** — the example below predates ADR-0044 §3 and ADR-0062 (`organizationId`, `transactionDate` and `metadata` are not envelope
+fields today) and is illustrative of the payload shape only:
 
 ```json
 {
