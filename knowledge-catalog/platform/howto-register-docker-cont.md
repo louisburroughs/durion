@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/howto/regist
 path: durion/docs/howto/register-docker-cont.md
 tags: [platform, howto]
 sources: [durion/docs/howto/register-docker-cont.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-04-14T04:59:35-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/howto/register-docker-cont.md) — `durion/docs/howto/register-docker-cont.md`

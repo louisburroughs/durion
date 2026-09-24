@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-security-service/
 tags: [backend, service, security]
 sources: [durion-positivity-backend/pos-security-service/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T08:46:26-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T19:53:00+00:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-security-service) — `pos-security-service/`

@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/superpowers/
 path: durion/docs/superpowers/plans/2026-06-07-authz-remediation.md
 tags: [platform, design-record]
 sources: [durion/docs/superpowers/plans/2026-06-07-authz-remediation.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-06-07T15:03:11-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/plans/2026-06-07-authz-remediation.md) — `durion/docs/superpowers/plans/2026-06-07-authz-remediation.md`

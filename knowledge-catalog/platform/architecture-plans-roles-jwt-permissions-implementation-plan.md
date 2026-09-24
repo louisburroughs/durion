@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/architecture
 path: durion/docs/architecture/plans/roles-jwt-permissions-implementation-plan.md
 tags: [platform, architecture]
 sources: [durion/docs/architecture/plans/roles-jwt-permissions-implementation-plan.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-04-26T08:28:38-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/plans/roles-jwt-permissions-implementation-plan.md) — `durion/docs/architecture/plans/roles-jwt-permissions-implementation-plan.md`

@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/docs/superpowers/
 path: durion/docs/superpowers/plans/2026-06-23-workexec-typeahead-finders.md
 tags: [platform, design-record]
 sources: [durion/docs/superpowers/plans/2026-06-23-workexec-typeahead-finders.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-06-23T17:11:25-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-09T20:47:11-04:00'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/superpowers/plans/2026-06-23-workexec-typeahead-finders.md) — `durion/docs/superpowers/plans/2026-06-23-workexec-typeahead-finders.md`

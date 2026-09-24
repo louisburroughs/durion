@@ -7,12 +7,13 @@ path: durion/docs/adr/0048-inventory-owned-valuation-configurable-costing-method
 tags: [adr, inventory]
 status: stable
 sources: [docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T15:02:58+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md) — `docs/adr/0048-inventory-owned-valuation-configurable-costing-method.adr.md`
 
 **Status:** Accepted since 2026-07-23
+**Supersedes:** [ADR-0008](../adr/0008-cost-maintenance-clarification.md)
 
 **Related:**
 

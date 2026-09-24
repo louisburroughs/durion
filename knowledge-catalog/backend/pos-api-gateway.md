@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-api-gateway/
 tags: [backend, service, security]
 sources: [durion-positivity-backend/pos-api-gateway/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-20T07:56:26-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T10:04:03-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-api-gateway) — `pos-api-gateway/`
