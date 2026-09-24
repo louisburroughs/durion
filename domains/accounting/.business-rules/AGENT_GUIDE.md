@@ -346,6 +346,9 @@ This guide is written for engineers and agents implementing Moqui services/scree
 | Export audit events              | Accounting           | Records export requests/outcomes (e.g., timekeeping export). | Auditors/Compliance                              |
 | `Accounting.PaymentScheduled.v1` | Accounting (assumed) | Emitted when an AP bill is scheduled for payment.            | Payment/Treasury domain(s)                       |
 | Purchasing/Receiving → AP events | Purchasing/Receiving | Upstream events that may create Vendor Bills in Accounting.  | Accounting AP ingestion                          |
+| `inventory.scrap.posted`         | Inventory            | Scrap write-off posted to the inventory ledger with the engine cost (`ScrapPostedV1`). | Accounting shrinkage posting, Dr 5100 / Cr 1300 (implemented, #1043) |
+| `inventory.adjustment.posted`    | Inventory            | Approved cycle-count or manual adjustment posted with the engine cost (`InventoryAdjustedV1`). | Accounting adjustment posting — [specified](../SPEC-inventory-adjustment-gl-posting.md), durion-positivity-backend#2186 |
+| `inventory.product-value.changed` | Inventory           | Manual cost revaluation applied (`ProductValueChangedV1`).   | Accounting revaluation posting — producer live, consumer not yet built |
 
 > **TODO/CLARIFY:** AP-related event names and ownership are not confirmed in the normative guide; do not implement or hardcode until backend contract is confirmed.
 

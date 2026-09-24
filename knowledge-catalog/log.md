@@ -3,6 +3,15 @@
 ## 2026-09-24
 
 * **Regenerated**: 66 ADR, 16 domain, 45 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
+* **Curated**: `domains/accounting/SPEC-inventory-adjustment-gl-posting.md` (`type: Specification`, `status: proposed`) — the ruling on
+  durion-positivity-backend#2186 and the `InventoryAdjustedV1` fact → GL posting flow; indexed under the accounting domain and linked from the inventory
+  domain index. The accounting and inventory cross-domain contracts now name `inventory.scrap.posted`, `inventory.adjustment.posted` and
+  `inventory.product-value.changed` in place of the pre-ADR-0044 `inventory.inventoryAdjustment`.
+* **Structure**: the accounting domain's inferred **Implemented by** list now names `pos-inventory` in place of `pos-workorder` — the new
+  specification names the producer module often enough to enter the top four by mention count. Module ownership is unchanged
+  (`pos-inventory` still belongs to the inventory domain).
+* **Curated**: `domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md` (`type: Checklist`) — the accounting domain's story-validation
+  checklist, previously the one domain guide missing from the one-per-domain set; indexed in the accounting entry's business-rules section.
 * **Curated**: ADR-0008 (cost maintenance, dual ownership) is superseded by ADR-0048, which gains §6 recording what is retired and what is carried
   forward (cost types, weighted-average formula, authorization split); ADR-0009's link to ADR-0008 now resolves. Raised by
   `domains/accounting/SPEC-inventory-adjustment-gl-posting.md` D8 (durion-positivity-backend#2186).

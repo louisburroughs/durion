@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/inventory
 path: durion/domains/inventory/
 tags: [domain, inventory]
 sources: [domains/inventory/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T21:23:03+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T15:34:28+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/inventory) — `domains/inventory/` (51 documents)

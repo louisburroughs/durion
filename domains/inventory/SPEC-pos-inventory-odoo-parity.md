@@ -327,6 +327,7 @@ costs. **Gaps**: G16, G17. **This workstream starts with a cross-domain decision
   `inventory:valuation:view` — quantities × cost are doubly sensitive) + as-of variant via ledger replay (pairs with A3).
 - **J3. Cost-bearing facts**: every on-hand-affecting ledger posting emits cost in its fact; cycle-count adjustments already snapshot cost — align source
   (`costAtTimeOfAdjustment` becomes method-derived). Contract change coordinated with accounting (their GRNI/encumbrance consumption already exists).
+  The adjustment fact (`InventoryAdjustedV1`, `inventory.adjustment.posted`) and its GL posting are specified in `../accounting/SPEC-inventory-adjustment-gl-posting.md`.
 - **J4. Revaluation**: manual standard-price/AVCO correction endpoint with approval tier + `ProductValueChangedV1` fact (Odoo `product.value` analog, as a governed workflow).
 - **J5. Landed costs (optional, last)**: distribute a cost document across one or more receipts by quantity or value (weight/volume omitted — no dimension data), adjusting
   cost layers and emitting a revaluation fact. Only if accounting confirms AP-side demand.

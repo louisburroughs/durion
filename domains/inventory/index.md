@@ -37,6 +37,8 @@ For inventory ledger and tenancy boundaries, read [ADR-0001](../../docs/adr/0001
 
 ## References and history
 
+- [Inventory adjustment GL posting specification](../accounting/SPEC-inventory-adjustment-gl-posting.md) - cross-domain spec for the `InventoryAdjustedV1` fact that
+  cycle-count and manual adjustments must emit and its accounting consumer (durion-positivity-backend#2186; proposed).
 - [Inventory control best practices and terminology](reference/inv-cntrl-rag.md) - conceptual RAG source, not an executable inventory contract.
 - [Inventory ERD before multitenancy](archive/pos-inventory-erd.md) - historical schema snapshot.
 - [Backend module README](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-inventory/README.md) - setup and runtime configuration.
