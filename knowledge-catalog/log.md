@@ -12,6 +12,9 @@
   (`pos-inventory` still belongs to the inventory domain).
 * **Curated**: `domains/accounting/.business-rules/STORY_VALIDATION_CHECKLIST.md` (`type: Checklist`) — the accounting domain's story-validation
   checklist, previously the one domain guide missing from the one-per-domain set; indexed in the accounting entry's business-rules section.
+* **Curated**: ADR-0008 (cost maintenance, dual ownership) is superseded by ADR-0048, which gains §6 recording what is retired and what is carried
+  forward (cost types, weighted-average formula, authorization split); ADR-0009's link to ADR-0008 now resolves. Raised by
+  `domains/accounting/SPEC-inventory-adjustment-gl-posting.md` D8 (durion-positivity-backend#2186).
 
 ## 2026-09-23
 

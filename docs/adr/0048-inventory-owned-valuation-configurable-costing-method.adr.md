@@ -5,6 +5,7 @@ description: 'The plan and spec already constrain the solution:'
 status: stable
 adr_status: accepted
 created: '2026-07-23'
+supersedes: ADR-0008
 related: [ADR-0044, ADR-0047]
 tags: [adr, inventory]
 ---
@@ -94,6 +95,32 @@ This ADR does not redefine the negative-stock policy. It links valuation to the 
 
 Any such change requires ADR revision or supersession, not a feature flag.
 
+### 6. Supersession of ADR-0008 (cost maintenance)
+
+**Decision:** ✅ **Resolved (2026-09-24)** — this ADR supersedes
+[ADR-0008](0008-cost-maintenance-clarification.adr.md), whose "dual ownership" pattern made accounting the logic owner of item cost. ADR-0008 was
+accepted on 2026-01-13 and never revisited when §1–§3 were decided; its diagrams contradicted them and the platform's ADR routing still sent planners and
+coders to it for cost-maintenance behaviour.
+
+Retired from ADR-0008:
+
+- accounting computing last cost and the weighted average on purchase-order receipt — §1: valuation is inventory-owned, the `pos-inventory` costing engine
+  computes the method-derived cost, and accounting never computes item cost;
+- accounting reading and writing costs through inventory REST endpoints — [ADR-0044](0044-platform-event-only-domain-walls.adr.md) §6: accounting is
+  event-only, and cost reaches it as fields on `inventory.events.v1` facts (§3);
+- cost fields on the Product entity and an accounting-owned `ItemCostAudit` table — cost state is a per-SKU inventory row (`sku_cost_state`) plus the
+  `unitCost` stamped on each ledger entry; the audit trail is the ledger, the revaluation and costing-method-change records, and the
+  `inventory.product-value.changed` fact.
+
+Carried forward from ADR-0008, as rules of this ADR:
+
+- the three cost concepts — standard cost, latest-receipt ("last") cost and weighted-average cost — with the weighted-average formula
+  `((oldQty × oldAvg) + (recQty × recCost)) / (oldQty + recQty)`, which is the `AVERAGE` strategy of §2; latest-receipt cost is the memo the `STANDARD`
+  strategy keeps;
+- **the authorization split:** a standard cost is set manually only by an authorized inventory role, through the governed revaluation path of workstream J4
+  (`inventory:valuation:adjust`); latest-receipt and average cost are system-derived and never user-editable; accounting roles are read-only on item cost.
+  This is a rule of this ADR, not merely a fact of the inventory permission registry: a change to it is an ADR amendment.
+
 ---
 
 ## Alternatives Considered
@@ -147,6 +174,7 @@ Any such change requires ADR revision or supersession, not a feature flag.
 - **Related Plans:** `../../domains/inventory/plan-odoo-parity-pos-inventory.md` decision D-6 and stories J0/J1/J3/K1
 - **Related Specifications:** `../../domains/inventory/SPEC-pos-inventory-odoo-parity.md` workstream J (§10), workstream K1 (§11), and OQ-6 (§12)
 - **Related ADRs:** [ADR-0044: Event-Only Domain Walls](0044-platform-event-only-domain-walls.adr.md), [ADR-0047: Ledger Inalterability and Fiscal Positions Are Accounting Non-Goals](0047-accounting-ledger-inalterability-and-fiscal-position-non-goals.adr.md)
+- **Supersedes:** [ADR-0008: Cost Maintenance Architecture (dual ownership)](0008-cost-maintenance-clarification.adr.md) — see §6
 
 ---
 
@@ -154,9 +182,13 @@ Any such change requires ADR revision or supersession, not a feature flag.
 
 - **Proposed**: 2026-07-23
 - **Accepted**: 2026-07-23
+- **Amended**: 2026-09-24 (§6, supersedes ADR-0008)
 
 ---
 
 ## Changelog
 
 - **2026-07-23**: Initial ADR recording D-6 for inventory-owned valuation and configurable costing method
+- **2026-09-24**: §6 added — supersedes ADR-0008; records what is retired (accounting as cost logic owner, REST cost writes, Product-entity cost fields,
+  accounting-owned cost audit) and what is carried forward (cost types, weighted-average formula, authorization split). Raised by
+  `domains/accounting/SPEC-inventory-adjustment-gl-posting.md` D8 (durion-positivity-backend#2186).

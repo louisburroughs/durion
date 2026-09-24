@@ -76,6 +76,8 @@ DOMAIN_FALLBACK = {
 # (pos-mcp-server's facades reach all of them), so counting those mentions would hand them
 # ownership of modules a business domain owns. They own only what MODULE_DOMAIN assigns.
 CROSS_DOMAIN = {"general"}
+# ADR statuses that end a decision's life; their date is not the creation date.
+TERMINAL_ADR_STATUSES = {"superseded", "deprecated", "rejected"}
 # Modules whose owning domain is stated rather than inferred from mention counts.
 MODULE_DOMAIN = {
     "pos-mcp-server": "general",
@@ -397,7 +399,14 @@ def adr_note(record: dict, owner_by_module: dict[str, str]) -> str:
     facts = []
     if record["adr_status"]:
         state = record["adr_status"].capitalize()
-        dated = f" since {record['created']}" if record["created"] else ""
+        # `created` is the only date the frontmatter carries. It is the date a live status
+        # began, so "Accepted since" is right; a terminal status (superseded, deprecated,
+        # rejected) began later, on a date the frontmatter does not record, so it is shown
+        # beside the creation date rather than dated by it.
+        if record["adr_status"].lower() in TERMINAL_ADR_STATUSES:
+            dated = f" (created {record['created']})" if record["created"] else ""
+        else:
+            dated = f" since {record['created']}" if record["created"] else ""
         facts.append(f"**Status:** {state}{dated}")
     if record["supersedes"]:
         facts.append(f"**Supersedes:** [{record['supersedes']}](../adr/{slug_for(record['supersedes'])}.md)")

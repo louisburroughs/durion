@@ -19,3 +19,4 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 * [ADR-0001](../adr/0001-inventory-ledger-atp-computation.md)
 * [ADR-0008](../adr/0008-cost-maintenance-clarification.md)
 * [ADR-0044](../adr/0044-platform-event-only-domain-walls.md)
+* [ADR-0048](../adr/0048-inventory-owned-valuation-configurable-costing-method.md)
