@@ -89,8 +89,10 @@ issues: see §3 issue map. Issue bodies carry the per-story scope/acceptance; th
 - **D1 — Scrap document & posting** — spec D1–D3, D5. `ScrapRecord` + reason taxonomy, approval tiers via `ApprovalThresholdConfig` pattern (value-based, auto-approve below
   threshold), posting writes SCRAP_OUT with cost snapshot (interim source: latest receipt cost until J1), insufficient-on-hand → guided-reconciliation 422 with override,
   `shouldReplenish` hook, `ScrapPostedV1` fact, permissions `inventory:scrap:{create,view,approve}`. **Effort M · Deps none.**
-- **D2 — Shrinkage GL posting (pos-accounting)** — spec D4. pos-accounting consumes `ScrapPostedV1` → shrinkage journal entry via posting-rule machinery; new posting
-  category + seed; contract test against the fact schema. Coordinate with accounting domain owners. **Effort S · Deps D1.**
+- **D2 — Shrinkage GL posting (pos-accounting)** — spec D4. pos-accounting consumes `ScrapPostedV1` → shrinkage journal entry; new posting category + seed; contract
+  test against the fact schema. Delivered in #1043: `InventoryEventsListener` → `InventoryShrinkagePostingService`, posting category `INVENTORY_SHRINKAGE`
+  (`SHRINKAGE_EXPENSE` → 5100, `INVENTORY_ASSET` → 1300), exactly once per `scrapId`, uncosted facts recorded and skipped. The cycle-count and generic adjustment
+  paths (`COUNT_VARIANCE_IN/OUT`, `ADJUSTMENT_IN/OUT`) emit no fact and reach no GL (durion-positivity-backend#2186). **Effort S · Deps D1.**
 
 ### Workstream E — Lots, serials, expiry (spec §6; strict phase order)
 
