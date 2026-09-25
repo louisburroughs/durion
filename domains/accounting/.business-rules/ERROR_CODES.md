@@ -8,12 +8,12 @@ tags: [domain, accounting, error-catalog]
 
 # Accounting Domain Error Codes
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Purpose:** Comprehensive error taxonomy for Accounting domain API responses  
 **Domain:** accounting  
 **Owner:** Accounting Domain  
 **Status:** ACCEPTED  
-**Date:** 2026-07-17
+**Date:** 2026-09-24
 
 ---
 
@@ -1132,6 +1132,59 @@ All violations found in the definition are returned in one pass as `fieldErrors`
 
 ---
 
+### Ingestion failure reason codes (`failureReasonCode`)
+
+These codes are not HTTP errors. They are stored on an `AccountingEvent` ingestion record as
+`failureReasonCode` and returned by `GET /v1/accounting/events` and `GET /v1/accounting/events/{eventId}`
+(filterable by `status`, `eventType` and `domainKeyId`). `PERIOD_CLOSED` (above) is also used this way.
+
+#### UNMAPPED_EVENT_TYPE (status `SUSPENDED`)
+**Description:** The posting engine found no posting rule or GL mapping for the event's `eventType` (no exact
+rule, fallback or category default)  
+**Use Cases:**
+- An event submitted to `POST /v1/accounting/events` whose `eventType` has no published posting rule set and no
+  default GL mapping (for example a hand-submitted `InventoryAdjustment`; inventory adjustments reach the GL
+  only as the `inventory.adjustment.posted` Kafka fact)
+
+**Example:**
+```json
+{
+  "status": "SUSPENDED",
+  "failureReasonCode": "UNMAPPED_EVENT_TYPE",
+  "failureDetails": "No mapping found for event type InventoryAdjustment"
+}
+```
+
+**Recovery:** Publish a posting rule set or a default GL mapping for the event type, then reprocess the suspended
+event (`accounting:events:retry`)
+
+#### UNCOSTED_FACT (status `SKIPPED`)
+**Description:** A Kafka-consumed inventory posting fact (`inventory.adjustment.posted` or
+`inventory.scrap.posted`) carried no positive `unitCost` (ADR-0048 `costSource = NONE`), so no journal entry was
+posted  
+**Use Cases:**
+- A cycle-count variance, manual adjustment or scrap of a SKU that has no receipt cost and no standard cost
+  (durion-positivity-backend#2191)
+
+**Example:**
+```json
+{
+  "eventType": "inventory.adjustment.posted",
+  "sourceSystem": "pos-inventory",
+  "domainKeyId": "01923f4e-5b6c-7d8e-9f01-23456789abcd",
+  "status": "SKIPPED",
+  "failureReasonCode": "UNCOSTED_FACT",
+  "journalEntryId": null
+}
+```
+
+**Recovery:** None in accounting. `SKIPPED` is terminal and not retryable: the fact carries its cost at posting
+time, and a later cost is a different fact. Prevent it upstream (receive with a price, or configure a standard
+cost); the count is the `accounting.inventory.fact.skipped{eventType, reason=UNCOSTED}` metric
+(`SPEC-inventory-adjustment-gl-posting.md` §4.8)
+
+---
+
 ## Permission Errors
 
 ### PERMISSION_DENIED (403)
@@ -1326,6 +1379,7 @@ public ResponseEntity<ErrorResponse> handleMappingNotFound(MappingNotFoundExcept
 | 2026-01-25 | 1.0 | Backend Team | Initial error taxonomy for all accounting issues |
 | 2026-07-17 | 1.1 | Backend Team | Accounting Period errors (PERIOD_NOT_FOUND, PERIOD_ALREADY_CLOSED, PERIOD_ALREADY_OPEN, PERIOD_HAS_DRAFT_ENTRIES) for Wave 1 story B1 (#937) |
 | 2026-07-18 | 1.2 | Backend Team | Wave 2: reversal errors JE_ALREADY_REVERSED, JE_NOT_POSTED (A3 #943); period-gate errors PERIOD_CLOSED, PERIOD_HARD_LOCKED, HARD_LOCK_DATE_REGRESSION (B2 #944); UNBALANCED_RULES refreshed to publish-time fieldErrors locator format (E1 #945 / E2 #946) |
+| 2026-09-24 | 1.3 | Backend Team | Ingestion failure reason codes UNMAPPED_EVENT_TYPE (SUSPENDED) and UNCOSTED_FACT (new terminal SKIPPED status) for inventory adjustment GL posting (durion-positivity-backend#2191) |
 
 ---
 
