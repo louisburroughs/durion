@@ -51,6 +51,25 @@ reverse transition `ASSIGNED → APPROVED` was added, for when either half is re
 
 **In-Progress Sub-Statuses**: `WORK_IN_PROGRESS`, `AWAITING_PARTS`, `AWAITING_APPROVAL`
 
+### Location transfer is not a status (durion-positivity-backend#2258)
+
+A transfer between locations (`POST /v1/workorders/{workorderId}/transfer`) changes the workorder's site. It adds
+no status and no new transition type (DECISION-INVENTORY-023, -024). An `ASSIGNED` workorder uses the existing
+`ASSIGNED → APPROVED` transition, recorded in `WorkOrderStateTransition` like any other transition.
+
+| Current status | Transfer | Status afterwards |
+| --- | --- | --- |
+| `DRAFT` | Allowed | `DRAFT` |
+| `APPROVED` | Allowed | `APPROVED` |
+| `ASSIGNED` | Allowed | `APPROVED`, through the existing `ASSIGNED → APPROVED` transition, because the transfer releases the position and the technician |
+| `WORK_IN_PROGRESS`, `AWAITING_PARTS`, `AWAITING_APPROVAL`, `READY_FOR_PICKUP`, `COMPLETED` (reopened) | 409 `WORKORDER_TRANSFER_NOT_ALLOWED` | unchanged |
+| `CANCELLED`, `COMPLETED` (not reopened) | 409 `WORKORDER_CLOSED` | unchanged |
+
+An allowed status is not enough on its own. `workStartedAt` must be unset, and no labour entry, work session or
+travel segment may reference the workorder. Timers and labour are accepted on `APPROVED` and `ASSIGNED` without
+setting `workStartedAt`, so the transfer checks the time records themselves. The `ASSIGNED → APPROVED` row in
+`WorkOrderStateTransition` carries the transfer as its reason.
+
 ### State Transition Audit Trail
 
 Every state transition is recorded in `WorkOrderStateTransition` entity with:

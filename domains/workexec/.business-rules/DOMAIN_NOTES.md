@@ -455,6 +455,264 @@ This document is the non-normative rationale and decision log for the `workexec`
 - Governance & owner recommendations:
 - Owner: pos-shop-manager (planned assignment, including any multi-mechanic shape); pos-workorder (actual current technician of record, exactly one person). Any future dispatch/scheduling story that wants to reflect LEAD/ASSIST in workexec must open a new decision record, not silently mirror the event.
 
+### DECISION-INVENTORY-023 — Workorder transfer between locations: same workorder, one operation, site owned by workexec
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q1, Q8); related #2245, DECISION-SHOPMGMT-023, DECISION-SHOPMGMT-024, DECISION-SHOPMGMT-025
+- Decision: A workorder may be transferred from one location to another. Transfer is needed, and one operation covers every case; the cases differ only by reason code
+  (DECISION-INVENTORY-028): the customer asks for the work to be done at another shop (`CUSTOMER_REQUEST`); the source site lacks capacity (`CAPACITY`); the source site
+  lacks the equipment the job needs, e.g. no bay that is active, equipped or rated for the vehicle's duty class under DECISION-SHOPMGMT-021/022 (`EQUIPMENT`); and a
+  mobile job is served by another depot's mobile unit, which DECISION-SHOPMGMT-023 routes as a transfer rather than a cross-location dispatch (`MOBILE_DEPOT`). Transfer
+  changes the site **on the same workorder** (issue option Q8(a)); there is no close-and-reissue. Six rules follow:
+  1. **Same identity.** The workorder keeps its id, `workorderNumber`, estimate link, customer approval (`approvalId`, `approvedAt`, signature), fleet authorization, notes, line items and all histories. Only the site changes, and the transfer's own consequences (DECISION-INVENTORY-024 to -027) are applied in the same transaction.
+  2. **Both site fields move together.** `Workorder.shopId` and `Workorder.locationId` are the same concept (`WorkorderServiceImpl.doCreateWorkorder` seeds both from one value) and a transfer writes both to the target. After a transfer they are equal; a divergence is a defect.
+  3. **The site is workexec's execution fact, changed only by transfer.** Where the work is performed is a fact of the workorder, owned by pos-workorder. It changes only
+     through the transfer operation. This narrows DECISION-INVENTORY-005 for the site: shopmgmt still owns the operational context it plans (appointment, planned
+     resource, planned mechanics — DECISION-INVENTORY-022), but its inputs no longer move a workorder between sites.
+  4. **Close the two paths that change the site today without the transfer rules.** `WorkorderServiceImpl.overrideOperationalContext` refuses a body `locationId` that
+     differs from the workorder's current site with 422 `WORKORDER_TRANSFER_REQUIRED` (omitted or equal is accepted, and it re-slots within the site as before).
+     `WorkorderServiceImpl.handleAssignmentUpdated` (the `AssignmentUpdatedEvent` input) never writes the site: an inbound assignment whose `locationId` differs from the
+     workorder's is dropped whole — position and mechanics included, because they describe a plan at another site — with a warning log and a counter, in the same
+     log-and-swallow style it already uses for an occupied or inactive position.
+  5. **Direction.** A workorder transfer causes the appointment change: pos-shop-manager cancels the linked appointment at the source, and the target books a new one
+     (DECISION-SHOPMGMT-024). An appointment never causes a workorder transfer. An appointment's location is fixed (DECISION-SHOPMGMT-025), and booking a workorder's
+     appointment at another location is refused on the shopmgmt side, so nothing on that side moves a workorder. Only someone with `workorder:workorder:transfer` does.
+  6. **Out of scope.** Transfer after work has started (DECISION-INVENTORY-024); a linked reissue at the new site; bulk transfer; giving a workorder with no site its
+     first site (not a transfer — the source-leg scope check fails closed on a null site, as `overrideOperationalContext` already does); cross-tenant moves (impossible
+     under ADR-0062 row-level security — a location in another tenant is unknown to the `ext_location` replica).
+- Alternatives considered:
+- Option A (chosen): change the site on the same workorder, through one dedicated operation, and close the other site-writing paths
+- Pros: one workorder number for the customer from quote to invoice; the approval, signature and fleet authorization already captured stay attached without being copied; each downstream rule (position, technician, parts, tax) is handled once, in the operation that owns the change; the audit shows one move rather than a cancellation and an unrelated creation
+- Cons: every rule that keys on the site must tolerate the site changing during the workorder's life, which is why transfer is restricted to before work starts (DECISION-INVENTORY-024)
+- Option B: close the workorder at the old site and reissue a new one at the new site, linked
+- Pros: every existing site-keyed rule stays true for each workorder, because each workorder keeps one site for life
+- Cons: the old workorder must end somehow — `CANCELLED` means "not done" to billing, shopmgmt (it frees the appointment slot) and reporting, and no other terminal status fits; the customer approval would have to be copied or re-captured, which is inventing approval semantics; the customer sees two workorder numbers for one job
+- Option C: no transfer; staff re-enter the work at the other site by hand
+- Pros: no new code
+- Cons: the manual re-entry duplicates the vehicle, customer and lines with no link, loses the approval, and leaves reservations and placements at the old site — the risk the issue names
+- Reasoning and evidence:
+- The issue states that a workorder's site is fixed at creation. The code disagrees. Two paths already rewrite `Workorder.locationId` without any transfer rule:
+  `overrideOperationalContext` (before work starts, gated at both ends by `workorder:operationalContext:override`) and `handleAssignmentUpdated` (for any workorder that
+  is not locked, including one in `WORK_IN_PROGRESS`). Both write `locationId` and leave `shopId` unchanged. The workorder then answers two different sites. Position,
+  technician staffing, pick scope, the dispatch board and the invoice read `locationId` (`ServicePositionServiceImpl.resolvePosition`,
+  `TechnicianAssignmentServiceImpl.resolveSiteId`, `WorkorderPickFacadeServiceImpl`, `DashboardServiceImpl`, `WorkorderInvoiceServiceImpl.generateInvoice`). Location
+  scope, parts reservation and pick-list demand, WIP, job-time totals and the published `shopId` read `shopId` (`ServicePositionServiceImpl.requireLocationScope`,
+  `WorkorderPartUsageServiceImpl`, `PromotedWorkorderDemandPublisher`, `WipServiceImpl`, `WorkexecTimeTrackingServiceImpl`, `WorkorderFactPublisher`). Rules 2 to 4 close
+  that gap. Transfer does not create it.
+- The workorder number is allocated per tenant and year (`DocumentNumberAllocator`, #2150), not per location, so it stays valid when the site changes. The estimate number is unique per `(locationId, estimateNumber)`, which is one reason the estimate itself does not move (DECISION-INVENTORY-025).
+- Architectural implications:
+- Components affected: pos-workorder gains `POST /v1/workorders/{workorderId}/transfer` (body `toLocationId`, `reasonCode`, `note`; `Idempotency-Key` honoured per
+  DECISION-INVENTORY-012), a transfer service that applies DECISION-INVENTORY-024 to -028 in one transaction, and an append-only `workorder_location_transfer` table
+  (DECISION-INVENTORY-028). `overrideOperationalContext` gains the `WORKORDER_TRANSFER_REQUIRED` refusal. `handleAssignmentUpdated` stops writing `locationId`. Contract
+  chain: controller OpenAPI annotations, regenerated `openapi.yaml`, Angular SDK, and the `API Artifacts Sync` workflow. The pos-workorder README error-code table gains
+  every new code in the same pull request.
+- Auditor-facing explanation:
+- Confirm that no code path other than the transfer service writes `Workorder.locationId` or `Workorder.shopId` after creation. Confirm that every transfer leaves `shopId
+  = locationId`. Workorders that diverged before this rule are found with `SELECT id, shop_id, location_id, status FROM workorder WHERE shop_id IS DISTINCT FROM
+  location_id;` — after the change, only rows written by the retired paths should appear.
+- Migration & backward-compatibility notes:
+- Pre-production: no shim. Rows the retired paths left with `shop_id <> location_id` are a one-off data correction (follow-up). `overrideOperationalContext` callers that
+  used it to change the site move to the transfer endpoint.
+- Data correction direction (owner confirmed 2026-09-26): `location_id` wins, so the correction sets `shop_id := location_id`. The retired paths wrote `locationId`
+  last, and placement, staffing, picks and invoicing already read it. Rows with recorded time (labour entry, work session or travel segment) are listed for review
+  before they are corrected, because their hours are reported against `shop_id` (DECISION-INVENTORY-027).
+- Governance & owner recommendations:
+- Owner: pos-workorder (the transfer operation and the site fact). pos-shop-manager owns what happens to the appointment (DECISION-SHOPMGMT-024, DECISION-SHOPMGMT-025). A linked reissue, or transfer after work has started, needs a new clarification. Do not extend this decision to cover them.
+
+### DECISION-INVENTORY-024 — Transfer is allowed only before work starts; the position and technician are released
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q2; workexec side of Q3). Owner confirmed 2026-09-26, replacing their earlier answer that allowed transfer any time before completion.
+- Decision: A workorder may be transferred only before work starts (issue option Q2(a)), and never once any time has been recorded against it. The checks run after the 404 and the location-scope checks (DECISION-INVENTORY-028), in this order:
+  1. `CANCELLED`, or `COMPLETED` and not reopened (`Workorder.isLocked()`): 409 `WORKORDER_CLOSED` (existing code).
+  2. Any other status outside `DRAFT`, `APPROVED` or `ASSIGNED`, or `workStartedAt` set: 409 `WORKORDER_TRANSFER_NOT_ALLOWED`. This covers `WORK_IN_PROGRESS`,
+     `AWAITING_PARTS`, `AWAITING_APPROVAL` (reachable from `APPROVED`, so it is refused even before work starts: resolve the pending approval first), `READY_FOR_PICKUP`,
+     and a reopened `COMPLETED` workorder. These are refusals on the target's lifecycle status, so ADR-0017 §2 gives them 409.
+  3. Target location unknown to `ext_location`, or equal to the current site: 422 `WORKORDER_TRANSFER_LOCATION_INVALID`. Target known but `active = false`: 422 `WORKORDER_TRANSFER_LOCATION_INACTIVE`. The target must be known because its tax address, position replicas and staffing rows all key on it. This follows the `SERVICE_POSITION_INVALID` / `SERVICE_POSITION_INACTIVE` split (#2001).
+  4. A change request in `AWAITING_ADVISOR_REVIEW` (the same gate `startWork` applies): 422 `WORKORDER_TRANSFER_CHANGE_REQUEST_PENDING`.
+  5. Any recorded time — a `WorkorderLaborEntry`, a `WorkSession` or a `TravelSegment` that references the workorder, in any status, active timers included: 422 `WORKORDER_TRANSFER_TIME_RECORDED` (DECISION-INVENTORY-027).
+  6. Parts physically in hand at the source: 422 `WORKORDER_TRANSFER_PARTS_IN_HAND` (DECISION-INVENTORY-026).
+- Effects of a transfer that passes the checks, in the same transaction:
+  - **Position released.** The current `BAY`, `MOBILE_UNIT` or `HOLD` position is released through `ServicePositionService` with reason `Workorder transferred to
+    <toLocationId>`, which leaves the normal history row. A source-site `HOLD` cannot stay, because a `HOLD`'s `resource_id` must equal the workorder's own site. Nothing
+    is carried over to the target: a source bay or unit fails `requireSameSite` there (`SERVICE_POSITION_INVALID`) by construction. The workorder arrives unplaced.
+  - **Technician released.** The current `technician_assignment` is ended with the same reason. Staffing is site-specific (DECISION-INVENTORY-018), so the technician of
+    record at the source is not assumed to be valid at the target. The target dispatcher assigns anew through the normal endpoints, subject to the
+    `TECHNICIAN_NOT_STAFFED_AT_SITE` check. The same person may be reassigned if they pass it. The legacy `mechanic_ids` list is cleared with it (DECISION-INVENTORY-021).
+  - **Status.** No new status is added and the transfer is not a status. `DRAFT` and `APPROVED` stay as they are. `ASSIGNED` returns to `APPROVED` through the existing `ASSIGNED → APPROVED` transition (`WorkorderStateMachine.reconcileAssigned`, #2011), recorded in `WorkorderStateTransition` with the transfer as its reason.
+  - **Schedule.** `scheduledDate` is kept. Whether the date still holds at the target is settled when the target books its new appointment (DECISION-SHOPMGMT-024 rule 4), and a placement at the target re-dates only an undated workorder (#2002).
+  - **Appointment (shopmgmt's, cross-referenced).** pos-workorder does not author or change appointments (DECISION-INVENTORY-010). It publishes the transfer fact
+    (DECISION-INVENTORY-028). On that fact, pos-shop-manager ends the linked appointment at the source (`CANCELLED`, reason `WORKORDER_TRANSFERRED`), and the target
+    advisor books a new appointment under every target rule (DECISION-SHOPMGMT-024, DECISION-SHOPMGMT-025). The transfer never waits on, or is refused because of, an
+    appointment: pos-workorder cannot see appointments (ADR-0044). The workexec side assumes only that shopmgmt never sends an `AssignmentUpdatedEvent` naming the source
+    site after a transfer. If one arrives, it is dropped (DECISION-INVENTORY-023 rule 4).
+- Alternatives considered:
+- Option A (chosen): before work starts only, and no recorded time; release the position and technician
+- Pros: nothing site-bound has been spent yet — no labour, no parts in hand — so the transfer only moves plans, and plans can be released and remade; the rule matches the existing "work started locks the operational context" gate in `overrideOperationalContext` (`workStartedAt != null`), and DECISION-INVENTORY-004's rule that assignment edits are refused once work has started
+- Cons: a vehicle that must move after teardown cannot be transferred; the shop finishes or cancels the workorder at the source under the existing lifecycle rules and quotes the rest at the target
+- Option B: any time before completion
+- Pros: covers the towed-after-teardown case
+- Cons: clocked labour, consumed parts and completed lines at the source would ride along to the target. That forces decisions on payroll attribution, partial completion and split invoicing. Each is a mandatory clarification trigger for this domain, and the owner has not answered any of them. It would also pull every in-progress sub-status into the transfer rules.
+- Option C: not supported
+- Pros: nothing to build
+- Cons: DECISION-SHOPMGMT-023 routes cross-depot mobile work to a transfer; without one that work has no path
+- Reasoning and evidence:
+- `workStartedAt` alone does not prove that no work has happened. `WorkexecTimeTrackingServiceImpl.TIMER_ELIGIBLE_STATUSES` accepts a timer on an `APPROVED` or `ASSIGNED`
+  workorder, `WorkorderLaborServiceImpl.LABOR_ALLOWED_STATUSES` accepts labour on `ASSIGNED`, and `workorder.statemachine.autoStart.onFirstLaborEntry=false` means neither
+  sets `workStartedAt`. Rule 5 therefore checks the time records themselves.
+- Keeping the technician when they are also staffed at the target would save a click, but it would make the transfer branch on a replica read. Releasing both halves is deterministic. The target's own dispatcher reassigns under the check that already exists.
+- Architectural implications:
+- Components affected: the transfer service in pos-workorder; `ServicePositionService` (release with reason); `TechnicianAssignmentService` (release with reason);
+  `WorkorderStateMachine.reconcileAssigned`; read-only checks on `WorkorderLaborEntryRepository`, `WorkSessionRepository`, `TravelSegmentRepository`,
+  `ChangeRequestRepository`, `ExtLocationReplicaRepository`. New error codes: 409 `WORKORDER_TRANSFER_NOT_ALLOWED`; 422 `WORKORDER_TRANSFER_LOCATION_INVALID`,
+  `WORKORDER_TRANSFER_LOCATION_INACTIVE`, `WORKORDER_TRANSFER_CHANGE_REQUEST_PENDING`, `WORKORDER_TRANSFER_TIME_RECORDED`, `WORKORDER_TRANSFER_PARTS_IN_HAND`,
+  `WORKORDER_TRANSFER_REQUIRED`.
+- Auditor-facing explanation:
+- For every `workorder_location_transfer` row, confirm that the workorder had no labour entry, work session or travel segment created before `transferred_at`; that its status at that instant (from `work_order_state_transitions`) was `DRAFT`, `APPROVED` or `ASSIGNED`; and that a position release and a technician release (where one was current) carry the same timestamp and the transfer reason.
+- Migration & backward-compatibility notes:
+- None; new operation.
+- Governance & owner recommendations:
+- Owner: pos-workorder. Relaxing the "before work starts" rule requires a new clarification that answers the partial-completion, payroll and split-billing questions first.
+
+### DECISION-INVENTORY-025 — Transfer keeps quoted prices; tax follows the new location at invoicing; no re-approval
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q4). Owner confirmed 2026-09-26, replacing their earlier answer that re-priced at the target with re-approval.
+- Decision: Quoted prices are kept and only tax follows the new location (issue option Q4(b)). Five rules follow:
+  1. **Prices are kept.** Every existing service and part line keeps its snapshotted `unitPrice`, `lineTotal` and `taxCode`, and every labour line keeps its rate snapshot (`rateHourly`, `rateBaseHourly`, `rateScope`, `rateId`, `rateAdjustmentCodes`). Transfer never re-prices a line.
+  2. **Tax follows the site that performs the work, at invoicing, as today.** pos-invoice computes the authoritative tax when it finalizes the invoice. It uses the
+     invoice's `locationId` (`InvoiceTaxCalculator.calculate` → `LocationReferenceService.resolveTaxAddress`), and that value is the workorder's `locationId` when the
+     invoice is requested (`WorkorderInvoiceServiceImpl.generateInvoice`). After a transfer that is the new location, with no new code. pos-workorder computes no tax on
+     the workorder.
+  3. **The estimate does not move.** The approved estimate keeps its `locationId`, totals and tax figure as the record of what was quoted and approved, where. It is not recalculated: `calculateEstimateTaxesAndTotals` is DRAFT-only, and an approved estimate is not edited.
+  4. **No re-approval.** The customer approved scope and price, and neither changes. A difference in tax is statutory, not a price the shop sets, and the estimate's tax
+     was already an estimate (it can be `taxPending`). The customer is told at the transfer that tax will be calculated for the new location — a UI obligation, not a new
+     approval step. If the shop wants to charge the target location's prices, that is not a transfer: re-quote the work at the target under the normal estimate flow.
+  5. **What comes after the transfer is priced and approved at the new location.** Lines added later — through a change request or otherwise — are priced with the target
+     location's rates, and later approvals use the `ApprovalConfiguration` that applies to the target location. Approvals captured before the transfer stay valid.
+     Customer deposits are party-scoped in pos-invoice (`DepositCredit.partyId`, no location), so they follow the customer and apply to the invoice as today.
+- Alternatives considered:
+- Option A (chosen): keep quoted prices; tax at the new location; no re-approval
+- Pros: the customer pays the price they approved; no approval loop is invented; tax lands in the jurisdiction where the service is performed, through the code path that already does this
+- Cons: the invoice total can differ from the approved estimate total by the tax difference; the target location honours a price set by the source
+- Option B: re-price at the new location, with re-approval when the total changes
+- Pros: every line carries the performing location's own price
+- Cons: needs a "re-approval of an approved workorder" flow that does not exist (approval today is estimate approval plus change requests for added scope); invents approval semantics this domain may not decide alone; penalises the customer for a move that capacity, equipment or a mobile depot may have caused
+- Reasoning and evidence:
+- Lines are snapshotted at promotion (`WorkorderServiceLine.unitPrice`, "Snapshotted unit price"; `WorkorderPart.unitPrice`, "Snapshotted unit price from estimate"). The snapshot exists to hold the price the customer approved.
+- Architectural implications:
+- Components affected: none in pricing or tax. The transfer service writes nothing to line prices, the estimate or approval records. Labour-rate defaulting for lines added after the transfer resolves on the workorder's current location.
+- Auditor-facing explanation:
+- For a transferred workorder, confirm that line prices equal their values before the transfer (compare the `TRANSFER` snapshot, DECISION-INVENTORY-028), that the estimate row is unchanged, and that the invoice's `locationId` is the transfer's `to_location_id`.
+- Migration & backward-compatibility notes:
+- None.
+- Governance & owner recommendations:
+- Owner: pos-workorder (prices kept, estimate unchanged); pos-invoice with pos-tax (tax at finalization). Where the accounting location of a deposit taken at the source is recorded is an accounting-domain question, noted as a follow-up and not decided here.
+
+### DECISION-INVENTORY-026 — Parts: release at the source and re-request at the target; workexec never moves stock
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q5); ADR-0044
+- Decision: Reservations are released at the source and requested again at the target. Stock is not transferred as part of a workorder transfer. Four rules follow:
+  1. **Nothing physical is at the source.** A transfer is refused with 422 `WORKORDER_TRANSFER_PARTS_IN_HAND` while any part line has picked, issued or consumed quantity
+     not returned to stock: `WorkorderPart.quantityIssued − quantityReturned > 0`, `quantityConsumed > 0`, or an `ext_pick_task` row for the workorder with
+     `quantityPicked` above what has been returned. Goods on a shelf or bench at the source go back through the existing return path first. The system does not pretend
+     they moved.
+  2. **Demand is released at the source.** After the transfer commits, pos-workorder asks pos-inventory to release the workorder's demand at the source: every open
+     reservation and every unpicked pick list or task for `(workorderId, fromLocationId)`. The mechanism is a new command, `inventory.workorder-demand.release-requested`,
+     on `inventory.commands.v1` (the topic `InventoryCommandPublisher` already uses). pos-inventory owns reservations and decides how to apply it.
+  3. **Demand is re-registered at the target.** After the release, the part lines' demand is registered at the target with the same commands as promotion
+     (`inventory.reservation.request-requested` per line and `inventory.pick-list.generate-requested`, via `PromotedWorkorderDemandPublisher`), using the new `shopId`.
+     Both command ids must include the location. Today the reservation id is derived from (part, item, quantity) and the pick-list id from the workorder alone, so
+     pos-inventory's `processed_events` dedupe would swallow the target's commands as repeats of the source's.
+  4. **Workexec never moves stock between sites.** If the target has no stock, its reservation takes the normal path (backorder or sourcing) like any new demand. Whether the target sources the part from the source site's stock is pos-inventory's decision, made through its own transfer process. Target availability is not a transfer gate (ADR-0044 R3).
+- Alternatives considered:
+- Option A (chosen): release and re-request; refuse while parts are in hand
+- Pros: each module acts only on what it owns (ADR-0044 R1); no stock ledger entry is invented by workexec; demand ends up at the site that will do the work
+- Cons: the reservation at the target can fail or backorder when the source had the part; for a short while, until pos-inventory applies both commands, the source reservation and the target request coexist
+- Option B: transfer the reserved stock to the target as part of the workorder transfer
+- Pros: the target is guaranteed the parts the source had set aside
+- Cons: a stock transfer is an inventory movement with its own ledger, transit and receiving rules, owned by pos-inventory; driving it from a workorder operation makes workexec author inventory movements
+- Reasoning and evidence:
+- `PromotedWorkorderDemandPublisher.publish` reserves and generates pick lists at `workorder.getShopId()`, and `WorkorderPartUsageServiceImpl` reserves at
+  `workorder.getShopId()`, so all demand is keyed to the source site. pos-inventory's `WorkorderEventsListener` keeps no location on `ext_workorder` and releases nothing
+  when a workorder changes. Without rule 2, the source's reservations would be stranded.
+- Architectural implications:
+- Components affected: pos-workorder `InventoryCommandPublisher` (a new release command; location-qualified command ids for reservation and pick-list generation); `PromotedWorkorderDemandPublisher` (re-registration after a transfer). pos-inventory must implement `inventory.workorder-demand.release-requested` (cross-domain follow-up, listed in `CROSS_DOMAIN_INTEGRATION_CONTRACTS.md`).
+- Auditor-facing explanation:
+- After a transfer, pos-inventory holds no open reservation or unpicked pick task for the workorder at `from_location_id`. A standing count of such rows older than the transfer means the release command was lost or not applied.
+- Migration & backward-compatibility notes:
+- Changing the command-id derivation changes ids only for commands issued from then on. pos-inventory's dedupe is keyed per command id, so nothing already processed is replayed.
+- Governance & owner recommendations:
+- Owner: pos-inventory (reservations, pick lists, stock); pos-workorder (the gate in rule 1 and the requests in rules 2–3). Whether the same release command is also sent when a workorder is cancelled is a separate question and is not decided here.
+
+### DECISION-INVENTORY-027 — Labour and history: no recorded time crosses a transfer; history stays where it was written
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q6)
+- Decision: Recorded time never moves. Four rules follow:
+  1. **No clocked time at transfer.** A workorder with any labour entry, work session or travel segment is not transferable (422 `WORKORDER_TRANSFER_TIME_RECORDED`, DECISION-INVENTORY-024). So there is never clocked time to move, and this decision creates no rule about how labour affects billing or payroll across sites.
+  2. **Technicians.** The technician of record is released at transfer (DECISION-INVENTORY-024). No technician is carried to the target by default.
+  3. **History stays and is not rewritten.** The `technician_assignment`, `service_position_assignment`, `WorkorderStateTransition`, `AuditEvent` and `WorkorderSnapshot` rows written at the source remain, unchanged. They still name the source's bays, units and technician, and each release row carries the transfer reason. No history row is re-keyed to the target.
+  4. **Every time record written after a transfer is at the target**, because the workorder's site is the target from then on.
+- Alternatives considered:
+- Option A (chosen): refuse transfer when time is recorded; keep all history as written
+- Pros: no labour hour is ever attributed to a site where it was not worked; payroll and job-time reports stay correct without per-entry location stamping
+- Cons: a job with even a test timer at the source must have that entry handled under the normal labour rules before it can move
+- Option B: allow transfer with recorded time, and stamp each labour entry with the site where it was worked
+- Pros: supports a mid-job move
+- Cons: `WorkexecTimeTrackingServiceImpl` attributes each finalized entry to `workorder.getShopId()` when the report is read, so every job-time report and payroll feed would need migrating to the stamped value; it also decides labour-affects-payroll semantics across sites, a mandatory clarification trigger
+- Reasoning and evidence:
+- `WorkexecTimeTrackingServiceImpl` (`rowLocationId = workorder.getShopId()`) reads the site from the workorder at query time. A transfer with time on it would silently move the source's hours into the target's report.
+- Architectural implications:
+- Components affected: none beyond the DECISION-INVENTORY-024 check; no schema change to labour entities.
+- Auditor-facing explanation:
+- Confirm that no `WorkorderLaborEntry`, `WorkSession` or `TravelSegment` for a transferred workorder has a creation time before the transfer's `transferred_at`.
+- Migration & backward-compatibility notes:
+- None.
+- Governance & owner recommendations:
+- Owner: pos-workorder; pos-people remains owner of timekeeping and staffing (DECISION-INVENTORY-019). Transfer with recorded time needs a new clarification.
+
+### DECISION-INVENTORY-028 — Transfer authority, reason code, audit trail and published fact
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q7); ADR-0017, ADR-0044, ADR-0061
+- Decision: Six rules follow:
+  1. **Permission.** A new permission, `workorder:workorder:transfer`, guards the transfer, registered in `WorkorderPermissions` and the module's permission registry. It is a Shop Manager-level grant, not a Service Advisor one. `workorder:operationalContext:override` does not imply it.
+  2. **Location scope at both ends (ADR-0061).** The caller must hold `workorder:workorder:transfer` in scope for the workorder's current `shopId` (a null site fails closed) and for `toLocationId`. Both checks run after the 404 and before any write, as `overrideOperationalContext` does. A denial is 403 `LOCATION_SCOPE_DENIED`, and a denied transfer writes nothing.
+  3. **Reason.** `reasonCode` is required. Its values are `CUSTOMER_REQUEST`, `CAPACITY`, `EQUIPMENT`, `MOBILE_DEPOT` and `OTHER` (enum `WorkorderTransferReason`). `note`
+     is free text of at most 500 characters and is required when the reason is `OTHER`. A missing or invalid reason, or `OTHER` without a note, is 400
+     `VALIDATION_FAILED`. The actor comes from the security context; a client-supplied actor id is not accepted (DECISION-INVENTORY-005).
+  4. **Audit, in the transfer transaction.** Four records are written together:
+     - an append-only `workorder_location_transfer` row: `id` (UUID v7), `tenant_id`, `workorder_id`, `from_location_id`, `to_location_id`, `reason_code`, `note`, `transferred_by`, `transferred_at` (UTC), plus the released `resource_type`/`resource_id` and `technician_id`
+     - an `AuditEvent` with `eventType = "WorkorderTransferred"`
+     - a `WorkorderSnapshot` of type `TRANSFER` taken before the change, when `workorder.statemachine.snapshot.enabled` is set
+     - the `WorkorderStateTransition` row, when `ASSIGNED` returns to `APPROVED`
+  5. **Telemetry.** The endpoint carries `@EmitEvent(id = "WORKORDER_TRANSFER", apiVersion = "1")`, registered in `EventTypes` as `write`.
+  6. **Published fact.** A new fact, `workorder.workorder.transferred`, is published on `workorder.events.v1` (payload `WorkorderTransferredV1` in `pos-domain-events`,
+     schema v1) through the outbox, in the transfer transaction. Its fields are `workorderId`, `workorderNumber`, `fromLocationId`, `toLocationId`, `reasonCode`,
+     `transferredBy`, `transferredAt`, `estimateId`, `appointmentId` (the linked shopmgmt appointment the consumer cancels, read from the source estimate's
+     `Estimate.appointmentId` because the workorder entity carries none; nullable), `releasedResourceType`, `releasedResourceId`, `releasedTechnicianId` and
+     `status` (after the transfer). `note` is not published, to keep free text out of other domains' replicas. The usual `workorder.workorder.updated` fact follows
+     through `WorkorderFactPublisher.markChanged`, carrying the new `shopId` and `locationId`, no position and the new status. pos-shop-manager consumes the transfer fact
+     (DECISION-SHOPMGMT-024). It uses the explicit fact, never a change of `locationId` between two snapshots. pos-inventory is driven by the command in
+     DECISION-INVENTORY-026, not by this fact.
+- Alternatives considered:
+- Option A (chosen): a dedicated permission gated at both ends; a required reason code; an append-only transfer table plus an explicit fact
+- Pros: a transfer moves work, and the obligations that follow it, into another site's queue, so both sites' authority is checked; the reason distinguishes the four cases for reporting; consumers learn about a move from a named business fact rather than by diffing `locationId` on `workorder.workorder.updated`
+- Cons: one more permission to grant; the target-leg check means a manager scoped to a single shop cannot push work to a shop outside that scope
+- Option B: reuse `workorder:operationalContext:override` and publish only the updated fact
+- Pros: no new permission or event type
+- Cons: override is a within-site re-slot after this decision (DECISION-INVENTORY-023 rule 4); overloading it grants cross-site moves to everyone who can re-slot a bay, and consumers would have to infer a transfer from a field change with no reason attached
+- Reasoning and evidence:
+- `overrideOperationalContext` already gates both ends of a location change with `LocationScope.require` (#1872), which is the precedent rule 2 follows. `service_position_assignment` and `technician_assignment` already keep append-only histories, and the transfer table follows the same pattern for the site.
+- Architectural implications:
+- Components affected: pos-workorder `WorkorderPermissions`, the permission registry and `permissions.yaml`, `EventTypes`, the outbox fact writer, the
+  `location-scope.yaml` record, a Flyway migration for `workorder_location_transfer` (tenant-scoped under ADR-0062, with an RLS policy); `pos-domain-events` gains
+  `WorkorderTransferredV1`; pos-shop-manager adds a consumer. Contract chain and the `API Artifacts Sync` workflow follow, because a controller and a permission change.
+- Auditor-facing explanation:
+- Every change of `workorder.location_id` after creation has exactly one `workorder_location_transfer` row, one `WorkorderTransferred` audit event and one
+  `workorder.workorder.transferred` outbox row, all with the same timestamp. `SELECT workorder_id, count(*) FROM workorder_location_transfer GROUP BY workorder_id HAVING
+  count(*) > 1;` lists workorders moved more than once — allowed, but worth reviewing.
+- Migration & backward-compatibility notes:
+- New fact type on an existing topic. Consumers that ignore unknown types record the id and move on, as pos-inventory's `WorkorderEventsListener` already does.
+- Governance & owner recommendations:
+- Owner: pos-workorder (permission enforcement, audit, fact); pos-security-service (permission registry of record). Do not add a transfer override that skips the DECISION-INVENTORY-024 gates.
+
 ## End
 
 End of document.

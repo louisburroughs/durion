@@ -6,6 +6,8 @@
 * **Structure**: the shopmgmt and location domain entries refreshed after the bay and mobile-unit setup decisions (durion-positivity-backend#2245:
   DECISION-SHOPMGMT-021 to 023, DECISION-LOCATION-025 to 029). The inferred **Implemented by** lists move with the new mention counts: shopmgmt
   adds `pos-workorder` and `pos-location`; location now names `pos-catalog` in place of `pos-customer`. Module ownership is unchanged.
+* **Structure**: the workexec and shopmgmt domain entries refreshed after the workorder location-transfer decisions (durion-positivity-backend#2258:
+  DECISION-INVENTORY-023 to 028, DECISION-SHOPMGMT-024 and 025). The inferred **Implemented by** lists and module ownership are unchanged.
 
 ## 2026-09-24
 

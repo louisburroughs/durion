@@ -878,6 +878,100 @@ All WorkExec events conform to this structure:
 
 ---
 
+#### 7. WorkExec → ShopMgmt and Inventory (Issue durion-positivity-backend#2258: Workorder Transfer Between Locations)
+
+Decisions: DECISION-INVENTORY-023 to -028 (`DOMAIN_NOTES.md`). The shopmgmt side is DECISION-SHOPMGMT-024 and DECISION-SHOPMGMT-025.
+
+**Fact:** `workorder.workorder.transferred` on `workorder.events.v1` (payload `WorkorderTransferredV1` in
+`pos-domain-events`, schema v1), written through the pos-workorder outbox in the transfer transaction. The usual
+`workorder.workorder.updated` fact follows. It carries the new `shopId` and `locationId`, no position, and the status
+after the transfer.
+
+**Trigger:** A successful `POST /v1/workorders/{workorderId}/transfer`. Transfer is only allowed before work starts
+(DECISION-INVENTORY-024).
+
+**Payload:**
+
+```json
+{
+  "eventType": "workorder.workorder.transferred",
+  "schemaVersion": 1,
+  "payload": {
+    "workorderId": "0192f3a1-...",
+    "workorderNumber": "WO-2026-1042",
+    "fromLocationId": "0191aa00-...",
+    "toLocationId": "0191bb00-...",
+    "reasonCode": "MOBILE_DEPOT",
+    "transferredBy": "0190cc00-...",
+    "transferredAt": "2026-09-26T15:04:05Z",
+    "estimateId": "0192e000-...",
+    "appointmentId": "0192d000-...",
+    "releasedResourceType": "MOBILE_UNIT",
+    "releasedResourceId": "0191ab00-...",
+    "releasedTechnicianId": "0190dd00-...",
+    "status": "APPROVED"
+  }
+}
+```
+
+`reasonCode` is one of `CUSTOMER_REQUEST`, `CAPACITY`, `EQUIPMENT`, `MOBILE_DEPOT` or `OTHER`. The free-text `note`
+stays in pos-workorder and is not published. `appointmentId` is the id of the shopmgmt appointment linked to the workorder: the one the
+consumer cancels (DECISION-SHOPMGMT-024). pos-workorder reads it from the workorder's source estimate
+(`Estimate.appointmentId`), because the workorder entity carries no appointment reference of its own; it is null when
+no appointment is linked. The `released*` fields are null when nothing was held.
+
+**Consumer:** `pos-shop-manager`. What happens to the placement plan and the appointment is decided in
+DECISION-SHOPMGMT-024: it cancels the linked source appointment with reason `WORKORDER_TRANSFERRED` and removes the
+workorder mapping, and the target advisor books afresh. The consumer must not send the workorder back: pos-workorder drops an `AssignmentUpdatedEvent`
+that names a site other than the workorder's own (DECISION-INVENTORY-023).
+
+**Command:** `inventory.workorder-demand.release-requested` on `inventory.commands.v1`. This is a **new** command type
+that pos-inventory must implement. It is published after the transfer commits.
+
+```json
+{
+  "commandType": "inventory.workorder-demand.release-requested",
+  "payload": {
+    "workorderId": "0192f3a1-...",
+    "locationId": "0191aa00-...",
+    "reason": "WORKORDER_TRANSFERRED"
+  }
+}
+```
+
+- pos-inventory releases every open reservation and cancels every unpicked pick list or task for
+  `(workorderId, locationId)`. The command id is deterministic on `(workorderId, locationId, transferId)`, so a
+  redelivery collapses under `processed_events`.
+- Demand is then re-registered at the target with the existing `inventory.reservation.request-requested` and
+  `inventory.pick-list.generate-requested` commands. Their command ids must include the location. Keyed as today
+  (part, item and quantity; the workorder alone), pos-inventory's dedupe would drop the target's commands as repeats.
+- Workexec never moves stock between sites. A target without stock takes the normal backorder or sourcing path
+  (DECISION-INVENTORY-026).
+
+**Retry Policy:** outbox relay with the module's standard retry and DLQ, as for every `workorder.events.v1` fact and
+every `inventory.commands.v1` command. Fail-open for the transfer itself: the transfer is committed before either
+message is sent.
+
+**Error Handling (transfer endpoint, pos-workorder):**
+
+| Code | Status | Condition |
+| --- | --- | --- |
+| `VALIDATION_FAILED` | 400 | `reasonCode` missing or invalid, or `OTHER` without a `note` |
+| `LOCATION_SCOPE_DENIED` | 403 | `workorder:workorder:transfer` not in scope for the current site or for the target |
+| `WORKORDER_CLOSED` | 409 | Workorder is `CANCELLED`, or `COMPLETED` and not reopened |
+| `WORKORDER_TRANSFER_NOT_ALLOWED` | 409 | Status outside `DRAFT`/`APPROVED`/`ASSIGNED`, or work has started |
+| `WORKORDER_TRANSFER_LOCATION_INVALID` | 422 | Target unknown to `ext_location`, or equal to the current site |
+| `WORKORDER_TRANSFER_LOCATION_INACTIVE` | 422 | Target location is not active |
+| `WORKORDER_TRANSFER_CHANGE_REQUEST_PENDING` | 422 | A change request is `AWAITING_ADVISOR_REVIEW` |
+| `WORKORDER_TRANSFER_TIME_RECORDED` | 422 | A labour entry, work session or travel segment references the workorder |
+| `WORKORDER_TRANSFER_PARTS_IN_HAND` | 422 | Picked, issued or consumed quantity not returned to stock at the source |
+| `WORKORDER_TRANSFER_REQUIRED` | 422 | `overrideOperationalContext` was asked to change the site |
+
+**Tax and billing:** no new contract. pos-invoice already computes tax at finalization from the workorder's
+`locationId` on the invoice request, which after a transfer is the target (DECISION-INVENTORY-025).
+
+---
+
 ### Integration Patterns Summary
 
 | Domain | Event Type | Direction | Retry | Fail Mode | Latency SLA |
@@ -888,6 +982,8 @@ All WorkExec events conform to this structure:
 | Order | ready_for_billing | One-way → Ack | 3x exponential | Closed | 3s |
 | CRM | customer/vehicle lookup | Query | 2x linear | Open | 2s |
 | Accounting | snapshot_finalized | One-way | 3x exponential | Closed | 5s |
+| ShopMgmt | workorder.workorder.transferred | One-way (fact) | Outbox relay + DLQ | Open | 5s |
+| Inventory | inventory.workorder-demand.release-requested | One-way (command) | Outbox relay + DLQ | Open | 5s |
 
 ### Implementation Checklist
 

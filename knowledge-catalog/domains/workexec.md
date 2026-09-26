@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/workexec
 path: durion/domains/workexec/
 tags: [domain, workexec]
 sources: [domains/workexec/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-19T22:17:35+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-26T21:36:03+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/workexec) — `domains/workexec/` (54 documents)
