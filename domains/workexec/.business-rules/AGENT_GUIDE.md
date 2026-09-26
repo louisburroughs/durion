@@ -109,12 +109,21 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 
 ### Workorder transfer between locations (issue #2258)
 
-- **Same workorder; only transfer moves the site.** `POST /v1/workorders/{workorderId}/transfer` changes the site on the same workorder, keeping its id, number, approval and histories. It writes `shopId` and `locationId` together. No other path may change the site: `overrideOperationalContext` refuses a different `locationId` with 422 `WORKORDER_TRANSFER_REQUIRED`, and an inbound `AssignmentUpdatedEvent` naming another site is dropped whole. An appointment move never transfers a workorder (DECISION-INVENTORY-023).
-- **Only before work starts.** A transfer is allowed from `DRAFT`, `APPROVED` or `ASSIGNED` with `workStartedAt` unset, no pending change request, no recorded time (labour entry, work session, travel segment) and no parts in hand. Otherwise it is refused with 409 `WORKORDER_CLOSED` / `WORKORDER_TRANSFER_NOT_ALLOWED`, or 422 `WORKORDER_TRANSFER_CHANGE_REQUEST_PENDING` / `_TIME_RECORDED` / `_PARTS_IN_HAND`. The target must be a known, active location other than the current one (422 `WORKORDER_TRANSFER_LOCATION_INVALID` / `_INACTIVE`). The position and the technician are released, `ASSIGNED` returns to `APPROVED`, and no new status exists. The appointment at the source is cancelled by pos-shop-manager and rebooked at the target (DECISION-SHOPMGMT-024, -025) (DECISION-INVENTORY-024).
+- **Same workorder; only transfer moves the site.** `POST /v1/workorders/{workorderId}/transfer` changes the site on the same workorder, keeping its id, number, approval
+  and histories. It writes `shopId` and `locationId` together. No other path may change the site: `overrideOperationalContext` refuses a different `locationId` with 422
+  `WORKORDER_TRANSFER_REQUIRED`, and an inbound `AssignmentUpdatedEvent` naming another site is dropped whole. An appointment move never transfers a workorder
+  (DECISION-INVENTORY-023).
+- **Only before work starts.** A transfer is allowed from `DRAFT`, `APPROVED` or `ASSIGNED` with `workStartedAt` unset, no pending change request, no recorded time
+  (labour entry, work session, travel segment) and no parts in hand. Otherwise it is refused with 409 `WORKORDER_CLOSED` / `WORKORDER_TRANSFER_NOT_ALLOWED`, or 422
+  `WORKORDER_TRANSFER_CHANGE_REQUEST_PENDING` / `_TIME_RECORDED` / `_PARTS_IN_HAND`. The target must be a known, active location other than the current one (422
+  `WORKORDER_TRANSFER_LOCATION_INVALID` / `_INACTIVE`). The position and the technician are released, `ASSIGNED` returns to `APPROVED`, and no new status exists. The
+  appointment at the source is cancelled by pos-shop-manager and rebooked at the target (DECISION-SHOPMGMT-024, -025) (DECISION-INVENTORY-024).
 - **Prices kept, tax at the new site, no re-approval.** Lines keep their snapshotted prices and rates. The estimate is not moved or recalculated. pos-invoice taxes at the workorder's `locationId` at finalization. Lines and approvals after the transfer use the target's rates and approval configuration (DECISION-INVENTORY-025).
 - **Parts.** Demand at the source is released (`inventory.workorder-demand.release-requested`) and re-requested at the target, with location-qualified command ids. Workexec never moves stock (DECISION-INVENTORY-026).
 - **Labour and history.** No clocked time ever crosses a transfer. All history rows stay as written (DECISION-INVENTORY-027).
-- **Authority and audit.** `workorder:workorder:transfer` is required, location-scoped at both the source and the target. `reasonCode` (`CUSTOMER_REQUEST`, `CAPACITY`, `EQUIPMENT`, `MOBILE_DEPOT`, `OTHER`, with a note required for `OTHER`) is required. The transfer writes an append-only `workorder_location_transfer` row and publishes `workorder.workorder.transferred` on `workorder.events.v1` (DECISION-INVENTORY-028).
+- **Authority and audit.** `workorder:workorder:transfer` is required, location-scoped at both the source and the target. `reasonCode` (`CUSTOMER_REQUEST`, `CAPACITY`,
+  `EQUIPMENT`, `MOBILE_DEPOT`, `OTHER`, with a note required for `OTHER`) is required. The transfer writes an append-only `workorder_location_transfer` row and publishes
+  `workorder.workorder.transferred` on `workorder.events.v1` (DECISION-INVENTORY-028).
 
 ## Mapping: Decisions → Notes
 

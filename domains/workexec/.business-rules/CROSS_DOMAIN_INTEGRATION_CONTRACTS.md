@@ -915,8 +915,10 @@ after the transfer.
 ```
 
 `reasonCode` is one of `CUSTOMER_REQUEST`, `CAPACITY`, `EQUIPMENT`, `MOBILE_DEPOT` or `OTHER`. The free-text `note`
-stays in pos-workorder and is not published. `appointmentId` is the estimate's and may be null. The `released*`
-fields are null when nothing was held.
+stays in pos-workorder and is not published. `appointmentId` is the id of the shopmgmt appointment linked to the workorder: the one the
+consumer cancels (DECISION-SHOPMGMT-024). pos-workorder reads it from the workorder's source estimate
+(`Estimate.appointmentId`), because the workorder entity carries no appointment reference of its own; it is null when
+no appointment is linked. The `released*` fields are null when nothing was held.
 
 **Consumer:** `pos-shop-manager`. What happens to the placement plan and the appointment is decided in
 DECISION-SHOPMGMT-024: it cancels the linked source appointment with reason `WORKORDER_TRANSFERRED` and removes the

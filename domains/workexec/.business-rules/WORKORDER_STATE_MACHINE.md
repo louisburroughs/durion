@@ -54,7 +54,8 @@ reverse transition `ASSIGNED → APPROVED` was added, for when either half is re
 ### Location transfer is not a status (durion-positivity-backend#2258)
 
 A transfer between locations (`POST /v1/workorders/{workorderId}/transfer`) changes the workorder's site. It adds
-no status and no transition (DECISION-INVENTORY-023, -024).
+no status and no new transition type (DECISION-INVENTORY-023, -024). An `ASSIGNED` workorder uses the existing
+`ASSIGNED → APPROVED` transition, recorded in `WorkOrderStateTransition` like any other transition.
 
 | Current status | Transfer | Status afterwards |
 | --- | --- | --- |
