@@ -6,14 +6,14 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt
 path: durion/domains/shopmgmt/
 tags: [domain, shopmgmt]
 sources: [domains/shopmgmt/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T19:29:56+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-26T20:15:26+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt) — `domains/shopmgmt/` (17 documents)
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-shop-manager](../backend/pos-shop-manager.md)
+**Implemented by:** [pos-shop-manager](../backend/pos-shop-manager.md), [pos-workorder](../backend/pos-workorder.md), [pos-location](../backend/pos-location.md)
 
 **Business rules:**
 
