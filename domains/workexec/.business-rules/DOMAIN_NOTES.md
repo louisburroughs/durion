@@ -489,7 +489,7 @@ This document is the non-normative rationale and decision log for the `workexec`
 
 ### DECISION-INVENTORY-024 — Transfer is allowed only before work starts; the position and technician are released
 
-- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q2; workexec side of Q3)
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q2; workexec side of Q3). Owner confirmed 2026-09-26, replacing their earlier answer that allowed transfer any time before completion.
 - Decision: A workorder may be transferred only before work starts (issue option Q2(a)), and never once any time has been recorded against it. The checks run after the 404 and the location-scope checks (DECISION-INVENTORY-028), in this order:
   1. `CANCELLED`, or `COMPLETED` and not reopened (`Workorder.isLocked()`): 409 `WORKORDER_CLOSED` (existing code).
   2. Any other status outside `DRAFT`, `APPROVED` or `ASSIGNED`, or `workStartedAt` set: 409 `WORKORDER_TRANSFER_NOT_ALLOWED`. This covers `WORK_IN_PROGRESS`, `AWAITING_PARTS`, `AWAITING_APPROVAL` (reachable from `APPROVED`, so it is refused even before work starts: resolve the pending approval first), `READY_FOR_PICKUP`, and a reopened `COMPLETED` workorder. These are refusals on the target's lifecycle status, so ADR-0017 §2 gives them 409.
@@ -527,7 +527,7 @@ This document is the non-normative rationale and decision log for the `workexec`
 
 ### DECISION-INVENTORY-025 — Transfer keeps quoted prices; tax follows the new location at invoicing; no re-approval
 
-- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q4)
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2258 (Q4). Owner confirmed 2026-09-26, replacing their earlier answer that re-priced at the target with re-approval.
 - Decision: Quoted prices are kept and only tax follows the new location (issue option Q4(b)). Five rules follow:
   1. **Prices are kept.** Every existing service and part line keeps its snapshotted `unitPrice`, `lineTotal` and `taxCode`, and every labour line keeps its rate snapshot (`rateHourly`, `rateBaseHourly`, `rateScope`, `rateId`, `rateAdjustmentCodes`). Transfer never re-prices a line.
   2. **Tax follows the site that performs the work, at invoicing, as today.** pos-invoice computes the authoritative tax when it finalizes the invoice. It uses the invoice's `locationId` (`InvoiceTaxCalculator.calculate` → `LocationReferenceService.resolveTaxAddress`), and that value is the workorder's `locationId` when the invoice is requested (`WorkorderInvoiceServiceImpl.generateInvoice`). After a transfer that is the new location, with no new code. pos-workorder computes no tax on the workorder.

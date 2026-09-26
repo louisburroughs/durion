@@ -1823,7 +1823,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Pros: nothing is ended automatically
     - Cons: `pos-workorder` cannot see appointments. `Workorder` carries no appointment id, and ADR-0044 forbids a synchronous check across the wall.
 - **Reasoning and evidence:**
-  - Escalated from `durion-positivity-backend#2258` (Q3, and the shop side of Q1, Q2 and Q7). The owner noted in `durion-positivity-backend#2245` that workorders could become transferable instead of allowing cross-location dispatch (DECISION-SHOPMGMT-023).
+  - Escalated from `durion-positivity-backend#2258` (Q3, and the shop side of Q1, Q2 and Q7). The owner noted in `durion-positivity-backend#2245` that workorders could become transferable instead of allowing cross-location dispatch (DECISION-SHOPMGMT-023). Owner confirmed 2026-09-26, replacing their earlier answer that the appointment moved with the workorder.
   - The two holds are separate facts in separate modules, so each is released by its owner:
 
     | Hold | Table | Module | Exclusivity |
@@ -1890,7 +1890,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
     - Pros: no new concept
     - Cons: this is cross-location dispatch under another name, which DECISION-SHOPMGMT-023 rejected
 - **Reasoning and evidence:**
-  - Escalated from `durion-positivity-backend#2258` (Q3, origin `durion-positivity-backend#2245`).
+  - Escalated from `durion-positivity-backend#2258` (Q3, origin `durion-positivity-backend#2245`). Owner confirmed 2026-09-26, replacing their earlier answer that the appointment moved with the workorder.
   - Rule 1 records current behaviour:
     - `Appointment.locationId` is non-nullable, and no write path sets it after create.
     - `AppointmentsServiceImpl.rescheduleAppointment` takes its conflict check and its horizon zone from `appointment.getLocationId()`.
