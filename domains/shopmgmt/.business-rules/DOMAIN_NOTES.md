@@ -1884,7 +1884,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
   - **Expected outcome:** zero rows. Each row is an appointment that a later status fact brought back, and it may be holding a bay at a location that cannot use it.
 - **Migration & backward-compatibility notes:**
-  - Nothing to migrate: no transfer fact exists yet, so no appointment carries the new reason. The shop side ships with or after the Workorder Execution transfer, never before it.
+  - Nothing to migrate: no transfer fact exists yet, so no appointment carries the new reason. The shop side ships in the same release as the Workorder Execution transfer (owner confirmed 2026-09-26). It cannot ship later: `WorkorderEventsListener` marks an unknown event type as processed, so a transfer fact that arrives before the consumer exists is lost and the source appointment stays held.
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain for appointments and planned assignments. Workorder Execution owns the transfer, placement and the fact. Location owns sites and resources.
   - **Policy:** a transfer never earns an exemption at the target. Any proposal for priority, reserved capacity or automatic re-booking of transferred work amends this decision.

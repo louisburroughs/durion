@@ -510,7 +510,11 @@ This document is the non-normative rationale and decision log for the `workexec`
   = locationId`. Workorders that diverged before this rule are found with `SELECT id, shop_id, location_id, status FROM workorder WHERE shop_id IS DISTINCT FROM
   location_id;` — after the change, only rows written by the retired paths should appear.
 - Migration & backward-compatibility notes:
-- Pre-production: no shim. Rows the retired paths left with `shop_id <> location_id` are a one-off data correction (follow-up). `overrideOperationalContext` callers that used it to change the site move to the transfer endpoint.
+- Pre-production: no shim. Rows the retired paths left with `shop_id <> location_id` are a one-off data correction (follow-up). `overrideOperationalContext` callers that
+  used it to change the site move to the transfer endpoint.
+- Data correction direction (owner confirmed 2026-09-26): `location_id` wins, so the correction sets `shop_id := location_id`. The retired paths wrote `locationId`
+  last, and placement, staffing, picks and invoicing already read it. Rows with recorded time (labour entry, work session or travel segment) are listed for review
+  before they are corrected, because their hours are reported against `shop_id` (DECISION-INVENTORY-027).
 - Governance & owner recommendations:
 - Owner: pos-workorder (the transfer operation and the site fact). pos-shop-manager owns what happens to the appointment (DECISION-SHOPMGMT-024, DECISION-SHOPMGMT-025). A linked reissue, or transfer after work has started, needs a new clarification. Do not extend this decision to cover them.
 
