@@ -18,7 +18,7 @@ This checklist is intended for engineers and reviewers to validate story impleme
 - [ ] Confirm ownership boundaries for reference data pickers:
   - [ ] Capabilities come from Service Catalog (read-only lookup).
   - [ ] Services/Skills come from their authoritative domains (read-only lookup).
-  - [ ] Service Areas ownership and CRUD scope is explicitly decided (picker-only vs CRUD).
+  - [ ] Service-area mutation stays on the Service areas page; any other screen that needs a service area uses a picker (DECISION-LOCATION-011).
 - [ ] Verify read-only vs editable intent is consistent:
   - [ ] HR-synced location roster is **read-only** in POS UI.
   - [ ] Shop Locations CRUD is editable (subject to permissions).
@@ -174,11 +174,12 @@ This checklist is intended for engineers and reviewers to validate story impleme
   N/A (navigation)
   ```
 
-  ### Q: Service Area management scope: CRUD vs picker-only?
+  ### Q: Service Area management scope: where may service areas be edited?
 
-  - Acceptance: No Service Area mutation UI exists unless a dedicated CRUD story exists; coverage rules only link existing service areas.
+  - Acceptance: Service-area create/edit exists only on the Service areas page, gated on `location:service-area:manage`. Coverage rules and every other screen only link existing service areas through a picker.
   - Test Fixtures:
     - Coverage rule editor uses picker
+    - Service areas page hides create/edit and refuses the save handler without `location:service-area:manage`
   - Example API request/response:
   ```http
   GET /rest/api/v1/location/service-areas?pageIndex=0&pageSize=25

@@ -221,7 +221,7 @@ Replaces the earlier design: the free-text "Region" coverage field (which saved 
 | Max distance | Recorded for later; not used for matching. Leave blank for the catch-all tier. (PROVISIONAL, Q9) |
 
 ## Service areas (supporting list)
-- **Scope decision.** DECISION-LOCATION-011 defaults service areas to picker-only and asks for a separate explicit story before adding CRUD, because CRUD could create a new system-of-record surface. It doesn't here: pos-location already owns service areas and exposes the writes (`POST /v1/service-areas`, `PATCH /v1/service-areas/{id}`, `PUT /v1/service-areas/{id}/postal-codes`, all behind `location:service-area:manage`). Without them, a coverage rule can only point at areas nobody can maintain. This section is that explicit story for the UI. It was delivered in louisburroughs/durion-positivity-frontend#402 and adds no new endpoint, entity or ownership.
+- **Scope decision.** Per DECISION-LOCATION-011 (amended 2026-09-26), service areas are edited only on this page. pos-location already owns them and exposes the writes (`POST /v1/service-areas`, `PATCH /v1/service-areas/{id}`, `PUT /v1/service-areas/{id}/postal-codes`, all behind `location:service-area:manage`). The coverage editor stays picker-only and links here for changes. Delivered in louisburroughs/durion-positivity-frontend#402; it adds no new endpoint, entity or ownership.
 - Route `/app/location/service-areas`, gated on `location:service-area:read`; edit controls need `:manage`.
 - Linked from:
   - the Mobile Units header;

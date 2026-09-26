@@ -32,7 +32,7 @@ The Location domain is the system of record for shop Locations and their Locatio
 | DECISION-LOCATION-008 | Default status filtering for lists |
 | DECISION-LOCATION-009 | Synced location tags + region semantics |
 | DECISION-LOCATION-010 | Navigation placement rules |
-| DECISION-LOCATION-011 | Service Area scope (picker-only by default) |
+| DECISION-LOCATION-011 | Service Area scope (edited on its own page; picker elsewhere) |
 | DECISION-LOCATION-012 | Capabilities/services/skills lookups |
 | DECISION-LOCATION-013 | Mobile unit list contract defaults |
 | DECISION-LOCATION-014 | Coverage rules replace semantics |
@@ -101,7 +101,7 @@ The Location domain is the system of record for shop Locations and their Locatio
 | DECISION-LOCATION-008 | Default list filter behaviors | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-008---default-status-filtering-for-lists) |
 | DECISION-LOCATION-009 | Tags and region are display-safe fields | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-009---synced-tags-and-region-semantics) |
 | DECISION-LOCATION-010 | Navigation placement guidance | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-010---navigation-placement-rules) |
-| DECISION-LOCATION-011 | Service Area is picker-only by default | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-011---service-area-scope-picker-only-default) |
+| DECISION-LOCATION-011 | Service areas are edited on their own page; other screens use a picker | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-011---service-area-scope-picker-only-default) |
 | DECISION-LOCATION-012 | Lookups come from authoritative domains | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-012---capabilitiesserviceskills-lookup-contract) |
 | DECISION-LOCATION-013 | Mobile unit list filters/envelope default | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-013---mobile-unit-list-contract-defaults) |
 | DECISION-LOCATION-014 | Coverage rules use atomic replace | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-014---coverage-rules-atomic-replace) |
@@ -176,13 +176,16 @@ The Location domain is the system of record for shop Locations and their Locatio
 
 ### Q: Service Area management scope?
 
-- Answer: Default to picker-only (link existing service areas). CRUD requires a separate explicit story because it creates a new SoR surface.
+- Answer: pos-location is the system of record for service areas and already exposes their writes: `POST /v1/service-areas`, `PATCH /v1/service-areas/{id}` and `PUT /v1/service-areas/{id}/postal-codes`, all gated by `location:service-area:manage`. Service-area create/edit therefore lives on one dedicated Location setup page (`/app/location/service-areas`), with view vs manage gating per DECISION-LOCATION-007. Every other screen that needs a service area, such as the mobile-unit coverage editor, stays picker-only: it links existing areas and points to the Service areas page for changes. Service-area data that pos-location doesn't store today still needs its own story and contract.
 - Assumptions:
-  - Service areas may be owned by another geo domain/service.
+  - pos-location keeps ownership of service areas; no separate geo domain owns them.
 - Rationale:
-  - Prevent accidental domain ownership drift.
+  - Coverage rules point at service areas, so areas nobody can maintain leave coverage stale.
+  - Editing on one page, and picking everywhere else, prevents ownership drift across screens.
 - Impact:
-  - If CRUD is needed later, add a dedicated story and contracts.
+  - The Service areas page (louisburroughs/durion-positivity-frontend#402) is the only service-area mutation surface in the UI.
+  - Wireframe: `domains/location/.ui/frontend-story-locations-create-mobile-units-and-c-140.wf.md`, "Service areas (supporting list)".
+- Amended: 2026-09-26. The decision previously defaulted to picker-only and required a separate story for any CRUD, assuming another domain might own service areas. The pos-location endpoints show it does not.
 - Decision ID: DECISION-LOCATION-011
 
 ### Q: Capabilities lookup endpoint and response shape?
