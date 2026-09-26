@@ -1740,7 +1740,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   2. **Claimed work only.** A unit may perform only the operation codes it claims. Unlike a `GENERAL_SERVICE` bay, it has no general-work default.
   3. **Coverage** (data rules in DECISION-LOCATION-027): an inactive service area contributes nothing; coverage priority is one ranking across the location's units, 1 sent first, ties broken by unit id; validity windows are evaluated in UTC.
   4. **Hours** are the base location's operating hours, holiday closures and timezone. A unit has no hours of its own.
-  5. **Travel buffer:** a `FLAT_MINUTES` policy adds a block before and after each mobile appointment, in the same way the location's check-in and cleanup buffers do.
+  5. **Travel buffer:** a `FIXED_MINUTES` policy (DECISION-LOCATION-015) adds a block before and after each mobile appointment, in the same way the location's check-in and cleanup buffers do.
   6. **Distance** coverage and distance-based buffers are wanted and apply once customer addresses can be geocoded; units follow DECISION-LOCATION-028.
 - **Scope now versus later:**
   - Now: the eligibility read is scoped to the base location and filters by claimed codes; every setting not yet applied is labelled "stored, not yet applied" in its `@Schema`.

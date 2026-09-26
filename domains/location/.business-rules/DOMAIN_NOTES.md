@@ -212,6 +212,7 @@ tags: [domain, location, domain-notes]
 ### DECISION-LOCATION-007 — Mobile Unit Travel Buffer Policy Requirement
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-007)
+- **Amended by DECISION-LOCATION-026 (2026-09-26):** the mobile-unit status set is `ACTIVE` | `OUT_OF_SERVICE` | `RETIRED`; `INACTIVE` no longer exists. Read the `INACTIVE` rows below as `OUT_OF_SERVICE`. The rule itself stands: a policy is required for `ACTIVE` only.
 - **Decision:** Mobile units must have a `travelBufferPolicyId` assigned when their status is ACTIVE. The policy is optional (may be null) when status is INACTIVE or OUT_OF_SERVICE. The backend enforces this constraint and returns 400 BAD_REQUEST when attempting to activate a mobile unit without a policy.
 - **Alternatives considered:**
   - **Option A (Chosen):** Policy required only for ACTIVE status
@@ -730,7 +731,7 @@ tags: [domain, location, domain-notes]
   2. Every distance in a request or response carries its unit explicitly (`{ value, unit }`). A bare number is never accepted.
   3. Storage is canonical kilometres. The backend converts at the edge (1 mi = 1.609344 km, exact) and rounds to two decimals. `mobile_unit_coverage_rules.max_distance` becomes `max_distance_km`.
   4. Distance-based coverage (`ruleType = DISTANCE_TIER`, `maxDistance`) and `DISTANCE_TIER` travel buffers are wanted, and are evaluated only once customer and location addresses can be geocoded. Until then they are stored and labelled "not yet evaluated" in the `@Schema`.
-  5. Travel buffer types that need routed travel time (`PERCENTAGE_OF_TRAVEL`, `DISTANCE_MULTIPLIER`) are dropped. `FLAT_MINUTES` (applied now, DECISION-SHOPMGMT-023) and `DISTANCE_TIER` remain.
+  5. The travel-buffer policy types stay DECISION-LOCATION-015's `FIXED_MINUTES` (applied now, DECISION-SHOPMGMT-023) and `DISTANCE_TIER`. The code's `FLAT_MINUTES` is renamed to `FIXED_MINUTES`; its `PERCENTAGE_OF_TRAVEL` and `DISTANCE_MULTIPLIER`, which no decision defines and which need routed travel time, are removed.
 - **Alternatives considered:**
   - **Option A (Chosen):** configurable display unit, canonical storage
     - Pros: shops use their local unit; comparisons and audits use one unit

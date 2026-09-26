@@ -609,7 +609,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
   - A unit may perform only the operation codes it claims; it has no general-work default.
   - Coverage: an inactive service area contributes nothing; coverage priority is one ranking across the location's units (1 is sent first, ties broken by unit id); validity windows are evaluated in UTC (DECISION-LOCATION-027).
   - Hours, holiday closures and timezone are the base location's. A unit has no hours of its own.
-  - Travel buffer: a `FLAT_MINUTES` policy adds a block before and after each mobile appointment. Distance-based coverage and buffers apply once addresses can be geocoded (DECISION-LOCATION-028).
+  - Travel buffer: a `FIXED_MINUTES` policy (DECISION-LOCATION-015) adds a block before and after each mobile appointment. Distance-based coverage and buffers apply once addresses can be geocoded (DECISION-LOCATION-028).
 - Assumptions:
   - Enforcement lands when mobile units become schedulable; until then the unused settings are labelled "stored, not yet applied" in the API docs.
 - Rationale:

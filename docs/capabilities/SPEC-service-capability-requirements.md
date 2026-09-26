@@ -814,8 +814,11 @@ general work. `pos-location` publishes the map per tenant as
 `location.bay-specialty-map.updated`. The retype-resets rule above stands.
 
 Why defaulting rather than deriving at read time: the fact must carry a concrete
-per-bay list so consumers never need the map, and a shop whose equipment differs
-from its type's default (a tire bay with no balancer) needs somewhere to say so.
+per-bay list so consumers can read a bay's own claim without resolving its type,
+and a shop whose equipment differs from its type's default (a tire bay with no
+balancer) needs somewhere to say so. The per-bay list answers "what can this bay
+do"; the map (amendment above) answers "is this operation specialty at all" — both
+are needed, and neither replaces the other.
 Deriving at read time would make the second impossible; storing without a default
 would make every bay creation a data-entry task the map exists to remove.
 

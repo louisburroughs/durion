@@ -387,7 +387,7 @@ The Location domain is the system of record for shop Locations and their Locatio
   - Bays gain an optional `displayOrder`, the sort key for lists and the dispatch board.
   - Planned (future-dated) downtime is out of scope.
 - Assumptions:
-  - A mobile unit's `INACTIVE` becomes `OUT_OF_SERVICE` (pre-production, no shim).
+  - A mobile unit's `INACTIVE` becomes `OUT_OF_SERVICE` (pre-production, no shim). This amends the mobile-unit status set in DOMAIN_NOTES DECISION-LOCATION-007; its travel-buffer requirement for `ACTIVE` is unchanged.
 - Rationale:
   - Asset registers archive resources with history; hard delete orphaned the appointments and workorders that named the resource.
 - Impact:
@@ -414,7 +414,7 @@ The Location domain is the system of record for shop Locations and their Locatio
 - Answer: configurable per location, miles or kilometres; stored canonically in kilometres. This supersedes DECISION-LOCATION-016 (KM only).
   - Each location has a `distanceUnit` (`KM` | `MI`). Requests and responses carry distances with their unit, never a bare number; the backend converts (1 mi = 1.609344 km exactly) and stores kilometres.
   - Distance-based coverage and `DISTANCE_TIER` buffers are wanted but evaluated only once addresses can be geocoded. Until then they are stored and labelled "not yet evaluated".
-  - Travel buffer types that need routed travel time (`PERCENTAGE_OF_TRAVEL`, `DISTANCE_MULTIPLIER`) are dropped; `FLAT_MINUTES` and `DISTANCE_TIER` remain.
+  - The policy types stay DECISION-LOCATION-015's `FIXED_MINUTES` and `DISTANCE_TIER`. The code's `FLAT_MINUTES` is renamed to `FIXED_MINUTES`, and its `PERCENTAGE_OF_TRAVEL` and `DISTANCE_MULTIPLIER`, which no decision defines and which need routed travel time, are removed.
 - Assumptions:
   - Seed distances were authored in miles and are converted when the column changes.
 - Rationale:
