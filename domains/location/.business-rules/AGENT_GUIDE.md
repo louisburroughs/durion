@@ -37,7 +37,7 @@ The Location domain is the system of record for shop Locations and their Locatio
 | DECISION-LOCATION-013 | Mobile unit list contract defaults |
 | DECISION-LOCATION-014 | Coverage rules replace semantics |
 | DECISION-LOCATION-015 | Travel buffer policy schemas (FIXED_MINUTES, DISTANCE_TIER) |
-| DECISION-LOCATION-016 | Distance tier unit handling |
+| DECISION-LOCATION-016 | Distance tier unit handling (superseded by DECISION-LOCATION-028) |
 | DECISION-LOCATION-017 | Coverage effective window timezone semantics |
 | DECISION-LOCATION-018 | Address schema strategy |
 | DECISION-LOCATION-019 | INACTIVE editability + reactivation policy |
@@ -46,6 +46,11 @@ The Location domain is the system of record for shop Locations and their Locatio
 | DECISION-LOCATION-022 | Status on create |
 | DECISION-LOCATION-023 | Site default staging/quarantine nullability |
 | DECISION-LOCATION-024 | Storage location eligibility for defaults |
+| DECISION-LOCATION-025 | Bay specialty map is authoritative and published |
+| DECISION-LOCATION-026 | Bay and mobile-unit lifecycle; delete retires |
+| DECISION-LOCATION-027 | Coverage eligibility: active areas, base location, one ranking, UTC |
+| DECISION-LOCATION-028 | Distance units configurable (MI or KM), stored in KM |
+| DECISION-LOCATION-029 | Mobile unit and bay setup attributes |
 
 ## Domain Boundaries
 
@@ -106,7 +111,7 @@ The Location domain is the system of record for shop Locations and their Locatio
 | DECISION-LOCATION-013 | Mobile unit list filters/envelope default | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-013---mobile-unit-list-contract-defaults) |
 | DECISION-LOCATION-014 | Coverage rules use atomic replace | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-014---coverage-rules-atomic-replace) |
 | DECISION-LOCATION-015 | Policy types and schema rules | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-015---travel-buffer-policy-schemas) |
-| DECISION-LOCATION-016 | Store distances as KM only for v1 | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-016---distance-tier-unit-handling) |
+| DECISION-LOCATION-016 | Store distances as KM only for v1 (superseded by DECISION-LOCATION-028) | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-016---distance-tier-unit-handling) |
 | DECISION-LOCATION-017 | Effective windows use UTC instants | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-017---coverage-effective-window-timezone-semantics) |
 | DECISION-LOCATION-018 | Address remains backend-schema-driven | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-018---address-schema-strategy) |
 | DECISION-LOCATION-019 | INACTIVE is editable except status-only fields; reactivation allowed | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-019---inactive-editability-and-reactivation) |
@@ -115,6 +120,11 @@ The Location domain is the system of record for shop Locations and their Locatio
 | DECISION-LOCATION-022 | Status defaults to ACTIVE on create | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-022---status-on-create) |
 | DECISION-LOCATION-023 | Site defaults are nullable during rollout | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-023---site-defaults-nullability-during-rollout) |
 | DECISION-LOCATION-024 | Default pickers show ACTIVE storage locations only | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-024---storage-location-eligibility-for-site-defaults) |
+| DECISION-LOCATION-025 | Specialty map is the source of truth, published per tenant; retype resets codes | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-025--the-bay-specialty-map-is-authoritative-and-published) |
+| DECISION-LOCATION-026 | ACTIVE / OUT_OF_SERVICE / RETIRED; delete retires; retired names reserved; reason list | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-026--bays-and-mobile-units-share-one-lifecycle-delete-retires) |
+| DECISION-LOCATION-027 | Inactive areas give no coverage; scoped to base location; one ranking; UTC windows | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-027--coverage-eligibility-active-areas-base-location-one-ranking-utc) |
+| DECISION-LOCATION-028 | Distances in MI or KM per location, stored in KM; evaluated once geocoded | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-028--distances-are-configurable-in-miles-or-kilometres-stored-in-kilometres) |
+| DECISION-LOCATION-029 | Unit duty ceiling and optional identity; no equipment lists or crews | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-location-029--mobile-unit-and-bay-setup-attributes) |
 
 ## Open Questions (from source)
 
@@ -231,7 +241,8 @@ The Location domain is the system of record for shop Locations and their Locatio
 
 ### Q: DISTANCE_TIER unit handling?
 
-- Answer: In v1, store and transmit tiers in KM only (`unit = "KM"`), and do not accept MI in the UI until a conversion policy is explicitly approved.
+- Superseded by DECISION-LOCATION-028 (distances configurable in MI or KM, stored in KM).
+- Original answer: In v1, store and transmit tiers in KM only (`unit = "KM"`), and do not accept MI in the UI until a conversion policy is explicitly approved.
 - Assumptions:
   - Consistent storage units reduce audit/debug risk.
 - Rationale:
@@ -350,6 +361,84 @@ The Location domain is the system of record for shop Locations and their Locatio
   - UI adds lazy-loading + error state.
 - Decision ID: DECISION-LOCATION-003
 
+### Q: Is the bay-type specialty map authoritative, and what happens when a bay is retyped?
+
+- Answer: the map is the single source of truth for which operation codes are specialty, and `pos-location` publishes it.
+  - Published per tenant as `location.bay-specialty-map.updated` (`bayType`, `operationCodes[]`, `acceptsGeneralWork`, `aggregateVersion`) for `pos-shop-manager` and `pos-workorder` to replicate. This amends spec D14.3, which assumed consumers never need the map.
+  - Every tenant gets the map on provisioning (a copy of the platform template), as ADR-0062 onboarding requires.
+  - `acceptsGeneralWork` is a `BayType` attribute (false only for `WASH_DETAIL`), carried on the bay fact and the map fact.
+  - A retype without codes resets the bay's codes to the new type's defaults (spec D14.3, kept). No provenance flag. The `BayPatchRequest` `@Schema` says so and the UI asks for confirmation.
+  - A `WASH_DETAIL` bay may be created with no codes. Wash and detail services are ordinary catalog line items, not specialty operations, and are not added to the map.
+- Assumptions:
+  - Adding wash and detail services is `pos-catalog`'s job (spec D1).
+- Rationale:
+  - Specialty equipment is a physical fact about bay types; deriving it from whichever bays are active at the moment turned missing equipment into general work.
+- Impact:
+  - New fact and replicas; tenant provisioning of the map; `bays.csv` gains `maxDutyClass`.
+- Decision ID: DECISION-LOCATION-025
+
+### Q: How are bays and mobile units retired, and what is recorded when one leaves service?
+
+- Answer: bays and mobile units share one lifecycle, `ACTIVE` | `OUT_OF_SERVICE` | `RETIRED`, and `DELETE` retires.
+  - No hard delete. Consumers keep the replica row with `active = false`, so history keeps its names.
+  - `RETIRED` is reversible and has no error code of its own: booking or placing work on it returns 422 `SERVICE_POSITION_INACTIVE`. Default lists hide it.
+  - Retired names stay reserved: creating or renaming to a retired resource's name returns 409 `BAY_NAME_TAKEN` (or `MOBILE_UNIT_NAME_TAKEN`), so reactivation never clashes.
+  - Going `OUT_OF_SERVICE` requires a reason from a fixed list, plus an optional note (required for `OTHER`); a missing reason returns 422 `OUT_OF_SERVICE_REASON_REQUIRED`. An optional `expectedReturnAt` is advisory and not used by scheduling. Both clear on return to `ACTIVE`.
+  - Bays gain an optional `displayOrder`, the sort key for lists and the dispatch board.
+  - Planned (future-dated) downtime is out of scope.
+- Assumptions:
+  - A mobile unit's `INACTIVE` becomes `OUT_OF_SERVICE` (pre-production, no shim).
+- Rationale:
+  - Asset registers archive resources with history; hard delete orphaned the appointments and workorders that named the resource.
+- Impact:
+  - Status CHECK on both tables; `DELETE` semantics change; new reason, note, expected-return and display-order fields.
+- Decision ID: DECISION-LOCATION-026
+
+### Q: Which coverage rules make a mobile unit eligible?
+
+- Answer: only rules on an active service area, for units based at the booking's location, ranked by one priority across that location's units.
+  - An inactive service area contributes no coverage. Its rules are kept but stop matching. Writing a rule that points at an inactive area returns 422 `SERVICE_AREA_INACTIVE`. The unit's own status is not changed.
+  - The eligibility read is scoped by base location and may filter by operation codes: a unit must claim every requested code.
+  - Priority is one ranking among the location's units (1 is sent first); ties break by unit id.
+  - Validity windows are evaluated in UTC, as DECISION-LOCATION-017 already states.
+- Assumptions:
+  - A unit only takes work from its base location (DECISION-SHOPMGMT-023).
+- Rationale:
+  - Offering a unit the workorder service will then refuse (cross-site) or an area the business has retired makes the search promise what the write cannot keep.
+- Impact:
+  - Eligibility query filter and scope; new 422 on coverage writes.
+- Decision ID: DECISION-LOCATION-027
+
+### Q: In what unit are coverage and travel-buffer distances expressed?
+
+- Answer: configurable per location, miles or kilometres; stored canonically in kilometres. This supersedes DECISION-LOCATION-016 (KM only).
+  - Each location has a `distanceUnit` (`KM` | `MI`). Requests and responses carry distances with their unit, never a bare number; the backend converts (1 mi = 1.609344 km exactly) and stores kilometres.
+  - Distance-based coverage and `DISTANCE_TIER` buffers are wanted but evaluated only once addresses can be geocoded. Until then they are stored and labelled "not yet evaluated".
+  - Travel buffer types that need routed travel time (`PERCENTAGE_OF_TRAVEL`, `DISTANCE_MULTIPLIER`) are dropped; `FLAT_MINUTES` and `DISTANCE_TIER` remain.
+- Assumptions:
+  - Seed distances were authored in miles and are converted when the column changes.
+- Rationale:
+  - Shops think in their local unit; one canonical storage unit keeps comparisons and audits unambiguous.
+- Impact:
+  - `max_distance` becomes `max_distance_km`; a location setting; geocoding is a separate capability.
+- Decision ID: DECISION-LOCATION-028
+
+### Q: Which setup attributes do mobile units and bays carry?
+
+- Answer: a duty-class ceiling on units, optional identity fields, and no equipment lists or crews.
+  - Mobile unit: `maxDutyClass` (1–8, the bay's axis per spec D13); optional, display-only `unitNumber`, `vin`, `licensePlate`, `plateRegion`, each unique per tenant when set.
+  - No equipment list on either resource: lift rating is `maxDutyClass`; racks and machines are specialty operation codes (spec D14).
+  - No usual crew on a unit: staffing belongs to People.
+  - No hours on a unit: it follows its base location (DECISION-SHOPMGMT-023).
+  - Bay floor position (x/y) is deferred; `displayOrder` covers ordering (DECISION-LOCATION-026).
+- Assumptions:
+  - Identity fields are not used by scheduling.
+- Rationale:
+  - One vocabulary for "what can this resource do" (spec D14.2); fields nothing reads stay labelled as display-only.
+- Impact:
+  - New nullable columns on `mobile_units`.
+- Decision ID: DECISION-LOCATION-029
+
 ## Todos Reconciled
 
 - Original todo: "whether UI should use a backend-provided allowed list vs frontend static list" → Resolution: Resolved (use backend list; fallback only). | Decision: DECISION-LOCATION-003
@@ -357,6 +446,7 @@ The Location domain is the system of record for shop Locations and their Locatio
 - Original todo: "if SyncLog is evented" → Resolution: Defer (needs platform eventing decision; owner: audit/observability). Replace with task: `TASK-LOC-002`.
 - Original todo: "exact endpoint(s) and atomic replacement semantics" → Resolution: Resolved at policy level (atomic replace) and Defer exact path. | Decision: DECISION-LOCATION-014
 - Original todo: "confirm services/skills ID types and lookup endpoints" → Resolution: Defer (authoritative domains must confirm) → `TASK-LOC-003`. | Decision: DECISION-LOCATION-012
+- Escalation from durion-positivity-backend#2245: "CLARIFY bay and mobile-unit setup data" → Resolution: Resolved (published specialty map; shared lifecycle with retire; coverage scoping; configurable distance units; setup attributes) | Decision: DECISION-LOCATION-025 to DECISION-LOCATION-029
 
 ## End
 

@@ -142,6 +142,9 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-018 | Degraded-day semantics for capacity reads (unknown hours vs closed) |
 | DECISION-SHOPMGMT-019 | Booking horizon (configurable, 180-day default) |
 | DECISION-SHOPMGMT-020 | Work may start before the planned window |
+| DECISION-SHOPMGMT-021 | Bay eligibility enforced at submit; placement checks duty class only |
+| DECISION-SHOPMGMT-022 | A resource leaving service flags its booked appointments |
+| DECISION-SHOPMGMT-023 | Mobile units serve their base location, for the work they claim |
 
 ## Domain Boundaries
 
@@ -233,6 +236,9 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-018 | An unknown operating window is not a closure, and a degraded date affects only itself. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-019 | How far ahead a booking may sit is configuration, defaulting to 180 days. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-020 | An early start is legitimate; occupancy follows the effective window. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-021 | Submit and reschedule enforce specialty and duty class (422); placement enforces duty class; the specialty map defines specialty. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-022 | Status changes are never blocked; affected appointments are listed; shop-caused reschedules are free. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-023 | A mobile unit takes claimed work from its base location only, on that location's hours. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 
 ## Open Questions (from source)
 
@@ -563,6 +569,55 @@ and defines what must be treated as backend-authoritative vs UI hints.
   - Reads: a range read must admit rows by their effective window, not their planned one.
 - Decision ID: DECISION-SHOPMGMT-020
 
+### Q: Is bay eligibility (specialty capability, duty class) enforced, and where?
+
+- Answer: yes, at appointment submit and reschedule; only duty class at workorder placement.
+  - Opening search, submit and reschedule share one eligibility function in `pos-shop-manager`. Submit and reschedule refuse with 422: `SERVICE_POSITION_INVALID` (unknown resource, or another location's), `SERVICE_POSITION_INACTIVE` (out of service or retired), `SERVICE_POSITION_NOT_EQUIPPED` (the bay does not claim a specialty operation on the appointment), `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` (the vehicle's GVWR class is above the bay's `maxDutyClass`).
+  - Workorder placement (`pos-workorder`) keeps its site and active checks and adds duty class only. It never refuses on specialty capability.
+  - What is specialty comes from the bay-type specialty map (DECISION-LOCATION-025), not from what active bays happen to claim. A specialty operation no active bay at the location claims is unbookable there; it never falls back to general work.
+  - An unknown vehicle class skips the duty check at every entry point.
+  - The search ranks, the writes never do. Ranking order: specialty bays last (D14), then time, then a weak best-fit tiebreak (smallest adequate `maxDutyClass`, null read as 8), then `displayOrder`, then name. Ranking never changes eligibility.
+- Assumptions:
+  - The appointment records `resourceType` (`BAY` | `MOBILE_UNIT` | `UNASSIGNED`, DECISION-SHOPMGMT-003) so submit knows what it is validating.
+  - Wash and detail services are ordinary catalog line items, not specialty operations; a `WASH_DETAIL` bay takes no general work and so is not offered for appointments.
+- Rationale:
+  - A booking reserves one bay for the whole visit, so every booked operation must be possible there; a vehicle legitimately moves between bays within one workorder, so its current bay is not a capability promise. A lift's rated capacity is a physical limit at every point.
+- Impact:
+  - APIs: appointment create and reschedule gain the four 422 codes and a `resourceType`; the contract chain (OpenAPI, SDK, API Artifacts Sync) follows.
+  - `pos-workorder` needs the vehicle's GVWR class on its vehicle replica.
+- Decision ID: DECISION-SHOPMGMT-021
+
+### Q: What happens to booked appointments when a bay or mobile unit leaves service?
+
+- Answer: the status change is never blocked. `pos-shop-manager` lists the affected appointments for rescheduling.
+  - "Affected" is derived at read time: a future, held appointment whose resource is out of service, retired, missing, or no longer eligible for the appointment's operations. It is flagged on the schedule view and filterable as a reschedule queue. Nothing is stored, so reactivating the resource clears the flag.
+  - Reschedule may move a booking to another resource (`newResourceId`), re-validated under DECISION-SHOPMGMT-021.
+  - A reschedule the shop causes (reason `EQUIPMENT_ISSUE`, or the resource became unavailable) does not count against the customer's allowance (DECISION-SHOPMGMT-004).
+  - Planned (future-dated) downtime is not in scope now.
+- Assumptions:
+  - An open workorder stays on a resource that leaves service (`durion-positivity-backend#2001`).
+- Rationale:
+  - A broken lift is broken whatever the system says, so blocking the change only hides the problem; a warning to whoever changed the status never reaches the advisors who own the bookings.
+- Impact:
+  - APIs: reschedule accepts a new resource; the schedule read carries an affected flag.
+- Decision ID: DECISION-SHOPMGMT-022
+
+### Q: Which work may a mobile unit be scheduled for?
+
+- Answer: work from its own base location only, for operations it claims.
+  - Eligibility is scoped to the unit's base location, matching `pos-workorder`'s same-site placement rule. Moving work to another location is a workorder transfer, not cross-location dispatch.
+  - A unit may perform only the operation codes it claims; it has no general-work default.
+  - Coverage: an inactive service area contributes nothing; coverage priority is one ranking across the location's units (1 is sent first, ties broken by unit id); validity windows are evaluated in UTC (DECISION-LOCATION-027).
+  - Hours, holiday closures and timezone are the base location's. A unit has no hours of its own.
+  - Travel buffer: a `FLAT_MINUTES` policy adds a block before and after each mobile appointment. Distance-based coverage and buffers apply once addresses can be geocoded (DECISION-LOCATION-028).
+- Assumptions:
+  - Enforcement lands when mobile units become schedulable; until then the unused settings are labelled "stored, not yet applied" in the API docs.
+- Rationale:
+  - Field-service vans work from a limited service menu out of one depot; a van dispatched outside its location's book breaks every downstream rule (hours, pricing, stock).
+- Impact:
+  - Submit uses the DECISION-SHOPMGMT-021 codes for mobile units once they are schedulable.
+- Decision ID: DECISION-SHOPMGMT-023
+
 ## Todos Reconciled
 
 - Original todo: "CLARIFY exact appointment status enums" → Resolution: Resolved (backend-owned enum + recommended set) | Decision: DECISION-SHOPMGMT-013
@@ -576,6 +631,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - Escalation from durion-positivity-backend#2096: "CLARIFY unknown operating hours vs closed" → Resolution: Resolved (unknown is its own fact; consumes time, emits nothing, contained to its own date) | Decision: DECISION-SHOPMGMT-018
 - Escalation from durion-positivity-backend#2094: "CLARIFY booking horizon" → Resolution: Resolved (configurable, 180-day default; enforcement tracked separately) | Decision: DECISION-SHOPMGMT-019
 - Escalation from durion-positivity-backend#2095: "CLARIFY workStartedAt vs planned startAt" → Resolution: Resolved (early start is legitimate; effective window governs occupancy; not a reschedule) | Decision: DECISION-SHOPMGMT-020
+- Escalation from durion-positivity-backend#2245: "CLARIFY bay and mobile-unit setup rules" → Resolution: Resolved (eligibility enforced at submit, duty class at placement; affected appointments listed; mobile units serve their base location) | Decision: DECISION-SHOPMGMT-021, DECISION-SHOPMGMT-022, DECISION-SHOPMGMT-023; location data rules DECISION-LOCATION-025 to 029
 
 ## End
 

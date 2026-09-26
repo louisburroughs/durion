@@ -722,6 +722,10 @@ specialty members — not by reintroducing a per-service configured flag.
   specialty set is currently empty, because the catalog seeds no wash services. It
   must **not** absorb general mechanical work. So the default in rule 2 is
   specifically `GENERAL_SERVICE`, not "any bay without a specialty claim".
+  *Amended 2026-09-26 (`durion-positivity-backend#2245`, DECISION-LOCATION-025):*
+  wash and detail services are ordinary catalog line items, not specialty
+  operations, so the wash set stays empty and a `WASH_DETAIL` bay is never offered
+  for appointments. `acceptsGeneralWork` on `BayType` replaces the type-name check.
 
 **`HEAVY_DUTY` is not a specialty equipment set.** Per D13 it is a `gvwr_class`
 ceiling. It carries no specialty `operationCode`s and takes general work within its
@@ -802,6 +806,13 @@ platform's usual null-versus-empty discipline:
 | A **patch that changes `bayType`** without stating codes | The bay **re-defaults** to the new type's rows. Otherwise a bay retyped to `GENERAL_SERVICE` would keep an alignment claim it no longer has the rack for, violating D14 rule 3 |
 | A patch stating codes, with or without a type change | The stated list wins, validated as above |
 
+*Amended 2026-09-26 (`durion-positivity-backend#2245`, DECISION-LOCATION-025,
+DECISION-SHOPMGMT-021):* consumers **do** need the map. The per-bay list says what a
+bay claims; only the map says whether an operation is specialty at all, and
+deriving that from the active bays at a location turned missing equipment into
+general work. `pos-location` publishes the map per tenant as
+`location.bay-specialty-map.updated`. The retype-resets rule above stands.
+
 Why defaulting rather than deriving at read time: the fact must carry a concrete
 per-bay list so consumers never need the map, and a shop whose equipment differs
 from its type's default (a tire bay with no balancer) needs somewhere to say so.
@@ -837,6 +848,9 @@ It does not. Ruled on `#482` by the owner:
   to `tier0-services.csv`.
 - **One vocabulary for "what can this resource perform".** When mobile units become
   schedulable, D14's eligibility rule applies to them unchanged.
+  *Amended 2026-09-26 (`durion-positivity-backend#2245`, DECISION-SHOPMGMT-023):*
+  except for the general default — a unit performs only the codes it claims, and
+  only for its base location.
 
 ### D15 — credentials are re-ingested with real dates, not migrated *(settled)*
 
