@@ -18,7 +18,7 @@ Replaces the earlier design: "Required Skills" is gone (skills moved to the cata
   - Collapsed: a one-line summary, e.g. "4 specialty services claimed · 2 have only one bay · 1 has no bay in service", with an Open/Close toggle.
   - Expanded: a ledger list with one row per claimed specialty service: service name, operation code (mono), the bays claiming it, a flag.
     - Flag "Only one bay": one active bay claims it.
-    - Flag "Its only bay is out of service": the only claiming bays are out of service. Their claims don't count, so any bay except wash & detail can be assigned it for now.
+    - Flag "Its only bay is out of service": the only claiming bays are out of service. Their claims don't count, so any bay except wash & detail can be assigned it for now. (PROVISIONAL, Q2)
   - Closing line: "Every other service is general work: any bay except wash & detail can be assigned it, general bays first."
 - **Bay lanes** (main column). Lanes are derived from the data; a card is never dragged between lanes.
   - General: active, not wash & detail, no specialty services.
@@ -56,7 +56,7 @@ Replaces the earlier design: "Required Skills" is gone (skills moved to the cata
 │                                               │
 │ Vehicles at once 2      Max duty class 6      │   facts row (always)
 │                                               │
-│ ! Its specialty services don't count while    │   warnings (conditional)
+│ ! Its specialty services don't count while    │   warnings (conditional; out-of-service line PROVISIONAL, Q2)
 │   it's out of service.                        │
 │                                               │
 │ [+ Add service]            [Edit]  [⋯]        │   actions (manage only); ⋯ = Duplicate, Delete
@@ -71,7 +71,7 @@ Replaces the earlier design: "Required Skills" is gone (skills moved to the cata
 | Specialty chips | When the bay has codes | Service name; operation code in mono only if the name can't be read; "Only bay" marker; × remove (manage only) |
 | Empty specialty slot | No codes, not wash | "General bay: no specialty services." |
 | Facts row | Always | Vehicles at once; Max duty class as "6 (medium)" or "No limit" |
-| Warnings | Conditional | Out of service: claims not counting. Wash & detail with no services: can be assigned nothing (PROVISIONAL, Q4). A code the catalog reports inactive: "Tire repair is no longer active in the catalog." |
+| Warnings | Conditional | Out of service: claims not counting (PROVISIONAL, Q2). Wash & detail with no services: can be assigned nothing (PROVISIONAL, Q4). A code the catalog reports inactive: "Tire repair is no longer active in the catalog." |
 | Drop affordance | Only during a drag | Dashed outline and "Drop to add to Bay 3" |
 | Actions | Manage only | Add service, Edit, overflow menu (Duplicate, Delete) |
 
@@ -187,7 +187,7 @@ Every field has a visible hint below it, attached with `aria-describedby`. Hints
 | Bay type (create) | The kind of work this bay is set up for. A new bay starts with that type's usual specialty services; change them below. |
 | Bay type (edit) | The kind of work this bay is set up for. Changing it replaces the specialty services with the new type's usual ones, unless you keep the current ones. |
 | Bay type = Wash & detail | Wash & detail bays take only the services you add here, never general services. |
-| Status | Out of service stops new workorders coming to this bay; any already on it stay. While it's out, its specialty services open up to other bays. |
+| Status | Out of service stops new workorders coming to this bay; any already on it stay. While it's out, its specialty services open up to other bays. (PROVISIONAL, Q2) |
 | Vehicles at once | How many vehicles physically fit. The bay still takes one open workorder at a time, so add a separate bay for each stall you book separately. |
 | Max duty class | The heaviest vehicle this bay takes: classes 1–3 light, 4–6 medium, 7–8 heavy. Choose No limit if any vehicle fits. Vehicles with no class on record aren't checked. (PROVISIONAL, Q5) |
 | Specialty services | Services that only bays claiming them can be assigned at this location. Leave empty for a general bay, which takes any service no bay here claims. |
@@ -208,7 +208,7 @@ Always name the service, the bay and the location in the message.
   - Specialty: "Can be assigned {n} specialty services, plus general services after the general bays · {duty}". When the location has no general bays, the sentence ends "plus general services · {duty}".
   - Wash with services: "Can be assigned only its {n} services, never general services · {duty}"
   - Wash without services: "Can't be assigned anything yet. Add the services this bay does." (PROVISIONAL, Q4)
-  - Out of service: "Out of service: no new workorders. Its specialty services are open to other bays until it's back."
+  - Out of service: "Out of service: no new workorders. Its specialty services are open to other bays until it's back." (PROVISIONAL, Q2)
   - `{duty}` is "vehicles up to class 6 (medium)" or "any vehicle".
 - **Derivation.** The line, the lanes, the "Only bay" markers, the band and the preview are computed client-side from this location's bay list, using only the confirmed rules in the brief. Put the rules in one pure function with unit tests per branch, so the rules exist once in the frontend.
 - **Type defaults.** No API exposes the type → default specialty codes map. Until one does, the map lives in one frontend constant that mirrors pos-location. Create always sends an explicit list, so what the user sees is what gets saved. GAP: ask for the defaults to be exposed.
@@ -247,6 +247,7 @@ Q numbers match the questions in louisburroughs/durion-positivity-backend#2245.
 | Q | Open question | Design element marked PROVISIONAL |
 | --- | --- | --- |
 | Q1 | Bay eligibility only shapes the appointment times offered; it isn't enforced when a workorder is placed | Verb in the "Can be assigned" line and the consequence messages. If confirmed, change "can be assigned" to "is offered for". |
+| Q2 | When the only bay claiming a service goes out of service, the service becomes general work | The "Its only bay is out of service" flag, the out-of-service card warning, and the preview/outcome lines saying a claim is on hold or a service becomes general work because of a status change. If (b) or (c) is chosen, the copy says the service can't be booked, or flags the conflict. |
 | Q4 | A new wash & detail bay can be assigned nothing | Wash-without-services warning, "Can't be assigned anything" sentence, last-service confirm copy for wash bays |
 | Q5 | Duty class is a maximum only | Max duty class hint and the "no bay above class N" preview line |
 | Q6 | Delete is not blocked | Delete confirm copy; whether Delete sits in the overflow menu or needs a guard |

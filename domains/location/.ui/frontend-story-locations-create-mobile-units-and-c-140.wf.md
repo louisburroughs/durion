@@ -7,7 +7,7 @@ Only three things decide that today:
 - it is based at the workorder's shop;
 - one of its coverage rules, valid on the date, points at a service area that holds the customer's postal code.
 
-Capabilities, the travel buffer, the coverage rule type and max distance are stored but not yet used. The design shows them as "recorded", and never as limits on assignment.
+Under the current API, capabilities, the travel buffer, the coverage rule type and max distance are stored but not used by eligibility or scheduling. The design shows them as "recorded", not as limits on assignment. (PROVISIONAL, Q9: if #2245 decides any of them should filter eligibility or affect scheduling, the "recorded" captions, hints and rail caption change.)
 
 This is not a live view: no current job, route, location on a map, utilisation or schedule. Being set up and not active is a normal, calm state, not an error.
 
@@ -23,7 +23,9 @@ Replaces the earlier design: the free-text "Region" coverage field (which saved 
   - Toggle "Show test records" (URL query `?tests=1`, off by default, shows the hidden count).
   - Setup links: "Service areas" and "Travel buffer policies", each shown only with the matching `:read` permission.
 - **"Check coverage" band** (collapsible, below the header)
-  - Postal code, a date (default today) and a [Check] button. The check calls the existing `GET /location/v1/mobile-units:eligible`.
+  - Postal code, country, a date (default today) and a [Check] button. The check calls the existing `GET /location/v1/mobile-units:eligible`, which requires `postalCode`, `countryCode` and `at`.
+  - Country is a two-letter code field, hint "The country the postal code belongs to." It starts with the country most of the service areas' postal codes use; with no service areas, or none with codes, it starts as "US". The user can change it; the check never runs without a postal code.
+  - The date is sent as `at` = noon UTC on the chosen day, so the backend reads the same date in any time zone.
   - The result is an ordered list: "1. Van 7, via Riverside north, priority 1", and so on. It closes with "Only active units based at Riverside Auto Service are included."
   - No match: "No active unit here covers A1B 2C3 on 1 Oct 2026."
 - **Unit groups** (main column)
@@ -208,17 +210,18 @@ Replaces the earlier design: the free-text "Region" coverage field (which saved 
 | Name | What dispatchers call this unit, e.g. "Van 7". No other unit based at this shop can have the same name. |
 | Base location | The shop this unit leaves from. It takes only that shop's workorders. |
 | Status (edit) | Only active units can be assigned workorders. To activate, a unit needs a travel buffer policy, at least one capability and at least one coverage rule. |
-| Travel buffer policy | Extra time allowed around each visit for driving. Recorded now; scheduling doesn't use it yet. |
-| Capabilities | The services this unit is equipped for. Recorded now; assignment doesn't check them yet. |
+| Travel buffer policy | Extra time allowed around each visit for driving. Recorded now; scheduling doesn't use it yet. (PROVISIONAL, Q9) |
+| Capabilities | The services this unit is equipped for. Recorded now; assignment doesn't check them yet. (PROVISIONAL, Q9) |
 | Notes | Anything dispatchers should know about this unit, e.g. where it parks overnight. |
 | Coverage (editor intro) | Where this unit goes. A customer is matched by postal code: the rule's service area must include it, on the dates the rule is valid. |
 | Service area | The postal codes this rule covers. Manage areas under Service areas. |
 | Priority | Lower numbers are offered first. Compared across every unit here that covers the same postal code. |
 | Valid from / Valid to | The dates this rule applies. Leave Valid to blank for no end date. |
-| Rule type | Recorded for later. Matching uses the service area only. |
-| Max distance | Recorded for later; not used for matching. Leave blank for the catch-all tier. |
+| Rule type | Recorded for later. Matching uses the service area only. (PROVISIONAL, Q9) |
+| Max distance | Recorded for later; not used for matching. Leave blank for the catch-all tier. (PROVISIONAL, Q9) |
 
 ## Service areas (supporting list)
+- **Scope decision.** DECISION-LOCATION-011 defaults service areas to picker-only and asks for a separate explicit story before adding CRUD, because CRUD could create a new system-of-record surface. It doesn't here: pos-location already owns service areas and exposes the writes (`POST /v1/service-areas`, `PATCH /v1/service-areas/{id}`, `PUT /v1/service-areas/{id}/postal-codes`, all behind `location:service-area:manage`). Without them, a coverage rule can only point at areas nobody can maintain. This section is that explicit story for the UI. It was delivered in louisburroughs/durion-positivity-frontend#402 and adds no new endpoint, entity or ownership.
 - Route `/app/location/service-areas`, gated on `location:service-area:read`; edit controls need `:manage`.
 - Linked from:
   - the Mobile Units header;
@@ -284,4 +287,5 @@ Q numbers match the questions in louisburroughs/durion-positivity-backend#2245.
 | --- | --- | --- |
 | Q6 | Delete is not blocked | Delete confirm copy and placement |
 | Q7 | Future appointments aren't re-checked when status changes | Set-inactive confirm copy. If confirmed, add "Appointments already booked with Van 7 aren't moved." |
+| Q9 | Mobile-unit eligibility: whether capabilities, `ruleType` / `maxDistance` and the travel buffer should filter eligibility or affect scheduling | The "recorded" captions on capabilities and travel buffer, the rail caption, the Purpose statement, and the Travel buffer policy / Capabilities / Rule type / Max distance hints. If any is applied, the copy says how. |
 | Q10 | Mobile-unit hours | No hours field or copy until answered |
