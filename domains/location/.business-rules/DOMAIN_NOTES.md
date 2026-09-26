@@ -212,6 +212,7 @@ tags: [domain, location, domain-notes]
 ### DECISION-LOCATION-007 — Mobile Unit Travel Buffer Policy Requirement
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-007)
+- **Amended by DECISION-LOCATION-026 (2026-09-26):** the mobile-unit status set is `ACTIVE` | `OUT_OF_SERVICE` | `RETIRED`; `INACTIVE` no longer exists. Read the `INACTIVE` rows below as `OUT_OF_SERVICE`. The rule itself stands: a policy is required for `ACTIVE` only.
 - **Decision:** Mobile units must have a `travelBufferPolicyId` assigned when their status is ACTIVE. The policy is optional (may be null) when status is INACTIVE or OUT_OF_SERVICE. The backend enforces this constraint and returns 400 BAD_REQUEST when attempting to activate a mobile unit without a policy.
 - **Alternatives considered:**
   - **Option A (Chosen):** Policy required only for ACTIVE status
@@ -601,6 +602,175 @@ tags: [domain, location, domain-notes]
   - **Owner:** Location domain team with coordination from Inventory domain
   - **Review cadence:** Review during site setup and annually
   - **Exception process:** No exceptions; sites requiring shared staging/quarantine must use workflow overrides (not defaults)
+
+### DECISION-LOCATION-025 — The Bay Specialty Map Is Authoritative and Published
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-025)
+- **Decision:** The bay-type specialty map (`bay_specialty_operation`, spec D14.1) is the single source of truth for which operation codes are specialty. Five rules follow:
+  1. `pos-location` publishes the map per tenant as `location.bay-specialty-map.updated`, carrying `bayType`, `operationCodes[]`, `acceptsGeneralWork` and `aggregateVersion`. `pos-shop-manager` and `pos-workorder` replicate it. This **amends spec D14.3**, which held that the per-bay list on the bay fact meant consumers never need the map: they need it to tell "no bay here claims this specialty" from "this is general work".
+  2. Every tenant receives the map on provisioning, copied from the platform template, as ADR-0062 onboarding requires. Today it is seeded for the platform tenant only.
+  3. `acceptsGeneralWork` is a `BayType` attribute — `false` only for `WASH_DETAIL` — published on the bay fact and the map fact. It replaces the hard-coded type-name check in the opening search.
+  4. A patch that changes `bayType` without stating codes resets the bay's codes to the new type's defaults (spec D14.3, confirmed). No flag records whether codes are defaults or customised. The `BayPatchRequest` `@Schema` says so; the UI asks for confirmation.
+  5. A `WASH_DETAIL` bay may be created with no codes. Wash and detail services are ordinary catalog services added as a workorder line item — rarely sold, and not specialty — so they are not added to the map. A wash bay is recorded in the asset register and never offered for appointments (DECISION-SHOPMGMT-021).
+- **Alternatives considered:**
+  - **Option A (Chosen):** the map is authoritative and travels as a fact
+    - Pros: one definition of specialty for every consumer; a missing rack makes the work unbookable rather than general
+    - Cons: a new fact and two replicas
+  - **Option B:** keep deriving specialty from what active bays claim (current code)
+    - Pros: no new plumbing
+    - Cons: at a location with no alignment bay, alignments are offered in general bays; a bay out of service silently turns its specialty into general work
+  - **Option C (retype):** keep codes, or reset only when they equal the old type's defaults
+    - Pros: preserves customisation
+    - Cons: a bay retyped to `GENERAL_SERVICE` keeps a claim it no longer has the equipment for; option (c) needs a provenance flag for a rare operation
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`; owner decisions 2026-09-26 (wash and detail are rare line items, not specialty products).
+  - `OpeningSearchServiceImpl.eligibleBays` derived specialty from active claimant bays, contradicting spec D14 rule 1. ATX-RIV-001 has no alignment or inspection bay and offered `WHEEL-ALIGNMENT-4-WHEEL` and `DOT-ANNUAL-INSPECTION` as general work.
+  - `R__seed_location_2_bay_specialty.sql` seeds the platform tenant only, and nothing provisions the map on `tenant.created`.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-location`: new fact through the outbox; tenant provisioning of the map; `acceptsGeneralWork` on `BayType`; `@Schema` on `BayPatchRequest`
+    - `pos-shop-manager`, `pos-workorder`: map replica; eligibility reads it (DECISION-SHOPMGMT-021)
+    - Seed: `scripts/fixtures/seed/alpha/location/bays.csv` gains `maxDutyClass`, so the duty axis works in alpha
+  - A maintenance API for a tenant's own map is deferred; the map changes through the platform template until then.
+- **Migration & backward-compatibility notes:**
+  - Pre-production: no shim. Publish the full map once per tenant on first start so replicas fill.
+- **Governance & owner recommendations:**
+  - **Owner:** Location domain; `pos-catalog` owns the operation codes
+  - **Policy:** review the map whenever the catalog adds a service in a category that already has specialty members (spec D14).
+
+### DECISION-LOCATION-026 — Bays and Mobile Units Share One Lifecycle; Delete Retires
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-026)
+- **Decision:** Bays and mobile units have one status set, `ACTIVE` | `OUT_OF_SERVICE` | `RETIRED`, enforced by a database CHECK on both tables. Six rules follow:
+  1. **`DELETE` retires.** There is no hard delete. Consumers keep the replica row with `active = false`, so appointments, workorders and position history still resolve to a name.
+  2. **`RETIRED` is reversible** (to `ACTIVE` or `OUT_OF_SERVICE`) and has **no error code of its own**. Booking or placing work on a retired resource returns 422 `SERVICE_POSITION_INACTIVE`, the same as out of service. Default lists hide retired resources (DECISION-LOCATION-008 default filtering).
+  3. **Retired names stay reserved.** Name uniqueness includes retired rows. Creating or renaming to a retired resource's name returns 409 `BAY_NAME_TAKEN` (bays) or `MOBILE_UNIT_NAME_TAKEN` (units). Reactivation therefore never clashes.
+  4. **Going out of service records why.** `outOfServiceReason` is required, from a fixed list: `EQUIPMENT_FAILURE`, `SCHEDULED_MAINTENANCE`, `INSPECTION`, `SAFETY_HOLD`, `FACILITY_ISSUE`, `OTHER`. `outOfServiceNote` (≤255) is optional, and required for `OTHER`. A missing reason returns 422 `OUT_OF_SERVICE_REASON_REQUIRED`. `expectedReturnAt` (timestamptz) is optional and advisory — labelled "not used by scheduling". All three clear on return to `ACTIVE`.
+  5. **Bays gain `displayOrder`** (integer, nullable): the sort key for lists and the dispatch board, ties broken by name.
+  6. **Planned downtime is out of scope.** No future-dated status.
+- **Alternatives considered:**
+  - **Option A (Chosen):** retire (archive) in place of delete
+    - Pros: no orphaned references; history keeps names; feeds the affected-appointment list (DECISION-SHOPMGMT-022)
+    - Cons: retired rows accumulate; names cannot be reused
+  - **Option B:** block delete while referenced (409)
+    - Pros: never orphans
+    - Cons: not implementable — `pos-location` cannot see appointments or workorders, and ADR-0044 R1 forbids a synchronous check
+  - **Option C:** hard delete (current)
+    - Pros: simple
+    - Cons: consumers delete their replica rows and leave appointment and workorder references pointing at nothing
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`; owner decisions 2026-09-26: retired is not permanent, has no code of its own, names stay reserved, reasons are a fixed list, downtime is not in scope.
+  - The reason list is fixed so downtime can be reported on; free text cannot be counted.
+  - Statuses had drifted: bays `ACTIVE`/`OUT_OF_SERVICE` with no CHECK, mobile units `ACTIVE`/`INACTIVE` (V6 CHECK). A mobile unit's `INACTIVE` becomes `OUT_OF_SERVICE`. `SERVICE_POSITION_INACTIVE` (`durion-positivity-backend#2001`) covers every non-active status.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-location`: status CHECKs; `DELETE` semantics; new fields; fact payloads carry status and the out-of-service fields
+    - `pos-shop-manager`, `pos-workorder`: `applyBayDeleted` / `applyMobileUnitDeleted` stop deleting replica rows; a retired resource arrives as an update with `active = false`
+  - Mobile-unit delete stops removing coverage rules; they stop matching because the unit is not active.
+- **Auditor-facing explanation:**
+  - **What to inspect:** every out-of-service resource has a reason.
+  - **Query example:**
+
+    ```sql
+    SELECT id, name, status, out_of_service_reason
+    FROM bays
+    WHERE status = 'OUT_OF_SERVICE' AND out_of_service_reason IS NULL
+    UNION ALL
+    SELECT id, name, status, out_of_service_reason
+    FROM mobile_units
+    WHERE status = 'OUT_OF_SERVICE' AND out_of_service_reason IS NULL;
+    ```
+
+  - **Expected outcome:** zero rows.
+- **Migration & backward-compatibility notes:**
+  - Pre-production: mobile units at `INACTIVE` move to `OUT_OF_SERVICE` with reason `OTHER`; no shim for the old value.
+- **Governance & owner recommendations:**
+  - **Owner:** Location domain
+  - **Policy:** a new reason is added to the list, not typed as free text.
+
+### DECISION-LOCATION-027 — Coverage Eligibility: Active Areas, Base Location, One Ranking, UTC
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-027)
+- **Decision:** A mobile unit is eligible through a coverage rule only when every part of that rule is live. Four rules follow:
+  1. **An inactive service area contributes no coverage.** Its rules are kept but stop matching (the shape of `durion-positivity-backend#2001`). Creating or replacing a rule that points at an inactive area returns 422 `SERVICE_AREA_INACTIVE`. The unit's own status is not changed.
+  2. **Scoped to the base location.** The eligibility read takes the booking's location and returns only units based there (DECISION-SHOPMGMT-023). It may also take operation codes; a unit must claim every one.
+  3. **Priority is one ranking across the location's units**, 1 sent first; ties break by unit id so the order is deterministic.
+  4. **Validity windows are evaluated in UTC**, as DECISION-LOCATION-017 already states. The `LocalDate` `validFrom`/`validTo` columns are brought in line with 017's instants.
+- **Alternatives considered:**
+  - **Option A (Chosen):** filter by area status and base location; rank within the location
+    - Pros: the search never offers a unit the workorder service would refuse
+    - Cons: none material
+  - **Option B:** rank each unit's own territories (1 = its primary area)
+    - Pros: expresses a unit's home turf
+    - Cons: does not say which unit to send first when two cover the same postal code
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`; owner decisions 2026-09-26.
+  - `MobileUnitCoverageRuleRepository.findEligibleCoverageRules` never checked `service_areas.active`, contradicting `ServiceAreaServiceImpl`, which describes `active = false` as the way to retire an area. It also ranked across every unit regardless of base location, while `pos-workorder` refuses cross-site placement with `SERVICE_POSITION_INVALID`.
+- **Architectural implications:**
+  - **Components affected:** `pos-location` coverage query, coverage-rule writes, the eligibility endpoint's parameters, `mobile_unit_coverage_rules.valid_from`/`valid_to`
+- **Auditor-facing explanation:**
+  - **Query example:**
+
+    ```sql
+    -- Rules that still point at a retired area (kept, but must not match).
+    SELECT r.id, r.mobile_unit_id, a.name
+    FROM mobile_unit_coverage_rules r
+    JOIN service_areas a ON a.id = r.service_area_id
+    WHERE a.active = false;
+    ```
+
+  - **Expected outcome:** rows may exist; none of them may appear in an eligibility answer.
+- **Governance & owner recommendations:**
+  - **Owner:** Location domain
+
+### DECISION-LOCATION-028 — Distances Are Configurable in Miles or Kilometres, Stored in Kilometres
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-028)
+- **Decision:** This **supersedes DECISION-LOCATION-016** (kilometres only). Five rules follow:
+  1. Each location has a `distanceUnit`, `KM` or `MI`. It is the unit its forms show and accept.
+  2. Every distance in a request or response carries its unit explicitly (`{ value, unit }`). A bare number is never accepted.
+  3. Storage is canonical kilometres. The backend converts at the edge (1 mi = 1.609344 km, exact) and rounds to two decimals. `mobile_unit_coverage_rules.max_distance` becomes `max_distance_km`.
+  4. Distance-based coverage (`ruleType = DISTANCE_TIER`, `maxDistance`) and `DISTANCE_TIER` travel buffers are wanted, and are evaluated only once customer and location addresses can be geocoded. Until then they are stored and labelled "not yet evaluated" in the `@Schema`.
+  5. The travel-buffer policy types stay DECISION-LOCATION-015's `FIXED_MINUTES` (applied now, DECISION-SHOPMGMT-023) and `DISTANCE_TIER`. The code's `FLAT_MINUTES` is renamed to `FIXED_MINUTES`; its `PERCENTAGE_OF_TRAVEL` and `DISTANCE_MULTIPLIER`, which no decision defines and which need routed travel time, are removed.
+- **Alternatives considered:**
+  - **Option A (Chosen):** configurable display unit, canonical storage
+    - Pros: shops use their local unit; comparisons and audits use one unit
+    - Cons: conversion at the API edge
+  - **Option B:** kilometres only (DECISION-LOCATION-016)
+    - Pros: no conversion
+    - Cons: US shops enter miles anyway, and the alpha seed already reads as miles
+  - **Option C:** drop distance entirely
+    - Pros: removes settings nothing evaluates
+    - Cons: the owner wants distance-based coverage
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`; owner decision 2026-09-26.
+  - The API documented kilometres (`CoverageRuleRequest`), while the seed values (15–50, no unit in the header) put several edge areas at or beyond their radius read as kilometres and comfortably inside it read as miles.
+  - No coordinates exist in `pos-location`, `pos-shop-manager`, `pos-workorder` or `pos-customer`; postal-code areas are the only coverage evaluated today.
+- **Architectural implications:**
+  - **Components affected:** `pos-location` (location setting, coverage rule and travel-buffer DTOs, column rename); geocoding is a separate integration capability
+- **Migration & backward-compatibility notes:**
+  - Seed distances are read as miles and converted. Pre-production: no shim for the old column or the dropped buffer types.
+- **Governance & owner recommendations:**
+  - **Owner:** Location domain; geocoding with the Positivity (integrations) domain
+
+### DECISION-LOCATION-029 — Mobile Unit and Bay Setup Attributes
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-LOCATION-029)
+- **Decision:** Resources carry what scheduling needs and a small, optional identity; equipment is expressed through codes and ceilings, not lists.
+  - **Mobile unit:** `max_duty_class integer NULL CHECK (1..8)`, the bay's axis (spec D13). Optional, display-only identity: `unit_number varchar(32)`, `vin varchar(17)` (ISO 3779), `license_plate varchar(16)`, `plate_region varchar(6)` (ISO 3166-2); each unique per tenant when not null.
+  - **No equipment list** on bays or units: lift rating is `maxDutyClass`; racks and machines are specialty operation codes (spec D14, D14.2).
+  - **No usual crew** on a unit: staffing is People's.
+  - **No hours** on a unit: it follows its base location (DECISION-SHOPMGMT-023).
+  - **Bay floor position** (x/y) is deferred; `displayOrder` covers ordering (DECISION-LOCATION-026).
+- **Alternatives considered:**
+  - **Option A (Chosen):** codes and ceilings; optional identity
+  - **Option B:** per-resource equipment inventory
+    - Cons: spec D5 and D14 rejected per-resource equipment authoring as data nobody can assert honestly
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`.
+  - The alpha vans claim `FLEET-PM-*` work, which needs a duty ceiling to be scheduled safely.
+- **Governance & owner recommendations:**
+  - **Owner:** Location domain; crew assignment with People
 
 ## End
 

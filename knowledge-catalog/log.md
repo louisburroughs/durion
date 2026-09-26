@@ -1,5 +1,12 @@
 # Directory Update Log
 
+## 2026-09-26
+
+* **Regenerated**: 66 ADR, 16 domain, 45 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
+* **Structure**: the shopmgmt and location domain entries refreshed after the bay and mobile-unit setup decisions (durion-positivity-backend#2245:
+  DECISION-SHOPMGMT-021 to 023, DECISION-LOCATION-025 to 029). The inferred **Implemented by** lists move with the new mention counts: shopmgmt
+  adds `pos-workorder` and `pos-location`; location now names `pos-catalog` in place of `pos-customer`. Module ownership is unchanged.
+
 ## 2026-09-24
 
 * **Regenerated**: 66 ADR, 16 domain, 45 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.

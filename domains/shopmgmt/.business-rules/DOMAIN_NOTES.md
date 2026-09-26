@@ -14,7 +14,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
 ## Completed items
 
-- [x] Documented 20 key shopmgmt decisions
+- [x] Documented 23 key shopmgmt decisions
 - [x] Provided alternatives analysis
 - [x] Included architectural schemas
 - [x] Added auditor SQL queries
@@ -1614,6 +1614,155 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - **Owner:** Shopmgmt domain, with Workorder Execution coordination — `workStartedAt` and `completedAt` are that domain's facts, consumed here through the replica
   - **Policy:** planned and actual are two different facts and both are kept. Do not reconcile one into the other.
   - **Monitoring:** a persistent gap between planned and actual starts at one location is worth a look as a scheduling-accuracy signal — never as a validation failure.
+
+### DECISION-SHOPMGMT-021 — Bay Eligibility Is Enforced at Submit; Placement Checks Duty Class Only
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-021)
+- **Decision:** Bay eligibility is one rule, owned by `pos-shop-manager`, applied wherever a bay is chosen for a booking. Six rules follow:
+  1. The opening search, appointment submit and reschedule use the **same** eligibility function. The search filters; submit and reschedule refuse.
+  2. Submit and reschedule refuse with **422** (ADR-0017 §2: the state of a referenced resource), with no override:
+
+     | Condition | Code |
+     | --- | --- |
+     | Resource unknown, or at another location | `SERVICE_POSITION_INVALID` |
+     | Resource out of service or retired | `SERVICE_POSITION_INACTIVE` |
+     | Bay does not claim a specialty operation on the appointment | `SERVICE_POSITION_NOT_EQUIPPED` |
+     | Vehicle GVWR class above the bay's `maxDutyClass` | `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` |
+
+     The first two already exist in `pos-workorder` (`durion-positivity-backend#2001`); the family is shared so one condition has one name and one status across modules.
+  3. Workorder placement (`pos-workorder`) keeps its site and active checks and adds **duty class only**. It never refuses on specialty capability.
+  4. **Specialty is defined by the bay-type specialty map** (DECISION-LOCATION-025, spec D14 rule 1), not by the claims of the bays that are active right now. A specialty operation that no active bay at the location claims is **unbookable** there: the search answers `NO_ELIGIBLE_BAY_AT_LOCATION`, submit answers `SERVICE_POSITION_NOT_EQUIPPED`. It never falls back to general work.
+  5. When the vehicle's GVWR class is unknown, the duty check is skipped at every entry point (spec D11).
+  6. **Ranking belongs to the search alone** and never changes eligibility. Order: specialty bays last (D14), then time, then a *weak* best-fit tiebreak — smallest adequate `maxDutyClass` first, a null ceiling read as class 8 — then `displayOrder`, then name.
+- **Consequences recorded with the decision:**
+  - Wash and detail services are ordinary catalog services, added to a workorder as a line item. They are not specialty operations and are not in the map. A `WASH_DETAIL` bay takes no general work (D14), so it is never offered for appointments; placement may still put a workorder on it.
+  - The near-capacity rule (`FACILITY_NEAR_CAPACITY`) divides by bays that accept general work, not by all active bays.
+  - Duty class stays a maximum. Heavy bays are not reserved for heavy work; the best-fit tiebreak only nudges light work elsewhere when the times are equal.
+- **Alternatives considered:**
+  - **Option A (Chosen):** enforce at submit and reschedule; duty class only at placement
+    - Pros: the authoritative write enforces what the search already promises; the shop floor keeps moving a vehicle between bays within one workorder
+    - Cons: two entry points apply different subsets, so the rule has to be stated per entry point (this table)
+  - **Option B:** enforce both axes everywhere, including placement
+    - Pros: one rule, stated once
+    - Cons: refuses the ordinary case of an oil change in a general bay followed by an alignment on the rack, on the same workorder
+  - **Option C:** advisory everywhere, with a SOFT warning
+    - Pros: never blocks
+    - Cons: a lift's rated capacity and a missing rack are physical limits, not preferences; SOFT is reserved for things a manager can reasonably override (D10 skill mismatch)
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245` (origin `durion-positivity-frontend#395`). The owner accepted the split on 2026-09-26.
+  - DECISION-SHOPMGMT-011 makes submit authoritative, yet submit validated nothing about the resource: `resourceId` was an unchecked string and `resourceType` was never written. The search enforced more than the write.
+  - `OpeningSearchServiceImpl.eligibleBays` derived "specialty" from the claims of active bays at the location. At a location with no alignment bay, `WHEEL-ALIGNMENT-4-WHEEL` was offered in general bays. Rule 4 closes that gap for every location, not only when a bay goes out of service.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-shop-manager`: appointment create and reschedule validation; `resourceType` persisted (DECISION-SHOPMGMT-003); the eligibility function shared with the search; search ranking; the near-capacity divisor
+    - `pos-shop-manager`: a replica of the specialty map (`location.bay-specialty-map.updated`, DECISION-LOCATION-025)
+    - `pos-workorder`: GVWR class on the vehicle replica; duty-class check in `ServicePositionServiceImpl.resolvePosition`
+  - Contract chain: the appointment request gains `resourceType`; OpenAPI, SDK and the `API Artifacts Sync` workflow follow.
+- **Auditor-facing explanation:**
+  - **What to inspect:** no held appointment sits in a bay that could not have accepted it at booking time.
+  - **Query example:**
+
+    ```sql
+    -- Held appointments on a bay whose ceiling is below the vehicle's class.
+    SELECT a.appointment_id, a.resource_id, b.max_duty_class, v.gvwr_class
+    FROM appointment a
+    JOIN ext_bay b ON b.bay_id::text = a.resource_id
+    JOIN ext_vehicle v ON v.vehicle_id = a.crm_vehicle_id
+    WHERE a.resource_type = 'BAY'
+      AND a.status NOT IN ('CANCELLED', 'COMPLETED', 'INVOICED')
+      AND b.max_duty_class IS NOT NULL
+      AND v.gvwr_class > b.max_duty_class;
+    ```
+
+  - **Expected outcome:** zero rows for appointments created after enforcement; older rows are the pre-enforcement backlog.
+- **Migration & backward-compatibility notes:**
+  - Pre-production: no shim. Appointments created before enforcement are not re-validated; DECISION-SHOPMGMT-022 surfaces any that sit in an ineligible bay.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain (submit, search), with Workorder Execution (placement) and Location (the specialty map)
+  - **Policy:** a new eligibility condition joins the `SERVICE_POSITION_*` family and is added to every entry point in the same change.
+
+### DECISION-SHOPMGMT-022 — A Resource Leaving Service Flags Its Booked Appointments; It Is Never Blocked
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-022)
+- **Decision:** When a bay or mobile unit goes out of service, is retired, or loses an eligibility its bookings relied on, the change takes effect at once and the affected appointments are listed for rescheduling. Five rules follow:
+  1. `pos-location` never blocks a status change, retype or code change because of appointments. It cannot see them (ADR-0044), and the equipment is broken whatever the system says.
+  2. `pos-shop-manager` derives **affected** appointments at read time: future, held appointments whose resource is out of service, retired, missing, or no longer eligible under DECISION-SHOPMGMT-021. The schedule view flags them and the reschedule queue filters on them. Nothing is stored, so returning the resource to service clears the flag by itself.
+  3. Reschedule may change the resource (`newResourceId`), re-validated under DECISION-SHOPMGMT-021.
+  4. A reschedule the shop causes — reason `EQUIPMENT_ISSUE`, or the resource became unavailable — does **not** count against the customer's reschedule allowance (DECISION-SHOPMGMT-004).
+  5. Planned downtime (a future-dated unavailability) is **not** in scope now. When it is added, the window is owned by `pos-location` and enforced here as a HARD conflict `BAY_UNAVAILABLE` (409, a time-window collision under ADR-0017 §2).
+- **Alternatives considered:**
+  - **Option A (Chosen):** allow the change and list the affected appointments
+    - Pros: matches reality; reaches the advisors who own the bookings; self-healing on reactivation
+    - Cons: the list is only as good as its reader — an unworked queue still strands customers
+  - **Option B:** block the status change while future appointments exist
+    - Pros: nothing is ever stranded silently
+    - Cons: the lift is still broken; staff learn to leave broken bays marked active, which is worse
+  - **Option C:** warn only, at the moment of the change
+    - Pros: cheap
+    - Cons: the warning reaches the person changing the status, not the advisors who must call the customers
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`; owner confirmed 2026-09-26, including that downtime is out of scope and shop-caused reschedules do not count.
+  - Field-service platforms treat resource absence the same way: the absence is recorded and the affected work goes to a reschedule queue.
+  - `RescheduleAppointmentRequest` carried only times, so a booking could not be moved off a broken bay without cancelling it. Rule 3 closes that gap.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-shop-manager`: schedule read (affected flag), reschedule (new resource, allowance exemption)
+    - `pos-location`: none beyond publishing status and codes on the existing facts
+  - Consumers keep a retired resource's replica row (DECISION-LOCATION-026) so an affected appointment still resolves to a name.
+- **Auditor-facing explanation:**
+  - **What to inspect:** held future appointments on resources that are not active, and whether they are being worked.
+  - **Query example:**
+
+    ```sql
+    -- A retired bay keeps its replica row with active = false (DECISION-LOCATION-026);
+    -- the LEFT JOIN also catches rows orphaned by the former hard delete.
+    SELECT a.appointment_id, a.start_at, a.resource_id, b.name, b.active
+    FROM appointment a
+    LEFT JOIN ext_bay b ON b.bay_id::text = a.resource_id
+    WHERE a.resource_type = 'BAY'
+      AND a.start_at > now()
+      AND a.status = 'SCHEDULED'
+      AND (b.bay_id IS NULL OR b.active = false);
+    ```
+
+  - **Expected outcome:** rows are expected after a bay leaves service; they should drain as the queue is worked.
+- **Migration & backward-compatibility notes:**
+  - No stored state is added. The allowance exemption applies to reschedules recorded after the change.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain; resource status is Location's fact
+  - **Monitoring:** the age of the oldest affected appointment per location is the useful signal.
+
+### DECISION-SHOPMGMT-023 — Mobile Units Serve Their Base Location, for the Work They Claim
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-023)
+- **Decision:** A mobile unit takes work from its base location only, and only operations it claims. Six rules follow:
+  1. **Base location only.** Eligibility is scoped to the unit's base location, matching `pos-workorder`'s same-site placement rule. There is no cross-location dispatch; moving work to another location is a workorder transfer (tracked separately).
+  2. **Claimed work only.** A unit may perform only the operation codes it claims. Unlike a `GENERAL_SERVICE` bay, it has no general-work default.
+  3. **Coverage** (data rules in DECISION-LOCATION-027): an inactive service area contributes nothing; coverage priority is one ranking across the location's units, 1 sent first, ties broken by unit id; validity windows are evaluated in UTC.
+  4. **Hours** are the base location's operating hours, holiday closures and timezone. A unit has no hours of its own.
+  5. **Travel buffer:** a `FIXED_MINUTES` policy (DECISION-LOCATION-015) adds a block before and after each mobile appointment, in the same way the location's check-in and cleanup buffers do.
+  6. **Distance** coverage and distance-based buffers are wanted and apply once customer addresses can be geocoded; units follow DECISION-LOCATION-028.
+- **Scope now versus later:**
+  - Now: the eligibility read is scoped to the base location and filters by claimed codes; every setting not yet applied is labelled "stored, not yet applied" in its `@Schema`.
+  - When mobile units become schedulable: submit applies the DECISION-SHOPMGMT-021 codes to mobile units (`SERVICE_POSITION_NOT_EQUIPPED`, `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` against the unit's `maxDutyClass`), and the travel buffer is applied.
+- **Alternatives considered:**
+  - **Option A (Chosen):** base location, claimed work, the location's hours
+    - Pros: every downstream rule (hours, pricing, tax, stock) keeps a single location; no new hours data
+    - Cons: a van shared across two locations must be modelled as a workorder transfer, not a dispatch
+  - **Option B:** cross-location dispatch ranked by global priority
+    - Pros: flexible fleet use
+    - Cons: `pos-workorder` already refuses cross-site placement, so the search would offer units the write rejects
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2245`; the owner ruled on 2026-09-26 that a unit's work comes from its location, and that workorders may later become transferable between locations.
+  - `MobileUnitCoverageRuleRepository.findEligibleCoverageRules` ranked across every unit and ignored the base location, so it could offer a unit that `pos-workorder` then refused with `SERVICE_POSITION_INVALID`.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-location`: eligibility read gains a base-location scope and operation-code filter
+    - `pos-shop-manager`: the mobile-unit replica keeps `serviceCapabilityCodes` (already on `MobileUnitUpdatedV1` v2) once mobile scheduling lands
+  - ADR-0044 R1: `pos-shop-manager` does not call `pos-location` synchronously; coverage and areas travel as facts when mobile scheduling is built.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain for scheduling; Location for coverage data
+  - **Open follow-up:** workorder transfer between locations (Workorder Execution).
 
 ## End
 
