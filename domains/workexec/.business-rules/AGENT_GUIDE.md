@@ -44,6 +44,12 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | DECISION-INVENTORY-020 | No cap on concurrent workorders per technician |
 | DECISION-INVENTORY-021 | One technician per workorder, one technician per mobile unit; no crew |
 | DECISION-INVENTORY-022 | Assignment-ownership boundary: pos-shop-manager plans, pos-workorder records |
+| DECISION-INVENTORY-023 | Workorder transfer between locations: same workorder, one operation, site owned by workexec |
+| DECISION-INVENTORY-024 | Transfer only before work starts; position and technician released |
+| DECISION-INVENTORY-025 | Transfer keeps quoted prices; tax follows the new location at invoicing; no re-approval |
+| DECISION-INVENTORY-026 | Transfer parts: release at source, re-request at target; workexec never moves stock |
+| DECISION-INVENTORY-027 | Transfer labour and history: no recorded time crosses a transfer |
+| DECISION-INVENTORY-028 | Transfer authority, reason code, audit trail and published fact |
 
 ## Domain Boundaries
 
@@ -101,6 +107,15 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 - **One technician per workorder; one technician per mobile unit; no crew.** `technician_assignment_one_current_uniq` means exactly one technician **of record** — no LEAD/ASSIST, no crew table in workexec. Mobile-unit exclusivity (at most one *open* workorder per mobile unit) falls out of `workorder_open_position_uniq` + `technician_assignment_one_current_uniq` once `ServicePositionServiceImpl.releaseOnClose`, the `HOLD` resource-id rule, and the null-`resource_id` handling close the leak paths; do not relax `ResourceType.isExclusive()` or `workorder_open_position_uniq`. Per-person labor time (`WorkorderLaborEntry.technicianId`, incl. `workorder:labor:add_on_behalf`) and per-segment travel (`TravelSegment.technicianId`) are not exceptions to this — they log whose time was spent, not who the technician of record is. Neither is `mechanic_ids`/`assignedMechanics` (see Key Entities): it is a legacy multi-valued list (#1658), still written by the assignment-context event and `overrideOperationalContext`, and it confers no second technician of record; nothing new is to be built on it, and it is not authority for a crew (DECISION-INVENTORY-021).
 - **Planning vs. recording boundary.** pos-shop-manager owns the PLANNED assignment (`Assignment` + `AssignmentMechanic(LEAD|ASSIST)`, which may be multi-mechanic for scheduling purposes). pos-workorder owns the ACTUAL CURRENT technician — exactly one person. shopmgmt's `AssignmentUpdatedEvent` is an input `WorkorderAssignmentEventListener` may act on, never a second system of record; `AssignmentMechanic` roles stop at the shopmgmt/workorder boundary and must never be mirrored into `technician_assignment` (DECISION-INVENTORY-022).
 
+### Workorder transfer between locations (issue #2258)
+
+- **Same workorder; only transfer moves the site.** `POST /v1/workorders/{workorderId}/transfer` changes the site on the same workorder, keeping its id, number, approval and histories. It writes `shopId` and `locationId` together. No other path may change the site: `overrideOperationalContext` refuses a different `locationId` with 422 `WORKORDER_TRANSFER_REQUIRED`, and an inbound `AssignmentUpdatedEvent` naming another site is dropped whole. An appointment move never transfers a workorder (DECISION-INVENTORY-023).
+- **Only before work starts.** A transfer is allowed from `DRAFT`, `APPROVED` or `ASSIGNED` with `workStartedAt` unset, no pending change request, no recorded time (labour entry, work session, travel segment) and no parts in hand. Otherwise it is refused with 409 `WORKORDER_CLOSED` / `WORKORDER_TRANSFER_NOT_ALLOWED`, or 422 `WORKORDER_TRANSFER_CHANGE_REQUEST_PENDING` / `_TIME_RECORDED` / `_PARTS_IN_HAND`. The target must be a known, active location other than the current one (422 `WORKORDER_TRANSFER_LOCATION_INVALID` / `_INACTIVE`). The position and the technician are released, `ASSIGNED` returns to `APPROVED`, and no new status exists. The appointment at the source is cancelled by pos-shop-manager and rebooked at the target (DECISION-SHOPMGMT-024, -025) (DECISION-INVENTORY-024).
+- **Prices kept, tax at the new site, no re-approval.** Lines keep their snapshotted prices and rates. The estimate is not moved or recalculated. pos-invoice taxes at the workorder's `locationId` at finalization. Lines and approvals after the transfer use the target's rates and approval configuration (DECISION-INVENTORY-025).
+- **Parts.** Demand at the source is released (`inventory.workorder-demand.release-requested`) and re-requested at the target, with location-qualified command ids. Workexec never moves stock (DECISION-INVENTORY-026).
+- **Labour and history.** No clocked time ever crosses a transfer. All history rows stay as written (DECISION-INVENTORY-027).
+- **Authority and audit.** `workorder:workorder:transfer` is required, location-scoped at both the source and the target. `reasonCode` (`CUSTOMER_REQUEST`, `CAPACITY`, `EQUIPMENT`, `MOBILE_DEPOT`, `OTHER`, with a note required for `OTHER`) is required. The transfer writes an append-only `workorder_location_transfer` row and publishes `workorder.workorder.transferred` on `workorder.events.v1` (DECISION-INVENTORY-028).
+
 ## Mapping: Decisions → Notes
 
 | Decision ID | One-line summary | Link to notes |
@@ -127,6 +142,12 @@ This document is the normative guide for the `workexec` (Work Execution) domain.
 | DECISION-INVENTORY-020 | No cap on concurrent workorders per technician | [DOMAIN_NOTES.md](#decision-inventory-020---no-cap-on-concurrent-workorders-per-technician) |
 | DECISION-INVENTORY-021 | One technician per workorder/mobile unit; no crew | [DOMAIN_NOTES.md](#decision-inventory-021---one-technician-per-workorder-one-technician-per-mobile-unit-no-crew) |
 | DECISION-INVENTORY-022 | pos-shop-manager plans, pos-workorder records | [DOMAIN_NOTES.md](#decision-inventory-022---assignment-ownership-boundary-pos-shop-manager-plans-pos-workorder-records) |
+| DECISION-INVENTORY-023 | Transfer changes the site on the same workorder; only transfer writes the site | [DOMAIN_NOTES.md](#decision-inventory-023---workorder-transfer-between-locations-same-workorder-one-operation-site-owned-by-workexec) |
+| DECISION-INVENTORY-024 | Transfer only from DRAFT/APPROVED/ASSIGNED with no recorded time; releases position and technician | [DOMAIN_NOTES.md](#decision-inventory-024---transfer-is-allowed-only-before-work-starts-the-position-and-technician-are-released) |
+| DECISION-INVENTORY-025 | Prices kept; invoice tax at the new location; no re-approval | [DOMAIN_NOTES.md](#decision-inventory-025---transfer-keeps-quoted-prices-tax-follows-the-new-location-at-invoicing-no-re-approval) |
+| DECISION-INVENTORY-026 | Release demand at source, re-request at target; refuse while parts are in hand | [DOMAIN_NOTES.md](#decision-inventory-026---parts-release-at-the-source-and-re-request-at-the-target-workexec-never-moves-stock) |
+| DECISION-INVENTORY-027 | No clocked time crosses a transfer; history is not rewritten | [DOMAIN_NOTES.md](#decision-inventory-027---labour-and-history-no-recorded-time-crosses-a-transfer-history-stays-where-it-was-written) |
+| DECISION-INVENTORY-028 | `workorder:workorder:transfer` at both ends; reason code; `workorder.workorder.transferred` fact | [DOMAIN_NOTES.md](#decision-inventory-028---transfer-authority-reason-code-audit-trail-and-published-fact) |
 
 ## Open Questions (from source)
 

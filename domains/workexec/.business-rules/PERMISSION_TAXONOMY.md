@@ -230,6 +230,22 @@ permissions:
     use_cases:
       - Transition to CANCELLED status
       - Record cancellation reason
+
+  # Registered in code as workorder:workorder:transfer (WorkorderPermissions uses the
+  # workorder: prefix, not workexec:). DECISION-INVENTORY-023, -028.
+  - key: workorder:workorder:transfer
+    description: Transfer a workorder to another location before work starts
+    risk_level: HIGH
+    use_cases:
+      - Move a workorder to another location (customer request, capacity, equipment, mobile depot)
+      - Record a required reason code, with a note for OTHER
+    required_for_stories:
+      - Issue #2258: Transferring a workorder between locations (clarification)
+    notes: >-
+      Location-scoped at both ends (ADR-0061): the caller needs the permission for the
+      workorder's current site and for the target location; a null current site fails closed.
+      A denial is 403 LOCATION_SCOPE_DENIED. workorder:operationalContext:override does not
+      imply it and no longer changes a workorder's site (DECISION-INVENTORY-023).
 ```
 
 ### 3. Approval Management (Issues #268, #271, #269)
@@ -341,6 +357,7 @@ All Service Advisor permissions, plus:
 - `workexec:workorder:edit`
 - `workexec:workorder:transition`
 - `workexec:workorder:cancel`
+- `workorder:workorder:transfer` (in scope at both the source and the target location; DECISION-INVENTORY-028)
 - `workexec:approval_config:view`
 
 ### Accounting/Auditor (Read-Only)
