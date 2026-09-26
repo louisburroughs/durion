@@ -145,6 +145,8 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-021 | Bay eligibility enforced at submit; placement checks duty class only |
 | DECISION-SHOPMGMT-022 | A resource leaving service flags its booked appointments |
 | DECISION-SHOPMGMT-023 | Mobile units serve their base location, for the work they claim |
+| DECISION-SHOPMGMT-024 | Workorder transfer, shop side: old holds end, the target books afresh |
+| DECISION-SHOPMGMT-025 | An appointment's location is fixed; serving elsewhere is cancel and rebook |
 
 ## Domain Boundaries
 
@@ -239,6 +241,8 @@ and defines what must be treated as backend-authoritative vs UI hints.
 | DECISION-SHOPMGMT-021 | Submit and reschedule enforce specialty and duty class (422); placement enforces duty class; the specialty map defines specialty. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-022 | Status changes are never blocked; affected appointments are listed; shop-caused reschedules are free. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 | DECISION-SHOPMGMT-023 | A mobile unit takes claimed work from its base location only, on that location's hours. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-024 | A workorder transfer ends the old appointment (`WORKORDER_TRANSFERRED`); the target books afresh under every rule. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
+| DECISION-SHOPMGMT-025 | No operation moves an appointment between locations; a workorder's appointment is booked at the workorder's site. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md) |
 
 ## Open Questions (from source)
 
@@ -618,6 +622,37 @@ and defines what must be treated as backend-authoritative vs UI hints.
   - Submit uses the DECISION-SHOPMGMT-021 codes for mobile units once they are schedulable.
 - Decision ID: DECISION-SHOPMGMT-023
 
+### Q: What happens to the bay, the mobile unit and the appointment when a workorder is transferred to another location?
+
+- Answer: every hold at the old location ends, and nothing is held at the new one until someone books or places the work there.
+  - `pos-workorder` releases the bay, mobile-unit or `HOLD` position within the transfer itself. The transfer never places the workorder at the target.
+  - When `pos-shop-manager` consumes the transfer fact, it ends every held appointment linked to the workorder: `CANCELLED`, reason `WORKORDER_TRANSFERRED`, planned assignment `CANCELLED`, mapping removed so later status facts cannot bring it back. This happens in any holding status, and the consumer never refuses. The appointment is never moved.
+  - If the work still needs a slot, the target advisor books a new appointment after the transfer, under every submit rule at the target (horizon, eligibility, hours, closures, conflicts, overrides in the target's scope). A transfer gets no priority or exemption.
+  - A transfer is not a reschedule: it uses up no allowance and sends no cancellation notice. `WORKORDER_TRANSFERRED` is assigned only by the system, and the cancel endpoint refuses it.
+  - Mobile units: transfer is the only way work reaches another depot's unit. Shopmgmt never suggests a transfer or ranks other locations; the advisor chooses.
+- Assumptions:
+  - Workorder Execution owns the transfer: the same workorder changes site (DECISION-INVENTORY-023), only before work starts or time is recorded (DECISION-INVENTORY-024), with `workorder:workorder:transfer` at both locations, a reason code, and the fact `workorder.workorder.transferred` (DECISION-INVENTORY-028). `pos-shop-manager` acts on that fact, never on a snapshot whose `locationId` changed.
+  - The old appointment therefore never carries actual occupancy. If transfer after work starts is ever allowed, this decision must be revisited.
+- Rationale:
+  - Once the site changes, `pos-workorder` refuses placement at the old location, so an old booking cannot be served and ending it is the only valid action. A consumer cannot refuse, so it cannot re-book at the target reliably.
+- Impact:
+  - `pos-shop-manager`: a transfer-fact consumer, one new cancellation reason, and a status sync that never moves an appointment out of `CANCELLED`. No new shopmgmt permission and no new published event.
+- Decision ID: DECISION-SHOPMGMT-024
+
+### Q: Can an appointment move to another location?
+
+- Answer: no. An appointment stays at the location it was booked at.
+  - A reschedule changes the window and the resource, never the location. A `newResourceId` at another location is refused with `SERVICE_POSITION_INVALID` (422).
+  - To serve the customer elsewhere, cancel the appointment and book a new one at the other location, which runs that location's full submit validation. Audit, reschedule history and override approvals stay with the cancelled appointment.
+  - An appointment sourced from a workorder is booked only at the workorder's current site. Create refuses with 422 `WORKORDER_AT_ANOTHER_LOCATION` when the workorder replica shows another location, and goes ahead when the replica has no row. Moving work to another location takes a workorder transfer (DECISION-SHOPMGMT-024).
+- Assumptions:
+  - Appointments are shopmgmt's system of record (DECISION-INVENTORY-010), and `pos-workorder` never changes one. Their source link is immutable (DECISION-SHOPMGMT-001).
+- Rationale:
+  - Hours, timezone, horizon, capacity, location scope and override approvals all belong to one location. A moved appointment would take approvals given at one location into another location's book.
+- Impact:
+  - APIs: create gains one 422 code. Reschedule's `newResourceId` is limited to the appointment's own location.
+- Decision ID: DECISION-SHOPMGMT-025
+
 ## Todos Reconciled
 
 - Original todo: "CLARIFY exact appointment status enums" → Resolution: Resolved (backend-owned enum + recommended set) | Decision: DECISION-SHOPMGMT-013
@@ -632,6 +667,7 @@ and defines what must be treated as backend-authoritative vs UI hints.
 - Escalation from durion-positivity-backend#2094: "CLARIFY booking horizon" → Resolution: Resolved (configurable, 180-day default; enforcement tracked separately) | Decision: DECISION-SHOPMGMT-019
 - Escalation from durion-positivity-backend#2095: "CLARIFY workStartedAt vs planned startAt" → Resolution: Resolved (early start is legitimate; effective window governs occupancy; not a reschedule) | Decision: DECISION-SHOPMGMT-020
 - Escalation from durion-positivity-backend#2245: "CLARIFY bay and mobile-unit setup rules" → Resolution: Resolved (eligibility enforced at submit, duty class at placement; affected appointments listed; mobile units serve their base location) | Decision: DECISION-SHOPMGMT-021, DECISION-SHOPMGMT-022, DECISION-SHOPMGMT-023; location data rules DECISION-LOCATION-025 to 029
+- Escalation from durion-positivity-backend#2258: "CLARIFY transferring a workorder between locations" (shop side) → Resolution: Resolved (transfer ends old holds and the target books afresh under every rule; appointment location is fixed; transfer replaces cross-location dispatch) | Decision: DECISION-SHOPMGMT-024, DECISION-SHOPMGMT-025; workorder side DECISION-INVENTORY-023 to 028
 
 ## End
 

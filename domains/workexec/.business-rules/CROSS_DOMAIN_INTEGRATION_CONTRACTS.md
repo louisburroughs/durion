@@ -919,7 +919,7 @@ stays in pos-workorder and is not published. `appointmentId` is the estimate's a
 fields are null when nothing was held.
 
 **Consumer:** `pos-shop-manager`. What happens to the placement plan and the appointment is decided in
-DECISION-SHOPMGMT-025: it cancels the linked source appointment with reason `WORKORDER_TRANSFERRED` and removes the
+DECISION-SHOPMGMT-024: it cancels the linked source appointment with reason `WORKORDER_TRANSFERRED` and removes the
 workorder mapping, and the target advisor books afresh. The consumer must not send the workorder back: pos-workorder drops an `AssignmentUpdatedEvent`
 that names a site other than the workorder's own (DECISION-INVENTORY-023).
 

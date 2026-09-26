@@ -14,7 +14,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
 ## Completed items
 
-- [x] Documented 23 key shopmgmt decisions
+- [x] Documented 25 key shopmgmt decisions
 - [x] Provided alternatives analysis
 - [x] Included architectural schemas
 - [x] Added auditor SQL queries
@@ -1736,7 +1736,7 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
 
 - **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-023)
 - **Decision:** A mobile unit takes work from its base location only, and only operations it claims. Six rules follow:
-  1. **Base location only.** Eligibility is scoped to the unit's base location, matching `pos-workorder`'s same-site placement rule. There is no cross-location dispatch; moving work to another location is a workorder transfer (tracked separately).
+  1. **Base location only.** Eligibility is scoped to the unit's base location, matching `pos-workorder`'s same-site placement rule. There is no cross-location dispatch; moving work to another location is a workorder transfer (shop side: DECISION-SHOPMGMT-024).
   2. **Claimed work only.** A unit may perform only the operation codes it claims. Unlike a `GENERAL_SERVICE` bay, it has no general-work default.
   3. **Coverage** (data rules in DECISION-LOCATION-027): an inactive service area contributes nothing; coverage priority is one ranking across the location's units, 1 sent first, ties broken by unit id; validity windows are evaluated in UTC.
   4. **Hours** are the base location's operating hours, holiday closures and timezone. A unit has no hours of its own.
@@ -1762,7 +1762,182 @@ This document provides comprehensive rationale and decision logs for the Shop Ma
   - ADR-0044 R1: `pos-shop-manager` does not call `pos-location` synchronously; coverage and areas travel as facts when mobile scheduling is built.
 - **Governance & owner recommendations:**
   - **Owner:** Shopmgmt domain for scheduling; Location for coverage data
-  - **Open follow-up:** workorder transfer between locations (Workorder Execution).
+  - **Follow-up (decided):** workorder transfer between locations — DECISION-INVENTORY-023 to -028 (workorder side), DECISION-SHOPMGMT-024 and DECISION-SHOPMGMT-025 (shop side).
+
+### DECISION-SHOPMGMT-024 — Workorder Transfer, Shop Side: Old Holds End, the Target Books Afresh
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-024)
+- **Decision:** A workorder transfer (DECISION-INVENTORY-023 to -028, owned by `pos-workorder`) ends every hold the workorder has at the old location and creates none at the new one. Seven rules follow:
+  1. **Placement is released by `pos-workorder`.** The transfer releases the workorder's bay, mobile-unit or `HOLD` position in its own transaction and leaves the normal history row (DECISION-INVENTORY-024). The transfer never places the workorder at the target, so the workorder arrives unplaced. Placement at the target is an ordinary placement at the new site, with the site, active and duty-class checks (DECISION-SHOPMGMT-021 rule 3). Shopmgmt owns no placement, so it releases nothing itself.
+  2. **The linked appointment ends; it does not move.** When `pos-shop-manager` consumes `workorder.workorder.transferred`, it ends every held appointment that is linked to the workorder and not at `toLocationId`:
+     - the appointment becomes `CANCELLED`, with a new reason code `WORKORDER_TRANSFERRED`
+     - its cancellation notes record the target location and the transfer's `reasonCode`
+     - its planned assignment becomes `CANCELLED` (DECISION-SHOPMGMT-010)
+     - its `work_order_appointment_mapping` row is removed, so a later workorder status fact cannot bring it back
+
+     An appointment counts as linked if any of these hold: the fact's `appointmentId` names it, a `work_order_appointment_mapping` row points to it, its `sourceType` is `WORKORDER` with that `sourceId`, or its `workorderLinkRef` names the workorder. Appointments never change location (DECISION-SHOPMGMT-025).
+  3. **The consumer never refuses, whatever the status.** It acts on every status in `AppointmentStatus.holdingAResource()`, not only `SCHEDULED` as the cancel endpoint does. Terminal appointments are left as they are. `pos-shop-manager` cannot refuse a transfer, because it learns of the transfer only after it has happened (ADR-0044). The old location cannot serve the booking either: `pos-workorder` refuses any placement there (`requireSameSite`).
+  4. **The target books a new appointment, under every rule.** If the work still needs a slot, the target advisor books it after the transfer, with the ordinary create sourced from the workorder. The target applies every submit rule, as for any other booking:
+     - the booking horizon (DECISION-SHOPMGMT-019)
+     - eligibility (DECISION-SHOPMGMT-021, and DECISION-SHOPMGMT-023 for mobile units once they are schedulable)
+     - HARD conflicts, including hours, closures and unknown days (DECISION-SHOPMGMT-008, DECISION-SHOPMGMT-018)
+     - SOFT conflicts, overridable only under the target's location scope (DECISION-SHOPMGMT-002, DECISION-SHOPMGMT-007)
+
+     A transfer gets no priority, capacity exemption or carried-over override at the target, and the old window and resource are not carried over. A booking at the target made before the transfer is refused with `WORKORDER_AT_ANOTHER_LOCATION` (DECISION-SHOPMGMT-025 rule 4). An advisor can still check the target's openings beforehand, because the opening search is keyed on location, not on the workorder.
+  5. **A transfer is neither a reschedule nor a customer cancellation.** The ended appointment uses up no reschedule allowance and passes none on (DECISION-SHOPMGMT-004). It sends the customer no cancellation notice (DECISION-SHOPMGMT-016); the confirmation of the new booking is the customer's notice. `WORKORDER_TRANSFERRED` is assigned only by the system, and the cancel endpoint refuses it with 400 `VALIDATION_ERROR`.
+  6. **Mobile units: transfer is how work reaches another depot.** If a unit from another depot is better placed, it serves the job only after the workorder is transferred to the unit's base location (transfer reason `MOBILE_DEPOT`, DECISION-INVENTORY-028). From then on the job runs on that location's hours, holidays, timezone and travel buffer (DECISION-SHOPMGMT-023 rules 4–5). Shopmgmt does not suggest a transfer, rank other locations or their units, or choose the target; the advisor does.
+  7. **Ownership of each step:**
+
+     | Step | Owner | Mechanism |
+     | --- | --- | --- |
+     | Allow or refuse the transfer (state, time, parts, reason, permission at both ends) | `pos-workorder` | DECISION-INVENTORY-024, DECISION-INVENTORY-028 |
+     | Release the old position (and technician) | `pos-workorder` | Same transaction as the transfer |
+     | Announce the transfer | `pos-workorder` | `workorder.workorder.transferred` (`WorkorderTransferredV1`) on `workorder.events.v1`, through the outbox, followed by the usual `WorkorderUpdatedV1` snapshot |
+     | End the old appointment(s) and planned assignment | `pos-shop-manager` | Consumer of the transfer fact, idempotent through `processed_events` |
+     | Show the workorder at the target on the dashboard | `pos-shop-manager` | The existing `WorkorderEventsListener`: `ext_workorder.location_id` follows the snapshot, with no new code |
+     | Book at the target | `pos-shop-manager` | Ordinary appointment create, by the target advisor |
+     | Place at the target | `pos-workorder` | Ordinary placement at the new site |
+
+- **Signals, codes and permissions:**
+  - **Consumed:** `workorder.workorder.transferred`. `pos-shop-manager` acts on this explicit fact and never infers a transfer from a change of `locationId` between two snapshots. A snapshot's site can change for reasons that are not a transfer: `WorkorderEventsListener` falls back from `locationId` to `shopId`, and until DECISION-INVENTORY-023 rule 4 lands, `WorkorderServiceImpl.handleAssignmentUpdated` and `overrideOperationalContext` rewrite `locationId` without any transfer rule. Treating either as a transfer would cancel a customer's booking.
+  - **Published:** nothing across modules. `pos-shop-manager` publishes no appointment facts today, and `AppointmentEventListener` only logs. The in-process `AppointmentCancelledEvent` carries the reason `WORKORDER_TRANSFERRED`, and any appointment fact added later inherits it. Shopmgmt never uses `ASSIGNMENT_UPDATED` to move a workorder between sites; `pos-workorder` drops such an input (DECISION-INVENTORY-023 rule 4).
+  - **Error codes:**
+    - consuming a transfer adds none
+    - create adds `WORKORDER_AT_ANOTHER_LOCATION` (422, DECISION-SHOPMGMT-025)
+    - the cancel endpoint answers `VALIDATION_ERROR` (400) when a caller sends the system-assigned reason
+    - the transfer's own refusals are Workorder Execution's (`WORKORDER_TRANSFER_*`, DECISION-INVENTORY-024)
+  - **Permissions:** no new shopmgmt permission. The transfer is guarded by `workorder:workorder:transfer` at both locations (DECISION-INVENTORY-028). Booking at the target needs `appointments:create` scoped to the target (ADR-0061). The consumer acts as `SYSTEM`.
+  - **Status sync:** after a transfer the workorder keeps its id (DECISION-INVENTORY-023). Its next status facts, for example `ASSIGNED` when it is placed at the target, would otherwise reach the old appointment through `WorkorderStatusEventServiceImpl.STATUS_MAPPING` (`ASSIGNED` maps to `CHECKED_IN`) and hold the old bay again. Removing the mapping in rule 2 prevents that. As a second guard, the status sync never moves an appointment out of `CANCELLED`.
+- **When a transfer may happen:** shopmgmt agrees with DECISION-INVENTORY-024 that a transfer happens only before work starts and before any time is recorded. So the ended appointment never carries actual occupancy (DECISION-SHOPMGMT-020), and no capacity read loses real work. If that rule is ever relaxed, this decision must be revisited: past-date capacity reads would drop the old bay's actual occupancy between the start and the transfer, because the cancelled appointment no longer holds the bay.
+- **Alternatives considered:**
+  - **Option A (Chosen):** end the old holds automatically on the fact; the target books afresh
+    - Pros: the old location stops holding capacity it can no longer use, the risk `durion-positivity-backend#2258` names. The target's rules are applied by the one path that already applies all of them.
+    - Cons: the customer's visit spans two appointment ids. For a few seconds of replica lag, the old location's board shows the bay held. That is the safe direction: a bay shown held when it is free costs a booking, which can be recovered (the asymmetry DECISION-SHOPMGMT-018 argues).
+  - **Option B:** move the appointment to the target automatically when the fact arrives, re-validated under DECISION-SHOPMGMT-021
+    - Pros: the customer keeps one booking, and nobody has to act
+    - Cons: a consumer cannot refuse. At that moment the target bay may be taken, closed or ineligible, which leaves either an invalid booking or one that silently disappears. Resource ids belong to one location, so the old bay id means nothing at the target. It also contradicts DECISION-SHOPMGMT-025.
+  - **Option C:** flag the old appointment as affected, as DECISION-SHOPMGMT-022 does, and let the old location's advisor cancel it
+    - Pros: a person sees the change
+    - Cons: the old location can no longer serve the booking, because `pos-workorder` refuses placement there, so ending it is the only valid action. Leaving it open holds capacity the location could sell. DECISION-SHOPMGMT-022's flag fits a different case, where the booking can still be served on another resource at the same location.
+  - **Option D:** make `pos-workorder` refuse a transfer while a held appointment exists
+    - Pros: nothing is ended automatically
+    - Cons: `pos-workorder` cannot see appointments. `Workorder` carries no appointment id, and ADR-0044 forbids a synchronous check across the wall.
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2258` (Q3, and the shop side of Q1, Q2 and Q7). The owner noted in `durion-positivity-backend#2245` that workorders could become transferable instead of allowing cross-location dispatch (DECISION-SHOPMGMT-023).
+  - The two holds are separate facts in separate modules, so each is released by its owner:
+
+    | Hold | Table | Module | Exclusivity |
+    | --- | --- | --- | --- |
+    | The workorder's position | `service_position_assignment` | `pos-workorder` | `workorder_open_position_uniq` |
+    | The appointment's booking | `appointment` | `pos-shop-manager` | `appointment_resource_no_overlap` |
+
+    That is why rules 1 and 2 name different owners.
+  - `pos-workorder`'s `resolvePosition` refuses a bay or unit whose site differs from the workorder's (`requireSameSite`), and it forces `HOLD` onto the workorder's own site. Once the site changes, no booking at the old location can be honoured on the floor.
+  - `AppointmentsServiceImpl.cancelAppointment` accepts only `SCHEDULED`. An `ASSIGNED` workorder has a `CHECKED_IN` appointment, so the consumer needs its own path (rule 3) rather than that gate.
+  - `WorkorderStatusEventServiceImpl` sets the mapped appointment's status whatever its current status is. That is why rule 2 removes the mapping.
+- **Architectural implications:**
+  - **Components affected:**
+    - `pos-shop-manager`:
+      - a consumer for `workorder.workorder.transferred`, next to `WorkorderEventsListener`
+      - `CancellationReasonCode.WORKORDER_TRANSFERRED`
+      - the cancel endpoint refuses that code
+      - a status-sync guard for `CANCELLED`
+      - the workorder-site check on create (DECISION-SHOPMGMT-025)
+    - `pos-workorder` and `pos-domain-events`: the transfer and `WorkorderTransferredV1` (DECISION-INVENTORY-028)
+  - **No schema change in `pos-shop-manager`.** `cancellation_reason` is a varchar, so the new value needs no migration.
+  - **No production writer for links.** No production code writes `work_order_appointment_mapping` today; only tests do. So the consumer also matches on the fact's `appointmentId`, on `sourceType`/`sourceId` and on `workorderLinkRef` (rule 2). The missing writer is tracked as its own implementation issue.
+- **Auditor-facing explanation:**
+  - **What to inspect:**
+    - no held appointment is stranded at a location its workorder has left: DECISION-SHOPMGMT-025 query (2)
+    - no appointment ended by a transfer has come back
+  - **Query example:**
+
+    ```sql
+    -- An appointment ended by a transfer must stay cancelled.
+    SELECT appointment_id, location_id, status, updated_at
+    FROM appointment
+    WHERE cancellation_reason = 'WORKORDER_TRANSFERRED'
+      AND status <> 'CANCELLED';
+    ```
+
+  - **Expected outcome:** zero rows. Each row is an appointment that a later status fact brought back, and it may be holding a bay at a location that cannot use it.
+- **Migration & backward-compatibility notes:**
+  - Nothing to migrate: no transfer fact exists yet, so no appointment carries the new reason. The shop side ships with or after the Workorder Execution transfer, never before it.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain for appointments and planned assignments. Workorder Execution owns the transfer, placement and the fact. Location owns sites and resources.
+  - **Policy:** a transfer never earns an exemption at the target. Any proposal for priority, reserved capacity or automatic re-booking of transferred work amends this decision.
+  - **Monitoring:** track the age of the oldest held appointment at a location other than its workorder's (DECISION-SHOPMGMT-025 query (2)). Anything older than a few minutes means the transfer consumer has stalled.
+
+### DECISION-SHOPMGMT-025 — An Appointment's Location Is Fixed; Serving Elsewhere Is Cancel and Rebook
+
+- **Normative source:** `AGENT_GUIDE.md` (Decision ID DECISION-SHOPMGMT-025)
+- **Decision:** An appointment belongs to the location it was booked at for its whole life, and no operation moves it to another location. Four rules follow:
+  1. **Location is written once.** `locationId` is set at create and never changes. A reschedule changes the window and, under DECISION-SHOPMGMT-022 rule 3, the resource. It never changes the location. A `newResourceId` at another location is refused with `SERVICE_POSITION_INVALID` (422), the DECISION-SHOPMGMT-021 code for a resource at another location.
+  2. **Another location means two writes.** To serve the customer elsewhere, the appointment is cancelled at its own location and a new one is booked at the other. The new booking passes that location's full submit validation (DECISION-SHOPMGMT-019, -021, -002, -008). There is no "move" or "transfer" operation for an appointment.
+  3. **History stays where it happened.** The cancelled appointment keeps its audit, reschedule history, conflict records and any override approval (DECISION-SHOPMGMT-007). None of it carries over, and the new booking starts with an empty reschedule history (DECISION-SHOPMGMT-004).
+  4. **A workorder's appointment is booked at the workorder's site.** When `sourceType` is `WORKORDER`, create refuses with 422 `WORKORDER_AT_ANOTHER_LOCATION` if the `ext_workorder` replica shows the workorder at a different location. If the replica has no row for the workorder, create goes ahead (ADR-0044 R3: refuse on a known contradiction, never on absence). An appointment therefore cannot be used to move work to another location: that takes a workorder transfer (DECISION-SHOPMGMT-024, DECISION-INVENTORY-023 rule 5).
+- **Alternatives considered:**
+  - **Option A (Chosen):** the location is fixed; serving elsewhere is cancel and rebook
+    - Pros:
+      - Each rule that depends on location is checked once, at the location it describes: facility-local hours and timezone (DECISION-SHOPMGMT-015), the horizon counted in facility-local days (DECISION-SHOPMGMT-019), capacity, location scope (DECISION-SHOPMGMT-012, ADR-0061) and manager overrides (DECISION-SHOPMGMT-007).
+      - History stays readable by the location it happened at.
+      - It agrees with DECISION-SHOPMGMT-001, which makes the source link immutable.
+    - Cons: the customer's visit gets a new appointment id, so a reader who follows one visit across two locations joins through the workorder or the customer.
+  - **Option B:** a relocate operation that changes location, resource and window in one write, re-validated at the target
+    - Pros: one id per visit, and one call
+    - Cons: overrides approved by a manager at the old location, the old audit and the reschedule count would all move into another location's book, where nobody approved them. Read scope comes from the appointment's location (DECISION-SHOPMGMT-012), so the old location would lose sight of its own history. Every validator would also need a rule for which location's policy applies to which part of the record.
+  - **Option C:** let a reschedule pick a resource at another location
+    - Pros: no new concept
+    - Cons: this is cross-location dispatch under another name, which DECISION-SHOPMGMT-023 rejected
+- **Reasoning and evidence:**
+  - Escalated from `durion-positivity-backend#2258` (Q3, origin `durion-positivity-backend#2245`).
+  - Rule 1 records current behaviour:
+    - `Appointment.locationId` is non-nullable, and no write path sets it after create.
+    - `AppointmentsServiceImpl.rescheduleAppointment` takes its conflict check and its horizon zone from `appointment.getLocationId()`.
+    - The rule is written down because DECISION-SHOPMGMT-022's `newResourceId` would otherwise be the one field that could cross locations.
+  - `SourceEligibilityServiceImpl.validateWorkOrderEligibility` is a stub today, so nothing stops a workorder's appointment from being booked at a location the workorder is not at. That is the cross-location dispatch DECISION-SHOPMGMT-023 forbids, reached through the book instead of through the van. Rule 4 closes the gap.
+  - `ConflictOverrideServiceImpl` checks location scope against `appointment.getLocationId()`. An override approves a booking in one location's book and cannot be moved to another.
+- **Architectural implications:**
+  - **Components affected:** `pos-shop-manager` reschedule (`newResourceId` stays at the appointment's location) and create (a workorder-sourced booking is checked against `ext_workorder.location_id`).
+  - **Contract chain:** create gains one 422 code. When it is implemented, the OpenAPI, the SDK and the `API Artifacts Sync` workflow follow.
+  - **Replica lag:** a booking made seconds after its workorder changed site can be refused until the workorder fact arrives. The refusal names the location the replica holds, so the advisor can tell the replica is behind and retry.
+- **Auditor-facing explanation:**
+  - **What to inspect:** held appointments whose resource belongs to another location, or whose workorder is now at another location.
+  - **Query example:**
+
+    ```sql
+    -- (1) Held appointments on a resource belonging to another location.
+    SELECT a.appointment_id, a.location_id, a.resource_type, a.resource_id,
+           COALESCE(b.location_id, u.base_location_id) AS resource_location_id
+    FROM appointment a
+    LEFT JOIN ext_bay b ON a.resource_type = 'BAY' AND b.bay_id::text = a.resource_id
+    LEFT JOIN ext_mobile_unit u ON a.resource_type = 'MOBILE_UNIT' AND u.mobile_unit_id::text = a.resource_id
+    WHERE a.status IN ('SCHEDULED', 'CHECKED_IN', 'WORK_IN_PROGRESS', 'WAITING_FOR_PARTS',
+                       'QUALITY_CHECK', 'READY_FOR_PICKUP', 'REOPENED')
+      AND COALESCE(b.location_id, u.base_location_id) <> a.location_id;
+
+    -- (2) Held appointments whose workorder is now at another location.
+    SELECT a.appointment_id, a.location_id AS appointment_location_id,
+           w.workorder_id, w.location_id AS workorder_location_id
+    FROM appointment a
+    JOIN ext_workorder w
+      ON w.workorder_id IN (SELECT m.work_order_id FROM work_order_appointment_mapping m
+                             WHERE m.appointment_id = a.appointment_id)
+      OR (a.source_type = 'WORKORDER' AND a.source_id = w.workorder_id::text)
+    WHERE a.status IN ('SCHEDULED', 'CHECKED_IN', 'WORK_IN_PROGRESS', 'WAITING_FOR_PARTS',
+                       'QUALITY_CHECK', 'READY_FOR_PICKUP', 'REOPENED')
+      AND w.location_id <> a.location_id;
+    ```
+
+  - **Expected outcome:**
+    - Query (1): zero rows.
+    - Query (2): zero rows, except in the seconds between a workorder transfer and its consumption (DECISION-SHOPMGMT-024). A row that persists means that consumer has stalled.
+- **Migration & backward-compatibility notes:**
+  - Pre-production: no shim, and existing rows are not re-validated.
+  - No schema change: `location_id` is already non-nullable and never updated.
+- **Governance & owner recommendations:**
+  - **Owner:** Shopmgmt domain
+  - **Policy:** a proposal to move appointments between locations amends this decision rather than being built around it.
 
 ## End
 
