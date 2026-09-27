@@ -304,7 +304,7 @@ Realized by: durion-positivity-backend#2268.
 
 ##### #2270 — (to be filled)
 
-_Placeholder. Facts for durion-positivity-backend#2270 (per its title in the wave-3 plan: affected
+*Placeholder. Facts for durion-positivity-backend#2270 (per its title in the wave-3 plan: affected
 appointments when a bay or mobile unit leaves service, and rescheduling to another resource) will
 be supplied in a follow-up message and written up against the #2270 code at that time.
 DECISION-SHOPMGMT-022 in `AGENT_GUIDE.md` records the design intent (status changes are never
@@ -312,7 +312,7 @@ blocked; affected appointments are derived at read time and listed for reschedul
 accepts a `newResourceId`; a shop-caused reschedule does not count against the customer's
 allowance) but has not been verified against this branch's implementation, so nothing here is
 asserted as contract yet — do not treat DECISION-SHOPMGMT-022 alone as a substitute for verifying
-the shipped behavior._
+the shipped behavior.*
 
 ### Events & Dependencies
 
