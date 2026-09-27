@@ -159,6 +159,33 @@ returned as absent rather than failing the read, so `null` alone does not prove 
 These are response-only shapes (`OperatingHoursResponse`, `HolidayClosureResponse`); the
 write-side request types are deliberately not reused, so the two are free to diverge.
 
+#### Stories louisburroughs/durion-positivity-backend#2260 and #2262 — Bay Specialty Map Fact, Bay Duty Ceiling on Bulk Ingest
+
+DECISION-LOCATION-025 makes the bay-type specialty map the one definition of which operation
+codes are specialty. pos-location now publishes it and keeps it for every tenant:
+
+- **Fact `location.bay-specialty-map.updated`** (`BaySpecialtyMapUpdatedV1`, schema v1, topic
+  `location.events.v1`). Payload `{ tenantId, entries[], aggregateVersion }`; each entry is
+  `{ bayType, operationCodes[], acceptsGeneralWork }`. `entries` is the **full** map, one entry
+  per `BayType` (an empty `operationCodes` is a real answer), so consumers replace, never merge.
+  Envelope `aggregateId` is the tenant id; `aggregateVersion` is a per-tenant counter, and equal
+  versions are not stale.
+- **When it is published:** when a tenant is provisioned (`tenant.created` copies the platform
+  tenant's template map, idempotently), and once per active tenant at pos-location startup.
+  A tenant with no map at startup is provisioned from the template first. There is no REST
+  write path to the map yet.
+- **`BayUpdatedV1.acceptsGeneralWork`** (nullable Boolean, additive within v1): `false` only for
+  `WASH_DETAIL`. `null` means the emission predates the field; consumers keep their value.
+- **Retype resets codes:** a bay `PATCH` that changes `bayType` without `serviceCapabilityCodes`
+  resets the codes to the new type's map defaults (spec D14.3, unchanged behaviour, now stated
+  in the `BayPatchRequest` schema).
+- **`POST /v1/locations/bays/bulk-ingest`** records accept an optional `maxDutyClass` (1–8,
+  blank or absent means no ceiling), matching `BayRequest`.
+
+Consumers: pos-shop-manager and pos-workorder replicate the map (`ext_bay_type`,
+`ext_bay_specialty_map`) and `ext_bay.accepts_general_work` (#2261). No eligibility behaviour
+reads them yet; that lands with #2268 and #2269.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
