@@ -846,7 +846,7 @@ Returns 204 on success, 404 when the location does not exist, and 403 LOCATION_S
 **Responses:**
 
 - `204`: Location deleted successfully.
-- `403`: Caller holds location:write but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller holds location:write but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found.
 
 
@@ -902,7 +902,7 @@ Returns 404 when the location does not exist, 403 LOCATION_SCOPE_DENIED when it 
 
 - `200`: Location patched successfully.
 - `400`: VALIDATION_ERROR: distanceUnit is something other than KM or MI (fieldErrors names it).
-- `403`: Caller holds location:write but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller holds location:write but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found.
 - `409`: Location name already taken.
 - `422`: Invalid timezone or operating hours.
@@ -932,7 +932,7 @@ Returns 404 when the location does not exist, 403 LOCATION_SCOPE_DENIED when it 
 
 - `200`: Location updated successfully.
 - `400`: VALIDATION_ERROR: distanceUnit is something other than KM or MI (fieldErrors names it).
-- `403`: Caller holds location:write but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller holds location:write but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found.
 - `409`: Location name or code already taken.
 - `422`: Invalid timezone or operating hours.
@@ -966,7 +966,7 @@ Returns 400 when locationId does not parse as a UUID, 403 LOCATION_SCOPE_DENIED 
 
 - `200`: Bays retrieved successfully.
 - `400`: locationId is not a UUID.
-- `403`: Caller lacks location:bay:read, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:bay:read, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found.
 
 
@@ -994,7 +994,7 @@ Returns 400 when locationId does not parse as a UUID, 403 LOCATION_SCOPE_DENIED 
 
 - `201`: Bay created successfully.
 - `400`: locationId is not a UUID, or the payload is invalid.
-- `403`: Caller lacks location:bay:manage, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:bay:manage, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found.
 - `409`: Bay name already taken at this location, including a retired bay's name.
 - `422`: OUT_OF_SERVICE_REASON_REQUIRED: status is OUT_OF_SERVICE without outOfServiceReason, or outOfServiceReason is OTHER without outOfServiceNote.
@@ -1025,7 +1025,7 @@ Returns 204 on success, 400 when either id does not parse as a UUID, 403 LOCATIO
 
 - `204`: Bay retired successfully.
 - `400`: locationId or bayId is not a UUID.
-- `403`: Caller lacks location:bay:manage, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:bay:manage, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location or bay not found.
 - `409`: A concurrent update won the version race.
 
@@ -1055,7 +1055,7 @@ Returns 400 when either id does not parse as a UUID, 403 LOCATION_SCOPE_DENIED w
 
 - `200`: Bay retrieved successfully.
 - `400`: locationId or bayId is not a UUID.
-- `403`: Caller lacks location:bay:read, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:bay:read, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Bay not found.
 
 
@@ -1084,7 +1084,7 @@ Returns 400 when either id does not parse as a UUID, 403 LOCATION_SCOPE_DENIED w
 
 - `200`: Bay updated successfully.
 - `400`: locationId or bayId is not a UUID.
-- `403`: Caller lacks location:bay:manage, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:bay:manage, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location or bay not found.
 - `409`: Bay name already taken at this location, or a concurrent update won the version race.
 - `422`: OUT_OF_SERVICE_REASON_REQUIRED: the resulting status is OUT_OF_SERVICE without outOfServiceReason, or outOfServiceReason is OTHER without outOfServiceNote.
@@ -1140,7 +1140,7 @@ Returns 404 when the site does not exist and 403 LOCATION_SCOPE_DENIED when a lo
 **Responses:**
 
 - `200`: Site defaults returned
-- `403`: Caller lacks location:read, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:read, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found
 
 
@@ -1168,7 +1168,7 @@ Returns 404 when the site does not exist, 403 LOCATION_SCOPE_DENIED when a locat
 
 - `200`: Site defaults configured
 - `400`: Invalid request payload
-- `403`: Caller lacks location:write, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md).
+- `403`: Caller lacks location:write, or holds it but its location scope does not cover locationId (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md).
 - `404`: Location not found
 - `422`: Default storage location does not belong to the site
 
@@ -2105,5 +2105,5 @@ This generated reference summarizes API structures for the Location Management d
 
 ---
 
-**Generated:** 2026-09-27 02:27:32 UTC  
+**Generated:** 2026-09-27 03:04:36 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`

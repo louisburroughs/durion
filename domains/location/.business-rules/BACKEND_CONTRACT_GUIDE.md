@@ -7,7 +7,7 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-location/openapi.yaml
-openapi_commit: 5ea0caf6
+openapi_commit: f2ce471f
 last_verified_utc: 2026-09-27T00:00:00Z
 last_updated: 2026-09-27
 api_reference_generated: domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md
@@ -345,7 +345,7 @@ replica columns`.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-location/openapi.yaml`
-- OpenAPI source revision: `5ea0caf6` (backend branch `claude/great-ritchie-w9lsyo-wave3`; the
+- OpenAPI source revision: `f2ce471f` (backend branch `claude/great-ritchie-w9lsyo-wave3`; the
   `maxDutyClass` PATCH-clears-on-explicit-null note above was verified against worktree `wt-w3-int`,
   `MobileUnitServiceImpl.applyIdentityFields`)
 - Last verified UTC: `2026-09-27T00:00:00Z`

@@ -178,6 +178,12 @@ public enum Status {
 
 ### Enums in this Domain
 
+#### AppointmentCreateRequest.resourceType
+
+- `BAY`
+- `MOBILE_UNIT`
+- `UNASSIGNED`
+
 #### AppointmentCreateRequest.sourceType
 
 - `ESTIMATE`
@@ -248,6 +254,12 @@ public enum Status {
 
 - `NO_ELIGIBLE_BAY_AT_LOCATION`
 - `ALL_ELIGIBLE_BAYS_BOOKED`
+
+#### RescheduleAppointmentRequest.newResourceType
+
+- `BAY`
+- `MOBILE_UNIT`
+- `UNASSIGNED`
 
 #### RescheduleAppointmentRequest.reason
 
@@ -487,11 +499,11 @@ This domain exposes **17** REST API endpoints:
 
 **Description:** Creates a shop appointment that reserves a time window for a customer's vehicle at a location, optionally against a specific bay or mobile-unit resource and optionally linked to an originating estimate or work order.
 Use this tool when booking new shop work; do not use rescheduleAppointment, which moves the time window of an appointment that already exists.
-Preconditions: the customer and vehicle must exist in the local CRM replicas and the vehicle must belong to the customer; the requested window must not overlap another SCHEDULED appointment on the same resource at the location; when sourceType (ESTIMATE or WORK_ORDER) is set, sourceId is required, the source must be eligible for scheduling, and no appointment may already exist for that source.
-Required inputs: crmCustomerId, crmVehicleId and locationId (UUIDs), startAt and endAt (UTC instants, startAt before endAt) and at least one serviceRequestIds entry; an optional Idempotency-Key header (non-blank, max 128 characters) makes retries safe and replays the original response only when the retried request matches the stored appointment's scheduling fields.
-Emits a SHOPMGR_APPOINTMENT_CREATE event and persists customer and vehicle snapshots on the appointment, which is created in SCHEDULED status.
+Preconditions: the customer and vehicle must exist in the local CRM replicas and the vehicle must belong to the customer; the requested window must not overlap another SCHEDULED appointment on the same resource at the location; when sourceType (ESTIMATE or WORK_ORDER) is set, sourceId is required, the source must be eligible for scheduling, and no appointment may already exist for that source; when resourceType is BAY or MOBILE_UNIT (stated or inferred, see below), resourceId must resolve to an ACTIVE resource at locationId that is eligible for the appointment's services and vehicle (DECISION-SHOPMGMT-021) — a BAY must claim every specialty operation on the appointment (or take no general work, per its bay type's specialty map) and accommodate the vehicle's GVWR class.
+Required inputs: crmCustomerId, crmVehicleId and locationId (UUIDs), startAt and endAt (UTC instants, startAt before endAt) and at least one serviceRequestIds entry; an optional Idempotency-Key header (non-blank, max 128 characters) makes retries safe and replays the original response only when the retried request matches the stored appointment's scheduling fields. resourceType (BAY, MOBILE_UNIT or UNASSIGNED) is optional but is never a way to skip eligibility on a real resourceId: omit both to book UNASSIGNED; name a resourceId with resourceType omitted and it is inferred as BAY or MOBILE_UNIT from whichever replica holds that id (400 if resourceId is set with resourceType UNASSIGNED, or unset with BAY/MOBILE_UNIT; 422 SERVICE_POSITION_INVALID if it matches neither replica).
+Emits a SHOPMGR_APPOINTMENT_CREATE event and persists customer and vehicle snapshots on the appointment, which is created in SCHEDULED status with resourceType stored verbatim.
 A caller whose appointments:create or shop:schedule:edit grant is location-scoped must have locationId within reach (ADR-0061).
-Returns 400 when the slot is already booked, the idempotency key was reused with a different request, or sourceId is missing for a supplied sourceType; 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cover locationId; 404 when the customer or vehicle is unknown; 409 when the vehicle does not belong to the customer; and 422 when the source estimate or work order is not eligible for scheduling or the start lies beyond the booking horizon.
+Returns 400 when the slot is already booked, the idempotency key was reused with a different request, or sourceId is missing for a supplied sourceType; 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cover locationId; 404 when the customer or vehicle is unknown; 409 when the vehicle does not belong to the customer; and 422 when the source estimate or work order is not eligible for scheduling, the start lies beyond the booking horizon, or the named resource fails DECISION-SHOPMGMT-021 eligibility (SERVICE_POSITION_INVALID, SERVICE_POSITION_INACTIVE, SERVICE_POSITION_NOT_EQUIPPED, SERVICE_POSITION_DUTY_CLASS_EXCEEDED — none of these are overridable).
 
 
 **Operation ID:** `createAppointment`
@@ -505,11 +517,11 @@ Returns 400 when the slot is already booked, the idempotency key was reused with
 
 - `200`: Replay of an existing appointment: a repeated Idempotency-Key, or an exact keyless resubmission of the same booking (CAP-326). No new appointment was created.
 - `201`: Appointment created successfully.
-- `400`: Validation error — duplicate source appointment, or request fields are invalid.
-- `403`: Caller holds appointments:create or shop:schedule:edit but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `400`: Validation error — duplicate source appointment, request fields are invalid, or resourceId/resourceType are contradictory (fieldErrors names resourceId): resourceType BAY or MOBILE_UNIT with no resourceId, or resourceId set with resourceType UNASSIGNED.
+- `403`: Caller holds appointments:create or shop:schedule:edit but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Customer or vehicle not found in the local CRM replicas.
 - `409`: Scheduling conflict — a HARD rule fired (DECISION-SHOPMGMT-002 envelope listing every rule that fired, code verbatim) — or the vehicle does not belong to the supplied customer.
-- `422`: Policy failure — SOURCE_NOT_ELIGIBLE when the estimate or work order cannot be scheduled (ineligible status), or BOOKING_HORIZON_EXCEEDED when startAt lies beyond the configured booking horizon (DECISION-SHOPMGMT-019; 180 facility-local days by default).
+- `422`: Policy failure, never overridable. SOURCE_NOT_ELIGIBLE when the estimate or work order cannot be scheduled (ineligible status); BOOKING_HORIZON_EXCEEDED when startAt lies beyond the configured booking horizon (DECISION-SHOPMGMT-019; 180 facility-local days by default); or, for a resourceType of BAY or MOBILE_UNIT (DECISION-SHOPMGMT-021, fieldErrors names resourceId), SERVICE_POSITION_INVALID (resourceId unknown, or at another location), SERVICE_POSITION_INACTIVE (not ACTIVE), SERVICE_POSITION_NOT_EQUIPPED (a BAY does not claim a specialty operation on the appointment, or takes no general work) or SERVICE_POSITION_DUTY_CLASS_EXCEEDED (the vehicle's GVWR class exceeds the bay's maxDutyClass).
 - `501`: Not implemented.
 
 
@@ -519,7 +531,7 @@ Returns 400 when the slot is already booked, the idempotency key was reused with
 
 **Summary:** Get an Appointment by Its ID
 
-**Description:** Returns the full appointment record, including status, time window, service request ids and the customer and vehicle snapshots captured at booking.
+**Description:** Returns the full appointment record, including status, time window, service request ids, the customer and vehicle snapshots captured at booking, and the derived DECISION-SHOPMGMT-022 affected flag.
 Use this tool when the appointment id is already known; use viewSchedule instead to browse appointments by location and date.
 Preconditions: the appointment must exist; appointmentId must be a UUID in canonical text form.
 Required inputs: appointmentId as a path parameter; there is no request body and no filtering.
@@ -539,7 +551,7 @@ Returns 400 when appointmentId is not a valid UUID, 404 when no appointment exis
 
 - `200`: Appointment retrieved successfully.
 - `400`: appointmentId is not a valid UUID.
-- `403`: Caller holds appointments:view or shop:schedule:view but its location scope does not cover the appointment's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds appointments:view or shop:schedule:view but its location scope does not cover the appointment's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Appointment not found.
 - `501`: Not implemented.
 
@@ -621,7 +633,7 @@ Returns 404 when the appointment does not exist, 403 LOCATION_SCOPE_DENIED when 
 **Responses:**
 
 - `200`: Appointment cancelled successfully.
-- `403`: Caller holds appointments:cancel but its location scope does not cover the appointment's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds appointments:cancel but its location scope does not cover the appointment's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Appointment not found.
 - `409`: Appointment state conflict.
 
@@ -661,13 +673,14 @@ Returns 400 when a conflictId is not recorded against this appointment or the bo
 
 **Summary:** Move an Appointment to a New Time Window
 
-**Description:** Moves an existing appointment to a new time window while preserving its resource, customer and service requests, recording the change in reschedule history and the appointment audit trail.
-Use this tool when a booked appointment must change times; do not use cancelAppointment, which terminates the appointment instead of moving it, and do not use createAppointment for a visit that is not yet booked.
-Preconditions: the appointment must exist and be in SCHEDULED, CHECKED_IN or WAITING_FOR_PARTS status; completed, cancelled and other statuses cannot be rescheduled.
-Required inputs: newStartAt and newEndAt (UTC instants, newStartAt before newEndAt) and a reason code; rescheduleReasonNotes (max 1000 characters) is mandatory when reason is OTHER, and notifyCustomer defaults to true.
+**Description:** Moves an existing appointment to a new time window and, optionally, onto a different resource (newResourceType/newResourceId, DECISION-SHOPMGMT-022 rule 3), recording the change in reschedule history and the appointment audit trail.
+Use this tool when a booked appointment must change times or resource; do not use cancelAppointment, which terminates the appointment instead of moving it, and do not use createAppointment for a visit that is not yet booked.
+Preconditions: the appointment must exist and be in SCHEDULED, CHECKED_IN or WAITING_FOR_PARTS status; when newResourceType and newResourceId are both absent, the appointment's own (unchanged) resource must still pass DECISION-SHOPMGMT-021 eligibility, inferring a missing or unrecognised stored resourceType from resourceId exactly as a fresh submit would; when either new-resource field is present, only the resource the appointment ends up on is validated and conflict-checked, never its old one, so moving off an ineligible resource always succeeds.
+Required inputs: newStartAt and newEndAt (UTC instants, newStartAt before newEndAt) and a reason code; rescheduleReasonNotes (max 1000 characters) is mandatory when reason is OTHER, notifyCustomer defaults to true, and newResourceType/newResourceId are optional.
+DECISION-SHOPMGMT-004: the first two reschedules of an appointment need no further permission, as does one that is shop-caused (reason EQUIPMENT_ISSUE, or the appointment was DECISION-SHOPMGMT-022 affected); the 3rd and later non-exempt reschedule needs appointments:reschedule:approve and a non-blank approvalReason (max 1000 characters).
 Emits a SHOPMGR_APPOINTMENT_RESCHEDULE event; a downstream workorder reschedule notification is additionally published only when the appointment carries a workorderLinkRef.
 A caller whose appointments:reschedule grant is location-scoped must have the appointment's location within reach (ADR-0061).
-Returns 400 when the time window is invalid or notes are missing for reason OTHER, 404 when the appointment does not exist, 403 LOCATION_SCOPE_DENIED when it exists but its location is outside the caller's scope, 409 when the appointment status does not permit rescheduling, and 422 BOOKING_HORIZON_EXCEEDED when newStartAt lies beyond the configured booking horizon.
+Returns 400 when the time window is invalid or notes are missing for reason OTHER, 404 when the appointment does not exist, 403 LOCATION_SCOPE_DENIED (location out of reach) or FORBIDDEN (approval required but appointments:reschedule:approve is not held), 409 when the appointment status does not permit rescheduling, and 422 for BOOKING_HORIZON_EXCEEDED, a SERVICE_POSITION_INVALID/INACTIVE/NOT_EQUIPPED/DUTY_CLASS_EXCEEDED failure on the resource the appointment ends up on (DECISION-SHOPMGMT-021, none overridable), or RESCHEDULE_APPROVAL_REASON_REQUIRED when approval is needed but approvalReason is missing or blank.
 
 
 **Operation ID:** `rescheduleAppointment`
@@ -680,10 +693,10 @@ Returns 400 when the time window is invalid or notes are missing for reason OTHE
 
 - `200`: Appointment rescheduled successfully.
 - `400`: Validation error — invalid times, missing mandatory fields, or blank notes required for OTHER reason.
-- `403`: Caller holds appointments:reschedule but its location scope does not cover the appointment's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds appointments:reschedule but its location scope does not cover the appointment's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md) Or FORBIDDEN when this is the 3rd or later non-exempt reschedule of the appointment (DECISION-SHOPMGMT-004) and the caller does not hold appointments:reschedule:approve.
 - `404`: Appointment not found.
 - `409`: Appointment state conflict — appointment is not in a reschedulable status.
-- `422`: BOOKING_HORIZON_EXCEEDED — newStartAt lies beyond the configured booking horizon (DECISION-SHOPMGMT-019; 180 facility-local days by default). The appointment keeps its previous window and no reschedule is recorded.
+- `422`: Policy failure, never overridable; the appointment keeps its previous window and no reschedule is recorded. BOOKING_HORIZON_EXCEEDED — newStartAt lies beyond the configured booking horizon (DECISION-SHOPMGMT-019; 180 facility-local days by default). Or, for the BAY or MOBILE_UNIT resource the appointment ends up on (DECISION-SHOPMGMT-021, fieldErrors names resourceId): SERVICE_POSITION_INVALID (unknown, or at another location), SERVICE_POSITION_INACTIVE (not ACTIVE), SERVICE_POSITION_NOT_EQUIPPED (a BAY no longer claims a specialty operation on the appointment, or takes no general work) or SERVICE_POSITION_DUTY_CLASS_EXCEEDED (the vehicle's GVWR class exceeds the bay's maxDutyClass). Or RESCHEDULE_APPROVAL_REASON_REQUIRED (fieldErrors names approvalReason) when the caller holds appointments:reschedule:approve for a 3rd-or-later non-exempt reschedule but sent no non-blank approvalReason (DECISION-SHOPMGMT-004).
 
 
 ---
@@ -714,7 +727,7 @@ Returns 400 when locationId, from or to is malformed or to is before from, 403 L
 
 - `200`: Capacity view retrieved successfully.
 - `400`: locationId, from or to is malformed, or to is before from.
-- `403`: Caller holds shop:schedule:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds shop:schedule:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `422`: The [from, to] span exceeds the 42-day policy limit (ApiError.code CAPACITY_RANGE_EXCEEDED).
 
 
@@ -751,7 +764,7 @@ Returns 400 for a malformed or out-of-range value, 403 LOCATION_SCOPE_DENIED whe
 
 - `200`: Openings computed; the list may be empty with noOpeningReason set.
 - `400`: Malformed or out-of-range input
-- `403`: Caller holds shop:schedule:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds shop:schedule:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Location or catalog service unknown to shop management
 - `422`: A policy bound exceeded or the location's hours unpublished (ApiError.code OPENING_HORIZON_EXCEEDED, OPENING_LIMIT_EXCEEDED, OPENING_TOO_MANY_SERVICES, LOCATION_HOURS_UNKNOWN).
 
@@ -765,7 +778,7 @@ Returns 400 for a malformed or out-of-range value, 403 LOCATION_SCOPE_DENIED whe
 **Description:** Builds the read-only schedule board for one location and date, grouping appointments into resource lanes (bay, mobile unit, technician or UNASSIGNED) and marking overlaps of one minute or more within the same lane as BLOCKING conflicts.
 Use this tool when rendering or inspecting a day's shop schedule; use getAppointmentById instead when a single appointment id is already known.
 Preconditions: the location must exist as a shop; the day window is computed in the shop's configured timezone, falling back to UTC when none is configured.
-Required inputs: locationId (UUID) and date (YYYY-MM-DD); resourceType and resourceId are optional filters, includeAvailabilityOverlay defaults to false, and range defaults to LOCATION_HOURS (06:00-18:00 local) with FULL_DAY covering midnight to midnight.
+Required inputs: locationId (UUID) and date (YYYY-MM-DD); resourceType and resourceId are optional filters, includeAvailabilityOverlay defaults to false, range defaults to LOCATION_HOURS (06:00-18:00 local) with FULL_DAY covering midnight to midnight, and the optional affected filter (DECISION-SHOPMGMT-022) narrows the board to only affected appointments (true, the reschedule queue) or only unaffected ones (false), omitted for both.
 Emits a SHOPMGR_SCHEDULE_VIEW audit event; no state changes occur, and when the overlay is requested availabilityOverlayStatus reports AVAILABLE or UNAVAILABLE with an HR_SYSTEM_UNAVAILABLE warning when the staffing replica has no data for the location.
 A caller whose shop:schedule:view grant is location-scoped must have locationId within reach (ADR-0061).
 Returns 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cover locationId, and 404 when the location is unknown or the resourceId filter matches no lane on that date.
@@ -781,13 +794,14 @@ Returns 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cove
 - `resourceId` (query, Optional, string): Optional single resource filter
 - `includeAvailabilityOverlay` (query, Optional, boolean): Include HR availability overlay
 - `range` (query, Optional, string): Schedule window range
+- `affected` (query, Optional, boolean): DECISION-SHOPMGMT-022 filter: true for only affected appointments (the reschedule queue), false for only unaffected ones, omitted for both
 - `X-Correlation-Id` (header, Optional, string): Correlation ID for request tracing
 
 **Responses:**
 
 - `200`: Schedule retrieved successfully.
 - `400`: Invalid input parameters
-- `403`: Caller holds shop:schedule:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds shop:schedule:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Location or resource not found
 
 
@@ -817,7 +831,7 @@ Returns 400 when locationId or date is malformed, 403 FORBIDDEN when the caller 
 
 - `200`: Shop dashboard returned.
 - `400`: locationId or date is not a valid value.
-- `403`: Caller lacks the shop dashboard view permission (ApiError.code FORBIDDEN), or Caller holds shop:dashboard:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller lacks the shop dashboard view permission (ApiError.code FORBIDDEN), or Caller holds shop:dashboard:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Shop location not found.
 
 
@@ -882,7 +896,7 @@ Returns 400 when date is malformed, 404 when no shop exists for the location id,
 **Responses:**
 
 - `200`: Location technician roster page returned.
-- `403`: Caller lacks technician roster permission (ApiError.code FORBIDDEN), or Caller holds shop:technician:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller lacks technician roster permission (ApiError.code FORBIDDEN), or Caller holds shop:technician:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Shop location not found.
 
 
@@ -911,7 +925,7 @@ Returns 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cove
 **Responses:**
 
 - `200`: Technician person details returned.
-- `403`: Caller holds shop:technician:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds shop:technician:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: No technician links this person to this location.
 
 
@@ -1060,6 +1074,7 @@ Request to create an appointment from an estimate or workorder source document
 | `endAt` | string (date-time) | Yes | Appointment end instant in UTC (ISO-8601); must be after startAt |
 | `locationId` | string (uuid) | Yes | Facility/location identifier where the appointment is scheduled |
 | `resourceId` | string | No | Optional resource (bay or mobile unit) reserved for the appointment |
+| `resourceType` | string | No | Which axis resourceId names. Leave both unset to book UNASSIGNED. When resourceId is set and this is omitted, the type is inferred from the replicas (an ext_bay row -> BAY, else an ext_mobile_unit row -> MOBILE_UNIT; neither is 422 SERVICE_POSITION_INVALID) and validated exactly as if stated — omitting it is not a way to skip DECISION-SHOPMGMT-021 eligibility. BAY runs the full eligibility rule (specialty, general work, duty class); MOBILE_UNIT runs existence, location and active checks only. resourceId is required for BAY/MOBILE_UNIT (400 otherwise), and UNASSIGNED with a resourceId set is refused as contradictory (400). |
 | `serviceRequestIds` | array | Yes | Service request identifiers included in this appointment (at least one required) |
 | `sourceId` | string | No | External identifier of the originating estimate or workorder; required when sourceType is set |
 | `sourceType` | string | No | Originating workexec source type; when set, sourceId must also be provided |
@@ -1077,6 +1092,7 @@ Response describing a created or retrieved appointment
 |-------|------|----------|-------------|
 | `actualEndAt` | string (date-time) | No | When work actually finished, resolved the same way as actualStartAt (#2021). Null while the linked workorder is still open, or when there is no link. endAt above stays the planned window regardless. |
 | `actualStartAt` | string (date-time) | No | When work actually began, resolved from the linked workorder's actual-time block through WorkOrderAppointmentMapping (issue #2021). Null when the appointment has no linked workorder, the link has not replicated yet, or work has not started. startAt above stays the planned window regardless. |
+| `affected` | boolean | Yes | DECISION-SHOPMGMT-022: true when this appointment is still SCHEDULED, starts in the future, names a BAY or MOBILE_UNIT resource, and that resource is now missing, not ACTIVE (out of service or retired), or — for a BAY — no longer passes DECISION-SHOPMGMT-021 eligibility for the appointment's services and vehicle. Derived at read time from the resource replicas, never stored; a resource returning to service or eligibility clears it on the next read. An affected appointment is not blocked from anything — it belongs in the reschedule queue (GET /v1/schedules/view?affected=true). |
 | `appointmentId` | string (uuid) | Yes | Unique appointment identifier |
 | `cancellationNotes` | string | No | Free-text cancellation notes when the appointment has been cancelled |
 | `cancellationReason` | string | No | Cancellation reason code when the appointment has been cancelled |
@@ -1273,5 +1289,5 @@ This generated reference summarizes API structures for the Shop Management domai
 
 ---
 
-**Generated:** 2026-09-27 02:27:31 UTC  
+**Generated:** 2026-09-27 03:04:35 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`

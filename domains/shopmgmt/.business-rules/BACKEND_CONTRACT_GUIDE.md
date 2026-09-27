@@ -7,7 +7,7 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
-openapi_commit: d8e15592
+openapi_commit: f2ce471f
 last_verified_utc: 2026-09-27T00:00:00Z
 last_updated: 2026-09-27
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
@@ -74,7 +74,7 @@ Frontend developer workflow:
 | --- | --- | --- | --- | --- |
 | Delete bay | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
 | Delete mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
-| Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` | Response carries `affected` (boolean, DECISION-SHOPMGMT-022, derived at read time — never stored). See "Stories #2268 and #2270" below. (durion-positivity-backend#2270) |
+| Load appointment | `getAppointmentById` | GET | `/v1/appointments/{appointmentId}` | Response carries `affected` (boolean, DECISION-SHOPMGMT-022, derived at read time — never stored). See "Stories #2268 and #2270" below. (durion-positivity-backend#2270) |
 | Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
 | Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/mobileUnit` | Refer to generated API reference for payload details |
 | Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
@@ -83,12 +83,12 @@ Frontend developer workflow:
 | Get shop service details | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` | Refer to generated API reference for payload details |
 | Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` | Refer to generated API reference for payload details |
 | View workorder operational context | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
-| Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Body accepts `resourceType` (`BAY`\|`MOBILE_UNIT`\|`UNASSIGNED`, DECISION-SHOPMGMT-003) with `resourceId`; omitted `resourceType` is inferred from `resourceId`. Refused `422` (`SERVICE_POSITION_INVALID`\|`SERVICE_POSITION_INACTIVE`\|`SERVICE_POSITION_NOT_EQUIPPED`\|`SERVICE_POSITION_DUTY_CLASS_EXCEEDED`, never overridable, `fieldErrors` naming `resourceId`) or `400 VALIDATION_ERROR` (field `resourceId`) on a contradictory `resourceId`/`resourceType` pair. See "Stories #2268 and #2270" below. (durion-positivity-backend#2268) |
-| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Re-validates the appointment's own (unchanged) resource against the same DECISION-SHOPMGMT-021 eligibility rule and the same codes as create, unless `newResourceType`/`newResourceId` is given, in which case only the new resource is validated (DECISION-SHOPMGMT-022 rule 3). The 3rd+ non-exempt reschedule needs `appointments:reschedule:approve` and a non-blank `approvalReason` (422 `RESCHEDULE_APPROVAL_REASON_REQUIRED` otherwise; 403 without the permission). See "Stories #2268 and #2270" below. (durion-positivity-backend#2268, #2270) |
-| Cancel appointment | `cancelAppointment` | DELETE | `http://localhost:8080/v1/appointments/{appointmentId}/cancel` | Refer to generated API reference for payload details |
-| Create assignment | `createAssignment` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
-| List assignments | `listAssignments` | GET | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
-| Conflict override (scheduling) | `executeOverride` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/conflict-override` | Refer to generated API reference for payload details |
+| Create appointment | `createAppointment` | POST | `/v1/appointments` | Body accepts `resourceType` (`BAY`\|`MOBILE_UNIT`\|`UNASSIGNED`, DECISION-SHOPMGMT-003) with `resourceId`; omitted `resourceType` is inferred from `resourceId`. Refused `422` (`SERVICE_POSITION_INVALID`\|`SERVICE_POSITION_INACTIVE`\|`SERVICE_POSITION_NOT_EQUIPPED`\|`SERVICE_POSITION_DUTY_CLASS_EXCEEDED`, never overridable, `fieldErrors` naming `resourceId`) or `400 VALIDATION_ERROR` (field `resourceId`) on a contradictory `resourceId`/`resourceType` pair. See "Stories #2268 and #2270" below. (durion-positivity-backend#2268) |
+| Reschedule appointment | `rescheduleAppointment` | PUT | `/v1/appointments/{appointmentId}/reschedule` | Re-validates the appointment's own (unchanged) resource against the same DECISION-SHOPMGMT-021 eligibility rule and the same codes as create, unless `newResourceType`/`newResourceId` is given, in which case only the new resource is validated (DECISION-SHOPMGMT-022 rule 3). The 3rd+ non-exempt reschedule needs `appointments:reschedule:approve` and a non-blank `approvalReason` (422 `RESCHEDULE_APPROVAL_REASON_REQUIRED` otherwise; 403 without the permission). See "Stories #2268 and #2270" below. (durion-positivity-backend#2268, #2270) |
+| Cancel appointment | `cancelAppointment` | DELETE | `/v1/appointments/{appointmentId}/cancel` | Refer to generated API reference for payload details |
+| Create assignment | `createAssignment` | POST | `/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
+| List assignments | `listAssignments` | GET | `/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
+| Conflict override (scheduling) | `executeConflictOverride` | POST | `/v1/appointments/{appointmentId}/conflict-override` | Refer to generated API reference for payload details |
 | Create bay | *(planned — not in pos-shop-manager OpenAPI)* | POST | `/v1/shop-manager/{locationId}/bays` | Refer to generated API reference for payload details |
 | Create mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | POST | `/v1/shop-manager/{locationId}/mobileUnit` | Refer to generated API reference for payload details |
 | Manage bays | *(planned — not in pos-shop-manager OpenAPI)* | PUT | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
@@ -276,9 +276,11 @@ mapped to `422 UNPROCESSABLE_CONTENT` by `GlobalExceptionHandler.handleServicePo
 | A `BAY` does not claim every specialty operation on the appointment, or takes no general work and the appointment has general operations | `SERVICE_POSITION_NOT_EQUIPPED` |
 | Vehicle GVWR class above the bay's `maxDutyClass` | `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` |
 
-These four codes are shared verbatim (name and 422 status) with `pos-workorder`'s
-`SERVICE_POSITION_DUTY_CLASS_EXCEEDED` placement check (#2269, below) — one condition, one name,
-one status across modules. A contradictory `resourceId`/`resourceType` combination is `400
+Of these four, only `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` is shared verbatim (name and 422
+status) with `pos-workorder`'s placement check (#2269, below) — one condition, one name, one
+status across modules. `SERVICE_POSITION_INVALID`, `SERVICE_POSITION_INACTIVE`, and
+`SERVICE_POSITION_NOT_EQUIPPED` are shopmgmt-specific. A contradictory `resourceId`/`resourceType`
+combination is `400
 VALIDATION_ERROR` instead (`AppointmentValidationException`, handled at
 `GlobalExceptionHandler.java:76-93`), never one of the four 422s, because the defect there is in
 the request shape, not in the named resource.
@@ -785,7 +787,7 @@ them, because those rows have no outbox history.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
-- OpenAPI source revision: `d8e15592` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
+- OpenAPI source revision: `f2ce471f` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
   worktree `wt-w3-int` for durion-positivity-backend#2268 and #2270 — both halves of the story pair above
   are verified)
 - Last verified UTC: `2026-09-27T00:00:00Z`

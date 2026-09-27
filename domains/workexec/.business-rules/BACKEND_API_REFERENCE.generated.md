@@ -772,7 +772,7 @@ Returns 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cove
 **Responses:**
 
 - `200`: Configuration found and returned.
-- `403`: Caller holds workorder:approval_config:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:approval_config:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: No configuration found (default will be used).
 
 
@@ -882,7 +882,7 @@ Returns 400 when locationId does not parse as a UUID, 403 LOCATION_SCOPE_DENIED 
 
 - `200`: Dispatch board for the location and date
 - `400`: locationId does not parse as a UUID
-- `403`: Caller holds workorder:dashboard:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:dashboard:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -943,7 +943,7 @@ Returns 400 when the timezone is invalid or endDate precedes startDate, 403 LOCA
 
 - `200`: Job time totals returned successfully
 - `400`: Invalid request parameters
-- `403`: Caller holds workorder:labor:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:labor:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -1079,7 +1079,7 @@ Returns 400 when locationId does not parse as a UUID, 403 FORBIDDEN when multiLo
 
 - `200`: Page of active WIP workorders
 - `400`: locationId does not parse as a UUID
-- `403`: Caller lacks workorder:wip:view_all_locations for multiLocation=true (ApiError.code FORBIDDEN), or Caller holds workorder:wip:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller lacks workorder:wip:view_all_locations for multiLocation=true (ApiError.code FORBIDDEN), or Caller holds workorder:wip:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -1105,7 +1105,7 @@ Returns 404 when no workorder exists for the id, and 403 LOCATION_SCOPE_DENIED w
 **Responses:**
 
 - `200`: WIP detail retrieved successfully
-- `403`: Caller holds workorder:wip:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:wip:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Workorder not found
 
 
@@ -1505,7 +1505,7 @@ Returns 201 with created=true when a new estimate is persisted, 200 with created
 - `201`: Estimate created
 - `400`: Missing or invalid required fields
 - `401`: Unauthenticated
-- `403`: Caller lacks workorder:estimate:create (ApiError.code FORBIDDEN), or Caller holds workorder:estimate:create but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller lacks workorder:estimate:create (ApiError.code FORBIDDEN), or Caller holds workorder:estimate:create but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -1531,7 +1531,7 @@ Returns 200 with the estimates, possibly empty, and 403 LOCATION_SCOPE_DENIED wh
 **Responses:**
 
 - `200`: List of estimates returned successfully.
-- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -1557,7 +1557,7 @@ Returns 200 with the estimates, possibly empty, and 403 LOCATION_SCOPE_DENIED wh
 **Responses:**
 
 - `200`: List of estimates returned successfully.
-- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -1609,7 +1609,7 @@ Returns 404 when no estimate exists for the id, and 403 LOCATION_SCOPE_DENIED wh
 **Responses:**
 
 - `200`: Estimate found and returned.
-- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Estimate not found.
 
 
@@ -1835,7 +1835,7 @@ Returns 404 when the estimate does not exist, 403 LOCATION_SCOPE_DENIED when it 
 **Responses:**
 
 - `200`: PDF generated successfully
-- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Estimate not found
 - `502`: Document service unavailable
 
@@ -1976,7 +1976,7 @@ Returns 404 when no estimate exists for the id, and 403 LOCATION_SCOPE_DENIED wh
 **Responses:**
 
 - `200`: Summary retrieved successfully
-- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:estimate:view but its location scope does not cover the estimate's location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Estimate not found
 
 
@@ -2006,7 +2006,7 @@ Returns 200 with one row per operation and shop, an empty list when no finished 
 
 - `200`: One row per operation and shop, widest variance first.
 - `401`: Authentication required.
-- `403`: Insufficient permissions (ApiError.code FORBIDDEN), or Caller holds workorder:labor_intelligence:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Insufficient permissions (ApiError.code FORBIDDEN), or Caller holds workorder:labor_intelligence:view but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -2217,7 +2217,7 @@ Returns 201 with the new session, 403 LOCATION_SCOPE_DENIED when the caller's lo
 
 - `201`: Work session started successfully
 - `400`: Invalid request - missing required fields or work order not found
-- `403`: Caller holds timekeeping:work_session:create but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds timekeeping:work_session:create but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 
 
 ---
@@ -2833,7 +2833,7 @@ Returns 404 when no workorder exists for the id, 403 LOCATION_SCOPE_DENIED when 
 **Responses:**
 
 - `200`: Override applied
-- `403`: Caller holds workorder:operationalContext:override but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../durion/docs/architecture/api/ERROR_ENVELOPE.md)
+- `403`: Caller holds workorder:operationalContext:override but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Workorder not found
 - `409`: Context locked (work started)
 
@@ -3938,5 +3938,5 @@ This generated reference summarizes API structures for the Work Order Execution 
 
 ---
 
-**Generated:** 2026-09-27 02:27:32 UTC  
+**Generated:** 2026-09-27 03:04:36 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`
