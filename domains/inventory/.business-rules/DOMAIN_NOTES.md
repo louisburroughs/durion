@@ -325,6 +325,49 @@ For concrete API and payload contracts, see `BACKEND_CONTRACT_GUIDE.md`.
 - Governance & owner recommendations:
 	- Owner: Inventory + Allocation/Reservation owning team (if separate).
 
+<a id="decision-inventory-029---workorder-demand-release"></a>
+### DECISION-INVENTORY-029 — Workorder demand release: inventory accepts DECISION-INVENTORY-026 rule 2, with amendments
+
+- Normative source: `AGENT_GUIDE.md` (Decision ID); issue durion-positivity-backend#2274 (Open Questions 1–4); workexec DECISION-INVENTORY-026 rule 2; ADR-0044
+- Decision: pos-inventory accepts the command `inventory.workorder-demand.release-requested` on `inventory.commands.v1` and applies it as follows. Six rules:
+	1. **Command and scope.** Payload `{workorderId, locationId, transferId?, reason}`. `locationId` is a **site** (`LocationRef`, the workorder's `shopId`), not a bin. `transferId` is present for `WORKORDER_TRANSFERRED` and absent for `WORKORDER_CANCELLED`. Only demand at that site is touched. An
+	   allocation's `locationId` and a pick task's `suggestedLocationId` are storage locations (or sites), so the handler resolves site membership through `ExtStorageLocationReplica.siteId`, as `PickTaskRepository` does; an exact id comparison would release nothing. Unpicked pick tasks with no location are
+	   cancelled. SOFT allocations with no location hold no site stock and are left alone. Absence (unknown workorder, nothing held) is a logged no-op (ADR-0044 R3).
+	2. **Backorders at the site are cancelled.** Each open backorder for the workorder's lines at the site goes `OPEN → CANCELLED`. Backorders are de-duplicated per `(workorderLineId, sku)` regardless of location, and resolve on `(sku, locationId)`; a source backorder left open would be handed back to the
+	   target's request and resolved by the wrong site's stock. Cancelling a backorder raises no purchase-side effect; purchase suggestions and transfer orders from shortage resolution are separate records left for a person (durion-positivity-backend#2283).
+	3. **Picked goods stay for a person.** A pick task with `quantityPicked > 0` is left as it is, **and so is its line's HARD allocation**, so ATP at the site does not rise while the goods sit staged. No automatic return: no unpick path exists and `submit-to-stock` returns only consumed quantity. On a
+	   transfer this is replica lag and is logged at `WARN` with a counter; on a cancel it is expected and is logged at `INFO`, still counted in the result fact's `pickedLeft`. A return-staged-goods flow is a follow-up (durion-positivity-backend#2286).
+	4. **Transfer: the reservation stays re-openable.** For `WORKORDER_TRANSFERRED`, after releasing the site's allocations the reservation's `allocatedQuantity` is recomputed from live (non-`RELEASED`) allocations only; the status becomes `PARTIALLY_FULFILLED` if live allocations remain at other sites,
+	   otherwise `PENDING`; if none remain, a fresh SOFT allocation with no location is created so the target's `reservation.request-requested` can promote it; `BACKORDERED` is cleared. The reservation never ends `CANCELLED`. `hasPickList` and the primary-list lookup ignore `CANCELLED` lists, and a new
+	   list's tasks are sited at the generate payload's `locationId`.
+	5. **Cancel: the demand ends.** A workorder cancel sends the same command (answering the question DECISION-INVENTORY-026 left open): `locationId` = the workorder's current `shopId`, no `transferId`, `reason = WORKORDER_CANCELLED`, command id deterministic on `(workorderId, locationId,
+	   "WORKORDER_CANCELLED")`. pos-inventory applies rules 1–3, and the reservations end `CANCELLED`, not re-opened (durion-positivity-backend#2284, #2285).
+	6. **Result fact.** After applying the command pos-inventory publishes `inventory.workorder-demand.released` with released, cancelled and `pickedLeft` counts (ADR-0044 R4), so pos-workorder sees leftovers without waiting on replica lag (durion-positivity-backend#2287).
+- Alternatives considered:
+	- Option A (chosen): release per site; re-open on transfer, end on cancel; leave picked goods and their allocation for a person.
+		- Pros: one rule for both reasons (only the named site is released); the target registers demand afresh against its own ATP; staged goods are never double-sold.
+		- Cons: staged goods at the source need a manual step; the handler needs the storage-location replica to resolve sites.
+	- Option B: an omitted `locationId` means "all locations" on cancel.
+		- Pros: no site needs to be named on cancel.
+		- Cons: two scoping rules in one handler; an unscoped release could hit demand registered at a target that a later, out-of-order message created. Rejected by the owner on 2026-09-27.
+	- Option C: release the HARD allocation of a picked task too.
+		- Pros: simpler handler.
+		- Cons: ATP rises while the goods are physically staged, so they can be sold twice.
+- Reasoning and evidence:
+	- Nothing releases demand today on transfer or cancel: `WorkorderEventsListener` only upserts the `ext_workorder` / `ext_workorder_part` replica.
+	- `promoteToHard` sums `RELEASED` allocations into `allocatedQuantity`, a latent defect that rule 4's recomputation fixes.
+	- `updateExistingReservation` never creates an allocation, and `promoteToHard` needs one, hence the fresh SOFT allocation.
+	- The covered branch of `ReservationRequestHandler` never clears `BACKORDERED`, so the release must.
+- Architectural implications:
+	- Components affected: `InventoryCommandListener` (new type `INVENTORY_WORKORDER_DEMAND_RELEASE_REQUESTED`), `ReservationServiceImpl`, `BackorderService` (new `cancel`, a neutral ledger type and `BackorderCancelledV1`, #2283), `PickListServiceImpl.hasPickList` and the primary-list lookup, `PickListGenerationService` (site from the payload).
+	- No schema change. `BackorderStatus.CANCELLED` and `PickListStatus.CANCELLED` exist.
+- Auditor-facing explanation:
+	- After a release, no `OPEN` backorder, live HARD allocation or unpicked task remains for the workorder at the site, except those counted in the result fact's `pickedLeft`. Each released HARD allocation has one release ledger entry for its unconsumed remainder.
+- Migration & backward-compatibility notes:
+	- The command is new; pos-workorder must not send it before pos-inventory handles it, because an unsupported `commandType` is dropped without retry. The contract example in workexec `CROSS_DOMAIN_INTEGRATION_CONTRACTS.md` section 7 gains `transferId` and the `WORKORDER_CANCELLED` reason.
+- Governance & owner recommendations:
+	- Owner: Inventory domain (how the release is applied); Workexec (when it is sent and the payload it carries). Confirmed with the workexec domain for durion-positivity-backend#2274 on 2026-09-27.
+
 ## End
 
 End of document.

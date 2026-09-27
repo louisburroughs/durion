@@ -41,6 +41,7 @@ For API contract details, see `BACKEND_CONTRACT_GUIDE.md`.
 | DECISION-INVENTORY-014 | Deep-link parameter names & routing conventions |
 | DECISION-INVENTORY-015 | JSON field handling & safe rendering (tags/capacity/temperature/payload) |
 | DECISION-INVENTORY-016 | Allocation/reservation integration for ATP (frontend remains inventory-backend authoritative) |
+| DECISION-INVENTORY-029 | Workorder demand release per site (transfer re-opens, cancel ends; backorders cancelled; picked goods left) |
 
 ## Domain Boundaries
 
@@ -105,6 +106,7 @@ For API contract details, see `BACKEND_CONTRACT_GUIDE.md`.
 | DECISION-INVENTORY-014 | Deep-link param names are canonical and stable. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-014---deep-link-parameter-names) |
 | DECISION-INVENTORY-015 | JSON fields render safely; no XSS; no localStorage persistence. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-015---json-field-safe-rendering) |
 | DECISION-INVENTORY-016 | Allocations are surfaced by inventory services; frontend never calls reservation services for ATP. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-016---allocationreservation-and-atp) |
+| DECISION-INVENTORY-029 | `inventory.workorder-demand.release-requested` releases demand at one site only; transfer re-opens the reservation, cancel ends it. | [DOMAIN_NOTES.md](DOMAIN_NOTES.md#decision-inventory-029---workorder-demand-release) |
 
 ## Open Questions (from source)
 

@@ -640,7 +640,8 @@ This document is the non-normative rationale and decision log for the `workexec`
 - Migration & backward-compatibility notes:
 - Changing the command-id derivation changes ids only for commands issued from then on. pos-inventory's dedupe is keyed per command id, so nothing already processed is replayed.
 - Governance & owner recommendations:
-- Owner: pos-inventory (reservations, pick lists, stock); pos-workorder (the gate in rule 1 and the requests in rules 2–3). Whether the same release command is also sent when a workorder is cancelled is a separate question and is not decided here.
+- Owner: pos-inventory (reservations, pick lists, stock); pos-workorder (the gate in rule 1 and the requests in rules 2–3).
+  The inventory domain accepted rule 2 with amendments in inventory DECISION-INVENTORY-029, which also decides that a workorder cancel sends the same command (`reason = WORKORDER_CANCELLED`, no `transferId`, `locationId` = the workorder's `shopId`; durion-positivity-backend#2285).
 
 ### DECISION-INVENTORY-027 — Labour and history: no recorded time crosses a transfer; history stays where it was written
 
