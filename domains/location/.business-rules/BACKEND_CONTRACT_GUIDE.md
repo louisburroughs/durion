@@ -7,9 +7,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/location/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-location/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-09-02
+openapi_commit: 5ea0caf6
+last_verified_utc: 2026-09-27T00:00:00Z
+last_updated: 2026-09-27
 api_reference_generated: domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -224,7 +224,14 @@ two types removed (V11). Distance-based coverage and `DISTANCE_TIER` are stored,
 and optional, display-only `unitNumber`, `vin`, `licensePlate`, `plateRegion`. Invalid values are
 400; a duplicate within the tenant is 409 `MOBILE_UNIT_IDENTITY_TAKEN` with `fieldErrors`.
 `MobileUnitUpdatedV1` carries all five at schema v4; pos-shop-manager and pos-workorder replicate
-`maxDutyClass` for the placement duty check (#2269).
+`maxDutyClass` for the placement duty check (#2269). `maxDutyClass` is optional on every write path,
+including `PATCH`: a key omitted from the patch body leaves the stored value unchanged, while a key
+present with an explicit `null` clears it back to "no ceiling" — the same present-vs-absent-key
+merge-patch semantics the patch applies to `unitNumber`, `vin`, `licensePlate` and `plateRegion`
+(`MobileUnitServiceImpl.applyIdentityFields`,
+`pos-location/src/main/java/com/positivity/location/internal/service/MobileUnitServiceImpl.java:1104-1108`,
+via `MobileUnitIdentitySupport.requireMaxDutyClass`, which passes `null` through unconstrained and
+otherwise requires a whole class 1–8).
 
 ### Frontend Usage Notes
 
@@ -338,8 +345,10 @@ replica columns`.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-location/openapi.yaml`
-- OpenAPI source revision: `ca7fadc3`
-- Last verified UTC: `2026-02-24T14:23:11Z`
+- OpenAPI source revision: `5ea0caf6` (backend branch `claude/great-ritchie-w9lsyo-wave3`; the
+  `maxDutyClass` PATCH-clears-on-explicit-null note above was verified against worktree `wt-w3-int`,
+  `MobileUnitServiceImpl.applyIdentityFields`)
+- Last verified UTC: `2026-09-27T00:00:00Z`
 - Generated API reference: `domains/location/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
