@@ -10,7 +10,7 @@
   reschedule allowance (`appointments:reschedule:approve`, bit 542) — the workexec contract guide's
   pre-applied #2269 duty-class placement note was verified against code, and the location contract guide
   gained the deferred wave-2 follow-up on mobile-unit `maxDutyClass` PATCH-clears-on-null semantics.
-  Verified against backend branch `claude/great-ritchie-w9lsyo-wave3`, commit `f2ce471f`. Timestamp-only
+  Verified against backend branch `claude/great-ritchie-w9lsyo-wave3`, commit `49f08e9e`. Timestamp-only
   drift in unrelated entries from this regeneration was discarded.
 
 ## 2026-09-26

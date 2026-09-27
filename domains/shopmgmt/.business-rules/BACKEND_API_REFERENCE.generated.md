@@ -1289,5 +1289,5 @@ This generated reference summarizes API structures for the Shop Management domai
 
 ---
 
-**Generated:** 2026-09-27 03:04:35 UTC  
+**Generated:** 2026-09-27 03:46:32 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`

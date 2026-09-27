@@ -7,7 +7,7 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-workorder/openapi.yaml
-openapi_commit: f2ce471f
+openapi_commit: 49f08e9e
 last_verified_utc: 2026-09-27T00:00:00Z
 last_updated: 2026-09-27
 api_reference_generated: domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md
@@ -615,7 +615,7 @@ need an upstream source before they can be wired.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-workorder/openapi.yaml`
-- OpenAPI source revision: `f2ce471f` (backend branch `claude/great-ritchie-w9lsyo-wave3`; carries #2269's
+- OpenAPI source revision: `49f08e9e` (backend branch `claude/great-ritchie-w9lsyo-wave3`; carries #2269's
   `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` placement-time duty-class check documented above, verified
   against worktree `wt-w3-int` — `ServicePositionServiceImpl.resolvePosition`/`recordPositionChange`,
   `WorkorderServiceImpl.handleAssignmentUpdated` — on top of #2067's `workorder:position:assign` gate

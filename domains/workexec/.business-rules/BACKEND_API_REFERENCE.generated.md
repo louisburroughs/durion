@@ -2821,7 +2821,7 @@ Use this tool when a manager must re-slot a workorder to a different bay, crew, 
 Preconditions: the workorder must exist and work must not have started — once workStartedAt is set the context is locked and overrides are rejected. A caller whose workorder:operationalContext:override grant is location-scoped must have the body's locationId within reach (ADR-0061); that check runs after the existence check.
 Required inputs: workorderId (UUID) as a path parameter and a body with locationId (UUID, required); resourceType, assignedMechanics, assignedResources, and constraints are optional, an absent resourceType is applied as BAY, and constraints are echoed back but not persisted.
 Emits a WORKORDER_OPERATIONAL_CONTEXT_OVERRIDE event and marks the workorder fact changed for downstream replication.
-Returns 404 when no workorder exists for the id, 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cover locationId, and 409 when work has already started and the context is locked.
+Returns 404 when no workorder exists for the id, 403 LOCATION_SCOPE_DENIED when the caller's location scope does not cover locationId, 409 when work has already started and the context is locked, and 422 SERVICE_POSITION_DUTY_CLASS_EXCEEDED when the assigned resource's maxDutyClass is below the vehicle's GVWR class — the one eligibility rule an override cannot waive, unlike site and active which this path does not re-validate.
 
 
 **Operation ID:** `overrideOperationalContext`
@@ -2836,6 +2836,7 @@ Returns 404 when no workorder exists for the id, 403 LOCATION_SCOPE_DENIED when 
 - `403`: Caller holds workorder:operationalContext:override but its location scope does not cover the requested location (ApiError.code LOCATION_SCOPE_DENIED, see ../../../docs/architecture/api/ERROR_ENVELOPE.md)
 - `404`: Workorder not found
 - `409`: Context locked (work started)
+- `422`: The assigned resource's maxDutyClass is below the vehicle's GVWR class (ApiError.code SERVICE_POSITION_DUTY_CLASS_EXCEEDED, ApiError.fieldErrors naming resourceId; skipped when either class is unknown)
 
 
 ---
@@ -3362,7 +3363,7 @@ Use this tool to dispatch a workorder to a bay, move it between bays or mobile u
 Preconditions: the workorder must exist and must not be COMPLETED or CANCELLED; a BAY or MOBILE_UNIT must be known to this module's location replicas, belong to the workorder's own site and hold no other open workorder, while HOLD has no capacity limit and accepts only the workorder's own locationId; and a caller whose workorder:position:assign grant is location-scoped must have the workorder's shop within reach (ADR-0061).
 Required inputs: workorderId (UUID) as a path parameter and a body with resourceType (BAY, MOBILE_UNIT or HOLD, required); resourceId is required for BAY and MOBILE_UNIT and optional for HOLD, reason is optional, and re-sending the placement already in force is a no-op that writes no history.
 Emits a WORKORDER_POSITION_ASSIGN event and marks the workorder fact changed.
-Returns 403 when the caller's location scope does not cover the workorder's shop, 404 when no workorder exists for the id, 409 RESOURCE_OCCUPIED when the position already holds another open workorder, 409 WORKORDER_CLOSED when the workorder is COMPLETED or CANCELLED, 422 SERVICE_POSITION_INVALID when the position is unknown or at another site, and 422 SERVICE_POSITION_INACTIVE when the bay is out of service or the mobile unit is not deployed.
+Returns 403 when the caller's location scope does not cover the workorder's shop, 404 when no workorder exists for the id, 409 RESOURCE_OCCUPIED when the position already holds another open workorder, 409 WORKORDER_CLOSED when the workorder is COMPLETED or CANCELLED, 422 SERVICE_POSITION_INVALID when the position is unknown or at another site, 422 SERVICE_POSITION_INACTIVE when the bay is out of service or the mobile unit is not deployed, and 422 SERVICE_POSITION_DUTY_CLASS_EXCEEDED when the vehicle's GVWR class is above the position's maxDutyClass; specialty capability is never checked here, only duty class (DECISION-SHOPMGMT-021 rule 3), and an unknown vehicle or ceiling class skips the check.
 Placing an APPROVED workorder that already has a technician on a BAY or MOBILE_UNIT moves it to ASSIGNED; a HOLD does not, because it is a parking space rather than somewhere work happens.
 
 
@@ -3378,7 +3379,7 @@ Placing an APPROVED workorder that already has a technician on a BAY or MOBILE_U
 - `403`: Caller's location scope does not cover the workorder's shop (ApiError.code LOCATION_SCOPE_DENIED)
 - `404`: Workorder not found
 - `409`: Position already holds another open workorder (ApiError.code RESOURCE_OCCUPIED, with the occupying workorder id as referenceId), or the workorder is closed (ApiError.code WORKORDER_CLOSED)
-- `422`: Unknown position, or one belonging to another site (ApiError.code SERVICE_POSITION_INVALID), or a bay or mobile unit that is not active (ApiError.code SERVICE_POSITION_INACTIVE)
+- `422`: Unknown position, or one belonging to another site (ApiError.code SERVICE_POSITION_INVALID), a bay or mobile unit that is not active (ApiError.code SERVICE_POSITION_INACTIVE), or the vehicle's GVWR class above the position's maxDutyClass (ApiError.code SERVICE_POSITION_DUTY_CLASS_EXCEEDED, ApiError.fieldErrors naming resourceId; skipped when either class is unknown)
 
 
 ---
@@ -3938,5 +3939,5 @@ This generated reference summarizes API structures for the Work Order Execution 
 
 ---
 
-**Generated:** 2026-09-27 03:04:36 UTC  
+**Generated:** 2026-09-27 03:46:33 UTC  
 **Tool:** `scripts/generate_backend_contract_guides.py`

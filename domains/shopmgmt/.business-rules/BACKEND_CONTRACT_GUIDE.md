@@ -7,7 +7,7 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
-openapi_commit: f2ce471f
+openapi_commit: 49f08e9e
 last_verified_utc: 2026-09-27T00:00:00Z
 last_updated: 2026-09-27
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
@@ -787,7 +787,7 @@ them, because those rows have no outbox history.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
-- OpenAPI source revision: `f2ce471f` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
+- OpenAPI source revision: `49f08e9e` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
   worktree `wt-w3-int` for durion-positivity-backend#2268 and #2270 — both halves of the story pair above
   are verified)
 - Last verified UTC: `2026-09-27T00:00:00Z`
