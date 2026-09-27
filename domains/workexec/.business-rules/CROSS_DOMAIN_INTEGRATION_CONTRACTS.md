@@ -947,7 +947,8 @@ each reason (re-open on transfer, end on cancel, backorders cancelled, picked go
 DECISION-INVENTORY-029.
 
 - pos-inventory releases every open reservation and cancels every unpicked pick list or task for
-  `(workorderId, locationId)`. The command id is deterministic on `(workorderId, locationId, transferId)`, so a
+  `(workorderId, locationId)`. The command id is deterministic on `(workorderId, locationId, transferId)` for
+  `WORKORDER_TRANSFERRED` and on `(workorderId, locationId, "WORKORDER_CANCELLED")` for `WORKORDER_CANCELLED`, so a
   redelivery collapses under `processed_events`.
 - Demand is then re-registered at the target with the existing `inventory.reservation.request-requested` and
   `inventory.pick-list.generate-requested` commands. Their command ids must include the location. Keyed as today
