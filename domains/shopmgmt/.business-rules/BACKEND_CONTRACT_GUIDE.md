@@ -7,9 +7,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
-openapi_commit: ca7fadc3
-last_verified_utc: 2026-02-24T14:23:11Z
-last_updated: 2026-09-23
+openapi_commit: 5ea0caf6
+last_verified_utc: 2026-09-27T00:00:00Z
+last_updated: 2026-09-27
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -83,8 +83,8 @@ Frontend developer workflow:
 | Get shop service details | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` | Refer to generated API reference for payload details |
 | Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` | Refer to generated API reference for payload details |
 | View workorder operational context | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
-| Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Refer to generated API reference for payload details |
-| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Refer to generated API reference for payload details |
+| Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Body accepts `resourceType` (`BAY`\|`MOBILE_UNIT`\|`UNASSIGNED`, DECISION-SHOPMGMT-003) with `resourceId`; omitted `resourceType` is inferred from `resourceId`. Refused `422` (`SERVICE_POSITION_INVALID`\|`SERVICE_POSITION_INACTIVE`\|`SERVICE_POSITION_NOT_EQUIPPED`\|`SERVICE_POSITION_DUTY_CLASS_EXCEEDED`, never overridable, `fieldErrors` naming `resourceId`) or `400 VALIDATION_ERROR` (field `resourceId`) on a contradictory `resourceId`/`resourceType` pair. See "Stories #2268 and #2270" below. (durion-positivity-backend#2268) |
+| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Re-validates the appointment's own (unchanged) resource against the same DECISION-SHOPMGMT-021 eligibility rule and the same codes as create. See "Stories #2268 and #2270" below. (durion-positivity-backend#2268) |
 | Cancel appointment | `cancelAppointment` | DELETE | `http://localhost:8080/v1/appointments/{appointmentId}/cancel` | Refer to generated API reference for payload details |
 | Create assignment | `createAssignment` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
 | List assignments | `listAssignments` | GET | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
@@ -207,6 +207,112 @@ check, for its roster `date` (defaulting to facility-local today,
 DECISION-SHOPMGMT-015), so the board and a booking on that date count the same
 technicians (#2140). To see a crew that starts later, pass a future `date`; for the
 shop-wide list regardless of location assignment, use `listMechanics`.
+
+#### Stories #2268 and #2270 — Bay Eligibility at Submit and Reschedule; Affected Appointments and Reschedule to Another Resource
+
+##### #2268 — Bay Eligibility at Submit and Reschedule (DECISION-SHOPMGMT-021)
+
+`createAppointment` and `rescheduleAppointment` now persist and validate `resourceType`
+(`BAY` | `MOBILE_UNIT` | `UNASSIGNED`, DECISION-SHOPMGMT-003), enforcing the same eligibility
+rule the opening search filters with (`BayEligibilityService`), so search, submit and reschedule
+never disagree.
+
+**`resourceType` resolution (submit is authoritative, DECISION-SHOPMGMT-011 — omitting it is
+never a way to skip eligibility on a real `resourceId`):**
+
+- No `resourceId`: `resourceType` must be absent or `UNASSIGNED`. A stated `BAY`/`MOBILE_UNIT`
+  with no `resourceId` is `400 VALIDATION_ERROR` (field `resourceId`).
+- `resourceId` present, `resourceType` explicitly `UNASSIGNED`: `400 VALIDATION_ERROR` (field
+  `resourceId`) — contradictory.
+- `resourceId` present, `resourceType` omitted: **inferred** from whichever replica holds the id
+  — `BAY` when an `ext_bay` row exists, else `MOBILE_UNIT` when an `ext_mobile_unit` row does;
+  matching neither is `422 SERVICE_POSITION_INVALID`. Validated exactly as if the caller had
+  stated it.
+- `resourceType` explicitly `BAY` or `MOBILE_UNIT`: validated as that kind — an id resolving to
+  the other kind, or to neither, is `422 SERVICE_POSITION_INVALID`.
+- Reschedule re-runs the same resolution against the appointment's own (unchanged) stored
+  `resourceType`/`resourceId`; a `NULL` or otherwise unrecognised stored value beside a real
+  `resourceId` is inferred exactly as a fresh submit would. The one exception: a stored
+  `resourceType` of `TECHNICIAN` — an existing, distinct reading this module uses elsewhere for
+  mechanic-busy tracking (never written by `AppointmentsServiceImpl`, and whose `resourceId` is a
+  person id, not a bay/mobile-unit id) — is skipped entirely rather than passed through as
+  `UNASSIGNED`, which would otherwise refuse it as contradictory.
+  (`AppointmentsServiceImpl.resolveAndValidateResourceType`,
+  `pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/service/AppointmentsServiceImpl.java:419-465`,
+  called from create at line 189 and from reschedule at line 652.)
+
+**The eligibility rule** (`BayEligibilityService.checkBay`,
+`pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/service/BayEligibilityService.java:111-125`)
+answers whether every operation booked on the appointment is possible in the named bay — a
+booking reserves one bay for the whole visit:
+
+- **Specialty (rule 4)** comes from the tenant's bay-type specialty map (`location.bay-specialty-map.updated`,
+  replicated into `ext_bay_specialty_map`/`ext_bay_type`, DECISION-LOCATION-025), never from which
+  bays happen to be active: an operation is specialty iff the map names it for some `BayType`, and
+  a bay must claim every specialty operation on the appointment in its own
+  `serviceCapabilityCodes`. A specialty operation no active bay at the location claims is
+  unbookable there — it never falls back to general work. An operation the map does not name is
+  general work, open to any bay whose `accepts_general_work` is true — `false` only for
+  `WASH_DETAIL` bays (DECISION-LOCATION-025), so a `WASH_DETAIL` bay takes no general work and is
+  effectively never offered for an ordinary appointment. While the tenant's specialty map has not
+  arrived yet (an empty replica), specialty is derived instead from whichever of the location's
+  bays claims the operation — logged once per tenant (WARN).
+- **Duty class (rule 5)** caps the bay's `maxDutyClass` against the vehicle's GVWR class
+  (`ExtVehicleReplica`/`SkillRequirementResolver`); skipped whenever either is null.
+- `MOBILE_UNIT` (stated or inferred) runs existence, location and active checks only — no
+  specialty or duty-class check — until mobile scheduling lands (DECISION-SHOPMGMT-023).
+
+**Refusal codes** (submit and reschedule, `BAY`/`MOBILE_UNIT` stated or inferred): always `422`
+with no override, `ApiError.fieldErrors` naming `resourceId`
+(`ServicePositionEligibilityException`,
+`pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/exception/ServicePositionEligibilityException.java:24-29`;
+mapped to `422 UNPROCESSABLE_CONTENT` by `GlobalExceptionHandler.handleServicePositionEligibility`,
+`pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/controller/GlobalExceptionHandler.java:202-214`):
+
+| Condition | Code |
+| --- | --- |
+| `resourceId` unknown to the stated/inferred kind, at another location, or (when inferred) matching neither `ext_bay` nor `ext_mobile_unit` | `SERVICE_POSITION_INVALID` |
+| Resource not `ACTIVE` (out of service or retired) | `SERVICE_POSITION_INACTIVE` |
+| A `BAY` does not claim every specialty operation on the appointment, or takes no general work and the appointment has general operations | `SERVICE_POSITION_NOT_EQUIPPED` |
+| Vehicle GVWR class above the bay's `maxDutyClass` | `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` |
+
+These four codes are shared verbatim (name and 422 status) with `pos-workorder`'s
+`SERVICE_POSITION_DUTY_CLASS_EXCEEDED` placement check (#2269, below) — one condition, one name,
+one status across modules. A contradictory `resourceId`/`resourceType` combination is `400
+VALIDATION_ERROR` instead (`AppointmentValidationException`, handled at
+`GlobalExceptionHandler.java:76-93`), never one of the four 422s, because the defect there is in
+the request shape, not in the named resource.
+
+**Best-fit ranking and the capacity divisor** (opening search only, `GET
+/v1/schedules/openings` — ranking never changes eligibility, DECISION-SHOPMGMT-021 rule 6):
+earliest start, then `CERTIFIED` before `AWAITING`, then general bays before specialty bays doing
+general work, then a **weak** best-fit tiebreak — the smallest adequate `maxDutyClass`, a null
+ceiling read as class 8 — then `displayOrder`, then name. The `FACILITY_NEAR_CAPACITY` conflict's
+near-capacity divisor counts only active bays with `accepts_general_work` true, so `WASH_DETAIL`
+bays are excluded from that denominator the same way they are excluded from general-work booking.
+
+**Migration V15** (`appointment_resource_type_check`,
+`pos-shop-manager/src/main/resources/db/migration/V15__appointment_resource_type_check.sql`) adds
+a `CHECK` constraining stored `appointment.resource_type` to `BAY` / `MOBILE_UNIT` / `UNASSIGNED`
+or `NULL`. `NULL` stays allowed: every appointment created before this change has `resource_type =
+NULL` (it was never written before #2268), and reschedule reads a `NULL` as `UNASSIGNED` (no
+resource checks) rather than failing an old row it cannot classify — existing appointments are not
+re-validated on any path but reschedule. No backfill: pre-production policy is clean code over
+migration shims, and there is no reliable source to infer a historical `resourceType` from.
+
+Realized by: durion-positivity-backend#2268.
+
+##### #2270 — (to be filled)
+
+_Placeholder. Facts for durion-positivity-backend#2270 (per its title in the wave-3 plan: affected
+appointments when a bay or mobile unit leaves service, and rescheduling to another resource) will
+be supplied in a follow-up message and written up against the #2270 code at that time.
+DECISION-SHOPMGMT-022 in `AGENT_GUIDE.md` records the design intent (status changes are never
+blocked; affected appointments are derived at read time and listed for rescheduling; reschedule
+accepts a `newResourceId`; a shop-caused reschedule does not count against the customer's
+allowance) but has not been verified against this branch's implementation, so nothing here is
+asserted as contract yet — do not treat DECISION-SHOPMGMT-022 alone as a substitute for verifying
+the shipped behavior._
 
 ### Events & Dependencies
 
@@ -598,8 +704,10 @@ them, because those rows have no outbox history.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
-- OpenAPI source revision: `ca7fadc3`
-- Last verified UTC: `2026-02-24T14:23:11Z`
+- OpenAPI source revision: `5ea0caf6` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
+  worktree `wt-w3-int` for durion-positivity-backend#2268 — the #2270 half of the story pair above is
+  unverified, see its placeholder)
+- Last verified UTC: `2026-09-27T00:00:00Z`
 - Generated API reference: `domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
