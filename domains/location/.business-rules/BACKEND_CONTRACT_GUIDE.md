@@ -67,8 +67,8 @@ Frontend developer workflow:
 | UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
 | Delete a location | `deleteLocation` | DELETE | `/v1/locations/{locationId}` | Refer to generated API reference for payload details |
-| Delete a bay | `deleteBay` | DELETE | `/v1/locations/{locationId}/bays/{bayId}` | Hard delete; publishes `location.bay.deleted` (backend PR #1674) |
-| Delete a mobile unit | `deleteMobileUnit` | DELETE | `/v1/mobile-units/{id}` | Hard delete; also removes coverage rules, publishes `location.mobile-unit.deleted` (backend PR #1674) |
+| Retire a bay | `deleteBay` | DELETE | `/v1/locations/{locationId}/bays/{bayId}` | Retires (`status = RETIRED`), never hard-deletes; publishes `location.bay.updated` (#2264, DECISION-LOCATION-026) |
+| Retire a mobile unit | `deleteMobileUnit` | DELETE | `/v1/mobile-units/{id}` | Retires (`status = RETIRED`), keeps coverage rules; publishes `location.mobile-unit.updated` (#2264, DECISION-LOCATION-026) |
 | Get all locations | `getAllLocations` | GET | `/v1/locations` | Refer to generated API reference for payload details |
 | Get all location parents | `getAllParents` | GET | `/v1/locations/parents` | Refer to generated API reference for payload details |
 | Get location roster | `getRoster` | GET | `/v1/locations/roster` | Refer to generated API reference for payload details |
@@ -185,6 +185,46 @@ codes are specialty. pos-location now publishes it and keeps it for every tenant
 Consumers: pos-shop-manager and pos-workorder replicate the map (`ext_bay_type`,
 `ext_bay_specialty_map`) and `ext_bay.accepts_general_work` (#2261). No eligibility behaviour
 reads them yet; that lands with #2268 and #2269.
+
+#### Stories louisburroughs/durion-positivity-backend#2264–#2267 — Bay and Mobile-Unit Lifecycle, Coverage Eligibility, Distance Units, Unit Attributes
+
+**Lifecycle (#2264, DECISION-LOCATION-026).** Bays and mobile units share `status ∈ {ACTIVE,
+OUT_OF_SERVICE, RETIRED}` (DB `CHECK`, V8); a mobile unit's former `INACTIVE` is gone.
+
+- `DELETE` retires; nothing is hard-deleted. `BayDeletedV1` / `MobileUnitDeletedV1` are no longer
+  emitted — a retirement arrives as an ordinary updated fact, and consumers keep their replica row
+  with `active = false`.
+- `RETIRED` can be reversed and has no error code of its own: booking or placing work on it is the
+  existing 422 `SERVICE_POSITION_INACTIVE`. Default lists hide `RETIRED`; the `status` filter
+  includes it. Retired names stay reserved (409 `BAY_NAME_TAKEN` / `MOBILE_UNIT_NAME_TAKEN`).
+- `OUT_OF_SERVICE` requires `outOfServiceReason` (`EQUIPMENT_FAILURE`, `SCHEDULED_MAINTENANCE`,
+  `INSPECTION`, `SAFETY_HOLD`, `FACILITY_ISSUE`, `OTHER`); `outOfServiceNote` is required for
+  `OTHER`. Otherwise 422 `OUT_OF_SERVICE_REASON_REQUIRED` with `fieldErrors`. `expectedReturnAt`
+  is advisory and not used by scheduling. All three clear on return to `ACTIVE`.
+- A mobile unit created without a `status` starts `OUT_OF_SERVICE`, reason `OTHER`, note
+  "not yet configured".
+- Bays gain `displayOrder`; bay lists sort by `displayOrder` (nulls last), then name.
+- `BayUpdatedV1` carries the out-of-service fields and `displayOrder` (additive, v1);
+  `MobileUnitUpdatedV1` carries them at schema v3.
+
+**Coverage eligibility (#2265, DECISION-LOCATION-027).** `GET /v1/mobile-units:eligible` now
+requires `baseLocationId` (400 when missing) and returns only units based there; optional
+`operationCodes` requires a unit to claim every code. Only coverage rules on an active service
+area match; creating or replacing a rule on an inactive area is 422 `SERVICE_AREA_INACTIVE`.
+Results rank by `priority`, then unit id. `validFrom` / `validTo` are UTC instants (inclusive
+start, exclusive end); existing dates were converted by V9.
+
+**Distance units and travel buffers (#2266, DECISION-LOCATION-028).** Locations carry
+`distanceUnit` (`KM` default, or `MI`). Every distance is `{ value, unit }`; a bare number is 400.
+Storage is kilometres (`max_distance_km`), shown back in the base location's unit. Travel buffer
+`bufferType` is `FIXED_MINUTES` or `DISTANCE_TIER` only; `FLAT_MINUTES` was renamed and the other
+two types removed (V11). Distance-based coverage and `DISTANCE_TIER` are stored, not yet evaluated.
+
+**Mobile-unit attributes (#2267, DECISION-LOCATION-029).** Mobile units carry `maxDutyClass` (1–8)
+and optional, display-only `unitNumber`, `vin`, `licensePlate`, `plateRegion`. Invalid values are
+400; a duplicate within the tenant is 409 `MOBILE_UNIT_IDENTITY_TAKEN` with `fieldErrors`.
+`MobileUnitUpdatedV1` carries all five at schema v4; pos-shop-manager and pos-workorder replicate
+`maxDutyClass` for the placement duty check (#2269).
 
 ### Frontend Usage Notes
 
