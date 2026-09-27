@@ -934,10 +934,17 @@ that pos-inventory must implement. It is published after the transfer commits.
   "payload": {
     "workorderId": "0192f3a1-...",
     "locationId": "0191aa00-...",
+    "transferId": "0193b7c2-...",
     "reason": "WORKORDER_TRANSFERRED"
   }
 }
 ```
+
+`locationId` is a site (the workorder's `shopId` before the transfer). `transferId` is optional: present for
+`WORKORDER_TRANSFERRED`, absent for `WORKORDER_CANCELLED`, which a workorder cancel sends with the workorder's current
+`shopId` and a command id deterministic on `(workorderId, locationId, "WORKORDER_CANCELLED")`. How pos-inventory applies
+each reason (re-open on transfer, end on cancel, backorders cancelled, picked goods left for a person) is inventory
+DECISION-INVENTORY-029.
 
 - pos-inventory releases every open reservation and cancels every unpicked pick list or task for
   `(workorderId, locationId)`. The command id is deterministic on `(workorderId, locationId, transferId)`, so a
