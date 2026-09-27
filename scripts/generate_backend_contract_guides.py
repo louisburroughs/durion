@@ -763,6 +763,20 @@ X-Correlation-Id: abc-123-def-456
     return '\n\n'.join(examples)
 
 
+def _fix_backend_relative_links(content: str) -> str:
+    """Rewrite backend-root-relative doc paths copied verbatim from OpenAPI
+    descriptions (e.g. plain text `see ../durion/docs/architecture/api/
+    ERROR_ENVELOPE.md`, valid from the backend repo root where `../durion` is
+    the sibling orchestration repo) into paths valid from this generated
+    file's own location, `domains/<domain>/.business-rules/` (three levels
+    below the workspace root, hence `../../../docs/...`). These are bare
+    relative paths in prose, not markdown link syntax, so this is a plain
+    prefix replace rather than a link-aware rewrite; it catches the path
+    wherever a copied description embeds it.
+    """
+    return content.replace('../durion/', '../../../')
+
+
 def generate_reference_for_module(backend_root: Path, workspace_root: Path, module: str):
     """Generate BACKEND_API_REFERENCE.generated.md for a specific module."""
     
@@ -789,7 +803,8 @@ def generate_reference_for_module(backend_root: Path, workspace_root: Path, modu
         openapi_source=str(spec_path.relative_to(backend_root)),
         workspace_root=workspace_root,
     )
-    
+    reference_content = _fix_backend_relative_links(reference_content)
+
     output_dir = workspace_root / 'domains' / domain / '.business-rules'
     output_dir.mkdir(parents=True, exist_ok=True)
     

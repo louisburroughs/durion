@@ -7,9 +7,9 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/workexec/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-workorder/openapi.yaml
-openapi_commit: 05e092cc
-last_verified_utc: 2026-09-18T06:27:00Z
-last_updated: 2026-09-18
+openapi_commit: 49f08e9e
+last_verified_utc: 2026-09-27T00:00:00Z
+last_updated: 2026-09-27
 api_reference_generated: domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md
 traceability:
   capability_manifest_root: docs/capabilities
@@ -93,7 +93,7 @@ Frontend developer workflow:
 | View daily dispatch board | `getDashboard` | GET | `/v1/workexec/dashboard/today` | Supports optional `?date=YYYY-MM-DD` query param; defaults to today. Refer to generated API reference for payload details |
 | Record a note about the customer | `addWorkorderNote` | POST | `/v1/workorders/{workorderId}/notes` | Note about the CUSTOMER, not the work; author comes from the authenticated caller. Auth `workorder:note:add`. Publishes `workorder.note.added.v1`, which pos-customer projects onto the party's CRM timeline as a `WORKORDER_NOTE` interaction (durion-positivity-backend#1584). |
 | View a workorder's customer notes | `listWorkorderNotes` | GET | `/v1/workorders/{workorderId}/notes` | One workorder's notes, newest first. Auth `workorder:note:view`. For notes across every workorder for a customer, read the CRM interaction timeline instead. |
-| Dispatch a workorder to a position | `assignServicePosition` | PUT | `/v1/workorders/{workorderId}/position` | Body `{resourceType: BAY\|MOBILE_UNIT\|HOLD, resourceId?, reason?}`. An inactive BAY/MOBILE_UNIT is 422 `SERVICE_POSITION_INACTIVE`. Auth `workorder:position:assign`. Rules below. (durion-positivity-backend#1983, #1984, #2001, #2059) |
+| Dispatch a workorder to a position | `assignServicePosition` | PUT | `/v1/workorders/{workorderId}/position` | Body `{resourceType: BAY\|MOBILE_UNIT\|HOLD, resourceId?, reason?}`. An inactive BAY/MOBILE_UNIT is 422 `SERVICE_POSITION_INACTIVE`; the vehicle's GVWR class above the position's `maxDutyClass` is 422 `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` (specialty capability is never checked here). Auth `workorder:position:assign`. Rules below. (durion-positivity-backend#1983, #1984, #2001, #2059, #2269) |
 | Take a workorder off its position | `releaseServicePosition` | DELETE | `/v1/workorders/{workorderId}/position?reason=` | Leaves the workorder deliberately unplaced and frees the bay. Idempotent when it holds none. Auth `workorder:position:assign`. (durion-positivity-backend#1983, #2059) |
 | Show where a workorder is and who is on it | `getServicePosition` | GET | `/v1/workorders/{workorderId}/position` | Current position, current technician, workorder status, and the full position history newest first. Auth `workorder:workorder:view`. Prefer this over `getOperationalContext`, which answers the position half only and carries no history. (durion-positivity-backend#1983) |
 | Assign the first technician | `assignTechnician` | POST | `/v1/workorders/{workorderId}/technician` | Only for a workorder with no current technician: 409 `TECHNICIAN_ALREADY_ASSIGNED` otherwise, with the incumbent in `referenceId`. Auth `workorder:workorder:assign-technician`. (durion-positivity-backend#1985) |
@@ -121,6 +121,7 @@ Service position and technician assignment (durion-positivity-backend#1983, #198
 - That refusal has its own code rather than `SERVICE_POSITION_INVALID` because the position is real and at the right site — the UI can offer "bring the bay back into service" rather than "that is not a valid position". A position the backend has not replicated yet is still 422 `SERVICE_POSITION_INVALID`.
 - The inbound pos-shop-manager assignment fact is **not** validated against the replicas, so that path never answers this 422. An inactive position is dropped there the way an occupied one is: the location and mechanics are applied and the workorder is left unplaced.
 - A position that goes inactive while a workorder is already on it releases nothing: the job stays put and the dispatch board flags it.
+- **Placement checks duty class, never specialty** (DECISION-SHOPMGMT-021 rule 3, durion-positivity-backend#2269). Bay eligibility — specialty capability and duty class together — is `pos-shop-manager`'s rule at appointment submit and reschedule; workorder placement keeps its site and active checks and adds duty class only, because a vehicle legitimately moves between bays within one workorder (an oil change in a general bay, then the alignment rack) and specialty capability is not a promise placement makes. A `BAY`/`MOBILE_UNIT` whose `maxDutyClass` is below the vehicle's `gvwrClass` (`ExtVehicleReplica`, via the workorder's vehicle) is 422 `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` on `assignServicePosition`, with `fieldErrors` naming `resourceId` — the same code and status pos-shop-manager's own submit-time check answers. Either class unknown skips the check. The rule is enforced on every placement path: `assignServicePosition`, the inbound assignment fact (asked without an exception like the inactive/occupied checks — an over-class position is dropped, location and mechanics still apply, and workorder status follows what was actually placed), and `overrideOperationalContext` (which does not skip duty class the way it skips site and active, since a lift's rated capacity is a physical limit an override cannot waive).
 - **`ASSIGNED` means a technician *and* somewhere to work** (durion-positivity-backend#2010, #2011): a current technician **and** a `BAY` or `MOBILE_UNIT`. A `HOLD` is a parking space, not a place work happens, so it does not count.
 - The rule chooses only between `APPROVED` and `ASSIGNED`. It does not touch a `DRAFT` workorder — which cannot take a technician at all — and work already started stays `WORK_IN_PROGRESS` or a sub-status, so a missing half never rewrites those.
 - Within that window: assigning a technician to an unplaced workorder leaves it `APPROVED`, and placing it then makes it `ASSIGNED` — either order, same answer. Releasing the only technician, or the position, reverts it to `APPROVED`; a hand-over (reassigning the technician, moving bay to bay) keeps it `ASSIGNED`.
@@ -131,7 +132,7 @@ Service position and technician assignment (durion-positivity-backend#1983, #198
 - **Work starts only from `ASSIGNED`** (durion-positivity-backend#2011). `startWorkorder` on an `APPROVED` workorder is 409 and the message names what is missing — a technician, a bay or mobile unit, or both. A workorder that has already started is past the question: no position or technician change moves `WORK_IN_PROGRESS` or its sub-statuses back.
 - Starting a **labor session** follows `ASSIGNED` as a consequence: it allows `ASSIGNED`, `WORK_IN_PROGRESS`, `AWAITING_PARTS` and `AWAITING_APPROVAL` and never allowed `APPROVED`, so a technician-only assignment can no longer clock labor until the workorder is placed. Workexec timers are unchanged and still allow `APPROVED`.
 - Every one of these status changes is a normal transition: it writes a status history row and publishes the `workorder.events.v1` status event consumers read, so a dashboard fed by the replica stays in step.
-- Refusals that name something: 409 `RESOURCE_OCCUPIED` and 409 `TECHNICIAN_ALREADY_ASSIGNED` put the occupying workorder / incumbent technician in `ApiError.referenceId`. 409 `TECHNICIAN_NOT_ASSIGNED`, 409 `WORKORDER_CLOSED`, 422 `SERVICE_POSITION_INVALID`, 422 `SERVICE_POSITION_INACTIVE` and 422 `TECHNICIAN_NOT_FOUND` carry none.
+- Refusals that name something: 409 `RESOURCE_OCCUPIED` and 409 `TECHNICIAN_ALREADY_ASSIGNED` put the occupying workorder / incumbent technician in `ApiError.referenceId`. 422 `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` puts the refused bay/unit in `ApiError.referenceId` and names `resourceId` in `ApiError.fieldErrors`. 409 `TECHNICIAN_NOT_ASSIGNED`, 409 `WORKORDER_CLOSED`, 422 `SERVICE_POSITION_INVALID`, 422 `SERVICE_POSITION_INACTIVE` and 422 `TECHNICIAN_NOT_FOUND` carry none.
 
 Headers and auth notes:
 
@@ -614,8 +615,12 @@ need an upstream source before they can be wired.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-workorder/openapi.yaml`
-- OpenAPI source revision: `05e092cc` (branch `claude/dazzling-gates-mp8sms`, durion-positivity-backend#2067 — carries #2059, the `workorder:position:assign` gate on `assignServicePosition` and `releaseServicePosition` documented above, on top of #2012's `SERVICE_POSITION_INACTIVE` refusal and `ASSIGNED` pair rule)
-- Last verified UTC: `2026-09-18T06:27:00Z`
+- OpenAPI source revision: `49f08e9e` (backend branch `claude/great-ritchie-w9lsyo-wave3`; carries #2269's
+  `SERVICE_POSITION_DUTY_CLASS_EXCEEDED` placement-time duty-class check documented above, verified
+  against worktree `wt-w3-int` — `ServicePositionServiceImpl.resolvePosition`/`recordPositionChange`,
+  `WorkorderServiceImpl.handleAssignmentUpdated` — on top of #2067's `workorder:position:assign` gate
+  (#2059) and #2012's `SERVICE_POSITION_INACTIVE` refusal and `ASSIGNED` pair rule)
+- Last verified UTC: `2026-09-27T00:00:00Z`
 - Generated API reference: `domains/workexec/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
 ## References
