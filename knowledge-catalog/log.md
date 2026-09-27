@@ -1,5 +1,16 @@
 # Directory Update Log
 
+## 2026-09-27
+
+* **Updated**: `domains/shopmgmt`, `domains/workexec`, `domains/location`, `backend/pos-shop-manager`,
+  `backend/pos-workorder` — stamps refreshed after backend wave 3 (durion-positivity-backend#2268, #2269,
+  #2270): the shopmgmt contract guide gained the #2268 bay-eligibility-at-submit/reschedule section (with a
+  placeholder for #2270), the workexec contract guide's pre-applied #2269 duty-class placement note was
+  verified against code, and the location contract guide gained the deferred wave-2 follow-up on
+  mobile-unit `maxDutyClass` PATCH-clears-on-null semantics. Verified against backend branch
+  `claude/great-ritchie-w9lsyo-wave3`, commit `5ea0caf6`. Timestamp-only drift in unrelated entries from
+  this regeneration was discarded.
+
 ## 2026-09-26
 
 * **Regenerated**: 66 ADR, 16 domain, 45 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
