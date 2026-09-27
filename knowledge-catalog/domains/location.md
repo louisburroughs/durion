@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/location
 path: durion/domains/location/
 tags: [domain, location]
 sources: [domains/location/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-26T22:15:27+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-27T00:42:56+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/location) — `domains/location/` (17 documents)
