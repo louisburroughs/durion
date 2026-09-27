@@ -7,7 +7,7 @@ contract_status: draft
 owner_repo: louisburroughs/durion
 guide_path: domains/shopmgmt/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-shop-manager/openapi.yaml
-openapi_commit: 5ea0caf6
+openapi_commit: d8e15592
 last_verified_utc: 2026-09-27T00:00:00Z
 last_updated: 2026-09-27
 api_reference_generated: domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md
@@ -74,17 +74,17 @@ Frontend developer workflow:
 | --- | --- | --- | --- | --- |
 | Delete bay | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
 | Delete mobile unit | *(planned — not in pos-shop-manager OpenAPI)* | DELETE | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
-| Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` | Refer to generated API reference for payload details |
+| Load appointment | `getAppointment` | GET | `/v1/shop-manager/appointments/{appointmentId}` | Response carries `affected` (boolean, DECISION-SHOPMGMT-022, derived at read time — never stored). See "Stories #2268 and #2270" below. (durion-positivity-backend#2270) |
 | Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/bays` | Refer to generated API reference for payload details |
 | Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/mobileUnit` | Refer to generated API reference for payload details |
 | Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` | Refer to generated API reference for payload details |
 | Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/mobileUnit/{bayId}` | Refer to generated API reference for payload details |
-| View schedules | `viewSchedule` | GET | `/v1/schedules/view` | Refer to generated API reference for payload details |
+| View schedules | `viewSchedule` | GET | `/v1/schedules/view` | Each event carries `affected` (DECISION-SHOPMGMT-022); optional `affected` query filter (`true`\|`false`\|omitted for both) returns the reschedule queue. See "Stories #2268 and #2270" below. (durion-positivity-backend#2270) |
 | Get shop service details | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/services/{serviceId}/details` | Refer to generated API reference for payload details |
 | Get technician's person details | `getTechnicianPerson` | GET | `/v1/shop-manager/{locationId}/technicians/{personId}/person` | Refer to generated API reference for payload details |
 | View workorder operational context | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/workorders/{workorderId}/operationalContext` | Refer to generated API reference for payload details |
 | Create appointment | `createAppointment` | POST | `/v1/shop-manager/appointments` | Body accepts `resourceType` (`BAY`\|`MOBILE_UNIT`\|`UNASSIGNED`, DECISION-SHOPMGMT-003) with `resourceId`; omitted `resourceType` is inferred from `resourceId`. Refused `422` (`SERVICE_POSITION_INVALID`\|`SERVICE_POSITION_INACTIVE`\|`SERVICE_POSITION_NOT_EQUIPPED`\|`SERVICE_POSITION_DUTY_CLASS_EXCEEDED`, never overridable, `fieldErrors` naming `resourceId`) or `400 VALIDATION_ERROR` (field `resourceId`) on a contradictory `resourceId`/`resourceType` pair. See "Stories #2268 and #2270" below. (durion-positivity-backend#2268) |
-| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Re-validates the appointment's own (unchanged) resource against the same DECISION-SHOPMGMT-021 eligibility rule and the same codes as create. See "Stories #2268 and #2270" below. (durion-positivity-backend#2268) |
+| Reschedule appointment | `rescheduleAppointment` | PUT | `http://localhost:8080/v1/appointments/{appointmentId}/reschedule` | Re-validates the appointment's own (unchanged) resource against the same DECISION-SHOPMGMT-021 eligibility rule and the same codes as create, unless `newResourceType`/`newResourceId` is given, in which case only the new resource is validated (DECISION-SHOPMGMT-022 rule 3). The 3rd+ non-exempt reschedule needs `appointments:reschedule:approve` and a non-blank `approvalReason` (422 `RESCHEDULE_APPROVAL_REASON_REQUIRED` otherwise; 403 without the permission). See "Stories #2268 and #2270" below. (durion-positivity-backend#2268, #2270) |
 | Cancel appointment | `cancelAppointment` | DELETE | `http://localhost:8080/v1/appointments/{appointmentId}/cancel` | Refer to generated API reference for payload details |
 | Create assignment | `createAssignment` | POST | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
 | List assignments | `listAssignments` | GET | `http://localhost:8080/v1/appointments/{appointmentId}/assignments` | Refer to generated API reference for payload details |
@@ -302,17 +302,98 @@ migration shims, and there is no reliable source to infer a historical `resource
 
 Realized by: durion-positivity-backend#2268.
 
-##### #2270 — (to be filled)
+##### #2270 — Affected Appointments and Reschedule to Another Resource (DECISION-SHOPMGMT-022/-004)
 
-*Placeholder. Facts for durion-positivity-backend#2270 (per its title in the wave-3 plan: affected
-appointments when a bay or mobile unit leaves service, and rescheduling to another resource) will
-be supplied in a follow-up message and written up against the #2270 code at that time.
-DECISION-SHOPMGMT-022 in `AGENT_GUIDE.md` records the design intent (status changes are never
-blocked; affected appointments are derived at read time and listed for rescheduling; reschedule
-accepts a `newResourceId`; a shop-caused reschedule does not count against the customer's
-allowance) but has not been verified against this branch's implementation, so nothing here is
-asserted as contract yet — do not treat DECISION-SHOPMGMT-022 alone as a substitute for verifying
-the shipped behavior.*
+There is no appointment list/search endpoint in `pos-shop-manager` (`AppointmentsController` has
+only `POST /appointments`, `GET /appointments/{appointmentId}`, `PUT
+/appointments/{appointmentId}/reschedule` and `DELETE /appointments/{appointmentId}/cancel`). The
+reschedule queue is exposed instead through an `affected` boolean, on the single-appointment read
+and as a filter on the schedule view.
+
+**"Affected" is derived at read time, never stored** (`AffectedAppointmentEvaluator`,
+`pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/service/AffectedAppointmentEvaluator.java`),
+so a resource returning to service, or regaining eligibility, clears the flag the next time either
+read runs. An appointment is affected when **all** of:
+
+- Status is `SCHEDULED` — the only "held, pre-work" value in `AppointmentStatus`: `CHECKED_IN`,
+  `WORK_IN_PROGRESS`, `WAITING_FOR_PARTS`, `QUALITY_CHECK`, `READY_FOR_PICKUP` are already under
+  way and `REOPENED` is post-completion, so none is a reschedule-queue item; there is no
+  `CONFIRMED` status (class doc, `AffectedAppointmentEvaluator.java:40-58`).
+- `startAt` is in the future (a resource going out of service does not retroactively affect a
+  visit that already happened).
+- `resourceType` is `BAY` or `MOBILE_UNIT` — not `UNASSIGNED` and not the legacy `TECHNICIAN`
+  reading (`candidateResourceType`, `AffectedAppointmentEvaluator.java:159-170`).
+- The named resource is missing from the `ext_bay`/`ext_mobile_unit` replica, is not `ACTIVE`
+  (these replicas collapse `OUT_OF_SERVICE` and `RETIRED` into one `active=false` row, so "not
+  ACTIVE" already covers both), or — **bays only** — no longer passes
+  `BayEligibilityService.refusalFor` for the appointment's operations and vehicle GVWR class
+  (`isBayAffected`, `AffectedAppointmentEvaluator.java:178-200`). A mobile unit runs existence and
+  active checks only — no per-unit eligibility check exists yet (DECISION-SHOPMGMT-023, mobile
+  scheduling not yet built; `isMobileUnitAffected`, `AffectedAppointmentEvaluator.java:202-212`).
+
+**Where it surfaces:**
+
+- `GET /v1/appointments/{appointmentId}` — `AppointmentResponse.affected` (boolean, no filter;
+  `pos-shop-manager/.../dto/AppointmentResponse.java:143`).
+- `GET /v1/schedules/view` — every event in `ScheduleViewResponse` carries its own `affected`
+  (`ScheduleViewResponse.java:139`), and the request gains an optional `affected` filter
+  (`ScheduleViewRequest.java:57-61`, `viewSchedule`): `true` returns only affected appointments
+  (the reschedule queue), `false` only unaffected ones, omitted (default) returns both.
+- The schedule view's `BAY`/`MOBILE_UNIT` lanes resolve `resourceName` from `ext_bay`/
+  `ext_mobile_unit.name` via `findAllById` — **not** the active-only `findActiveByLocationOrdered`
+  — specifically so a retired or out-of-service resource still shows a name rather than a bare id
+  on an affected appointment; falls back to the raw id when the replica has not arrived or the
+  name is blank (`applyBayDisplayNames`/`applyMobileUnitDisplayNames`,
+  `AppointmentsServiceImpl.java:1248-1284`).
+
+**Reschedule to another resource (rule 3).** `RescheduleAppointmentRequest` gains optional
+`newResourceType` (`BAY`\|`MOBILE_UNIT`\|`UNASSIGNED`), `newResourceId` and `approvalReason` (max
+1000 chars) (`pos-shop-manager/.../dto/RescheduleAppointmentRequest.java:63-106`). When either
+`newResourceType` or `newResourceId` is set, only the **new** resource is resolved and validated —
+the same `resolveAndValidateResourceType` inference and 400/422 rules #2268 documents above — and
+the appointment's **old** resource is not re-validated, so moving off an affected resource can
+never be refused by the condition being fixed; the booking-conflict check then runs against the
+new resource, and both `resourceId`/`resourceType` are updated on the appointment
+(`rescheduleAppointment`, `AppointmentsServiceImpl.java:659-725`). Leaving both fields absent keeps
+the pre-#2270 behaviour: the appointment's current (unchanged) resource is re-validated as before.
+
+**Reschedule allowance (DECISION-SHOPMGMT-004) is now enforced.** Migration V16
+(`pos-shop-manager/src/main/resources/db/migration/V16__reschedule_allowance.sql`) adds
+`reschedule_history.counts_against_allowance` (`boolean not null default true`),
+`previous_resource_id` / `new_resource_id` (`varchar(128)`, matching `appointment.resource_id`'s
+own type from the V1 baseline) and `approval_reason` (`varchar(1000)`).
+
+- A reschedule is **exempt** (`counts_against_allowance = false`) when its reason is
+  `EQUIPMENT_ISSUE`, or the appointment was already **affected** — evaluated *before* any field of
+  it changes, so the exemption is decided on the condition that drove the reschedule, not on where
+  it lands afterward (`enforceRescheduleAllowance`/the `shopCaused` computation,
+  `AppointmentsServiceImpl.java:638-645, 787-815`; `MAX_FREE_RESCHEDULES = 2`, line 104).
+- The **3rd and later** non-exempt reschedule of an appointment requires the caller to hold
+  `appointments:reschedule:approve` — enforced by `RescheduleApprovalGuard`'s own
+  `@PreAuthorize`, so a denial is the platform's ordinary `AccessDeniedException` → **403** (no
+  module-specific code; `RescheduleApprovalGuard.java`, `RescheduleApprovalGuardImpl.java`) — **and**
+  a non-blank `approvalReason`, else **422** `RESCHEDULE_APPROVAL_REASON_REQUIRED` with
+  `fieldErrors` naming `approvalReason` (`RescheduleApprovalReasonRequiredException.java`, mapped
+  in `GlobalExceptionHandler.java:222-234`). The first two reschedules, and any shop-caused one,
+  need neither.
+- A rejected reschedule (hard conflict, missing approval, missing reason, etc.) writes no
+  `reschedule_history` row, so it is never counted toward the allowance.
+
+**Permission** `appointments:reschedule:approve` — `ShopPermissions.APPOINTMENTS_RESCHEDULE_APPROVE`
+(`pos-shop-manager/.../security/ShopPermissions.java:80`); `permissions.yaml` grants it to
+`LOCATION_MANAGER`, `GENERAL_MANAGER`, `SHOP_MANAGER` (`pos-shop-manager/src/main/resources/permissions.yaml:54-56`);
+bit **542**, `APPOINTMENTS__RESCHEDULE__APPROVE` in `pos-security-service`'s
+`PermissionCode.java:1023`, mirrored in the gateway's `GatewayPermissionCatalog.java:720` and
+`pos-security-common`'s `DownstreamPermissionCatalog.java:746`.
+
+**Event.** `AppointmentRescheduledEvent` (in-process, published only when `workorderLinkRef` is
+set) gains `previousResourceId`/`newResourceId`, both `null` when the reschedule did not move the
+resource (`pos-shop-manager/.../event/AppointmentRescheduledEvent.java`). No downstream consumer
+reads them yet — `AppointmentEventListener.onAppointmentRescheduled` only logs the appointment id
+(`AppointmentEventListener.java:22-24`).
+
+Realized by: durion-positivity-backend#2270. Verified against backend branch
+`claude/great-ritchie-w9lsyo-wave3`, commit `d8e15592`.
 
 ### Events & Dependencies
 
@@ -704,9 +785,9 @@ them, because those rows have no outbox history.
 ## Verification Metadata
 
 - OpenAPI source: `durion-positivity-backend/pos-shop-manager/openapi.yaml`
-- OpenAPI source revision: `5ea0caf6` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
-  worktree `wt-w3-int` for durion-positivity-backend#2268 — the #2270 half of the story pair above is
-  unverified, see its placeholder)
+- OpenAPI source revision: `d8e15592` (backend branch `claude/great-ritchie-w9lsyo-wave3`; verified against
+  worktree `wt-w3-int` for durion-positivity-backend#2268 and #2270 — both halves of the story pair above
+  are verified)
 - Last verified UTC: `2026-09-27T00:00:00Z`
 - Generated API reference: `domains/shopmgmt/.business-rules/BACKEND_API_REFERENCE.generated.md`
 
