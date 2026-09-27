@@ -2,6 +2,12 @@
 
 ## 2026-09-27
 
+* **Updated**: `domains/shopmgmt`, `backend/pos-shop-manager` — stamps refreshed after the #2270 half of
+  backend wave 3 landed: the shopmgmt contract guide's placeholder is now filled with the affected-appointments
+  read (`AffectedAppointmentEvaluator`, DECISION-SHOPMGMT-022), the reschedule-to-another-resource path, and
+  the DECISION-SHOPMGMT-004 reschedule allowance (`appointments:reschedule:approve`, bit 542). Verified against
+  backend branch `claude/great-ritchie-w9lsyo-wave3`, commit `d8e15592`. Timestamp-only drift in unrelated
+  entries from this regeneration was discarded.
 * **Updated**: `domains/shopmgmt`, `domains/workexec`, `domains/location`, `backend/pos-shop-manager`,
   `backend/pos-workorder` — stamps refreshed after backend wave 3 (durion-positivity-backend#2268, #2269,
   #2270): the shopmgmt contract guide gained the #2268 bay-eligibility-at-submit/reschedule section (with a
