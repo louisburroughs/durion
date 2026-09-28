@@ -19,6 +19,10 @@
   pending): the platform owner reopened the single-currency posture; the ADR stages one functional currency per tenant before
   transactions in several currencies and lists the owner decisions (PC-1 to PC-17, MC-1 to MC-11). The ADR index and the
   catalog root count are regenerated; timestamp-only drift in unrelated entries was discarded.
+* **Updated**: `adr/` — ADR-0067 is now `status: stable` (accepted): the platform owner accepted every §2 recommendation and
+  recorded rulings in a new §2.1 (currency locked at tenant creation, one cross-currency settlement case in B1, the CAP-316 plant
+  currency a report-only view, Canada the first non-USD market). The ADR entry and index are regenerated; timestamp-only drift in
+  unrelated entries was discarded.
 
 ## 2026-09-27
 

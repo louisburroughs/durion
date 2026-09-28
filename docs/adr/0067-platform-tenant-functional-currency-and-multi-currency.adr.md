@@ -1,26 +1,27 @@
 ---
 type: ADR
 title: 'ADR-0067: Tenant Functional Currency and Multi-Currency Support'
-description: Proposes one functional currency per tenant (Stage A) before transactions in several currencies (Stage B - dual amounts and realized FX, then revaluation, then foreign-currency bank accounts), with options and a recommendation for every decision the platform owner must make.
-status: draft
-adr_status: pending
+description: One functional currency per tenant (Stage A) before transactions in several currencies (Stage B - dual amounts and realized FX, then revaluation, then foreign-currency bank accounts); accepted by the platform owner with every section 2 recommendation, the currency locked at tenant creation, one cross-currency settlement case allowed in B1, and Canada as the first non-USD market.
+status: stable
+adr_status: accepted
 created: '2026-09-28'
 related: [ADR-0013, ADR-0017, ADR-0021, ADR-0030, ADR-0040, ADR-0044, ADR-0047, ADR-0048, ADR-0049, ADR-0053, ADR-0054, ADR-0057, ADR-0062]
 tags: [adr, multitenancy, platform]
 ---
 # ADR-0067: Tenant Functional Currency and Multi-Currency Support
 
-**Status:** PENDING DECISION  
+**Status:** ACCEPTED  
 **Date:** 2026-09-28  
 **Deciders:** Platform Owner (every row of §2); advising: Chief Architect, Accounting Domain, Pricing Domain, Tax, Frontend Lead  
 **Affected Issues:** none filed yet; §10 lists the issues to file. Opened by decision D18 of the accepted bank reconciliation specification, which names this ADR
 (`domains/accounting/SPEC-manual-bank-reconciliation.md` l.1509).  
-**Would amend on acceptance:** ADR-0047 (Context driver, D-8 rationale), ADR-0062 §7, ADR-0030 §4, ADR-0021; ADR-0057 and ADR-0048 at Stage B1. Full list in §9.
+**Amends:** ADR-0047 (Context driver, D-8 rationale), ADR-0062 §7, ADR-0030 §4, ADR-0021; ADR-0057 and ADR-0048 at Stage B1. Full list in §9.
 
 > **How to read this.** §1 and §2 are enough to decide: a summary, then one table row per decision with its options, a recommendation and the consequence.
 > Rows marked **A** are needed before Stage A starts; rows marked **B1** or **B2** can wait until Stage B is scheduled. Everything after §2 is the evidence and
-> the detail behind each row. **Nothing in this record is decided.** EXISTING marks a fact verified in code or in a ratified document on 2026-09-28;
-> PROPOSED marks a recommendation of this ADR. Rows with an `MC-` id come from the Accounting Domain's requirements memo of 2026-09-28 and keep its ids and
+> the detail behind each row. **Every row was decided by the platform owner on 2026-09-28; §2.1 records the rulings, including where they depart from
+> the table's recommendation.** EXISTING marks a fact verified in code or in a ratified document on 2026-09-28;
+> PROPOSED marks a recommendation of this ADR, accepted as written unless §2.1 says otherwise. Rows with an `MC-` id come from the Accounting Domain's requirements memo of 2026-09-28 and keep its ids and
 > recommendations; where the architect disagrees, §12.1 says so. Rows with a `PC-` id are the platform-level decisions this ADR adds.
 >
 > **Citations.** Backend Java: `<module> <File>.java:<line>` under `durion-positivity-backend/<module>/src/main/java/`. Flyway: `<module> <file>.sql:<line>`
@@ -34,7 +35,7 @@ tags: [adr, multitenancy, platform]
 The platform owner, 2026-09-28: *"We need to prepare for other currencies and multiple currencies. We initially rejected them for simplicity's sake, but it is
 time to revisit."*
 
-PROPOSED, for the owner to accept or change row by row:
+DECIDED by the platform owner on 2026-09-28 (rulings in §2.1):
 
 1. **Two capabilities, in this order.** *Stage A, other currencies:* each tenant has exactly one **functional currency**, the currency of its single ledger,
    which may be any ISO 4217 currency; everything the tenant prices, invoices, collects, pays, taxes and books is in it. *Stage B, multiple currencies:*
@@ -55,7 +56,8 @@ PROPOSED, for the owner to accept or change row by row:
 7. **Some defects exist today, even for USD-only tenants** (§10): a supplier invoice's currency is dropped, a documented currency 409 is never raised, a
    fabricated 0.01 can reach the ledger, and money is formatted en-US whatever locale the user picked. They should be filed and fixed whatever the owner
    decides here.
-8. **If the owner declines,** nothing changes: D18 and the recorded non-goals stay in force and the platform remains USD-only.
+8. **Canada is the first non-USD market,** launched with USD or right after it (OP-9). PC-7 cash rounding, Canadian multi-level sales tax and an en-CA
+   locale are therefore Stage A launch work, not deferred jurisdiction work.
 
 ---
 
@@ -102,7 +104,31 @@ One row per decision. "Needed by" is the stage that cannot start without the ans
 | MC-5 | B2 | Which balances are revalued | by account class | Memo: bank, undeposited funds, AR, AP, refundable customer credits, and 2360 when it holds foreign-currency lines. Finance confirms that deposits for future service are non-monetary | Sets the revaluation and readiness scope |
 
 The architect differs from the Accounting memo in two places, both in §12.1: when the functional currency locks (OP-1, MC-1) and whether B1 is usable before
-B3 while MC-7 refuses cross-currency settlement (OP-2). The table keeps the memo's recommendations.
+B3 while MC-7 refuses cross-currency settlement (OP-2). The table keeps the memo's recommendations; §2.1 records which one the owner chose.
+
+### 2.1 Owner rulings (2026-09-28)
+
+The platform owner accepted every recommendation in the two tables above, with these rulings on the contested and open items. Where a ruling departs from
+a table row, the ruling governs.
+
+| Item | Ruling |
+| --- | --- |
+| All §2 rows | **Accepted as recommended**, except MC-1's lock timing and MC-7, below |
+| MC-1 / OP-1 | **Lock at creation** (architect's view). The functional currency is a required field of the tenant create request and immutable from then on; a wrong value is corrected by decommissioning the PENDING tenant and creating another. Existing tenants and their ledger lines: USD at rate 1 |
+| MC-7 / OP-2 | **Option 2: allow one cross-currency case in B1.** A foreign-currency item may be settled through a functional-currency bank account or payout, with the FX difference posted as realized FX (plan D-14's `FX_GAIN_LOSS` category, MC-6's realized key). Every other cross-currency settlement or `TRANSFER` stays refused until B3. The Accounting Domain rules on F2's shape (a currency per line, or a two-step clearing pattern) before B1 starts. B1 is usable without B3 |
+| MC-10 / OP-8 | **The CAP-316 plant currency is a report-only view** (§5.15). `LocationFxRate` survives, labelled as not a ledger rate; translation stays out of scope |
+| OP-3 | **Accepted:** a receipt without a booking rate for its date is recorded, its valuation parked until the rate exists, then valued at the receipt-date rate |
+| OP-4 | **Accepted:** the cost fact carries the rate reference, so inventory valuation and accounting's accrual use one functional amount |
+| OP-5 | **`account.home_currency` is the currency Durion bills the account in.** It stays on the account and only prefills the tenant create form's functional currency; it never becomes a tenant's functional currency by itself (MC-1 option c stays rejected) |
+| OP-6 | Tax-provider regime coverage, tax-inclusive pricing and MC-11's filing rules are items of each jurisdiction's PC-15 readiness sign-off. MC-11 default holds: the document's rate, filing in the functional currency, unless the jurisdiction mandates otherwise |
+| OP-7 | **The accounting framework is a per-tenant setting** (`US_GAAP` or `IFRS`, as CAP-054's configuration already names). MC-5's monetary and non-monetary classification follows the tenant's framework |
+| OP-9 | **Canada is the first non-USD market, launched with USD or right after it.** CAD tenants need PC-7 cash rounding (CAD 0.05), GST/HST/PST/QST support in pos-tax (OP-6) and an en-CA locale (OP-15) as Stage A launch work. Mexico and France are not scheduled |
+| OP-10 | A precondition of Stage A's backfill: a data check for non-USD rows before the USD backfill runs; any found are resolved by hand first |
+| OP-11 | **One rule: HALF_UP.** pos-price's HALF_EVEN unit-price rounding changes to HALF_UP; unit prices keep their declared extra precision (PC-6) |
+| OP-12 | An item of each jurisdiction's PC-15 readiness sign-off (documents): which locale renders invoices and estimates is decided there, first for Canada. The currency always comes from the document (F-1) |
+| OP-13 | **Accepted:** a test compares backend (JDK ISO) and frontend (CLDR) exponents for every currency in any tenant's allow-list, and for the functional currency of every tenant |
+| OP-14 | **Accepted:** amended accounting documents say tenant (ADR-0062 §4), never organization |
+| OP-15 | **en-CA is added** for the Canadian launch (ADR-0030); further locales follow each jurisdiction's PC-15 sign-off |
 
 ---
 
@@ -870,6 +896,8 @@ change; idempotent replays; allow-list refusal when a document is created.
 
 ### 12.1 Where the architect differs from the Accounting memo
 
+> **Resolved 2026-09-28** (§2.1): OP-1 as the architect proposed (lock at creation); OP-2 by option 2 (one cross-currency case allowed in B1).
+
 **OP-1 — Lock at creation, not at activation (MC-1, timing only).** The memo locks the functional currency "when the tenant becomes ACTIVE". A tenant moves
 from PENDING to ACTIVE automatically once pos-security-service answers `tenant.provisioned` (ADR-0062 §7), and modules seed their per-tenant defaults from
 `tenant.created`. A value still changeable while PENDING would have to be re-seeded by every consumer on `tenant.updated`, racing provisioning. Architect's
@@ -892,6 +920,9 @@ Architect's view: decide MC-7 and B3's timing together, before B1 starts. If the
 its own without option 1 or 2. This questions the memo's order and MC-7's default, not its invariants; the Accounting Domain rules on F2's shape.
 
 ### 12.2 Open questions
+
+> **Resolved 2026-09-28.** Every question below has a ruling in §2.1. OP-6 and OP-12 are carried as items of each jurisdiction's PC-15 readiness
+> sign-off, Canada first; OP-10 is a precondition of Stage A's backfill. The table is kept as the record of what was asked.
 
 | ID | Question | Why it matters | Who answers |
 | --- | --- | --- | --- |
@@ -995,7 +1026,7 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
 
 | Role | Name | Date | Notes |
 | --- | --- | --- | --- |
-| Platform Owner | | | Decides every row of §2 |
+| Platform Owner | Louis Burroughs | 2026-09-28 | Accepted every §2 recommendation; rulings in §2.1 |
 | Chief Architect | | | |
 | Accounting Domain | | | MC rows, §6, §8, OP-1, OP-2 |
 | Pricing Domain | | | PC-10, OP-11 |
@@ -1007,8 +1038,8 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
 ## Timeline
 
 - **Proposed:** 2026-09-28
-- **Under Review:** pending
-- **Accepted:** pending
+- **Under Review:** 2026-09-28
+- **Accepted:** 2026-09-28
 
 ---
 
@@ -1016,3 +1047,7 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
 
 - **2026-09-28:** Initial draft, pending the owner's decision. Built from the backend currency inventory, the frontend and documentation inventory, and the
   Accounting Domain's requirements memo of the same date, with the load-bearing citations re-read against the source trees.
+- **2026-09-28:** Accepted by the platform owner. Every §2 recommendation accepted; §2.1 added with the rulings: functional currency locked at tenant
+  creation (OP-1), one cross-currency settlement case allowed in B1 (OP-2, MC-7), the CAP-316 plant currency a report-only view (MC-10), `home_currency`
+  the account's billing currency (OP-5), the accounting framework a per-tenant setting (OP-7), and Canada the first non-USD market, launched with USD or
+  right after it (OP-9). The remaining open questions were answered or assigned to the PC-15 readiness sign-off.
