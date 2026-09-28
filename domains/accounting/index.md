@@ -67,6 +67,9 @@ These existing documents support investigation and delivery planning; comparison
 
 - [Inventory adjustment GL posting specification](SPEC-inventory-adjustment-gl-posting.md) — ruling on durion-positivity-backend#2186 and the fact-to-journal-entry
   flow for cycle-count and manual inventory adjustments (proposed; open decisions pending)
+- [Manual bank reconciliation specification](SPEC-manual-bank-reconciliation.md) — extends the delivered story F2 (durion-positivity-backend#965) bank
+  reconciliation with statement import staging, a provider-neutral bank-feed contract, matching and outstanding-item rules, approval and
+  correction, accounting-period-close integration, and a later `pos-bank-feed-plaid` connector phase (proposed; open decisions pending)
 - [Accounting comparison overview](comp-accounting-overview.md)
 - [Odoo versus pos-accounting](comp-vs-pos-accounting-comparison.md)
 - [Reconciliation internals comparison](comp-reconciliation-internals.md)

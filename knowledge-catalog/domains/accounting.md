@@ -6,10 +6,10 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/accountin
 path: durion/domains/accounting/
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T15:34:28+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-28T02:41:00+00:00'}
 ---
 
-[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (79 documents)
+[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (80 documents)
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md) — authority, current guidance, and historical records
 
@@ -36,18 +36,19 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T15:34:28
 **Documentation:**
 
 * [Inventory Adjustment GL Posting](https://github.com/louisburroughs/durion/blob/master/domains/accounting/SPEC-inventory-adjustment-gl-posting.md) — Specification · proposed
+* [Manual Bank Reconciliation](https://github.com/louisburroughs/durion/blob/master/domains/accounting/SPEC-manual-bank-reconciliation.md) — Specification · proposed
 * [Accounting Domain - Remaining Open Questions & Implementation Plan](https://github.com/louisburroughs/durion/blob/master/domains/accounting/accounting-questions.md)
 * [Accounting Flyway Baseline Reset Plan](https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/flyway-baseline-reset-plan.md) —
   Historical Plan · superseded
-* [Bill Matching Implementation Summary][document-4] — Implementation Report · historical
+* [Bill Matching Implementation Summary][document-5] — Implementation Report · historical
 * [Bill Matching Improvements](https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/implementation/BILL_MATCHING_IMPROVEMENTS.md) —
   Implementation Report · historical
-* [Vendor Bill GL Posting Event Implementation][document-6] — Implementation Report · historical
+* [Vendor Bill GL Posting Event Implementation][document-7] — Implementation Report · historical
 * [Event Outbox Pattern Implementation](https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/implementation/OUTBOX_PATTERN.md) —
   Implementation Report · historical
 * [Accounting ERD Before Multitenancy](https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/pos-accounting-erd.md) — Schema Snapshot · historical
-* [Odoo Accounting — Functional Overview (Reference for pos-accounting Comparison)][document-9]
-* [Odoo Reconciliation Internals — Deep Dive (Reference for pos-accounting Comparison)][document-10]
+* [Odoo Accounting — Functional Overview (Reference for pos-accounting Comparison)][document-10]
+* [Odoo Reconciliation Internals — Deep Dive (Reference for pos-accounting Comparison)][document-11]
 * [Odoo Tax Engine — Deep Dive (Reference for pos-tax Comparison)](https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-tax-engine-deep-dive.md)
 * [Odoo Accounting vs pos-accounting — Capability Comparison Map](https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-vs-pos-accounting-comparison.md)
 * [Odoo Tax Engine vs pos-tax — Capability Comparison Map](https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-vs-pos-tax-comparison.md)
@@ -58,7 +59,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-24T15:34:28
 * [Double-Entry Bookkeeping and Core Accounting Principles](https://github.com/louisburroughs/durion/blob/master/domains/accounting/reference/de-bookkeeping-rag.md) —
   Conceptual Reference · reference
 
-[document-4]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/implementation/BILL_MATCHING_IMPLEMENTATION_SUMMARY.md
-[document-6]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/implementation/GL_POSTING_EVENT_IMPLEMENTATION.md
-[document-9]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-accounting-overview.md
-[document-10]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-reconciliation-internals.md
+[document-5]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/implementation/BILL_MATCHING_IMPLEMENTATION_SUMMARY.md
+[document-7]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/implementation/GL_POSTING_EVENT_IMPLEMENTATION.md
+[document-10]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-accounting-overview.md
+[document-11]: https://github.com/louisburroughs/durion/blob/master/domains/accounting/comp-reconciliation-internals.md
