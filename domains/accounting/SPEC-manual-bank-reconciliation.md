@@ -186,12 +186,12 @@ registered in `DomainEventContractTest`. Envelope per ADR-0044 §3 (`eventId` UU
 
 | eventType | Topic | Producer → consumer | Aggregate id | Purpose |
 | --- | --- | --- | --- | --- |
-| `bankfeed.transactions.observed` (`BankTransactionsObservedV1`) | `bankfeed.events.v1` (phase 2); in-process call (phase 1) | connector / file adapter → accounting intake | `feedAccountRef` scope key (phase 1: `importId`) | A batch of normalized bank transactions for one feed account, each `ADDED`, `MODIFIED` or `REMOVED`, with optional statement header. |
+| `bankfeed.transactions.observed` (`BankTransactionsObservedV1`) | `bankfeed.events.v1` (phase 2); in-process call (phase 1) | connector / file adapter → accounting intake | `feedAccountId` (UUID, the connector's feed-account aggregate; phase 1: `importId`) | A batch of normalized bank transactions for one feed account, each `ADDED`, `MODIFIED` or `REMOVED`, with optional statement header. |
 | `bankfeed.accounts.discovered` (`BankAccountsDiscoveredV1`) | `bankfeed.events.v1` | connector → accounting | `feedConnectionId` | Accounts available under a connection, for the GL-account linking screen. |
 | `bankfeed.connection.status-changed` (`BankFeedConnectionStatusChangedV1`) | `bankfeed.events.v1` | connector → accounting | `feedConnectionId` | `ACTIVE`, `LOGIN_REQUIRED`, `PENDING_DISCONNECT`, `REVOKED`, `REMOVED`, `ERROR` with a neutral `reasonCode`. |
-| `bankfeed.balance.observed` (`BankBalanceObservedV1`) | `bankfeed.events.v1` | connector → accounting | `feedAccountRef` | Observed current/available balance at an instant — **informational only**; never the statement closing balance (§7.2). |
+| `bankfeed.balance.observed` (`BankBalanceObservedV1`) | `bankfeed.events.v1` | connector → accounting | `feedAccountId` | Observed current/available balance at an instant — **informational only**; never the statement closing balance (§7.2). |
 | `bankfeed.sync.requested` (`BankFeedSyncRequestedV1`) | `bankfeed.commands.v1` | accounting → connector | `feedConnectionId` | On-demand refresh (ADR-0044 R4: command with pending state + idempotency key). |
-| `bankfeed.replay.requested` (`BankFeedReplayRequestedV1`) | `bankfeed.commands.v1` | accounting → connector | `feedAccountRef` | Re-emit transactions from a date (ADR-0044 §4 bootstrap/backfill). |
+| `bankfeed.replay.requested` (`BankFeedReplayRequestedV1`) | `bankfeed.commands.v1` | accounting → connector | `feedAccountId` | Re-emit transactions from a date (ADR-0044 §4 bootstrap/backfill). |
 
 `BankTransactionsObservedV1` payload (all identifiers UUID-typed except external ids, which stay `String` per ADR-0027 l.70):
 
@@ -200,12 +200,13 @@ registered in `DomainEventContractTest`. Envelope per ADR-0044 §3 (`eventId` UU
 | `sourceKind` | `FILE_IMPORT` / `MANUAL_ENTRY` / `BANK_FEED` | Provenance class; the only thing the core branches on (for dedupe policy, §4.5). |
 | `connectorCode` | String, nullable | Provenance label (`"plaid"`, `"csv-v1"`); **never** used for behaviour in the core. |
 | `feedConnectionId` | UUID, nullable | Connector's connection aggregate (phase 2). |
-| `feedAccountRef` | String | Connector's account id, or the `importId` string for files. Resolved to a GL account through `bank_account_profile` (§6.4); unresolved batches park. |
+| `feedAccountId` | UUID, nullable | The connector's own feed-account aggregate id (`feed_account.feed_account_id`, phase 2) — the envelope `aggregateId` (ADR-0044 §3 requires a UUID); null for files and manual entry, whose aggregate is the `importId` / `statementId`. |
+| `feedAccountRef` | String, nullable | The provider's account reference as payload data only (a Plaid `account_id` is provider-owned and not a UUID); null for files. `(connectorCode, feedConnectionId, feedAccountId)` resolves to a GL account through `bank_account_profile` (§6.4); unresolved batches park. |
 | `currency` | String(3) | ISO code; the core refuses a currency that differs from the linked account (D18). |
 | `observedAt` | Instant | When the source observed the batch. |
 | `cursorRef` | String, nullable | Opaque connector cursor for traceability only; the core never interprets it. |
 | `statement` | object, nullable | `{statementRef, startDate, endDate, openingBalance, closingBalance}` — present for files and manual entry (and CAMT.053 later); **null for feeds**. |
-| `transactions[]` | list | Each: `sourceTransactionId` (String, nullable for files without ids), `sourceRowNumber` (Integer, nullable), `change` (`ADDED`/`MODIFIED`/`REMOVED`), `settlementState` (`PENDING`/`POSTED`), `transactionDate`, `authorizedDate` (nullable), `signedAmount` (**positive = money into the account**, the F2 convention), `currency`, `description`, `originalDescription` (nullable), `reference` (nullable), `checkNumber` (nullable), `counterpartyName` (nullable), `categoryHint` (nullable, informational), `supersedesSourceTransactionId` (nullable — a posted item replacing a pending one). |
+| `transactions[]` | list | Each: `sourceTransactionId` (String, nullable for files without ids), `sourceRowNumber` (Integer, nullable), `change` (`ADDED`/`MODIFIED`/`REMOVED`), `settlementState` (`PENDING`/`POSTED`), `transactionDate`, `authorizedDate` (nullable), `signedAmount` (**positive = money into the account**, the F2 convention), `currency`, `description`, `originalDescription` (nullable), `reference` (nullable), `checkNumber` (nullable), `counterpartyName` (nullable), `categoryHint` (nullable, informational), `supersedesSourceTransactionId` (nullable — a posted item replacing a pending one). A `REMOVED` element carries only `sourceTransactionId` and `change` (a Plaid `removed[]` entry has no other data, §7.4); every other field is null and nothing is fabricated. |
 
 The sign convention of the contract is the core's convention. A connector whose provider uses the opposite sign (Plaid does, §7.2) inverts **inside the connector**.
 
@@ -300,7 +301,7 @@ reason; the original `rawValues` are never rewritten.
 
 Invariants: **M1** Σ bank `signedAmount` − Σ ledger `signedAmount` within ±0.01 (existing `requireAmountsAgree`, l.288-299) — the tolerance covers rounding only; a larger
 residual is an adjustment, not a match; **M2** exactly one side may have more than one member (C6); **M3** every ledger member is POSTED, on the reconciled account, dated
-on/before the reconciliation's `statementEndDate` (a later-dated line belongs to a later window); **M4** every bank member is `UNMATCHED` or `POSSIBLE_DUPLICATE`-resolved,
+on/before the reconciliation's `statementEndDate` (a later-dated line belongs to a later window); **M4** every bank member is `UNMATCHED` or `POSSIBLE_DUPLICATE`-resolved, in no `OPEN` outstanding item,
 `settlementState = POSTED`, dated inside the window or carried in as unexplained from an earlier window; **M5** `justification` is required when `matchKind ≠ ONE_TO_ONE`,
 when `toleranceUsed ≠ 0`, when any date is outside the window, or when a member was a `POSSIBLE_DUPLICATE` (`MATCH_REQUIRES_REVIEW`); **M6** a `RULE`-origin match is never
 `ACCEPTED` by the system (D12); **M7** matches are never deleted.
@@ -336,7 +337,7 @@ differences finalizes with zero JE". An outstanding item **explains** a differen
 | `registeredInReconciliationId`, `registeredBy/At`, `justification` | UUID, String, Instant, String(1000) | Registration is an accounting judgement; justification required for `OTHER_LEDGER_TIMING` and `BANK_ERROR_PENDING`, and for any item older than `pos.accounting.bankrec.outstanding.aging-warning-days` (default 90) at registration. |
 | `status` | `OPEN` → `CLEARED` (matched in a later reconciliation; `clearedInReconciliationId`, `clearedByMatchId`, `clearedAt`) \| `VOIDED` (source JE reversed; `voidedByJournalEntryId`) \| `RELEASED` (human undo with reason while the registering reconciliation is not FINALIZED) | Carried forward automatically while `OPEN` (§5.4). |
 
-Invariants: **O1** a ledger line is in at most one `OPEN` item and never simultaneously in an active match (partial uniques + service check); **O2** an `OPEN` item
+Invariants: **O1** a ledger line or a bank transaction is in at most one `OPEN` item and never simultaneously in an active match (partial uniques + service check); **O2** an `OPEN` item
 contributes to every later reconciliation on the account until it leaves `OPEN`; **O3** registering an item posts nothing — the ban on `FLOAT_ADJUSTMENT` (C2) stands.
 
 ### 3.7 Reconciliation (EXISTING `bank_reconciliation` extended) and the explicit equation
@@ -368,7 +369,7 @@ existed only because the snapshot was frozen *before* the adjustments posted; wi
 matched ledger lines are already in the as-of balance. Outstanding items are new terms and are exactly the "non-posting" model the ruling deferred.
 
 Diagnostics shown on the review screen (§4.8): `sumUnexplainedBank` = Σ `UNMATCHED` + `POSSIBLE_DUPLICATE` bank transactions on the account dated ≤ `statementEndDate`
-(including ones carried in from earlier windows); `sumUnexplainedLedger` = Σ POSTED lines on the account dated ≤ `statementEndDate` in no active match and no `OPEN`
+(including ones carried in from earlier windows) that are in no `OPEN` bank-side outstanding item (a `BANK_ERROR_PENDING` item is an explained difference, §3.6); `sumUnexplainedLedger` = Σ POSTED lines on the account dated ≤ `statementEndDate` in no active match and no `OPEN`
 outstanding item; `openingDifference` = `statementOpeningBalance` − (`glOpeningBalance` + Σ `OPEN` ledger-side items dated < `statementStartDate` − Σ `OPEN` bank-side items
 dated < `statementStartDate`) — a non-zero opening difference means an earlier window is wrong or stale, and the screen says so rather than letting the user "fix" it here.
 
@@ -517,8 +518,8 @@ the same `BankTransactionsObservedV1` — CAMT.053 also fills the `statement` bl
 - `splitAt` (§5.7): the upload or mapping body may carry `splitAt[]` dates inside the header window plus a keyed `closingBalance` for every segment but the last (the
   file carries only the final closing balance); the adapter then commits one statement per segment through the intake, each segment's opening balance being the previous
   segment's keyed closing balance, so E1 and E2 hold per segment and the earlier segment can be reconciled as its own window.
-- `POST /{importId}/commit` (idempotent on the import: a second commit answers 200 with the same result; a commit of a `DISCARDED` import 409 `IMPORT_ALREADY_COMMITTED`
-  covers both terminal states — NEW). Preconditions: no `REJECTED` rows; no `POSSIBLE_DUPLICATE` rows left unreviewed at row level (they may be committed as
+- `POST /{importId}/commit` (idempotent on the import: a second commit answers 200 with the same result; a mutation of a `DISCARDED` import answers 409
+  `IMPORT_DISCARDED` and a mapping or row change on a `COMMITTED` one 409 `IMPORT_ALREADY_COMMITTED` — both NEW). Preconditions: no `REJECTED` rows; no `POSSIBLE_DUPLICATE` rows left unreviewed at row level (they may be committed as
   `POSSIBLE_DUPLICATE` bank transactions for later review — the accountant chooses per row or in bulk); no `OUT_OF_WINDOW` rows unless skipped; **E1** holds. Otherwise
   422 `IMPORT_NOT_COMMITTABLE` (NEW) with `fieldErrors` `rows[<rowNumber>]` and/or `activityTotal`. Commit is one transaction: statement + bank transactions + optional
   reconciliation, `AccountingAuditLog` `BANK_IMPORT_COMMIT`, outbox `accounting.bankstatement.committed`.
@@ -561,7 +562,7 @@ POSTED ledger lines on the account, in no active match and no `OPEN` outstanding
 | --- | --- | --- |
 | Exact signed amount (after ledger sign = debit − credit) | +60 | `EXACT_AMOUNT` |
 | Amount within ±0.01 | +40 | `WITHIN_TOLERANCE` |
-| Date distance `d` days | +20 × (1 − d / W) | `DATE_IN_WINDOW`; outside `W` the line is not a candidate unless the caller widens the window explicitly (`DATE_OUT_OF_WINDOW`) |
+| Date distance `d` days | +20 × (1 − d / W) | `DATE_IN_WINDOW`; outside `W` the line is not a candidate unless the caller widens the window explicitly (`DATE_OUT_OF_WINDOW`); a line dated after `statementEndDate` is never a candidate (M3) |
 | `checkNumber` or `reference` equals the JE description / line description token | +20 | `REFERENCE_MATCH` |
 | Description token overlap (Jaccard over `normalizedDescription` tokens ≥ 0.5) | up to +10 | `DESCRIPTION_SIMILAR` |
 
@@ -578,9 +579,9 @@ Human approval is required (justification, M5) for every non-1:1 match, any tole
   `matchKind = ONE_TO_MANY`, `justification` required; the match is `ACCEPTED`; both ledger lines and the bank row are `MATCHED`.
 - **Given** bank 99.99 and ledger 100.00 **When** matched 1:1 **Then** `toleranceUsed = 0.01`, `justification` required; **Given** bank 99.50 **Then** 422
   `MATCH_AMOUNT_MISMATCH` (EXISTING) — the residual is an adjustment or a wrong pairing, never a match.
-- **Given** a ledger line dated 10-02 and a reconciliation window ending 09-30 **When** matched **Then** 422 `MATCH_REQUIRES_REVIEW` with `DATE_OUT_OF_WINDOW`; with
-  justification the match is allowed but flagged (M3 is enforced strictly for FINALIZED windows: a line dated after the window end cannot enter it — the bank transaction
-  is carried to the next window instead).
+- **Given** a ledger line dated 10-02 and a reconciliation window ending 09-30 **When** matched **Then** 409 `RECONCILIATION_LINE_INELIGIBLE` (M3: the line belongs
+  to the next window; the bank transaction is carried forward as unexplained). **Given** a ledger line dated 09-02 and a bank transaction dated 09-25 in the same window
+  (outside `W`) **When** matched **Then** 422 `MATCH_REQUIRES_REVIEW` with `DATE_OUT_OF_WINDOW`; with justification the match is `ACCEPTED` and flagged.
 - **Given** a ledger line already in an active match in another reconciliation **Then** 409 `RECONCILIATION_LINE_INELIGIBLE` (EXISTING).
 - Unmatch: `POST /{id}/matches/{matchId}/unmatch` with `reason` → `UNMATCHED` state, members return to `UNMATCHED`, audit row `RECONCILIATION_UNMATCH` with actor and
   reason (closes G3). Only while the reconciliation is `IN_PROGRESS` or `SUBMITTED`.
@@ -668,7 +669,8 @@ with 422 `PERIOD_CLOSED` (EXISTING) unless the request carries `overrideJustific
 | `CURRENCY_NOT_SUPPORTED` | 422 | NEW | statement/feed currency differs from the account profile (pending D18) |
 | `STATEMENT_ALREADY_IMPORTED` | 409 | NEW | COMMITTED statement with the same account and window |
 | `IMPORT_FILE_ALREADY_COMMITTED` | 409 | NEW | same `fileSha256` COMMITTED for the account |
-| `IMPORT_ALREADY_COMMITTED` | 409 | NEW | commit / mapping / correction on a `COMMITTED` or `DISCARDED` import |
+| `IMPORT_ALREADY_COMMITTED` | 409 | NEW | mapping / correction / discard on a `COMMITTED` import |
+| `IMPORT_DISCARDED` | 409 | NEW | commit / mapping / correction on a `DISCARDED` import |
 | `STATEMENT_PERIOD_OVERLAP` | 422 | NEW | window overlaps a COMMITTED statement (`fieldErrors[statementId]`) |
 | `STATEMENT_NOT_CONTIGUOUS` | 422 | NEW | opening balance / start date do not continue the previous statement and no acknowledgement (pending D17) |
 | `STATEMENT_ACTIVITY_MISMATCH` | 422 | NEW | E1 fails on a manual statement |
@@ -732,7 +734,7 @@ list inside its transaction:
 | `RECONCILIATION_IN_FLIGHT` | BLOCKING | an `IN_PROGRESS` / `SUBMITTED` reconciliation with `statementEndDate ≤ periodEndDate` exists | ids |
 | `RECONCILIATION_INVALIDATED` | BLOCKING | an `INVALIDATED` reconciliation whose window intersects the period has no `FINALIZED` successor | ids, `invalidationReason` |
 | `BALANCE_AGREEMENT` | BLOCKING | for the covering `FINALIZED` reconciliation, live `glBalanceAsOf(statementEndDate)` = `approvedGlEndingBalance` (belt and braces over invalidation) | account, both values |
-| `UNEXPLAINED_BANK_TRANSACTIONS` | BLOCKING | `UNMATCHED` / `POSSIBLE_DUPLICATE` bank transactions dated ≤ `periodEndDate` (includes late arrivals, D10) | count, Σ, ids (first 50) |
+| `UNEXPLAINED_BANK_TRANSACTIONS` | BLOCKING | `UNMATCHED` / `POSSIBLE_DUPLICATE` bank transactions dated ≤ `periodEndDate` in no `OPEN` bank-side outstanding item (includes late arrivals, D10) | count, Σ, ids (first 50) |
 | `UNEXPLAINED_LEDGER_LINES` | BLOCKING | POSTED lines on the account dated ≤ `periodEndDate`, unmatched, not `OPEN` outstanding items | count, Σ, ids |
 | `UNPOSTED_ADJUSTMENTS` | BLOCKING | adjustment rows whose `journalEntryId` is null or whose JE is not POSTED (defensive — adjustments post synchronously today) | ids |
 | `COVERAGE_LAG_APPLIED` | WARNING | lag > 0 and `reconciledFrontier < periodEndDate` — the frontier passed only because of the lag | account, `reconciledFrontier`, `lagDays` |
@@ -822,9 +824,9 @@ family carries a provider name, a file-format option the core interprets, a cred
 | `GET` | view | `glAccountId?`, `status?`, page | list of imports | 200 |
 | `GET /{importId}` | view | — | `BankImportResponse` (counts, header, mapping, status, outcome ids) | 200, 404 |
 | `GET /{importId}/rows` | view | `status?`, page (sort `rowNumber`) | rows with raw/parsed/status/rejection/fingerprint collision | 200 |
-| `PUT /{importId}/mapping` | adjust | `{columnMapping, signConvention, dateFormat, …, saveAsAccountDefault}` | re-parsed `BankImportResponse` | 200, 409 `IMPORT_ALREADY_COMMITTED` |
+| `PUT /{importId}/mapping` | adjust | `{columnMapping, signConvention, dateFormat, …, saveAsAccountDefault}` | re-parsed `BankImportResponse` | 200, 409 `IMPORT_ALREADY_COMMITTED` / `IMPORT_DISCARDED` |
 | `PUT /{importId}/rows/{rowId}` | adjust | `{correctedValues?}` or `{skip: true, reason}` | row | 200, 409 |
-| `POST /{importId}/commit` | adjust | `{startReconciliation?: boolean, duplicateDecisions?: [{rowNumber, decision}]}` | `{statementId, bankTransactionCount, possibleDuplicateCount, reconciliationId?}` | 200 (idempotent), 409 `IMPORT_ALREADY_COMMITTED` / `STATEMENT_ALREADY_IMPORTED`, 422 `IMPORT_NOT_COMMITTABLE` |
+| `POST /{importId}/commit` | adjust | `{startReconciliation?: boolean, duplicateDecisions?: [{rowNumber, decision}]}` | `{statementId, bankTransactionCount, possibleDuplicateCount, reconciliationId?}` | 200 (idempotent), 409 `IMPORT_DISCARDED` / `STATEMENT_ALREADY_IMPORTED`, 422 `IMPORT_NOT_COMMITTABLE` |
 | `POST /{importId}/discard` | adjust | `{reason}` | import | 200, 409 |
 | `GET /{importId}/file` | `accounting:reconciliation:approve` | — | the retained raw bytes (`contentType`, `fileName`); audited `BANK_IMPORT_FILE_READ` (§6.4) | 200, 403, 404 (also once the bytes are purged: the metadata row stays and carries `retentionUntil`) |
 
@@ -904,23 +906,25 @@ keys; `reopen` has no counterpart by design (§4.9). The registry (`config/Permi
 
 ### 6.4 Flyway — tables, columns, constraints (ADR-0062 §9; add-a-table checklist in `docs/architecture/deployment/TENANCY_SCHEMA.md`)
 
-Delivered as one versioned migration after the flattened baseline — the next free version (`V5__bank_reconciliation.sql` at the time of writing; `V2__seed_accounting.sql`,
-`V3__outbox_tenant_id.sql` and `V4__accounting_event_status_skipped.sql` already exist); if the platform's flatten policy still applies at the time, the same DDL is folded
-into `V1__baseline_accounting.sql` — confirm with the platform owner. Every new table: `tenant_id uuid DEFAULT public.app_current_tenant() NOT NULL`,
+Delivered by hand-editing the flattened baseline `V1__baseline_accounting.sql`, which is the platform rule while alpha databases are recreated between builds
+(`docs/architecture/deployment/TENANCY_SCHEMA.md`, "Layout of a module's migrations": add tables, columns and constraints to the baseline rather than adding `V2__…`
+files). Because the baseline is re-applied to an empty database, no conversion of existing `bank_reconciliation_line` rows is needed in alpha. Only if the flatten rule is
+lifted before S1 lands does the change become a versioned migration at the next free number (`V5__…`; `V2`–`V4` exist), and then the conversion rules of the
+`bank_reconciliation_line` row below apply. Every new table: `tenant_id uuid DEFAULT public.app_current_tenant() NOT NULL`,
 `ALTER TABLE … ENABLE ROW LEVEL SECURITY; … FORCE ROW LEVEL SECURITY;` with the `tenant_isolation` policy, `UNIQUE (tenant_id, <pk>)`, composite FKs
 `(tenant_id, …)`; none is added to `db/tenancy-global-tables.txt`. Requires `btree_gist` for the exclusion constraint (`CREATE EXTENSION IF NOT EXISTS btree_gist` as the migration's first statement; precedent
 `pos-people/src/main/resources/db/migration/V1__baseline_people.sql` l.18).
 
 | Table | Action | Key columns and constraints |
 | --- | --- | --- |
-| `bank_account_profile` (pending D21) | new | `gl_account_id` PK (FK `gl_account(tenant_id, gl_account_id)`), `bank_name`, `account_mask`(8), `currency`(3), `default_column_mapping` jsonb, `statement_cycle_hint`, phase 2: `feed_connector_code`, `feed_connection_id`, `feed_account_ref`(128), `feed_linked_at/by`, `feed_start_date`; UNIQUE `(tenant_id, feed_connector_code, feed_connection_id, feed_account_ref)` WHERE `feed_account_ref IS NOT NULL` |
+| `bank_account_profile` (pending D21) | new | `gl_account_id` PK (FK `gl_account(tenant_id, gl_account_id)`), `bank_name`, `account_mask`(8), `currency`(3), `default_column_mapping` jsonb, `statement_cycle_hint`, phase 2: `feed_connector_code`, `feed_connection_id`, `feed_account_id` (UUID, the connector's aggregate), `feed_account_ref`(128, provider reference, display only), `feed_linked_at/by`, `feed_start_date`; UNIQUE `(tenant_id, feed_connector_code, feed_connection_id, feed_account_id)` WHERE `feed_account_id IS NOT NULL` |
 | `bank_import` | new | `import_id` PK, `request_id` UNIQUE `(tenant_id, request_id)`, `gl_account_id`, `format_code`, `file_name`, `content_type`, `file_size`, `file_sha256`(64), `column_mapping` jsonb, `sign_convention`, parser options, statement header columns, counts, `status` CHECK (`UPLOADED`,`VALIDATED`,`COMMITTED`,`DISCARDED`), `statement_id`, `reconciliation_id`, audit columns, `version`; UNIQUE `(tenant_id, gl_account_id, file_sha256)` WHERE `status = 'COMMITTED'`; INDEX `(tenant_id, gl_account_id, status)` |
 | `bank_import_file` | new | `import_id` PK/FK, `file_bytes` bytea, `retention_until` date (D13); read only through the adapter; never returned by an API except an audited download (`accounting:reconciliation:approve`) |
 | `bank_import_row` | new | `row_id` PK, `import_id` FK, `row_number`, `raw_values` jsonb, parsed columns, `source_transaction_id`(128), `fingerprint`(64), `row_status` CHECK, `rejection_code`, `rejection_detail`, `corrected_values` jsonb, `corrected_by/at`, `bank_transaction_id`; UNIQUE `(tenant_id, import_id, row_number)`; INDEX `(tenant_id, import_id, row_status)` |
 | `bank_statement` | new | `statement_id` PK, `gl_account_id` FK, `source_kind`, `source_ref`, `connector_code`, `statement_ref`, `start_date`, `end_date`, `opening_balance`, `closing_balance`, `activity_total`, `currency`, `status` CHECK (`COMMITTED`,`SUPERSEDED`), `superseded_by_statement_id`, audit; CHECK `start_date <= end_date`; UNIQUE `(tenant_id, gl_account_id, start_date, end_date)` WHERE `status = 'COMMITTED'`; `EXCLUDE USING gist (tenant_id WITH =, gl_account_id WITH =, daterange(start_date, end_date, '[]') WITH &&) WHERE (status = 'COMMITTED')` |
 | `bank_transaction` | new (replaces `bank_reconciliation_line`) | `bank_transaction_id` PK, `gl_account_id` FK, `statement_id` FK nullable, provenance columns, `source_transaction_id`(128), `source_row_number`, `supersedes_bank_transaction_id`, `settlement_state` CHECK, `transaction_date`, `authorized_date`, `signed_amount` numeric(19,4) CHECK `<> 0`, `currency`, `description`(500), `original_description`(1000), `normalized_description`(500), `reference`(255), `check_number`(32), `counterparty_name`(255), `category_hint`(64), `fingerprint`(64), `status` CHECK (`UNMATCHED`,`POSSIBLE_DUPLICATE`,`MATCHED`,`EXCLUDED`,`REMOVED_BY_SOURCE`), `duplicate_of_bank_transaction_id`, `arrived_after_approval` bool, `exclusion_reason`, `excluded_by/at`, `feed_change`, `first_observed_at`, `last_observed_at`, `removed_at`, audit, `version`; UNIQUE `(tenant_id, gl_account_id, source_kind, source_ref, source_transaction_id)` WHERE `source_transaction_id IS NOT NULL`; INDEX `(tenant_id, gl_account_id, fingerprint)`; INDEX `(tenant_id, gl_account_id, transaction_date, status)`; INDEX `(tenant_id, statement_id)` |
 | `bank_reconciliation` | **altered** | add `statement_id` FK nullable, `statement_opening_balance`, `statement_closing_balance` (rename of `statement_ending_balance`), `gl_opening_balance`, `approved_gl_ending_balance`, `sum_outstanding_ledger_items`, `sum_outstanding_bank_items`, `sum_late_adjustments`, `adjusted_bank_balance`, `adjusted_book_balance`, `sum_unexplained_bank`, `count_unexplained_bank`, `sum_unexplained_ledger`, `count_unexplained_ledger`, `opening_difference`, `accounting_period_code`(7), `submitted_at/by`, `invalidated_at`, `invalidation_reason`, `invalidated_by_journal_entry_id`, `supersedes_reconciliation_id`, `superseded_by_reconciliation_id`, `cancelled_at/by`, `cancel_reason`, `version`; rename `period_start_date/period_end_date` → `statement_start_date/statement_end_date`; drop `statement_date`; status CHECK extended to `IN_PROGRESS, SUBMITTED, FINALIZED, INVALIDATED, SUPERSEDED, CANCELLED`; UNIQUE `(tenant_id, statement_id)` WHERE `status IN ('IN_PROGRESS','SUBMITTED')` (one active reconciliation per statement; a `FINALIZED` predecessor and its superseding successor coexist, so "already reconciled" — `RECONCILIATION_WINDOW_ALREADY_RECONCILED` for a `FINALIZED` reconciliation without a successor — is a service rule, not a constraint); INDEX `(tenant_id, gl_account_id, statement_end_date, status)` |
-| `bank_reconciliation_line` | **dropped** | rows in alpha are converted into `bank_transaction` (+ a synthetic `bank_statement` per reconciliation) by the same migration; `match_id` moves to `bank_reconciliation_bank_match`. Conversion rules: the synthetic statement takes `start_date`/`end_date` from `period_start_date`/`period_end_date`, `closing_balance` from `statement_ending_balance`, `activity_total` = Σ line amounts and `opening_balance = closing_balance − activity_total` (E1 holds by construction; the F2 header carries no opening balance); F2's `statement_date` is not carried (the two F2 call sites read `statement_end_date`); an F2 match group with more than one member on **both** sides (accepted by the F2 code, §1.1) fits no `match_kind` — the migration fails naming the `match_id` rather than guess |
+| `bank_reconciliation_line` | **dropped** | removed from the baseline; `match_id` moves to `bank_reconciliation_bank_match`. Conversion rules, which apply only under a versioned migration (see above): the synthetic statement takes `start_date`/`end_date` from `period_start_date`/`period_end_date`, `closing_balance` from `statement_ending_balance`, `activity_total` = Σ line amounts and `opening_balance = closing_balance − activity_total` (E1 holds by construction; the F2 header carries no opening balance); F2's `statement_date` is not carried (the two F2 call sites read `statement_end_date`); an F2 match group with more than one member on **both** sides (accepted by the F2 code, §1.1) fits no `match_kind` — the migration fails naming the `match_id` rather than guess |
 | `bank_reconciliation_match` | new | header per §3.4 (`match_id` PK, `reconciliation_id` FK, `match_kind`, `state` CHECK, `origin`, `confidence_score`, `reasons` jsonb, `bank_total`, `ledger_total`, `tolerance_used`, `justification`(1000), actor/timestamp pairs, `broken_by_journal_entry_id`); INDEX `(tenant_id, reconciliation_id, state)` |
 | `bank_reconciliation_gl_match` | **altered** | add FK `(tenant_id, match_id)` → header; replace `bank_reconciliation_gl_match_gl_line_uk` with a **partial** unique index on `(tenant_id, gl_line_id)` restricted to rows whose header `state IN ('PROPOSED','ACCEPTED')` (implemented as a denormalized `active` boolean maintained by the service, since Postgres partial indexes cannot join: `UNIQUE (tenant_id, gl_line_id) WHERE active`) |
 | `bank_reconciliation_bank_match` | new | `match_id` FK, `bank_transaction_id` FK, `active` bool; UNIQUE `(tenant_id, bank_transaction_id) WHERE active`; PK `(match_id, bank_transaction_id)` |
@@ -936,8 +940,9 @@ parsed rows (`bank_import_row`) and bank transactions are kept indefinitely as a
 
 ### 6.5 Contract DTOs (`pos-domain-events`, phase 1)
 
-`com.positivity.domainevents.bankfeed`: `BankTransactionsObservedV1` (§2.2 fields, constructor validation: non-blank `feedAccountRef`, non-null `currency`,
-`observedAt`, non-empty `transactions`, each with non-null `change`, `settlementState`, `transactionDate`, non-zero `signedAmount`, non-blank `description`),
+`com.positivity.domainevents.bankfeed`: `BankTransactionsObservedV1` (§2.2 fields, constructor validation: non-null `sourceKind`, `currency`, `observedAt`, non-empty
+`transactions`, each with non-null `change` and non-blank `sourceTransactionId` when `change ≠ ADDED`; for `ADDED` and `MODIFIED` elements also non-null
+`settlementState`, `transactionDate`, non-zero `signedAmount`, non-blank `description`; a `REMOVED` element carries nothing else),
 `BankTransactionObserved` (element record), `StatementHeader` (nested record), `BankAccountsDiscoveredV1`, `BankFeedConnectionStatusChangedV1`, `BankBalanceObservedV1`,
 `BankFeedSyncRequestedV1`, `BankFeedReplayRequestedV1`; `DomainTopics.BANKFEED_EVENTS_V1 = "bankfeed.events.v1"`, `BANKFEED_COMMANDS_V1 = "bankfeed.commands.v1"`; all
 registered in `DomainEventContractTest`. No class in the package references a provider.
@@ -970,7 +975,7 @@ format or calls a Plaid endpoint. Accounting sees only `bankfeed.events.v1` / `b
 
 | Concern | Design (PROPOSED) |
 | --- | --- |
-| Connection and account mapping | Tables `feed_connection` (tenant-scoped: `connection_id`, `provider_item_ref` = Plaid `item_id`, `status`, `consent_expiration`, `webhook_url`, `last_error_code`, `linked_by/at`), `feed_account` (`account_id` PK, `connection_id`, `provider_account_ref` = `account_id`, `persistent_account_ref` = `persistent_account_id` when present, `name`, `official_name`, `mask`, `type`, `subtype`, `currency`, `next_cursor`, `loop_original_cursor`, `sync_status`, `last_synced_at`), `feed_sync_run`, `feed_webhook_receipt`, `feed_exchange_audit` (ADR-0050 §7 governance: redaction, retention, audited reads). The link *to a GL account* lives in accounting (`bank_account_profile.feed_*`, §6.4) — the connector never knows a GL account. On `NEW_ACCOUNTS_AVAILABLE` or after Link, the connector publishes `BankAccountsDiscoveredV1`; the accounting UI shows discovered accounts and the controller links one to a GL account (`accounting:bank-feed:manage`). |
+| Connection and account mapping | Tables `feed_connection` (tenant-scoped: `connection_id`, `provider_item_ref` = Plaid `item_id`, `status`, `consent_expiration`, `webhook_url`, `last_error_code`, `linked_by/at`), `feed_account` (`feed_account_id` UUIDv7 PK — the aggregate id every fact carries, `connection_id`, `provider_account_ref` = Plaid `account_id`, `persistent_account_ref` = `persistent_account_id` when present, `name`, `official_name`, `mask`, `type`, `subtype`, `currency`, `next_cursor`, `loop_original_cursor`, `sync_status`, `last_synced_at`), `feed_sync_run`, `feed_webhook_receipt`, `feed_exchange_audit` (ADR-0050 §7 governance: redaction, retention, audited reads). The link *to a GL account* lives in accounting (`bank_account_profile.feed_*`, §6.4) — the connector never knows a GL account. On `NEW_ACCOUNTS_AVAILABLE` or after Link, the connector publishes `BankAccountsDiscoveredV1`; the accounting UI shows discovered accounts and the controller links one to a GL account (`accounting:bank-feed:manage`). |
 | User consent via Link | Frontend calls `POST /v1/bank-feed/plaid/link-tokens` (SDK `@durion-sdk/bank-feed-plaid`) → connector calls `/link/token/create` (`products: ["transactions"]`, `transactions.days_requested`, `webhook`, `redirect_uri`, `country_codes`); Link runs in the browser; `public_token` → `POST /v1/bank-feed/plaid/connections` → `/item/public_token/exchange` → `access_token` + `item_id` stored per the token rule below. Update mode (`link_token` created with the `access_token`) resolves `ITEM_LOGIN_REQUIRED` and consent renewal. |
 | Secure token handling | `access_token` is a per-Item runtime credential, so the positivity `env:` reference scheme (ADR-0050 §4 "secret references only") cannot hold it; it is stored **encrypted at rest** in `feed_connection.access_token_ciphertext` under a key referenced from the environment (`${BANK_FEED_PLAID_TOKEN_KEY}` — a secret reference, never a value), decrypted only in the process that calls Plaid; **never** logged, serialized into an API response, placed on an event, or copied to accounting; rotated via `/item/access_token/invalidate`; client id / secret from `${BANK_FEED_PLAID_CLIENT_ID}` / `${BANK_FEED_PLAID_SECRET}`; the choice of key management (KMS vs vault) is D22. |
 | `/transactions/sync` | Per `feed_account` (`account_id` option → "effectively creates a separate incremental update stream"): call with `access_token`, `cursor` (omitted on the first call), `count` up to 500, `options.include_original_description = true`; loop while `has_more`; persist `next_cursor` only after all pages are applied (it "will be valid for at least 1 year"); keep `loop_original_cursor` and, on `TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION`, restart the whole loop from it; map `added[]`/`modified[]`/`removed[]` to contract `change`; build one `BankTransactionsObservedV1` per page per account with `cursorRef = next_cursor` and write it to `event_outbox` in the same transaction as the cursor update (ADR-0044 §4). `transactions_update_status` is recorded for operations. |
@@ -984,7 +989,7 @@ format or calls a Plaid endpoint. Accounting sees only `bankfeed.events.v1` / `b
 ### 7.3 How electronic transactions enter the same reconciliation workflow
 
 `internal/bankfeed/kafka/BankFeedEventsListener` (amended ADR-0044 shape) receives `BankTransactionsObservedV1`, checks `processed_events` before any transaction,
-resolves `(connectorCode, feedConnectionId, feedAccountRef)` → `bank_account_profile.gl_account_id`; unresolved → `bank_feed_batch` `PARKED_UNLINKED` (re-applied when
+resolves `(connectorCode, feedConnectionId, feedAccountId)` → `bank_account_profile.gl_account_id`; unresolved → `bank_feed_batch` `PARKED_UNLINKED` (re-applied when
 the link is created) and mark processed; resolved → `BankTransactionIntake.accept(batch)` in a `REQUIRES_NEW` transaction with the mark. From there a feed transaction is
 a `BankTransaction` with `sourceKind = BANK_FEED` and the same statuses, dedupe, matching, outstanding items, adjustments, approval and readiness as a file row. What a
 feed does **not** provide: a statement (no `statement` block), so a feed-backed reconciliation is created as an **interim window** with a keyed closing balance (the

@@ -192,7 +192,14 @@ def module_mentions() -> tuple[dict[str, list[str]], dict[str, str]]:
             for name in re.findall(r"\bpos-[a-z-]+\b", doc.read_text(encoding="utf-8", errors="replace")):
                 counts[name] += 1
         per_domain[domain.name] = counts
-    domain_modules = {d: [m for m, c in c_.most_common(4) if c >= 5] for d, c_ in per_domain.items()}
+    # A shared library (pos-domain-events, pos-events, pos-shared-dtos, …) is named by every domain
+    # whose contracts it carries, but it implements no domain: only deployable services are
+    # candidates for a domain's Implemented-by list, else a specification that spells out a contract
+    # would displace a real implementing module from the top four.
+    services = {module["name"] for module in module_records() if module["kind"] == "Service"}
+    domain_modules = {
+        d: [m for m, c in c_.most_common() if c >= 5 and m in services][:4] for d, c_ in per_domain.items()
+    }
     owner: dict[str, str] = {}
     for module in {m for counts in per_domain.values() for m in counts}:
         ranked = sorted(((counts[module], d) for d, counts in per_domain.items()), reverse=True)

@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/accountin
 path: durion/domains/accounting/
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-25T01:31:49-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-28T02:41:00+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (80 documents)
@@ -14,7 +14,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-25T01:31:49
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/accounting/index.md) — authority, current guidance, and historical records
 
 **Implemented by:** [pos-accounting](../backend/pos-accounting.md), [pos-tax](../backend/pos-tax.md), [pos-invoice](../backend/pos-invoice.md),
-[pos-domain-events](../backend/pos-domain-events.md)
+[pos-inventory](../backend/pos-inventory.md)
 
 **Business rules:**
 

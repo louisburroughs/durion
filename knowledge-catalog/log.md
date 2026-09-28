@@ -5,10 +5,12 @@
 * **Structure**: `domains/accounting` gains the manual bank reconciliation specification
   (`domains/accounting/SPEC-manual-bank-reconciliation.md`, `type: Specification`, proposed): findings on the delivered story F2
   bank reconciliation (durion-positivity-backend#965), a provider-neutral bank-feed contract, statement import staging, matching and
-  outstanding-item rules, approval and correction, accounting-period-close integration and a later `pos-bank-feed-plaid` phase. The
-  entry's inferred **Implemented by** list now names `pos-domain-events` in place of `pos-inventory` (the specification names the
-  contract library throughout); module ownership is unchanged. Timestamp-only drift in unrelated entries from this regeneration was
-  discarded.
+  outstanding-item rules, approval and correction, accounting-period-close integration and a later `pos-bank-feed-plaid` phase. Module
+  ownership is unchanged. Timestamp-only drift in unrelated entries from this regeneration was discarded.
+* **Generator**: `scripts/generate-knowledge-catalog.py` now limits a domain's inferred **Implemented by** list to deployable
+  services (`kind: Service`). A shared library such as `pos-domain-events` is named by every domain whose contracts it carries but
+  implements none of them, and the new specification's mentions of it had displaced `pos-inventory` from the accounting entry's top
+  four. The accounting entry is regenerated under the rule (`pos-inventory` returns); no other entry's module list changes.
 
 ## 2026-09-27
 
