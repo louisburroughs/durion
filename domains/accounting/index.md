@@ -69,7 +69,7 @@ These existing documents support investigation and delivery planning; comparison
   flow for cycle-count and manual inventory adjustments (proposed; open decisions pending)
 - [Manual bank reconciliation specification](SPEC-manual-bank-reconciliation.md) — extends the delivered story F2 (durion-positivity-backend#965) bank
   reconciliation with statement import staging, a provider-neutral bank-feed contract, matching and outstanding-item rules, approval and
-  correction, accounting-period-close integration, and a later `pos-bank-feed-plaid` connector phase (proposed; open decisions pending)
+  correction, accounting-period-close integration, and a later `pos-bank-feed-plaid` connector phase (accepted; decisions D1–D22 ratified 2026-09-28)
 - [Accounting comparison overview](comp-accounting-overview.md)
 - [Odoo versus pos-accounting](comp-vs-pos-accounting-comparison.md)
 - [Reconciliation internals comparison](comp-reconciliation-internals.md)

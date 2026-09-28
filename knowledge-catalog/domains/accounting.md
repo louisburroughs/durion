@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/accountin
 path: durion/domains/accounting/
 tags: [domain, accounting]
 sources: [domains/accounting/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-28T02:41:00+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-28T12:01:57+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/accounting) — `domains/accounting/` (80 documents)
@@ -36,7 +36,7 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-28T02:41:00
 **Documentation:**
 
 * [Inventory Adjustment GL Posting](https://github.com/louisburroughs/durion/blob/master/domains/accounting/SPEC-inventory-adjustment-gl-posting.md) — Specification · proposed
-* [Manual Bank Reconciliation](https://github.com/louisburroughs/durion/blob/master/domains/accounting/SPEC-manual-bank-reconciliation.md) — Specification · proposed
+* [Manual Bank Reconciliation](https://github.com/louisburroughs/durion/blob/master/domains/accounting/SPEC-manual-bank-reconciliation.md) — Specification · accepted
 * [Accounting Domain - Remaining Open Questions & Implementation Plan](https://github.com/louisburroughs/durion/blob/master/domains/accounting/accounting-questions.md)
 * [Accounting Flyway Baseline Reset Plan](https://github.com/louisburroughs/durion/blob/master/domains/accounting/archive/flyway-baseline-reset-plan.md) —
   Historical Plan · superseded
