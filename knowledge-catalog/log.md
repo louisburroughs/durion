@@ -1,5 +1,15 @@
 # Directory Update Log
 
+## 2026-09-28
+
+* **Structure**: `domains/accounting` gains the manual bank reconciliation specification
+  (`domains/accounting/SPEC-manual-bank-reconciliation.md`, `type: Specification`, proposed): findings on the delivered story F2
+  bank reconciliation (durion-positivity-backend#965), a provider-neutral bank-feed contract, statement import staging, matching and
+  outstanding-item rules, approval and correction, accounting-period-close integration and a later `pos-bank-feed-plaid` phase. The
+  entry's inferred **Implemented by** list now names `pos-domain-events` in place of `pos-inventory` (the specification names the
+  contract library throughout); module ownership is unchanged. Timestamp-only drift in unrelated entries from this regeneration was
+  discarded.
+
 ## 2026-09-27
 
 * **Updated**: `domains/shopmgmt`, `domains/workexec`, `domains/location`, `backend/pos-shop-manager`,
