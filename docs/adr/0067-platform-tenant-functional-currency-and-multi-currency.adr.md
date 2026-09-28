@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: 'ADR-0067: Tenant Functional Currency and Multi-Currency Support'
-description: One functional currency per tenant (Stage A) before transactions in several currencies (Stage B - dual amounts and realized FX, then revaluation, then foreign-currency bank accounts); accepted by the platform owner with every section 2 recommendation, the currency locked at tenant creation, one cross-currency settlement case allowed in B1, and Canada as the first non-USD market.
+description: One functional currency per tenant (Stage A) before transactions in several currencies (Stage B - dual amounts and realized FX, then revaluation, then foreign-currency bank accounts); accepted by the platform owner on the section 2 recommendations subject to the section 2.1 rulings - the currency locked at tenant creation rather than activation, one cross-currency settlement case allowed in B1 rather than refused, and Canada as the first non-USD market.
 status: stable
 adr_status: accepted
 created: '2026-09-28'
@@ -19,8 +19,8 @@ tags: [adr, multitenancy, platform]
 
 > **How to read this.** §1 and §2 are enough to decide: a summary, then one table row per decision with its options, a recommendation and the consequence.
 > Rows marked **A** are needed before Stage A starts; rows marked **B1** or **B2** can wait until Stage B is scheduled. Everything after §2 is the evidence and
-> the detail behind each row. **Every row was decided by the platform owner on 2026-09-28; §2.1 records the rulings, including where they depart from
-> the table's recommendation.** EXISTING marks a fact verified in code or in a ratified document on 2026-09-28;
+> the detail behind each row. **Every row was decided by the platform owner on 2026-09-28; §2.1 records the rulings, and two of them depart from
+> the table's recommendation: MC-1's lock timing and MC-7.** EXISTING marks a fact verified in code or in a ratified document on 2026-09-28;
 > PROPOSED marks a recommendation of this ADR, accepted as written unless §2.1 says otherwise. Rows with an `MC-` id come from the Accounting Domain's requirements memo of 2026-09-28 and keep its ids and
 > recommendations; where the architect disagrees, §12.1 says so. Rows with a `PC-` id are the platform-level decisions this ADR adds.
 >
@@ -108,12 +108,12 @@ B3 while MC-7 refuses cross-currency settlement (OP-2). The table keeps the memo
 
 ### 2.1 Owner rulings (2026-09-28)
 
-The platform owner accepted every recommendation in the two tables above, with these rulings on the contested and open items. Where a ruling departs from
-a table row, the ruling governs.
+The platform owner accepted the recommendations in the two tables above subject to these rulings, which settle the contested and open items. Two rulings
+depart from a table row's recommendation, MC-1's lock timing and MC-7; where a ruling departs, the ruling governs.
 
 | Item | Ruling |
 | --- | --- |
-| All §2 rows | **Accepted as recommended**, except MC-1's lock timing and MC-7, below |
+| All other §2 rows | **Accepted as recommended** |
 | MC-1 / OP-1 | **Lock at creation** (architect's view). The functional currency is a required field of the tenant create request and immutable from then on; a wrong value is corrected by decommissioning the PENDING tenant and creating another. Existing tenants and their ledger lines: USD at rate 1 |
 | MC-7 / OP-2 | **Option 2: allow one cross-currency case in B1.** A foreign-currency item may be settled through a functional-currency bank account or payout, with the FX difference posted as realized FX (plan D-14's `FX_GAIN_LOSS` category, MC-6's realized key). Every other cross-currency settlement or `TRANSFER` stays refused until B3. The Accounting Domain rules on F2's shape (a currency per line, or a two-step clearing pattern) before B1 starts. B1 is usable without B3 |
 | MC-10 / OP-8 | **The CAP-316 plant currency is a report-only view** (§5.15). `LocationFxRate` survives, labelled as not a ledger rate; translation stays out of scope |
@@ -1026,7 +1026,7 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
 
 | Role | Name | Date | Notes |
 | --- | --- | --- | --- |
-| Platform Owner | Louis Burroughs | 2026-09-28 | Accepted every §2 recommendation; rulings in §2.1 |
+| Platform Owner | Louis Burroughs | 2026-09-28 | Accepted §2 subject to the §2.1 rulings (MC-1, MC-7 depart from the table) |
 | Chief Architect | | | |
 | Accounting Domain | | | MC rows, §6, §8, OP-1, OP-2 |
 | Pricing Domain | | | PC-10, OP-11 |
@@ -1047,7 +1047,7 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
 
 - **2026-09-28:** Initial draft, pending the owner's decision. Built from the backend currency inventory, the frontend and documentation inventory, and the
   Accounting Domain's requirements memo of the same date, with the load-bearing citations re-read against the source trees.
-- **2026-09-28:** Accepted by the platform owner. Every §2 recommendation accepted; §2.1 added with the rulings: functional currency locked at tenant
+- **2026-09-28:** Accepted by the platform owner: the §2 recommendations subject to the rulings in the new §2.1, two of which depart from the table: functional currency locked at tenant
   creation (OP-1), one cross-currency settlement case allowed in B1 (OP-2, MC-7), the CAP-316 plant currency a report-only view (MC-10), `home_currency`
   the account's billing currency (OP-5), the accounting framework a per-tenant setting (OP-7), and Canada the first non-USD market, launched with USD or
   right after it (OP-9). The remaining open questions were answered or assigned to the PC-15 readiness sign-off.
