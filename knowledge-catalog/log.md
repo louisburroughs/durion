@@ -11,6 +11,10 @@
   services (`kind: Service`). A shared library such as `pos-domain-events` is named by every domain whose contracts it carries but
   implements none of them, and the new specification's mentions of it had displaced `pos-inventory` from the accounting entry's top
   four. The accounting entry is regenerated under the rule (`pos-inventory` returns); no other entry's module list changes.
+* **Updated**: `domains/accounting` — the manual bank reconciliation specification is now `status: accepted`: decisions D1–D22 were
+  ratified by the platform owner, D2 as an amended matching-complete approval gate (reconciliation baseline, gap bridge, linked `OTHER`
+  adjustments, clearing-account governance). The accounting entry is regenerated for the status change; timestamp-only drift in
+  unrelated entries was discarded.
 
 ## 2026-09-27
 
