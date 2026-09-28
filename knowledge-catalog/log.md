@@ -2,6 +2,7 @@
 
 ## 2026-09-28
 
+* **Regenerated**: 67 ADR, 16 domain, 45 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
 * **Structure**: `domains/accounting` gains the manual bank reconciliation specification
   (`domains/accounting/SPEC-manual-bank-reconciliation.md`, `type: Specification`, proposed): findings on the delivered story F2
   bank reconciliation (durion-positivity-backend#965), a provider-neutral bank-feed contract, statement import staging, matching and
@@ -19,6 +20,11 @@
   pending): the platform owner reopened the single-currency posture; the ADR stages one functional currency per tenant before
   transactions in several currencies and lists the owner decisions (PC-1 to PC-17, MC-1 to MC-11). The ADR index and the
   catalog root count are regenerated; timestamp-only drift in unrelated entries was discarded.
+* **Updated**: `adr/` — ADR-0067 is now `status: stable` (accepted): the platform owner accepted the §2 recommendations subject to
+  the rulings in a new §2.1, two of which depart from the table (currency locked at tenant creation rather than activation, one
+  cross-currency settlement case in B1 rather than refused); the CAP-316 plant currency is a report-only view and Canada the first
+  non-USD market. The ADR entry and index are regenerated; timestamp-only drift in
+  unrelated entries was discarded.
 
 ## 2026-09-27
 
