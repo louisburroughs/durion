@@ -15,6 +15,10 @@
   ratified by the platform owner, D2 as an amended matching-complete approval gate (reconciliation baseline, gap bridge, linked `OTHER`
   adjustments, clearing-account governance). The accounting entry is regenerated for the status change; timestamp-only drift in
   unrelated entries was discarded.
+* **Structure**: `adr/` gains ADR-0067, *Tenant Functional Currency and Multi-Currency Support* (`status: draft`, decision
+  pending): the platform owner reopened the single-currency posture; the ADR stages one functional currency per tenant before
+  transactions in several currencies and lists the owner decisions (PC-1 to PC-17, MC-1 to MC-11). The ADR index and the
+  catalog root count are regenerated; timestamp-only drift in unrelated entries was discarded.
 
 ## 2026-09-27
 
