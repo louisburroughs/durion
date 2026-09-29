@@ -367,7 +367,9 @@ currency-scale precision; round per line, then sum" exists (accounting AGENT_GUI
 - Round HALF_UP per line, then sum (AGENT_GUIDE l.147). The pricing domain reconciles or justifies pos-price's HALF_EVEN (OP-11).
 - Unit prices, unit costs, rates and percentages may carry a declared extra precision; they are never presented as payable amounts.
 - Every 0.01 tolerance becomes one minor unit of the currency concerned. `@DecimalMin("0.01")` becomes "greater than zero and representable in the
-  currency". An amount with more decimals than its currency allows is refused at the edge with 422.
+  currency". An amount with more decimals than its currency allows is refused at the edge with 422 `AMOUNT_PRECISION_EXCEEDS_CURRENCY`, never rounded;
+  trailing zeros do not count and `fieldErrors` names each offending amount (owner decision 2026-09-29; first applied in pos-accounting bank
+  reconciliation, #2305).
 - Storage stays `numeric(19,4)`, which covers exponents 0 to 4; columns at scale 2 widen to 4.
 - The ledger's own scale and the conversion residual are MC-8. The invented 0.01 amount goes (§10, DF-7).
 
