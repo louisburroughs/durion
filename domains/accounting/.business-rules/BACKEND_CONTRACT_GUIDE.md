@@ -328,6 +328,11 @@ Headers and auth notes:
   the backend retries a conflicting apply exactly once with fresh state and full revalidation
   (`AD-010` preserved); a second consecutive conflict returns `409` and the caller should retry.
   Unapplied amount never goes negative under concurrency.
+- **Currency (durion-positivity-backend#2334).** Applying a payment to an invoice in a currency other
+  than the ledger's functional currency is refused with 422 `CURRENCY_NOT_SUPPORTED` (ADR-0067 PC-9 (a),
+  ADR-0017 §2); nothing is written. A settled-payment or register over/short fact held for currency
+  is a `SUSPENDED` accounting event with that reason, excluded from auto-retry and released through
+  the audited reprocess endpoint (suspended again while still foreign).
 - **Credit memo responses carry display values, not just ids (issue #1779).** List and detail
   both answer `creditMemoReference` (`CM-{YYYYMM}-{n}`, assigned from the per-month
   `accounting_sequence` counter and backfilled for pre-existing memos), `originalInvoiceReference`

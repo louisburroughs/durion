@@ -164,7 +164,8 @@ Audit Trail: @EmitEvent "ACCOUNTING_PAYMENT_APPLY" on application
 - Each `amountToApply` must not exceed invoice `balanceDue` — TODO: validate with Invoice service
 
 **Error Responses**:
-- `400 Bad Request`: Validation failure (insufficient funds, invalid invoice states, currency mismatch)
+- `400 Bad Request`: Validation failure (insufficient funds, invalid invoice states)
+- `422 Unprocessable Entity`: `CURRENCY_NOT_SUPPORTED` when an invoice's currency differs from the ledger's functional currency (ADR-0067 PC-9 (a), ADR-0017 §2; durion-positivity-backend#2334)
 - `404 Not Found`: Payment not found
 - `409 Conflict`: Idempotency key reused with different data (returns existing application)
 

@@ -1869,7 +1869,8 @@ This domain exposes **91** REST API endpoints:
 - `201`: Payment applied successfully
 - `400`: Invalid request or insufficient funds
 - `404`: Payment not found
-- `409`: Currency mismatch or invoice not applicable
+- `409`: Invoice not applicable
+- `422`: Currency not supported (`CURRENCY_NOT_SUPPORTED`)
 
 
 ---
