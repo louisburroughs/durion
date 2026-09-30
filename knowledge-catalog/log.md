@@ -2,6 +2,9 @@
 
 ## 2026-09-30
 
+* **Structure**: ADR-0068 (still proposed) now defaults to a local decision model: the Jev-protocol models Ollama 0.35 serves
+  (`nimble`, `tev1`, `tev1:0.8b`) in the in-cell `ollama` container, chosen by a bake-off on the target host. Its catalog
+  description is refreshed. No ADR is superseded.
 * **Structure**: `adr/` gains ADR-0068 (pre-LLM question tagging with a decision model, TypeSafe Jev, in `pos-mcp-server`;
   proposed). No ADR is superseded. The ADR index and the catalog root count (69) are regenerated. Timestamp-only drift in
   unrelated entries from this regeneration (shallow clones) was discarded.

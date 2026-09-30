@@ -1,13 +1,13 @@
 ---
 type: ADR
 title: 'ADR-0068: Pre-LLM Question Tagging with a Decision Model (TypeSafe Jev) in pos-mcp-server'
-description: Puts one typed QuestionTagger seam in front of the pos-mcp-server executor LLM, backed by the TypeSafe Jev decision model with today's heuristics as the permanent fallback; replaces six scattered keyword heuristics and the dormant Gate 4 router.
+description: Puts one typed QuestionTagger seam in front of the pos-mcp-server executor LLM, backed by a Jev-protocol decision model served by the platform's own Ollama container, with today's heuristics as the permanent fallback; replaces six scattered keyword heuristics and the dormant Gate 4 router.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md
 path: durion/docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md
 tags: [adr]
 status: draft
 sources: [docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T12:49:47+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:44:20+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md) — `docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md`
