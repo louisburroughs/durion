@@ -1870,7 +1870,7 @@ This domain exposes **91** REST API endpoints:
 - `400`: Invalid request or insufficient funds
 - `404`: Payment not found
 - `409`: Invoice not applicable
-- `422`: Currency not supported (`CURRENCY_NOT_SUPPORTED`)
+- `422`: CURRENCY_NOT_SUPPORTED: the payment is in a currency other than the ledger's; nothing is written (ADR-0067 PC-9)
 
 
 ---

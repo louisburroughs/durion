@@ -782,9 +782,9 @@ be fixed before the owner rules on anything above.
 | ID | Defect | Evidence (EXISTING) | Effect today |
 | --- | --- | --- | --- |
 | DF-1 | A supplier invoice's currency is dropped when the vendor bill is created | pos-accounting `SupplierInvoiceEventsListener.java`:190-219: the total is stored at face value (:198) and the currency is only logged (:218); `vendor_bill` has no currency column. The codec refuses a currency-less invoice for exactly this reason (`EdiwheelB33InvoiceCodec.java`:230-235) | An invoice from a foreign vendor profile (Michelin EU, for example) becomes a USD payable at face value |
-| DF-2 | Payment and invoice currency are never compared, although a 409 is documented | `PaymentApplicationServiceImpl.java`:178 (Javadoc: CONFLICT on currency mismatch) and `PaymentApplicationController.java`:219, :234 (409 "Currency mismatch"); the code says "No currency check" (:662-668); AGENT_GUIDE D5 assumes rejection | The API promises a check that does not exist; a mismatched application is applied one to one. **Resolved** under PC-9 (a) (durion-positivity-backend#2334, PR #2339): payment application in another currency is refused with 422 `CURRENCY_NOT_SUPPORTED` (ADR-0017 §2), and a settled-payment or register over/short fact held for currency is `SUSPENDED` with that reason, released through the audited reprocess endpoint |
+| DF-2 | Payment and invoice currency are never compared, although a 409 is documented | `PaymentApplicationServiceImpl.java`:178 (Javadoc: CONFLICT on currency mismatch) and `PaymentApplicationController.java`:219, :234 (409 "Currency mismatch") | The API promises a check that does not exist; a mismatched application is applied one to one. **Resolved** under PC-9 (a), see below |
 | DF-3 | `ReversePaymentCommand.currency` is never forwarded | pos-order `ReversePaymentCommand.java`:11-12; `RestInvoicingPortAdapter.java`:62-72 builds the refund body from amount, reason, notes and external reference; the field is set to a literal USD (`OrderCancellationServiceImpl.java`:183; `ReturnOrderServiceImpl.java`:73) | A dead field; pos-invoice refunds in the payment intent's implied currency |
-| DF-4 | Accounting ignores the currency on order events | pos-accounting `OrderEventsListener.java` and `RegisterOverShortPostingService.java` read no currency, while `OrderCompletedV1` and `RegisterSessionClosedV1` carry `currencyCode` | A non-USD order would post at par |
+| DF-4 | Accounting ignores the currency on order events | pos-accounting `OrderEventsListener.java` reads no currency, while `OrderCompletedV1` carries `currencyCode`; `RegisterOverShortPostingService.java`:95 now checks `ledgerCurrency.isForeign(fact.currencyCode())` | A non-USD order would post at par; a non-USD register over/short is held `SUSPENDED` (`CURRENCY_NOT_SUPPORTED`, PC-9 (a)) |
 | DF-5 | Purchase-suggestion conversion uses the first currency for the whole PO | pos-inventory `PurchaseSuggestionServiceImpl.java`:174-178 (first non-null currency, else USD); `validateConvertible` checks acceptance, vendor and unit cost but not currency (:248-269) | Lines priced in another currency enter the PO at face value |
 | DF-6 | A foreign-currency PO flows into inventory cost at face value | pos-order accepts any non-blank PO currency (`CreatePurchaseOrderRequest.java`:36-41, `varchar(255)`); receipt cost is converted to major units and stored without a currency (`ReceiptUnitCosts.java`:32-44; inventory ledger and cost tables have no currency) | Inventory valuation mixes currencies silently |
 | DF-7 | A zero-amount default-mapping event posts an invented 0.01 | pos-accounting `PostingRuleEvaluatorImpl.java`:364-370, when `require-amount-field` is false | A fabricated amount in the ledger |
@@ -795,8 +795,13 @@ be fixed before the owner rules on anything above.
 | DF-12 | Labor-rate currency is neither filtered nor compared | pos-price `LaborRateResolutionServiceImpl.java` (no currency filter); pos-workorder `EstimateServiceImpl.java`:1030 copies the rate's currency | A rate row in another currency would price an estimate at face value |
 | DF-13 | Invoice document content carries no currency | pos-invoice `InvoiceArtifactService.java`:145-156 | Invoices state totals without a currency |
 
-DF-1, DF-2 and DF-5 to DF-9 can affect a USD-only tenant now (a foreign vendor document, a payment recorded in another currency, a PO or supplier offer in
-another currency, a zero-amount event, a user on another locale). DF-3, DF-4 and DF-10 to DF-13 are latent until a record is not USD.
+**DF-2 resolved under PC-9 (a)** (durion-positivity-backend#2334, PR #2339): applying a payment in a currency other than the ledger's is refused with 422
+`CURRENCY_NOT_SUPPORTED` (ADR-0017 §2), and a settled-payment or register over/short fact held for currency is `SUSPENDED` with that reason, released through
+the audited reprocess endpoint. Before the fix the code said "No currency check" (`PaymentApplicationServiceImpl.java`:662-668) and AGENT_GUIDE D5 assumed
+rejection.
+
+DF-1 and DF-5 to DF-9 can affect a USD-only tenant now (a foreign vendor document, a PO or supplier offer in another currency, a zero-amount event, a user on
+another locale); DF-2 is resolved (above). DF-3, DF-4 and DF-10 to DF-13 are latent until a record is not USD.
 
 ---
 

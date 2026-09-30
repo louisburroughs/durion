@@ -1290,10 +1290,10 @@ cost); the count is the `accounting.inventory.fact.skipped{eventType, reason=UNC
 the tenant is in ADR-0067 Stage A (PC-9 (a): never booked at par)  
 **HTTP Status:** 422 (ADR-0017 §2: the state of a referenced resource, not a malformed request)  
 **Use Cases:**
-- Payment application: applying a payment to an invoice in another currency (durion-positivity-backend#2334); replaces the
-  409 "Currency mismatch" that was documented but never enforced (ADR-0067 DF-2)
-- Bank reconciliation D18: a statement, feed or bank-account profile in a currency other than the profile's (or `USD`
-  while no profile exists)
+- Payment application: applying a payment in a currency other than the ledger's functional currency (the invoice replica carries
+  no currency; durion-positivity-backend#2334); replaces the 409 "Currency mismatch" that was documented but never enforced (ADR-0067 DF-2)
+- Bank reconciliation D18: a statement, feed or bank-account profile in a currency other than the profile's (or the configured
+  ledger currency, `accounting.ledger.base-currency`, while no profile exists)
 - Nothing is written: no application, statement or journal entry
 - The same code is the reason on an inbound fact held for currency (settled payment, register over/short): the accounting
   event is `SUSPENDED`, excluded from auto-retry and released only through the audited reprocess endpoint, which
