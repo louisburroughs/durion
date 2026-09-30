@@ -67,10 +67,11 @@ about the question. Each is made by its own hand-written heuristic, in its own c
 
 - **Jev is closed-weight and hosted only.** There is no self-hosted build. TypeSafe states it does not train on customer
   requests; zero data retention (ZDR) is offered to enterprise customers only, and operational telemetry (logs, hashes,
-  classifications, metrics) may be processed. Every tagged message would be sent to TypeSafe.
+  classifications, metrics) may be processed (vendor claims as published on 2026-09-30, unverified by this repo, like the
+  vendor figures under Drivers). Every tagged message would be sent to TypeSafe.
 - **Message text already leaves the platform.** On alpha it goes to hosted Ollama for the executor LLM (`application-alpha.yml:19`;
   backend `docker-compose.yml:1073-1077`) and, where configured, to Exa web search (`application.yml:410-413`) and, for voice
-  input, to OpenAI-compatible speech-to-text (`application.yml:340-346`). Jev adds a second recipient of the raw message and the
+  input, to OpenAI-compatible speech-to-text (`application.yml:340-346`). Jev adds another recipient of the raw message and the
   first per-turn classifier egress.
 - User messages carry tenant business data (customer names, invoice totals, vehicle details). ADR-0062 §11 makes
   conversations and cached LLM context tenant-scoped rows; nothing yet governs sending message text to a new third party.
@@ -85,8 +86,8 @@ about the question. Each is made by its own hand-written heuristic, in its own c
 `pos-mcp-server` only: the blocking and streaming chat paths (`SessionAgentManager`, `StreamingSessionAgentManager`) and
 the selection, simple-chat, rerank and routing components they drive. No REST contract, platform event, permission, or database
 schema changes; the `nlti.request.telemetry` record gains fields (see Implementation Notes, Telemetry schema). The write-gate
-classifier `IntentParserServiceImpl` (`IntentParserServiceImpl.java:43-58`, whose comment names the T1 router as its planned
-successor) is out of scope and may adopt the seam later.
+classifier `IntentParserServiceImpl` (`IntentParserServiceImpl.java:39-58`, whose comment at `:39-42` names the T1 router as
+its planned successor) is out of scope and may adopt the seam later.
 
 ---
 
@@ -101,13 +102,17 @@ is internal, and D3 would place it beside its implementations; but `orchestratio
 `ToolRegistryService` and `NltiRouter`, both in `internal.service`, consume the tags, so an interface in `orchestration` would
 close a cycle. `QuestionTagger` and `QuestionTags` therefore go in `com.positivity.mcp.internal.domain` (beside the shared
 `WorkflowState` and `RouterClassification`), `HeuristicQuestionTagger` and `JevQuestionTagger` in `internal.orchestration`, and
-`JevClient` in `internal.client`.
+`JevClient` in `internal.client`. The admin keyword, phrase and veto lists stay in `ToolRegistryService` (`internal.service`);
+`HeuristicQuestionTagger` reads them from there over the existing `orchestration → service` edge, so no cycle is added.
 
-The tagger is called **once per turn, through the shared selection component both session managers already use**
-(`ToolSelectionEngine`, `tool-selection-architecture.md:66-68`), not from each manager's own flow, so transport parity stays
-structural. The tagging step precedes the simple-chat check: today both managers run that check and `NltiRouter.routeTier` ahead
-of `selectRoleTools` (`SessionAgentManager.java:268`, `StreamingSessionAgentManager.java:252`), and both consume tags, so
-`selectRoleTools` alone is too late a call site. The record is passed to every consumer in the table above. No consumer
+Each session manager makes **one** call per turn to a new method on the shared selection component both already use
+(`ToolSelectionEngine`, `tool-selection-architecture.md:66-68`, whose selection entry points today are the `selectRoleTools`
+overloads, `ToolSelectionEngine.java:172`, `:183`), and passes the returned record on. The call comes ahead of `isSimpleChat`
+and of the manager's private `routeTier` (which calls `NltiRouter.classify`): today both managers run `isSimpleChat`, then
+`routeTier`, then `selectRoleTools` (`SessionAgentManager.java:268, 306, 320`; `StreamingSessionAgentManager.java:252, 266, 274`;
+`routeTier` is defined at `SessionAgentManager.java:549` and `StreamingSessionAgentManager.java:500`), and all three consume
+tags, so a tagging step inside `selectRoleTools` alone is too late. Parity is structural because the tagging logic lives in one
+component, not because the managers stop calling it. The record is passed to every consumer in the table above. No consumer
 re-derives a tag from the raw message.
 
 The initial tag set, sent in a single Jev request (the `entity` question joins it once ADR-0069's lexicon exists):
@@ -122,7 +127,7 @@ The initial tag set, sent in a single Jev request (the `entity` question joins i
 | `admin_account_question` | Noul | Vetoes the admin fast path (`ADMIN_QUERY_KEYWORDS` / `ADMIN_QUERY_PHRASES` / `FAST_PATH_VETO_TERMS`, §3.4); never fires it alone |
 | `compound_question` | Noul | #1180 split detection (the split itself is unchanged) |
 | `intent` (QUERY / ACTION / UNKNOWN), `complexity` | Choice each | `NltiRouter` JSON output |
-| `domain` | Choice | `NltiRouter` JSON output; option set: the RAG scope values (`mcp.rag.preload.docs`, as the Gate 4 router's `<rag-scope>`) until ADR-0069 supplies its Domain nodes |
+| `domain` | Choice | `NltiRouter` JSON output; option set: the RAG scope values (`mcp.rag.preload.docs`), as the Gate 4 design intended (`<rag-scope>`, `gate4-tiered-router-design.md:60`), until ADR-0069 supplies its Domain nodes. The shipped router prompt is free-form (`NltiRouter.java:37-46`: `<one lowercase business domain>` with examples, several not RAG scopes) |
 | `entity` | Choice over the ADR-0069 entity lexicon | new: seeds ADR-0069 §5.1; not asked until that lexicon exists |
 | `risk` (LOW / MEDIUM / HIGH) | Score | `NltiRouter` JSON output |
 
@@ -144,11 +149,17 @@ Adding a tag is a code change reviewed like any other; tags are not configurable
 Any Jev error, timeout, 429/529, or malformed response yields the heuristic result for the whole turn. A chat turn never
 fails because tagging failed.
 
+For the router-derived tags (`intent`, `risk`, `complexity`, `domain`) the heuristic value is
+`RouterClassification.safeDefault()` (`domain/RouterClassification.java:21-24`): UNKNOWN, HIGH, MULTI_DOMAIN and `master`. So
+"below threshold → heuristic value" and §3.5's "a low-confidence `risk` counts as HIGH" are the same rule: a router tag below
+its threshold selects T2-complex.
+
 The rules move unchanged, but how their results are applied changes in one respect. Today's keyword-added tools bypass
-`mcp_tool_permission` at selection: `ToolSelectionEngine.java:189-190` merges `fallbackToolsForMessage` into the candidate set
-without the permission gate (`SharedOrchestrationSupport.java:25-28`) and relies on downstream `@PreAuthorize` to refuse an
-unpermitted call. Under this ADR the tools added by **both** taggers' tags are intersected with the permission-gated set (§3.1).
-This is a deliberate behaviour change.
+`mcp_tool_permission` at selection: `ToolSelectionEngine.java:189-190` merges `fallbackToolsForMessage` into `fallbackTools`,
+which the managers then merge with the role tools (`SessionAgentManager.java:324-325`), without the permission gate
+(`SharedOrchestrationSupport.java:25-28`), and relies on downstream `@PreAuthorize` to refuse an unpermitted call. Under this
+ADR the tools added by **both** taggers' tags are intersected with the permission-gated set (§3.1). This is a deliberate
+behaviour change.
 
 ### 3. Tags are advisory and can never widen access
 
@@ -157,8 +168,9 @@ the caller may use them. Binding rules:
 
 1. **Permission gating runs first and is untouched.** Tags act only on the set that survived
    `findEnabledByPermissionsAndWorkflow` and role scoping.
-2. **Additive only for tools.** A tag may add a permitted facade tool on top of the semantic top-K; it may not remove or
-   displace a semantically ranked tool.
+2. **Additive only for tools.** A tag may add a permitted tool on top of the semantic top-K (today's keyword-fallback additions
+   are few and facade-only); it may not remove or displace a semantically ranked tool. Tools added by tags and tools added by
+   ADR-0069's scope set are unioned on top of the ranked cuts; ADR-0069's `added-tool-slots` cap counts scope-added tools only.
 3. **Persisted state wins.** `workflow_state` applies only to session-less callers; a persisted `NltiSession` state is never
    overridden. For a session-less caller the precedence is: persisted `NltiSession` state → the `workflow_state` tag at or above
    threshold in `enforce` → the ADR-0069 graph lookup where enforced → the heuristic phrase match; the first that yields a
@@ -169,7 +181,8 @@ the caller may use them. Binding rules:
    heuristic value), is true. A Jev `false` at or above threshold therefore vetoes it.
 5. **Risk never downgrades.** When tiering is enabled, `intent = ACTION`, `risk ≥ MEDIUM`, `complexity = MULTI_DOMAIN`, or a
    risky domain (accounting, tax, admin, security) always selects T2-complex (`TierSelector.java:26-38`), whatever the
-   confidence. A low-confidence `risk` answer is treated as HIGH.
+   confidence. A low-confidence `risk` answer is treated as HIGH: below threshold it takes the heuristic value, which is
+   `safeDefault()`'s HIGH (§2).
 6. **Tags are typed values, not text.** Only enum/boolean/number values from the response are read; no response string is
    ever placed into a prompt, a log message template, or a tool argument.
 
@@ -184,7 +197,8 @@ processing agreement with TypeSafe that includes zero data retention, recorded i
 hosted provider may be enabled only in environments populated with synthetic data. This ADR's rule: the tagging client never
 logs message text at any level in any profile; the failure log carries the error class, HTTP status and latency (ADR-0046
 sets only the levels). The existing message previews in `ToolSelectionEngine` (DEBUG at l.191-199; ERROR at l.275-280 when a
-selection fails) and `ToolRegistryService` (DEBUG, l.108-115) are outside this ADR.
+selection fails) and `ToolRegistryService` (`:126-136`, `:152-160`, `:218-227` and elsewhere) are outside this ADR. The session
+managers (`SessionAgentManager.java:273,285,334`) also log previews; the list is not exhaustive.
 
 ### 5. The Jev HTTP API is the contract, not the vendor
 
@@ -207,7 +221,7 @@ chat path, and no circuit state beyond "fail to heuristic".
 - **shadow** — both taggers run; consumers act on the heuristic result; the Jev result, confidences, agreement, and latency
   are recorded on the eval turn trace and `nlti.request.telemetry`.
 - **enforce** — consumers act on the Jev result, per tag, where confidence ≥ that tag's threshold
-  (`mcp.tagging.thresholds.<tag>`); below it, the heuristic value is used.
+  (`mcp.tagging.thresholds.<tag>`); below it, the heuristic value is used (`safeDefault()` for the router-derived tags, §2).
 
 ADR-0069 reads the tags a consumer would act on: the heuristic result in `shadow`, the Jev result at or above threshold in
 `enforce`.
@@ -238,8 +252,8 @@ until a real T2-simple model is chosen.
 ## Alternatives Considered
 
 1. **Keep and extend the heuristics.** Zero egress and zero latency, but it is the status quo that keeps missing phrasings,
-   has no confidence, and costs a word-list change per gate miss in three languages. Retained as the fallback (§2), rejected
-   as the only mechanism.
+   has no confidence, and costs a word-list change per gate miss and, for the five English-only heuristics, leaves fr and es
+   unserved. Retained as the fallback (§2), rejected as the only mechanism.
 2. **Re-enable the Gate 4 LLM router (`qwen3:4b`) and widen its JSON.** Stays with the existing Ollama provider (hosted on
    alpha), but it is the design already switched off (#1683): a generative call per turn, free-text JSON parsing with a
    safe-default failure mode, and no calibrated confidence.
@@ -263,7 +277,8 @@ until a real T2-simple model is chosen.
   its confidence appears in telemetry and eval traces.
 - ✅ Calibrated confidence makes uncertain cases distinguishable: consumers fall back per tag instead of all-or-nothing.
 - ✅ Phrasings outside a word list are no longer silently missed, and the primary path no longer depends on hand-maintained
-  word lists; the heuristic fallback keeps them (as data in the ADR-0069 lexicon once it exists).
+  word lists; the heuristic fallback keeps them: they live in `HeuristicQuestionTagger` and, once the ADR-0069 lexicon exists,
+  are read from it (the admin lists stay in `ToolRegistryService`, §1).
 - ✅ Cheaper than re-enabling the router: one non-generative call (~$0.00004 per turn at the vendor's published rate) instead
   of a `qwen3:4b` generation, with nothing to parse. Against today's dormant router it adds one ~300 ms call per turn (see
   Negative).
@@ -283,7 +298,8 @@ until a real T2-simple model is chosen.
 - ⚠️ **Multilingual accuracy is unproven.** Mitigated by the per-language promotion rule in §6.
 - ⚠️ **No per-tenant opt-out.** A tenant that forbids third-party processing cannot currently be excluded while others are
   tagged externally. Must be decided before the first external tenant is onboarded.
-- ⚠️ **Two implementations to keep in step.** The heuristic tagger must keep answering every tag, so a new tag costs both.
+- ⚠️ **Two implementations to keep in step.** The heuristic tagger must keep answering every tag (the router-derived ones with
+  `safeDefault()`, §2), so a new tag costs both.
 
 ### Neutral
 
@@ -299,13 +315,15 @@ until a real T2-simple model is chosen.
 - **Components:** `QuestionTagger`, `QuestionTags` (`internal.domain`), `HeuristicQuestionTagger`, `JevQuestionTagger`
   (`internal.orchestration`), `JevClient` (`internal.client`, plain `RestClient`); placement per §1. Consumers updated in
   `SimpleChatFastPath`/`SimpleChatClassifier`, `ToolSelectionEngine`, `ToolRegistryService`, the #1180 rerank split, and
-  `NltiRouter`. The tagger is called once per turn through the shared selection component, so both session managers get it
-  at the same point (transport parity is structural, per `tool-selection-architecture.md`).
+  `NltiRouter`. Each session manager makes one call to a new `ToolSelectionEngine` method, ahead of `isSimpleChat` and its own
+  private `routeTier` (which calls `NltiRouter.classify`), and passes the record on; transport parity is structural because
+  the tagging logic lives in one component (per `tool-selection-architecture.md`), not because the managers stop calling it.
 - **Configuration:** `mcp.tagging.mode` (`off`), `mcp.tagging.provider.base-url`, `mcp.tagging.provider.timeout` (`800ms`),
-  `mcp.tagging.thresholds.<tag>`; API key from the environment secret `TYPESAFE_API_KEY`, never committed. `application-test.yml`
-  pins `mode: off` so no test context calls out.
-- **Testing:** unit tests per consumer against fixed `QuestionTags` (high/low confidence, `HEURISTIC` source); a `JevClient`
-  test against a stubbed server covering timeout, 429, 529, and malformed body → heuristic; a test asserting the request body
+  `mcp.tagging.thresholds.<tag>` (default 0.75, §1); API key from the environment secret `TYPESAFE_API_KEY`, never committed.
+  `application-test.yml` pins `mode: off` so no test context calls out.
+- **Testing:** unit tests per consumer against fixed `QuestionTags` (high/low confidence, `HEURISTIC` source); a parity test
+  asserting both session managers tag before `isSimpleChat`; a `JevClient` test against a stubbed server covering timeout, 429,
+  529, and malformed body → heuristic; a test asserting the request body
   contains only the message and question definitions (§4); a log-capture test asserting no message text on a tagging failure
   (§4); `ArchitectureTest` unchanged (all new types are `internal`, and `packages_should_be_free_of_cycles` must stay green,
   which drives §1's placement).

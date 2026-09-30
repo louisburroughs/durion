@@ -26,11 +26,11 @@ Before the executor LLM sees a chat turn, `pos-mcp-server` narrows two things in
 
 - **Tools.** Two paths. *Facades:* `ToolRegistryService.resolveCandidateTools` runs a permission- and workflow-gated pgvector
   ANN query over `mcp_tool.embedding` for `source <> 'openapi'` rows (18 facades), scores by ANN rank plus tenant-overlaid
-  priority minus latency and cost (`ToolRegistryService.java:314-330`), and cuts to `mcp.agent.candidate-tool-limit` (24 on
+  priority minus latency and cost (`ToolRegistryService.java:314-334`), and cuts to `mcp.agent.candidate-tool-limit` (24 on
   alpha, which must stay at or above the facade count, #1840). *Discovered operations* (~866 of ~884 tools):
-  `OpenApiToolProvider` calls `findDiscoveredCandidatesForPermissions` (`ToolMetadataRepositoryImpl.java:142-170`), with
-  OR-semantics permissions, the workflow fixed to IDLE, and its own cap `mcp.agent.discovered-tool-limit` (16 on alpha).
-  Keyword guards in `ToolSelectionEngine` add facade tools on top.
+  `OpenApiToolProvider` calls `findDiscoveredCandidatesForPermissions` (`ToolMetadataRepositoryImpl.java:142-177`, OR predicate
+  at `:164`), with OR-semantics permissions, the workflow fixed to IDLE, and its own cap `mcp.agent.discovered-tool-limit` (16
+  on alpha). Keyword guards in `ToolSelectionEngine` add facade tools on top.
 - **Documents.** The Tier-2 RAG chain (dense, query-expanded, Postgres FTS, reciprocal-rank fusion, lexical rerank to the top 5)
   searches `mcp_document_embedding`, filtered by one domain `rag_scope` plus `master` when tool selection resolves to a single
   domain, and by permissions only (all scopes) when it resolves to `master` (`ScopedContentRetrieverFactory.java:57-62`,
@@ -49,7 +49,9 @@ The structure that relates these things already exists, but is spread across sto
 | `BusinessGlossary` (#1688, ratified) | analytical phrase → agreed metric |
 
 The RAG file headers (20 YAML, 13 inline, 6 none) are documentation only: they are not read at runtime, and for 6 documents they
-disagree with the permissions the runtime enforces.
+disagree with the permissions the runtime enforces. `mcp.rag.preload.docs` is itself declared twice: in `application.yml`
+(`:144-315`) and repeated in `application-alpha.yml` (`:90-265`, "kept in parity", `:150-153`). A profile list replaces the base
+list wholesale, so alpha enforces its own copy.
 
 ### The problem
 
@@ -132,7 +134,7 @@ graph cannot hold. Live data keeps flowing through tools.
 | `IDENTIFIES` | IdentifierPattern → Entity | entity lexicon |
 | `OWNED_BY` | Entity → Domain | entity lexicon |
 | `RELATES_TO` | Entity → Entity (labelled, e.g. `promotes_to`, `billed_by`, `belongs_to`) | entity lexicon |
-| `ACTS_ON` (`reads` / `writes`) | Tool → Entity | OpenAPI schema → entity mapping (§3); HTTP method gives reads/writes |
+| `ACTS_ON` (`reads` / `writes`) | Tool → Entity | Discovered operations: OpenAPI schema → entity mapping (§3), the HTTP method giving reads/writes. Facades: the lexicon's per-entity facade-tool list with a declared `reads` / `writes` (§3); facade rows carry no method or schema (`V2__seed_mcp_server.sql:7-15`) |
 | `REQUIRES` | Tool / RagDoc / Screen → Permission | existing permission metadata; the semantics differ per source (§5.3) |
 | `VALID_IN` | Tool → WorkflowState | `mcp_tool_workflow` |
 | `PRODUCES_INPUT_FOR` | Tool → Tool | `mcp_tool_prerequisite` |
@@ -145,16 +147,21 @@ graph cannot hold. Live data keeps flowing through tools.
 
 **Decision:** ✅ **Resolved** - The graph is **built, never hand-drawn and never LLM-extracted**. The builder reads the
 sources in §2. There are three curated inputs, reviewed in PRs: the first and third in
-`pos-mcp-server/src/main/resources/scope-graph/`, the second in `mcp.rag.preload.docs`:
+`pos-mcp-server/src/main/resources/scope-graph/`, the second in `mcp.rag.preload.docs` (both copies, item 2):
 
 1. **Entity lexicon** (`entities.yaml`): per entity, its owning domain, en/fr/es terms and synonyms, identifier patterns,
-   related entities, the OpenAPI schema names that represent it, and the screens that show it, plus the one domain-to-scope
-   map (§2). This is the only new source of truth. Glossary terms link to it rather than repeating it.
+   related entities, the OpenAPI schema names that represent it, the facade tools that act on it (each with a declared
+   `reads` or `writes`: the 18 facade rows have no HTTP method or schema to derive it from,
+   `db/migration/V2__seed_mcp_server.sql:7-15`), and the screens that show it, plus the one domain-to-scope map (§2). This is
+   the only new source of truth. Glossary terms link to it rather than repeating it.
 2. **RAG document `entities:`**: `entities:` is declared in `mcp.rag.preload.docs`, beside `rag_scope` and
-   `required_permissions`, because that is the source the runtime enforces; file headers stay optional documentation. The six
-   documents whose headers disagree with the enforced permissions (`accounting-codes-rag.md`,
-   `accounting-journal-entries-rag.md`, `inventory-codes-rag.md`, `inventory-purchase-orders-rag.md`,
-   `customer-vehicle-guide.md`, `pricing-guide.md`) are reconciled first.
+   `required_permissions`, because that is the source the runtime enforces; file headers stay optional documentation. The list
+   exists in `application.yml` and in `application-alpha.yml` (Current state), and a profile list replaces the base list
+   wholesale, so `entities:` and the six reconciliations below go into **both** lists (the alternative is to
+   remove the alpha duplicate). The validation reads the effective configuration of the running profile, so the module test
+   runs it under the default and the `alpha` profiles. The six documents whose headers disagree with the enforced permissions
+   (`accounting-codes-rag.md`, `accounting-journal-entries-rag.md`, `inventory-codes-rag.md`,
+   `inventory-purchase-orders-rag.md`, `customer-vehicle-guide.md`, `pricing-guide.md`) are reconciled first.
 3. **Lifecycle transitions** (`lifecycles.yaml`, phase 2): allowed transitions per entity status. Business rules state these
    in prose today; the file makes them explicit. Until it exists, `HAS_STATE` is populated and `TRANSITIONS_TO` is empty.
 
@@ -168,8 +175,10 @@ sources in §2. There are three curated inputs, reviewed in PRs: the first and t
 
 The full aggregate spec lives in `pos-api-gateway/docs/openapi-aggregate.yaml`; the module's test resources hold only a minimal
 aggregate. The schema-name check therefore runs against a fixture aggregate in the module test, and against the discovered spec
-at startup on `alpha`. Tools discovered at runtime that match no lexicon schema are attached to their `domain` only and counted
-by a metric, so a new service degrades to today's behaviour instead of failing startup.
+at startup on `alpha`. The fixture is refreshed from `pos-api-gateway/docs/openapi-aggregate.yaml` by the same
+`API Artifacts Sync` run that regenerates that file, so a renamed DTO reaches the module test at the next sync, and the
+startup check on `alpha` catches it earlier. Tools discovered at runtime that match no lexicon schema are attached to their
+`domain` only and counted by a metric, so a new service degrades to today's behaviour instead of failing startup.
 
 Two sources are sparse today: `mcp_tool_prerequisite` has 2 seeded rows and `mcp_screen_registry` has 3. Screens resolved from
 the frontend site-map fallback (`ScreenLinkResolverImpl`, role-gated) are outside the graph.
@@ -199,7 +208,7 @@ tagging, after the tagging step and before tool ranking. It produces an immutabl
 3. **Filter by caller.** Drop every Tool, RagDoc and Screen the caller cannot reach, and every Tool not `VALID_IN` the turn's
    workflow state. Permission semantics differ per source, so the filter reuses each source's existing predicate instead of one
    uniform `REQUIRES` check: a facade tool qualifies when the caller holds every code of at least one of its permission groups
-   (`ToolMetadataRepositoryImpl.java:43-46,119-125`); a discovered tool qualifies on any one of its codes (OR, `:150-160`); a
+   (`ToolMetadataRepositoryImpl.java:43-46,119-125`); a discovered tool qualifies on any one of its codes (OR, `:150-164`); a
    RAG document is visible when its `required_permissions` is empty (public), contains the `AUTHENTICATED` sentinel, or shares
    at least one code with the caller (`PermissionAwareMetadataFilter.java:21-24`); a screen has a single nullable
    `required_perm`. A tool with no permission rows stays excluded. Filtering runs *after* expansion, so the walk does not depend
@@ -215,22 +224,32 @@ is `NONE`, or `LOW` for that consumer:
 
 | Consumer | Use | Fallback |
 | -------- | --- | -------- |
-| RAG retrieval (dense, expanded, lexical) | Filter `document_id IN (scope docs) OR rag_scope = 'master'`, applied through a request-scoped hook after fusion and before the top-5 cut (below). This replaces the single-domain `rag_scope` filter. | Today's behaviour: one domain plus `master`, or all scopes when `master` |
-| Tool selection | Scope tools are **added on top of** both cuts (the facade ANN cut and the discovered-operation cut), at most `mcp.scope-graph.reserved-tool-slots` (default 8) added, the way the keyword fallback adds facade tools today. They never remove or displace a ranked tool (ADR-0068 §3.2), and the scope never excludes a permitted tool. | Today's ranking unchanged |
-| Keyword fallback tools, `deriveWorkflowState` | Graph lookups (entity → facade tool, entity → workflow state) replace the word lists | Word lists remain in `HeuristicQuestionTagger` (ADR-0068) |
+| RAG retrieval (dense, expanded, lexical) | Filter `document_id IN (scope docs) OR rag_scope = 'master'`, applied through a request-scoped hook after fusion and before the top-5 cut (below). In `enforce`, this replaces the single-domain `rag_scope` filter. | Today's eligibility re-applied by the hook (one domain plus `master`, or all scopes when `master`) |
+| Tool selection | Scope tools are **added on top of** both cuts (the facade ANN cut and the discovered-operation cut), at most `mcp.scope-graph.added-tool-slots` (default 8) added, the way the keyword fallback adds facade tools today. They never remove or displace a ranked tool (the same rule as ADR-0068 §3.2), and the scope never excludes a permitted tool. | Today's ranking unchanged |
+| Keyword fallback tools, `deriveWorkflowState` | Graph lookups (entity → facade tool through the lexicon's facade-tool list, entity → workflow state) replace the word lists | Word lists remain in `HeuristicQuestionTagger` (ADR-0068) |
 | Prompt | A **scope card** appended to the system prompt (§7) | No card |
-| ADR-0068 tagger | Option lists for the `domain` and entity Choice questions | Static option list |
+| ADR-0068 tagger | Option lists for the `domain` and entity Choice questions | Static option list for `domain`; the `entity` question is not asked without the lexicon |
 
 Tools get additive slots rather than a hard filter because a missing tool fails the turn, while an extra one costs a few
-prompt tokens.
+prompt tokens. Tools added by ADR-0068 tags (today's keyword-fallback facades, few and facade-only) and tools added by the scope
+set are unioned on top of the ranked cuts; the `added-tool-slots` cap counts scope-added tools only.
+
+The keyword-fallback and workflow-state word lists have one owner and one reader: they live in `HeuristicQuestionTagger` and,
+once the lexicon exists, are read from `entities.yaml` (the admin lists stay in `ToolRegistryService`, ADR-0068 §1); on the
+primary path graph lookups replace them.
 
 Retrievers are built per cached agent with a fixed scope (`SessionAgentManager.java:466-499`), so the scope filter is applied
 through a request-scoped hook like `permissionFiltered` (`:584-595`), after fusion and before the top-5 cut. Such a hook can
 only narrow: it cannot admit a document the agent's fixed-scope retrievers never fetched. For the scope set to reach a second
-domain's documents, the retrievers are therefore built over all scopes, as the `master` agent's are today, and the scope set
-plus `master` does the narrowing per request. A single-domain agent loses nothing: its own domain's documents are in scope
-whenever its tools are. A question whose tool selection fell to `master` (unfiltered today) is narrowed to the scope's
-documents plus `master`.
+domain's documents, the retrievers must therefore be built over all scopes, as the `master` agent's are today, and the scope
+set plus `master` does the narrowing per request. That construction applies only where the RAG consumer is in `enforce`; in
+`off` and `shadow` today's scoped retrievers stay (`ScopedContentRetrieverFactory.java:58-67`,
+`LexicalDocumentRetriever.java:85-88`). On a `NONE` or `LOW` turn under `enforce`, the hook re-applies the agent's own
+`rag_scope IN (domain, 'master')`. That reproduces today's eligibility but not today's candidate pool: the 20-candidate fusion
+pool (`SessionAgentManager.java:81,474-488`) is then drawn from all documents and cut to the eligible ones only after fusion
+(`:495-497`). A single-domain agent's own documents stay eligible, but fewer than five in-scope survivors is possible, which
+is the recall@5 risk the §9 gate measures. A question whose tool selection fell to `master` (unfiltered today) is narrowed to
+the scope's documents plus `master`.
 
 ### 7. The scope card
 
@@ -306,11 +325,14 @@ selection hit rate at least equal. The promotion and its evidence are recorded i
   domains' documents plus `master`, instead of one domain (single-domain selection) or every scope (`master`).
 - ✅ Smaller, better-aimed windows: scope tools are added on top of the ranked cuts, so once the shadow data supports it the
   discovered-operation cap (`mcp.agent.discovered-tool-limit`, 16) can come down, cutting prompt tokens and wrong-tool calls.
-  The facade limit cannot: it is floored at the 18 facades (`McpServerPropertiesDefaultsTest`).
+  The facade limit cannot: `McpServerPropertiesDefaultsTest` asserts alpha's limit is at least the scanned facade count (18
+  today).
 - ✅ The LLM starts from a scope card that names the entities, states and required permissions, instead of reconstructing
   them from chunks.
 - ✅ ADR-0068's Choice questions get a closed, curated, trilingual option set.
-- ✅ The keyword lists in `ToolSelectionEngine` become data in one reviewed lexicon, with fr/es terms checked by a test.
+- ✅ The keyword-fallback and workflow-state word lists have one owner (`HeuristicQuestionTagger`) and, once the lexicon
+  exists, one reviewed source (`entities.yaml`), with fr/es terms checked by a test; the primary path replaces them with graph
+  lookups.
 - ✅ No new infrastructure. The graph is in memory, derived from deployed sources, and versioned by hash on every trace.
 
 ### Negative ⚠️
@@ -322,10 +344,11 @@ selection hit rate at least equal. The promotion and its evidence are recorded i
   `lifecycles.yaml` must be maintained as services change. Mitigated by build-time validation and a metric for unmapped
   discovered tools.
 - ⚠️ **Schema-name mapping is brittle.** A renamed DTO silently detaches a tool from its entity. Mitigated by the validation
-  test, which fails when a lexicon schema name matches nothing in the fixture aggregate, and by the startup check against the
-  discovered spec on `alpha`.
-- ⚠️ **Up-front work.** Every RAG document needs an `entities:` annotation in `mcp.rag.preload.docs`, and six documents whose
-  headers disagree with the enforced permissions must be reconciled first.
+  test, which fails when a lexicon schema name matches nothing in the fixture aggregate (refreshed from
+  `pos-api-gateway/docs/openapi-aggregate.yaml` by the `API Artifacts Sync` run, so a rename reaches the test at the next sync),
+  and by the startup check against the discovered spec on `alpha`, which catches it earlier.
+- ⚠️ **Up-front work.** Every RAG document needs an `entities:` annotation in both `mcp.rag.preload.docs` lists, and six documents
+  whose headers disagree with the enforced permissions must be reconciled first (in both lists).
 - ⚠️ **Lifecycle transitions are a second copy of business rules** once `lifecycles.yaml` exists. Mitigated by keeping it
   phase 2 and by domain-agent review of each change.
 
@@ -341,14 +364,17 @@ selection hit rate at least equal. The promotion and its evidence are recorded i
 
 - **Components:** `ScopeGraph` (immutable snapshot), `ScopeGraphBuilder` (sources → graph, validation),
   `ScopeGraphHolder` (atomic swap on catalog change), `ScopeResolver` (§5), `ScopeSet`, `ScopeCardRenderer` (§7). Consumers
-  updated: the RAG retrieval chain in both session managers (a request-scoped scope filter beside `permissionFiltered`, §6),
-  `ToolRegistryService` / `ToolScorer` (additive scope tools), `ToolSelectionEngine` (graph lookups), prompt assembly in both
-  session managers, and the ADR-0068 tagger (option lists). All types are `internal` (ADR-0026). The resolver is called through
+  updated: the RAG retrieval chain in both session managers (a request-scoped scope filter beside `permissionFiltered`, and
+  retriever construction over all scopes where the RAG consumer is in `enforce`, §6), `ToolRegistryService` (the facade cut) and
+  `OpenApiToolProvider` (`OpenApiToolProvider.java:193,221`, which owns the discovered-operation cut), the two places that add
+  scope tools, `ToolSelectionEngine` (graph lookups), prompt assembly in both session managers, and the ADR-0068 tagger (option
+  lists). All types are `internal` (ADR-0026). The resolver is called through
   the shared selection component, so both session managers resolve scope at the same point (transport parity).
-- **Configuration:** `mcp.scope-graph.mode` (`off`), `max-nodes` (60), `reserved-tool-slots` (8), `card-token-budget` (400).
+- **Configuration:** `mcp.scope-graph.mode` (`off`), `max-nodes` (60), `added-tool-slots` (8), `card-token-budget` (400).
   `application-test.yml` pins `mode: off` except in the graph's own tests.
-- **Data:** `src/main/resources/scope-graph/entities.yaml`; `entities:` in `mcp.rag.preload.docs`; phase 2 `lifecycles.yaml`.
-  No Flyway migration.
+- **Data:** `src/main/resources/scope-graph/entities.yaml` (including the per-entity facade-tool list); `entities:` in both
+  `mcp.rag.preload.docs` lists (`application.yml`, `application-alpha.yml`); phase 2 `lifecycles.yaml`. No Flyway
+  migration.
 - **Testing:** builder tests over fixture sources, including the validation failures; resolver tests for seeding,
   hop and node caps, and permission filtering after expansion (a permitted node reachable only through an unpermitted one is
   still reachable, and an unpermitted node never appears); filter tests showing the `document_id` scope filter admits `master`
