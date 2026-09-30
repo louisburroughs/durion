@@ -410,7 +410,7 @@ applied on acceptance, not by this ADR):
 | -------- | ------ | ---- |
 | `domains/general/mcp-server/archive/gate5-rag-hybrid-design.md` | Retrieval pipeline: the scope filter changes from one `rag_scope` to a `document_id` set plus `master`; fusion and rerank unchanged; dated amendment block | On acceptance |
 | `domains/general/mcp-server/archive/README.md` | "Why archived" row for the gate 5 design | On acceptance |
-| `docs/adr/README.md` | Decision-matrix row | On acceptance |
+| `docs/adr/README.md` | Index row (the decision matrix stops at ADR-0062 and is not extended here) | On acceptance |
 | `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md` | Already listed under Implementation Notes | On implementation |
 
 ---
