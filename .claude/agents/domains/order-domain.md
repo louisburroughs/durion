@@ -1,8 +1,6 @@
 ---
 name: Order Domain Agent
 description: Authoritative agent for the order domain; provides domain-specific guidance and business rules for authoring and validating order-related user stories.
-tools: ['vscode', 'execute', 'read', 'github/*', 'edit', 'search', 'web', 'agent']
-model: GPT-5.2 (copilot)
 ---
 
 # Order Domain Agent Contract
