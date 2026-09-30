@@ -19,10 +19,10 @@ Three stacked backend PRs (`durion-positivity-backend`), each inert until config
 
 | Wave | Branch | State |
 | ---- | ------ | ----- |
-| 1 Graph and curated inputs | `feat/adr-0069-w1-scope-graph` | not started |
-| 2 Resolver and shadow recording | `feat/adr-0069-w2-scope-resolver` | not started |
-| 3 Consumers | `feat/adr-0069-w3-scope-consumers` | not started |
-| 4 Documentation | `docs/adr-0069-implementation` (`durion`) | not started |
+| 1 Graph and curated inputs | `feat/adr-0069-w1-scope-graph` | merged (louisburroughs/durion-positivity-backend#2358) |
+| 2 Resolver and shadow recording | `feat/adr-0069-w2-scope-resolver` | merged (louisburroughs/durion-positivity-backend#2364) |
+| 3 Consumers | `feat/adr-0069-w3-scope-consumers` | PR open (louisburroughs/durion-positivity-backend#2365) |
+| 4 Documentation | `docs/adr-0069-implementation` (`durion`) | this PR |
 
 Common verification for every backend wave, run from the repository root:
 
