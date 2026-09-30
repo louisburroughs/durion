@@ -5,14 +5,14 @@ description: Puts one typed QuestionTagger seam in front of the pos-mcp-server e
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md
 path: durion/docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md
 tags: [adr]
-status: draft
+status: stable
 sources: [docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:44:20+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:52:28+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md) — `docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md`
 
-**Status:** Pending since 2026-09-30
+**Status:** Accepted since 2026-09-30
 
 **Related:**
 

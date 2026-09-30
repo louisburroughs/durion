@@ -2,19 +2,19 @@
 type: ADR
 title: 'ADR-0068: Pre-LLM Question Tagging with a Decision Model (TypeSafe Jev) in pos-mcp-server'
 description: Puts one typed QuestionTagger seam in front of the pos-mcp-server executor LLM, backed by a Jev-protocol decision model served by the platform's own Ollama container, with today's heuristics as the permanent fallback; replaces six scattered keyword heuristics and the dormant Gate 4 router.
-status: draft
-adr_status: pending
+status: stable
+adr_status: accepted
 created: '2026-09-30'
 related: [ADR-0009, ADR-0026, ADR-0046, ADR-0062, ADR-0069]
 tags: [adr]
 ---
 # ADR-0068: Pre-LLM Question Tagging with a Decision Model (TypeSafe Jev) in pos-mcp-server
 
-**Status:** PROPOSED **Date:** 2026-09-30 **Deciders:** Architecture, NLTI (Natural Language Task Interpretation) Domain, Security & Authorization Domain
+**Status:** ACCEPTED **Date:** 2026-09-30 **Deciders:** Architecture, NLTI (Natural Language Task Interpretation) Domain, Security & Authorization Domain
 **Affected Issues:** — (none yet; to be opened for implementation)
 
-> **How to read this.** ✅ **Resolved** marks a decision this ADR proposes (TEMPLATE.adr.md sub-decision format); nothing is
-> accepted until the Sign-Off rows are filled.
+> **How to read this.** ✅ **Resolved** marks a decision this ADR makes (TEMPLATE.adr.md sub-decision format); accepted by the
+> Platform Owner on 2026-09-30 (see Sign-Off).
 
 ---
 
@@ -416,7 +416,7 @@ until a real T2-simple model is chosen.
   [spring-ai-typesafe #20 (Ollama System One notes)](https://github.com/spring-ai-community/spring-ai-typesafe/pull/20),
   [community benchmark: `tev1:0.8b` vs `nimble`](https://github.com/itumor/lazy-route/issues/35).
 
-**Documents affected on acceptance** (listed only; each amended document would carry a dated amendment block pointing here,
+**Documents affected on acceptance** (listed only; each amended document carries a dated amendment block pointing here,
 applied on acceptance, not by this ADR):
 
 | Document | Change | When |
@@ -424,7 +424,7 @@ applied on acceptance, not by this ADR):
 | `domains/general/mcp-server/archive/gate4-tiered-router-design.md` | T1 router replaced by §7; dated amendment block | On acceptance |
 | `domains/general/mcp-server/archive/nl-interface-design.md` | "self-hosted Ollama" is already stale: alpha chat runs on hosted `https://ollama.com` (`application-alpha.yml:19`); block noting hosted chat Ollama and that tagging runs on the in-cell Ollama container | On acceptance |
 | `domains/general/mcp-server/archive/README.md` | "Why archived" rows | On acceptance |
-| `docs/adr/README.md` | Decision-matrix row | On acceptance |
+| `docs/adr/README.md` | Index row (the decision matrix stops at ADR-0062 and is not extended here, as for ADR-0069) | On acceptance |
 | `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md` | Already listed under Implementation Notes | On implementation |
 
 ---
@@ -433,6 +433,7 @@ applied on acceptance, not by this ADR):
 
 | Role | Name | Date | Notes |
 |------|------|------|-------|
+| Platform Owner | Louis Burroughs | 2026-09-30 | Accepted as written, with the local provider (§4, §5). The model is not chosen here: it is set by the §6 bake-off on the target host and recorded in the Changelog before any tag is promoted |
 | Architecture | | | |
 | NLTI Domain | | | |
 | Security & Authorization | | | §4 local provider and external-provider condition |
@@ -442,6 +443,7 @@ applied on acceptance, not by this ADR):
 ## Timeline
 
 - **Proposed**: 2026-09-30
+- **Accepted**: 2026-09-30
 
 ---
 
@@ -456,3 +458,4 @@ applied on acceptance, not by this ADR):
   condition kept for any external provider), §5 (own base URL and model settings, Ollama 0.35+ pin, Ollama differences, the
   timeout as a budget), §6 (model bake-off on the target host before any promotion; thresholds from shadow data), Constraints
   and Drivers (GPU-less `t3.2xlarge`), Alternatives (hosted Jev moved to an alternative), Consequences, Implementation Notes.
+- **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.

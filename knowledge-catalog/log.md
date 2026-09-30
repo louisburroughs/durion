@@ -2,6 +2,10 @@
 
 ## 2026-09-30
 
+* **Updated**: `adr/` — ADR-0068 is now `status: stable` (accepted by the platform owner, local Jev-protocol provider). The
+  gate4 router and NL-interface design records carry amendment blocks, the archive index notes them, and the scope-graph spec
+  and plan no longer call ADR-0068 pending. `domains/general` now lists the scope-graph spec and plan (58 documents). Regenerated
+  entries only; timestamp-only drift in unrelated entries was discarded.
 * **Structure**: ADR-0068 (still proposed) now defaults to a local decision model: the Jev-protocol models Ollama 0.35 serves
   (`nimble`, `tev1`, `tev1:0.8b`) in the in-cell `ollama` container, chosen by a bake-off on the target host. Its catalog
   description is refreshed. No ADR is superseded.

@@ -6,10 +6,10 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/general
 path: durion/domains/general/
 tags: [domain, general]
 sources: [domains/general/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T17:32:59-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:52:28+00:00'}
 ---
 
-[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/general) — `domains/general/` (56 documents)
+[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/general) — `domains/general/` (58 documents)
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/general/index.md) — authority, current guidance, and historical records
 
@@ -91,6 +91,10 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-16T17:32:59
 * [Tool Discovery Failure Runbook](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/operations/runbooks/tool-discovery-failure.md) —
   Runbook · current
 * [MCP Role Persona Sourcing Strategy](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/role-persona-sourcing.md) — Design Decision · current
+* [pos-mcp-server Scope Graph — Implementation Plan](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/scope-graph-implementation-plan.md) —
+  Plan · draft
+* [pos-mcp-server Scope Graph — Implementation Specification](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/scope-graph-spec.md) —
+  Specification · draft
 * [Tool Selection & Runtime Configuration Architecture](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/tool-selection-architecture.md) —
   Architecture · current
 

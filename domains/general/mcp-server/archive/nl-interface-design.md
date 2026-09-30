@@ -14,6 +14,11 @@ tags: [mcp-server, general]
 > **Write policy:** Read + **gated** writes (preview → explicit confirmation → execute).
 > **Model strategy:** Self-hosted Ollama, **tiered** (small model for routing/simple, larger model for complex reasoning + writes).
 > **Companion specs:** `docs/nlq-to-api-analysis.md`, `docs/nlq-to-api-second-review.md`, `docs/tool-usage-enhancement-spec.md` (referenced by issue #639).
+>
+> **Amended 2026-09-30 by [ADR-0068](../../../../docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md):** the "self-hosted Ollama" model strategy is stale for chat: alpha's
+> executor LLM runs on hosted `https://ollama.com` (`application-alpha.yml`, `OLLAMA_CHAT_BASE_URL`). Per-turn question tagging
+> runs on a Jev-protocol decision model served by the in-cell `ollama` container (the one that serves the `bge-m3`
+> embeddings), so tagging adds no data recipient; the small-model routing tier of this design is replaced by that tagger.
 
 This is a comprehensive, phased plan. It is intended to be executed **step by step**; each phase has a goal, the concrete changes, the artifacts it touches, an exit criterion, a rollback strategy, and the GitHub issues it satisfies. Phases are ordered so each builds on a verified foundation.
 

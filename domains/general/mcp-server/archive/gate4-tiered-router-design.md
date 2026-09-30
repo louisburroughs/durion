@@ -36,6 +36,13 @@ tags: [mcp-server, general]
 > `MCP_MODEL_TIERING_ENABLED=true`. Enabling the flag on its own only restores the wasted call.
 > While dormant, keep `NltiModelTierStarved` and `NltiRoutingMixShift` silenced — they assume
 > tiering is on and the flag is not visible to LogQL (`domains/general/mcp-server/operations/alerts/nlti-alerts.md`).
+>
+> **Amended 2026-09-30 by [ADR-0068](../../../../docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md):** the T1 router stops calling a chat model. `NltiRouter` maps
+> the `intent`, `risk`, `complexity` and `domain` tags of the per-turn `QuestionTagger` (a Jev-protocol decision model on the
+> in-cell Ollama container, heuristics as fallback) to a `RouterClassification`; `TierSelector` is unchanged. Below threshold
+> a router tag takes `RouterClassification.safeDefault()`, so it selects T2-complex. The `routerChatModel` bean and
+> `mcp.model.router` / `MCP_MODEL_ROUTER` are removed once the router tags reach `enforce`. Until the tagger is built and
+> enforced, the design below still describes runtime behaviour, and tiering stays dormant as recorded above.
 
 Route each request to the cheapest model tier that preserves quality + safety.
 
