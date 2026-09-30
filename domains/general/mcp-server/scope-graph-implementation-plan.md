@@ -96,5 +96,5 @@ changed entries only.
    tune the lexicon.
 2. Per consumer, RAG filter first: a recorded gate run in `enforce` against the same run in `shadow` (§9 criteria), then the
    promotion and its evidence in the ADR Changelog.
-3. When ADR-0068 is accepted and built: tag seeds, tagger option lists, and the word-list replacement.
+3. When ADR-0068 (accepted 2026-09-30) is built: tag seeds, tagger option lists, and the word-list replacement.
 4. `lifecycles.yaml` with domain-agent review.

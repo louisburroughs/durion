@@ -29,7 +29,7 @@ Code paths are relative to `durion-positivity-backend/pos-mcp-server/`. All new 
 
 | Item | ADR | Why deferred |
 | ---- | --- | ------------ |
-| Tag seeds from the ADR-0068 tagger; option lists wired into the tagger | §5.1, §6 row 5 | ADR-0068 is pending and `QuestionTagger` does not exist. The graph exposes `entityOptions()` and `domainOptions()` now, so the wiring is one call when the tagger lands |
+| Tag seeds from the ADR-0068 tagger; option lists wired into the tagger | §5.1, §6 row 5 | ADR-0068 is accepted (2026-09-30) but `QuestionTagger` is not built yet. The graph exposes `entityOptions()` and `domainOptions()` now, so the wiring is one call when the tagger lands |
 | Graph lookups replacing the keyword-fallback and `deriveWorkflowState` word lists | §6 row 3 | The ADR moves those lists into `HeuristicQuestionTagger` (ADR-0068) and replaces them there. Doing it before that seam exists would move them twice. The §6 fallback ("word lists remain") is today's behaviour |
 | `lifecycles.yaml`, `TRANSITIONS_TO` | §3.3 | Phase 2 in the ADR. `HAS_STATE` is populated; the card prints states without "valid next states" |
 | Promoting any consumer to `enforce` on alpha | §9 | Needs a recorded gate run per consumer against the same run in `shadow`. That is an operations step with its own evidence, recorded in the ADR Changelog |

@@ -27,12 +27,12 @@ plans, runbook and evidence log are records now.
 | [gate-closeout-plan-1212-1219.md](gate-closeout-plan-1212-1219.md) | Sequencing for #1212–#1219; all closed. |
 | [gate-verification-runbook.md](gate-verification-runbook.md) | Close-out procedure for #1212–#1219. It was un-archived on 2026-08-18 "while those issues are open"; they are closed. |
 | [gate3-openapi-bridge-design.md](gate3-openapi-bridge-design.md) | Implemented and signed PASS 2026-08-08. |
-| [gate4-tiered-router-design.md](gate4-tiered-router-design.md) | Implemented (#1192); tiering is dormant by default (`mcp.model.tiering-enabled=false`, #1683). |
+| [gate4-tiered-router-design.md](gate4-tiered-router-design.md) | Implemented (#1192); tiering is dormant by default (`mcp.model.tiering-enabled=false`, #1683). Amended by [ADR-0068](../../../../docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md) (T1 router replaced by the question tagger). |
 | [gate5-rag-hybrid-design.md](gate5-rag-hybrid-design.md) | Implemented and cut over (bge-m3, hybrid lexical retrieval on by default). Amended by [ADR-0069](../../../../docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md) (scope filter). |
 | [gate6-write-confirmation-design.md](gate6-write-confirmation-design.md) | Implemented (#1193); live verification closed with #1218. |
 | [gate7-admin-observability-design.md](gate7-admin-observability-design.md) | Implemented (#785, #1195); live verification closed with #1219. |
 | [phase0-fixtures-and-telemetry.md](phase0-fixtures-and-telemetry.md) | Draft Phase 0 design; the fixture formats now live in the backend's `src/test/resources/eval/README.md`. |
-| [nl-interface-design.md](nl-interface-design.md) | Pre-Spring-AI (LangChain4j) master design, superseded by the architecture document and the gate designs. |
+| [nl-interface-design.md](nl-interface-design.md) | Pre-Spring-AI (LangChain4j) master design, superseded by the architecture document and the gate designs. Amended by [ADR-0068](../../../../docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md) (model strategy: hosted chat, in-cell tagging). |
 
 ## Analytics gate, Wave 2
 
