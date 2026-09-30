@@ -258,6 +258,7 @@ matched text), entity, tool, document and screen counts, `addedTools`, `ragFilte
 | `mcp.scope.size{kind}` | entities, tools, documents and screens per scope |
 | `mcp.scope.called_tool{in_scope}`, `mcp.scope.retrieved_doc{in_scope}` | share of called tools and retrieved documents inside the scope, counted at trace completion (needs `mcp.eval.turn-trace.enabled`) |
 | `mcp.scope.errors` | resolver failures (the turn carried on with no scope) |
+| `mcp.scope.fallback{consumer=rag\|tools\|card}` | an enforced consumer did not act on a turn (confidence too low, or nothing to add) |
 
 ## Answer Resolution
 

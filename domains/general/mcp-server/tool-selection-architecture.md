@@ -174,6 +174,7 @@ under `src/main/resources/rag/`; no code changes.
 | `mcp.scope_graph.build.duration`, `.build.failures`, `.nodes`, `.edges`, `.unmapped_tools` | scope graph build time, failed builds, snapshot size, discovered tools with no lexicon match (ADR-0069) |
 | `mcp.scope.resolved{confidence}`, `mcp.scope.size{kind}`, `mcp.scope.errors` | per-turn scope confidence, size and resolver failures (mode not `off`) |
 | `mcp.scope.called_tool{in_scope}`, `mcp.scope.retrieved_doc{in_scope}` | called tools and retrieved documents inside the scope, counted at eval-trace completion |
+| `mcp.scope.fallback{consumer=rag\|tools\|card}` | an enforced consumer did not act on a turn (mode `enforce` only) |
 | `nlti.request.telemetry` `scope*` fields | `schemaVersion` 2: `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`, `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied` |
 | "Invalidated MCP … role-agent cache" logs | configuration-triggered cache flush |
 | Debug logs in `ToolRegistryService` / `ToolSelectionEngine` | per-request gating, scoring, fallback decisions |

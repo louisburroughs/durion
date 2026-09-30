@@ -211,8 +211,8 @@ pipeline-parsed label that Loki's `label_values` API cannot enumerate.
 - Panel: Prompt-layer composition rate by layer
   - Metric: `rag.promptLayers` (Loki, `| json prompt_layers="rag.promptLayers"`)
   - Type: timeseries, one series per layer
-  - Description: BASE / ROLE / DOMAIN / TOOL_USE / WRITE_GATE per
-    `NltiRequestTelemetry.PromptLayer`. Emitted by both `SessionAgentManager` and
+  - Description: BASE / ROLE / DOMAIN / TOOL_USE / WRITE_GATE / SCOPE_CARD per
+    `NltiRequestTelemetry.PromptLayer` (`SCOPE_CARD` appears only when the ADR-0069 `card` consumer is enforced). Emitted by both `SessionAgentManager` and
     `StreamingSessionAgentManager`. This is the Gate 1 (#1213) evidence panel. Because the field is a
     JSON array, each series filters the encoded string on a quoted token (`` `"WRITE_GATE"` ``).
 
