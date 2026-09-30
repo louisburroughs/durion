@@ -4,6 +4,8 @@
 
 * **Structure**: `adr/` gains ADR-0068 (pre-LLM question tagging with a decision model, TypeSafe Jev, in `pos-mcp-server`;
   proposed). No ADR is superseded. Timestamp-only drift in unrelated entries from this regeneration (shallow clones) was discarded.
+* **Structure**: `adr/` gains ADR-0069 (scope graph for pre-LLM narrowing in `pos-mcp-server`; proposed), linked from ADR-0068.
+  No ADR is superseded.
 
 ## 2026-09-28
 

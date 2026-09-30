@@ -1,0 +1,343 @@
+---
+type: ADR
+title: 'ADR-0069: Scope Graph for Pre-LLM Narrowing in pos-mcp-server'
+description: pos-mcp-server narrows each chat turn's tools and retrieved documents with per-store similarity searches that share no model of the business; this ADR adds a generated, in-memory scope graph of entities, tools, documents, screens and permissions that runs alongside the RAG pipeline and narrows it.
+status: draft
+adr_status: pending
+created: '2026-09-30'
+related: [ADR-0026, ADR-0042, ADR-0044, ADR-0062, ADR-0068]
+tags: [adr]
+---
+# ADR-0069: Scope Graph for Pre-LLM Narrowing in pos-mcp-server
+
+**Status:** PROPOSED **Date:** 2026-09-30 **Deciders:** Architecture, NLTI (Natural Language Task Interpretation) Domain, Security & Authorization Domain
+**Affected Issues:** — (none yet; to be opened for implementation)
+
+---
+
+## Context
+
+### Current state
+
+Before the executor LLM sees a chat turn, `pos-mcp-server` narrows two things independently:
+
+- **Tools.** `ToolRegistryService.resolveCandidateTools` runs a permission- and workflow-gated pgvector ANN query over
+  `mcp_tool.embedding`, scores by similarity and priority, and cuts to `mcp.agent.candidate-tool-limit` (24 on alpha, which
+  must stay above the facade count, #1840). Keyword guards in `ToolSelectionEngine` add facade tools on top.
+- **Documents.** The Tier-2 RAG chain (dense, query-expanded, Postgres FTS, reciprocal-rank fusion, lexical rerank to the top 5)
+  searches `mcp_document_embedding`, filtered by a **single** `rag_scope` plus `master`
+  (`ScopedContentRetrieverFactory`), and by `required_permissions` (`PermissionAwareMetadataFilter`). The scope comes from
+  whichever domain the selected tools resolve to.
+
+The structure that relates these things already exists, but is spread across stores and never joined:
+
+| Source | Relationships it holds |
+| ------ | ---------------------- |
+| `mcp_tool` (`domain`, `service_id`, `operation_id`, `input_schema`), `mcp_tool_permission`, `mcp_tool_workflow` | tool → domain, tool → permission, tool → workflow state |
+| `mcp_tool_prerequisite` (`tool_name`, `required_param`, `producing_tool`, `producing_field`) | tool → tool that produces its input |
+| Gateway aggregate OpenAPI (tool discovery, `OpenApiToolMapper`) | operation → request/response schemas, `x-required-permissions`, schema enums (lifecycle states) |
+| RAG documents (`src/main/resources/rag/*.md`, 39 files) | document → `rag_scope`, document → `required_permissions` (20 in YAML frontmatter, 19 inline) |
+| `mcp_screen_registry` (`domain`, `required_perm`, `url_template`) | screen → domain, screen → permission |
+| `BusinessGlossary` (#1688, ratified) | analytical phrase → agreed metric |
+
+### The problem
+
+- **Scope is inferred, never known.** Each store is searched by text similarity alone. Nothing records that "estimate",
+  "quote" and "devis" name the same entity, that an estimate is promoted to a workorder, or that
+  `workorder.status-lifecycle` and the workorder facade are about the same thing. Every narrowing step guesses again.
+- **One scope per turn.** The RAG filter admits one domain plus `master`. A question spanning two domains (a customer's
+  open invoices *and* their vehicle's workorders) retrieves from whichever domain the tool selection happened to resolve;
+  #1180 already had to widen the filter to `master` because a strict single scope made the glossary unreachable.
+- **Misses are selection misses.** The troubleshooting guidance in `architecture.md` treats a missing identifier as "a
+  candidate-pipeline problem before changing the answer prompt". The right tool or chunk exists but falls outside the
+  window. Widening the windows costs prompt tokens and tool-choice accuracy.
+- **The LLM gets no map.** The prompt carries the top-5 chunks and a tool list, but not the shape of the question: which
+  entities it names, how they relate, what state they can be in, and which permission the next action needs. The model
+  has to reconstruct that from prose each turn.
+
+### Drivers
+
+- The goal is to hand the pre-LLM stage, and then the LLM, as much **pre-filtered, structured** scope as possible.
+- ADR-0068 introduces typed per-turn tags. A Jev **Choice** question accepts up to 255 labelled options, so it needs a
+  closed, curated option set (entities, domains) that nothing in the module currently provides.
+- The catalogue is small: ~900 tools, 39 RAG documents, tens of business entities, a few hundred terms. A graph of this size
+  fits in memory.
+
+### Constraints
+
+- **Tenant business records stay in their owning service.** ADR-0026 and ADR-0044 forbid reading another module's data
+  except through its REST contract or events, and ADR-0062 scopes tenant data by row-level security. A graph of actual
+  customers, vehicles or workorders would duplicate systems of record across a tenant boundary.
+- **Permission gating is the security boundary** and must stay first and unchanged. The graph may narrow within what the
+  caller can see; it may never add what they cannot.
+- Every catalog in this module is `@TenantGlobal` (ADR-0062 WS3 wave 12). The graph describes the platform, not a tenant.
+- The chat surface is en / fr-CA / es.
+
+### Scope
+
+`pos-mcp-server` only: tool selection, the Tier-2 RAG retrievers, prompt assembly, and the ADR-0068 tagging seam. The
+graph's sources are all already deployed with or discovered by the module. No REST contract, event, permission or
+database schema change.
+
+---
+
+## Decision
+
+### 1. A scope graph alongside RAG, not in place of it
+
+**Decision:** ✅ **Resolved** - Add a **scope graph**: a typed graph of the platform's business entities and everything that
+refers to them. It is used before retrieval and tool selection to decide *where to look*. The RAG corpus and its retrieval
+pipeline stay: the graph selects which documents are eligible, and the documents still supply the prose explanations the
+graph cannot hold. Live data keeps flowing through tools.
+
+### 2. Closed node and edge vocabulary
+
+**Decision:** ✅ **Resolved** - Node and edge types are a closed set defined in code. Adding a type is a reviewed code change.
+
+| Node | Identity | Source |
+| ---- | -------- | ------ |
+| `Domain` | `rag_scope` / `mcp_tool.domain` value | tool catalog, RAG frontmatter |
+| `Entity` | curated key (e.g. `workorder`, `estimate`, `invoice`, `customer`, `vehicle`, `purchase-order`, `asn`) | entity lexicon (§3) |
+| `Term` | normalized phrase, per language | entity lexicon, `BusinessGlossary` |
+| `IdentifierPattern` | regex key (VIN, SKU, workorder number, …) | entity lexicon |
+| `Tool` | `mcp_tool.name` | tool catalog |
+| `Permission` | permission code | `mcp_tool_permission`, `x-required-permissions`, RAG `required_permissions`, `mcp_screen_registry.required_perm` |
+| `WorkflowState` | `mcp_workflow_state` value | tool catalog |
+| `LifecycleState` | `<entity>.<enum value>` | OpenAPI schema enums of the entity's status field |
+| `RagDoc` | `rag_id` | RAG frontmatter |
+| `Screen` | `screen_key` | `mcp_screen_registry` |
+
+| Edge | From → To | Source |
+| ---- | --------- | ------ |
+| `DENOTES` | Term → Entity | entity lexicon |
+| `IDENTIFIES` | IdentifierPattern → Entity | entity lexicon |
+| `OWNED_BY` | Entity → Domain | entity lexicon |
+| `RELATES_TO` | Entity → Entity (labelled, e.g. `promotes_to`, `billed_by`, `belongs_to`) | entity lexicon |
+| `ACTS_ON` (`reads` / `writes`) | Tool → Entity | OpenAPI schema → entity mapping (§3); HTTP method gives reads/writes |
+| `REQUIRES` | Tool / RagDoc / Screen → Permission | existing permission metadata |
+| `VALID_IN` | Tool → WorkflowState | `mcp_tool_workflow` |
+| `PRODUCES_INPUT_FOR` | Tool → Tool | `mcp_tool_prerequisite` |
+| `ABOUT` | RagDoc → Entity | RAG frontmatter `entities:` (§3) |
+| `SHOWS` | Screen → Entity | entity lexicon screen list, else screen `domain` |
+| `HAS_STATE` | Entity → LifecycleState | OpenAPI enums |
+| `TRANSITIONS_TO` | LifecycleState → LifecycleState | curated lifecycle file (§3), phase 2 |
+
+### 3. Generated from existing sources; the curated additions are small and reviewed as code
+
+**Decision:** ✅ **Resolved** - The graph is **built, never hand-drawn and never LLM-extracted**. The builder reads the
+sources in §2. There are three curated inputs, all in `pos-mcp-server/src/main/resources/scope-graph/` and reviewed in PRs:
+
+1. **Entity lexicon** (`entities.yaml`): per entity, its owning domain, en/fr/es terms and synonyms, identifier patterns,
+   related entities, the OpenAPI schema names that represent it, and the screens that show it. This is the only new source
+   of truth. Glossary terms link to it rather than repeating it.
+2. **RAG document `entities:`**: every RAG document moves to YAML frontmatter (the 19 inline-header documents are
+   converted) and gains `entities: [...]`, beside the existing `rag_id`, `rag_scope` and `required_permissions`.
+3. **Lifecycle transitions** (`lifecycles.yaml`, phase 2): allowed transitions per entity status. Business rules state these
+   in prose today; the file makes them explicit. Until it exists, `HAS_STATE` is populated and `TRANSITIONS_TO` is empty.
+
+**Build-time validation**, as a module test that fails the build:
+
+- every enabled tool has at least one `ACTS_ON` edge, or is listed in the lexicon's explicit `unscoped_tools`;
+- every RAG document declares at least one entity, or `entities: [none]` for platform-wide documents such as the glossary;
+- every referenced entity, domain, permission and schema name resolves;
+- every entity has at least one term in each of en, fr-CA and es.
+
+Tools discovered at runtime that match no lexicon schema are attached to their `domain` only and counted by a metric, so
+a new service degrades to today's behaviour instead of failing startup.
+
+### 4. In memory, rebuilt with the catalog; no new tables or datastore
+
+**Decision:** ✅ **Resolved** - The graph is an **immutable in-memory snapshot** (plain adjacency maps, no new dependency),
+built at startup after tool bootstrap and rebuilt, then swapped atomically, whenever `DiscoveryRefreshScheduler` or tool
+registration changes the catalog. Everything in it can be derived again from its sources, so it is not persisted. It
+carries a content hash and build timestamp, which are recorded on each turn's eval trace so a turn can be tied to the
+graph version it used.
+
+### 5. Per-turn scope resolution
+
+**Decision:** ✅ **Resolved** - A `ScopeResolver` runs once per turn in both session managers, after ADR-0068 tagging and
+before tool selection. It produces an immutable `ScopeSet`:
+
+1. **Seed.** Link entities from the message by lexicon term match and identifier patterns (no model call). When ADR-0068
+   tagging is enabled, add its `domain` and entity answers above threshold. The graph supplies those Choice questions'
+   option lists, so Jev chooses among real entities and domains.
+2. **Expand.** Walk at most **two hops** from the seeds over a fixed edge whitelist per hop, capped at
+   `mcp.scope-graph.max-nodes` (default 60).
+3. **Filter by caller.** Drop every Tool, RagDoc and Screen whose `REQUIRES` permission the caller lacks, and every Tool
+   not `VALID_IN` the turn's workflow state. Filtering runs *after* expansion, so the walk does not depend on the caller: a
+   permitted node reached through an unpermitted one stays in scope, and the unpermitted node itself never appears in the
+   scope set or the scope card.
+4. **Result.** Seed and reached entities, domains, tool names, `rag_id`s, screen keys, and a confidence (`HIGH` when a seed
+   came from an identifier pattern or an exact term, `LOW` otherwise, `NONE` when there are no seeds).
+
+### 6. How the scope set is used
+
+**Decision:** ✅ **Resolved** - Each consumer applies the scope set, and each falls back to today's behaviour when confidence
+is `NONE`, or `LOW` for that consumer:
+
+| Consumer | Use | Fallback |
+| -------- | --- | -------- |
+| RAG retrievers (dense, expanded, lexical) | Filter `rag_id IN (scope docs) OR rag_scope = 'master'`. This replaces the single-domain `rag_scope` filter, so a two-domain question retrieves from both. | Today's `rag_scope IN (scope, 'master')` filter |
+| Tool selection | Scope tools receive **reserved slots** (up to `mcp.scope-graph.reserved-tool-slots`, default 8) and a similarity boost. The remaining slots come from today's unrestricted gated ranking. The scope never excludes a permitted tool. | Today's ranking unchanged |
+| Keyword fallback tools, `deriveWorkflowState` | Graph lookups (entity → facade tool, entity → workflow state) replace the word lists | Word lists remain in `HeuristicQuestionTagger` (ADR-0068) |
+| Prompt | A **scope card** appended to the system prompt (§7) | No card |
+| ADR-0068 tagger | Option lists for the `domain` and entity Choice questions | Static option list |
+
+Tools get reserved slots rather than a hard filter because a missing tool fails the turn, while an extra one costs a few
+prompt tokens.
+
+### 7. The scope card
+
+**Decision:** ✅ **Resolved** - A compact, typed block of at most `mcp.scope-graph.card-token-budget` (default 400) tokens:
+the recognised entities and their relationships, the entity lifecycle states and, once `lifecycles.yaml` exists, valid next
+states, the permission each surfaced action requires, and the deep link to the relevant screen. The card is rendered only
+from graph nodes the caller passed §5.3 for. It never echoes user text and never carries instance data. It orients the
+model; it grants nothing, and tool calls are still authorised per call.
+
+### 8. Definitions only, never instance data
+
+**Decision:** ✅ **Resolved** - The graph holds platform definitions only: entity *types*, their terms, tools, documents,
+screens, permissions and states. It never holds a tenant's records (a specific customer, vehicle or workorder) or anything
+read from another service's data. A per-conversation entity memory ("that customer" → a party id) is out of scope. It
+would be tenant-scoped conversation state under ADR-0062 §11 and needs its own decision.
+
+### 9. Rollout: off → shadow → enforce, gated on the eval harness
+
+**Decision:** ✅ **Resolved** - `mcp.scope-graph.mode` is `off` | `shadow` | `enforce` (default `off`).
+
+- **shadow**: the graph builds, the scope set is computed and recorded on the eval turn trace (seeds, confidence, scope
+  sizes, whether the tools the model actually called and the documents it cited were inside the scope). No consumer acts
+  on it.
+- **enforce**: consumers apply §6. Each consumer is promoted separately.
+
+A consumer is promoted only after a recorded gate run shows, against the same run in `shadow`, no regression in RAG hit@5,
+MRR and recall@k (the existing `rag-lexical` and gate fixtures), no increase in forbidden-document violations, and a tool
+selection hit rate at least equal. The promotion and its evidence are recorded in this ADR's Changelog.
+
+### Out of scope
+
+- Replacing the RAG corpus, embeddings or fusion pipeline.
+- An external graph database, a graph query language, or an admin endpoint for browsing the graph (any endpoint would carry
+  the full OpenAPI → SDK chain and its own permission).
+- A new OpenAPI vendor extension for entities. Schema-name mapping in the lexicon is used instead, so ADR-0042 is not
+  amended; revisit if the mapping proves brittle.
+- Instance data and conversation entity memory (§8).
+
+---
+
+## Alternatives Considered
+
+1. **Replace RAG with the graph.** Rejected. The corpus is prose (lifecycles, playbooks, code tables) and the model needs it
+   as prose; a graph can say *which* document answers a question but not *what it says*.
+2. **LLM-extracted GraphRAG (entities and relations mined from documents by a model).** Suits large unstructured corpora.
+   This corpus is small and curated, and the structure already exists in typed sources. Extraction would add model cost,
+   non-determinism and unreviewable edges.
+3. **Neo4j or another graph database.** A new datastore to operate, secure and back up, outside Postgres row-level security,
+   for a graph of a few thousand nodes that fits in memory.
+4. **Apache AGE (openCypher in Postgres).** Adds an extension to every Postgres image and a query language to the team for
+   one- and two-hop walks that plain maps do in microseconds.
+5. **Persist the graph in `mcp_kg_node` / `mcp_kg_edge` tables.** Adds a migration, tenancy classification and a
+   synchronisation problem for data that is fully derivable. Revisit if the graph needs runtime editing.
+6. **Instance-level knowledge graph (actual customers, vehicles, workorders).** Rejected under ADR-0026, ADR-0044 and
+   ADR-0062: it duplicates systems of record, crosses service walls and tenant boundaries, and goes stale.
+7. **Tune the existing pipeline (wider windows, lower similarity floors, more keyword lists).** The status quo. Every
+   widening costs prompt tokens and tool-choice accuracy, and the word lists are the brittleness ADR-0068 sets out to remove.
+8. **Use `durion/knowledge-catalog` as the graph.** It indexes ADRs, domains and modules for engineering agents, is not
+   deployed with the service, and has no entity, tool or document granularity.
+
+---
+
+## Consequences
+
+### Positive ✅
+
+- ✅ One shared model of the business narrows every pre-LLM step. Tools, documents, screens and tags agree on what the
+  question is about instead of each guessing.
+- ✅ Multi-domain questions retrieve from each domain involved, not from whichever one tool selection happened to pick.
+- ✅ Smaller, better-aimed windows: scoped tools get reserved slots, so the candidate limit can come down from 24 once the
+  shadow data supports it, cutting prompt tokens and wrong-tool calls.
+- ✅ The LLM starts from a scope card that names the entities, states and required permissions, instead of reconstructing
+  them from chunks.
+- ✅ ADR-0068's Choice questions get a closed, curated, trilingual option set.
+- ✅ The keyword lists in `ToolSelectionEngine` become data in one reviewed lexicon, with fr/es terms checked by a test.
+- ✅ No new infrastructure. The graph is in memory, derived from deployed sources, and versioned by hash on every trace.
+
+### Negative ⚠️
+
+- ⚠️ **Over-narrowing risk.** A wrong seed could steer retrieval away from the right document. Mitigated by per-consumer
+  fallback, reserved slots for tools rather than exclusion, `master` documents always admitted, and shadow evidence before
+  enforcing.
+- ⚠️ **New curated artefact.** The entity lexicon, RAG `entities:` and later `lifecycles.yaml` must be maintained as services
+  change. Mitigated by build-time validation and a metric for unmapped discovered tools.
+- ⚠️ **Schema-name mapping is brittle.** A renamed DTO silently detaches a tool from its entity. Mitigated by the validation
+  test, which fails when a lexicon schema name matches nothing in the discovered specs.
+- ⚠️ **Up-front work.** 19 RAG documents need converting to frontmatter, and every document needs entity annotation.
+- ⚠️ **Lifecycle transitions are a second copy of business rules** once `lifecycles.yaml` exists. Mitigated by keeping it
+  phase 2 and by domain-agent review of each change.
+
+### Neutral
+
+- The graph lives entirely inside `pos-mcp-server`; nothing new crosses a service boundary.
+- Per-turn cost is a few in-memory hops and one filter change per retriever: sub-millisecond compared to the model call.
+
+---
+
+## Implementation Notes
+
+- **Components:** `ScopeGraph` (immutable snapshot), `ScopeGraphBuilder` (sources → graph, validation),
+  `ScopeGraphHolder` (atomic swap on catalog change), `ScopeResolver` (§5), `ScopeSet`, `ScopeCardRenderer` (§7). Consumers
+  updated: `ScopedContentRetrieverFactory` and the lexical retriever (filter), `ToolRegistryService` / `ToolScorer` (reserved
+  slots, boost), `ToolSelectionEngine` (graph lookups), prompt assembly in both session managers, and the ADR-0068 tagger
+  (option lists). All types are `internal` (ADR-0026). Both session managers resolve scope at the same point (transport
+  parity).
+- **Configuration:** `mcp.scope-graph.mode` (`off`), `max-nodes` (60), `reserved-tool-slots` (8), `card-token-budget` (400).
+  `application-test.yml` pins `mode: off` except in the graph's own tests.
+- **Data:** `src/main/resources/scope-graph/entities.yaml`; RAG frontmatter `entities:`; phase 2 `lifecycles.yaml`. No
+  Flyway migration.
+- **Testing:** builder tests over fixture sources, including the validation failures; resolver tests for seeding,
+  hop and node caps, and permission filtering after expansion (a permitted node reachable only through an unpermitted one is
+  still reachable, and an unpermitted node never appears); retriever tests showing the `rag_id` filter admits `master` and
+  multi-domain scopes; a card renderer test proving the card contains no user text and no node the caller lacks permission
+  for.
+- **Rollout:** annotate and validate first (build fails on gaps), then `shadow` on dev, then `shadow` on alpha, then per-consumer
+  `enforce` per §9. RAG filter first (cheapest to measure), then tool reserved slots, then the scope card.
+- **Monitoring:** scope confidence distribution, scope sizes, share of called tools and cited documents inside the scope
+  (shadow and enforce), fallback rate per consumer, unmapped discovered tools, graph build duration and hash per deploy.
+- **Docs to update on implementation:** `domains/general/mcp-server/architecture.md` (Tool Selection, RAG Retrieval
+  Pipeline), `domains/general/mcp-server/tool-selection-architecture.md`, and the `pos-mcp-server` README (configuration,
+  RAG frontmatter contract).
+
+---
+
+## References
+
+- **Related ADRs:** [ADR-0068](0068-mcp-pre-llm-question-tagging-decision-model.adr.md) (tagging seam; this ADR supplies
+  its option sets and consumes its tags), [ADR-0026](0026-service-contract-boundary-policy.adr.md) and
+  [ADR-0044](0044-platform-event-only-domain-walls.adr.md) (no cross-service data, hence definitions only),
+  [ADR-0062](0062-postgres-row-level-multitenancy.adr.md) (catalogs are `@TenantGlobal`; conversation state is tenant-scoped),
+  [ADR-0042](0042-openapi-annotation-standards.adr.md) (OpenAPI as a graph source; not amended).
+- **Design records affected (not ADRs):** `domains/general/mcp-server/archive/gate5-rag-hybrid-design.md` (retrieval
+  pipeline: the scope filter changes from one `rag_scope` to a `rag_id` set; fusion and rerank unchanged).
+- **Related Documentation:** `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md`.
+
+---
+
+## Sign-Off
+
+| Role | Name | Date | Notes |
+|------|------|------|-------|
+| Architecture | | | |
+| NLTI Domain | | | |
+| Security & Authorization | | | §5.3 filter order, §7 card contents |
+
+---
+
+## Timeline
+
+- **Proposed**: 2026-09-30
+
+---
+
+## Changelog
+
+- **2026-09-30**: Initial draft.

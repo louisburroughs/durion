@@ -5,7 +5,7 @@ description: pos-mcp-server classifies each chat turn with scattered keyword/reg
 status: draft
 adr_status: pending
 created: '2026-09-30'
-related: [ADR-0009, ADR-0026, ADR-0046, ADR-0062]
+related: [ADR-0009, ADR-0026, ADR-0046, ADR-0062, ADR-0069]
 tags: [adr]
 ---
 # ADR-0068: Pre-LLM Question Tagging with a Decision Model (TypeSafe Jev) in pos-mcp-server
@@ -263,7 +263,8 @@ until a real T2-simple model is chosen.
 - **Related ADRs:** [ADR-0009](0009-backend-domain-responsibilities-guide.adr.md) (pos-mcp-server: "configurable LLM provider
   integration"), [ADR-0026](0026-service-contract-boundary-policy.adr.md) (internal-only placement),
   [ADR-0046](0046-environment-log-level-policy.adr.md) (logging), [ADR-0062](0062-postgres-row-level-multitenancy.adr.md) §11
-  (tenant-scoped conversations and LLM context).
+  (tenant-scoped conversations and LLM context), [ADR-0069](0069-mcp-scope-graph-pre-llm-narrowing.adr.md) (scope graph:
+  supplies the option sets for the `domain` and entity Choice questions and consumes the tags).
 - **Design records amended (not ADRs):** `domains/general/mcp-server/archive/gate4-tiered-router-design.md` (T1 router
   replaced by §7); `domains/general/mcp-server/archive/nl-interface-design.md` ("self-hosted Ollama" model strategy — narrowed
   by §4 for the tagging call only).
@@ -296,3 +297,4 @@ until a real T2-simple model is chosen.
 ## Changelog
 
 - **2026-09-30**: Initial draft.
+- **2026-09-30**: Linked ADR-0069 (scope graph) under Related ADRs.
