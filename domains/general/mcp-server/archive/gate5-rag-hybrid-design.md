@@ -14,6 +14,11 @@ tags: [mcp-server, general]
 > 7/7 after master-scope docs were included in domain-scoped retrieval (PR #1209, #1180 CLOSED).
 > See the dated cutover records at the end of this doc and the Gate 5 sign-off in
 > `implementation_checklist.md`. Design + historical state retained below as the record.
+>
+> **Amended 2026-09-30 by [ADR-0069](../../../../docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md):** once the RAG consumer is in
+> `enforce`, the scope filter changes from one `rag_scope` to a `document_id` set plus `master`, applied by a request-scoped hook
+> after fusion and before the top-5 cut; fusion and rerank are unchanged. Until then (modes `off` and `shadow`) the design below
+> still describes runtime behaviour.
 
 ## Current state at design time (historical — pre-cutover)
 - Embeddings: `nomic-embed-text`, `mcp.rag.dimension=768`, table `mcp_document_embedding`, ivfflat.

@@ -5,14 +5,14 @@ description: Adds a generated, in-memory scope graph of entities, tools, documen
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md
 path: durion/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md
 tags: [adr]
-status: draft
+status: stable
 sources: [docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T12:49:47+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md) — `docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md`
 
-**Status:** Pending since 2026-09-30
+**Status:** Accepted since 2026-09-30
 
 **Related:**
 
