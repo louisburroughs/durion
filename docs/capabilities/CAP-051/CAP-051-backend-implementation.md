@@ -53,7 +53,7 @@ This document describes the backend implementation for applying cleared payments
 7. PaymentApplicationService.applyPaymentToInvoices()
    ↓
 8. Atomic Transaction:
-   - Validate payment AVAILABLE, currency match, sufficient funds
+   - Validate payment AVAILABLE, payment currency is the ledger's functional currency, sufficient funds
    - Validate each invoice applicable (not PaidInFull/Voided/Cancelled)
    - Create PaymentApplication records (immutable)
    - Update invoice balanceDue, status (TODO: Invoice service integration)
@@ -159,12 +159,13 @@ Audit Trail: @EmitEvent "ACCOUNTING_PAYMENT_APPLY" on application
 - Each `amountToApply` > 0
 - Payment must exist and be in `AVAILABLE` status
 - Payment must have sufficient `unappliedAmount` for sum of all applications
-- All invoices must have matching currency
+- The payment's currency must be the ledger's functional currency (invoices carry no currency in the replica)
 - Each invoice must be applicable (not `PaidInFull`/`Voided`/`Cancelled`) — TODO: validate with Invoice service
 - Each `amountToApply` must not exceed invoice `balanceDue` — TODO: validate with Invoice service
 
 **Error Responses**:
-- `400 Bad Request`: Validation failure (insufficient funds, invalid invoice states, currency mismatch)
+- `400 Bad Request`: Validation failure (insufficient funds, invalid invoice states)
+- `422 Unprocessable Entity`: `CURRENCY_NOT_SUPPORTED` when the payment's currency differs from the ledger's functional currency (ADR-0067 PC-9 (a), ADR-0017 §2; durion-positivity-backend#2334)
 - `404 Not Found`: Payment not found
 - `409 Conflict`: Idempotency key reused with different data (returns existing application)
 

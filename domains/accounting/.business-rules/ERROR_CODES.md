@@ -8,12 +8,12 @@ tags: [domain, accounting, error-catalog]
 
 # Accounting Domain Error Codes
 
-**Version:** 1.3  
+**Version:** 1.5  
 **Purpose:** Comprehensive error taxonomy for Accounting domain API responses  
 **Domain:** accounting  
 **Owner:** Accounting Domain  
 **Status:** ACCEPTED  
-**Date:** 2026-09-24
+**Date:** 2026-09-29
 
 ---
 
@@ -1259,6 +1259,59 @@ cost); the count is the `accounting.inventory.fact.skipped{eventType, reason=UNC
 
 ---
 
+### AMOUNT_PRECISION_EXCEEDS_CURRENCY (422)
+**Description:** An amount has more decimal places than the currency's minor unit allows (ADR-0067 PC-6)  
+**HTTP Status:** 422  
+**Use Cases:**
+- An amount finer than its currency's ISO 4217 exponent: `10.005` in USD (2 decimals), `100.5` in JPY (0 decimals)
+- Refused at the edge, never rounded; trailing zeros do not count (`10.0000` is `10.00`)
+- Distinct from `VALIDATION_ERROR` (400): the request is well formed, the amount is not representable in the currency
+- First applied to bank reconciliation (#2305): the policy `otherApprovalThreshold`, adjustment `amount`, manual statement and
+  import balances and row amounts, and import row corrections
+
+**Example:**
+```json
+{
+  "code": "AMOUNT_PRECISION_EXCEEDS_CURRENCY",
+  "message": "1 amount(s) have more decimal places than the currency allows",
+  "status": 422,
+  "fieldErrors": [
+    { "field": "otherApprovalThreshold", "message": "at most 2 decimal places for USD" }
+  ]
+}
+```
+
+**Recovery:** Send each named amount in the currency's minor unit
+
+---
+
+### CURRENCY_NOT_SUPPORTED (422)
+**Description:** A document, payment, statement or fact is in a currency other than the ledger's functional currency while
+the tenant is in ADR-0067 Stage A (PC-9 (a): never booked at par)  
+**HTTP Status:** 422 (ADR-0017 §2: the state of a referenced resource, not a malformed request)  
+**Use Cases:**
+- Payment application: applying a payment in a currency other than the ledger's functional currency (the invoice replica carries
+  no currency; durion-positivity-backend#2334); replaces the 409 "Currency mismatch" that was documented but never enforced (ADR-0067 DF-2)
+- Bank reconciliation D18: a statement, feed or bank-account profile in a currency other than the profile's (or the configured
+  ledger currency, `accounting.ledger.base-currency`, while no profile exists)
+- Nothing is written: no application, statement or journal entry
+- The same code is the reason on an inbound fact held for currency (settled payment, register over/short): the accounting
+  event is `SUSPENDED`, excluded from auto-retry and released only through the audited reprocess endpoint, which
+  suspends it again while the currency is still foreign
+
+**Example:**
+```json
+{
+  "code": "CURRENCY_NOT_SUPPORTED",
+  "message": "Currency CAD is not supported; the ledger's functional currency is USD",
+  "status": 422
+}
+```
+
+**Recovery:** None until the tenant supports the currency; correct the source document's currency if it is wrong
+
+---
+
 ### DATABASE_ERROR (500)
 **Description:** Database operation failed  
 **HTTP Status:** 500  
@@ -1380,6 +1433,8 @@ public ResponseEntity<ErrorResponse> handleMappingNotFound(MappingNotFoundExcept
 | 2026-07-17 | 1.1 | Backend Team | Accounting Period errors (PERIOD_NOT_FOUND, PERIOD_ALREADY_CLOSED, PERIOD_ALREADY_OPEN, PERIOD_HAS_DRAFT_ENTRIES) for Wave 1 story B1 (#937) |
 | 2026-07-18 | 1.2 | Backend Team | Wave 2: reversal errors JE_ALREADY_REVERSED, JE_NOT_POSTED (A3 #943); period-gate errors PERIOD_CLOSED, PERIOD_HARD_LOCKED, HARD_LOCK_DATE_REGRESSION (B2 #944); UNBALANCED_RULES refreshed to publish-time fieldErrors locator format (E1 #945 / E2 #946) |
 | 2026-09-24 | 1.3 | Backend Team | Ingestion failure reason codes UNMAPPED_EVENT_TYPE (SUSPENDED) and UNCOSTED_FACT (new terminal SKIPPED status) for inventory adjustment GL posting (durion-positivity-backend#2191) |
+| 2026-09-29 | 1.4 | Backend Team | AMOUNT_PRECISION_EXCEEDS_CURRENCY (422) for an amount finer than its currency's minor unit (ADR-0067 PC-6, durion-positivity-backend#2305) |
+| 2026-09-29 | 1.5 | Backend Team | CURRENCY_NOT_SUPPORTED (422) for payment application and bank reconciliation D18; the same reason on a SUSPENDED currency-held fact, released through audited reprocess (ADR-0067 PC-9 (a), durion-positivity-backend#2334) |
 
 ---
 

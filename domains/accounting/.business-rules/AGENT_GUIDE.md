@@ -835,8 +835,15 @@ codes, internal keys; avoid names/addresses).
 
 #### D5. **(blocking)** Currency mismatch visibility: should UI show rejected events even if no Payment record exists?
 
-**Response:** Yes. Currency mismatch is represented as an ingestion record with `processingStatus = REJECTED` and error fields; it must be visible even without a persisted
-payment entity.
+**Response:** Yes. An unsupported currency (ADR-0067 PC-9 (a), durion-positivity-backend#2334) is never booked at par:
+
+- Payment application in another currency is refused with 422 `CURRENCY_NOT_SUPPORTED` (ADR-0017 §2); nothing is written.
+- An inbound Kafka fact held for currency (settled payment, register over/short) is a `SUSPENDED` accounting event with reason
+  `CURRENCY_NOT_SUPPORTED`. It is excluded from auto-retry and released only through the audited reprocess endpoint, which
+  suspends it again while the currency is still foreign. The published fact lifecycle is `PROCESSED | SKIPPED | SUSPENDED`
+  (`SUSPENDED` only for currency holds).
+
+The held fact must be visible even without a persisted payment entity.
 
 ---
 
