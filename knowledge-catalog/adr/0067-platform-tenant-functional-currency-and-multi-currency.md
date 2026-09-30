@@ -7,7 +7,7 @@ path: durion/docs/adr/0067-platform-tenant-functional-currency-and-multi-currenc
 tags: [adr, multitenancy, platform]
 status: stable
 sources: [docs/adr/0067-platform-tenant-functional-currency-and-multi-currency.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-28T13:11:37-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T11:56:29+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0067-platform-tenant-functional-currency-and-multi-currency.adr.md) — `docs/adr/0067-platform-tenant-functional-currency-and-multi-currency.adr.md`
