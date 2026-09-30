@@ -1,13 +1,13 @@
 ---
 type: ADR
 title: 'ADR-0069: Scope Graph for Pre-LLM Narrowing in pos-mcp-server'
-description: pos-mcp-server narrows each chat turn's tools and retrieved documents with per-store similarity searches that share no model of the business; this ADR adds a generated, in-memory scope graph of entities, tools, documents, screens and permissions that runs alongside the RAG pipeline and narrows it.
+description: Adds a generated, in-memory scope graph of entities, tools, documents, screens and permissions to pos-mcp-server that runs alongside RAG to narrow retrieval and steer tool selection and the prompt per turn; definitions only, no new datastore.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md
 path: durion/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md
 tags: [adr]
 status: draft
 sources: [docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T01:49:05+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T12:26:40+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md) — `docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md`
