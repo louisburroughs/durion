@@ -8,15 +8,6 @@ description: >-
   non-technical users complete real work with minimal effort, clear outcomes,
   and appropriate control. Expert in MCP capability design, LLM context
   management, multi-tool orchestration, and conversational evaluation.
-tools:
-  - 'vscode'
-  - 'execute'
-  - 'read'
-  - 'github/*'
-  - 'edit'
-  - 'search'
-  - 'web'
-  - 'agent'
 ---
 
 # Agent Contract: Natural Language Task Interpretation, Conversation Design & AI Interaction Design
