@@ -2,19 +2,19 @@
 type: ADR
 title: 'ADR-0069: Scope Graph for Pre-LLM Narrowing in pos-mcp-server'
 description: Adds a generated, in-memory scope graph of entities, tools, documents, screens and permissions to pos-mcp-server that runs alongside RAG to narrow retrieval and steer tool selection and the prompt per turn; definitions only, no new datastore.
-status: draft
-adr_status: pending
+status: stable
+adr_status: accepted
 created: '2026-09-30'
 related: [ADR-0026, ADR-0042, ADR-0044, ADR-0062, ADR-0068]
 tags: [adr]
 ---
 # ADR-0069: Scope Graph for Pre-LLM Narrowing in pos-mcp-server
 
-**Status:** PROPOSED **Date:** 2026-09-30 **Deciders:** Architecture, NLTI (Natural Language Task Interpretation) Domain, Security & Authorization Domain
+**Status:** ACCEPTED **Date:** 2026-09-30 **Deciders:** Architecture, NLTI (Natural Language Task Interpretation) Domain, Security & Authorization Domain
 **Affected Issues:** — (none yet; to be opened for implementation)
 
-> **How to read this.** ✅ **Resolved** marks a decision this ADR proposes (TEMPLATE.adr.md sub-decision format); nothing is
-> accepted until the Sign-Off rows are filled.
+> **How to read this.** ✅ **Resolved** marks a decision this ADR makes (TEMPLATE.adr.md sub-decision format); accepted by the
+> Platform Owner on 2026-09-30 (see Sign-Off).
 
 ---
 
@@ -403,14 +403,14 @@ selection hit rate at least equal. The promotion and its evidence are recorded i
   source; not amended).
 - **Related Documentation:** `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md`.
 
-**Documents affected on acceptance** (listed only; each amended document would carry a dated amendment block pointing here,
+**Documents affected on acceptance** (listed only; each amended document carries a dated amendment block pointing here,
 applied on acceptance, not by this ADR):
 
 | Document | Change | When |
 | -------- | ------ | ---- |
 | `domains/general/mcp-server/archive/gate5-rag-hybrid-design.md` | Retrieval pipeline: the scope filter changes from one `rag_scope` to a `document_id` set plus `master`; fusion and rerank unchanged; dated amendment block | On acceptance |
 | `domains/general/mcp-server/archive/README.md` | "Why archived" row for the gate 5 design | On acceptance |
-| `docs/adr/README.md` | Decision-matrix row | On acceptance |
+| `docs/adr/README.md` | Index row (the decision matrix stops at ADR-0062 and is not extended here) | On acceptance |
 | `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md` | Already listed under Implementation Notes | On implementation |
 
 ---
@@ -419,6 +419,7 @@ applied on acceptance, not by this ADR):
 
 | Role | Name | Date | Notes |
 |------|------|------|-------|
+| Platform Owner | Louis Burroughs | 2026-09-30 | Accepted as written. ADR-0068 is still pending: the §5.1 tag seeds and the §6 tagger option lists take effect when ADR-0068 is accepted; until then the §6 fallbacks apply |
 | Architecture | | | |
 | NLTI Domain | | | |
 | Security & Authorization | | | §5.3 filter order, §7 card contents |
@@ -428,6 +429,7 @@ applied on acceptance, not by this ADR):
 ## Timeline
 
 - **Proposed**: 2026-09-30
+- **Accepted**: 2026-09-30
 
 ---
 
@@ -436,3 +438,4 @@ applied on acceptance, not by this ADR):
 - **2026-09-30**: Initial draft.
 - **2026-09-30**: Review round (PR #525): both tool paths and the `master` scope described; RAG metadata source is
   `mcp.rag.preload.docs`; per-source permission predicates; additive tool slots; card visibility rule; citations corrected.
+- **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.

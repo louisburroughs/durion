@@ -7,6 +7,8 @@
   unrelated entries from this regeneration (shallow clones) was discarded.
 * **Structure**: `adr/` gains ADR-0069 (scope graph for pre-LLM narrowing in `pos-mcp-server`; proposed), linked from ADR-0068.
   No ADR is superseded.
+* **Updated**: `adr/` — ADR-0069 is now `status: stable` (accepted by the platform owner); ADR-0068 is still pending.
+  The ADR-0069 entry is regenerated; timestamp-only drift in unrelated entries was discarded.
 
 ## 2026-09-28
 
