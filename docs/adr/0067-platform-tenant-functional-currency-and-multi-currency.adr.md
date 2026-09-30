@@ -361,7 +361,7 @@ currency-scale precision; round per line, then sum" exists (accounting AGENT_GUI
 | (b) Keep two decimals, add per-currency exceptions | Smallest change for USD | Exceptions multiply; each new currency is a code change |
 | (c) Four decimals for everything | Simple | Payable amounts become unrepresentable (JPY 0.5) |
 
-**Recommendation (PROPOSED): (a).**
+**Recommendation: (a).**
 - An amount that changes hands (a line total, tax amount, document total, payment, refund, credit or ledger amount) has the scale of its currency's ISO 4217
   exponent: 0 for JPY, 2 for USD, 3 for KWD.
 - Round HALF_UP per line, then sum (AGENT_GUIDE l.147). The pricing domain reconciles or justifies pos-price's HALF_EVEN (OP-11).
@@ -373,7 +373,9 @@ currency-scale precision; round per line, then sum" exists (accounting AGENT_GUI
 - Storage stays `numeric(19,4)`, which covers exponents 0 to 4; columns at scale 2 widen to 4.
 - The ledger's own scale and the conversion residual are MC-8. The invented 0.01 amount goes (§10, DF-7).
 
-**Decision:** pending, owner.
+**Decision:** (a), accepted by the platform owner on 2026-09-28 with the §2 recommendations; the §2.1 ruling on OP-11 (one rule, HALF_UP) rests on it.
+On 2026-09-29 the owner ruled on the refusal code: 422 `AMOUNT_PRECISION_EXCEEDS_CURRENCY`, never rounded; trailing zeros do not count; `fieldErrors` names
+each offending amount; first applied in pos-accounting bank reconciliation (#2305).
 
 ### 5.7 PC-7 — Cash rounding
 
@@ -1053,3 +1055,6 @@ its own without option 1 or 2. This questions the memo's order and MC-7's defaul
   creation (OP-1), one cross-currency settlement case allowed in B1 (OP-2, MC-7), the CAP-316 plant currency a report-only view (MC-10), `home_currency`
   the account's billing currency (OP-5), the accounting framework a per-tenant setting (OP-7), and Canada the first non-USD market, launched with USD or
   right after it (OP-9). The remaining open questions were answered or assigned to the PC-15 readiness sign-off.
+- **2026-09-29:** PC-6 ruling recorded by the platform owner: (a) stands as accepted on 2026-09-28, and an amount with more decimals than its currency allows is
+  refused with 422 `AMOUNT_PRECISION_EXCEEDS_CURRENCY`, never rounded; trailing zeros do not count and `fieldErrors` names each offending amount. First applied
+  in pos-accounting bank reconciliation (#2305).

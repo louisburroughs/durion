@@ -353,13 +353,26 @@ deleted.
 | Identity, type, amount, description, `journalEntryId`, `createdAt/By` | as l.57-81 | unchanged; `requestId` UUIDv7 (unique) for idempotent creation |
 | Date | implicit `statementDate` | `transactionDate` stored (the date actually posted, rule §4.7 / D7); `postedPeriodCode` |
 | Link | — | `bankTransactionId` nullable — the bank item this adjustment explains; on posting, the JE's cash line is matched to it as an `ADJUSTMENT` match. `settlesMatchId` nullable (residual settlement, §4.6) and `bridgesStatementId` nullable (gap bridge, §4.2) — both only for `OTHER` |
-| Link rule for `OTHER` (D2) | — | **Exactly one link is mandatory**: `bankTransactionId` (an `UNMATCHED` bank transaction the window may match, M4), `settlesMatchId` (an `ACCEPTED` match of this reconciliation with `toleranceUsed ≠ 0`; its bank members are the evidence) or `bridgesStatementId` (this reconciliation's statement, which carries a `gapAcknowledgement`, §3.1). None, more than one, or a `settlesMatchId` / `bridgesStatementId` on another type → 422 `ADJUSTMENT_LINK_REQUIRED` (NEW); a named match or statement that fails its rule → 422 `ADJUSTMENT_LINK_NOT_ELIGIBLE` (NEW); an ineligible bank transaction → 409 `RECONCILIATION_LINE_INELIGIBLE` (EXISTING). An adjustment linked by `bankTransactionId` (any type) must equal that transaction's `signedAmount` **exactly** — no tolerance; any difference → 422 `ADJUSTMENT_LINK_NOT_ELIGIBLE` with `fieldErrors[amount]` naming the expected value. Typed adjustments keep `bankTransactionId` optional, but an unlinked one leaves its cash line unexplained until it is matched (E4). **Delivered by S4**: S1 only adds the columns, nullable, and the F2 request (`type`, `amount`, `description`) keeps working unchanged until S4 (§6.4, §7.1). |
+| Link rule for `OTHER` (D2) | — | **Exactly one link is mandatory**: `bankTransactionId`, `settlesMatchId` or `bridgesStatementId` (conditions below the table). None or more than one → 422 `ADJUSTMENT_LINK_REQUIRED` (NEW); an ineligible link → 422 `ADJUSTMENT_LINK_NOT_ELIGIBLE` (NEW) or 409 `RECONCILIATION_LINE_INELIGIBLE` (EXISTING). **Delivered by S4** (§6.4, §7.1). |
 | Justification | — | `justification` String(1000): **required for `OTHER`** (≥ 10 characters, D15; 400 `JUSTIFICATION_REQUIRED`, EXISTING), optional for other types; copied to the audit row |
 | Authority | — | an `OTHER` adjustment above the tenant's `BANK_REC_OTHER_APPROVAL_THRESHOLD` needs `accounting:reconciliation:approve` (§4.7) |
 | Override | — | `overrideJustification` nullable — recorded when the caller used `accounting:period:override` |
 | Reversal | — | `status` `POSTED` / `REVERSED`; `reversalJournalEntryId`, `reversedAt/By`, `reversalReason` (§4.9) |
 | Type | `BANK_FEE`, `NSF_FEE`, `INTEREST_EARNED`, `OTHER` (check constraint l.323) | the set plus `TRANSFER` (D9, story S4) with `counterGlAccountId` — an active, reconcilable `BANK_CASH` account other than the reconciled one; returned-payment principal is **not** an adjustment (D8). `TRANSFER` validation, in order: `counterGlAccountId` absent on `TRANSFER`, or present on any other type → 422 `ADJUSTMENT_LINK_REQUIRED`; unknown in the tenant or equal to the reconciled account → 422 `ADJUSTMENT_LINK_NOT_ELIGIBLE`; inactive → 422 `GL_ACCOUNT_NOT_ACTIVE` (EXISTING, the code JE creation already answers for an inactive line account, `JournalEntryServiceImpl.java` l.88-93); not `reconcilable` or not subtype `BANK_CASH` → 422 `ACCOUNT_NOT_RECONCILABLE` (EXISTING, the same condition as for the reconciled account, D5). Sign: `TRANSFER` carries `RequiredSign.ANY` in the existing guard (`enums/BankAdjustmentType.java` l.28-54, as `OTHER` does) — positive = money into the reconciled account from the counter account, negative = money out to it; zero → 422 `RECONCILIATION_ADJUSTMENT_SIGN_INVALID` (EXISTING). A `TRANSFER` is not subject to the `OTHER` threshold. Its counter cash line is an ordinary POSTED line of the counter account, matched in that account's own reconciliation; if it falls in a `FINALIZED` window there, the §5.5 posting hook invalidates that reconciliation. |
 | Idempotency | random `sourceEventId` | `sourceEventId = nameUUIDFromBytes("BANK_RECONCILIATION_ADJUSTMENT:" + adjustmentId)`; `IdempotencyService` key `BANK_RECONCILIATION_ADJUSTMENT:<adjustmentId>` registered with the `journalEntryId` |
+
+**Link rule for `OTHER` (D2), conditions.** The "Link rule for `OTHER` (D2)" row names the rule and its codes; these are the conditions behind it.
+
+- The three links: `bankTransactionId` names an `UNMATCHED` bank transaction the window may match (M4); `settlesMatchId` names an `ACCEPTED` match of this
+  reconciliation with `toleranceUsed ≠ 0`, whose bank members are the evidence; `bridgesStatementId` names this reconciliation's statement, which carries a
+  `gapAcknowledgement` (§3.1).
+- None or more than one link, or a `settlesMatchId` / `bridgesStatementId` on another type → 422 `ADJUSTMENT_LINK_REQUIRED` (NEW).
+- A named match or statement that fails its rule → 422 `ADJUSTMENT_LINK_NOT_ELIGIBLE` (NEW); an ineligible bank transaction → 409 `RECONCILIATION_LINE_INELIGIBLE`
+  (EXISTING).
+- An adjustment linked by `bankTransactionId` (any type) must equal that transaction's `signedAmount` **exactly**: no tolerance; any difference → 422
+  `ADJUSTMENT_LINK_NOT_ELIGIBLE` with `fieldErrors[amount]` naming the expected value.
+- Typed adjustments keep `bankTransactionId` optional, but an unlinked one leaves its cash line unexplained until it is matched (E4).
+- **Delivered by S4**: S1 only adds the columns, nullable, and the F2 request (`type`, `amount`, `description`) keeps working unchanged until S4 (§6.4, §7.1).
 
 The debit/credit rule is the existing one (l.385-394): positive → Dr reconciled cash / Cr counter; negative → Dr counter / Cr reconciled cash; the counter
 account is resolved through `GLMappingResolver.resolveGLAccount("BANK_RECONCILIATION", type.name(), transactionDate)`, except for `TRANSFER`, whose counter is
@@ -935,7 +948,7 @@ a duplicate (exclusion) or a books error (reversal). The rules keep it there:
 | `RECONCILIATION_ADJUSTMENT_SIGN_INVALID` | 422 | EXISTING | sign not permitted for the type |
 | `ADJUSTMENT_ALREADY_REVERSED` | 409 | NEW | reverse twice |
 | `ADJUSTMENT_LINK_REQUIRED` | 422 | NEW | a reference a type requires is missing or one it forbids is present: `OTHER` without exactly one of `bankTransactionId`, `settlesMatchId`, `bridgesStatementId`; a `settlesMatchId` / `bridgesStatementId` on another type; `TRANSFER` without `counterGlAccountId`, or `counterGlAccountId` on another type (§3.5) |
-| `ADJUSTMENT_LINK_NOT_ELIGIBLE` | 422 | NEW | the named match is not `ACCEPTED` in this reconciliation or has `toleranceUsed = 0`; the named statement has no `gapAcknowledgement` or `abs(openingDifference) ≤ 0.01`; a sent `amount` differs from the server-computed residual or opening difference; the `amount` of an adjustment linked by `bankTransactionId` differs from that transaction's `signedAmount` at all (exact, `fieldErrors[amount]`); the `TRANSFER` counter account is unknown in the tenant or is the reconciled account (§3.5, §4.2, §4.6) |
+| `ADJUSTMENT_LINK_NOT_ELIGIBLE` | 422 | NEW | a named link or `amount` is not eligible: the match or statement fails its rule, a sent `amount` is not the exact expected value, or a `TRANSFER` counter account is invalid (conditions after the table; §3.5, §4.2, §4.6) |
 | `ADJUSTMENT_BRIDGE_ALREADY_POSTED` | 409 | NEW | a `POSTED` gap bridge already exists for the statement |
 | `RECONCILIATION_ADJUSTMENT_APPROVAL_REQUIRED` | 403 | NEW | `OTHER` above `BANK_REC_OTHER_APPROVAL_THRESHOLD` (or any non-residual `OTHER` while it is unset) without `accounting:reconciliation:approve` (§4.7) |
 | `RECONCILIATION_NOT_BALANCED` | 422 | EXISTING | `abs(difference) > 0.01` at submit/approve (`fieldErrors[difference]`) |
@@ -948,6 +961,14 @@ a duplicate (exclusion) or a books error (reversal). The rules keep it there:
 | `OPTIMISTIC_LOCK` | 409 | NEW | stale `version` on a reconciliation, import or bank transaction (ADR-0017 §2 version class) |
 | `JUSTIFICATION_REQUIRED` | 400 | EXISTING (catalogued) | justification shorter than the minimum (10, D15) — every justification field, `gapAcknowledgement` included |
 | `VALIDATION_ERROR` | 400 | EXISTING | request shape only (missing field, bad UUID, blank justification) |
+
+`ADJUSTMENT_LINK_NOT_ELIGIBLE` (422) answers any of these conditions:
+
+- the named match is not `ACCEPTED` in this reconciliation or has `toleranceUsed = 0`;
+- the named statement has no `gapAcknowledgement` or `abs(openingDifference) ≤ 0.01`;
+- a sent `amount` differs from the server-computed residual or opening difference;
+- the `amount` of an adjustment linked by `bankTransactionId` differs from that transaction's `signedAmount` at all (exact, `fieldErrors[amount]`);
+- the `TRANSFER` counter account is unknown in the tenant or is the reconciled account (§3.5, §4.2, §4.6).
 
 ## 5. Period-close integration matrix (PROPOSED unless marked EXISTING)
 
@@ -994,11 +1015,11 @@ hard-lock endpoint, whose body carries the value and a mandatory justification (
 | `justification` | — (audit) | string, ≥ 10 characters (D15) |
 
 All six fields are required; `otherApprovalThreshold` may be `null`, which clears the setting (unset, §4.7). A missing field, an unknown enum value, a negative
-number or a blank justification answers 400 `VALIDATION_ERROR`, a justification of 1–9 characters 400 `JUSTIFICATION_REQUIRED`. Each setting whose value
-changes writes one `AccountingAuditLog` row — `entityType = ACCOUNTING_CONFIGURATION`, `entityId` = that key's configuration row, operation
-`BANK_REC_POLICY_SET` (NEW), `oldValue` / `newValue` the setting's previous and new value, the request's justification — as `HARD_LOCK_SET` does
-(`AccountingConfigurationServiceImpl.java` l.35-36, l.80-90); an unchanged setting writes nothing. `GET` returns the five effective values (the defaults above
-when a key has no row) with `updatedAt` / `updatedBy` of the latest change.
+number or a blank justification answers 400 `VALIDATION_ERROR`, a justification of 1–9 characters 400 `JUSTIFICATION_REQUIRED`, an `otherApprovalThreshold` with
+more decimal places than its currency's minor unit 422 `AMOUNT_PRECISION_EXCEEDS_CURRENCY`. Each setting whose value changes writes one `AccountingAuditLog` row —
+`entityType = ACCOUNTING_CONFIGURATION`, `entityId` = that key's configuration row, operation `BANK_REC_POLICY_SET` (NEW), `oldValue` / `newValue` the setting's
+previous and new value, the request's justification — as `HARD_LOCK_SET` does (`AccountingConfigurationServiceImpl.java` l.35-36, l.80-90); an unchanged setting
+writes nothing. `GET` returns the five effective values (the defaults above when a key has no row) with `updatedAt` / `updatedBy` of the latest change.
 
 ### 5.3 Checks that run before close (the readiness read model)
 
@@ -1013,7 +1034,7 @@ list inside its transaction (implemented by `BankReconciliationCloseReadiness` i
 | `RECONCILIATION_IN_FLIGHT` | BLOCKING | an `IN_PROGRESS` / `SUBMITTED` reconciliation with `statementEndDate ≤ periodEndDate` exists | ids |
 | `RECONCILIATION_INVALIDATED` | BLOCKING | an `INVALIDATED` reconciliation whose window intersects the period has no `FINALIZED` successor | ids, `invalidationReason` |
 | `BALANCE_AGREEMENT` | BLOCKING | for the covering `FINALIZED` reconciliation, live `glBalanceAsOf(statementEndDate)` = `approvedGlEndingBalance` **exactly** (no tolerance; belt and braces over invalidation). Both sides use the identical as-of function: POSTED and REVERSED entries with `transactionDate ≤ statementEndDate 23:59:59.999999` (§3.7, G15) | account, both values |
-| `UNEXPLAINED_BANK_TRANSACTIONS` | BLOCKING | the §3.7 `countUnexplainedBank` predicate, one implementation for approval and readiness: `UNMATCHED` / `POSSIBLE_DUPLICATE` bank transactions with `settlementState = POSTED` (`PENDING` never counts) dated from the baseline that applies at `periodEndDate` (§3.1) to `periodEndDate`, in no `OPEN` bank-side outstanding item (includes late arrivals, D10); not evaluated while the account has no baseline (`STATEMENT_COVERAGE` reports it) | count, Σ, ids (first 50) |
+| `UNEXPLAINED_BANK_TRANSACTIONS` | BLOCKING | the §3.7 `countUnexplainedBank` predicate, one implementation for approval and readiness (conditions after the table), applied from the baseline that applies at `periodEndDate` (§3.1) to `periodEndDate`; not evaluated while the account has no baseline (`STATEMENT_COVERAGE` reports it) | count, Σ, ids (first 50) |
 | `UNEXPLAINED_LEDGER_LINES` | BLOCKING | the §3.7 `countUnexplainedLedger` predicate, one implementation for approval and readiness, applied from the baseline that applies at `periodEndDate` to `periodEndDate`: lines on the account of POSTED entries that are in no `ACCEPTED` match, are not the cash line of a gap bridge (§3.5), and are in no `OPEN` outstanding item — except that an aged `OTHER_LEDGER_TIMING` item not reaffirmed in the covering reconciliation counts (§3.6); **reversal pairs never count** (the REVERSED original is not POSTED, and the POSTED entry that reverses it is excluded too, whether or not either line was matched, §3.7); not evaluated while the account has no baseline | count, Σ, ids (first 50) |
 | `UNPOSTED_ADJUSTMENTS` | BLOCKING | adjustment rows whose `journalEntryId` is null or whose JE is not POSTED (defensive — adjustments post synchronously today) | ids |
 | `COVERAGE_LAG_APPLIED` | WARNING | lag > 0 and `reconciledFrontier < periodEndDate` — the frontier passed only because of the lag | account, `reconciledFrontier`, `lagDays` |
@@ -1022,6 +1043,10 @@ list inside its transaction (implemented by `BankReconciliationCloseReadiness` i
 | `CLEARING_BALANCE_AGING` (NEW, tenant-wide) | WARNING | for each clearing account — each distinct counter account that a POSTED `OTHER` adjustment's JE posted to (`2360` in the seed), read from the JEs and never from the mapping, so an unconfigured or changed `BANK_RECONCILIATION` / `OTHER` mapping at `periodEndDate` changes nothing — the as-of balance is outside ±0.01 both at `periodEndDate` and at `periodEndDate − pos.accounting.bankrec.clearing.aging-warning-days`: it has not been cleared back to zero within the aging window (D2, §4.7). Not evaluated when no `OTHER` adjustment was ever posted. Account-level by design: no reclassification JE is linked to the adjustment it clears | per account: both balances; POSTED, unreversed `OTHER` adjustments dated on/before the earlier date (first 50) |
 | `LATE_BANK_TRANSACTIONS` | WARNING | bank transactions with `arrivedAfterApproval = true` dated inside the period, unresolved | ids |
 | `RECONCILED_AFTER_CLOSE` | INFO | the covering reconciliation was approved after `closedAt` (re-close after reopen) | ids |
+
+**`UNEXPLAINED_BANK_TRANSACTIONS` conditions.** The check counts bank transactions that are `UNMATCHED` or `POSSIBLE_DUPLICATE` with `settlementState = POSTED`
+(`PENDING` never counts), dated from the baseline that applies at `periodEndDate` (§3.1) to `periodEndDate`, and in no `OPEN` bank-side outstanding item
+(includes late arrivals, D10).
 
 Response: `{periodCode, periodStatus, policy, ready, blockingCount, warningCount, checks[], accounts[]: {glAccountId, accountCode, accountName, baselineDate,
 coverageFrontier, reconciledFrontier, checks[]: {code, severity, detail, references{}}}}` — the top-level `checks[]` (NEW) carries the tenant-wide checks (today
@@ -1068,11 +1093,13 @@ columns on the row; the full history is in `AccountingAuditLog`).
 | Situation | Rule |
 | --- | --- |
 | Statement ends mid-month (e.g. 09-15..10-14) and period 2026-09 is closing | `reconciledFrontier` for September is 09-14 (the previous statement) until the 10-14 reconciliation is `FINALIZED`. Options: (a) wait; (b) an **interim reconciliation** 09-15..09-30: a manual-entry statement with the transactions and the closing balance keyed from online banking (§4.1 option d; its own E1/E2 checks). It becomes the previous statement for 10-01..10-14: when the bank's 09-15..10-14 file arrives it is imported with the header window 10-01..10-14 and the opening balance of the interim's closing balance (E2), and its September rows are `OUT_OF_WINDOW` and skipped with a reason (§4.5); E1 on the 10-01..10-14 header then proves the interim was complete, and a failure is corrected by superseding the interim statement (§4.9 path 3). `splitAt` (§4.4) serves the case without an interim: the bank's file is split so its first segment is reconciled as its own window; (c) `BANK_REC_CLOSE_COVERAGE_LAG_DAYS`; (d) the exception. |
-| A split import (`splitAt`, §4.4) | Commit writes one COMMITTED statement per segment (`statementIds[]`, in window order; the single `statementId` is the **last** segment's). With `startReconciliation = true` the commit's `reconciliationId` is the reconciliation of the **first segment's** statement only; each later segment is reconciled through `POST /v1/accounting/reconciliations` naming its statement. |
+| A split import (`splitAt`, §4.4) | Commit writes one COMMITTED statement per segment (`statementIds[]`, in window order; the single `statementId` is the **last** segment's). With `startReconciliation = true` the commit's `reconciliationId` is the reconciliation of the **first segment's** statement only (later segments: below the table). |
 | Several statements in one period (weekly statements) | Each is its own reconciliation; the chain must be contiguous (E2); readiness looks only at the frontier. |
 | A period covered by parts of two statements | The frontier rule handles it: the period is bank-reconciled once the later statement's reconciliation is `FINALIZED`. |
 | Statement window straddles a period boundary with an adjustment inside the earlier, closed month | Adjustment dated in the open month (D7); E3 adds it as late. |
 | `accountingPeriodCode` | Attribution only (`YearMonth.from(statementEndDate)`); it never trims or extends a window. |
+
+In a split import, each segment after the first is reconciled through `POST /v1/accounting/reconciliations` naming its statement.
 
 ### 5.8 Invariants that prevent close from producing a misleading cash balance
 
@@ -1113,21 +1140,24 @@ family carries a provider name, a file-format option the core interprets, a cred
 
 | Method / path | Permission | Body / params | Response | Status codes |
 | --- | --- | --- | --- | --- |
-| `POST` | `accounting:reconciliation:adjust` | multipart `file` + `meta` JSON, or JSON `{glAccountId, requestId, formatCode, content(base64), fileName, statement{startDate,endDate,openingBalance,closingBalance,statementRef}, columnMapping?, signConvention?, dateFormat?, decimalFormat?, encoding?, delimiter?, gapAcknowledgement?, supersedesStatementId? and supersessionJustification? (S5, §4.9 path 3)}` | 201 `BankImportResponse` | 400 (incl. `JUSTIFICATION_REQUIRED`), 403, 409 `IMPORT_FILE_ALREADY_COMMITTED` / `RECONCILIATION_WINDOW_ALREADY_RECONCILED`, 422 `ACCOUNT_NOT_RECONCILABLE` / `STATEMENT_IMPORT_FAILED` / `STATEMENT_PERIOD_OVERLAP` / `STATEMENT_NOT_CONTIGUOUS` / `STATEMENT_GAP_ACKNOWLEDGEMENT_NOT_APPLICABLE` / `STATEMENT_SUPERSESSION_NOT_ELIGIBLE` / `CURRENCY_NOT_SUPPORTED` |
+| `POST` | `accounting:reconciliation:adjust` | multipart `file` + `meta` JSON, or JSON `{glAccountId, requestId, formatCode, content(base64), fileName, statement{startDate,endDate,openingBalance,closingBalance,statementRef}, columnMapping?, signConvention?, dateFormat?, decimalFormat?, encoding?, delimiter?, gapAcknowledgement?, supersedesStatementId? and supersessionJustification? (S5, §4.9 path 3)}` | 201 `BankImportResponse` | 400 (incl. `JUSTIFICATION_REQUIRED`), 403, 409 `IMPORT_FILE_ALREADY_COMMITTED` / `RECONCILIATION_WINDOW_ALREADY_RECONCILED`, 422 `ACCOUNT_NOT_RECONCILABLE` / `STATEMENT_IMPORT_FAILED` / `STATEMENT_PERIOD_OVERLAP` / `STATEMENT_NOT_CONTIGUOUS` / `STATEMENT_GAP_ACKNOWLEDGEMENT_NOT_APPLICABLE` / `STATEMENT_SUPERSESSION_NOT_ELIGIBLE` / `CURRENCY_NOT_SUPPORTED` / `AMOUNT_PRECISION_EXCEEDS_CURRENCY` |
 | `GET` | view | `glAccountId?`, `status?`, page | list of imports | 200 |
 | `GET /{importId}` | view | — | `BankImportResponse` (counts, header, mapping, status, outcome ids) | 200, 404 |
 | `GET /{importId}/rows` | view | `status?`, page (sort `rowNumber`) | rows with raw/parsed/status/rejection/fingerprint collision | 200 |
 | `PUT /{importId}/mapping` | adjust | `{columnMapping, signConvention, dateFormat, …, saveAsAccountDefault}` | re-parsed `BankImportResponse` | 200, 409 `IMPORT_ALREADY_COMMITTED` / `IMPORT_DISCARDED` |
-| `PUT /{importId}/rows/{rowId}` | adjust | `{correctedValues?}` or `{skip: true, reason}` | row | 200, 409 |
-| `POST /{importId}/commit` | adjust | `{startReconciliation?: boolean, duplicateDecisions?: [{rowNumber, decision}]}` | `{statementId, statementIds, bankTransactionCount, possibleDuplicateCount, reconciliationId?}`; on a split import `statementIds` lists every segment's statement in window order and `statementId` is the last one, while `reconciliationId` refers to the first segment's statement; later segments are reconciled via `POST /reconciliations` (§5.7) | 200 (idempotent), 409 `IMPORT_DISCARDED` / `STATEMENT_ALREADY_IMPORTED`, 422 `IMPORT_NOT_COMMITTABLE` |
+| `PUT /{importId}/rows/{rowId}` | adjust | `{correctedValues?}` or `{skip: true, reason}` | row | 200, 409, 422 `AMOUNT_PRECISION_EXCEEDS_CURRENCY` |
+| `POST /{importId}/commit` | adjust | `{startReconciliation?: boolean, duplicateDecisions?: [{rowNumber, decision}]}` | `{statementId, statementIds, bankTransactionCount, possibleDuplicateCount, reconciliationId?}` (a split import: note after the table) | 200 (idempotent), 409 `IMPORT_DISCARDED` / `STATEMENT_ALREADY_IMPORTED`, 422 `IMPORT_NOT_COMMITTABLE` |
 | `POST /{importId}/discard` | adjust | `{reason}` | import | 200, 409 |
 | `GET /{importId}/file` | `accounting:reconciliation:approve` | — | the retained raw bytes (`contentType`, `fileName`); audited `BANK_IMPORT_FILE_READ` (§6.4) | 200, 403, 404 (also once the bytes are purged: the metadata row stays and carries `retentionUntil`) |
+
+**Commit of a split import (§4.4, §5.7).** `statementIds` lists every segment's statement in window order and `statementId` is the last one, while
+`reconciliationId` refers to the first segment's statement; later segments are reconciled via `POST /reconciliations` (§5.7).
 
 **Bank statements and transactions (core)**
 
 | Method / path | Permission | Body / params | Response | Status codes |
 | --- | --- | --- | --- | --- |
-| `POST /v1/accounting/bank-statements` | adjust | `{glAccountId, requestId, statement{…}, transactions[]{date, signedAmount \| debit/credit, description, reference?, checkNumber?}, gapAcknowledgement?, supersedesStatementId? and supersessionJustification? (S5), startReconciliation?}` | 201 statement + counts | 400 (incl. `JUSTIFICATION_REQUIRED`), 409 `STATEMENT_ALREADY_IMPORTED` / `RECONCILIATION_WINDOW_ALREADY_RECONCILED`, 422 `STATEMENT_ACTIVITY_MISMATCH` / `STATEMENT_TRANSACTION_OUT_OF_WINDOW` / overlap / contiguity / `STATEMENT_GAP_ACKNOWLEDGEMENT_NOT_APPLICABLE` / `STATEMENT_SUPERSESSION_NOT_ELIGIBLE` / `CURRENCY_NOT_SUPPORTED` |
+| `POST /v1/accounting/bank-statements` | adjust | `{glAccountId, requestId, statement{…}, transactions[]{date, signedAmount \| debit/credit, description, reference?, checkNumber?}, gapAcknowledgement?, supersedesStatementId? and supersessionJustification? (S5), startReconciliation?}` | 201 statement + counts | 400 (incl. `JUSTIFICATION_REQUIRED`), 409 `STATEMENT_ALREADY_IMPORTED` / `RECONCILIATION_WINDOW_ALREADY_RECONCILED`, 422 `STATEMENT_ACTIVITY_MISMATCH` / `STATEMENT_TRANSACTION_OUT_OF_WINDOW` / overlap / contiguity / `STATEMENT_GAP_ACKNOWLEDGEMENT_NOT_APPLICABLE` / `STATEMENT_SUPERSESSION_NOT_ELIGIBLE` / `CURRENCY_NOT_SUPPORTED` / `AMOUNT_PRECISION_EXCEEDS_CURRENCY` |
 | `GET /v1/accounting/bank-statements` | view | `glAccountId?`, `from?`, `to?`, page | list | 200 |
 | `GET /v1/accounting/bank-statements/{statementId}` | view | — | header + reconciliation links | 200, 404 |
 | `GET /v1/accounting/bank-transactions` | view | `glAccountId`, `status?`, `from?`, `to?`, `sourceKind?`, `unexplainedOnly?`, page (sort `transactionDate, bankTransactionId`) | list with match/outstanding/exclusion links | 200 |
@@ -1147,13 +1177,13 @@ family carries a provider name, a file-format option the core interprets, a cred
 | `GET /{id}/candidates` | view | `bankTransactionId` or `glLineId`, `windowDays?` | ranked candidates with reasons | 200 |
 | `POST /{id}/auto-match` | adjust | `{}` | `{proposedCount, ambiguousCount}` | 200, 409 |
 | `POST /{id}/matches` (replaces `POST /{id}/match`) | adjust | `{bankTransactionIds[], glLineIds[], justification?, requestId}` | match | 201, 409 `RECONCILIATION_LINE_INELIGIBLE`, 422 `MATCH_AMOUNT_MISMATCH` / `MATCH_CARDINALITY_NOT_ALLOWED` / `MATCH_REQUIRES_REVIEW` |
-| `POST /{id}/matches/{matchId}/accept` · `/reject` | adjust | `{justification?}` | match | 200, 409 |
-| `POST /{id}/matches/{matchId}/unmatch` (replaces `POST /{id}/unmatch`) | adjust | `{reason}` | match | 200, 409 |
+| `POST /{id}/matches/{matchId}/accept` · `/reject` | adjust | `{justification?}` | match | 200, 409 `MATCH_STATE_INVALID` (not `PROPOSED`) / `RECONCILIATION_NOT_EDITABLE` |
+| `POST /{id}/matches/{matchId}/unmatch` (replaces `POST /{id}/unmatch`) | adjust | `{reason}` | match | 200, 409 `MATCH_STATE_INVALID` (not `ACCEPTED`) / `RECONCILIATION_NOT_EDITABLE` (`SUBMITTED`: return it first) |
 | `POST /{id}/outstanding-items` · `POST /{id}/outstanding-items/{itemId}/release` | adjust | `{glLineId \| bankTransactionId, itemKind, justification?}` · `{reason}` | item | 201/200, 422 `OUTSTANDING_ITEM_NOT_ELIGIBLE` |
 | `POST /{id}/outstanding-items/{itemId}/reaffirm` | adjust | `{justification}` (≥ 10) | item (`lastReaffirmedInReconciliationId`) | 200, 400 `JUSTIFICATION_REQUIRED`, 409, 422 `OUTSTANDING_ITEM_NOT_ELIGIBLE` |
 | `POST /{id}/outstanding-items/{itemId}/clear-in-gap` | approve | `{justification}` (≥ 10) | item (`CLEARED_IN_GAP`, `closedOn`) | 200, 400 `JUSTIFICATION_REQUIRED`, 409, 422 `OUTSTANDING_ITEM_NOT_ELIGIBLE` |
 | `GET /adjustment-types` (EXISTING) | view | — | served enum (`BANK_FEE, NSF_FEE, INTEREST_EARNED, OTHER, TRANSFER` — `TRANSFER` per D9) | 200 |
-| `POST /{id}/adjustments` (EXISTING, extended) | adjust (approve for `OTHER` above the threshold, §4.7) | `{type, amount? (required unless settlesMatchId or bridgesStatementId is set; then server-computed, §3.5), description, requestId, bankTransactionId?, settlesMatchId? (OTHER only), bridgesStatementId? (OTHER only), justification? (required for OTHER), transactionDate?, overrideJustification?, counterGlAccountId? (TRANSFER only)}` — until S4 the F2 body `{type, amount, description}` | adjustment with `journalEntryId`, `entryNumber`, `transactionDate`, link; for a residual settlement also the replacement `matchId` | 201 (replay 200 `replayed: true`), 400 `JUSTIFICATION_REQUIRED`, 403 `RECONCILIATION_ADJUSTMENT_APPROVAL_REQUIRED`, 409 `RECONCILIATION_LINE_INELIGIBLE` / `ADJUSTMENT_BRIDGE_ALREADY_POSTED`, 422 sign / `ADJUSTMENT_LINK_REQUIRED` / `ADJUSTMENT_LINK_NOT_ELIGIBLE` / `PERIOD_CLOSED` / `PERIOD_HARD_LOCKED` / `GL_MAPPING_NOT_CONFIGURED` |
+| `POST /{id}/adjustments` (EXISTING, extended) | adjust (approve for `OTHER` above the threshold, §4.7) | `{type, amount? (required unless settlesMatchId or bridgesStatementId is set; then server-computed, §3.5), description, requestId, bankTransactionId?, settlesMatchId? (OTHER only), bridgesStatementId? (OTHER only), justification? (required for OTHER), transactionDate?, overrideJustification?, counterGlAccountId? (TRANSFER only)}` — until S4 the F2 body `{type, amount, description}` | adjustment with `journalEntryId`, `entryNumber`, `transactionDate`, link; for a residual settlement also the replacement `matchId` | 201 (replay 200 `replayed: true`), 400 `JUSTIFICATION_REQUIRED`, 403 `RECONCILIATION_ADJUSTMENT_APPROVAL_REQUIRED`, 409 `RECONCILIATION_LINE_INELIGIBLE` / `ADJUSTMENT_BRIDGE_ALREADY_POSTED`, 422 sign / `ADJUSTMENT_LINK_REQUIRED` / `ADJUSTMENT_LINK_NOT_ELIGIBLE` / `PERIOD_CLOSED` / `PERIOD_HARD_LOCKED` / `GL_MAPPING_NOT_CONFIGURED` / `AMOUNT_PRECISION_EXCEEDS_CURRENCY` |
 | `POST /{id}/adjustments/{adjustmentId}/reverse` | approve | `{reason, reversalDate?, overrideJustification?}` | adjustment (`REVERSED`, `reversalJournalEntryId`) | 200, 409 `ADJUSTMENT_ALREADY_REVERSED` / `JE_*`, 422 period |
 | `POST /{id}/submit` · `/return` | adjust · approve | `{}` · `{reason}` | header | 200, 409, 422 `RECONCILIATION_NOT_BALANCED` / `RECONCILIATION_HAS_UNEXPLAINED_ITEMS` |
 | `POST /{id}/finalize` (EXISTING path; approve step) | **approve** (was adjust) | `{}` | header | 200, 403 `RECONCILIATION_SELF_APPROVAL`, 409 `RECONCILIATION_NOT_SUBMITTED`, 422 as submit |
@@ -1193,9 +1223,10 @@ keys; `reopen` has no counterpart by design (§4.9). The registry (`config/Permi
   (EXISTING code). The adjustment additionally uses the deterministic `sourceEventId` and the `IdempotencyService` key of §3.5, so a retried request can never post twice
   (G9).
 - Status codes follow ADR-0017 §2: 403 for who the caller is (`RECONCILIATION_SELF_APPROVAL`, `PERIOD_CLOSE_EXCEPTION_NOT_PERMITTED`); 409 only for lifecycle, duplicate key
-  and version (`*_ALREADY_*`, `RECONCILIATION_NOT_EDITABLE`, `RECONCILIATION_NOT_SUBMITTED`, `RECONCILIATION_LINE_INELIGIBLE`, `IMPORT_FILE_ALREADY_COMMITTED`,
-  `STATEMENT_ALREADY_IMPORTED`, `RECONCILIATION_WINDOW_ALREADY_RECONCILED`, `OPTIMISTIC_LOCK`); 422 for every other refusal; 400 for shape. Synchronous commands answer
-  200/201 — nothing here is a command event (the file adapter is in-process), so 202 does not appear until phase 2's `feed-sync` (202 with the pending request id).
+  and version (`*_ALREADY_*`, `RECONCILIATION_NOT_EDITABLE`, `RECONCILIATION_NOT_SUBMITTED`, `RECONCILIATION_LINE_INELIGIBLE`, `MATCH_STATE_INVALID`,
+  `IMPORT_FILE_ALREADY_COMMITTED`, `STATEMENT_ALREADY_IMPORTED`, `RECONCILIATION_WINDOW_ALREADY_RECONCILED`, `OPTIMISTIC_LOCK`); 422 for every other refusal; 400 for
+  shape. Synchronous commands answer 200/201 — nothing here is a command event (the file adapter is in-process), so 202 does not appear until phase 2's
+  `feed-sync` (202 with the pending request id).
 - `@Version` on `bank_reconciliation`, `bank_import`, `bank_transaction`; the reconciliation row is locked `FOR UPDATE` during submit/approve/close-readiness-in-close;
   a stale version answers 409 `OPTIMISTIC_LOCK` (NEW — the module maps no version conflict today; ADR-0017 §2 puts it in the 409 class).
 
