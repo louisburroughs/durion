@@ -54,6 +54,15 @@ set; callers whose actual permission codes differ get a cache miss and an on-dem
 
 `resolvePrompt(name)` precedence: requested prompt → `master` → built-in text.
 
+**Scope card (ADR-0069).** When `card` is in `mcp.scope-graph.enforce` and the turn's scope confidence is `HIGH`, the prompt
+supplier appends one more layer after TOOL_USE, named `SCOPE_CARD`: a plain-text block of the recognised entities, their relations
+and lifecycle states, the actions (tools) with the permission each requires, and screen deep links, cut to
+`mcp.scope-graph.card-token-budget` by dropping whole lines from the end. `ScopeCardRenderer` renders it from the caller-filtered
+`ScopeSet` only: an entity, relation or state appears only when a tool, document or screen the caller passed the filter for connects
+to it, and the card never contains user text, lexicon terms, identifier patterns, instance data or the permission code of a node the
+caller did not pass for. It orients the model and grants nothing; tool calls are still authorised per call. With the card off (the
+default) the prompt is unchanged. The layer is reported with the other prompt layers in telemetry.
+
 Prompt records are managed only through the existing secured `SystemPromptController` CRUD API;
 `SystemPromptSeedRunner` seeds role/domain prompts best-effort at startup.
 
@@ -94,6 +103,16 @@ Order of operations inside `ToolRegistryService.resolveCandidateTools`:
 Keyword fallback tools (web search / inventory / order facades) are merged in separately per
 message, so short operational messages like `stock part 1234` still reach the inventory facade
 even when semantic routing is weak.
+
+**Additive scope slots (ADR-0069).** When `tools` is in `mcp.scope-graph.enforce` and the scope confidence is `HIGH` or `LOW`,
+tools from the turn's `ScopeSet` are added after the ranked cut and the keyword fallback, at most
+`mcp.scope-graph.added-tool-slots` per turn, facades first, then discovered operations with what is left (ordered by hop, `reads`
+before `writes`, then name). Facades are added in `ToolSelectionEngine` from the caller's already-gated set; discovered operations
+are added in `OpenApiToolProvider` after the ANN cut through `findDiscoveredByNamesForPermissions`, which applies the same
+permission and workflow SQL, and write-capability is recomputed over the union. No ranked tool is removed or displaced, and
+nothing is added on the failure/empty fallback (fail-closed), the admin fast path or warm-up. With the `tools` switch off the
+scope is resolved and recorded only. The keyword-fallback and `deriveWorkflowState` word lists are unchanged until ADR-0068
+moves them.
 
 ### Workflow state
 
@@ -137,6 +156,11 @@ Both agent managers (`SessionAgentManager`, `StreamingSessionAgentManager`, prof
 - Metrics: `mcp.rag.preload.loaded` / `.skipped` / `.failed` (tagged by `documentId`) plus a
   preload duration timer.
 
+Each entry also carries `entities:` (ADR-0069), the `scope-graph/entities.yaml` keys the document substantively explains, or
+`[none]` for a platform-wide document. The `alpha` profile's list replaces the base list wholesale, so both lists carry every entry
+with identical values; `RagPreloadProfileParityTest` asserts that, and `RagDocumentHeaderAgreementTest` asserts that a document's
+header agrees with its entry on id, scope and permissions.
+
 Adding a new static document = adding one entry to `mcp.rag.preload.docs` and the markdown file
 under `src/main/resources/rag/`; no code changes.
 
@@ -147,5 +171,9 @@ under `src/main/resources/rag/`; no code changes.
 | `mcp.prompt.fallback{reason,requested}` | prompt resolution fell back (#639) |
 | `mcp.rag.preload.loaded/skipped/failed{documentId}` | startup preload outcomes (#637) |
 | `nlti.request.telemetry` events | per-request role, selected tools, prompt layers, workflow state, latency |
+| `mcp.scope_graph.build.duration`, `.build.failures`, `.nodes`, `.edges`, `.unmapped_tools` | scope graph build time, failed builds, snapshot size, discovered tools with no lexicon match (ADR-0069) |
+| `mcp.scope.resolved{confidence}`, `mcp.scope.size{kind}`, `mcp.scope.errors` | per-turn scope confidence, size and resolver failures (mode not `off`) |
+| `mcp.scope.called_tool{in_scope}`, `mcp.scope.retrieved_doc{in_scope}` | called tools and retrieved documents inside the scope, counted at eval-trace completion |
+| `nlti.request.telemetry` `scope*` fields | `schemaVersion` 2: `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`, `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied` |
 | "Invalidated MCP … role-agent cache" logs | configuration-triggered cache flush |
 | Debug logs in `ToolRegistryService` / `ToolSelectionEngine` | per-request gating, scoring, fallback decisions |

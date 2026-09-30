@@ -211,6 +211,54 @@ this cycle (#1819, kept not reconciled)`). A domain that is genuinely gone — r
 will repeat that line every cycle until an operator lists it in `mcp.discovery.prunable-when-unseen`
 (`MCP_DISCOVERY_PRUNABLE_WHEN_UNSEEN`, comma-separated `mcp_tool.domain` keys), after which one cycle reconciles it.
 
+### Scope graph narrowing (ADR-0069)
+
+The scope graph is a generated, in-memory graph of business entities and the tools, RAG documents, screens and permissions that
+refer to them; it holds platform definitions only, never a tenant's records, and is rebuilt from the tool catalog, the preload
+documents, the module OpenAPI specs and `scope-graph/entities.yaml` ([ADR-0069](../../../docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md)).
+With `mcp.scope-graph.mode` `off` (the default) none of this runs.
+
+- **Where it resolves.** `ToolSelectionEngine.selectRoleTools` calls `resolveScope` once per agent-path turn, after the workflow
+  state is known and before ranking, and returns the `ScopeSet` on `ToolSelectionResult`. Both session managers publish it on
+  `RequestScopedUserContext` beside the caller and clear it in the same `finally`, so the discovered-tool provider, the RAG hook and
+  the prompt supplier read the same value. The simple-chat fast path resolves no scope.
+- **How it resolves.** `TermMatcher` seeds entities from the message by lexicon term (exact, then folded) and identifier
+  pattern, with no model call; `ScopeResolver` expands two hops over a fixed edge whitelist, capped at `mcp.scope-graph.max-nodes`;
+  `ScopeCallerFilter` then drops every tool, document and screen the caller cannot reach. The filter is not the security boundary:
+  tools a consumer adds are gated again by the existing SQL, and documents still pass `PermissionAwareMetadataFilter`.
+- **Confidence.** `HIGH` when any seed came from an identifier pattern or an exact term, `LOW` when seeds are folded or ambiguous
+  matches, `NONE` without seeds. Each consumer acts on a confidence it can afford to be wrong at: RAG and the card on `HIGH`, tool
+  slots on `HIGH` and `LOW`. Below that a consumer behaves as today.
+- **Additive tool slots.** When `tools` is enforced, scope tools are added on top of both cuts (the facade ANN cut and the
+  discovered-operation cut), at most `mcp.scope-graph.added-tool-slots` per turn, facades first. An added tool never removes or
+  displaces a ranked one, and nothing is added on the fail-closed path, the admin fast path or warm-up. Added tools count toward the
+  selection records and the agent cache key.
+- **Per-consumer switch.** `mcp.scope-graph.enforce` lists the consumers that act when `mode` is `enforce`: any of `rag`, `tools`,
+  `card`. In `shadow`, or in `enforce` with an empty list, the scope is computed and recorded but selection, retrieval and the prompt
+  are unchanged. Consumers are promoted one at a time on the evidence of the ADR's section 9 gate.
+- **Consumer behaviour.** The RAG filter is described under [RAG Retrieval Pipeline](#rag-retrieval-pipeline-tier-2), the scope card
+  in [tool-selection-architecture.md](tool-selection-architecture.md#2-prompt-assembly-and-fallback-637). The keyword-fallback and
+  workflow-state word lists are unchanged until ADR-0068.
+
+### Scope graph observability
+
+With the mode not `off`, the alpha eval turn trace (see [Offline Replay Eval](#offline-replay-eval-1682)) carries a nullable
+`scope` component: `mode`, `enforced`, `graphHash`, `graphBuiltAt`, `confidence`, `seeds` (entity key and match kind, never the
+matched text), entity, tool, document and screen counts, `addedTools`, `ragFilterApplied`, and at turn completion
+`calledToolsInScope` / `calledTools` and `retrievedDocsInScope` / `retrievedDocs`. Older payloads read `scope` as null.
+`nlti.request.telemetry` is `schemaVersion` 2 with eight additive, nullable fields: `scopeMode`, `scopeGraphHash`,
+`scopeConfidence`, `scopeEntityCount`, `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied`. Meters:
+
+| Meter | Meaning |
+| ----- | ------- |
+| `mcp.scope_graph.build.duration`, `mcp.scope_graph.build.failures` | graph build time and failed builds (the previous snapshot stays) |
+| `mcp.scope_graph.nodes`, `mcp.scope_graph.edges` | size of the current snapshot |
+| `mcp.scope_graph.unmapped_tools` | discovered tools that matched no lexicon schema and attach to their domain only |
+| `mcp.scope.resolved{confidence}` | resolved scopes by confidence |
+| `mcp.scope.size{kind}` | entities, tools, documents and screens per scope |
+| `mcp.scope.called_tool{in_scope}`, `mcp.scope.retrieved_doc{in_scope}` | share of called tools and retrieved documents inside the scope, counted at trace completion (needs `mcp.eval.turn-trace.enabled`) |
+| `mcp.scope.errors` | resolver failures (the turn carried on with no scope) |
+
 ## Answer Resolution
 
 The model's reply is classified before it reaches the user (`ChatResponseText`): direct `CONTENT`,
@@ -290,6 +338,18 @@ Both session managers use a Tier-2 retrieval chain:
 Retrieval is role-aware (`RoleAwareMetadataFilter`, `ScopedContentRetrieverFactory`) and chat memory is persisted via
 `SemanticChatMemoryStore` with session summarization (`SessionSummary`).
 
+### Scope filter (ADR-0069)
+
+When `rag` is in `mcp.scope-graph.enforce`, both managers build the agent's retrievers over all scopes (as for the `master` agent
+today) and `ScopeRagFilter` narrows per request, beside `permissionFiltered`, after fusion and before the top-5 cut. On a `HIGH`
+scope a chunk is kept when its `document_id` is in the scope's documents or its `rag_scope` is `master`; otherwise today's
+eligibility is re-applied (the agent's `rag_scope` or `master`, everything when the agent's scope is `master`). The fusion pool is
+then drawn from all documents and cut to the eligible ones only after fusion, so a single-domain agent can see fewer than five
+in-scope survivors: that recall@5 risk is what the ADR's section 9 gate measures before `rag` is promoted. In `off` and `shadow` the
+retrievers and the pipeline are unchanged. The mode is read once at startup (the agent cache key does not include it), so changing
+it needs a restart. The design change is recorded as an amendment in the
+[gate 5 hybrid design](archive/gate5-rag-hybrid-design.md).
+
 ### Troubleshooting identifier misses
 
 Treat a missing VIN, SKU, event name, or permission code as a candidate-pipeline problem before
@@ -326,6 +386,8 @@ Key tables (Flyway migrations under `src/main/resources/db/migration`):
 - `mcp_tool_priority` — per-tenant tool-priority overlay tuned from that tenant's invocation log (tenant-scoped);
   `mcp_tool.priority` stays the global row.
 - `mcp_rag_*` — RAG ingestion jobs, preload tracking, and immutable preload audit records.
+- The scope graph has no tables: it is held in memory and rebuilt from its sources (ADR-0069 section 4). Its curated inputs are
+  `scope-graph/entities.yaml` and the `entities:` field of every entry in `mcp.rag.preload.docs`.
 
 ## Multitenancy (ADR-0062, WS3 wave 12)
 

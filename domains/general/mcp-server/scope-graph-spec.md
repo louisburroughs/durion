@@ -223,7 +223,7 @@ relation is printed only when both entities qualify.
 `ScopeTrace` (a new nullable component on `EvalTurnTrace`, serialized with the payload; older payloads read it as null):
 `mode`, `enforced` consumers, `graphHash`, `graphBuiltAt`, `confidence`, `seeds` (entity key and match kind — never the matched
 text), counts of entities, tools, documents and screens, `addedTools`, `ragFilterApplied`, and, computed at turn completion,
-`calledToolsInScope` / `calledTools` and `citedDocsInScope` / `citedDocs`.
+`calledToolsInScope` / `calledTools` and `retrievedDocsInScope` / `retrievedDocs` (the final top-K passed to the model; cited documents are not knowable, there are no citation markers).
 
 `NltiRequestTelemetry` goes to `schemaVersion` 2 with `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`,
 `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied`; all nullable, absent in `off`. Any checked-in
@@ -231,7 +231,7 @@ JSON schema and the telemetry documentation are updated in the same change.
 
 Metrics (Micrometer): `mcp.scope_graph.build.duration`, `.build.failures`, `.nodes`, `.edges`, `.unmapped_tools`;
 `mcp.scope.resolved{confidence}`, `mcp.scope.size{kind}`, `mcp.scope.fallback{consumer}`, `mcp.scope.called_tool{in_scope}`,
-`mcp.scope.cited_doc{in_scope}`, `mcp.scope.errors`.
+`mcp.scope.retrieved_doc{in_scope}`, `mcp.scope.errors`.
 
 ## 3. Curated inputs
 
@@ -297,7 +297,7 @@ Beyond the ADR's list (§ Implementation Notes, Testing):
 
 - **Streaming thread hand-off.** The scope is request-scoped state read from several places; a missed propagation in the
   streaming manager silently turns a consumer off. The transport-parity test covers it.
-- **Lexicon quality decides everything downstream.** Shadow data (`calledToolsInScope`, `citedDocsInScope`) is the measure; no
+- **Lexicon quality decides everything downstream.** Shadow data (`calledToolsInScope`, `retrievedDocsInScope`) is the measure; no
   consumer is promoted without it.
 - **Agent cache growth.** Added tools change the selected-tool set and therefore the cache key. The slot cap and deterministic
   ordering bound the number of distinct keys per role.
