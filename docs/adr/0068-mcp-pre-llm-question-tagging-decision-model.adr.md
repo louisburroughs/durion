@@ -459,3 +459,7 @@ applied on acceptance, not by this ADR):
   timeout as a budget), §6 (model bake-off on the target host before any promotion; thresholds from shadow data), Constraints
   and Drivers (GPU-less `t3.2xlarge`), Alternatives (hosted Jev moved to an alternative), Consequences, Implementation Notes.
 - **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.
+- **2026-09-30**: Implementation correction (NLTI domain review): the `domain` Choice option set is permanently the RAG-scope
+  vocabulary (§1 said 'until ADR-0069 supplies its Domain nodes'; the graph's tool domains exceed the local models' 26-option
+  cap and are not user vocabulary); the `entity` question is one Noul per lexicon entity rather than one Choice (same cap;
+  multi-entity seeding); `enforced-tags` entries may be veto-only (§3.4 generalised).
