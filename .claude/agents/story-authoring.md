@@ -105,20 +105,20 @@ If an architect agent identifies missing decisions required to proceed, the Stor
 
 Domain behavior is defined in dedicated domain agents. The Story Authoring Agent MUST delegate to, or consult, these agents and follow their documented guidance:
 
-- [Accounting Domain Agent](./domains/accounting-domain.agent.md)
-- [Security & Authorization Domain Agent](./domains/security-domain.agent.md)
-- [Positivity (External Integration) Domain Agent](./domains/positivity-domain.agent.md)
-- [Location Management Domain Agent](./domains/location-domain.agent.md)
-- [People & Roles (HR) Domain Agent](./domains/people-domain.agent.md)
-- [Inventory Control Domain Agent](./domains/inventory-domain.agent.md)
-- [Product & Catalog Domain Agent](./domains/product-domain.agent.md)
-- [Pricing & Fees Domain Agent](./domains/pricing-domain.agent.md)
-- [Shop Management Domain Agent](./domains/shopmgmt-domain.agent.md)
-- [Workorder Execution Domain Agent](./domains/workexec-domain.agent.md)
-- [Invoicing & Payments Domain Agent](./domains/billing-domain.agent.md)
-- [Customer Domain Agent](./domains/crm-domain.agent.md)
-- [Audit & Observability Domain Agent](./domains/audit-domain.agent.md)
-- [Natural Language Task Interpretation Agent](./domains/nlti.agent.md)
+- [Accounting Domain Agent](./domains/accounting-domain.md)
+- [Security & Authorization Domain Agent](./domains/security-domain.md)
+- [Positivity (External Integration) Domain Agent](./domains/positivity-domain.md)
+- [Location Management Domain Agent](./domains/location-domain.md)
+- [People & Roles (HR) Domain Agent](./domains/people-domain.md)
+- [Inventory Control Domain Agent](./domains/inventory-domain.md)
+- [Product & Catalog Domain Agent](./domains/product-domain.md)
+- [Pricing & Fees Domain Agent](./domains/pricing-domain.md)
+- [Shop Management Domain Agent](./domains/shopmgmt-domain.md)
+- [Workorder Execution Domain Agent](./domains/workexec-domain.md)
+- [Invoicing & Payments Domain Agent](./domains/billing-domain.md)
+- [Customer Domain Agent](./domains/crm-domain.md)
+- [Audit & Observability Domain Agent](./domains/audit-domain.md)
+- [Natural Language Task Interpretation Agent](./domains/natural-language-task-interpretation.agent.md)
 
 ## 4. Cross-Domain Conflict Rule (Non-Negotiable)
 
@@ -161,7 +161,7 @@ If any write operation would target a path outside the allowed folder, emit: `ST
 
 ## 7. Related Agents
 
-- [Technical Requirements Architect](./technical-requirements-architect.agent.md): Consult for feasibility, implementation constraints, technical decomposition, integration mechanics, and non-functional requirements.
-- [Chief Architect - POS Agent Framework](./architecture.agent.md): Consult for cross-cutting architectural direction, ADR/governance alignment, system-of-record boundaries, and platform-wide standards.
+- Technical Requirements Architect (agent definition currently unavailable): Consult for feasibility, implementation constraints, technical decomposition, integration mechanics, and non-functional requirements.
+- [Chief Architect - POS Agent Framework](./architecture.md): Consult for cross-cutting architectural direction, ADR/governance alignment, system-of-record boundaries, and platform-wide standards.
 
 
