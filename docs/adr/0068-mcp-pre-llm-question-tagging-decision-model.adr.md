@@ -490,4 +490,3 @@ applied on acceptance, not by this ADR):
     means provider fallbacks.
   - **No low-confidence alert in Wave 1.** No turn carries `low_confidence` until `enforce` exists, so a rule on it
     could not fire. Wave 2 defines a turn-level (or per-tag) low-confidence signal and its alert.
-

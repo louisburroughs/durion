@@ -189,18 +189,18 @@ populated yet, the rule states the substitute signal it fires on today.
 ## Question tagging alerts (ADR-0068)
 
 12. Name: NltiTaggingFallbackRateHigh
-   - Trigger: Loki — over 15m, more than 20 % of tagged turns fell back to the heuristic because the
-     tagging provider **failed**: `tagging.fallbackReason` is `timeout`, `rate_limited`, `error` or
-     `malformed` (the `FallbackReason` wire names in pos-mcp-server). The denominator is every turn whose
-     `tagging.mode` is `SHADOW` or `ENFORCE`; mode `OFF` turns carry the `tagging` block too (the heuristic
-     tagger always runs) and are excluded from numerator, denominator and the guard. Volume guard: more
-     than 20 tagged turns in the window. `for: 15m`.
-   - Not counted: `low_confidence` (the model answered below a tag's threshold). That is a calibration
-     signal, not an outage, and it is per tag; a turn-level low-confidence alert is deferred to Wave 2,
-     when `enforce` defines it (ADR-0068 Changelog 2026-10-01).
-   - Severity: P2 (turns keep working on the heuristic tags, but shadow data and enforced tags degrade)
-   - Runbook: domains/general/mcp-server/operations/runbooks/downstream-timeout.md (the `ollama`
-     container is slow, overloaded or failing; check the `ollama` CPU/memory panels on `nlti-overview`)
+    - Trigger: Loki — over 15m, more than 20 % of tagged turns fell back to the heuristic because the
+      tagging provider **failed**: `tagging.fallbackReason` is `timeout`, `rate_limited`, `error` or
+      `malformed` (the `FallbackReason` wire names in pos-mcp-server). The denominator is every turn whose
+      `tagging.mode` is `SHADOW` or `ENFORCE`; mode `OFF` turns carry the `tagging` block too (the heuristic
+      tagger always runs) and are excluded from numerator, denominator and the guard. Volume guard: at
+      least 20 tagged turns in the window. `for: 15m`.
+    - Not counted: `low_confidence` (the model answered below a tag's threshold). That is a calibration
+      signal, not an outage, and it is per tag; a turn-level low-confidence alert is deferred to Wave 2,
+      when `enforce` defines it (ADR-0068 Changelog 2026-10-01).
+    - Severity: P2 (turns keep working on the heuristic tags, but shadow data and enforced tags degrade)
+    - Runbook: domains/general/mcp-server/operations/runbooks/downstream-timeout.md (the `ollama`
+      container is slow, overloaded or failing; check the `ollama` CPU/memory panels on `nlti-overview`)
 
 ## Implementation Notes
 

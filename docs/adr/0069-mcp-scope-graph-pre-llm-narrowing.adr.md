@@ -440,4 +440,5 @@ applied on acceptance, not by this ADR):
   `mcp.rag.preload.docs`; per-source permission predicates; additive tool slots; card visibility rule; citations corrected.
 - **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.
 - **2026-09-30**: ADR-0068 accepted. The §5.1 tag seeds and the §6 tagger option lists take effect when its tagger is built; until then the §6 fallbacks still apply.
-- **2026-10-01**: §6 ADR-0068 tagger row: entity questions are one Noul per lexicon entity and `domain` options stay the rag-scope vocabulary, per ADR-0068's Changelog of the same date.
+- **2026-10-01**: §6 ADR-0068 tagger row: entity questions are one Noul per lexicon entity and `domain` options stay the
+  rag-scope vocabulary, per ADR-0068's Changelog of the same date.
