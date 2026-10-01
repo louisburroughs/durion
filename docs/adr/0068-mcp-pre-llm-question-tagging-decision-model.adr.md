@@ -173,7 +173,9 @@ The rules move unchanged, but how their results are applied changes in one respe
 which the managers then merge with the role tools (`SessionAgentManager.java:324-325`), without the permission gate
 (`SharedOrchestrationSupport.java:25-28`), and relies on downstream `@PreAuthorize` to refuse an unpermitted call. Under this
 ADR the tools added by **both** taggers' tags are intersected with the permission-gated set (§3.1). This is a deliberate
-behaviour change.
+behaviour change. Tools with no catalog row and no permission, the always-on glossary tool and the Exa web-search tool, have
+nothing to intersect with: they read no tenant data, carry no `@PreAuthorize`, and are offered as before (Changelog
+2026-10-01).
 
 ### 3. Tags are advisory and can never widen access
 
@@ -242,8 +244,9 @@ The community Spring AI starter (`org.springaicommunity:spring-ai-starter-typesa
 `TypeSafeClient` is reported to work against Ollama unchanged, but it is pre-1.0, community-maintained, and unverified against
 the platform's Spring AI 2.0.1. Revisit when it reaches 1.0.
 
-The client is a plain (not `@LoadBalanced`) `RestClient` with **no retries** on the chat path and no circuit state beyond
-"fail to heuristic". Its connect+read timeout is a latency budget, `mcp.tagging.provider.timeout`, default 800 ms. The budget
+The client is a plain (not `@LoadBalanced`) HTTP client with **no retries** on the chat path and no circuit state beyond
+"fail to heuristic". One overall deadline covering connect, response headers and body is the latency budget,
+`mcp.tagging.provider.timeout`, default 800 ms (a per-read timeout lets a trickled body exceed it; Changelog 2026-10-01). The budget
 is not raised to fit a slow model. If no candidate meets it on the target host (§6), the choice is recorded in the Changelog:
 raise the budget explicitly, move tagging to a host with an accelerator, or keep the heuristics.
 
@@ -353,15 +356,16 @@ until a real T2-simple model is chosen.
 
 - The tag set is code, reviewed in PRs; there is no runtime tag editor.
 - Tier routing stays dormant; this ADR changes what feeds it, not whether it runs.
-- Tag-added tools are intersected with the permission-gated set (§2, §3.1), so a tool the caller lacks permission for is no
-  longer offered at selection; downstream `@PreAuthorize` is unchanged.
+- Tag-added gated tools are intersected with the permission-gated set (§2, §3.1), so a tool the caller lacks permission for is
+  no longer offered at selection; downstream `@PreAuthorize` is unchanged. The glossary and web-search tools, which have no
+  permission, are offered as before.
 
 ---
 
 ## Implementation Notes
 
 - **Components:** `QuestionTagger`, `QuestionTags` (`internal.domain`), `HeuristicQuestionTagger`, `JevQuestionTagger`
-  (`internal.orchestration`), `JevClient` (`internal.client`, plain `RestClient`); placement per §1. Consumers updated in
+  (`internal.orchestration`), `JevClient` (`internal.client`, plain JDK `HttpClient`); placement per §1. Consumers updated in
   `SimpleChatFastPath`/`SimpleChatClassifier`, `ToolSelectionEngine`, `ToolRegistryService`, the #1180 rerank split, and
   `NltiRouter`. Each session manager makes one call to a new `ToolSelectionEngine` method, ahead of `isSimpleChat` and its own
   private `routeTier` (which calls `NltiRouter.classify`), and passes the record on; transport parity is structural because
@@ -468,3 +472,14 @@ applied on acceptance, not by this ADR):
   vocabulary, and the graph's Domain nodes are tool-catalog domains (33, over the 26-option cap, spelled for tools). Entity
   Nouls are asked only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true (default false: the
   44-question set does not fit `tev1`'s context; the §6 bake-off sets it per model). §1 tag table updated to match.
+- **2026-10-01**: Implementation decisions from the #2367 review round:
+  - **Web search is not intersected.** The Exa web-search tool has no `mcp_tool` or `mcp_tool_permission` row, no
+    `@PreAuthorize`, and reads no tenant data, so the §2 intersection would remove it for every caller. It is offered on
+    `needs_web_search` as before, like the always-on glossary tool. Gating it would need a catalog row with a permission,
+    which changes the ranked cut; that is an owner decision, not part of this ADR.
+  - **One overall deadline.** `JevClient` uses the JDK `HttpClient` with one deadline (`provider.timeout`) over connect,
+    headers and body, cancelling the exchange on expiry, instead of a `RestClient` with separate connect and read timeouts
+    (a per-read timeout lets a trickled body run past the budget). §5 and Implementation Notes updated.
+  - **Routing stays router-only.** Telemetry schema 3 keeps the `Routing` block's router-only meaning; the acting tag
+    values appear only in the new `tagging` block. Filling `Routing` from heuristic `safeDefault()` constants would break the
+    routing-mix alerts and the Gate 7 risk panel. Wave 2 revisits this when the router reads the tags (§7).
