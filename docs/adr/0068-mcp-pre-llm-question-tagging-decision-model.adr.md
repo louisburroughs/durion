@@ -463,15 +463,14 @@ applied on acceptance, not by this ADR):
   timeout as a budget), §6 (model bake-off on the target host before any promotion; thresholds from shadow data), Constraints
   and Drivers (GPU-less `t3.2xlarge`), Alternatives (hosted Jev moved to an alternative), Consequences, Implementation Notes.
 - **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.
-- **2026-10-01**: Implementation decision (ADR-0068 wave 1, louisburroughs/durion-positivity-backend#2367; NLTI domain review).
-  `entity` is asked as one Noul per lexicon entity (`entity_<key>`), not a grouped Choice. A message often names several
-  entities (customer + invoice + workorder); a Choice forces one answer per group and needs a `none` option that small models
-  mis-select, while a Noul gives a calibrated p per entity, lets a per-entity threshold exist (`thresholds.entity.<key>`), and
-  has no 26-option cap. `domain` options are permanently the rag-scope vocabulary plus `master`, not the graph's Domain nodes:
-  both consumers of the tag (TierSelector's risky domains and the domain seed that admits a scope's RagDocs) speak that
-  vocabulary, and the graph's Domain nodes are tool-catalog domains (33, over the 26-option cap, spelled for tools). Entity
-  Nouls are asked only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true (default false: the
-  44-question set does not fit `tev1`'s context; the §6 bake-off sets it per model). §1 tag table updated to match.
+- **2026-09-30**: Implementation correction (NLTI domain review): the `domain` Choice option set is permanently the RAG-scope
+  vocabulary (§1 said 'until ADR-0069 supplies its Domain nodes'; the graph's tool domains exceed the local models' 26-option
+  cap and are not user vocabulary); the `entity` question is one Noul per lexicon entity rather than one Choice (same cap;
+  multi-entity seeding); `enforced-tags` entries may be veto-only (§3.4 generalised).
+- **2026-10-01**: Implementation detail of the 2026-09-30 correction (louisburroughs/durion-positivity-backend#2367): the
+  entity Nouls are named `entity_<key>` on the wire, may carry a per-entity threshold `thresholds.entity.<key>`, and are asked
+  only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true (default false: the 44-question set
+  does not fit `tev1`'s context; the §6 bake-off sets it per model).
 - **2026-10-01**: Implementation decisions from the #2367 review round:
   - **Web search is not intersected.** The Exa web-search tool has no `mcp_tool` or `mcp_tool_permission` row, no
     `@PreAuthorize`, and reads no tenant data, so the §2 intersection would remove it for every caller. It is offered on
