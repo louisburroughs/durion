@@ -483,3 +483,12 @@ applied on acceptance, not by this ADR):
   - **Routing stays router-only.** Telemetry schema 3 keeps the `Routing` block's router-only meaning; the acting tag
     values appear only in the new `tagging` block. Filling `Routing` from heuristic `safeDefault()` constants would break the
     routing-mix alerts and the Gate 7 risk panel. Wave 2 revisits this when the router reads the tags (§7).
+- **2026-10-01**: Monitoring, from the louisburroughs/durion-positivity-backend#2368 review round:
+  - **The fallback alert pages on provider failures only.** `NltiTaggingFallbackRateHigh` (P2) counts turns whose
+    `fallbackReason` is `timeout`, `rate_limited`, `error` or `malformed` above 20 % of tagged turns over 15 m, not
+    `low_confidence`. A below-threshold answer is the safe, designed fallback and a calibration signal, and it is
+    defined per tag, not per turn. Implementation Notes → Monitoring's "alert on sustained fallback rate above 20%"
+    means provider fallbacks.
+  - **No low-confidence alert in Wave 1.** No turn carries `low_confidence` until `enforce` exists, so a rule on it
+    could not fire. Wave 2 defines a turn-level (or per-tag) low-confidence signal and its alert.
+

@@ -19,9 +19,9 @@ documentation PR. Waves 1 and 2 are stacked; Wave 3 touches compose, scripts, da
 
 | Wave | Branch | State |
 | ---- | ------ | ----- |
-| 1 Seam, heuristic and decision-model taggers, shadow | `feat/adr-0068-w1-tagging-seam` | not started |
+| 1 Seam, heuristic and decision-model taggers, shadow | `feat/adr-0068-w1-tagging-seam` | in review: louisburroughs/durion-positivity-backend#2367 |
 | 2 Enforce per tag, router from tags, scope-graph integration | `feat/adr-0068-w2-tagging-enforce` | not started |
-| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | not started |
+| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | in review: louisburroughs/durion-positivity-backend#2368; durion docs: alerts and dashboard pages done, 3.4 architecture pages after #2367 merges |
 
 Common verification for every backend wave, run from the repository root:
 
@@ -37,7 +37,7 @@ Common verification for every backend wave, run from the repository root:
 | - | ---- | ----- |
 | 1.1 | **Behaviour-preservation fixture first**: capture today's decisions (simple chat, workflow state, keyword-added tools, date window, admin fast path incl. veto, compound split) for a message set in en/fr/es into a test fixture, with a test that asserts them against the current code | spec §4, written before any refactor |
 | 1.2 | `TaggingProperties` (`mcp.tagging`), `application.yml` block with comments, `application-test.yml` pins `mode: off` | spec §2.1 |
-| 1.3 | `QuestionTags`, `QuestionTagger`, tag value types (`internal.domain`); `TaggingQuestions` (tag definitions, instructions, criteria; `domain` options from the graph or preload scopes; entity groups per spec §2.4) | spec §2.3, §2.4 |
+| 1.3 | `QuestionTags`, `QuestionTagger`, tag value types (`internal.domain`); `TaggingQuestions` (tag definitions, instructions, criteria; `domain` options from the preload scopes; one entity Noul per lexicon entity per spec §2.4, amended 2026-10-01) | spec §2.3, §2.4 |
 | 1.4 | `HeuristicQuestionTagger`: the six heuristics moved behind the interface unchanged; the admin lists stay in `ToolRegistryService` and are read from there (§1) | spec §2.3 |
 | 1.5 | `JevClient` (`internal.client`, plain `RestClient`, own timeouts, no retries) and `JevQuestionTagger`; answer parsing to values and confidences; every failure → provider failure with reason | spec §2.2 |
 | 1.6 | `TaggingService`: mode logic, merge, fallback reasons, metrics; warm-up passes `QuestionTags.none()` | spec §2.5 |
@@ -72,9 +72,9 @@ Exit: common verification green; `enforce` with `enforced-tags: []` equals `shad
 
 | # | Task | Notes |
 | - | ---- | ----- |
-| 3.1 | `docker-compose.yml`: `ollama` and `ollama-init` pinned to a 0.35+ tag; `ollama-init` pulls `${OLLAMA_TAGGING_MODEL}` beside the embedding model; `OLLAMA_MAX_LOADED_MODELS=2`; comments; `.env.example` (`OLLAMA_TAGGING_MODEL=tev1:0.8b`, `MCP_TAGGING_MODE=off`); `pos-mcp-server` env wiring; alpha memory note | ADR Implementation Notes → Container |
+| 3.1 | `docker-compose.yml`: `ollama` and `ollama-init` pinned to a 0.35+ tag; `ollama-init` pulls `${OLLAMA_TAGGING_MODEL}` beside the embedding model; `OLLAMA_MAX_LOADED_MODELS` ≥ 2 (3 shipped: room for a second candidate during a bake-off) and `OLLAMA_KEEP_ALIVE`; comments; `.env.example` (`OLLAMA_TAGGING_MODEL=tev1:0.8b`, `MCP_TAGGING_MODE=off`); `pos-mcp-server` env wiring; alpha memory note | ADR Implementation Notes → Container |
 | 3.2 | `scripts/tagging_shadow_report.py` + the bake-off procedure section | spec §2.9 |
-| 3.3 | NLTI overview dashboard: tagging latency, fallback by reason, agreement per tag, model in use; Loki alert on fallback rate > 20 % sustained | ADR Monitoring |
+| 3.3 | NLTI overview dashboard: tagging latency, fallback by reason, agreement per tag, model in use, `ollama` container CPU and memory; Loki alert on provider-failure fallback rate > 20 % sustained (ADR Changelog 2026-10-01); `operations/alerts/nlti-alerts.md` rule 12 and `operations/dashboards/nlti-overview.md` tagging row | ADR Monitoring |
 | 3.4 | `durion`: `architecture.md` (request flow: tag → simple chat → tier → selection → scope), `tool-selection-architecture.md` (keyword fallback, admin fast path, workflow state now tag-driven), this plan's state table, `scope-graph-spec.md` cross-reference for `lookups` and `MatchKind.TAG` | ADR Docs to update |
 
 ## After the waves (not in this plan)

@@ -126,6 +126,46 @@ Request health, latency, errors, and intent/clarification activity.
   - Description: Both counters fire in `IntentParserServiceImpl`. The ratio is the intent-regression
     signal; the raw counts alone move with traffic.
 
+### Row: Question tagging (ADR-0068, telemetry schema 3)
+
+Every panel in this row reads the `tagging` block of `nlti.request.telemetry` (Loki), except the two `ollama`
+container panels (Prometheus, cAdvisor). The block is present on every chat event in every mode; mode `OFF`
+turns (heuristic only, no provider call) carry no `latencyMs`, `providerModel` or `agreementRate`, and the
+panels exclude them. The per-tag, per-threshold and ground-truth breakdown for the ADR-0068 §6 bake-off is
+`scripts/tagging_shadow_report.py`, not this row (procedure: `pos-mcp-server/src/test/resources/eval/tagging-gate/README.md`).
+
+- Panel: Tagging latency p50/p95
+  - Metric: `quantile_over_time` of `tagging.latencyMs` (Loki)
+  - Type: timeseries
+  - Description: wall time of the one provider call per turn in mode `SHADOW` or `ENFORCE`, fallbacks
+    included; the budget is `mcp.tagging.provider.timeout` (800 ms). Latency near the budget with rising
+    timeouts means the model is too slow for the host.
+
+- Panel: Tagging fallbacks by reason
+  - Metric: turns per `tagging.fallbackReason`, and the provider-failure share (Loki)
+  - Type: timeseries
+  - Description: `timeout`, `rate_limited`, `error`, `malformed` are provider failures (alert rule 12 fires
+    on their share above 20 %). `low_confidence` is reserved for Wave 2 `enforce`.
+
+- Panel: Tagger agreement rate
+  - Metric: mean `tagging.agreementRate` (Loki)
+  - Type: timeseries
+  - Description: share of tags per turn where the model and the heuristic agree, present only when both
+    answered. Diagnostic only: the §6 promotion rule scores accuracy against the gate labels, not agreement.
+
+- Panel: Tagging provider model in use
+  - Metric: turns per `tagging.providerModel` (Loki)
+  - Type: stat
+  - Description: more than one row means the model changed inside the window (a bake-off or a config roll).
+
+- Panel: ollama container memory / ollama container CPU
+  - Metric: `container_memory_working_set_bytes{name="ollama"}`,
+    `rate(container_cpu_usage_seconds_total{name="ollama"}[5m])` (Prometheus, cAdvisor)
+  - Type: timeseries
+  - Description: the container serves the embedding model (`bge-m3`) and the tagging model side by side.
+    §6 reads each candidate's resident memory here with both models warm; a CPU plateau near the host's core
+    count explains rising tagging latency and timeouts on the GPU-less host.
+
 - Panel: Raw `nlti.request.telemetry` stream
   - Metric: the Loki log stream itself
   - Type: logs

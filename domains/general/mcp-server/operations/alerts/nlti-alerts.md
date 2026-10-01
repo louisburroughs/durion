@@ -186,12 +186,28 @@ populated yet, the rule states the substitute signal it fires on today.
     - Severity: P1 for 5xx, P2 for the conflict/expiry ratio
     - Runbook: domains/general/mcp-server/operations/runbooks/confirmation-gate-mismatch.md
 
+## Question tagging alerts (ADR-0068)
+
+12. Name: NltiTaggingFallbackRateHigh
+   - Trigger: Loki — over 15m, more than 20 % of tagged turns fell back to the heuristic because the
+     tagging provider **failed**: `tagging.fallbackReason` is `timeout`, `rate_limited`, `error` or
+     `malformed` (the `FallbackReason` wire names in pos-mcp-server). The denominator is every turn whose
+     `tagging.mode` is `SHADOW` or `ENFORCE`; mode `OFF` turns carry the `tagging` block too (the heuristic
+     tagger always runs) and are excluded from numerator, denominator and the guard. Volume guard: more
+     than 20 tagged turns in the window. `for: 15m`.
+   - Not counted: `low_confidence` (the model answered below a tag's threshold). That is a calibration
+     signal, not an outage, and it is per tag; a turn-level low-confidence alert is deferred to Wave 2,
+     when `enforce` defines it (ADR-0068 Changelog 2026-10-01).
+   - Severity: P2 (turns keep working on the heuristic tags, but shadow data and enforced tags degrade)
+   - Runbook: domains/general/mcp-server/operations/runbooks/downstream-timeout.md (the `ollama`
+     container is slow, overloaded or failing; check the `ollama` CPU/memory panels on `nlti-overview`)
+
 ## Implementation Notes
 
-- Rules 1–4 and 9, 11 are Prometheus-evaluable; 5–8, 10 are Loki (LogQL) rules. The Loki half is
+- Rules 1–4 and 9, 11 are Prometheus-evaluable; 5–8, 10 and 12 are Loki (LogQL) rules. The Loki half is
   materialized (#1424): `observability/loki-config.yml` configures the ruler, and the rule file
   `observability/loki/rules/nlti-alerts.yml` (compose-mounted at `/loki/rules/fake`) carries rules
-  2, 5–8, 10 and the Loki supplements of 9 and 11. That file is the deployed form; this document
+  2, 5–8, 10, 12 and the Loki supplements of 9 and 11. That file is the deployed form; this document
   stays the source of truth for intent and thresholds — change both together. Verify with
   `curl localhost:3100/loki/api/v1/rules` (loaded rule files) and
   `curl localhost:3100/prometheus/api/v1/rules` (evaluation state) — Loki is bound to
