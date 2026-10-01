@@ -196,8 +196,8 @@ populated yet, the rule states the substitute signal it fires on today.
       tagger always runs) and are excluded from numerator, denominator and the guard. Volume guard: at
       least 20 tagged turns in the window. `for: 15m`.
     - Not counted: `low_confidence` (the model answered below a tag's threshold). That is a calibration
-      signal, not an outage, and it is per tag; a turn-level low-confidence alert is deferred to Wave 2,
-      when `enforce` defines it (ADR-0068 Changelog 2026-10-01).
+      signal, not an outage, and it is per tag (`mcp.tagging.low_confidence{tag}` since wave 2). No turn-level
+      low-confidence alert exists; per-tag rates are read in the bake-off report, not alerted on.
     - Severity: P2 (turns keep working on the heuristic tags, but shadow data and enforced tags degrade)
     - Runbook: domains/general/mcp-server/operations/runbooks/downstream-timeout.md (the `ollama`
       container is slow, overloaded or failing; check the `ollama` CPU/memory panels on `nlti-overview`)

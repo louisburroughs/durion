@@ -29,8 +29,8 @@ Code paths are relative to `durion-positivity-backend/pos-mcp-server/`. All new 
 
 | Item | ADR | Why deferred |
 | ---- | --- | ------------ |
-| Tag seeds from the ADR-0068 tagger; option lists wired into the tagger | §5.1, §6 row 5 | ADR-0068 is accepted (2026-09-30) but `QuestionTagger` is not built yet. The graph exposes `entityOptions()` and `domainOptions()` now, so the wiring is one call when the tagger lands |
-| Graph lookups replacing the keyword-fallback and `deriveWorkflowState` word lists | §6 row 3 | The ADR moves those lists into `HeuristicQuestionTagger` (ADR-0068) and replaces them there. Doing it before that seam exists would move them twice. The §6 fallback ("word lists remain") is today's behaviour |
+| Tag seeds from the ADR-0068 tagger; option lists wired into the tagger | §5.1, §6 row 5 | **Done** (ADR-0068 wave 2, louisburroughs/durion-positivity-backend#2369): entity and domain tags seed the scope at `MatchKind.TAG` (LOW); the `domain` question is asked over the RAG-scope vocabulary ([question-tagging-spec.md](question-tagging-spec.md) §2.3) |
+| Graph lookups replacing the keyword-fallback and `deriveWorkflowState` word lists | §6 row 3 | **Done as the `lookups` consumer** (ADR-0068 wave 2): when `lookups` is in `mcp.scope-graph.enforce`, the heuristic tagger reads `workflow_state` from the lexicon (acting `intent = ACTION` only) and the inventory/order guards are replaced by the scope's hop-1 facades; the word lists stay the fallback ([question-tagging-spec.md](question-tagging-spec.md) §2.6) |
 | `lifecycles.yaml`, `TRANSITIONS_TO` | §3.3 | Phase 2 in the ADR. `HAS_STATE` is populated; the card prints states without "valid next states" |
 | Promoting any consumer to `enforce` on alpha | §9 | Needs a recorded gate run per consumer against the same run in `shadow`. That is an operations step with its own evidence, recorded in the ADR Changelog |
 | Lowering `mcp.agent.discovered-tool-limit` | Consequences | Needs the shadow data |
