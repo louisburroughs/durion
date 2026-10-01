@@ -115,25 +115,27 @@ value and confidence for agreement. Tag names are the `questions` keys.
 | `intent` | Choice | `QUERY`, `ACTION`, `UNKNOWN` | `safeDefault()` → `UNKNOWN` |
 | `complexity` | Choice | `SINGLE_LOOKUP`, `MULTI_DOMAIN` | `safeDefault()` → `MULTI_DOMAIN` |
 | `risk` | Score | `LOW`, `MEDIUM`, `HIGH` | `safeDefault()` → `HIGH` |
-| `domain` | Choice | the graph's `domainOptions()` when the graph is built, else the distinct `rag-scope` values of `mcp.rag.preload.docs`; `master` is always an option | `safeDefault()` → `master` |
-| `entity_<n>` | Choice | see §2.4 | none: the heuristic tagger does not answer entity tags (the lexicon term match already seeds the scope, 0069 §5.1) |
+| `domain` | Choice | the distinct `rag-scope` values of `mcp.rag.preload.docs`, plus `master` (always; ADR-0068 Changelog 2026-10-01) | `safeDefault()` → `master` |
+| `entity_<key>` | Noul | one per lexicon entity, see §2.4 | none: the heuristic tagger does not answer entity tags (the lexicon term match already seeds the scope, 0069 §5.1) |
 
 The heuristic tagger reports confidence `1.0` for every tag it answers (a rule either fires or not) and `source = HEURISTIC`.
 Instructions are fixed English text describing the shop-management context and the decision (`nimble`'s guidance: a
 question phrased as a question). They never include the message, caller or tenant.
 
-### 2.4 The entity question under a 26-option cap
+### 2.4 The entity questions
 
-The lexicon holds 33 entities and grows; both local models accept at most 26 options per Choice. The `entity` question of §1
-is therefore asked as **groups**: `entity_1 … entity_k`, each a Choice over at most 24 entity keys plus `none`. Groups are
-built from the graph snapshot deterministically: entities sorted by owning domain then key, filled in order, a domain never
-split across two groups unless it alone exceeds 24. Each group's instructions say the message may be about none of the listed
-entities. Every group whose answer is not `none` and whose confidence meets `thresholds.entity` yields a seed, so a question
-that names two entities in different groups seeds both (0069 Consequences: multi-domain questions). The groups are rebuilt
-when the graph snapshot changes (they are cached by graph hash). When the graph is empty (`mcp.scope-graph.mode: off`) no
-entity question is asked, per §1.
+> **Amended 2026-10-01** (ADR-0068 Changelog; louisburroughs/durion-positivity-backend#2367, NLTI domain review): grouped
+> Choices replaced by one Noul per entity.
 
-`thresholds.entity` applies to every group; `enforced-tags` lists `entity`, not the groups.
+Each lexicon entity is asked as its own Noul, `entity_<key>` (for example `entity_workorder`): "Is this message about any
+of these: <en terms> (French: <fr terms>; Spanish: <es terms>)?". A message that names several entities seeds each of them
+(0069 Consequences: multi-domain questions), no `none` option is needed, and the 26-option Choice cap does not apply. Every
+entity Noul whose value is true and whose confidence meets `thresholds.entity.<key>` (else `thresholds.entity`) yields a seed.
+
+Entity Nouls are asked only when `mcp.scope-graph.mode` is not `off` (the graph is their only consumer) and
+`mcp.tagging.entity-questions` is true. The default is false: with every entity the request carries 44 questions (about
+4.6k tokens), past `tev1`'s context, so the §6 bake-off decides the setting per model and runs with the graph on, because
+the gate fixtures label entities. `enforced-tags` lists `entity`, which covers every entity Noul.
 
 ### 2.5 Where the turn is tagged
 
@@ -166,8 +168,8 @@ count as turns).
 | Admin fast path | fires on keyword/phrase match without veto (today) | fires only when the heuristic matched without veto **and** `admin_account_question` (acting value) is true (§3.4). A model `false` at or above threshold vetoes it | `ToolRegistryService.resolveCandidateSelection(context, topK, tags)` |
 | Compound split | today's split | split only when `compound_question` is true; a `false` at or above threshold skips the split for the turn | `RerankedContentRetriever` reads the tags from `RequestScopedUserContext` |
 | Router / tier | `NltiRouter.classify(tags)` maps `intent`, `risk`, `complexity`, `domain` → `RouterClassification`; heuristic values are `safeDefault()` so the tier is `T2_COMPLEX`, as the dormant router yields today. The chat-model call is removed in Wave 2 (§7) | model values where each tag is listed; a tag below threshold takes `safeDefault()`'s value for that field (§3.5: a low-confidence `risk` is `HIGH`). `TierSelector` unchanged | `NltiRouter` |
-| Scope graph seeds | the heuristic yields no `domain` (always `master`) and no entity, so no tag seeds | `domain` (not `master`) and every `entity_<n>` answer at or above threshold are passed to `ScopeResolver.resolve(message, codes, state, tagSeeds)`; they seed with match kind `TAG`, confidence `LOW` (0069 §5.4 reserves `HIGH` for identifier and exact-term seeds) | `ToolSelectionEngine.resolveScope` |
-| Scope graph option lists | — | `domainOptions()` and the entity groups come from the current graph snapshot (0069 §6 row 5) | `TaggingQuestions` |
+| Scope graph seeds | the heuristic yields no `domain` (always `master`) and no entity, so no tag seeds | `domain` (not `master`) and every `entity_<key>` answer true at or above threshold are passed to `ScopeResolver.resolve(message, codes, state, tagSeeds)`; they seed with match kind `TAG`, confidence `LOW` (0069 §5.4 reserves `HIGH` for identifier and exact-term seeds) | `ToolSelectionEngine.resolveScope` |
+| Scope graph option lists | — | the entity Nouls come from the current graph snapshot's lexicon (0069 §6 row 5); `domain` options stay the rag scopes (§2.3) | `TaggingQuestions` |
 
 Rules that hold in every mode (§3): permission gating first and unchanged; tags add permitted tools and never remove a ranked
 one; persisted workflow state wins; the fast path is never fired by a tag alone; risk never downgrades; only typed values are
@@ -183,8 +185,7 @@ read from the response and none of them is ever placed in a prompt, a log templa
   `facade_tools`, entity → workflow state through a new optional lexicon field `workflow_state` (`purchase-order:
   CREATING_PO`, `asn: RECEIVING_ASN`; `INVENTORY_RECON` has no entity and stays heuristic-only). The loader validates the value
   against `WorkflowState`.
-- The graph exposes `entityGroups(maxOptions)` for §2.4, or `TaggingQuestions` builds the groups from `entityOptions()` and the
-  entities' `OWNED_BY` edges; either way the grouping is deterministic and tested.
+- `TaggingQuestions` builds one Noul per entity from `entityOptions()` (§2.4), in a deterministic order, and a test pins it.
 
 ### 2.8 Recording
 
@@ -253,8 +254,8 @@ Beyond the ADR's list (Implementation Notes → Testing):
   (correct behaviour, but 800 ms of added latency per turn). The bake-off measures it before any promotion; the timer and the
   fallback counter show it immediately in `shadow`.
 - **Two taggers to keep in step.** A new tag must be answered by both. The behaviour-preservation fixture and a test that every
-  tag definition has a heuristic (or is declared heuristic-less, like `entity_<n>`) guard it.
-- **Option-list drift.** The entity groups change when the lexicon changes, so shadow agreement for `entity` is comparable only
+  tag definition has a heuristic (or is declared heuristic-less, like `entity_<key>`) guard it.
+- **Option-list drift.** The entity Nouls change when the lexicon changes, so shadow agreement for `entity` is comparable only
   within one graph hash; the trace carries it.
 - **Telemetry schema 3** lands shortly after schema 2; the dashboards match `{"schemaVersion"` without a value, so nothing
   breaks, but the two version bumps should be noted in the release notes together.

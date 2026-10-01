@@ -141,8 +141,8 @@ The initial tag set, sent in a single Jev request (the `entity` question joins i
 | `admin_account_question` | Noul | Vetoes the admin fast path (`ADMIN_QUERY_KEYWORDS` / `ADMIN_QUERY_PHRASES` / `FAST_PATH_VETO_TERMS`, §3.4); never fires it alone |
 | `compound_question` | Noul | #1180 split detection (the split itself is unchanged) |
 | `intent` (QUERY / ACTION / UNKNOWN), `complexity` | Choice each | `NltiRouter` JSON output |
-| `domain` | Choice | `NltiRouter` JSON output; option set: the RAG scope values (`mcp.rag.preload.docs`), as the Gate 4 design intended (`<rag-scope>`, `gate4-tiered-router-design.md:60`), until ADR-0069 supplies its Domain nodes. The shipped router prompt is free-form (`NltiRouter.java:37-46`: `<one lowercase business domain>` with examples, several not RAG scopes) |
-| `entity` | Choice over the ADR-0069 entity lexicon | new: seeds ADR-0069 §5.1; not asked until that lexicon exists |
+| `domain` | Choice | `NltiRouter` JSON output; option set: the RAG scope values (`mcp.rag.preload.docs`) plus `master`, as the Gate 4 design intended (`<rag-scope>`, `gate4-tiered-router-design.md:60`), permanently (Changelog 2026-10-01). The shipped router prompt is free-form (`NltiRouter.java:37-46`: `<one lowercase business domain>` with examples, several not RAG scopes) |
+| `entity_<key>` | Noul per ADR-0069 lexicon entity (Changelog 2026-10-01) | new: seeds ADR-0069 §5.1; asked only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true |
 | `risk` (LOW / MEDIUM / HIGH) | Score | `NltiRouter` JSON output |
 
 **Values and confidence.** Noul returns one probability *p*: the value is `p ≥ 0.5` and the confidence is `max(p, 1 − p)`.
@@ -402,7 +402,7 @@ until a real T2-simple model is chosen.
   integration"), [ADR-0026](0026-service-contract-boundary-policy.adr.md) (internal-only placement),
   [ADR-0046](0046-environment-log-level-policy.adr.md) (logging), [ADR-0062](0062-postgres-row-level-multitenancy.adr.md) §11
   (tenant-scoped conversations and LLM context), [ADR-0069](0069-mcp-scope-graph-pre-llm-narrowing.adr.md) (scope graph:
-  supplies the option sets for the `domain` and entity Choice questions and consumes the tags).
+  supplies the entity lexicon behind the `entity_<key>` Nouls and consumes the tags).
 - **Related Documentation:** `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md`.
 - **External Resources:** [Spring AI and TypeSafe Jev](https://spring.io/blog/2026/09/21/spring-ai-typesafe-structured-judgment/),
   [TypeSafe Jev project reference](https://gist.github.com/pjburnhill/adf8d28efcad9df037bfdece178ef965),
@@ -459,3 +459,12 @@ applied on acceptance, not by this ADR):
   timeout as a budget), §6 (model bake-off on the target host before any promotion; thresholds from shadow data), Constraints
   and Drivers (GPU-less `t3.2xlarge`), Alternatives (hosted Jev moved to an alternative), Consequences, Implementation Notes.
 - **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.
+- **2026-10-01**: Implementation decision (ADR-0068 wave 1, louisburroughs/durion-positivity-backend#2367; NLTI domain review).
+  `entity` is asked as one Noul per lexicon entity (`entity_<key>`), not a grouped Choice. A message often names several
+  entities (customer + invoice + workorder); a Choice forces one answer per group and needs a `none` option that small models
+  mis-select, while a Noul gives a calibrated p per entity, lets a per-entity threshold exist (`thresholds.entity.<key>`), and
+  has no 26-option cap. `domain` options are permanently the rag-scope vocabulary plus `master`, not the graph's Domain nodes:
+  both consumers of the tag (TierSelector's risky domains and the domain seed that admits a scope's RagDocs) speak that
+  vocabulary, and the graph's Domain nodes are tool-catalog domains (33, over the 26-option cap, spelled for tools). Entity
+  Nouls are asked only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true (default false: the
+  44-question set does not fit `tev1`'s context; the §6 bake-off sets it per model). §1 tag table updated to match.
