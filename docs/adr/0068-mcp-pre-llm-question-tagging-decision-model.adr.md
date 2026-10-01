@@ -141,8 +141,8 @@ The initial tag set, sent in a single Jev request (the `entity` question joins i
 | `admin_account_question` | Noul | Vetoes the admin fast path (`ADMIN_QUERY_KEYWORDS` / `ADMIN_QUERY_PHRASES` / `FAST_PATH_VETO_TERMS`, §3.4); never fires it alone |
 | `compound_question` | Noul | #1180 split detection (the split itself is unchanged) |
 | `intent` (QUERY / ACTION / UNKNOWN), `complexity` | Choice each | `NltiRouter` JSON output |
-| `domain` | Choice | `NltiRouter` JSON output; option set: the RAG scope values (`mcp.rag.preload.docs`), as the Gate 4 design intended (`<rag-scope>`, `gate4-tiered-router-design.md:60`), until ADR-0069 supplies its Domain nodes. The shipped router prompt is free-form (`NltiRouter.java:37-46`: `<one lowercase business domain>` with examples, several not RAG scopes) |
-| `entity` | Choice over the ADR-0069 entity lexicon | new: seeds ADR-0069 §5.1; not asked until that lexicon exists |
+| `domain` | Choice | `NltiRouter` JSON output; option set: the RAG scope values (`mcp.rag.preload.docs`) plus `master`, as the Gate 4 design intended (`<rag-scope>`, `gate4-tiered-router-design.md:60`), permanently (Changelog 2026-10-01). The shipped router prompt is free-form (`NltiRouter.java:37-46`: `<one lowercase business domain>` with examples, several not RAG scopes) |
+| `entity_<key>` | Noul per ADR-0069 lexicon entity (Changelog 2026-10-01) | new: seeds ADR-0069 §5.1; asked only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true |
 | `risk` (LOW / MEDIUM / HIGH) | Score | `NltiRouter` JSON output |
 
 **Values and confidence.** Noul returns one probability *p*: the value is `p ≥ 0.5` and the confidence is `max(p, 1 − p)`.
@@ -173,7 +173,9 @@ The rules move unchanged, but how their results are applied changes in one respe
 which the managers then merge with the role tools (`SessionAgentManager.java:324-325`), without the permission gate
 (`SharedOrchestrationSupport.java:25-28`), and relies on downstream `@PreAuthorize` to refuse an unpermitted call. Under this
 ADR the tools added by **both** taggers' tags are intersected with the permission-gated set (§3.1). This is a deliberate
-behaviour change.
+behaviour change. Tools with no catalog row and no permission, the always-on glossary tool and the Exa web-search tool, have
+nothing to intersect with: they read no tenant data, carry no `@PreAuthorize`, and are offered as before (Changelog
+2026-10-01).
 
 ### 3. Tags are advisory and can never widen access
 
@@ -242,8 +244,9 @@ The community Spring AI starter (`org.springaicommunity:spring-ai-starter-typesa
 `TypeSafeClient` is reported to work against Ollama unchanged, but it is pre-1.0, community-maintained, and unverified against
 the platform's Spring AI 2.0.1. Revisit when it reaches 1.0.
 
-The client is a plain (not `@LoadBalanced`) `RestClient` with **no retries** on the chat path and no circuit state beyond
-"fail to heuristic". Its connect+read timeout is a latency budget, `mcp.tagging.provider.timeout`, default 800 ms. The budget
+The client is a plain (not `@LoadBalanced`) HTTP client with **no retries** on the chat path and no circuit state beyond
+"fail to heuristic". One overall deadline covering connect, response headers and body is the latency budget,
+`mcp.tagging.provider.timeout`, default 800 ms (a per-read timeout lets a trickled body exceed it; Changelog 2026-10-01). The budget
 is not raised to fit a slow model. If no candidate meets it on the target host (§6), the choice is recorded in the Changelog:
 raise the budget explicitly, move tagging to a host with an accelerator, or keep the heuristics.
 
@@ -353,15 +356,16 @@ until a real T2-simple model is chosen.
 
 - The tag set is code, reviewed in PRs; there is no runtime tag editor.
 - Tier routing stays dormant; this ADR changes what feeds it, not whether it runs.
-- Tag-added tools are intersected with the permission-gated set (§2, §3.1), so a tool the caller lacks permission for is no
-  longer offered at selection; downstream `@PreAuthorize` is unchanged.
+- Tag-added gated tools are intersected with the permission-gated set (§2, §3.1), so a tool the caller lacks permission for is
+  no longer offered at selection; downstream `@PreAuthorize` is unchanged. The glossary and web-search tools, which have no
+  permission, are offered as before.
 
 ---
 
 ## Implementation Notes
 
 - **Components:** `QuestionTagger`, `QuestionTags` (`internal.domain`), `HeuristicQuestionTagger`, `JevQuestionTagger`
-  (`internal.orchestration`), `JevClient` (`internal.client`, plain `RestClient`); placement per §1. Consumers updated in
+  (`internal.orchestration`), `JevClient` (`internal.client`, plain JDK `HttpClient`); placement per §1. Consumers updated in
   `SimpleChatFastPath`/`SimpleChatClassifier`, `ToolSelectionEngine`, `ToolRegistryService`, the #1180 rerank split, and
   `NltiRouter`. Each session manager makes one call to a new `ToolSelectionEngine` method, ahead of `isSimpleChat` and its own
   private `routeTier` (which calls `NltiRouter.classify`), and passes the record on; transport parity is structural because
@@ -402,7 +406,7 @@ until a real T2-simple model is chosen.
   integration"), [ADR-0026](0026-service-contract-boundary-policy.adr.md) (internal-only placement),
   [ADR-0046](0046-environment-log-level-policy.adr.md) (logging), [ADR-0062](0062-postgres-row-level-multitenancy.adr.md) §11
   (tenant-scoped conversations and LLM context), [ADR-0069](0069-mcp-scope-graph-pre-llm-narrowing.adr.md) (scope graph:
-  supplies the option sets for the `domain` and entity Choice questions and consumes the tags).
+  supplies the entity lexicon behind the `entity_<key>` Nouls and consumes the tags).
 - **Related Documentation:** `domains/general/mcp-server/architecture.md`, `domains/general/mcp-server/tool-selection-architecture.md`.
 - **External Resources:** [Spring AI and TypeSafe Jev](https://spring.io/blog/2026/09/21/spring-ai-typesafe-structured-judgment/),
   [TypeSafe Jev project reference](https://gist.github.com/pjburnhill/adf8d28efcad9df037bfdece178ef965),
@@ -463,3 +467,26 @@ applied on acceptance, not by this ADR):
   vocabulary (§1 said 'until ADR-0069 supplies its Domain nodes'; the graph's tool domains exceed the local models' 26-option
   cap and are not user vocabulary); the `entity` question is one Noul per lexicon entity rather than one Choice (same cap;
   multi-entity seeding); `enforced-tags` entries may be veto-only (§3.4 generalised).
+- **2026-10-01**: Implementation detail of the 2026-09-30 correction (louisburroughs/durion-positivity-backend#2367): the
+  entity Nouls are named `entity_<key>` on the wire, may carry a per-entity threshold `thresholds.entity.<key>`, and are asked
+  only when `mcp.scope-graph.mode` is not `off` and `mcp.tagging.entity-questions` is true (default false: the 44-question set
+  does not fit `tev1`'s context; the §6 bake-off sets it per model).
+- **2026-10-01**: Implementation decisions from the #2367 review round:
+  - **Web search is not intersected.** The Exa web-search tool has no `mcp_tool` or `mcp_tool_permission` row, no
+    `@PreAuthorize`, and reads no tenant data, so the §2 intersection would remove it for every caller. It is offered on
+    `needs_web_search` as before, like the always-on glossary tool. The Platform Owner confirmed on 2026-10-01 that web
+    search is available to every signed-in user, so it gets no catalog row or permission.
+  - **One overall deadline.** `JevClient` uses the JDK `HttpClient` with one deadline (`provider.timeout`) over connect,
+    headers and body, cancelling the exchange on expiry, instead of a `RestClient` with separate connect and read timeouts
+    (a per-read timeout lets a trickled body run past the budget). §5 and Implementation Notes updated.
+  - **Routing stays router-only.** Telemetry schema 3 keeps the `Routing` block's router-only meaning; the acting tag
+    values appear only in the new `tagging` block. Filling `Routing` from heuristic `safeDefault()` constants would break the
+    routing-mix alerts and the Gate 7 risk panel. Wave 2 revisits this when the router reads the tags (§7).
+- **2026-10-01**: Monitoring, from the louisburroughs/durion-positivity-backend#2368 review round:
+  - **The fallback alert pages on provider failures only.** `NltiTaggingFallbackRateHigh` (P2) counts turns whose
+    `fallbackReason` is `timeout`, `rate_limited`, `error` or `malformed` above 20 % of tagged turns over 15 m, not
+    `low_confidence`. A below-threshold answer is the safe, designed fallback and a calibration signal, and it is
+    defined per tag, not per turn. Implementation Notes → Monitoring's "alert on sustained fallback rate above 20%"
+    means provider fallbacks.
+  - **No low-confidence alert in Wave 1.** No turn carries `low_confidence` until `enforce` exists, so a rule on it
+    could not fire. Wave 2 defines a turn-level (or per-tag) low-confidence signal and its alert.

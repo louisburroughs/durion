@@ -6,10 +6,10 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/general
 path: durion/domains/general/
 tags: [domain, general]
 sources: [domains/general/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:52:28+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-01T01:58:23+00:00'}
 ---
 
-[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/general) — `domains/general/` (58 documents)
+[Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/general) — `domains/general/` (60 documents)
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/general/index.md) — authority, current guidance, and historical records
 
@@ -90,6 +90,9 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:52:28
 * [NLTI Runbook — Planning Failure](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/operations/runbooks/planning-failure.md) — Runbook · draft
 * [Tool Discovery Failure Runbook](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/operations/runbooks/tool-discovery-failure.md) —
   Runbook · current
+* [pos-mcp-server Question Tagging — Implementation Plan][document-53] — Plan · draft
+* [pos-mcp-server Question Tagging — Implementation Specification](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/question-tagging-spec.md) —
+  Specification · draft
 * [MCP Role Persona Sourcing Strategy](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/role-persona-sourcing.md) — Design Decision · current
 * [pos-mcp-server Scope Graph — Implementation Plan](https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/scope-graph-implementation-plan.md) —
   Plan · draft
@@ -122,3 +125,4 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-30T20:52:28
 [document-41]: https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/archive/spring-ai-big-bang-migration-checklist.md
 [document-42]: https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/archive/spring-ai-issues-delivery-plan.md
 [document-49]: https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/operations/runbooks/confirmation-gate-mismatch.md
+[document-53]: https://github.com/louisburroughs/durion/blob/master/domains/general/mcp-server/question-tagging-implementation-plan.md

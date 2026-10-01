@@ -228,7 +228,7 @@ is `NONE`, or `LOW` for that consumer:
 | Tool selection | Scope tools are **added on top of** both cuts (the facade ANN cut and the discovered-operation cut), at most `mcp.scope-graph.added-tool-slots` (default 8) added, the way the keyword fallback adds facade tools today. They never remove or displace a ranked tool (the same rule as ADR-0068 §3.2), and the scope never excludes a permitted tool. | Today's ranking unchanged |
 | Keyword fallback tools, `deriveWorkflowState` | Graph lookups (entity → facade tool through the lexicon's facade-tool list, entity → workflow state) replace the word lists | Word lists remain in `HeuristicQuestionTagger` (ADR-0068) |
 | Prompt | A **scope card** appended to the system prompt (§7) | No card |
-| ADR-0068 tagger | Option lists for the `domain` and entity Choice questions | Static option list for `domain`; the `entity` question is not asked without the lexicon |
+| ADR-0068 tagger | The entity lexicon behind the `entity_<key>` Nouls (ADR-0068 Changelog 2026-10-01; `domain` options are the rag-scope vocabulary, not the graph's Domain nodes) | No entity question is asked without the lexicon or with the graph `off` |
 
 Tools get additive slots rather than a hard filter because a missing tool fails the turn, while an extra one costs a few
 prompt tokens. Tools added by ADR-0068 tags (today's keyword-fallback facades, few and facade-only) and tools added by the scope
@@ -440,3 +440,5 @@ applied on acceptance, not by this ADR):
   `mcp.rag.preload.docs`; per-source permission predicates; additive tool slots; card visibility rule; citations corrected.
 - **2026-09-30**: Accepted by the Platform Owner. Documents listed under "Documents affected on acceptance" amended.
 - **2026-09-30**: ADR-0068 accepted. The §5.1 tag seeds and the §6 tagger option lists take effect when its tagger is built; until then the §6 fallbacks still apply.
+- **2026-10-01**: §6 ADR-0068 tagger row: entity questions are one Noul per lexicon entity and `domain` options stay the
+  rag-scope vocabulary, per ADR-0068's Changelog of the same date.

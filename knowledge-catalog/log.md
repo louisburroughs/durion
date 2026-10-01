@@ -1,5 +1,12 @@
 # Directory Update Log
 
+## 2026-10-01
+
+* **Updated**: `adr/` — the ADR-0068 and ADR-0069 entries are regenerated after their Changelog amendments (entity Nouls,
+  web search, overall deadline, router-only routing, monitoring). `domains/general` now lists the question-tagging
+  specification and implementation plan (60 documents). Timestamp-only drift in unrelated entries (shallow clone) was
+  discarded.
+
 ## 2026-09-30
 
 * **Updated**: `adr/` — ADR-0068 is now `status: stable` (accepted by the platform owner, local Jev-protocol provider). The

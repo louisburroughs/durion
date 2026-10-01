@@ -49,7 +49,7 @@ Code paths are relative to `durion-positivity-backend/pos-mcp-server/`. Package 
 | `enforced-tags` | `[]` | **Addition to the ADR's key list.** §6 promotes tags one at a time; one `mode` value cannot express that. A tag not listed behaves as in `shadow` even when `mode` is `enforce`. An entry may carry a direction: `<tag>` (symmetric) or `<tag>:veto` (the model may only turn the heuristic's `true` into `false`; acting value = heuristic AND model). `simple_chat` is promoted `:veto` first: a false positive loses the turn to the history-less T0 path, a false negative costs one LLM turn. `admin_account_question` is veto-only by §3.4 and is expressed the same way |
 | `provider.base-url` | `http://ollama:11434` | §5; independent of `spring.ai.ollama.base-url` |
 | `provider.model` | `tev1:0.8b` | The smallest candidate, so a fresh checkout works in `shadow`; the bake-off overrides it (§6) |
-| `provider.timeout` | `800ms` | Connect + read budget (§5) |
+| `provider.timeout` | `800ms` | One overall deadline over connect, headers and body (§5; ADR-0068 Changelog 2026-10-01) |
 | `provider.api-key` | unset | For an external provider only (`TYPESAFE_API_KEY` from the environment). Sent as `Authorization: Bearer`. Never logged |
 | `provider.keep-alive` | `30m` | Sent as `keep_alive` when the provider is Ollama, so the model stays resident between turns (Implementation Notes → Container). Omitted when unset |
 | `thresholds.<tag>` | `0.75` | Per-tag confidence threshold (§1) |
@@ -90,7 +90,8 @@ POST {base-url}/v1/systemone
   the answer's `confidence`. `score` (the probability-weighted level) is recorded but not used for the value.
 - Limits (nimble and tev1 alike): 64 questions per request, 2–26 options per Choice or Score, 64 KiB body. A test asserts the
   question set stays within them for the largest option lists the graph can produce (§2.4).
-- No retries, no circuit state, plain `RestClient` with its own connect and read timeout equal to `provider.timeout`.
+- No retries, no circuit state, a plain JDK `HttpClient` with one overall deadline equal to `provider.timeout` covering connect,
+  headers and body; the exchange is cancelled on expiry (ADR-0068 Changelog 2026-10-01).
 - Logging (§4): the client never logs `state` or any answer string at any level. Failure logs carry the error class, HTTP
   status, provider host, model and latency. The `error` text of an Ollama body is logged truncated to 200 characters only
   after a test proves it cannot contain the state (it is a server message about the model or request shape); if that cannot be
@@ -117,7 +118,7 @@ value and confidence for agreement. Tag names are the `questions` keys.
 | `complexity` | Choice | `SINGLE_LOOKUP`, `MULTI_DOMAIN` | `safeDefault()` → `MULTI_DOMAIN` |
 | `risk` | Score | `LOW`, `MEDIUM`, `HIGH` | `safeDefault()` → `HIGH` |
 | `domain` | Choice | permanently the curated RAG-scope vocabulary: the distinct `rag-scope` values of `mcp.rag.preload.docs` plus `master` (15 today), never the graph's tool-catalog domains | `safeDefault()` → `master` |
-| `entity.<key>` | Noul, one per lexicon entity | "Is this message about a <en terms> (<fr terms>; <es terms>)?"; see §2.4 | none: the heuristic tagger does not answer entity tags (the lexicon term match already seeds the scope, 0069 §5.1) |
+| `entity_<key>` | Noul, one per lexicon entity | "Is this message about any of these: <en terms> (French: <fr terms>; Spanish: <es terms>)?"; see §2.4 | none: the heuristic tagger does not answer entity tags (the lexicon term match already seeds the scope, 0069 §5.1) |
 
 The `domain` options are not the graph's tool-catalog domains: those number about 33, over the 26-option cap, and include
 `bulk-loader`, `mcp-server` and `date-window`, which are not user vocabulary. Each scope's criteria sentence lives in a new
@@ -126,7 +127,7 @@ maps to a `Domain` node through the inverse of `domain_scopes` (§2.7); tool dom
 `supplier`, `location`, `catalog`, `marketing`, `people-contact`, `vehicle-fitment`) are not options. This also keeps
 `TierSelector.RISKY_DOMAINS` (`accounting`, `tax`, `admin`, `security`) matching the acting domain.
 
-A `entity.<key>` answer is a seed when p ≥ 0.5 and confidence ≥ `thresholds.entity`. With 31 to 33 entity Nouls and the 13 fixed
+A `entity_<key>` answer is a seed when p ≥ 0.5 and confidence ≥ `thresholds.entity`. With 31 to 33 entity Nouls and the 13 fixed
 tags a request carries 44 to 46 questions, under the cap of 64.
 
 The heuristic tagger reports confidence `1.0` for every tag it answers (a rule either fires or not) and `source = HEURISTIC`.
@@ -147,10 +148,13 @@ wording is adopted verbatim in Wave 1 and is deliberately not pasted here. The i
 ### 2.4 One Noul per entity
 
 The lexicon holds 33 entities and grows; both local models accept at most 26 options per Choice. The `entity` question of §1 is
-therefore asked as **one Noul per lexicon entity**, `entity.<key>`: "Is this message about a <en terms> (<fr terms>; <es
-terms>)?", built from the lexicon's terms. Every answer with p ≥ 0.5 and confidence ≥ `thresholds.entity` yields a seed, so a
+therefore asked as **one Noul per lexicon entity**, `entity_<key>`: "Is this message about any of these: <en terms> (French: <fr terms>;
+Spanish: <es terms>)?", built from the lexicon's terms. Every answer with p ≥ 0.5 and confidence ≥ `thresholds.entity` yields a seed, so a
 question that names two entities seeds both (0069 Consequences: multi-domain questions). `enforced-tags` lists `entity`, not the
-individual questions. When the graph is empty (`mcp.scope-graph.mode: off`) no entity question is asked, per §1.
+individual questions. Entity Nouls are asked only when `mcp.scope-graph.mode` is not `off` (the graph is their only consumer)
+**and** `mcp.tagging.entity-questions` is true. That setting defaults to false: with every entity the request carries 44 questions
+(about 4.6k tokens), past `tev1`'s context, so the §6 bake-off decides it per model and runs with the graph on, because the gate
+fixtures label entities. A per-entity threshold `thresholds.entity.<key>` overrides `thresholds.entity`.
 
 Grouped Choice questions (entities packed into groups of at most 24 plus `none`) were rejected:
 
@@ -193,11 +197,11 @@ that turn. This is a Wave 2 item; it is critical to conversation feel and needs 
 | Simple chat | `simple_chat` heuristic = today's classifier | `simple_chat` decides, promoted `:veto` first (§2.1); symmetric only when shadow shows the model-true/heuristic-false cases are correct. `follows_previous_turn` true at or above threshold forces `false` whatever `simple_chat` says | `SimpleChatFastPath` |
 | Workflow state (session-less callers only) | heuristic phrase match | precedence (§3.3): persisted `NltiSession` → model `workflow_state` at or above threshold → heuristic. The 0069 graph lookup (entity seed's lexicon `workflow_state`) is a **heuristic source** inside `HeuristicQuestionTagger`, used when the graph is built and the 0069 `lookups` consumer is enforced, else the phrase match; it is not a separate step. See the notes below | `ToolSelectionEngine` |
 | Keyword-added facade tools | heuristic guards add web search, inventory, order, date-window tools; glossary always | the four Noul tags add them; where `lookups` is enforced, `about_inventory` / `about_orders` are replaced by the lexicon's facade-tool list for the turn's entity seeds (0069 §6 row 3) | `ToolSelectionEngine.fallbackToolsForMessage(tags, scope)` |
-| Permission intersection of tag-added tools | **always**: a tag-added facade tool is offered only if it is in the caller's gated set (`findEnabledByPermissionsAndWorkflow`), §2 | same | `ToolSelectionEngine` |
+| Permission intersection of tag-added tools | **always** for gated tools: a tag-added facade tool is offered only if it is in the caller's gated set (`findEnabledByPermissionsAndWorkflow`), §2. The glossary and web-search tools have no catalog row or permission and are offered as before (ADR-0068 Changelog 2026-10-01) | same | `ToolSelectionEngine` |
 | Admin fast path | fires on keyword/phrase match without veto (today) | fires only when the heuristic matched without veto **and** `admin_account_question` (acting value) is true (§3.4). A model `false` at or above threshold vetoes it | `ToolRegistryService.resolveCandidateSelection(context, topK, tags)` |
 | Compound split | today's split | a model `false` at or above threshold skips the split; a model `true` **widens** the splitter: a boundary at a conjunction (and, plus, but, et, y, mais, pero, `;`) is allowed without the English starter-word check. Promotion therefore has value, and fr/es get a compound route. `QuestionTags.none()` → today's split | `RerankedContentRetriever` reads the tags from `RequestScopedUserContext` |
 | Router / tier | `NltiRouter.classify(tags)` maps `intent`, `risk`, `complexity`, `domain` → `RouterClassification`; heuristic values are `safeDefault()` so the tier is `T2_COMPLEX`, as the dormant router yields today. The chat-model call is removed in Wave 2 (§7) | model values where each tag is listed; a tag below threshold takes `safeDefault()`'s value for that field (§3.5: a low-confidence `risk` is `HIGH`). `TierSelector` unchanged | `NltiRouter` |
-| Scope graph seeds | the heuristic yields no `domain` (always `master`) and no entity, so no tag seeds | `domain` (not `master`) and every `entity.<key>` answer at or above threshold are passed to `ScopeResolver.resolve(message, codes, state, tagSeeds)`; they seed with match kind `TAG`, confidence `LOW` (0069 §5.4 reserves `HIGH` for identifier and exact-term seeds) | `ToolSelectionEngine.resolveScope` |
+| Scope graph seeds | the heuristic yields no `domain` (always `master`) and no entity, so no tag seeds | `domain` (not `master`) and every `entity_<key>` answer at or above threshold are passed to `ScopeResolver.resolve(message, codes, state, tagSeeds)`; they seed with match kind `TAG`, confidence `LOW` (0069 §5.4 reserves `HIGH` for identifier and exact-term seeds) | `ToolSelectionEngine.resolveScope` |
 | Scope graph option lists | — | the `domain` options are the RAG-scope vocabulary (§2.3); the entity Nouls come from the current graph snapshot's lexicon entities (0069 §6 row 5) | `TaggingQuestions` |
 
 Workflow state, in `enforce`:
@@ -244,7 +248,8 @@ Agreement with the heuristic is not accuracy. The §6 promotion rule needs groun
 `NltiRequestTelemetry` goes to `schemaVersion` **3** (ADR-0069 took 2) with a nullable `tagging` block: `mode`, `providerModel`,
 `latencyMs`, `fallbackReason`, `agreementRate` (share of tags where the two taggers agree, when both ran), and the acting
 `intent`, `risk`, `complexity`, `domain`, `workflowState`, `simpleChat` values. The existing `Routing` block keeps its shape and
-is now filled from the tags (§7), so its dormant fields carry values again. Any consumer that pins version 2 (the one docstring
+its router-only meaning: the acting tag values appear only under `tagging` (ADR-0068 Changelog 2026-10-01; Wave 2 revisits
+this when the router reads the tags). Any consumer that pins version 2 (the one docstring
 and one dashboard description found for ADR-0069) is updated in the same change.
 
 Metrics (Micrometer): `mcp.tagging.latency` (timer, tag `model`), `mcp.tagging.requests{model,outcome=ok|timeout|error|rate_limited|malformed}`,
@@ -326,7 +331,7 @@ Beyond the ADR's list (Implementation Notes → Testing):
 - **A wider request than the ADR assumed.** One Noul per entity makes a 44 to 46-question request. CPU latency on alpha decides
   whether Noul-per-entity survives; the fallback is conflict-aware grouping (§2.4).
 - **Two taggers to keep in step.** A new tag must be answered by both. The behaviour-preservation fixture and a test that every
-  tag definition has a heuristic (or is declared heuristic-less, like `entity.<key>`) guard it.
+  tag definition has a heuristic (or is declared heuristic-less, like `entity_<key>`) guard it.
 - **Option-list drift.** The entity Nouls change when the lexicon changes, so shadow agreement for `entity` is comparable only
   within one `optionListHash`; the trace carries it.
 - **Telemetry schema 3** lands shortly after schema 2; the dashboards match `{"schemaVersion"` without a value, so nothing
