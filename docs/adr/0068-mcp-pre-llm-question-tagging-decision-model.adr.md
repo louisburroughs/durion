@@ -475,8 +475,8 @@ applied on acceptance, not by this ADR):
 - **2026-10-01**: Implementation decisions from the #2367 review round:
   - **Web search is not intersected.** The Exa web-search tool has no `mcp_tool` or `mcp_tool_permission` row, no
     `@PreAuthorize`, and reads no tenant data, so the §2 intersection would remove it for every caller. It is offered on
-    `needs_web_search` as before, like the always-on glossary tool. Gating it would need a catalog row with a permission,
-    which changes the ranked cut; that is an owner decision, not part of this ADR.
+    `needs_web_search` as before, like the always-on glossary tool. The Platform Owner confirmed on 2026-10-01 that web
+    search is available to every signed-in user, so it gets no catalog row or permission.
   - **One overall deadline.** `JevClient` uses the JDK `HttpClient` with one deadline (`provider.timeout`) over connect,
     headers and body, cancelling the exchange on expiry, instead of a `RestClient` with separate connect and read timeouts
     (a per-read timeout lets a trickled body run past the budget). §5 and Implementation Notes updated.
