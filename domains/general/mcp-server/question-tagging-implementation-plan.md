@@ -19,9 +19,9 @@ documentation PR. Waves 1 and 2 are stacked; Wave 3 touches compose, scripts, da
 
 | Wave | Branch | State |
 | ---- | ------ | ----- |
-| 1 Seam, heuristic and decision-model taggers, shadow | `feat/adr-0068-w1-tagging-seam` | not started |
+| 1 Seam, heuristic and decision-model taggers, shadow | `feat/adr-0068-w1-tagging-seam` | PR open (louisburroughs/durion-positivity-backend#2367) |
 | 2 Enforce per tag, router from tags, scope-graph integration | `feat/adr-0068-w2-tagging-enforce` | not started |
-| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | not started |
+| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | PR open (#2368) |
 
 Common verification for every backend wave, run from the repository root:
 
@@ -37,7 +37,7 @@ Common verification for every backend wave, run from the repository root:
 | - | ---- | ----- |
 | 1.1 | **Behaviour-preservation fixture first**: capture today's decisions (simple chat, workflow state, keyword-added tools, date window, admin fast path incl. veto, compound split) for a message set in en/fr/es into a test fixture, with a test that asserts them against the current code | spec §4, written before any refactor |
 | 1.2 | `TaggingProperties` (`mcp.tagging`), `application.yml` block with comments, `application-test.yml` pins `mode: off` | spec §2.1 |
-| 1.3 | `QuestionTags`, `QuestionTagger`, tag value types (`internal.domain`); `TaggingQuestions` (tag definitions, instructions, criteria; `domain` options from the graph or preload scopes; entity groups per spec §2.4) | spec §2.3, §2.4 |
+| 1.3 | `QuestionTags`, `QuestionTagger`, tag value types (`internal.domain`); `TaggingQuestions` (tag definitions, instructions, criteria; `domain` options from the preload scopes; one entity Noul per lexicon entity per spec §2.4) | spec §2.3, §2.4; domain options = RAG scopes; entity Nouls |
 | 1.4 | `HeuristicQuestionTagger`: the six heuristics moved behind the interface unchanged; the admin lists stay in `ToolRegistryService` and are read from there (§1) | spec §2.3 |
 | 1.5 | `JevClient` (`internal.client`, plain `RestClient`, own timeouts, no retries) and `JevQuestionTagger`; answer parsing to values and confidences; every failure → provider failure with reason | spec §2.2 |
 | 1.6 | `TaggingService`: mode logic, merge, fallback reasons, metrics; warm-up passes `QuestionTags.none()` | spec §2.5 |
@@ -45,6 +45,7 @@ Common verification for every backend wave, run from the repository root:
 | 1.8 | `TagTrace` on `EvalTurnTrace`, recorder methods, `NltiRequestTelemetry` schema 3 with the `tagging` block, `Routing` filled from tags | spec §2.8 |
 | 1.9 | Tests: 1.1 fixture green after the refactor; `shadow` == `off` with an adversarial stub; `JevClient` stub-server matrix; request-body minimisation; instructions on every question; caps; log capture; transport parity; warm-up never tags; telemetry v3 and old payloads | spec §4 |
 | 1.10 | README: configuration keys, the tagging model dependency, what `shadow` records | |
+| 1.11 | NLTI domain review corrections applied (option sets, wording, trace fields) | spec §2.3, §2.8 |
 
 Order: 1.1 alone first; 1.2–1.6 (one agent); 1.7–1.8 (same agent, after 1.6); 1.9 throughout; 1.10 last.
 
@@ -55,16 +56,17 @@ trace carries a `TagTrace` with both taggers' values; with `mode: off` no taggin
 
 | # | Task | Notes |
 | - | ---- | ----- |
-| 2.1 | `enforced-tags` honoured in the merge; per-tag `low_confidence` fallback | spec §2.5 |
+| 2.1 | `enforced-tags` honoured in the merge, including the `:veto` direction and `thresholds.workflow_state.non-idle`; per-tag `low_confidence` fallback | spec §2.1, §2.5 |
 | 2.2 | Simple chat from `simple_chat` with the `follows_previous_turn` override | spec §2.6 |
-| 2.3 | Workflow-state precedence chain for session-less callers | §3.3; spec §2.6 |
+| 2.3 | Workflow-state precedence chain for session-less callers; lexicon lookup gated on acting `intent` ACTION; `IDLE` as a value | §3.3; spec §2.6 |
 | 2.4 | Tag-added tools from the four Noul tags; `lookups` replaces the inventory/order guards when enforced | spec §2.6 |
 | 2.5 | Admin fast path veto (`ToolRegistryService.resolveCandidateSelection(context, topK, tags)`) | §3.4 |
-| 2.6 | Compound gate in `RerankedContentRetriever` from the published tags | spec §2.6 |
+| 2.6 | Compound gate in `RerankedContentRetriever` from the published tags; a model `true` widens the splitter (conjunctions without the starter-word check) | spec §2.6 |
 | 2.7 | `NltiRouter.classify(tags)`: chat call removed, `safeDefault()` per field below threshold; `routerChatModel` no longer injected (bean kept until promotion, §7) | spec §2.6 |
 | 2.8 | Scope graph: `ScopeResolver.resolve(..., tagSeeds)`, `MatchKind.TAG` (LOW), domain seed → that scope's `RagDoc`s; `lookups` consumer; lexicon `workflow_state` + loader validation; entity groups from the graph | spec §2.7 |
 | 2.9 | Tests: each tag alone; thresholds; override; veto both directions; precedence chain; compound gate; router mapping; tag seeds LOW and domain-seed documents; `lookups` isolation; `enforce` + empty list == `shadow` | spec §4 |
 | 2.10 | README: `enforced-tags`, per-tag promotion rule, precedence chain | |
+| 2.11 | T0 skip: no provider call when the heuristic hits an exact `SimpleChatRuleCatalog` rule | spec §2.5 |
 
 Exit: common verification green; `enforce` with `enforced-tags: []` equals `shadow` on every decision.
 
@@ -76,6 +78,8 @@ Exit: common verification green; `enforce` with `enforced-tags: []` equals `shad
 | 3.2 | `scripts/tagging_shadow_report.py` + the bake-off procedure section | spec §2.9 |
 | 3.3 | NLTI overview dashboard: tagging latency, fallback by reason, agreement per tag, model in use; Loki alert on fallback rate > 20 % sustained | ADR Monitoring |
 | 3.4 | `durion`: `architecture.md` (request flow: tag → simple chat → tier → selection → scope), `tool-selection-architecture.md` (keyword fallback, admin fast path, workflow state now tag-driven), this plan's state table, `scope-graph-spec.md` cross-reference for `lookups` and `MatchKind.TAG` | ADR Docs to update |
+| 3.5 | `tagging-gate` fixtures en / fr-CA / es with `expected_tags`; the report scores both taggers against them | spec §2.9 |
+| 3.6 | File a separate issue: extend the admin fast-path veto list with customer, supplier, vendor, bank and GL terms (behaviour change, outside the move-unchanged rule) | spec §2.3 |
 
 ## After the waves (not in this plan)
 
