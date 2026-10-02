@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt
 path: durion/domains/shopmgmt/
 tags: [domain, shopmgmt]
 sources: [domains/shopmgmt/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-27T02:32:36+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T13:36:11-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/shopmgmt) — `domains/shopmgmt/` (17 documents)
