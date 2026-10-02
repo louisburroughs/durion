@@ -6,12 +6,12 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/product
 path: durion/domains/product/
 tags: [domain, product]
 sources: [domains/product/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T13:36:11-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/product) — `domains/product/` (9 documents)
 
-**Implemented by:** [pos-catalog](../backend/pos-catalog.md), [pos-price](../backend/pos-price.md)
+**Implemented by:** [pos-catalog](../backend/pos-catalog.md), [pos-price](../backend/pos-price.md), [pos-supplier](../backend/pos-supplier.md)
 
 **Business rules:**
 
