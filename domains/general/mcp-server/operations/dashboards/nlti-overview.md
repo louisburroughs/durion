@@ -128,6 +128,11 @@ Request health, latency, errors, and intent/clarification activity.
 
 ### Row: Question tagging (ADR-0068, telemetry schema 3)
 
+Panel titles in `nlti-overview.json`: "Tagging latency p50/p95 (telemetry)", "Tagging fallbacks by reason (telemetry)",
+"Tagger agreement rate (telemetry)", "Tagging provider model in use (telemetry)", "ollama container memory (cAdvisor)",
+"ollama container CPU (cAdvisor)". The Loki alert for the row is `NltiTaggingFallbackRateHigh`
+(`observability/loki/rules/nlti-alerts.yml`, group `nlti-tagging`; see [alert 12](../alerts/nlti-alerts.md#question-tagging-alerts-adr-0068)).
+
 Every panel in this row reads the `tagging` block of `nlti.request.telemetry` (Loki), except the two `ollama`
 container panels (Prometheus, cAdvisor). The block is present on every chat event in every mode; mode `OFF`
 turns (heuristic only, no provider call) carry no `latencyMs`, `providerModel` or `agreementRate`, and the
@@ -144,8 +149,11 @@ panels exclude them. The per-tag, per-threshold and ground-truth breakdown for t
 - Panel: Tagging fallbacks by reason
   - Metric: turns per `tagging.fallbackReason`, and the provider-failure share (Loki)
   - Type: timeseries
-  - Description: `timeout`, `rate_limited`, `error`, `malformed` are provider failures (alert rule 12 fires
-    on their share above 20 %). `low_confidence` is reserved for Wave 2 `enforce`.
+  - Description: `timeout`, `rate_limited`, `error`, `malformed` are provider failures (alert
+    `NltiTaggingFallbackRateHigh`, rule 12, fires on their share above 20 % over 15 minutes, at least 20 tagged
+    turns). `heuristic_certain` is not a failure: the provider call was skipped on an exact simple-chat rule
+    (`latencyMs` 0). `low_confidence` is a per-tag outcome in `enforce`, on the eval trace and under
+    `mcp.tagging.low_confidence{tag}`, not a turn-level reason on this panel.
 
 - Panel: Tagger agreement rate
   - Metric: mean `tagging.agreementRate` (Loki)

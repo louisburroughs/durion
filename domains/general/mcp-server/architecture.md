@@ -57,7 +57,8 @@ narrows the active tool set:
 4. Selection is capped at `mcp.agent.candidate-tool-limit` (default 8; 24 on `alpha`, which must stay above the facade
    count, #1840). Discovered OpenAPI operations have their own cap, `mcp.agent.discovered-tool-limit`, which defaults
    to the candidate limit (16 on `alpha`).
-5. `ToolSelectionEngine.fallbackToolsForMessage()` then adds keyword-matched tools **on top of** that cut,
+5. `ToolSelectionEngine.fallbackToolsForMessage()` then adds tag-matched tools (the ADR-0068 tags; the heuristic keyword
+   guards in `off` and `shadow`) **on top of** that cut,
    so they never displace a semantically ranked one: Exa web search (`current`, `news`, `online`, …),
    inventory (`stock`, `sku`, …), order (`order`, `po`, `sale`, …), and — since #1684 — `DateWindowFacadeTool`
    on calendar vocabulary (`month`, `quarter`, `year`, `week`, `days`, `ytd`, `to date`, `since`, …).
@@ -94,7 +95,7 @@ sentinel marks operations available to any authenticated caller.
 > **Workflow state (#778):** both session managers resolve the caller's persisted `NltiSession.workflowState`
 > (their most-recently-updated session) and thread it into tool selection, so non-IDLE tool sets (`CREATING_PO`,
 > `RECEIVING_ASN`, `INVENTORY_RECON`, `PROCESSING_RETURN`) activate when a session is in that state. Callers with no
-> session fall back to message-heuristic derivation. Advance a session's state explicitly via
+> session take the `workflow_state` tag (heuristic phrase match unless enforced; see [Question tagging](#question-tagging-adr-0068)). Advance a session's state explicitly via
 > `POST /v1/nlt/sessions/{sessionId}/workflow-state` (ownership-checked; guarded by `nlti:request:submit`).
 
 ### Facade tools
@@ -211,6 +212,73 @@ this cycle (#1819, kept not reconciled)`). A domain that is genuinely gone — r
 will repeat that line every cycle until an operator lists it in `mcp.discovery.prunable-when-unseen`
 (`MCP_DISCOVERY_PRUNABLE_WHEN_UNSEEN`, comma-separated `mcp_tool.domain` keys), after which one cycle reconciles it.
 
+### Question tagging (ADR-0068)
+
+One immutable `QuestionTags` record per chat turn replaces six scattered keyword heuristics and the Gate 4 router's chat call
+([ADR-0068](../../../docs/adr/0068-mcp-pre-llm-question-tagging-decision-model.adr.md); design in
+[question-tagging-spec.md](question-tagging-spec.md)). Each tag carries a value, a confidence and its source (`JEV` or
+`HEURISTIC`). The turn runs in this order:
+
+```text
+tag (ToolSelectionEngine.tag) → simple chat (T0) → tier (NltiRouter) → selection (+ scope graph) → retrieval → prompt
+```
+
+- **One call per turn.** Both session managers call `ToolSelectionEngine.tag(message)` once, before the simple-chat check and
+  before tier routing, and pass the record on; it is also published on `RequestScopedUserContext` for the compound split. Warm-up
+  passes `QuestionTags.none()`, which makes every consumer behave as `off`.
+- **Two taggers.** `HeuristicQuestionTagger` (today's rules, moved behind the seam; always runs, and is the permanent fallback)
+  and `JevQuestionTagger`, which asks a Jev-protocol decision model through `JevClient`: `POST /v1/systemone` on the cell's own
+  Ollama (`mcp.tagging.provider.base-url`, not the chat endpoint), one overall 800 ms budget, no retries. Any provider failure
+  gives the heuristic record for the whole turn. `TaggingService` builds the record. The request carries only the message text and
+  fixed question definitions, never the caller, tenant or history.
+- **Modes.** `mcp.tagging.mode` is `off` (default: heuristic only, no provider call), `shadow` (both run, consumers act on the
+  heuristic, the model's answers are recorded) or `enforce` (the tags in `mcp.tagging.enforced-tags` act). An entry is `<tag>`
+  or `<tag>:veto` (the model may only turn the heuristic's `true` into `false`). A tag acts when it is listed, its confidence
+  meets `thresholds.<tag>` (default 0.75), and, for `:veto`, the heuristic said `true`; otherwise the heuristic value stands.
+  `enforce` with an empty list equals `shadow`. When the heuristic hits an exact simple-chat catalog rule the provider is not
+  called (`heuristic_certain`).
+
+| Tag | What it decides |
+| --- | --------------- |
+| `follows_previous_turn` | Forces a turn off the history-less simple-chat path |
+| `simple_chat` | Whether the T0 fast path answers (replaces `SimpleChatClassifier.isSimpleChat`) |
+| `workflow_state` | Workflow state for session-less callers (Choice over `WorkflowState`) |
+| `needs_web_search`, `about_inventory`, `about_orders`, `implies_date_window` | Which facade tools are added on top of the ranked cut |
+| `admin_account_question` | Vetoes the admin fast path; never fires it alone |
+| `compound_question` | Whether and how the RAG sub-query split runs |
+| `intent`, `complexity`, `risk`, `domain` | The `RouterClassification` the tier is selected on (`domain` options are the RAG scopes plus `master`) |
+| `entity_<key>` | One Noul per lexicon entity; seeds the scope graph. Asked only when `mcp.tagging.entity-questions` is true and `mcp.scope-graph.mode` is not `off` |
+
+What each consumer does **when its tag is enforced** (in `off`, `shadow` and for unlisted tags it reads the heuristic value):
+
+- **When `simple_chat` is enforced** it decides the T0 path, promoted `:veto` first. **When `follows_previous_turn` is enforced** a
+  `true` at or above threshold forces simple chat to `false` whatever `simple_chat` says.
+- **When `workflow_state` is enforced**, for session-less callers, the chain is: persisted `NltiSession` state (never
+  overridden) → the model's `workflow_state` at or above threshold (a non-`IDLE` answer also needs
+  `thresholds.workflow_state.non-idle`) → the scope-graph lexicon lookup, when `lookups` is enforced and the acting `intent` is
+  `ACTION` → the phrase match. `IDLE` is a value, so a model `IDLE` overrides a phrase-matched `CREATING_PO`.
+- **When the four Noul tool tags are enforced** they decide which facades are added; each is intersected with the caller's
+  permission-gated set. That intersection applies in every mode (before ADR-0068 the keyword additions bypassed
+  `mcp_tool_permission` at selection). The glossary and web-search tools have no permission row and are offered as before.
+- **When `admin_account_question` is enforced** a model `false` at or above threshold vetoes the admin fast path; it fires only
+  when a keyword or phrase matched without a veto term and the acting tag is `true`.
+- **When `compound_question` is enforced** a `false` skips the split and a `true` widens the splitter to conjunction boundaries
+  without the English starter-word check (fr and es split too).
+- **When the router tags are enforced** `NltiRouter.classify(message, tags)` maps them to a `RouterClassification` and
+  `TierSelector` picks the tier. A field below threshold takes `safeDefault()` (`UNKNOWN`, `HIGH`, `MULTI_DOMAIN`, `master`), so
+  risk never downgrades. The router makes no chat-model call in any mode (ADR-0068 §7); with `mcp.model.tiering-enabled` on, every
+  routed turn takes `T2_COMPLEX` until the router tags are enforced. The `routerChatModel` bean and `mcp.model.router` stay
+  defined until promotion.
+- **When `entity_<key>` or `domain` is enforced** they seed `ScopeResolver`, by two paths. An `entity_<key>` answer seeds that
+  `Entity` node with match kind `TAG` (`LOW`). A `domain` answer is a `DomainSeed`, not a match: it adds the `Domain` node(s)
+  mapped to that RAG scope and, as their one hop, the scope's permitted documents, never tools; it carries no match kind, and a
+  scope seeded only by tags (either path) is `LOW`. Tag-added tools and scope-added tools are unioned on top of the
+  ranked cuts; only scope-added tools count against `added-tool-slots`.
+
+Tags are advisory: they never widen access (gating runs first), never remove a ranked tool, never override persisted workflow
+state, and only typed values from the response are read. Promotion order and configuration keys are in the module README
+(Question tagging).
+
 ### Scope graph narrowing (ADR-0069)
 
 The scope graph is a generated, in-memory graph of business entities and the tools, RAG documents, screens and permissions that
@@ -222,6 +290,7 @@ With `mcp.scope-graph.mode` `off` (the default) none of this runs.
   state is known and before ranking, and returns the `ScopeSet` on `ToolSelectionResult`. Both session managers publish it on
   `RequestScopedUserContext` beside the caller and clear it in the same `finally`, so the discovered-tool provider, the RAG hook and
   the prompt supplier read the same value. The simple-chat fast path resolves no scope.
+  With ADR-0068 tags enforced, `entity_<key>` and `domain` answers also seed the resolution (see [Question tagging](#question-tagging-adr-0068)).
 - **How it resolves.** `TermMatcher` seeds entities from the message by lexicon term (exact, then folded) and identifier
   pattern, with no model call; `ScopeResolver` expands two hops over a fixed edge whitelist, capped at `mcp.scope-graph.max-nodes`;
   `ScopeCallerFilter` then drops every tool, document and screen the caller cannot reach. The filter is not the security boundary:
@@ -234,11 +303,12 @@ With `mcp.scope-graph.mode` `off` (the default) none of this runs.
   displaces a ranked one, and nothing is added on the fail-closed path, the admin fast path or warm-up. Added tools count toward the
   selection records and the agent cache key.
 - **Per-consumer switch.** `mcp.scope-graph.enforce` lists the consumers that act when `mode` is `enforce`: any of `rag`, `tools`,
-  `card`. In `shadow`, or in `enforce` with an empty list, the scope is computed and recorded but selection, retrieval and the prompt
+  `card`, `lookups`. In `shadow`, or in `enforce` with an empty list, the scope is computed and recorded but selection, retrieval and the prompt
   are unchanged. Consumers are promoted one at a time on the evidence of the ADR's section 9 gate.
 - **Consumer behaviour.** The RAG filter is described under [RAG Retrieval Pipeline](#rag-retrieval-pipeline-tier-2), the scope card
   in [tool-selection-architecture.md](tool-selection-architecture.md#2-prompt-assembly-and-fallback-637). The keyword-fallback and
-  workflow-state word lists are unchanged until ADR-0068.
+  workflow-state decisions are read from the ADR-0068 tag record; `lookups` replaces the inventory and order guards with the lexicon's
+  facade tools for the turn's entity seeds and supplies a workflow state for `ACTION` turns, when the matching tags are enforced.
 
 ### Scope graph observability
 
@@ -259,6 +329,33 @@ matched text), entity, tool, document and screen counts, `addedTools`, `ragFilte
 | `mcp.scope.called_tool{in_scope}`, `mcp.scope.retrieved_doc{in_scope}` | share of called tools and retrieved documents inside the scope, counted at trace completion (needs `mcp.eval.turn-trace.enabled`) |
 | `mcp.scope.errors` | resolver failures (the turn carried on with no scope) |
 | `mcp.scope.fallback{consumer=rag\|tools\|card}` | an enforced consumer did not act on a turn (confidence too low, or nothing to add) |
+
+### Question tagging observability
+
+With `mcp.tagging.mode` not `off`, the eval turn trace carries a nullable `tags` component: `mode`, `enforcedTags`, `providerModel`,
+`latencyMs`, `fallbackReason`, `stateTruncated`, `questionCount`, `requestBodyBytes`, `optionListHash`, and per tag `name`,
+`actingValue`, `actingSource`, `heuristicValue`, `heuristicRule`, `modelValue`, `modelConfidence`, `modelProbability`, `threshold`,
+`agree`. Values are enum names, booleans or option labels, never message text. Older payloads read `tags` as null.
+`nlti.request.telemetry` is `schemaVersion` 3 with a nullable `tagging` block: `mode`, `providerModel`, `latencyMs`,
+`fallbackReason`, `agreementRate`, `questionCount`, `requestBodyBytes` and the acting `intent`, `risk`, `complexity`, `domain`,
+`workflowState`, `simpleChat`. The `routing` block keeps its version-2 shape; on a routed turn its fields equal the acting router
+tags. Meters (registered only when the mode is not `off`):
+
+| Meter | Meaning |
+| ----- | ------- |
+| `mcp.tagging.latency{model}` | the one provider call per turn |
+| `mcp.tagging.requests{model,outcome=ok\|timeout\|error\|rate_limited\|malformed}` | provider call outcomes |
+| `mcp.tagging.fallback{reason}` | turns that took the heuristic record |
+| `mcp.tagging.low_confidence{tag}` | an enforced tag answered below its threshold |
+| `mcp.tagging.skipped{reason=heuristic_certain}` | provider call skipped on an exact simple-chat rule |
+| `mcp.tagging.agreement{tag,agree}` | model and heuristic agreement per tag |
+| `mcp.tagging.state_truncated` | the message was cut at `mcp.tagging.max-state-chars` |
+
+The `nlti-overview` dashboard has a "Question tagging (ADR-0068, telemetry schema 3)" row (latency, fallbacks by reason, agreement,
+model in use, `ollama` CPU and memory), and the Loki alert `NltiTaggingFallbackRateHigh` fires when more than 20 % of tagged turns
+lose the provider over 15 minutes ([dashboard guide](operations/dashboards/nlti-overview.md),
+[alert 12](operations/alerts/nlti-alerts.md#question-tagging-alerts-adr-0068)). Per-tag accuracy against the gate labels comes from
+`scripts/tagging_shadow_report.py`, not the dashboard.
 
 ## Answer Resolution
 

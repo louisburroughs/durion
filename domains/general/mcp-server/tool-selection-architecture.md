@@ -23,6 +23,10 @@ Covers the runtime path shared by blocking (`POST /v1/mcp/chat`) and streaming
 4. role-agent caching (TTL + invalidation) — #639
 5. static RAG preload at startup — #637
 
+Question tagging (ADR-0068) runs once per turn after role resolution: the transport resolves `CurrentUserContext`, the
+manager applies the rate limit and opens the turn record, then tags the message before the simple-chat (T0) check, tier
+routing and tool selection (see "Per-turn order" below).
+
 ## 1. Shared role resolution
 
 Both chat controllers resolve the caller through the same components — there is no
@@ -72,9 +76,20 @@ Observability: every fallback past the requested prompt increments
 
 ## 3. Gated tool selection (#639)
 
-`ToolSelectionEngine.selectRoleTools(role, permissionCodes, message[, workflowState])` is the
+`ToolSelectionEngine.selectRoleTools(role, permissionCodes, message[, workflowState], tags)` is the
 single selection contract used by **both** blocking and streaming orchestration — transport parity
 is structural, not duplicated logic.
+
+**Per-turn order (ADR-0068).** After the user context is resolved and the rate limit applied, each manager calls
+`ToolSelectionEngine.tag(message)` once and passes the resulting
+`QuestionTags` record to every consumer: tag → simple chat (T0) → tier (`NltiRouter`) → selection (+ scope) → retrieval → prompt.
+The T0 check, the tier and the selection read the record; none re-derives a decision from the raw message. `HeuristicQuestionTagger`
+always runs and holds the former keyword rules unchanged; with `mcp.tagging.mode` `shadow` or `enforce` a decision-model tagger
+(`JevQuestionTagger` over `JevClient`, the cell's Ollama `POST /v1/systemone`, 800 ms, fail-to-heuristic) answers too. A consumer acts
+on the model's value only for a tag listed in `mcp.tagging.enforced-tags` whose confidence meets `thresholds.<tag>`; in `off`, in
+`shadow` and for every other tag it acts on the heuristic value. Warm-up passes `QuestionTags.none()` (equal to `off`). When the
+heuristic hits an exact simple-chat catalog rule (T0) the provider call is skipped for the turn (`heuristic_certain`).
+Tags are advisory: they act only on the permission-gated set and never widen access.
 
 Order of operations inside `ToolRegistryService.resolveCandidateTools`:
 
@@ -83,7 +98,10 @@ Order of operations inside `ToolRegistryService.resolveCandidateTools`:
 2. **Admin fast path**: if the query matches admin keywords/phrases, is *not* vetoed by
    business-domain vocabulary, *and* `AdminFacadeTool` survived the gate, it is returned alone.
    This is the explicit confidence-based deterministic recovery path; it never bypasses
-   permission gating.
+   permission gating. Since ADR-0068 the acting `admin_account_question` tag must also be `true`
+   (`resolveCandidateSelection(context, topK, tags)`): a model `false` at or above threshold, when
+   enforced, vetoes the path, and a tag never fires it without a keyword or phrase match. In `off` and
+   `shadow` the tag's heuristic value is the keyword/veto rule above, so behaviour is unchanged.
 
    Because the fast path returns the admin tool **alone**, a false positive suppresses every
    other candidate for the whole request. Two guards keep that from firing on business
@@ -100,9 +118,16 @@ Order of operations inside `ToolRegistryService.resolveCandidateTools`:
 5. **Failure/empty fallback**: full role tool set (fail-open within the role's own domain tools,
    never beyond the caller's role scope).
 
-Keyword fallback tools (web search / inventory / order facades) are merged in separately per
+Fallback tools (web search / inventory / order / date-window facades) are merged in separately per
 message, so short operational messages like `stock part 1234` still reach the inventory facade
-even when semantic routing is weak.
+even when semantic routing is weak. Since ADR-0068 the fallback is read from the tag record
+(`needs_web_search`, `about_inventory`, `about_orders`, `implies_date_window`); in `off` and `shadow`
+these are the heuristic keyword guards, and the glossary tool is always offered. Every tag-added
+facade is **intersected with the caller's permission-gated set**, in every mode: a facade the caller
+cannot reach is not added (before ADR-0068 these additions bypassed `mcp_tool_permission` at selection
+and relied on downstream `@PreAuthorize`). The glossary and Exa web-search tools have no catalog row or
+permission and are offered as before. Tag-added tools and ADR-0069 scope-added tools are unioned on top
+of the ranked cut; only scope-added tools count against `added-tool-slots`.
 
 **Additive scope slots (ADR-0069).** When `tools` is in `mcp.scope-graph.enforce` and the scope confidence is `HIGH` or `LOW`,
 tools from the turn's `ScopeSet` are added after the ranked cut and the keyword fallback, at most
@@ -111,15 +136,22 @@ before `writes`, then name). Facades are added in `ToolSelectionEngine` from the
 are added in `OpenApiToolProvider` after the ANN cut through `findDiscoveredByNamesForPermissions`, which applies the same
 permission and workflow SQL, and write-capability is recomputed over the union. No ranked tool is removed or displaced, and
 nothing is added on the failure/empty fallback (fail-closed), the admin fast path or warm-up. With the `tools` switch off the
-scope is resolved and recorded only. The keyword-fallback and `deriveWorkflowState` word lists are unchanged until ADR-0068
-moves them.
+scope is resolved and recorded only. When the `lookups` switch is enforced and the turn has an entity seed, the lexicon's
+`facade_tools` for the seed entities replace the inventory and order tags' facades. Enforced `entity_<key>` and `domain` tags seed
+the scope with match kind `TAG` at `LOW` confidence.
 
 ### Workflow state
 
 Authoritative state is the persisted `NltiSession` value (`NltiWorkflowStateService`); session-less
-callers fall back to message-text heuristics. Implemented states: `IDLE`, `CREATING_PO`,
+callers take the `workflow_state` tag. Implemented states: `IDLE`, `CREATING_PO`,
 `RECEIVING_ASN`, `INVENTORY_RECON`, `PROCESSING_RETURN`. Heuristic derivation covers only the PO /
-ASN / inventory-recon phrasings; anything else resolves to `IDLE`. Richer workflow-state
+ASN / inventory-recon phrasings; anything else resolves to `IDLE`. For a session-less caller the
+precedence chain (ADR-0068 §3.3) is: persisted `NltiSession` state → the model's `workflow_state` at or
+above threshold, when enforced (a non-`IDLE` answer must also meet `thresholds.workflow_state.non-idle`;
+`IDLE` is a value and overrides a phrase match; `PROCESSING_RETURN` has no heuristic source) → the
+scope-graph lexicon lookup, when `lookups` is enforced and the acting `intent` is `ACTION` → the phrase
+match. The first that yields a value wins; a persisted state is never overridden. In `off` and `shadow`
+only the last two apply. Richer workflow-state
 transitions (e.g. automatic state advancement from tool executions) are **intentionally deferred**
 behind `NltiWorkflowStateService` — the selection contract already accepts the state as input, so
 implementing them requires no orchestration changes.
@@ -175,6 +207,9 @@ under `src/main/resources/rag/`; no code changes.
 | `mcp.scope.resolved{confidence}`, `mcp.scope.size{kind}`, `mcp.scope.errors` | per-turn scope confidence, size and resolver failures (mode not `off`) |
 | `mcp.scope.called_tool{in_scope}`, `mcp.scope.retrieved_doc{in_scope}` | called tools and retrieved documents inside the scope, counted at eval-trace completion |
 | `mcp.scope.fallback{consumer=rag\|tools\|card}` | an enforced consumer did not act on a turn (mode `enforce` only) |
-| `nlti.request.telemetry` `scope*` fields | `schemaVersion` 2: `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`, `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied` |
+| `nlti.request.telemetry` `scope*` fields | `scope*` fields (introduced in `schemaVersion` 2): `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`, `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied` |
+| `mcp.tagging.latency{model}`, `mcp.tagging.requests{model,outcome}`, `mcp.tagging.fallback{reason}` | tagging provider call time, outcomes (`ok`, `timeout`, `error`, `rate_limited`, `malformed`) and per-turn heuristic fallbacks (mode not `off`, ADR-0068) |
+| `mcp.tagging.agreement{tag,agree}`, `mcp.tagging.low_confidence{tag}`, `mcp.tagging.skipped{reason}`, `mcp.tagging.state_truncated` | model vs heuristic agreement per tag, enforced tags below threshold, calls skipped on an exact simple-chat rule, messages cut at `max-state-chars` |
+| `nlti.request.telemetry` `tagging` block | `schemaVersion` 3: `mode`, `providerModel`, `latencyMs`, `fallbackReason`, `agreementRate`, `questionCount`, `requestBodyBytes` and the acting `intent`, `risk`, `complexity`, `domain`, `workflowState`, `simpleChat`; the eval turn trace carries a matching `tags` component |
 | "Invalidated MCP … role-agent cache" logs | configuration-triggered cache flush |
 | Debug logs in `ToolRegistryService` / `ToolSelectionEngine` | per-request gating, scoring, fallback decisions |
