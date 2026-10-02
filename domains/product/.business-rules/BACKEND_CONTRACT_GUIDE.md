@@ -125,21 +125,31 @@ and pos-catalog, not REST operations; no UI calls them.
 
 | Topic | Event type | Producer → consumer | Payload |
 | --- | --- | --- | --- |
-| `supplier.events.v1` | `supplier.catalog.updated` | pos-supplier → pos-catalog | One vendor tread design: identity, `contentHash`, texts, images. Published when an import finds the design's content changed, and for every staged design during a re-publication |
+| `supplier.events.v1` | `supplier.catalog.updated` | pos-supplier → pos-catalog | One vendor tread design variant: `vendorProfileId`, `supplierRef`, `vendorVariantId`, the vendor's names and classification (`brand`, `treadDesign`, `treadDesign2`, `productName`, `vehicleType`, `seasonality`), `contentHash`, `texts`, `images`, `occurredAt`. Published when an import stages a design that is new or whose content changed, and for every staged design during a re-publication |
 | `supplier.commands.v1` | `supplier.catalog.republish.requested` | operator → pos-supplier | `vendorProfileId`, `requestedBy`, optional `reason` |
 | `supplier.events.v1` | `supplier.catalog.republish.completed` | pos-supplier → pos-catalog | `vendorProfileId`, `supplierRef`, `variantCount`, `requestedBy`, `completedAt` |
 
 - A re-publication (#2356) is the recovery path for enrichments a consumer lost
   ([ADR-0044](../../../docs/adr/0044-platform-event-only-domain-walls.adr.md) §4, owner re-emit). pos-supplier
-  re-emits every design staged for the vendor profile under a new event id, without calling the vendor. Nothing
-  sends the request automatically and there is no endpoint for it.
-- pos-catalog treats a `supplier.catalog.updated` whose `contentHash` equals the one it holds as a no-op: the
-  design, its candidates, its match state and `matchStateAt`, and any reviewer decision are left as they are. So
-  a re-publication only adds designs pos-catalog lacks; it does not re-open the worklist for the rest.
+  re-emits every design staged for the vendor profile under a new event id, without calling the vendor, and then
+  publishes `supplier.catalog.republish.completed`. When nothing is staged for the vendor profile it re-emits
+  nothing and publishes no completion event. Nothing sends the request automatically and there is no endpoint
+  for it.
+- pos-catalog keys a design on (`vendorProfileId`, `vendorVariantId`) and treats a `supplier.catalog.updated`
+  whose `contentHash` equals the one it holds as a no-op: the design, its candidates, its match state and
+  `matchStateAt`, and any reviewer decision are left as they are. So a re-publication applies only the designs
+  pos-catalog lacks or holds with a different `contentHash`; it does not re-open the worklist for the rest.
 - On `supplier.catalog.republish.completed`, pos-catalog compares `variantCount` with the designs it holds for
-  that vendor profile and reports the shortfall as the gauge `catalog.enrichment.design.gap`. It is a report as
-  of the last re-publication, not a continuous check, and can read above zero briefly while the re-emitted
-  designs are still being applied.
+  that vendor profile and reports the shortfall (zero when it holds at least `variantCount`) as the gauge
+  `catalog.enrichment.design.gap`, tagged `vendorProfileId`. The value is computed once, when the completion
+  event is handled; it is not a continuous check. Each design event is keyed on its own variant and the
+  completion event on the vendor profile, so on a topic with more than one partition the completion event can be
+  handled while re-emitted designs are still being applied. The gauge then reports a shortfall that the
+  remaining events go on to close, and it keeps reporting that value until the profile's next re-publication
+  restates it.
+- The gauge value is held only in pos-catalog's memory; it is not persisted. After a restart there is no gauge
+  for a vendor profile until that profile's next `supplier.catalog.republish.completed` is handled, so the
+  result of a re-publication that completed before the restart cannot be read from the metric.
 
 Headers and auth notes:
 
