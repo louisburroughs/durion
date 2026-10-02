@@ -120,6 +120,27 @@ UI notes for the review flow (#1645):
   (brand-name normalization map used before scoring). These are the keys `CatalogEnrichmentProperties` binds
   (ADR-0060 §2–§3 corrected to match).
 
+Event contract for the enrichment feed (backend #1352, #2356). These are Kafka contracts between pos-supplier
+and pos-catalog, not REST operations; no UI calls them.
+
+| Topic | Event type | Producer → consumer | Payload |
+| --- | --- | --- | --- |
+| `supplier.events.v1` | `supplier.catalog.updated` | pos-supplier → pos-catalog | One vendor tread design: identity, `contentHash`, texts, images. Published when an import finds the design's content changed, and for every staged design during a re-publication |
+| `supplier.commands.v1` | `supplier.catalog.republish.requested` | operator → pos-supplier | `vendorProfileId`, `requestedBy`, optional `reason` |
+| `supplier.events.v1` | `supplier.catalog.republish.completed` | pos-supplier → pos-catalog | `vendorProfileId`, `supplierRef`, `variantCount`, `requestedBy`, `completedAt` |
+
+- A re-publication (#2356) is the recovery path for enrichments a consumer lost
+  ([ADR-0044](../../../docs/adr/0044-platform-event-only-domain-walls.adr.md) §4, owner re-emit). pos-supplier
+  re-emits every design staged for the vendor profile under a new event id, without calling the vendor. Nothing
+  sends the request automatically and there is no endpoint for it.
+- pos-catalog treats a `supplier.catalog.updated` whose `contentHash` equals the one it holds as a no-op: the
+  design, its candidates, its match state and `matchStateAt`, and any reviewer decision are left as they are. So
+  a re-publication only adds designs pos-catalog lacks; it does not re-open the worklist for the rest.
+- On `supplier.catalog.republish.completed`, pos-catalog compares `variantCount` with the designs it holds for
+  that vendor profile and reports the shortfall as the gauge `catalog.enrichment.design.gap`. It is a report as
+  of the last re-publication, not a continuous check, and can read above zero briefly while the re-emitted
+  designs are still being applied.
+
 Headers and auth notes:
 
 - Always propagate `X-Correlation-Id`.
