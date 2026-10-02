@@ -458,8 +458,9 @@ applied on acceptance, not by this ADR):
   - *Simple-chat questions.* A fixture whose question took the simple-chat path (no scope, no retrieval) needs no trace,
     but only while no run joined it. A question that took the simple-chat path in one run and was retrieved in the other
     is missing evidence.
-- **2026-10-02**: §9 gate run for the `rag` consumer on alpha: PASS. 61 paired fixtures (`rag-lexical`, `rag-retrieval`),
-  enforce against shadow: hit@5 0.770 → 0.836, MRR 0.659 → 0.708, recall@5 0.746 → 0.811, no fixture regressed; tool
+- **2026-10-02**: §9 gate run for the `rag` consumer on alpha: PASS. 62 paired fixtures (`rag-lexical`, `rag-retrieval`; one
+  shadow turn rerun because its question took the simple-chat path in only one run), enforce against shadow: hit@5
+  0.774 → 0.839, MRR 0.664 → 0.712, recall@5 0.750 → 0.815, no fixture regressed; tool
   selection unchanged except two pairs whose acting ADR-0068 tags drifted between the runs. Asked as the admin user standing
   in for every fixture actor, so the forbidden-document criterion was not exercised (the caller filter's SQL-parity test
   covers visibility). The Platform Owner promoted `rag` on alpha (`MCP_SCOPE_GRAPH_ENFORCE=rag`); `tools` and `card` stay
