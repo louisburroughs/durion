@@ -126,8 +126,9 @@ A story that needs a rule this checklist cannot cite adds it to "Open Questions"
 - [ ] Listener shape follows the ADR-0044 amendment of 2026-09-23: the `@KafkaListener` method is not `@Transactional`; it parses and checks
   `processed_events` before any transaction; handler and mark commit together in a `TransactionTemplate` with `PROPAGATION_REQUIRES_NEW`; a
   permanent failure (`DatabindException`) is marked in a transaction of its own; the ADR-0044 §4 retryable set
-  (`RetryableConsumerFailures`, proposed amendment of 2026-10-02: transient, recoverable and resource-failure data access
-  exceptions and `TransactionException`) is rethrown with no mark.
+  (`RetryableConsumerFailures`, amendment of 2026-10-02: transient, recoverable and resource-failure data access
+  exceptions, plus `CannotCreateTransactionException`, `TransactionSystemException` and `TransactionTimedOutException`)
+  is rethrown with no mark.
 - [ ] `PERIOD_CLOSED`, `PERIOD_HARD_LOCKED`, `MAPPING_NOT_FOUND` and transient errors on a Kafka fact propagate unmarked to the container error
   handler, retry, then land on `{topic}.dlq` with an alert, and are replayed after the operations fix (spec §4.5, §4.7).
 - [ ] A Kafka fact writes only terminal `AccountingEvent` ingestion states (`PROCESSED`, or the proposed `SKIPPED`), never `FAILED` or `SUSPENDED`,
