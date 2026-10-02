@@ -442,3 +442,9 @@ applied on acceptance, not by this ADR):
 - **2026-09-30**: ADR-0068 accepted. The §5.1 tag seeds and the §6 tagger option lists take effect when its tagger is built; until then the §6 fallbacks still apply.
 - **2026-10-01**: §6 ADR-0068 tagger row: entity questions are one Noul per lexicon entity and `domain` options stay the
   rag-scope vocabulary, per ADR-0068's Changelog of the same date.
+- **2026-10-02**: §9 gate run for the `rag` consumer on alpha: PASS. 61 paired fixtures (`rag-lexical`, `rag-retrieval`),
+  enforce against shadow: hit@5 0.770 → 0.836, MRR 0.659 → 0.708, recall@5 0.746 → 0.811, no fixture regressed; tool
+  selection unchanged except two pairs whose acting ADR-0068 tags drifted between the runs. Asked as the admin user standing
+  in for every fixture actor, so the forbidden-document criterion was not exercised (the caller filter's SQL-parity test
+  covers visibility). The Platform Owner promoted `rag` on alpha (`MCP_SCOPE_GRAPH_ENFORCE=rag`); `tools` and `card` stay
+  in shadow. Record: `domains/general/mcp-server/archive/gate-runs/2026-10-02-scope-graph-rag-gate.md`.

@@ -232,7 +232,11 @@ in rank order), `scopeDocumentIds` and `scopeToolNames` (the resolved scope's do
 null or empty. The gate procedure is: `scripts/gate_chat_run.sh` drives the `rag-lexical` and `rag-retrieval` fixtures
 through chat in `shadow` and exports the traces; `scripts/scope_graph_gate_report.py` scores today's ranking against the
 `rag` consumer's simulated filter (hit@k, MRR, recall@k, forbidden documents), lists regressions, the tools-consumer shadow
-picture and documentation coverage per entity, and exits non-zero on FAIL.
+picture and documentation coverage per entity, and exits non-zero on FAIL. On alpha, where no user per fixture role can
+both chat and export traces, `--actor-proxy ROLE_SYSTEM_ADMINISTRATOR` lets the admin's turns stand in for every fixture
+that expects a document (visibility is then untested and forbidden lists are ignored); fixtures whose question takes the
+simple-chat path are exempt, since the rag consumer never acts on them; and a pair whose acting ADR-0068 tags drifted
+between the runs is listed as `tagDrift` and left out of the tool criterion.
 
 `NltiRequestTelemetry` goes to `schemaVersion` 2 with `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`,
 `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied`; all nullable, absent in `off`. Any checked-in
