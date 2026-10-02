@@ -448,6 +448,25 @@ here. `replaceMechanicSkills` waits briefly for that projection before answering
   marks the row worth resubmitting unchanged. The wait is spent at most once per request, so a
   batch of unresolvable rows cannot multiply it by the row count.
 
+#### Issues louisburroughs/durion-positivity-backend#2123 and #2363 — One name for the mechanic's person id
+
+Every pos-shop-manager response that identifies a mechanic uses the same two fields
+([ADR-0015](../../../docs/adr/0015-identity-entity-relationships.adr.md) §7 I7, DECISION-PEOPLE-009):
+
+- `mechanicPersonId` is the People-domain person id. It is the value `createAssignment` takes as
+  `mechanics[].mechanicPersonId`, so an id read from a roster row or an assignment response can be
+  posted back unchanged.
+- `mechanicRecordId` is pos-shop-manager's own surrogate key for the mechanic read-model row. It is
+  not a person id and not a cross-service identifier; never send it to another service or to
+  `createAssignment`.
+
+Both are always present. This applies to `AssignmentResponse.mechanics[]` (#2123), and to the rows
+of `listMechanics` (`GET /v1/shop-manager/mechanics`) and `listLocationTechnicians`
+(`GET /v1/shop-manager/{locationId}/technicians`) (#2363). The former `mechanicId` field is gone
+from all three, and the roster rows' former `personId` field is now `mechanicPersonId`; there is no
+compatibility alias. `listMechanics` still sorts by `personId`: the sort key is the read model's
+property name, not the response field.
+
 ### Frontend Usage Notes
 
 - Use operation IDs above as the stable API integration keys for UI actions.
