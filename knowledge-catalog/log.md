@@ -1,5 +1,11 @@
 # Directory Update Log
 
+## 2026-10-02
+
+* **Updated**: `domains/general.md` indexes the new gate-run record
+  `mcp-server/archive/gate-runs/2026-10-02-scope-graph-rag-gate.md` (62 documents), and `adr/0069` is regenerated after
+  its 2026-10-02 Changelog entries (§9 gate run and gate evidence rules).
+
 ## 2026-10-01
 
 * **Updated**: `adr/` — the ADR-0068 and ADR-0069 entries are regenerated after their Changelog amendments (entity Nouls,
