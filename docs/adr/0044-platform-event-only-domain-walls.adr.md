@@ -10,8 +10,9 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146);
-previously amended 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
+**Status:** ACCEPTED — amended 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355);
+previously amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
+2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped),
 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and
 2026-08-10 (pos-supplier stock-inquiry sync-read exception; pos-order → pos-invoice back-port dated 2026-07-23); see §Amendments
@@ -115,8 +116,9 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
   transaction as the state change, drained by a background publisher. At-least-once delivery is the guarantee.
 - **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`, written in the same transaction as the replica update; that
   transaction is the handler's own, not the listener's (amended 2026-09-23, see §Amendments). Redelivery MUST be harmless.
-- **Retry and DLQ.** Transient consumer failures retry with backoff; a record that still fails, or whose failure the consumer lets propagate on purpose, goes to
-  `{topic}.dlq` and alerts. A failure the consumer classifies as permanent (a malformed payload, a business rejection that redelivery cannot fix) is logged and,
+- **Retry and DLQ.** A consumer failure in the retryable set retries with backoff; the set is named and defined once (amended 2026-10-02, see
+  §Amendments). A record that still fails, or whose failure the consumer lets propagate on purpose, goes to `{topic}.dlq` and alerts.
+  A failure the consumer classifies as permanent (a malformed payload, a business rejection that redelivery cannot fix) is logged and,
   where the consumer records failures, marked processed instead of dead-lettered (amended 2026-09-23, see §Amendments). Either way a failed command MUST surface to its
   requester as a failed/pending item, not silently drop.
 - **Bootstrap and backfill.** Owners MUST provide a replay mechanism (snapshot export endpoint or administrative re-emit-all) to seed new replicas and repair drift.
@@ -192,6 +194,70 @@ approved by ADR amendment.
 
 ## Amendments
 
+### 2026-10-02 — Consumer rethrow set (durion-positivity-backend#2355)
+
+Ratified by the owner on 2026-10-02. #2355 proposed the whole of `TransactionException` as the fourth member of the
+set; the ratified set names three of its types instead, for the reason given below.
+
+The 2026-09-23 amendment pinned what a consumer rethrows as `TransientDataAccessException`, and the code and issues
+that followed described that as covering "a connection blip, lock timeout or deadlock". It covers only the last two.
+In Spring's hierarchy a dropped or refused connection (PgJDBC `08xxx`, Hibernate's `JDBCConnectionException`) is a
+`DataAccessResourceFailureException`, which extends `NonTransientDataAccessResourceException`; a failure the driver
+reports as recoverable is a `RecoverableDataAccessException`, also outside the transient branch; and a failure to
+open the handler's `REQUIRES_NEW` transaction is a `CannotCreateTransactionException`, which is not a
+`DataAccessException` at all. Every consumer that followed the reference shape therefore treated a lost connection
+as permanent. A command listener logged and dropped the command. A consumer that records failures did worse: its
+catch wrote the `processed_events` mark, so an event lost to a connection failure in the middle of its transaction
+was recorded as processed and never applied.
+
+The rule is now:
+
+- **A consumer rethrows the retryable set for container retry.** The set is six types:
+  - `TransientDataAccessException`: a lock timeout, a deadlock, a query timeout, a locking failure.
+  - `RecoverableDataAccessException`: a failure the driver reports as recoverable on a fresh connection.
+  - `DataAccessResourceFailureException`: a dropped or refused connection, an exhausted pool.
+  - `CannotCreateTransactionException`: the handler's transaction could not be opened.
+  - `TransactionSystemException`: the commit or rollback failed in the transaction infrastructure.
+  - `TransactionTimedOutException`: the transaction ran past its deadline.
+
+  Spring's "non-transient" means "retrying at once will not help", and the container's exponential backoff, followed
+  by `{topic}.dlq`, is the answer to exactly that.
+- **Every other `TransactionException` is permanent.** `UnexpectedRollbackException`,
+  `IllegalTransactionStateException`, `NoTransactionException` and the rest of `TransactionUsageException`, and
+  `HeuristicCompletionException` report a state the same code reaches again on redelivery: something inside the
+  handler marked the transaction rollback-only, or the code asked the transaction manager for something it cannot do.
+  Retrying them holds the partition through the whole backoff and dead-letters a record that was never going to apply,
+  which is the failure the 2026-09-23 amendment removed. For the same reason the two subclasses of
+  `CannotCreateTransactionException` that describe the transaction manager and not the database,
+  `NestedTransactionNotSupportedException` and `TransactionSuspensionNotSupportedException`, are excluded from the set
+  by name.
+- **The whole cause chain is inspected.** A failure is retryable if it, or any exception in its cause chain, is one
+  of those types. A service that wraps a lost connection in its own exception has still lost the connection. Being
+  wrong in that direction costs a few retries and a dead letter somebody looks at; being wrong in the other loses
+  the event silently. Only these Spring types count: a driver or Hibernate exception that reaches the consumer
+  untranslated, with no Spring type anywhere in its chain, is not in the set and stays permanent.
+- **The set has one definition.** `RetryableConsumerFailures.isRetryable(Throwable)` in `pos-tenancy-common`
+  (`com.positivity.tenancy.kafka`) lists the types and the two excluded subclasses, and no consumer names them
+  itself. Changing the set means changing those lists and this section, and nothing else.
+- **"Permanent" still means what it meant.** A malformed payload, an unsupported type, a constraint or integrity
+  rejection, a business rejection, a programming error, a transaction left rollback-only: anything outside the set is
+  a failure redelivery cannot fix. The consumer logs it and, where it records failures, marks the record processed in a transaction of its
+  own, as the 2026-09-23 amendment describes. A consumer that deliberately rethrows more than the set (one that
+  lets every database failure propagate because a lost record cannot be recovered) keeps doing so.
+- **Classify first, then mark.** A consumer whose catch records the failed record asks the classifier at the head
+  of that catch and rethrows on a retryable failure before it logs, counts or writes anything. No
+  `processed_events` mark may be written for a record that was not applied and can still be retried.
+- **Redelivery was already required to be harmless** (§4, idempotent consumers). Widening the set redelivers more
+  records; it adds no new requirement on a handler.
+
+Retry count, backoff, dead-letter topics and consumer groups are unchanged.
+
+`pos-archunit`'s `KafkaConsumerRetryArchitectureTest` enforces the shape: a consumer class that catches
+`TransientDataAccessException` fails the build, and so does a `@KafkaListener` class whose broad catch guards handler
+work without asking the classifier. Each module pins the behaviour with a propagation test that throws
+`DataAccessResourceFailureException` and asserts that no mark was written. A `QueryTimeoutException` is transient and
+exercises none of this, which is why every module's earlier tests passed over the gap.
+
 ### 2026-09-23 — Consumer transaction shape (durion-positivity-backend#2146)
 
 §4 originally checked `processed_events` "in the same transaction as the replica update", and the reference consumer
@@ -213,7 +279,8 @@ The consumer shape is now:
   writes the mark after the handler's transaction has rolled back, so redelivery does not retry the record. A consumer
   whose contract leaves a failed record unmarked keeps doing so.
 - **Transient failures still propagate.** `TransientDataAccessException` is rethrown, so the container retries the
-  record and no mark is written for a record that was not applied.
+  record and no mark is written for a record that was not applied. (The 2026-10-02 amendment above widens what is
+  rethrown from that one type to a named set of six.)
 
 The first cut of this fix, in `pos-inventory`'s `InventoryCommandListener` (#2145), wrote the mark in a second
 transaction after every handler, successful or not. That opens an at-least-once window between the two commits, which
