@@ -83,9 +83,9 @@ Exit: common verification green; `enforce` with `enforced-tags: []` equals `shad
 
 ## After the waves (not in this plan)
 
-1. Pull each candidate (`tev1:0.8b`, `tev1`, `nimble`) on the alpha host; `mode: shadow`; run the gate sets in en, fr, es;
-   `tagging_shadow_report.py`; record per model in the ADR Changelog; choose the smallest that fits the budget and the
-   accuracy rule; set `provider.model` and `thresholds.<tag>`.
-2. Promote tags one at a time into `enforced-tags` after a recorded gate run; the router tags last, then remove
-   `routerChatModel` and `mcp.model.router` (§7).
-3. Consider the "skip the call when the heuristic is certain" follow-up from the latency data.
+1. **Done 2026-10-01/02** — bake-off on alpha with the hosted provider (local candidates not viable on the GPU-less host);
+   all thirteen tags promoted at once with the thresholds in the ADR Changelog
+   ([run record](archive/gate-runs/2026-10-01-tagging-bakeoff-jev-latest.md)).
+2. Remove `routerChatModel` and `mcp.model.router` (§7) — the router tags are enforced.
+3. Native review of the fr-CA and es gate sets; re-run the report on new shadow data when the lexicon or wording changes.
+4. The "skip the call when the heuristic is certain" follow-up is in place for exact T0 hits (`heuristic_certain`).
