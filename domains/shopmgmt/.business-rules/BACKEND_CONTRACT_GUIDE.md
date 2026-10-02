@@ -423,6 +423,14 @@ Realized by: durion-positivity-backend#2270. Verified against backend branch
 | Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/bays` |
 | Get mobile units | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/mobileUnit` |
 | Get bays | *(planned — not in pos-shop-manager OpenAPI)* | GET | `/v1/shop-manager/{locationId}/bays/{bayId}` |
+| List mechanics (shop-wide roster) | `listMechanics` | GET | `/v1/shop-manager/mechanics` |
+| List technicians assigned to a location | `listLocationTechnicians` | GET | `/v1/shop-manager/{locationId}/technicians` |
+| Create assignment | `createAssignment` | POST | `/v1/appointments/{appointmentId}/assignments` |
+| List assignments | `listAssignments` | GET | `/v1/appointments/{appointmentId}/assignments` |
+
+`createAssignment` and `listAssignments` are the two operations that return `AssignmentResponse`. They are also
+listed under CAP-249 and in `Frontend API Lookup`; they are repeated here because the mechanic-identifier rule
+below applies to their response.
 
 ### Behavioral Assertions
 
@@ -450,8 +458,10 @@ here. `replaceMechanicSkills` waits briefly for that projection before answering
 
 #### Issues louisburroughs/durion-positivity-backend#2123 and #2363 — One name for the mechanic's person id
 
-Every pos-shop-manager response that identifies a mechanic uses the same two fields
+Three pos-shop-manager response shapes identify a mechanic with the same two fields
 ([ADR-0015](../../../docs/adr/0015-identity-entity-relationships.adr.md) §7 I7, DECISION-PEOPLE-009):
+`AssignmentResponse.mechanics[]`, returned by `createAssignment` and `listAssignments` (#2123), and the rows
+of `listMechanics` and `listLocationTechnicians` (#2363).
 
 - `mechanicPersonId` is the People-domain person id. It is the value `createAssignment` takes as
   `mechanics[].mechanicPersonId`, so an id read from a roster row or an assignment response can be
@@ -460,12 +470,16 @@ Every pos-shop-manager response that identifies a mechanic uses the same two fie
   not a person id and not a cross-service identifier; never send it to another service or to
   `createAssignment`.
 
-Both are always present. This applies to `AssignmentResponse.mechanics[]` (#2123), and to the rows
-of `listMechanics` (`GET /v1/shop-manager/mechanics`) and `listLocationTechnicians`
-(`GET /v1/shop-manager/{locationId}/technicians`) (#2363). The former `mechanicId` field is gone
-from all three, and the roster rows' former `personId` field is now `mechanicPersonId`; there is no
+Both are always present in those three shapes. The former `mechanicId` field is gone from all
+three, and the roster rows' former `personId` field is now `mechanicPersonId`; there is no
 compatibility alias. `listMechanics` still sorts by `personId`: the sort key is the read model's
 property name, not the response field.
+
+The shop-audit operations are not covered by this rule. `ShopAuditEntryResponse` (returned by
+`searchShopAudit` and `getShopAuditEntry`) and the `searchShopAudit` query filter still use
+`mechanicId`. It is a String described only as the mechanic identifier involved in the change; the
+contract does not say whether it holds a person id or the surrogate key, so do not treat it as
+either `mechanicPersonId` or `mechanicRecordId`.
 
 ### Frontend Usage Notes
 
