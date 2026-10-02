@@ -490,3 +490,16 @@ applied on acceptance, not by this ADR):
     means provider fallbacks.
   - **No low-confidence alert in Wave 1.** No turn carries `low_confidence` until `enforce` exists, so a rule on it
     could not fire. Wave 2 defines a turn-level (or per-tag) low-confidence signal and its alert.
+- **2026-10-02**: §6 bake-off run and recorded
+  ([run record](../../domains/general/mcp-server/archive/gate-runs/2026-10-01-tagging-bakeoff-jev-latest.md)). On the
+  GPU-less alpha host no local candidate meets the budget: `tev1`/`tev1:0.8b` reject the 13-question request (2,050-token
+  context) and take 5.2 s warm for 7 questions; `nimble` is 11× the weights. Under §4's synthetic-data allowance alpha's
+  tagger points at TypeSafe's hosted `jev-latest` (`https://api.typesafe.ai`, same wire contract): p50 163–169 ms,
+  p95 206–231 ms, no provider fallbacks over 1,044 turns. Every tag is at least as accurate as its heuristic in en, fr-CA
+  and es (fr-CA/es fixtures still unreviewed translations). **Promoted** all thirteen tags to `enforce` at once by Platform
+  Owner decision: `simple_chat:veto` 0.80, `admin_account_question` 0.60, `workflow_state` 0.70 (non-IDLE 0.80),
+  `about_inventory`/`about_orders`/`compound_question` 0.75, `needs_web_search` 0.85, `implies_date_window` 0.70,
+  `follows_previous_turn` 0.70, `intent`/`complexity`/`risk`/`domain` 0.50, `entity` 0.85. The hosted-provider condition
+  stands: an environment with real customer data needs a zero-retention DPA before it may do the same. Follow-ups:
+  louisburroughs/durion-positivity-backend#2375 (retired chat model unnoticed), #2376 (local model warm-up), #2378
+  (thresholds configurable). The `routerChatModel` bean and `mcp.model.router` can now be removed (§7).

@@ -269,8 +269,10 @@ What each consumer does **when its tag is enforced** (in `off`, `shadow` and for
   risk never downgrades. The router makes no chat-model call in any mode (ADR-0068 §7); with `mcp.model.tiering-enabled` on, every
   routed turn takes `T2_COMPLEX` until the router tags are enforced. The `routerChatModel` bean and `mcp.model.router` stay
   defined until promotion.
-- **When `entity_<key>` or `domain` is enforced** they seed `ScopeResolver` with match kind `TAG` at `LOW` confidence (a domain
-  seed adds that scope's permitted documents, never tools). Tag-added tools and scope-added tools are unioned on top of the
+- **When `entity_<key>` or `domain` is enforced** they seed `ScopeResolver`, by two paths. An `entity_<key>` answer seeds that
+  `Entity` node with match kind `TAG` (`LOW`). A `domain` answer is a `DomainSeed`, not a match: it adds the `Domain` node(s)
+  mapped to that RAG scope and, as their one hop, the scope's permitted documents, never tools; it carries no match kind, and a
+  scope seeded only by tags (either path) is `LOW`. Tag-added tools and scope-added tools are unioned on top of the
   ranked cuts; only scope-added tools count against `added-tool-slots`.
 
 Tags are advisory: they never widen access (gating runs first), never remove a ranked tool, never override persisted workflow

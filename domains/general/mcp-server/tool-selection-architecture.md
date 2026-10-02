@@ -17,12 +17,15 @@ earlier NLQ-to-API analyses referenced by issue #639.
 Covers the runtime path shared by blocking (`POST /v1/mcp/chat`) and streaming
 (`POST /v1/mcp/chat/stream`) chat:
 
-0. question tagging (ADR-0068), once per turn, ahead of everything below
 1. role resolution
 2. system-prompt assembly (with fallback) — #637
 3. permission/workflow-gated tool selection — #639
 4. role-agent caching (TTL + invalidation) — #639
 5. static RAG preload at startup — #637
+
+Question tagging (ADR-0068) runs once per turn after role resolution: the transport resolves `CurrentUserContext`, the
+manager applies the rate limit and opens the turn record, then tags the message before the simple-chat (T0) check, tier
+routing and tool selection (see "Per-turn order" below).
 
 ## 1. Shared role resolution
 
@@ -77,7 +80,8 @@ Observability: every fallback past the requested prompt increments
 single selection contract used by **both** blocking and streaming orchestration — transport parity
 is structural, not duplicated logic.
 
-**Per-turn order (ADR-0068).** Each manager calls `ToolSelectionEngine.tag(message)` once and passes the resulting
+**Per-turn order (ADR-0068).** After the user context is resolved and the rate limit applied, each manager calls
+`ToolSelectionEngine.tag(message)` once and passes the resulting
 `QuestionTags` record to every consumer: tag → simple chat (T0) → tier (`NltiRouter`) → selection (+ scope) → retrieval → prompt.
 The T0 check, the tier and the selection read the record; none re-derives a decision from the raw message. `HeuristicQuestionTagger`
 always runs and holds the former keyword rules unchanged; with `mcp.tagging.mode` `shadow` or `enforce` a decision-model tagger

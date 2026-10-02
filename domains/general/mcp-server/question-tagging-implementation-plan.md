@@ -20,8 +20,8 @@ documentation PR. Waves 1 and 2 are stacked; Wave 3 touches compose, scripts, da
 | Wave | Branch | State |
 | ---- | ------ | ----- |
 | 1 Seam, heuristic and decision-model taggers, shadow | `feat/adr-0068-w1-tagging-seam` | merged: louisburroughs/durion-positivity-backend#2367 (2026-10-01) |
-| 2 Enforce per tag, router from tags, scope-graph integration | `feat/adr-0068-w2-tagging-enforce` | merged: louisburroughs/durion-positivity-backend#2369 |
-| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | merged: louisburroughs/durion-positivity-backend#2368; `durion` docs: this PR (alerts, dashboard and architecture pages done) |
+| 2 Enforce per tag, router from tags, scope-graph integration | `feat/adr-0068-w2-tagging-enforce` | merged: louisburroughs/durion-positivity-backend#2369 (2026-10-01) |
+| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | backend merged: louisburroughs/durion-positivity-backend#2368 (2026-10-01); `durion` docs: alerts, dashboard and architecture pages done (louisburroughs/durion#532) |
 
 Common verification for every backend wave, run from the repository root:
 
@@ -77,15 +77,15 @@ Exit: common verification green; `enforce` with `enforced-tags: []` equals `shad
 | 3.1 | `docker-compose.yml`: `ollama` and `ollama-init` pinned to a 0.35+ tag; `ollama-init` pulls `${OLLAMA_TAGGING_MODEL}` beside the embedding model; `OLLAMA_MAX_LOADED_MODELS` ≥ 2 (3 shipped: room for a second candidate during a bake-off) and `OLLAMA_KEEP_ALIVE`; comments; `.env.example` (`OLLAMA_TAGGING_MODEL=tev1:0.8b`, `MCP_TAGGING_MODE=off`); `pos-mcp-server` env wiring; alpha memory note | ADR Implementation Notes → Container |
 | 3.2 | `scripts/tagging_shadow_report.py` + the bake-off procedure section | spec §2.9 |
 | 3.3 | NLTI overview dashboard: tagging latency, fallback by reason, agreement per tag, model in use, `ollama` container CPU and memory; Loki alert on provider-failure fallback rate > 20 % sustained (ADR Changelog 2026-10-01); `operations/alerts/nlti-alerts.md` rule 12 and `operations/dashboards/nlti-overview.md` tagging row | ADR Monitoring |
-| 3.4 | **done (this PR)** `durion`: `architecture.md` (request flow: tag → simple chat → tier → selection → scope), `tool-selection-architecture.md` (keyword fallback, admin fast path, workflow state now tag-driven), this plan's state table (the `scope-graph-spec.md` cross-reference for `lookups` and `MatchKind.TAG` was not part of this PR) | ADR Docs to update |
+| 3.4 | **done** (louisburroughs/durion#532) `durion`: `architecture.md` (request flow: tag → simple chat → tier → selection → scope), `tool-selection-architecture.md` (keyword fallback, admin fast path, workflow state now tag-driven), this plan's state table, `scope-graph-spec.md` (the tag-seed and `lookups` rows marked done: entity tags seed at `MatchKind.TAG`, the domain tag through `DomainSeed`) | ADR Docs to update |
 | 3.5 | `tagging-gate` fixtures en / fr-CA / es with `expected_tags`; the report scores both taggers against them | spec §2.9 |
-| 3.6 | File a separate issue: extend the admin fast-path veto list with customer, supplier, vendor, bank and GL terms (behaviour change, outside the move-unchanged rule) | spec §2.3; issue filed |
+| 3.6 | File a separate issue: extend the admin fast-path veto list with customer, supplier, vendor, bank and GL terms (behaviour change, outside the move-unchanged rule) | spec §2.3; filed as louisburroughs/durion-positivity-backend#2371 |
 
 ## After the waves (not in this plan)
 
-1. Pull each candidate (`tev1:0.8b`, `tev1`, `nimble`) on the alpha host; `mode: shadow`; run the gate sets in en, fr, es;
-   `tagging_shadow_report.py`; record per model in the ADR Changelog; choose the smallest that fits the budget and the
-   accuracy rule; set `provider.model` and `thresholds.<tag>`.
-2. Promote tags one at a time into `enforced-tags` after a recorded gate run; the router tags last, then remove
-   `routerChatModel` and `mcp.model.router` (§7).
-3. Consider the "skip the call when the heuristic is certain" follow-up from the latency data.
+1. **Done 2026-10-01/02** — bake-off on alpha with the hosted provider (local candidates not viable on the GPU-less host);
+   all thirteen tags promoted at once with the thresholds in the ADR Changelog
+   ([run record](archive/gate-runs/2026-10-01-tagging-bakeoff-jev-latest.md)).
+2. Remove `routerChatModel` and `mcp.model.router` (§7) — the router tags are enforced.
+3. Native review of the fr-CA and es gate sets; re-run the report on new shadow data when the lexicon or wording changes.
+4. The "skip the call when the heuristic is certain" follow-up is in place for exact T0 hits (`heuristic_certain`).
