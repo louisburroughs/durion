@@ -20,8 +20,8 @@ documentation PR. Waves 1 and 2 are stacked; Wave 3 touches compose, scripts, da
 | Wave | Branch | State |
 | ---- | ------ | ----- |
 | 1 Seam, heuristic and decision-model taggers, shadow | `feat/adr-0068-w1-tagging-seam` | merged: louisburroughs/durion-positivity-backend#2367 (2026-10-01) |
-| 2 Enforce per tag, router from tags, scope-graph integration | `feat/adr-0068-w2-tagging-enforce` | not started |
-| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | in review: louisburroughs/durion-positivity-backend#2368; durion docs: alerts and dashboard pages done; 3.4 architecture pages still to do now that #2367 is merged |
+| 2 Enforce per tag, router from tags, scope-graph integration | `feat/adr-0068-w2-tagging-enforce` | merged: louisburroughs/durion-positivity-backend#2369 (2026-10-01) |
+| 3 Operations: container, bake-off report, dashboard, docs | `feat/adr-0068-w3-tagging-ops` + `durion` docs branch | backend merged: louisburroughs/durion-positivity-backend#2368 (2026-10-01); durion docs: alerts and dashboard pages done; 3.4 architecture pages still to do |
 
 Common verification for every backend wave, run from the repository root:
 
