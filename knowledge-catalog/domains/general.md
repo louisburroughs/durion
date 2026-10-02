@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/general
 path: durion/domains/general/
 tags: [domain, general]
 sources: [domains/general/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T10:13:25+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T11:04:12+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/general) — `domains/general/` (61 documents)
