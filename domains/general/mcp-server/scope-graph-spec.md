@@ -225,6 +225,15 @@ relation is printed only when both entities qualify.
 text), counts of entities, tools, documents and screens, `addedTools`, `ragFilterApplied`, and, computed at turn completion,
 `calledToolsInScope` / `calledTools` and `retrievedDocsInScope` / `retrievedDocs` (the final top-K passed to the model; cited documents are not knowable, there are no citation markers).
 
+So that the ADR §9 gate can be scored offline from the traces, the trace also carries identities (added 2026-10-02,
+louisburroughs/durion-positivity-backend#2386): `retrievedDocuments` (`documentId` and `ragScope` of each retrieved document,
+in rank order), `scopeDocumentIds` and `scopeToolNames` (the resolved scope's documents and tools, each capped at 64 with a
+`…Truncated` flag), and `addedToolNames` (the additive slots' tool names). Payloads written before the change read them as
+null or empty. The gate procedure is: `scripts/gate_chat_run.sh` drives the `rag-lexical` and `rag-retrieval` fixtures
+through chat in `shadow` and exports the traces; `scripts/scope_graph_gate_report.py` scores today's ranking against the
+`rag` consumer's simulated filter (hit@k, MRR, recall@k, forbidden documents), lists regressions, the tools-consumer shadow
+picture and documentation coverage per entity, and exits non-zero on FAIL.
+
 `NltiRequestTelemetry` goes to `schemaVersion` 2 with `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`,
 `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied`; all nullable, absent in `off`. Any checked-in
 JSON schema and the telemetry documentation are updated in the same change.
