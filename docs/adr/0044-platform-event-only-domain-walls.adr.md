@@ -116,8 +116,8 @@ Envelope (extends the existing pos-workorder `KafkaProducer` envelope):
   transaction as the state change, drained by a background publisher. At-least-once delivery is the guarantee.
 - **Idempotent consumers.** Each consumer module keeps a `processed_events` table keyed by `eventId`, written in the same transaction as the replica update; that
   transaction is the handler's own, not the listener's (amended 2026-09-23, see §Amendments). Redelivery MUST be harmless.
-- **Retry and DLQ.** Transient consumer failures retry with backoff; a record that still fails, or whose failure the consumer lets propagate on purpose, goes to
-  `{topic}.dlq` and alerts. Which failures a consumer rethrows for that retry is a named set, defined once (amended 2026-10-02, see §Amendments).
+- **Retry and DLQ.** A consumer failure in the retryable set retries with backoff; the set is named and defined once (amended 2026-10-02, see
+  §Amendments). A record that still fails, or whose failure the consumer lets propagate on purpose, goes to `{topic}.dlq` and alerts.
   A failure the consumer classifies as permanent (a malformed payload, a business rejection that redelivery cannot fix) is logged and,
   where the consumer records failures, marked processed instead of dead-lettered (amended 2026-09-23, see §Amendments). Either way a failed command MUST surface to its
   requester as a failed/pending item, not silently drop.
