@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/billing
 path: durion/domains/billing/
 tags: [domain, billing]
 sources: [domains/billing/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T21:43:29-04:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T13:36:11-04:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/billing) — `domains/billing/` (6 documents)

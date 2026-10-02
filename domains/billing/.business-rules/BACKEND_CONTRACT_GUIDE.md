@@ -140,31 +140,61 @@ Headers and auth notes:
 
 ### Frontend API Lookup
 
-| UI Task | operationId | Method | Gateway Path | Notes |
+| UI Task | operationId | Method | Path | Notes |
 | --- | --- | --- | --- | --- |
-| Initiate card payment (sale/capture) | `initiatePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments` | Default SALE_CAPTURE; use `flow=AUTH_ONLY` with SELECT_PAYMENT_FLOW permission |
-| Manually capture an authorization hold | `capturePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/capture` | Requires MANUAL_CAPTURE permission |
-| Inquire on unknown payment outcome | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/status` | Use before retry to avoid duplicate charges |
-| Generate receipt after capture | `generateReceipt` | POST | `/v1/billing/invoices/{invoiceId}/receipts` | Triggers async email if consent given |
-| Get stored receipt | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}` | Returns immutable receipt with original templateVersion |
-| Reprint receipt | `reprintReceipt` | POST | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}/reprint` | Requires reprint authorization; watermark applied |
-| Void an authorization hold | `voidPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/void` | Requires VOID_PAYMENT permission + VOID_REASON |
-| Refund a captured payment | `refundPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/refund` | Requires REFUND_PAYMENT permission + REFUND_REASON; async lifecycle |
+| Initiate card payment (sale/capture) | `initiatePayment` | POST | `/v1/invoices/{invoiceId}/payments` | Requires `invoice:payment:process`. Body field `paymentFlow` is required: `SALE_CAPTURE`, or `AUTH_ONLY`, which also requires `invoice:payment:flow_select` |
+| Manually capture an authorization hold | `capturePayment` | POST | `/v1/invoices/{invoiceId}/payments/{paymentId}/capture` | Requires `invoice:payment:capture` |
+| Inquire on unknown payment outcome | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/invoices/{invoiceId}/payments/{paymentId}/status` | Use before retry to avoid duplicate charges |
+| Generate receipt after capture | `generateReceipt` | POST | `/v1/invoices/{invoiceId}/receipts` | Requires `invoice:receipt:generate`. Stores the receipt; it does not send an email |
+| Get stored receipt | `getReceipt` | GET | `/v1/invoices/{invoiceId}/receipts/{receiptId}` | Requires `invoice:invoice:view`. Returns the stored receipt with its `templateVersion` |
+| Reprint receipt | `reprintReceipt` | POST | `/v1/invoices/{invoiceId}/receipts/{receiptId}/reprint` | No permission beyond authentication while the receipt's reprint count is below 5; from then on requires `invoice:receipt:reprint_override` |
+| Void an authorization hold | `voidPayment` | POST | `/v1/invoices/{invoiceId}/payments/{paymentId}/void` | Requires `invoice:payment:void` + VOID_REASON; outside the 24-hour window also `invoice:payment:override` |
+| Refund a captured payment | `refundPayment` | POST | `/v1/invoices/{invoiceId}/payments/{paymentId}/refunds` | Requires `invoice:payment:refund` + REFUND_REASON; outside the 180-day window also `invoice:payment:override`; async lifecycle |
+
+Paths are the pos-invoice paths in `openapi.yaml`. The gateway has no `/billing` route: it exposes pos-invoice under
+the `/invoice` prefix (`Path=/invoice/**`, `StripPrefix=1`). A client calls `POST /invoice/invoices/{invoiceId}/payments`
+with `X-API-Version: 1`; the gateway rewrites that to `/invoice/v1/invoices/{invoiceId}/payments` and forwards
+`/v1/invoices/{invoiceId}/payments` to pos-invoice. A path that already carries the version segment
+(`/invoice/v1/...`) is forwarded without the rewrite.
 
 ### Permission Matrix
 
 | Operation | Required Permission | Notes |
 | --- | --- | --- |
-| Initiate payment (default) | `PROCESS_PAYMENT` | Up to configured threshold (default $500) |
-| Initiate payment (over threshold) | `OVERRIDE_PAYMENT_LIMIT` | Manager approval required |
-| Select AUTH_ONLY flow | `SELECT_PAYMENT_FLOW` | In addition to PROCESS_PAYMENT |
-| Manual capture | `MANUAL_CAPTURE` | Back-office captures after AUTH_ONLY |
-| Void authorization | `VOID_PAYMENT` | Requires reason |
-| Refund captured payment | `REFUND_PAYMENT` | Requires reason |
+| Initiate payment (default) | `invoice:payment:process` | Amount up to 500.00. Enforced on the endpoint |
+| Initiate payment (over threshold) | `invoice:payment:limit_override` | Amount above 500.00, a fixed threshold in `PaymentServiceImpl`. In addition to `invoice:payment:process`. Checked in the service, so the operation's `x-required-permissions` does not list it |
+| Select AUTH_ONLY flow | `invoice:payment:flow_select` | In addition to `invoice:payment:process`. Checked in the service, so the operation's `x-required-permissions` does not list it |
+| Manual capture | `invoice:payment:capture` | Back-office captures after AUTH_ONLY. Enforced on the endpoint |
+| Void authorization | `invoice:payment:void` | Requires reason. Enforced on the endpoint |
+| Void authorization (out of window) | `invoice:payment:override` | More than 24 hours after the payment intent was created. In addition to `invoice:payment:void`. Checked in the service, so the operation's `x-required-permissions` does not list it. Without it the void is refused `422 PAYMENT_WINDOW_EXPIRED` |
+| Refund captured payment | `invoice:payment:refund` | Requires reason. Enforced on the endpoint |
+| Refund captured payment (out of window) | `invoice:payment:override` | More than 180 days after the payment intent was created. In addition to `invoice:payment:refund`. Checked in the service, so the operation's `x-required-permissions` does not list it. Without it the refund is refused `422 PAYMENT_WINDOW_EXPIRED` |
+| Manual refund not tied to a captured payment | `invoice:refund:issue_manual` | `createStandaloneInvoiceRefund` and `createStandalonePartyRefund`. Enforced on the endpoint |
+| Generate receipt; record its print or email delivery | `invoice:receipt:generate` | `generateReceipt`, `recordReceiptPrintDelivery`, `recordReceiptEmailDelivery`. Enforced on the endpoint |
+| Get stored receipt | `invoice:invoice:view` | `getReceipt`. Enforced on the endpoint |
+| Reprint receipt | *(authentication only)* | While the receipt's reprint count is below 5 |
+| Reprint receipt (over the cap) | `invoice:receipt:reprint_override` | Once the reprint count has reached 5. Checked in the service, so the operation's `x-required-permissions` does not list it. Without it the reprint is refused `409 REPRINT_LIMIT_EXCEEDED` |
+
+The `invoice:payment:*`, `invoice:receipt:*` and `invoice:refund:*` codes above are catalog permissions: backend #2226
+registered `invoice:payment:void`, `invoice:payment:refund`, `invoice:payment:override`, `invoice:receipt:generate`,
+`invoice:receipt:reprint_override` and `invoice:refund:issue_manual`; #2393 registers `invoice:payment:process`,
+`invoice:payment:limit_override`, `invoice:payment:flow_select` and `invoice:payment:capture`. The
+earlier raw authority strings (`PROCESS_PAYMENT`, `OVERRIDE_PAYMENT_LIMIT`, `SELECT_PAYMENT_FLOW`,
+`MANUAL_CAPTURE`, `VOID_PAYMENT`, `REFUND_PAYMENT`, `GENERATE_RECEIPT`, `ISSUE_MANUAL_REFUND`, `SUPERVISOR_OVERRIDE`)
+are retired: no role holds them and no check accepts them.
+Each payment mutation is also scoped to the invoice's location
+([ADR-0061](../../../docs/adr/0061-location-scope-authorization-ownership.adr.md)): a caller whose grant of the code does
+not reach that location is refused `403 LOCATION_SCOPE_DENIED`. The conditional codes (`invoice:payment:limit_override`,
+`invoice:payment:flow_select`, `invoice:payment:override`, `invoice:receipt:reprint_override`) are scoped the same way.
+`createStandalonePartyRefund` has no invoice and is not location-scoped.
 
 ### Behavioral Assertions (Story #9 — Authorization and Capture)
 
-- Default payment flow is `SALE_CAPTURE`; `AUTH_ONLY` requires the `requiresManagerApproval`, `amountMayChange`, or equivalent policy flag, or cashier with `SELECT_PAYMENT_FLOW`.
+- `paymentFlow` (`SALE_CAPTURE` or `AUTH_ONLY`) is a required field of the `initiatePayment` request body. A request with
+  `paymentFlow` `AUTH_ONLY` is accepted only when the caller holds `invoice:payment:flow_select` in addition to
+  `invoice:payment:process`; without it the request is refused `403`. No policy flag substitutes for the permission: the
+  request body has no `requiresManagerApproval` or `amountMayChange` field (its fields are `paymentFlow`, `amount`,
+  `idempotencyKey` and `paymentToken`), and `initiatePayment` consults no such flag.
 - Idempotency key (`Idempotency-Key` header) is required for all payment mutations; duplicate submissions with the same key return the previous outcome without re-executing.
 - Retry policy: authorization uses 30s timeout with up to 2 automatic retries (backoff 5s/10s); capture uses 30s timeout with up to 1 automatic retry (backoff 10s).
 - On unknown outcome (timeout/network failure), gateway status inquiry is performed by idempotency key before any retry to prevent duplicate charges.
