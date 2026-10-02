@@ -442,3 +442,26 @@ applied on acceptance, not by this ADR):
 - **2026-09-30**: ADR-0068 accepted. The §5.1 tag seeds and the §6 tagger option lists take effect when its tagger is built; until then the §6 fallbacks still apply.
 - **2026-10-01**: §6 ADR-0068 tagger row: entity questions are one Noul per lexicon entity and `domain` options stay the
   rag-scope vocabulary, per ADR-0068's Changelog of the same date.
+- **2026-10-02**: §9 gate evidence rules, as `scripts/scope_graph_gate_report.py` applies them
+  (louisburroughs/durion-positivity-backend#2406):
+  - *Tool criterion and tag drift.* A pair whose acting ADR-0068 tag values differ between its shadow and enforce turn
+    (`tagDrift`) is listed but left out of the tool criterion, since the tagger, not the `rag` consumer, changed the
+    selection; its retrieval still counts. A tag that acted in neither turn, or a turn without a tagging record, shows no
+    drift. If more than 10% of the pairs are excused this way (`--max-tag-drift`), the run is INCOMPLETE and is rerun
+    with stable tags. This criterion binds the `rag` consumer only: the `tools` consumer's gate compares tool selection
+    directly and excuses no drift.
+  - *Forbidden criterion under an actor proxy.* Where the cell has no user per fixture role, a run may be asked as one
+    proxy role (`--actor-proxy`). Proxied samples ignore their forbidden lists, so such a run does not test per-role
+    visibility; the report says so (`forbiddenCriterionExercised`). For the `rag` consumer, the caller filter's SQL-parity
+    test is accepted as the evidence for that criterion in place of the run comparison. A PASS resting on it must say so
+    in this Changelog.
+  - *Simple-chat questions.* A fixture whose question took the simple-chat path (no scope, no retrieval) needs no trace,
+    but only while no run joined it. A question that took the simple-chat path in one run and was retrieved in the other
+    is missing evidence.
+- **2026-10-02**: §9 gate run for the `rag` consumer on alpha: PASS. 62 paired fixtures (`rag-lexical`, `rag-retrieval`; one
+  shadow turn rerun because its question took the simple-chat path in only one run), enforce against shadow: hit@5
+  0.774 → 0.839, MRR 0.664 → 0.712, recall@5 0.750 → 0.815, no fixture regressed; tool
+  selection unchanged except two pairs whose acting ADR-0068 tags drifted between the runs. Asked as the admin user standing
+  in for every fixture actor, so the forbidden-document criterion was not exercised (the caller filter's SQL-parity test
+  covers visibility). The Platform Owner promoted `rag` on alpha (`MCP_SCOPE_GRAPH_ENFORCE=rag`); `tools` and `card` stay
+  in shadow. Record: `domains/general/mcp-server/archive/gate-runs/2026-10-02-scope-graph-rag-gate.md`.

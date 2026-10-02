@@ -225,6 +225,23 @@ relation is printed only when both entities qualify.
 text), counts of entities, tools, documents and screens, `addedTools`, `ragFilterApplied`, and, computed at turn completion,
 `calledToolsInScope` / `calledTools` and `retrievedDocsInScope` / `retrievedDocs` (the final top-K passed to the model; cited documents are not knowable, there are no citation markers).
 
+So that the ADR §9 gate can be scored offline from the traces, the trace also carries identities (added 2026-10-02,
+louisburroughs/durion-positivity-backend#2386): `retrievedDocuments` (`documentId` and `ragScope` of each retrieved document,
+in rank order), `scopeDocumentIds` and `scopeToolNames` (the resolved scope's documents and tools, each capped at 64 with a
+`…Truncated` flag), and `addedToolNames` (the additive slots' tool names). Payloads written before the change read them as
+null or empty. The gate procedure is: `scripts/gate_chat_run.sh` drives the `rag-lexical` and `rag-retrieval` fixtures
+through chat twice against one graph snapshot, once in `shadow` and once with only the `rag` consumer in `enforce`, and
+exports the traces of each run. `scripts/scope_graph_gate_report.py` pairs each fixture's shadow turn (`--file`) with its
+enforce turn (`--enforce-file`) and scores both top-Ks (hit@k, MRR, recall@k, forbidden documents); the enforce run decides.
+A replay of the §6 filter over the shadow top-K is printed as a preview only and decides nothing. The report also lists
+regressions, the tools-consumer shadow picture and documentation coverage per entity, and exits non-zero on every verdict
+but PASS. On alpha, where no user per fixture role can both chat and export traces, `--actor-proxy
+ROLE_SYSTEM_ADMINISTRATOR` lets the admin's turns stand in for every fixture that expects a document (visibility is then
+untested, forbidden lists are ignored, and the report says the forbidden criterion was not exercised); a fixture whose
+question takes the simple-chat path in every run that asked it needs no trace, since the rag consumer never acts on it;
+and a pair whose acting ADR-0068 tags drifted between the runs is listed as `tagDrift` and left out of the tool criterion,
+up to 10% of the pairs (`--max-tag-drift`). The rules are in ADR-0069's Changelog of 2026-10-02.
+
 `NltiRequestTelemetry` goes to `schemaVersion` 2 with `scopeMode`, `scopeGraphHash`, `scopeConfidence`, `scopeEntityCount`,
 `scopeToolCount`, `scopeDocCount`, `scopeAddedToolCount`, `scopeRagFilterApplied`; all nullable, absent in `off`. Any checked-in
 JSON schema and the telemetry documentation are updated in the same change.
