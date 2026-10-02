@@ -142,29 +142,36 @@ Headers and auth notes:
 
 | UI Task | operationId | Method | Gateway Path | Notes |
 | --- | --- | --- | --- | --- |
-| Initiate card payment (sale/capture) | `initiatePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments` | Default SALE_CAPTURE; use `flow=AUTH_ONLY` with SELECT_PAYMENT_FLOW permission |
-| Manually capture an authorization hold | `capturePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/capture` | Requires MANUAL_CAPTURE permission |
+| Initiate card payment (sale/capture) | `initiatePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments` | Requires `invoice:payment:process`. Default SALE_CAPTURE; `flow=AUTH_ONLY` also requires `invoice:payment:flow_select` |
+| Manually capture an authorization hold | `capturePayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/capture` | Requires `invoice:payment:capture` |
 | Inquire on unknown payment outcome | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/status` | Use before retry to avoid duplicate charges |
 | Generate receipt after capture | `generateReceipt` | POST | `/v1/billing/invoices/{invoiceId}/receipts` | Triggers async email if consent given |
 | Get stored receipt | *(planned — not yet in pos-invoice OpenAPI)* | GET | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}` | Returns immutable receipt with original templateVersion |
 | Reprint receipt | `reprintReceipt` | POST | `/v1/billing/invoices/{invoiceId}/receipts/{receiptId}/reprint` | Requires reprint authorization; watermark applied |
-| Void an authorization hold | `voidPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/void` | Requires VOID_PAYMENT permission + VOID_REASON |
-| Refund a captured payment | `refundPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/refund` | Requires REFUND_PAYMENT permission + REFUND_REASON; async lifecycle |
+| Void an authorization hold | `voidPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/void` | Requires `invoice:payment:void` + VOID_REASON |
+| Refund a captured payment | `refundPayment` | POST | `/v1/billing/invoices/{invoiceId}/payments/{paymentId}/refund` | Requires `invoice:payment:refund` + REFUND_REASON; async lifecycle |
 
 ### Permission Matrix
 
 | Operation | Required Permission | Notes |
 | --- | --- | --- |
-| Initiate payment (default) | `PROCESS_PAYMENT` | Up to configured threshold (default $500) |
-| Initiate payment (over threshold) | `OVERRIDE_PAYMENT_LIMIT` | Manager approval required |
-| Select AUTH_ONLY flow | `SELECT_PAYMENT_FLOW` | In addition to PROCESS_PAYMENT |
-| Manual capture | `MANUAL_CAPTURE` | Back-office captures after AUTH_ONLY |
-| Void authorization | `VOID_PAYMENT` | Requires reason |
-| Refund captured payment | `REFUND_PAYMENT` | Requires reason |
+| Initiate payment (default) | `invoice:payment:process` | Up to configured threshold (default $500). Enforced on the endpoint |
+| Initiate payment (over threshold) | `invoice:payment:limit_override` | In addition to `invoice:payment:process`. Checked in the service, so the OpenAPI spec does not list it |
+| Select AUTH_ONLY flow | `invoice:payment:flow_select` | In addition to `invoice:payment:process`. Checked in the service, so the OpenAPI spec does not list it |
+| Manual capture | `invoice:payment:capture` | Back-office captures after AUTH_ONLY. Enforced on the endpoint |
+| Void authorization | `invoice:payment:void` | Requires reason |
+| Refund captured payment | `invoice:payment:refund` | Requires reason |
+
+The codes above are catalog permissions (backend #2226 for void and refund, #2393 for the other four). The
+earlier raw authority strings (`PROCESS_PAYMENT`, `OVERRIDE_PAYMENT_LIMIT`, `SELECT_PAYMENT_FLOW`,
+`MANUAL_CAPTURE`, `VOID_PAYMENT`, `REFUND_PAYMENT`) are retired: no role holds them and no check accepts them.
+Each payment mutation is also scoped to the invoice's location
+([ADR-0061](../../../docs/adr/0061-location-scope-authorization-ownership.adr.md)): a caller whose grant of the code does
+not reach that location is refused `403 LOCATION_SCOPE_DENIED`.
 
 ### Behavioral Assertions (Story #9 — Authorization and Capture)
 
-- Default payment flow is `SALE_CAPTURE`; `AUTH_ONLY` requires the `requiresManagerApproval`, `amountMayChange`, or equivalent policy flag, or cashier with `SELECT_PAYMENT_FLOW`.
+- Default payment flow is `SALE_CAPTURE`; `AUTH_ONLY` requires the `requiresManagerApproval`, `amountMayChange`, or equivalent policy flag, or cashier with `invoice:payment:flow_select`.
 - Idempotency key (`Idempotency-Key` header) is required for all payment mutations; duplicate submissions with the same key return the previous outcome without re-executing.
 - Retry policy: authorization uses 30s timeout with up to 2 automatic retries (backoff 5s/10s); capture uses 30s timeout with up to 1 automatic retry (backoff 10s).
 - On unknown outcome (timeout/network failure), gateway status inquiry is performed by idempotency key before any retry to prevent duplicate charges.
