@@ -6,15 +6,15 @@ resource: https://github.com/louisburroughs/durion/blob/master/domains/positivit
 path: durion/domains/positivity/
 tags: [domain, positivity]
 sources: [domains/positivity/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T01:12:46+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T01:42:12+00:00'}
 ---
 
 [Domain folder](https://github.com/louisburroughs/durion/blob/master/domains/positivity) — `domains/positivity/` (6 documents)
 
 [Canonical documentation index](https://github.com/louisburroughs/durion/blob/master/domains/positivity/index.md) — authority, current guidance, and historical records
 
-**Implemented by:** [pos-supplier](../backend/pos-supplier.md), [pos-marketing](../backend/pos-marketing.md), [pos-catalog](../backend/pos-catalog.md),
-[pos-platform-sender](../backend/pos-platform-sender.md)
+**Implemented by:** [pos-supplier](../backend/pos-supplier.md), [pos-marketing](../backend/pos-marketing.md), [pos-platform-sender](../backend/pos-platform-sender.md),
+[pos-catalog](../backend/pos-catalog.md)
 
 **Business rules:**
 
