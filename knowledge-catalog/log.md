@@ -1,5 +1,13 @@
 # Directory Update Log
 
+## 2026-10-03
+
+* **Structure**: `backend/` gains `pos-platform-sender` (the FI-2 email/SMS sender, SES and End User Messaging), pinned to
+  the positivity domain in `MODULE_DOMAIN` because its contract names it by role rather than by module name; `domains/positivity.md`
+  lists it as an implementing module. Only the entries this change touches were regenerated: the other entries' timestamp drift
+  against their sources' last commits predates it and is left for a full regeneration.
+* **Regenerated**: 69 ADR, 16 domain, 46 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
+
 ## 2026-10-02
 
 * **Updated**: `domains/general.md` indexes the new gate-run record

@@ -26,6 +26,7 @@
 * [pos-order](pos-order.md) — POS Order module - manages order operations including price overrides
 * [pos-people](pos-people.md) — Module to manage people
 * [pos-people-contact](pos-people-contact.md) — Identity/contact/user-link authority module (ADR-0044 Phase 3)
+* [pos-platform-sender](pos-platform-sender.md) — Shared platform sender (FI-2): delivers rendered email through Amazon SES and SMS through AWS End User Messaging, and r…
 * [pos-price](pos-price.md) — POS Price module
 * [pos-reference-mock](pos-reference-mock.md) — Fake external labor-guide vendor serving the Durion-normalized provider contract from checked-in JSON fixtures (pos-cat…
 * [pos-security-common](pos-security-common.md) — Shared security components for gateway-based JWT authentication
