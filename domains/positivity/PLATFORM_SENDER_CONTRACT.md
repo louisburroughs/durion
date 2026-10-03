@@ -28,7 +28,7 @@ Headers:
 | --- | --- |
 | `Content-Type` | `application/json` |
 | `X-Pos-Sender-Secret` | shared secret (`pos.marketing.sender.api-secret`); same pattern as `X-Pos-Events-Secret` |
-| `X-Tenant-Id` | the caller's bound tenant (ADR-0062 §3); the sender resolves and tags under it. No gateway sits on this hop, so the caller sends it |
+| `X-Tenant-Id` | the caller's bound tenant (ADR-0062 §3); the sender resolves and tags under it. No gateway sits on this hop, so the caller sends it whenever it has a bound tenant (pos-marketing's send worker always does). Without it the sender binds its transitional default tenant (`pos.tenancy.default-tenant-id`), or refuses with 401 `TENANT_REQUIRED` where none is configured; a caller must never invent one |
 
 Request body:
 
@@ -60,7 +60,7 @@ Responses:
 | --- | --- | --- |
 | `202` (or `200` on idempotent replay) | accepted for delivery | `{"providerMessageId": "…", "addressHash": "…"}` |
 | `4xx` | permanent refusal (malformed, unknown party, no resolvable address, provider refusal) — caller marks the send `FAILED`. A replay of a refused `messageId` answers the same refusal | `ApiError` |
-| `5xx` | transient — caller retries with backoff up to `pos.marketing.send.max-attempts` | `ApiError` |
+| `5xx` | transient — caller retries with backoff up to `pos.marketing.send.max-attempts`. When the provider gave no answer after the request left (`PROVIDER_NO_RESPONSE`), the message may have been delivered: the key stays claimed and every replay answers `503 SEND_IN_FLIGHT`, so the retry can never deliver it a second time | `ApiError` |
 
 `providerMessageId` is required on acceptance — it is the only correlation key for outcomes.
 `addressHash` (SHA-256 of the normalized address) is optional; when present `pos-marketing`
@@ -87,7 +87,8 @@ Event types and payload:
 Open/click support is **optional** per channel/provider; consumers degrade gracefully when
 these never arrive. `address` (raw, normalized) is REQUIRED on bounce/complaint so the
 suppression hand-off can identify what to block; it is relayed to pos-customer and never
-persisted by pos-marketing.
+persisted by pos-marketing. The producer takes it from the recipient the provider event names,
+else from the message's own destination; a provider event that names neither is not relayed.
 
 **Producer:** `sender.outcomes.v1` is produced by **pos-platform-sender**, through its
 transactional outbox: Kafka record key `providerMessageId`, header `tenantId` (the tenant the
@@ -170,8 +171,10 @@ On the producer side, `pos-platform-sender`'s `MessageControllerWebMvcTest` pins
 classes through the production security chain (202, 200 on replay, 422, 503, 400, and 401
 without the secret); `MessageSendServiceImplTest` pins the §1 replay rule (an accepted
 `messageId` answers `200` with the original ids and never reaches the provider again; a refused
-one answers the same refusal; an unsettled one answers `503`); `ProviderOutcomeMapperTest` and
-`SenderMessageOutcomeV1Test` pin §2 as above.
+one answers the same refusal; an unsettled or unanswered one answers `503` and is never re-sent);
+`ProviderOutcomeMapperTest` and `SenderMessageOutcomeV1Test` pin §2 as above, including that every
+bounce and complaint carries `address` (from the event's recipient, else the message's destination)
+and that a provider event naming neither is not relayed.
 
 **Scope limit — read this before treating these tests as proof of the whole contract.**
 They are unit and slice tests; nothing here exercises a live provider or runs both modules

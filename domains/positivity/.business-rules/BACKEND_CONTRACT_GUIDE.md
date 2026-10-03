@@ -1,6 +1,6 @@
 ---
 type: Backend Contract
-title: Positivity (Supplier Integrations) Backend Contract Guide
+title: Positivity (Supplier Integrations and Platform Sender) Backend Contract Guide
 domain: positivity
 doc_type: backend_contract
 contract_status: draft
@@ -13,16 +13,21 @@ last_updated: 2026-10-03
 api_reference_generated: none — not yet generated for this domain
 traceability:
   capability_manifest_root: docs/capabilities
-description: Curated contract guide for the supplier-integration domain (module pos-supplier, Eureka name
+description: Curated contract guide for the positivity domain's two backend modules — pos-supplier (supplier integrations) and pos-platform-sender (FI-2 email/SMS delivery).
 tags: [domain, positivity, backend-contract]
 ---
 
-# Positivity (Supplier Integrations) Backend Contract Guide
+# Positivity (Supplier Integrations and Platform Sender) Backend Contract Guide
 
 ## Purpose & Scope
 
-Curated contract guide for the supplier-integration domain (module `pos-supplier`, Eureka name
-`SUPPLIER`, package `com.positivity.supplier`).
+Curated contract guide for the positivity domain's backend modules:
+
+- `pos-supplier` (supplier integrations; Eureka name `SUPPLIER`, package `com.positivity.supplier`), the
+  subject of every section below except the last.
+- `pos-platform-sender` (FI-2 email/SMS delivery; Eureka name `platform-sender`, package
+  `com.positivity.platformsender`), covered in its own section,
+  [pos-platform-sender — FI-2 shared platform sender](#pos-platform-sender--fi-2-shared-platform-sender-2026-10-03).
 
 - Use this guide for capability intent, domain invariants, dependency boundaries, and UI-to-API mapping.
 - Use OpenAPI for request/response schemas and full endpoint detail.
@@ -569,9 +574,14 @@ wire contract is [`PLATFORM_SENDER_CONTRACT.md`](../PLATFORM_SENDER_CONTRACT.md)
 carries configuration and AWS setup. This section records only what the contract guide is for: the
 boundaries.
 
+OpenAPI source: the module's springdoc spec (`/v3/api-docs` on the running service). No
+`pos-platform-sender/openapi.yaml` is committed, and the module ships no SDK surface, because nothing
+outside the backend network can call it; whether to commit a documentation-only spec is
+louisburroughs/durion-positivity-backend#2428. The stable contract key is the operationId below.
+
 | Surface | Contract |
 | --- | --- |
-| `POST /platform-sender/v1/messages` | Called by `pos-marketing` only, directly (`X-Pos-Sender-Secret`, `X-Tenant-Id`); 202 accepted, 200 idempotent replay, 422 permanent, 503 transient (FI-2 §1) |
+| `POST /platform-sender/v1/messages` (operationId `sendPlatformMessage`) | Called by `pos-marketing` only, directly (`X-Pos-Sender-Secret`, `X-Tenant-Id`); 202 accepted, 200 idempotent replay, 422 permanent, 503 transient (FI-2 §1) |
 | Produces `sender.outcomes.v1` | `SenderMessageOutcomeV1` (`pos-domain-events`), outbox, header `tenantId`, key `providerMessageId` (FI-2 §2) |
 | Consumes `customer.events.v1` + `customer.manifest.v1` | `ext_customer_person_party` replica (person party → person) |
 | Consumes `people-contact.events.v1` + `people-contact.manifest.v1` | `ext_people_contact_person` replica (person → email, mobile phone) |
