@@ -273,6 +273,7 @@ Headers and auth notes:
 | Apply customer credit to an invoice | `applyCustomerCredit` | POST | `http://localhost:8080/v1/accounting/customer-credits/{creditId}/applications` |
 | Refund customer credit | `refundCustomerCredit` | POST | `http://localhost:8080/v1/accounting/customer-credits/{creditId}/refunds` |
 | Reconcile invoice revenue postings | `reconcileInvoiceRevenue` | POST | `http://localhost:8080/v1/accounting/invoice-revenue/reconcile` |
+| Record an invoice payment (event ingestion) | `submitAccountingEvent` (`eventType: INVOICE_PAYMENT`) | POST | `http://localhost:8080/v1/accounting/events` |
 
 ### Behavioral Assertions
 
@@ -368,6 +369,49 @@ Headers and auth notes:
   - Failure handling: missing mapping, closed period, and transient DB errors propagate to the
     Kafka container error handler (retry → `invoice.events.v1.dlq`); they are never recorded as
     processed.
+- **Invoice payment ingestion (`INVOICE_PAYMENT`, backend#2435):** a payment submitted as an
+  accounting event is recorded in the AR subledger, never posted by the event itself.
+  - Submission: `submitAccountingEvent` with `eventType: INVOICE_PAYMENT` returns `202 Accepted` with
+    status `RECEIVED`; processing is asynchronous. The received-event drainer
+    (per tenant, oldest first, `FOR UPDATE SKIP LOCKED`, one transaction per event;
+    `pos.accounting.event-drainer.*`) picks it up on its next poll.
+  - Payload (`payload` object): `paymentId` (UUID, the Payment-domain id), `invoiceId` (UUID),
+    `amountPaid` (> 0; rounded HALF_UP to the currency's minor unit), `currency` (ISO-4217; must be
+    the ledger currency), `paidAt` (ISO-8601 instant) are **required**. `customerId` is optional:
+    the customer is taken from the `ext_invoice` replica and a disagreeing `customerId` fails the
+    event (`AD-004`). `paymentMethod` is informational and does not change the posting.
+  - Effect: creates a `ReceivablePayment` keyed on `paymentId` (`sourceEventId` = the accounting
+    event id), then applies it to `invoiceId` through the payment-application path with
+    `applicationRequestId = INVOICE_PAYMENT:<eventId>` (`AD-010`). The application's GL work item
+    posts `Dr Undeposited Funds / Cr Accounts Receivable` (`AD-002`); the event's own
+    `journalEntryId` stays null. An amount above the balance due, or a payment on an invoice already
+    paid in full, becomes a `CustomerCredit` with its issuance posting (`AD-003`).
+  - No `INVOICE_PAYMENT` posting rule set may exist: it would post the same `1090 / 1200` pair a
+    second time. Card and cash both clear through Undeposited Funds; there is no per-method debit
+    mapping.
+  - Cross-path idempotency (`paymentId` is the key, in either arrival order): a payment already
+    recorded by another path (a `payment.events.v1` fact records a payment but applies nothing) has
+    its remaining unapplied balance applied to the invoice; one with nothing left unapplied leaves the
+    event `PROCESSED` with `idempotencyOutcome = DUPLICATE_IGNORED`. A settlement fact arriving after
+    the event reuses the recorded payment. The same `paymentId` with a different amount, currency or
+    customer fails `DUPLICATE_CONFLICT` (and is refused on the settlement path).
+  - Outcomes (`status` / `failureReasonCode`):
+
+    | Case | Status | `failureReasonCode` |
+    | --- | --- | --- |
+    | Recorded and applied (or credited) | `PROCESSED` | — (`idempotencyOutcome` `NEW`) |
+    | Missing or malformed required field | `FAILED` | `INVALID_PAYLOAD` |
+    | Invoice not yet in the replica | `SUSPENDED` | `INVOICE_NOT_FOUND` |
+    | Invoice voided, cancelled or not finalized; no customer on the invoice | `FAILED` | `INVOICE_NOT_ELIGIBLE` |
+    | Currency other than the ledger's | `SUSPENDED` | `CURRENCY_NOT_SUPPORTED` |
+    | Same `paymentId`, different details | `FAILED` | `DUPLICATE_CONFLICT` |
+    | Unexpected processing failure; a unique-key race still failing after 3 polls | `FAILED` | `INTERNAL_ERROR` |
+
+  - Release: `reprocessSuspendedEvent` on an `INVOICE_PAYMENT` event returns it to `RECEIVED` for
+    the drainer (never the posting engine); `retryEventProcessing` does the same for a `FAILED` one.
+  - Observability: `accounting.events.drained{outcome}` counts drained events by final status;
+    `accounting.events.received.stale` gauges events still `RECEIVED` beyond
+    `pos.accounting.event-drainer.stale-after-ms` (default 10 min).
 
 ### Frontend Usage Notes
 
@@ -397,7 +441,8 @@ Headers and auth notes:
 
 ### Contract Test Traceability
 
-- Provider tests: `InvoicePaymentContractBehaviorIT`, `CreditMemoContractBehaviorIT`,
+- Provider tests: `InvoicePaymentEventDrainIT` (`INVOICE_PAYMENT` ingestion, backend#2435),
+  `InvoicePaymentContractBehaviorIT`, `CreditMemoContractBehaviorIT`,
   `CreditMemoDisplayReferenceContractBehaviorIT` (issue #1779 display references)
 - Service tests: `PaymentApplicationServiceTest`, `CreditMemoServiceTest`, `InvoicePaymentStatusServiceTest`,
   `CustomerCreditServiceImplTest`
