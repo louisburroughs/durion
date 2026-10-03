@@ -88,11 +88,12 @@ flowchart LR
   EXT_AI[AI providers]
   EXT_CAR[CarAPI]
   EXT_NHTSA[NHTSA vPIC]
-  EXT_SEND[configured sender]
+  SND[pos-platform-sender]
+  EXT_SEND[AWS SES / End User Messaging]
   EXT_SUP[supplier provider APIs]
   EXT_TAX[tax providers]
 
-  class ACC,BULK,CAT,CUS,INVOC,MKT,ORD,PC,SUP,WAR,WO domain
+  class ACC,BULK,CAT,CUS,INVOC,MKT,ORD,PC,SND,SUP,WAR,WO domain
   class DOC,EVR,FIT,GATE,IMG,MCP,NREF,CREF,PPL,PRICE,SEC,TAX,VEH,DHELP,REG utility
   class EXT_AI,EXT_CAR,EXT_NHTSA,EXT_SEND,EXT_SUP,EXT_TAX external
   class BULK,WO violation
@@ -138,7 +139,8 @@ flowchart LR
   FIT -->|S35 fitment lookup REST| EXT_NHTSA
   SUP -->|S36 vendor connectors| EXT_SUP
   MCP -->|S37 model and search APIs| EXT_AI
-  MKT -->|S38 delivery API| EXT_SEND
+  MKT -->|S38 delivery API; class-scoped exception| SND
+  SND -->|S39 provider APIs| EXT_SEND
 ```
 
 ### Synchronous Edge Catalog
@@ -182,7 +184,8 @@ flowchart LR
 | S35 | pos-vehicle-fitment                | NHTSA vPIC             | Vehicle fitment lookup                              | [configuration](../../../durion-positivity-backend/pos-vehicle-fitment/src/main/java/com/positivity/vehiclefitment/internal/config/RestClientConfig.java)                                                                                                                                                                                   |
 | S36 | pos-supplier                       | Supplier provider APIs | Configured vendor protocol clients                  | [HTTP client factory](../../../durion-positivity-backend/pos-supplier/src/main/java/com/positivity/supplier/internal/client/SupplierHttpClients.java), [base client](../../../durion-positivity-backend/pos-supplier/src/main/java/com/positivity/supplier/internal/client/SupplierBaseClient.java)                                                                         |
 | S37 | pos-mcp-server                     | AI providers           | Exa search and configured model providers           | [Exa tool](../../../durion-positivity-backend/pos-mcp-server/src/main/java/com/positivity/mcp/internal/orchestration/tools/ExaWebSearchTool.java), [model configuration](../../../durion-positivity-backend/pos-mcp-server/src/main/resources/application.yml)                                                                                                              |
-| S38 | pos-marketing                      | Configured sender      | Campaign delivery                                   | [client](../../../durion-positivity-backend/pos-marketing/src/main/java/com/positivity/marketing/internal/client/PlatformSenderClient.java)                                                                                                                                                                                                 |
+| S38 | pos-marketing                      | pos-platform-sender    | Campaign delivery                                   | [client](../../../durion-positivity-backend/pos-marketing/src/main/java/com/positivity/marketing/internal/client/PlatformSenderClient.java), [class-scoped exception](../../../durion-positivity-backend/pos-archunit/src/test/java/com/positivity/archunit/DomainWallsTest.java)                                                                                                                                                                                                 |
+| S39 | pos-platform-sender                | AWS SES / End User Messaging / SQS | Email and SMS delivery; provider outcome queue | [transport](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/client/AwsMessageTransport.java), [outcome poller](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/OutcomeQueuePoller.java) |
 
 S05 and S06-S12 are source-evidenced domain-to-domain calls not represented by
 the current module-level or class-level exception maps in `DomainWallsTest`.
@@ -213,11 +216,11 @@ flowchart LR
   ACC[pos-accounting]
   SHOP[pos-shop-manager]
   SEC[pos-security-service]
-  SENDER[configured sender]
+  SENDER[pos-platform-sender]
 
   class CUS,INV,INVOC,ORD,SUP,WAR,CAT,MKT,PC,VEH,WO,LOC,PPL producer
   class ACC,SHOP,SEC consumer
-  class SENDER external
+  class SENDER producer
 
   CUS ==>|E01 customer.events.v1| ACC
   CUS ==>|E02 customer.events.v1 + manifest| INVOC
@@ -293,6 +296,8 @@ flowchart LR
   PPL ==>|E59 people.events.v1 + manifest| WO
 
   SENDER ==>|E60 sender.outcomes.v1| MKT
+  CUS ==>|E62 customer.events.v1 + manifest| SENDER
+  PC ==>|E63 people-contact.events.v1 + manifest| SENDER
 ```
 
 ### Fact Producer Evidence
@@ -308,6 +313,7 @@ flowchart LR
 | order events                                 | [domain publisher](../../../durion-positivity-backend/pos-order/src/main/java/com/positivity/order/internal/config/OrderDomainEventPublisher.java), [purchase-order publisher](../../../durion-positivity-backend/pos-order/src/main/java/com/positivity/order/internal/service/PurchaseOrderFactPublisher.java)                                                                                                                 |
 | people-contact events and manifest           | [event publisher](../../../durion-positivity-backend/pos-people-contact/src/main/java/com/positivity/peoplecontact/internal/service/PeopleContactEventPublisher.java), [manifest publisher](../../../durion-positivity-backend/pos-people-contact/src/main/java/com/positivity/peoplecontact/internal/config/ManifestPublisher.java)                                                                                             |
 | people events and manifest                   | [event publisher](../../../durion-positivity-backend/pos-people/src/main/java/com/positivity/people/internal/config/PeopleEventPublisher.java), [manifest publisher](../../../durion-positivity-backend/pos-people/src/main/java/com/positivity/people/internal/config/ManifestPublisher.java)                                                                                                                                   |
+| sender outcomes                              | [outbox writer](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/config/OutboxEventWriter.java), [outcome relay](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/OutcomeRelay.java) |
 | supplier events                              | [outbox publisher](../../../durion-positivity-backend/pos-supplier/src/main/java/com/positivity/supplier/internal/service/SupplierOutboxPublisher.java)                                                                                                                                                                                                                                          |
 | vehicle events and manifest                  | [event publisher](../../../durion-positivity-backend/pos-vehicle-inventory/src/main/java/com/positivity/vehicle/internal/config/VehicleEventPublisher.java), [manifest publisher](../../../durion-positivity-backend/pos-vehicle-inventory/src/main/java/com/positivity/vehicle/internal/config/ManifestPublisher.java)                                                                                                          |
 | warranty events                              | [outbox publisher](../../../durion-positivity-backend/pos-warranty/src/main/java/com/positivity/warranty/internal/config/OutboxPublisher.java)                                                                                                                                                                                                                                                   |
@@ -379,8 +385,10 @@ above.
 | E57 | people            | invoice          | events + manifest                                            | [events](../../../durion-positivity-backend/pos-invoice/src/main/java/com/positivity/invoice/internal/service/PeopleEventsListener.java), [manifest](../../../durion-positivity-backend/pos-invoice/src/main/java/com/positivity/invoice/internal/service/PeopleManifestListener.java)                                                |
 | E58 | people            | shop-manager     | events + manifest                                            | [events](../../../durion-positivity-backend/pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/service/PeopleEventsListener.java), [manifest](../../../durion-positivity-backend/pos-shop-manager/src/main/java/com/positivity/shopmanager/internal/service/PeopleManifestListener.java)                              |
 | E59 | people            | workorder        | events + manifest                                            | [events](../../../durion-positivity-backend/pos-workorder/src/main/java/com/positivity/workorder/internal/service/PeopleReplicaEventsListener.java), [manifest](../../../durion-positivity-backend/pos-workorder/src/main/java/com/positivity/workorder/internal/service/PeopleManifestListener.java)                                 |
-| E60 | configured sender | marketing        | `sender.outcomes.v1`                                        | [listener](../../../durion-positivity-backend/pos-marketing/src/main/java/com/positivity/marketing/internal/service/DeliveryOutcomeListener.java)                                                                                                                                                      |
+| E60 | platform-sender   | marketing        | `sender.outcomes.v1`                                        | [listener](../../../durion-positivity-backend/pos-marketing/src/main/java/com/positivity/marketing/internal/service/DeliveryOutcomeListener.java)                                                                                                                                                      |
 | E61 | workorder         | accounting       | `workorder.events.v1`                                        | [listener](../../../durion-positivity-backend/pos-accounting/src/main/java/com/positivity/accounting/internal/service/WorkorderEventsListener.java)                                                                                                                                                    |
+| E62 | customer          | platform-sender  | events + manifest                                            | [events](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/CustomerEventsListener.java), [manifest](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/ReplicaManifestListener.java) |
+| E63 | people-contact    | platform-sender  | events + manifest                                            | [events](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/PeopleContactEventsListener.java), [manifest](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/ReplicaManifestListener.java) |
 
 ## Diagram 3: Commands and Results
 
@@ -500,11 +508,10 @@ The target command listeners are:
 
 ## Caveats
 
-- `sender.outcomes.v1` is drawn from an external sender because the consumer and
-  configured sender client exist here, while the sender implementation does not.
-  This is a documented, contracted external topic, not an orphan: the owning
-  contract is [`docs/PLATFORM_SENDER_CONTRACT.md`](PLATFORM_SENDER_CONTRACT.md)
-  and the automated check that keeps it honest is
+- `sender.outcomes.v1` is produced by pos-platform-sender (since 2026-10-03), which relays the
+  AWS provider events it receives from SQS through its outbox. The wire contract is
+  [`PLATFORM_SENDER_CONTRACT.md`](../../domains/positivity/PLATFORM_SENDER_CONTRACT.md); the
+  consumer is held to it by
   [`PlatformSenderContractTest`](../../../durion-positivity-backend/pos-marketing/src/test/java/com/positivity/marketing/internal/service/PlatformSenderContractTest.java).
 - The customer module contains a second workorder listener whose topic is
   configured without a source-code default. E45 uses the explicit

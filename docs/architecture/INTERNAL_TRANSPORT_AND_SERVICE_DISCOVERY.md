@@ -80,6 +80,7 @@ registering with Eureka does not expose it.
 | --- | --- | --- | --- | --- |
 | pos-api-gateway | `pos-api-gateway` | registers | `http://pos-api-gateway` | Is the edge; cannot route to itself |
 | pos-documents | `documents` | registers | discovery | No external document surface |
+| pos-platform-sender | `platform-sender` | registers | Docker DNS `http://pos-platform-sender:8080` (shared secret) | Internal sender (FI-2); no external surface |
 | pos-tax | `pos-tax` | `register-with-eureka: false` | Docker DNS `http://pos-tax:8091` | ADR-0014, ADR-0021: internal-only |
 | pos-vehicle-reference-carapi | `pos-vehicle-reference-carapi` | registers | discovery | Reference adapter, no external surface |
 | pos-vehicle-reference-nhtsa | `pos-vehicle-reference-nhtsa` | registers | discovery | Reference adapter, no external surface |
@@ -96,7 +97,7 @@ client configuration class.
 
 | Client | Module | Category | Target | Reason |
 | --- | --- | --- | --- | --- |
-| `{Module}EventTypeInitializer` | 24 modules | startup-infra | `${pos.events.base-url:http://pos-event-receiver:8080}` | Event-type registration must not depend on Eureka convergence at startup |
+| `{Module}EventTypeInitializer` | 26 modules | startup-infra | `${pos.events.base-url:http://pos-event-receiver:8080}` | Event-type registration must not depend on Eureka convergence at startup |
 | `{Module}PermissionRegistration` / `PermissionInitializer` | 25 modules | startup-infra | `${pos.security.base-url:http://pos-security-service:8080}` | Permission bootstrap runs before discovery converges (ADR-0011) |
 | `PermissionVersionStartupCheck` | pos-api-gateway | startup-infra | `${pos.security.base-url:http://pos-security-service:8080}` | Gateway validates catalog version before serving; cannot route to itself |
 | `DocumentTemplateInitializerSupport` | pos-document-helper | startup-infra | `${pos.documents.base-url}` | Template registration is startup bootstrap |
@@ -112,6 +113,8 @@ client configuration class.
 | `VehicleReferenceService` | pos-vehicle-reference-nhtsa | external | `https://vpic.nhtsa.dot.gov/api/vehicles` | Third-party NHTSA vPIC |
 | `VehicleReferenceService` | pos-vehicle-reference-carapi | external | `${carapi.base-url:https://carapi.app/api}` | Third-party CarAPI |
 | `TaxConfiguration` + `ExternalTaxServiceClient` | pos-tax | external | `properties.externalService.baseUrl` | ADR-0021 constrains inbound access to pos-tax, not its outbound provider calls |
+| `PlatformSenderClient` | pos-marketing | direct-exception | `${pos.marketing.sender.base-url:http://pos-platform-sender:8080}` | FI-2 shared-secret contract (`X-Pos-Sender-Secret`, caller's `X-Tenant-Id`); a class-scoped ADR-0044 exception (amendment 2026-10-03), and pos-platform-sender has no gateway route |
+| `AwsMessageTransport`, `OutcomeQueuePoller` (AWS SDK v2) | pos-platform-sender | external | AWS SES v2, End User Messaging SMS and SQS regional endpoints (`pos.platform-sender.aws.region`) | Third-party providers |
 
 Notes:
 

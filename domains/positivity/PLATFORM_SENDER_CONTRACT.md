@@ -1,7 +1,7 @@
 ---
 type: Integration Contract
 title: Platform Sender Contract (FI-2)
-description: Governs the wire contract between pos-marketing and the external shared platform sender — the send API, the `sender.outcomes.v1` outcome events and the suppression hand-off to pos-customer — for a producer no backend module implements, making this document the only in-workspace copy of the wire shape.
+description: Governs the wire contract between pos-marketing and the shared platform sender, pos-platform-sender — the send API, the `sender.outcomes.v1` outcome events and the suppression hand-off to pos-customer.
 status: current
 ---
 
@@ -13,6 +13,12 @@ plan decision O-1, stories #1149/#1150). The sender owns provider credentials, a
 resolution, wire-level retries, and provider webhooks; `pos-marketing` owns orchestration
 only — audience, consent/suppression gating, batching, per-recipient state.
 
+The sender is **`pos-platform-sender`** (durion-positivity-backend, 2026-10-03): email through
+Amazon SES, SMS through AWS End User Messaging. It is a domain module that `pos-marketing`'s
+`PlatformSenderClient` alone may call synchronously: a class-scoped exception, ADR-0044 amendment
+2026-10-03. Its README (`durion-positivity-backend/pos-platform-sender/README.md`) covers the
+provider mapping, configuration and AWS setup; this document stays the wire contract.
+
 ## 1. Send API
 
 `POST {pos.marketing.sender.base-url}/platform-sender/v1/messages`
@@ -23,6 +29,7 @@ Headers:
 | --- | --- |
 | `Content-Type` | `application/json` |
 | `X-Pos-Sender-Secret` | shared secret (`pos.marketing.sender.api-secret`); same pattern as `X-Pos-Events-Secret` |
+| `X-Tenant-Id` | the caller's bound tenant (ADR-0062 §3); the sender resolves and tags under it. No gateway sits on this hop, so the caller sends it whenever it has a bound tenant (pos-marketing's send worker always does). Without it the sender binds its transitional default tenant (`pos.tenancy.default-tenant-id`), or refuses with 401 `TENANT_REQUIRED` where none is configured; a caller must never invent one |
 
 Request body:
 
@@ -41,8 +48,10 @@ Request body:
 Semantics:
 
 - **Address resolution belongs to the sender.** `pos-marketing` never sends or stores a raw
-  address; the sender resolves the recipient's address from `recipientPartyId`/`contactId`
-  (via pos-people-contact) at delivery time.
+  address; the sender resolves the recipient's address from `contactId` (the person party the
+  consent decision named), else `recipientPartyId`, at delivery time: CRM person party →
+  pos-people-contact person → that person's email or `PHONE_MOBILE` number, through event-fed
+  replicas of pos-customer and pos-people-contact (ADR-0044 R3; no synchronous domain call).
 - **Idempotency:** a replayed `messageId` MUST NOT produce a second delivery; the sender
   answers `200` with the original response instead of `202`.
 
@@ -51,8 +60,8 @@ Responses:
 | Status | Meaning | Body |
 | --- | --- | --- |
 | `202` (or `200` on idempotent replay) | accepted for delivery | `{"providerMessageId": "…", "addressHash": "…"}` |
-| `4xx` | permanent refusal (malformed, unknown party, no resolvable address) — caller marks the send `FAILED` | `ApiError` |
-| `5xx` | transient — caller retries with backoff up to `pos.marketing.send.max-attempts` | `ApiError` |
+| `4xx` | permanent refusal (malformed, unknown party, no resolvable address, provider refusal) — caller marks the send `FAILED`. A replay of a refused `messageId` answers the same refusal | `ApiError` |
+| `5xx` | transient — caller retries with backoff up to `pos.marketing.send.max-attempts`. When the provider gave no answer after the request left (`PROVIDER_NO_RESPONSE`), the message may have been delivered: the key stays claimed and every replay answers `503 SEND_IN_FLIGHT`, so the retry can never deliver it a second time | `ApiError` |
 
 `providerMessageId` is required on acceptance — it is the only correlation key for outcomes.
 `addressHash` (SHA-256 of the normalized address) is optional; when present `pos-marketing`
@@ -79,12 +88,16 @@ Event types and payload:
 Open/click support is **optional** per channel/provider; consumers degrade gracefully when
 these never arrive. `address` (raw, normalized) is REQUIRED on bounce/complaint so the
 suppression hand-off can identify what to block; it is relayed to pos-customer and never
-persisted by pos-marketing.
+persisted by pos-marketing. The producer takes it from the recipient the provider event names,
+else from the message's own destination; a provider event that names neither is not relayed.
 
-**Producer:** `sender.outcomes.v1` is produced entirely by the external **shared platform
-sender** (the owner named above) — no module in this repository publishes it.
-`pos-marketing`'s `DeliveryOutcomeListener` is the sole consumer. Because the producer lives
-outside this repo, there is no in-repo test that exercises the wire format end-to-end; the
+**Producer:** `sender.outcomes.v1` is produced by **pos-platform-sender**, through its
+transactional outbox: Kafka record key `providerMessageId`, header `tenantId` (the tenant the
+message was sent under), envelope aggregate the request's `messageId`, payload
+`SenderMessageOutcomeV1` (`pos-domain-events`), which also carries `messageId` and `channel` and
+omits absent fields rather than writing `null`. `pos-marketing`'s `DeliveryOutcomeListener` is
+the sole consumer. The producer side is pinned by `ProviderOutcomeMapperTest` (provider events to
+these rows) and `SenderMessageOutcomeV1Test` (field names, ISO `occurredAt`, no nulls); the
 automated check that keeps the consumer honest against this table is
 `PlatformSenderContractTest`
 (`pos-marketing/src/test/java/com/positivity/marketing/internal/service/PlatformSenderContractTest.java`),
@@ -126,15 +139,16 @@ On each applied terminal outcome, `marketing.events.v1` carries
 | Property | Default | Purpose |
 | --- | --- | --- |
 | `pos.marketing.send.transport` | `stub` | `stub` logs sends; `platform-sender` activates the adapter |
-| `pos.marketing.sender.base-url` | `http://localhost:8085` | sender endpoint |
+| `pos.marketing.sender.base-url` | `http://pos-platform-sender:8080` | sender endpoint (its Compose/alpha container address) |
 | `pos.marketing.sender.api-secret` | _(empty)_ | shared secret header |
 | `pos.marketing.kafka.sender-outcomes-topic` | `sender.outcomes.v1` | outcome feed |
 | `pos.marketing.kafka.customer-commands-topic` | `customer.commands.v1` | suppression hand-off |
 
-## 6. What holds the consumer to this document
+## 6. What holds both sides to this document
 
-`sender.outcomes.v1` has no in-repo producer, so nothing about the wire format is
-type-checked. The consumer side is pinned instead by
+The two sides compile against different types (the producer's `SenderMessageOutcomeV1`, the
+consumer's raw `JsonNode`), so nothing about the wire format is type-checked across them. Each
+side is pinned against this document instead. The consumer side is pinned by
 `durion-positivity-backend/pos-marketing/src/test/java/com/positivity/marketing/internal/service/PlatformSenderContractTest.java`
 (issue #1537 / D5), which drives `DeliveryOutcomeListener` with **raw JSON built from §2's
 documented field names** rather than a mock DTO, so a field rename that §2 is not also
@@ -149,13 +163,23 @@ recorded.
 `durion-positivity-backend/pos-marketing/src/test/java/com/positivity/marketing/internal/client/PlatformSenderClientTest.java`,
 which stands a `MockRestServiceServer` in front of `PlatformSenderClient` and asserts the
 documented URL `POST {base-url}/platform-sender/v1/messages`, the `X-Pos-Sender-Secret`
-header, `messageId` as the idempotency key and `campaignCode` in the body, that `202` plus
-`providerMessageId` is acceptance, and that 4xx is a permanent refusal while 5xx, an IO
-failure, or an acceptance missing `providerMessageId` are transient and retried.
+header, `X-Tenant-Id` from the bound tenant (and none invented when unbound), `messageId` as the
+idempotency key and `campaignCode` in the body, that `202` plus `providerMessageId` is
+acceptance, and that 4xx is a permanent refusal while 5xx, an IO failure, or an acceptance
+missing `providerMessageId` are transient and retried.
 
-**Scope limit — read this before treating either test as proof of the whole contract.**
-Both are unit tests against a mock; nothing here exercises a live or staged sender. Two
-documented behaviours are unpinned: the §1 replay rule (a repeated `messageId` answering
-`200` with the original response rather than `202`) and the §3 round trip through
-pos-customer's `SuppressionService` back into pos-marketing's `ext_suppression` replica,
-which crosses a module boundary no test in this pair spans.
+On the producer side, `pos-platform-sender`'s `MessageControllerWebMvcTest` pins §1's status
+classes through the production security chain (202, 200 on replay, 422, 503, 400, and 401
+without the secret); `MessageSendServiceImplTest` pins the §1 replay rule (an accepted
+`messageId` answers `200` with the original ids and never reaches the provider again; a refused
+one answers the same refusal; an unsettled or unanswered one answers `503` and is never re-sent);
+`ProviderOutcomeMapperTest` and `SenderMessageOutcomeV1Test` pin §2 as above, including that every
+bounce and complaint carries `address` (from the event's recipient, else the message's destination)
+and that a provider event naming neither is not relayed.
+
+**Scope limit — read this before treating these tests as proof of the whole contract.**
+They are unit and slice tests; nothing here exercises a live provider or runs both modules
+together. Unpinned: the §3 round trip through pos-customer's `SuppressionService` back into
+pos-marketing's `ext_suppression` replica, which crosses a module boundary no test spans; and
+the real AWS event payloads, which the producer's mapper tests reproduce from the published
+schemas rather than from captured events.

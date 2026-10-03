@@ -1,7 +1,7 @@
 ---
 type: ADR
 title: 'ADR-0044: Event-Only Domain Walls and Module Communication Policy'
-description: Domain modules may not call each other synchronously — cross-domain data moves as events into local replicas — with named scoped exceptions (pos-warranty, pos-order to pos-invoice) enforced by pos-archunit's DomainWallsTest.
+description: Domain modules may not call each other synchronously — cross-domain data moves as events into local replicas — with named scoped exceptions (pos-warranty, pos-order to pos-invoice; pos-marketing to pos-platform-sender) enforced by pos-archunit's DomainWallsTest.
 status: stable
 adr_status: accepted
 created: '2026-07-08'
@@ -10,8 +10,9 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355);
-previously amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
+**Status:** ACCEPTED — amended 2026-10-03 (pos-marketing → pos-platform-sender FI-2 send, file-scoped);
+previously amended 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355),
+2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped),
 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and
@@ -50,7 +51,7 @@ events** with result events and pending states.
 | Class                        | Modules                                                                                                                                                                                                                                                                                                       | May be called synchronously? |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`                                               | Yes — by any module          |
-| **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10) | No — events only             |
+| **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10), `pos-platform-sender` (new, 2026-10-03) | No — events only             |
 | **Libraries / non-deployed** | `pos-events`, `pos-shared-dtos`, `pos-domain-events` (new), `pos-security-common`, `pos-tax-common`, `pos-bulk-ingest-lib`, `pos-document-helper`, `pos-dependencies`, `pos-archunit`                                                                                                                         | n/a                          |
 
 `pos-tax` and `pos-price` are utilities because they are stateless _computation_ (tax and price determination), not data lookups — replicating their rule engines into callers
@@ -193,6 +194,50 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-10-03 — Scoped exception: FI-2 message sends from pos-marketing to pos-platform-sender
+
+Ratified by the owner on 2026-10-03 (durion#540) as a scoped exception, in place of the utility
+classification first proposed with the module's build.
+
+The FI-2 contract (`domains/positivity/PLATFORM_SENDER_CONTRACT.md`) was written for a shared
+platform sender outside this workspace: `pos-marketing` calls it synchronously and consumes its
+`sender.outcomes.v1` facts. That sender is now `pos-platform-sender`, a module in
+durion-positivity-backend that delivers email through Amazon SES and SMS through AWS End User
+Messaging. It joins the **Domain** class (§1 table).
+
+- **Decision.** **`pos-marketing`** MAY call `pos-platform-sender`'s send API
+  (`POST /platform-sender/v1/messages`) synchronously, from `PlatformSenderClient` only. No other
+  module may call it without its own amendment, and `pos-platform-sender` calls no domain module
+  synchronously.
+- **Rationale.** The send worker needs the sender's answer per recipient, now: accepted (with the
+  provider message id the later outcome facts carry), refused for good, or not delivered, and that
+  answer drives its retry ladder. A command event would put a pending state and a result topic in
+  front of a call the provider answers in milliseconds, and the provider credentials and delivery
+  state behind the answer cannot move into a replica.
+- **Degradation contract.** A refusal is a 4xx and permanent; an outage, throttling or a provider
+  call with no answer is a 5xx, and the send worker's bounded retry absorbs it. The `messageId`
+  idempotency key means a retry never delivers twice: a send the provider may have taken keeps its
+  claim, and every replay of it answers 503 `SEND_IN_FLIGHT`. A sender outage delays a campaign's
+  sends; a recipient whose attempts run out (`pos.marketing.send.max-attempts`) is recorded as
+  failed, and the rest of the campaign carries on.
+- **It calls no domain module.** Address resolution (FI-2 §1: "address resolution belongs to the
+  sender") runs on two R3 replicas, `ext_customer_person_party` (from `customer.events.v1`) and
+  `ext_people_contact_person` (from `people-contact.events.v1`), reconciled per §4 against
+  `customer.manifest.v1` and `people-contact.manifest.v1`. Its only synchronous outbound calls are
+  the provider (AWS) and the startup event-type registration (R2).
+- **It owns one fact.** `sender.outcomes.v1` (FI-2 §2) is published through the module's
+  transactional outbox with the tenant on the envelope and the Kafka header (2026-09-09 amendment);
+  the provider event's own id is the idempotency key, so a redelivered provider event never
+  becomes a second fact.
+- **Transport.** The call is direct (`pos.marketing.sender.base-url`), not gateway-routed and not
+  user-facing: a shared secret (`X-Pos-Sender-Secret`) authenticates the caller and `X-Tenant-Id`
+  carries the caller's bound tenant, since no gateway sits on this hop to inject it.
+- **Enforcement (class-level, not module-level).** The exception is scoped to the named client
+  class `PlatformSenderClient` under pos-marketing's `internal.client`, expressed in
+  `DomainWallsTest`'s per-source-file exception map, whose census test also pins that
+  `pos-platform-sender` is not in `UTILITY_MODULES`. A second pos-marketing client, or any other
+  module's client, targeting `pos-platform-sender` fails the build.
 
 ### 2026-10-02 — Consumer rethrow set (durion-positivity-backend#2355)
 
