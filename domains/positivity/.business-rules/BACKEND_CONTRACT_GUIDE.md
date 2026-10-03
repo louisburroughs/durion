@@ -9,7 +9,7 @@ guide_path: domains/positivity/.business-rules/BACKEND_CONTRACT_GUIDE.md
 openapi_source: durion-positivity-backend/pos-supplier/openapi.yaml
 openapi_commit: 55e6e0e4
 last_verified_utc: 2026-09-11T18:00:00Z
-last_updated: 2026-09-11
+last_updated: 2026-10-03
 api_reference_generated: none — not yet generated for this domain
 traceability:
   capability_manifest_root: docs/capabilities
@@ -558,9 +558,28 @@ the permission (`nlti:request:submit`, all four) is unchanged.
 
 ## Events & Cross-Domain Dependencies
 
-This domain publishes only admin/audit-surface events and consumes none. It is a leaf: no other backend
+`pos-supplier` publishes only admin/audit-surface events and consumes none. It is a leaf: no other backend
 domain depends on it yet. `pos-location` UUIDs appear on commercial accounts as opaque references — there
 is no synchronous call to that service.
+
+## pos-platform-sender — FI-2 shared platform sender (2026-10-03)
+
+A second module in this domain, internal only: no gateway route, no frontend surface, no permissions. The
+wire contract is [`PLATFORM_SENDER_CONTRACT.md`](../PLATFORM_SENDER_CONTRACT.md) (FI-2); the module README
+carries configuration and AWS setup. This section records only what the contract guide is for: the
+boundaries.
+
+| Surface | Contract |
+| --- | --- |
+| `POST /platform-sender/v1/messages` | Called by `pos-marketing` only, directly (`X-Pos-Sender-Secret`, `X-Tenant-Id`); 202 accepted, 200 idempotent replay, 422 permanent, 503 transient (FI-2 §1) |
+| Produces `sender.outcomes.v1` | `SenderMessageOutcomeV1` (`pos-domain-events`), outbox, header `tenantId`, key `providerMessageId` (FI-2 §2) |
+| Consumes `customer.events.v1` + `customer.manifest.v1` | `ext_customer_person_party` replica (person party → person) |
+| Consumes `people-contact.events.v1` + `people-contact.manifest.v1` | `ext_people_contact_person` replica (person → email, mobile phone) |
+| Sends `customer.outbox.replay-requested`, `people-contact.outbox.replay-requested` | Reconciliation on manifest drift (ADR-0044 §4) |
+
+Invariants: it calls no domain module synchronously (ADR-0044 utility, amendment 2026-10-03); raw addresses
+leave it only in the provider call and in a bounce/complaint outcome's `address`; a replayed `messageId`
+never reaches the provider twice.
 
 ## Verification Metadata
 
@@ -593,3 +612,4 @@ Known gaps in verification, recorded rather than resolved:
 - `docs/adr/0052-supplier-outbound-idempotency-duplicate-order-prevention.adr.md`
 - `docs/capabilities/CAP-317/WAVE_PAUSE_STATE.md` — decision record and follow-up queue
 - `domains/positivity/DOMAIN_NOTES.md`, `domains/positivity/AGENT_GUIDE.md`
+- `domains/positivity/PLATFORM_SENDER_CONTRACT.md`, `durion-positivity-backend/pos-platform-sender/README.md`
