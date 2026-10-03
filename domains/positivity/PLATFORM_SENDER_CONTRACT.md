@@ -14,8 +14,9 @@ resolution, wire-level retries, and provider webhooks; `pos-marketing` owns orch
 only — audience, consent/suppression gating, batching, per-recipient state.
 
 The sender is **`pos-platform-sender`** (durion-positivity-backend, 2026-10-03): email through
-Amazon SES, SMS through AWS End User Messaging, a utility module under ADR-0044 §1 (amendment
-2026-10-03). Its README (`durion-positivity-backend/pos-platform-sender/README.md`) covers the
+Amazon SES, SMS through AWS End User Messaging. It is a domain module that `pos-marketing`'s
+`PlatformSenderClient` alone may call synchronously: a class-scoped exception, ADR-0044 amendment
+2026-10-03. Its README (`durion-positivity-backend/pos-platform-sender/README.md`) covers the
 provider mapping, configuration and AWS setup; this document stays the wire contract.
 
 ## 1. Send API

@@ -574,10 +574,10 @@ wire contract is [`PLATFORM_SENDER_CONTRACT.md`](../PLATFORM_SENDER_CONTRACT.md)
 carries configuration and AWS setup. This section records only what the contract guide is for: the
 boundaries.
 
-OpenAPI source: the module's springdoc spec (`/v3/api-docs` on the running service). No
-`pos-platform-sender/openapi.yaml` is committed, and the module ships no SDK surface, because nothing
-outside the backend network can call it; whether to commit a documentation-only spec is
-louisburroughs/durion-positivity-backend#2428. The stable contract key is the operationId below.
+OpenAPI source: `durion-positivity-backend/pos-platform-sender/openapi.yaml`, committed for documentation
+and validation only (louisburroughs/durion-positivity-backend#2428). It is kept out of the gateway's
+aggregated index and out of both SDKs, because nothing outside the backend network can call it. The stable
+contract key is the operationId below.
 
 | Surface | Contract |
 | --- | --- |
@@ -587,7 +587,8 @@ louisburroughs/durion-positivity-backend#2428. The stable contract key is the op
 | Consumes `people-contact.events.v1` + `people-contact.manifest.v1` | `ext_people_contact_person` replica (person → email, mobile phone) |
 | Sends `customer.outbox.replay-requested`, `people-contact.outbox.replay-requested` | Reconciliation on manifest drift (ADR-0044 §4) |
 
-Invariants: it calls no domain module synchronously (ADR-0044 utility, amendment 2026-10-03); raw addresses
+Invariants: only `pos-marketing`'s `PlatformSenderClient` may call it synchronously, and it calls no domain
+module synchronously itself (ADR-0044 class-scoped exception, amendment 2026-10-03); raw addresses
 leave it only in the provider call and in a bounce/complaint outcome's `address`; a replayed `messageId`
 never reaches the provider twice.
 

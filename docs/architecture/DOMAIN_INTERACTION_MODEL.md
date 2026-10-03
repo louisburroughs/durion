@@ -93,8 +93,8 @@ flowchart LR
   EXT_SUP[supplier provider APIs]
   EXT_TAX[tax providers]
 
-  class ACC,BULK,CAT,CUS,INVOC,MKT,ORD,PC,SUP,WAR,WO domain
-  class DOC,EVR,FIT,GATE,IMG,MCP,NREF,CREF,PPL,PRICE,SEC,SND,TAX,VEH,DHELP,REG utility
+  class ACC,BULK,CAT,CUS,INVOC,MKT,ORD,PC,SND,SUP,WAR,WO domain
+  class DOC,EVR,FIT,GATE,IMG,MCP,NREF,CREF,PPL,PRICE,SEC,TAX,VEH,DHELP,REG utility
   class EXT_AI,EXT_CAR,EXT_NHTSA,EXT_SEND,EXT_SUP,EXT_TAX external
   class BULK,WO violation
 
@@ -139,7 +139,7 @@ flowchart LR
   FIT -->|S35 fitment lookup REST| EXT_NHTSA
   SUP -->|S36 vendor connectors| EXT_SUP
   MCP -->|S37 model and search APIs| EXT_AI
-  MKT -->|S38 delivery API| SND
+  MKT -->|S38 delivery API; class-scoped exception| SND
   SND -->|S39 provider APIs| EXT_SEND
 ```
 
@@ -184,7 +184,7 @@ flowchart LR
 | S35 | pos-vehicle-fitment                | NHTSA vPIC             | Vehicle fitment lookup                              | [configuration](../../../durion-positivity-backend/pos-vehicle-fitment/src/main/java/com/positivity/vehiclefitment/internal/config/RestClientConfig.java)                                                                                                                                                                                   |
 | S36 | pos-supplier                       | Supplier provider APIs | Configured vendor protocol clients                  | [HTTP client factory](../../../durion-positivity-backend/pos-supplier/src/main/java/com/positivity/supplier/internal/client/SupplierHttpClients.java), [base client](../../../durion-positivity-backend/pos-supplier/src/main/java/com/positivity/supplier/internal/client/SupplierBaseClient.java)                                                                         |
 | S37 | pos-mcp-server                     | AI providers           | Exa search and configured model providers           | [Exa tool](../../../durion-positivity-backend/pos-mcp-server/src/main/java/com/positivity/mcp/internal/orchestration/tools/ExaWebSearchTool.java), [model configuration](../../../durion-positivity-backend/pos-mcp-server/src/main/resources/application.yml)                                                                                                              |
-| S38 | pos-marketing                      | pos-platform-sender    | Campaign delivery                                   | [client](../../../durion-positivity-backend/pos-marketing/src/main/java/com/positivity/marketing/internal/client/PlatformSenderClient.java)                                                                                                                                                                                                 |
+| S38 | pos-marketing                      | pos-platform-sender    | Campaign delivery                                   | [client](../../../durion-positivity-backend/pos-marketing/src/main/java/com/positivity/marketing/internal/client/PlatformSenderClient.java), [class-scoped exception](../../../durion-positivity-backend/pos-archunit/src/test/java/com/positivity/archunit/DomainWallsTest.java)                                                                                                                                                                                                 |
 | S39 | pos-platform-sender                | AWS SES / End User Messaging / SQS | Email and SMS delivery; provider outcome queue | [transport](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/client/AwsMessageTransport.java), [outcome poller](../../../durion-positivity-backend/pos-platform-sender/src/main/java/com/positivity/platformsender/internal/service/OutcomeQueuePoller.java) |
 
 S05 and S06-S12 are source-evidenced domain-to-domain calls not represented by

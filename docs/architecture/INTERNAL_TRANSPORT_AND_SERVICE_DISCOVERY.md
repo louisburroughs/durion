@@ -113,7 +113,7 @@ client configuration class.
 | `VehicleReferenceService` | pos-vehicle-reference-nhtsa | external | `https://vpic.nhtsa.dot.gov/api/vehicles` | Third-party NHTSA vPIC |
 | `VehicleReferenceService` | pos-vehicle-reference-carapi | external | `${carapi.base-url:https://carapi.app/api}` | Third-party CarAPI |
 | `TaxConfiguration` + `ExternalTaxServiceClient` | pos-tax | external | `properties.externalService.baseUrl` | ADR-0021 constrains inbound access to pos-tax, not its outbound provider calls |
-| `PlatformSenderClient` | pos-marketing | direct-exception | `${pos.marketing.sender.base-url:http://pos-platform-sender:8080}` | FI-2 shared-secret contract (`X-Pos-Sender-Secret`, caller's `X-Tenant-Id`); pos-platform-sender is a utility (ADR-0044 amendment 2026-10-03) with no gateway route |
+| `PlatformSenderClient` | pos-marketing | direct-exception | `${pos.marketing.sender.base-url:http://pos-platform-sender:8080}` | FI-2 shared-secret contract (`X-Pos-Sender-Secret`, caller's `X-Tenant-Id`); a class-scoped ADR-0044 exception (amendment 2026-10-03), and pos-platform-sender has no gateway route |
 | `AwsMessageTransport`, `OutcomeQueuePoller` (AWS SDK v2) | pos-platform-sender | external | AWS SES v2, End User Messaging SMS and SQS regional endpoints (`pos.platform-sender.aws.region`) | Third-party providers |
 
 Notes:
