@@ -10,8 +10,9 @@ tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355);
-previously amended 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
+**Status:** ACCEPTED — amended 2026-10-03 (pos-platform-sender joins the utility class, FI-2;
+pending owner ratification); previously amended 2026-10-02 (consumer rethrow set,
+durion-positivity-backend#2355), 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped),
 2026-09-02 (pos-workorder → pos-catalog labor-time resolution, file-scoped) and
@@ -49,7 +50,7 @@ events** with result events and pending states.
 
 | Class                        | Modules                                                                                                                                                                                                                                                                                                       | May be called synchronously? |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`                                               | Yes — by any module          |
+| **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`, `pos-platform-sender` (amendment 2026-10-03) | Yes — by any module          |
 | **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10) | No — events only             |
 | **Libraries / non-deployed** | `pos-events`, `pos-shared-dtos`, `pos-domain-events` (new), `pos-security-common`, `pos-tax-common`, `pos-bulk-ingest-lib`, `pos-document-helper`, `pos-dependencies`, `pos-archunit`                                                                                                                         | n/a                          |
 
@@ -193,6 +194,37 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-10-03 — pos-platform-sender joins the utility class (FI-2)
+
+Proposed with the module's first build; **pending owner ratification**. Until ratified, treat the
+utility-table row and `DomainWallsTest`'s `UTILITY_MODULES` entry as provisional.
+
+The FI-2 contract (`domains/positivity/PLATFORM_SENDER_CONTRACT.md`) was written for a shared
+platform sender outside this workspace: `pos-marketing` calls it synchronously (its send worker
+needs a per-recipient accepted/refused answer to drive its retry ladder) and consumes its
+`sender.outcomes.v1` facts. That sender is now `pos-platform-sender`, a module in
+durion-positivity-backend that delivers email through Amazon SES and SMS through AWS End User
+Messaging.
+
+- **Decision.** `pos-platform-sender` is a **Utility** module (§1 table): any module MAY call its
+  send API (`POST /platform-sender/v1/messages`) synchronously. Like `pos-tax` and `pos-price` it
+  is a stateless capability rather than a data owner: it wraps a provider, and replicating its
+  provider credentials and delivery state into callers would be worse than the call.
+- **It calls no domain module.** Address resolution (FI-2 §1: "address resolution belongs to the
+  sender") runs on two R3 replicas, `ext_customer_person_party` (from `customer.events.v1`) and
+  `ext_people_contact_person` (from `people-contact.events.v1`), reconciled per §4 against
+  `customer.manifest.v1` and `people-contact.manifest.v1`. Its only synchronous outbound calls are
+  the provider (AWS) and the startup event-type registration (R2).
+- **It owns one fact.** `sender.outcomes.v1` (FI-2 §2) is published through the module's
+  transactional outbox with the tenant on the envelope and the Kafka header (2026-09-09 amendment);
+  the provider event's own id is the idempotency key, so a redelivered provider event never
+  becomes a second fact.
+- **Transport.** The call is direct (`pos.marketing.sender.base-url`), not gateway-routed and not
+  user-facing: a shared secret (`X-Pos-Sender-Secret`) authenticates the caller and `X-Tenant-Id`
+  carries the caller's bound tenant, since no gateway sits on this hop to inject it.
+- **Enforcement.** `pos-archunit`'s `DomainWallsTest` lists `pos-platform-sender` in
+  `UTILITY_MODULES`.
 
 ### 2026-10-02 — Consumer rethrow set (durion-positivity-backend#2355)
 

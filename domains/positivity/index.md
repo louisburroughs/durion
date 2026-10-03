@@ -10,7 +10,8 @@ status: reference
 Positivity documentation lives in this domain directory. The backend modules retain executable source and runtime
 configuration; edit canonical documentation here. The generated
 [positivity catalog entry](../../knowledge-catalog/domains/positivity.md) indexes these documents. The modules
-this domain's contracts land in are [pos-marketing](../../knowledge-catalog/backend/pos-marketing.md) (the
+this domain's contracts land in are [pos-marketing](../../knowledge-catalog/backend/pos-marketing.md) and
+[pos-platform-sender](../../knowledge-catalog/backend/pos-platform-sender.md) (the two sides of the
 platform-sender contract below), [pos-catalog](../../knowledge-catalog/backend/pos-catalog.md),
 [pos-supplier](../../knowledge-catalog/backend/pos-supplier.md) and
 [pos-event-receiver](../../knowledge-catalog/backend/pos-event-receiver.md).
@@ -41,7 +42,7 @@ definitions, physical schema and runtime configuration.
 
 | Document | Status and use |
 | --- | --- |
-| [Platform Sender Contract (FI-2)](PLATFORM_SENDER_CONTRACT.md) | **Current.** The wire contract between `pos-marketing` and the external shared platform sender: the send API (§1), the `sender.outcomes.v1` outcome events (§2), the suppression hand-off to `pos-customer` (§3), the facts `pos-marketing` republishes (§4) and its config keys (§5). The sender is external — no backend module produces `sender.outcomes.v1` — so this document is the only in-workspace copy of the shape, and §6 names the two unit tests that hold the consumer and client to it. Cited from `PlatformSenderClient`, `DeliveryOutcomeListener`, `MessageChannelPort`, `pos-marketing`'s `application.yml`, `PlatformSenderContractTest` and `pos-archunit`'s `TopicInventoryTest` external-topic allowlist. |
+| [Platform Sender Contract (FI-2)](PLATFORM_SENDER_CONTRACT.md) | **Current.** The wire contract between `pos-marketing` and the shared platform sender, `pos-platform-sender` (SES email, End User Messaging SMS): the send API (§1), the `sender.outcomes.v1` outcome events (§2), the suppression hand-off to `pos-customer` (§3), the facts `pos-marketing` republishes (§4) and its config keys (§5); §6 names the tests that hold each side to it. Cited from `PlatformSenderClient`, `DeliveryOutcomeListener`, `MessageChannelPort`, `pos-marketing`'s `application.yml`, `PlatformSenderContractTest`, and on the producer side `pos-platform-sender`'s controller, mapper and `SenderMessageOutcomeV1`. |
 
 ## Maintaining this documentation
 

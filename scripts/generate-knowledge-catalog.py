@@ -81,6 +81,9 @@ TERMINAL_ADR_STATUSES = {"superseded", "deprecated", "rejected"}
 # Modules whose owning domain is stated rather than inferred from mention counts.
 MODULE_DOMAIN = {
     "pos-mcp-server": "general",
+    # The FI-2 sender: its contract lives in domains/positivity, which names it by its role
+    # ("the platform sender") far more often than by its module name.
+    "pos-platform-sender": "positivity",
 }
 MODULE_FALLBACK = {
     "pos-agent-framework": "Placeholder module directory; no build file or README yet.",
