@@ -389,10 +389,12 @@ Headers and auth notes:
   - No `INVOICE_PAYMENT` posting rule set may exist: it would post the same `1090 / 1200` pair a
     second time. Card and cash both clear through Undeposited Funds; there is no per-method debit
     mapping.
-  - Cross-path idempotency: a `paymentId` already recorded by another path (e.g. a
-    `payment.events.v1` fact) leaves the event `PROCESSED` with `idempotencyOutcome =
-    DUPLICATE_IGNORED` and writes nothing; the same `paymentId` with a different amount, currency or
-    customer fails `DUPLICATE_CONFLICT`.
+  - Cross-path idempotency (`paymentId` is the key, in either arrival order): a payment already
+    recorded by another path (a `payment.events.v1` fact records a payment but applies nothing) has
+    its remaining unapplied balance applied to the invoice; one with nothing left unapplied leaves the
+    event `PROCESSED` with `idempotencyOutcome = DUPLICATE_IGNORED`. A settlement fact arriving after
+    the event reuses the recorded payment. The same `paymentId` with a different amount, currency or
+    customer fails `DUPLICATE_CONFLICT` (and is refused on the settlement path).
   - Outcomes (`status` / `failureReasonCode`):
 
     | Case | Status | `failureReasonCode` |
@@ -403,10 +405,13 @@ Headers and auth notes:
     | Invoice voided, cancelled or not finalized; no customer on the invoice | `FAILED` | `INVOICE_NOT_ELIGIBLE` |
     | Currency other than the ledger's | `SUSPENDED` | `CURRENCY_NOT_SUPPORTED` |
     | Same `paymentId`, different details | `FAILED` | `DUPLICATE_CONFLICT` |
-    | Unexpected processing failure | `FAILED` | `INTERNAL_ERROR` |
+    | Unexpected processing failure; a unique-key race still failing after 3 polls | `FAILED` | `INTERNAL_ERROR` |
 
   - Release: `reprocessSuspendedEvent` on an `INVOICE_PAYMENT` event returns it to `RECEIVED` for
     the drainer (never the posting engine); `retryEventProcessing` does the same for a `FAILED` one.
+  - Observability: `accounting.events.drained{outcome}` counts drained events by final status;
+    `accounting.events.received.stale` gauges events still `RECEIVED` beyond
+    `pos.accounting.event-drainer.stale-after-ms` (default 10 min).
 
 ### Frontend Usage Notes
 
