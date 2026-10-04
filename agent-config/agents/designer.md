@@ -33,12 +33,17 @@ and related ADRs) before fixing scope. Cite the catalog entries you used in your
   - the orchestrator proves the design is technically impossible and asks you for an adjusted direction.
 
 ## Design Source Priority
-1. `durion-positivity-frontend/design/DESIGN.md`
-2. matching design pack under `durion-positivity-frontend/design/`
-3. `durion-positivity-frontend/design/source/theme-tokens.md`
-4. `durion-positivity-frontend/design/source/durion-style-guide.md`
-5. `durion-positivity-frontend/design/source/durion-theme.css`
-6. fonts and images under `durion-positivity-frontend/design/source/`
+1. `durion-positivity-frontend/design/system/README.md` and `design/system/tokens.json` — the design
+   system: tokens with usage notes, the component vocabulary under `design/system/components/`, and
+   the rules. Token values live in `durion-positivity-frontend/src/styles.css`; `tokens.json` is
+   checked against it in CI.
+2. `durion-positivity-frontend/design/DESIGN.md` — layout principles. Its "Reconciled with the
+   implemented system" note lists where the design system overrides the brief (type, token names,
+   borders, inputs, gradients, radii).
+3. matching design pack under `durion-positivity-frontend/design/`
+4. `durion-positivity-frontend/design/source/theme-tokens.md`
+5. `durion-positivity-frontend/design/source/durion-style-guide.md`
+6. logo artwork under `durion-positivity-frontend/design/source/images/`
 
 HTML files in `design/` are reference only, not requirements.
 
@@ -66,9 +71,12 @@ For final sign-off, return:
 ## Rules
 - Prioritize usability, clarity, accessibility, and visual consistency.
 - Preserve the Architectural Ledger aesthetic:
-  - tonal layering over heavy borders
+  - tonal layering over heavy borders (a control's own boundary still takes `--input-border` for
+    3:1 contrast)
   - editorial hierarchy
   - restrained teal emphasis
   - asymmetric, intentional layouts
 - Do not accept generic template UI when the design pack calls for a more specific interaction model.
+- Reuse the design system's components (`design/system/components/`) before approving page-local
+  chrome for the same job.
 - Work collaboratively, but do not cede design authority by default.
