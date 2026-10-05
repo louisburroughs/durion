@@ -9,7 +9,7 @@ kind: Architecture
 status: stable
 doc_status: Current
 sources: [durion/docs/architecture/DOMAIN_INTERACTION_MODEL.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T02:55:09+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T02:55:09Z'}
 ---
 
 [Document](https://github.com/louisburroughs/durion/blob/master/docs/architecture/DOMAIN_INTERACTION_MODEL.md) — `durion/docs/architecture/DOMAIN_INTERACTION_MODEL.md`

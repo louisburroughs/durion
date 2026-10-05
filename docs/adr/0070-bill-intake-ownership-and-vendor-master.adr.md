@@ -2,21 +2,21 @@
 type: ADR
 title: 'ADR-0070: Bill Intake Ownership, Inbound Untrusted Files and the Vendor Master'
 description: Places every human channel for supplier invoices (upload, photo, spreadsheet, email-in, vendor statements) in pos-accounting behind one bill-creation path, keeps pos-supplier to credentialed machine channels plus the vendor master, and adds an isolated extraction worker and an inbound-mail edge for untrusted input.
-status: draft
-adr_status: proposed
+status: stable
+adr_status: accepted
 created: '2026-10-05'
 related: [ADR-0020, ADR-0044, ADR-0049, ADR-0050, ADR-0051, ADR-0062, ADR-0064, ADR-0065]
-tags: [adr]
+tags: [adr, accounting, billing, positivity, supplier, events, security, rbac]
 ---
 # ADR-0070: Bill Intake Ownership, Inbound Untrusted Files and the Vendor Master
 
-**Status:** PROPOSED **Date:** 2026-10-05 **Deciders:** Platform Owner, Accounting Domain, Positivity (Integrations) Domain, Invoicing & Payments
+**Status:** ACCEPTED **Date:** 2026-10-05 **Deciders:** Platform Owner, Accounting Domain, Positivity (Integrations) Domain, Invoicing & Payments
 Domain, Architecture
 **Affected Issues:** louisburroughs/durion#548 (specification ruling), louisburroughs/durion#549 (extraction provider)
 
-> **How to read this.** ✅ **Resolved** marks a decision this ADR proposes (TEMPLATE.adr.md sub-decision format). The domain rulings behind it are recorded as
-> AW22–AW29 in [SPEC-accounting-workspace.md](../../domains/accounting/SPEC-accounting-workspace.md) §4.9, §7.3, §7.4 and §10. The ADR takes effect when
-> the Platform Owner accepts it (see Sign-Off).
+> **How to read this.** ✅ **Resolved** marks a decision this ADR makes (TEMPLATE.adr.md sub-decision format); accepted by the Platform Owner on 2026-10-05
+> (see Sign-Off). The domain rulings behind it are recorded as AW22–AW29 in
+> [SPEC-accounting-workspace.md](../../domains/accounting/SPEC-accounting-workspace.md) §4.9, §7.3, §7.4 and §10.
 
 ---
 
@@ -223,6 +223,8 @@ outbound rendering only.
 
 ### Changes required in other ADRs
 
+Applied 2026-10-05 as dated amendments in each ADR, except the v2 X12 855 / 856 rows, which wait for v2.
+
 - **ADR-0044 §1:** add the extraction worker and the inbound-mail edge to the Utility class.
 - **ADR-0049 §1:** "pos-supplier owns the vendor master and all credentialed machine-to-machine supplier connectivity; each connection profile belongs to one
   vendor. Supplier documents arriving any other way (uploaded, imported or emailed) are AP intake owned by pos-accounting (ADR-0070); pos-supplier neither
@@ -251,7 +253,7 @@ outbound rendering only.
 
 | Role | Name | Date | Notes |
 | --- | --- | --- | --- |
-| Platform Owner | — | — | Pending; vendor master placement decided 2026-10-05 |
+| Platform Owner | Louis Burroughs | 2026-10-05 | Accepted as written; vendor master placement decided 2026-10-05 |
 | Accounting Domain | Accounting Domain Agent | 2026-10-05 | Ruling AW22–AW29 |
 | Positivity (Integrations) Domain | Integrations Domain Agent | 2026-10-05 | Ruling AW22–AW29; vendor master detail |
 | Invoicing & Payments Domain | Invoicing & Payments Domain Agent | 2026-10-05 | Ruling AW22, AW29 |
@@ -261,9 +263,12 @@ outbound rendering only.
 ## Timeline
 
 - **Proposed**: 2026-10-05
+- **Accepted**: 2026-10-05
 
 ---
 
 ## Changelog
 
 - **2026-10-05**: Initial draft from the OI-1 ruling and the Platform Owner's vendor-master decision.
+- **2026-10-05**: Accepted by the Platform Owner.
+- **2026-10-05**: ADR-0044 §1, ADR-0049 §1–§3 and ADR-0050 §2 / §6 amended as listed under "Changes required in other ADRs".

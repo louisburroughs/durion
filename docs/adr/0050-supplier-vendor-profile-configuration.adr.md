@@ -5,12 +5,12 @@ description: Every deployment of the platform is expected to wire a custom set o
 status: stable
 adr_status: accepted
 created: '2026-08-10'
-related: [ADR-0013, ADR-0018, ADR-0025, ADR-0027, ADR-0040, ADR-0049, ADR-0051]
-tags: [adr]
+related: [ADR-0013, ADR-0018, ADR-0025, ADR-0027, ADR-0040, ADR-0049, ADR-0051, ADR-0070]
+tags: [adr, supplier]
 ---
 # ADR-0050: Supplier Vendor Profile Configuration Model
 
-**Status:** ACCEPTED 2026-08-10 — revised for PRCR-005/006/007  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-005/006/007; amended 2026-10-05 (§2/§6 profiles belong to a vendor, ADR-0070), see Amendments  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
 **Affected Issues:** durion#372 (CAP-317), durion-positivity-backend#1222
@@ -43,6 +43,9 @@ attribute, never an identifier crossing a contract boundary.
 **Decision:** ✅ **Resolved** — A **vendor profile** represents one supplier account in one deployment: identity (§1), display name, protocol defaults (timeouts, retry),
 sandbox overlay, `sourceOfTruth` (§6), and three child collections — auth configs, commercial accounts, and endpoint bindings. One vendor may legitimately have multiple
 profiles (regions, legal entities).
+
+Each profile carries a **required `vendorId`** naming the one vendor-master `Vendor` it belongs to (amended 2026-10-05,
+[ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md) §7). The profile is a connection to that vendor, not the vendor itself.
 
 ### 3. Capability bindings
 
@@ -80,6 +83,7 @@ raised **before any network call**.
 - Profiles created through the admin API are `ADMIN`-managed and untouched by YAML reconciliation. A deployment may freely mix both kinds.
 - YAML reconciliation writes standard audit fields with actor `system:yaml-bootstrap`, so profile history distinguishes operator edits from configuration rollouts.
 - Secrets remain references in both modes (§4); YAML never contains plaintext credentials.
+- YAML names a profile's vendor by `vendorNumber` and **never creates a vendor** (amended 2026-10-05).
 
 ### 7. Exchange-payload governance
 
@@ -107,6 +111,21 @@ ADR-0025).
 location-aware ordering is validated before money moves; payload capture has an explicit lifecycle instead of growing forever.
 **Negative / accepted:** profile schema becomes a contract that adapters depend on; delivery mappings must be maintained as locations change (surfaced in the admin UI as a
 warning); YAML-managed deployments must route profile changes through their configuration pipeline rather than the UI.
+
+## Amendments
+
+### 2026-10-05 — Connection profiles belong to a vendor ([ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md))
+
+**What changed.** ADR-0070 §7 places the vendor master in pos-supplier (ADR-0049 amendment of the same date). Until now a profile was the only record of a
+supplier, and EDI bills used its `vendorProfileId` as their vendor id while goods-receipt bills used an unvalidated purchase-order `vendor_id`.
+
+- **§2.** A profile gains a required `vendorId`: each profile belongs to exactly one vendor, and a vendor may have zero or many profiles. Business records
+  (bills, AP payments, purchase orders) carry the `vendorId`, never the `vendorProfileId`; the profile id stays the key for transmission state and the exchange
+  audit (§1).
+- **§6.** YAML-managed profiles name their vendor by `vendorNumber` and never create one. Vendors are created through the vendor-master API
+  (`supplier:vendor:write`), so a YAML rollout cannot invent a payee.
+
+Pre-production: existing profiles and alpha bills are reseeded, not migrated (ADR-0070 Consequences).
 
 ## References
 

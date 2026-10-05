@@ -19,6 +19,7 @@
 * [pos-inquiry](pos-inquiry.md) — POS Inquiry module
 * [pos-inventory](pos-inventory.md) — POS Inventory module
 * [pos-invoice](pos-invoice.md) — POS Invoice module
+* [pos-kafka-common](pos-kafka-common.md) — Shared Kafka rails (ADR-0044 §4): the @KafkaRails profile gate and its startup guard
 * [pos-location](pos-location.md) — Module to manage locations and hierarchy
 * [pos-marketing](pos-marketing.md) — POS Marketing module: campaigns, templates, audience binding, and send orchestration
 * [pos-mcp-server](pos-mcp-server.md) — MCP server module for Durion Positivity backend, shared by front and back ends.

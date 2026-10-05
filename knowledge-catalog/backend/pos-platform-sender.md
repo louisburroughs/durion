@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-platform-sender/
 tags: [backend, service, positivity]
 sources: [durion-positivity-backend/pos-platform-sender/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T02:59:55+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T03:57:44-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-platform-sender) — `pos-platform-sender/`

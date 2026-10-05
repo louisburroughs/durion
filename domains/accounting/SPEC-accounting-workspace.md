@@ -1028,15 +1028,15 @@ Made with this specification: [`index.md`](index.md) links it; `knowledge-catalo
 
 With the bill-intake ruling (AW22–AW29), before Phase 5 stories:
 
-- A new ADR, [ADR-0070](../../docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md) (proposed), recording AW22–AW29, the `FileStore` port and the
+- A new ADR, [ADR-0070](../../docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md) (accepted), recording AW22–AW29, the `FileStore` port and the
   security controls of §7.4.
-- ADR-0044 §1: classify the extraction worker (utility) and the inbound-mail edge.
+- ADR-0044 §1: classify the extraction worker (utility) and the inbound-mail edge. *Done 2026-10-05.*
 - ADR-0049 amendments (AW22, AW23). §1: "pos-supplier owns the vendor master and all credentialed machine-to-machine supplier connectivity; each connection
   profile belongs to one vendor. Supplier documents arriving any other way (uploaded, imported or emailed) are AP intake owned by pos-accounting;
   pos-supplier neither stores nor republishes them. An inbound vendor channel requires an amendment to this ADR (architecture §12 decision 7)." §2: "the
   vendor master and transmission / exchange state; bills, bank details, AP status, payments and approval stay pos-accounting's." §3: the
-  `supplier.vendor.updated` row (consumers pos-accounting, pos-order, pos-inventory), `supplier.manifest.v1`, and `vendorId` on `SupplierInvoiceReceivedV1`.
-- ADR-0050 amendment: connection profiles gain a required `vendorId`; YAML names the vendor by `vendorNumber` and never creates one.
+  `supplier.vendor.updated` row (consumers pos-accounting, pos-order, pos-inventory), `supplier.manifest.v1`, and `vendorId` on `SupplierInvoiceReceivedV1`. *Done 2026-10-05.*
+- ADR-0050 amendment: connection profiles gain a required `vendorId`; YAML names the vendor by `vendorNumber` and never creates one. *Done 2026-10-05.*
 - ADR-0049 amendment at v2 for X12 855 and 856 (§4.8).
 - Billing documentation, once the ADR is accepted: retire BILL-DEC-013 and the `billing:ap:*` keys and state that AP payments belong to pos-accounting
   (`domains/billing/.business-rules/AGENT_GUIDE.md`, `DOMAIN_NOTES.md`, `STORY_VALIDATION_CHECKLIST.md`); replace the BILL-DEC-008 `billing:*` permission table

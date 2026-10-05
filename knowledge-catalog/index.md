@@ -8,5 +8,5 @@ Generated from the canonical documents in this workspace and the backend module 
 
 * [ADRs](adr/index.md) — 70 architecture decision records
 * [Domains](domains/index.md) — 16 business domains
-* [Backend Modules](backend/index.md) — 46 modules in durion-positivity-backend
+* [Backend Modules](backend/index.md) — 47 modules in durion-positivity-backend
 * [Platform Documents](platform/index.md) — 85 architecture, operations and governance documents

@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-warranty/
 tags: [backend, service, warranty]
 sources: [durion-positivity-backend/pos-warranty/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T19:52:32+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T01:33:32-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-warranty) — `pos-warranty/`

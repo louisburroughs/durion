@@ -4,7 +4,7 @@ title: 'ADR-0050: Supplier Vendor Profile Configuration Model'
 description: Every deployment of the platform is expected to wire a custom set of vendors, capabilities, endpoints, norm versions, credentials, and account numbers.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0050-supplier-vendor-profile-configuration.adr.md
 path: durion/docs/adr/0050-supplier-vendor-profile-configuration.adr.md
-tags: [adr]
+tags: [adr, supplier]
 status: stable
 sources: [docs/adr/0050-supplier-vendor-profile-configuration.adr.md]
 generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27-04:00'}
@@ -23,3 +23,4 @@ generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-15T22:15:27
 * [ADR-0040](../adr/0040-roles-jwt-permission-governance-policy.md)
 * [ADR-0049](../adr/0049-supplier-integration-module-boundary.md)
 * [ADR-0051](../adr/0051-supplier-protocol-adapter-versioning.md)
+* [ADR-0070](../adr/0070-bill-intake-ownership-and-vendor-master.md)

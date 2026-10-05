@@ -2,12 +2,17 @@
 
 ## 2026-10-05
 
+* **Regenerated**: 70 ADR, 16 domain, 47 module and 85 platform-document concepts from `docs/adr/`, `domains/`, the backend module suite, and the declared platform areas.
 * **Updated**: `domains/accounting.md` indexes the new accounting workspace specification
   `domains/accounting/SPEC-accounting-workspace.md` (81 documents). Only that entry was regenerated; timestamp drift in unrelated
   entries and a new backend module (`pos-kafka-common`) were left for a full regeneration.
 * **Added**: `adr/0070-bill-intake-ownership-and-vendor-master.md` for the proposed ADR-0070; `adr/index.md` and the root index count it.
 * **Pinned**: `pos-supplier` to `positivity` in `MODULE_DOMAIN`. The accounting workspace specification now names it more often than the
   positivity documents do, which would otherwise move its ownership to accounting.
+* **Updated**: `adr/0070-bill-intake-ownership-and-vendor-master.md` to accepted (`status: stable`), with domain and topic tags
+  (accounting, billing, positivity, supplier, events, security, rbac). `adr/0044-…`, `adr/0049-…` and `adr/0050-…` refreshed for
+  their 2026-10-05 ADR-0070 amendments; 0049 and 0050 gain the `supplier` tag. Full regeneration: picks up
+  the deferred timestamp drift and adds `backend/pos-kafka-common.md`; `backend/index.md` and the root index count 47 modules.
 
 ## 2026-10-03
 

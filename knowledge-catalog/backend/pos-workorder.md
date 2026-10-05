@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-workorder/
 tags: [backend, service, workexec]
 sources: [durion-positivity-backend/pos-workorder/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-27T02:20:41+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T13:25:59-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-workorder) — `pos-workorder/`

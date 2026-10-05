@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-invoice/
 tags: [backend, service, order]
 sources: [durion-positivity-backend/pos-invoice/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-09-23T20:20:43+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T01:33:32-04:00'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-invoice) — `pos-invoice/`
