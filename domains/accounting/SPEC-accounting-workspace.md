@@ -9,7 +9,7 @@ tags: [accounting, ui, accounts-payable, accounts-receivable, cash-position, ban
 
 ## SPEC — Accounting Workspace
 
-> Status: PROPOSED · Created 2026-10-05 · Design canvas: [Accounting Command Center](https://claude.ai/artifact/46hejFzE3MLi94JEXRkXCh) (five artboards) ·
+> Status: PROPOSED · Created 2026-10-05 · Reviewed by the Accounting Domain Agent 2026-10-05 (18 corrections applied) · Design canvas: [Accounting Command Center](https://claude.ai/artifact/46hejFzE3MLi94JEXRkXCh) (five artboards) ·
 > Branch: `durion-claude/serene-fermi-bhiy62`
 >
 > Purpose: specify a new accounting workspace in `durion-positivity-frontend` for people who are **not** trained accountants — a shop owner, office manager or
@@ -62,7 +62,7 @@ Frontend paths are relative to `durion-positivity-frontend/`, backend paths to `
 | Concern | EXISTING behaviour | Where |
 | --- | --- | --- |
 | Roles | Template roles `ADMIN`, `SYSTEM_ADMINISTRATOR`, `DISPATCHER`, `SHOP_MANAGER`, `SELF_SERVICE_CUSTOMER`, `CONTROLLER`, `SUPPORT`; `CONTROLLER` is the only accounting role; `ACCOUNTANT`, `AP_CLERK`, `GL_ANALYST` are retired; `GENERAL_MANAGER` and `ACCOUNTING_ASSOCIATE` exist only as alpha fixtures. Fixture grants: `accounting:ap:pay` → `ACCOUNTING_ASSOCIATE`, `ADMIN`, `CONTROLLER`; `accounting:payment:apply` → `ACCOUNT_MANAGER`, `ADMIN` only (**`CONTROLLER` cannot apply payments**; `GENERAL_MANAGER` has neither) | `pos-security-service/src/main/resources/db/migration/R__seed_tenant_template.sql` l.41-42; `R__seed_role_permissions.sql` l.56-61; `scripts/fixtures/seed/alpha/security/roles.csv` l.2, l.7, l.8; `role-permissions.csv` l.2-5 |
-| Accounting permissions | Registered constants include `accounting:ap:view`, `accounting:ap:pay`, `accounting:analytics:view`, `accounting:payment:apply`, `accounting:payment:reverse`, `accounting:customer-credit:view\|apply\|refund`, `accounting:coa:*`, `accounting:je:*`, `accounting:mapping-key:*`, `accounting:gl-mapping:create\|resolve`, `accounting:reconciliation:view\|adjust\|approve`, `accounting:period:view\|close\|reopen\|hard_lock`, `reporting:view:financial-statements`. **Not registered:** `accounting:ap:approve` (taxonomy only), `accounting:payment:assign-customer` (cited by AD-004), and `accounting:period:override` / `accounting:time:export` have no constant although they are granted and used | `ACC/security/AccountingPermissions.java` l.21-195; `.business-rules/PERMISSION_TAXONOMY.md`; `.business-rules/AGENT_GUIDE.md` l.462 |
+| Accounting permissions | Registered constants include `accounting:ap:view`, `accounting:ap:pay`, `accounting:analytics:view`, `accounting:payment:apply`, `accounting:payment:reverse`, `accounting:customer-credit:view\|apply\|refund`, `accounting:coa:*`, `accounting:je:*`, `accounting:mapping-key:*`, `accounting:gl-mapping:create\|resolve`, `accounting:reconciliation:view\|adjust\|approve`, `accounting:period:view\|close\|reopen\|hard_lock`, `reporting:view:financial-statements`. `accounting:ap:approve` and `accounting:ap:reject` exist in the security catalog but pos-accounting neither registers nor enforces them. `accounting:period:override` is catalogued and enforced through `AccountingPeriodGate.OVERRIDE_AUTHORITY`, outside `AccountingPermissions`. `accounting:time:export` belongs to pos-people. `accounting:payment:assign-customer` (cited by AD-004) exists nowhere | `ACC/security/AccountingPermissions.java` l.21-195; `pos-security-service/…/enums/PermissionCode.java` l.572, l.575, l.763; `AccountingPeriodGate.OVERRIDE_AUTHORITY`; `pos-people/…/PeoplePermissions.java` l.177; `.business-rules/AGENT_GUIDE.md` l.462 |
 | AP endpoints | `/v1/accounting/vendor-bills`: create from goods receipt, `/match`, `/{billId}/resolve-exception`, `/match-candidates/{candidateId}/select` (all `accounting:ap:pay`); reads `accounting:ap:view`; list `accounting:analytics:view`. `/v1/accounting/ap`: `POST /payments` (`ap:pay`), `GET /payments/{id}`, `/payments/by-ref/{ref}`, `/bills` (`ap:view`) | `ACC/controller/VendorBillController.java` l.57-511; `ACC/controller/APPaymentController.java` l.64-237 |
 | Vendor bills | Statuses `PENDING_RECEIPT_MATCH`, `MATCH_EXCEPTION`, `CURRENCY_HOLD`, `APPROVED`, `REJECTED`, `PAID`, `VOIDED`; `REJECTED` and `PAID` have no write path (a paid bill stays `APPROVED`). HIGH matches are set `APPROVED`; **every** matched bill — including one left in `MATCH_EXCEPTION` — then receives `approvedBy`, `approvedAt` and "Auto-approved: three-way match successful" (defect G12). `resolveMatchException` and `selectMatchCandidate` take `operatorId` from the request body | `ACC/enums/VendorBillStatus.java` l.26-68; `ACC/service/VendorBillServiceImpl.java` l.288-305, l.318-368, l.692-727; `ACC/controller/VendorBillController.java` l.286-287, l.588 |
 | Match score | Inline in `VendorBillServiceImpl`: amount within 10% +40; line-item Jaccard similarity ×30; date ≤ 7 days +20 (≤ 30 days +10); PO present +5 (the comment and Javadoc say 10); minimum 50; HIGH ≥ 70 (Javadoc says "> 70"); several candidates ≥ 50 → AMBIGUOUS | `ACC/service/VendorBillServiceImpl.java` l.476-595 |
@@ -94,7 +94,7 @@ Frontend paths are relative to `durion-positivity-frontend/`, backend paths to `
 | G10 | EDI bills arrive without a due date | They can't be placed in a cash outlook or aged correctly | AW11 |
 | G11 | Vendor bills store the gross only; the vendor's stated tax is dropped | Canadian input-tax credits can't be claimed | AW20 |
 | G12 | A medium-confidence bill left in `MATCH_EXCEPTION` is stamped `approvedBy` / `approvedAt` / "Auto-approved" (`VendorBillServiceImpl` l.300-305) | The audit trail shows approvals that never happened | §4.3 (approval fields are written only by an approval) |
-| G13 | `CONTROLLER` lacks `accounting:payment:apply`; `accounting:payment:assign-customer` (AD-004) and `accounting:period:override` have no registered constant | The accounting role can't use Customer payments; customer assignment and overrides aren't governed by registered permissions | §7.3 |
+| G13 | `CONTROLLER` lacks `accounting:payment:apply`; `accounting:payment:assign-customer` (AD-004) exists nowhere; `accounting:period:override` is enforced outside `AccountingPermissions`; the catalogued `accounting:ap:approve` / `accounting:ap:reject` are unused | The accounting role can't use Customer payments; customer assignment isn't governed; bill approval isn't enforced | §7.3 |
 
 ---
 
@@ -157,7 +157,7 @@ The home pane states one figure, **Your cash**, as the sum of three components t
 | Component (plain label) | Accounts | Explanation shown in help |
 | --- | --- | --- |
 | In the bank | Every active GL account with subtype `BANK_CASH` (1000 today), one row per bank account | What your books say is in your bank accounts |
-| Waiting to be deposited | 1090 Undeposited Funds + 1095 Register Cash Clearing, netted | Card payouts still on their way, plus cash and checks counted in closed drawers |
+| Waiting to be deposited | 1090 Undeposited Funds + 1095 Register Cash Clearing, netted | Card payments not yet paid out, and cash and checks taken in but not yet banked, including today's open drawers |
 | Kept in drawers for change | 1080 Register Float (PROPOSED, AW16), subtype `CASH_ON_HAND` | The fixed change float in each register; it never leaves the shop |
 
 - **Bank's view alongside, never blended.** For each bank account: latest committed statement `closingBalance` and `endDate`, and the reconciled-through date.
@@ -192,8 +192,8 @@ A projection, labelled as such, never posted.
 
 | Status | Plain label | Meaning |
 | --- | --- | --- |
-| `PENDING_RECEIPT_MATCH` | Waiting on delivery | No receiving record to check against yet |
-| `MATCH_EXCEPTION` | Doesn't match delivery / Pick a match | Score 50–69, or several candidates ≥ 50 (ambiguous) |
+| `PENDING_RECEIPT_MATCH` | Waiting on delivery / waiting on the invoice | Waiting for its counterpart: the vendor's invoice for a delivery, or a delivery for an invoice |
+| `MATCH_EXCEPTION` | Doesn't match delivery / Pick a match | Needs a person: score 50–69, several candidates ≥ 50, a line check failed (quantity 0.1 %, price 5 %, total 5 %), the EDI amount was unreadable, or a re-issued invoice changed amount or currency |
 | `CURRENCY_HOLD` | On hold: foreign currency | Can never be approved (ADR-0067) |
 | **`AWAITING_APPROVAL`** | Sent for approval | Checked; waiting for an approver of the required tier. Carries `requiredTier` (`CLERK` \| `OVER_LIMIT`), `submittedAt`, `submittedBy` |
 | `APPROVED` | Approved · to pay | Owed; locked (no edits). A paid bill stays `APPROVED` with open amount = total − allocations (EXISTING) |
@@ -208,11 +208,12 @@ a justification (service bills, shop supplies, EDI bills that will never have a 
 
 | Setting | Scope | Default | Rule |
 | --- | --- | --- | --- |
-| Clerk approval limit `AP_CLERK_APPROVAL_LIMIT` | Tenant | none until set (design shows $2,500.00) | Clerks approve bills whose total **including tax**, in functional currency, is ≤ the limit; credit notes compare by absolute value; checked at approval time against the current limit |
+| Clerk approval limit `AP_CLERK_APPROVAL_LIMIT` | Tenant | unset = 0: every bill needs an over-limit approver until a manager sets it (design shows $2,500.00) | Clerks approve bills whose total **including tax**, in functional currency, is ≤ the limit; credit notes compare by absolute value; checked at approval time against the current limit |
 | Automatic approval limit `AP_AUTO_APPROVAL_LIMIT` | Tenant | 0 (off) | The system approves a HIGH-confidence match (score ≥ 70) only up to this amount, never above the clerk limit; above it the bill goes to `AWAITING_APPROVAL` (replaces today's unconditional auto-approval). Approval fields (`approvedBy`, `approvedAt`, justification) are written only by an approval — the system approver is recorded as such — never on a bill that stays unapproved (G12) |
 
 **Permissions:** `accounting:ap:approve` (clerk tier, up to the limit); `accounting:ap:approve_over_limit` (no ceiling: CONTROLLER, GENERAL_MANAGER, ADMIN);
-`accounting:ap_approval_policy:manage` (set the limits: CONTROLLER, GENERAL_MANAGER, ADMIN). Clerks **do not** hold `accounting:ap:pay`; CONTROLLER and
+`accounting:ap_approval_policy:manage` (set the limits: CONTROLLER, GENERAL_MANAGER, ADMIN). Reject and `VOID` use the catalogued `accounting:ap:reject` (no
+amount limit), granted with `accounting:ap:approve`. Clerks **do not** hold `accounting:ap:pay`; CONTROLLER and
 GENERAL_MANAGER do (AW7).
 
 **Separation of duties** (each exception is a tenant switch, default off, audited on every use — the bank-reconciliation D3 pattern):
@@ -220,7 +221,7 @@ GENERAL_MANAGER do (AW7).
 1. The creator of a bill may not approve it (`POST /vendor-bills`, upload, email-in or import makes the person the creator; EDI bills are created by the system).
 2. The approver of a bill may not pay it: 403 `AP_PAYMENT_SELF_APPROVED_BILL` naming the bills; oldest-due-first allocation must not silently skip them.
 3. Match-exception actions: `ACCEPT` **is** approval (same permission, same limit, justification); `CORRECT` is not approval; `VOID` needs
-   `accounting:ap:approve` (no limit) and a reason.
+   `accounting:ap:reject` and a reason.
 4. Actor identity comes from the security context; the `operatorId` request field of `resolveMatchException` is removed (ADR-0018).
 
 **Audit:** every decision records actor, tier used, the limit at that moment, bill total, match score and evidence; justification is mandatory for reject,
@@ -245,16 +246,21 @@ and new values, actor and justification.
 3. Applies **from go-live only**; no backfill of earlier sales (owner, AW13).
 4. **Automatic application of counter payments.** A settled payment is applied to the invoice it was taken against (`PaymentSettledV1.invoiceId` is non-null),
    posting Dr 1090 / Cr 1200 at `settledAt`. An application record is created (AD-002 holds). Manual matching remains for payments without an invoice.
+   Applied only when the payment's party equals the invoice's party and the currency is functional; idempotency key `PAYMENT_SETTLED:<paymentIntentId>`
+   (cross-path with `INVOICE_PAYMENT`); amount up to the invoice's open balance, any excess becomes a `CustomerCredit` (AD-003) except on the CASH customer,
+   where it is refused and raised as an alert; a closed period suspends it with `PERIOD_CLOSED` for reprocessing.
 5. **Manual matching rules (EXISTING AD-002/003/010):** atomic across invoices; idempotent on a frontend-generated `applicationRequestId`; each amount ≥ 0.01;
    total ≤ the payment's unapplied amount; no amount above an invoice's open balance; overpayment becomes a `CustomerCredit` (Dr 1090 / Cr 2300); no currency
    conversion (`CURRENCY_NOT_SUPPORTED`); application date not editable; applications are immutable — a reversal is a new compensating record.
-6. **Customer assignment** for a payment with no customer requires a justification of at least 10 characters (EXISTING AD-004).
+6. **Customer assignment** for a payment with no customer requires a justification of at least 10 characters (AD-004 documented, not built). Such payments
+   cannot exist today — `ReceivablePayment.customerId` is `nullable = false` (`ACC/entity/ReceivablePayment.java` l.115) and no path records an unidentified
+   receipt — so this depends on OI-8.
 
 ### 4.5 Bank deposits of drawer cash (AW10)
 
 - **Undeposited-sessions read model** in `pos-accounting`, built from `RegisterSessionClosedV1` (already consumed): counted cash, theoretical cash, over/short,
   cash and check tender totals, plus check receipts taken outside the register. No synchronous call to pos-order (ADR-0044).
-- **Record bank deposit** command: a `BANK_CASH` account, deposit date, selected sessions and receipts, amount deposited (counted cash minus the float kept),
+- **Record bank deposit** command: a `BANK_CASH` account, deposit date, the selected sessions' `BANK_DROP` movements (bag numbers) plus selected checks — a session is deposited whole: all its drops in one deposit, which also clears its 1095 net —
   `requestId` (idempotency), optional deposit-slip reference. Posting category `BANK_DEPOSIT` (mapping keys `UNDEPOSITED_FUNDS` → 1090,
   `CASH_CLEARING` → 1095; accounts never hard-coded): Dr bank (amount deposited) / Cr 1090 (selected items' expected cash and checks) / Dr or Cr 1095 (the
   selected sessions' net). Unbalanced → 422 with the difference; no plug line. Card tenders excluded (settlement entries clear them).
@@ -273,7 +279,7 @@ resolve through posting category `REGISTER_CASH_MOVEMENT` at session close.
 | Reason | Direction | Posting | Control |
 | --- | --- | --- | --- |
 | `PETTY_EXPENSE` + category | OUT | Dr expense (`PETTY_EXPENSE_<CODE>`) / Cr 1095 | Note and receipt reference; over the limit → manager approval at the drawer |
-| `VENDOR_COD` + vendor | OUT | Dr 2000 (unapplied vendor payment) / Cr 1095 | Vendor required; limit; the vendor's later bill is matched to it and still needs approval |
+| `VENDOR_COD` + vendor | OUT | Dr 2000 (unapplied vendor payment) / Cr 1095 | Vendor required; limit; the vendor's later bill is matched to it and still needs approval. Recorded in pos-accounting as an AP payment with new method `CASH`, no gateway call, unapplied until the vendor's bill is allocated to it; the vendor id comes on the close fact v2; unapplied COD older than N days appears under Needs attention |
 | `BANK_DROP` | OUT | none at close; consumed by the deposit command | Deposit bag number required |
 | `FLOAT_INCREASE` / `FLOAT_DECREASE` | IN / OUT | none at close; balanced by an accounting float change | Always needs a manager; must match a recorded float change |
 
@@ -335,7 +341,7 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
 Applies only to CAD tenants whose GST/HST registration is recorded; the backend exposes `inputTaxRecoveryEnabled` and the UI follows it, never the currency code.
 
 - Accounts (CAD tenants only, at provisioning): **1250 GST/HST Recoverable (ITC)** and **1260 QST Recoverable (ITR)**, ASSET, new subtype `TAX_RECOVERABLE`.
-  PST is not recoverable and stays in the expense.
+  PST is not recoverable and stays in the expense. QST recovery additionally requires a recorded QST registration.
 - Drawer entry: receipt total, category, supplier name, "GST/HST shown on receipt" (Québec: also "QST shown on receipt") — shown only when recovery is on and
   the category is recoverable. The cashier copies the printed figure; blank or "not sure" = zero recovery (under-claiming is safe). Backend validation: 0 ≤ tax
   < total; plausibility against the location's rate from pos-tax (422 `TAX_AMOUNT_IMPLAUSIBLE`); if the rate can't be looked up, record with no recovery and flag.
@@ -355,13 +361,13 @@ Applies only to CAD tenants whose GST/HST registration is recorded; the backend 
 
 | Priority | Formats and channels |
 | --- | --- |
-| v1 | PDF; photos JPG / PNG / HEIC; scanned TIFF — up to 25 MB per file, one invoice per file with an offer to split a multi-invoice PDF; per-tenant email-in address (about 20 attachments per email); CSV / XLSX import with column mapping and a downloadable template; matching to the shop's own purchase orders; monthly vendor statement upload (PDF/CSV) for statement reconciliation including credits and cores; CFDI 4.0 XML for es-MX tenants |
+| v1 | PDF; photos JPG / PNG / HEIC; scanned TIFF — up to 25 MB per file, one invoice per file with an offer to split a multi-invoice PDF; per-tenant email-in address (about 20 attachments per email); CSV / XLSX import with column mapping and a downloadable template; monthly vendor statement upload (PDF/CSV) for statement reconciliation including credits (cores depend on OI-9) |
 | v2 | ANSI X12 810 (+855/856 for receipt matching) through an EDI provider for large tire distributors; distributor APIs through partners |
-| Later | UBL 2.1 / Peppol BIS 3.0 (DBNAlliance), embedded Factur-X/ZUGFeRD XML; DOC/DOCX/TXT are not bill sources |
+| Later | Purchase-order matching (OI-7); CFDI 4.0 XML for es-MX tenants (Mexico is not scheduled, ADR-0067 OP-9); UBL 2.1 / Peppol BIS 3.0 (DBNAlliance), embedded Factur-X/ZUGFeRD XML; DOC/DOCX/TXT are not bill sources |
 
 Minimal CSV columns — required: `supplier_name`, `invoice_number`, `invoice_date`, `due_date` (or `terms`), `line_description`, `line_amount`; recommended:
 `document_type` (invoice / credit memo), `po_number` or `supplier_order_number`, `part_number`, `quantity`, `unit_cost`, `core_charge`, `fees` (FET, tire and
-environmental), `tax_amount`, `freight`, `invoice_total` (control total), `ro_number`, `currency` (default functional). Header fields repeat on each line row.
+environmental; treatment open, OI-9), `tax_amount`, `freight`, `invoice_total` (control total), `ro_number`, `currency` (default functional). Header fields repeat on each line row.
 
 Whatever the channel, nothing is owed until a person checks the read-back and the bill is approved (§4.3). Read-back fields carry a confidence state; a field the
 reader is unsure of is marked "Check this" and blocks confirmation until a person accepts or corrects it.
@@ -420,7 +426,7 @@ Layout, top to bottom (all regions stack at phone width):
 | Bills due soon (payers only) | Amount due, bank balance, the self-approved-bill rule | Review and pay (EXISTING vendor payment flow) |
 | Payment ready to match | Reason chips; invoices to apply; Payment / Applying / Left over; "Why match a payment?" | Apply payment |
 | Customer paid extra | Apply and keep as credit · Apply and refund | per choice |
-| Payment with no customer | What to look for; justification | Choose customer |
+| Payment with no customer (depends on OI-8) | What to look for; justification | Choose customer |
 | Cash and checks to deposit | Drawers, cash after float, checks | Record bank deposit |
 | Card deposit to match | Batches + processor fees = bank line | Match deposit · Not this, find another · Exclude line |
 | Bank fee not in books | What it is and where it will be recorded | Record as bank fee · Exclude this line |
@@ -435,8 +441,9 @@ Accounts receivable (1200) to Undeposited funds (1090)"); the UI never composes 
 
 #### 5.1.1 Record bank deposit (dialog)
 
-Native `<dialog>` (`appModalDialog`): bank account; deposit date (default today); the undeposited drawers and checks as a checklist with their amounts; amount
-deposited (prefilled with the server's expected figure, editable); deposit slip reference; consequence sentence; **Record deposit**. A 422 difference is shown
+Native `<dialog>` (`appModalDialog`): bank account; deposit date (default today); the undeposited sessions as a checklist — each selected whole, showing its
+bank drops (bag numbers) and amount — plus checks taken outside the register; the deposit total from the server; deposit slip reference; consequence
+sentence; **Record deposit**. A 422 difference is shown
 inside the dialog without losing input (`.dialog-error`).
 
 ### 5.2 Bills to pay — `/app/accounting/bills` (supersedes `payables/vendor-invoices` list routes; `bills/:billId` deep link)
@@ -451,8 +458,8 @@ inside the dialog without losing input (`.dialog-error`).
    - Document preview with the location of each read value highlighted, open full size.
    - **What we read** form (vendor with "matches a vendor you buy from" / "new vendor — add", invoice number, PO, invoice date, due date with "worked out from
      Net 30 — check it", tax on the invoice, total). Low-confidence fields carry "Check this".
-   - Checks list: not a duplicate (vendor + invoice number + date); matches delivery `REC-…`; prices within tolerance of the PO; vendor payment details unchanged;
-     within / over the clerk limit.
+   - Checks list: not a duplicate (vendor + invoice number + date); matches delivery `REC-…`; prices within tolerance of the delivery; within / over the clerk limit. (A "vendor
+     payment details unchanged" check is PROPOSED only once vendor bank details exist as data.)
    - Lines table: Item (+ SKU) · Ordered · Received · Billed · Price each · Amount; subtotal; tax as shown on the invoice; total.
    - Match score chip with breakdown and "What's a match score?".
    - Approval routing note and "Why can't I approve my own bill?" (AW6.1).
@@ -474,7 +481,7 @@ inside the dialog without losing input (`.dialog-error`).
    - Leftover choice when Left over > 0: keep as credit (default) / refund (confirmed before money moves).
    - Terms-on posting sentence from the server; reversal sentence; actions **Apply $X [and keep $Y as credit]** (disabled while over-applied or nothing
      ticked) · Start over · Search other invoices.
-   - Payment with no customer: search (by customer, invoice # or workorder #), suggested customers with reasons, required "Why this customer?" (≥ 10
+   - Payment with no customer (depends on OI-8): search (by customer, invoice # or workorder #), suggested customers with reasons, required "Why this customer?" (≥ 10
      characters), Assign customer.
 
 ### 5.4 Your books — `/app/accounting/books`
@@ -487,8 +494,9 @@ inside the dialog without losing input (`.dialog-error`).
    *What's yours* (equity, with "October so far": earned 4000, cost of tires and parts sold 5000, card processing fees 6000, profit so far). Each line links to
    its entries. The selected account's latest entries: Entry · Date · What happened (+ business reference and party) · Went up · Went down · Balance after, with
    "Why 'went up' and 'went down'?" and the locked-entries sentence.
-5. Who owes what: customers (Not due yet, 1–30, 31–60, 61–90, Over 90, Total; CASH customer excluded and said so; "Who to call first" tip) and vendors (Not due
-   yet, Overdue, Due date estimated, Total; approved bills only).
+5. Who owes what: customers (Not due yet, 1–30, 31–60, 61–90, Over 90, Total; the CASH customer excluded from the aging rows and shown as a reconciling line
+   so the total equals 1200; "Who to call first" tip) and vendors (Not due yet, Overdue, Due date estimated, Total; every open bill, with unapproved bills in
+   their own column, so the total equals 2000).
 6. All entries: search by entry #, invoice #, customer or vendor; account filter; Entry · Date · What happened · Amount · Status (Recorded, Correction, Reversed)
    with "What do Correction and Reversed mean?". An entry opens `books/entries/:entryNumber` (JE detail with traceability; reverse with reason, `accounting:je:reverse`).
 
@@ -553,9 +561,12 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Work items (to-do) | `GET /v1/accounting/work-items?area=&cursor=` · per item type | Read model over bill exceptions and approvals, unapplied payments, unmatched bank lines, undeposited sessions, reconciliations awaiting approval, unpaid walk-in sales; filtered server-side by the caller's permissions; each item carries type, business references, plain reason code, amount, status and the actions the caller may take |
 | Done automatically | `GET /v1/accounting/work-items/automatic?since=` · as above | Auto-applied payments, auto-matched bank lines, auto-approved bills, with undo where the underlying command supports reversal |
 | Unapplied payments | `GET /v1/accounting/receivable-payments?status=AVAILABLE` · `accounting:payment:apply` | Closes G4; with match suggestions (customer, exact total, remittance references) |
-| Eligible invoices | pos-invoice search (`InvoiceSearchService.searchInvoices` by customer and status, EXISTING) | Until an accounting read model exists |
+| Eligible invoices | `GET /v1/accounting/customers/{customerId}/open-invoices` · `accounting:payment:apply` | Derived balance due (net of credits, memos and deposits, contract guide CAP-052); pos-invoice search does not net them |
 | Automatic application | listener on `PaymentSettledV1` | AW14; Dr 1090 / Cr 1200 at `settledAt` |
-| Vendor-bill approval | `POST /v1/accounting/vendor-bills/{id}/submit-for-approval` · `…/approve` · `…/reject` (same base) · `accounting:ap:approve` / `…:approve_over_limit` | §4.3; 403 `AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`; 422 `AP_BILL_NOT_APPROVABLE` (e.g. `CURRENCY_HOLD`) |
+| Vendor-bill approval | `POST /v1/accounting/vendor-bills/{id}/submit-for-approval` · `…/approve` · `…/reject` (same base) · `accounting:ap:approve` / `…:approve_over_limit`; reject `accounting:ap:reject` | §4.3; 403 `AP_APPROVAL_LIMIT_EXCEEDED`, `AP_BILL_SELF_APPROVAL`; 422 `AP_BILL_NOT_APPROVABLE` (e.g. `CURRENCY_HOLD`) |
+| Real due date during review | `PUT /v1/accounting/vendor-bills/{id}/due-date` · `accounting:ap:approve` | audited; replaces the estimate |
+| System approver | recorded on automatic approvals | identity and the automatic limit in force |
+| Bill GL posting at approval | depends on OI-2 / OI-3 | EDI bills |
 | AP approval policy | `GET/PUT /v1/accounting/ap-approval-policy` · `accounting:ap_approval_policy:manage` | clerk limit, automatic limit, history |
 | Pay guard | EXISTING `POST /v1/accounting/ap/payments` | 403 `AP_PAYMENT_SELF_APPROVED_BILL` |
 | Resolve match exception | EXISTING `POST /v1/accounting/vendor-bills/{billId}/resolve-exception` and `POST …/match-candidates/{candidateId}/select` | `operatorId` removed from both requests; `ACCEPT` subject to the limit; candidate selection moves the bill to `AWAITING_APPROVAL` |
@@ -563,12 +574,13 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Record / reverse deposit | `POST /v1/accounting/deposits` · `accounting:deposit:create`; `POST /v1/accounting/deposits/{id}/reversal` · `accounting:deposit:reverse` | §4.5; `requestId`; posting category `BANK_DEPOSIT` |
 | Float | `POST /v1/accounting/registers/{registerId}/float` (change) · `POST /v1/accounting/registers/{registerId}/float/go-live` (once) · `accounting:float:manage` | §4.6; 409 `FLOAT_ALREADY_ESTABLISHED` |
 | Drawer movement posting | listener on the close fact v2 | `REGISTER_CASH_MOVEMENT` |
+| Vendor cash on delivery | listener on the close fact v2 → AP payment, method `CASH` (new), no gateway call | unapplied until the vendor's bill is allocated; Needs attention after N days |
 | Petty-expense categories | EXISTING mapping-key and gl-mapping endpoints under `REGISTER_CASH_MOVEMENT` | publishes `accounting.petty-expense-category.changed` |
 | Estimated due dates | in cash outlook and aged AP | never stored |
 | Seed | accounts 1080, 3000, 3900, 6100–6180; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`; tenant settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path | DB check constraint |
-| Permissions | `accounting:ap:approve`, `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
-| Events | `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
+| Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
+| Events | `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
 | CAD | `inputTaxRecoveryEnabled`; 1250/1260 postings; vendor-bill tax split | §4.7 |
 
 ### 7.2 `pos-order`
@@ -585,8 +597,8 @@ configuration; variance tolerance from the policy; `clerkId` from the security c
 - `pos-security-service`: template roles `ACCOUNTING_CLERK` (replaces fixture `ACCOUNTING_ASSOCIATE`) and `GENERAL_MANAGER` (promoted from fixture); grants per
   §2.3 and §4; clerks lose `accounting:ap:pay`; `CONTROLLER`, `ACCOUNTING_CLERK` and `GENERAL_MANAGER` gain `accounting:payment:apply` (today only
   `ACCOUNT_MANAGER` and `ADMIN` hold it, G13). **Requires security-domain sign-off.**
-- `pos-accounting` permission registry: register `accounting:payment:assign-customer` (AD-004) and add constants for `accounting:period:override` and
-  `accounting:time:export`, which are granted and used but have none (G13).
+- `pos-accounting` permission registry: register `accounting:payment:assign-customer` (AD-004); move `accounting:period:override` into `AccountingPermissions` and
+  its registration; register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject` (G13).
 - `pos-tax` (CAD): Canadian rates and registrations; plausibility lookup.
 - `pos-supplier` (CAD): split the EDI tax total by tax type.
 
@@ -674,6 +686,16 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
   through their own services and report a partial failure precisely.
 - CAD tenant with `inputTaxRecoveryEnabled`: the recovery column and registration panel appear; a USD tenant never sees them.
 
+### 9.5a Rules that need their own criterion
+
+- An unapproved bill never carries approval fields (G12).
+- The uploader of a bill can't approve it.
+- A request carrying `operatorId` / `clerkId` is ignored; the actor comes from the security context.
+- A party-mismatched settled payment is not auto-applied.
+- A CASH balance at day end raises Unpaid walk-in sales.
+- A deposit into a closed period needs an override; into a hard-locked period → 422.
+- A USD tenant has no 1250 / 1260 accounts.
+
 ### 9.6 Cross-cutting
 
 - i18n keys present in all six locales (`npm run i18n:check`); a11y smoke on every new route with no serious violations; Vitest in ChromiumHeadless; both
@@ -713,12 +735,12 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 
 | Phase | Contents | Depends on |
 | --- | --- | --- |
-| 1 — Read and match | Shared chrome and help pattern; Your books (existing endpoints); Customer payments (unapplied-payments list + eligible invoices via pos-invoice search); home with lanes from existing aged AR/AP, bank accounts and reconciliation status; to-do list v1 (payments, bank lines, reconciliations) | `GET receivable-payments`; chart tokens |
-| 2 — Counter correctness | Customer required at checkout; CASH house account; partyId non-null; automatic application of settled payments; unpaid walk-in sales | Order, CRM, Invoicing & Payments sign-off |
-| 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off |
+| 1 — Read and match | Shared chrome and help pattern; Your books (existing endpoints); automatic application of settled payments (AW14, accounting-only); Customer payments (unapplied-payments list + open invoices); home with lanes from existing aged AR/AP, bank accounts and reconciliation status; to-do list v1 (payments, bank lines, reconciliations) | `GET receivable-payments`, `GET customers/{id}/open-invoices`; chart tokens |
+| 2 — Counter correctness | Customer required at checkout; CASH house account; partyId non-null; unpaid walk-in sales | Order, CRM, Invoicing & Payments sign-off |
+| 3 — Bill approvals | Roles and permissions; `AWAITING_APPROVAL` / `REJECTED`; approval endpoints and limits; SoD guards; Bills to pay review for EDI bills; Approval limits (Bills section) | Security sign-off; OI-2, OI-3 |
 | 4 — Cash and drawers | Float account and commands; drawer movement reasons, postings and limits; session policy; petty categories; undeposited sessions and Record bank deposit; cash-position and outlook read models; Approval limits (Drawer cash, Categories) | Phase 2; Order sign-off (R6.1) |
 | 5 — Bill intake | Upload, email-in, spreadsheet import, extraction and read-back, duplicate detection, vendor statements; PO matching (later) | OI-1 ruling |
-| 6 — Canada | §4.7 items | ADR-0067 Stage B, Canadian accountant |
+| 6 — Canada | §4.7 items | ADR-0067 Stage A Canadian launch work and the PC-15 readiness sign-off (OP-9); Canadian accountant (OI-4) |
 
 ---
 
@@ -727,12 +749,15 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | # | Item | Owner |
 | --- | --- | --- |
 | OI-1 | Which module owns bill uploads, email-in, spreadsheet import and extraction (pos-supplier under ADR-0049, or pos-accounting), and the extraction provider; possibly an ADR | Platform owner / architecture |
-| OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent |
-| OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent |
+| OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent — **blocks Phase 3** |
+| OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** |
 | OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner |
 | OI-5 | Sign-offs: Order (R11.2 reversal, checkout rule, movement reasons, float, R6.1 replacement); CRM (house account); Invoicing & Payments (backstops, `PaymentSettledV1` contract, reassignment of a finalized invoice); Security (roles, permissions) | Domain agents |
 | OI-6 | Safety cushion: tenant setting name, who may set it (proposed `accounting:ap_approval_policy:manage` holders) and whether it raises a home-pane warning only or also a notification | Platform owner |
 | OI-7 | True 2-way / 3-way purchase-order matching (the "Ordered" column) | Accounting + Order |
+| OI-8 | Intake path for unidentified customer receipts (bank credit or mailed check) and the `assign-customer` endpoint | Accounting Domain Agent |
+| OI-9 | Treatment of FET, tire/environmental fees and core charges on vendor bills | Accounting Domain Agent (must ask the owner) |
+| OI-10 | Opening bank balances at go-live through 3900, same pattern as the go-live float | Accounting Domain Agent |
 
 ---
 
