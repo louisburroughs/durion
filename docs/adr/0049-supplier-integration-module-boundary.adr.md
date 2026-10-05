@@ -10,7 +10,7 @@ tags: [adr, events]
 ---
 # ADR-0049: Supplier Integration Module Boundary and Event Contracts (pos-supplier)
 
-**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004; amended 2026-08-14 (§1/§3 shipment tracking withdrawn, see Amendments)  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004; amended 2026-08-14 (§1/§3 shipment tracking withdrawn) and 2026-10-05 (§3 `supplier.order.notdispatched` added), see Amendments  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
 **Affected Issues:** durion#372–#379 (CAP-317..CAP-324), durion#371, durion-positivity-backend#1313
@@ -58,6 +58,7 @@ Envelope and payload DTOs live in `pos-domain-events`; producers use the transac
 | `supplier.commands.v1` | `supplier.workorderauth.requested` | 1             | pos-workorder | pos-supplier           | command                         |
 | `supplier.events.v1`   | `supplier.order.confirmed`         | 1             | pos-supplier  | pos-order              | result                          |
 | `supplier.events.v1`   | `supplier.order.rejected`          | 1             | pos-supplier  | pos-order              | result                          |
+| `supplier.events.v1`   | `supplier.order.notdispatched`     | 1             | pos-supplier  | pos-order              | result (amended 2026-10-05)     |
 | `supplier.events.v1`   | `supplier.orderstatus.changed`     | 1             | pos-supplier  | pos-order              | fact                            |
 | `supplier.events.v1`   | `supplier.pricecatalog.updated`    | 1             | pos-supplier  | pos-price, pos-catalog | fact                            |
 | `supplier.events.v1`   | `supplier.stockreport.updated`     | 1             | pos-supplier  | pos-inventory          | fact                            |
@@ -94,6 +95,26 @@ intent and vendor transmission.
 ---
 
 ## Amendments
+
+### 2026-10-05 — `supplier.order.notdispatched`: a command pos-supplier refuses to dispatch is answered
+
+**What changed.** A `supplier.order.requested` command naming a supplier with no vendor profile, or a disabled one, was logged and marked processed by pos-supplier; pos-order
+never heard back and the purchase order stayed `REQUESTED`. ADR-0044 §4 requires a failed command to reach its requester. §3 gains one result event:
+`supplier.order.notdispatched`, schema version 1, on `supplier.events.v1`, produced by pos-supplier and consumed by pos-order.
+
+**Payload.** `purchaseOrderId`, `supplierRef`, `vendorProfileId` (null when the supplier was never configured, set when its profile is disabled), `reason`
+(`SUPPLIER_NOT_CONFIGURED`), `detail`, `requestedRevision`, `commandEventId` (the answered command's event id) and `occurredAt`. The aggregate id and Kafka key are the
+purchase-order id and the aggregate version is the requested revision, because no transmission intent exists to key by.
+
+**Why a new type, not `supplier.order.rejected`.** Every `supplier.order.rejected` outcome (vendor refusal, `MANUAL_NOT_RECEIVED`, `MANUAL_CANCELLED`) belongs to a
+transmission that was minted: its payload requires the transmission-intent and document ids. A command pos-supplier refuses to dispatch has neither, and a never-configured
+supplier has no vendor-profile id either. Relaxing those fields to nullable is not an additive change under ADR-0044 §3: a consumer on the old schema would fail to read the
+event and drop it. The order is also in a different, re-sendable state for pos-order (`NOT_DISPATCHED`).
+
+**Rules.** pos-supplier writes the answer in the same transaction that marks the command processed. pos-order applies it only while the purchase order is `REQUESTED` at the
+same revision and ignores it otherwise; the different partition key from the other result events makes that guard required. pos-order deploys the consumer before
+pos-supplier produces the event, since pos-order ignores unknown event types. A never-dispatched order gets no `supplier.orderstatus.changed` events.
+(durion-positivity-backend#2492)
 
 ### 2026-08-15 — The purchase order splits: pos-order owns it, pos-inventory keeps a receiving projection
 
