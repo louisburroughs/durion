@@ -72,7 +72,8 @@ These existing documents support investigation and delivery planning; comparison
   correction, accounting-period-close integration, and a later `pos-bank-feed-plaid` connector phase (accepted; decisions D1–D22 ratified 2026-09-28)
 - [Accounting workspace specification](SPEC-accounting-workspace.md) — the single-pane accounting home for novice users: cash position, bills to pay
   with intake and approval limits, customer payment matching, a plain-language ledger view, drawer-cash and petty-expense rules, and the Canadian
-  input-tax readiness items (proposed; decisions AW1–AW21 recorded 2026-10-05)
+  input-tax readiness items, and who owns supplier-invoice intake across accounting, supplier and billing (proposed; decisions AW1–AW29 recorded
+  2026-10-05)
 - [Accounting comparison overview](comp-accounting-overview.md)
 - [Odoo versus pos-accounting](comp-vs-pos-accounting-comparison.md)
 - [Reconciliation internals comparison](comp-reconciliation-internals.md)

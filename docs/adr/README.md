@@ -137,6 +137,7 @@ ADRs are numbered sequentially starting from 0001. When creating a new ADR, use 
 | 0067 | Tenant Functional Currency and Multi-Currency Support | ACCEPTED | '2026-09-28' |
 | 0068 | Pre-LLM Question Tagging with a Decision Model (TypeSafe Jev) in pos-mcp-server | ACCEPTED | '2026-09-30' |
 | 0069 | Scope Graph for Pre-LLM Narrowing in pos-mcp-server | ACCEPTED | '2026-09-30' |
+| 0070 | Bill Intake Ownership, Inbound Untrusted Files and the Vendor Master | PROPOSED | '2026-10-05' |
 
 <!-- adr-table:end -->
 

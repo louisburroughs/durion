@@ -84,6 +84,9 @@ MODULE_DOMAIN = {
     # The FI-2 sender: its contract lives in domains/positivity, which names it by its role
     # ("the platform sender") far more often than by its module name.
     "pos-platform-sender": "positivity",
+    # The integration module (ADR-0049) and, under ADR-0070, the vendor master. The accounting
+    # workspace specification names it often as a dependency, which must not move its ownership.
+    "pos-supplier": "positivity",
 }
 MODULE_FALLBACK = {
     "pos-agent-framework": "Placeholder module directory; no build file or README yet.",
