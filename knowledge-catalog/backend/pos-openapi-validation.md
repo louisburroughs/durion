@@ -6,7 +6,7 @@ resource: https://github.com/louisburroughs/durion-positivity-backend/blob/main/
 path: durion-positivity-backend/pos-openapi-validation/
 tags: [backend, library]
 sources: [durion-positivity-backend/pos-openapi-validation/]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T02:59:55+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-03T02:59:55Z'}
 ---
 
 [Module directory](https://github.com/louisburroughs/durion-positivity-backend/blob/main/pos-openapi-validation) — `pos-openapi-validation/`

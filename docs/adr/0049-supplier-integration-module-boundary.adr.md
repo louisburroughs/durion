@@ -5,12 +5,13 @@ description: The platform has no outbound supplier connectivity. Tire manufactur
 status: stable
 adr_status: accepted
 created: '2026-08-10'
-related: [ADR-0011, ADR-0013, ADR-0026, ADR-0044, ADR-0048, ADR-0050, ADR-0051, ADR-0052]
-tags: [adr, events]
+related: [ADR-0011, ADR-0013, ADR-0026, ADR-0044, ADR-0048, ADR-0050, ADR-0051, ADR-0052, ADR-0070]
+tags: [adr, events, supplier]
 ---
 # ADR-0049: Supplier Integration Module Boundary and Event Contracts (pos-supplier)
 
-**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004; amended 2026-08-14 (§1/§3 shipment tracking withdrawn) and 2026-10-05 (§3 `supplier.order.notdispatched` added), see Amendments  
+**Status:** ACCEPTED 2026-08-10 — revised for PRCR-003/004; amended 2026-08-14 (§1/§3 shipment tracking withdrawn) and 2026-10-05 (§3 `supplier.order.notdispatched` added;
+§1–§3 vendor master and human bill intake, ADR-0070), see Amendments  
 **Date:** 2026-08-10  
 **Deciders:** Architecture, Backend Lead, Positivity (Integrations) Domain  
 **Affected Issues:** durion#372–#379 (CAP-317..CAP-324), durion#371, durion-positivity-backend#1313
@@ -35,16 +36,23 @@ tags: [adr, events]
 ### 1. Single owning module
 
 **Decision:** ✅ **Resolved** — All outbound supplier connectivity lives in one new **domain** module, `pos-supplier` (added to the ADR-0044 §1 Domain classification). It
-owns: the vendor-neutral canonical model (`SupplierPurchaseOrder` transmission state, `SupplierStockInquiry`, `SupplierPriceCatalogEntry`, `SupplierInvoice`,
+owns: the **vendor master** (`Vendor`, one per party the shop buys from or pays, with or without a connection; added 2026-10-05 per ADR-0070), the
+vendor-neutral canonical model (`SupplierPurchaseOrder` transmission state, `SupplierStockInquiry`, `SupplierPriceCatalogEntry`, `SupplierInvoice`,
 `SupplierWorkorderAuthorization`), vendor profiles and endpoint bindings, protocol adapters/codecs, the exchange audit log, and supplier-facing orchestration (outbox,
 retries, schedules). No other module may hold vendor credentials, speak a vendor wire format, or call a vendor endpoint. `SupplierShipmentEvent` was part of this list
 until 2026-08-14, when it was withdrawn with the shipment capability (see Amendments).
+
+Scope of "supplier connectivity" (amended 2026-10-05): pos-supplier owns the vendor master and all **credentialed machine-to-machine** supplier connectivity;
+each connection profile belongs to one vendor. Supplier documents arriving any other way (uploaded, imported or emailed) are AP intake owned by pos-accounting
+([ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md)); pos-supplier neither stores nor republishes them. An inbound vendor channel requires an amendment
+to this ADR (architecture §12 decision 7).
 
 ### 2. What pos-supplier does not own
 
 **Decision:** ✅ **Resolved** — Business aggregates stay with their domains: the purchase-order aggregate is **pos-order**; sell prices are **pos-price**; product identity is
 **pos-catalog**; owned inventory is **pos-inventory**; AP voucher posting is **pos-accounting**; workorder state is **pos-workorder** (workexec domain). `pos-supplier` holds
-transmission/exchange state only, and vendor references (`SupplierOrderNumber`, `DocumentID`) are attributes, never keys (ADR-0013/0027).
+the vendor master and transmission / exchange state; bills, bank details, AP status, payments and approval stay pos-accounting's (amended 2026-10-05).
+Vendor references (`SupplierOrderNumber`, `DocumentID`) are attributes, never keys (ADR-0013/0027).
 
 ### 3. Event contract set
 
@@ -52,19 +60,20 @@ transmission/exchange state only, and vendor references (`SupplierOrderNumber`, 
 pos-supplier, `supplier.events.v1` for facts/results it publishes), while the **event type** is an unversioned envelope field with `schemaVersion` carrying payload evolution.
 Envelope and payload DTOs live in `pos-domain-events`; producers use the transactional outbox and consumers are idempotent (ADR-0044 §4). Initial contract set:
 
-| Topic                  | eventType                          | schemaVersion | Producer      | Consumer(s)            | Kind                            |
-| ---------------------- | ---------------------------------- | ------------- | ------------- | ---------------------- | ------------------------------- |
-| `supplier.commands.v1` | `supplier.order.requested`         | 1             | pos-order     | pos-supplier           | command                         |
-| `supplier.commands.v1` | `supplier.workorderauth.requested` | 1             | pos-workorder | pos-supplier           | command                         |
-| `supplier.events.v1`   | `supplier.order.confirmed`         | 1             | pos-supplier  | pos-order              | result                          |
-| `supplier.events.v1`   | `supplier.order.rejected`          | 1             | pos-supplier  | pos-order              | result                          |
-| `supplier.events.v1`   | `supplier.order.notdispatched`     | 1             | pos-supplier  | pos-order              | result (amended 2026-10-05)     |
-| `supplier.events.v1`   | `supplier.orderstatus.changed`     | 1             | pos-supplier  | pos-order              | fact                            |
-| `supplier.events.v1`   | `supplier.pricecatalog.updated`    | 1             | pos-supplier  | pos-price, pos-catalog | fact                            |
-| `supplier.events.v1`   | `supplier.stockreport.updated`     | 1             | pos-supplier  | pos-inventory          | fact                            |
-| `supplier.events.v1`   | `supplier.invoice.received`        | 1             | pos-supplier  | pos-accounting         | fact                            |
-| `supplier.events.v1`   | `supplier.workorderauth.granted`   | 1             | pos-supplier  | pos-workorder          | result                          |
-| `supplier.events.v1`   | `supplier.workorderauth.denied`    | 1             | pos-supplier  | pos-workorder          | result                          |
+| Topic                  | eventType                          | schemaVersion | Producer      | Consumer(s)                              | Kind                        |
+| ---------------------- | ---------------------------------- | ------------- | ------------- | ---------------------------------------- | --------------------------- |
+| `supplier.commands.v1` | `supplier.order.requested`         | 1             | pos-order     | pos-supplier                             | command                     |
+| `supplier.commands.v1` | `supplier.workorderauth.requested` | 1             | pos-workorder | pos-supplier                             | command                     |
+| `supplier.events.v1`   | `supplier.order.confirmed`         | 1             | pos-supplier  | pos-order                                | result                      |
+| `supplier.events.v1`   | `supplier.order.rejected`          | 1             | pos-supplier  | pos-order                                | result                      |
+| `supplier.events.v1`   | `supplier.order.notdispatched`     | 1             | pos-supplier  | pos-order                                | result (amended 2026-10-05) |
+| `supplier.events.v1`   | `supplier.orderstatus.changed`     | 1             | pos-supplier  | pos-order                                | fact                        |
+| `supplier.events.v1`   | `supplier.pricecatalog.updated`    | 1             | pos-supplier  | pos-price, pos-catalog                   | fact                        |
+| `supplier.events.v1`   | `supplier.stockreport.updated`     | 1             | pos-supplier  | pos-inventory                            | fact                        |
+| `supplier.events.v1`   | `supplier.invoice.received`        | 1             | pos-supplier  | pos-accounting                           | fact                        |
+| `supplier.events.v1`   | `supplier.vendor.updated`          | 1             | pos-supplier  | pos-accounting, pos-order, pos-inventory | fact (amended 2026-10-05)   |
+| `supplier.events.v1`   | `supplier.workorderauth.granted`   | 1             | pos-supplier  | pos-workorder                            | result                      |
+| `supplier.events.v1`   | `supplier.workorderauth.denied`    | 1             | pos-supplier  | pos-workorder                            | result                      |
 
 Additional inputs pos-supplier **consumes from other domains' topics**: `workorder.completed` on `workorder.events.v1` triggers the fleet completion-approval call (CAP-323)
 — the approval flow needs no dedicated command event.
@@ -72,6 +81,9 @@ Additional inputs pos-supplier **consumes from other domains' topics**: `workord
 The table listed a tenth event, `supplier.shipment.event`, until 2026-08-14; it was **withdrawn before any implementation** because pos-supplier has no way to learn shipment
 milestones (see Amendments). Any future shipment fact enters this table by amendment, with a producer that can actually source it and an exact consumer module name —
 "receiving consumers" is not a valid ACL subject.
+
+pos-supplier publishes per-tenant reconciliation manifests for the vendor master on **`supplier.manifest.v1`** and re-sends on request (ADR-0044 §4); this is its
+first manifest topic. `supplier.invoice.received` (`SupplierInvoiceReceivedV1`) carries a nullable `vendorId` that pos-supplier always sets (amended 2026-10-05).
 
 Payload changes within a `schemaVersion` are additive-only; breaking changes increment `schemaVersion` (and, where topic compatibility breaks, take a new topic version with
 dual-publish), per ADR-0044 §3.
@@ -95,6 +107,28 @@ intent and vendor transmission.
 ---
 
 ## Amendments
+
+### 2026-10-05 — Vendor master and human bill intake ([ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md))
+
+**What changed.** Accepting ADR-0070 (AW22, AW23 in `domains/accounting/SPEC-accounting-workspace.md`) amends three sections.
+
+- **§1.** pos-supplier owns the vendor master — `Vendor` with `vendorId` (UUIDv7), `vendorNumber`, `legalName`, `displayName`, `taxRegistrations[]`, `remitTo`,
+  `defaultPaymentTerms`, `defaultCurrency`, `status` (`ACTIVE` / `INACTIVE`, never deleted) and `remitToVersion` — and all credentialed machine-to-machine supplier
+  connectivity. Each connection profile belongs to one vendor (ADR-0050 amendment of the same date). Supplier documents a person uploads, imports or emails are AP
+  intake owned by pos-accounting; pos-supplier neither stores nor republishes them, and `SupplierInvoiceReceivedV1` is published for machine channels only.
+  An inbound vendor channel still needs an amendment to this ADR (architecture §12 decision 7 stands; ADR-0070 §12 keeps EDI invoices on pull).
+- **§2.** pos-supplier holds the vendor master and transmission / exchange state; bills, bank details, AP status, payments and approval stay pos-accounting's.
+  pos-accounting's `ap_vendor` directory is retired; AP-only settings move to `ap_vendor_settings`, keyed by `vendorId`.
+- **§3.** New fact `supplier.vendor.updated` (schema version 1, on `supplier.events.v1`, keyed by `vendorId`) carrying every vendor field; deactivation is
+  `status = INACTIVE`. Consumers pos-accounting, pos-order and — only if purchase suggestions need it — pos-inventory keep `ext_supplier_vendor` replicas holding
+  every vendor with its status (ADR-0044 R3). Per-tenant manifests on `supplier.manifest.v1`, with re-send on request (ADR-0044 §4). `SupplierInvoiceReceivedV1`
+  gains a nullable `vendorId` (additive) that pos-supplier always sets.
+
+**Rules.** A remit-to change is published only after a second person approves it (`supplier:vendor_remit:approve`); other keys are `supplier:vendor:read` and
+`supplier:vendor:write`. Bank details never travel on Kafka (ADR-0070 §7).
+
+**Still to come.** At v2, X12 855 and 856 get their own rows by a further amendment: 856 as its own fact consumed by pos-inventory, 855 mapped to
+`supplier.order.confirmed` only when a transmission intent exists. Neither travels in `SupplierInvoiceReceivedV1`.
 
 ### 2026-10-05 — `supplier.order.notdispatched`: a command pos-supplier refuses to dispatch is answered
 

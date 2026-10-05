@@ -4,15 +4,15 @@ title: 'ADR-0070: Bill Intake Ownership, Inbound Untrusted Files and the Vendor 
 description: Places every human channel for supplier invoices (upload, photo, spreadsheet, email-in, vendor statements) in pos-accounting behind one bill-creation path, keeps pos-supplier to credentialed machine channels plus the vendor master, and adds an isolated extraction worker and an inbound-mail edge for untrusted input.
 resource: https://github.com/louisburroughs/durion/blob/master/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md
 path: durion/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md
-tags: [adr]
-status: draft
+tags: [adr, accounting, billing, positivity, supplier, events, security, rbac]
+status: stable
 sources: [docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T16:41:55+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T16:42:32Z'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md) — `docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md`
 
-**Status:** Proposed since 2026-10-05
+**Status:** Accepted since 2026-10-05
 
 **Related:**
 

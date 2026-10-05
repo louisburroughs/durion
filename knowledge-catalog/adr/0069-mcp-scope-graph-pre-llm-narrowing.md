@@ -7,7 +7,7 @@ path: durion/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md
 tags: [adr]
 status: stable
 sources: [docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T18:08:57+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-02T16:17:19-04:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md) — `docs/adr/0069-mcp-scope-graph-pre-llm-narrowing.adr.md`

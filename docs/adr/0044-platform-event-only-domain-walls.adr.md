@@ -5,13 +5,13 @@ description: Domain modules may not call each other synchronously — cross-doma
 status: stable
 adr_status: accepted
 created: '2026-07-08'
-related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062]
+related: [ADR-0006, ADR-0009, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0020, ADR-0021, ADR-0022, ADR-0025, ADR-0026, ADR-0027, ADR-0040, ADR-0042, ADR-0043, ADR-0054, ADR-0058, ADR-0062, ADR-0070]
 tags: [adr, events, platform]
 ---
 # ADR-0044: Event-Only Domain Walls and Module Communication Policy
 
-**Status:** ACCEPTED — amended 2026-10-03 (pos-marketing → pos-platform-sender FI-2 send, file-scoped);
-previously amended 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355),
+**Status:** ACCEPTED — amended 2026-10-05 (extraction worker and inbound-mail edge join the Utility class, [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md));
+previously amended 2026-10-03 (pos-marketing → pos-platform-sender FI-2 send, file-scoped), 2026-10-02 (consumer rethrow set, durion-positivity-backend#2355),
 2026-09-23 (consumer transaction shape, durion-positivity-backend#2146),
 2026-09-09 (tenant context on the event channel, [ADR-0062](0062-postgres-row-level-multitenancy.adr.md)),
 2026-09-07 (pos-workorder → pos-price labor-rate resolution, file-scoped),
@@ -48,15 +48,16 @@ events** with result events and pending states.
 
 **Decision:** ✅ **Resolved**
 
-| Class                        | Modules                                                                                                                                                                                                                                                                                                       | May be called synchronously? |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`                                               | Yes — by any module          |
-| **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10), `pos-platform-sender` (new, 2026-10-03) | No — events only             |
-| **Libraries / non-deployed** | `pos-events`, `pos-shared-dtos`, `pos-domain-events` (new), `pos-security-common`, `pos-tax-common`, `pos-bulk-ingest-lib`, `pos-document-helper`, `pos-dependencies`, `pos-archunit`                                                                                                                         | n/a                          |
+| Class                        | Modules                                                                                                                                                                                                                                                                                                                                                                                                       | May be called synchronously? |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **Utility**                  | `pos-api-gateway`, `pos-security-service`, `pos-documents` (per [ADR-0020](0020-documents-centralized-creation.adr.md)), `pos-image`, `pos-tax` (per [ADR-0021](0021-tax-api-consumption-and-internal-access-policy.adr.md)), `pos-event-receiver`, `pos-price`, extraction worker and inbound-mail edge (working names, new 2026-10-05, per [ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md)) | Yes — by any module          |
+| **Domain**                   | `pos-accounting`, `pos-catalog`, `pos-customer`, `pos-inquiry`, `pos-inventory`, `pos-invoice`, `pos-location`, `pos-order`, `pos-people` (HR), `pos-people-contact` (new), `pos-shop-manager`, `pos-vehicle-inventory`, `pos-vehicle-fitment`, `pos-vehicle-reference-*`, `pos-workorder`, `pos-bulk-loader`, `pos-supplier` (new, 2026-08-10), `pos-platform-sender` (new, 2026-10-03)                      | No — events only             |
+| **Libraries / non-deployed** | `pos-events`, `pos-shared-dtos`, `pos-domain-events` (new), `pos-security-common`, `pos-tax-common`, `pos-bulk-ingest-lib`, `pos-document-helper`, `pos-dependencies`, `pos-archunit`                                                                                                                                                                                                                         | n/a                          |
 
 `pos-tax` and `pos-price` are utilities because they are stateless _computation_ (tax and price determination), not data lookups — replicating their rule engines into callers
 would be worse than the call. `pos-documents` is a utility because ADR-0020 mandates centralized document creation via its render API. `pos-mcp-server` is a gateway client
-(bearer-token relay) and follows client rules, not module rules.
+(bearer-token relay) and follows client rules, not module rules. The extraction worker and the inbound-mail edge are utilities because they are stateless
+isolation boundaries for untrusted input, not owners of business data (2026-10-05 amendment).
 
 ### 2. Rules of separation
 
@@ -194,6 +195,21 @@ approved by ADR amendment.
 ---
 
 ## Amendments
+
+### 2026-10-05 — Extraction worker and inbound-mail edge join the Utility class ([ADR-0070](0070-bill-intake-ownership-and-vendor-master.adr.md))
+
+ADR-0070 adds two services for supplier bills that people bring in by upload, import or email. Both join the **Utility** class (§1 table) under their working
+names; the table takes the module names when they are built.
+
+- **Extraction worker** (ADR-0070 §5). A stateless reader of untrusted PDFs, images, spreadsheets and inbound CFDI XML that returns fields with per-field
+  confidence. It holds no business logic and is the only component holding the extraction provider's credentials. pos-accounting invokes it under R2 as an
+  asynchronous job; it runs with CPU, memory, time and decompression-ratio limits.
+- **Inbound-mail edge** (ADR-0070 §6). Owns mail transport (MX, SPF / DKIM / DMARC alignment, rate limits, `Message-ID` idempotency, address provisioning),
+  takes the tenant only from the receiving address, and hands file references to pos-accounting as a command. It never creates a bill, never replies to
+  senders and does not call pos-platform-sender.
+- **Rationale.** Neither owns a fact another module replicates; each exists to keep untrusted input and third-party credentials away from the ledger. Replicating
+  them would be meaningless, and putting a command topic in front of the extraction call would add nothing the asynchronous job does not already give.
+- **Enforcement.** When each module is built it is added to `DomainWallsTest`'s `UTILITY_MODULES`. Neither may call a domain module synchronously.
 
 ### 2026-10-03 — Scoped exception: FI-2 message sends from pos-marketing to pos-platform-sender
 
