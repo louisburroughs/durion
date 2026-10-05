@@ -72,7 +72,7 @@ Frontend paths are relative to `durion-positivity-frontend/`, backend paths to `
 | Bill duplicates and vendor identity | The EDI listener looks for an existing bill by (`vendorId`, `billNumber`) only — no invoice date — and sets `vendorId` = the pos-supplier `vendorProfileId`. Goods-receipt bills set `vendorId` from the inventory vendor id and a **generated** bill number, not the vendor's. `vendor_bill` has no business-key unique constraint (only `vendor_bill_pkey` and `vendor_bill_tenant_key`). pos-accounting keeps its own `ap_vendor` directory. A purchase order's `vendor_id` is supplied by the client and validated against nothing; pos-inventory copies it into its purchase-order replica | `ACC/repository/VendorBillRepository.java` l.187; `ACC/service/SupplierInvoiceEventsListener.java` l.205-208; `ACC/service/VendorBillServiceImpl.java` l.120-122; `pos-accounting/src/main/resources/db/migration/V1__baseline_accounting.sql` l.239, l.1541-1544; `ACC/service/VendorDirectoryService.java`; `pos-order/src/main/resources/db/migration/V1__baseline_order.sql` l.298-302 |
 | Receivables | `ReceivablePaymentStatus` `AVAILABLE` / `FULLY_APPLIED`; applications via `POST /v1/accounting/payments/{paymentId}/applications` (`accounting:payment:apply`), reversal `POST /v1/accounting/payment-applications/{id}/reverse`; overpayment → `CustomerCredit` (`/v1/accounting/customer-credits`); settled payments are **not** applied to their invoice automatically | `ACC/entity/ReceivablePayment.java` l.94-95, l.193-215; `ACC/controller/PaymentApplicationController.java` l.65-365; `ACC/controller/CustomerCreditController.java` l.60-191; `.business-rules/AGENT_GUIDE.md` Decision Index l.27-40 (AD-001…AD-004, AD-010) |
 | Anonymous sales | Carts start without a customer; a customer is required only for workorder links and on-account tender; pos-invoice drafts carry `partyId` null "for anonymous counter sales"; `PaymentSettledV1.partyId` is `@Nullable` and `SettlementEventsListener` skips such payments ("Known gap", issue #1537 D4); aged receivables excludes null-party invoices while the GL keeps them in 1200. Order spec R11.2 (DRAFT): "Anonymous walk-in cash sales stay customer-optional." | `ORD/service/SalesOrderServiceImpl.java` l.318, l.340-344, l.604-612, l.797-798; `pos-invoice/…/service/OrderInvoiceServiceImpl.java` l.130-133; `EVT/payment/PaymentSettledV1.java` l.39; `ACC/service/SettlementEventsListener.java` l.54-62, l.268-281, l.590-591; `ACC/service/FinancialReportingServiceImpl.java` l.1421-1428; `domains/order/spec-pos-order-missing-functionality.md` l.316-317 |
-| Chart of accounts | Seeded: 1000 Cash (`BANK_CASH`), 1090 Undeposited Funds, 1095 Register Cash Clearing, 1200 AR, 1300 Inventory, 2000 AP, 2200 Sales Tax Payable, 2300 Customer Credit Liability, 2350 Settlement Suspense, 2360 Bank Reconciliation Adjustments, 4000 Service Revenue, 4900 Settlement Adjustments, 4920 Interest Income, 4930 Cash Over, 5000 COGS, 5100 Inventory Shrinkage, 6000 Payment Processor Fees, 6020 NSF Fees, 6030 Bank Service Charges, 6115 Cash Short. **No 1080, 1250, 1260 and no 3xxx equity.** `V2__seed_accounting.sql` adds the retread-plant labour-overhead accounts 6010–6530 and 6900 (including 6110–6170, with other meanings). Every seed binds only the default tenant: a tenant created through pos-tenant gets no chart at all (no module handles `tenant.created` in pos-accounting yet) Receipts post Dr 1090 / Cr 1200; settlements Dr 1000 (net) / Dr 6000 / Cr 1090 / Cr 2350 | `pos-accounting/src/main/resources/db/migration/R__seed_reference_accounting.sql` l.14-86, l.227-320, l.466-523 |
+| Chart of accounts | Seeded: 1000 Cash (`BANK_CASH`), 1090 Undeposited Funds, 1095 Register Cash Clearing, 1200 AR, 1300 Inventory, 2000 AP, 2200 Sales Tax Payable, 2300 Customer Credit Liability, 2350 Settlement Suspense, 2360 Bank Reconciliation Adjustments, 4000 Service Revenue, 4900 Settlement Adjustments, 4920 Interest Income, 4930 Cash Over, 5000 COGS, 5100 Inventory Shrinkage, 6000 Payment Processor Fees, 6020 NSF Fees, 6030 Bank Service Charges, 6115 Cash Short. **No 1080, 1250, 1260 and no 3xxx equity.** `V2__seed_accounting.sql` adds the retread-plant labour-overhead accounts 6010–6530 and 6900 (including 6110–6170, with other meanings). Every seed binds only the default tenant: a tenant created through pos-tenant gets no chart at all (no module handles `tenant.created` in pos-accounting yet). Receipts post Dr 1090 / Cr 1200; settlements Dr 1000 (net) / Dr 6000 / Cr 1090 / Cr 2350 | `pos-accounting/src/main/resources/db/migration/R__seed_reference_accounting.sql` l.14-86, l.227-320, l.466-523 |
 | Drawers | `/v1/orders/sessions`: open, current, cash movements, begin/confirm close, X/Z reports. `CashMovement` has `PAID_IN` / `PAID_OUT`, a free-text `reason` (500) and `clerkId` taken from the request. Movements don't post; over/short posts through posting category `REGISTER_OVER_SHORT` (short Dr 6115 / Cr 1095; over Dr 1095 / Cr 4930, via GL mapping). Opening float defaults to the previous session's counted close (R6.1). Variance limit is the global `pos.order.session.authorized-difference-limit:5.00`. `RegisterSessionClosedV1` carries opening float, counted and theoretical cash, over/short, tender totals and only a `cashMovementTotal` | `ORD/controller/RegisterSessionController.java` l.54-318; `ORD/entity/CashMovement.java` l.48-61; `ORD/dto/CashMovementRequest.java` l.38; `ORD/service/RegisterSessionServiceImpl.java` l.67, l.80-82, l.197, l.294-295; `ACC/service/OrderEventsListener.java` l.114; `ACC/service/RegisterOverShortPostingService.java` l.20-54; seed l.548-554; `EVT/order/RegisterSessionClosedV1.java` l.36-53 |
 | Reports | `/v1/accounting/reports/financial`: income statement, balance sheet, trial balance, drill-down to accounts and journal lines, general ledger, aged receivables, aged payables, tax liability (`reporting:view:financial-statements`); `/v1/accounting/gl-accounts/{id}/balance` (`accounting:coa:view`); `/v1/accounting/journal-entries` with traceability, post and reverse; `/v1/accounting/analytics` collections, payment-lag cohorts, vendor spend | `ACC/controller/FinancialReportingController.java` l.53-559; `GLAccountController.java` l.385; `JournalEntryController.java` l.52-426; `AccountingAnalyticsController.java` l.42-225 |
 | Bank reconciliation | `/v1/accounting/bank-accounts`, `/v1/accounting/reconciliations` (submit / finalize / return / cancel / supersede / review / report / audit), `/v1/accounting/settlements`; preparer ≠ approver enforced (`RECONCILIATION_SELF_APPROVAL`) unless `BANK_REC_ALLOW_SELF_APPROVAL` | `ACC/bankrec/controller/BankAccountController.java` l.38; `BankReconciliationController.java` l.66-760; `ACC/bankrec/service/ReconciliationApprovalServiceImpl.java` l.123-134; `BankRecPolicy.java` l.46 |
@@ -319,28 +319,47 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
 - New account **1080 Register Float** (ASSET, new subtype `CASH_ON_HAND`, location dimension per register); not `BANK_CASH`, so out of bank reconciliation.
 - A fixed amount per register, set and changed only by **Change float** (`accounting:float:manage`, CONTROLLER, ADMIN), posting Dr/Cr 1080 against a chosen bank
   account. The opening float of a session equals the register's configured amount (replaces Order R6.1, which carries the previous close forward); a difference
-  at open or close is over/short, posted through the EXISTING `REGISTER_OVER_SHORT` category (short Dr 6115 / Cr 1095; over Dr 1095 / Cr 4930).
+  at open or close is over/short, posted through the EXISTING `REGISTER_OVER_SHORT` category (short Dr 6040 Cash Short, renumbered from 6115 by AW30, /
+  Cr 1095; over Dr 1095 / Cr 4930).
 - **Establish go-live float** — once per register: Dr 1080 / Cr **3900 Opening Balance Equity** (new; EQUITY), dated on the go-live date in an open period,
   `accounting:float:manage`, justification; a second attempt → 409 `FLOAT_ALREADY_ESTABLISHED`; correction = reverse and re-run. The accountant later clears
   3900 into **3000 Owner's Equity** (new; remappable to the legal form) by manual journal entry; period close warns while 3900 ≠ 0.
 
-**Petty-expense categories** (AW18; Accounting owns the categories and their accounts):
+**Petty-expense categories** (AW18, numbered by AW30; Accounting owns the categories and their accounts). Five categories post to accounts the chart
+already has; three accounts are new:
 
-| Category (permanent code) | Account (new, `EXPENSE` / `OPERATING_EXPENSE`) |
+| Category (permanent code) | Account (`EXPENSE` / `OPERATING_EXPENSE`) |
 | --- | --- |
-| `SHOP_SUPPLIES` — rags, gloves, valve caps, lubricant not billed to a job | 6100 Shop Supplies |
-| `SMALL_TOOLS` — hand tools below the capital threshold | 6120 Small Tools & Equipment |
-| `OFFICE_SUPPLIES` | 6130 Office Supplies |
-| `REPAIRS_MAINTENANCE` — building and shop equipment | 6140 Repairs & Maintenance |
-| `POSTAGE_SHIPPING` — outbound | 6150 Postage & Shipping |
-| `CLEANING_JANITORIAL` | 6160 Cleaning & Janitorial |
-| `STAFF_MEALS` | 6170 Staff Meals & Refreshments |
-| `VEHICLE_FUEL` — shop or service vehicles | 6180 Vehicle Fuel |
+| `SHOP_SUPPLIES` — rags, gloves, valve caps, lubricant not billed to a job | 6340 Shop Supplies & Consumables (EXISTING, renamed) |
+| `SMALL_TOOLS` — hand tools below the capital threshold | 6430 Small tools and equipment (EXISTING) |
+| `OFFICE_SUPPLIES` | 6370 Office supplies (EXISTING) |
+| `BUILDING_REPAIRS` — building upkeep | 6210 Building maintenance (EXISTING) |
+| `EQUIPMENT_REPAIRS` — shop equipment upkeep | 6410 Equipment maintenance (EXISTING) |
+| `POSTAGE_SHIPPING` — outbound | 6380 Postage & Shipping (new) |
+| `CLEANING_JANITORIAL` | 6375 Cleaning & Janitorial Supplies (new) |
+| `STAFF_MEALS` | 6295 Staff Meals & Refreshments (new; separate for the Canadian 50% rule) |
+| `VEHICLE_FUEL` — shop or service vehicles | 6250 Vehicle Gas & Oil (EXISTING) |
 
-- The numbers leave the EXISTING 6115 Cash Short in place between 6100 and 6120.
-- **Number collision (found while cutting stories):** the default tenant already holds 6110–6170 from `V2__seed_accounting.sql` with other meanings.
-  The chart story (S15, louisburroughs/durion-positivity-backend#2511) fixes the final numbers and never renames an existing account. Its proposal,
-  pending the Accounting Domain Agent: 6100 and 6180 stay; the other six move to 6125, 6135, 6145, 6155, 6165 and 6175.
+- Repairs are two categories, because the labour-overhead report keeps building and equipment maintenance apart.
+- **Expense range plan (AW30):**
+
+  | Block | Meaning |
+  | --- | --- |
+  | 6000–6099 | Bank, card and cash handling: 6000, 6020, 6030, 6040 Cash Short |
+  | 6100–6199 | People: wages 6100–6105, payroll taxes and benefits 6110–6170 |
+  | 6200–6299 | Premises, vehicles, travel; 6295 Staff Meals & Refreshments |
+  | 6300–6399 | Insurance, property tax, supplies; 6375 Cleaning & Janitorial Supplies, 6380 Postage & Shipping |
+  | 6400–6499 | Utilities and equipment |
+  | 6500–6599 | Admin fees and production adjustments |
+  | 6600–6899 | Reserved for operating groups tenants add |
+  | 6900–6999 | No revenue in the expense range |
+
+- **Renumbered existing accounts (AW30; no real data):** 6010 → 6100 Hourly wages and bonuses, 6015 → 6102 Management salaries, 6025 → 6105 Misc labor,
+  6115 → 6040 Cash Short, 6900 Income from rubber dust sales → 4940 Rubber Dust Sales (REVENUE). A new versioned migration changes `account_code` by
+  `gl_account_id` and the copied `statement_line_mappings.account_name`; it edits no applied migration and deletes nothing. A seed test asserts each account
+  code is owned by exactly one seed file, so a repeatable seed's upsert can never rename another seed's account.
+- **Retread add-on:** the retread-plant accounts (6350, 6450, 6470, 6510, 6520, 6530, 4940) and their `LABOR_OVERHEAD` statement lines are applied only to a
+  tenant that runs a retread plant, as a tenant-setup choice (CONTROLLER, ADMIN), never by default; every other account above is in every tenant's chart.
 - Stored as mapping keys `PETTY_EXPENSE_<CODE>` under `REGISTER_CASH_MOVEMENT`; add / relabel / deactivate with `accounting:mapping-key:create|edit|deactivate`;
   remap with `accounting:gl-mapping:create` (effective-dated, non-overlapping); CONTROLLER and ADMIN only. Codes are permanent; categories are deactivated,
   never deleted. No "Other". `accounting.petty-expense-category.changed` lets pos-order keep the cashier's picker (ADR-0044).
@@ -673,7 +692,7 @@ OpenAPI annotations and `@EmitEvent`, and **API Artifacts Sync** runs after ever
 | Vendor cash on delivery | listener on the close fact v2 → AP payment, method `CASH` (new), no gateway call | unapplied until the vendor's bill is allocated; Needs attention after N days |
 | Petty-expense categories | EXISTING mapping-key and gl-mapping endpoints under `REGISTER_CASH_MOVEMENT` | publishes `accounting.petty-expense-category.changed` |
 | Estimated due dates | in cash outlook and aged AP | never stored |
-| Seed | accounts 1080, 3000, 3900, 6100–6180; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`; tenant settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
+| Seed | accounts 1080, 3000, 3900, 6295, 6375, 6380 (AW30); renumbering migration 6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940; retread add-on per tenant; (CAD) 1250, 1260; subtypes `CASH_ON_HAND`, `TAX_RECOVERABLE`; posting categories `BANK_DEPOSIT`, `REGISTER_CASH_MOVEMENT`, `REGISTER_FLOAT`; tenant settings `AP_CLERK_APPROVAL_LIMIT`, `AP_AUTO_APPROVAL_LIMIT`, `AP_DEFAULT_TERMS`, `CASH_SAFETY_CUSHION` | repeatable seeds |
 | Status | `VendorBillStatus.AWAITING_APPROVAL`; `REJECTED` write path | DB check constraint |
 | Permissions | register and enforce the catalogued `accounting:ap:approve` and `accounting:ap:reject`; new `accounting:ap:approve_over_limit`, `accounting:ap_approval_policy:manage`, `accounting:deposit:create`, `accounting:deposit:reverse`, `accounting:float:manage` | registry + security catalog |
 | Events | `ACCOUNTING_PAYMENT_CUSTOMER_ASSIGN`, `ACCOUNTING_VENDOR_BILL_SUBMIT`, `ACCOUNTING_VENDOR_BILL_APPROVE`, `ACCOUNTING_VENDOR_BILL_REJECT`, `accounting.deposit.recorded`, `accounting.float.changed`, `accounting.petty-expense-category.changed` | event-type registry thresholds: `approval` / `write` |
@@ -924,7 +943,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW15 | Fixed drawer-movement reasons with postings; no free text, no Other | Accounting Domain Agent (delegated) | §4.6 |
 | AW16 | Float on the books: 1080 Register Float, fixed per register, Change float command | Accounting Domain Agent (delegated) | §4.6 |
 | AW17 | Go-live float against 3900 Opening Balance Equity, cleared to 3000 Owner's Equity | Accounting Domain Agent (delegated) | §4.6 |
-| AW18 | Eight petty-expense categories, each with a new expense account 6100–6180; never-allowed list; tax-included entry (US) | Accounting Domain Agent (delegated) | §4.6 |
+| AW18 | Nine petty-expense categories (repairs split into building and equipment), mapped to accounts per AW30; never-allowed list; tax-included entry (US) | Accounting Domain Agent (delegated) | §4.6 |
 | AW19 | Drawer limits configurable as allowed / amount per type, per tenant, per session running total; over/short tolerance joins; Order owns the settings | Platform owner (allowed / amount); details by the Accounting Domain Agent | §4.6 |
 | AW20 | Canadian input-tax recovery: 1250/1260, recovery flag, copied amounts, $100 registration-number rule, category recoverable % (meals 50%) | Accounting Domain Agent (delegated); **pending confirmation by a Canadian accountant** | §4.7 |
 | AW21 | Intake formats by priority (v1 / v2 / later) and the minimal CSV columns | Research presented to the platform owner | §4.8 |
@@ -936,6 +955,8 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW27 | Vendor statements are reconciled by the AP clerk and post nothing; credits arrive as vendor credit notes through intake, never by adjusting an approved bill; partial payment of approved bills stays as it is | Accounting Domain Agent | §4.9 |
 | AW28 | EDI invoices are collected by pull; push would reverse architecture decision 7 and needs an ADR-0049 amendment and a dedicated authenticated ingress | Positivity (Integrations) Domain Agent; **platform owner confirms when choosing the EDI provider** | §4.8 |
 | AW29 | Inbound CFDI is an intake format (extraction worker → pos-accounting); outbound CFDI is pos-invoice's; the two share at most a non-deployed schema library; one later ADR amendment places SAT/PAC validation for both directions (one connector) | Same three agents | §4.8, §4.9 |
+| AW30 | Expense range plan 6000–6999; petty categories post to 6340, 6430, 6370, 6210, 6410 and new 6380, 6375, 6295; existing accounts renumbered (6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940) by a new migration; the retread add-on is a tenant-setup choice | Accounting Domain Agent (the platform owner delegated the numbers and allowed renumbering: no real data) | §4.6, §7.1 |
+| AW31 | Sign-offs given: Order (customer required at checkout, R11.2 reversed; cart-customer change and tendered amount; fixed drawer reasons, allowed / amount limits, manager approval; opening float from configuration), Security (roles `ACCOUNTING_CLERK` and `GENERAL_MANAGER`; `accounting:ap:approve` / `accounting:ap:reject` reinstated; manager approval at a shared register by a **step-up endpoint** returning a single-use approval token, no second sign-in), CRM (CASH house account), Invoicing & Payments (missing customer refused; `PaymentSettledV1.partyId` required, schema 2), Inventory (only mapped, active vendors are purchase candidates; admin maintains the mapping) | Platform owner | §4.4, §4.6, §7.2, §7.3 |
 
 ---
 
@@ -952,7 +973,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 
 ### 11.1 Stories (capability CAP:550, louisburroughs/durion#550)
 
-Cut on 2026-10-05. Each story records its own open points under "Dependencies" and "Spec discrepancy". Two stories were added while cutting:
+Cut on 2026-10-05. Each story records its own open points under "Dependencies" and "Spec discrepancy". Three stories were added while cutting:
 S35 (report and payment prerequisites the frontend needs) and S37 (pos-accounting provisions each new tenant on `tenant.created`; every seed
 binds only the default tenant today). S36 makes pos-inventory name pos-supplier vendors.
 
@@ -1009,7 +1030,7 @@ Clarifications: C1 vendor-bill posting (OI-2, OI-3) louisburroughs/durion#551 ·
 | OI-2 | Reconcile the two vendor-bill GL posting triggers (goods-receipt bills post at creation; EDI bills are meant to post at approval but don't) and confirm their accounts | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
 | OI-3 | Seed or tenant-publish posting rules for `VENDOR_BILL_GL_POSTING` and `AP_PAYMENT_GL_POSTING` (today `NO_RULE_VERSION` without them) | Accounting Domain Agent — **blocks Phase 3** (louisburroughs/durion#551) |
 | OI-4 | Canadian accountant confirmation of the 50% meals rule, the $100/$500 thresholds and PST treatment | Platform owner (Phase 6 questions: louisburroughs/durion#553) |
-| OI-5 | Sign-offs: Order (R11.2 reversal, checkout rule, movement reasons, float, R6.1 replacement); CRM (house account); Invoicing & Payments (backstops, `PaymentSettledV1` contract, reassignment of a finalized invoice); Security (roles, permissions) | Domain agents |
+| OI-5 | **Signed off 2026-10-05 (AW31)** by the platform owner for Order, CRM, Invoicing & Payments, Security and Inventory. Still open: reassignment of a finalized invoice to another customer (Invoicing & Payments) | Platform owner |
 | OI-6 | Safety cushion: tenant setting name, who may set it (proposed `accounting:ap_approval_policy:manage` holders) and whether it raises a home-pane warning only or also a notification | Platform owner |
 | OI-7 | True 2-way / 3-way purchase-order matching (the "Ordered" column) | Accounting + Order |
 | OI-8 | Intake path for unidentified customer receipts (bank credit or mailed check) and the `assign-customer` endpoint | Accounting Domain Agent |
