@@ -325,7 +325,7 @@ The close fact gains per-movement detail (`RegisterSessionClosedV1` v2, or a per
   `accounting:float:manage`, justification; a second attempt → 409 `FLOAT_ALREADY_ESTABLISHED`; correction = reverse and re-run. The accountant later clears
   3900 into **3000 Owner's Equity** (new; remappable to the legal form) by manual journal entry; period close warns while 3900 ≠ 0.
 
-**Petty-expense categories** (AW18, numbered by AW30; Accounting owns the categories and their accounts). Five categories post to accounts the chart
+**Petty-expense categories** (AW18, numbered by AW30; Accounting owns the categories and their accounts). Six categories post to accounts the chart
 already has; three accounts are new:
 
 | Category (permanent code) | Account (`EXPENSE` / `OPERATING_EXPENSE`) |
@@ -955,7 +955,7 @@ Durion Positivity design system: `--themeBackground` page, `.card`, `.inset`, `.
 | AW27 | Vendor statements are reconciled by the AP clerk and post nothing; credits arrive as vendor credit notes through intake, never by adjusting an approved bill; partial payment of approved bills stays as it is | Accounting Domain Agent | §4.9 |
 | AW28 | EDI invoices are collected by pull; push would reverse architecture decision 7 and needs an ADR-0049 amendment and a dedicated authenticated ingress | Positivity (Integrations) Domain Agent; **platform owner confirms when choosing the EDI provider** | §4.8 |
 | AW29 | Inbound CFDI is an intake format (extraction worker → pos-accounting); outbound CFDI is pos-invoice's; the two share at most a non-deployed schema library; one later ADR amendment places SAT/PAC validation for both directions (one connector) | Same three agents | §4.8, §4.9 |
-| AW30 | Expense range plan 6000–6999; petty categories post to 6340, 6430, 6370, 6210, 6410 and new 6380, 6375, 6295; existing accounts renumbered (6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940) by a new migration; the retread add-on is a tenant-setup choice | Accounting Domain Agent (the platform owner delegated the numbers and allowed renumbering: no real data) | §4.6, §7.1 |
+| AW30 | Expense range plan 6000–6999; petty categories post to existing 6340, 6430, 6370, 6210, 6410, 6250 and new 6380, 6375, 6295; existing accounts renumbered (6010→6100, 6015→6102, 6025→6105, 6115→6040, 6900→4940) by a new migration; the retread add-on is a tenant-setup choice | Accounting Domain Agent (the platform owner delegated the numbers and allowed renumbering: no real data) | §4.6, §7.1 |
 | AW31 | Sign-offs given: Order (customer required at checkout, R11.2 reversed; cart-customer change and tendered amount; fixed drawer reasons, allowed / amount limits, manager approval; opening float from configuration), Security (roles `ACCOUNTING_CLERK` and `GENERAL_MANAGER`; `accounting:ap:approve` / `accounting:ap:reject` reinstated; manager approval at a shared register by a **step-up endpoint** returning a single-use approval token, no second sign-in), CRM (CASH house account), Invoicing & Payments (missing customer refused; `PaymentSettledV1.partyId` required, schema 2), Inventory (only mapped, active vendors are purchase candidates; admin maintains the mapping) | Platform owner | §4.4, §4.6, §7.2, §7.3 |
 
 ---
