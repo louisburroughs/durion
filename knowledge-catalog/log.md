@@ -1,5 +1,11 @@
 # Directory Update Log
 
+## 2026-10-05
+
+* **Updated**: `domains/accounting.md` indexes the new accounting workspace specification
+  `domains/accounting/SPEC-accounting-workspace.md` (81 documents). Only that entry was regenerated; timestamp drift in unrelated
+  entries and a new backend module (`pos-kafka-common`) were left for a full regeneration.
+
 ## 2026-10-03
 
 * **Structure**: `backend/` gains `pos-platform-sender` (the FI-2 email/SMS sender, SES and End User Messaging), pinned to
