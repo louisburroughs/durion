@@ -7,7 +7,7 @@ path: durion/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md
 tags: [adr]
 status: draft
 sources: [docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md]
-generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T16:41:55+00:00'}
+generated: {by: 'script:generate-knowledge-catalog.py', at: '2026-10-05T17:43:49+00:00'}
 ---
 
 [Canonical ADR](https://github.com/louisburroughs/durion/blob/master/docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md) — `docs/adr/0070-bill-intake-ownership-and-vendor-master.adr.md`
