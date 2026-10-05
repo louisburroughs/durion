@@ -106,9 +106,10 @@ never heard back and the purchase order stayed `REQUESTED`. ADR-0044 §4 require
 (`SUPPLIER_NOT_CONFIGURED`), `detail`, `requestedRevision`, `commandEventId` (the answered command's event id) and `occurredAt`. The aggregate id and Kafka key are the
 purchase-order id and the aggregate version is the requested revision, because no transmission intent exists to key by.
 
-**Why a new type, not `supplier.order.rejected`.** Rejected means the vendor refused a document it received; its payload requires the intent, vendor-profile and document ids,
-none of which exist here. Relaxing those to nullable is not an additive change under ADR-0044 §3: a consumer on the old schema would fail to read the event and drop it. A
-not-dispatched order is also a different, re-sendable state for pos-order (`NOT_DISPATCHED`), not a vendor refusal.
+**Why a new type, not `supplier.order.rejected`.** Every `supplier.order.rejected` outcome (vendor refusal, `MANUAL_NOT_RECEIVED`, `MANUAL_CANCELLED`) belongs to a
+transmission that was minted: its payload requires the transmission-intent and document ids. A command pos-supplier refuses to dispatch has neither, and a never-configured
+supplier has no vendor-profile id either. Relaxing those fields to nullable is not an additive change under ADR-0044 §3: a consumer on the old schema would fail to read the
+event and drop it. The order is also in a different, re-sendable state for pos-order (`NOT_DISPATCHED`).
 
 **Rules.** pos-supplier writes the answer in the same transaction that marks the command processed. pos-order applies it only while the purchase order is `REQUESTED` at the
 same revision and ignores it otherwise; the different partition key from the other result events makes that guard required. pos-order deploys the consumer before
